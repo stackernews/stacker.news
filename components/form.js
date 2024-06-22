@@ -33,7 +33,6 @@ import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
 import { InvoiceCanceledError, usePayment } from './payment'
 import { useMe } from './me'
-import { optimisticUpdate } from '@/lib/apollo'
 import { useClientNotifications } from './client-notifications'
 import { ActCanceledError } from './item-act'
 
@@ -121,7 +120,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const imageUploadRef = useRef(null)
   const previousTab = useRef(tab)
   const { merge, setDisabled: setSubmitDisabled } = useFeeButton()
-  const toaster = useToast()
+
   const [updateImageFeesInfo] = useLazyQuery(gql`
     query imageFeesInfo($s3Keys: [Int]!) {
       imageFeesInfo(s3Keys: $s3Keys) {
@@ -135,7 +134,6 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     nextFetchPolicy: 'no-cache',
     onError: (err) => {
       console.error(err)
-      toaster.danger(`unabled to get image fees: ${err.message || err.toString?.()}`)
     },
     onCompleted: ({ imageFeesInfo }) => {
       merge({
@@ -805,7 +803,7 @@ const StorageKeyPrefixContext = createContext()
 export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately,
   storageKeyPrefix, validateOnChange = true, prepaid, requireSession, innerRef,
-  optimisticUpdate: optimisticUpdateArgs, clientNotification, signal, ...props
+  optimisticUpdate, clientNotification, signal, ...props
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
@@ -845,9 +843,7 @@ export function Form ({
           throw new SessionRequiredError()
         }
 
-        if (optimisticUpdateArgs) {
-          revert = optimisticUpdate(optimisticUpdateArgs(variables))
-        }
+        revert = optimisticUpdate?.(variables)
 
         await signal?.pause({ me, amount })
 
@@ -866,8 +862,6 @@ export function Form ({
         clearLocalStorage(values)
       }
     } catch (err) {
-      revert?.()
-
       if (err instanceof InvoiceCanceledError || err instanceof ActCanceledError) {
         return
       }
@@ -881,6 +875,7 @@ export function Form ({
 
       cancel?.()
     } finally {
+      revert?.()
       // if we reach this line, the submit either failed or was successful so we can remove the pending notification.
       // if we don't reach this line, the page was probably reloaded and we can use the pending notification
       // stored in localStorage to handle this case.

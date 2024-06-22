@@ -186,6 +186,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             } catch {
               // ignore invalid URLs
             }
+
             const internalURL = process.env.NEXT_PUBLIC_URL
             if (!!text && !/^https?:\/\//.test(text)) {
               if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
@@ -210,6 +211,19 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                   </UserPopover>
                 )
               } else if (href.startsWith('/') || url?.origin === internalURL) {
+                try {
+                  const { linkText } = parseInternalLinks(href)
+                  if (linkText) {
+                    return (
+                      <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
+                        <Link href={href}>{text}</Link>
+                      </ItemPopover>
+                    )
+                  }
+                } catch {
+                  // ignore errors like invalid URLs
+                }
+
                 return (
                   <Link
                     id={props.id}
@@ -226,7 +240,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             }
 
             try {
-              const linkText = parseInternalLinks(href)
+              const { linkText } = parseInternalLinks(href)
               if (linkText) {
                 return (
                   <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
@@ -244,39 +258,51 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
               paddingRight: '15px'
             }
 
-            try {
-              const { provider, id, meta } = parseEmbedUrl(href)
-              // Youtube video embed
-              if (provider === 'youtube') {
-                return (
-                  <div style={videoWrapperStyles}>
-                    <YouTube
-                      videoId={id} className={styles.videoContainer} opts={{
-                        playerVars: {
-                          start: meta?.start || 0
-                        }
-                      }}
+            const { provider, id, meta } = parseEmbedUrl(href)
+            // Youtube video embed
+            if (provider === 'youtube') {
+              return (
+                <div style={videoWrapperStyles}>
+                  <YouTube
+                    videoId={id} className={styles.videoContainer} opts={{
+                      playerVars: {
+                        start: meta?.start || 0
+                      }
+                    }}
+                  />
+                </div>
+              )
+            }
+
+            // Rumble video embed
+            if (provider === 'rumble') {
+              return (
+                <div style={videoWrapperStyles}>
+                  <div className={styles.videoContainer}>
+                    <iframe
+                      title='Rumble Video'
+                      allowFullScreen
+                      src={meta?.href}
+                      sandbox='allow-scripts'
                     />
                   </div>
-                )
-              }
+                </div>
+              )
+            }
 
-              // Rumble video embed
-              if (provider === 'rumble') {
-                return (
-                  <div style={videoWrapperStyles}>
-                    <div className={styles.videoContainer}>
-                      <iframe
-                        title='Rumble Video'
-                        allowFullScreen=''
-                        src={meta?.href}
-                      />
-                    </div>
+            if (provider === 'peertube') {
+              return (
+                <div style={videoWrapperStyles}>
+                  <div className={styles.videoContainer}>
+                    <iframe
+                      title='PeerTube Video'
+                      allowFullScreen
+                      src={meta?.href}
+                      sandbox='allow-scripts'
+                    />
                   </div>
-                )
-              }
-            } catch {
-            // ignore invalid URLs
+                </div>
+              )
             }
 
             // assume the link is an image which will fallback to link if it's not

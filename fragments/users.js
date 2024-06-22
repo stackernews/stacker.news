@@ -37,6 +37,7 @@ export const ME = gql`
         noteItemSats
         noteJobIndicator
         noteMentions
+        noteItemMentions
         sats
         tipDefault
         tipPopover
@@ -72,6 +73,7 @@ export const SETTINGS_FIELDS = gql`
       noteEarning
       noteAllDescendants
       noteMentions
+      noteItemMentions
       noteDeposits
       noteWithdrawals
       noteJobIndicator

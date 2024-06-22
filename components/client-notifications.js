@@ -2,9 +2,9 @@ import { useApolloClient } from '@apollo/client'
 import { useMe } from './me'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { datePivot, timeSince } from '@/lib/time'
-import { ANON_USER_ID, JIT_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { USER_ID, JIT_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { HAS_NOTIFICATIONS } from '@/fragments/notifications'
-import Item from './item'
+import Item, { ItemSkeleton } from './item'
 import { RootProvider } from './root'
 import Comment from './comment'
 
@@ -25,7 +25,7 @@ export function ClientNotificationProvider ({ children }) {
   const me = useMe()
   // anons don't have access to /notifications
   // but we'll store client notifications anyway for simplicity's sake
-  const storageKey = `client-notifications:${me?.id || ANON_USER_ID}`
+  const storageKey = `client-notifications:${me?.id || USER_ID.anon}`
 
   useEffect(() => {
     const loaded = loadNotifications(storageKey, client)
@@ -103,7 +103,7 @@ function ClientNotification ({ n, message }) {
         <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       </small>
       {!n.item
-        ? null
+        ? <ItemSkeleton />
         : n.item.title
           ? <Item item={n.item} />
           : (

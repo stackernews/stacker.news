@@ -66,17 +66,18 @@ const abbrNum = n => {
   if (n >= 1e12) return +(n / 1e12).toFixed(1) + 't'
 }
 
-async function bountyWinner (q) {
-  const BOUNTY = gql`
-  query Search($q: String, $sort: String, $what: String, $when: String) {
-    search(q: $q, sort: $sort, what: $what, when: $when) {
-      items {
-        id
-        bountyPaidTo
-      }
+const SEARCH = gql`
+query Search($q: String, $sort: String, $what: String, $when: String) {
+  search(q: $q, sort: $sort, what: $what, when: $when) {
+    items {
+      id
+      title
+      bountyPaidTo
     }
-  }`
+  }
+}`
 
+async function bountyWinner (q) {
   const WINNER = gql`
     query Item($id: ID!) {
       item(id: $id) {
@@ -90,7 +91,7 @@ async function bountyWinner (q) {
     }`
 
   const bounty = await client.query({
-    query: BOUNTY,
+    query: SEARCH,
     variables: { q: `${q} @sn`, sort: 'recent', what: 'posts', when: 'week' }
   })
 
@@ -157,6 +158,11 @@ async function main () {
     variables: { sub: 'jobs' }
   })
 
+  const thisDay = await client.query({
+    query: SEARCH,
+    variables: { q: 'This Day in Stacker News @Undisciplined', sort: 'recent', what: 'posts', when: 'week' }
+  })
+
   const topMeme = await bountyWinner('meme monday')
   const topFact = await bountyWinner('fun fact')
 
@@ -185,6 +191,15 @@ ${top.data.items.items.map((item, i) =>
 ##### Top meta
 ${meta.data.items.items.slice(0, 10).map((item, i) =>
   `- [${item.title}](https://stacker.news/items/${item.id})\n`).join('')}
+
+##### This day in Stacker News
+
+*a series by [@Undisciplined](https://stacker.news/Undisciplined)*
+
+${[...thisDay.data.search.items].reverse().map((item, i) =>
+  `- [${item.title}](https://stacker.news/items/${item.id})\n`).join('')}
+
+[**all meta**](https://stacker.news/~meta/top/posts/week)
 
 -------
 

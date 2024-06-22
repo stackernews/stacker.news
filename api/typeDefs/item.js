@@ -46,7 +46,6 @@ export default gql`
     id: ID,
     option: String!
     count: Int!
-    meVoted: Boolean!
   }
 
   type Poll {

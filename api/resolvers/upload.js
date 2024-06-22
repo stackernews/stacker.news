@@ -1,5 +1,5 @@
 import { GraphQLError } from 'graphql'
-import { ANON_USER_ID, IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_SIZE_MAX_AVATAR, UPLOAD_TYPES_ALLOW } from '@/lib/constants'
+import { USER_ID, IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_SIZE_MAX_AVATAR, UPLOAD_TYPES_ALLOW } from '@/lib/constants'
 import { createPresignedPost } from '@/api/s3'
 
 export default {
@@ -26,7 +26,7 @@ export default {
         size,
         width,
         height,
-        userId: me?.id || ANON_USER_ID,
+        userId: me?.id || USER_ID.anon,
         paid: false
       }
 

@@ -36,13 +36,8 @@ import { ITEM_FULL } from '@/fragments/items'
 function Notification ({ n, fresh }) {
   const type = n.__typename
 
-  // we need to resolve item id to item to show item for client notifications
-  const { data } = useQuery(ITEM_FULL, { variables: { id: n.itemId }, skip: !n.itemId })
-  const item = data?.item
-  const itemN = { item, ...n }
-
   return (
-    <NotificationLayout nid={nid(n)} {...defaultOnClick(itemN)} fresh={fresh}>
+    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)} fresh={fresh}>
       {
         (type === 'Earn' && <EarnNotification n={n} />) ||
         (type === 'Revenue' && <RevenueNotification n={n} />) ||
@@ -54,6 +49,7 @@ function Notification ({ n, fresh }) {
         (type === 'Votification' && <Votification n={n} />) ||
         (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
+        (type === 'ItemMention' && <ItemMention n={n} />) ||
         (type === 'JobChanged' && <JobChanged n={n} />) ||
         (type === 'Reply' && <Reply n={n} />) ||
         (type === 'SubStatus' && <SubStatus n={n} />) ||
@@ -61,12 +57,23 @@ function Notification ({ n, fresh }) {
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
         (type === 'Reminder' && <Reminder n={n} />) ||
-        ([ClientTypes.Zap.ERROR, ClientTypes.Zap.PENDING].includes(type) && <ClientZap n={itemN} />) ||
-        ([ClientTypes.Reply.ERROR, ClientTypes.Reply.PENDING].includes(type) && <ClientReply n={itemN} />) ||
-        ([ClientTypes.Bounty.ERROR, ClientTypes.Bounty.PENDING].includes(type) && <ClientBounty n={itemN} />) ||
-        ([ClientTypes.PollVote.ERROR, ClientTypes.PollVote.PENDING].includes(type) && <ClientPollVote n={itemN} />)
+          <ClientNotification n={n} />
       }
     </NotificationLayout>
+  )
+}
+
+function ClientNotification ({ n }) {
+  // we need to resolve item id to item to show item for client notifications
+  const { data } = useQuery(ITEM_FULL, { variables: { id: n.itemId }, skip: !n.itemId })
+  const item = data?.item
+  const itemN = { item, ...n }
+
+  return (
+    ([ClientTypes.Zap.ERROR, ClientTypes.Zap.PENDING].includes(n.__typename) && <ClientZap n={itemN} />) ||
+        ([ClientTypes.Reply.ERROR, ClientTypes.Reply.PENDING].includes(n.__typename) && <ClientReply n={itemN} />) ||
+        ([ClientTypes.Bounty.ERROR, ClientTypes.Bounty.PENDING].includes(n.__typename) && <ClientBounty n={itemN} />) ||
+        ([ClientTypes.PollVote.ERROR, ClientTypes.PollVote.PENDING].includes(n.__typename) && <ClientPollVote n={itemN} />)
   )
 }
 
@@ -384,6 +391,26 @@ function Mention ({ n }) {
             <div className='pb-2'>
               <RootProvider root={n.item.root}>
                 <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
+              </RootProvider>
+            </div>)}
+      </div>
+    </>
+  )
+}
+
+function ItemMention ({ n }) {
+  return (
+    <>
+      <small className='fw-bold text-info ms-2'>
+        your item was mentioned in
+      </small>
+      <div>
+        {n.item?.title
+          ? <Item item={n.item} />
+          : (
+            <div className='pb-2'>
+              <RootProvider root={n.item.root}>
+                <Comment item={n.item} noReply includeParent rootText='replying on:' clickToContext />
               </RootProvider>
             </div>)}
       </div>

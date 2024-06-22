@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import styles from './item.module.css'
 import UpVote from './upvote'
-import { useRef } from 'react'
-import { AD_USER_ID, UNKNOWN_LINK_REL } from '@/lib/constants'
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
+import { USER_ID, UNKNOWN_LINK_REL } from '@/lib/constants'
 import Pin from '@/svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
 import PollIcon from '@/svgs/bar-chart-horizontal-fill.svg'
@@ -45,6 +45,52 @@ export function SearchTitle ({ title }) {
   })
 }
 
+const ItemContext = createContext({
+  pendingSats: 0,
+  setPendingSats: undefined,
+  pendingVote: undefined,
+  setPendingVote: undefined,
+  pendingDownSats: 0,
+  setPendingDownSats: undefined
+})
+
+export const ItemContextProvider = ({ children }) => {
+  const parentCtx = useItemContext()
+  const [pendingSats, innerSetPendingSats] = useState(0)
+  const [pendingCommentSats, innerSetPendingCommentSats] = useState(0)
+  const [pendingVote, setPendingVote] = useState()
+  const [pendingDownSats, setPendingDownSats] = useState(0)
+
+  // cascade comment sats up to root context
+  const setPendingSats = useCallback((sats) => {
+    innerSetPendingSats(sats)
+    parentCtx?.setPendingCommentSats?.(sats)
+  }, [parentCtx?.setPendingCommentSats])
+
+  const setPendingCommentSats = useCallback((sats) => {
+    innerSetPendingCommentSats(sats)
+    parentCtx?.setPendingCommentSats?.(sats)
+  }, [parentCtx?.setPendingCommentSats])
+
+  const value = useMemo(() =>
+    ({
+      pendingSats,
+      setPendingSats,
+      pendingCommentSats,
+      setPendingCommentSats,
+      pendingVote,
+      setPendingVote,
+      pendingDownSats,
+      setPendingDownSats
+    }),
+  [pendingSats, setPendingSats, pendingCommentSats, setPendingCommentSats, pendingVote, setPendingVote, pendingDownSats, setPendingDownSats])
+  return <ItemContext.Provider value={value}>{children}</ItemContext.Provider>
+}
+
+export const useItemContext = () => {
+  return useContext(ItemContext)
+}
+
 export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments, onQuoteReply, pinnable }) {
   const titleRef = useRef()
   const router = useRouter()
@@ -52,7 +98,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
   const image = item.url && item.url.startsWith(process.env.NEXT_PUBLIC_IMGPROXY_URL)
 
   return (
-    <>
+    <ItemContextProvider>
       {rank
         ? (
           <div className={styles.rank}>
@@ -60,13 +106,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
           </div>)
         : <div />}
       <div className={`${styles.item} ${siblingComments ? 'pt-3' : ''}`}>
-        {item.position && (pinnable || !item.subName)
-          ? <Pin width={24} height={24} className={styles.pin} />
-          : item.meDontLikeSats > item.meSats
-            ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
-            : Number(item.user?.id) === AD_USER_ID
-              ? <AdIcon width={24} height={24} className={styles.ad} />
-              : <UpVote item={item} className={styles.upvote} />}
+        <ZapIcon item={item} pinnable={pinnable} />
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
             <Link
@@ -99,7 +139,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
             full={full} item={item}
             onQuoteReply={onQuoteReply}
             pinnable={pinnable}
-            extraBadges={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
+            extraBadges={Number(item?.user?.id) === USER_ID.ad && <Badge className={styles.newComment} bg={null}>AD</Badge>}
           />
           {belowTitle}
         </div>
@@ -110,7 +150,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
           {children}
         </div>
       )}
-    </>
+    </ItemContextProvider>
   )
 }
 
@@ -130,7 +170,7 @@ export function ItemSummary ({ item }) {
       item={item}
       showUser={false}
       showActionDropdown={false}
-      extraBadges={item.title && Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
+      extraBadges={item.title && Number(item?.user?.id) === USER_ID.ad && <Badge className={styles.newComment} bg={null}>AD</Badge>}
     />
   )
 
@@ -186,6 +226,21 @@ export function ItemSkeleton ({ rank, children, showUpvote = true }) {
       )}
     </>
   )
+}
+
+function ZapIcon ({ item, pinnable }) {
+  const { pendingSats, pendingDownSats } = useItemContext()
+
+  const meSats = item.meSats + pendingSats
+  const downSats = item.meDontLikeSats + pendingDownSats
+
+  return item.position && (pinnable || !item.subName)
+    ? <Pin width={24} height={24} className={styles.pin} />
+    : downSats > meSats
+      ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
+      : Number(item.user?.id) === USER_ID.ad
+        ? <AdIcon width={24} height={24} className={styles.ad} />
+        : <UpVote item={item} className={styles.upvote} />
 }
 
 function PollIndicator ({ item }) {

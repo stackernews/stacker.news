@@ -1185,7 +1185,7 @@ export default {
 }
 
 const namePattern = /\B@[\w_]+/gi
-const refPattern = new RegExp(`${process.env.NEXT_PUBLIC_URL}/items/\\d+.*`, 'gi')
+const refPattern = new RegExp(`${process.env.NEXT_PUBLIC_URL}/items/\\d+[a-zA-Z0-9/?=]*`, 'gi')
 
 export const createMentions = async (item, models) => {
   // if we miss a mention, in the rare circumstance there's some kind of

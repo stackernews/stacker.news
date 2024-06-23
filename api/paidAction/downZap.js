@@ -51,31 +51,21 @@ export async function onPaid ({ invoice, actId }, { tx }) {
   const msats = BigInt(itemAct.msats)
   const sats = msats / BigInt(1000)
 
-  // XXX this is vulnerable to serialization anomalies in the case of multiple zaps from the same user
-  // see ./zap.js for more info
+  // denormalize downzaps
   await tx.$executeRaw`
-    WITH zapper AS (
-      SELECT * FROM users WHERE id = ${itemAct.userId}
-    ), zapped AS (
-      SELECT COALESCE(SUM("ItemAct".msats) / 1000, 0)  as sats
-      FROM "ItemAct"
-      WHERE "ItemAct"."userId" = ${itemAct.userId}
-      AND "ItemAct"."itemId" = ${itemAct.itemId}
-      AND "ItemAct".id <> ${itemAct.id}
-      AND act IN ('DONT_LIKE_THIS')
-      AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
-    ), zap AS (
-      SELECT (zapper.trust *
-        CASE WHEN zapped.sats = 0
-          THEN LOG(${sats})
-          ELSE LOG((zapped.sats + ${sats}) / zapped.sats)
-        END) AS weighted_down_vote
-      FROM zapper, zapped
-    )
-    UPDATE "Item"
-    SET "weightedDownVotes" = "weightedDownVotes" + zap.weighted_down_vote
-    FROM zap
-    WHERE id = ${itemAct.itemId}`
+  WITH zapper AS (
+    SELECT trust FROM users WHERE id = ${itemAct.userId}
+  ), zap AS (
+    INSERT INTO "ItemUserAgg" ("userId", "itemId", "downZapSats")
+    VALUES (${itemAct.userId}, ${itemAct.itemId}, ${sats})
+    ON CONFLICT ("itemId", "userId") DO UPDATE
+    SET "downZapSats" = "ItemUserAgg"."downZapSats" + ${sats}, updated_at = now()
+    RETURNING LOG("downZapSats" / GREATEST("downZapSats" - ${sats}, 1)::FLOAT) AS log_sats
+  )
+  UPDATE "Item"
+  SET "weightedDownVotes" = "weightedDownVotes" + (zapper.trust * zap.log_sats)
+  FROM zap, zapper
+  WHERE "Item".id = ${itemAct.itemId}`
 }
 
 export async function onFail ({ invoice }, { tx }) {

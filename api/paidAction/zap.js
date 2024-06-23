@@ -85,68 +85,46 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
     SET msats = msats + ${itemAct.msats} - (SELECT msats FROM total_forwarded)
     WHERE id = ${itemAct.item.userId}`
 
-  // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt, bountyPaidTo
-  // XXX this is vulnerable to serialization anomalies in the case of multiple zaps from the same user
-  // on the same item at the exact same time
-  // basically, in read committed, the select subqueries will see a different snapshot than update if
-  // the update conflicts with another update and new rows are inserted while the update is blocked
-  // e.g. it's possible that our aggregates in the zapped CTE will be stale, as we can't lock the aggregate
-  // ... other than changing the isolation level, we could:
-  // 1. store the aggregate zap from a user on an item in a separate table that can be locked `FOR UPDATE`
-  // 2. store the aggregate zap from a user in a jsonb column on the item
-  // 3. we can abort the transaction and retry if we detect a serialization anomaly
-  // 4. we can take a transaction level lock on pg_advisory_xact_lock (itemId, userId)
-  // see: https://stackoverflow.com/questions/61781595/postgres-read-commited-doesnt-re-read-updated-row?noredirect=1#comment109279507_61781595
-  // or: https://www.cybertec-postgresql.com/en/transaction-anomalies-with-select-for-update/
+  // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt
+  // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
   await tx.$executeRaw`
     WITH zapper AS (
-      SELECT * FROM users WHERE id = ${itemAct.userId}
-    ), zapped AS (
-      SELECT COALESCE(SUM("ItemAct".msats) / 1000, 0)  as sats
-      FROM "ItemAct"
-      WHERE "ItemAct"."userId" = ${itemAct.userId}
-      AND "ItemAct"."itemId" = ${itemAct.itemId}
-      AND NOT "ItemAct".id = ANY (${actIds})
-      AND act IN ('TIP', 'FEE')
-      AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
+      SELECT trust FROM users WHERE id = ${itemAct.userId}
     ), zap AS (
-      SELECT (zapper.trust *
-        CASE WHEN zapped.sats = 0
-          THEN LOG(${sats})
-          ELSE LOG((zapped.sats + ${sats}) / zapped.sats)
-        END) AS weighted_vote,
-        CASE WHEN zapped.sats = 0 THEN 1 ELSE 0 END AS first_vote
-      FROM zapper, zapped
+      INSERT INTO "ItemUserAgg" ("userId", "itemId", "zapSats")
+      VALUES (${itemAct.userId}, ${itemAct.itemId}, ${sats})
+      ON CONFLICT ("itemId", "userId") DO UPDATE
+      SET "zapSats" = "ItemUserAgg"."zapSats" + ${sats}, updated_at = now()
+      RETURNING ("zapSats" = ${sats})::INTEGER as first_vote,
+        LOG("zapSats" / GREATEST("zapSats" - ${sats}, 1)::FLOAT) AS log_sats
     )
     UPDATE "Item"
     SET
-      "weightedVotes" = "weightedVotes" + zap.weighted_vote,
+      "weightedVotes" = "weightedVotes" + (zapper.trust * zap.log_sats),
       upvotes = upvotes + zap.first_vote,
-      msats = msats + ${msats},
+      msats = "Item".msats + ${msats},
       "lastZapAt" = now()
-    FROM zap
-    WHERE id = ${itemAct.itemId}`
+    FROM zap, zapper
+    WHERE "Item".id = ${itemAct.itemId}`
 
-  // pay bounty ... also vulnerable to serialization anomalies
+  // record potential bounty payment
+  // NOTE: we are at least guaranteed that we see the update "ItemUserAgg" from our tx so we can trust
+  // we won't miss a zap that aggregates into a bounty payment, regardless of the order of updates
   await tx.$executeRaw`
     WITH bounty AS (
-      SELECT root.id, COALESCE(SUM("ItemAct".msats) / 1000, 0) >= root.bounty AS paid, "ItemAct"."itemId" AS target
-      FROM "ItemAct"
-      JOIN "Item" ON "Item".id = "ItemAct"."itemId"
+      SELECT root.id, "ItemUserAgg"."zapSats" >= root.bounty AS paid, "ItemUserAgg"."itemId" AS target
+      FROM "ItemUserAgg"
+      JOIN "Item" ON "Item".id = "ItemUserAgg"."itemId"
       LEFT JOIN "Item" root ON root.id = "Item"."rootId"
-      WHERE "ItemAct"."userId" = ${itemAct.userId}
-      AND "ItemAct"."itemId" = ${itemAct.itemId}
+      WHERE "ItemUserAgg"."userId" = ${itemAct.userId}
+      AND "ItemUserAgg"."itemId" = ${itemAct.itemId}
       AND root."userId" = ${itemAct.userId}
       AND root.bounty IS NOT NULL
-      AND act IN ('TIP', 'FEE')
-      AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
-      GROUP BY root.id, "ItemAct"."itemId"
     )
     UPDATE "Item"
     SET "bountyPaidTo" = array_remove(array_append(array_remove("bountyPaidTo", bounty.target), bounty.target), NULL)
     FROM bounty
-    WHERE "Item".id = bounty.id
-    AND bounty.paid`
+    WHERE "Item".id = bounty.id AND bounty.paid`
 
   // update commentMsats on ancestors
   await tx.$executeRaw`

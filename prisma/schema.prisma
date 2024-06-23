@@ -126,6 +126,7 @@ model User {
   walletLogs                WalletLog[]
   Reminder                  Reminder[]
   PollBlindVote             PollBlindVote[]
+  ItemUserAgg               ItemUserAgg[]
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -436,6 +437,7 @@ model Item {
   Reminder           Reminder[]
   invoice            Invoice?              @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   PollBlindVote      PollBlindVote[]
+  ItemUserAgg        ItemUserAgg[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -455,6 +457,30 @@ model Item {
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
   @@index([invoiceId])
+}
+
+// we use this to denormalize a user's aggregated interactions (zaps) with an item
+// we need to do this to safely modify the aggregates in a read committed transaction
+// because we can't lock an aggregate query to guard a potentially conflicting update
+// (e.g. sum("ItemAct".msats), but we can lock a row where we store the aggregate
+// this is important because zaps do not update "weightedVotes" linearly
+// see: https://stackoverflow.com/questions/61781595/postgres-read-commited-doesnt-re-read-updated-row?noredirect=1#comment109279507_61781595
+// or: https://www.cybertec-postgresql.com/en/transaction-anomalies-with-select-for-update/
+model ItemUserAgg {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  itemId      Int
+  userId      Int
+  zapSats     BigInt   @default(0)
+  downZapSats BigInt   @default(0)
+  item        Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, userId])
+  @@index([itemId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 // this is a denomalized table that is used to make reply notifications

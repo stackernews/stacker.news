@@ -222,6 +222,7 @@ export async function retryPaidAction (actionType, args, context) {
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 }
 
+// TODO: switch these back before going to production
 const OPTIMISTIC_INVOICE_EXPIRE = { seconds: 10 } // { hours: 1 }
 const PESSIMISTIC_INVOICE_EXPIRE = { seconds: 10 } // { minutes: 10 }
 

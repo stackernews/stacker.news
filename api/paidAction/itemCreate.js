@@ -29,6 +29,7 @@ export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio },
 export async function perform (args, context) {
   const { invoiceId, parentId, uploadIds = [], forwardUsers = [], options: pollOptions = [], boost = 0, ...data } = args
   const { tx, me, cost } = context
+  // TODO: use satsToMsats and msatsToSats for all these conversions
   const boostMsats = BigInt(boost) * BigInt(1000)
 
   let invoiceData = {}
@@ -188,7 +189,7 @@ export async function onPaid ({ invoice, id }, context) {
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', ${item.id}), 21, true, now() + interval '5 seconds')`
 
-  // todo: referals for boost
+  // TODO: referals for boost
 
   if (item.parentId) {
     // denormalize ncomments and "weightedComments" for ancestors, and insert into reply table

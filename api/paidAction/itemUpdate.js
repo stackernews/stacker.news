@@ -121,7 +121,7 @@ export async function perform (args, context) {
 
   await performBotBehavior(args, context)
 
-  // todo: referals for boost
+  // TODO: referals for boost
 
   // notify all the mentions if the mention is new
   for (const { userId, createdAt } of item.mentions) {

@@ -200,8 +200,10 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                 )
               }
               if (text.startsWith?.('@')) {
+                // user mention might be within a markdown link like this: [@user foo bar](url)
+                const name = text.replace('@', '').split(' ')[0]
                 return (
-                  <UserPopover name={text.replace('@', '')}>
+                  <UserPopover name={name}>
                     <Link
                       id={props.id}
                       href={href}

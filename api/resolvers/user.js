@@ -434,7 +434,8 @@ export default {
             confirmedAt: {
               gt: lastChecked
             },
-            isHeld: null
+            isHeld: null,
+            actionType: null
           }
         })
         if (invoice) {

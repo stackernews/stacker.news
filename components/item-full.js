@@ -106,8 +106,24 @@ function ItemEmbed ({ item }) {
         <div className={styles.videoContainer}>
           <iframe
             title='Rumble Video'
-            allowFullScreen=''
+            allowFullScreen
             src={meta?.href}
+            sandbox='allow-scripts'
+          />
+        </div>
+      </div>
+    )
+  }
+
+  if (provider === 'peertube') {
+    return (
+      <div className={styles.videoWrapper}>
+        <div className={styles.videoContainer}>
+          <iframe
+            title='PeerTube Video'
+            allowFullScreen
+            src={meta?.href}
+            sandbox='allow-scripts'
           />
         </div>
       </div>

@@ -90,10 +90,12 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
   // on the same item at the exact same time
   // basically, in read committed, the select subqueries will see a different snapshot than update if
   // the update conflicts with another update and new rows are inserted while the update is blocked
-  // e.g. it's possible that our aggregates in the zapped CTE will be stale
+  // e.g. it's possible that our aggregates in the zapped CTE will be stale, as we can't lock the aggregate
   // ... other than changing the isolation level, we could:
   // 1. store the aggregate zap from a user on an item in a separate table that can be locked `FOR UPDATE`
   // 2. store the aggregate zap from a user in a jsonb column on the item
+  // 3. we can abort the transaction and retry if we detect a serialization anomaly
+  // 4. we can take a transaction level lock on pg_advisory_xact_lock (itemId, userId)
   // see: https://stackoverflow.com/questions/61781595/postgres-read-commited-doesnt-re-read-updated-row?noredirect=1#comment109279507_61781595
   // or: https://www.cybertec-postgresql.com/en/transaction-anomalies-with-select-for-update/
   await tx.$executeRaw`
@@ -107,7 +109,7 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
       AND NOT "ItemAct".id = ANY (${actIds})
       AND act IN ('TIP', 'FEE')
       AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
-    ),  zap AS (
+    ), zap AS (
       SELECT (zapper.trust *
         CASE WHEN zapped.sats = 0
           THEN LOG(${sats})

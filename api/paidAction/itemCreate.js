@@ -40,8 +40,6 @@ export async function perform (args, context) {
     })
   }
 
-  // todo: outlaws by median
-
   const itemActs = []
   if (boostMsats > 0) {
     itemActs.push({
@@ -58,6 +56,17 @@ export async function perform (args, context) {
 
   const mentions = await getMentions(args, context)
   const itemMentions = await getItemMentions(args, context)
+
+  // start with median vote
+  if (me) {
+    const [row] = await tx.$queryRaw`SELECT
+      COALESCE(percentile_cont(0.5) WITHIN GROUP(
+        ORDER BY "weightedVotes" - "weightedDownVotes"), 0)
+      AS median FROM "Item" WHERE "userId" = ${me.id}`
+    if (row?.median < 0) {
+      data.weightedDownVotes = -row.median
+    }
+  }
 
   const itemData = {
     parentId: parentId ? parseInt(parentId) : null,

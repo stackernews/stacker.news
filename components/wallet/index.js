@@ -54,7 +54,7 @@ export function useWallet (name) {
     try {
       // validate should log custom INFO and OK message
       // TODO: add timeout
-      await wallet.validate({ logger, ...config })
+      await wallet.validate({ me, logger, ...config })
       saveConfig(config)
       logger.ok('wallet attached')
     } catch (err) {
@@ -62,7 +62,7 @@ export function useWallet (name) {
       logger.error(message)
       throw err
     }
-  }, [saveConfig, logger])
+  }, [saveConfig, me, logger])
 
   // delete is a reserved keyword
   const delete_ = useCallback(() => {

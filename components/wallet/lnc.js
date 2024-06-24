@@ -38,11 +38,23 @@ export async function validate ({ me, logger, pairingPhrase, password }) {
   const lnc = await getLNC({ me })
   try {
     lnc.credentials.pairingPhrase = pairingPhrase
+    logger.info('connecting ...')
+    // FIXME: this fails with this error:
+    //   Cannot assign to read only property 'undefined' of object '#<Window>'
     await lnc.connect()
+    logger.ok('connected')
+    logger.info('validating permissions ...')
     await validateNarrowPerms(lnc)
+    logger.ok('permissions ok')
     lnc.credentials.password = password || XXX_DEFAULT_PASSWORD
+    logger.info('getting lightning info ...')
+    await lnc.lightning.getInfo()
+    logger.ok('info received')
   } finally {
-    lnc.disconnect()
+    // FIXME: this fails with this error:
+    //   Cannot read properties of undefined (reading 'wasmClientDisconnect')
+    // uncommented because it shadows the error from lnc.connect()
+    // lnc.disconnect()
   }
 }
 
@@ -63,7 +75,7 @@ export const schema = object({
 
 const mutex = new Mutex()
 
-export async function unlock ({ lnc, password, status, showModal, logger }) {
+async function unlock ({ lnc, password, status, showModal, logger }) {
   if (status === Status.Enabled) return password
 
   return await new Promise((resolve, reject) => {
@@ -104,14 +116,16 @@ export async function unlock ({ lnc, password, status, showModal, logger }) {
   })
 }
 
-export async function sendPayment ({ bolt11, pairingPhrase, password: configuredPassword, logger }) {
+// FIXME: pass me, status, showModal in useWallet hook
+export async function sendPayment ({ bolt11, pairingPhrase, password: configuredPassword, me, status, showModal, logger }) {
   const hash = bolt11Tags(bolt11).payment_hash
 
   return await mutex.runExclusive(async () => {
     let lnc
     try {
-      lnc = await getLNC()
-      const password = await unlock({ lnc, password: configuredPassword })
+      lnc = await getLNC({ me })
+      // TODO: pass status, showModal to unlock
+      const password = await unlock({ lnc, password: configuredPassword, status, showModal, logger })
       // credentials need to be decrypted before connecting after a disconnect
       lnc.credentials.password = password || XXX_DEFAULT_PASSWORD
       await lnc.connect()
@@ -164,7 +178,7 @@ function getLNC ({ me }) {
   return window.lnc
 }
 
-async function validateNarrowPerms (lnc) {
+function validateNarrowPerms (lnc) {
   if (!lnc.hasPerms('lnrpc.Lightning.SendPaymentSync')) {
     throw new Error('missing permission: lnrpc.Lightning.SendPaymentSync')
   }

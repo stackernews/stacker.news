@@ -27,13 +27,13 @@ export function WalletLogs ({ wallet, embedded }) {
         </span>
       </div>
       <div ref={tableRef} className={`${styles.logTable} ${embedded ? styles.embedded : ''}`}>
-        <div className='w-100 text-center'>------ start of logs ------</div>
         {logs.length === 0 && <div className='w-100 text-center'>empty</div>}
         <table>
           <tbody>
             {logs.map((log, i) => <LogMessage key={i} {...log} />)}
           </tbody>
         </table>
+        <div className='w-100 text-center'>------ start of logs ------</div>
       </div>
     </>
   )

@@ -1,8 +1,5 @@
-import { useRouter } from 'next/router'
 import LogMessage from './log-message'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { Checkbox, Form } from './form'
-import { useField } from 'formik'
 import styles from '@/styles/log.module.css'
 import { Button } from 'react-bootstrap'
 import { useToast } from './toast'
@@ -12,71 +9,21 @@ import { getWalletByName } from './wallet'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { useMe } from './me'
 
-const FollowCheckbox = ({ value, ...props }) => {
-  const [,, helpers] = useField(props.name)
-
-  useEffect(() => {
-    helpers.setValue(value)
-  }, [value])
-
-  return (
-    <Checkbox {...props} />
-  )
-}
-
 export function WalletLogs ({ wallet, embedded }) {
   const logs = useWalletLogs(wallet)
 
-  const router = useRouter()
-  const { follow: defaultFollow } = router.query
-  const [follow, setFollow] = useState(defaultFollow ?? true)
   const tableRef = useRef()
-  const scrollY = useRef()
   const showModal = useShowModal()
-
-  useEffect(() => {
-    if (follow) {
-      tableRef.current?.scroll({ top: tableRef.current.scrollHeight, behavior: 'smooth' })
-    }
-  }, [logs, follow])
-
-  useEffect(() => {
-    function onScroll (e) {
-      const y = e.target.scrollTop
-
-      const down = y - scrollY.current >= -1
-      if (!!scrollY.current && !down) {
-        setFollow(false)
-      }
-
-      const maxY = e.target.scrollHeight - e.target.clientHeight
-      const dY = maxY - y
-      const isBottom = dY >= -1 && dY <= 1
-      if (isBottom) {
-        setFollow(true)
-      }
-
-      scrollY.current = y
-    }
-    tableRef.current?.addEventListener('scroll', onScroll)
-    return () => tableRef.current?.removeEventListener('scroll', onScroll)
-  }, [])
 
   return (
     <>
       <div className='d-flex w-100 align-items-center mb-3'>
-        <Form initial={{ follow: true }}>
-          <FollowCheckbox
-            label='follow logs' name='follow' value={follow}
-            handleChange={setFollow} groupClassName='mb-0'
-          />
-        </Form>
         <span
           style={{ cursor: 'pointer' }}
-          className='text-muted fw-bold nav-link' onClick={() => {
+          className='text-muted fw-bold nav-link ms-auto' onClick={() => {
             showModal(onClose => <DeleteWalletLogsObstacle wallet={wallet} onClose={onClose} />)
           }}
-        >clear
+        >clear logs
         </span>
       </div>
       <div ref={tableRef} className={`${styles.logTable} ${embedded ? styles.embedded : ''}`}>
@@ -236,7 +183,7 @@ export const WalletLoggerProvider = ({ children }) => {
               logs = logs.filter(({ id }) => !existingIds.includes(id))
             }
             // sort oldest first to keep same order as logs are appended
-            return [...prevLogs, ...logs].sort((a, b) => a.ts - b.ts)
+            return [...prevLogs, ...logs].sort((a, b) => b.ts - a.ts)
           })
         }
 
@@ -255,7 +202,7 @@ export const WalletLoggerProvider = ({ children }) => {
   const appendLog = useCallback((wallet, level, message) => {
     const log = { wallet: wallet.name, level, message, ts: +new Date() }
     saveLog(log)
-    setLogs((prevLogs) => [...prevLogs, log])
+    setLogs((prevLogs) => [log, ...prevLogs])
   }, [saveLog])
 
   const deleteLogs = useCallback(async (wallet) => {

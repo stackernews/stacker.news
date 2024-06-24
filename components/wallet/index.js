@@ -9,6 +9,8 @@ import { bolt11Tags } from '@/lib/bolt11'
 export const WALLET_DEFS = [
   await import('@/components/wallet/lnbits'),
   await import('@/components/wallet/nwc')
+  // FIXME: this doesn't break the build but it results in infinite page loads for some reason ...
+  // await import('@/components/wallet/lnc')
 ]
 
 export const Status = {

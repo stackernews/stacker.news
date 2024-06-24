@@ -2,7 +2,7 @@ import AccordianItem from './accordian-item'
 import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
 import { Checkbox, CheckboxGroup, Form, Input, MarkdownInput } from './form'
 import FeeButton, { FeeButtonProvider } from './fee-button'
-import { useApolloClient, useLazyQuery } from '@apollo/client'
+import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
@@ -36,22 +36,28 @@ export default function TerritoryForm ({ sub }) {
 
   const onSubmit = useCallback(
     async ({ ...variables }) => {
-      const { error } = archived
+      const { error, payError } = archived
         ? await unarchiveTerritory({ variables })
         : await upsertSub({ variables: { oldName: sub?.name, ...variables } })
 
-      if (error) {
-        throw new Error({ message: error.toString() })
-      }
+      if (error) throw error
+      if (payError) throw new Error('payment required')
 
       // modify graphql cache to include new sub
       client.cache.modify({
         fields: {
-          subs (existing = []) {
-            const filtered = existing.filter(s => s.name !== variables.name && s.name !== sub?.name)
-            return [
-              ...filtered,
-              { __typename: 'Sub', name: variables.name }]
+          subs (existing = [], { readField }) {
+            const newSubRef = client.cache.writeFragment({
+              data: { __typename: 'Sub', name: variables.name },
+              fragment: gql`
+                fragment SubSubmitFragment on Sub {
+                  name
+                }`
+            })
+            if (existing.some(ref => readField('name', ref) === variables.name)) {
+              return existing
+            }
+            return [...existing, newSubRef]
           }
         }
       })

@@ -57,9 +57,7 @@ export function BioForm ({ handleDone, bio }) {
           schema={bioSchema}
           onSubmit={async values => {
             const { error } = await upsertBio({ variables: values })
-            if (error) {
-              throw new Error({ message: error.toString() })
-            }
+            if (error) throw error
             handleDone?.()
           }}
         >

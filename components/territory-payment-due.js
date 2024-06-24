@@ -18,13 +18,12 @@ export default function TerritoryPaymentDue ({ sub }) {
 
   const onSubmit = useCallback(
     async ({ ...variables }) => {
-      const { error } = await paySub({
+      const { error, payError } = await paySub({
         variables
       })
 
-      if (error) {
-        throw new Error({ message: error.toString() })
-      }
+      if (error) throw error
+      if (payError) throw new Error('payment required')
     }, [client, paySub])
 
   if (!sub || sub.userId !== Number(me?.id) || sub.status === 'ACTIVE') return null

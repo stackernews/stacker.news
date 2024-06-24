@@ -839,7 +839,8 @@ export function Form ({
         await onSubmit({ ...variables }, ...args)
       }
     } catch (err) {
-      toaster.danger(err.message || err.toString?.())
+      console.log(err.message, err)
+      toaster.danger(err.message ?? err.toString?.())
       return
     }
 

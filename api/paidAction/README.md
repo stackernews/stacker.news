@@ -30,12 +30,15 @@ TODO: describe the interface
 
 ## `IMPORTANT: transaction isolation`
 
-We use a `read committed` isolation level for actions. This means paid actions need to be mindful of concurrency issues.
+We use a `read committed` isolation level for actions. This means paid actions need to be mindful of concurrency issues. Specifically, reading data from the database and then writing it back in `read committed` is a common source of consistency bugs.
 
 ### The big deals
-1. If you read from the database and intend to use the read data to write to the database, and it's possible that a concurrent transaction could change the data you've read (it usually is), you need to be prepared to handle that. Generally, this means:
-    - you'll want to take row level locks on the rows you read, using something like a `SELECT ... FOR UPDATE` statement to lock the rows you've read.
-    - you'll want to avoid having to read data to modify other data
-    - you'll want to check that the data you read is still valid before writing it back to the database i.e. optimistic concurrency control
-2. The above applies to `WITH` queries (CTEs) and subqueries within the same statement in addition to independent statements.
+1. If you read from the database and intend to use that data to write to the database, and it's possible that a concurrent transaction could change the data you've read (it usually is), you need to be prepared to handle that. Generally, this means:
+    - you'll want to take row level locks on the rows you read, using something like a `SELECT ... FOR UPDATE` statement
+        - NOTE: this does not protect against missing concurrent inserts. It only prevents concurrent updates to the rows you've read.
+    - or, you'll want to avoid having to reading data from one row to modify the data of another row
+    - or, you'll want to check that the data you read is still valid before writing it back to the database i.e. optimistic concurrency control
+2. The above applies to **ALL** read data regardless of whether the reads happen in independent statements, `WITH` queries (CTEs), or subqueries.
+
+If you're unsure about potential concurrency issues, please ask for help.
 

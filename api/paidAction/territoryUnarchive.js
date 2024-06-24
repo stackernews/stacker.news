@@ -45,6 +45,7 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
   return await tx.sub.update({
     data,
     where: {
+      // only update if the sub hasn't been updated since we fetched it
       updatedAt: sub.updatedAt,
       name
     }

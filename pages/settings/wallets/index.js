@@ -1,14 +1,13 @@
-import { getGetServerSideProps } from '@/api/ssrApollo'
 import Layout from '@/components/layout'
 import styles from '@/styles/wallet.module.css'
 import { WalletCard } from '@/components/wallet-card'
-import { WALLETS as WALLETS_QUERY } from '@/fragments/wallet'
 import Link from 'next/link'
 import { WALLET_DEFS } from '@/components/wallet'
+import { getGetServerSideProps } from '@/api/ssrApollo'
 
-export const getServerSideProps = getGetServerSideProps({ query: WALLETS_QUERY, authRequired: true })
+export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
-export default function Wallet ({ ssrData }) {
+export default function Wallet () {
   return (
     <Layout>
       <div className='py-5 w-100'>

@@ -7,6 +7,8 @@ import { WalletLogs } from '@/components/wallet-logger'
 import { useToast } from '@/components/toast'
 import { useRouter } from 'next/router'
 import { useWallet, Status } from '@/components/wallet'
+import Info from '@/components/info'
+import Text from '@/components/text'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -76,13 +78,24 @@ export default function WalletSettings () {
 }
 
 function WalletFields ({ wallet: { config, fields } }) {
-  return fields.map(({ name, label, type }, i) => {
+  return fields.map(({ name, label, type, help, optional, hint }, i) => {
     const props = {
       initialValue: config?.[name],
-      label,
+      label: (
+        <div className='d-flex align-items-center'>
+          {label}
+          {help && (
+            <Info label='help'>
+              <Text>{help}</Text>
+            </Info>
+          )}
+          {optional && <small className='text-muted ms-2'>optional</small>}
+        </div>
+      ),
       name,
-      required: true,
-      autoFocus: i === 0
+      required: !optional,
+      autoFocus: i === 0,
+      hint
     }
     if (type === 'text') {
       return <ClientInput key={i} {...props} />

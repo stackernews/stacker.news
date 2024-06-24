@@ -9,7 +9,7 @@ export async function getCost ({ billingType }) {
   return BigInt(TERRITORY_PERIOD_COST(billingType)) * BigInt(1000)
 }
 
-export async function perform ({ name, ...data }, { me, cost, tx }) {
+export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
   const sub = await tx.sub.findUnique({
     where: {
       name
@@ -45,6 +45,7 @@ export async function perform ({ name, ...data }, { me, cost, tx }) {
   return await tx.sub.update({
     data,
     where: {
+      updatedAt: sub.updatedAt,
       name
     }
   })

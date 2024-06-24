@@ -21,7 +21,7 @@ export async function getCost ({ oldName, billingType }, { models }) {
   return BigInt(cost) * BigInt(1000)
 }
 
-export async function perform ({ oldName, ...data }, { me, cost, tx }) {
+export async function perform ({ oldName, invoiceId, ...data }, { me, cost, tx }) {
   const oldSub = await tx.sub.findUnique({
     where: {
       name: oldName
@@ -61,6 +61,7 @@ export async function perform ({ oldName, ...data }, { me, cost, tx }) {
   return await tx.sub.update({
     data,
     where: {
+      updatedAt: oldSub.updatedAt,
       name: oldName,
       userId: me.id
     }

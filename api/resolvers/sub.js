@@ -1,67 +1,10 @@
 import { GraphQLError } from 'graphql'
-import { TERRITORY_PERIOD_COST } from '@/lib/constants'
 import { whenRange } from '@/lib/time'
 import { ssValidate, territorySchema } from '@/lib/validate'
-import { nextBilling } from '@/lib/territory'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { subViewGroup } from './growth'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
 import performPaidAction from '../paidAction'
-
-export function paySubQueries (sub, models) {
-  if (sub.billingType === 'ONCE') {
-    return []
-  }
-
-  // if in active or grace, consider we are billing them from where they are paid up
-  // and use grandfathered cost
-  let billedLastAt = sub.billPaidUntil
-  let billingCost = sub.billingCost
-
-  // if the sub is archived, they are paying to reactivate it
-  if (sub.status === 'STOPPED') {
-    // get non-grandfathered cost and reset their billing to start now
-    billedLastAt = new Date()
-    billingCost = TERRITORY_PERIOD_COST(sub.billingType)
-  }
-
-  const billPaidUntil = nextBilling(billedLastAt, sub.billingType)
-  const cost = BigInt(billingCost) * BigInt(1000)
-
-  return [
-    models.user.update({
-      where: {
-        id: sub.userId
-      },
-      data: {
-        msats: {
-          decrement: cost
-        }
-      }
-    }),
-    // update 'em
-    models.sub.update({
-      where: {
-        name: sub.name
-      },
-      data: {
-        billedLastAt,
-        billPaidUntil,
-        billingCost,
-        status: 'ACTIVE'
-      }
-    }),
-    // record 'em
-    models.subAct.create({
-      data: {
-        userId: sub.userId,
-        subName: sub.name,
-        msats: cost,
-        type: 'BILLING'
-      }
-    })
-  ]
-}
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null

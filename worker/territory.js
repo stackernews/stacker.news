@@ -1,5 +1,5 @@
+import performPaidAction from '@/api/paidAction'
 import serialize from '@/api/resolvers/serial'
-import { paySubQueries } from '@/api/resolvers/sub'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { datePivot } from '@/lib/time'
 
@@ -33,8 +33,11 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
   }
 
   try {
-    const queries = paySubQueries(sub, models)
-    await serialize(queries, { models })
+    const { result } = await performPaidAction('TERRITORY_BILLING',
+      { name: subName }, { models, me: { id: sub.userId } })
+    if (!result) {
+      throw new Error('not enough fee credits to auto-renew territory')
+    }
   } catch (e) {
     console.error(e)
     await territoryStatusUpdate()

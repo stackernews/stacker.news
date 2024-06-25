@@ -22,6 +22,10 @@ export async function perform ({ name }, { cost, tx }) {
     }
   })
 
+  if (sub.billingType === 'ONCE') {
+    throw new Error('Cannot bill a ONCE territory')
+  }
+
   let billedLastAt = sub.billPaidUntil
   let billingCost = sub.billingCost
 
@@ -35,10 +39,13 @@ export async function perform ({ name }, { cost, tx }) {
   const billPaidUntil = nextBilling(billedLastAt, sub.billingType)
 
   return await tx.sub.update({
+    // optimistic concurrency control
+    // make sure the sub hasn't changed since we fetched it
     where: {
-      name: sub.name,
-      // only update if the sub hasn't been updated since we fetched it
-      updatedAt: sub.updatedAt
+      ...sub,
+      postTypes: {
+        equals: sub.postTypes
+      }
     },
     data: {
       billedLastAt,

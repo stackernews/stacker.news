@@ -61,8 +61,12 @@ export async function perform ({ oldName, invoiceId, ...data }, { me, cost, tx }
   return await tx.sub.update({
     data,
     where: {
-      // only update if the sub hasn't been updated since we fetched it
-      updatedAt: oldSub.updatedAt,
+      // optimistic concurrency control
+      // make sure none of the relevant fields have changed since we fetched the sub
+      ...oldSub,
+      postTypes: {
+        equals: oldSub.postTypes
+      },
       name: oldName,
       userId: me.id
     }

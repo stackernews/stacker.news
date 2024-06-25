@@ -64,6 +64,12 @@ export default async function performPaidAction (actionType, args, context) {
         return await performFeeCreditAction(actionType, args, context)
       } catch (e) {
         console.error('performPaidAction - fee credit action failed ', e, actionType, args)
+
+        // if we fail to do the action with fee credits, but the cost is 0, we should bail
+        if (context.cost === 0n) {
+          throw e
+        }
+
         // if we fail to do the action with fee credits, we should fall back to optimistic
         if (!paidAction.supportsOptimism) {
           console.error('performPaidAction - action does not support optimism and fee credits failed ', actionType, args)

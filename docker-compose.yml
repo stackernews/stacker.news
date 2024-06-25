@@ -368,7 +368,8 @@ services:
         "
   litd:
     container_name: litd
-    image: lightninglabs/lightning-terminal:v0.12.4-alpha
+    build:
+      context: ./docker/litd
     profiles:
       - payments
     restart: unless-stopped

@@ -103,9 +103,7 @@ export async function sendPayment ({ bolt11, nwcUrl, logger }) {
 
   const relay = await Relay.connect(relayUrl).catch(() => {
     // NOTE: passed error is undefined for some reason
-    const msg = `failed to connect to ${relayUrl}`
-    logger.error(msg)
-    throw new Error(msg)
+    throw new Error(`failed to connect to ${relayUrl}`)
   })
   logger.ok(`connected to ${relayUrl}`)
 
@@ -145,7 +143,6 @@ export async function sendPayment ({ bolt11, nwcUrl, logger }) {
             if (!['closed by caller', 'relay connection closed by us'].includes(reason)) {
               // only log if not closed by us (caller)
               const msg = 'connection closed: ' + (reason || 'unknown reason')
-              logger.error(msg)
               reject(new Error(msg))
             }
           }

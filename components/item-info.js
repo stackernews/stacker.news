@@ -48,6 +48,10 @@ export default function ItemInfo ({
   }, [item])
 
   useEffect(() => {
+    setCanEdit(item.mine && (Date.now() < editThreshold))
+  }, [item.mine, editThreshold])
+
+  useEffect(() => {
     if (item) setMeTotalSats(item.meSats || item.meAnonSats || 0)
   }, [item?.meSats, item?.meAnonSats])
 

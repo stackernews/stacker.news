@@ -147,7 +147,12 @@ async function performPessimisticAction (actionType, args, context) {
   if (hmac) {
     // we have paid and want to do the action now
     const invoice = await verifyPayment(models, hash, hmac, cost)
-    args.invoiceId = invoice?.id
+
+    if (!invoice?.id) {
+      throw new Error(`performPessimisticAction - missing invoiceId ${actionType}`)
+    }
+
+    args.invoiceId = invoice.id
 
     return await models.$transaction(async tx => {
       context.tx = tx
@@ -155,7 +160,7 @@ async function performPessimisticAction (actionType, args, context) {
       // move the invoice from HELD to PENDING so that the
       // worker can take over (calling onPaid) when the invoice is settled
       await tx.invoice.update({
-        where: { id: invoice?.id, actionState: 'HELD' },
+        where: { id: invoice.id, actionState: 'HELD' },
         data: {
           actionState: 'PENDING'
         }
@@ -196,6 +201,10 @@ export async function retryPaidAction (actionType, args, context) {
 
   if (!action.retry) {
     throw new Error(`retryPaidAction - action does not support retrying ${actionType}`)
+  }
+
+  if (!invoiceId) {
+    throw new Error(`retryPaidAction - missing invoiceId ${actionType}`)
   }
 
   context.user = await models.user.findUnique({ where: { id: me.id } })

@@ -1,40 +1,72 @@
 # Paid Actions
 
-Paid actions are actions that require payments to perform. Given that we support several payment flows, some of which require more than one round of communication either with LND or the client, we have this plugin-like interface to easily add new paid actions.
+Paid actions are actions that require payments to perform. Given that we support several payment flows, some of which require more than one round of communication either with LND or the client, and several paid actions, we have this plugin-like interface to easily add new paid actions.
 
 ## Payment Flows
 
 There are three payment flows:
-- Fee credits: The client has enough fee credits to pay for the action. This is the simplest flow and is similar to a normal request.
-- Optimistic: If the client doesn't have enough fee credits, we store the action in a `PENDING` state on the server, then return a payment request to the client. The client pays the invoice however and whenever they wish, and the server monitors payment progress. If the payment succeeds, the action is executed fully. Otherwise, the client is notified and the payment can be retried. Unpaid actions are only viewable by the client that created them.
-- Pessimistic: If the client doesn't have enough fee credits, we return a payment request to the client. After the client pays the invoice, the client resends the action with proof of payment and action is executed fully. Pessimistic actions are never stored in a pending state on the server, and require the client to wait for the payment to complete.
 
-## Adding a new paid action
+### Fee credits
+The stacker has enough fee credits to pay for the action. This is the simplest flow and is similar to a normal request.
 
-### Interface
+### Optimistic
+For paid actions that support it, if the stacker doesn't have enough fee credits, we store the action in a `PENDING` state on the server, which is visible only to the stacker, then return a payment request to the client. The client then pays the invoice however and whenever they wish, and the server monitors payment progress. If the payment succeeds, the action is executed fully becoming visible to everyone. Otherwise, the client is notified the payment failed and the payment can be retried.
 
-TODO: describe the interface in further detail
+### Pessimistic
+For paid actions that don't support optimistic actions (or when the stacker is `@anon`), if the client doesn't have enough fee credits, we return a payment request to the client without storing the action. After the client pays the invoice, the client resends the action with proof of payment and action is executed fully. Pessimistic actions require the client to wait for the payment to complete before being visible to them and everyone else.
 
-#### Properties
-- anonable: can be performed anonymously
-- supportsPessimism: supports pessimistic payment flow
-- supportsOptimism: supports optimistic payment flow
+## Paid Action Interface
+
+Each paid action is implemented in its own file in the `paidActions` directory. Each file exports a module with the following properties:
+
+### Boolean flags
+- `anonable`: can be performed anonymously
+- `supportsPessimism`: supports a pessimistic payment flow
+- `supportsOptimism`: supports an optimistic payment flow
+
+### Functions
+All functions have the following signature: `function(args: Object, context: Object): Promise`
+
+#### Function arguments
+
+`args` contains the arguments for the action as defined in the `graphql` schema. If the action is optimistic or pessimistic, `args` will contain an `invoiceId` field which can be stored alongside the paid action's data. If this is a call to `retry`, `args` will contain the original `invoiceId` and `newInvoiceId` fields.
+
+`context` contains the following fields:
+- `user`: the user performing the action (null if anonymous)
+- `cost`: the cost of the action in msats as a `BigInt`
+- `tx`: the current transaction (for anything that needs to be done atomically with the payment)
+- `models`: the current prisma client (for anything that doesn't need to be done atomically with the payment)
+- `lnd`: the current lnd client
 
 #### Functions
-- getCost: returns the cost of the action
-- perform: performs the action
-- onPaid: called when the action is paid (useful for marking optimistic actions as paid, and performing side effects)
-- onFail: called when the action fails (useful for marking optimistic actions as failed)
-- retry: called when the action is retried with any new invoice information
-- describe: returns a description of the action which is added to the invoice
+
+- `getCost`: returns the cost of the action in msats as a `BigInt`
+- `perform`: performs the action
+    - returns: an object with the result of the action as defined in the `graphql` schema
+    - if the action supports optimism and an `invoiceId` is provided, the action should be performed optimistically
+       - any action data that needs to be hidden while it's pending, should store in its rows a `PENDING` state along with its `invoiceId`
+       - it can optionally store in the invoice with the `invoiceId` the `actionId` to be able to link the action with the invoice regardless of retries
+- `onPaid`: called when the action is paid
+    - if the action does not support optimism, this function is optional
+    - this function should be used to mark the rows created in `perform` as `PAID` and perform any other side effects of the action (like notifications or denormalizations)
+- `onFail`: called when the action fails
+    - if the action does not support optimism, this function is optional
+    - this function should be used to mark the rows create in `perform` as `FAILED`
+- `retry`: called when the action is retried with any new invoice information
+    - return: an object with the result of the action as defined in the `graphql` schema (same as `perform`)
+    - this function is called when an optimistic action is retried
+    - it's passed the original `invoiceId` and the `newInvoiceId`
+    - this function should update the rows created in `perform` to contain the new `newInvoiceId` and remark the row as `PENDING`
+- `describe`: returns a description as a string of the action
+    - for actions that require generating an invoice, and for stackers that don't hide invoice descriptions, this is used in the invoice description
 
 ## `IMPORTANT: transaction isolation`
 
-We use a `read committed` isolation level for actions. This means paid actions need to be mindful of concurrency issues. Specifically, reading data from the database and then writing it back in `read committed` is a common source of consistency bugs.
+We use a `read committed` isolation level for actions. This means paid actions need to be mindful of concurrency issues. Specifically, reading data from the database and then writing it back in `read committed` is a common source of consistency bugs (aka serialization anamolies).
 
 ### This is a big deal
 1. If you read from the database and intend to use that data to write to the database, and it's possible that a concurrent transaction could change the data you've read (it usually is), you need to be prepared to handle that.
-2. This applies to **ALL**, and I really mean **ALL**, read data regardless of how you read the data:
+2. This applies to **ALL**, and I really mean **ALL**, read data regardless of how you read the data within the `read committed` transaction:
    - independent statements
    - `WITH` queries (CTEs) in the same statement
    - subqueries in the same statement
@@ -80,6 +112,28 @@ COMMIT;
 
 Note that row level locks wouldn't help in this case, because we can't lock the rows that the transactions doesn't know to exist yet.
 
+#### Subqueries are still incorrect
+
+```sql
+-- transaction 1
+BEGIN;
+INSERT INTO zaps (item_id, sats) VALUES (1, 100);
+UPDATE item_zaps SET sats = (SELECT sum(sats) INTO total_sats FROM zaps WHERE item_id = 1) WHERE item_id = 1;
+-- item_zaps.sats is 100
+-- transaction 2
+BEGIN;
+INSERT INTO zaps (item_id, sats) VALUES (1, 100);
+UPDATE item_zaps SET sats = (SELECT sum(sats) INTO total_sats FROM zaps WHERE item_id = 1) WHERE item_id = 1;
+-- item_zaps.sats is still 100, because transaction 1 hasn't committed yet
+-- transaction 1
+COMMIT;
+-- transaction 2
+COMMIT;
+-- item_zaps.sats is 100, but we would expect it to be 200
+```
+
+Note that while the `UPDATE` transaction 2's update statement will block until transaction 1 commits, the subquery is computed before it blocks and is not re-evaluated after the block.
+
 #### Correct
 
 ```sql
@@ -99,5 +153,14 @@ COMMIT;
 -- item_zaps.sats is 200
 ```
 
-The above works because `UPDATE` takes a lock on the rows it's updating, so the second transaction will block until the first transaction commits.
+The above works because `UPDATE` takes a lock on the rows it's updating, so transaction 2 will block until transaction 1 commits, and once transaction 2 is unblocked, it will re-evaluate the `sats` value of the row it's updating.
 
+#### More resources
+- https://stackoverflow.com/questions/61781595/postgres-read-commited-doesnt-re-read-updated-row?noredirect=1#comment109279507_61781595
+- https://www.cybertec-postgresql.com/en/transaction-anomalies-with-select-for-update/
+
+From the [postgres docs](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED):
+> UPDATE, DELETE, SELECT FOR UPDATE, and SELECT FOR SHARE commands behave the same as SELECT in terms of searching for target rows: they will only find target rows that were committed as of the command start time. However, such a target row might have already been updated (or deleted or locked) by another concurrent transaction by the time it is found. In this case, the would-be updater will wait for the first updating transaction to commit or roll back (if it is still in progress). If the first updater rolls back, then its effects are negated and the second updater can proceed with updating the originally found row. If the first updater commits, the second updater will ignore the row if the first updater deleted it, otherwise it will attempt to apply its operation to the updated version of the row. The search condition of the command (the WHERE clause) is re-evaluated to see if the updated version of the row still matches the search condition. If so, the second updater proceeds with its operation using the updated version of the row. In the case of SELECT FOR UPDATE and SELECT FOR SHARE, this means it is the updated version of the row that is locked and returned to the client.
+
+From the [postgres source docs](https://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/backend/executor/README#l350):
+> It is also possible that there are relations in the query that are not to be locked (they are neither the UPDATE/DELETE/MERGE target nor specified to be locked in SELECT FOR UPDATE/SHARE).  When re-running the test query ***we want to use the same rows*** from these relations that were joined to the locked rows.

@@ -4,7 +4,6 @@ import { verifyPayment } from '../resolvers/serial'
 import { USER_ID } from '@/lib/constants'
 import { createHmac } from '../resolvers/wallet'
 import { Prisma } from '@prisma/client'
-import * as BUY_CREDITS from './buyCredits'
 import * as ITEM_CREATE from './itemCreate'
 import * as ITEM_UPDATE from './itemUpdate'
 import * as ZAP from './zap'
@@ -17,7 +16,6 @@ import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
 
 export const paidActions = {
-  BUY_CREDITS,
   ITEM_CREATE,
   ITEM_UPDATE,
   ZAP,

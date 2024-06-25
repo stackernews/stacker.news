@@ -10,7 +10,7 @@ export default {
 }
 
 export function uploadIdsFromText (text, { models }) {
-  if (!text) return null
+  if (!text) return []
   return [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
 }
 

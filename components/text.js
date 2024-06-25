@@ -15,7 +15,7 @@ import copy from 'clipboard-copy'
 import ZoomableImage, { decodeOriginalUrl } from './image'
 import { IMGPROXY_URL_REGEXP, parseInternalLinks, parseEmbedUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
-import { rehypeInlineCodeProperty, rehypeSubscript, rehypeSuperscript } from '@/lib/md'
+import { rehypeInlineCodeProperty, rehypeStyler } from '@/lib/md'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
@@ -23,6 +23,10 @@ import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
 import UserPopover from './user-popover'
 import ItemPopover from './item-popover'
+
+// Explicitely defined start/end tags & which CSS class from text.module.css to apply
+export const rehypeSuperscript = () => rehypeStyler('<sup>', '</sup>', styles.superscript)
+export const rehypeSubscript = () => rehypeStyler('<sub>', '</sub>', styles.subscript)
 
 export function SearchText ({ text }) {
   return (

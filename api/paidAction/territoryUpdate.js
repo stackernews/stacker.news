@@ -1,4 +1,5 @@
 import { TERRITORY_PERIOD_COST } from '@/lib/constants'
+import { satsToMsats } from '@/lib/format'
 import { proratedBillingCost } from '@/lib/territory'
 import { datePivot } from '@/lib/time'
 
@@ -18,7 +19,7 @@ export async function getCost ({ oldName, billingType }, { models }) {
     return 0n
   }
 
-  return BigInt(cost) * BigInt(1000)
+  return satsToMsats(cost)
 }
 
 export async function perform ({ oldName, invoiceId, ...data }, { me, cost, tx }) {

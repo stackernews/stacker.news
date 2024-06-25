@@ -1,4 +1,5 @@
 import { USER_ID } from '@/lib/constants'
+import { msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyZapped } from '@/lib/webPush'
 
 export const anonable = true
@@ -6,7 +7,7 @@ export const supportsPessimism = true
 export const supportsOptimism = true
 
 export async function getCost ({ sats }) {
-  return BigInt(sats) * BigInt(1000)
+  return satsToMsats(sats)
 }
 
 export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, cost, tx }) {
@@ -42,7 +43,7 @@ export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
     FROM "Item"
     JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId"
     WHERE "ItemAct"."invoiceId" = ${newInvoiceId}`
-  return { id, sats: Number(BigInt(cost) / BigInt(1000)), act: 'TIP', path }
+  return { id, sats: msatsToSats(cost), act: 'TIP', path }
 }
 
 export async function onPaid ({ invoice, actIds }, { models, tx }) {
@@ -63,7 +64,7 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
   }
 
   const msats = acts.reduce((a, b) => a + BigInt(b.msats), BigInt(0))
-  const sats = msats / BigInt(1000)
+  const sats = msatsToSats(msats)
   const itemAct = acts.find(act => act.act === 'TIP')
 
   // give user and all forwards the sats
@@ -145,5 +146,5 @@ export async function onFail ({ invoice }, { tx }) {
 }
 
 export async function describe ({ id: itemId, sats }, { actionId, cost }) {
-  return `SN: zap ${sats ?? (cost / BigInt(1000))} sats to #${itemId ?? actionId}`
+  return `SN: zap ${sats ?? msatsToSats(cost)} sats to #${itemId ?? actionId}`
 }

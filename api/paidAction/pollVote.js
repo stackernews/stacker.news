@@ -1,3 +1,5 @@
+import { satsToMsats } from '@/lib/format'
+
 export const anonable = false
 export const supportsPessimism = true
 export const supportsOptimism = true
@@ -7,7 +9,7 @@ export async function getCost ({ id }, { me, models }) {
     where: { id: parseInt(id) },
     include: { item: true }
   })
-  return BigInt(pollOption.item.pollCost) * BigInt(1000)
+  return satsToMsats(pollOption.item.pollCost)
 }
 
 export async function perform ({ invoiceId, id }, { me, cost, tx }) {

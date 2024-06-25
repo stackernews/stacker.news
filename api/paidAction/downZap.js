@@ -1,9 +1,11 @@
+import { msatsToSats, satsToMsats } from '@/lib/format'
+
 export const anonable = false
 export const supportsPessimism = false
 export const supportsOptimism = true
 
 export async function getCost ({ sats }) {
-  return BigInt(sats) * BigInt(1000)
+  return satsToMsats(sats)
 }
 
 export async function perform ({ invoiceId, sats, id: itemId }, { me, cost, tx }) {
@@ -34,7 +36,7 @@ export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
     FROM "Item"
     JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId"
     WHERE "ItemAct"."invoiceId" = ${newInvoiceId}`
-  return { id, sats: Number(BigInt(cost) / BigInt(1000)), act: 'DONT_LIKE_THIS', path }
+  return { id, sats: msatsToSats(cost), act: 'DONT_LIKE_THIS', path }
 }
 
 export async function onPaid ({ invoice, actId }, { tx }) {
@@ -49,7 +51,7 @@ export async function onPaid ({ invoice, actId }, { tx }) {
   }
 
   const msats = BigInt(itemAct.msats)
-  const sats = msats / BigInt(1000)
+  const sats = msatsToSats(msats)
 
   // denormalize downzaps
   await tx.$executeRaw`
@@ -73,5 +75,5 @@ export async function onFail ({ invoice }, { tx }) {
 }
 
 export async function describe ({ itemId, sats }, { cost, actionId }) {
-  return `SN: downzap of ${sats ?? (cost / BigInt(1000))} sats to #${itemId ?? actionId}`
+  return `SN: downzap of ${sats ?? msatsToSats(cost)} sats to #${itemId ?? actionId}`
 }

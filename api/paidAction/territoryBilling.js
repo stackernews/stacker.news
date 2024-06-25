@@ -1,4 +1,5 @@
 import { TERRITORY_PERIOD_COST } from '@/lib/constants'
+import { satsToMsats } from '@/lib/format'
 import { nextBilling } from '@/lib/territory'
 
 export const anonable = false
@@ -12,7 +13,7 @@ export async function getCost ({ name }, { models }) {
     }
   })
 
-  return BigInt(TERRITORY_PERIOD_COST(sub.billingType)) * BigInt(1000)
+  return satsToMsats(TERRITORY_PERIOD_COST(sub.billingType))
 }
 
 export async function perform ({ name }, { cost, tx }) {

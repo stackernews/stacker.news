@@ -1,11 +1,12 @@
 import { USER_ID } from '@/lib/constants'
+import { satsToMsats } from '@/lib/format'
 
 export const anonable = true
 export const supportsPessimism = true
 export const supportsOptimism = false
 
 export async function getCost ({ sats }) {
-  return BigInt(sats) * BigInt(1000)
+  return satsToMsats(sats)
 }
 
 export async function perform ({ sats }, { me, tx }) {

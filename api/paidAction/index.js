@@ -238,7 +238,7 @@ async function createDbInvoice (actionType, args, context) {
   const createLNDInvoice = optimistic ? createInvoice : createHodlInvoice
   const db = tx ?? models
 
-  if (cost < BigInt(1000)) {
+  if (cost < 1000n) {
     // sanity check
     throw new Error('The cost of the action must be at least 1 sat')
   }

@@ -2,6 +2,7 @@ import { USER_ID } from '@/lib/constants'
 import { imageFeesInfo } from '../resolvers/image'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
+import { satsToMsats } from '@/lib/format'
 
 export const anonable = false
 export const supportsPessimism = true
@@ -12,8 +13,7 @@ export async function getCost ({ id, boost = 0, uploadIds }, { me, models }) {
   // or more boost
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
   const { totalFeesMsats } = await imageFeesInfo(uploadIds, { models, me })
-  const oldBoost = old.boost || 0
-  return BigInt(totalFeesMsats) + (BigInt(boost) - BigInt(oldBoost)) * BigInt(1000)
+  return BigInt(totalFeesMsats) + satsToMsats(boost - (old.boost || 0))
 }
 
 export async function perform (args, context) {
@@ -29,7 +29,7 @@ export async function perform (args, context) {
     }
   })
 
-  const boostMsats = BigInt(boost - (old.boost || 0)) * BigInt(1000)
+  const boostMsats = satsToMsats(boost - (old.boost || 0))
   const itemActs = []
   if (boostMsats > 0) {
     itemActs.push({

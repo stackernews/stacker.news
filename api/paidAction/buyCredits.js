@@ -3,13 +3,14 @@
 // can eventually be a paid action
 
 import { USER_ID } from '@/lib/constants'
+import { satsToMsats } from '@/lib/format'
 
 export const anonable = false
 export const supportsPessimism = false
 export const supportsOptimism = true
 
 export async function getCost ({ amount }) {
-  return BigInt(amount) * BigInt(1000)
+  return satsToMsats(amount)
 }
 
 export async function onPaid ({ invoice }, { tx }) {

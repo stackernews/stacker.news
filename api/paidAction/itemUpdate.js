@@ -22,10 +22,10 @@ export async function perform (args, context) {
   const old = await tx.item.findUnique({
     where: { id: parseInt(id) },
     include: {
-      ThreadSubscription: true,
+      threadSubscriptions: true,
       mentions: true,
       itemForwards: true,
-      referrer: true
+      itemReferrers: true
     }
   })
 
@@ -51,22 +51,20 @@ export async function perform (args, context) {
     where: { id: parseInt(id) },
     include: {
       mentions: true,
-      referrer: { include: { refereeItem: true } }
+      itemReferrers: { include: { refereeItem: true } }
     },
     data: {
       ...data,
       boost,
-      // TODO: test all these nested inserts
-      // TODO: give nested relations a consistent naming scheme
-      PollOption: {
+      pollOptions: {
         createMany: {
           data: pollOptions?.map(option => ({ option }))
         }
       },
-      ItemUpload: {
+      itemUploads: {
         connect: uploadIds?.map(id => ({ uploadId: id }))
       },
-      actions: {
+      itemActs: {
         createMany: {
           data: itemActs
         }
@@ -85,7 +83,7 @@ export async function perform (args, context) {
           data
         }))
       },
-      ThreadSubscription: {
+      threadSubscriptions: {
         deleteMany: {
           userId: {
             in: difference(old.itemForwards, itemForwards).map(({ userId }) => userId)
@@ -105,13 +103,13 @@ export async function perform (args, context) {
           data: difference(mentions, old.mentions)
         }
       },
-      referrer: {
+      itemReferrers: {
         deleteMany: {
           refereeId: {
-            in: difference(old.referrer, itemMentions, 'refereeId').map(({ refereeId }) => refereeId)
+            in: difference(old.itemReferrers, itemMentions, 'refereeId').map(({ refereeId }) => refereeId)
           }
         },
-        create: difference(itemMentions, old.referrer, 'refereeId')
+        create: difference(itemMentions, old.itemReferrers, 'refereeId')
       }
     }
   })
@@ -128,7 +126,7 @@ export async function perform (args, context) {
     if (item.updatedAt.getTime() === createdAt.getTime()) continue
     notifyMention({ models, item, userId }).catch(console.error)
   }
-  for (const { refereeItem, createdAt } of item.referrer) {
+  for (const { refereeItem, createdAt } of item.itemReferrers) {
     if (item.updatedAt.getTime() === createdAt.getTime()) continue
     notifyItemMention({ models, referrerItem: item, refereeItem }).catch(console.error)
   }

@@ -74,9 +74,7 @@ export async function perform (args, context) {
     ...data,
     ...invoiceData,
     boost,
-    // TODO: test all these nested inserts
-    // TODO: give nested relations a consistent naming scheme
-    ThreadSubscription: {
+    threadSubscriptions: {
       createMany: {
         data: [
           { userId: data.userId },
@@ -89,15 +87,15 @@ export async function perform (args, context) {
         data: forwardUsers
       }
     },
-    PollOption: {
+    pollOptions: {
       createMany: {
         data: pollOptions.map(option => ({ option }))
       }
     },
-    ItemUpload: {
+    itemUploads: {
       connect: uploadIds.map(id => ({ uploadId: id }))
     },
-    actions: {
+    itemActs: {
       createMany: {
         data: itemActs
       }
@@ -107,7 +105,7 @@ export async function perform (args, context) {
         data: mentions
       }
     },
-    referrer: {
+    itemReferrers: {
       create: itemMentions
     }
   }
@@ -163,7 +161,7 @@ export async function onPaid ({ invoice, id }, context) {
       where: { invoiceId: invoice.id },
       include: {
         mentions: true,
-        referrer: { include: { refereeItem: true } },
+        itemReferrers: { include: { refereeItem: true } },
         user: true
       }
     })
@@ -175,7 +173,7 @@ export async function onPaid ({ invoice, id }, context) {
       where: { id },
       include: {
         mentions: true,
-        referrer: { include: { refereeItem: true } },
+        itemReferrers: { include: { refereeItem: true } },
         user: true
       }
     })
@@ -219,7 +217,7 @@ export async function onPaid ({ invoice, id }, context) {
   for (const { userId } of item.mentions) {
     notifyMention({ models, item, userId }).catch(console.error)
   }
-  for (const { referee } of item.referrer) {
+  for (const { referee } of item.itemReferrers) {
     notifyItemMention({ models, referrerItem: item, refereeItem: referee }).catch(console.error)
   }
   notifyUserSubscribers({ models, item }).catch(console.error)

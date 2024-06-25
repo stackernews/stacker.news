@@ -15,7 +15,7 @@ import copy from 'clipboard-copy'
 import ZoomableImage, { decodeOriginalUrl } from './image'
 import { IMGPROXY_URL_REGEXP, parseInternalLinks, parseEmbedUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
-import { rehypeInlineCodeProperty } from '@/lib/md'
+import { rehypeInlineCodeProperty, rehypeSubscript, rehypeSuperscript } from '@/lib/md'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
@@ -313,7 +313,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
           img: Img
         }}
         remarkPlugins={[gfm, mention, sub]}
-        rehypePlugins={[rehypeInlineCodeProperty]}
+        rehypePlugins={[rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript]}
       >
         {children}
       </ReactMarkdown>

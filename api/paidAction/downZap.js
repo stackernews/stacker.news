@@ -25,7 +25,7 @@ export async function perform ({ invoiceId, sats, id: itemId }, { me, cost, tx }
     data: { msats: cost, itemId, userId: me.id, act: 'DONT_LIKE_THIS', ...invoiceData }
   })
 
-  const [{ path }] = await tx.$queryRaw`SELECT ltree2text(path) as path FROM "Item" WHERE id = ${itemId}`
+  const [{ path }] = await tx.$queryRaw`SELECT ltree2text(path) as path FROM "Item" WHERE id = ${itemId}::INTEGER`
   return { id: itemId, sats, act: 'DONT_LIKE_THIS', path, actId: itemAct.id }
 }
 
@@ -35,7 +35,7 @@ export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
     SELECT "Item".id, ltree2text(path) as path
     FROM "Item"
     JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId"
-    WHERE "ItemAct"."invoiceId" = ${newInvoiceId}`
+    WHERE "ItemAct"."invoiceId" = ${newInvoiceId}::INTEGER`
   return { id, sats: msatsToSats(cost), act: 'DONT_LIKE_THIS', path }
 }
 
@@ -59,15 +59,15 @@ export async function onPaid ({ invoice, actId }, { tx }) {
     SELECT trust FROM users WHERE id = ${itemAct.userId}
   ), zap AS (
     INSERT INTO "ItemUserAgg" ("userId", "itemId", "downZapSats")
-    VALUES (${itemAct.userId}, ${itemAct.itemId}, ${sats})
+    VALUES (${itemAct.userId}::INTEGER, ${itemAct.itemId}::INTEGER, ${sats}::INTEGER)
     ON CONFLICT ("itemId", "userId") DO UPDATE
-    SET "downZapSats" = "ItemUserAgg"."downZapSats" + ${sats}, updated_at = now()
-    RETURNING LOG("downZapSats" / GREATEST("downZapSats" - ${sats}, 1)::FLOAT) AS log_sats
+    SET "downZapSats" = "ItemUserAgg"."downZapSats" + ${sats}::INTEGER, updated_at = now()
+    RETURNING LOG("downZapSats" / GREATEST("downZapSats" - ${sats}::INTEGER, 1)::FLOAT) AS log_sats
   )
   UPDATE "Item"
   SET "weightedDownVotes" = "weightedDownVotes" + (zapper.trust * zap.log_sats)
   FROM zap, zapper
-  WHERE "Item".id = ${itemAct.itemId}`
+  WHERE "Item".id = ${itemAct.itemId}::INTEGER`
 }
 
 export async function onFail ({ invoice }, { tx }) {

@@ -18,7 +18,7 @@ export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio },
           ${user?.id && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
       * ${user ? 1 : 100}::INTEGER
       + (SELECT "nUnpaid" * "imageFeeMsats"
-          FROM image_fees_info(${user?.id || USER_ID.anon}::INTEGER, ${uploadIds}))
+          FROM image_fees_info(${user?.id || USER_ID.anon}::INTEGER, ${uploadIds}::INTEGER[]))
       + ${satsToMsats(boost)}::INTEGER as cost`
 
   // sub allows freebies (or is a bio or a comment), cost is less than baseCost, not anon, and cost must be greater than user's balance
@@ -63,7 +63,7 @@ export async function perform (args, context) {
     const [row] = await tx.$queryRaw`SELECT
       COALESCE(percentile_cont(0.5) WITHIN GROUP(
         ORDER BY "weightedVotes" - "weightedDownVotes"), 0)
-      AS median FROM "Item" WHERE "userId" = ${me.id}`
+      AS median FROM "Item" WHERE "userId" = ${me.id}::INTEGER`
     if (row?.median < 0) {
       data.weightedDownVotes = -row.median
     }
@@ -140,7 +140,7 @@ export async function perform (args, context) {
   // ltree is unsupported in Prisma, so we have to query it manually (FUCK!)
   return (await tx.$queryRaw`
     SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
-    FROM "Item" WHERE id = ${item.id}`
+    FROM "Item" WHERE id = ${item.id}::INTEGER`
   )[0]
 }
 
@@ -150,7 +150,7 @@ export async function retry ({ invoiceId, newInvoiceId }, { tx }) {
   await tx.upload.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
   return (await tx.$queryRaw`
     SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
-    FROM "Item" WHERE "invoiceId" = ${newInvoiceId}`
+    FROM "Item" WHERE "invoiceId" = ${newInvoiceId}::INTEGER`
   )[0]
 }
 
@@ -184,10 +184,10 @@ export async function onPaid ({ invoice, id }, context) {
   }
 
   await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-    VALUES ('timestampItem', jsonb_build_object('id', ${item.id}), now() + interval '10 minutes', -2)`
+    VALUES ('timestampItem', jsonb_build_object('id', ${item.id}::INTEGER), now() + interval '10 minutes', -2)`
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
-    VALUES ('imgproxy', jsonb_build_object('id', ${item.id}), 21, true, now() + interval '5 seconds')`
+    VALUES ('imgproxy', jsonb_build_object('id', ${item.id}::INTEGER), 21, true, now() + interval '5 seconds')`
 
   // TODO: referals for boost
 
@@ -197,12 +197,12 @@ export async function onPaid ({ invoice, id }, context) {
       WITH comment AS (
         SELECT *
         FROM "Item"
-        WHERE id = ${item.id}
+        WHERE id = ${item.id}::INTEGER
       ), ancestors AS (
         UPDATE "Item"
         SET ncomments = "Item".ncomments + 1,
           "weightedComments" = "Item"."weightedComments" +
-            CASE WHEN comment."userId" = "Item"."userId" THEN 0 ELSE ${item.user.trust} END
+            CASE WHEN comment."userId" = "Item"."userId" THEN 0 ELSE ${item.user.trust}::FLOAT END
         FROM comment
         WHERE "Item".path @> comment.path AND "Item".id <> comment.id
         RETURNING "Item".*

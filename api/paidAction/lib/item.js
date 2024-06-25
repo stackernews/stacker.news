@@ -77,8 +77,8 @@ export async function performBotBehavior ({ text, id }, { me, models, tx }) {
         VALUES (
           'deleteItem',
           jsonb_build_object('id', ${id}::INTEGER),
-          ${deleteAt}::TIMESTAMP,
-          ${deleteAt}::TIMESTAMP - now() + interval '1 minute')`
+          ${deleteAt}::TIMESTAMP WITH TIME ZONE,
+          ${deleteAt}::TIMESTAMP WITH TIME ZONE - now() + interval '1 minute')`
     }
 
     const remindAt = getRemindAt(text)
@@ -88,8 +88,8 @@ export async function performBotBehavior ({ text, id }, { me, models, tx }) {
         VALUES (
           'reminder',
           jsonb_build_object('itemId', ${id}::INTEGER, 'userId', ${userId}::INTEGER),
-          ${remindAt}::TIMESTAMP,
-          ${remindAt}::TIMESTAMP - now() + interval '1 minute')`
+          ${remindAt}::TIMESTAMP WITH TIME ZONE,
+          ${remindAt}::TIMESTAMP WITH TIME ZONE - now() + interval '1 minute')`
       await tx.reminder.create({
         data: {
           userId,

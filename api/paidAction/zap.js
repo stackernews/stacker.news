@@ -32,7 +32,8 @@ export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, c
     ]
   })
 
-  const [{ path }] = await tx.$queryRaw`SELECT ltree2text(path) as path FROM "Item" WHERE id = ${itemId}`
+  const [{ path }] = await tx.$queryRaw`
+    SELECT ltree2text(path) as path FROM "Item" WHERE id = ${itemId}::INTEGER`
   return { id: itemId, sats, act: 'TIP', path, actIds: acts.map(act => act.id) }
 }
 
@@ -42,7 +43,7 @@ export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
     SELECT "Item".id, ltree2text(path) as path
     FROM "Item"
     JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId"
-    WHERE "ItemAct"."invoiceId" = ${newInvoiceId}`
+    WHERE "ItemAct"."invoiceId" = ${newInvoiceId}::INTEGER`
   return { id, sats: msatsToSats(cost), act: 'TIP', path }
 }
 
@@ -70,9 +71,9 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
   // give user and all forwards the sats
   await tx.$executeRaw`
     WITH forwardees AS (
-      SELECT "userId", ${itemAct.msats} * pct / 100 AS msats
+      SELECT "userId", ((${itemAct.msats}::BIGINT * pct) / 100)::BIGINT AS msats
       FROM "ItemForward"
-      WHERE "itemId" = ${itemAct.itemId}
+      WHERE "itemId" = ${itemAct.itemId}::INTEGER
     ), total_forwarded AS (
       SELECT COALESCE(SUM(msats), 0) as msats
       FROM forwardees
@@ -83,30 +84,30 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
       WHERE users.id = forwardees."userId"
     )
     UPDATE users
-    SET msats = msats + ${itemAct.msats} - (SELECT msats FROM total_forwarded)
-    WHERE id = ${itemAct.item.userId}`
+    SET msats = msats + ${itemAct.msats}::BIGINT - (SELECT msats FROM total_forwarded)::BIGINT
+    WHERE id = ${itemAct.item.userId}::INTEGER`
 
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
   await tx.$executeRaw`
     WITH zapper AS (
-      SELECT trust FROM users WHERE id = ${itemAct.userId}
+      SELECT trust FROM users WHERE id = ${itemAct.userId}::INTEGER
     ), zap AS (
       INSERT INTO "ItemUserAgg" ("userId", "itemId", "zapSats")
-      VALUES (${itemAct.userId}, ${itemAct.itemId}, ${sats})
+      VALUES (${itemAct.userId}::INTEGER, ${itemAct.itemId}::INTEGER, ${sats}::INTEGER)
       ON CONFLICT ("itemId", "userId") DO UPDATE
-      SET "zapSats" = "ItemUserAgg"."zapSats" + ${sats}, updated_at = now()
-      RETURNING ("zapSats" = ${sats})::INTEGER as first_vote,
-        LOG("zapSats" / GREATEST("zapSats" - ${sats}, 1)::FLOAT) AS log_sats
+      SET "zapSats" = "ItemUserAgg"."zapSats" + ${sats}::INTEGER, updated_at = now()
+      RETURNING ("zapSats" = ${sats}::INTEGER)::INTEGER as first_vote,
+        LOG("zapSats" / GREATEST("zapSats" - ${sats}::INTEGER, 1)::FLOAT) AS log_sats
     )
     UPDATE "Item"
     SET
       "weightedVotes" = "weightedVotes" + (zapper.trust * zap.log_sats),
       upvotes = upvotes + zap.first_vote,
-      msats = "Item".msats + ${msats},
+      msats = "Item".msats + ${msats}::BIGINT,
       "lastZapAt" = now()
     FROM zap, zapper
-    WHERE "Item".id = ${itemAct.itemId}`
+    WHERE "Item".id = ${itemAct.itemId}::INTEGER`
 
   // record potential bounty payment
   // NOTE: we are at least guaranteed that we see the update "ItemUserAgg" from our tx so we can trust
@@ -117,9 +118,9 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
       FROM "ItemUserAgg"
       JOIN "Item" ON "Item".id = "ItemUserAgg"."itemId"
       LEFT JOIN "Item" root ON root.id = "Item"."rootId"
-      WHERE "ItemUserAgg"."userId" = ${itemAct.userId}
-      AND "ItemUserAgg"."itemId" = ${itemAct.itemId}
-      AND root."userId" = ${itemAct.userId}
+      WHERE "ItemUserAgg"."userId" = ${itemAct.userId}::INTEGER
+      AND "ItemUserAgg"."itemId" = ${itemAct.itemId}::INTEGER
+      AND root."userId" = ${itemAct.userId}::INTEGER
       AND root.bounty IS NOT NULL
     )
     UPDATE "Item"
@@ -130,10 +131,10 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
   // update commentMsats on ancestors
   await tx.$executeRaw`
       WITH zapped AS (
-        SELECT * FROM "Item" WHERE id = ${itemAct.itemId}
+        SELECT * FROM "Item" WHERE id = ${itemAct.itemId}::INTEGER
       )
       UPDATE "Item"
-      SET "commentMsats" = "Item"."commentMsats" + ${msats}
+      SET "commentMsats" = "Item"."commentMsats" + ${msats}::BIGINT
       FROM zapped
       WHERE "Item".path @> zapped.path AND "Item".id <> zapped.id`
 

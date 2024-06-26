@@ -78,8 +78,10 @@ export default function WalletSettings () {
 }
 
 function WalletFields ({ wallet: { config, fields } }) {
-  return fields.map(({ name, label, type, help, optional, hint }, i) => {
-    const props = {
+  return fields.map(({ name, label, type, help, optional, hint, ...props }, i) => {
+    const rawProps = {
+      ...props,
+      name,
       initialValue: config?.[name],
       label: (
         <div className='d-flex align-items-center'>
@@ -92,16 +94,14 @@ function WalletFields ({ wallet: { config, fields } }) {
           {optional && <small className='text-muted ms-2'>optional</small>}
         </div>
       ),
-      name,
       required: !optional,
-      autoFocus: i === 0,
-      hint
+      autoFocus: i === 0
     }
     if (type === 'text') {
-      return <ClientInput key={i} {...props} />
+      return <ClientInput key={i} {...rawProps} />
     }
     if (type === 'password') {
-      return <PasswordInput key={i} {...props} newPass />
+      return <PasswordInput key={i} {...rawProps} newPass />
     }
     return null
   })

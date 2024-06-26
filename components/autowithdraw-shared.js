@@ -46,12 +46,14 @@ export function AutowithdrawSettings ({ priority }) {
             }}
             hint={isNumber(sendThreshold) ? `will attempt auto-withdraw when your balance exceeds ${sendThreshold * 11} sats` : undefined}
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+            required
           />
           <Input
             label='max fee'
             name='autoWithdrawMaxFeePercent'
             hint='max fee as percent of withdrawal amount'
             append={<InputGroup.Text>%</InputGroup.Text>}
+            required
           />
         </div>
       </div>

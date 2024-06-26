@@ -5,7 +5,7 @@ import { Button } from 'react-bootstrap'
 import { useToast } from './toast'
 import { useShowModal } from './modal'
 import { WALLET_LOGS } from '@/fragments/wallet'
-import { getWalletByName } from './wallet'
+import { getServerWallet } from './wallet'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { useMe } from './me'
 
@@ -128,12 +128,11 @@ export const WalletLoggerProvider = ({ children }) => {
           .map(({ createdAt, wallet: walletType, ...log }) => {
             return {
               ts: +new Date(createdAt),
-              // TODO: use wallet defs
-              // wallet: getWalletBy('type', walletType).logTag,
+              wallet: getServerWallet(walletType).name,
               ...log
             }
           })
-        return [...prevLogs, ...logs].sort((a, b) => a.ts - b.ts)
+        return [...prevLogs, ...logs].sort((a, b) => b.ts - a.ts)
       })
     }
   })
@@ -148,7 +147,7 @@ export const WalletLoggerProvider = ({ children }) => {
       onCompleted: (_, { variables: { wallet: walletType } }) => {
         setLogs((logs) => {
           // TODO: use wallet defs
-          return logs.filter(l => walletType ? l.wallet !== getWalletByName('type', walletType) : false)
+          return logs.filter(l => walletType ? l.wallet !== getServerWallet(walletType).name : false)
         })
       }
     }
@@ -206,10 +205,10 @@ export const WalletLoggerProvider = ({ children }) => {
   }, [saveLog])
 
   const deleteLogs = useCallback(async (wallet) => {
-    if (!wallet || wallet.canReceive) {
-      await deleteServerWalletLogs({ variables: { wallet: wallet?.type } })
+    if (!wallet || wallet.server) {
+      await deleteServerWalletLogs({ variables: { wallet: wallet?.server } })
     }
-    if (!wallet || wallet.canPay) {
+    if (!wallet || wallet.sendPayment) {
       const tx = idb.current.transaction(idbStoreName, 'readwrite')
       const objectStore = tx.objectStore(idbStoreName)
       const idx = objectStore.index('wallet_ts')
@@ -244,6 +243,10 @@ export function useWalletLogger (wallet) {
       console.error('cannot log: no wallet set')
       return
     }
+
+    // don't store logs for receiving wallets on client since logs are stored on server
+    if (wallet.server) return
+
     // TODO:
     //   also send this to us if diagnostics was enabled,
     //   very similar to how the service worker logger works.

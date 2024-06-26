@@ -91,7 +91,6 @@ export default gql`
     noteWithdrawals: Boolean!,
     noteEarning: Boolean!
     noteForwardedSats: Boolean!
-    noteInvites: Boolean!
     noteItemSats: Boolean!
     noteJobIndicator: Boolean!
     noteMentions: Boolean!
@@ -158,7 +157,6 @@ export default gql`
     noteWithdrawals: Boolean!
     noteEarning: Boolean!
     noteForwardedSats: Boolean!
-    noteInvites: Boolean!
     noteItemSats: Boolean!
     noteJobIndicator: Boolean!
     noteMentions: Boolean!

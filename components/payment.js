@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useMe } from './me'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import { useWebLN } from './webln'
@@ -76,23 +76,41 @@ const useInvoice = () => {
     return false
   }, [client])
 
-  const waitUntilPaid = useCallback(async id => {
-    return await new Promise((resolve, reject) => {
-      const interval = setInterval(async () => {
-        try {
-          const paid = await isPaid(id)
-          if (paid) {
-            resolve()
+  const waitController = useMemo(() => {
+    const controller = new AbortController()
+    const signal = controller.signal
+    controller.wait = async id => {
+      return await new Promise((resolve, reject) => {
+        const interval = setInterval(async () => {
+          try {
+            const paid = await isPaid(id)
+            if (paid) {
+              resolve()
+              clearInterval(interval)
+              signal.removeEventListener('abort', abort)
+            } else {
+              console.info(`invoice #${id}: waiting for payment ...`)
+            }
+          } catch (err) {
+            reject(err)
             clearInterval(interval)
-          } else {
-            console.info(`invoice #${id}: waiting for payment ...`)
+            signal.removeEventListener('abort', abort)
           }
-        } catch (err) {
-          reject(err)
+        }, FAST_POLL_INTERVAL)
+
+        const abort = () => {
+          console.info(`invoice #${id}: stopped waiting`)
+          resolve()
           clearInterval(interval)
+          signal.removeEventListener('abort', abort)
         }
-      }, FAST_POLL_INTERVAL)
-    })
+        signal.addEventListener('abort', abort)
+      })
+    }
+
+    controller.stop = () => controller.abort()
+
+    return controller
   }, [isPaid])
 
   const cancel = useCallback(async ({ hash, hmac }) => {
@@ -105,7 +123,7 @@ const useInvoice = () => {
     return inv
   }, [cancelInvoice])
 
-  return { create, isPaid, waitUntilPaid, cancel }
+  return { create, isPaid, waitUntilPaid: waitController.wait, stopWaiting: waitController.stop, cancel }
 }
 
 export const useWebLnPayment = () => {
@@ -132,6 +150,8 @@ export const useWebLnPayment = () => {
     } catch (err) {
       console.error('WebLN payment failed:', err)
       throw err
+    } finally {
+      invoice.stopWaiting()
     }
   }, [provider, invoice])
 

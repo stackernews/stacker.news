@@ -9,6 +9,7 @@ import { useRouter } from 'next/router'
 import { useWallet, Status } from '@/components/wallet'
 import Info from '@/components/info'
 import Text from '@/components/text'
+import { AutowithdrawSettings } from '@/components/autowithdraw-shared'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -23,7 +24,7 @@ export default function WalletSettings () {
       ...acc,
       [field.name]: wallet.config?.[field.name] || ''
     }
-  }, {})
+  }, wallet.server ? wallet.config.autowithdrawSettings : {})
 
   return (
     <CenterLayout>
@@ -50,12 +51,16 @@ export default function WalletSettings () {
         }}
       >
         <WalletFields wallet={wallet} />
-        <ClientCheckbox
-          disabled={false}
-          initialValue={wallet.status === Status.Enabled}
-          label='enabled'
-          name='enabled'
-        />
+        {wallet.server
+          ? <AutowithdrawSettings />
+          : (
+            <ClientCheckbox
+              disabled={false}
+              initialValue={wallet.status === Status.Enabled}
+              label='enabled'
+              name='enabled'
+            />
+            )}
         <WalletButtonBar
           wallet={wallet} onDelete={async () => {
             try {
@@ -86,12 +91,17 @@ function WalletFields ({ wallet: { config, fields } }) {
       label: (
         <div className='d-flex align-items-center'>
           {label}
+          {/* help can be a string or object to customize the label */}
           {help && (
-            <Info label='help'>
-              <Text>{help}</Text>
+            <Info label={help.label || 'help'}>
+              <Text>{help.text || help}</Text>
             </Info>
           )}
-          {optional && <small className='text-muted ms-2'>optional</small>}
+          {optional && (
+            <small className='text-muted ms-2'>
+              {typeof optional === 'boolean' ? 'optional' : optional}
+            </small>
+          )}
         </div>
       ),
       required: !optional,

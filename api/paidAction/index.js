@@ -145,21 +145,12 @@ async function performPessimisticAction (actionType, args, context) {
   }
 
   if (context.hmac) {
-    // we have paid and want to do the action now
-    const invoice = await verifyPayment(context)
-    args.invoiceId = invoice.id
-
     return await models.$transaction(async tx => {
       context.tx = tx
 
-      // move the invoice from HELD to PENDING so that the
-      // worker can take over (calling onPaid) when the invoice is settled
-      await tx.invoice.update({
-        where: { id: invoice.id, actionState: 'HELD' },
-        data: {
-          actionState: 'PENDING'
-        }
-      })
+      // make sure the invoice is HELD
+      const invoice = await verifyPayment(context)
+      args.invoiceId = invoice.id
 
       await settleHodlInvoice({ secret: invoice.preimage, lnd })
 

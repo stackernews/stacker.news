@@ -18,6 +18,8 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, toDa
       fromState = [fromState]
     }
 
+    console.log('invoice is in state', dbInvoice.actionState)
+
     await models.$transaction(async tx => {
       dbInvoice = await tx.invoice.update({
         where: {
@@ -67,7 +69,7 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, toDa
 export async function settleAction ({ data: { invoiceId }, models, lnd, boss }) {
   return await transitionInvoice('settleAction', {
     invoiceId,
-    fromState: 'PENDING',
+    fromState: ['HELD', 'PENDING'],
     toState: 'PAID',
     toData: invoice => {
       if (!invoice.is_confirmed) {

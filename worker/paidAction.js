@@ -4,10 +4,12 @@ import { Prisma } from '@prisma/client'
 import { getInvoice } from 'ln-service'
 
 async function transitionInvoice (jobName, { invoiceId, fromState, toState, toData, onTransition }, { models, lnd, boss }) {
-  let dbInvoice
-  console.log(`${jobName}: transitioning invoice ${invoiceId} from ${fromState} to ${toState}`)
+  console.group(`${jobName}: transitioning invoice ${invoiceId} from ${fromState} to ${toState}`)
 
+  let dbInvoice
   try {
+    console.log('fetching invoice from db')
+
     dbInvoice = await models.invoice.findUnique({ where: { id: invoiceId } })
     const lndInvoice = await getInvoice({ id: dbInvoice.hash, lnd })
     const data = toData(lndInvoice)
@@ -32,31 +34,33 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, toDa
 
       // our own optimistic concurrency check
       if (!dbInvoice) {
-        console.log(`${jobName}: record not found transitioning invoice ${invoiceId}:${dbInvoice.hash} from ${fromState} to ${toState}`)
+        console.log('record not found, assuming concurrent worker transitioned it')
         return
       }
 
       await onTransition({ lndInvoice, dbInvoice, tx })
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 
-    console.log(`${jobName}: transitioned invoice ${invoiceId}:${dbInvoice.hash} from ${fromState} to ${toState}`)
+    console.log('transition succeeded')
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
       if (e.code === 'P2025') {
-        console.log(`${jobName}: record not found transitioning invoice ${dbInvoice?.hash} from ${fromState} to ${toState}`)
+        console.log('record not found, assuming concurrent worker transitioned it')
         return
       }
       if (e.code === 'P2034') {
-        console.log(`${jobName}: write conflict transitioning invoice ${dbInvoice?.hash} from ${fromState} to ${toState}`)
+        console.log('write conflict, assuming concurrent worker is transitioning it')
         return
       }
     }
 
-    console.error(`${jobName}: unexpected error transitioning invoice ${invoiceId}:${dbInvoice?.hash} from ${fromState} to ${toState}`, e)
+    console.error('unexpected error', e)
     boss.send(
       jobName,
       { invoiceId },
       { startAfter: datePivot(new Date(), { minutes: 1 }), priority: 1000 })
+  } finally {
+    console.groupEnd()
   }
 }
 

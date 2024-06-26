@@ -33,7 +33,7 @@ export default async function performPaidAction (actionType, args, context) {
     const { me, models, hash, hmac } = context
     const paidAction = paidActions[actionType]
 
-    console.log('performPaidAction', actionType, args)
+    console.group('performPaidAction', actionType, args)
 
     if (!paidAction) {
       throw new Error(`Invalid action type ${actionType}`)
@@ -46,22 +46,22 @@ export default async function performPaidAction (actionType, args, context) {
     context.user = me ? await models.user.findUnique({ where: { id: me.id } }) : null
     context.cost = await paidAction.getCost(args, context)
     if (hash || hmac || !me) {
-      console.log('performPaidAction - hash or hmac provided, or anon', actionType, args)
+      console.log('hash or hmac provided, or anon, performing pessimistic action')
       return await performPessimisticAction(actionType, args, context)
     }
 
     const isRich = context.cost <= context.user.msats
     if (!isRich && !paidAction.supportsOptimism) {
-      console.log('performPaidAction - action does not support optimism', actionType, args)
+      console.log('action does not support optimism, performing pessimistic action')
       return await performPessimisticAction(actionType, args, context)
     }
 
     if (isRich) {
       try {
-        console.log('performPaidAction - enough fee credits available', actionType, args)
+        console.log('enough fee credits available, performing fee credit action')
         return await performFeeCreditAction(actionType, args, context)
       } catch (e) {
-        console.error('performPaidAction - fee credit action failed ', e, actionType, args)
+        console.error('fee credit action failed', e)
 
         // if we fail to do the action with fee credits, but the cost is 0, we should bail
         if (context.cost === 0n) {
@@ -70,14 +70,14 @@ export default async function performPaidAction (actionType, args, context) {
 
         // if we fail to do the action with fee credits, we should fall back to optimistic
         if (!paidAction.supportsOptimism) {
-          console.error('performPaidAction - action does not support optimism and fee credits failed ', actionType, args)
+          console.error('action does not support optimism and fee credits failed, performing pessimistic action')
           return await performPessimisticAction(actionType, args, context)
         }
       }
     }
 
     if (paidAction.supportsOptimism) {
-      console.error('performPaidAction - trying optimism ', actionType, args)
+      console.log('performing optimistic action')
       return await performOptimisticAction(actionType, args, context)
     }
 
@@ -85,6 +85,8 @@ export default async function performPaidAction (actionType, args, context) {
   } catch (e) {
     console.error('performPaidAction failed', e)
     throw e
+  } finally {
+    console.groupEnd()
   }
 }
 
@@ -231,8 +233,8 @@ export async function retryPaidAction (actionType, args, context) {
 }
 
 // TODO: switch these back before going to production
-const OPTIMISTIC_INVOICE_EXPIRE = { seconds: 10 } // { hours: 1 }
-const PESSIMISTIC_INVOICE_EXPIRE = { seconds: 10 } // { minutes: 10 }
+const OPTIMISTIC_INVOICE_EXPIRE = { minutes: 10 } // { hours: 1 }
+const PESSIMISTIC_INVOICE_EXPIRE = { minutes: 10 } // { minutes: 10 }
 
 async function createDbInvoice (actionType, args, context) {
   const { user, models, tx, lnd, cost, optimistic, actionId } = context

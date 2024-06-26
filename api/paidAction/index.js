@@ -1,9 +1,9 @@
 import { createHodlInvoice, createInvoice, settleHodlInvoice } from 'ln-service'
 import { datePivot } from '@/lib/time'
-import { verifyPayment } from '../resolvers/serial'
 import { USER_ID } from '@/lib/constants'
 import { createHmac } from '../resolvers/wallet'
 import { Prisma } from '@prisma/client'
+import { timingSafeEqual } from 'crypto'
 import * as ITEM_CREATE from './itemCreate'
 import * as ITEM_UPDATE from './itemUpdate'
 import * as ZAP from './zap'
@@ -135,21 +135,16 @@ async function performOptimisticAction (actionType, args, context) {
 }
 
 async function performPessimisticAction (actionType, args, context) {
-  const { models, hash, hmac, cost, lnd } = context
+  const { models, lnd } = context
   const action = paidActions[actionType]
 
   if (!action.supportsPessimism) {
     throw new Error(`This action ${actionType} does not support pessimistic invoicing`)
   }
 
-  if (hmac) {
+  if (context.hmac) {
     // we have paid and want to do the action now
-    const invoice = await verifyPayment(models, hash, hmac, cost)
-
-    if (!invoice?.id) {
-      throw new Error(`performPessimisticAction - missing invoiceId ${actionType}`)
-    }
-
+    const invoice = await verifyPayment(context)
     args.invoiceId = invoice.id
 
     return await models.$transaction(async tx => {
@@ -284,6 +279,34 @@ async function createDbInvoice (actionType, args, context) {
   // this makes sure that only the person who created this invoice
   // has access to the HMAC
   invoice.hmac = createHmac(invoice.hash)
+
+  return invoice
+}
+
+export async function verifyPayment ({ hash, hmac, models, cost }) {
+  if (!hash) {
+    throw new Error('hash required')
+  }
+
+  if (!hmac) {
+    throw new Error('hmac required')
+  }
+
+  const hmac2 = createHmac(hash)
+  if (!timingSafeEqual(Buffer.from(hmac), Buffer.from(hmac2))) {
+    throw new Error('hmac invalid')
+  }
+
+  const invoice = await models.invoice.findUnique({
+    where: {
+      hash,
+      actionState: 'HELD'
+    }
+  })
+
+  if (invoice.msatsReceived < cost) {
+    throw new Error('invoice amount too low')
+  }
 
   return invoice
 }

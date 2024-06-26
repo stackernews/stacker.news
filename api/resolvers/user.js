@@ -322,6 +322,7 @@ export default {
             '"SubSubscription"."userId" = $1',
             '"Item".created_at > $2',
             '"Item"."parentId" IS NULL',
+            '"Item"."userId" <> $1',
             activeOrMine(me),
             await filterClause(me, models),
             muteClause(me))})`, me.id, lastChecked)

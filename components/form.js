@@ -32,6 +32,7 @@ import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
 import { useMe } from './me'
+import classNames from 'classnames'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -41,7 +42,8 @@ export class SessionRequiredError extends Error {
 }
 
 export function SubmitButton ({
-  children, variant, value, onClick, disabled, appendText, submittingText = 'yeehaw!', ...props
+  children, variant, value, onClick, disabled, appendText, submittingText = 'yeehaw!',
+  className, ...props
 }) {
   const formik = useFormikContext()
 
@@ -50,6 +52,7 @@ export function SubmitButton ({
   return (
     <Button
       variant={variant || 'main'}
+      className={classNames(formik.isSubmitting && styles.pending, className)}
       type='submit'
       disabled={disabled}
       onClick={value

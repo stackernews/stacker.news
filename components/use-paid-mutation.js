@@ -1,6 +1,6 @@
 import { useApolloClient, useMutation } from '@apollo/client'
 import { useCallback, useState } from 'react'
-import { InvoiceCanceledError, InvoiceExpiredError, useQrPayment, useWebLnPayment } from './payment'
+import { InvoiceCanceledError, InvoiceExpiredError, useInvoice, useQrPayment, useWebLnPayment } from './payment'
 
 /*
 this is just like useMutation with a few changes:
@@ -20,6 +20,7 @@ export function usePaidMutation (mutation,
   const [mutate, result] = useMutation(mutation, options)
   const waitForWebLnPayment = useWebLnPayment()
   const waitForQrPayment = useQrPayment()
+  const invoiceWaiter = useInvoice()
   const client = useApolloClient()
   // innerResult is used to store/control the result of the mutation when innerMutate runs
   const [innerResult, setInnerResult] = useState(result)
@@ -75,7 +76,7 @@ export function usePaidMutation (mutation,
         })
       } else {
         try {
-          // wait for the invoice to be paid
+          // wait for the invoice to be held
           await waitForPayment(invoice, persistOnNavigate);
           // and the mutation to complete
           ({ data, ...rest } = await mutate({
@@ -87,12 +88,17 @@ export function usePaidMutation (mutation,
               hash: invoice.hash
             }
           }))
+          // block until the invoice to be marked as paid
+          // for pessimisitic actions, they won't show up on navigation until they are marked as paid
+          await invoiceWaiter.waitUntilPaid(invoice, inv => inv?.actionState === 'PAID')
           ourOnCompleted?.(data)
           onPaid?.(client.cache, { data })
         } catch (e) {
           console.error('usePaidMutation: failed to pay invoice', e)
           onPayError?.(e, client.cache, { data })
           rest = { payError: e, ...rest }
+        } finally {
+          invoiceWaiter.stopWaiting()
         }
       }
     } else {

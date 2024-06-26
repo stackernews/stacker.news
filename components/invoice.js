@@ -14,7 +14,7 @@ import Item from './item'
 import { CommentFlat } from './comment'
 import classNames from 'classnames'
 
-export default function Invoice ({ id, query = INVOICE, modal, onPayment, info, successVerb, webLn = true, webLnError, poll, ...props }) {
+export default function Invoice ({ id, query = INVOICE, modal, onPayment, info, successVerb, webLn = true, webLnError, poll, waitFor, ...props }) {
   const [expired, setExpired] = useState(false)
   const { data, error } = useQuery(query, SSR
     ? {}
@@ -31,7 +31,7 @@ export default function Invoice ({ id, query = INVOICE, modal, onPayment, info, 
     if (!invoice) {
       return
     }
-    if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived)) {
+    if (waitFor && waitFor(invoice)) {
       onPayment?.(invoice)
     }
     setExpired(new Date(invoice.expiredAt) <= new Date())

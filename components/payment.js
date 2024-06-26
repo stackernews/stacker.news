@@ -84,8 +84,9 @@ const useInvoice = () => {
           if (paid) {
             resolve()
             clearInterval(interval)
+          } else {
+            console.info(`invoice #${id}: waiting for payment ...`)
           }
-          console.log('waiting for payment ...')
         } catch (err) {
           reject(err)
           clearInterval(interval)

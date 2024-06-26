@@ -29,26 +29,27 @@ export function NWCProvider ({ children }) {
   const getInfo = useCallback(async (relayUrl, walletPubkey) => {
     logger.info(`requesting info event from ${relayUrl}`)
 
-    let relay, sub
+    let relay
     try {
-      relay = await Relay.connect(relayUrl).catch(() => {
-        // NOTE: passed error is undefined for some reason
-        const msg = `failed to connect to ${relayUrl}`
-        logger.error(msg)
-        throw new Error(msg)
-      })
+      relay = await Relay.connect(relayUrl)
       logger.ok(`connected to ${relayUrl}`)
+    } catch (err) {
+      const msg = `failed to connect to ${relayUrl}`
+      logger.error(msg)
+      throw new Error(msg)
+    }
+
+    try {
       return await new Promise((resolve, reject) => {
         const timeout = 5000
         const timer = setTimeout(() => {
           const msg = 'timeout waiting for info event'
           logger.error(msg)
           reject(new Error(msg))
-          sub?.close()?.catch(reject)
         }, timeout)
 
         let found = false
-        sub = relay.subscribe([
+        relay.subscribe([
           {
             kinds: [13194],
             authors: [walletPubkey]
@@ -76,13 +77,11 @@ export function NWCProvider ({ children }) {
               logger.error(msg)
               reject(new Error(msg))
             }
-            sub?.close()?.catch(reject)
           }
         })
       })
     } finally {
-      // For some reason, websocket is already in CLOSING or CLOSED state.
-      // relay?.close()
+      relay?.close()?.catch()
       if (relay) logger.info(`closed connection to ${relayUrl}`)
     }
   }, [logger])
@@ -193,15 +192,17 @@ export function NWCProvider ({ children }) {
     const hash = bolt11Tags(bolt11).payment_hash
     logger.info('sending payment:', `payment_hash=${hash}`)
 
-    let relay, sub
+    let relay
     try {
-      relay = await Relay.connect(relayUrl).catch(() => {
-        // NOTE: passed error is undefined for some reason
-        const msg = `failed to connect to ${relayUrl}`
-        logger.error(msg)
-        throw new Error(msg)
-      })
+      relay = await Relay.connect(relayUrl)
       logger.ok(`connected to ${relayUrl}`)
+    } catch (err) {
+      const msg = `failed to connect to ${relayUrl}`
+      logger.error(msg)
+      throw new Error(msg)
+    }
+
+    try {
       const ret = await new Promise(function (resolve, reject) {
         (async function () {
           // timeout since NWC is async (user needs to confirm payment in wallet)
@@ -211,7 +212,6 @@ export function NWCProvider ({ children }) {
             const msg = 'timeout waiting for payment'
             logger.error(msg)
             reject(new InvoiceExpiredError(hash))
-            sub?.close()?.catch(reject)
           }, timeout)
 
           const payload = {
@@ -233,7 +233,7 @@ export function NWCProvider ({ children }) {
             authors: [walletPubkey],
             '#e': [request.id]
           }
-          sub = relay.subscribe([filter], {
+          relay.subscribe([filter], {
             async onevent (response) {
               clearTimeout(timer)
               try {
@@ -263,8 +263,7 @@ export function NWCProvider ({ children }) {
       logger.error('payment failed:', `payment_hash=${hash}`, err.message || err.toString?.())
       throw err
     } finally {
-      // For some reason, websocket is already in CLOSING or CLOSED state.
-      // relay?.close()
+      relay?.close()?.catch()
       if (relay) logger.info(`closed connection to ${relayUrl}`)
     }
   }, [walletPubkey, relayUrl, secret, logger])

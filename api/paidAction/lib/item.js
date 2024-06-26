@@ -44,7 +44,7 @@ export const getItemMentions = async ({ text }, { me, models }) => {
   return []
 }
 
-export async function performBotBehavior ({ text, id }, { me, models, tx }) {
+export async function performBotBehavior ({ text, id }, { me, tx }) {
   // delete any existing deleteItem or reminder jobs for this item
   const userId = me?.id || USER_ID.anon
   id = Number(id)

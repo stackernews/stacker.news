@@ -1118,6 +1118,10 @@ export default {
 
       return !!subscription
     },
+    invoicePaidAt: async (item, args, { models }) => {
+      // we need this because CREATE TEMP TABLE AS does not return properly typed timestamps
+      return item.invoicePaidAtUTC ?? item.invoicePaidAt
+    },
     outlawed: async (item, args, { me, models }) => {
       if (me && Number(item.userId) === Number(me.id)) {
         return false

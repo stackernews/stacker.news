@@ -206,7 +206,7 @@ BEGIN
 
     EXECUTE 'CREATE TEMP TABLE IF NOT EXISTS t_item ON COMMIT DROP AS'
         || '    SELECT "Item".*, "Item".created_at at time zone ''UTC'' AS "createdAt", "Item".updated_at at time zone ''UTC'' AS "updatedAt", '
-        || '    to_jsonb(users.*) || jsonb_build_object(''meMute'', "Mute"."mutedId" IS NOT NULL) AS user, '
+        || '    "Item"."invoicePaidAt" at time zone ''UTC'' AS "invoicePaidAtUTC", to_jsonb(users.*) || jsonb_build_object(''meMute'', "Mute"."mutedId" IS NOT NULL) AS user, '
         || '    COALESCE("ItemAct"."meMsats", 0) AS "meMsats", COALESCE("ItemAct"."mePendingMsats", 0) as "mePendingMsats", COALESCE("ItemAct"."meDontLikeMsats", 0) AS "meDontLikeMsats", '
         || '    "Bookmark"."itemId" IS NOT NULL AS "meBookmark", "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", '
         || '    GREATEST(g.tf_hot_score, l.tf_hot_score) AS personal_hot_score, GREATEST(g.tf_top_score, l.tf_top_score) AS personal_top_score '

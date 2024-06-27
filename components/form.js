@@ -42,12 +42,13 @@ export class SessionRequiredError extends Error {
 }
 
 export function SubmitButton ({
-  children, variant, value, onClick, disabled, appendText, submittingText = 'yeehaw!',
+  children, variant, value, onClick, disabled, appendText, submittingText,
   className, ...props
 }) {
   const formik = useFormikContext()
 
   disabled ||= formik.isSubmitting
+  submittingText ||= children
 
   return (
     <Button

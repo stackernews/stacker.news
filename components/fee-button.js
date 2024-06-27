@@ -127,7 +127,12 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
   return (
     <div className={styles.feeButton}>
       <ActionTooltip overlayText={!free && total === 1 ? '1 sat' : feeText}>
-        <ChildButton variant={variant} disabled={disabled} appendText={feeText} submittingText={free ? undefined : 'paying...'}>{text}</ChildButton>
+        <ChildButton
+          variant={variant} disabled={disabled}
+          appendText={feeText}
+          submittingText={free || !feeText ? undefined : 'paying...'}
+        >{text}
+        </ChildButton>
       </ActionTooltip>
       {!me && <AnonInfo />}
       {(free && <Info><FreebieDialog /></Info>) ||

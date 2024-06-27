@@ -442,6 +442,7 @@ export default {
                       '"Item"."deletedAt" IS NULL',
                       '"Item"."parentId" IS NULL',
                       '"Item".bio = false',
+                      activeOrMine(me),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
                     ORDER BY rank DESC
@@ -467,6 +468,7 @@ export default {
                         '"Item"."deletedAt" IS NULL',
                         '"Item"."parentId" IS NULL',
                         '"Item".bio = false',
+                        activeOrMine(me),
                         await filterClause(me, models, type))}
                         ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC
                       OFFSET $1

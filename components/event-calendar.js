@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Button } from 'react-bootstrap'
 import { useQuery, gql } from '@apollo/client'
 import Link from 'next/link'
+import styles from '../styles/event-calendar.module.css'
 
 const GET_EVENTS = gql`
   query GetEvents($startDate: Date!, $endDate: Date!) {
@@ -84,57 +85,46 @@ const EventCalendar = () => {
     }
 
     return (
-      <div>
-        <h2>
+      <div className={styles.calendarContainer}>
+        <h2 className={styles.calendarHeader}>
           {month} {year}
         </h2>
-        <table className='table table-bordered'>
-          <thead>
-            <tr>
-              {daysOfWeek.map((day, index) => (
-                <th key={`header-${index}`} className='text-center' style={{ width: '40px', height: '40px' }}>
-                  {day}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {weeks.map((week, weekIndex) => (
-              <tr key={`week-${weekIndex}`}>
-                {week.map((day, dayIndex) => (
-                  <td
-                    key={`day-${weekIndex}-${dayIndex}`}
-                    className={`text-center position-relative ${selectedDate && selectedDate.getDate() === day ? 'bg-primary text-white' : ''}`}
-                    style={{ width: '50px', height: '70px', cursor: 'pointer' }}
-                    onClick={() => handleDayClick(day)}
-                  >
-                    {day !== '' && (
-                      <div className='day-number position-absolute' style={{ top: '2px', left: '2px', fontSize: '0.8rem' }}>
-                        {day}
-                      </div>
-                    )}
-                    {day !== '' && getEventsForDay(day).map((event, index) => (
+        <div className={styles.calendarGrid}>
+          {daysOfWeek.map((day, index) => (
+            <div key={`header-${index}`} className={styles.calendarHeaderCell}>
+              {day}
+            </div>
+          ))}
+          {weeks.flat().map((day, index) => (
+            <div
+              key={`day-${index}`}
+              className={`${styles.calendarCell} ${selectedDate && selectedDate.getDate() === day ? styles.selectedDay : ''} ${day === '' ? styles.emptyCell : ''}`}
+              onClick={() => handleDayClick(day)}
+            >
+              {day !== '' && (
+                <>
+                  <div className={styles.dayNumber}>{day}</div>
+                  <div className={styles.eventContainer}>
+                    {getEventsForDay(day).map((event, eventIndex) => (
                       <Link key={event.id} href={`/items/${event.id}`}>
-                        <div style={{ marginTop: '0.2rem', fontSize: '0.7rem' }}>
+                        <div className={styles.event} title={event.title}>
                           {event.title}
                         </div>
                       </Link>
                     ))}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div>
-          <div className='d-flex justify-content-between mb-3'>
-            <Button variant='primary' onClick={() => handleMonthChange(-1)}>
-              Previous
-            </Button>
-            <Button variant='primary' onClick={() => handleMonthChange(1)}>
-              Next
-            </Button>
-          </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className={styles.buttonContainer}>
+          <Button variant='primary' onClick={() => handleMonthChange(-1)}>
+            Previous
+          </Button>
+          <Button variant='primary' onClick={() => handleMonthChange(1)}>
+            Next
+          </Button>
         </div>
       </div>
     )
@@ -143,7 +133,7 @@ const EventCalendar = () => {
   if (loading) return <p>Loading...</p>
   if (error) return <p>Error: {error.message}</p>
 
-  return <div>{generateCalendar()}</div>
+  return generateCalendar()
 }
 
 export default EventCalendar

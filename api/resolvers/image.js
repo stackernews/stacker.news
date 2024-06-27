@@ -11,7 +11,7 @@ export default {
 
 export function uploadIdsFromText (text, { models }) {
   if (!text) return []
-  return [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
+  return [...new Set([...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])))]
 }
 
 export async function imageFeesInfo (s3Keys, { models, me }) {

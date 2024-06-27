@@ -25,7 +25,8 @@ export async function perform (args, context) {
       threadSubscriptions: true,
       mentions: true,
       itemForwards: true,
-      itemReferrers: true
+      itemReferrers: true,
+      itemUploads: true
     }
   })
 
@@ -46,6 +47,12 @@ export async function perform (args, context) {
 
   const mentions = await getMentions(args, context)
   const itemMentions = await getItemMentions(args, context)
+  const itemUploads = uploadIds.map(id => ({ uploadId: id }))
+
+  await tx.upload.updateMany({
+    where: { id: { in: uploadIds } },
+    data: { paid: true }
+  })
 
   const item = await tx.item.update({
     where: { id: parseInt(id) },
@@ -62,7 +69,12 @@ export async function perform (args, context) {
         }
       },
       itemUploads: {
-        connect: uploadIds?.map(id => ({ uploadId: id }))
+        create: difference(itemUploads, old.itemUploads, 'uploadId').map(({ uploadId }) => ({ uploadId })),
+        deleteMany: {
+          uploadId: {
+            in: difference(old.itemUploads, itemUploads, 'uploadId').map(({ uploadId }) => uploadId)
+          }
+        }
       },
       itemActs: {
         createMany: {

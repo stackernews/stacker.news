@@ -93,7 +93,7 @@ export async function perform (args, context) {
       }
     },
     itemUploads: {
-      connect: uploadIds.map(id => ({ uploadId: id }))
+      create: uploadIds.map(id => ({ uploadId: id }))
     },
     itemActs: {
       createMany: {
@@ -174,7 +174,14 @@ export async function onPaid ({ invoice, id }, context) {
       include: {
         mentions: true,
         itemReferrers: { include: { refereeItem: true } },
-        user: true
+        user: true,
+        itemUploads: { include: { upload: true } }
+      }
+    })
+    await tx.upload.updateMany({
+      where: { id: { in: item.itemUploads.map(({ uploadId }) => uploadId) } },
+      data: {
+        paid: true
       }
     })
   } else {

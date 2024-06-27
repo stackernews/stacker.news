@@ -397,7 +397,10 @@ BEGIN
                 FROM
                     "Item"
                 WHERE date_trunc(date_part, created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = period.t
-                AND "weightedVotes" > 0 AND "deletedAt" IS NULL AND NOT bio
+                AND "weightedVotes" > 0
+                AND "deletedAt" IS NULL
+                AND NOT bio
+                AND ("invoiceActionState" IS NULL OR "invoiceActionState" = 'PAID')
             ) x
             WHERE x.percentile <= percentile_cutoff
         ),
@@ -409,7 +412,8 @@ BEGIN
                 - ROW_NUMBER() OVER (partition by item_ratios.id, "ItemAct"."userId" order by "ItemAct".created_at asc) AS island
             FROM item_ratios
             JOIN "ItemAct" on "ItemAct"."itemId" = item_ratios.id
-            WHERE act = 'TIP' AND date_trunc(date_part, "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = period.t
+            WHERE act = 'TIP'
+            AND date_trunc(date_part, "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = period.t
             AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
         ),
         -- isolate contiguous upzaps from the same user on the same item so that when we take the log
@@ -471,11 +475,12 @@ BEGIN
     FROM generate_series(min, max, ival) period(t)
     LEFT JOIN (
         -- For msats_spent and msats_stacked
-        (SELECT "subName", "ItemAct"."msats" as quantity, act::TEXT as type, "ItemAct"."created_at"
+        (SELECT COALESCE("Item"."subName", root."subName") as "subName", "ItemAct"."msats" as quantity, act::TEXT as type, "ItemAct"."created_at"
             FROM "ItemAct"
             JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
+            LEFT JOIN "Item" root ON "Item"."rootId" = root.id AND root."userId" <> "Item"."userId"
             WHERE "ItemAct"."created_at" >= min_utc
-                AND "subName" IS NOT NULL
+                AND ("Item"."subName" IS NOT NULL OR root."subName" IS NOT NULL)
                 AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID'))
             UNION ALL
         (SELECT "subName", 1 as quantity, 'POST' as type, created_at
@@ -528,8 +533,8 @@ BEGIN
         -- spending
         (sum(quantity) FILTER (WHERE type IN ('BOOST', 'TIP', 'FEE', 'STREAM', 'POLL', 'DONT_LIKE_THIS')))::BIGINT as msats_fees,
         (sum(quantity) FILTER (WHERE type = 'DONATION'))::BIGINT as msats_donated,
-        (sum(quantity) FILTER (WHERE type = 'TERRITORY'))::BIGINT as msats_billing,
-        (sum(quantity) FILTER (WHERE type IN ('BOOST', 'TIP', 'FEE', 'STREAM', 'POLL', 'DONT_LIKE_THIS', 'DONATION', 'TERRITORY')))::BIGINT as msats_spent
+        (sum(quantity) FILTER (WHERE type = 'BILLING'))::BIGINT as msats_billing,
+        (sum(quantity) FILTER (WHERE type IN ('BOOST', 'TIP', 'FEE', 'STREAM', 'POLL', 'DONT_LIKE_THIS', 'DONATION', 'BILLING')))::BIGINT as msats_spent
     FROM generate_series(min, max, ival) period(t)
     LEFT JOIN
     ((SELECT "userId", msats as quantity, act::TEXT as type, created_at
@@ -730,7 +735,8 @@ BEGIN
             WHEN "parentId" IS NULL THEN 'POST'
             ELSE 'COMMENT' END as type
     FROM "Item"
-    WHERE created_at >= min_utc)
+    WHERE created_at >= min_utc
+    AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID'))
     UNION ALL
     (SELECT created_at, 'TERRITORY' as type
     FROM "Sub"

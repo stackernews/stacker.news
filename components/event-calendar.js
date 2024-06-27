@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Button } from 'react-bootstrap'
-import { useQuery } from '@apollo/client'
-import { gql } from '@apollo/client'
+import { useQuery, gql } from '@apollo/client'
 import Link from 'next/link'
 
 const GET_EVENTS = gql`

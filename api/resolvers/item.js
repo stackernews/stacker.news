@@ -605,7 +605,8 @@ export default {
       }
 
       return await models.item.count({ where }) + 1
-    }, 
+    },
+
     events: async (parent, { startDate, endDate }, { models }) => {
       try {
         const events = await models.item.findMany({
@@ -634,8 +635,6 @@ export default {
         })
       }
     }
-
-    
   },
 
   Mutation: {

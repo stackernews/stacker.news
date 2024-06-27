@@ -24,21 +24,9 @@ Each paid action is implemented in its own file in the `paidActions` directory. 
 - `supportsPessimism`: supports a pessimistic payment flow
 - `supportsOptimism`: supports an optimistic payment flow
 
-### Functions
-All functions have the following signature: `function(args: Object, context: Object): Promise`
-
-#### Function arguments
-
-`args` contains the arguments for the action as defined in the `graphql` schema. If the action is optimistic or pessimistic, `args` will contain an `invoiceId` field which can be stored alongside the paid action's data. If this is a call to `retry`, `args` will contain the original `invoiceId` and `newInvoiceId` fields.
-
-`context` contains the following fields:
-- `user`: the user performing the action (null if anonymous)
-- `cost`: the cost of the action in msats as a `BigInt`
-- `tx`: the current transaction (for anything that needs to be done atomically with the payment)
-- `models`: the current prisma client (for anything that doesn't need to be done atomically with the payment)
-- `lnd`: the current lnd client
-
 #### Functions
+
+All functions have the following signature: `function(args: Object, context: Object): Promise`
 
 - `getCost`: returns the cost of the action in msats as a `BigInt`
 - `perform`: performs the action
@@ -59,6 +47,17 @@ All functions have the following signature: `function(args: Object, context: Obj
     - this function should update the rows created in `perform` to contain the new `newInvoiceId` and remark the row as `PENDING`
 - `describe`: returns a description as a string of the action
     - for actions that require generating an invoice, and for stackers that don't hide invoice descriptions, this is used in the invoice description
+
+#### Function arguments
+
+`args` contains the arguments for the action as defined in the `graphql` schema. If the action is optimistic or pessimistic, `args` will contain an `invoiceId` field which can be stored alongside the paid action's data. If this is a call to `retry`, `args` will contain the original `invoiceId` and `newInvoiceId` fields.
+
+`context` contains the following fields:
+- `user`: the user performing the action (null if anonymous)
+- `cost`: the cost of the action in msats as a `BigInt`
+- `tx`: the current transaction (for anything that needs to be done atomically with the payment)
+- `models`: the current prisma client (for anything that doesn't need to be done atomically with the payment)
+- `lnd`: the current lnd client
 
 ## `IMPORTANT: transaction isolation`
 

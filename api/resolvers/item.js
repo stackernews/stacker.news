@@ -605,7 +605,37 @@ export default {
       }
 
       return await models.item.count({ where }) + 1
+    }, 
+    events: async (parent, { startDate, endDate }, { models }) => {
+      try {
+        const events = await models.item.findMany({
+          where: {
+            eventDate: {
+              gte: new Date(startDate),
+              lte: new Date(endDate)
+            },
+            // Ensure we're only fetching events
+            eventLocation: {
+              not: null
+            }
+          },
+          select: {
+            id: true,
+            title: true,
+            eventDate: true,
+            eventLocation: true
+          }
+        })
+        return events
+      } catch (error) {
+        console.error('Error fetching events:', error)
+        throw new GraphQLError('Failed to fetch events', {
+          extensions: { code: 'INTERNAL_SERVER_ERROR' }
+        })
+      }
     }
+
+    
   },
 
   Mutation: {

@@ -1241,7 +1241,7 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
   const myBio = user.bioId === old.id
   const timer = Date.now() < new Date(old.invoicePaidAt ?? old.createdAt).getTime() + 10 * 60_000
 
-  if (!allowEdit && !myBio && !timer) {
+  if (!allowEdit && !myBio && !timer && !isJob(item)) {
     throw new GraphQLError('item can no longer be editted', { extensions: { code: 'BAD_INPUT' } })
   }
 

@@ -178,18 +178,14 @@ export function DonateButton () {
                   sats: Number(amount),
                   hash,
                   hmac
-                }
-              })
-              if (error) {
-                console.error(error)
-                toaster.danger('failed to donate')
-              } else {
-                const didStrike = strike()
-                if (!didStrike) {
+                },
+                onCompleted: () => {
+                  strike()
                   toaster.success('donated')
                 }
-              }
+              })
               onClose()
+              if (error) throw error
             }}
           >
             <Input

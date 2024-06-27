@@ -15,7 +15,7 @@ import copy from 'clipboard-copy'
 import ZoomableImage, { decodeOriginalUrl } from './image'
 import { IMGPROXY_URL_REGEXP, parseInternalLinks, parseEmbedUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
-import { rehypeInlineCodeProperty } from '@/lib/md'
+import { rehypeInlineCodeProperty, rehypeStyler } from '@/lib/md'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
@@ -23,6 +23,10 @@ import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
 import UserPopover from './user-popover'
 import ItemPopover from './item-popover'
+
+// Explicitely defined start/end tags & which CSS class from text.module.css to apply
+export const rehypeSuperscript = () => rehypeStyler('<sup>', '</sup>', styles.superscript)
+export const rehypeSubscript = () => rehypeStyler('<sub>', '</sub>', styles.subscript)
 
 export function SearchText ({ text }) {
   return (
@@ -200,8 +204,10 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                 )
               }
               if (text.startsWith?.('@')) {
+                // user mention might be within a markdown link like this: [@user foo bar](url)
+                const name = text.replace('@', '').split(' ')[0]
                 return (
-                  <UserPopover name={text.replace('@', '')}>
+                  <UserPopover name={name}>
                     <Link
                       id={props.id}
                       href={href}
@@ -281,8 +287,24 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                   <div className={styles.videoContainer}>
                     <iframe
                       title='Rumble Video'
-                      allowFullScreen=''
+                      allowFullScreen
                       src={meta?.href}
+                      sandbox='allow-scripts'
+                    />
+                  </div>
+                </div>
+              )
+            }
+
+            if (provider === 'peertube') {
+              return (
+                <div style={videoWrapperStyles}>
+                  <div className={styles.videoContainer}>
+                    <iframe
+                      title='PeerTube Video'
+                      allowFullScreen
+                      src={meta?.href}
+                      sandbox='allow-scripts'
                     />
                   </div>
                 </div>
@@ -295,7 +317,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
           img: Img
         }}
         remarkPlugins={[gfm, mention, sub]}
-        rehypePlugins={[rehypeInlineCodeProperty]}
+        rehypePlugins={[rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript]}
       >
         {children}
       </ReactMarkdown>

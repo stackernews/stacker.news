@@ -252,3 +252,15 @@ img.fullScreen {
     top: 0;
     left: 0;
 }
+
+
+/* Utility classes used in rehype plugins in md.js */
+.subscript {
+    vertical-align: sub;
+    font-size: smaller;
+}
+
+.superscript {
+    vertical-align: super;
+    font-size: smaller;
+}

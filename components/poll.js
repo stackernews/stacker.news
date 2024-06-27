@@ -75,7 +75,7 @@ export default function Poll ({ item }) {
   const timeRemaining = timeLeft(new Date(item.pollExpiresAt))
   const mine = item.user.id === me?.id
   const meVotePending = item.poll.meInvoiceActionState && item.poll.meInvoiceActionState !== 'PAID'
-  const showPollButton = (!hasExpiration || timeRemaining) && !item.poll.meVoted && !meVotePending && !mine
+  const showPollButton = me && (!hasExpiration || timeRemaining) && !item.poll.meVoted && !meVotePending && !mine
   const pollCount = item.poll.count
   return (
     <div className={styles.pollBox}>

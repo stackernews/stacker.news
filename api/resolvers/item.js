@@ -998,18 +998,22 @@ export default {
         ORDER BY "PollOption".id ASC
       `
 
-      const meVoted = await models.pollBlindVote.findFirst({
-        where: {
-          userId: me?.id,
-          itemId: item.id
-        }
-      })
-
       const poll = {}
+      if (me) {
+        const meVoted = await models.pollBlindVote.findFirst({
+          where: {
+            userId: me.id,
+            itemId: item.id
+          }
+        })
+        poll.meVoted = !!meVoted
+        poll.meInvoiceId = meVoted?.invoiceId
+        poll.meInvoiceActionState = meVoted?.invoiceActionState
+      } else {
+        poll.meVoted = false
+      }
+
       poll.options = options
-      poll.meVoted = !!meVoted
-      poll.meInvoiceId = meVoted?.invoiceId
-      poll.meInvoiceActionState = meVoted?.invoiceActionState
       poll.count = options.reduce((t, o) => t + o.count, 0)
 
       return poll

@@ -30,7 +30,7 @@ export const paidActions = {
 
 export default async function performPaidAction (actionType, args, context) {
   try {
-    const { me, models, hash, hmac } = context
+    const { me, models, hash, hmac, forceFeeCredits } = context
     const paidAction = paidActions[actionType]
 
     console.group('performPaidAction', actionType, args)
@@ -51,11 +51,6 @@ export default async function performPaidAction (actionType, args, context) {
     }
 
     const isRich = context.cost <= context.user.msats
-    if (!isRich && !paidAction.supportsOptimism) {
-      console.log('action does not support optimism, performing pessimistic action')
-      return await performPessimisticAction(actionType, args, context)
-    }
-
     if (isRich) {
       try {
         console.log('enough fee credits available, performing fee credit action')
@@ -73,6 +68,15 @@ export default async function performPaidAction (actionType, args, context) {
           console.error('action does not support optimism and fee credits failed, performing pessimistic action')
           return await performPessimisticAction(actionType, args, context)
         }
+      }
+    } else {
+      if (forceFeeCredits) {
+        throw new Error('forceFeeCredits is set, but user does not have enough fee credits')
+      }
+
+      if (!paidAction.supportsOptimism) {
+        console.log('not enough fee credits available, optimism not supported, performing pessimistic action')
+        return await performPessimisticAction(actionType, args, context)
       }
     }
 

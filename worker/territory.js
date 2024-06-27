@@ -1,3 +1,4 @@
+import lnd from '@/api/lnd'
 import performPaidAction from '@/api/paidAction'
 import serialize from '@/api/resolvers/serial'
 import { nextBillingWithGrace } from '@/lib/territory'
@@ -34,7 +35,7 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
 
   try {
     const { result } = await performPaidAction('TERRITORY_BILLING',
-      { name: subName }, { models, me: { id: sub.userId } })
+      { name: subName }, { models, me: { id: sub.userId }, lnd, forceFeeCredits: true })
     if (!result) {
       throw new Error('not enough fee credits to auto-renew territory')
     }

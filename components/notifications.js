@@ -499,16 +499,14 @@ function ItemMention ({ n }) {
       <small className='fw-bold text-info ms-2'>
         your item was mentioned in
       </small>
-      <div>
-        {n.item?.title
-          ? <Item item={n.item} />
-          : (
-            <div className='pb-2'>
-              <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent rootText='replying on:' clickToContext />
-              </RootProvider>
-            </div>)}
-      </div>
+      {n.item?.title
+        ? <div className='ps-2'><Item item={n.item} /></div>
+        : (
+          <div className='pb-2'>
+            <RootProvider root={n.item.root}>
+              <Comment item={n.item} noReply includeParent rootText='replying on:' clickToContext />
+            </RootProvider>
+          </div>)}
     </>
   )
 }
@@ -569,7 +567,7 @@ function TerritoryPost ({ n }) {
       <small className='fw-bold text-info ms-2'>
         new post in ~{n.item.sub.name}
       </small>
-      <div>
+      <div className='ps-2'>
         <Item item={n.item} />
       </div>
     </>

@@ -1,17 +1,13 @@
 import gql from 'graphql-tag'
 import { COMMENTS } from './comments'
 import { SUB_FULL_FIELDS } from './subs'
+import { INVOICE_FIELDS } from './wallet'
 
 export const PAID_ACTION = gql`
+  ${INVOICE_FIELDS}
   fragment PaidActionFields on PaidAction {
     invoice {
-      bolt11
-      hash
-      hmac
-      id
-      expiresAt
-      actionState
-      actionType
+      ...InvoiceFields
     }
     paymentMethod
   }`

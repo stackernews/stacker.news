@@ -27,8 +27,7 @@ export default gql`
   type ItemAct {
     id: ID!
     act: String!
-    invoiceId: Int
-    invoiceActionState: InvoiceActionState
+    invoice: Invoice
   }
 
   extend type Mutation {
@@ -146,10 +145,7 @@ export default gql`
     imgproxyUrls: JSONObject
     rel: String
     apiKey: Boolean
-    invoiceActionState: InvoiceActionState
-    invoiceId: ID
     invoice: Invoice
-    invoicePaidAt: Date
   }
 
   input ItemForwardInput {

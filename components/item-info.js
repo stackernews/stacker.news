@@ -30,7 +30,7 @@ export default function ItemInfo ({
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
   onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true
 }) {
-  const editThreshold = new Date(item.invoicePaidAt ?? item.createdAt).getTime() + 10 * 60000
+  const editThreshold = new Date(item.invoice?.confirmedAt ?? item.createdAt).getTime() + 10 * 60000
   const me = useMe()
   const router = useRouter()
   const [canEdit, setCanEdit] =
@@ -69,10 +69,10 @@ export default function ItemInfo ({
 
     let Component
     let onClick
-    if (me && item.invoiceActionState && item.invoiceActionState !== 'PAID') {
-      if (item.invoiceActionState === 'FAILED') {
+    if (me && item.invoice?.actionState && item.invoice?.actionState !== 'PAID') {
+      if (item.invoice?.actionState === 'FAILED') {
         Component = () => <span className='text-warning'>retry payment</span>
-        onClick = async () => await retryCreateItem({ variables: { invoiceId: parseInt(item.invoiceId) } }).catch(console.error)
+        onClick = async () => await retryCreateItem({ variables: { invoiceId: parseInt(item.invoice?.id) } }).catch(console.error)
       } else {
         Component = () => (
           <span
@@ -80,7 +80,7 @@ export default function ItemInfo ({
           >pending
           </span>
         )
-        onClick = () => waitForQrPayment({ id: item.invoiceId }, null, { cancelOnClose: false }).catch(console.error)
+        onClick = () => waitForQrPayment({ id: item.invoice?.id }, null, { cancelOnClose: false }).catch(console.error)
       }
     } else if (canEdit) {
       Component = () => (
@@ -226,10 +226,10 @@ export default function ItemInfo ({
                   <hr className='dropdown-divider' />
                   <OutlawDropdownItem item={item} />
                 </>}
-              {item.mine && item.invoiceId &&
+              {item.mine && item.invoice?.id &&
                 <>
                   <hr className='dropdown-divider' />
-                  <Link href={`/invoices/${item.invoiceId}`} className='text-reset dropdown-item'>
+                  <Link href={`/invoices/${item.invoice?.id}`} className='text-reset dropdown-item'>
                     view invoice
                   </Link>
                 </>}

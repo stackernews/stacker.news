@@ -61,7 +61,7 @@ export const useInvoice = () => {
   }, [createInvoice])
 
   const isInvoice = useCallback(async ({ id }, that) => {
-    const { data, error } = await client.query({ query: INVOICE, fetchPolicy: 'no-cache', variables: { id } })
+    const { data, error } = await client.query({ query: INVOICE, fetchPolicy: 'network-only', variables: { id } })
     if (error) {
       throw error
     }

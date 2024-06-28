@@ -925,6 +925,17 @@ export default {
       return result
     }
   },
+  ItemAct: {
+    invoice: async (itemAct, args, { models }) => {
+      if (itemAct.invoiceId) {
+        return {
+          id: itemAct.invoiceId,
+          actionState: itemAct.invoiceActionState
+        }
+      }
+      return null
+    }
+  },
   Item: {
     sats: async (item, args, { models }) => {
       return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0))
@@ -1124,10 +1135,6 @@ export default {
 
       return !!subscription
     },
-    invoicePaidAt: async (item, args, { models }) => {
-      // we need this because CREATE TEMP TABLE AS does not return properly typed timestamps
-      return item.invoicePaidAtUTC ?? item.invoicePaidAt
-    },
     outlawed: async (item, args, { me, models }) => {
       if (me && Number(item.userId) === Number(me.id)) {
         return false
@@ -1150,6 +1157,17 @@ export default {
         return item.root
       }
       return await getItem(item, { id: item.rootId }, { me, models })
+    },
+    invoice: async (item, args, { models }) => {
+      if (item.invoiceId) {
+        return {
+          id: item.invoiceId,
+          actionState: item.invoiceActionState,
+          confirmedAt: item.invoicePaidAtUTC ?? item.invoicePaidAt
+        }
+      }
+
+      return null
     },
     parent: async (item, args, { models }) => {
       if (!item.parentId) {

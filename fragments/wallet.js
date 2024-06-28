@@ -5,6 +5,7 @@ export const INVOICE_FIELDS = gql`
   fragment InvoiceFields on Invoice {
     id
     hash
+    hmac
     bolt11
     satsRequested
     satsReceived

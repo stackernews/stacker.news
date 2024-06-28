@@ -5,6 +5,7 @@ import useCrossposter from './use-crossposter'
 import { useCallback } from 'react'
 import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
+import gql from 'graphql-tag'
 
 // this is intented to be compatible with upsert item mutations
 // so that it can be reused for all post types and comments and we don't have
@@ -25,8 +26,6 @@ export default function useItemSubmit (mutation,
         options = options.slice(item?.poll?.options?.length || 0).filter(o => o.trim().length > 0)
       }
 
-      const defaultCacheMods = paidActionCacheMods(result => `Item:${result?.id}`)
-
       const { data, error, payError } = await upsertPost({
         variables: {
           id: item?.id,
@@ -45,11 +44,11 @@ export default function useItemSubmit (mutation,
         persistOnNavigate: navigateOnSubmit,
         ...paidMutationOptions,
         onPayError: (e, cache, { data }) => {
-          defaultCacheMods.onPayError(e, cache, { data })
+          paidActionCacheMods.onPayError(e, cache, { data })
           paidMutationOptions?.onPayError?.(e, cache, { data })
         },
         onPaid: (cache, { data }) => {
-          defaultCacheMods.onPaid(cache, { data })
+          paidActionCacheMods.onPaid(cache, { data })
           paidMutationOptions?.onPaid?.(cache, { data })
         },
         onCompleted: (data) => {
@@ -87,7 +86,30 @@ export default function useItemSubmit (mutation,
 export function useRetryCreateItem ({ id }) {
   const [retryPaidAction] = usePaidMutation(
     RETRY_PAID_ACTION,
-    paidActionCacheMods(`Item:${id}`))
+    {
+      ...paidActionCacheMods,
+      update: (cache, { data }) => {
+        const response = Object.values(data)[0]
+        if (!response?.invoice) return
+        cache.modify({
+          id: `Item:${id}`,
+          fields: {
+            // this is a bit of a hack just to update the reference to the new invoice
+            invoice: () => cache.writeFragment({
+              id: `Invoice:${response.invoice.id}`,
+              fragment: gql`
+                fragment _ on Invoice {
+                  bolt11
+                }
+              `,
+              data: { bolt11: response.invoice.bolt11 }
+            })
+          }
+        })
+        paidActionCacheMods?.update?.(cache, { data })
+      }
+    }
+  )
 
   return retryPaidAction
 }

@@ -123,51 +123,43 @@ function addOptimisticResponseExtras (optimisticResponse) {
 }
 
 // most paid actions have the same cache modifications
-export function paidActionCacheMods (cacheId) {
-  const getCacheId = result => {
-    return typeof cacheId === 'function' ? cacheId(result) : cacheId
-  }
+// these let us preemptively update the cache before a query updates it
+export const paidActionCacheMods = {
+  update: (cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.invoice) return
+    const { invoice } = response
 
-  return {
-    update: (cache, { data }) => {
-      const response = Object.values(data)[0]
-      if (!response?.result || !response.invoice) return
-      const { result, invoice } = response
+    cache.modify({
+      id: `Invoice:${invoice.id}`,
+      fields: {
+        actionState: () => 'PENDING'
+      }
+    })
+  },
+  onPayError: (e, cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.invoice) return
+    const { invoice } = response
 
-      cache.modify({
-        id: getCacheId(result),
-        fields: {
-          invoiceActionState: () => 'PENDING',
-          invoiceId: () => invoice.id
-        }
-      })
-    },
-    onPayError: (e, cache, { data }) => {
-      const response = Object.values(data)[0]
-      if (!response?.result || !response.invoice) return
-      const { result, invoice } = response
+    cache.modify({
+      id: `Invoice:${invoice.id}`,
+      fields: {
+        actionState: () => 'FAILED'
+      }
+    })
+  },
+  onPaid: (cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.invoice) return
+    const { invoice } = response
 
-      cache.modify({
-        id: getCacheId(result),
-        fields: {
-          invoiceActionState: () => 'FAILED',
-          invoiceId: () => invoice.id
-        }
-      })
-    },
-    onPaid: (cache, { data }) => {
-      const response = Object.values(data)[0]
-      if (!response?.result || !response.invoice) return
-      const { result, invoice } = response
-
-      cache.modify({
-        id: getCacheId(result),
-        fields: {
-          invoiceActionState: () => 'PAID',
-          invoiceId: () => invoice.id,
-          invoicePaidAt: () => new Date().toISOString()
-        }
-      })
-    }
+    cache.modify({
+      id: `Invoice:${invoice.id}`,
+      fields: {
+        actionState: () => 'PAID',
+        confirmedAt: () => new Date().toISOString()
+      }
+    })
   }
 }

@@ -11,36 +11,34 @@ import { InvoiceCanceledError } from './payment'
 import { useLightning } from './lightning'
 import { useToast } from './toast'
 
-export function payBountyCacheMods () {
-  return {
-    onPaid: (cache, { data }) => {
-      const response = Object.values(data)[0]
-      if (!response?.result) return
-      const { id, path } = response.result
-      const root = path.split('.')[0]
-      cache.modify({
-        id: `Item:${root}`,
-        fields: {
-          bountyPaidTo (existingPaidTo = []) {
-            return [...(existingPaidTo || []), Number(id)]
-          }
+export const payBountyCacheMods = {
+  onPaid: (cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.result) return
+    const { id, path } = response.result
+    const root = path.split('.')[0]
+    cache.modify({
+      id: `Item:${root}`,
+      fields: {
+        bountyPaidTo (existingPaidTo = []) {
+          return [...(existingPaidTo || []), Number(id)]
         }
-      })
-    },
-    onPayError: (e, cache, { data }) => {
-      const response = Object.values(data)[0]
-      if (!response?.result) return
-      const { id, path } = response.result
-      const root = path.split('.')[0]
-      cache.modify({
-        id: `Item:${root}`,
-        fields: {
-          bountyPaidTo (existingPaidTo = []) {
-            return existingPaidTo.filter(i => i !== Number(id))
-          }
+      }
+    })
+  },
+  onPayError: (e, cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.result) return
+    const { id, path } = response.result
+    const root = path.split('.')[0]
+    cache.modify({
+      id: `Item:${root}`,
+      fields: {
+        bountyPaidTo (existingPaidTo = []) {
+          return (existingPaidTo || []).filter(i => i !== Number(id))
         }
-      })
-    }
+      }
+    })
   }
 }
 
@@ -54,7 +52,7 @@ export default function PayBounty ({ children, item }) {
   const act = useAct({
     variables,
     optimisticResponse: { act: { result: { ...variables, path: item.path } } },
-    ...payBountyCacheMods()
+    ...payBountyCacheMods
   })
 
   const handlePayBounty = async onCompleted => {

@@ -60,9 +60,11 @@ export const ITEM_FIELDS = gql`
     imgproxyUrls
     rel
     apiKey
-    invoiceActionState
-    invoiceId
-    invoicePaidAt
+    invoice {
+      id
+      actionState
+      confirmedAt
+    }
   }`
 
 export const ITEM_FULL_FIELDS = gql`

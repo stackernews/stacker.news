@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useQuery } from '@apollo/client'
+import { gql, useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
@@ -298,20 +298,36 @@ function InvoicePaid ({ n }) {
 }
 
 function useActRetry ({ invoice }) {
-  const cacheMods = paidActionCacheMods(`ItemAct:${invoice.itemAct?.id}`)
   const bountyCacheMods = invoice.item?.bounty ? payBountyCacheMods() : {}
   return useAct({
     query: RETRY_PAID_ACTION,
     onPayError: (e, cache, { data }) => {
-      cacheMods?.onPayError?.(e, cache, { data })
+      paidActionCacheMods?.onPayError?.(e, cache, { data })
       bountyCacheMods?.onPayError?.(e, cache, { data })
     },
     onPaid: (cache, { data }) => {
-      cacheMods?.onPaid?.(cache, { data })
+      paidActionCacheMods?.onPaid?.(cache, { data })
       bountyCacheMods?.onPaid?.(cache, { data })
     },
     update: (cache, { data }) => {
-      cacheMods?.update?.(cache, { data })
+      const response = Object.values(data)[0]
+      if (!response?.invoice) return
+      cache.modify({
+        id: `ItemAct:${invoice.itemAct?.id}`,
+        fields: {
+          // this is a bit of a hack just to update the reference to the new invoice
+          invoice: () => cache.writeFragment({
+            id: `Invoice:${response.invoice.id}`,
+            fragment: gql`
+              fragment _ on Invoice {
+                bolt11
+              }
+            `,
+            data: { bolt11: response.invoice.bolt11 }
+          })
+        }
+      })
+      paidActionCacheMods?.update?.(cache, { data })
       bountyCacheMods?.update?.(cache, { data })
     }
   })
@@ -337,7 +353,7 @@ function Invoicification ({ n: { invoice, sortTime } }) {
   if (invoice.actionType === 'ITEM_CREATE') {
     actionString = `${itemType} create `
     retry = retryCreateItem;
-    ({ invoiceId, invoiceActionState } = invoice.item)
+    ({ id: invoiceId, actionState: invoiceActionState } = invoice.item.invoice)
   } else if (invoice.actionType === 'POLL_VOTE') {
     actionString = 'poll vote '
     retry = retryPollVote
@@ -348,7 +364,7 @@ function Invoicification ({ n: { invoice, sortTime } }) {
       ? invoice.item.root?.bounty ? 'bounty payment' : 'zap'
       : 'downzap'} on ${itemType} `
     retry = actRetry;
-    ({ invoiceId, invoiceActionState } = invoice.itemAct)
+    ({ id: invoiceId, actionState: invoiceActionState } = invoice.itemAct.invoice)
   }
 
   let colorClass = 'text-info'

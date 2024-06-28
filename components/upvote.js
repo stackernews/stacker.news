@@ -148,7 +148,7 @@ export default function UpVote ({ item, className }) {
     setHover(false)
   }
 
-  const handleLongPress = async (e) => {
+  const handleLongPress = (e) => {
     if (!item) return
 
     // we can't tip ourselves

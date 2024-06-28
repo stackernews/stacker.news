@@ -42,17 +42,17 @@ Internally, pessimistic flows use hold invoices. If the action doesn't succeed, 
 
 ### Table of existing paid actions and their supported flows
 
-|                     | anonable & pessimistic | optimistic | qr payable | p2p wrapped | side effects | fee credits |
-| ------------------- | ---------------------- | ---------- | ---------- | ----------- | ------------ | ------------------- |
-| posts               | x                      | x          | x          |             | x            | x                   |
-| comments            | x                      | x          | x          |             | x            | x                   |
-| zaps                | x                      | x          | x          | x           | x            | x                   |
-| downzaps            |                        | x          | x          |             | x            | x                   |
-| poll votes          |                        | x          | x          |             |              | x                   |
-| territory actions   |                        |            | x          |             |              | x                   |
-| donations           | x                      |            | x          |             |              | x                   |
-| update posts        |                        |            | x          |             | x            | x                   |
-| update comments     |                        |            | x          |             | x            | x                   |
+| action            | fee credits | optimistic | pessimistic | anonable | qr payable | p2p wrapped | side effects |
+| ----------------- | ----------- | ---------- | ----------- | -------- | ---------- | ----------- | ------------ |
+| zaps              | x           | x          | x           | x        | x          | x           | x            |
+| posts             | x           | x          | x           | x        | x          |             | x            |
+| comments          | x           | x          | x           | x        | x          |             | x            |
+| downzaps          | x           | x          |             |          | x          |             | x            |
+| poll votes        | x           | x          |             |          | x          |             |              |
+| territory actions | x           |            | x           |          | x          |             |              |
+| donations         | x           |            | x           | x        | x          |             |              |
+| update posts      | x           |            | x           |          | x          |             | x            |
+| update comments   | x           |            | x           |          | x          |             | x            |
 
 ## Paid Action Interface
 

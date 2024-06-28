@@ -227,22 +227,23 @@ export async function retryPaidAction (actionType, args, context) {
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 }
 
-// TODO: switch these back before going to production
-const OPTIMISTIC_INVOICE_EXPIRE = { minutes: 10 } // { hours: 1 }
-const PESSIMISTIC_INVOICE_EXPIRE = { minutes: 10 } // { minutes: 10 }
+const OPTIMISTIC_INVOICE_EXPIRE = { minutes: 10 }
+const PESSIMISTIC_INVOICE_EXPIRE = { minutes: 10 }
 
 async function createDbInvoice (actionType, args, context) {
   const { user, models, tx, lnd, cost, optimistic, actionId } = context
   const action = paidActions[actionType]
-  const createLNDInvoice = optimistic ? createInvoice : createHodlInvoice
   const db = tx ?? models
+  const [createLNDInvoice, expirePivot, actionState] = optimistic
+    ? [createInvoice, OPTIMISTIC_INVOICE_EXPIRE, 'PENDING']
+    : [createHodlInvoice, PESSIMISTIC_INVOICE_EXPIRE, 'PENDING_HELD']
 
   if (cost < 1000n) {
     // sanity check
     throw new Error('The cost of the action must be at least 1 sat')
   }
 
-  const expiresAt = datePivot(new Date(), optimistic ? OPTIMISTIC_INVOICE_EXPIRE : PESSIMISTIC_INVOICE_EXPIRE)
+  const expiresAt = datePivot(new Date(), expirePivot)
   const lndInv = await createLNDInvoice({
     description: user?.hideInvoiceDesc ? undefined : await action.describe(args, context),
     lnd,
@@ -258,7 +259,7 @@ async function createDbInvoice (actionType, args, context) {
       bolt11: lndInv.request,
       userId: user?.id || USER_ID.anon,
       actionType,
-      actionState: optimistic ? 'PENDING' : 'PENDING_HELD',
+      actionState,
       expiresAt,
       actionId
     }

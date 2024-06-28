@@ -10,10 +10,49 @@ There are three payment flows:
 The stacker has enough fee credits to pay for the action. This is the simplest flow and is similar to a normal request.
 
 ### Optimistic
-For paid actions that support it, if the stacker doesn't have enough fee credits, we store the action in a `PENDING` state on the server, which is visible only to the stacker, then return a payment request to the client. The client then pays the invoice however and whenever they wish, and the server monitors payment progress. If the payment succeeds, the action is executed fully becoming visible to everyone. Otherwise, the client is notified the payment failed and the payment can be retried.
+The optimistic flow is useful for actions that require immediate feedback to the client, but don't require the action to be immediately visible to everyone else.
+
+For paid actions that support it, if the stacker doesn't have enough fee credits, we store the action in a `PENDING` state on the server, which is visible only to the stacker, then return a payment request to the client. The client then pays the invoice however and whenever they wish, and the server monitors payment progress. If the payment succeeds, the action is executed fully becoming visible to everyone and is marked as `PAID`. Otherwise, the action is marked as `FAILED`, the client is notified the payment failed and the payment can be retried.
+
+<details>
+  <summary>Internals</summary>
+
+   Internally, optimistic flows make use of a state machine that's transitioned by the invoice payment progress. All optimistic actions start in a `PENDING` state and has the following transitions:
+
+- `PENDING` -> `PAID`: when the invoice is paid
+- `PENDING` -> `FAILED`: when the invoice expires or is cancelled
+- `FAILED` -> `RETRYING`: when the invoice for the action is replaced with a new invoice
+</details>
 
 ### Pessimistic
 For paid actions that don't support optimistic actions (or when the stacker is `@anon`), if the client doesn't have enough fee credits, we return a payment request to the client without storing the action. After the client pays the invoice, the client resends the action with proof of payment and action is executed fully. Pessimistic actions require the client to wait for the payment to complete before being visible to them and everyone else.
+
+Internally, pessimistic flows use hold invoices. If the action doesn't succeed, the payment is cancelled and it's as if the payment never happened (ie it's a lightning native refund mechanism).
+
+<details>
+  <summary>Internals</summary>
+
+   Internally, pessimistic flows make use of a state machine that's transitioned by the invoice payment progress much like optimistic flows, but with extra steps. All pessimistic actions start in a `PENDING_HELD` state and has the following transitions:
+
+- `PENDING_HELD` -> `HELD`: when the invoice is paid, but the action is not yet executed
+- `HELD` -> `PAID`: when the invoice is paid
+- `PENDING_HELD` -> `FAILED`: when the invoice for the action expires or is cancelled
+- `HELD` -> `FAILED`: when the action fails after the invoice is paid
+</details>
+
+### Table of existing paid actions and their supported flows
+
+|                     | anonable & pessimistic | optimistic | qr payable | p2p wrapped | side effects | fee credits |
+| ------------------- | ---------------------- | ---------- | ---------- | ----------- | ------------ | ------------------- |
+| posts               | x                      | x          | x          |             | x            | x                   |
+| comments            | x                      | x          | x          |             | x            | x                   |
+| zaps                | x                      | x          | x          | x           | x            | x                   |
+| downzaps            |                        | x          | x          |             | x            | x                   |
+| poll votes          |                        | x          | x          |             |              | x                   |
+| territory actions   |                        |            | x          |             |              | x                   |
+| donations           | x                      |            | x          |             |              | x                   |
+| update posts        |                        |            | x          |             | x            | x                   |
+| update comments     |                        |            | x          |             | x            | x                   |
 
 ## Paid Action Interface
 

@@ -478,7 +478,7 @@ BEGIN
         (SELECT COALESCE("Item"."subName", root."subName") as "subName", "ItemAct"."msats" as quantity, act::TEXT as type, "ItemAct"."created_at"
             FROM "ItemAct"
             JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
-            LEFT JOIN "Item" root ON "Item"."rootId" = root.id AND root."userId" <> "Item"."userId"
+            LEFT JOIN "Item" root ON "Item"."rootId" = root.id
             WHERE "ItemAct"."created_at" >= min_utc
                 AND ("Item"."subName" IS NOT NULL OR root."subName" IS NOT NULL)
                 AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID'))
@@ -493,7 +493,8 @@ BEGIN
             FROM "Item"
             JOIN "Item" root ON "Item"."rootId" = root."id"
             WHERE "Item"."created_at" >= min_utc
-                AND root."subName" IS NOT NULL)
+                AND root."subName" IS NOT NULL
+                AND "Item"."parentId" IS NOT NULL)
             UNION ALL
         -- For msats_revenue
         (SELECT "subName", msats as quantity, type::TEXT as type, created_at

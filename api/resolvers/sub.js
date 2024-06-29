@@ -2,7 +2,7 @@ import { GraphQLError } from 'graphql'
 import { whenRange } from '@/lib/time'
 import { ssValidate, territorySchema } from '@/lib/validate'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
-import { subViewGroup } from './growth'
+import { viewGroup } from './growth'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
 import performPaidAction from '../paidAction'
 
@@ -94,8 +94,8 @@ export default {
             COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
             COALESCE(sum(posts), 0) as nposts,
             COALESCE(sum(comments), 0) as ncomments
-          FROM ${subViewGroup(range)} ss
-          JOIN "Sub" on "Sub".name = ss.sub_name
+          FROM ${viewGroup(range, 'sub_stats')}
+          JOIN "Sub" on "Sub".name = u.sub_name
           GROUP BY "Sub".name
           ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
           OFFSET $3
@@ -136,8 +136,8 @@ export default {
             COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
             COALESCE(sum(posts), 0) as nposts,
             COALESCE(sum(comments), 0) as ncomments
-          FROM ${subViewGroup(range)} ss
-          JOIN "Sub" on "Sub".name = ss.sub_name
+          FROM ${viewGroup(range, 'sub_stats')}
+          JOIN "Sub" on "Sub".name = u.sub_name
           WHERE "Sub"."userId" = $3
             AND "Sub".status = 'ACTIVE'
           GROUP BY "Sub".name

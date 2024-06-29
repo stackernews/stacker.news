@@ -119,11 +119,6 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
     return
   }
 
-  if (dbInv.actionType) {
-    // this is an action invoice, we don't know how to handle yet
-    return
-  }
-
   if (inv.is_confirmed) {
     if (dbInv.actionType) {
       return await settleAction({ data: { invoiceId: dbInv.id }, models, lnd, boss })

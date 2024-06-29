@@ -118,6 +118,11 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
     return
   }
 
+  if (dbInv.actionType) {
+    // this is an action invoice, we don't know how to handle yet
+    return
+  }
+
   if (inv.is_confirmed) {
     // NOTE: confirm invoice prevents double confirmations (idempotent)
     // ALSO: is_confirmed and is_held are mutually exclusive

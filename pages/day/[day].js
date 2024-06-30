@@ -20,6 +20,7 @@ const THIS_DAY = gql`
         ncomments
         sats
         boost
+        subName
         user {
           name
         }

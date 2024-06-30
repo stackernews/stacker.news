@@ -53,7 +53,6 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   const inputRef = useRef(null)
   const me = useMe()
   const [oValue, setOValue] = useState()
-  const strike = useLightning()
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -72,7 +71,6 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         }
       }
     }
-    strike()
     await act({
       variables: {
         id: item.id,
@@ -97,7 +95,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
       }
     })
     addCustomTip(Number(amount))
-  }, [me, act, down, item.id, strike, onClose, abortSignal])
+  }, [me, act, down, item.id, onClose, abortSignal])
 
   return (
     <Form
@@ -176,6 +174,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   // because the mutation name we use varies,
   // we need to extract the result/invoice from the response
   const getPaidActionResult = data => Object.values(data)[0]
+  const strike = useLightning()
 
   const [act] = usePaidMutation(query, {
     ...options,
@@ -184,6 +183,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
       if (!response) return
       modifyActCache(cache, response)
       options?.update?.(cache, { data })
+      if (response.result) strike()
     },
     onPayError: (e, cache, { data }) => {
       const response = getPaidActionResult(data)
@@ -207,7 +207,6 @@ export function useZap () {
   const me = useMe()
 
   const toaster = useToast()
-  const strike = useLightning()
 
   return useCallback(async ({ item, abortSignal }) => {
     const meSats = (item?.meSats || 0)
@@ -220,7 +219,6 @@ export function useZap () {
 
     try {
       await abortSignal.pause({ me, amount: sats })
-      strike()
       await act({ variables, optimisticResponse })
     } catch (error) {
       if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {
@@ -231,7 +229,7 @@ export function useZap () {
 
       toaster.danger('zap failed: ' + reason)
     }
-  }, [me?.id, strike])
+  }, [me?.id])
 }
 
 export class ActCanceledError extends Error {

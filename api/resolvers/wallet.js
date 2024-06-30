@@ -13,6 +13,7 @@ import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { createInvoice as createInvoiceCLN } from '@/lib/cln'
 import { bolt11Tags } from '@/lib/bolt11'
+import { checkInvoice } from 'worker/wallet'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -382,9 +383,8 @@ export default {
         throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
       }
       await cancelHodlInvoice({ id: hash, lnd })
-      await models.$executeRaw`
-        INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, priority)
-          VALUES ('checkInvoice', jsonb_build_object('hash', ${hash}), 21, true, 100)`
+      // transition invoice to cancelled action state
+      await checkInvoice({ data: { hash }, models, lnd })
       return await models.invoice.findFirst({ where: { hash } })
     },
     dropBolt11: async (parent, { id }, { me, models, lnd }) => {

@@ -70,6 +70,10 @@ export default async function performPaidAction (actionType, args, context) {
         }
       }
     } else {
+      // this is set if the worker executes a paid action in behalf of a user.
+      // in that case, only payment via fee credits is possible
+      // since there is no client to which we could send an invoice.
+      // example: automated territory billing
       if (forceFeeCredits) {
         throw new Error('forceFeeCredits is set, but user does not have enough fee credits')
       }
@@ -301,6 +305,10 @@ export async function verifyPayment ({ hash, hmac, models, cost }) {
       actionState: 'HELD'
     }
   })
+
+  if (!invoice) {
+    throw new Error('invoice not found')
+  }
 
   if (invoice.msatsReceived < cost) {
     throw new Error('invoice amount too low')

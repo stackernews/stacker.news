@@ -13,7 +13,7 @@ export async function perform ({ sats }, { me, tx }) {
   await tx.donation.create({
     data: {
       sats,
-      userId: me?.id || USER_ID.anon
+      userId: me?.id ?? USER_ID.anon
     }
   })
 

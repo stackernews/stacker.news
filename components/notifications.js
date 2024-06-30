@@ -396,6 +396,7 @@ function Invoicification ({ n: { invoice, sortTime } }) {
           retry
         </Button>
       </small>
+      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(sortTime))}</small>
       <div>
         {invoice.item.title
           ? <Item item={invoice.item} />

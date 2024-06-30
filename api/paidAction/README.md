@@ -17,7 +17,7 @@ For paid actions that support it, if the stacker doesn't have enough fee credits
 <details>
   <summary>Internals</summary>
 
-   Internally, optimistic flows make use of a state machine that's transitioned by the invoice payment progress. All optimistic actions start in a `PENDING` state and has the following transitions:
+   Internally, optimistic flows make use of a state machine that's transitioned by the invoice payment progress. All optimistic actions start in a `PENDING` state and have the following transitions:
 
 - `PENDING` -> `PAID`: when the invoice is paid
 - `PENDING` -> `FAILED`: when the invoice expires or is cancelled
@@ -56,7 +56,7 @@ Internally, pessimistic flows use hold invoices. If the action doesn't succeed, 
 
 ## Paid Action Interface
 
-Each paid action is implemented in its own file in the `paidActions` directory. Each file exports a module with the following properties:
+Each paid action is implemented in its own file in the `paidAction` directory. Each file exports a module with the following properties:
 
 ### Boolean flags
 - `anonable`: can be performed anonymously

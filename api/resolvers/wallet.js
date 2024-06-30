@@ -572,8 +572,8 @@ export default {
           return (await models.$queryRaw`
               SELECT id, act, "invoiceId", "invoiceActionState", msats
               FROM "ItemAct"
-              WHERE "ItemAct"."invoiceId" = ${Number(invoice.id)}
-              AND "ItemAct"."userId" = ${me?.id}
+              WHERE "ItemAct"."invoiceId" = ${Number(invoice.id)}::INTEGER
+              AND "ItemAct"."userId" = ${me?.id}::INTEGER
               AND act = ${action2act[invoice.actionType]}::"ItemActType"`
           )?.[0]
         default:

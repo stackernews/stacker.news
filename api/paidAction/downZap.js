@@ -56,7 +56,7 @@ export async function onPaid ({ invoice, actId }, { tx }) {
   // denormalize downzaps
   await tx.$executeRaw`
   WITH zapper AS (
-    SELECT trust FROM users WHERE id = ${itemAct.userId}
+    SELECT trust FROM users WHERE id = ${itemAct.userId}::INTEGER
   ), zap AS (
     INSERT INTO "ItemUserAgg" ("userId", "itemId", "downZapSats")
     VALUES (${itemAct.userId}::INTEGER, ${itemAct.itemId}::INTEGER, ${sats}::INTEGER)

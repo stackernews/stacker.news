@@ -22,7 +22,7 @@ export async function getMentions ({ text }, { me, models }) {
 }
 
 export const getItemMentions = async ({ text }, { me, models }) => {
-  const linkPattern = new RegExp(`${process.env.NEXT_PUBLIC_URL}/items/\\d+.*`, 'gi')
+  const linkPattern = new RegExp(`${process.env.NEXT_PUBLIC_URL}/items/\\d+[a-zA-Z0-9/?=]*`, 'gi')
   const refs = text.match(linkPattern)?.map(m => {
     try {
       const { itemId, commentId } = parseInternalLinks(m)
@@ -54,11 +54,11 @@ export async function performBotBehavior ({ text, id }, { me, tx }) {
     AND data->>'id' = ${id}::TEXT
     AND state <> 'completed'`
   await tx.$queryRaw`
-        DELETE FROM pgboss.job
-        WHERE name = 'reminder'
-        AND data->>'itemId' = ${id}::TEXT
-        AND data->>'userId' = ${userId}::TEXT
-        AND state <> 'completed'`
+    DELETE FROM pgboss.job
+    WHERE name = 'reminder'
+    AND data->>'itemId' = ${id}::TEXT
+    AND data->>'userId' = ${userId}::TEXT
+    AND state <> 'completed'`
   await tx.reminder.deleteMany({
     where: {
       itemId: Number(id),

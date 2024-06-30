@@ -78,7 +78,7 @@ All functions have the following signature: `function(args: Object, context: Obj
     - this function should be used to mark the rows created in `perform` as `PAID` and perform any other side effects of the action (like notifications or denormalizations)
 - `onFail`: called when the action fails
     - if the action does not support optimism, this function is optional
-    - this function should be used to mark the rows create in `perform` as `FAILED`
+    - this function should be used to mark the rows created in `perform` as `FAILED`
 - `retry`: called when the action is retried with any new invoice information
     - return: an object with the result of the action as defined in the `graphql` schema (same as `perform`)
     - this function is called when an optimistic action is retried

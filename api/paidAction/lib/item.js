@@ -1,5 +1,5 @@
 import { USER_ID } from '@/lib/constants'
-import { getDeleteAt, getRemindAt } from '@/lib/item'
+import { deleteReminders, getDeleteAt, getRemindAt } from '@/lib/item'
 import { parseInternalLinks } from '@/lib/url'
 
 export async function getMentions ({ text }, { me, models }) {
@@ -53,21 +53,7 @@ export async function performBotBehavior ({ text, id }, { me, tx }) {
     WHERE name = 'deleteItem'
     AND data->>'id' = ${id}::TEXT
     AND state <> 'completed'`
-  await tx.$queryRaw`
-    DELETE FROM pgboss.job
-    WHERE name = 'reminder'
-    AND data->>'itemId' = ${id}::TEXT
-    AND data->>'userId' = ${userId}::TEXT
-    AND state <> 'completed'`
-  await tx.reminder.deleteMany({
-    where: {
-      itemId: Number(id),
-      userId: Number(userId),
-      remindAt: {
-        gt: new Date()
-      }
-    }
-  })
+  await deleteReminders({ id, userId, models: tx })
 
   if (text) {
     const deleteAt = getDeleteAt(text)

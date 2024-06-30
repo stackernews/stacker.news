@@ -386,17 +386,19 @@ function Invoicification ({ n: { invoice, sortTime } }) {
       <small className={`fw-bold ${colorClass} d-inline-flex align-items-center my-1`}>
         {actionString}
         <span className='ms-1 text-muted fw-light'> {numWithUnits(invoice.satsRequested)}</span>
-        <Button
-          size='sm' variant={`outline-warning ms-2 border-1 rounded py-0 ${invoiceActionState === 'FAILED' ? 'visible' : 'invisible'}`}
-          style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}
-          onClick={() => {
-            retry({ variables: { invoiceId: parseInt(invoiceId) } }).catch(console.error)
-          }}
-        >
-          retry
-        </Button>
+        <span className={invoiceActionState === 'FAILED' ? 'visible' : 'invisible'}>
+          <Button
+            size='sm' variant='outline-warning ms-2 border-1 rounded py-0'
+            style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}
+            onClick={() => {
+              retry({ variables: { invoiceId: parseInt(invoiceId) } }).catch(console.error)
+            }}
+          >
+            retry
+          </Button>
+          <span className='text-muted ms-2 fw-normal' suppressHydrationWarning>{timeSince(new Date(sortTime))}</span>
+        </span>
       </small>
-      <small className='text-muted ms-2 fw-normal' suppressHydrationWarning>{timeSince(new Date(sortTime))}</small>
       <div>
         {invoice.item.title
           ? <Item item={invoice.item} />

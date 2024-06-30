@@ -8,7 +8,7 @@ this is just like useMutation with a few changes:
 2. takes an onPaid and onPayError callback, and additional options for payment behavior
   - namely forceWaitForPayment which will always wait for the invoice to be paid
   - and persistOnNavigate which will keep the invoice in the cache after navigation
-3. onCompleted behaves a little diffferently, but analogously to useMutation, ie clientside side effects
+3. onCompleted behaves a little differently, but analogously to useMutation, ie clientside side effects
   of completion can still rely on it
   a. it's called before the invoice is paid for optimistic updates
   b. it's called after the invoice is paid for pessimistic updates

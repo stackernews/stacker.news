@@ -133,13 +133,13 @@ export async function perform (args, context) {
 
   // TODO: referals for boost
 
-  // notify all the mentions if the mention is new
+  // compare timestamps to only notify if mention or item referral was just created to avoid duplicates on edits
   for (const { userId, createdAt } of item.mentions) {
-    if (item.updatedAt.getTime() === createdAt.getTime()) continue
+    if (item.updatedAt.getTime() !== createdAt.getTime()) continue
     notifyMention({ models, item, userId }).catch(console.error)
   }
   for (const { refereeItem, createdAt } of item.itemReferrers) {
-    if (item.updatedAt.getTime() === createdAt.getTime()) continue
+    if (item.updatedAt.getTime() !== createdAt.getTime()) continue
     notifyItemMention({ models, referrerItem: item, refereeItem }).catch(console.error)
   }
 

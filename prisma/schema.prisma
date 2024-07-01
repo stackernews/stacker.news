@@ -426,6 +426,8 @@ model Item {
   pollExpiresAt      DateTime?
   Ancestors          Reply[]               @relation("AncestorReplyItem")
   Replies            Reply[]
+  eventDate          DateTime?
+  eventLocation      String?
   Reminder           Reminder[]
   PollBlindVote      PollBlindVote[]
 
@@ -921,6 +923,7 @@ enum PostType {
   JOB
   POLL
   BOUNTY
+  EVENT
 }
 
 enum ItemActType {

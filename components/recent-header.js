@@ -9,7 +9,7 @@ export default function RecentHeader ({ type, sub }) {
 
   const items = sub
     ? ITEM_TYPES_UNIVERSAL.concat(sub.postTypes.map(p =>
-      ['LINK', 'DISCUSSION', 'POLL', 'JOB'].includes(p) ? `${p.toLowerCase()}s` : 'bounties'
+      ['LINK', 'DISCUSSION', 'POLL', 'JOB', 'EVENT'].includes(p) ? `${p.toLowerCase()}s` : 'bounties'
     ))
     : ITEM_TYPES
 

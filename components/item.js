@@ -96,7 +96,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
   const router = useRouter()
 
   const image = item.url && item.url.startsWith(process.env.NEXT_PUBLIC_IMGPROXY_URL)
-
+  const dateOptions = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true, timeZone: 'America/Chicago' }
   return (
     <ItemContextProvider>
       {rank
@@ -123,6 +123,8 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
                     <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success' : 'fill-grey'}`} height={16} width={16} />
                   </ActionTooltip>
                 </span>}
+              {item.eventDate && <span> {new Date(item.eventDate).toLocaleString('en-us', dateOptions)} </span>}
+              {item.eventLocation && <span>at {item.eventLocation}</span>}
               {item.forwards?.length > 0 && <span className={styles.icon}><Prism className='fill-grey ms-1' height={14} width={14} /></span>}
               {image && <span className={styles.icon}><ImageIcon className='fill-grey ms-2' height={16} width={16} /></span>}
             </Link>

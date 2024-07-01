@@ -9,6 +9,7 @@ import { DiscussionForm } from './discussion-form'
 import { LinkForm } from './link-form'
 import { PollForm } from './poll-form'
 import { BountyForm } from './bounty-form'
+import { EventForm } from './event-form'
 import SubSelect from './sub-select'
 import { useCallback, useState } from 'react'
 import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
@@ -67,6 +68,15 @@ export function PostForm ({ type, sub, children }) {
           </Link>
         )
       }
+
+      if (sub?.postTypes?.includes('EVENT')) {
+        const array = postButtons.length < 2 ? postButtons : morePostButtons
+        array.push(
+          <Link key='EVENT' href={prefix + '/post?type=event'}>
+            <Button onClick={checkSession} variant={postButtons.length < 2 ? 'secondary' : 'info'}>event</Button>
+          </Link>
+        )
+      }
     } else {
       postButtons = [
         <Link key='LINK' href={prefix + '/post?type=link'}>
@@ -82,6 +92,9 @@ export function PostForm ({ type, sub, children }) {
         </Link>,
         <Link key='BOUNTY' href={prefix + '/post?type=bounty'}>
           <Button onClick={checkSession} variant='info'>bounty</Button>
+        </Link>,
+        <Link key='EVENT' href={prefix + '/post?type=event'}>
+          <Button variant='info'>event</Button>
         </Link>
       ]
     }
@@ -145,6 +158,8 @@ export function PostForm ({ type, sub, children }) {
     FormType = PollForm
   } else if (type === 'bounty') {
     FormType = BountyForm
+  } else if (type === 'event') {
+    FormType = EventForm
   }
 
   return (

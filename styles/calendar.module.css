@@ -1,0 +1,20 @@
+.calendar-header {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .calendar-cell {
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+  }
+  
+  @media (min-width: 768px) {
+    .calendar-header {
+      height: 80px;
+    }
+  
+    .calendar-cell {
+      height: 80px;
+    }
+  }

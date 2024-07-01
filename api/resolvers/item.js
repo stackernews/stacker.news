@@ -14,7 +14,7 @@ import {
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
-import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '@/lib/validate'
+import { actSchema, advSchema, bountySchema, eventSchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '@/lib/validate'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped, notifyTerritorySubscribers, notifyMention, notifyItemMention } from '@/lib/webPush'
 import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand, getReminderCommand, hasReminderCommand } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
@@ -605,6 +605,35 @@ export default {
       }
 
       return await models.item.count({ where }) + 1
+    },
+
+    events: async (parent, { startDate, endDate }, { models }) => {
+      try {
+        const events = await models.item.findMany({
+          where: {
+            eventDate: {
+              gte: new Date(startDate),
+              lte: new Date(endDate)
+            },
+            // Ensure we're only fetching events
+            eventLocation: {
+              not: null
+            }
+          },
+          select: {
+            id: true,
+            title: true,
+            eventDate: true,
+            eventLocation: true
+          }
+        })
+        return events
+      } catch (error) {
+        console.error('Error fetching events:', error)
+        throw new GraphQLError('Failed to fetch events', {
+          extensions: { code: 'INTERNAL_SERVER_ERROR' }
+        })
+      }
     }
   },
 
@@ -756,6 +785,14 @@ export default {
         return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
       } else {
         return await createItem(parent, item, { me, models, lnd, hash, hmac })
+      }
+    },
+    upsertEvent: async (parent, { id, hash, hmac, ...item }, { me, models }) => {
+      await ssValidate(eventSchema, item, { models, me })
+      if (id) {
+        return await updateItem(parent, { id, ...item }, { me, models, hash, hmac })
+      } else {
+        return await createItem(parent, item, { me, models, hash, hmac })
       }
     },
     upsertPoll: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
@@ -1507,7 +1544,7 @@ export const SELECT =
   "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
-  "Item"."weightedDownVotes", "Item".freebie, "Item".bio, "Item"."otsHash", "Item"."bountyPaidTo",
+  "Item"."weightedDownVotes", "Item".freebie, "Item".bio, "Item"."otsHash", "Item"."bountyPaidTo", "Item"."eventDate", "Item"."eventLocation",
   ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls", "Item".outlawed,
   "Item"."pollExpiresAt", "Item"."apiKey"`
 

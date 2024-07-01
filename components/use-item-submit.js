@@ -23,6 +23,7 @@ export default function useItemSubmit (mutation,
   return useCallback(
     async ({ boost, crosspost, title, options, bounty, maxBid, start, stop, ...values }, { resetForm }) => {
       if (options) {
+        // remove existing poll options since else they will be appended as duplicates
         options = options.slice(item?.poll?.options?.length || 0).filter(o => o.trim().length > 0)
       }
 

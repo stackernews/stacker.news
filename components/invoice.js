@@ -31,7 +31,7 @@ export default function Invoice ({ id, query = INVOICE, modal, onPayment, info, 
     if (!invoice) {
       return
     }
-    if (waitFor && waitFor(invoice)) {
+    if (waitFor?.(invoice)) {
       onPayment?.(invoice)
     }
     setExpired(new Date(invoice.expiredAt) <= new Date())

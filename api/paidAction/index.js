@@ -130,9 +130,11 @@ async function performOptimisticAction (actionType, args, context) {
   const { models } = context
   const action = paidActions[actionType]
 
+  context.optimistic = true
+  context.lndInvoice = await createLndInvoice(actionType, args, context)
+
   return await models.$transaction(async tx => {
     context.tx = tx
-    context.optimistic = true
 
     const invoice = await createDbInvoice(actionType, args, context)
 
@@ -160,15 +162,20 @@ async function performPessimisticAction (actionType, args, context) {
       const invoice = await verifyPayment(context)
       args.invoiceId = invoice.id
 
+      // make sure to perform before settling so we don't race with worker to onPaid
+      const result = await action.perform(args, context)
+
+      // XXX this might cause the interactive tx to time out
       await settleHodlInvoice({ secret: invoice.preimage, lnd })
 
       return {
-        result: await action.perform(args, context),
+        result,
         paymentMethod: 'PESSIMISTIC'
       }
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
   } else {
     // just create the invoice and complete action when it's paid
+    context.lndInvoice = await createLndInvoice(actionType, args, context)
     return {
       invoice: await createDbInvoice(actionType, args, context),
       paymentMethod: 'PESSIMISTIC'
@@ -201,13 +208,18 @@ export async function retryPaidAction (actionType, args, context) {
     throw new Error(`retryPaidAction - missing invoiceId ${actionType}`)
   }
 
+  context.optimistic = true
   context.user = await models.user.findUnique({ where: { id: me.id } })
+
+  const { msatsRequested } = await models.invoice.findUnique({ where: { id: invoiceId, actionState: 'FAILED' } })
+  context.cost = BigInt(msatsRequested)
+  context.lndInvoice = await createLndInvoice(actionType, args, context)
+
   return await models.$transaction(async tx => {
     context.tx = tx
-    context.optimistic = true
 
     // update the old invoice to RETRYING, so that it's not confused with FAILED
-    const { msatsRequested, actionId } = await tx.invoice.update({
+    const { actionId } = await tx.invoice.update({
       where: {
         id: invoiceId,
         actionState: 'FAILED'
@@ -217,7 +229,6 @@ export async function retryPaidAction (actionType, args, context) {
       }
     })
 
-    context.cost = BigInt(msatsRequested)
     context.actionId = actionId
 
     // create a new invoice
@@ -234,13 +245,14 @@ export async function retryPaidAction (actionType, args, context) {
 const OPTIMISTIC_INVOICE_EXPIRE = { minutes: 10 }
 const PESSIMISTIC_INVOICE_EXPIRE = { minutes: 10 }
 
-async function createDbInvoice (actionType, args, context) {
-  const { user, models, tx, lnd, cost, optimistic, actionId } = context
+// we seperate the invoice creation into two functions because
+// because if lnd is slow, it'll timeout the interactive tx
+async function createLndInvoice (actionType, args, context) {
+  const { user, lnd, cost, optimistic } = context
   const action = paidActions[actionType]
-  const db = tx ?? models
-  const [createLNDInvoice, expirePivot, actionState] = optimistic
-    ? [createInvoice, OPTIMISTIC_INVOICE_EXPIRE, 'PENDING']
-    : [createHodlInvoice, PESSIMISTIC_INVOICE_EXPIRE, 'PENDING_HELD']
+  const [createLNDInvoice, expirePivot] = optimistic
+    ? [createInvoice, OPTIMISTIC_INVOICE_EXPIRE]
+    : [createHodlInvoice, PESSIMISTIC_INVOICE_EXPIRE]
 
   if (cost < 1000n) {
     // sanity check
@@ -248,19 +260,33 @@ async function createDbInvoice (actionType, args, context) {
   }
 
   const expiresAt = datePivot(new Date(), expirePivot)
-  const lndInv = await createLNDInvoice({
+  return await createLNDInvoice({
     description: user?.hideInvoiceDesc ? undefined : await action.describe(args, context),
     lnd,
     mtokens: String(cost),
     expires_at: expiresAt
   })
+}
 
+async function createDbInvoice (actionType, args, context) {
+  const { user, models, tx, lndInvoice, cost, optimistic, actionId } = context
+  const db = tx ?? models
+  const [expirePivot, actionState] = optimistic
+    ? [OPTIMISTIC_INVOICE_EXPIRE, 'PENDING']
+    : [PESSIMISTIC_INVOICE_EXPIRE, 'PENDING_HELD']
+
+  if (cost < 1000n) {
+    // sanity check
+    throw new Error('The cost of the action must be at least 1 sat')
+  }
+
+  const expiresAt = datePivot(new Date(), expirePivot)
   const invoice = await db.invoice.create({
     data: {
-      hash: lndInv.id,
+      hash: lndInvoice.id,
       msatsRequested: cost,
-      preimage: optimistic ? undefined : lndInv.secret,
-      bolt11: lndInv.request,
+      preimage: optimistic ? undefined : lndInvoice.secret,
+      bolt11: lndInvoice.request,
       userId: user?.id || USER_ID.anon,
       actionType,
       actionState,
@@ -273,7 +299,7 @@ async function createDbInvoice (actionType, args, context) {
   await db.$executeRaw`
       INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein, priority)
       VALUES ('checkInvoice',
-        jsonb_build_object('hash', ${lndInv.id}::TEXT), 21, true,
+        jsonb_build_object('hash', ${lndInvoice.id}::TEXT), 21, true,
           ${expiresAt}::TIMESTAMP WITH TIME ZONE,
           ${expiresAt}::TIMESTAMP WITH TIME ZONE - now() + interval '10m', 100)`
 

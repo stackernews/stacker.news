@@ -51,6 +51,10 @@ function Satus ({ status }) {
       desc = 'expired'
       color = 'muted'
       break
+    case 'CANCELLED':
+      desc = 'cancelled'
+      color = 'muted'
+      break
     case 'PENDING':
       desc = 'pending'
       color = 'muted'

@@ -224,8 +224,8 @@ export async function onPaid ({ invoice, id }, context) {
   for (const { userId } of item.mentions) {
     notifyMention({ models, item, userId }).catch(console.error)
   }
-  for (const { referee } of item.itemReferrers) {
-    notifyItemMention({ models, referrerItem: item, refereeItem: referee }).catch(console.error)
+  for (const { refereeItem } of item.itemReferrers) {
+    notifyItemMention({ models, referrerItem: item, refereeItem }).catch(console.error)
   }
   notifyUserSubscribers({ models, item }).catch(console.error)
   notifyTerritorySubscribers({ models, item }).catch(console.error)

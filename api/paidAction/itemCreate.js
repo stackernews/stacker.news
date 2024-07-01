@@ -218,7 +218,7 @@ export async function onPaid ({ invoice, id }, context) {
         FROM ancestors, comment
         WHERE ancestors."userId" <> comment."userId"`
 
-    notifyItemParents({ item, me: item.userId, models }).catch(console.error)
+    notifyItemParents({ item, models }).catch(console.error)
   }
 
   for (const { userId } of item.mentions) {

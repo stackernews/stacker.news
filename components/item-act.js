@@ -59,6 +59,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   }, [onClose, item.id])
 
   const act = useAct()
+  const strike = useLightning()
 
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
     if (abortSignal && zapUndoTrigger({ me, amount })) {
@@ -82,6 +83,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
       optimisticResponse: me
         ? {
             act: {
+              __typename: 'ItemActPaidAction',
               result: {
                 id: item.id, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP', path: item.path
               }
@@ -90,12 +92,13 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         : undefined,
       // don't close modal immediately because we want the QR modal to stack
       onCompleted: () => {
+        strike()
         onClose?.()
         if (!me) setItemMeAnonSats({ id: item.id, amount })
       }
     })
     addCustomTip(Number(amount))
-  }, [me, act, down, item.id, onClose, abortSignal])
+  }, [me, act, down, item.id, onClose, abortSignal, strike])
 
   return (
     <Form
@@ -174,7 +177,6 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   // because the mutation name we use varies,
   // we need to extract the result/invoice from the response
   const getPaidActionResult = data => Object.values(data)[0]
-  const strike = useLightning()
 
   const [act] = usePaidMutation(query, {
     ...options,
@@ -183,7 +185,6 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
       if (!response) return
       modifyActCache(cache, response)
       options?.update?.(cache, { data })
-      if (response.result) strike()
     },
     onPayError: (e, cache, { data }) => {
       const response = getPaidActionResult(data)
@@ -205,7 +206,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
 export function useZap () {
   const act = useAct()
   const me = useMe()
-
+  const strike = useLightning()
   const toaster = useToast()
 
   return useCallback(async ({ item, abortSignal }) => {
@@ -215,10 +216,11 @@ export function useZap () {
     const sats = nextTip(meSats, { ...me?.privates })
 
     const variables = { id: item.id, sats, act: 'TIP' }
-    const optimisticResponse = { act: { result: { path: item.path, ...variables } } }
+    const optimisticResponse = { act: { __typename: 'ItemActPaidAction', result: { path: item.path, ...variables } } }
 
     try {
       await abortSignal.pause({ me, amount: sats })
+      strike()
       await act({ variables, optimisticResponse })
     } catch (error) {
       if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {
@@ -229,7 +231,7 @@ export function useZap () {
 
       toaster.danger('zap failed: ' + reason)
     }
-  }, [me?.id])
+  }, [me?.id, strike])
 }
 
 export class ActCanceledError extends Error {

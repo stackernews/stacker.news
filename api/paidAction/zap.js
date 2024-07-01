@@ -89,7 +89,7 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
 
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
-  await tx.$executeRaw`
+  const [item] = await tx.$queryRaw`
     WITH zapper AS (
       SELECT trust FROM users WHERE id = ${itemAct.userId}::INTEGER
     ), zap AS (
@@ -107,7 +107,8 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
       msats = "Item".msats + ${msats}::BIGINT,
       "lastZapAt" = now()
     FROM zap, zapper
-    WHERE "Item".id = ${itemAct.itemId}::INTEGER`
+    WHERE "Item".id = ${itemAct.itemId}::INTEGER
+    RETURNING "Item".*`
 
   // record potential bounty payment
   // NOTE: we are at least guaranteed that we see the update "ItemUserAgg" from our tx so we can trust
@@ -139,7 +140,7 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
       WHERE "Item".path @> zapped.path AND "Item".id <> zapped.id`
 
   // TODO: referrals
-  notifyZapped({ models, id: itemAct.itemId }).catch(console.error)
+  notifyZapped({ models, item }).catch(console.error)
 }
 
 export async function onFail ({ invoice }, { tx }) {

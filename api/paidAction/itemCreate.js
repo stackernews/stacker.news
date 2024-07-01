@@ -218,14 +218,14 @@ export async function onPaid ({ invoice, id }, context) {
         FROM ancestors, comment
         WHERE ancestors."userId" <> comment."userId"`
 
-    notifyItemParents({ item, me: item.userId, models }).catch(console.error)
+    notifyItemParents({ item, models }).catch(console.error)
   }
 
   for (const { userId } of item.mentions) {
     notifyMention({ models, item, userId }).catch(console.error)
   }
-  for (const { referee } of item.itemReferrers) {
-    notifyItemMention({ models, referrerItem: item, refereeItem: referee }).catch(console.error)
+  for (const { refereeItem } of item.itemReferrers) {
+    notifyItemMention({ models, referrerItem: item, refereeItem }).catch(console.error)
   }
   notifyUserSubscribers({ models, item }).catch(console.error)
   notifyTerritorySubscribers({ models, item }).catch(console.error)

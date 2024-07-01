@@ -840,7 +840,7 @@ export function Form ({
 
     try {
       if (onSubmit) {
-        await onSubmit({ ...variables }, ...args)
+        await onSubmit(variables, ...args)
       }
     } catch (err) {
       console.log(err.message, err)

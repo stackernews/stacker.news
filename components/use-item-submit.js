@@ -18,7 +18,7 @@ export default function useItemSubmit (mutation,
   const router = useRouter()
   const toaster = useToast()
   const crossposter = useCrossposter()
-  const [upsertPost] = usePaidMutation(mutation)
+  const [upsertItem] = usePaidMutation(mutation)
 
   return useCallback(
     async ({ boost, crosspost, title, options, bounty, maxBid, start, stop, ...values }, { resetForm }) => {
@@ -27,13 +27,13 @@ export default function useItemSubmit (mutation,
         options = options.slice(item?.poll?.options?.length || 0).filter(o => o.trim().length > 0)
       }
 
-      const { data, error, payError } = await upsertPost({
+      const { data, error, payError } = await upsertItem({
         variables: {
           id: item?.id,
           sub: item?.subName || sub?.name,
           boost: boost ? Number(boost) : undefined,
           bounty: bounty ? Number(bounty) : undefined,
-          maxBid: maxBid || Number(maxBid) === 0 ? Number(maxBid) : undefined,
+          maxBid: (maxBid || Number(maxBid) === 0) ? Number(maxBid) : undefined,
           status: start ? 'ACTIVE' : stop ? 'STOPPED' : undefined,
           title: title?.trim(),
           options,
@@ -79,7 +79,7 @@ export default function useItemSubmit (mutation,
           await router.push(sub ? `/~${sub.name}/recent` : '/recent')
         }
       }
-    }, [upsertPost, router, crossposter, item, sub, onSuccessfulSubmit,
+    }, [upsertItem, router, crossposter, item, sub, onSuccessfulSubmit,
       navigateOnSubmit, extraValues, paidMutationOptions]
   )
 }

@@ -797,7 +797,7 @@ export default {
       item.maxBid ??= 0
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
       } else {
         return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
@@ -806,7 +806,7 @@ export default {
       await ssValidate(commentSchema, item)
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
       } else {
         item = await createItem(parent, item, { me, models, lnd, hash, hmac })
         return item

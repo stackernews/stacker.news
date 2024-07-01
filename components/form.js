@@ -31,10 +31,8 @@ import Thumb from '@/svgs/thumb-up-fill.svg'
 import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
-import { InvoiceCanceledError, usePayment } from './payment'
 import { useMe } from './me'
-import { useClientNotifications } from './client-notifications'
-import { ActCanceledError } from './item-act'
+import classNames from 'classnames'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -44,15 +42,18 @@ export class SessionRequiredError extends Error {
 }
 
 export function SubmitButton ({
-  children, variant, value, onClick, disabled, nonDisabledText, ...props
+  children, variant, value, onClick, disabled, appendText, submittingText,
+  className, ...props
 }) {
   const formik = useFormikContext()
 
   disabled ||= formik.isSubmitting
+  submittingText ||= children
 
   return (
     <Button
       variant={variant || 'main'}
+      className={classNames(formik.isSubmitting && styles.pending, className)}
       type='submit'
       disabled={disabled}
       onClick={value
@@ -63,7 +64,7 @@ export function SubmitButton ({
         : onClick}
       {...props}
     >
-      {children}{!disabled && nonDisabledText && <small> {nonDisabledText}</small>}
+      {formik.isSubmitting ? submittingText : children}{!disabled && appendText && <small> {appendText}</small>}
     </Button>
   )
 }
@@ -802,15 +803,12 @@ const StorageKeyPrefixContext = createContext()
 
 export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately,
-  storageKeyPrefix, validateOnChange = true, prepaid, requireSession, innerRef,
-  optimisticUpdate, clientNotification, signal, ...props
+  storageKeyPrefix, validateOnChange = true, requireSession, innerRef,
+  ...props
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
-  const feeButton = useFeeButton()
-  const payment = usePayment()
   const me = useMe()
-  const { notify, unnotify } = useClientNotifications()
 
   useEffect(() => {
     if (initialError && !initialErrorToasted.current) {
@@ -836,52 +834,23 @@ export function Form ({
 
   const onSubmitInner = useCallback(async ({ amount, ...values }, ...args) => {
     const variables = { amount, ...values }
-    let revert, cancel, nid
+    if (requireSession && !me) {
+      throw new SessionRequiredError()
+    }
+
     try {
       if (onSubmit) {
-        if (requireSession && !me) {
-          throw new SessionRequiredError()
-        }
-
-        revert = optimisticUpdate?.(variables)
-
-        await signal?.pause({ me, amount })
-
-        if (me && clientNotification) {
-          nid = notify(clientNotification.PENDING, variables)
-        }
-
-        let hash, hmac
-        if (prepaid) {
-          [{ hash, hmac }, cancel] = await payment.request(amount)
-        }
-
-        await onSubmit({ hash, hmac, ...variables }, ...args)
-
-        if (!storageKeyPrefix) return
-        clearLocalStorage(values)
+        await onSubmit(variables, ...args)
       }
     } catch (err) {
-      if (err instanceof InvoiceCanceledError || err instanceof ActCanceledError) {
-        return
-      }
-
-      const reason = err.message || err.toString?.()
-      if (me && clientNotification) {
-        notify(clientNotification.ERROR, { ...variables, reason })
-      } else {
-        toaster.danger('submit error: ' + reason)
-      }
-
-      cancel?.()
-    } finally {
-      revert?.()
-      // if we reach this line, the submit either failed or was successful so we can remove the pending notification.
-      // if we don't reach this line, the page was probably reloaded and we can use the pending notification
-      // stored in localStorage to handle this case.
-      if (nid) unnotify(nid)
+      console.log(err.message, err)
+      toaster.danger(err.message ?? err.toString?.())
+      return
     }
-  }, [me, onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix, payment, signal])
+
+    if (!storageKeyPrefix) return
+    clearLocalStorage(values)
+  }, [me, onSubmit, clearLocalStorage, storageKeyPrefix])
 
   return (
     <Formik

@@ -35,6 +35,11 @@ export const COMMENT_FIELDS = gql`
     imgproxyUrls
     rel
     apiKey
+    invoice {
+      id
+      actionState
+      confirmedAt
+    }
   }
 `
 

@@ -47,26 +47,6 @@ export function viewGroup (range, view) {
   ) u`
 }
 
-export function subViewGroup (range) {
-  const unit = timeUnitForRange(range)
-  return `(
-    (SELECT *
-      FROM sub_stats_days
-      WHERE ${viewIntervalClause(range, 'sub_stats_days')})
-    UNION ALL
-    (SELECT *
-      FROM sub_stats_hours
-      WHERE ${viewIntervalClause(range, 'sub_stats_hours')}
-      ${unit === 'hour' ? '' : 'AND "sub_stats_hours".t >= date_trunc(\'day\', timezone(\'America/Chicago\', now()))'})
-    UNION ALL
-    (SELECT * FROM
-      sub_stats(
-      date_trunc('hour', timezone('America/Chicago', now())),
-      date_trunc('hour', timezone('America/Chicago', now())), '1 hour'::INTERVAL, 'hour')
-      WHERE "sub_stats".t >= date_trunc('${unit}', timezone('America/Chicago', $1)))
-  )`
-}
-
 export default {
   Query: {
     registrationGrowth: async (parent, { when, from, to }, { models }) => {

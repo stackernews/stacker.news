@@ -4,7 +4,7 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Form, Input, SubmitButton } from '@/components/form'
 import Layout from '@/components/layout'
-import { useMutation, useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client'
 import Link from 'next/link'
 import { amountSchema } from '@/lib/validate'
 import { numWithUnits } from '@/lib/format'
@@ -21,6 +21,8 @@ import { useData } from '@/components/use-data'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
 import { useMemo } from 'react'
 import { CompactLongCountdown } from '@/components/countdown'
+import { usePaidMutation } from '@/components/use-paid-mutation'
+import { DONATE } from '@/fragments/paidAction'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <GrowthPieChartSkeleton />
@@ -159,11 +161,7 @@ export function DonateButton () {
   const showModal = useShowModal()
   const toaster = useToast()
   const strike = useLightning()
-  const [donateToRewards] = useMutation(
-    gql`
-      mutation donateToRewards($sats: Int!, $hash: String, $hmac: String) {
-        donateToRewards(sats: $sats, hash: $hash, hmac: $hmac)
-      }`)
+  const [donateToRewards] = usePaidMutation(DONATE)
 
   return (
     <>
@@ -174,25 +172,20 @@ export function DonateButton () {
               amount: 10000
             }}
             schema={amountSchema}
-            prepaid
             onSubmit={async ({ amount, hash, hmac }) => {
               const { error } = await donateToRewards({
                 variables: {
                   sats: Number(amount),
                   hash,
                   hmac
-                }
-              })
-              if (error) {
-                console.error(error)
-                toaster.danger('failed to donate')
-              } else {
-                const didStrike = strike()
-                if (!didStrike) {
+                },
+                onCompleted: () => {
+                  strike()
                   toaster.success('donated')
                 }
-              }
+              })
               onClose()
+              if (error) throw error
             }}
           >
             <Input

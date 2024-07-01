@@ -2,7 +2,7 @@ import PgBoss from 'pg-boss'
 import nextEnv from '@next/env'
 import { PrismaClient } from '@prisma/client'
 import {
-  autoDropBolt11s, checkPendingDeposits, checkPendingWithdrawals,
+  autoDropBolt11s, checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
   finalizeHodlInvoice, subscribeToWallet
 } from './wallet.js'
 import { repin } from './repin.js'
@@ -25,6 +25,7 @@ import { ofac } from './ofac.js'
 import { autoWithdraw } from './autowithdraw.js'
 import { saltAndHashEmails } from './saltAndHashEmails.js'
 import { remindUser } from './reminder.js'
+import { holdAction, settleAction, settleActionError } from './paidAction.js'
 
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
@@ -104,6 +105,10 @@ async function work () {
   await boss.work('ofac', jobWrapper(ofac))
   await boss.work('saltAndHashEmails', jobWrapper(saltAndHashEmails))
   await boss.work('reminder', jobWrapper(remindUser))
+  await boss.work('settleActionError', jobWrapper(settleActionError))
+  await boss.work('settleAction', jobWrapper(settleAction))
+  await boss.work('holdAction', jobWrapper(holdAction))
+  await boss.work('checkInvoice', jobWrapper(checkInvoice))
 
   console.log('working jobs')
 }

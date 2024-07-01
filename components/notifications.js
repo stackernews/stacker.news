@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useQuery } from '@apollo/client'
+import { gql, useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
@@ -29,9 +29,13 @@ import { LongCountdown } from './countdown'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { commentSubTreeRootId } from '@/lib/item'
 import LinkToContext from './link-to-context'
-import { Badge } from 'react-bootstrap'
-import { Types as ClientTypes, ClientZap, ClientReply, ClientPollVote, ClientBounty, useClientNotifications } from './client-notifications'
-import { ITEM_FULL } from '@/fragments/items'
+import { Badge, Button } from 'react-bootstrap'
+import { useAct } from './item-act'
+import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
+import { usePollVote } from './poll'
+import { paidActionCacheMods } from './use-paid-mutation'
+import { useRetryCreateItem } from './use-item-submit'
+import { payBountyCacheMods } from './pay-bounty'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -57,23 +61,9 @@ function Notification ({ n, fresh }) {
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
         (type === 'Reminder' && <Reminder n={n} />) ||
-          <ClientNotification n={n} />
+        (type === 'Invoicification' && <Invoicification n={n} />)
       }
     </NotificationLayout>
-  )
-}
-
-function ClientNotification ({ n }) {
-  // we need to resolve item id to item to show item for client notifications
-  const { data } = useQuery(ITEM_FULL, { variables: { id: n.itemId }, skip: !n.itemId })
-  const item = data?.item
-  const itemN = { item, ...n }
-
-  return (
-    ([ClientTypes.Zap.ERROR, ClientTypes.Zap.PENDING].includes(n.__typename) && <ClientZap n={itemN} />) ||
-        ([ClientTypes.Reply.ERROR, ClientTypes.Reply.PENDING].includes(n.__typename) && <ClientReply n={itemN} />) ||
-        ([ClientTypes.Bounty.ERROR, ClientTypes.Bounty.PENDING].includes(n.__typename) && <ClientBounty n={itemN} />) ||
-        ([ClientTypes.PollVote.ERROR, ClientTypes.PollVote.PENDING].includes(n.__typename) && <ClientPollVote n={itemN} />)
   )
 }
 
@@ -111,10 +101,34 @@ const defaultOnClick = n => {
     href += dayMonthYear(new Date(n.sortTime))
     return { href }
   }
+
+  const itemLink = item => {
+    if (!item) return {}
+    if (item.title) {
+      return {
+        href: {
+          pathname: '/items/[id]',
+          query: { id: item.id }
+        },
+        as: `/items/${item.id}`
+      }
+    } else {
+      const rootId = commentSubTreeRootId(item)
+      return {
+        href: {
+          pathname: '/items/[id]',
+          query: { id: rootId, commentId: item.id }
+        },
+        as: `/items/${rootId}`
+      }
+    }
+  }
+
   if (type === 'Revenue') return { href: `/~${n.subName}` }
   if (type === 'SubStatus') return { href: `/~${n.sub.name}` }
   if (type === 'Invitification') return { href: '/invites' }
   if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
+  if (type === 'Invoicification') return itemLink(n.invoice.item)
   if (type === 'WithdrawlPaid') return { href: `/withdrawals/${n.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
@@ -123,24 +137,7 @@ const defaultOnClick = n => {
   if (!n.item) return {}
 
   // Votification, Mention, JobChanged, Reply all have item
-  if (!n.item.title) {
-    const rootId = commentSubTreeRootId(n.item)
-    return {
-      href: {
-        pathname: '/items/[id]',
-        query: { id: rootId, commentId: n.item.id }
-      },
-      as: `/items/${rootId}`
-    }
-  } else {
-    return {
-      href: {
-        pathname: '/items/[id]',
-        query: { id: n.item.id }
-      },
-      as: `/items/${n.item.id}`
-    }
-  }
+  return itemLink(n.item)
 }
 
 function Streak ({ n }) {
@@ -300,6 +297,123 @@ function InvoicePaid ({ n }) {
   )
 }
 
+function useActRetry ({ invoice }) {
+  const bountyCacheMods = invoice.item?.bounty ? payBountyCacheMods() : {}
+  return useAct({
+    query: RETRY_PAID_ACTION,
+    onPayError: (e, cache, { data }) => {
+      paidActionCacheMods?.onPayError?.(e, cache, { data })
+      bountyCacheMods?.onPayError?.(e, cache, { data })
+    },
+    onPaid: (cache, { data }) => {
+      paidActionCacheMods?.onPaid?.(cache, { data })
+      bountyCacheMods?.onPaid?.(cache, { data })
+    },
+    update: (cache, { data }) => {
+      const response = Object.values(data)[0]
+      if (!response?.invoice) return
+      cache.modify({
+        id: `ItemAct:${invoice.itemAct?.id}`,
+        fields: {
+          // this is a bit of a hack just to update the reference to the new invoice
+          invoice: () => cache.writeFragment({
+            id: `Invoice:${response.invoice.id}`,
+            fragment: gql`
+              fragment _ on Invoice {
+                bolt11
+              }
+            `,
+            data: { bolt11: response.invoice.bolt11 }
+          })
+        }
+      })
+      paidActionCacheMods?.update?.(cache, { data })
+      bountyCacheMods?.update?.(cache, { data })
+    }
+  })
+}
+
+function Invoicification ({ n: { invoice, sortTime } }) {
+  const actRetry = useActRetry({ invoice })
+  const retryCreateItem = useRetryCreateItem({ id: invoice.item?.id })
+  const retryPollVote = usePollVote({ query: RETRY_PAID_ACTION, itemId: invoice.item?.id })
+  // XXX if we navigate to an invoice after it is retried in notifications
+  // the cache will clear invoice.item and will error on window.back
+  // alternatively, we could/should
+  // 1. update the notification cache to include the new invoice
+  // 2. make item has-many invoices
+  if (!invoice.item) return null
+
+  let retry
+  let actionString
+  let invoiceId
+  let invoiceActionState
+  const itemType = invoice.item.title ? 'post' : 'comment'
+
+  if (invoice.actionType === 'ITEM_CREATE') {
+    actionString = `${itemType} create `
+    retry = retryCreateItem;
+    ({ id: invoiceId, actionState: invoiceActionState } = invoice.item.invoice)
+  } else if (invoice.actionType === 'POLL_VOTE') {
+    actionString = 'poll vote '
+    retry = retryPollVote
+    invoiceId = invoice.item.poll?.meInvoiceId
+    invoiceActionState = invoice.item.poll?.meInvoiceActionState
+  } else {
+    actionString = `${invoice.actionType === 'ZAP'
+      ? invoice.item.root?.bounty ? 'bounty payment' : 'zap'
+      : 'downzap'} on ${itemType} `
+    retry = actRetry;
+    ({ id: invoiceId, actionState: invoiceActionState } = invoice.itemAct.invoice)
+  }
+
+  let colorClass = 'text-info'
+  switch (invoiceActionState) {
+    case 'FAILED':
+      actionString += 'failed'
+      colorClass = 'text-warning'
+      break
+    case 'PAID':
+      actionString += 'paid'
+      colorClass = 'text-success'
+      break
+    default:
+      actionString += 'pending'
+  }
+
+  return (
+    <div className='px-2'>
+      <small className={`fw-bold ${colorClass} d-inline-flex align-items-center my-1`}>
+        {actionString}
+        <span className='ms-1 text-muted fw-light'> {numWithUnits(invoice.satsRequested)}</span>
+        <span className={invoiceActionState === 'FAILED' ? 'visible' : 'invisible'}>
+          <Button
+            size='sm' variant='outline-warning ms-2 border-1 rounded py-0'
+            style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}
+            onClick={() => {
+              retry({ variables: { invoiceId: parseInt(invoiceId) } }).catch(console.error)
+            }}
+          >
+            retry
+          </Button>
+          <span className='text-muted ms-2 fw-normal' suppressHydrationWarning>{timeSince(new Date(sortTime))}</span>
+        </span>
+      </small>
+      <div>
+        {invoice.item.title
+          ? <Item item={invoice.item} />
+          : (
+            <div className='pb-2'>
+              <RootProvider root={invoice.item.root}>
+                <Comment item={invoice.item} noReply includeParent clickToContext />
+              </RootProvider>
+            </div>
+            )}
+      </div>
+    </div>
+  )
+}
+
 function WithdrawlPaid ({ n }) {
   return (
     <div className='fw-bold text-info ms-2 py-1'>
@@ -404,16 +518,14 @@ function ItemMention ({ n }) {
       <small className='fw-bold text-info ms-2'>
         your item was mentioned in
       </small>
-      <div>
-        {n.item?.title
-          ? <Item item={n.item} />
-          : (
-            <div className='pb-2'>
-              <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent rootText='replying on:' clickToContext />
-              </RootProvider>
-            </div>)}
-      </div>
+      {n.item?.title
+        ? <div className='ps-2'><Item item={n.item} /></div>
+        : (
+          <div className='pb-2'>
+            <RootProvider root={n.item.root}>
+              <Comment item={n.item} noReply includeParent rootText='replying on:' clickToContext />
+            </RootProvider>
+          </div>)}
     </>
   )
 }
@@ -474,7 +586,7 @@ function TerritoryPost ({ n }) {
       <small className='fw-bold text-info ms-2'>
         new post in ~{n.item.sub.name}
       </small>
-      <div>
+      <div className='ps-2'>
         <Item item={n.item} />
       </div>
     </>
@@ -574,7 +686,6 @@ export default function Notifications ({ ssrData }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS)
   const router = useRouter()
   const dat = useData(data, ssrData)
-  const { notifications: clientNotifications } = useClientNotifications()
 
   const { notifications, lastChecked, cursor } = useMemo(() => {
     if (!dat?.notifications) return {}
@@ -602,12 +713,9 @@ export default function Notifications ({ ssrData }) {
 
   if (!dat) return <CommentsFlatSkeleton />
 
-  const sorted = [...clientNotifications, ...notifications]
-    .sort((a, b) => new Date(b.sortTime).getTime() - new Date(a.sortTime).getTime())
-
   return (
     <>
-      {sorted.map(n =>
+      {notifications.map(n =>
         <Notification
           n={n} key={nid(n)}
           fresh={new Date(n.sortTime) > new Date(router?.query?.checkedAt ?? lastChecked)}

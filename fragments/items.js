@@ -60,6 +60,11 @@ export const ITEM_FIELDS = gql`
     imgproxyUrls
     rel
     apiKey
+    invoice {
+      id
+      actionState
+      confirmedAt
+    }
   }`
 
 export const ITEM_FULL_FIELDS = gql`
@@ -121,6 +126,8 @@ export const POLL_FIELDS = gql`
   fragment PollFields on Item {
     poll {
       meVoted
+      meInvoiceId
+      meInvoiceActionState
       count
       options {
         id

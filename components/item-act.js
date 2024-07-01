@@ -5,14 +5,13 @@ import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
 import { amountSchema } from '@/lib/validate'
-import { gql, useMutation } from '@apollo/client'
 import { useToast } from './toast'
 import { useLightning } from './lightning'
 import { nextTip } from './upvote'
-import { InvoiceCanceledError, usePayment } from './payment'
-import { Types as ClientNotification, ClientNotifyProvider, useClientNotifications } from './client-notifications'
+import { InvoiceCanceledError } from './payment'
 import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
-import { useItemContext } from './item'
+import { usePaidMutation } from './use-paid-mutation'
+import { ACT_MUTATION } from '@/fragments/paidAction'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -50,9 +49,87 @@ const setItemMeAnonSats = ({ id, amount }) => {
   window.localStorage.setItem(storageKey, existingAmount + amount)
 }
 
-export const actUpdate = ({ me, onUpdate }) => (cache, args) => {
-  const { data: { act: { id, sats, path, act } } } = args
+export default function ItemAct ({ onClose, item, down, children, abortSignal }) {
+  const inputRef = useRef(null)
+  const me = useMe()
+  const [oValue, setOValue] = useState()
 
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [onClose, item.id])
+
+  const act = useAct()
+
+  const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
+    if (abortSignal && zapUndoTrigger({ me, amount })) {
+      onClose?.()
+      try {
+        await abortSignal.pause({ me, amount })
+      } catch (error) {
+        if (error instanceof ActCanceledError) {
+          return
+        }
+      }
+    }
+    await act({
+      variables: {
+        id: item.id,
+        sats: Number(amount),
+        act: down ? 'DONT_LIKE_THIS' : 'TIP',
+        hash,
+        hmac
+      },
+      optimisticResponse: me
+        ? {
+            act: {
+              result: {
+                id: item.id, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP', path: item.path
+              }
+            }
+          }
+        : undefined,
+      // don't close modal immediately because we want the QR modal to stack
+      onCompleted: () => {
+        onClose?.()
+        if (!me) setItemMeAnonSats({ id: item.id, amount })
+      }
+    })
+    addCustomTip(Number(amount))
+  }, [me, act, down, item.id, onClose, abortSignal])
+
+  return (
+    <Form
+      initial={{
+        amount: me?.privates?.tipDefault || defaultTips[0],
+        default: false
+      }}
+      schema={amountSchema}
+      onSubmit={onSubmit}
+    >
+      <Input
+        label='amount'
+        name='amount'
+        type='number'
+        innerRef={inputRef}
+        overrideValue={oValue}
+        required
+        autoFocus
+        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+      />
+      <div>
+        <Tips setOValue={setOValue} />
+      </div>
+      {children}
+      <div className='d-flex mt-3'>
+        <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
+      </div>
+    </Form>
+  )
+}
+
+function modifyActCache (cache, { result, invoice }) {
+  if (!result) return
+  const { id, sats, path, act } = result
   cache.modify({
     id: `Item:${id}`,
     fields: {
@@ -60,25 +137,20 @@ export const actUpdate = ({ me, onUpdate }) => (cache, args) => {
         if (act === 'TIP') {
           return existingSats + sats
         }
-
         return existingSats
       },
       meSats: (existingSats = 0) => {
         if (act === 'TIP') {
           return existingSats + sats
         }
-
         return existingSats
       },
-      meDontLikeSats: me
-        ? (existingSats = 0) => {
-            if (act === 'DONT_LIKE_THIS') {
-              return existingSats + sats
-            }
-
-            return existingSats
-          }
-        : undefined
+      meDontLikeSats: (existingSats = 0) => {
+        if (act === 'DONT_LIKE_THIS') {
+          return existingSats + sats
+        }
+        return existingSats
+      }
     }
   })
 
@@ -96,201 +168,68 @@ export const actUpdate = ({ me, onUpdate }) => (cache, args) => {
       })
     })
   }
-
-  onUpdate?.(cache, args)
 }
 
-export default function ItemAct ({ onClose, item, down, children, abortSignal, optimisticUpdate }) {
-  const inputRef = useRef(null)
-  const me = useMe()
-  const [oValue, setOValue] = useState()
+export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
+  // because the mutation name we use varies,
+  // we need to extract the result/invoice from the response
+  const getPaidActionResult = data => Object.values(data)[0]
+  const strike = useLightning()
 
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [onClose, item.id])
-
-  const act = useAct()
-
-  const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
-    await act({
-      variables: {
-        id: item.id,
-        sats: Number(amount),
-        act: down ? 'DONT_LIKE_THIS' : 'TIP',
-        hash,
-        hmac
-      },
-      update: actUpdate({ me })
-    })
-    if (!me) setItemMeAnonSats({ id: item.id, amount })
-    addCustomTip(Number(amount))
-  }, [me, act, down, item.id])
-
-  return (
-    <ClientNotifyProvider additionalProps={{ itemId: item.id }}>
-      <Form
-        initial={{
-          amount: me?.privates?.tipDefault || defaultTips[0],
-          default: false
-        }}
-        schema={amountSchema}
-        prepaid
-        optimisticUpdate={({ amount }) => optimisticUpdate(amount, { onClose })}
-        onSubmit={onSubmit}
-        clientNotification={ClientNotification.Zap}
-        signal={abortSignal}
-      >
-        <Input
-          label='amount'
-          name='amount'
-          type='number'
-          innerRef={inputRef}
-          overrideValue={oValue}
-          required
-          autoFocus
-          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-        />
-        <div>
-          <Tips setOValue={setOValue} />
-        </div>
-        {children}
-        <div className='d-flex mt-3'>
-          <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
-        </div>
-      </Form>
-    </ClientNotifyProvider>
-  )
-}
-
-export const ACT_MUTATION = gql`
-  mutation act($id: ID!, $sats: Int!, $act: String, $hash: String, $hmac: String) {
-    act(id: $id, sats: $sats, act: $act, hash: $hash, hmac: $hmac) {
-      id
-      sats
-      path
-      act
+  const [act] = usePaidMutation(query, {
+    ...options,
+    update: (cache, { data }) => {
+      const response = getPaidActionResult(data)
+      if (!response) return
+      modifyActCache(cache, response)
+      options?.update?.(cache, { data })
+      if (response.result) strike()
+    },
+    onPayError: (e, cache, { data }) => {
+      const response = getPaidActionResult(data)
+      if (!response || !response.result) return
+      const { result: { sats } } = response
+      const negate = { ...response, result: { ...response.result, sats: -1 * sats } }
+      modifyActCache(cache, negate)
+      options?.onPayError?.(e, cache, { data })
+    },
+    onPaid: (cache, { data }) => {
+      const response = getPaidActionResult(data)
+      if (!response) return
+      options?.onPaid?.(cache, { data })
     }
-  }`
-
-export function useAct ({ onUpdate } = {}) {
-  const [act] = useMutation(ACT_MUTATION)
+  })
   return act
 }
 
 export function useZap () {
-  const update = useCallback((cache, args) => {
-    const { data: { act: { id, sats, path } } } = args
-
-    // determine how much we increased existing sats by by checking the
-    // difference between result sats and meSats
-    // if it's negative, skip the cache as it's an out of order update
-    // if it's positive, add it to sats and commentSats
-
-    const item = cache.readFragment({
-      id: `Item:${id}`,
-      fragment: gql`
-        fragment ItemMeSatsZap on Item {
-          meSats
-        }
-      `
-    })
-
-    const satsDelta = sats - item.meSats
-
-    if (satsDelta > 0) {
-      cache.modify({
-        id: `Item:${id}`,
-        fields: {
-          sats (existingSats = 0) {
-            return existingSats + satsDelta
-          },
-          meSats: () => {
-            return sats
-          }
-        }
-      })
-
-      // update all ancestors
-      path.split('.').forEach(aId => {
-        if (Number(aId) === Number(id)) return
-        cache.modify({
-          id: `Item:${aId}`,
-          fields: {
-            commentSats (existingCommentSats = 0) {
-              return existingCommentSats + satsDelta
-            }
-          }
-        })
-      })
-    }
-  }, [])
-
-  const ZAP_MUTATION = gql`
-    mutation idempotentAct($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
-      act(id: $id, sats: $sats, hash: $hash, hmac: $hmac, idempotent: true) {
-        id
-        sats
-        path
-      }
-    }`
-  const [zap] = useMutation(ZAP_MUTATION)
+  const act = useAct()
   const me = useMe()
-  const { notify, unnotify } = useClientNotifications()
 
   const toaster = useToast()
-  const strike = useLightning()
-  const payment = usePayment()
-  const { pendingSats } = useItemContext()
 
-  return useCallback(async ({ item, abortSignal, optimisticUpdate }) => {
-    const meSats = (item?.meSats || 0) + pendingSats
+  return useCallback(async ({ item, abortSignal }) => {
+    const meSats = (item?.meSats || 0)
 
     // add current sats to next tip since idempotent zaps use desired total zap not difference
-    const sats = meSats + nextTip(meSats, { ...me?.privates })
-    const satsDelta = sats - meSats
+    const sats = nextTip(meSats, { ...me?.privates })
 
     const variables = { id: item.id, sats, act: 'TIP' }
-    const notifyProps = { itemId: item.id, sats: satsDelta }
-    // const optimisticResponse = { act: { path: item.path, ...variables } }
+    const optimisticResponse = { act: { result: { path: item.path, ...variables } } }
 
-    let revert, cancel, nid
     try {
-      revert = optimisticUpdate?.(satsDelta)
-
-      await abortSignal.pause({ me, amount: satsDelta })
-
-      if (me) {
-        nid = notify(ClientNotification.Zap.PENDING, notifyProps)
-      }
-
-      let hash, hmac;
-      [{ hash, hmac }, cancel] = await payment.request(satsDelta)
-
-      await zap({
-        variables: { ...variables, hash, hmac },
-        update: (...args) => {
-          revert?.()
-          update(...args)
-        }
-      })
+      await abortSignal.pause({ me, amount: sats })
+      await act({ variables, optimisticResponse })
     } catch (error) {
-      revert?.()
       if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {
         return
       }
 
       const reason = error?.message || error?.toString?.()
-      if (me) {
-        notify(ClientNotification.Zap.ERROR, { ...notifyProps, reason })
-      } else {
-        toaster.danger('zap failed: ' + reason)
-      }
 
-      cancel?.()
-    } finally {
-      if (nid) unnotify(nid)
+      toaster.danger('zap failed: ' + reason)
     }
-  }, [me?.id, strike, payment, notify, unnotify, pendingSats])
+  }, [me?.id])
 }
 
 export class ActCanceledError extends Error {
@@ -301,10 +240,10 @@ export class ActCanceledError extends Error {
 }
 
 export class ZapUndoController extends AbortController {
-  constructor () {
+  constructor ({ onStart = () => {}, onDone = () => {} }) {
     super()
-    this.signal.start = () => { this.started = true }
-    this.signal.done = () => { this.done = true }
+    this.signal.start = onStart
+    this.signal.done = onDone
     this.signal.pause = async ({ me, amount }) => {
       if (zapUndoTrigger({ me, amount })) {
         await zapUndo(this.signal)

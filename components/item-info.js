@@ -22,14 +22,15 @@ import { DropdownItemUpVote } from './upvote'
 import { useRoot } from './root'
 import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 import UserPopover from './user-popover'
-import { useItemContext } from './item'
+import { useQrPayment } from './payment'
+import { useRetryCreateItem } from './use-item-submit'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
   onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true
 }) {
-  const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
+  const editThreshold = new Date(item.invoice?.confirmedAt ?? item.createdAt).getTime() + 10 * 60000
   const me = useMe()
   const router = useRouter()
   const [canEdit, setCanEdit] =
@@ -37,7 +38,7 @@ export default function ItemInfo ({
   const [hasNewComments, setHasNewComments] = useState(false)
   const [meTotalSats, setMeTotalSats] = useState(0)
   const root = useRoot()
-  const { pendingSats, pendingCommentSats, pendingDownSats } = useItemContext()
+  const retryCreateItem = useRetryCreateItem({ id: item.id })
   const sub = item?.sub || root?.sub
 
   useEffect(() => {
@@ -47,8 +48,12 @@ export default function ItemInfo ({
   }, [item])
 
   useEffect(() => {
-    if (item) setMeTotalSats((item.meSats || 0) + (item.meAnonSats || 0) + (pendingSats))
-  }, [item?.meSats, item?.meAnonSats, pendingSats])
+    setCanEdit(item.mine && (Date.now() < editThreshold))
+  }, [item.mine, editThreshold])
+
+  useEffect(() => {
+    if (item) setMeTotalSats(item.meSats || item.meAnonSats || 0)
+  }, [item?.meSats, item?.meAnonSats])
 
   // territory founders can pin any post in their territory
   // and OPs can pin any root reply in their post
@@ -58,7 +63,53 @@ export default function ItemInfo ({
   const rootReply = item.path.split('.').length === 2
   const canPin = (isPost && mySub) || (myPost && rootReply)
 
-  const downSats = item.meDontLikeSats + pendingDownSats
+  const EditInfo = () => {
+    const waitForQrPayment = useQrPayment()
+    if (item.deletedAt) return null
+
+    let Component
+    let onClick
+    if (me && item.invoice?.actionState && item.invoice?.actionState !== 'PAID') {
+      if (item.invoice?.actionState === 'FAILED') {
+        Component = () => <span className='text-warning'>retry payment</span>
+        onClick = async () => await retryCreateItem({ variables: { invoiceId: parseInt(item.invoice?.id) } }).catch(console.error)
+      } else {
+        Component = () => (
+          <span
+            className='text-info'
+          >pending
+          </span>
+        )
+        onClick = () => waitForQrPayment({ id: item.invoice?.id }, null, { cancelOnClose: false }).catch(console.error)
+      }
+    } else if (canEdit) {
+      Component = () => (
+        <>
+          <span>{editText || 'edit'} </span>
+          <Countdown
+            date={editThreshold}
+            onComplete={() => {
+              setCanEdit(false)
+            }}
+          />
+        </>)
+      onClick = () => onEdit ? onEdit() : router.push(`/items/${item.id}/edit`)
+    } else {
+      return null
+    }
+
+    return (
+      <>
+        <span> \ </span>
+        <span
+          className='text-reset pointer fw-bold'
+          onClick={onClick}
+        >
+          <Component />
+        </span>
+      </>
+    )
+  }
 
   return (
     <div className={className || `${styles.other}`}>
@@ -70,11 +121,11 @@ export default function ItemInfo ({
             unitPlural: 'stackers'
           })} ${item.mine
             ? `\\ ${numWithUnits(item.meSats, { abbreviate: false })} to post`
-            : `(${numWithUnits(meTotalSats, { abbreviate: false })}${downSats
-              ? ` & ${numWithUnits(downSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
+            : `(${numWithUnits(meTotalSats, { abbreviate: false })}${item.meDontLikeSats
+              ? ` & ${numWithUnits(item.meDontLikeSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
               : ''} from me)`} `}
           >
-            {numWithUnits(item.sats + pendingSats)}
+            {numWithUnits(item.sats)}
           </span>
           <span> \ </span>
         </>}
@@ -92,7 +143,7 @@ export default function ItemInfo ({
               `/items/${item.id}?commentsViewedAt=${viewedAt}`,
               `/items/${item.id}`)
           }
-        }} title={numWithUnits(item.commentSats + pendingCommentSats)} className='text-reset position-relative'
+        }} title={numWithUnits(item.commentSats)} className='text-reset position-relative'
       >
         {numWithUnits(item.ncomments, {
           abbreviate: false,
@@ -144,72 +195,66 @@ export default function ItemInfo ({
         <>{' '}<Badge className={styles.newComment} bg={null}>bot</Badge></>
         )}
       {extraBadges}
-      {canEdit && !item.deletedAt &&
-        <>
-          <span> \ </span>
-          <span
-            className='text-reset pointer'
-            onClick={() => onEdit ? onEdit() : router.push(`/items/${item.id}/edit`)}
-          >
-            <span>{editText || 'edit'} </span>
-            <Countdown
-              date={editThreshold}
-              onComplete={() => {
-                setCanEdit(false)
-              }}
-            />
-          </span>
-        </>}
       {
         showActionDropdown &&
-          <ActionDropdown>
-            <CopyLinkDropdownItem item={item} />
-            {(item.parentId || item.text) && onQuoteReply &&
-              <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
-            {me && <BookmarkDropdownItem item={item} />}
-            {me && <SubscribeDropdownItem item={item} />}
-            {item.otsHash &&
-              <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
-                opentimestamp
-              </Link>}
-            {item?.noteId && (
-              <Dropdown.Item onClick={() => window.open(`https://njump.me/${item.noteId}`, '_blank', 'noopener,noreferrer,nofollow')}>
-                nostr note
-              </Dropdown.Item>
-            )}
-            {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
-              <CrosspostDropdownItem item={item} />}
-            {me && !item.position &&
+          <>
+            <EditInfo />
+            <ActionDropdown>
+              <CopyLinkDropdownItem item={item} />
+              {(item.parentId || item.text) && onQuoteReply &&
+                <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
+              {me && <BookmarkDropdownItem item={item} />}
+              {me && <SubscribeDropdownItem item={item} />}
+              {item.otsHash &&
+                <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
+                  opentimestamp
+                </Link>}
+              {item?.noteId && (
+                <Dropdown.Item onClick={() => window.open(`https://njump.me/${item.noteId}`, '_blank', 'noopener,noreferrer,nofollow')}>
+                  nostr note
+                </Dropdown.Item>
+              )}
+              {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
+                <CrosspostDropdownItem item={item} />}
+              {me && !item.position &&
             !item.mine && !item.deletedAt &&
-            (downSats > meTotalSats
+            (item.meDontLikeSats > meTotalSats
               ? <DropdownItemUpVote item={item} />
               : <DontLikeThisDropdownItem item={item} />)}
-            {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
-              <>
-                <hr className='dropdown-divider' />
-                <OutlawDropdownItem item={item} />
-              </>}
-            {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
-              <>
-                <hr className='dropdown-divider' />
-                <MuteSubDropdownItem item={item} sub={sub} />
-              </>}
-            {canPin &&
-              <>
-                <hr className='dropdown-divider' />
-                <PinSubDropdownItem item={item} />
-              </>}
-            {item.mine && !item.position && !item.deletedAt && !item.bio &&
-              <>
-                <hr className='dropdown-divider' />
-                <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />
-              </>}
-            {me && !item.mine &&
-              <>
-                <hr className='dropdown-divider' />
-                <MuteDropdownItem user={item.user} />
-              </>}
-          </ActionDropdown>
+              {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <OutlawDropdownItem item={item} />
+                </>}
+              {item.mine && item.invoice?.id &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <Link href={`/invoices/${item.invoice?.id}`} className='text-reset dropdown-item'>
+                    view invoice
+                  </Link>
+                </>}
+              {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <MuteSubDropdownItem item={item} sub={sub} />
+                </>}
+              {canPin &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <PinSubDropdownItem item={item} />
+                </>}
+              {item.mine && !item.position && !item.deletedAt && !item.bio &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />
+                </>}
+              {me && !item.mine &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <MuteDropdownItem user={item.user} />
+                </>}
+            </ActionDropdown>
+          </>
       }
       {extraInfo}
     </div>

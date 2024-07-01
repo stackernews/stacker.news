@@ -4,8 +4,8 @@ import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '@/lib/validate'
-import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
-import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS } from '@/lib/constants'
+import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
+import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES } from '@/lib/constants'
 import { viewGroup } from './growth'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
@@ -283,6 +283,7 @@ export default {
             '"ThreadSubscription"."userId" = $1',
             'r.created_at > $2',
             'r.created_at >= "ThreadSubscription".created_at',
+            activeOrMine(me),
             await filterClause(me, models),
             muteClause(me),
             ...(user.noteAllDescendants ? [] : ['r.level = 1'])
@@ -304,6 +305,7 @@ export default {
               ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
               OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
             )`,
+            activeOrMine(me),
             await filterClause(me, models),
             muteClause(me))})`, me.id, lastChecked)
       if (newUserSubs.exists) {
@@ -320,6 +322,8 @@ export default {
             '"SubSubscription"."userId" = $1',
             '"Item".created_at > $2',
             '"Item"."parentId" IS NULL',
+            '"Item"."userId" <> $1',
+            activeOrMine(me),
             await filterClause(me, models),
             muteClause(me))})`, me.id, lastChecked)
       if (newSubPost.exists) {
@@ -338,6 +342,7 @@ export default {
             '"Mention"."userId" = $1',
             '"Mention".created_at > $2',
             '"Item"."userId" <> $1',
+            activeOrMine(me),
             await filterClause(me, models),
             muteClause(me)
           )})`, me.id, lastChecked)
@@ -358,6 +363,7 @@ export default {
             '"ItemMention".created_at > $2',
             '"Item"."userId" <> $1',
             '"Referee"."userId" = $1',
+            activeOrMine(me),
             await filterClause(me, models),
             muteClause(me)
           )})`, me.id, lastChecked)
@@ -375,8 +381,13 @@ export default {
           JOIN "ItemForward" ON
             "ItemForward"."itemId" = "Item".id
             AND "ItemForward"."userId" = $1
-          WHERE "Item"."lastZapAt" > $2
-          AND "Item"."userId" <> $1)`, me.id, lastChecked)
+          ${whereClause(
+            '"Item"."lastZapAt" > $2',
+            '"Item"."userId" <> $1',
+            activeOrMine(me),
+            await filterClause(me, models),
+            muteClause(me)
+          )})`, me.id, lastChecked)
         if (newFwdSats.exists) {
           foundNotes()
           return true
@@ -424,7 +435,8 @@ export default {
             confirmedAt: {
               gt: lastChecked
             },
-            isHeld: null
+            isHeld: null,
+            actionType: null
           }
         })
         if (invoice) {
@@ -519,6 +531,24 @@ export default {
         }
       })
       if (newReminder) {
+        foundNotes()
+        return true
+      }
+
+      const invoiceActionFailed = await models.invoice.findFirst({
+        where: {
+          userId: me.id,
+          updatedAt: {
+            gt: lastChecked
+          },
+          actionType: {
+            in: INVOICE_ACTION_NOTIFICATION_TYPES
+          },
+          actionState: 'FAILED'
+        }
+      })
+
+      if (invoiceActionFailed) {
         foundNotes()
         return true
       }

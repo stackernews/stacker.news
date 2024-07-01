@@ -1,5 +1,6 @@
+import lnd from '@/api/lnd'
+import performPaidAction from '@/api/paidAction'
 import serialize from '@/api/resolvers/serial'
-import { paySubQueries } from '@/api/resolvers/sub'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { datePivot } from '@/lib/time'
 
@@ -33,8 +34,11 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
   }
 
   try {
-    const queries = paySubQueries(sub, models)
-    await serialize(queries, { models })
+    const { result } = await performPaidAction('TERRITORY_BILLING',
+      { name: subName }, { models, me: { id: sub.userId }, lnd, forceFeeCredits: true })
+    if (!result) {
+      throw new Error('not enough fee credits to auto-renew territory')
+    }
   } catch (e) {
     console.error(e)
     await territoryStatusUpdate()
@@ -57,6 +61,7 @@ export async function territoryRevenue ({ models }) {
             WHERE date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() AT TIME ZONE 'America/Chicago' - interval '1 day'))
               AND "ItemAct".act <> 'TIP'
               AND "Sub".status <> 'STOPPED'
+              AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
         ) subquery
         GROUP BY "subName", "userId"
       ),

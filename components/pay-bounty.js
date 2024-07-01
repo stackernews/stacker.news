@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React from 'react'
 import Button from 'react-bootstrap/Button'
 import styles from './pay-bounty.module.css'
 import ActionTooltip from './action-tooltip'
@@ -6,23 +6,16 @@ import { useMe } from './me'
 import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
-import { useAct, actUpdate } from './item-act'
-import { InvoiceCanceledError, usePayment } from './payment'
+import { ActCanceledError, useAct } from './item-act'
+import { InvoiceCanceledError } from './payment'
 import { useLightning } from './lightning'
 import { useToast } from './toast'
-import { Types as ClientNotification, useClientNotifications } from './client-notifications'
 
-export default function PayBounty ({ children, item }) {
-  const me = useMe()
-  const showModal = useShowModal()
-  const root = useRoot()
-  const payment = usePayment()
-  const strike = useLightning()
-  const toaster = useToast()
-  const { notify, unnotify } = useClientNotifications()
-
-  const onUpdate = useCallback(onComplete => (cache, { data: { act: { id, path } } }) => {
-    // update root bounty status
+export const payBountyCacheMods = {
+  onPaid: (cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.result) return
+    const { id, path } = response.result
     const root = path.split('.')[0]
     cache.modify({
       id: `Item:${root}`,
@@ -32,46 +25,48 @@ export default function PayBounty ({ children, item }) {
         }
       }
     })
-    strike()
-    onComplete()
-  }, [strike])
-
-  const act = useAct()
-
-  const handlePayBounty = async onComplete => {
-    const sats = root.bounty
-    const variables = { id: item.id, sats, act: 'TIP', path: item.path }
-    const notifyProps = { itemId: item.id, sats }
-    const optimisticResponse = { act: { ...variables, path: item.path } }
-
-    let cancel, nid
-    try {
-      if (me) {
-        nid = notify(ClientNotification.Bounty.PENDING, notifyProps)
+  },
+  onPayError: (e, cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.result) return
+    const { id, path } = response.result
+    const root = path.split('.')[0]
+    cache.modify({
+      id: `Item:${root}`,
+      fields: {
+        bountyPaidTo (existingPaidTo = []) {
+          return (existingPaidTo || []).filter(i => i !== Number(id))
+        }
       }
+    })
+  }
+}
 
-      let hash, hmac;
-      [{ hash, hmac }, cancel] = await payment.request(sats)
+export default function PayBounty ({ children, item }) {
+  const me = useMe()
+  const showModal = useShowModal()
+  const root = useRoot()
+  const strike = useLightning()
+  const toaster = useToast()
+  const variables = { id: item.id, sats: root.bounty, act: 'TIP' }
+  const act = useAct({
+    variables,
+    optimisticResponse: { act: { result: { ...variables, path: item.path } } },
+    ...payBountyCacheMods
+  })
 
-      await act({
-        variables: { hash, hmac, ...variables },
-        optimisticResponse,
-        update: actUpdate({ me, onUpdate: onUpdate(onComplete) })
-      })
+  const handlePayBounty = async onCompleted => {
+    try {
+      strike()
+      await act({ onCompleted })
     } catch (error) {
-      if (error instanceof InvoiceCanceledError) {
+      if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {
         return
       }
 
       const reason = error?.message || error?.toString?.()
-      if (me) {
-        notify(ClientNotification.Bounty.ERROR, { ...notifyProps, reason })
-      } else {
-        toaster.danger('pay bounty failed: ' + reason)
-      }
-      cancel?.()
-    } finally {
-      if (nid) unnotify(nid)
+
+      toaster.danger('pay bounty failed: ' + reason)
     }
   }
 

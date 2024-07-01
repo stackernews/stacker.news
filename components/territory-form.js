@@ -2,7 +2,7 @@ import AccordianItem from './accordian-item'
 import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
 import { Checkbox, CheckboxGroup, Form, Input, MarkdownInput } from './form'
 import FeeButton, { FeeButtonProvider } from './fee-button'
-import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
+import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
@@ -12,35 +12,15 @@ import Info from './info'
 import { abbrNum } from '@/lib/format'
 import { purchasedType } from '@/lib/territory'
 import { SUB } from '@/fragments/subs'
+import { usePaidMutation } from './use-paid-mutation'
+import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/paidAction'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
-  const [upsertSub] = useMutation(
-    gql`
-      mutation upsertSub($oldName: String, $name: String!, $desc: String, $baseCost: Int!,
-        $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
-        $billingAutoRenew: Boolean!, $moderated: Boolean!, $hash: String, $hmac: String, $nsfw: Boolean!) {
-          upsertSub(oldName: $oldName, name: $name, desc: $desc, baseCost: $baseCost,
-            postTypes: $postTypes, allowFreebies: $allowFreebies, billingType: $billingType,
-            billingAutoRenew: $billingAutoRenew, moderated: $moderated, hash: $hash, hmac: $hmac, nsfw: $nsfw) {
-          name
-        }
-      }`
-  )
-  const [unarchiveTerritory] = useMutation(
-    gql`
-      mutation unarchiveTerritory($name: String!, $desc: String, $baseCost: Int!,
-        $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
-        $billingAutoRenew: Boolean!, $moderated: Boolean!, $hash: String, $hmac: String, $nsfw: Boolean!) {
-          unarchiveTerritory(name: $name, desc: $desc, baseCost: $baseCost,
-            postTypes: $postTypes, allowFreebies: $allowFreebies, billingType: $billingType,
-            billingAutoRenew: $billingAutoRenew, moderated: $moderated, hash: $hash, hmac: $hmac, nsfw: $nsfw) {
-          name
-        }
-      }`
-  )
+  const [upsertSub] = usePaidMutation(UPSERT_SUB)
+  const [unarchiveTerritory] = usePaidMutation(UNARCHIVE_TERRITORY)
 
   const schema = territorySchema({ client, me, sub })
 
@@ -56,22 +36,28 @@ export default function TerritoryForm ({ sub }) {
 
   const onSubmit = useCallback(
     async ({ ...variables }) => {
-      const { error } = archived
+      const { error, payError } = archived
         ? await unarchiveTerritory({ variables })
         : await upsertSub({ variables: { oldName: sub?.name, ...variables } })
 
-      if (error) {
-        throw new Error({ message: error.toString() })
-      }
+      if (error) throw error
+      if (payError) throw new Error('payment required')
 
       // modify graphql cache to include new sub
       client.cache.modify({
         fields: {
-          subs (existing = []) {
-            const filtered = existing.filter(s => s.name !== variables.name && s.name !== sub?.name)
-            return [
-              ...filtered,
-              { __typename: 'Sub', name: variables.name }]
+          subs (existing = [], { readField }) {
+            const newSubRef = client.cache.writeFragment({
+              data: { __typename: 'Sub', name: variables.name },
+              fragment: gql`
+                fragment SubSubmitFragment on Sub {
+                  name
+                }`
+            })
+            if (existing.some(ref => readField('name', ref) === variables.name)) {
+              return existing
+            }
+            return [...existing, newSubRef]
           }
         }
       })
@@ -112,7 +98,6 @@ export default function TerritoryForm ({ sub }) {
           nsfw: sub?.nsfw || false
         }}
         schema={schema}
-        prepaid
         onSubmit={onSubmit}
         className='mb-5'
         storageKeyPrefix={sub ? undefined : 'territory'}

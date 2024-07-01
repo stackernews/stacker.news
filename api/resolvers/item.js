@@ -1,6 +1,5 @@
 import { GraphQLError } from 'graphql'
-import { ensureProtocol, parseInternalLinks, removeTracking, stripTrailingSlash } from '@/lib/url'
-import serialize from './serial'
+import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
@@ -8,19 +7,19 @@ import domino from 'domino'
 import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
-  USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
-  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_USER_IDS
+  USER_ID, POLL_COST,
+  ITEM_ALLOW_EDITS, GLOBAL_SEED, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_USER_IDS
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '@/lib/validate'
-import { notifyItemParents, notifyUserSubscribers, notifyZapped, notifyTerritorySubscribers, notifyMention, notifyItemMention } from '@/lib/webPush'
-import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand, getReminderCommand, hasReminderCommand } from '@/lib/item'
+import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
-import { imageFeesInfo, uploadIdsFromText } from './image'
+import { uploadIdsFromText } from './image'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
+import performPaidAction from '../paidAction'
 
 function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
@@ -44,13 +43,15 @@ function commentsOrderByClause (me, models, sort) {
 async function comments (me, models, id, sort) {
   const orderBy = commentsOrderByClause(me, models, sort)
 
-  const filter = '' // empty filter as we filter clientside now
   if (me) {
+    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) `
     const [{ item_comments_zaprank_with_me: comments }] = await models.$queryRawUnsafe(
-      'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)', Number(id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+      'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)',
+      Number(id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
     return comments
   }
 
+  const filter = ' AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = \'PAID\') '
   const [{ item_comments: comments }] = await models.$queryRawUnsafe(
     'SELECT item_comments($1::INTEGER, $2::INTEGER, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, filter, orderBy)
   return comments
@@ -63,7 +64,10 @@ export async function getItem (parent, { id }, { me, models }) {
     query: `
       ${SELECT}
       FROM "Item"
-      WHERE id = $1`
+      ${whereClause(
+        '"Item".id = $1',
+        activeOrMine(me)
+      )}`
   }, Number(id))
   return item
 }
@@ -115,7 +119,7 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
   } else {
     return await models.$queryRawUnsafe(`
       SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
-        COALESCE("ItemAct"."meMsats", 0) as "meMsats",
+        COALESCE("ItemAct"."meMsats", 0) as "meMsats", COALESCE("ItemAct"."mePendingMsats", 0) as "mePendingMsats",
         COALESCE("ItemAct"."meDontLikeMsats", 0) as "meDontLikeMsats", b."itemId" IS NOT NULL AS "meBookmark",
         "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward",
         to_jsonb("Sub".*) || jsonb_build_object('meMuteSub', "MuteSub"."userId" IS NOT NULL)
@@ -132,8 +136,10 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
       LEFT JOIN "MuteSub" ON "Sub"."name" = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}
       LEFT JOIN "SubSubscription" ON "Sub"."name" = "SubSubscription"."subName" AND "SubSubscription"."userId" = ${me.id}
       LEFT JOIN LATERAL (
-        SELECT "itemId", sum("ItemAct".msats) FILTER (WHERE act = 'FEE' OR act = 'TIP') AS "meMsats",
-          sum("ItemAct".msats) FILTER (WHERE act = 'DONT_LIKE_THIS') AS "meDontLikeMsats"
+        SELECT "itemId",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND (act = 'FEE' OR act = 'TIP')) AS "meMsats",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS NOT DISTINCT FROM 'PENDING' AND (act = 'FEE' OR act = 'TIP') AND "Item"."userId" <> ${me.id}) AS "mePendingMsats",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND act = 'DONT_LIKE_THIS') AS "meDontLikeMsats"
         FROM "ItemAct"
         WHERE "ItemAct"."userId" = ${me.id}
         AND "ItemAct"."itemId" = "Item".id
@@ -180,8 +186,11 @@ function whenClause (when, table) {
   return `"${table}".created_at <= $2 and "${table}".created_at >= $1`
 }
 
-const activeOrMine = (me) => {
-  return me ? `("Item".status <> 'STOPPED' OR "Item"."userId" = ${me.id})` : '"Item".status <> \'STOPPED\''
+export const activeOrMine = (me) => {
+  return me
+    ? [`("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id})`,
+    `("Item".status <> 'STOPPED' OR "Item"."userId" = ${me.id})`]
+    : ['("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = \'PAID\')', '"Item".status <> \'STOPPED\'']
 }
 
 export const muteClause = me =>
@@ -432,6 +441,7 @@ export default {
                       '"Item"."deletedAt" IS NULL',
                       '"Item"."parentId" IS NULL',
                       '"Item".bio = false',
+                      activeOrMine(me),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
                     ORDER BY rank DESC
@@ -457,6 +467,7 @@ export default {
                         '"Item"."deletedAt" IS NULL',
                         '"Item"."parentId" IS NULL',
                         '"Item".bio = false',
+                        activeOrMine(me),
                         await filterClause(me, models, type))}
                         ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC
                       OFFSET $1
@@ -724,10 +735,6 @@ export default {
       if (old.bio) {
         throw new GraphQLError('cannot delete bio', { extensions: { code: 'BAD_INPUT' } })
       }
-      // clean up any pending reminders, if triggered on this item and haven't been executed
-      if (hasReminderCommand(old.text)) {
-        await deleteReminderAndJob({ me, item: old, models })
-      }
 
       return await deleteItemByAuthor({ models, id, item: old })
     },
@@ -790,7 +797,7 @@ export default {
       item.maxBid ??= 0
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
       } else {
         return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
@@ -799,10 +806,9 @@ export default {
       await ssValidate(commentSchema, item)
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
       } else {
         item = await createItem(parent, item, { me, models, lnd, hash, hmac })
-        notifyItemParents({ item, me, models })
         return item
       }
     },
@@ -823,12 +829,7 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      await serialize(
-        models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1::INTEGER, $2::INTEGER) AS "Item"`, Number(id), Number(me.id)),
-        { models, lnd, me, hash, hmac, verifyPayment: !!hash || !me }
-      )
-
-      return id
+      return await performPaidAction('POLL_VOTE', { id }, { me, models, lnd, hash, hmac })
     },
     act: async (parent, { id, sats, act = 'TIP', idempotent, hash, hmac }, { me, models, lnd, headers }) => {
       assertApiKeyNotPermitted({ me })
@@ -842,6 +843,10 @@ export default {
 
       if (item.deletedAt) {
         throw new GraphQLError('item is deleted', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      if (item.invoiceActionState && item.invoiceActionState !== 'PAID') {
+        throw new GraphQLError('cannot act on unpaid item', { extensions: { code: 'BAD_INPUT' } })
       }
 
       // disallow self tips except anons
@@ -859,35 +864,12 @@ export default {
         }
       }
 
-      if (me && idempotent) {
-        await serialize(
-          models.$queryRaw`
-          SELECT
-            item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, ${act}::"ItemActType",
-            (SELECT ${Number(sats)}::INTEGER - COALESCE(sum(msats) / 1000, 0)
-             FROM "ItemAct"
-             WHERE act IN ('TIP', 'FEE')
-             AND "itemId" = ${Number(id)}::INTEGER
-             AND "userId" = ${me.id}::INTEGER)::INTEGER)`,
-          { models, lnd, hash, hmac, verifyPayment: !!hash }
-        )
+      if (act === 'TIP') {
+        return await performPaidAction('ZAP', { id, sats }, { me, models, lnd, hash, hmac })
+      } else if (act === 'DONT_LIKE_THIS') {
+        return await performPaidAction('DOWN_ZAP', { id, sats }, { me, models, lnd, hash, hmac })
       } else {
-        await serialize(
-          models.$queryRaw`
-            SELECT
-              item_act(${Number(id)}::INTEGER,
-              ${me?.id || USER_ID.anon}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
-          { models, lnd, me, hash, hmac, fee: sats, verifyPayment: !!hash || !me }
-        )
-      }
-
-      notifyZapped({ models, id })
-
-      return {
-        id,
-        sats,
-        act,
-        path: item.path
+        throw new GraphQLError('unknown act', { extensions: { code: 'BAD_INPUT' } })
       }
     },
     toggleOutlaw: async (parent, { id }, { me, models }) => {
@@ -942,9 +924,20 @@ export default {
       return result
     }
   },
+  ItemAct: {
+    invoice: async (itemAct, args, { models }) => {
+      if (itemAct.invoiceId) {
+        return {
+          id: itemAct.invoiceId,
+          actionState: itemAct.invoiceActionState
+        }
+      }
+      return null
+    }
+  },
   Item: {
     sats: async (item, args, { models }) => {
-      return msatsToSats(item.msats)
+      return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0))
     },
     commentSats: async (item, args, { models }) => {
       return msatsToSats(item.commentMsats)
@@ -1004,7 +997,10 @@ export default {
       }
 
       const options = await models.$queryRaw`
-        SELECT "PollOption".id, option, count("PollVote".id)::INTEGER as count
+        SELECT "PollOption".id, option,
+          (count("PollVote".id)
+            FILTER(WHERE "PollVote"."invoiceActionState" IS NULL
+              OR "PollVote"."invoiceActionState" = 'PAID'))::INTEGER as count
         FROM "PollOption"
         LEFT JOIN "PollVote" on "PollVote"."pollOptionId" = "PollOption".id
         WHERE "PollOption"."itemId" = ${item.id}
@@ -1012,16 +1008,22 @@ export default {
         ORDER BY "PollOption".id ASC
       `
 
-      const meVoted = await models.pollBlindVote.findFirst({
-        where: {
-          userId: me?.id,
-          itemId: item.id
-        }
-      })
-
       const poll = {}
+      if (me) {
+        const meVoted = await models.pollBlindVote.findFirst({
+          where: {
+            userId: me.id,
+            itemId: item.id
+          }
+        })
+        poll.meVoted = !!meVoted
+        poll.meInvoiceId = meVoted?.invoiceId
+        poll.meInvoiceActionState = meVoted?.invoiceActionState
+      } else {
+        poll.meVoted = false
+      }
+
       poll.options = options
-      poll.meVoted = !!meVoted
       poll.count = options.reduce((t, o) => t + o.count, 0)
 
       return poll
@@ -1064,6 +1066,9 @@ export default {
         where: {
           itemId: Number(item.id),
           userId: me.id,
+          invoiceActionState: {
+            not: 'FAILED'
+          },
           OR: [
             {
               act: 'TIP'
@@ -1078,8 +1083,8 @@ export default {
       return (msats && msatsToSats(msats)) || 0
     },
     meDontLikeSats: async (item, args, { me, models }) => {
-      if (!me) return false
-      if (typeof item.meMsats !== 'undefined') {
+      if (!me) return 0
+      if (typeof item.meDontLikeMsats !== 'undefined') {
         return msatsToSats(item.meDontLikeMsats)
       }
 
@@ -1090,7 +1095,10 @@ export default {
         where: {
           itemId: Number(item.id),
           userId: me.id,
-          act: 'DONT_LIKE_THIS'
+          act: 'DONT_LIKE_THIS',
+          invoiceActionState: {
+            not: 'FAILED'
+          }
         }
       })
 
@@ -1149,6 +1157,17 @@ export default {
       }
       return await getItem(item, { id: item.rootId }, { me, models })
     },
+    invoice: async (item, args, { models }) => {
+      if (item.invoiceId) {
+        return {
+          id: item.invoiceId,
+          actionState: item.invoiceActionState,
+          confirmedAt: item.invoicePaidAtUTC ?? item.invoicePaidAt
+        }
+      }
+
+      return null
+    },
     parent: async (item, args, { models }) => {
       if (!item.parentId) {
         return null
@@ -1168,7 +1187,11 @@ export default {
         // Only query for deleteScheduledAt for your own items to keep DB queries minimized
         return null
       }
-      const deleteJobs = await models.$queryRawUnsafe(`SELECT startafter FROM pgboss.job WHERE name = 'deleteItem' AND data->>'id' = '${item.id}'`)
+      const deleteJobs = await models.$queryRaw`
+        SELECT startafter
+        FROM pgboss.job
+        WHERE name = 'deleteItem' AND data->>'id' = ${item.id}::TEXT
+        AND state = 'created'`
       return deleteJobs[0]?.startafter ?? null
     },
     reminderScheduledAt: async (item, args, { me, models }) => {
@@ -1178,114 +1201,29 @@ export default {
         // don't support reminders for ANON
         return null
       }
-      const reminderJobs = await models.$queryRawUnsafe(`SELECT startafter FROM pgboss.job WHERE name = 'reminder' AND data->>'itemId' = '${item.id}' AND data->>'userId' = '${meId}'`)
+      const reminderJobs = await models.$queryRaw`
+        SELECT startafter
+        FROM pgboss.job
+        WHERE name = 'reminder'
+        AND data->>'itemId' = ${item.id}::TEXT
+        AND data->>'userId' = ${meId}::TEXT
+        AND state = 'created'`
       return reminderJobs[0]?.startafter ?? null
     }
   }
 }
 
-const namePattern = /\B@[\w_]+/gi
-const refPattern = new RegExp(`${process.env.NEXT_PUBLIC_URL}/items/\\d+[a-zA-Z0-9/?=]*`, 'gi')
-
-export const createMentions = async (item, models) => {
-  // if we miss a mention, in the rare circumstance there's some kind of
-  // failure, it's not a big deal so we don't do it transactionally
-  // ideally, we probably would
-  if (!item.text) {
-    return
-  }
-
-  // user mentions
-  try {
-    await createUserMentions(item, models)
-  } catch (e) {
-    console.error('user mention failure', e)
-  }
-
-  // item mentions
-  try {
-    await createItemMentions(item, models)
-  } catch (e) {
-    console.error('item mention failure', e)
-  }
-}
-
-const createUserMentions = async (item, models) => {
-  const mentions = item.text.match(namePattern)?.map(m => m.slice(1))
-  if (!mentions || mentions.length === 0) return
-
-  const users = await models.user.findMany({
-    where: {
-      name: { in: mentions },
-      // Don't create mentions when mentioning yourself
-      id: { not: item.userId }
-    }
-  })
-
-  users.forEach(async user => {
-    const data = {
-      itemId: item.id,
-      userId: user.id
-    }
-
-    const mention = await models.mention.upsert({
-      where: {
-        itemId_userId: data
-      },
-      update: data,
-      create: data
-    })
-
-    // only send if mention is new to avoid duplicates
-    if (mention.createdAt.getTime() === mention.updatedAt.getTime()) {
-      notifyMention({ models, userId: user.id, item })
-    }
-  })
-}
-
-const createItemMentions = async (item, models) => {
-  const refs = item.text.match(refPattern)?.map(m => {
-    try {
-      const { itemId, commentId } = parseInternalLinks(m)
-      return Number(commentId || itemId)
-    } catch (err) {
-      return null
-    }
-  }).filter(r => !!r)
-  if (!refs || refs.length === 0) return
-
-  const referee = await models.item.findMany({
-    where: {
-      id: { in: refs },
-      // Don't create mentions for your own items
-      userId: { not: item.userId }
-    }
-  })
-
-  referee.forEach(async r => {
-    const data = {
-      referrerId: item.id,
-      refereeId: r.id
-    }
-
-    const mention = await models.itemMention.upsert({
-      where: {
-        referrerId_refereeId: data
-      },
-      update: data,
-      create: data
-    })
-
-    // only send if mention is new to avoid duplicates
-    if (mention.createdAt.getTime() === mention.updatedAt.getTime()) {
-      notifyItemMention({ models, referrerItem: item, refereeItem: r })
-    }
-  })
-}
-
-export const updateItem = async (parent, { sub: subName, forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
+export const updateItem = async (parent, { sub: subName, forward, ...item }, { me, models, lnd, hash, hmac }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { sub: true } })
+
+  if (old.deletedAt) {
+    throw new GraphQLError('item is deleted', { extensions: { code: 'BAD_INPUT' } })
+  }
+
+  if (old.invoiceActionState && old.invoiceActionState !== 'PAID') {
+    throw new GraphQLError('cannot edit unpaid item', { extensions: { code: 'BAD_INPUT' } })
+  }
 
   // author can always edit their own item
   const mid = Number(me?.id)
@@ -1318,9 +1256,9 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
 
   // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
   const myBio = user.bioId === old.id
-  const timer = Date.now() < new Date(old.createdAt).getTime() + 10 * 60_000
+  const timer = Date.now() < new Date(old.invoicePaidAt ?? old.createdAt).getTime() + 10 * 60_000
 
-  if (!allowEdit && !myBio && !timer) {
+  if (!allowEdit && !myBio && !timer && !isJob(item)) {
     throw new GraphQLError('item can no longer be editted', { extensions: { code: 'BAD_INPUT' } })
   }
 
@@ -1328,159 +1266,51 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }
-  // only update item with the boost delta ... this is a bit of hack given the way
-  // boost used to work
-  if (item.boost > 0 && old.boost > 0) {
-    // only update the boost if it is higher than the old boost
-    if (item.boost > old.boost) {
-      item.boost = item.boost - old.boost
-    } else {
-      delete item.boost
-    }
+
+  // prevent editing a bio like a regular item
+  if (old.bio) {
+    item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio`, userId: me.id }
+  } else {
+    item = { subName, userId: me.id, ...item }
+    item.forwardUsers = await getForwardUsers(models, forward)
   }
+  item.uploadIds = uploadIdsFromText(item.text, { models })
 
-  item = { subName, userId: old.userId, ...item }
-  const fwdUsers = await getForwardUsers(models, forward)
+  const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd, hash, hmac })
 
-  const uploadIds = uploadIdsFromText(item.text, { models })
-  const { totalFees: imgFees } = await imageFeesInfo(uploadIds, { models, me });
-
-  ([item] = await serialize(
-    models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB, $4::INTEGER[]) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
-    { models, lnd, me, hash, hmac, fee: imgFees, verifyPayment: !!hash || !me }
-  ))
-
-  await createMentions(item, models)
-
-  if (hasDeleteCommand(old.text)) {
-    // delete any deletion jobs that were created from a prior version of the item
-    await clearDeletionJobs(item, models)
-  }
-  await enqueueDeletionJob(item, models)
-
-  if (hasReminderCommand(old.text)) {
-    // delete any reminder jobs that were created from a prior version of the item
-    await deleteReminderAndJob({ me, item, models })
-  }
-  await createReminderAndJob({ me, item, models })
-
-  item.comments = []
-  return item
+  resultItem.comments = []
+  return resultItem
 }
 
-export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
-  const spamInterval = me ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL
-
+export const createItem = async (parent, { forward, ...item }, { me, models, lnd, hash, hmac }) => {
   // rename to match column name
   item.subName = item.sub
   delete item.sub
 
   item.userId = me ? Number(me.id) : USER_ID.anon
 
-  const fwdUsers = await getForwardUsers(models, forward)
+  item.forwardUsers = await getForwardUsers(models, forward)
+  item.uploadIds = uploadIdsFromText(item.text, { models })
+
   if (item.url && !isJob(item)) {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }
 
+  if (item.parentId) {
+    const parent = await models.item.findUnique({ where: { id: parseInt(item.parentId) } })
+    if (parent.invoiceActionState && parent.invoiceActionState !== 'PAID') {
+      throw new GraphQLError('cannot comment on unpaid item', { extensions: { code: 'BAD_INPUT' } })
+    }
+  }
+
   // mark item as created with API key
   item.apiKey = me?.apiKey
 
-  const uploadIds = uploadIdsFromText(item.text, { models })
-  const { totalFees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
+  const resultItem = await performPaidAction('ITEM_CREATE', item, { models, me, lnd, hash, hmac })
 
-  let fee = 0
-  if (!me) {
-    if (item.parentId) {
-      fee = ANON_FEE_MULTIPLIER
-    } else {
-      const sub = await models.sub.findUnique({ where: { name: item.subName } })
-      fee = sub.baseCost * ANON_FEE_MULTIPLIER + (item.boost || 0)
-    }
-  }
-  fee += imgFees;
-
-  ([item] = await serialize(
-    models.$queryRawUnsafe(
-      `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[]) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
-    { models, lnd, me, hash, hmac, fee, verifyPayment: !!hash || !me }
-  ))
-
-  await createMentions(item, models)
-
-  await enqueueDeletionJob(item, models)
-
-  await createReminderAndJob({ me, item, models })
-
-  notifyUserSubscribers({ models, item })
-
-  notifyTerritorySubscribers({ models, item })
-
-  item.comments = []
-  return item
-}
-
-const clearDeletionJobs = async (item, models) => {
-  await models.$queryRawUnsafe(`DELETE FROM pgboss.job WHERE name = 'deleteItem' AND data->>'id' = '${item.id}';`)
-}
-
-const enqueueDeletionJob = async (item, models) => {
-  const deleteCommand = getDeleteCommand(item.text)
-  if (deleteCommand) {
-    await models.$queryRawUnsafe(`
-      INSERT INTO pgboss.job (name, data, startafter, expirein)
-      VALUES (
-        'deleteItem',
-        jsonb_build_object('id', ${item.id}),
-        now() + interval '${deleteCommand.number} ${deleteCommand.unit}s',
-        interval '${deleteCommand.number} ${deleteCommand.unit}s' + interval '1 minute')`)
-  }
-}
-
-const deleteReminderAndJob = async ({ me, item, models }) => {
-  if (me?.id && me.id !== USER_ID.anon) {
-    await models.$transaction([
-      models.$queryRawUnsafe(`
-        DELETE FROM pgboss.job
-        WHERE name = 'reminder'
-        AND data->>'itemId' = '${item.id}'
-        AND data->>'userId' = '${me.id}'
-        AND state <> 'completed'`),
-      models.reminder.deleteMany({
-        where: {
-          itemId: Number(item.id),
-          userId: Number(me.id),
-          remindAt: {
-            gt: new Date()
-          }
-        }
-      })])
-  }
-}
-
-const createReminderAndJob = async ({ me, item, models }) => {
-  // disallow anon to use reminder
-  if (!me || me.id === USER_ID.anon) {
-    return
-  }
-  const reminderCommand = getReminderCommand(item.text)
-  if (reminderCommand) {
-    await models.$transaction([
-      models.$queryRawUnsafe(`
-      INSERT INTO pgboss.job (name, data, startafter, expirein)
-      VALUES (
-        'reminder',
-        jsonb_build_object('itemId', ${item.id}, 'userId', ${me.id}),
-        now() + interval '${reminderCommand.number} ${reminderCommand.unit}s',
-        interval '${reminderCommand.number} ${reminderCommand.unit}s' + interval '1 minute')`),
-      // use a raw query instead of the model to reuse the built-in `now + interval` support instead of doing it via JS
-      models.$queryRawUnsafe(`
-      INSERT INTO "Reminder" ("userId", "itemId", "remindAt")
-      VALUES (${me.id}, ${item.id}, now() + interval '${reminderCommand.number} ${reminderCommand.unit}s')`)
-    ])
-  }
+  resultItem.comments = []
+  return resultItem
 }
 
 const getForwardUsers = async (models, forward) => {
@@ -1501,15 +1331,8 @@ const getForwardUsers = async (models, forward) => {
 
 // we have to do our own query because ltree is unsupported
 export const SELECT =
-  `SELECT "Item".id, "Item".created_at, "Item".created_at as "createdAt", "Item".updated_at,
-  "Item".updated_at as "updatedAt", "Item".title, "Item".text, "Item".url, "Item"."bounty",
-  "Item"."noteId", "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
-  "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
-  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
-  "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
-  "Item"."weightedDownVotes", "Item".freebie, "Item".bio, "Item"."otsHash", "Item"."bountyPaidTo",
-  ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls", "Item".outlawed,
-  "Item"."pollExpiresAt", "Item"."apiKey"`
+  `SELECT "Item".*, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt",
+    ltree2text("Item"."path") AS "path"`
 
 function topOrderByWeightedSats (me, models) {
   return `ORDER BY ${orderByNumerator(models)} DESC NULLS LAST, "Item".id DESC`

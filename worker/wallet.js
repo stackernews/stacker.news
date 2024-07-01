@@ -9,6 +9,7 @@ import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
+import { holdAction, settleAction, settleActionError } from './paidAction'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -77,7 +78,7 @@ async function subscribeToDeposits (args) {
     return sub
   })
 
-  // check pending deposits as a redundancy in case we failed to record
+  // check pending deposits as a redundancy in case we failed to rehcord
   // an invoice_updated event
   await checkPendingDeposits(args)
 }
@@ -107,7 +108,7 @@ function subscribeToHodlInvoice (args) {
   })
 }
 
-async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
+export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   const inv = await getInvoice({ id: hash, lnd })
 
   // invoice could be created by LND but wasn't inserted into the database yet
@@ -118,12 +119,11 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
     return
   }
 
-  if (dbInv.actionType) {
-    // this is an action invoice, we don't know how to handle yet
-    return
-  }
-
   if (inv.is_confirmed) {
+    if (dbInv.actionType) {
+      return await settleAction({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+    }
+
     // NOTE: confirm invoice prevents double confirmations (idempotent)
     // ALSO: is_confirmed and is_held are mutually exclusive
     // that is, a hold invoice will first be is_held but not is_confirmed
@@ -143,6 +143,9 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   }
 
   if (inv.is_held) {
+    if (dbInv.actionType) {
+      return await holdAction({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+    }
     // First query makes sure that after payment, JIT invoices are settled
     // within 60 seconds or they will be canceled to minimize risk of
     // force closures or wallets banning us.
@@ -166,6 +169,10 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   }
 
   if (inv.is_canceled) {
+    if (dbInv.actionType) {
+      return await settleActionError({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+    }
+
     return await serialize(
       models.invoice.update({
         where: {

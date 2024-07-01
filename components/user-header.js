@@ -148,9 +148,7 @@ function NymEdit ({ user, setEditting }) {
           return
         }
         const { error } = await setName({ variables: { name } })
-        if (error) {
-          throw new Error({ message: error.toString() })
-        }
+        if (error) throw error
 
         setEditting(false)
         // navigate to new name

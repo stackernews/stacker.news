@@ -1,13 +1,10 @@
 import { GraphQLError } from 'graphql'
-import { timingSafeEqual } from 'crypto'
 import retry from 'async-retry'
 import Prisma from '@prisma/client'
-import { settleHodlInvoice } from 'ln-service'
-import { createHmac } from './wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
 import { BALANCE_LIMIT_MSATS } from '@/lib/constants'
 
-export default async function serialize (trx, { models, lnd, me, hash, hmac, fee, verifyPayment: verify }) {
+export default async function serialize (trx, { models, lnd }) {
   // wrap first argument in array if not array already
   const isArray = Array.isArray(trx)
   if (!isArray) trx = [trx]
@@ -16,16 +13,7 @@ export default async function serialize (trx, { models, lnd, me, hash, hmac, fee
   // we filter any falsy value out here
   trx = trx.filter(q => !!q)
 
-  let invoice
-  if (verify) {
-    invoice = await verifyPayment(models, hash, hmac, fee)
-    trx = [
-      models.$executeRaw`SELECT confirm_invoice(${hash}, ${invoice.msatsReceived})`,
-      ...trx
-    ]
-  }
-
-  let results = await retry(async bail => {
+  const results = await retry(async bail => {
     try {
       const [, ...results] = await models.$transaction(
         [models.$executeRaw`SELECT ASSERT_SERIALIZED()`, ...trx],
@@ -83,59 +71,6 @@ export default async function serialize (trx, { models, lnd, me, hash, hmac, fee
     retries: 10
   })
 
-  if (hash) {
-    if (invoice?.isHeld) {
-      await settleHodlInvoice({ secret: invoice.preimage, lnd })
-    }
-    // remove first element since that is the confirmed invoice
-    results = results.slice(1)
-  }
-
   // if first argument was not an array, unwrap the result
   return isArray ? results : results[0]
-}
-
-async function verifyPayment (models, hash, hmac, fee) {
-  if (!hash) {
-    throw new GraphQLError('hash required', { extensions: { code: 'BAD_INPUT' } })
-  }
-  if (!hmac) {
-    throw new GraphQLError('hmac required', { extensions: { code: 'BAD_INPUT' } })
-  }
-  const hmac2 = createHmac(hash)
-  if (!timingSafeEqual(Buffer.from(hmac), Buffer.from(hmac2))) {
-    throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
-  }
-
-  const invoice = await models.invoice.findUnique({
-    where: { hash },
-    include: {
-      user: true
-    }
-  })
-
-  if (!invoice) {
-    throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
-  }
-
-  const expired = new Date(invoice.expiresAt) <= new Date()
-  if (expired) {
-    throw new GraphQLError('invoice expired', { extensions: { code: 'BAD_INPUT' } })
-  }
-  if (invoice.confirmedAt) {
-    throw new GraphQLError('invoice already used', { extensions: { code: 'BAD_INPUT' } })
-  }
-
-  if (invoice.cancelled) {
-    throw new GraphQLError('invoice was canceled', { extensions: { code: 'BAD_INPUT' } })
-  }
-
-  if (!invoice.msatsReceived) {
-    throw new GraphQLError('invoice was not paid', { extensions: { code: 'BAD_INPUT' } })
-  }
-  if (fee && msatsToSats(invoice.msatsReceived) < fee) {
-    throw new GraphQLError('invoice amount too low', { extensions: { code: 'BAD_INPUT' } })
-  }
-
-  return invoice
 }

@@ -1,37 +1,49 @@
 import { useState, useEffect } from 'react'
 import { numWithUnits } from '@/lib/format'
 import AccordianItem from './accordian-item'
-import Qr from './qr'
-import Countdown from './countdown'
+import Qr, { QrSkeleton } from './qr'
+import { CompactLongCountdown } from './countdown'
 import PayerData from './payer-data'
 import Bolt11Info from './bolt11-info'
 import { useQuery } from '@apollo/client'
 import { INVOICE } from '@/fragments/wallet'
 import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { WebLnNotEnabledError } from './payment'
+import ItemJob from './item-job'
+import Item from './item'
+import { CommentFlat } from './comment'
+import classNames from 'classnames'
 
-export default function Invoice ({ invoice, modal, onPayment, info, successVerb, webLn, webLnError, poll }) {
-  const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
-
-  const { data, error } = useQuery(INVOICE, SSR
+export default function Invoice ({ id, query = INVOICE, modal, onPayment, info, successVerb, webLn = true, webLnError, poll, waitFor, ...props }) {
+  const [expired, setExpired] = useState(false)
+  const { data, error } = useQuery(query, SSR
     ? {}
     : {
         pollInterval: FAST_POLL_INTERVAL,
-        variables: { id: invoice.id },
+        variables: { id },
         nextFetchPolicy: 'cache-and-network',
         skip: !poll
       })
 
-  if (data) {
-    invoice = data.invoice
-  }
+  const invoice = data?.invoice
+
+  useEffect(() => {
+    if (!invoice) {
+      return
+    }
+    if (waitFor?.(invoice)) {
+      onPayment?.(invoice)
+    }
+    setExpired(new Date(invoice.expiredAt) <= new Date())
+  }, [invoice, onPayment, setExpired])
 
   if (error) {
-    return <div>{error.toString()}</div>
+    return <div>{error.message}</div>
   }
 
-  // if webLn was not passed, use true by default
-  if (webLn === undefined) webLn = true
+  if (!invoice) {
+    return <QrSkeleton {...props} />
+  }
 
   let variant = 'default'
   let status = 'waiting for you'
@@ -48,43 +60,31 @@ export default function Invoice ({ invoice, modal, onPayment, info, successVerb,
     variant = 'failed'
     status = 'expired'
     webLn = false
+  } else if (invoice.expiresAt) {
+    variant = 'pending'
+    status = (
+      <CompactLongCountdown
+        date={invoice.expiresAt} onComplete={() => {
+          setExpired(true)
+        }}
+      />
+    )
   }
-
-  useEffect(() => {
-    if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived)) {
-      onPayment?.(invoice)
-    }
-  }, [invoice.confirmedAt, invoice.isHeld, invoice.satsReceived])
 
   const { nostr, comment, lud18Data, bolt11, confirmedPreimage } = invoice
 
   return (
     <>
       {webLnError && !(webLnError instanceof WebLnNotEnabledError) &&
-        <div className='text-center text-danger mb-3'>
-          Payment from attached wallet failed:
-          <div>{webLnError.toString()}</div>
+        <div className='text-center fw-bold text-info mb-3' style={{ lineHeight: 1.25 }}>
+          Paying from attached wallet failed:
+          <code> {webLnError.message}</code>
         </div>}
       <Qr
         webLn={webLn} value={invoice.bolt11}
         description={numWithUnits(invoice.satsRequested, { abbreviate: false })}
         statusVariant={variant} status={status}
       />
-      {invoice.confirmedAt
-        ? (
-          <div className='text-muted text-center invisible'>
-            <Countdown date={Date.now()} />
-          </div>
-          )
-        : (
-          <div className='text-muted text-center'>
-            <Countdown
-              date={invoice.expiresAt} onComplete={() => {
-                setExpired(true)
-              }}
-            />
-          </div>
-          )}
       {!modal &&
         <>
           {info && <div className='text-muted fst-italic text-center'>{info}</div>}
@@ -117,8 +117,53 @@ export default function Invoice ({ invoice, modal, onPayment, info, successVerb,
               />
             </div>}
           <Bolt11Info bolt11={bolt11} preimage={confirmedPreimage} />
+          {invoice?.item && <ActionInfo invoice={invoice} />}
         </>}
-
     </>
+  )
+}
+
+function ActionInfo ({ invoice }) {
+  if (!invoice.actionType) return null
+
+  let className = 'text-info'
+  let actionString = ''
+
+  switch (invoice.actionState) {
+    case 'FAILED':
+    case 'RETRYING':
+      actionString += 'attempted '
+      className = 'text-warning'
+      break
+    case 'PAID':
+      actionString += 'successful '
+      className = 'text-success'
+      break
+    default:
+      actionString += 'pending '
+  }
+
+  switch (invoice.actionType) {
+    case 'ITEM_CREATE':
+      actionString += 'item creation'
+      break
+    case 'ZAP':
+      actionString += 'zap on item'
+      break
+    case 'DOWN_ZAP':
+      actionString += 'downzap on item'
+      break
+    case 'POLL_VOTE':
+      actionString += 'poll vote'
+      break
+  }
+
+  return (
+    <div className='text-start w-100 my-3'>
+      <div className={classNames('fw-bold', 'pb-1', className)}>{actionString}</div>
+      {(invoice.item?.isJob && <ItemJob item={invoice?.item} />) ||
+       (invoice.item?.title && <Item item={invoice?.item} />) ||
+         <CommentFlat item={invoice.item} includeParent noReply truncate />}
+    </div>
   )
 }

@@ -1,9 +1,8 @@
 import { GraphQLError } from 'graphql'
 import { amountSchema, ssValidate } from '@/lib/validate'
-import serialize from './serial'
-import { USER_ID } from '@/lib/constants'
 import { getItem } from './item'
 import { topUsers } from './user'
+import performPaidAction from '../paidAction'
 
 let rewardCache
 
@@ -164,12 +163,7 @@ export default {
     donateToRewards: async (parent, { sats, hash, hmac }, { me, models, lnd }) => {
       await ssValidate(amountSchema, { amount: sats })
 
-      await serialize(
-        models.$queryRaw`SELECT donate(${sats}::INTEGER, ${me?.id || USER_ID.anon}::INTEGER)`,
-        { models, lnd, me, hash, hmac, fee: sats, verifyPayment: !!hash || !me }
-      )
-
-      return sats
+      return await performPaidAction('DONATE', { sats }, { me, models, lnd, hash, hmac })
     }
   },
   Reward: {

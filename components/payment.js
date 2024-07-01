@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useMe } from './me'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import { useWebLN } from './webln'
@@ -29,7 +29,7 @@ export class InvoiceExpiredError extends Error {
   }
 }
 
-const useInvoice = () => {
+export const useInvoice = () => {
   const client = useApolloClient()
 
   const [createInvoice] = useMutation(gql`
@@ -60,53 +60,75 @@ const useInvoice = () => {
     return invoice
   }, [createInvoice])
 
-  const isPaid = useCallback(async id => {
-    const { data, error } = await client.query({ query: INVOICE, fetchPolicy: 'no-cache', variables: { id } })
+  const isInvoice = useCallback(async ({ id }, that) => {
+    const { data, error } = await client.query({ query: INVOICE, fetchPolicy: 'network-only', variables: { id } })
     if (error) {
       throw error
     }
-    const { hash, isHeld, satsReceived, cancelled } = data.invoice
-    // if we're polling for invoices, we're using JIT invoices so isHeld must be set
-    if (isHeld && satsReceived) {
-      return true
-    }
+    const { hash, cancelled } = data.invoice
+
     if (cancelled) {
       throw new InvoiceCanceledError(hash)
     }
-    return false
+
+    return that(data.invoice)
   }, [client])
 
-  const waitUntilPaid = useCallback(async id => {
-    return await new Promise((resolve, reject) => {
-      const interval = setInterval(async () => {
-        try {
-          const paid = await isPaid(id)
-          if (paid) {
-            resolve()
+  const waitController = useMemo(() => {
+    const controller = new AbortController()
+    const signal = controller.signal
+    controller.wait = async ({ id }, waitFor = inv => (inv.satsReceived > 0)) => {
+      return await new Promise((resolve, reject) => {
+        const interval = setInterval(async () => {
+          try {
+            const paid = await isInvoice({ id }, waitFor)
+            if (paid) {
+              resolve()
+              clearInterval(interval)
+              signal.removeEventListener('abort', abort)
+            } else {
+              console.info(`invoice #${id}: waiting for payment ...`)
+            }
+          } catch (err) {
+            reject(err)
             clearInterval(interval)
+            signal.removeEventListener('abort', abort)
           }
-        } catch (err) {
-          reject(err)
+        }, FAST_POLL_INTERVAL)
+
+        const abort = () => {
+          console.info(`invoice #${id}: stopped waiting`)
+          resolve()
           clearInterval(interval)
+          signal.removeEventListener('abort', abort)
         }
-      }, FAST_POLL_INTERVAL)
-    })
-  }, [isPaid])
+        signal.addEventListener('abort', abort)
+      })
+    }
+
+    controller.stop = () => controller.abort()
+
+    return controller
+  }, [isInvoice])
 
   const cancel = useCallback(async ({ hash, hmac }) => {
+    if (!hash || !hmac) {
+      throw new Error('missing hash or hmac')
+    }
+
+    console.log('canceling invoice:', hash)
     const inv = await cancelInvoice({ variables: { hash, hmac } })
-    console.log('invoice canceled:', hash)
     return inv
   }, [cancelInvoice])
 
-  return { create, isPaid, waitUntilPaid, cancel }
+  return { create, waitUntilPaid: waitController.wait, stopWaiting: waitController.stop, cancel }
 }
 
-const useWebLnPayment = () => {
+export const useWebLnPayment = () => {
   const invoice = useInvoice()
   const provider = useWebLN()
 
-  const waitForWebLnPayment = useCallback(async ({ id, bolt11 }) => {
+  const waitForWebLnPayment = useCallback(async ({ id, bolt11 }, waitFor) => {
     if (!provider) {
       throw new WebLnNotEnabledError()
     }
@@ -119,42 +141,56 @@ const useWebLnPayment = () => {
           // since they only get resolved after settlement which can't happen here
           .then(resolve)
           .catch(reject)
-        invoice.waitUntilPaid(id)
+        invoice.waitUntilPaid({ id }, waitFor)
           .then(resolve)
           .catch(reject)
       })
     } catch (err) {
       console.error('WebLN payment failed:', err)
       throw err
+    } finally {
+      invoice.stopWaiting()
     }
   }, [provider, invoice])
 
   return waitForWebLnPayment
 }
 
-const useQrPayment = () => {
+export const useQrPayment = () => {
   const invoice = useInvoice()
   const showModal = useShowModal()
 
-  const waitForQrPayment = useCallback(async (inv, webLnError) => {
+  const waitForQrPayment = useCallback(async (inv, webLnError,
+    {
+      keepOpen = true,
+      cancelOnClose = true,
+      persistOnNavigate = false,
+      waitFor = inv => inv?.satsReceived > 0
+    } = {}
+  ) => {
     return await new Promise((resolve, reject) => {
       let paid
       const cancelAndReject = async (onClose) => {
-        if (paid) return
-        await invoice.cancel(inv)
-        reject(new InvoiceCanceledError(inv.hash))
+        if (!paid && cancelOnClose) {
+          await invoice.cancel(inv).catch(console.error)
+          reject(new InvoiceCanceledError(inv?.hash))
+        }
+        resolve()
       }
       showModal(onClose =>
         <Invoice
-          invoice={inv}
+          id={inv.id}
           modal
+          description
+          status='loading'
           successVerb='received'
           webLn={false}
           webLnError={webLnError}
+          waitFor={waitFor}
           onPayment={() => { paid = true; onClose(); resolve() }}
           poll
         />,
-      { keepOpen: true, onClose: cancelAndReject })
+      { keepOpen, persistOnNavigate, onClose: cancelAndReject })
     })
   }, [invoice])
 

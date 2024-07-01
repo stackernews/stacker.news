@@ -1,4 +1,3 @@
-import { gql, useMutation } from '@apollo/client'
 import Button from 'react-bootstrap/Button'
 import { fixedDecimal, numWithUnits } from '@/lib/format'
 import { timeLeft } from '@/lib/time'
@@ -6,47 +5,17 @@ import { useMe } from './me'
 import styles from './poll.module.css'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
-import { POLL_COST } from '@/lib/constants'
-import { InvoiceCanceledError, usePayment } from './payment'
+import { InvoiceCanceledError, useQrPayment } from './payment'
 import { useToast } from './toast'
-import { Types as ClientNotification, useClientNotifications } from './client-notifications'
-import { useItemContext } from './item'
+import { usePaidMutation } from './use-paid-mutation'
+import { POLL_VOTE, RETRY_PAID_ACTION } from '@/fragments/paidAction'
 
 export default function Poll ({ item }) {
   const me = useMe()
-  const POLL_VOTE_MUTATION = gql`
-    mutation pollVote($id: ID!, $hash: String, $hmac: String) {
-      pollVote(id: $id, hash: $hash, hmac: $hmac)
-    }`
-  const [pollVote] = useMutation(POLL_VOTE_MUTATION)
+  const pollVote = usePollVote({ query: POLL_VOTE, itemId: item.id })
   const toaster = useToast()
-  const { notify, unnotify } = useClientNotifications()
-  const { pendingVote, setPendingVote } = useItemContext()
-
-  const update = (cache, { data: { pollVote } }) => {
-    cache.modify({
-      id: `Item:${item.id}`,
-      fields: {
-        poll (existingPoll) {
-          const poll = { ...existingPoll }
-          poll.meVoted = true
-          poll.count += 1
-          return poll
-        }
-      }
-    })
-    cache.modify({
-      id: `PollOption:${pollVote}`,
-      fields: {
-        count (existingCount) {
-          return existingCount + 1
-        }
-      }
-    })
-  }
 
   const PollButton = ({ v }) => {
-    const payment = usePayment()
     return (
       <ActionTooltip placement='left' notForm overlayText='1 sat'>
         <Button
@@ -54,36 +23,20 @@ export default function Poll ({ item }) {
           onClick={me
             ? async () => {
               const variables = { id: v.id }
-              const notifyProps = { itemId: item.id }
-              const optimisticResponse = { pollVote: v.id }
-              let cancel, nid
+              const optimisticResponse = { pollVote: { result: { id: v.id } } }
               try {
-                setPendingVote(v.id)
-
-                if (me) {
-                  nid = notify(ClientNotification.PollVote.PENDING, notifyProps)
-                }
-
-                let hash, hmac;
-                [{ hash, hmac }, cancel] = await payment.request(item.pollCost || POLL_COST)
-
-                await pollVote({ variables: { hash, hmac, ...variables }, optimisticResponse, update })
+                await pollVote({
+                  variables,
+                  optimisticResponse
+                })
               } catch (error) {
                 if (error instanceof InvoiceCanceledError) {
                   return
                 }
 
                 const reason = error?.message || error?.toString?.()
-                if (me) {
-                  notify(ClientNotification.PollVote.ERROR, { ...notifyProps, reason })
-                } else {
-                  toaster.danger('poll vote failed: ' + reason)
-                }
 
-                cancel?.()
-              } finally {
-                setPendingVote(undefined)
-                if (nid) unnotify(nid)
+                toaster.danger('poll vote failed: ' + reason)
               }
             }
             : signIn}
@@ -94,11 +47,36 @@ export default function Poll ({ item }) {
     )
   }
 
+  const RetryVote = () => {
+    const retryVote = usePollVote({ query: RETRY_PAID_ACTION, itemId: item.id })
+    const waitForQrPayment = useQrPayment()
+
+    if (item.poll.meInvoiceActionState === 'PENDING') {
+      return (
+        <span
+          className='ms-2 fw-bold text-info pointer'
+          onClick={() => waitForQrPayment(
+            { id: parseInt(item.poll.meInvoiceId) }, null, { cancelOnClose: false }).catch(console.error)}
+        >vote pending
+        </span>
+      )
+    }
+    return (
+      <span
+        className='ms-2 fw-bold text-warning pointer'
+        onClick={() => retryVote({ variables: { invoiceId: parseInt(item.poll.meInvoiceId) } })}
+      >
+        retry vote
+      </span>
+    )
+  }
+
   const hasExpiration = !!item.pollExpiresAt
   const timeRemaining = timeLeft(new Date(item.pollExpiresAt))
   const mine = item.user.id === me?.id
-  const showPollButton = (!hasExpiration || timeRemaining) && !item.poll.meVoted && !mine && !pendingVote
-  const pollCount = item.poll.count + (pendingVote ? 1 : 0)
+  const meVotePending = item.poll.meInvoiceActionState && item.poll.meInvoiceActionState !== 'PAID'
+  const showPollButton = me && (!hasExpiration || timeRemaining) && !item.poll.meVoted && !meVotePending && !mine
+  const pollCount = item.poll.count
   return (
     <div className={styles.pollBox}>
       {item.poll.options.map(v =>
@@ -107,12 +85,13 @@ export default function Poll ({ item }) {
           : <PollResult
               key={v.id} v={v}
               progress={pollCount
-                ? fixedDecimal((v.count + (pendingVote === v.id ? 1 : 0)) * 100 / pollCount, 1)
+                ? fixedDecimal((v.count) * 100 / pollCount, 1)
                 : 0}
             />)}
       <div className='text-muted mt-1'>
-        {numWithUnits(pollCount, { unitSingular: 'vote', unitPlural: 'votes' })}
+        {numWithUnits(item.poll.count, { unitSingular: 'vote', unitPlural: 'votes' })}
         {hasExpiration && ` \\ ${timeRemaining ? `${timeRemaining} left` : 'poll ended'}`}
+        {!showPollButton && meVotePending && <RetryVote />}
       </div>
     </div>
   )
@@ -126,4 +105,90 @@ function PollResult ({ v, progress }) {
       <div className={styles.pollProgress} style={{ width: `${progress}%` }} />
     </div>
   )
+}
+
+export function usePollVote ({ query = POLL_VOTE, itemId }) {
+  const update = (cache, { data }) => {
+    // the mutation name varies for optimistic retries
+    const response = Object.values(data)[0]
+    if (!response) return
+    const { result, invoice } = response
+    const { id } = result
+    cache.modify({
+      id: `Item:${itemId}`,
+      fields: {
+        poll (existingPoll) {
+          const poll = { ...existingPoll }
+          poll.meVoted = true
+          if (invoice) {
+            poll.meInvoiceActionState = 'PENDING'
+            poll.meInvoiceId = invoice.id
+          }
+          poll.count += 1
+          return poll
+        }
+      }
+    })
+    cache.modify({
+      id: `PollOption:${id}`,
+      fields: {
+        count (existingCount) {
+          return existingCount + 1
+        }
+      }
+    })
+  }
+
+  const onPayError = (e, cache, { data }) => {
+    // the mutation name varies for optimistic retries
+    const response = Object.values(data)[0]
+    if (!response) return
+    const { result, invoice } = response
+    const { id } = result
+    cache.modify({
+      id: `Item:${itemId}`,
+      fields: {
+        poll (existingPoll) {
+          const poll = { ...existingPoll }
+          poll.meVoted = false
+          if (invoice) {
+            poll.meInvoiceActionState = 'FAILED'
+            poll.meInvoiceId = invoice?.id
+          }
+          poll.count -= 1
+          return poll
+        }
+      }
+    })
+    cache.modify({
+      id: `PollOption:${id}`,
+      fields: {
+        count (existingCount) {
+          return existingCount - 1
+        }
+      }
+    })
+  }
+
+  const onPaid = (cache, { data }) => {
+    // the mutation name varies for optimistic retries
+    const response = Object.values(data)[0]
+    if (!response?.invoice) return
+    const { invoice } = response
+    cache.modify({
+      id: `Item:${itemId}`,
+      fields: {
+        poll (existingPoll) {
+          const poll = { ...existingPoll }
+          poll.meVoted = true
+          poll.meInvoiceActionState = 'PAID'
+          poll.meInvoiceId = invoice.id
+          return poll
+        }
+      }
+    })
+  }
+
+  const [pollVote] = usePaidMutation(query, { update, onPayError, onPaid })
+  return pollVote
 }

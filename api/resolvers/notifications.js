@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
-import { getItem, filterClause, whereClause, muteClause } from './item'
+import { getItem, filterClause, whereClause, muteClause, activeOrMine } from './item'
 import { getInvoice, getWithdrawl } from './wallet'
 import { pushSubscriptionSchema, ssValidate } from '@/lib/validate'
 import { replyToSubscription } from '@/lib/webPush'
@@ -167,7 +167,8 @@ export default {
           ${whereClause(
             '"Item".created_at < $2',
             await filterClause(me, models),
-            muteClause(me))}
+            muteClause(me),
+            activeOrMine(me))}
           ORDER BY id ASC, CASE
             WHEN type = 'Mention' THEN 1
             WHEN type = 'Reply' THEN 2
@@ -233,6 +234,7 @@ export default {
             WHERE "Invoice"."userId" = $1
             AND "confirmedAt" IS NOT NULL
             AND "isHeld" IS NULL
+            AND "actionState" IS NULL
             AND created_at < $2
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
@@ -326,6 +328,22 @@ export default {
         FROM "Reminder"
         WHERE "Reminder"."userId" = $1
         AND "Reminder"."remindAt" < $2
+        ORDER BY "sortTime" DESC
+        LIMIT ${LIMIT})`
+      )
+
+      queries.push(
+        `(SELECT "Invoice".id::text, "Invoice"."updated_at" AS "sortTime", NULL as "earnedSats", 'Invoicification' AS type
+        FROM "Invoice"
+        WHERE "Invoice"."userId" = $1
+        AND "Invoice"."updated_at" < $2
+        AND "Invoice"."actionState" = 'FAILED'
+        AND (
+          "Invoice"."actionType" = 'ITEM_CREATE' OR
+          "Invoice"."actionType" = 'ZAP' OR
+          "Invoice"."actionType" = 'DOWN_ZAP' OR
+          "Invoice"."actionType" = 'POLL_VOTE'
+        )
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT})`
       )
@@ -477,6 +495,9 @@ export default {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
   InvoicePaid: {
+    invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })
+  },
+  Invoicification: {
     invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })
   },
   WithdrawlPaid: {

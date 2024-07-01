@@ -3,7 +3,7 @@ import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
-import { SELECT } from './item'
+import { SELECT, itemQueryWithMeta } from './item'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '@/lib/format'
 import { CLNAutowithdrawSchema, LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
@@ -13,6 +13,7 @@ import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { createInvoice as createInvoiceCLN } from '@/lib/cln'
 import { bolt11Tags } from '@/lib/bolt11'
+import { checkInvoice } from 'worker/wallet'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -215,6 +216,7 @@ export default {
             WHERE "ItemAct".act = 'TIP'
             AND ("Item"."userId" = $1 OR "ItemForward"."userId" = $1)
             AND "ItemAct".created_at <= $2
+            AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
             GROUP BY "Item".id)`
         )
         queries.push(
@@ -247,6 +249,7 @@ export default {
             JOIN "Item" on "ItemAct"."itemId" = "Item".id
             WHERE "ItemAct"."userId" = $1
             AND "ItemAct".created_at <= $2
+            AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
             GROUP BY "Item".id)`
         )
         queries.push(
@@ -380,18 +383,9 @@ export default {
         throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
       }
       await cancelHodlInvoice({ id: hash, lnd })
-      const inv = await serialize(
-        models.invoice.update({
-          where: {
-            hash
-          },
-          data: {
-            cancelled: true
-          }
-        }),
-        { models }
-      )
-      return inv
+      // transition invoice to cancelled action state
+      await checkInvoice({ data: { hash }, models, lnd })
+      return await models.invoice.findFirst({ where: { hash } })
     },
     dropBolt11: async (parent, { id }, { me, models, lnd }) => {
       if (!me) {
@@ -545,7 +539,47 @@ export default {
 
   Invoice: {
     satsReceived: i => msatsToSats(i.msatsReceived),
-    satsRequested: i => msatsToSats(i.msatsRequested)
+    satsRequested: i => msatsToSats(i.msatsRequested),
+    item: async (invoice, args, { models, me }) => {
+      if (!invoice.actionId) return null
+      switch (invoice.actionType) {
+        case 'ITEM_CREATE':
+        case 'ZAP':
+        case 'DOWN_ZAP':
+        case 'POLL_VOTE':
+          return (await itemQueryWithMeta({
+            me,
+            models,
+            query: `
+              ${SELECT}
+              FROM "Item"
+              WHERE id = $1`
+          }, Number(invoice.actionId)))?.[0]
+        default:
+          return null
+      }
+    },
+    itemAct: async (invoice, args, { models, me }) => {
+      const action2act = {
+        ZAP: 'TIP',
+        DOWN_ZAP: 'DONT_LIKE_THIS',
+        POLL_VOTE: 'POLL'
+      }
+      switch (invoice.actionType) {
+        case 'ZAP':
+        case 'DOWN_ZAP':
+        case 'POLL_VOTE':
+          return (await models.$queryRaw`
+              SELECT id, act, "invoiceId", "invoiceActionState", msats
+              FROM "ItemAct"
+              WHERE "ItemAct"."invoiceId" = ${Number(invoice.id)}::INTEGER
+              AND "ItemAct"."userId" = ${me?.id}::INTEGER
+              AND act = ${action2act[invoice.actionType]}::"ItemActType"`
+          )?.[0]
+        default:
+          return null
+      }
+    }
   },
 
   Fact: {

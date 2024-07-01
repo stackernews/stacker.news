@@ -6,7 +6,7 @@ const prisma = global.prisma || (() => {
     log: [{ level: 'query', emit: 'event' }, 'warn', 'error']
   })
   prisma.$on('query', (e) => {
-    if (e.duration > 50) {
+    if (process.env.PRISMA_SLOW_LOGS_MS && e.duration > process.env.PRISMA_SLOW_LOGS_MS) {
       console.log('Query: ' + e.query)
       console.log('Params: ' + e.params)
       console.log('Duration: ' + e.duration + 'ms')

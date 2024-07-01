@@ -26,7 +26,7 @@ const apolloServer = new ApolloServer({
               return (error, result) => {
                 const end = process.hrtime.bigint()
                 const ms = (end - start) / 1000000n
-                if (ms > 50) {
+                if (process.env.GRAPHQL_SLOW_LOGS_MS && ms > process.env.GRAPHQL_SLOW_LOGS_MS) {
                   console.log(`Field ${info.parentType.name}.${info.fieldName} took ${ms}ms`)
                 }
                 if (error) {

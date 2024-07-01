@@ -88,11 +88,11 @@ export function usePaidMutation (mutation,
               hash: invoice.hash
             }
           }))
+          ourOnCompleted?.(data)
+          onPaid?.(client.cache, { data })
           // block until the invoice to be marked as paid
           // for pessimisitic actions, they won't show up on navigation until they are marked as paid
           await invoiceWaiter.waitUntilPaid(invoice, inv => inv?.actionState === 'PAID')
-          ourOnCompleted?.(data)
-          onPaid?.(client.cache, { data })
         } catch (e) {
           console.error('usePaidMutation: failed to pay invoice', e)
           onPayError?.(e, client.cache, { data })

@@ -143,8 +143,8 @@ function useServerConfig (wallet) {
     }
   })
 
-  const walletId = data?.walletByType.id
-  const serverConfig = { id: walletId, priority: data?.walletByType.priority, ...data?.walletByType.wallet }
+  const walletId = data?.walletByType?.id
+  const serverConfig = { id: walletId, priority: data?.walletByType?.priority, ...data?.walletByType?.wallet }
   const autowithdrawSettings = autowithdrawInitial({ me, priority: serverConfig?.priority })
   const config = { ...serverConfig, autowithdrawSettings }
 

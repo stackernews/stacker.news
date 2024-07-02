@@ -197,7 +197,7 @@ export async function onPaid ({ invoice, id }, context) {
   // TODO: referals for boost
 
   if (item.parentId) {
-    // denormalize ncomments and "weightedComments" for ancestors, and insert into reply table
+    // denormalize ncomments, lastCommentAt, and "weightedComments" for ancestors, and insert into reply table
     await tx.$executeRaw`
       WITH comment AS (
         SELECT *
@@ -206,6 +206,7 @@ export async function onPaid ({ invoice, id }, context) {
       ), ancestors AS (
         UPDATE "Item"
         SET ncomments = "Item".ncomments + 1,
+          "lastCommentAt" = now(),
           "weightedComments" = "Item"."weightedComments" +
             CASE WHEN comment."userId" = "Item"."userId" THEN 0 ELSE ${item.user.trust}::FLOAT END
         FROM comment

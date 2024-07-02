@@ -35,7 +35,8 @@ export const getItemMentions = async ({ text }, { me, models }) => {
   if (refs?.length > 0) {
     const referee = await models.item.findMany({
       where: {
-        id: { in: refs }
+        id: { in: refs },
+        userId: { not: me?.id || USER_ID.anon }
       }
     })
     return referee.map(r => ({ refereeId: r.id }))

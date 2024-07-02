@@ -1,6 +1,6 @@
 import { useApolloClient, useMutation } from '@apollo/client'
 import { useCallback, useState } from 'react'
-import { InvoiceCanceledError, InvoiceExpiredError, useInvoice, useQrPayment, useWebLnPayment } from './payment'
+import { InvoiceCanceledError, InvoiceExpiredError, useInvoice, useQrPayment, useWalletPayment } from './payment'
 
 /*
 this is just like useMutation with a few changes:
@@ -18,7 +18,7 @@ export function usePaidMutation (mutation,
   { onCompleted, ...options } = {}) {
   options.optimisticResponse = addOptimisticResponseExtras(options.optimisticResponse)
   const [mutate, result] = useMutation(mutation, options)
-  const waitForWebLnPayment = useWebLnPayment()
+  const waitForWalletPayment = useWalletPayment()
   const waitForQrPayment = useQrPayment()
   const invoiceWaiter = useInvoice()
   const client = useApolloClient()
@@ -26,20 +26,20 @@ export function usePaidMutation (mutation,
   const [innerResult, setInnerResult] = useState(result)
 
   const waitForPayment = useCallback(async (invoice, persistOnNavigate = false) => {
-    let webLnError
+    let walletError
     const start = Date.now()
     try {
-      return await waitForWebLnPayment(invoice)
+      return await waitForWalletPayment(invoice)
     } catch (err) {
       if (Date.now() - start > 1000 || err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError) {
         // bail since qr code payment will also fail
         // also bail if the payment took more than 1 second
         throw err
       }
-      webLnError = err
+      walletError = err
     }
-    return await waitForQrPayment(invoice, webLnError, { persistOnNavigate })
-  }, [waitForWebLnPayment, waitForQrPayment])
+    return await waitForQrPayment(invoice, walletError, { persistOnNavigate })
+  }, [waitForWalletPayment, waitForQrPayment])
 
   const innerMutate = useCallback(async ({
     onCompleted: innerOnCompleted, ...innerOptions

@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { SSR } from '@/lib/constants'
+import { useCallback, useState } from 'react'
 
 export default function useLocalState (storageKey, initialValue = '') {
-  const [value, innerSetValue] = useState(initialValue)
-
-  useEffect(() => {
-    const value = window.localStorage.getItem(storageKey)
-    innerSetValue(JSON.parse(value))
-  }, [storageKey])
+  const [value, innerSetValue] = useState(
+    initialValue ||
+    (SSR ? null : JSON.parse(window.localStorage.getItem(storageKey)))
+  )
 
   const setValue = useCallback((newValue) => {
     window.localStorage.setItem(storageKey, JSON.stringify(newValue))

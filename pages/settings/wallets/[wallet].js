@@ -1,7 +1,6 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Form, ClientInput, ClientCheckbox, PasswordInput } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
-import { WalletButtonBar } from '@/components/wallet-card'
 import { WalletSecurityBanner } from '@/components/banners'
 import { WalletLogs } from '@/components/wallet-logger'
 import { useToast } from '@/components/toast'
@@ -10,6 +9,9 @@ import { useWallet, Status } from '@/components/wallet'
 import Info from '@/components/info'
 import Text from '@/components/text'
 import { AutowithdrawSettings } from '@/components/autowithdraw-shared'
+import dynamic from 'next/dynamic'
+
+const WalletButtonBar = dynamic(() => import('@/components/wallet-buttonbar.js'), { ssr: false })
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 

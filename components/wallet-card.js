@@ -47,7 +47,7 @@ export function WalletCard ({ name, title, badges, status }) {
         </Card.Subtitle>
       </Card.Body>
       <Link href={`/settings/wallets/${name}`}>
-        <Card.Footer className={styles.attach}>
+        <Card.Footer className={styles.attach} suppressHydrationWarning>
           {wallet.isConfigured
             ? <>configure<Gear width={14} height={14} /></>
             : <>attach<Plug width={14} height={14} /></>}

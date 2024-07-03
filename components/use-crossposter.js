@@ -6,8 +6,12 @@ import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
 
-function itemToContent (item) {
-  let content = `${item.title}\n${item.url}`
+function itemToContent (item, { includeTitle = true } = {}) {
+  let content = includeTitle ? item.title : ''
+
+  if (item.url) {
+    content += `\n${item.url}`
+  }
 
   if (item.text) {
     content += `\n\n${item.text}`
@@ -15,7 +19,7 @@ function itemToContent (item) {
 
   content += `\n\noriginally posted at https://stacker.news/items/${item.id}`
 
-  return content
+  return content.trim()
 }
 
 function discussionToEvent (item) {
@@ -24,7 +28,7 @@ function discussionToEvent (item) {
   return {
     created_at: createdAt,
     kind: 30023,
-    content: itemToContent(item),
+    content: itemToContent(item, { includeTitle: false }),
     tags: [
       ['d', item.id.toString()],
       ['title', item.title],

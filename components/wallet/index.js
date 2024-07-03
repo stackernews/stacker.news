@@ -150,23 +150,22 @@ function useServerConfig (wallet) {
     priority,
     ...config
   }) => {
-    return await client.mutate({
-      mutation: wallet.server.mutation,
-      refetchQueries: ['WalletLogs'],
-      onError: (err) => {
-        client.refetchQueries({ include: ['WalletLogs'] })
-        throw err
-      },
-      variables: {
-        id: walletId,
-        ...config,
-        settings: {
-          autoWithdrawThreshold: Number(autoWithdrawThreshold),
-          autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent),
-          priority: !!priority
+    try {
+      return await client.mutate({
+        mutation: wallet.server.mutation,
+        variables: {
+          id: walletId,
+          ...config,
+          settings: {
+            autoWithdrawThreshold: Number(autoWithdrawThreshold),
+            autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent),
+            priority: !!priority
+          }
         }
-      }
-    })
+      })
+    } finally {
+      client.refetchQueries({ include: ['WalletLogs'] })
+    }
   }, [client, walletId])
 
   const clearConfig = useCallback(async () => {

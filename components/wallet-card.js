@@ -4,12 +4,19 @@ import Plug from '@/svgs/plug.svg'
 import Gear from '@/svgs/settings-5-fill.svg'
 import Link from 'next/link'
 import { useWallet, Status } from './wallet'
+import { useEffect, useState } from 'react'
 
 export function WalletCard ({ name, title, badges, status }) {
   const wallet = useWallet(name)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    // fix mismatched className props during hydration
+    setMounted(true)
+  }, [])
 
   let indicator = styles.disabled
-  switch (wallet.status) {
+  switch (mounted && wallet.status) {
     case Status.Enabled:
     case true:
       indicator = styles.success

@@ -89,7 +89,7 @@ export function useWallet (name) {
     delete: delete_,
     enable,
     disable,
-    isConfigured: !!config,
+    isConfigured: isConfigured({ ...wallet, config }),
     status: config?.enabled || config?.priority ? Status.Enabled : Status.Initialized,
     logger
   }
@@ -120,6 +120,17 @@ function useConfig (wallet) {
   })
 
   return [config, saveConfig, clearConfig]
+}
+
+function isConfigured (wallet) {
+  if (!wallet.config) return false
+
+  // a wallet is configured if all of it's required fields are set
+  const val = wallet.fields.every(field => {
+    return field.optional ? true : !!wallet.config?.[field.name]
+  })
+
+  return val
 }
 
 function useServerConfig (wallet) {

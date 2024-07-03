@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useMe } from '@/components/me'
-import useLocalState from '@/components/use-local-state'
+import useLocalConfig from '@/components/use-local-state'
 import { useWalletLogger } from '@/components/wallet-logger'
 import { SSR } from '@/lib/constants'
 import { bolt11Tags } from '@/lib/bolt11'
@@ -9,7 +9,7 @@ import * as lnbits from '@/components/wallet/lnbits'
 import * as nwc from '@/components/wallet/nwc'
 import * as lnc from '@/components/wallet/lnc'
 import * as lnd from '@/components/wallet/lnd'
-import { useApolloClient, useMutation, useQuery } from '@apollo/client'
+import { useApolloClient, useQuery } from '@apollo/client'
 import { REMOVE_WALLET, WALLET_BY_TYPE } from '@/fragments/wallet'
 import { autowithdrawInitial } from '../autowithdraw-shared'
 
@@ -96,49 +96,37 @@ export function useWallet (name) {
 }
 
 function useConfig (wallet) {
-  if (!wallet) return []
-
-  if (wallet.sendPayment) {
-    return useLocalConfig(wallet)
-  }
-
-  if (wallet.server) {
-    return useServerConfig(wallet)
-  }
-
-  // TODO: if wallets can do both return a merged version that knows which field goes where
-  return []
-}
-
-function useLocalConfig (wallet) {
   const me = useMe()
   const storageKey = getStorageKey(wallet?.name, me)
-  return useLocalState(storageKey)
+  const [localConfig, setLocalConfig, clearLocalConfig] = useLocalConfig(storageKey)
+  const [serverConfig, setServerConfig, clearServerConfig] = useServerConfig(wallet)
+
+  const config = { ...localConfig, ...serverConfig }
+
+  const saveConfig = useCallback(async (config) => {
+    if (wallet.sendPayment) {
+      setLocalConfig(config)
+    } else {
+      await setServerConfig(config)
+    }
+  }, [wallet])
+
+  const clearConfig = useCallback(async () => {
+    if (wallet.sendPayment) {
+      clearLocalConfig()
+    } else {
+      await clearServerConfig()
+    }
+  })
+
+  return [config, saveConfig, clearConfig]
 }
 
 function useServerConfig (wallet) {
   const client = useApolloClient()
   const me = useMe()
 
-  const { walletType, mutation } = wallet.server
-
-  const { data } = useQuery(WALLET_BY_TYPE, { variables: { type: walletType } })
-
-  const [upsertWallet] = useMutation(mutation, {
-    refetchQueries: ['WalletLogs'],
-    onError: (err) => {
-      client.refetchQueries({ include: ['WalletLogs'] })
-      throw err
-    }
-  })
-
-  const [removeWallet] = useMutation(REMOVE_WALLET, {
-    refetchQueries: ['WalletLogs'],
-    onError: (err) => {
-      client.refetchQueries({ include: ['WalletLogs'] })
-      throw err
-    }
-  })
+  const { data } = useQuery(WALLET_BY_TYPE, { variables: { type: wallet?.server?.walletType }, skip: !wallet?.server })
 
   const walletId = data?.walletByType?.id
   const serverConfig = { id: walletId, priority: data?.walletByType?.priority, ...data?.walletByType?.wallet }
@@ -151,7 +139,13 @@ function useServerConfig (wallet) {
     priority,
     ...config
   }) => {
-    await upsertWallet({
+    return await client.mutate({
+      mutation: wallet.server.mutation,
+      refetchQueries: ['WalletLogs'],
+      onError: (err) => {
+        client.refetchQueries({ include: ['WalletLogs'] })
+        throw err
+      },
       variables: {
         id: walletId,
         ...config,
@@ -162,11 +156,14 @@ function useServerConfig (wallet) {
         }
       }
     })
-  }, [upsertWallet, walletId])
+  }, [client, walletId])
 
   const clearConfig = useCallback(async () => {
-    await removeWallet({ variables: { id: config?.id } })
-  }, [removeWallet, config?.id])
+    return await client.mutate({
+      mutation: REMOVE_WALLET,
+      variables: { id: walletId }
+    })
+  }, [client, walletId])
 
   return [config, saveConfig, clearConfig]
 }

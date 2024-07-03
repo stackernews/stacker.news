@@ -64,7 +64,7 @@ export function useWallet (name) {
       logger.ok('wallet attached')
     } catch (err) {
       const message = err.message || err.toString?.()
-      logger.error(message)
+      logger.error('failed to attach: ' + message)
       throw err
     }
   }, [saveConfig, me, logger])

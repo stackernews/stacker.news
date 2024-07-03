@@ -452,8 +452,7 @@ export default {
             } catch (err) {
               // LND errors are in this shape: [code, type, { err: { code, details, metadata } }]
               const details = err[2]?.err?.details || err.message || err.toString?.()
-              await addWalletLog({ wallet, level: 'ERROR', message: `could not connect to LND: ${details}` }, { me, models })
-              throw err
+              throw new Error(details)
             }
           }
         },
@@ -620,8 +619,9 @@ async function upsertWallet (
       await testConnect(data)
     } catch (err) {
       console.error(err)
-      await addWalletLog({ wallet, level: 'ERROR', message: 'failed to attach wallet' }, { me, models })
-      throw new GraphQLError('failed to connect to wallet', { extensions: { code: 'BAD_INPUT' } })
+      const message = err.message || err.toString?.()
+      await addWalletLog({ wallet, level: 'ERROR', message: 'failed to attach: ' + message }, { me, models })
+      throw new GraphQLError(message, { extensions: { code: 'BAD_INPUT' } })
     }
   }
 

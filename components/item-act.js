@@ -61,7 +61,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   const act = useAct()
   const strike = useLightning()
 
-  const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
+  const onSubmit = useCallback(async ({ amount }) => {
     if (abortSignal && zapUndoTrigger({ me, amount })) {
       onClose?.()
       try {
@@ -76,9 +76,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
       variables: {
         id: item.id,
         sats: Number(amount),
-        act: down ? 'DONT_LIKE_THIS' : 'TIP',
-        hash,
-        hmac
+        act: down ? 'DONT_LIKE_THIS' : 'TIP'
       },
       optimisticResponse: me
         ? {

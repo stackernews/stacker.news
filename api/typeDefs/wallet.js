@@ -76,6 +76,7 @@ export default gql`
     confirmedPreimage: String
     actionState: String
     actionType: String
+    actionError: String
     item: Item
     itemAct: ItemAct
   }

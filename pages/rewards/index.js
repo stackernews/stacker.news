@@ -172,12 +172,10 @@ export function DonateButton () {
               amount: 10000
             }}
             schema={amountSchema}
-            onSubmit={async ({ amount, hash, hmac }) => {
+            onSubmit={async ({ amount }) => {
               const { error } = await donateToRewards({
                 variables: {
-                  sats: Number(amount),
-                  hash,
-                  hmac
+                  sats: Number(amount)
                 },
                 onCompleted: () => {
                   strike()

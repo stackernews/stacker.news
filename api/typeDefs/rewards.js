@@ -7,11 +7,11 @@ export default gql`
   }
 
   extend type Mutation {
-    donateToRewards(sats: Int!, hash: String, hmac: String): DonatePaidAction!
+    donateToRewards(sats: Int!): DonatePaidAction!
   }
 
   type DonateResult {
-    sats: Int
+    sats: Int!
   }
 
   type Rewards {

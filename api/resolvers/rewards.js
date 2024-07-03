@@ -160,10 +160,10 @@ export default {
     }
   },
   Mutation: {
-    donateToRewards: async (parent, { sats, hash, hmac }, { me, models, lnd }) => {
+    donateToRewards: async (parent, { sats }, { me, models, lnd }) => {
       await ssValidate(amountSchema, { amount: sats })
 
-      return await performPaidAction('DONATE', { sats }, { me, models, lnd, hash, hmac })
+      return await performPaidAction('DONATE', { sats }, { me, models, lnd })
     }
   },
   Reward: {

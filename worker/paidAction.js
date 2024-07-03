@@ -1,16 +1,21 @@
 import { paidActions } from '@/api/paidAction'
 import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
-import { getInvoice } from 'ln-service'
+import { getInvoice, settleHodlInvoice } from 'ln-service'
 
 async function transitionInvoice (jobName, { invoiceId, fromState, toState, toData, onTransition }, { models, lnd, boss }) {
   console.group(`${jobName}: transitioning invoice ${invoiceId} from ${fromState} to ${toState}`)
 
   let dbInvoice
   try {
-    console.log('fetching invoice from db')
-
     dbInvoice = await models.invoice.findUnique({ where: { id: invoiceId } })
+    console.log('invoice is in state', dbInvoice.actionState)
+
+    if (['FAILED', 'PAID'].includes(dbInvoice.actionState)) {
+      console.log('invoice is already in a terminal state, skipping transition')
+      return
+    }
+
     const lndInvoice = await getInvoice({ id: dbInvoice.hash, lnd })
     const data = toData(lndInvoice)
 
@@ -18,10 +23,9 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, toDa
       fromState = [fromState]
     }
 
-    console.log('invoice is in state', dbInvoice.actionState)
-
     await models.$transaction(async tx => {
       dbInvoice = await tx.invoice.update({
+        include: { user: true },
         where: {
           id: invoiceId,
           actionState: {
@@ -105,9 +109,36 @@ export async function holdAction ({ data: { invoiceId }, models, lnd, boss }) {
     onTransition: async ({ dbInvoice, tx }) => {
       // make sure settled or cancelled in 60 seconds to minimize risk of force closures
       const expiresAt = new Date(Math.min(dbInvoice.expiresAt, datePivot(new Date(), { seconds: 60 })))
-      await tx.$executeRaw`
+      // do outside of transaction because we don't want this to rollback if the rest of the job fails
+      await models.$executeRaw`
         INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
         VALUES ('finalizeHodlInvoice', jsonb_build_object('hash', ${dbInvoice.hash}), 21, true, ${expiresAt})`
+
+      // perform the action now that we have the funds
+      try {
+        const args = { ...dbInvoice.actionArgs, invoiceId: dbInvoice.id }
+        const result = await paidActions[dbInvoice.actionType].perform(args,
+          { models, tx, lnd, cost: dbInvoice.msatsReceived, me: dbInvoice.user })
+        await tx.invoice.update({
+          where: { id: dbInvoice.id },
+          data: {
+            actionResult: result
+          }
+        })
+      } catch (e) {
+        // store the error in the invoice, nonblocking and outside of this tx, finalizing immediately
+        models.invoice.update({
+          where: { id: dbInvoice.id },
+          data: {
+            actionError: e.message
+          }
+        }).catch(e => console.error('failed to cancel invoice', e))
+        boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash })
+        throw e
+      }
+
+      // settle the invoice, allowing us to transition to PAID
+      await settleHodlInvoice({ secret: dbInvoice.preimage, lnd })
     }
   }, { models, lnd, boss })
 }

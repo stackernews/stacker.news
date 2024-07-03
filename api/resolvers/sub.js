@@ -152,7 +152,7 @@ export default {
     }
   },
   Mutation: {
-    upsertSub: async (parent, { hash, hmac, ...data }, { me, models, lnd }) => {
+    upsertSub: async (parent, { ...data }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
@@ -160,12 +160,12 @@ export default {
       await ssValidate(territorySchema, data, { models, me, sub: { name: data.oldName } })
 
       if (data.oldName) {
-        return await updateSub(parent, data, { me, models, lnd, hash, hmac })
+        return await updateSub(parent, data, { me, models, lnd })
       } else {
-        return await createSub(parent, data, { me, models, lnd, hash, hmac })
+        return await createSub(parent, data, { me, models, lnd })
       }
     },
-    paySub: async (parent, { name, hash, hmac }, { me, models, lnd }) => {
+    paySub: async (parent, { name }, { me, models, lnd }) => {
       // check that they own the sub
       const sub = await models.sub.findUnique({
         where: {
@@ -185,7 +185,7 @@ export default {
         return sub
       }
 
-      return await performPaidAction('TERRITORY_BILLING', { name }, { me, models, lnd, hash, hmac })
+      return await performPaidAction('TERRITORY_BILLING', { name }, { me, models, lnd })
     },
     toggleMuteSub: async (parent, { name }, { me, models }) => {
       if (!me) {
@@ -253,7 +253,7 @@ export default {
 
       return updatedSub
     },
-    unarchiveTerritory: async (parent, { hash, hmac, ...data }, { me, models, lnd }) => {
+    unarchiveTerritory: async (parent, { ...data }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
@@ -276,7 +276,7 @@ export default {
         throw new GraphQLError('sub should not be archived', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      return await performPaidAction('TERRITORY_UNARCHIVE', data, { me, models, lnd, hash, hmac })
+      return await performPaidAction('TERRITORY_UNARCHIVE', data, { me, models, lnd })
     }
   },
   Sub: {
@@ -314,9 +314,9 @@ export default {
   }
 }
 
-async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
+async function createSub (parent, data, { me, models, lnd }) {
   try {
-    return await performPaidAction('TERRITORY_CREATE', data, { me, models, lnd, hash, hmac })
+    return await performPaidAction('TERRITORY_CREATE', data, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {
       throw new GraphQLError('name taken', { extensions: { code: 'BAD_INPUT' } })
@@ -325,7 +325,7 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
   }
 }
 
-async function updateSub (parent, { oldName, ...data }, { me, models, lnd, hash, hmac }) {
+async function updateSub (parent, { oldName, ...data }, { me, models, lnd }) {
   const oldSub = await models.sub.findUnique({
     where: {
       name: oldName,
@@ -343,7 +343,7 @@ async function updateSub (parent, { oldName, ...data }, { me, models, lnd, hash,
   }
 
   try {
-    return await performPaidAction('TERRITORY_UPDATE', { oldName, ...data }, { me, models, lnd, hash, hmac })
+    return await performPaidAction('TERRITORY_UPDATE', { oldName, ...data }, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {
       throw new GraphQLError('name taken', { extensions: { code: 'BAD_INPUT' } })

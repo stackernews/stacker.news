@@ -782,6 +782,9 @@ model Invoice {
   actionState   InvoiceActionState?
   actionType    InvoiceActionType?
   actionId      Int?
+  actionArgs    Json?               @db.JsonB
+  actionError   String?
+  actionResult  Json?               @db.JsonB
   ItemAct       ItemAct[]
   Item          Item[]
   Upload        Upload[]

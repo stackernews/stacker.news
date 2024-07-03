@@ -7,22 +7,22 @@ export const anonable = true
 export const supportsPessimism = true
 export const supportsOptimism = true
 
-export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio }, { models, user }) {
+export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio }, { models, me }) {
   const sub = (parentId || bio) ? null : await models.sub.findUnique({ where: { name: subName } })
   const baseCost = sub ? satsToMsats(sub.baseCost) : 1000n
 
   // cost = baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + image fees + boost
   const [{ cost }] = await models.$queryRaw`
     SELECT ${baseCost}::INTEGER
-      * POWER(10, item_spam(${parseInt(parentId)}::INTEGER, ${user?.id || USER_ID.anon}::INTEGER,
-          ${user?.id && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
-      * ${user ? 1 : 100}::INTEGER
+      * POWER(10, item_spam(${parseInt(parentId)}::INTEGER, ${me?.id ?? USER_ID.anon}::INTEGER,
+          ${me?.id && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
+      * ${me ? 1 : 100}::INTEGER
       + (SELECT "nUnpaid" * "imageFeeMsats"
-          FROM image_fees_info(${user?.id || USER_ID.anon}::INTEGER, ${uploadIds}::INTEGER[]))
+          FROM image_fees_info(${me?.id || USER_ID.anon}::INTEGER, ${uploadIds}::INTEGER[]))
       + ${satsToMsats(boost)}::INTEGER as cost`
 
   // sub allows freebies (or is a bio or a comment), cost is less than baseCost, not anon, and cost must be greater than user's balance
-  const freebie = (parentId || bio || sub?.allowFreebies) && cost <= baseCost && !!user && cost > user?.msats
+  const freebie = (parentId || bio || sub?.allowFreebies) && cost <= baseCost && !!me && cost > me?.msats
 
   return freebie ? BigInt(0) : BigInt(cost)
 }

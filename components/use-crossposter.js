@@ -6,13 +6,29 @@ import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
 
-async function discussionToEvent (item) {
+function itemToContent (item, { includeTitle = true } = {}) {
+  let content = includeTitle ? item.title : ''
+
+  if (item.url) {
+    content += `\n${item.url}`
+  }
+
+  if (item.text) {
+    content += `\n\n${item.text}`
+  }
+
+  content += `\n\noriginally posted at https://stacker.news/items/${item.id}`
+
+  return content.trim()
+}
+
+function discussionToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
 
   return {
     created_at: createdAt,
     kind: 30023,
-    content: item.text,
+    content: itemToContent(item, { includeTitle: false }),
     tags: [
       ['d', item.id.toString()],
       ['title', item.title],
@@ -21,25 +37,18 @@ async function discussionToEvent (item) {
   }
 }
 
-async function linkToEvent (item) {
+function linkToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
-
-  let contentField
-  if (item.text) {
-    contentField = `${item.title}\n${item.url}\n\n${item.text}`
-  } else {
-    contentField = `${item.title}\n${item.url}`
-  }
 
   return {
     created_at: createdAt,
     kind: 1,
-    content: contentField,
+    content: itemToContent(item),
     tags: []
   }
 }
 
-async function pollToEvent (item) {
+function pollToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
 
   const expiresAt = createdAt + 86400
@@ -47,20 +56,20 @@ async function pollToEvent (item) {
   return {
     created_at: createdAt,
     kind: 1,
-    content: item.text,
+    content: itemToContent(item),
     tags: [
       ['poll', 'single', expiresAt.toString(), item.title, ...item.poll.options.map(op => op?.option.toString())]
     ]
   }
 }
 
-async function bountyToEvent (item) {
+function bountyToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
 
   return {
     created_at: createdAt,
     kind: 30402,
-    content: item.text,
+    content: itemToContent(item),
     tags: [
       ['d', item.id.toString()],
       ['title', item.title],
@@ -158,16 +167,15 @@ export default function useCrossposter () {
     }
 
     const itemType = determineItemType(item)
-
     switch (itemType) {
       case 'discussion':
-        return await discussionToEvent(item)
+        return discussionToEvent(item)
       case 'link':
-        return await linkToEvent(item)
+        return linkToEvent(item)
       case 'bounty':
-        return await bountyToEvent(item)
+        return bountyToEvent(item)
       case 'poll':
-        return await pollToEvent(item)
+        return pollToEvent(item)
       default:
         return crosspostError('Unknown item type')
     }

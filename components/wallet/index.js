@@ -142,7 +142,7 @@ function useServerConfig (wallet) {
   const client = useApolloClient()
   const me = useMe()
 
-  const { data } = useQuery(WALLET_BY_TYPE, { variables: { type: wallet?.server?.walletType }, skip: !wallet?.server })
+  const { data, refetch: refetchConfig } = useQuery(WALLET_BY_TYPE, { variables: { type: wallet?.server?.walletType }, skip: !wallet?.server })
 
   const walletId = data?.walletByType?.id
   const serverConfig = { id: walletId, priority: data?.walletByType?.priority, ...data?.walletByType?.wallet }
@@ -170,14 +170,16 @@ function useServerConfig (wallet) {
       })
     } finally {
       client.refetchQueries({ include: ['WalletLogs'] })
+      refetchConfig()
     }
   }, [client, walletId])
 
   const clearConfig = useCallback(async () => {
-    return await client.mutate({
+    await client.mutate({
       mutation: REMOVE_WALLET,
       variables: { id: walletId }
     })
+    refetchConfig()
   }, [client, walletId])
 
   return [config, saveConfig, clearConfig]

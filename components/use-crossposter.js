@@ -6,13 +6,25 @@ import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
 
+function itemToContent (item) {
+  let content = `${item.title}\n${item.url}`
+
+  if (item.text) {
+    content += `\n\n${item.text}`
+  }
+
+  content += `\n\noriginally posted at https://stacker.news/items/${item.id}`
+
+  return content
+}
+
 function discussionToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
 
   return {
     created_at: createdAt,
     kind: 30023,
-    content: item.text,
+    content: itemToContent(item),
     tags: [
       ['d', item.id.toString()],
       ['title', item.title],
@@ -24,17 +36,10 @@ function discussionToEvent (item) {
 function linkToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
 
-  let contentField
-  if (item.text) {
-    contentField = `${item.title}\n${item.url}\n\n${item.text}`
-  } else {
-    contentField = `${item.title}\n${item.url}`
-  }
-
   return {
     created_at: createdAt,
     kind: 1,
-    content: contentField,
+    content: itemToContent(item),
     tags: []
   }
 }
@@ -47,7 +52,7 @@ function pollToEvent (item) {
   return {
     created_at: createdAt,
     kind: 1,
-    content: item.text,
+    content: itemToContent(item),
     tags: [
       ['poll', 'single', expiresAt.toString(), item.title, ...item.poll.options.map(op => op?.option.toString())]
     ]
@@ -60,7 +65,7 @@ function bountyToEvent (item) {
   return {
     created_at: createdAt,
     kind: 30402,
-    content: item.text,
+    content: itemToContent(item),
     tags: [
       ['d', item.id.toString()],
       ['title', item.title],
@@ -158,28 +163,18 @@ export default function useCrossposter () {
     }
 
     const itemType = determineItemType(item)
-    let event
-
     switch (itemType) {
       case 'discussion':
-        event = discussionToEvent(item)
-        break
+        return discussionToEvent(item)
       case 'link':
-        event = linkToEvent(item)
-        break
+        return linkToEvent(item)
       case 'bounty':
-        event = bountyToEvent(item)
-        break
+        return bountyToEvent(item)
       case 'poll':
-        event = pollToEvent(item)
-        break
+        return pollToEvent(item)
       default:
         return crosspostError('Unknown item type')
     }
-
-    event.content += `\n\noriginally posted at https://stacker.news/items/${item.id}`
-
-    return event
   }
 
   const fetchItemData = async (itemId) => {

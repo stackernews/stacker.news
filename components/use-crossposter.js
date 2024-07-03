@@ -158,19 +158,28 @@ export default function useCrossposter () {
     }
 
     const itemType = determineItemType(item)
+    let event
 
     switch (itemType) {
       case 'discussion':
-        return await discussionToEvent(item)
+        event = await discussionToEvent(item)
+        break
       case 'link':
-        return await linkToEvent(item)
+        event = await linkToEvent(item)
+        break
       case 'bounty':
-        return await bountyToEvent(item)
+        event = await bountyToEvent(item)
+        break
       case 'poll':
-        return await pollToEvent(item)
+        event = await pollToEvent(item)
+        break
       default:
         return crosspostError('Unknown item type')
     }
+
+    event.content += `\n\noriginally posted at https://stacker.news/items/${item.id}`
+
+    return event
   }
 
   const fetchItemData = async (itemId) => {

@@ -206,7 +206,7 @@ export const WalletLoggerProvider = ({ children }) => {
 
   const deleteLogs = useCallback(async (wallet) => {
     if (!wallet || wallet.server) {
-      await deleteServerWalletLogs({ variables: { wallet: wallet?.server } })
+      await deleteServerWalletLogs({ variables: { wallet: wallet?.server?.walletType } })
     }
     if (!wallet || wallet.sendPayment) {
       const tx = idb.current.transaction(idbStoreName, 'readwrite')

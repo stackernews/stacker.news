@@ -6,7 +6,7 @@ import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
 
-async function discussionToEvent (item) {
+function discussionToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
 
   return {
@@ -21,7 +21,7 @@ async function discussionToEvent (item) {
   }
 }
 
-async function linkToEvent (item) {
+function linkToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
 
   let contentField
@@ -39,7 +39,7 @@ async function linkToEvent (item) {
   }
 }
 
-async function pollToEvent (item) {
+function pollToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
 
   const expiresAt = createdAt + 86400
@@ -54,7 +54,7 @@ async function pollToEvent (item) {
   }
 }
 
-async function bountyToEvent (item) {
+function bountyToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
 
   return {
@@ -162,16 +162,16 @@ export default function useCrossposter () {
 
     switch (itemType) {
       case 'discussion':
-        event = await discussionToEvent(item)
+        event = discussionToEvent(item)
         break
       case 'link':
-        event = await linkToEvent(item)
+        event = linkToEvent(item)
         break
       case 'bounty':
-        event = await bountyToEvent(item)
+        event = bountyToEvent(item)
         break
       case 'poll':
-        event = await pollToEvent(item)
+        event = pollToEvent(item)
         break
       default:
         return crosspostError('Unknown item type')

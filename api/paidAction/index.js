@@ -58,8 +58,8 @@ export default async function performPaidAction (actionType, args, context) {
       } catch (e) {
         console.error('fee credit action failed', e)
 
-        // if we fail to do the action with fee credits, but the cost is 0, we should bail
-        if (context.cost === 0n) {
+        // if we fail with fee credits, but not because of insufficient funds, bail
+        if (!e.message.includes('\\"users\\" violates check constraint \\"msats_positive\\"')) {
           throw e
         }
 

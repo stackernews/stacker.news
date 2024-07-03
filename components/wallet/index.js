@@ -31,7 +31,6 @@ export function useWallet (name) {
 
   const [config, saveConfig, clearConfig] = useConfig(wallet)
 
-  // FIXME: This throws 'TypeError: Cannot read properties of undefined (reading 'length')' when I disable LNbits
   const sendPayment = useCallback(async (bolt11) => {
     const hash = bolt11Tags(bolt11).payment_hash
     logger.info('sending payment:', `payment_hash=${hash}`)
@@ -100,8 +99,6 @@ function useConfig (wallet) {
   if (!wallet) return []
 
   if (wallet.sendPayment) {
-    // FIXME: this throws 'Error: Should have a queue' when I enable LNbits
-    //   probably because of conditional hooks?
     return useLocalConfig(wallet)
   }
 

@@ -97,27 +97,32 @@ export function useWallet (name) {
 
 function useConfig (wallet) {
   const me = useMe()
+
   const storageKey = getStorageKey(wallet?.name, me)
   const [localConfig, setLocalConfig, clearLocalConfig] = useLocalConfig(storageKey)
+
   const [serverConfig, setServerConfig, clearServerConfig] = useServerConfig(wallet)
 
-  const config = { ...localConfig, ...serverConfig }
+  const hasLocalConfig = !!wallet?.sendPayment
+  const hasServerConfig = !!wallet?.server
+
+  const config = {
+    // only include config if it makes sense for this wallet
+    // since server config always returns default values for autowithdraw settings
+    // which might be confusing to have for wallets that don't support autowithdraw
+    ...(hasLocalConfig ? localConfig : {}),
+    ...(hasServerConfig ? serverConfig : {})
+  }
 
   const saveConfig = useCallback(async (config) => {
-    if (wallet.sendPayment) {
-      setLocalConfig(config)
-    } else {
-      await setServerConfig(config)
-    }
+    if (hasLocalConfig) setLocalConfig(config)
+    if (hasServerConfig) await setServerConfig(config)
   }, [wallet])
 
   const clearConfig = useCallback(async () => {
-    if (wallet.sendPayment) {
-      clearLocalConfig()
-    } else {
-      await clearServerConfig()
-    }
-  })
+    if (hasLocalConfig) clearLocalConfig()
+    if (hasServerConfig) await clearServerConfig()
+  }, [wallet])
 
   return [config, saveConfig, clearConfig]
 }

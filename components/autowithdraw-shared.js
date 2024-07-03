@@ -29,7 +29,7 @@ export function AutowithdrawSettings ({ priority }) {
   return (
     <>
       <Checkbox
-        label='make default autowithdraw method'
+        label='enabled'
         id='priority'
         name='priority'
       />

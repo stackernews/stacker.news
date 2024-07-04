@@ -39,10 +39,21 @@ export default function WalletSettings () {
         onSubmit={async ({ enabled, ...values }) => {
           try {
             const newConfig = !wallet.isConfigured
+
+            // enable wallet if wallet was just configured
+            // local wallets use 'enabled' property
+            // server wallets use 'priority' property
+            // TODO: make both wallet types use 'priority' property
+            if (newConfig) {
+              values.priority = true
+              enabled = true
+            }
+
             await wallet.save(values)
-            // enable wallet if checkbox was set or if wallet was just configured
-            if (enabled || newConfig) wallet.enable()
+
+            if (enabled) wallet.enable()
             else wallet.disable()
+
             toaster.success('saved settings')
             router.push('/settings/wallets')
           } catch (err) {

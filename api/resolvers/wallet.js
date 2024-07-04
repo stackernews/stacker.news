@@ -318,9 +318,10 @@ export default {
         where: {
           userId: me.id
         },
-        orderBy: {
-          createdAt: 'asc'
-        }
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'desc' }
+        ]
       })
     }
   },
@@ -513,7 +514,7 @@ export default {
 
       await models.$transaction([
         models.wallet.delete({ where: { userId: me.id, id: Number(id) } }),
-        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet deleted' } })
+        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet detached' } })
       ])
 
       return true
@@ -663,8 +664,7 @@ async function upsertWallet (
             }
           }
         }
-      }),
-      models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet updated' } })
+      })
     )
   } else {
     txs.push(
@@ -677,10 +677,28 @@ async function upsertWallet (
             create: walletData
           }
         }
-      }),
-      models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet created' } })
+      })
     )
   }
+
+  txs.push(
+    models.walletLog.createMany({
+      data: {
+        userId: me.id,
+        wallet: wallet.type,
+        level: 'SUCCESS',
+        message: id ? 'wallet updated' : 'wallet attached'
+      }
+    }),
+    models.walletLog.create({
+      data: {
+        userId: me.id,
+        wallet: wallet.type,
+        level: priority ? 'SUCCESS' : 'INFO',
+        message: priority ? 'wallet enabled' : 'wallet disabled'
+      }
+    })
+  )
 
   await models.$transaction(txs)
   return true

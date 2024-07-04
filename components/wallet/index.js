@@ -30,6 +30,7 @@ export function useWallet (name) {
   const { logger } = useWalletLogger(wallet)
 
   const [config, saveConfig, clearConfig] = useConfig(wallet)
+  const _isConfigured = isConfigured({ ...wallet, config })
 
   const sendPayment = useCallback(async (bolt11) => {
     const hash = bolt11Tags(bolt11).payment_hash
@@ -54,32 +55,33 @@ export function useWallet (name) {
     logger.info('wallet disabled')
   }, [name, me, logger])
 
-  const save = useCallback(async (config) => {
+  const save = useCallback(async (newConfig) => {
     try {
       // validate should log custom INFO and OK message
       // validate is optional since validation might happen during save on server
       // TODO: add timeout
-      await wallet.validate?.({ me, logger, ...config })
-      await saveConfig(config)
-      logger.ok('wallet attached')
+      await wallet.validate?.({ me, logger, ...newConfig })
+      await saveConfig(newConfig)
+      logger.ok(_isConfigured ? 'wallet updated' : 'wallet attached')
     } catch (err) {
       const message = err.message || err.toString?.()
       logger.error('failed to attach: ' + message)
       throw err
     }
-  }, [saveConfig, me, logger])
+  }, [_isConfigured, saveConfig, me, logger])
 
   // delete is a reserved keyword
   const delete_ = useCallback(() => {
     try {
       clearConfig()
       logger.ok('wallet detached')
+      disable()
     } catch (err) {
       const message = err.message || err.toString?.()
       logger.error(message)
       throw err
     }
-  }, [clearConfig, logger])
+  }, [clearConfig, logger, disable])
 
   return {
     ...wallet,
@@ -89,7 +91,7 @@ export function useWallet (name) {
     delete: delete_,
     enable,
     disable,
-    isConfigured: isConfigured({ ...wallet, config }),
+    isConfigured: _isConfigured,
     status: config?.enabled || config?.priority ? Status.Enabled : Status.Initialized,
     logger
   }

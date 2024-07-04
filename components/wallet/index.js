@@ -175,11 +175,15 @@ function useServerConfig (wallet) {
   }, [client, walletId])
 
   const clearConfig = useCallback(async () => {
-    await client.mutate({
-      mutation: REMOVE_WALLET,
-      variables: { id: walletId }
-    })
-    refetchConfig()
+    try {
+      await client.mutate({
+        mutation: REMOVE_WALLET,
+        variables: { id: walletId }
+      })
+    } finally {
+      client.refetchQueries({ include: ['WalletLogs'] })
+      refetchConfig()
+    }
   }, [client, walletId])
 
   return [config, saveConfig, clearConfig]

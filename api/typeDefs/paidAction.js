@@ -2,6 +2,10 @@ import { gql } from 'graphql-tag'
 
 export default gql`
 
+extend type Query {
+  paidAction(invoiceId: Int!): PaidAction
+}
+
 extend type Mutation {
   retryPaidAction(invoiceId: Int!): PaidAction!
 }

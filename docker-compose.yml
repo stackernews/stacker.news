@@ -37,6 +37,8 @@ services:
       CONNECT: "localhost:5431"
   app:
     container_name: app
+    stdin_open: true
+    tty: true
     build:
       context: ./
       args:

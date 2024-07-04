@@ -36,6 +36,39 @@ const ITEM_ACT_PAID_ACTION_FIELDS = gql`
     }
   }`
 
+export const GET_PAID_ACTION = gql`
+  ${PAID_ACTION}
+  ${ITEM_PAID_ACTION_FIELDS}
+  ${ITEM_ACT_PAID_ACTION_FIELDS}
+  ${SUB_FULL_FIELDS}
+  query paidAction($invoiceId: Int!) {
+    paidAction(invoiceId: $invoiceId) {
+      __typename
+      ...PaidActionFields
+      ... on ItemPaidAction {
+        ...ItemPaidActionFields
+      }
+      ... on ItemActPaidAction {
+        ...ItemActPaidActionFields
+      }
+      ... on PollVotePaidAction {
+        result {
+          id
+        }
+      }
+      ... on SubPaidAction {
+        result {
+          ...SubFullFields
+        }
+      }
+      ... on DonatePaidAction {
+        result {
+          sats
+        }
+      }
+    }
+  }`
+
 export const RETRY_PAID_ACTION = gql`
   ${PAID_ACTION}
   ${ITEM_PAID_ACTION_FIELDS}
@@ -60,8 +93,8 @@ export const RETRY_PAID_ACTION = gql`
 
 export const DONATE = gql`
   ${PAID_ACTION}
-  mutation donateToRewards($sats: Int!, $hash: String, $hmac: String) {
-    donateToRewards(sats: $sats, hash: $hash, hmac: $hmac) {
+  mutation donateToRewards($sats: Int!) {
+    donateToRewards(sats: $sats) {
       result {
         sats
       }
@@ -72,8 +105,8 @@ export const DONATE = gql`
 export const ACT_MUTATION = gql`
   ${PAID_ACTION}
   ${ITEM_ACT_PAID_ACTION_FIELDS}
-  mutation act($id: ID!, $sats: Int!, $act: String, $hash: String, $hmac: String) {
-    act(id: $id, sats: $sats, act: $act, hash: $hash, hmac: $hmac) {
+  mutation act($id: ID!, $sats: Int!, $act: String) {
+    act(id: $id, sats: $sats, act: $act) {
       ...ItemActPaidActionFields
       ...PaidActionFields
     }
@@ -82,9 +115,9 @@ export const ACT_MUTATION = gql`
 export const UPSERT_DISCUSSION = gql`
   ${PAID_ACTION}
   mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String,
-    $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
+    $boost: Int, $forward: [ItemForwardInput]) {
     upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost,
-      forward: $forward, hash: $hash, hmac: $hmac) {
+      forward: $forward) {
       result {
         id
         deleteScheduledAt
@@ -98,10 +131,10 @@ export const UPSERT_JOB = gql`
   ${PAID_ACTION}
   mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!,
     $location: String, $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!,
-    $status: String, $logo: Int, $hash: String, $hmac: String) {
+    $status: String, $logo: Int) {
     upsertJob(sub: $sub, id: $id, title: $title, company: $company,
       location: $location, remote: $remote, text: $text,
-      url: $url, maxBid: $maxBid, status: $status, logo: $logo, hash: $hash, hmac: $hmac) {
+      url: $url, maxBid: $maxBid, status: $status, logo: $logo) {
       result {
         id
         deleteScheduledAt
@@ -114,9 +147,9 @@ export const UPSERT_JOB = gql`
 export const UPSERT_LINK = gql`
   ${PAID_ACTION}
   mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!,
-    $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
+    $text: String, $boost: Int, $forward: [ItemForwardInput]) {
     upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text,
-      boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
+      boost: $boost, forward: $forward) {
       result {
         id
         deleteScheduledAt
@@ -129,11 +162,9 @@ export const UPSERT_LINK = gql`
 export const UPSERT_POLL = gql`
   ${PAID_ACTION}
   mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
-    $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $hash: String,
-    $hmac: String, $pollExpiresAt: Date) {
+    $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $pollExpiresAt: Date) {
     upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
-      options: $options, boost: $boost, forward: $forward, hash: $hash,
-       hmac: $hmac, pollExpiresAt: $pollExpiresAt) {
+      options: $options, boost: $boost, forward: $forward, pollExpiresAt: $pollExpiresAt) {
       result {
         id
         deleteScheduledAt
@@ -146,9 +177,9 @@ export const UPSERT_POLL = gql`
 export const UPSERT_BOUNTY = gql`
   ${PAID_ACTION}
   mutation upsertBounty($sub: String, $id: ID, $title: String!, $bounty: Int!,
-    $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
+    $text: String, $boost: Int, $forward: [ItemForwardInput]) {
     upsertBounty(sub: $sub, id: $id, title: $title, bounty: $bounty, text: $text,
-      boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
+      boost: $boost, forward: $forward) {
       result {
         id
         deleteScheduledAt
@@ -160,8 +191,8 @@ export const UPSERT_BOUNTY = gql`
 
 export const POLL_VOTE = gql`
   ${PAID_ACTION}
-  mutation pollVote($id: ID!, $hash: String, $hmac: String) {
-    pollVote(id: $id, hash: $hash, hmac: $hmac) {
+  mutation pollVote($id: ID!) {
+    pollVote(id: $id) {
       result {
         id
       }
@@ -172,8 +203,8 @@ export const POLL_VOTE = gql`
 export const CREATE_COMMENT = gql`
   ${ITEM_PAID_ACTION_FIELDS}
   ${PAID_ACTION}
-  mutation upsertComment($text: String!, $parentId: ID!, $hash: String, $hmac: String) {
-    upsertComment(text: $text, parentId: $parentId, hash: $hash, hmac: $hmac) {
+  mutation upsertComment($text: String!, $parentId: ID!) {
+    upsertComment(text: $text, parentId: $parentId) {
       ...ItemPaidActionFields
       ...PaidActionFields
     }
@@ -182,8 +213,8 @@ export const CREATE_COMMENT = gql`
 export const UPDATE_COMMENT = gql`
   ${ITEM_PAID_ACTION_FIELDS}
   ${PAID_ACTION}
-  mutation upsertComment($id: ID!, $text: String!, $hash: String, $hmac: String) {
-    upsertComment(id: $id, text: $text, hash: $hash, hmac: $hmac) {
+  mutation upsertComment($id: ID!, $text: String!) {
+    upsertComment(id: $id, text: $text) {
       ...ItemPaidActionFields
       ...PaidActionFields
     }
@@ -193,10 +224,10 @@ export const UPSERT_SUB = gql`
   ${PAID_ACTION}
   mutation upsertSub($oldName: String, $name: String!, $desc: String, $baseCost: Int!,
     $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
-    $billingAutoRenew: Boolean!, $moderated: Boolean!, $hash: String, $hmac: String, $nsfw: Boolean!) {
+    $billingAutoRenew: Boolean!, $moderated: Boolean!, $nsfw: Boolean!) {
       upsertSub(oldName: $oldName, name: $name, desc: $desc, baseCost: $baseCost,
         postTypes: $postTypes, allowFreebies: $allowFreebies, billingType: $billingType,
-        billingAutoRenew: $billingAutoRenew, moderated: $moderated, hash: $hash, hmac: $hmac, nsfw: $nsfw) {
+        billingAutoRenew: $billingAutoRenew, moderated: $moderated, nsfw: $nsfw) {
       result {
         name
       }
@@ -208,10 +239,10 @@ export const UNARCHIVE_TERRITORY = gql`
   ${PAID_ACTION}
   mutation unarchiveTerritory($name: String!, $desc: String, $baseCost: Int!,
     $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
-    $billingAutoRenew: Boolean!, $moderated: Boolean!, $hash: String, $hmac: String, $nsfw: Boolean!) {
+    $billingAutoRenew: Boolean!, $moderated: Boolean!, $nsfw: Boolean!) {
       unarchiveTerritory(name: $name, desc: $desc, baseCost: $baseCost,
         postTypes: $postTypes, allowFreebies: $allowFreebies, billingType: $billingType,
-        billingAutoRenew: $billingAutoRenew, moderated: $moderated, hash: $hash, hmac: $hmac, nsfw: $nsfw) {
+        billingAutoRenew: $billingAutoRenew, moderated: $moderated, nsfw: $nsfw) {
       result {
         name
       }
@@ -222,8 +253,8 @@ export const UNARCHIVE_TERRITORY = gql`
 export const SUB_PAY = gql`
   ${SUB_FULL_FIELDS}
   ${PAID_ACTION}
-  mutation paySub($name: String!, $hash: String, $hmac: String) {
-    paySub(name: $name, hash: $hash, hmac: $hmac) {
+  mutation paySub($name: String!) {
+    paySub(name: $name) {
       result {
         ...SubFullFields
       }

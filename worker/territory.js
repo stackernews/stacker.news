@@ -14,6 +14,7 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
   async function territoryStatusUpdate () {
     if (sub.status !== 'STOPPED') {
       await models.sub.update({
+        include: { user: true },
         where: {
           name: subName
         },
@@ -35,7 +36,7 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
 
   try {
     const { result } = await performPaidAction('TERRITORY_BILLING',
-      { name: subName }, { models, me: { id: sub.userId }, lnd, forceFeeCredits: true })
+      { name: subName }, { models, me: sub.user, lnd, forceFeeCredits: true })
     if (!result) {
       throw new Error('not enough fee credits to auto-renew territory')
     }

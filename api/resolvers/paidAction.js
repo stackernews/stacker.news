@@ -1,6 +1,44 @@
 import { retryPaidAction } from '../paidAction'
+import { USER_ID } from '@/lib/constants'
+
+function paidActionType (actionType) {
+  switch (actionType) {
+    case 'ITEM_CREATE':
+    case 'ITEM_UPDATE':
+      return 'ItemPaidAction'
+    case 'ZAP':
+    case 'DOWN_ZAP':
+      return 'ItemActPaidAction'
+    case 'TERRITORY_CREATE':
+    case 'TERRITORY_UPDATE':
+    case 'TERRITORY_BILLING':
+    case 'TERRITORY_UNARCHIVE':
+      return 'SubPaidAction'
+    case 'DONATE':
+      return 'DonatePaidAction'
+    case 'POLL_VOTE':
+      return 'PollVotePaidAction'
+    default:
+      throw new Error('Unknown action type')
+  }
+}
 
 export default {
+  Query: {
+    paidAction: async (parent, { invoiceId }, { models, me }) => {
+      const invoice = await models.invoice.findUnique({ where: { id: invoiceId, userId: me?.id ?? USER_ID.anon } })
+      if (!invoice) {
+        throw new Error('Invoice not found')
+      }
+
+      return {
+        type: paidActionType(invoice.actionType),
+        invoice,
+        result: invoice.actionResult,
+        paymentMethod: invoice.preimage ? 'PESSIMISTIC' : 'OPTIMISTIC'
+      }
+    }
+  },
   Mutation: {
     retryPaidAction: async (parent, { invoiceId }, { models, me, lnd }) => {
       if (!me) {
@@ -12,24 +50,11 @@ export default {
         throw new Error('Invoice not found')
       }
 
-      let type
-      if (invoice.actionType === 'ITEM_CREATE') {
-        type = 'ItemPaidAction'
-      } else if (invoice.actionType === 'ZAP') {
-        type = 'ItemActPaidAction'
-      } else if (invoice.actionType === 'POLL_VOTE') {
-        type = 'PollVotePaidAction'
-      } else if (invoice.actionType === 'DOWN_ZAP') {
-        type = 'ItemActPaidAction'
-      } else {
-        throw new Error('Unknown action type')
-      }
-
       const result = await retryPaidAction(invoice.actionType, { invoiceId }, { models, me, lnd })
 
       return {
         ...result,
-        type
+        type: paidActionType(invoice.actionType)
       }
     }
   },

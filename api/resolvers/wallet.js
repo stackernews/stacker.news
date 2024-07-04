@@ -1,6 +1,6 @@
 import { getIdentity, createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, authenticatedLndGrpc, deletePayment, getPayment } from 'ln-service'
 import { GraphQLError } from 'graphql'
-import crypto from 'crypto'
+import crypto, { timingSafeEqual } from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
@@ -379,7 +379,7 @@ export default {
     sendToLnAddr,
     cancelInvoice: async (parent, { hash, hmac }, { models, lnd }) => {
       const hmac2 = createHmac(hash)
-      if (hmac !== hmac2) {
+      if (!timingSafeEqual(Buffer.from(hmac), Buffer.from(hmac2))) {
         throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
       }
       await cancelHodlInvoice({ id: hash, lnd })

@@ -9,9 +9,10 @@ import { useFeeButton } from './fee-button'
 import { useShowModal } from './modal'
 
 export class InvoiceCanceledError extends Error {
-  constructor (hash) {
-    super(`invoice canceled: ${hash}`)
+  constructor (hash, actionError) {
+    super(actionError ?? `invoice canceled: ${hash}`)
     this.name = 'InvoiceCanceledError'
+    this.hash = hash
   }
 }
 
@@ -65,10 +66,10 @@ export const useInvoice = () => {
     if (error) {
       throw error
     }
-    const { hash, cancelled } = data.invoice
+    const { hash, cancelled, actionError } = data.invoice
 
-    if (cancelled) {
-      throw new InvoiceCanceledError(hash)
+    if (cancelled || actionError) {
+      throw new InvoiceCanceledError(hash, actionError)
     }
 
     return that(data.invoice)
@@ -187,6 +188,7 @@ export const useQrPayment = () => {
           webLn={false}
           webLnError={webLnError}
           waitFor={waitFor}
+          onCanceled={inv => { onClose(); reject(new InvoiceCanceledError(inv?.hash, inv?.actionError)) }}
           onPayment={() => { paid = true; onClose(); resolve() }}
           poll
         />,

@@ -27,8 +27,8 @@ export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, c
 
   const acts = await tx.itemAct.createManyAndReturn({
     data: [
-      { msats: feeMsats, itemId, userId: me?.id || USER_ID.anon, act: 'FEE', ...invoiceData },
-      { msats: zapMsats, itemId, userId: me?.id || USER_ID.anon, act: 'TIP', ...invoiceData }
+      { msats: feeMsats, itemId, userId: me?.id ?? USER_ID.anon, act: 'FEE', ...invoiceData },
+      { msats: zapMsats, itemId, userId: me?.id ?? USER_ID.anon, act: 'TIP', ...invoiceData }
     ]
   })
 

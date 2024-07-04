@@ -738,34 +738,34 @@ export default {
 
       return await deleteItemByAuthor({ models, id, item: old })
     },
-    upsertLink: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
+    upsertLink: async (parent, { id, ...item }, { me, models, lnd }) => {
       await ssValidate(linkSchema, item, { models, me })
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
-        return await createItem(parent, item, { me, models, lnd, hash, hmac })
+        return await createItem(parent, item, { me, models, lnd })
       }
     },
-    upsertDiscussion: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
+    upsertDiscussion: async (parent, { id, ...item }, { me, models, lnd }) => {
       await ssValidate(discussionSchema, item, { models, me })
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
-        return await createItem(parent, item, { me, models, lnd, hash, hmac })
+        return await createItem(parent, item, { me, models, lnd })
       }
     },
-    upsertBounty: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
+    upsertBounty: async (parent, { id, ...item }, { me, models, lnd }) => {
       await ssValidate(bountySchema, item, { models, me })
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
-        return await createItem(parent, item, { me, models, lnd, hash, hmac })
+        return await createItem(parent, item, { me, models, lnd })
       }
     },
-    upsertPoll: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
+    upsertPoll: async (parent, { id, ...item }, { me, models, lnd }) => {
       const numExistingChoices = id
         ? await models.pollOption.count({
           where: {
@@ -777,13 +777,13 @@ export default {
       await ssValidate(pollSchema, item, { models, me, numExistingChoices })
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
         item.pollCost = item.pollCost || POLL_COST
-        return await createItem(parent, item, { me, models, lnd, hash, hmac })
+        return await createItem(parent, item, { me, models, lnd })
       }
     },
-    upsertJob: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
+    upsertJob: async (parent, { id, ...item }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in to create job', { extensions: { code: 'FORBIDDEN' } })
       }
@@ -797,18 +797,18 @@ export default {
       item.maxBid ??= 0
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
-        return await createItem(parent, item, { me, models, lnd, hash, hmac })
+        return await createItem(parent, item, { me, models, lnd })
       }
     },
-    upsertComment: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
+    upsertComment: async (parent, { id, ...item }, { me, models, lnd }) => {
       await ssValidate(commentSchema, item)
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
-        item = await createItem(parent, item, { me, models, lnd, hash, hmac })
+        item = await createItem(parent, item, { me, models, lnd })
         return item
       }
     },
@@ -824,14 +824,14 @@ export default {
 
       return { id, noteId }
     },
-    pollVote: async (parent, { id, hash, hmac }, { me, models, lnd }) => {
+    pollVote: async (parent, { id }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      return await performPaidAction('POLL_VOTE', { id }, { me, models, lnd, hash, hmac })
+      return await performPaidAction('POLL_VOTE', { id }, { me, models, lnd })
     },
-    act: async (parent, { id, sats, act = 'TIP', idempotent, hash, hmac }, { me, models, lnd, headers }) => {
+    act: async (parent, { id, sats, act = 'TIP', idempotent }, { me, models, lnd, headers }) => {
       assertApiKeyNotPermitted({ me })
       await ssValidate(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
@@ -865,9 +865,9 @@ export default {
       }
 
       if (act === 'TIP') {
-        return await performPaidAction('ZAP', { id, sats }, { me, models, lnd, hash, hmac })
+        return await performPaidAction('ZAP', { id, sats }, { me, models, lnd })
       } else if (act === 'DONT_LIKE_THIS') {
-        return await performPaidAction('DOWN_ZAP', { id, sats }, { me, models, lnd, hash, hmac })
+        return await performPaidAction('DOWN_ZAP', { id, sats }, { me, models, lnd })
       } else {
         throw new GraphQLError('unknown act', { extensions: { code: 'BAD_INPUT' } })
       }
@@ -1213,7 +1213,7 @@ export default {
   }
 }
 
-export const updateItem = async (parent, { sub: subName, forward, ...item }, { me, models, lnd, hash, hmac }) => {
+export const updateItem = async (parent, { sub: subName, forward, ...item }, { me, models, lnd }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { sub: true } })
 
@@ -1276,13 +1276,13 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
   }
   item.uploadIds = uploadIdsFromText(item.text, { models })
 
-  const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd, hash, hmac })
+  const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd })
 
   resultItem.comments = []
   return resultItem
 }
 
-export const createItem = async (parent, { forward, ...item }, { me, models, lnd, hash, hmac }) => {
+export const createItem = async (parent, { forward, ...item }, { me, models, lnd }) => {
   // rename to match column name
   item.subName = item.sub
   delete item.sub
@@ -1307,7 +1307,7 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
   // mark item as created with API key
   item.apiKey = me?.apiKey
 
-  const resultItem = await performPaidAction('ITEM_CREATE', item, { models, me, lnd, hash, hmac })
+  const resultItem = await performPaidAction('ITEM_CREATE', item, { models, me, lnd })
 
   resultItem.comments = []
   return resultItem

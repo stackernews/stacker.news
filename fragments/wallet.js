@@ -19,6 +19,7 @@ export const INVOICE_FIELDS = gql`
     confirmedPreimage
     actionState
     actionType
+    actionError
   }`
 
 export const INVOICE_FULL = gql`

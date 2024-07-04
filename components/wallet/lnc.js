@@ -1,12 +1,11 @@
-import bip39Words from '@/lib/bip39-words'
 import LNC from '@lightninglabs/lnc-web'
 import { Mutex } from 'async-mutex'
-import { string, array, object } from 'yup'
 import { Form, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
 import { InvoiceCanceledError, InvoiceExpiredError } from '@/components/payment'
 import { bolt11Tags } from '@/lib/bolt11'
 import { Status } from '@/components/wallet'
+import { LNCSchema } from '@/lib/validate'
 
 export const name = 'lnc'
 
@@ -58,20 +57,7 @@ export async function validate ({ me, logger, pairingPhrase, password }) {
   }
 }
 
-export const schema = object({
-  pairingPhrase: array()
-    .transform(function (value, originalValue) {
-      if (this.isType(value) && value !== null) {
-        return value
-      }
-      return originalValue ? originalValue.split(/[\s]+/) : []
-    })
-    .of(string().trim().oneOf(bip39Words, ({ value }) => `'${value}' is not a valid pairing phrase word`))
-    .min(2, 'needs at least two words')
-    .max(10, 'max 10 words')
-    .required('required'),
-  password: string()
-})
+export const schema = LNCSchema
 
 const mutex = new Mutex()
 

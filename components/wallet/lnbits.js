@@ -1,5 +1,4 @@
-import { TOR_REGEXP } from '@/lib/url'
-import { object, string } from 'yup'
+import { LNbitsSchema } from '@/lib/validate'
 
 export const name = 'lnbits'
 
@@ -28,30 +27,7 @@ export async function validate ({ logger, url, adminKey }) {
   logger.ok('wallet found')
 }
 
-export const schema = object({
-  url: process.env.NODE_ENV === 'development'
-    ? string()
-      .or([string().matches(/^(http:\/\/)?localhost:\d+$/), string().url()], 'invalid url')
-      .required('required').trim()
-    : string().url().required('required').trim()
-      .test(async (url, context) => {
-        if (TOR_REGEXP.test(url)) {
-          // allow HTTP and HTTPS over Tor
-          if (!/^https?:\/\//.test(url)) {
-            return context.createError({ message: 'http or https required' })
-          }
-          return true
-        }
-        try {
-          // force HTTPS over clearnet
-          await string().https().validate(url)
-        } catch (err) {
-          return context.createError({ message: err.message })
-        }
-        return true
-      }),
-  adminKey: string().length(32)
-})
+export const schema = LNbitsSchema
 
 export async function sendPayment ({ bolt11, url, adminKey }) {
   const response = await postPayment(url, adminKey, bolt11)

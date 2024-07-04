@@ -65,10 +65,10 @@ export default function WalletSettings () {
       >
         <WalletFields wallet={wallet} />
         {wallet.server
-          ? <AutowithdrawSettings />
+          ? <AutowithdrawSettings wallet={wallet} />
           : (
             <ClientCheckbox
-              disabled={false}
+              disabled={!wallet.isConfigured}
               initialValue={wallet.status === Status.Enabled}
               label='enabled'
               name='enabled'

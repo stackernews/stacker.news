@@ -16,7 +16,7 @@ export function autowithdrawInitial ({ me, priority = false }) {
   }
 }
 
-export function AutowithdrawSettings ({ priority }) {
+export function AutowithdrawSettings ({ wallet }) {
   const me = useMe()
   const threshold = autoWithdrawThreshold({ me })
 
@@ -29,6 +29,7 @@ export function AutowithdrawSettings ({ priority }) {
   return (
     <>
       <Checkbox
+        disabled={!wallet.isConfigured}
         label='enabled'
         id='priority'
         name='priority'

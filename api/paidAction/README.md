@@ -34,8 +34,8 @@ Internally, pessimistic flows use hold invoices. If the action doesn't succeed, 
 
    Internally, pessimistic flows make use of a state machine that's transitioned by the invoice payment progress much like optimistic flows, but with extra steps. All pessimistic actions start in a `PENDING_HELD` state and has the following transitions:
 
-- `PENDING_HELD` -> `HELD`: when the invoice is paid and the action's `perform` is run
-- `HELD` -> `PAID`: when the invoice is settled and the action's `onPaid` is called
+- `PENDING_HELD` -> `HELD`: when the invoice is paid and the action's `perform` is run and the invoice is settled
+- `HELD` -> `PAID`: when the action's `onPaid` is called
 - `PENDING_HELD` -> `FAILED`: when the invoice for the action expires or is cancelled
 - `HELD` -> `FAILED`: when the action fails after the invoice is paid
 </details>
@@ -92,7 +92,7 @@ All functions have the following signature: `function(args: Object, context: Obj
 `args` contains the arguments for the action as defined in the `graphql` schema. If the action is optimistic or pessimistic, `args` will contain an `invoiceId` field which can be stored alongside the paid action's data. If this is a call to `retry`, `args` will contain the original `invoiceId` and `newInvoiceId` fields.
 
 `context` contains the following fields:
-- `me`: the user performing the action (null if anonymous)
+- `me`: the user performing the action (undefined if anonymous)
 - `cost`: the cost of the action in msats as a `BigInt`
 - `tx`: the current transaction (for anything that needs to be done atomically with the payment)
 - `models`: the current prisma client (for anything that doesn't need to be done atomically with the payment)

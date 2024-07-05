@@ -32,7 +32,7 @@ export function useWallet (name) {
   const [config, saveConfig, clearConfig] = useConfig(wallet)
   const _isConfigured = isConfigured({ ...wallet, config })
 
-  const status = (config?.enabled || config?.priority) ? Status.Enabled : Status.Initialized
+  const status = config?.enabled ? Status.Enabled : Status.Initialized
   const enabled = status === Status.Enabled
   const priority = config?.priority
 
@@ -81,9 +81,9 @@ export function useWallet (name) {
   }, [_isConfigured, saveConfig, me, logger])
 
   // delete is a reserved keyword
-  const delete_ = useCallback(() => {
+  const delete_ = useCallback(async () => {
     try {
-      clearConfig()
+      await clearConfig()
       logger.ok('wallet detached')
       disable()
     } catch (err) {
@@ -160,14 +160,20 @@ function useServerConfig (wallet) {
   const { data, refetch: refetchConfig } = useQuery(WALLET_BY_TYPE, { variables: { type: wallet?.server?.walletType }, skip: !wallet?.server })
 
   const walletId = data?.walletByType?.id
-  const serverConfig = { id: walletId, priority: data?.walletByType?.priority, ...data?.walletByType?.wallet }
-  const autowithdrawSettings = autowithdrawInitial({ me, priority: serverConfig?.priority })
+  const serverConfig = {
+    id: walletId,
+    priority: data?.walletByType?.priority,
+    enabled: data?.walletByType?.enabled,
+    ...data?.walletByType?.wallet
+  }
+  const autowithdrawSettings = autowithdrawInitial({ me })
   const config = { ...serverConfig, ...autowithdrawSettings }
 
   const saveConfig = useCallback(async ({
     autoWithdrawThreshold,
     autoWithdrawMaxFeePercent,
     priority,
+    enabled,
     ...config
   }) => {
     try {
@@ -179,7 +185,8 @@ function useServerConfig (wallet) {
           settings: {
             autoWithdrawThreshold: Number(autoWithdrawThreshold),
             autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent),
-            priority: !!priority
+            priority,
+            enabled
           }
         }
       })

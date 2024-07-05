@@ -627,7 +627,7 @@ async function upsertWallet (
   }
 
   const { id, ...walletData } = data
-  const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, priority } = settings
+  const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, enabled, priority } = settings
 
   const txs = [
     models.user.update({
@@ -639,24 +639,13 @@ async function upsertWallet (
     })
   ]
 
-  if (priority) {
-    txs.push(
-      models.wallet.updateMany({
-        where: {
-          userId: me.id
-        },
-        data: {
-          priority: 0
-        }
-      }))
-  }
-
   if (id) {
     txs.push(
       models.wallet.update({
         where: { id: Number(id), userId: me.id },
         data: {
-          priority: priority ? 1 : 0,
+          enabled,
+          priority,
           [wallet.field]: {
             update: {
               where: { walletId: Number(id) },
@@ -670,7 +659,8 @@ async function upsertWallet (
     txs.push(
       models.wallet.create({
         data: {
-          priority: Number(priority),
+          enabled,
+          priority,
           userId: me.id,
           type: wallet.type,
           [wallet.field]: {
@@ -694,8 +684,8 @@ async function upsertWallet (
       data: {
         userId: me.id,
         wallet: wallet.type,
-        level: priority ? 'SUCCESS' : 'INFO',
-        message: priority ? 'wallet enabled' : 'wallet disabled'
+        level: enabled ? 'SUCCESS' : 'INFO',
+        message: enabled ? 'wallet enabled' : 'wallet disabled'
       }
     })
   )

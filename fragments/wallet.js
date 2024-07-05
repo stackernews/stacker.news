@@ -160,6 +160,7 @@ export const WALLET_BY_TYPE = gql`
     walletByType(type: $type) {
       id
       createdAt
+      enabled
       priority
       type
       wallet {

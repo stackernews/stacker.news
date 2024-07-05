@@ -64,10 +64,23 @@ export default function Wallet ({ ssrData }) {
         <div className={styles.walletGrid} onDragEnd={onDragEnd}>
           {wallets
             .sort((w1, w2) => {
-              if (!w2.isConfigured || !w2.enabled) {
+              // enabled/configured wallets always come before disabled/unconfigured wallets
+              if ((w1.enabled && !w2.enabled) || (w1.isConfigured && !w2.isConfigured)) {
                 return -1
+              } else if ((w2.enabled && !w1.enabled) || (w2.isConfigured && !w1.isConfigured)) {
+                return 1
               }
-              return w1.priority - w2.priority
+
+              const delta = w1.priority - w2.priority
+              // delta is NaN if either priority is undefined
+              if (!Number.isNaN(delta) && delta !== 0) return delta
+
+              // if both wallets have an id, use that as tie breaker
+              // since that's the order in which autowithdrawals are attempted
+              if (w1.id && w2.id) return Number(w1.id) - Number(w2.id)
+
+              // else we will use the card title as tie breaker
+              return w1.card.title < w2.card.title ? -1 : 1
             })
             .map((w, i) => {
               const draggable = w.isConfigured

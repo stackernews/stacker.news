@@ -30,7 +30,8 @@ export default gql`
     id: ID!
     createdAt: Date!
     type: String!
-    priority: Boolean!
+    enabled: Boolean!
+    priority: Int!
     wallet: WalletDetails!
   }
 
@@ -55,7 +56,8 @@ export default gql`
   input AutowithdrawSettings {
     autoWithdrawThreshold: Int!
     autoWithdrawMaxFeePercent: Float!
-    priority: Boolean!
+    priority: Int
+    enabled: Boolean
   }
 
   type Invoice {

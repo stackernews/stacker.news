@@ -22,9 +22,11 @@ export default function WalletSettings () {
   const wallet = useWallet(name)
 
   const initial = wallet.fields.reduce((acc, field) => {
-    // we still need to run over all wallet fields via reduce
+    // We still need to run over all wallet fields via reduce
     // even though we use wallet.config as the initial value
-    // since wallet.config is empty when wallet is not configured
+    // since wallet.config is empty when wallet is not configured.
+    // Also, wallet.config includes general fields like
+    // 'enabled' and 'priority' which are not defined in wallet.fields.
     return {
       ...acc,
       [field.name]: wallet.config?.[field.name] || ''
@@ -39,22 +41,18 @@ export default function WalletSettings () {
       <Form
         initial={initial}
         schema={wallet.schema}
-        onSubmit={async ({ enabled, ...values }) => {
+        onSubmit={async (values) => {
           try {
             const newConfig = !wallet.isConfigured
 
             // enable wallet if wallet was just configured
-            // local wallets use 'enabled' property
-            // server wallets use 'priority' property
-            // TODO: make both wallet types use 'priority' property
             if (newConfig) {
-              values.priority = true
-              enabled = true
+              values.enabled = true
             }
 
             await wallet.save(values)
 
-            if (enabled) wallet.enable()
+            if (values.enabled) wallet.enable()
             else wallet.disable()
 
             toaster.success('saved settings')
@@ -80,7 +78,7 @@ export default function WalletSettings () {
         <WalletButtonBar
           wallet={wallet} onDelete={async () => {
             try {
-              wallet.delete()
+              await wallet.delete()
               toaster.success('saved settings')
               router.push('/settings/wallets')
             } catch (err) {

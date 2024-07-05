@@ -8,9 +8,8 @@ function autoWithdrawThreshold ({ me }) {
   return isNumber(me?.privates?.autoWithdrawThreshold) ? me?.privates?.autoWithdrawThreshold : 10000
 }
 
-export function autowithdrawInitial ({ me, priority = false }) {
+export function autowithdrawInitial ({ me }) {
   return {
-    priority,
     autoWithdrawThreshold: autoWithdrawThreshold({ me }),
     autoWithdrawMaxFeePercent: isNumber(me?.privates?.autoWithdrawMaxFeePercent) ? me?.privates?.autoWithdrawMaxFeePercent : 1
   }
@@ -31,8 +30,8 @@ export function AutowithdrawSettings ({ wallet }) {
       <Checkbox
         disabled={!wallet.isConfigured}
         label='enabled'
-        id='priority'
-        name='priority'
+        id='enabled'
+        name='enabled'
       />
       <div className='my-4 border border-3 rounded'>
         <div className='p-3'>

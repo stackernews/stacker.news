@@ -22,11 +22,14 @@ export default function WalletSettings () {
   const wallet = useWallet(name)
 
   const initial = wallet.fields.reduce((acc, field) => {
+    // we still need to run over all wallet fields via reduce
+    // even though we use wallet.config as the initial value
+    // since wallet.config is empty when wallet is not configured
     return {
       ...acc,
       [field.name]: wallet.config?.[field.name] || ''
     }
-  }, wallet.server ? wallet.config.autowithdrawSettings : {})
+  }, wallet.config)
 
   return (
     <CenterLayout>

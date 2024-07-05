@@ -32,6 +32,10 @@ export function useWallet (name) {
   const [config, saveConfig, clearConfig] = useConfig(wallet)
   const _isConfigured = isConfigured({ ...wallet, config })
 
+  const status = (config?.enabled || config?.priority) ? Status.Enabled : Status.Initialized
+  const enabled = status === Status.Enabled
+  const priority = config?.priority
+
   const sendPayment = useCallback(async (bolt11) => {
     const hash = bolt11Tags(bolt11).payment_hash
     logger.info('sending payment:', `payment_hash=${hash}`)
@@ -54,6 +58,12 @@ export function useWallet (name) {
     disableWallet(name, me)
     logger.info('wallet disabled')
   }, [name, me, logger])
+
+  const setPriority = useCallback(async (priority) => {
+    if (_isConfigured && priority !== config.priority) {
+      await saveConfig({ ...config, priority })
+    }
+  }, [wallet, config, logger])
 
   const save = useCallback(async (newConfig) => {
     try {
@@ -91,8 +101,11 @@ export function useWallet (name) {
     delete: delete_,
     enable,
     disable,
+    setPriority,
     isConfigured: _isConfigured,
-    status: config?.enabled || config?.priority ? Status.Enabled : Status.Initialized,
+    status,
+    enabled,
+    priority,
     logger
   }
 }
@@ -149,7 +162,7 @@ function useServerConfig (wallet) {
   const walletId = data?.walletByType?.id
   const serverConfig = { id: walletId, priority: data?.walletByType?.priority, ...data?.walletByType?.wallet }
   const autowithdrawSettings = autowithdrawInitial({ me, priority: serverConfig?.priority })
-  const config = { ...serverConfig, autowithdrawSettings }
+  const config = { ...serverConfig, ...autowithdrawSettings }
 
   const saveConfig = useCallback(async ({
     autoWithdrawThreshold,
@@ -208,6 +221,10 @@ export function getEnabledWallet (me) {
       const config = SSR ? null : JSON.parse(window?.localStorage.getItem(key))
       return config?.enabled
     })
+}
+
+export function useWallets () {
+  return WALLET_DEFS.map(def => useWallet(def.name))
 }
 
 function getStorageKey (name, me) {

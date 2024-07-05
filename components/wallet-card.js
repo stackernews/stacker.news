@@ -3,10 +3,10 @@ import styles from '@/styles/wallet.module.css'
 import Plug from '@/svgs/plug.svg'
 import Gear from '@/svgs/settings-5-fill.svg'
 import Link from 'next/link'
-import { useWallet, Status } from './wallet'
+import { Status } from './wallet'
 
-export default function WalletCard ({ name, title, badges, status }) {
-  const wallet = useWallet(name)
+export default function WalletCard ({ wallet }) {
+  const { card: { title, badges } } = wallet
 
   let indicator = styles.disabled
   switch (wallet.status) {
@@ -39,7 +39,7 @@ export default function WalletCard ({ name, title, badges, status }) {
               </Badge>)}
         </Card.Subtitle>
       </Card.Body>
-      <Link href={`/settings/wallets/${name}`}>
+      <Link href={`/settings/wallets/${wallet.name}`}>
         <Card.Footer className={styles.attach}>
           {wallet.isConfigured
             ? <>configure<Gear width={14} height={14} /></>

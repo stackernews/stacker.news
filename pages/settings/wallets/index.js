@@ -3,7 +3,7 @@ import Layout from '@/components/layout'
 import styles from '@/styles/wallet.module.css'
 import { WALLETS as WALLETS_QUERY } from '@/fragments/wallet'
 import Link from 'next/link'
-import { WALLET_DEFS } from '@/components/wallet'
+import { useWallets } from '@/components/wallet'
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 
@@ -12,7 +12,8 @@ const WalletCard = dynamic(() => import('@/components/wallet-card'), { ssr: fals
 export const getServerSideProps = getGetServerSideProps({ query: WALLETS_QUERY, authRequired: true })
 
 export default function Wallet ({ ssrData }) {
-  const [wallets, setWallets] = useState(WALLET_DEFS)
+  const wallets = useWallets()
+
   const [sourceIndex, setSourceIndex] = useState()
   const [targetIndex, setTargetIndex] = useState()
 
@@ -29,20 +30,25 @@ export default function Wallet ({ ssrData }) {
     setTargetIndex(i)
   }
 
-  const onDragEnd = (e) => {
+  const onDragEnd = async (e) => {
     setSourceIndex(null)
     setTargetIndex(null)
+
     if (sourceIndex === targetIndex) return
-    setWallets(wallets => {
-      const copy = [...wallets]
 
-      const [source] = copy.splice(sourceIndex, 1)
-      const newTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
-      const append = sourceIndex < targetIndex
+    const newOrder = [...wallets]
 
-      copy.splice(newTargetIndex + (append ? 1 : 0), 0, source)
-      return copy
-    })
+    const [source] = newOrder.splice(sourceIndex, 1)
+    const newTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
+    const append = sourceIndex < targetIndex
+
+    newOrder.splice(newTargetIndex + (append ? 1 : 0), 0, source)
+
+    await Promise.all(
+      newOrder.map((w, i) =>
+        w.setPriority(i).catch(console.error)
+      )
+    )
   }
 
   return (
@@ -57,17 +63,34 @@ export default function Wallet ({ ssrData }) {
         </div>
         <div className={styles.walletGrid} onDragEnd={onDragEnd}>
           {wallets
-            .map((def, i) =>
-              <div
-                key={def.name}
-                draggable
-                onDragStart={onDragStart(i)}
-                onDragEnter={onDragEnter(i)}
-                className={`${sourceIndex === i ? styles.drag : ''} ${targetIndex === i ? styles.drop : ''}`}
-              >
-                <WalletCard name={def.name} {...def.card} />
-              </div>
+            .sort((w1, w2) => {
+              if (!w2.isConfigured || !w2.enabled) {
+                return -1
+              }
+              return w1.priority - w2.priority
+            })
+            .map((w, i) => {
+              const draggable = w.isConfigured
+              return (
+                <div
+                  key={w.name}
+                  draggable={draggable}
+                  style={{ cursor: draggable ? 'move' : 'default' }}
+                  onDragStart={draggable ? onDragStart(i) : undefined}
+                  onDragEnter={draggable ? onDragEnter(i) : undefined}
+                  className={
+                    !draggable
+                      ? ''
+                      : (`${sourceIndex === i ? styles.drag : ''} ${draggable && targetIndex === i ? styles.drop : ''}`)
+                    }
+                  suppressHydrationWarning
+                >
+                  <WalletCard wallet={w} />
+                </div>
+              )
+            }
             )}
+
         </div>
       </div>
     </Layout>

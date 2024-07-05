@@ -1,5 +1,5 @@
 import { parseNwcUrl } from '@/lib/url'
-import { NWCSchema } from '@/lib/validate'
+import { nwcSchema } from '@/lib/validate'
 import { Relay, finalizeEvent, nip04 } from 'nostr-tools'
 
 export const name = 'nwc'
@@ -18,7 +18,7 @@ export const card = {
   badges: ['send only', 'non-custodialish']
 }
 
-export const schema = NWCSchema
+export const schema = nwcSchema
 
 export async function validate ({ logger, nwcUrl }) {
   const { relayUrl, walletPubkey } = parseNwcUrl(nwcUrl)

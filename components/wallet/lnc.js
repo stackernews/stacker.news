@@ -5,7 +5,7 @@ import CancelButton from '@/components/cancel-button'
 import { InvoiceCanceledError, InvoiceExpiredError } from '@/components/payment'
 import { bolt11Tags } from '@/lib/bolt11'
 import { Status } from '@/components/wallet'
-import { LNCSchema } from '@/lib/validate'
+import { lncSchema } from '@/lib/validate'
 
 export const name = 'lnc'
 
@@ -57,7 +57,7 @@ export async function validate ({ me, logger, pairingPhrase, password }) {
   }
 }
 
-export const schema = LNCSchema
+export const schema = lncSchema
 
 const mutex = new Mutex()
 

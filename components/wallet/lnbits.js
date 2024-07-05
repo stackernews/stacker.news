@@ -1,4 +1,4 @@
-import { LNbitsSchema } from '@/lib/validate'
+import { lnbitsSchema } from '@/lib/validate'
 
 export const name = 'lnbits'
 
@@ -27,7 +27,7 @@ export async function validate ({ logger, url, adminKey }) {
   logger.ok('wallet found')
 }
 
-export const schema = LNbitsSchema
+export const schema = lnbitsSchema
 
 export async function sendPayment ({ bolt11, url, adminKey }) {
   const response = await postPayment(url, adminKey, bolt11)

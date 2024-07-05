@@ -145,7 +145,7 @@ function useConfig (wallet) {
 function isConfigured ({ fields, config }) {
   if (!config || !fields) return false
 
-  // a wallet is configured if all of it's required fields are set
+  // a wallet is configured if all of its required fields are set
   const val = fields.every(field => {
     return field.optional ? true : !!config?.[field.name]
   })

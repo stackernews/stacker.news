@@ -20,7 +20,7 @@ export const card = {
 
 export const schema = nwcSchema
 
-export async function validate ({ logger, nwcUrl }) {
+export async function validate ({ nwcUrl }, { logger }) {
   const { relayUrl, walletPubkey } = parseNwcUrl(nwcUrl)
 
   logger.info(`requesting info event from ${relayUrl}`)
@@ -73,7 +73,7 @@ export async function validate ({ logger, nwcUrl }) {
   }
 }
 
-export async function sendPayment ({ bolt11, nwcUrl, logger }) {
+export async function sendPayment (bolt11, { nwcUrl }, { logger }) {
   const { relayUrl, walletPubkey, secret } = parseNwcUrl(nwcUrl)
 
   const relay = await Relay.connect(relayUrl).catch(() => {

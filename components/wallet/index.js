@@ -40,7 +40,7 @@ export function useWallet (name) {
     const hash = bolt11Tags(bolt11).payment_hash
     logger.info('sending payment:', `payment_hash=${hash}`)
     try {
-      const { preimage } = await wallet.sendPayment({ bolt11, ...config, logger })
+      const { preimage } = await wallet.sendPayment(bolt11, config, { logger })
       logger.ok('payment successful:', `payment_hash=${hash}`, `preimage=${preimage}`)
     } catch (err) {
       const message = err.message || err.toString?.()
@@ -70,7 +70,7 @@ export function useWallet (name) {
       // validate should log custom INFO and OK message
       // validate is optional since validation might happen during save on server
       // TODO: add timeout
-      await wallet.validate?.({ me, logger, ...newConfig })
+      await wallet.validate?.(newConfig, { me, logger })
       await saveConfig(newConfig)
       logger.ok(_isConfigured ? 'wallet updated' : 'wallet attached')
     } catch (err) {

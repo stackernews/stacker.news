@@ -21,18 +21,18 @@ export const card = {
   badges: ['send only', 'non-custodialish']
 }
 
-export async function validate ({ logger, url, adminKey }) {
+export async function validate ({ url, adminKey }, { logger }) {
   logger.info('trying to fetch wallet')
-  await getWallet(url, adminKey)
+  await getWallet({ url, adminKey })
   logger.ok('wallet found')
 }
 
 export const schema = lnbitsSchema
 
-export async function sendPayment ({ bolt11, url, adminKey }) {
-  const response = await postPayment(url, adminKey, bolt11)
+export async function sendPayment (bolt11, { url, adminKey }) {
+  const response = await postPayment(bolt11, { url, adminKey })
 
-  const checkResponse = await getPayment(url, adminKey, response.payment_hash)
+  const checkResponse = await getPayment(response.payment_hash, { url, adminKey })
   if (!checkResponse.preimage) {
     throw new Error('No preimage')
   }
@@ -41,8 +41,8 @@ export async function sendPayment ({ bolt11, url, adminKey }) {
   return { preimage }
 }
 
-async function getWallet (baseUrl, adminKey) {
-  const url = baseUrl.replace(/\/+$/, '')
+async function getWallet ({ url, adminKey }) {
+  url = url.replace(/\/+$/, '')
   const path = '/api/v1/wallet'
 
   const headers = new Headers()
@@ -60,8 +60,8 @@ async function getWallet (baseUrl, adminKey) {
   return wallet
 }
 
-async function postPayment (baseUrl, adminKey, bolt11) {
-  const url = baseUrl.replace(/\/+$/, '')
+async function postPayment (bolt11, { url, adminKey }) {
+  url = url.replace(/\/+$/, '')
   const path = '/api/v1/payments'
 
   const headers = new Headers()
@@ -81,8 +81,8 @@ async function postPayment (baseUrl, adminKey, bolt11) {
   return payment
 }
 
-async function getPayment (baseUrl, adminKey, paymentHash) {
-  const url = baseUrl.replace(/\/+$/, '')
+async function getPayment (paymentHash, { url, adminKey }) {
+  url = url.replace(/\/+$/, '')
   const path = `/api/v1/payments/${paymentHash}`
 
   const headers = new Headers()

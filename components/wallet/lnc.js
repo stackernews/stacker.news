@@ -33,7 +33,7 @@ export const card = {
 
 const XXX_DEFAULT_PASSWORD = 'password'
 
-export async function validate ({ me, logger, pairingPhrase, password }) {
+export async function validate ({ pairingPhrase, password }, { me, logger }) {
   const lnc = await getLNC({ me })
   try {
     lnc.credentials.pairingPhrase = pairingPhrase
@@ -61,7 +61,7 @@ export const schema = lncSchema
 
 const mutex = new Mutex()
 
-async function unlock ({ lnc, password, status, showModal, logger }) {
+async function unlock ({ password }, { lnc, status, showModal, logger }) {
   if (status === Status.Enabled) return password
 
   return await new Promise((resolve, reject) => {
@@ -103,7 +103,7 @@ async function unlock ({ lnc, password, status, showModal, logger }) {
 }
 
 // FIXME: pass me, status, showModal in useWallet hook
-export async function sendPayment ({ bolt11, pairingPhrase, password: configuredPassword, me, status, showModal, logger }) {
+export async function sendPayment (bolt11, { pairingPhrase, password: configuredPassword }, { me, status, showModal, logger }) {
   const hash = bolt11Tags(bolt11).payment_hash
 
   return await mutex.runExclusive(async () => {
@@ -111,7 +111,7 @@ export async function sendPayment ({ bolt11, pairingPhrase, password: configured
     try {
       lnc = await getLNC({ me })
       // TODO: pass status, showModal to unlock
-      const password = await unlock({ lnc, password: configuredPassword, status, showModal, logger })
+      const password = await unlock({ password: configuredPassword }, { lnc, status, showModal, logger })
       // credentials need to be decrypted before connecting after a disconnect
       lnc.credentials.password = password || XXX_DEFAULT_PASSWORD
       await lnc.connect()

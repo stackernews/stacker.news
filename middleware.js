@@ -9,8 +9,6 @@ const territoryPattern = new URLPattern({ pathname: '/~:name([\\w_]+){/*}?' })
 const SN_REFERRER = 'sn_referrer'
 // we use this to hold /r/... referrers through the redirect
 const SN_REFERRER_NONCE = 'sn_referrer_nonce'
-// key for item, comment, profile, or territory referrals
-const SN_REFERRER_CONTENT = 'sn_referrer_content'
 
 // we store the referrers in cookies for a future signup event
 // we pass the referrers in the request headers so we can use them in referral rewards for logged in stackers
@@ -25,8 +23,14 @@ function referrerMiddleware (request) {
     url.hash = request.nextUrl.hash
 
     const response = NextResponse.redirect(url)
-    response.cookies.set(SN_REFERRER, referrer)
-    // only keep the referrer nonce for one page load
+    // explicit referrers are set for a day and can only be overriden by other explicit
+    // referrers. Content referrers do not override explicit referrers because
+    // explicit referees might click around before signing up.
+    response.cookies.set(SN_REFERRER, referrer, { maxAge: 60 * 60 * 24 })
+    // store the explicit referrer for one page load
+    // this allows us to attribute both explicit and implicit referrers after the redirect
+    // e.g. items/<num>/r/<referrer> links should attribute both the item op and the referrer
+    // without this the /r/<referrer> would be lost on redirect
     response.cookies.set(SN_REFERRER_NONCE, referrer, { maxAge: 1 })
     return response
   }
@@ -49,11 +53,10 @@ function referrerMiddleware (request) {
 
   const referrers = [request.cookies.get(SN_REFERRER_NONCE)?.value]
   if (contentReferrer) {
-    response.cookies.set(SN_REFERRER_CONTENT, contentReferrer)
     referrers.push(contentReferrer)
-    // if we don't already have a normal referrer, give them the content referrer as one
+    // if we don't already have an explicit referrer, give them the content referrer as one
     if (!request.cookies.has(SN_REFERRER)) {
-      response.cookies.set(SN_REFERRER, contentReferrer)
+      response.cookies.set(SN_REFERRER, contentReferrer, { maxAge: 60 * 60 * 24 })
     }
   }
 

@@ -107,13 +107,6 @@ mutation upsertWalletLNAddr($id: ID, $address: String!, $settings: AutowithdrawS
 }
 `
 
-export const UPSERT_WALLET_LND =
-gql`
-mutation upsertWalletLND($id: ID, $socket: String!, $macaroon: String!, $cert: String, $settings: AutowithdrawSettings!) {
-  upsertWalletLND(id: $id, socket: $socket, macaroon: $macaroon, cert: $cert, settings: $settings)
-}
-`
-
 export const UPSERT_WALLET_CLN =
 gql`
 mutation upsertWalletCLN($id: ID, $socket: String!, $rune: String!, $cert: String, $settings: AutowithdrawSettings!) {

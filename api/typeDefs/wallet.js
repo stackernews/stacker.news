@@ -1,4 +1,22 @@
 import { gql } from 'graphql-tag'
+import { SERVER_WALLET_DEFS } from '@/components/wallet'
+
+function walletTypeDefs () {
+  const typeDefs = SERVER_WALLET_DEFS.map(
+    (w) => {
+      let args = 'id: ID, '
+      args += w.fields.map(f => {
+        let arg = `${f.name}: String`
+        if (!f.optional) {
+          arg += '!'
+        }
+        return arg
+      }).join(', ')
+      args += ', settings: AutowithdrawSettings!'
+      return `${w.server.resolverName}(${args}): Boolean`
+    }).join('\n')
+  return typeDefs
+}
 
 export default gql`
   extend type Query {
@@ -19,7 +37,7 @@ export default gql`
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
     cancelInvoice(hash: String!, hmac: String!): Invoice!
     dropBolt11(id: ID): Withdrawl
-    upsertWalletLND(id: ID, socket: String!, macaroon: String!, cert: String, settings: AutowithdrawSettings!): Boolean
+    ${walletTypeDefs()}
     upsertWalletCLN(id: ID, socket: String!, rune: String!, cert: String, settings: AutowithdrawSettings!): Boolean
     upsertWalletLNAddr(id: ID, address: String!, settings: AutowithdrawSettings!): Boolean
     removeWallet(id: ID!): Boolean

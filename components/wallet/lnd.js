@@ -1,4 +1,3 @@
-import { UPSERT_WALLET_LND } from '@/fragments/wallet'
 import { LNDAutowithdrawSchema } from '@/lib/validate'
 
 export const name = 'lnd'
@@ -44,5 +43,5 @@ export const schema = LNDAutowithdrawSchema
 
 export const server = {
   walletType: 'LND',
-  mutation: UPSERT_WALLET_LND
+  resolverName: 'upsertWalletLND'
 }

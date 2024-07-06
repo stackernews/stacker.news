@@ -9,12 +9,14 @@ import * as lnbits from '@/components/wallet/lnbits'
 import * as nwc from '@/components/wallet/nwc'
 import * as lnc from '@/components/wallet/lnc'
 import * as lnd from '@/components/wallet/lnd'
-import { useApolloClient, useQuery } from '@apollo/client'
+import { gql, useApolloClient, useQuery } from '@apollo/client'
 import { REMOVE_WALLET, WALLET_BY_TYPE } from '@/fragments/wallet'
 import { autowithdrawInitial } from '../autowithdraw-shared'
 
 // wallet definitions
 export const WALLET_DEFS = [lnbits, nwc, lnc, lnd]
+
+export const SERVER_WALLET_DEFS = WALLET_DEFS.filter(w => w.server)
 
 export const Status = {
   Initialized: 'Initialized',
@@ -177,8 +179,9 @@ function useServerConfig (wallet) {
     ...config
   }) => {
     try {
+      const mutation = generateMutation(wallet)
       return await client.mutate({
-        mutation: wallet.server.mutation,
+        mutation,
         variables: {
           id: walletId,
           ...config,
@@ -209,6 +212,28 @@ function useServerConfig (wallet) {
   }, [client, walletId])
 
   return [config, saveConfig, clearConfig]
+}
+
+function generateMutation (wallet) {
+  const { resolverName } = wallet.server
+
+  let headerArgs = '$id: ID, '
+  headerArgs += wallet.fields.map(f => {
+    let arg = `$${f.name}: String`
+    if (!f.optional) {
+      arg += '!'
+    }
+    return arg
+  }).join(', ')
+  headerArgs += ', $settings: AutowithdrawSettings!'
+
+  let inputArgs = 'id: $id, '
+  inputArgs += wallet.fields.map(f => `${f.name}: $${f.name}`).join(', ')
+  inputArgs += ', settings: $settings'
+
+  return gql`mutation ${resolverName}(${headerArgs}) {
+    ${resolverName}(${inputArgs})
+  }`
 }
 
 export function getWalletByName (name) {

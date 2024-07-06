@@ -16,8 +16,6 @@ import { autowithdrawInitial } from '../autowithdraw-shared'
 // wallet definitions
 export const WALLET_DEFS = [lnbits, nwc, lnc, lnd]
 
-export const SERVER_WALLET_DEFS = WALLET_DEFS.filter(w => w.server)
-
 export const Status = {
   Initialized: 'Initialized',
   Enabled: 'Enabled',

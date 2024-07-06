@@ -6,7 +6,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '@/lib/format'
-import { CLNAutowithdrawSchema, LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
+import { CLNAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, Wallet } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
@@ -14,6 +14,30 @@ import assertApiKeyNotPermitted from './apiKey'
 import { createInvoice as createInvoiceCLN } from '@/lib/cln'
 import { bolt11Tags } from '@/lib/bolt11'
 import { checkInvoice } from 'worker/wallet'
+import * as lnd from '@/components/wallet/lnd'
+
+export const SERVER_WALLET_DEFS = [lnd]
+
+function walletResolvers () {
+  const resolvers = {}
+  for (const {
+    schema,
+    server: { walletType, walletField, resolverName, testConnect }
+  } of SERVER_WALLET_DEFS) {
+    resolvers[resolverName] = async (parent, { settings, ...data }, { me, models }) => {
+      return await upsertWallet({
+        schema,
+        wallet: { field: walletField, type: walletType },
+        testConnect: (data) =>
+          testConnect(
+            data,
+            { me, models, addWalletLog, lnService: { authenticatedLndGrpc, createInvoice } }
+          )
+      }, { settings, data }, { me, models })
+    }
+  }
+  return resolvers
+}
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -424,41 +448,7 @@ export default {
       }
       return { id }
     },
-    upsertWalletLND: async (parent, { settings, ...data }, { me, models }) => {
-      // make sure inputs are base64
-      data.macaroon = ensureB64(data.macaroon)
-      data.cert = ensureB64(data.cert)
-
-      const wallet = Wallet.LND
-      return await upsertWallet(
-        {
-          schema: LNDAutowithdrawSchema,
-          wallet,
-          testConnect: async ({ cert, macaroon, socket }) => {
-            try {
-              const { lnd } = await authenticatedLndGrpc({
-                cert,
-                macaroon,
-                socket
-              })
-              const inv = await createInvoice({
-                description: 'SN connection test',
-                lnd,
-                tokens: 0,
-                expires_at: new Date()
-              })
-              // we wrap both calls in one try/catch since connection attempts happen on RPC calls
-              await addWalletLog({ wallet, level: 'SUCCESS', message: 'connected to LND' }, { me, models })
-              return inv
-            } catch (err) {
-              // LND errors are in this shape: [code, type, { err: { code, details, metadata } }]
-              const details = err[2]?.err?.details || err.message || err.toString?.()
-              throw new Error(details)
-            }
-          }
-        },
-        { settings, data }, { me, models })
-    },
+    ...walletResolvers(),
     upsertWalletCLN: async (parent, { settings, ...data }, { me, models }) => {
       data.cert = ensureB64(data.cert)
 

@@ -1,5 +1,5 @@
 import { gql } from 'graphql-tag'
-import { SERVER_WALLET_DEFS } from '@/components/wallet'
+import { SERVER_WALLET_DEFS } from '@/api/resolvers/wallet'
 
 function walletTypeDefs () {
   const typeDefs = SERVER_WALLET_DEFS.map(

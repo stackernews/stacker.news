@@ -13,8 +13,6 @@ const SN_REFERRER_NONCE = 'sn_referrer_nonce'
 // we store the referrers in cookies for a future signup event
 // we pass the referrers in the request headers so we can use them in referral rewards for logged in stackers
 function referrerMiddleware (request) {
-  const response = NextResponse.next()
-
   if (referrerPattern.test(request.url)) {
     const { pathname, referrer } = referrerPattern.exec(request.url).pathname.groups
 
@@ -51,27 +49,25 @@ function referrerMiddleware (request) {
     contentReferrer = `territory-${name}`
   }
 
-  const referrers = [request.cookies.get(SN_REFERRER_NONCE)?.value]
-  if (contentReferrer) {
-    referrers.push(contentReferrer)
-    // if we don't already have an explicit referrer, give them the content referrer as one
-    if (!request.cookies.has(SN_REFERRER)) {
-      response.cookies.set(SN_REFERRER, contentReferrer, { maxAge: 60 * 60 * 24 })
-    }
-  }
-
   // pass the referrers to SSR in the request headers
-  const filtered = referrers.filter(Boolean)
   const requestHeaders = new Headers(request.headers)
-  if (filtered.length) {
-    requestHeaders.set('x-stacker-news-referrer', filtered.join('; '))
+  const referrers = [request.cookies.get(SN_REFERRER_NONCE)?.value, contentReferrer].filter(Boolean)
+  if (referrers.length) {
+    requestHeaders.set('x-stacker-news-referrer', referrers.join('; '))
   }
 
-  return NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: requestHeaders
     }
   })
+
+  // if we don't already have an explicit referrer, give them the content referrer as one
+  if (!request.cookies.has(SN_REFERRER) && contentReferrer) {
+    response.cookies.set(SN_REFERRER, contentReferrer, { maxAge: 60 * 60 * 24 })
+  }
+
+  return response
 }
 
 export function middleware (request) {

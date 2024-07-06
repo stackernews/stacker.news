@@ -88,7 +88,7 @@ function oneDayReferral (request, { me }) {
         typeId: sub.name
       })
     } else if (referrer.startsWith('comment-')) {
-      prismaPromise = models.item.findUnique({ where: { id: parseInt(referrer.slice(7)) } })
+      prismaPromise = models.item.findUnique({ where: { id: parseInt(referrer.slice(8)) } })
       getData = item => ({
         referrerId: item.userId,
         refereeId: parseInt(me.id),
@@ -107,9 +107,10 @@ function oneDayReferral (request, { me }) {
 
     prismaPromise?.then(ref => {
       if (ref && getData) {
-        models.oneDayReferral.create({
-          data: getData(ref)
-        }).catch(console.error)
+        const data = getData(ref)
+        // can't refer yourself
+        if (data.refereeId === data.referrerId) return
+        models.oneDayReferral.create({ data }).catch(console.error)
       }
     }).catch(console.error)
   }

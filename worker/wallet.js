@@ -253,7 +253,7 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
       if (dbWdrwl.wallet) {
         // this was an autowithdrawal
         const message = `autowithdrawal of ${numWithUnits(msatsToSats(paid), { abbreviate: false })} with ${numWithUnits(msatsToSats(fee), { abbreviate: false })} as fee`
-        await addWalletLog({ wallet: dbWdrwl.wallet.type, level: 'SUCCESS', message }, { models, me: { id: dbWdrwl.userId } })
+        await addWalletLog({ wallet: dbWdrwl.wallet, level: 'SUCCESS', message }, { models, me: { id: dbWdrwl.userId } })
       }
     }
   } else if (wdrwl?.is_failed || notFound) {

@@ -20,10 +20,13 @@ export const SERVER_WALLET_DEFS = [lnd]
 
 function walletResolvers () {
   const resolvers = {}
-  for (const {
-    schema,
-    server: { walletType, walletField, resolverName, testConnect }
-  } of SERVER_WALLET_DEFS) {
+  for (
+    const w of SERVER_WALLET_DEFS) {
+    const {
+      schema,
+      server: { walletType, walletField, resolverName, testConnect }
+      // app and worker import file differently
+    } = w.default || w
     resolvers[resolverName] = async (parent, { settings, ...data }, { me, models }) => {
       return await upsertWallet({
         schema,

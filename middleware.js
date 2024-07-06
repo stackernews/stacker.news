@@ -1,23 +1,78 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, URLPattern } from 'next/server'
 
-const referrerRegex = /(\/.*)?\/r\/([\w_]+)/
+const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
+const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+)' })
+const profilePattern = new URLPattern({ pathname: '/:name([\\w_]+){/:type(\\w+)}?' })
+const territoryPattern = new URLPattern({ pathname: '/~:name([\\w_]+){/*}?' })
+
+// key for /r/... link referrers
+const SN_REFERRER = 'sn_referrer'
+// we use this to hold /r/... referrers through the redirect
+const SN_REFERRER_NONCE = 'sn_referrer_nonce'
+// key for item, comment, profile, or territory referrals
+const SN_REFERRER_CONTENT = 'sn_referrer_content'
+
+// we store the referrers in cookies for a future signup event
+// we pass the referrers in the request headers so we can use them in referral rewards for logged in stackers
 function referrerMiddleware (request) {
-  const m = referrerRegex.exec(request.nextUrl.pathname)
+  const response = NextResponse.next()
 
-  const url = new URL(m[1] || '/', request.url)
-  url.search = request.nextUrl.search
-  url.hash = request.nextUrl.hash
+  if (referrerPattern.test(request.url)) {
+    const { pathname, referrer } = referrerPattern.exec(request.url).pathname.groups
 
-  const resp = NextResponse.redirect(url)
-  resp.cookies.set('sn_referrer', m[2])
-  return resp
+    const url = new URL(pathname || '/', request.url)
+    url.search = request.nextUrl.search
+    url.hash = request.nextUrl.hash
+
+    const response = NextResponse.redirect(url)
+    response.cookies.set(SN_REFERRER, referrer)
+    // only keep the referrer nonce for one page load
+    response.cookies.set(SN_REFERRER_NONCE, referrer, { maxAge: 1 })
+    return response
+  }
+
+  let contentReferrer
+  if (itemPattern.test(request.url)) {
+    if (request.nextUrl.searchParams.has('commentId')) {
+      contentReferrer = `comment-${request.nextUrl.searchParams.get('commentId')}`
+    } else {
+      const { id } = itemPattern.exec(request.url).pathname.groups
+      contentReferrer = `item-${id}`
+    }
+  } else if (profilePattern.test(request.url)) {
+    const { name } = profilePattern.exec(request.url).pathname.groups
+    contentReferrer = `profile-${name}`
+  } else if (territoryPattern.test(request.url)) {
+    const { name } = territoryPattern.exec(request.url).pathname.groups
+    contentReferrer = `territory-${name}`
+  }
+
+  const referrers = [request.cookies.get(SN_REFERRER_NONCE)?.value]
+  if (contentReferrer) {
+    response.cookies.set(SN_REFERRER_CONTENT, contentReferrer)
+    referrers.push(contentReferrer)
+    // if we don't already have a normal referrer, give them the content referrer as one
+    if (!request.cookies.has(SN_REFERRER)) {
+      response.cookies.set(SN_REFERRER, contentReferrer)
+    }
+  }
+
+  // pass the referrers to SSR in the request headers
+  const filtered = referrers.filter(Boolean)
+  const requestHeaders = new Headers(request.headers)
+  if (filtered.length) {
+    requestHeaders.set('x-stacker-news-referrer', filtered.join('; '))
+  }
+
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders
+    }
+  })
 }
 
 export function middleware (request) {
-  let resp = NextResponse.next()
-  if (referrerRegex.test(request.nextUrl.pathname)) {
-    resp = referrerMiddleware(request)
-  }
+  const resp = referrerMiddleware(request)
 
   const isDev = process.env.NODE_ENV === 'development'
 

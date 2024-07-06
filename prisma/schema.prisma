@@ -127,11 +127,38 @@ model User {
   Reminder                  Reminder[]
   PollBlindVote             PollBlindVote[]
   ItemUserAgg               ItemUserAgg[]
+  oneDayReferrals           OneDayReferral[]     @relation("OneDayReferral_referrer")
+  oneDayReferrees           OneDayReferral[]     @relation("OneDayReferral_referrees")
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
   @@map("users")
+}
+
+enum OneDayReferralType {
+  REFERRAL
+  ITEM
+  COMMENT
+  PROFILE
+  TERRITORY
+}
+
+model OneDayReferral {
+  id         Int                @id @default(autoincrement())
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @default(now()) @updatedAt @map("updated_at")
+  referrerId Int
+  refereeId  Int
+  referrer   User               @relation("OneDayReferral_referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referee    User               @relation("OneDayReferral_referrees", fields: [refereeId], references: [id], onDelete: Cascade)
+  type       OneDayReferralType
+  typeId     String
+
+  @@index([createdAt])
+  @@index([referrerId])
+  @@index([refereeId])
+  @@index([type, typeId])
 }
 
 enum WalletType {

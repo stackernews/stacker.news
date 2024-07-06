@@ -86,11 +86,10 @@ export const server = {
       throw new Error(details)
     }
   },
-  // TODO: use this instead of `autowithdrawLND` in worker/autowithdraw.js
   createInvoice: async (
     amount,
     { cert, macaroon, socket },
-    { me, models, addWalletLog, lnService: { authenticatedLndGrpc, createInvoice } }
+    { me, lnService: { authenticatedLndGrpc, createInvoice } }
   ) => {
     const { lnd } = await authenticatedLndGrpc({
       cert,

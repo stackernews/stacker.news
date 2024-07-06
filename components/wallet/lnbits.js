@@ -23,13 +23,18 @@ export const card = {
 
 export async function validate ({ url, adminKey }, { logger }) {
   logger.info('trying to fetch wallet')
+
+  url = url.replace(/\/+$/, '')
   await getWallet({ url, adminKey })
+
   logger.ok('wallet found')
 }
 
 export const schema = lnbitsSchema
 
 export async function sendPayment (bolt11, { url, adminKey }) {
+  url = url.replace(/\/+$/, '')
+
   const response = await postPayment(bolt11, { url, adminKey })
 
   const checkResponse = await getPayment(response.payment_hash, { url, adminKey })
@@ -42,7 +47,6 @@ export async function sendPayment (bolt11, { url, adminKey }) {
 }
 
 async function getWallet ({ url, adminKey }) {
-  url = url.replace(/\/+$/, '')
   const path = '/api/v1/wallet'
 
   const headers = new Headers()
@@ -61,7 +65,6 @@ async function getWallet ({ url, adminKey }) {
 }
 
 async function postPayment (bolt11, { url, adminKey }) {
-  url = url.replace(/\/+$/, '')
   const path = '/api/v1/payments'
 
   const headers = new Headers()
@@ -82,7 +85,6 @@ async function postPayment (bolt11, { url, adminKey }) {
 }
 
 async function getPayment (paymentHash, { url, adminKey }) {
-  url = url.replace(/\/+$/, '')
   const path = `/api/v1/payments/${paymentHash}`
 
   const headers = new Headers()

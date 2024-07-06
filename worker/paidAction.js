@@ -45,7 +45,12 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, toDa
       }
 
       await onTransition({ lndInvoice, dbInvoice, tx })
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+      // we only need to do this because we settleHodlInvoice inside the transaction
+      // ... and it's prone to timing out
+      timeout: 60000
+    })
 
     console.log('transition succeeded')
   } catch (e) {
@@ -98,7 +103,10 @@ export async function holdAction ({ data: { invoiceId }, models, lnd, boss }) {
     fromState: 'PENDING_HELD',
     toState: 'HELD',
     toData: invoice => {
-      if (!invoice.is_held) {
+      // XXX allow both held and confirmed invoices to do this transition
+      // because it's possible for a prior settleHodlInvoice to have succeeded but
+      // timeout and rollback the transaction, leaving the invoice in a pending_held state
+      if (!(invoice.is_held || invoice.is_confirmed)) {
         throw new Error('invoice is not held')
       }
       return {
@@ -122,7 +130,8 @@ export async function holdAction ({ data: { invoiceId }, models, lnd, boss }) {
         await tx.invoice.update({
           where: { id: dbInvoice.id },
           data: {
-            actionResult: result
+            actionResult: result,
+            actionError: null
           }
         })
       } catch (e) {

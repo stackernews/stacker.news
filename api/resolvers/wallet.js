@@ -745,7 +745,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
 }
 
 export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },
-  { me, models, lnd, headers, autoWithdraw = false }) {
+  { me, models, lnd, headers, walletId }) {
   if (!me) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
   }
@@ -788,7 +788,7 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
   try {
     const decoded = await decodePaymentRequest({ lnd, request: res.pr })
     const ourPubkey = (await getIdentity({ lnd })).public_key
-    if (autoWithdraw && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
+    if (walletId && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
       // unset lnaddr so we don't trigger another withdrawal with same destination
       await models.wallet.deleteMany({
         where: { userId: me.id, type: Wallet.LnAddr.type }
@@ -804,5 +804,5 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
   }
 
   // take pr and createWithdrawl
-  return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers, autoWithdraw })
+  return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers, walletId })
 }

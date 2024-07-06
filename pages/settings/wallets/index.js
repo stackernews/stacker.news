@@ -1,7 +1,6 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import Layout from '@/components/layout'
 import styles from '@/styles/wallet.module.css'
-import { WALLETS as WALLETS_QUERY } from '@/fragments/wallet'
 import Link from 'next/link'
 import { useWallets } from '@/components/wallet'
 import { useState } from 'react'
@@ -9,7 +8,7 @@ import dynamic from 'next/dynamic'
 
 const WalletCard = dynamic(() => import('@/components/wallet-card'), { ssr: false })
 
-export const getServerSideProps = getGetServerSideProps({ query: WALLETS_QUERY, authRequired: true })
+export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function Wallet ({ ssrData }) {
   const wallets = useWallets()

@@ -97,7 +97,7 @@ export default function WalletSettings () {
 }
 
 function WalletFields ({ wallet: { config, fields } }) {
-  return fields.map(({ name, label, type, help, optional, hint, ...props }, i) => {
+  return fields.map(({ name, label, type, help, optional, ...props }, i) => {
     const rawProps = {
       ...props,
       name,

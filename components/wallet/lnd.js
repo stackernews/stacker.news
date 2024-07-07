@@ -39,6 +39,7 @@ export const fields = [
       'optional if from ',
       React.createElement('a', { href: 'https://en.wikipedia.org/wiki/Certificate_authority', target: '_blank', rel: 'noreferrer' }, 'CA'),
       ' (e.g. voltage)'),
+    hint: 'hex or base64 encoded',
     clear: true
   }
 ]

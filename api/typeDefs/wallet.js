@@ -38,7 +38,6 @@ export default gql`
     cancelInvoice(hash: String!, hmac: String!): Invoice!
     dropBolt11(id: ID): Withdrawl
     ${walletTypeDefs()}
-    upsertWalletCLN(id: ID, socket: String!, rune: String!, cert: String, settings: AutowithdrawSettings!): Boolean
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(wallet: String): Boolean
   }

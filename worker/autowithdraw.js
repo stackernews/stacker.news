@@ -1,8 +1,7 @@
 import { authenticatedLndGrpc, createInvoice as lndCreateInvoice, getIdentity, decodePaymentRequest } from 'ln-service'
 import { msatsToSats, satsToMsats } from '@/lib/format'
-// import { datePivot } from '@/lib/time'
-import { createWithdrawal, /* sendToLnAddr, */ addWalletLog, SERVER_WALLET_DEFS } from '@/api/resolvers/wallet'
-// import { createInvoice as createInvoiceCLN } from '@/lib/cln'
+import { createWithdrawal, addWalletLog, SERVER_WALLET_DEFS } from '@/api/resolvers/wallet'
+import { createInvoice as clnCreateInvoice } from '@/lib/cln'
 
 export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const user = await models.user.findUnique({ where: { id } })
@@ -106,41 +105,11 @@ async function autowithdraw (
         createInvoice: lndCreateInvoice,
         getIdentity,
         decodePaymentRequest
+      },
+      cln: {
+        createInvoice: clnCreateInvoice
       }
     })
 
   return await createWithdrawal(null, { invoice: bolt11, maxFee }, { me, models, lnd, walletId: wallet.id })
 }
-
-// async function autowithdrawCLN ({ amount, maxFee }, { me, models, lnd }) {
-//   if (!me) {
-//     throw new Error('me not specified')
-//   }
-//
-//   const wallet = await models.wallet.findFirst({
-//     where: {
-//       userId: me.id,
-//       type: Wallet.CLN.type
-//     },
-//     include: {
-//       walletCLN: true
-//     }
-//   })
-//
-//   if (!wallet || !wallet.walletCLN) {
-//     throw new Error('no cln wallet found')
-//   }
-//
-//   const { walletCLN: { cert, rune, socket } } = wallet
-//
-//   const inv = await createInvoiceCLN({
-//     socket,
-//     rune,
-//     cert,
-//     description: me.hideInvoiceDesc ? undefined : 'autowithdraw to CLN from SN',
-//     msats: amount + 'sat',
-//     expiry: 360
-//   })
-//
-//   return await createWithdrawal(null, { invoice: inv.bolt11, maxFee }, { me, models, lnd, walletId: wallet.id })
-// }

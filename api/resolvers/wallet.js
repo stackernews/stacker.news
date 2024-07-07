@@ -4,20 +4,21 @@ import crypto, { timingSafeEqual } from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
-import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '@/lib/format'
-import { CLNAutowithdrawSchema, amountSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
-import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, Wallet } from '@/lib/constants'
+import { msatsToSats, msatsToSatsDecimal } from '@/lib/format'
+import { amountSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
+import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
-import { createInvoice as createInvoiceCLN } from '@/lib/cln'
+import { createInvoice as clnCreateInvoice } from '@/lib/cln'
 import { bolt11Tags } from '@/lib/bolt11'
 import { checkInvoice } from 'worker/wallet'
 import * as lnd from '@/components/wallet/lnd'
 import * as lnAddr from '@/components/wallet/lightning-address'
+import * as cln from '@/components/wallet/cln'
 import { fetchLnAddrInvoice } from '@/lib/wallet'
 
-export const SERVER_WALLET_DEFS = [lnd, lnAddr]
+export const SERVER_WALLET_DEFS = [lnd, lnAddr, cln]
 
 function walletResolvers () {
   const resolvers = {}
@@ -35,7 +36,13 @@ function walletResolvers () {
         testConnect: (data) =>
           testConnect(
             data,
-            { me, models, addWalletLog, lnService: { authenticatedLndGrpc, createInvoice } }
+            {
+              me,
+              models,
+              addWalletLog,
+              lnService: { authenticatedLndGrpc, createInvoice },
+              cln: { createInvoice: clnCreateInvoice }
+            }
           )
       }, { settings, data }, { me, models })
     }
@@ -453,35 +460,6 @@ export default {
       return { id }
     },
     ...walletResolvers(),
-    upsertWalletCLN: async (parent, { settings, ...data }, { me, models }) => {
-      data.cert = ensureB64(data.cert)
-
-      const wallet = Wallet.CLN
-      return await upsertWallet(
-        {
-          schema: CLNAutowithdrawSchema,
-          wallet,
-          testConnect: async ({ socket, rune, cert }) => {
-            try {
-              const inv = await createInvoiceCLN({
-                socket,
-                rune,
-                cert,
-                description: 'SN connection test',
-                msats: 'any',
-                expiry: 0
-              })
-              await addWalletLog({ wallet, level: 'SUCCESS', message: 'connected to CLN' }, { me, models })
-              return inv
-            } catch (err) {
-              const details = err.details || err.message || err.toString?.()
-              await addWalletLog({ wallet, level: 'ERROR', message: `could not connect to CLN: ${details}` }, { me, models })
-              throw err
-            }
-          }
-        },
-        { settings, data }, { me, models })
-    },
     removeWallet: async (parent, { id }, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })

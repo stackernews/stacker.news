@@ -100,13 +100,6 @@ export const SEND_TO_LNADDR = gql`
     }
 }`
 
-export const UPSERT_WALLET_CLN =
-gql`
-mutation upsertWalletCLN($id: ID, $socket: String!, $rune: String!, $cert: String, $settings: AutowithdrawSettings!) {
-  upsertWalletCLN(id: $id, socket: $socket, rune: $rune, cert: $cert, settings: $settings)
-}
-`
-
 export const REMOVE_WALLET =
 gql`
 mutation removeWallet($id: ID!) {

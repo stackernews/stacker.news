@@ -67,7 +67,7 @@
     "page-metadata-parser": "^1.1.4",
     "pg-boss": "^9.0.3",
     "piexifjs": "^1.0.6",
-    "prisma": "^5.14.0",
+    "prisma": "^5.16.1",
     "qrcode.react": "^3.1.0",
     "react": "^18.2.0",
     "react-avatar-editor": "^13.0.0",

@@ -3,6 +3,7 @@ import { lnAddrAutowithdrawSchema } from '@/lib/validate'
 import { fetchLnAddrInvoice } from '@/lib/wallet'
 
 export const name = 'lightning-address'
+export const shortName = 'lnAddr'
 
 export const fields = [
   {

@@ -128,7 +128,7 @@ export const WalletLoggerProvider = ({ children }) => {
           .map(({ createdAt, wallet: walletType, ...log }) => {
             return {
               ts: +new Date(createdAt),
-              wallet: getServerWallet(walletType).name,
+              wallet: tag(getServerWallet(walletType)),
               ...log
             }
           })
@@ -199,7 +199,7 @@ export const WalletLoggerProvider = ({ children }) => {
   }, [])
 
   const appendLog = useCallback((wallet, level, message) => {
-    const log = { wallet: wallet.name, level, message, ts: +new Date() }
+    const log = { wallet: tag(wallet), level, message, ts: +new Date() }
     saveLog(log)
     setLogs((prevLogs) => [log, ...prevLogs])
   }, [saveLog])
@@ -212,7 +212,7 @@ export const WalletLoggerProvider = ({ children }) => {
       const tx = idb.current.transaction(idbStoreName, 'readwrite')
       const objectStore = tx.objectStore(idbStoreName)
       const idx = objectStore.index('wallet_ts')
-      const request = wallet ? idx.openCursor(window.IDBKeyRange.bound([wallet.name, -Infinity], [wallet.name, Infinity])) : idx.openCursor()
+      const request = wallet ? idx.openCursor(window.IDBKeyRange.bound([tag(wallet), -Infinity], [tag(wallet), Infinity])) : idx.openCursor()
       request.onsuccess = function (event) {
         const cursor = event.target.result
         if (cursor) {
@@ -220,7 +220,7 @@ export const WalletLoggerProvider = ({ children }) => {
           cursor.continue()
         } else {
           // finished
-          setLogs((logs) => logs.filter(l => wallet ? l.wallet !== wallet.name : false))
+          setLogs((logs) => logs.filter(l => wallet ? l.wallet !== tag(wallet) : false))
         }
       }
     }
@@ -251,7 +251,7 @@ export function useWalletLogger (wallet) {
     //   also send this to us if diagnostics was enabled,
     //   very similar to how the service worker logger works.
     appendLog(wallet, level, message)
-    console[level !== 'error' ? 'info' : 'error'](`[${wallet.name}]`, message)
+    console[level !== 'error' ? 'info' : 'error'](`[${tag(wallet)}]`, message)
   }, [appendLog, wallet])
 
   const logger = useMemo(() => ({
@@ -265,7 +265,11 @@ export function useWalletLogger (wallet) {
   return { logger, deleteLogs }
 }
 
+function tag (wallet) {
+  return wallet?.shortName || wallet?.name
+}
+
 export function useWalletLogs (wallet) {
   const logs = useContext(WalletLogsContext)
-  return logs.filter(l => !wallet || l.wallet === wallet.name)
+  return logs.filter(l => !wallet || l.wallet === tag(wallet))
 }

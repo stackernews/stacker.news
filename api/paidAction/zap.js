@@ -11,7 +11,7 @@ export async function getCost ({ sats }) {
 }
 
 export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, cost, tx }) {
-  const feeMsats = cost / BigInt(100)
+  const feeMsats = cost / BigInt(10) // 10% fee
   const zapMsats = cost - feeMsats
   itemId = parseInt(itemId)
 

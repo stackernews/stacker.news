@@ -68,7 +68,7 @@ function oneDayReferral (request, { me }) {
       getData = item => ({
         referrerId: item.userId,
         refereeId: parseInt(me.id),
-        type: 'ITEM',
+        type: item.parentId ? 'COMMENT' : 'POST',
         typeId: String(item.id)
       })
     } else if (referrer.startsWith('profile-')) {
@@ -86,14 +86,6 @@ function oneDayReferral (request, { me }) {
         refereeId: parseInt(me.id),
         type: 'TERRITORY',
         typeId: sub.name
-      })
-    } else if (referrer.startsWith('comment-')) {
-      prismaPromise = models.item.findUnique({ where: { id: parseInt(referrer.slice(8)) } })
-      getData = item => ({
-        referrerId: item.userId,
-        refereeId: parseInt(me.id),
-        type: 'COMMENT',
-        typeId: String(item.id)
       })
     } else {
       prismaPromise = models.user.findUnique({ where: { name: referrer } })

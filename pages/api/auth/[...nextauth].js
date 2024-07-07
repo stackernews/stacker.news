@@ -44,8 +44,6 @@ async function getReferrerId (referrer) {
       return (await prisma.user.findUnique({ where: { name: referrer.slice(8) } }))?.id
     } else if (referrer.startsWith('territory-')) {
       return (await prisma.sub.findUnique({ where: { name: referrer.slice(10) } }))?.userId
-    } else if (referrer.startsWith('comment-')) {
-      return (await prisma.item.findUnique({ where: { id: parseInt(referrer.slice(8)) } }))?.userId
     } else {
       return (await prisma.user.findUnique({ where: { name: referrer } }))?.id
     }

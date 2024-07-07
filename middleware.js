@@ -1,7 +1,7 @@
 import { NextResponse, URLPattern } from 'next/server'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
-const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+)' })
+const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
 const profilePattern = new URLPattern({ pathname: '/:name([\\w_]+){/:type(\\w+)}?' })
 const territoryPattern = new URLPattern({ pathname: '/~:name([\\w_]+){/*}?' })
 
@@ -35,12 +35,11 @@ function referrerMiddleware (request) {
 
   let contentReferrer
   if (itemPattern.test(request.url)) {
-    if (request.nextUrl.searchParams.has('commentId')) {
-      contentReferrer = `comment-${request.nextUrl.searchParams.get('commentId')}`
-    } else {
-      const { id } = itemPattern.exec(request.url).pathname.groups
-      contentReferrer = `item-${id}`
+    let id = request.nextUrl.searchParams.get('commentId')
+    if (!id) {
+      ({ id } = itemPattern.exec(request.url).pathname.groups)
     }
+    contentReferrer = `item-${id}`
   } else if (profilePattern.test(request.url)) {
     const { name } = profilePattern.exec(request.url).pathname.groups
     contentReferrer = `profile-${name}`

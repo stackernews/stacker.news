@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "OneDayReferralType" AS ENUM ('REFERRAL', 'ITEM', 'COMMENT', 'PROFILE', 'TERRITORY');
+CREATE TYPE "OneDayReferralType" AS ENUM ('REFERRAL', 'POST', 'COMMENT', 'PROFILE', 'TERRITORY');
 
 -- CreateTable
 CREATE TABLE "OneDayReferral" (

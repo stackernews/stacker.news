@@ -36,6 +36,22 @@ function getEventCallbacks () {
   }
 }
 
+async function getReferrerId (referrer) {
+  try {
+    if (referrer.startsWith('item-')) {
+      return (await prisma.item.findUnique({ where: { id: parseInt(referrer.slice(5)) } }))?.userId
+    } else if (referrer.startsWith('profile-')) {
+      return (await prisma.user.findUnique({ where: { name: referrer.slice(8) } }))?.id
+    } else if (referrer.startsWith('territory-')) {
+      return (await prisma.sub.findUnique({ where: { name: referrer.slice(10) } }))?.userId
+    } else {
+      return (await prisma.user.findUnique({ where: { name: referrer } }))?.id
+    }
+  } catch (error) {
+    console.error('error getting referrer id', error)
+  }
+}
+
 /** @returns {Partial<import('next-auth').CallbacksOptions>} */
 function getCallbacks (req) {
   return {
@@ -57,10 +73,10 @@ function getCallbacks (req) {
         // isNewUser doesn't work for nostr/lightning auth because we create the user before nextauth can
         // this means users can update their referrer if they don't have one, which is fine
         if (req.cookies.sn_referrer && user?.id) {
-          const referrer = await prisma.user.findUnique({ where: { name: req.cookies.sn_referrer } })
-          if (referrer && referrer.id !== Number(user.id)) {
-            await prisma.user.updateMany({ where: { id: user.id, referrerId: null }, data: { referrerId: referrer.id } })
-            notifyReferral(referrer.id)
+          const referrerId = await getReferrerId(req.cookies.sn_referrer)
+          if (referrerId && referrerId !== parseInt(user?.id)) {
+            await prisma.user.updateMany({ where: { id: user.id, referrerId: null }, data: { referrerId } })
+            notifyReferral(referrerId)
           }
         }
       }

@@ -1,23 +1,76 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, URLPattern } from 'next/server'
 
-const referrerRegex = /(\/.*)?\/r\/([\w_]+)/
+const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
+const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
+const profilePattern = new URLPattern({ pathname: '/:name([\\w_]+){/:type(\\w+)}?' })
+const territoryPattern = new URLPattern({ pathname: '/~:name([\\w_]+){/*}?' })
+
+// key for /r/... link referrers
+const SN_REFERRER = 'sn_referrer'
+// we use this to hold /r/... referrers through the redirect
+const SN_REFERRER_NONCE = 'sn_referrer_nonce'
+
+// we store the referrers in cookies for a future signup event
+// we pass the referrers in the request headers so we can use them in referral rewards for logged in stackers
 function referrerMiddleware (request) {
-  const m = referrerRegex.exec(request.nextUrl.pathname)
+  if (referrerPattern.test(request.url)) {
+    const { pathname, referrer } = referrerPattern.exec(request.url).pathname.groups
 
-  const url = new URL(m[1] || '/', request.url)
-  url.search = request.nextUrl.search
-  url.hash = request.nextUrl.hash
+    const url = new URL(pathname || '/', request.url)
+    url.search = request.nextUrl.search
+    url.hash = request.nextUrl.hash
 
-  const resp = NextResponse.redirect(url)
-  resp.cookies.set('sn_referrer', m[2])
-  return resp
+    const response = NextResponse.redirect(url)
+    // explicit referrers are set for a day and can only be overriden by other explicit
+    // referrers. Content referrers do not override explicit referrers because
+    // explicit referees might click around before signing up.
+    response.cookies.set(SN_REFERRER, referrer, { maxAge: 60 * 60 * 24 })
+    // store the explicit referrer for one page load
+    // this allows us to attribute both explicit and implicit referrers after the redirect
+    // e.g. items/<num>/r/<referrer> links should attribute both the item op and the referrer
+    // without this the /r/<referrer> would be lost on redirect
+    response.cookies.set(SN_REFERRER_NONCE, referrer, { maxAge: 1 })
+    return response
+  }
+
+  let contentReferrer
+  if (itemPattern.test(request.url)) {
+    let id = request.nextUrl.searchParams.get('commentId')
+    if (!id) {
+      ({ id } = itemPattern.exec(request.url).pathname.groups)
+    }
+    contentReferrer = `item-${id}`
+  } else if (profilePattern.test(request.url)) {
+    const { name } = profilePattern.exec(request.url).pathname.groups
+    contentReferrer = `profile-${name}`
+  } else if (territoryPattern.test(request.url)) {
+    const { name } = territoryPattern.exec(request.url).pathname.groups
+    contentReferrer = `territory-${name}`
+  }
+
+  // pass the referrers to SSR in the request headers
+  const requestHeaders = new Headers(request.headers)
+  const referrers = [request.cookies.get(SN_REFERRER_NONCE)?.value, contentReferrer].filter(Boolean)
+  if (referrers.length) {
+    requestHeaders.set('x-stacker-news-referrer', referrers.join('; '))
+  }
+
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders
+    }
+  })
+
+  // if we don't already have an explicit referrer, give them the content referrer as one
+  if (!request.cookies.has(SN_REFERRER) && contentReferrer) {
+    response.cookies.set(SN_REFERRER, contentReferrer, { maxAge: 60 * 60 * 24 })
+  }
+
+  return response
 }
 
 export function middleware (request) {
-  let resp = NextResponse.next()
-  if (referrerRegex.test(request.nextUrl.pathname)) {
-    resp = referrerMiddleware(request)
-  }
+  const resp = referrerMiddleware(request)
 
   const isDev = process.env.NODE_ENV === 'development'
 

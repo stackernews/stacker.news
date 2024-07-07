@@ -20,8 +20,8 @@ import { fetchLnAddrInvoice } from '@/lib/wallet'
 
 export const SERVER_WALLET_DEFS = [lnd, lnAddr, cln]
 
-function walletResolvers () {
-  const resolvers = {}
+function injectResolvers (resolvers) {
+  console.group('injected GraphQL resolvers:')
   for (
     const w of SERVER_WALLET_DEFS) {
     const {
@@ -29,7 +29,8 @@ function walletResolvers () {
       server: { walletType, walletField, resolverName, testConnect }
       // app and worker import file differently
     } = w.default || w
-    resolvers[resolverName] = async (parent, { settings, ...data }, { me, models }) => {
+    console.log(resolverName)
+    resolvers.Mutation[resolverName] = async (parent, { settings, ...data }, { me, models }) => {
       return await upsertWallet({
         schema,
         wallet: { field: walletField, type: walletType },
@@ -47,6 +48,8 @@ function walletResolvers () {
       }, { settings, data }, { me, models })
     }
   }
+  console.groupEnd()
+
   return resolvers
 }
 
@@ -128,7 +131,7 @@ export function createHmac (hash) {
   return crypto.createHmac('sha256', key).update(Buffer.from(hash, 'hex')).digest('hex')
 }
 
-export default {
+const resolvers = {
   Query: {
     invoice: getInvoice,
     wallet: async (parent, { id }, { me, models }) => {
@@ -459,7 +462,6 @@ export default {
       }
       return { id }
     },
-    ...walletResolvers(),
     removeWallet: async (parent, { id }, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
@@ -555,6 +557,8 @@ export default {
     sats: fact => msatsToSatsDecimal(fact.msats)
   }
 }
+
+export default injectResolvers(resolvers)
 
 export const addWalletLog = async ({ wallet, level, message }, { me, models }) => {
   try {

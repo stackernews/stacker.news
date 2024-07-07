@@ -1,8 +1,9 @@
 import { gql } from 'graphql-tag'
 import { SERVER_WALLET_DEFS } from '@/api/resolvers/wallet'
 
-function walletTypeDefs () {
-  const typeDefs = SERVER_WALLET_DEFS.map(
+function injectTypeDefs (typeDefs) {
+  console.group('injected GraphQL type defs:')
+  const injected = SERVER_WALLET_DEFS.map(
     (w) => {
       let args = 'id: ID, '
       args += w.fields.map(f => {
@@ -13,12 +14,16 @@ function walletTypeDefs () {
         return arg
       }).join(', ')
       args += ', settings: AutowithdrawSettings!'
-      return `${w.server.resolverName}(${args}): Boolean`
-    }).join('\n')
-  return typeDefs
+      const typeDef = `${w.server.resolverName}(${args}): Boolean`
+      console.log(typeDef)
+      return typeDef
+    })
+  console.groupEnd()
+
+  return `${typeDefs}\n\nextend type Mutation {\n${injected.join('\n')}\n}`
 }
 
-export default gql`
+const typeDefs = `
   extend type Query {
     invoice(id: ID!): Invoice!
     withdrawl(id: ID!): Withdrawl!
@@ -37,7 +42,6 @@ export default gql`
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
     cancelInvoice(hash: String!, hmac: String!): Invoice!
     dropBolt11(id: ID): Withdrawl
-    ${walletTypeDefs()}
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(wallet: String): Boolean
   }
@@ -141,3 +145,5 @@ export default gql`
     message: String!
   }
 `
+
+export default gql`${injectTypeDefs(typeDefs)}`

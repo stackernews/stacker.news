@@ -11,7 +11,7 @@ const WalletCard = dynamic(() => import('@/components/wallet-card'), { ssr: fals
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function Wallet ({ ssrData }) {
-  const wallets = useWallets()
+  const { wallets } = useWallets()
 
   const [sourceIndex, setSourceIndex] = useState()
   const [targetIndex, setTargetIndex] = useState()

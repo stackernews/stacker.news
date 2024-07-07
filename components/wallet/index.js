@@ -29,7 +29,7 @@ export function useWallet (name) {
   const me = useMe()
 
   const wallet = name ? getWalletByName(name) : getEnabledWallet(me)
-  const { logger } = useWalletLogger(wallet)
+  const { logger, deleteLogs } = useWalletLogger(wallet)
 
   const [config, saveConfig, clearConfig] = useConfig(wallet)
   const _isConfigured = isConfigured({ ...wallet, config })
@@ -101,6 +101,7 @@ export function useWallet (name) {
     config,
     save,
     delete: delete_,
+    deleteLogs,
     enable,
     disable,
     setPriority,
@@ -256,7 +257,18 @@ export function getEnabledWallet (me) {
 }
 
 export function useWallets () {
-  return WALLET_DEFS.map(def => useWallet(def.name))
+  const wallets = WALLET_DEFS.map(def => useWallet(def.name))
+
+  const resetClient = useCallback(async (wallet) => {
+    for (const w of wallets) {
+      if (w.sendPayment) {
+        await w.delete()
+      }
+      await w.deleteLogs()
+    }
+  }, [wallets])
+
+  return { wallets, resetClient }
 }
 
 function getStorageKey (name, me) {

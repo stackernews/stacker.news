@@ -6,7 +6,7 @@ import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
-import { USER_ID, BALANCE_LIMIT_MSATS, Wallet } from '../../lib/constants'
+import { USER_ID, BALANCE_LIMIT_MSATS } from '../../lib/constants'
 import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
@@ -22,7 +22,7 @@ import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
-import { useWalletLogger } from '@/components/wallet-logger'
+import { useWallets } from '@/components/wallet'
 
 export function Brand ({ className }) {
   return (
@@ -256,8 +256,7 @@ export default function LoginButton ({ className }) {
 
 export function LogoutDropdownItem () {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
-  // const wallet = useWallet()
-  const { deleteLogs } = useWalletLogger()
+  const wallets = useWallets()
   return (
     <Dropdown.Item
       onClick={async () => {
@@ -266,12 +265,9 @@ export function LogoutDropdownItem () {
         if (pushSubscription) {
           await togglePushSubscription().catch(console.error)
         }
-        // TODO: detach wallets
-        // await wallet.detachAll().catch(console.error)
-        // delete client wallet logs to prevent leak of private data if a shared device was used
-        await deleteLogs(Wallet.NWC).catch(console.error)
-        await deleteLogs(Wallet.LNbits).catch(console.error)
-        await deleteLogs(Wallet.LNC).catch(console.error)
+
+        await wallets.resetClient().catch(console.error)
+
         await signOut({ callbackUrl: '/' })
       }}
     >logout

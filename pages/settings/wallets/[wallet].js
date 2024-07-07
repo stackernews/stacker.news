@@ -37,7 +37,7 @@ export default function WalletSettings () {
     <CenterLayout>
       <h2 className='pb-2'>{wallet.card.title}</h2>
       <h6 className='text-muted text-center pb-3'>{wallet.card.subtitle}</h6>
-      <WalletSecurityBanner />
+      {!wallet.server && <WalletSecurityBanner />}
       <Form
         initial={initial}
         schema={wallet.schema}

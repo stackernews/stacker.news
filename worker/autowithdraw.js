@@ -40,7 +40,7 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
 
   // get the wallets in order of priority
   const wallets = await models.wallet.findMany({
-    where: { userId: user.id },
+    where: { userId: user.id, enabled: true },
     orderBy: [
       { priority: 'desc' },
       // use id as tie breaker (older wallet first)
@@ -49,27 +49,14 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   })
 
   for (const wallet of wallets) {
+    const w = SERVER_WALLET_DEFS.find(({ default: w }) => w.server.walletType === wallet.type)
     try {
-      for (const w of SERVER_WALLET_DEFS) {
-        const { server: { walletType, walletField, createInvoice } } = w.default || w
-        if (wallet.type === walletType) {
-          await autowithdraw(
-            { walletType, walletField, createInvoice },
-            { amount, maxFee },
-            { me: user, models, lnd }
-          )
-        }
-      }
-
-      // TODO: implement CLN autowithdrawal
-      // ------
-      // if (wallet.type === Wallet.CLN.type) {
-      //   await autowithdrawCLN(
-      //     { amount, maxFee },
-      //     { models, me: user, lnd })
-      // }
-
-      return
+      const { server: { walletType, walletField, createInvoice } } = w.default
+      return await autowithdraw(
+        { walletType, walletField, createInvoice },
+        { amount, maxFee },
+        { me: user, models, lnd }
+      )
     } catch (error) {
       console.error(error)
       // LND errors are in this shape: [code, type, { err: { code, details, metadata } }]

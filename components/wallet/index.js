@@ -9,12 +9,13 @@ import * as lnbits from '@/components/wallet/lnbits'
 import * as nwc from '@/components/wallet/nwc'
 import * as lnc from '@/components/wallet/lnc'
 import * as lnd from '@/components/wallet/lnd'
+import * as lnAddr from '@/components/wallet/lightning-address'
 import { gql, useApolloClient, useQuery } from '@apollo/client'
 import { REMOVE_WALLET, WALLET_BY_TYPE } from '@/fragments/wallet'
 import { autowithdrawInitial } from '../autowithdraw-shared'
 
 // wallet definitions
-export const WALLET_DEFS = [lnbits, nwc, lnc, lnd]
+export const WALLET_DEFS = [lnbits, nwc, lnc, lnd, lnAddr]
 
 export const Status = {
   Initialized: 'Initialized',

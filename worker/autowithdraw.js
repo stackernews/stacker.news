@@ -1,4 +1,4 @@
-import { authenticatedLndGrpc, createInvoice as lndCreateInvoice } from 'ln-service'
+import { authenticatedLndGrpc, createInvoice as lndCreateInvoice, getIdentity, decodePaymentRequest } from 'ln-service'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 // import { datePivot } from '@/lib/time'
 import { createWithdrawal, /* sendToLnAddr, */ addWalletLog, SERVER_WALLET_DEFS } from '@/api/resolvers/wallet'
@@ -61,18 +61,10 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
         }
       }
 
-      // TODO: implement CLN and LnAddr wallets
+      // TODO: implement CLN autowithdrawal
       // ------
-      // if (wallet.type === Wallet.LND.type) {
-      //   await autowithdrawLND(
-      //     { amount, maxFee },
-      //     { models, me: user, lnd })
-      // } else if (wallet.type === Wallet.CLN.type) {
+      // if (wallet.type === Wallet.CLN.type) {
       //   await autowithdrawCLN(
-      //     { amount, maxFee },
-      //     { models, me: user, lnd })
-      // } else if (wallet.type === Wallet.LnAddr.type) {
-      //   await autowithdrawLNAddr(
       //     { amount, maxFee },
       //     { models, me: user, lnd })
       // }
@@ -115,35 +107,23 @@ async function autowithdraw (
     throw new Error(`no ${walletType} wallet found`)
   }
 
-  const bolt11 = await walletCreateInvoice(amount, wallet[walletField], { me, lnService: { authenticatedLndGrpc, createInvoice: lndCreateInvoice } })
+  const bolt11 = await walletCreateInvoice(
+    { amount, maxFee },
+    wallet[walletField],
+    {
+      me,
+      models,
+      lnd,
+      lnService: {
+        authenticatedLndGrpc,
+        createInvoice: lndCreateInvoice,
+        getIdentity,
+        decodePaymentRequest
+      }
+    })
 
   return await createWithdrawal(null, { invoice: bolt11, maxFee }, { me, models, lnd, walletId: wallet.id })
 }
-
-// async function autowithdrawLNAddr (
-//   { amount, maxFee },
-//   { me, models, lnd, headers, autoWithdraw = false }) {
-//   if (!me) {
-//     throw new Error('me not specified')
-//   }
-//
-//   const wallet = await models.wallet.findFirst({
-//     where: {
-//       userId: me.id,
-//       type: Wallet.LnAddr.type
-//     },
-//     include: {
-//       walletLightningAddress: true
-//     }
-//   })
-//
-//   if (!wallet || !wallet.walletLightningAddress) {
-//     throw new Error('no lightning address wallet found')
-//   }
-//
-//   const { walletLightningAddress: { address } } = wallet
-//   return await sendToLnAddr(null, { addr: address, amount, maxFee }, { me, models, lnd, walletId: wallet.id })
-// }
 
 // async function autowithdrawCLN ({ amount, maxFee }, { me, models, lnd }) {
 //   if (!me) {

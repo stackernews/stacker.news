@@ -87,7 +87,7 @@ export const server = {
     }
   },
   createInvoice: async (
-    amount,
+    { amount },
     { cert, macaroon, socket },
     { me, lnService: { authenticatedLndGrpc, createInvoice } }
   ) => {

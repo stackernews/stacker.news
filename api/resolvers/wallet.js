@@ -4,9 +4,8 @@ import crypto, { timingSafeEqual } from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
-import { lnAddrOptions } from '@/lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '@/lib/format'
-import { CLNAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
+import { CLNAutowithdrawSchema, amountSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, Wallet } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
@@ -15,8 +14,10 @@ import { createInvoice as createInvoiceCLN } from '@/lib/cln'
 import { bolt11Tags } from '@/lib/bolt11'
 import { checkInvoice } from 'worker/wallet'
 import * as lnd from '@/components/wallet/lnd'
+import * as lnAddr from '@/components/wallet/lightning-address'
+import { fetchLnAddrInvoice } from '@/lib/wallet'
 
-export const SERVER_WALLET_DEFS = [lnd]
+export const SERVER_WALLET_DEFS = [lnd, lnAddr]
 
 function walletResolvers () {
   const resolvers = {}
@@ -481,20 +482,6 @@ export default {
         },
         { settings, data }, { me, models })
     },
-    upsertWalletLNAddr: async (parent, { settings, ...data }, { me, models }) => {
-      const wallet = Wallet.LnAddr
-      return await upsertWallet(
-        {
-          schema: lnAddrAutowithdrawSchema,
-          wallet,
-          testConnect: async ({ address }) => {
-            const options = await lnAddrOptions(address)
-            await addWalletLog({ wallet, level: 'SUCCESS', message: 'fetched payment details' }, { me, models })
-            return options
-          }
-        },
-        { settings, data }, { me, models })
-    },
     removeWallet: async (parent, { id }, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
@@ -746,64 +733,20 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
 }
 
 export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },
-  { me, models, lnd, headers, walletId }) {
+  { me, models, lnd, headers }) {
   if (!me) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
   }
   assertApiKeyNotPermitted({ me })
 
-  const options = await lnAddrOptions(addr)
-  await ssValidate(lnAddrSchema, { addr, amount, maxFee, comment, ...payer }, options)
-
-  if (payer) {
-    payer = {
-      ...payer,
-      identifier: payer.identifier ? `${me.name}@stacker.news` : undefined
-    }
-    payer = Object.fromEntries(
-      Object.entries(payer).filter(([, value]) => !!value)
-    )
-  }
-
-  const milliamount = 1000 * amount
-  const callback = new URL(options.callback)
-  callback.searchParams.append('amount', milliamount)
-
-  if (comment?.length) {
-    callback.searchParams.append('comment', comment)
-  }
-
-  let stringifiedPayerData = ''
-  if (payer && Object.entries(payer).length) {
-    stringifiedPayerData = JSON.stringify(payer)
-    callback.searchParams.append('payerdata', stringifiedPayerData)
-  }
-
-  // call callback with amount and conditionally comment
-  const res = await (await fetch(callback.toString())).json()
-  if (res.status === 'ERROR') {
-    throw new Error(res.reason)
-  }
-
-  // decode invoice
-  try {
-    const decoded = await decodePaymentRequest({ lnd, request: res.pr })
-    const ourPubkey = (await getIdentity({ lnd })).public_key
-    if (walletId && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
-      // unset lnaddr so we don't trigger another withdrawal with same destination
-      await models.wallet.deleteMany({
-        where: { userId: me.id, type: Wallet.LnAddr.type }
-      })
-      throw new Error('automated withdrawals to other stackers are not allowed')
-    }
-    if (!decoded.mtokens || BigInt(decoded.mtokens) !== BigInt(milliamount)) {
-      throw new Error('invoice has incorrect amount')
-    }
-  } catch (e) {
-    console.log(e)
-    throw e
-  }
+  const res = await fetchLnAddrInvoice({ addr, amount, maxFee, comment, ...payer },
+    {
+      me,
+      models,
+      lnd,
+      lnService: { decodePaymentRequest, getIdentity }
+    })
 
   // take pr and createWithdrawl
-  return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers, walletId })
+  return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers })
 }

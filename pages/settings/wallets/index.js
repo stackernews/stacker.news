@@ -82,7 +82,7 @@ export default function Wallet ({ ssrData }) {
               return w1.card.title < w2.card.title ? -1 : 1
             })
             .map((w, i) => {
-              const draggable = w.isConfigured
+              const draggable = w.enabled
               return (
                 <div
                   key={w.name}

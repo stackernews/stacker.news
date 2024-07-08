@@ -3,7 +3,7 @@ import Layout from '@/components/layout'
 import styles from '@/styles/wallet.module.css'
 import Link from 'next/link'
 import { useWallets } from '@/components/wallet'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 
 const WalletCard = dynamic(() => import('@/components/wallet-card'), { ssr: false })
@@ -13,8 +13,16 @@ export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 export default function Wallet ({ ssrData }) {
   const { wallets } = useWallets()
 
+  const [mounted, setMounted] = useState(false)
   const [sourceIndex, setSourceIndex] = useState()
   const [targetIndex, setTargetIndex] = useState()
+
+  useEffect(() => {
+    // mounted is required since draggable is false
+    // for wallets only available on the client during SSR
+    // and thus we need to render the component again on the client
+    setMounted(true)
+  }, [])
 
   const onDragStart = (i) => (e) => {
     // e.dataTransfer.dropEffect = 'move'
@@ -82,7 +90,7 @@ export default function Wallet ({ ssrData }) {
               return w1.card.title < w2.card.title ? -1 : 1
             })
             .map((w, i) => {
-              const draggable = w.enabled
+              const draggable = mounted && w.enabled
               return (
                 <div
                   key={w.name}

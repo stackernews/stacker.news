@@ -41,7 +41,7 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const wallets = await models.wallet.findMany({
     where: { userId: user.id, enabled: true },
     orderBy: [
-      { priority: 'desc' },
+      { priority: 'asc' },
       // use id as tie breaker (older wallet first)
       { id: 'asc' }
     ]

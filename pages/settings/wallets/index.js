@@ -95,6 +95,12 @@ export default function Wallet ({ ssrData }) {
               // delta is NaN if either priority is undefined
               if (!Number.isNaN(delta) && delta !== 0) return delta
 
+              // if one wallet has a priority but the other one doesn't, the one with the priority comes first
+              if (w1.priority !== undefined && w2.priority === undefined) return -1
+              if (w1.priority === undefined && w2.priority !== undefined) return 1
+
+              // both wallets have no priority set, falling back to other methods
+
               // if both wallets have an id, use that as tie breaker
               // since that's the order in which autowithdrawals are attempted
               if (w1.id && w2.id) return Number(w1.id) - Number(w2.id)

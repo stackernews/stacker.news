@@ -276,8 +276,6 @@ export function walletPrioritySort (w1, w2) {
   // since that's the order in which autowithdrawals are attempted
   if (w1.id && w2.id) return Number(w1.id) - Number(w2.id)
 
-  console.log('w1', w1, 'w2', w2)
-
   // else we will use the card title as tie breaker
   return w1.card.title < w2.card.title ? -1 : 1
 }

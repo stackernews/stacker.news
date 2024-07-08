@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useWalletLogger } from '../logger'
-import LNC from '@lightninglabs/lnc-web'
 import { Status, migrateLocalStorage } from '.'
 import { bolt11Tags } from '@/lib/bolt11'
 import useModal from '../modal'
@@ -16,6 +15,7 @@ const mutex = new Mutex()
 
 async function getLNC ({ me }) {
   if (window.lnc) return window.lnc
+  const { default: LNC } = await import('@lightninglabs/lnc-web')
   // backwards compatibility: migrate to new storage key
   if (me) migrateLocalStorage('lnc-web:default', `lnc-web:stacker:${me.id}`)
   window.lnc = new LNC({ namespace: me?.id ? `stacker:${me.id}` : undefined })

@@ -112,6 +112,9 @@ export default function Settings ({ ssrData }) {
         <Form
           initial={{
             tipDefault: settings?.tipDefault || 21,
+            tipRandom: settings?.tipRandom,
+            tipRandomMin: settings?.tipRandomMin || 1,
+            tipRandomMax: settings?.tipRandomMax || settings?.tipDefault || 21,
             turboTipping: settings?.turboTipping,
             zapUndos: settings?.zapUndos || (settings?.tipDefault ? 100 * settings.tipDefault : 2100),
             zapUndosEnabled: settings?.zapUndos !== null,
@@ -149,7 +152,7 @@ export default function Settings ({ ssrData }) {
             noReferralLinks: settings?.noReferralLinks
           }}
           schema={settingsSchema}
-          onSubmit={async ({ tipDefault, withdrawMaxFeeDefault, zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, ...values }) => {
+          onSubmit={async ({ tipDefault, tipRandom, tipRandomMin, tipRandomMax, withdrawMaxFeeDefault, zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, ...values }) => {
             if (nostrPubkey.length === 0) {
               nostrPubkey = null
             } else {
@@ -166,6 +169,9 @@ export default function Settings ({ ssrData }) {
                 variables: {
                   settings: {
                     tipDefault: Number(tipDefault),
+                    tipRandom,
+                    tipRandomMin: Number(tipRandomMin),
+                    tipRandomMax: Number(tipRandomMax),
                     withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
                     zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
                     nostrPubkey,
@@ -224,6 +230,7 @@ export default function Settings ({ ssrData }) {
                     groupClassName='mb-0'
                   />
                   <ZapUndosField />
+                  <TipRandomField />
                 </>
               }
             />
@@ -1021,5 +1028,53 @@ const ZapUndosField = () => {
         hint={<small className='text-muted'>threshold at which undo button is shown</small>}
       />
     </div>
+  )
+}
+
+const TipRandomField = () => {
+  const [tipRandomField] = useField({ name: 'tipRandom' })
+  const [tipRandomMinField] = useField({ name: 'tipRandomMin' })
+  const [tipRandomMaxField] = useField({ name: 'tipRandomMax' })
+  return (
+    <>
+      <Checkbox
+        name='tipRandom'
+        groupClassName='mb-0'
+        label={
+          <div className='d-flex align-items-center'>
+            Enable random zap values
+            <Info>
+              <ul className='fw-bold'>
+                <li>Set a minimum and maximum zap amount</li>
+                <li>Each time you zap something, a random amount of sats between your minimum and maximum will be zapped</li>
+                <li>If this setting is enabled, it will ignore your default zap amount</li>
+              </ul>
+            </Info>
+          </div>
+        }
+      />
+      <Input
+        type='number'
+        label='minimum random zap'
+        name='tipRandomMin'
+        disabled={!tipRandomField.value}
+        groupClassName='mb-0'
+        required
+        autoFocus
+        max={tipRandomMaxField.value ? tipRandomMaxField.value - 1 : undefined}
+        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+      />
+      <Input
+        type='number'
+        label='maximum random zap'
+        name='tipRandomMax'
+        disabled={!tipRandomField.value}
+        groupClassName='mb-0'
+        required
+        autoFocus
+        min={tipRandomMinField.value ? tipRandomMinField.value + 1 : undefined}
+        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+      />
+    </>
   )
 }

@@ -38,22 +38,14 @@ export async function validate ({ pairingPhrase, password }, { me, logger }) {
   try {
     lnc.credentials.pairingPhrase = pairingPhrase
     logger.info('connecting ...')
-    // FIXME: this fails with this error:
-    //   Cannot assign to read only property 'undefined' of object '#<Window>'
     await lnc.connect()
     logger.ok('connected')
     logger.info('validating permissions ...')
     await validateNarrowPerms(lnc)
     logger.ok('permissions ok')
     lnc.credentials.password = password || XXX_DEFAULT_PASSWORD
-    logger.info('getting lightning info ...')
-    await lnc.lightning.getInfo()
-    logger.ok('info received')
   } finally {
-    // FIXME: this fails with this error:
-    //   Cannot read properties of undefined (reading 'wasmClientDisconnect')
-    // uncommented because it shadows the error from lnc.connect()
-    // lnc.disconnect()
+    lnc.disconnect()
   }
 }
 
@@ -77,11 +69,11 @@ async function unlock ({ password }, { lnc, status, showModal, logger }) {
           onSubmit={async (values) => {
             try {
               lnc.credentials.password = values?.password
-              logger.ok('wallet enabled')
+              logger.ok('wallet unlocked')
               onClose()
               resolve(values.password)
             } catch (err) {
-              logger.error('failed attempt to unlock wallet', err)
+              logger.error('failed to unlock wallet:', err)
               throw err
             }
           }}

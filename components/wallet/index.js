@@ -13,7 +13,8 @@ import * as lnAddr from '@/components/wallet/lightning-address'
 import * as cln from '@/components/wallet/cln'
 import { gql, useApolloClient, useQuery } from '@apollo/client'
 import { REMOVE_WALLET, WALLET_BY_TYPE } from '@/fragments/wallet'
-import { autowithdrawInitial } from '../autowithdraw-shared'
+import { autowithdrawInitial } from '@/components/autowithdraw-shared'
+import { useShowModal } from '@/components/modal'
 
 // wallet definitions
 export const WALLET_DEFS = [lnbits, nwc, lnc, lnd, lnAddr, cln]
@@ -27,6 +28,7 @@ export const Status = {
 
 export function useWallet (name) {
   const me = useMe()
+  const showModal = useShowModal()
 
   const wallet = name ? getWalletByName(name) : getEnabledWallet(me)
   const { logger, deleteLogs } = useWalletLogger(wallet)
@@ -42,14 +44,14 @@ export function useWallet (name) {
     const hash = bolt11Tags(bolt11).payment_hash
     logger.info('sending payment:', `payment_hash=${hash}`)
     try {
-      const { preimage } = await wallet.sendPayment(bolt11, config, { logger })
+      const { preimage } = await wallet.sendPayment(bolt11, config, { me, logger, status, showModal })
       logger.ok('payment successful:', `payment_hash=${hash}`, `preimage=${preimage}`)
     } catch (err) {
       const message = err.message || err.toString?.()
       logger.error('payment failed:', `payment_hash=${hash}`, message)
       throw err
     }
-  }, [wallet, config, logger])
+  }, [me, wallet, config, logger, status])
 
   const enable = useCallback(() => {
     enableWallet(name, me)

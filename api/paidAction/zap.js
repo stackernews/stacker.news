@@ -79,7 +79,9 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
       FROM forwardees
     ), forward AS (
       UPDATE users
-      SET msats = users.msats + forwardees.msats
+      SET
+        msats = users.msats + forwardees.msats,
+        "stackedMsats" = users."stackedMsats" + forwardees.msats
       FROM forwardees
       WHERE users.id = forwardees."userId"
     )

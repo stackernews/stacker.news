@@ -10,12 +10,28 @@ const WalletCard = dynamic(() => import('@/components/wallet-card'), { ssr: fals
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
+async function reorder (wallets, sourceIndex, targetIndex) {
+  const newOrder = [...wallets]
+
+  const [source] = newOrder.splice(sourceIndex, 1)
+  const newTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
+  const append = sourceIndex < targetIndex
+
+  newOrder.splice(newTargetIndex + (append ? 1 : 0), 0, source)
+
+  await Promise.all(
+    newOrder.map((w, i) =>
+      w.setPriority(i).catch(console.error)
+    )
+  )
+}
+
 export default function Wallet ({ ssrData }) {
   const { wallets } = useWallets()
 
   const [mounted, setMounted] = useState(false)
-  const [sourceIndex, setSourceIndex] = useState()
-  const [targetIndex, setTargetIndex] = useState()
+  const [sourceIndex, setSourceIndex] = useState(null)
+  const [targetIndex, setTargetIndex] = useState(null)
 
   useEffect(() => {
     // mounted is required since draggable is false
@@ -43,19 +59,16 @@ export default function Wallet ({ ssrData }) {
 
     if (sourceIndex === targetIndex) return
 
-    const newOrder = [...wallets]
+    await reorder(wallets, sourceIndex, targetIndex)
+  }
 
-    const [source] = newOrder.splice(sourceIndex, 1)
-    const newTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
-    const append = sourceIndex < targetIndex
-
-    newOrder.splice(newTargetIndex + (append ? 1 : 0), 0, source)
-
-    await Promise.all(
-      newOrder.map((w, i) =>
-        w.setPriority(i).catch(console.error)
-      )
-    )
+  const onTouchStart = (i) => async (e) => {
+    if (sourceIndex !== null) {
+      await reorder(wallets, sourceIndex, i)
+      setSourceIndex(null)
+    } else {
+      setSourceIndex(i)
+    }
   }
 
   return (
@@ -91,12 +104,14 @@ export default function Wallet ({ ssrData }) {
             })
             .map((w, i) => {
               const draggable = mounted && w.enabled
+
               return (
                 <div
                   key={w.name}
                   draggable={draggable}
                   style={{ cursor: draggable ? 'move' : 'default' }}
                   onDragStart={draggable ? onDragStart(i) : undefined}
+                  onTouchStart={draggable ? onTouchStart(i) : undefined}
                   onDragEnter={draggable ? onDragEnter(i) : undefined}
                   className={
                     !draggable

@@ -15,6 +15,7 @@ import { gql, useApolloClient, useQuery } from '@apollo/client'
 import { REMOVE_WALLET, WALLET_BY_TYPE } from '@/fragments/wallet'
 import { autowithdrawInitial } from '@/components/autowithdraw-shared'
 import { useShowModal } from '@/components/modal'
+import { useToast } from '../toast'
 
 // wallet definitions
 export const WALLET_DEFS = [lnbits, nwc, lnc, lnd, lnAddr, cln]
@@ -29,6 +30,7 @@ export const Status = {
 export function useWallet (name) {
   const me = useMe()
   const showModal = useShowModal()
+  const toaster = useToast()
 
   const wallet = name ? getWalletByName(name) : getEnabledWallet(me)
   const { logger, deleteLogs } = useWalletLogger(wallet)
@@ -65,9 +67,13 @@ export function useWallet (name) {
 
   const setPriority = useCallback(async (priority) => {
     if (_isConfigured && priority !== config.priority) {
-      await saveConfig({ ...config, priority })
+      try {
+        await saveConfig({ ...config, priority })
+      } catch (err) {
+        toaster.danger(`failed to change priority of ${wallet.name} wallet: ${err.message}`)
+      }
     }
-  }, [wallet, config, logger])
+  }, [wallet, config, logger, toaster])
 
   const save = useCallback(async (newConfig) => {
     try {

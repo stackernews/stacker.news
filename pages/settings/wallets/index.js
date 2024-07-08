@@ -2,7 +2,7 @@ import { getGetServerSideProps } from '@/api/ssrApollo'
 import Layout from '@/components/layout'
 import styles from '@/styles/wallet.module.css'
 import Link from 'next/link'
-import { useWallets } from '@/components/wallet'
+import { useWallets, walletPrioritySort } from '@/components/wallet'
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 
@@ -91,22 +91,7 @@ export default function Wallet ({ ssrData }) {
                 return 1
               }
 
-              const delta = w1.priority - w2.priority
-              // delta is NaN if either priority is undefined
-              if (!Number.isNaN(delta) && delta !== 0) return delta
-
-              // if one wallet has a priority but the other one doesn't, the one with the priority comes first
-              if (w1.priority !== undefined && w2.priority === undefined) return -1
-              if (w1.priority === undefined && w2.priority !== undefined) return 1
-
-              // both wallets have no priority set, falling back to other methods
-
-              // if both wallets have an id, use that as tie breaker
-              // since that's the order in which autowithdrawals are attempted
-              if (w1.id && w2.id) return Number(w1.id) - Number(w2.id)
-
-              // else we will use the card title as tie breaker
-              return w1.card.title < w2.card.title ? -1 : 1
+              return walletPrioritySort(w1, w2)
             })
             .map((w, i) => {
               const draggable = mounted && w.enabled

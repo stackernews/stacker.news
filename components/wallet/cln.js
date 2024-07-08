@@ -61,24 +61,17 @@ export const server = {
     { socket, rune, cert },
     { me, models, addWalletLog, cln: { createInvoice } }
   ) => {
-    try {
-      cert = ensureB64(cert)
-
-      const inv = await createInvoice({
-        socket,
-        rune,
-        cert,
-        description: 'SN connection test',
-        msats: 'any',
-        expiry: 0
-      })
-      await addWalletLog({ wallet: { type: 'CLN' }, level: 'SUCCESS', message: 'connected to CLN' }, { me, models })
-      return inv
-    } catch (err) {
-      const details = err.details || err.message || err.toString?.()
-      await addWalletLog({ wallet: { type: 'CLN' }, level: 'ERROR', message: `could not connect to CLN: ${details}` }, { me, models })
-      throw err
-    }
+    cert = ensureB64(cert)
+    const inv = await createInvoice({
+      socket,
+      rune,
+      cert,
+      description: 'SN connection test',
+      msats: 'any',
+      expiry: 0
+    })
+    await addWalletLog({ wallet: { type: 'CLN' }, level: 'SUCCESS', message: 'connected to CLN' }, { me, models })
+    return inv
   },
   createInvoice: async (
     { amount },

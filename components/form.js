@@ -33,6 +33,7 @@ import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
 import { useMe } from './me'
 import classNames from 'classnames'
+import { InvoiceCanceledError } from './payment'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -844,7 +845,9 @@ export function Form ({
       }
     } catch (err) {
       console.log(err.message, err)
-      toaster.danger(err.message ?? err.toString?.())
+      if (!(err instanceof InvoiceCanceledError)) {
+        toaster.danger(err.message ?? err.toString?.())
+      }
       return
     }
 

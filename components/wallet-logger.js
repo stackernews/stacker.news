@@ -146,7 +146,6 @@ export const WalletLoggerProvider = ({ children }) => {
     {
       onCompleted: (_, { variables: { wallet: walletType } }) => {
         setLogs((logs) => {
-          // TODO: use wallet defs
           return logs.filter(l => walletType ? l.wallet !== getServerWallet(walletType).name : false)
         })
       }

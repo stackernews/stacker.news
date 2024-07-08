@@ -246,14 +246,15 @@ export function getServerWallet (type) {
 }
 
 export function getEnabledWallet (me) {
-  // TODO: handle multiple enabled wallets
   return WALLET_DEFS
     .filter(def => !!def.sendPayment)
-    .find(def => {
+    .map(def => {
       const key = getStorageKey(def.name, me)
       const config = SSR ? null : JSON.parse(window?.localStorage.getItem(key))
-      return config?.enabled
+      return { def, config }
     })
+    .filter(({ config }) => config?.enabled)
+    .sort((w1, w2) => w1.config.priority - w2.config.priority)[0]?.def
 }
 
 export function useWallets () {

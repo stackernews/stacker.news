@@ -11,7 +11,7 @@ export async function getCost ({ sats }) {
 }
 
 export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, cost, tx }) {
-  const feeMsats = cost / BigInt(100)
+  const feeMsats = cost / BigInt(10) // 10% fee
   const zapMsats = cost - feeMsats
   itemId = parseInt(itemId)
 
@@ -84,7 +84,9 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
       WHERE users.id = forwardees."userId"
     )
     UPDATE users
-    SET msats = msats + ${itemAct.msats}::BIGINT - (SELECT msats FROM total_forwarded)::BIGINT
+    SET
+      msats = msats + ${itemAct.msats}::BIGINT - (SELECT msats FROM total_forwarded)::BIGINT,
+      "stackedMsats" = "stackedMsats" + ${itemAct.msats}::BIGINT - (SELECT msats FROM total_forwarded)::BIGINT
     WHERE id = ${itemAct.item.userId}::INTEGER`
 
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt

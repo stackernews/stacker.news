@@ -139,7 +139,7 @@ export const ToastProvider = ({ children }) => {
             >
               <ToastBody>
                 <div className='d-flex align-items-center'>
-                  <div className='flex-grow-1'>{toast.body}</div>
+                  <div className='flex-grow-1 overflow-hidden'>{toast.body}</div>
                   <Button
                     variant={null}
                     className='p-0 ps-2'

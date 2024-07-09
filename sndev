@@ -10,7 +10,7 @@ docker__compose() {
   fi
 
   if [ -z "$COMPOSE_PROFILES" ]; then
-    COMPOSE_PROFILES="images,search,payments,email,capture"
+    COMPOSE_PROFILES="images,search,payments,wallets,email,capture"
   fi
 
   ENV_LOCAL=

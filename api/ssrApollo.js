@@ -72,7 +72,15 @@ function oneDayReferral (request, { me }) {
         typeId: String(item.id)
       })
     } else if (referrer.startsWith('profile-')) {
-      prismaPromise = models.user.findUnique({ where: { name: referrer.slice(8) } })
+      const name = referrer.slice(8)
+      // exclude all pages that are not user profiles
+      if (['api', 'auth', 'day', 'invites', 'invoices', 'referrals', 'rewards',
+        'satistics', 'settings', 'stackers', 'wallet', 'withdrawals', '404', '500',
+        'email', 'live', 'login', 'notifications', 'offline', 'search', 'share',
+        'signup', 'territory', 'recent', 'top', 'edit', 'post', 'rss', 'saloon',
+        'faq', 'story', 'privacy', 'copyright', 'tos', 'changes', 'guide', 'daily'].includes(name)) continue
+
+      prismaPromise = models.user.findUnique({ where: { name } })
       getData = user => ({
         referrerId: user.id,
         refereeId: parseInt(me.id),

@@ -579,7 +579,8 @@ export default {
         json_build_object('name', 'comments', 'value', COALESCE(SUM(comments), 0)),
         json_build_object('name', 'posts', 'value', COALESCE(SUM(posts), 0)),
         json_build_object('name', 'territories', 'value', COALESCE(SUM(territories), 0)),
-        json_build_object('name', 'referrals', 'value', COALESCE(SUM(referrals), 0))
+        json_build_object('name', 'referrals', 'value', COALESCE(SUM(referrals), 0)),
+        json_build_object('name', 'one day referrals', 'value', COALESCE(SUM(one_day_referrals), 0))
       ) AS data
         FROM ${viewGroup(range, 'user_stats')}
         WHERE id = ${me.id}
@@ -594,6 +595,7 @@ export default {
         json_build_object('name', 'zaps', 'value', ROUND(COALESCE(SUM(msats_tipped), 0) / 1000)),
         json_build_object('name', 'rewards', 'value', ROUND(COALESCE(SUM(msats_rewards), 0) / 1000)),
         json_build_object('name', 'referrals', 'value', ROUND( COALESCE(SUM(msats_referrals), 0) / 1000)),
+        json_build_object('name', 'one day referrals', 'value', ROUND( COALESCE(SUM(msats_one_day_referrals), 0) / 1000)),
         json_build_object('name', 'territories', 'value', ROUND(COALESCE(SUM(msats_revenue), 0) / 1000))
       ) AS data
         FROM ${viewGroup(range, 'user_stats')}
@@ -607,6 +609,7 @@ export default {
       SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
       json_build_array(
         json_build_object('name', 'fees', 'value', FLOOR(COALESCE(SUM(msats_fees), 0) / 1000)),
+        json_build_object('name', 'zapping', 'value', FLOOR(COALESCE(SUM(msats_zaps), 0) / 1000)),
         json_build_object('name', 'donations', 'value', FLOOR(COALESCE(SUM(msats_donated), 0) / 1000)),
         json_build_object('name', 'territories', 'value', FLOOR(COALESCE(SUM(msats_billing), 0) / 1000))
       ) AS data

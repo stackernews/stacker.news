@@ -1011,6 +1011,8 @@ enum EarnType {
   COMMENT
   TIP_COMMENT
   TIP_POST
+  FOREVER_REFERRAL
+  ONE_DAY_REFERRAL
 }
 
 enum SubActType {

@@ -10,6 +10,7 @@ import { dayMonthYear, timeSince } from '@/lib/time'
 import Link from 'next/link'
 import Check from '@/svgs/check-double-line.svg'
 import HandCoin from '@/svgs/hand-coin-fill.svg'
+import Handshake from '@/svgs/user-add-fill.svg'
 import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import BaldIcon from '@/svgs/bald.svg'
@@ -62,7 +63,8 @@ function Notification ({ n, fresh }) {
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
         (type === 'Reminder' && <Reminder n={n} />) ||
-        (type === 'Invoicification' && <Invoicification n={n} />)
+        (type === 'Invoicification' && <Invoicification n={n} />) ||
+        (type === 'ReferralReward' && <ReferralReward n={n} />)
       }
     </NotificationLayout>
   )
@@ -132,6 +134,7 @@ const defaultOnClick = n => {
   if (type === 'Invoicification') return itemLink(n.invoice.item)
   if (type === 'WithdrawlPaid') return { href: `/withdrawals/${n.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
+  if (type === 'ReferralReward') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
 
@@ -172,7 +175,7 @@ function EarnNotification ({ n }) {
   return (
     <div className='d-flex ms-2 py-1'>
       <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
-      <div className='ms-2'>
+      <div className='mx-2'>
         <div className='fw-bold text-boost'>
           you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{time}</small>
         </div>
@@ -184,7 +187,29 @@ function EarnNotification ({ n }) {
             {n.sources.tipComments > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0 || n.sources.tipPosts > 0) && ' \\ '}{numWithUnits(n.sources.tipComments, { abbreviate: false })} for zapping top comments early</span>}
           </div>}
         <div style={{ lineHeight: '140%' }}>
-          SN distributes the sats it earns back to its best stackers. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations. You can see the rewards pool and make a donation <Link href='/rewards'>here</Link>.
+          SN distributes the sats it earns to top stackers like you daily. The top stackers make the top posts and comments or zap the top posts and comments early and generously. View the rewards pool and make a donation <Link href='/rewards'>here</Link>.
+        </div>
+        <small className='text-muted ms-1 pb-1 fw-normal'>click for details</small>
+      </div>
+    </div>
+  )
+}
+
+function ReferralReward ({ n }) {
+  return (
+    <div className='d-flex ms-2 py-1'>
+      <Handshake className='align-self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
+      <div className='mx-2'>
+        <div className='fw-bold text-success'>
+          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in referral rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{dayMonthYear(new Date(n.sortTime))}</small>
+        </div>
+        {n.sources &&
+          <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
+            {n.sources.forever > 0 && <span>{numWithUnits(n.sources.forever, { abbreviate: false })} for stackers joining because of you</span>}
+            {n.sources.oneDay > 0 && <span>{n.sources.oneDay > 0 && ' \\ '}{numWithUnits(n.sources.oneDay, { abbreviate: false })} for stackers referred to content by you today</span>}
+          </div>}
+        <div style={{ lineHeight: '140%' }}>
+          SN gives referral rewards to stackers like you for referring the top stackers daily. You refer stackers when they visit your posts, comments, profile, territory, or if they visit SN through your referral links.
         </div>
         <small className='text-muted ms-1 pb-1 fw-normal'>click for details</small>
       </div>
@@ -434,7 +459,7 @@ function WithdrawlPaid ({ n }) {
 function Referral ({ n }) {
   return (
     <small className='fw-bold text-secondary ms-2'>
-      someone joined via one of your referral links
+      someone joined SN because of you
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
     </small>
   )

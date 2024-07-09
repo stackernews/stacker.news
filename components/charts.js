@@ -156,7 +156,7 @@ export function WhenComposedChart ({
   data,
   lineNames = [], lineAxis = 'left',
   areaNames = [], areaAxis = 'left',
-  barNames = [], barAxis = 'left'
+  barNames = [], barAxis = 'left', barStackId
 }) {
   const router = useRouter()
   if (!data || data.length === 0) {
@@ -189,7 +189,7 @@ export function WhenComposedChart ({
         <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
         <Legend />
         {barNames?.map((v, i) =>
-          <Bar yAxisId={barAxis} key={v} type='monotone' dataKey={v} name={v} stroke={getColor(i)} fill={getColor(i)} />)}
+          <Bar yAxisId={barAxis} key={v} stackId={barStackId} type='monotone' dataKey={v} name={v} stroke={getColor(i)} fill={getColor(i)} />)}
         {areaNames?.map((v, i) =>
           <Area yAxisId={areaAxis} key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={getColor(barNames.length + i)} fill={getColor(barNames.length + i)} />)}
         {lineNames?.map((v, i) =>

@@ -24,6 +24,7 @@ import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 import UserPopover from './user-popover'
 import { useQrPayment } from './payment'
 import { useRetryCreateItem } from './use-item-submit'
+import { useToast } from './toast'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
@@ -32,6 +33,7 @@ export default function ItemInfo ({
 }) {
   const editThreshold = new Date(item.invoice?.confirmedAt ?? item.createdAt).getTime() + 10 * 60000
   const me = useMe()
+  const toaster = useToast()
   const router = useRouter()
   const [canEdit, setCanEdit] =
     useState(item.mine && (Date.now() < editThreshold))
@@ -72,7 +74,14 @@ export default function ItemInfo ({
     if (me && item.invoice?.actionState && item.invoice?.actionState !== 'PAID') {
       if (item.invoice?.actionState === 'FAILED') {
         Component = () => <span className='text-warning'>retry payment</span>
-        onClick = async () => await retryCreateItem({ variables: { invoiceId: parseInt(item.invoice?.id) } }).catch(console.error)
+        onClick = async () => {
+          try {
+            const { error } = await retryCreateItem({ variables: { invoiceId: parseInt(item.invoice?.id) } })
+            if (error) throw error
+          } catch (error) {
+            toaster.danger(error.message)
+          }
+        }
       } else {
         Component = () => (
           <span

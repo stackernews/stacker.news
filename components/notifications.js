@@ -36,6 +36,7 @@ import { usePollVote } from './poll'
 import { paidActionCacheMods } from './use-paid-mutation'
 import { useRetryCreateItem } from './use-item-submit'
 import { payBountyCacheMods } from './pay-bounty'
+import { useToast } from './toast'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -334,6 +335,7 @@ function useActRetry ({ invoice }) {
 }
 
 function Invoicification ({ n: { invoice, sortTime } }) {
+  const toaster = useToast()
   const actRetry = useActRetry({ invoice })
   const retryCreateItem = useRetryCreateItem({ id: invoice.item?.id })
   const retryPollVote = usePollVote({ query: RETRY_PAID_ACTION, itemId: invoice.item?.id })
@@ -390,8 +392,13 @@ function Invoicification ({ n: { invoice, sortTime } }) {
           <Button
             size='sm' variant='outline-warning ms-2 border-1 rounded py-0'
             style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}
-            onClick={() => {
-              retry({ variables: { invoiceId: parseInt(invoiceId) } }).catch(console.error)
+            onClick={async () => {
+              try {
+                const { error } = await retry({ variables: { invoiceId: parseInt(invoiceId) } })
+                if (error) throw error
+              } catch (error) {
+                toaster.danger(error?.message || error?.toString?.())
+              }
             }}
           >
             retry

@@ -59,7 +59,7 @@ export default function useItemSubmit (mutation,
       })
 
       if (error) throw error
-      if (payError) throw new Error('payment required')
+      if (payError) return
 
       // we don't know the mutation name, so we have to extract the result
       const response = Object.values(data)[0]

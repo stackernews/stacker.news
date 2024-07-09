@@ -7,7 +7,6 @@ import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
 import { ActCanceledError, useAct } from './item-act'
-import { InvoiceCanceledError } from './payment'
 import { useLightning } from './lightning'
 import { useToast } from './toast'
 
@@ -58,15 +57,15 @@ export default function PayBounty ({ children, item }) {
   const handlePayBounty = async onCompleted => {
     try {
       strike()
-      await act({ onCompleted })
+      const { error } = await act({ onCompleted })
+      if (error) throw error
     } catch (error) {
-      if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {
+      if (error instanceof ActCanceledError) {
         return
       }
 
       const reason = error?.message || error?.toString?.()
-
-      toaster.danger('pay bounty failed: ' + reason)
+      toaster.danger(reason)
     }
   }
 

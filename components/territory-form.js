@@ -41,7 +41,7 @@ export default function TerritoryForm ({ sub }) {
         : await upsertSub({ variables: { oldName: sub?.name, ...variables } })
 
       if (error) throw error
-      if (payError) throw new Error('payment required')
+      if (payError) return
 
       // modify graphql cache to include new sub
       client.cache.modify({

@@ -10,7 +10,7 @@ import { dayMonthYear, timeSince } from '@/lib/time'
 import Link from 'next/link'
 import Check from '@/svgs/check-double-line.svg'
 import HandCoin from '@/svgs/hand-coin-fill.svg'
-import Handshake from '@/svgs/user-add-fill.svg'
+import UserAdd from '@/svgs/user-add-fill.svg'
 import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import BaldIcon from '@/svgs/bald.svg'
@@ -198,7 +198,7 @@ function EarnNotification ({ n }) {
 function ReferralReward ({ n }) {
   return (
     <div className='d-flex ms-2 py-1'>
-      <Handshake className='align-self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
+      <UserAdd className='align-self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
       <div className='mx-2'>
         <div className='fw-bold text-success'>
           you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in referral rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{dayMonthYear(new Date(n.sortTime))}</small>
@@ -458,8 +458,8 @@ function WithdrawlPaid ({ n }) {
 
 function Referral ({ n }) {
   return (
-    <small className='fw-bold text-secondary ms-2'>
-      someone joined SN because of you
+    <small className='fw-bold text-success ms-2'>
+      <UserAdd className='fill-success me-2' height={21} width={21} style={{ transform: 'rotateY(180deg)' }} />someone joined SN because of you
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
     </small>
   )

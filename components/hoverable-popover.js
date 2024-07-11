@@ -30,6 +30,7 @@ export default function HoverablePopover ({ id, trigger, body, onShow }) {
         <Popover
           onPointerEnter={handleMouseEnter}
           onPointerLeave={handleMouseLeave}
+          onMouseLeave={handleMouseLeave}
           className={styles.HoverablePopover}
         >
           <Popover.Body className={styles.HoverablePopover}>

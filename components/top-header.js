@@ -46,7 +46,7 @@ export default function TopHeader ({ sub, cat }) {
         initial={{ what, by, when, from: '', to: '' }}
         onSubmit={top}
       >
-        <div className='text-muted fw-bold mt-1 mb-3 d-flex align-items-center flex-wrap'>
+        <div className='text-muted fw-bold my-1 d-flex align-items-center flex-wrap'>
           <div className='text-muted fw-bold mb-2 d-flex align-items-center'>
             <Select
               groupClassName='me-2 mb-0'

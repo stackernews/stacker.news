@@ -1,12 +1,11 @@
 .item {
     align-items: flex-start;
     margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
+    padding-top: 0 !important;
 }
 
 .upvote {
     margin-top: 9px;
-    margin-left: .25rem;
     margin-right: 0rem;
 }
 

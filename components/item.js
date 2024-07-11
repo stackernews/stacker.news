@@ -46,7 +46,7 @@ export function SearchTitle ({ title }) {
 }
 
 export default function Item ({
-  item, rank, belowTitle, right, full, children, siblingComments,
+  item, rank, belowTitle, right, full, children, itemClassName,
   onQuoteReply, pinnable
 }) {
   const titleRef = useRef()
@@ -62,7 +62,7 @@ export default function Item ({
             {rank}
           </div>)
         : <div />}
-      <div className={`${styles.item} ${siblingComments ? 'pt-3' : ''}`}>
+      <div className={classNames(styles.item, itemClassName)}>
         {item.position && (pinnable || !item.subName)
           ? <Pin width={24} height={24} className={styles.pin} />
           : item.meDontLikeSats > item.meSats

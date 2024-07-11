@@ -114,7 +114,7 @@ export default function Referrals ({ ssrData }) {
       </div>
       <ul className='py-3 text-muted'>
         <li>earn 10% of a stacker's <Link href='/rewards'>rewards</Link> in perpetuity if they sign up from your referral links</li>
-        <li>in addition, earn 10% of a stacker's <Link href='/rewards'>rewards</Link> for the day if they follow your refrral links the most that day</li>
+        <li>in addition, earn 10% of a stacker's <Link href='/rewards'>rewards</Link> for the day if they follow your referral links the most that day</li>
         <li>nearly all sn links are referral links:
           <ul>
             <li>your profile link is an implicit referral link</li>

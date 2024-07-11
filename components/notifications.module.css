@@ -1,14 +1,39 @@
 .fresh {
-    background-color: rgba(128, 128, 128, 0.1);
     border-radius: 0;
+    border: solid 1px rgba(0, 123, 190, 0.25);
+    border-bottom: 0;
+    border-top: 0;
 }
 
 .fresh:not(.fresh ~ .fresh) {
     border-top-left-radius: .4rem;
     border-top-right-radius: .4rem;
+    border-top: solid 1px rgba(0, 123, 190, 0.25);
 }
 
 .fresh:has(+ :not(.fresh)) {
+    border-bottom-left-radius: .4rem;
+    border-bottom-right-radius: .4rem;
+    border-bottom: solid 1px rgba(0, 123, 190, 0.25);
+}
+
+.reply {
+    border-radius: 0;
+    background-color: var(--theme-note-reply);
+    border-bottom: 0;
+    border-top: 0;
+}
+
+.reply:hover {
+    background-color: var(--theme-clickToContextColor);
+}
+
+.reply:not(.fresh):not(.reply + .reply) {
+    border-top-left-radius: .4rem;
+    border-top-right-radius: .4rem;
+}
+
+.reply:not(.fresh):has(+ :not(.reply)) {
     border-bottom-left-radius: .4rem;
     border-bottom-right-radius: .4rem;
 }

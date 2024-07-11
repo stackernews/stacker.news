@@ -43,7 +43,7 @@ function Notification ({ n, fresh }) {
   const type = n.__typename
 
   return (
-    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)} fresh={fresh}>
+    <NotificationLayout nid={nid(n)} type={type} {...defaultOnClick(n)} fresh={fresh}>
       {
         (type === 'Earn' && <EarnNotification n={n} />) ||
         (type === 'Revenue' && <RevenueNotification n={n} />) ||
@@ -70,12 +70,12 @@ function Notification ({ n, fresh }) {
   )
 }
 
-function NotificationLayout ({ children, nid, href, as, fresh }) {
+function NotificationLayout ({ children, type, nid, href, as, fresh }) {
   const router = useRouter()
-  if (!href) return <div className={fresh ? styles.fresh : ''}>{children}</div>
+  if (!href) return <div className={`py-2 ${fresh ? styles.fresh : ''}`}>{children}</div>
   return (
     <LinkToContext
-      className={`${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
+      className={`py-2 ${type === 'Reply' ? styles.reply : ''} ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
       onClick={async (e) => {
         e.preventDefault()
         nid && await router.replace({
@@ -91,6 +91,14 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
     >
       {children}
     </LinkToContext>
+  )
+}
+
+function NoteHeader ({ color, children, big }) {
+  return (
+    <div className={`fw-bold text-${color} ${big ? '' : 'small'} d-inline-flex align-items-center pb-2`} style={{ lineHeight: '1.25' }}>
+      {children}
+    </div>
   )
 }
 
@@ -159,7 +167,7 @@ function Streak ({ n }) {
   }
 
   return (
-    <div className='d-flex ms-2 py-1'>
+    <div className='d-flex'>
       <div style={{ fontSize: '2rem' }}>{n.days ? <BaldIcon className='fill-grey' height={40} width={40} /> : <CowboyHatIcon className='fill-grey' height={40} width={40} />}</div>
       <div className='ms-1 p-1'>
         <span className='fw-bold'>you {n.days ? 'lost your' : 'found a'} cowboy hat</span>
@@ -173,12 +181,12 @@ function EarnNotification ({ n }) {
   const time = n.minSortTime === n.sortTime ? dayMonthYear(new Date(n.minSortTime)) : `${dayMonthYear(new Date(n.minSortTime))} to ${dayMonthYear(new Date(n.sortTime))}`
 
   return (
-    <div className='d-flex ms-2 py-1'>
+    <div className='d-flex'>
       <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
-      <div className='mx-2'>
-        <div className='fw-bold text-boost'>
+      <div className='ms-2'>
+        <NoteHeader color='boost' big>
           you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{time}</small>
-        </div>
+        </NoteHeader>
         {n.sources &&
           <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
             {n.sources.posts > 0 && <span>{numWithUnits(n.sources.posts, { abbreviate: false })} for top posts</span>}
@@ -197,12 +205,12 @@ function EarnNotification ({ n }) {
 
 function ReferralReward ({ n }) {
   return (
-    <div className='d-flex ms-2 py-1'>
+    <div className='d-flex'>
       <UserAdd className='align-self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
-      <div className='mx-2'>
-        <div className='fw-bold text-success'>
+      <div className='ms-2'>
+        <NoteHeader color='success' big>
           you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in referral rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{dayMonthYear(new Date(n.sortTime))}</small>
-        </div>
+        </NoteHeader>
         {n.sources &&
           <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
             {n.sources.forever > 0 && <span>{numWithUnits(n.sources.forever, { abbreviate: false })} for stackers joining because of you</span>}
@@ -219,9 +227,9 @@ function ReferralReward ({ n }) {
 
 function RevenueNotification ({ n }) {
   return (
-    <div className='d-flex ms-2 py-1'>
+    <div className='d-flex'>
       <BountyIcon className='align-self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px' }} />
-      <div className='ms-2 pb-1'>
+      <div className=' pb-1'>
         <div className='fw-bold text-success'>
           you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in territory revenue<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
         </div>
@@ -236,7 +244,7 @@ function RevenueNotification ({ n }) {
 function SubStatus ({ n }) {
   const dueDate = nextBillingWithGrace(n.sub)
   return (
-    <div className={`fw-bold text-${n.sub.status === 'ACTIVE' ? 'success' : 'danger'} ms-2`}>
+    <div className={`fw-bold text-${n.sub.status === 'ACTIVE' ? 'success' : 'danger'} `}>
       {n.sub.status === 'ACTIVE'
         ? 'your territory is active again'
         : (n.sub.status === 'GRACE'
@@ -250,14 +258,14 @@ function SubStatus ({ n }) {
 function Invitification ({ n }) {
   return (
     <>
-      <small className='fw-bold text-secondary ms-2'>
+      <NoteHeader color='secondary'>
         your invite has been redeemed by
         {numWithUnits(n.invite.invitees.length, {
           abbreviate: false,
           unitSingular: 'stacker',
           unitPlural: 'stackers'
         })}
-      </small>
+      </NoteHeader>
       <div className='ms-4 me-2 mt-1'>
         <Invite
           invite={n.invite} active={
@@ -275,25 +283,23 @@ function NostrZap ({ n }) {
   const { npub, content, note } = nostrZapDetails(nostr)
 
   return (
-    <>
-      <div className='fw-bold text-nostr ms-2 py-1'>
-        <NostrIcon width={24} height={24} className='fill-nostr me-1' />{numWithUnits(n.earnedSats)} zap from
-        {// eslint-disable-next-line
+    <div className='fw-bold text-nostr'>
+      <NostrIcon width={24} height={24} className='fill-nostr me-1' />{numWithUnits(n.earnedSats)} zap from
+      {// eslint-disable-next-line
         <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://njump.me/${npub}`} rel={UNKNOWN_LINK_REL}>
           {npub.slice(0, 10)}...
         </Link>
         }
-        on {note
+      on {note
           ? (
             // eslint-disable-next-line
             <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://njump.me/${note}`} rel={UNKNOWN_LINK_REL}>
               {note.slice(0, 12)}...
             </Link>)
           : 'nostr'}
-        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-        {content && <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'><Text>{content}</Text></small>}
-      </div>
-    </>
+      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      {content && <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'><Text>{content}</Text></small>}
+    </div>
   )
 }
 
@@ -311,7 +317,7 @@ function InvoicePaid ({ n }) {
     if (id) payerSig += id
   }
   return (
-    <div className='fw-bold text-info ms-2 py-1'>
+    <div className='fw-bold text-info'>
       <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} deposited in your account
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       {n.invoice.comment &&
@@ -394,23 +400,23 @@ function Invoicification ({ n: { invoice, sortTime } }) {
     ({ id: invoiceId, actionState: invoiceActionState } = invoice.itemAct.invoice)
   }
 
-  let colorClass = 'text-info'
+  let colorClass = 'info'
   switch (invoiceActionState) {
     case 'FAILED':
       actionString += 'failed'
-      colorClass = 'text-warning'
+      colorClass = 'warning'
       break
     case 'PAID':
       actionString += 'paid'
-      colorClass = 'text-success'
+      colorClass = 'success'
       break
     default:
       actionString += 'pending'
   }
 
   return (
-    <div className='px-2'>
-      <small className={`fw-bold ${colorClass} d-inline-flex align-items-center my-1`}>
+    <div>
+      <NoteHeader color={colorClass}>
         {actionString}
         <span className='ms-1 text-muted fw-light'> {numWithUnits(invoice.satsRequested)}</span>
         <span className={invoiceActionState === 'FAILED' ? 'visible' : 'invisible'}>
@@ -430,12 +436,12 @@ function Invoicification ({ n: { invoice, sortTime } }) {
           </Button>
           <span className='text-muted ms-2 fw-normal' suppressHydrationWarning>{timeSince(new Date(sortTime))}</span>
         </span>
-      </small>
+      </NoteHeader>
       <div>
         {invoice.item.title
-          ? <Item item={invoice.item} />
+          ? <Item item={invoice.item} itemClassName='pt-0' />
           : (
-            <div className='pb-2'>
+            <div>
               <RootProvider root={invoice.item.root}>
                 <Comment item={invoice.item} noReply includeParent clickToContext />
               </RootProvider>
@@ -448,7 +454,7 @@ function Invoicification ({ n: { invoice, sortTime } }) {
 
 function WithdrawlPaid ({ n }) {
   return (
-    <div className='fw-bold text-info ms-2 py-1'>
+    <div className='fw-bold text-info'>
       <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} withdrawn from your account
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       {n.withdrawl.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>}
@@ -458,7 +464,7 @@ function WithdrawlPaid ({ n }) {
 
 function Referral ({ n }) {
   return (
-    <small className='fw-bold text-success ms-2'>
+    <small className='fw-bold text-success'>
       <UserAdd className='fill-success me-2' height={21} width={21} style={{ transform: 'rotateY(180deg)' }} />someone joined SN because of you
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
     </small>
@@ -480,19 +486,19 @@ function Votification ({ n }) {
   }
   return (
     <>
-      <small className='fw-bold text-success d-inline-block ms-2 my-1' style={{ lineHeight: '1.25' }}>
+      <NoteHeader color='success'>
         your {n.item.title ? 'post' : 'reply'} stacked {numWithUnits(n.earnedSats, { abbreviate: false })}
         {n.item.forwards?.length > 0 &&
           <>
             {' '}and forwarded {numWithUnits(forwardedSats, { abbreviate: false })} to{' '}
             <ForwardedUsers />
           </>}
-      </small>
+      </NoteHeader>
       <div>
         {n.item.title
-          ? <Item item={n.item} />
+          ? <Item item={n.item} itemClassName='pt-0' />
           : (
-            <div className='pb-2'>
+            <div>
               <RootProvider root={n.item.root}>
                 <Comment item={n.item} noReply includeParent clickToContext />
               </RootProvider>
@@ -506,14 +512,14 @@ function Votification ({ n }) {
 function ForwardedVotification ({ n }) {
   return (
     <>
-      <small className='fw-bold text-success d-inline-block ms-2 my-1' style={{ lineHeight: '1.25' }}>
+      <NoteHeader color='success'>
         you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false })} from
-      </small>
+      </NoteHeader>
       <div>
         {n.item.title
-          ? <Item item={n.item} />
+          ? <Item item={n.item} itemClassName='pt-0' />
           : (
-            <div className='pb-2'>
+            <div>
               <RootProvider root={n.item.root}>
                 <Comment item={n.item} noReply includeParent clickToContext />
               </RootProvider>
@@ -527,14 +533,14 @@ function ForwardedVotification ({ n }) {
 function Mention ({ n }) {
   return (
     <>
-      <small className='fw-bold text-info ms-2'>
+      <NoteHeader color='info'>
         you were mentioned in
-      </small>
+      </NoteHeader>
       <div>
         {n.item.title
-          ? <Item item={n.item} />
+          ? <Item item={n.item} itemClassName='pt-0' />
           : (
-            <div className='pb-2'>
+            <div>
               <RootProvider root={n.item.root}>
                 <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
               </RootProvider>
@@ -547,13 +553,13 @@ function Mention ({ n }) {
 function ItemMention ({ n }) {
   return (
     <>
-      <small className='fw-bold text-info ms-2'>
+      <NoteHeader color='info'>
         your item was mentioned in
-      </small>
+      </NoteHeader>
       {n.item?.title
-        ? <div className='ps-2'><Item item={n.item} /></div>
+        ? <div className=''><Item item={n.item} itemClassName='pt-0' /></div>
         : (
-          <div className='pb-2'>
+          <div>
             <RootProvider root={n.item.root}>
               <Comment item={n.item} noReply includeParent rootText='replying on:' clickToContext />
             </RootProvider>
@@ -565,13 +571,13 @@ function ItemMention ({ n }) {
 function JobChanged ({ n }) {
   return (
     <>
-      <small className={`fw-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ms-1`}>
+      <NoteHeader color={n.item.status === 'ACTIVE' ? 'success' : 'boost'}>
         {n.item.status === 'ACTIVE'
           ? 'your job is active again'
           : (n.item.status === 'NOSATS'
               ? 'your job promotion ran out of sats'
               : 'your job has been stopped')}
-      </small>
+      </NoteHeader>
       <ItemJob item={n.item} />
     </>
   )
@@ -579,11 +585,11 @@ function JobChanged ({ n }) {
 
 function Reply ({ n }) {
   return (
-    <div className='py-2'>
+    <div className='outline'>
       {n.item.title
-        ? <Item item={n.item} />
+        ? <Item item={n.item} itemClassName='pt-0 pb-2' />
         : (
-          <div className='pb-2'>
+          <div className=''>
             <RootProvider root={n.item.root}>
               <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
             </RootProvider>
@@ -596,13 +602,13 @@ function Reply ({ n }) {
 function FollowActivity ({ n }) {
   return (
     <>
-      <small className='fw-bold text-info ms-2'>
+      <NoteHeader color='info'>
         a stacker you subscribe to {n.item.parentId ? 'commented' : 'posted'}
-      </small>
+      </NoteHeader>
       {n.item.title
-        ? <div className='ms-2'><Item item={n.item} /></div>
+        ? <div className=''><Item item={n.item} itemClassName='pt-0' /></div>
         : (
-          <div className='pb-2'>
+          <div>
             <RootProvider root={n.item.root}>
               <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
             </RootProvider>
@@ -615,11 +621,11 @@ function FollowActivity ({ n }) {
 function TerritoryPost ({ n }) {
   return (
     <>
-      <small className='fw-bold text-info ms-2'>
+      <NoteHeader color='info'>
         new post in ~{n.item.sub.name}
-      </small>
-      <div className='ps-2'>
-        <Item item={n.item} />
+      </NoteHeader>
+      <div className=''>
+        <Item item={n.item} itemClassName='pt-0' />
       </div>
     </>
   )
@@ -628,7 +634,7 @@ function TerritoryPost ({ n }) {
 function TerritoryTransfer ({ n }) {
   return (
     <>
-      <div className='fw-bold text-info ms-2'>
+      <div className='fw-bold text-info '>
         ~{n.sub.name} was transferred to you
         <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       </div>
@@ -639,11 +645,13 @@ function TerritoryTransfer ({ n }) {
 function Reminder ({ n }) {
   return (
     <>
-      <small className='fw-bold text-info ms-2'>you asked to be reminded of this {n.item.title ? 'post' : 'comment'}</small>
+      <NoteHeader color='info'>
+        you asked to be reminded of this {n.item.title ? 'post' : 'comment'}
+      </NoteHeader>
       {n.item.title
-        ? <div className='ms-2'><Item item={n.item} /></div>
+        ? <div className=''><Item item={n.item} itemClassName='pt-0' /></div>
         : (
-          <div className='pb-2'>
+          <div>
             <RootProvider root={n.item.root}>
               <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
             </RootProvider>

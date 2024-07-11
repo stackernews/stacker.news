@@ -506,7 +506,7 @@ export default {
         COALESCE(FLOOR(sum(msats) FILTER(WHERE type = 'FOREVER_REFERRAL') / 1000), 0) AS forever,
         COALESCE(FLOOR(sum(msats) FILTER(WHERE type = 'ONE_DAY_REFERRAL') / 1000), 0) AS "oneDay"
         FROM "Earn"
-        WHERE "userId" = $1 AND created_at <= $2
+        WHERE "userId" = $1 AND created_at = $2
       `, Number(me.id), new Date(n.sortTime))
       if (sources.forever + sources.oneDay > 0) {
         return sources

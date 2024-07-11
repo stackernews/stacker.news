@@ -126,25 +126,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS user_stats_months_idx ON user_stats_months(t, 
 CREATE UNIQUE INDEX IF NOT EXISTS user_stats_days_idx ON user_stats_days(t, id);
 CREATE UNIQUE INDEX IF NOT EXISTS user_stats_hours_idx ON user_stats_hours(t, id);
 
-CREATE OR REPLACE FUNCTION earn(user_id INTEGER, earn_msats BIGINT, created_at TIMESTAMP(3),
-    type "EarnType", type_id INTEGER, rank INTEGER)
-RETURNS void AS $$
-DECLARE
-BEGIN
-    -- insert into earn
-    INSERT INTO "Earn" (msats, "userId", created_at, type, "typeId", rank)
-    VALUES (earn_msats, user_id, created_at, type, type_id, rank);
-
-    -- give the user the sats
-    UPDATE users
-    SET msats = msats + earn_msats, "stackedMsats" = "stackedMsats" + earn_msats
-    WHERE id = user_id;
-
-    IF type = 'POST' OR type = 'COMMENT' THEN
-        PERFORM sats_after_tip(type_id, NULL, earn_msats);
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
+DROP FUNCTION IF EXISTS earn(user_id INTEGER, earn_msats BIGINT, created_at TIMESTAMP(3),
+    type "EarnType", type_id INTEGER, rank INTEGER);
 
 CREATE OR REPLACE FUNCTION stacking_growth(min TIMESTAMP(3), max TIMESTAMP(3), ival INTERVAL, date_part TEXT)
 RETURNS TABLE (t TIMESTAMP(3), rewards BIGINT, posts BIGINT, comments BIGINT, referrals BIGINT, territories BIGINT)

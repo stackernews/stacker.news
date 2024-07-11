@@ -28,6 +28,7 @@ export function viewIntervalClause (range, view) {
 
 export function viewGroup (range, view) {
   const unit = timeUnitForRange(range)
+  console.log('viewGroup', range, view, unit)
   return `(
     (SELECT *
       FROM ${view}_days
@@ -42,8 +43,8 @@ export function viewGroup (range, view) {
       ${view}(
       date_trunc('hour', timezone('America/Chicago', now())),
       date_trunc('hour', timezone('America/Chicago', now())), '1 hour'::INTERVAL, 'hour')
-      WHERE "${view}".t >= date_trunc('${unit}', timezone('America/Chicago', $1))
-      AND "${view}".t <= date_trunc('${unit}', timezone('America/Chicago', $2)))
+      WHERE "${view}".t >= date_trunc('hour', timezone('America/Chicago', $1))
+      AND "${view}".t <= date_trunc('hour', timezone('America/Chicago', $2)))
   ) u`
 }
 

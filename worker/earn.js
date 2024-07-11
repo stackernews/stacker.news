@@ -48,14 +48,14 @@ export async function earn ({ name }) {
         - how early they upvoted it
         - how the post/comment scored
 
-      Now: 100% of earnings go to top 33% of comments/posts and their upvoters for month
+      Now: 80% of earnings go to top 100 stackers by value, and 10% each to their forever and one day referrers
     */
 
     // get earners { userId, id, type, rank, proportion, foreverReferrerId, oneDayReferrerId }
     const earners = await models.$queryRaw`
       WITH earners AS (
         SELECT users.id AS "userId", users."referrerId" AS "foreverReferrerId",
-          proportion, ROW_NUMBER() OVER (ORDER BY proportion DESC) AS rank
+          proportion, (ROW_NUMBER() OVER (ORDER BY proportion DESC))::INTEGER AS rank
         FROM user_values(
           date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'),
           date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'),
@@ -78,7 +78,9 @@ export async function earn ({ name }) {
 
     // in order to group earnings for users we use the same createdAt time for
     // all earnings
-    const now = new Date(new Date().getTime())
+    const createdAt = new Date(new Date().getTime())
+    // stmts is an array of prisma promises we'll call after the loop
+    const stmts = []
 
     // this is just a sanity check because it seems like a good idea
     let total = 0
@@ -86,7 +88,7 @@ export async function earn ({ name }) {
     const notifications = {}
     for (const [i, earner] of earners.entries()) {
       const foreverReferrerEarnings = Math.floor(parseFloat(earner.proportion * sum * 0.1)) // 10% of earnings
-      const oneDayReferrerEarnings = Math.floor(parseFloat(earner.proportion * sum * 0.1)) // 10% of earnings
+      let oneDayReferrerEarnings = Math.floor(parseFloat(earner.proportion * sum * 0.1)) // 10% of earnings
       const earnerEarnings = Math.floor(parseFloat(proportions[i] * sum)) - foreverReferrerEarnings - oneDayReferrerEarnings
 
       total += earnerEarnings + foreverReferrerEarnings + oneDayReferrerEarnings
@@ -107,9 +109,13 @@ export async function earn ({ name }) {
         'oneDayReferrerEarnings', oneDayReferrerEarnings)
 
       if (earnerEarnings > 0) {
-        await models.$executeRaw`SELECT earn(${earner.userId}::INTEGER, ${earnerEarnings},
-          ${now}::timestamp without time zone, ${earner.type}::"EarnType", ${earner.id}::INTEGER,
-          ${earner.rank}::INTEGER)`
+        stmts.push(...earnStmts({
+          msats: earnerEarnings,
+          userId: earner.userId,
+          createdAt,
+          type: earner.type,
+          rank: earner.rank
+        }, { models }))
 
         const userN = notifications[earner.userId] || {}
 
@@ -134,27 +140,32 @@ export async function earn ({ name }) {
         }
       }
 
-      if (!earner.foreverReferrerId && earner.oneDayReferrerId) {
-        earner.foreverReferrerId = earner.oneDayReferrerId
-      }
-
       if (earner.foreverReferrerId && foreverReferrerEarnings > 0) {
-        await models.$executeRaw`SELECT earn(${earner.foreverReferrerId}::INTEGER,
-          ${foreverReferrerEarnings}, ${now}::timestamp without time zone,
-          'FOREVER_REFERRAL'::"EarnType", ${earner.userId}::INTEGER,
-          ${earner.rank}::INTEGER)`
-      }
-
-      if (!earner.oneDayReferrerId && earner.foreverReferrerId) {
-        earner.oneDayReferrerId = earner.foreverReferrerId
+        stmts.push(...earnStmts({
+          msats: foreverReferrerEarnings,
+          userId: earner.foreverReferrerId,
+          createdAt,
+          type: 'FOREVER_REFERRAL',
+          rank: earner.rank
+        }, { models }))
+      } else if (earner.oneDayReferrerId) {
+        // if the person doesn't have a forever referrer yet, they give double to their one day referrer
+        oneDayReferrerEarnings += foreverReferrerEarnings
       }
 
       if (earner.oneDayReferrerId && oneDayReferrerEarnings > 0) {
-        await models.$executeRaw`SELECT earn(${earner.oneDayReferrerId}::INTEGER,
-          ${oneDayReferrerEarnings}, ${now}::timestamp without time zone,
-          'ONE_DAY_REFERRAL'::"EarnType", ${earner.userId}::INTEGER, ${earner.rank}::INTEGER)`
+        stmts.push(...earnStmts({
+          msats: oneDayReferrerEarnings,
+          userId: earner.oneDayReferrerId,
+          createdAt,
+          type: 'ONE_DAY_REFERRAL',
+          rank: earner.rank
+        }, { models }))
       }
     }
+
+    // execute all the transactions
+    await models.$transaction(stmts)
 
     Promise.allSettled(
       Object.entries(notifications).map(([userId, earnings]) => notifyEarner(parseInt(userId, 10), earnings))
@@ -162,4 +173,17 @@ export async function earn ({ name }) {
   } finally {
     models.$disconnect().catch(console.error)
   }
+}
+
+function earnStmts (data, { models }) {
+  const { msats, userId } = data
+  return [
+    models.earn.create({ data }),
+    models.user.update({
+      where: { id: userId },
+      data: {
+        msats: { increment: msats },
+        stackedMsats: { increment: msats }
+      }
+    })]
 }

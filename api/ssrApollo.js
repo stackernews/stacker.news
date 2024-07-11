@@ -78,7 +78,8 @@ function oneDayReferral (request, { me }) {
         'satistics', 'settings', 'stackers', 'wallet', 'withdrawals', '404', '500',
         'email', 'live', 'login', 'notifications', 'offline', 'search', 'share',
         'signup', 'territory', 'recent', 'top', 'edit', 'post', 'rss', 'saloon',
-        'faq', 'story', 'privacy', 'copyright', 'tos', 'changes', 'guide', 'daily'].includes(name)) continue
+        'faq', 'story', 'privacy', 'copyright', 'tos', 'changes', 'guide', 'daily',
+        'anon', 'ad'].includes(name)) continue
 
       prismaPromise = models.user.findUnique({ where: { name } })
       getData = user => ({

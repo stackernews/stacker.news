@@ -11,7 +11,8 @@ WHERE "typeId" IN (
         'satistics', 'settings', 'stackers', 'wallet', 'withdrawals', '404', '500',
         'email', 'live', 'login', 'notifications', 'offline', 'search', 'share',
         'signup', 'territory', 'recent', 'top', 'edit', 'post', 'rss', 'saloon',
-        'faq', 'story', 'privacy', 'copyright', 'tos', 'changes', 'guide', 'daily'
+        'faq', 'story', 'privacy', 'copyright', 'tos', 'changes', 'guide', 'daily',
+        'anon', 'ad'
     )
 );
 
@@ -25,6 +26,7 @@ WHERE "referrerId" IN (
         'satistics', 'settings', 'stackers', 'wallet', 'withdrawals', '404', '500',
         'email', 'live', 'login', 'notifications', 'offline', 'search', 'share',
         'signup', 'territory', 'recent', 'top', 'edit', 'post', 'rss', 'saloon',
-        'faq', 'story', 'privacy', 'copyright', 'tos', 'changes', 'guide', 'daily'
+        'faq', 'story', 'privacy', 'copyright', 'tos', 'changes', 'guide', 'daily',
+        'anon', 'ad'
     )
 );

@@ -7,7 +7,6 @@ export function viewIntervalClause (range, view) {
 
 export function viewGroup (range, view) {
   const unit = timeUnitForRange(range)
-  console.log('viewGroup', range, view, unit)
   return `(
     (SELECT *
       FROM ${view}_days

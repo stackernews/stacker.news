@@ -102,6 +102,19 @@ function NoteHeader ({ color, children, big }) {
   )
 }
 
+function NoteItem ({ item }) {
+  return (
+    <div>
+      {item.title
+        ? <Item item={item} itemClassName='pt-0' />
+        : (
+          <RootProvider root={item.root}>
+            <Comment item={item} noReply includeParent clickToContext />
+          </RootProvider>)}
+    </div>
+  )
+}
+
 const defaultOnClick = n => {
   const type = n.__typename
   if (type === 'Earn') {
@@ -437,17 +450,7 @@ function Invoicification ({ n: { invoice, sortTime } }) {
           <span className='text-muted ms-2 fw-normal' suppressHydrationWarning>{timeSince(new Date(sortTime))}</span>
         </span>
       </NoteHeader>
-      <div>
-        {invoice.item.title
-          ? <Item item={invoice.item} itemClassName='pt-0' />
-          : (
-            <div>
-              <RootProvider root={invoice.item.root}>
-                <Comment item={invoice.item} noReply includeParent clickToContext />
-              </RootProvider>
-            </div>
-            )}
-      </div>
+      <NoteItem item={invoice.item} />
     </div>
   )
 }
@@ -494,17 +497,7 @@ function Votification ({ n }) {
             <ForwardedUsers />
           </>}
       </NoteHeader>
-      <div>
-        {n.item.title
-          ? <Item item={n.item} itemClassName='pt-0' />
-          : (
-            <div>
-              <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent clickToContext />
-              </RootProvider>
-            </div>
-            )}
-      </div>
+      <NoteItem item={n.item} />
     </>
   )
 }
@@ -515,17 +508,7 @@ function ForwardedVotification ({ n }) {
       <NoteHeader color='success'>
         you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false })} from
       </NoteHeader>
-      <div>
-        {n.item.title
-          ? <Item item={n.item} itemClassName='pt-0' />
-          : (
-            <div>
-              <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent clickToContext />
-              </RootProvider>
-            </div>
-            )}
-      </div>
+      <NoteItem item={n.item} />
     </>
   )
 }
@@ -536,16 +519,7 @@ function Mention ({ n }) {
       <NoteHeader color='info'>
         you were mentioned in
       </NoteHeader>
-      <div>
-        {n.item.title
-          ? <Item item={n.item} itemClassName='pt-0' />
-          : (
-            <div>
-              <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
-              </RootProvider>
-            </div>)}
-      </div>
+      <NoteItem item={n.item} />
     </>
   )
 }
@@ -556,14 +530,7 @@ function ItemMention ({ n }) {
       <NoteHeader color='info'>
         your item was mentioned in
       </NoteHeader>
-      {n.item?.title
-        ? <div className=''><Item item={n.item} itemClassName='pt-0' /></div>
-        : (
-          <div>
-            <RootProvider root={n.item.root}>
-              <Comment item={n.item} noReply includeParent rootText='replying on:' clickToContext />
-            </RootProvider>
-          </div>)}
+      <NoteItem item={n.item} />
     </>
   )
 }
@@ -584,19 +551,7 @@ function JobChanged ({ n }) {
 }
 
 function Reply ({ n }) {
-  return (
-    <div className='outline'>
-      {n.item.title
-        ? <Item item={n.item} itemClassName='pt-0 pb-2' />
-        : (
-          <div className=''>
-            <RootProvider root={n.item.root}>
-              <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
-            </RootProvider>
-          </div>
-          )}
-    </div>
-  )
+  return <NoteItem item={n.item} />
 }
 
 function FollowActivity ({ n }) {
@@ -605,15 +560,7 @@ function FollowActivity ({ n }) {
       <NoteHeader color='info'>
         a stacker you subscribe to {n.item.parentId ? 'commented' : 'posted'}
       </NoteHeader>
-      {n.item.title
-        ? <div className=''><Item item={n.item} itemClassName='pt-0' /></div>
-        : (
-          <div>
-            <RootProvider root={n.item.root}>
-              <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
-            </RootProvider>
-          </div>
-          )}
+      <NoteItem item={n.item} />
     </>
   )
 }
@@ -624,7 +571,7 @@ function TerritoryPost ({ n }) {
       <NoteHeader color='info'>
         new post in ~{n.item.sub.name}
       </NoteHeader>
-      <div className=''>
+      <div>
         <Item item={n.item} itemClassName='pt-0' />
       </div>
     </>
@@ -633,12 +580,10 @@ function TerritoryPost ({ n }) {
 
 function TerritoryTransfer ({ n }) {
   return (
-    <>
-      <div className='fw-bold text-info '>
-        ~{n.sub.name} was transferred to you
-        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      </div>
-    </>
+    <div className='fw-bold text-info '>
+      ~{n.sub.name} was transferred to you
+      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+    </div>
   )
 }
 
@@ -648,15 +593,7 @@ function Reminder ({ n }) {
       <NoteHeader color='info'>
         you asked to be reminded of this {n.item.title ? 'post' : 'comment'}
       </NoteHeader>
-      {n.item.title
-        ? <div className=''><Item item={n.item} itemClassName='pt-0' /></div>
-        : (
-          <div>
-            <RootProvider root={n.item.root}>
-              <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
-            </RootProvider>
-          </div>
-          )}
+      <NoteItem item={n.item} />
     </>
   )
 }

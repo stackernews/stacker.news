@@ -110,10 +110,13 @@ export default function Rewards ({ ssrData }) {
   if (!dat) return <PageLoading />
 
   function EstimatedReward ({ rank }) {
+    const referrerReward = Math.floor(total * proportions[rank - 1] * 0.2)
+    const reward = Math.floor(total * proportions[rank - 1]) - referrerReward
+
     return (
       <div className='text-muted fst-italic'>
         <small>
-          <span>estimated reward: {numWithUnits(Math.floor(total * proportions[rank - 1]))}</span>
+          <span>estimated reward: {numWithUnits(reward)} <small className='fw-light'>(+ {numWithUnits(referrerReward)} to referrers)</small></span>
         </small>
       </div>
     )

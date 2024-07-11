@@ -284,6 +284,7 @@ export default {
           FROM "Earn"
           WHERE "userId" = $1
           AND created_at < $2
+          AND (type IS NULL OR type NOT IN ('FOREVER_REFERRAL', 'ONE_DAY_REFERRAL'))
           GROUP BY "userId", created_at
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT})`
@@ -296,6 +297,17 @@ export default {
           AND type = 'REVENUE'
           AND created_at < $2
           GROUP BY "userId", "subName", created_at
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT})`
+        )
+        queries.push(
+          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
+          'ReferralReward' AS type
+          FROM "Earn"
+          WHERE "userId" = $1
+          AND created_at < $2
+          AND type IN ('FOREVER_REFERRAL', 'ONE_DAY_REFERRAL')
+          GROUP BY "userId", created_at
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT})`
         )
@@ -481,6 +493,22 @@ export default {
       sources.tipPosts ||= 0
       sources.tipComments ||= 0
       if (sources.posts + sources.comments + sources.tipPosts + sources.tipComments > 0) {
+        return sources
+      }
+
+      return null
+    }
+  },
+  ReferralReward: {
+    sources: async (n, args, { me, models }) => {
+      const [sources] = await models.$queryRawUnsafe(`
+        SELECT
+        COALESCE(FLOOR(sum(msats) FILTER(WHERE type = 'FOREVER_REFERRAL') / 1000), 0) AS forever,
+        COALESCE(FLOOR(sum(msats) FILTER(WHERE type = 'ONE_DAY_REFERRAL') / 1000), 0) AS "oneDay"
+        FROM "Earn"
+        WHERE "userId" = $1 AND created_at = $2
+      `, Number(me.id), new Date(n.sortTime))
+      if (sources.forever + sources.oneDay > 0) {
         return sources
       }
 

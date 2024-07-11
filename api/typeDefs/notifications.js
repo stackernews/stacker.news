@@ -89,6 +89,19 @@ export default gql`
     sources: EarnSources
   }
 
+  type ReferralSources {
+    id: ID!
+    forever: Int!
+    oneDay: Int!
+  }
+
+  type ReferralReward {
+    id: ID!
+    earnedSats: Int!
+    sortTime: Date!
+    sources: ReferralSources
+  }
+
   type Revenue {
     id: ID!
     earnedSats: Int!
@@ -143,6 +156,7 @@ export default gql`
     | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
     | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus
     | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | Invoicification
+    | ReferralReward
 
   type Notifications {
     lastChecked: Date

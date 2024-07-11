@@ -48,7 +48,6 @@ export default function Satistics ({ ssrData }) {
 
   const totalStacked = userStatsIncomingSats.reduce((total, a) => total + a.data?.reduce((acc, d) => acc + d.value, 0), 0)
   const totalSpent = userStatsOutgoingSats.reduce((total, a) => total + a.data?.reduce((acc, d) => acc + d.value, 0), 0)
-  const totalEngagement = userStatsActions.reduce((total, a) => total + a.data?.reduce((acc, d) => acc + d.value, 0), 0)
 
   return (
     <Layout>
@@ -59,8 +58,8 @@ export default function Satistics ({ ssrData }) {
             <UsageHeader pathname='satistics/graphs' />
             <div className='mt-3'>
               <div className='d-flex row justify-content-between'>
-                <div className='col-md-4 mb-2'>
-                  <h4>stacked</h4>
+                <div className='col-md-6 mb-2'>
+                  <h4 className='w-100 text-center'>stacked</h4>
                   <div className='card'>
                     <div className='card-body'>
                       <SatisticsTooltip overlayText={numWithUnits(totalStacked, { abbreviate: false, format: true })}>
@@ -71,8 +70,8 @@ export default function Satistics ({ ssrData }) {
                     </div>
                   </div>
                 </div>
-                <div className='col-md-4 mb-2'>
-                  <h4>spent</h4>
+                <div className='col-md-6 mb-2'>
+                  <h4 className='w-100 text-center'>spent</h4>
                   <div className='card'>
                     <div className='card-body'>
                       <SatisticsTooltip overlayText={numWithUnits(totalSpent, { abbreviate: false, format: true })}>
@@ -80,16 +79,6 @@ export default function Satistics ({ ssrData }) {
                           {numWithUnits(totalSpent, { abbreviate: true, format: true })}
                         </h2>
                       </SatisticsTooltip>
-                    </div>
-                  </div>
-                </div>
-                <div className='col-md-4'>
-                  <h4>actions</h4>
-                  <div className='card'>
-                    <div className='card-body'>
-                      <h2 className='text-center mb-0 text-muted'>
-                        {new Intl.NumberFormat().format(totalEngagement)}
-                      </h2>
                     </div>
                   </div>
                 </div>
@@ -110,7 +99,7 @@ export default function Satistics ({ ssrData }) {
                 {userStatsActions.length > 0 &&
                   <div className='col-md-12'>
                     <div className='text-center text-muted fw-bold'>items</div>
-                    <WhenComposedChart data={userStatsActions} areaNames={['posts', 'comments']} areaAxis='left' lineNames={['territories', 'referrals']} lineAxis='right' />
+                    <WhenComposedChart data={userStatsActions} areaNames={['posts', 'comments']} areaAxis='left' lineNames={['territories', 'referrals', 'one day referrals']} lineAxis='right' />
                   </div>}
               </div>
             </div>

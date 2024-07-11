@@ -99,6 +99,15 @@ export const NOTIFICATIONS = gql`
             tipComments
           }
         }
+        ... on ReferralReward {
+          id
+          sortTime
+          earnedSats
+          sources {
+            forever
+            oneDay
+          }
+        }
         ... on Referral {
           id
           sortTime

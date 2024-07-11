@@ -21,14 +21,10 @@ const REFERRALS = gql`
   query Referrals($when: String!, $from: String, $to: String)
   {
     referrals(when: $when, from: $from, to: $to) {
-      totalSats
-      totalReferrals
-      stats {
-        time
-        data {
-          name
-          value
-        }
+      time
+      data {
+        name
+        value
       }
     }
   }`
@@ -54,7 +50,12 @@ export default function Referrals ({ ssrData }) {
   const { data } = useQuery(REFERRALS, { variables: { when: router.query.when, from: router.query.from, to: router.query.to } })
   if (!data && !ssrData) return <PageLoading />
 
-  const { referrals: { totalSats, totalReferrals, stats } } = data || ssrData
+  const { referrals } = data || ssrData
+  const totalSats = referrals.reduce(
+    (total, a) => total + a.data?.filter(d => d.name.endsWith('sats')).reduce(
+      (acc, d) => acc + d.value,
+      0),
+    0)
 
   const when = router.query.when
 
@@ -62,7 +63,7 @@ export default function Referrals ({ ssrData }) {
     <CenterLayout footerLinks>
       <div className='fw-bold text-muted text-center pt-5 pb-3 d-flex align-items-center justify-content-center flex-wrap'>
         <h4 className='fw-bold text-muted text-center d-flex align-items-center justify-content-center'>
-          {numWithUnits(totalReferrals, { unitPlural: 'referrals', unitSingular: 'referral' })} & {numWithUnits(totalSats, { abbreviate: false })} in the last
+          {numWithUnits(totalSats, { abbreviate: false })} in the last
           <Select
             groupClassName='mb-0 mx-2'
             className='w-auto'
@@ -91,7 +92,13 @@ export default function Referrals ({ ssrData }) {
             when={router.query.when}
           />}
       </div>
-      <WhenComposedChart data={stats} lineNames={['sats']} barNames={['referrals']} barAxis='right' />
+      <WhenComposedChart
+        data={referrals}
+        areaNames={['referral sats', 'one day referral sats']}
+        barNames={['referrals', 'one day referrals']}
+        barAxis='right'
+        barStackId={1}
+      />
 
       <div
         className='text-small pt-5 px-3 d-flex w-100 align-items-center'
@@ -106,13 +113,16 @@ export default function Referrals ({ ssrData }) {
         />
       </div>
       <ul className='py-3 text-muted'>
-        <li>{`appending /r/${me.name} to any SN link makes it a ref link`}
+        <li>earn 10% of a stacker's <Link href='/rewards'>rewards</Link> in perpetuity if they sign up from your referral links</li>
+        <li>in addition, earn 10% of a stacker's <Link href='/rewards'>rewards</Link> for the day if they follow your refrral links the most that day</li>
+        <li>nearly all sn links are referral links:
           <ul>
-            <li>e.g. https://stacker.news/items/1/r/{me.name}</li>
+            <li>your profile link is an implicit referral link</li>
+            <li>all links to post and comments are implicit referral links attributed to the OP</li>
+            <li>links to territories are implicit referral links attributed to the territory founder</li>
           </ul>
         </li>
-        <li>earn 21% of boost and job fees spent by referred stackers</li>
-        <li>earn 2.1% of all zaps received by referred stackers</li>
+        <li>appending /r/{me.name} to any SN link makes it a ref link to {me.name}</li>
         <li><Link href='/invites'>invite links</Link> are also implicitly referral links</li>
       </ul>
     </CenterLayout>

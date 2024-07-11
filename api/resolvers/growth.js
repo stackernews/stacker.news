@@ -1,26 +1,5 @@
 import { timeUnitForRange, whenRange } from '@/lib/time'
 
-export function withClause (range) {
-  const unit = timeUnitForRange(range)
-
-  return `
-    WITH range_values AS (
-      SELECT date_trunc('${unit}', $1) as minval,
-             date_trunc('${unit}', $2) as maxval
-    ),
-    times AS (
-      SELECT generate_series(minval, maxval, interval '1 ${unit}') as time
-      FROM range_values
-    )
-  `
-}
-
-export function intervalClause (range, table) {
-  const unit = timeUnitForRange(range)
-
-  return `date_trunc('${unit}', "${table}".created_at)  >= date_trunc('${unit}', $1) AND date_trunc('${unit}', "${table}".created_at) <= date_trunc('${unit}', $2) `
-}
-
 export function viewIntervalClause (range, view) {
   const unit = timeUnitForRange(range)
   return `"${view}".t >= date_trunc('${unit}', timezone('America/Chicago', $1)) AND date_trunc('${unit}', "${view}".t) <= date_trunc('${unit}', timezone('America/Chicago', $2)) `

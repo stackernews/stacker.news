@@ -96,7 +96,7 @@ function NotificationLayout ({ children, type, nid, href, as, fresh }) {
 
 function NoteHeader ({ color, children, big }) {
   return (
-    <div className={`fw-bold text-${color} ${big ? '' : 'small'} d-inline-block align-items-center pb-2`} style={{ lineHeight: '1.25' }}>
+    <div className={`${styles.noteHeader} text-${color} ${big ? '' : 'small'} pb-2`}>
       {children}
     </div>
   )

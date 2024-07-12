@@ -29,7 +29,7 @@ export default function ActionTooltip ({ children, notForm, disable, overlayText
         }
       }}
     >
-      <span className='d-inline-block'>
+      <span>
         {children}
       </span>
     </OverlayTrigger>

@@ -1155,7 +1155,21 @@ export default {
       if (item.root) {
         return item.root
       }
-      return await getItem(item, { id: item.rootId }, { me, models })
+
+      // we can't use getItem because activeOrMine will prevent root from being fetched
+      const [root] = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}
+          FROM "Item"
+          ${whereClause(
+            '"Item".id = $1',
+            `("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id})`
+          )}`
+      }, Number(item.rootId))
+
+      return root
     },
     invoice: async (item, args, { models }) => {
       if (item.invoiceId) {

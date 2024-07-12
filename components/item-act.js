@@ -8,7 +8,6 @@ import { amountSchema } from '@/lib/validate'
 import { useToast } from './toast'
 import { useLightning } from './lightning'
 import { nextTip } from './upvote'
-import { InvoiceCanceledError } from './payment'
 import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { usePaidMutation } from './use-paid-mutation'
 import { ACT_MUTATION } from '@/fragments/paidAction'
@@ -72,7 +71,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         }
       }
     }
-    await act({
+    const { error } = await act({
       variables: {
         id: item.id,
         sats: Number(amount),
@@ -95,6 +94,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         if (!me) setItemMeAnonSats({ id: item.id, amount })
       }
     })
+    if (error) throw error
     addCustomTip(Number(amount))
   }, [me, act, down, item.id, onClose, abortSignal, strike])
 
@@ -219,15 +219,15 @@ export function useZap () {
     try {
       await abortSignal.pause({ me, amount: sats })
       strike()
-      await act({ variables, optimisticResponse })
+      const { error } = await act({ variables, optimisticResponse })
+      if (error) throw error
     } catch (error) {
-      if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {
+      if (error instanceof ActCanceledError) {
         return
       }
 
       const reason = error?.message || error?.toString?.()
-
-      toaster.danger('zap failed: ' + reason)
+      toaster.danger(reason)
     }
   }, [me?.id, strike])
 }

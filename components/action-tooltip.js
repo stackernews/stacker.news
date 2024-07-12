@@ -15,12 +15,19 @@ export default function ActionTooltip ({ children, notForm, disable, overlayText
     <OverlayTrigger
       placement={placement || 'bottom'}
       overlay={
-        <Tooltip>
+        <Tooltip style={{ position: 'fixed' }}>
           {overlayText}
         </Tooltip>
       }
       trigger={['hover', 'focus']}
       show={formik?.isSubmitting ? false : undefined}
+      popperConfig={{
+        modifiers: {
+          preventOverflow: {
+            enabled: false
+          }
+        }
+      }}
     >
       <span>
         {children}

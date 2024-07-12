@@ -373,7 +373,7 @@ services:
     build:
       context: ./docker/litd
     profiles:
-      - payments
+      - wallets
     restart: unless-stopped
     healthcheck:
       <<: *healthcheck
@@ -479,7 +479,7 @@ services:
       context: ./docker/nwc
     container_name: nwc
     profiles:
-      - payments
+      - wallets
     restart: unless-stopped
     depends_on:
       stacker_lnd:
@@ -509,7 +509,7 @@ services:
     image: lnbits/lnbits:0.12.5
     container_name: lnbits
     profiles:
-      - payments
+      - wallets
     restart: unless-stopped
     ports:
       - "${LNBITS_WEB_PORT}:5000"

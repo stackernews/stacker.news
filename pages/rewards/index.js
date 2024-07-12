@@ -110,10 +110,13 @@ export default function Rewards ({ ssrData }) {
   if (!dat) return <PageLoading />
 
   function EstimatedReward ({ rank }) {
+    const referrerReward = Math.floor(total * proportions[rank - 1] * 0.2)
+    const reward = Math.floor(total * proportions[rank - 1]) - referrerReward
+
     return (
       <div className='text-muted fst-italic'>
         <small>
-          <span>estimated reward: {numWithUnits(Math.floor(total * proportions[rank - 1]))}</span>
+          <span>estimated reward: {numWithUnits(reward)} <small className='fw-light'>(+ {numWithUnits(referrerReward)} to referrers)</small></span>
         </small>
       </div>
     )
@@ -121,11 +124,12 @@ export default function Rewards ({ ssrData }) {
 
   return (
     <Layout footerLinks>
-      <Link className='text-reset align-self-center' href='/items/141924'>
-        <h4 className='pt-3 text-start text-reset' style={{ lineHeight: 1.5, textDecoration: 'underline' }}>
-          rewards are sponsored by ... we are hiring
-        </h4>
-      </Link>
+      <h4 className='pt-3 align-self-center text-reset'>
+        <small className='text-muted'>rewards are sponsored by ...</small>
+        <Link className='text-reset ms-2' href='/items/141924' style={{ lineHeight: 1.5, textDecoration: 'underline' }}>
+          SN is hiring
+        </Link>
+      </h4>
       <Row className='pb-3'>
         <Col lg={leaderboard?.users && 5}>
           <div

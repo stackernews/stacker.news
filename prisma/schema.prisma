@@ -333,6 +333,7 @@ model Upload {
   @@index([createdAt], map: "Upload.created_at_index")
   @@index([userId], map: "Upload.userId_index")
   @@index([invoiceId])
+  @@index([invoiceActionState])
 }
 
 model Earn {
@@ -485,6 +486,7 @@ model Item {
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
   @@index([invoiceId])
+  @@index([invoiceActionState])
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item
@@ -578,6 +580,7 @@ model PollVote {
 
   @@index([pollOptionId], map: "PollVote.pollOptionId_index")
   @@index([invoiceId])
+  @@index([invoiceActionState])
 }
 
 model PollBlindVote {
@@ -594,6 +597,7 @@ model PollBlindVote {
 
   @@unique([itemId, userId], map: "PollBlindVote.itemId_userId_unique")
   @@index([userId], map: "PollBlindVote.userId_index")
+  @@index([invoiceActionState])
 }
 
 enum BillingType {
@@ -732,6 +736,7 @@ model ItemAct {
   @@index([itemId], map: "Vote.itemId_index")
   @@index([userId], map: "Vote.userId_index")
   @@index([invoiceId])
+  @@index([invoiceActionState])
 }
 
 model Mention {
@@ -822,6 +827,8 @@ model Invoice {
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")
   @@index([confirmedIndex], map: "Invoice.confirmedIndex_index")
+  @@index([actionState])
+  @@index([actionType])
 }
 
 model Withdrawl {
@@ -1012,6 +1019,8 @@ enum EarnType {
   COMMENT
   TIP_COMMENT
   TIP_POST
+  FOREVER_REFERRAL
+  ONE_DAY_REFERRAL
 }
 
 enum SubActType {

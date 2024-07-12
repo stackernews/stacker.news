@@ -10,6 +10,7 @@ import { dayMonthYear, timeSince } from '@/lib/time'
 import Link from 'next/link'
 import Check from '@/svgs/check-double-line.svg'
 import HandCoin from '@/svgs/hand-coin-fill.svg'
+import UserAdd from '@/svgs/user-add-fill.svg'
 import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import BaldIcon from '@/svgs/bald.svg'
@@ -36,12 +37,13 @@ import { usePollVote } from './poll'
 import { paidActionCacheMods } from './use-paid-mutation'
 import { useRetryCreateItem } from './use-item-submit'
 import { payBountyCacheMods } from './pay-bounty'
+import { useToast } from './toast'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
 
   return (
-    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)} fresh={fresh}>
+    <NotificationLayout nid={nid(n)} type={type} {...defaultOnClick(n)} fresh={fresh}>
       {
         (type === 'Earn' && <EarnNotification n={n} />) ||
         (type === 'Revenue' && <RevenueNotification n={n} />) ||
@@ -61,18 +63,19 @@ function Notification ({ n, fresh }) {
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
         (type === 'Reminder' && <Reminder n={n} />) ||
-        (type === 'Invoicification' && <Invoicification n={n} />)
+        (type === 'Invoicification' && <Invoicification n={n} />) ||
+        (type === 'ReferralReward' && <ReferralReward n={n} />)
       }
     </NotificationLayout>
   )
 }
 
-function NotificationLayout ({ children, nid, href, as, fresh }) {
+function NotificationLayout ({ children, type, nid, href, as, fresh }) {
   const router = useRouter()
-  if (!href) return <div className={fresh ? styles.fresh : ''}>{children}</div>
+  if (!href) return <div className={`py-2 ${fresh ? styles.fresh : ''}`}>{children}</div>
   return (
     <LinkToContext
-      className={`${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
+      className={`py-2 ${type === 'Reply' ? styles.reply : ''} ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
       onClick={async (e) => {
         e.preventDefault()
         nid && await router.replace({
@@ -88,6 +91,27 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
     >
       {children}
     </LinkToContext>
+  )
+}
+
+function NoteHeader ({ color, children, big }) {
+  return (
+    <div className={`${styles.noteHeader} text-${color} ${big ? '' : 'small'} pb-2`}>
+      {children}
+    </div>
+  )
+}
+
+function NoteItem ({ item }) {
+  return (
+    <div>
+      {item.title
+        ? <Item item={item} itemClassName='pt-0' />
+        : (
+          <RootProvider root={item.root}>
+            <Comment item={item} noReply includeParent clickToContext />
+          </RootProvider>)}
+    </div>
   )
 }
 
@@ -131,6 +155,7 @@ const defaultOnClick = n => {
   if (type === 'Invoicification') return itemLink(n.invoice.item)
   if (type === 'WithdrawlPaid') return { href: `/withdrawals/${n.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
+  if (type === 'ReferralReward') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
 
@@ -155,7 +180,7 @@ function Streak ({ n }) {
   }
 
   return (
-    <div className='d-flex ms-2 py-1'>
+    <div className='d-flex'>
       <div style={{ fontSize: '2rem' }}>{n.days ? <BaldIcon className='fill-grey' height={40} width={40} /> : <CowboyHatIcon className='fill-grey' height={40} width={40} />}</div>
       <div className='ms-1 p-1'>
         <span className='fw-bold'>you {n.days ? 'lost your' : 'found a'} cowboy hat</span>
@@ -169,12 +194,12 @@ function EarnNotification ({ n }) {
   const time = n.minSortTime === n.sortTime ? dayMonthYear(new Date(n.minSortTime)) : `${dayMonthYear(new Date(n.minSortTime))} to ${dayMonthYear(new Date(n.sortTime))}`
 
   return (
-    <div className='d-flex ms-2 py-1'>
+    <div className='d-flex'>
       <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
       <div className='ms-2'>
-        <div className='fw-bold text-boost'>
+        <NoteHeader color='boost' big>
           you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{time}</small>
-        </div>
+        </NoteHeader>
         {n.sources &&
           <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
             {n.sources.posts > 0 && <span>{numWithUnits(n.sources.posts, { abbreviate: false })} for top posts</span>}
@@ -183,7 +208,29 @@ function EarnNotification ({ n }) {
             {n.sources.tipComments > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0 || n.sources.tipPosts > 0) && ' \\ '}{numWithUnits(n.sources.tipComments, { abbreviate: false })} for zapping top comments early</span>}
           </div>}
         <div style={{ lineHeight: '140%' }}>
-          SN distributes the sats it earns back to its best stackers. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations. You can see the rewards pool and make a donation <Link href='/rewards'>here</Link>.
+          SN distributes the sats it earns to top stackers like you daily. The top stackers make the top posts and comments or zap the top posts and comments early and generously. View the rewards pool and make a donation <Link href='/rewards'>here</Link>.
+        </div>
+        <small className='text-muted ms-1 pb-1 fw-normal'>click for details</small>
+      </div>
+    </div>
+  )
+}
+
+function ReferralReward ({ n }) {
+  return (
+    <div className='d-flex'>
+      <UserAdd className='align-self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
+      <div className='ms-2'>
+        <NoteHeader color='success' big>
+          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in referral rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{dayMonthYear(new Date(n.sortTime))}</small>
+        </NoteHeader>
+        {n.sources &&
+          <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
+            {n.sources.forever > 0 && <span>{numWithUnits(n.sources.forever, { abbreviate: false })} for stackers joining because of you</span>}
+            {n.sources.oneDay > 0 && <span>{n.sources.forever > 0 && ' \\ '}{numWithUnits(n.sources.oneDay, { abbreviate: false })} for stackers referred to content by you today</span>}
+          </div>}
+        <div style={{ lineHeight: '140%' }}>
+          SN gives referral rewards to stackers like you for referring the top stackers daily. You refer stackers when they visit your posts, comments, profile, territory, or if they visit SN through your referral links.
         </div>
         <small className='text-muted ms-1 pb-1 fw-normal'>click for details</small>
       </div>
@@ -193,9 +240,9 @@ function EarnNotification ({ n }) {
 
 function RevenueNotification ({ n }) {
   return (
-    <div className='d-flex ms-2 py-1'>
+    <div className='d-flex'>
       <BountyIcon className='align-self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px' }} />
-      <div className='ms-2 pb-1'>
+      <div className=' pb-1'>
         <div className='fw-bold text-success'>
           you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in territory revenue<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
         </div>
@@ -210,7 +257,7 @@ function RevenueNotification ({ n }) {
 function SubStatus ({ n }) {
   const dueDate = nextBillingWithGrace(n.sub)
   return (
-    <div className={`fw-bold text-${n.sub.status === 'ACTIVE' ? 'success' : 'danger'} ms-2`}>
+    <div className={`fw-bold text-${n.sub.status === 'ACTIVE' ? 'success' : 'danger'} `}>
       {n.sub.status === 'ACTIVE'
         ? 'your territory is active again'
         : (n.sub.status === 'GRACE'
@@ -224,14 +271,14 @@ function SubStatus ({ n }) {
 function Invitification ({ n }) {
   return (
     <>
-      <small className='fw-bold text-secondary ms-2'>
+      <NoteHeader color='secondary'>
         your invite has been redeemed by
         {numWithUnits(n.invite.invitees.length, {
           abbreviate: false,
           unitSingular: 'stacker',
           unitPlural: 'stackers'
         })}
-      </small>
+      </NoteHeader>
       <div className='ms-4 me-2 mt-1'>
         <Invite
           invite={n.invite} active={
@@ -249,25 +296,23 @@ function NostrZap ({ n }) {
   const { npub, content, note } = nostrZapDetails(nostr)
 
   return (
-    <>
-      <div className='fw-bold text-nostr ms-2 py-1'>
-        <NostrIcon width={24} height={24} className='fill-nostr me-1' />{numWithUnits(n.earnedSats)} zap from
-        {// eslint-disable-next-line
+    <div className='fw-bold text-nostr'>
+      <NostrIcon width={24} height={24} className='fill-nostr me-1' />{numWithUnits(n.earnedSats)} zap from
+      {// eslint-disable-next-line
         <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://njump.me/${npub}`} rel={UNKNOWN_LINK_REL}>
           {npub.slice(0, 10)}...
         </Link>
         }
-        on {note
+      on {note
           ? (
             // eslint-disable-next-line
             <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://njump.me/${note}`} rel={UNKNOWN_LINK_REL}>
               {note.slice(0, 12)}...
             </Link>)
           : 'nostr'}
-        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-        {content && <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'><Text>{content}</Text></small>}
-      </div>
-    </>
+      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      {content && <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'><Text>{content}</Text></small>}
+    </div>
   )
 }
 
@@ -285,7 +330,7 @@ function InvoicePaid ({ n }) {
     if (id) payerSig += id
   }
   return (
-    <div className='fw-bold text-info ms-2 py-1'>
+    <div className='fw-bold text-info'>
       <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} deposited in your account
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       {n.invoice.comment &&
@@ -334,6 +379,7 @@ function useActRetry ({ invoice }) {
 }
 
 function Invoicification ({ n: { invoice, sortTime } }) {
+  const toaster = useToast()
   const actRetry = useActRetry({ invoice })
   const retryCreateItem = useRetryCreateItem({ id: invoice.item?.id })
   const retryPollVote = usePollVote({ query: RETRY_PAID_ACTION, itemId: invoice.item?.id })
@@ -367,56 +413,51 @@ function Invoicification ({ n: { invoice, sortTime } }) {
     ({ id: invoiceId, actionState: invoiceActionState } = invoice.itemAct.invoice)
   }
 
-  let colorClass = 'text-info'
+  let colorClass = 'info'
   switch (invoiceActionState) {
     case 'FAILED':
       actionString += 'failed'
-      colorClass = 'text-warning'
+      colorClass = 'warning'
       break
     case 'PAID':
       actionString += 'paid'
-      colorClass = 'text-success'
+      colorClass = 'success'
       break
     default:
       actionString += 'pending'
   }
 
   return (
-    <div className='px-2'>
-      <small className={`fw-bold ${colorClass} d-inline-flex align-items-center my-1`}>
+    <div>
+      <NoteHeader color={colorClass}>
         {actionString}
         <span className='ms-1 text-muted fw-light'> {numWithUnits(invoice.satsRequested)}</span>
         <span className={invoiceActionState === 'FAILED' ? 'visible' : 'invisible'}>
           <Button
             size='sm' variant='outline-warning ms-2 border-1 rounded py-0'
             style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}
-            onClick={() => {
-              retry({ variables: { invoiceId: parseInt(invoiceId) } }).catch(console.error)
+            onClick={async () => {
+              try {
+                const { error } = await retry({ variables: { invoiceId: parseInt(invoiceId) } })
+                if (error) throw error
+              } catch (error) {
+                toaster.danger(error?.message || error?.toString?.())
+              }
             }}
           >
             retry
           </Button>
           <span className='text-muted ms-2 fw-normal' suppressHydrationWarning>{timeSince(new Date(sortTime))}</span>
         </span>
-      </small>
-      <div>
-        {invoice.item.title
-          ? <Item item={invoice.item} />
-          : (
-            <div className='pb-2'>
-              <RootProvider root={invoice.item.root}>
-                <Comment item={invoice.item} noReply includeParent clickToContext />
-              </RootProvider>
-            </div>
-            )}
-      </div>
+      </NoteHeader>
+      <NoteItem item={invoice.item} />
     </div>
   )
 }
 
 function WithdrawlPaid ({ n }) {
   return (
-    <div className='fw-bold text-info ms-2 py-1'>
+    <div className='fw-bold text-info'>
       <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} withdrawn from your account
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       {n.withdrawl.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>}
@@ -426,8 +467,8 @@ function WithdrawlPaid ({ n }) {
 
 function Referral ({ n }) {
   return (
-    <small className='fw-bold text-secondary ms-2'>
-      someone joined via one of your referral links
+    <small className='fw-bold text-success'>
+      <UserAdd className='fill-success me-2' height={21} width={21} style={{ transform: 'rotateY(180deg)' }} />someone joined SN because of you
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
     </small>
   )
@@ -448,25 +489,15 @@ function Votification ({ n }) {
   }
   return (
     <>
-      <small className='fw-bold text-success d-inline-block ms-2 my-1' style={{ lineHeight: '1.25' }}>
+      <NoteHeader color='success'>
         your {n.item.title ? 'post' : 'reply'} stacked {numWithUnits(n.earnedSats, { abbreviate: false })}
         {n.item.forwards?.length > 0 &&
           <>
             {' '}and forwarded {numWithUnits(forwardedSats, { abbreviate: false })} to{' '}
             <ForwardedUsers />
           </>}
-      </small>
-      <div>
-        {n.item.title
-          ? <Item item={n.item} />
-          : (
-            <div className='pb-2'>
-              <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent clickToContext />
-              </RootProvider>
-            </div>
-            )}
-      </div>
+      </NoteHeader>
+      <NoteItem item={n.item} />
     </>
   )
 }
@@ -474,20 +505,10 @@ function Votification ({ n }) {
 function ForwardedVotification ({ n }) {
   return (
     <>
-      <small className='fw-bold text-success d-inline-block ms-2 my-1' style={{ lineHeight: '1.25' }}>
+      <NoteHeader color='success'>
         you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false })} from
-      </small>
-      <div>
-        {n.item.title
-          ? <Item item={n.item} />
-          : (
-            <div className='pb-2'>
-              <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent clickToContext />
-              </RootProvider>
-            </div>
-            )}
-      </div>
+      </NoteHeader>
+      <NoteItem item={n.item} />
     </>
   )
 }
@@ -495,19 +516,10 @@ function ForwardedVotification ({ n }) {
 function Mention ({ n }) {
   return (
     <>
-      <small className='fw-bold text-info ms-2'>
+      <NoteHeader color='info'>
         you were mentioned in
-      </small>
-      <div>
-        {n.item.title
-          ? <Item item={n.item} />
-          : (
-            <div className='pb-2'>
-              <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
-              </RootProvider>
-            </div>)}
-      </div>
+      </NoteHeader>
+      <NoteItem item={n.item} />
     </>
   )
 }
@@ -515,17 +527,10 @@ function Mention ({ n }) {
 function ItemMention ({ n }) {
   return (
     <>
-      <small className='fw-bold text-info ms-2'>
+      <NoteHeader color='info'>
         your item was mentioned in
-      </small>
-      {n.item?.title
-        ? <div className='ps-2'><Item item={n.item} /></div>
-        : (
-          <div className='pb-2'>
-            <RootProvider root={n.item.root}>
-              <Comment item={n.item} noReply includeParent rootText='replying on:' clickToContext />
-            </RootProvider>
-          </div>)}
+      </NoteHeader>
+      <NoteItem item={n.item} />
     </>
   )
 }
@@ -533,49 +538,29 @@ function ItemMention ({ n }) {
 function JobChanged ({ n }) {
   return (
     <>
-      <small className={`fw-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ms-1`}>
+      <NoteHeader color={n.item.status === 'ACTIVE' ? 'success' : 'boost'}>
         {n.item.status === 'ACTIVE'
           ? 'your job is active again'
           : (n.item.status === 'NOSATS'
               ? 'your job promotion ran out of sats'
               : 'your job has been stopped')}
-      </small>
+      </NoteHeader>
       <ItemJob item={n.item} />
     </>
   )
 }
 
 function Reply ({ n }) {
-  return (
-    <div className='py-2'>
-      {n.item.title
-        ? <Item item={n.item} />
-        : (
-          <div className='pb-2'>
-            <RootProvider root={n.item.root}>
-              <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
-            </RootProvider>
-          </div>
-          )}
-    </div>
-  )
+  return <NoteItem item={n.item} />
 }
 
 function FollowActivity ({ n }) {
   return (
     <>
-      <small className='fw-bold text-info ms-2'>
+      <NoteHeader color='info'>
         a stacker you subscribe to {n.item.parentId ? 'commented' : 'posted'}
-      </small>
-      {n.item.title
-        ? <div className='ms-2'><Item item={n.item} /></div>
-        : (
-          <div className='pb-2'>
-            <RootProvider root={n.item.root}>
-              <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
-            </RootProvider>
-          </div>
-          )}
+      </NoteHeader>
+      <NoteItem item={n.item} />
     </>
   )
 }
@@ -583,11 +568,11 @@ function FollowActivity ({ n }) {
 function TerritoryPost ({ n }) {
   return (
     <>
-      <small className='fw-bold text-info ms-2'>
+      <NoteHeader color='info'>
         new post in ~{n.item.sub.name}
-      </small>
-      <div className='ps-2'>
-        <Item item={n.item} />
+      </NoteHeader>
+      <div>
+        <Item item={n.item} itemClassName='pt-0' />
       </div>
     </>
   )
@@ -595,28 +580,20 @@ function TerritoryPost ({ n }) {
 
 function TerritoryTransfer ({ n }) {
   return (
-    <>
-      <div className='fw-bold text-info ms-2'>
-        ~{n.sub.name} was transferred to you
-        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      </div>
-    </>
+    <div className='fw-bold text-info '>
+      ~{n.sub.name} was transferred to you
+      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+    </div>
   )
 }
 
 function Reminder ({ n }) {
   return (
     <>
-      <small className='fw-bold text-info ms-2'>you asked to be reminded of this {n.item.title ? 'post' : 'comment'}</small>
-      {n.item.title
-        ? <div className='ms-2'><Item item={n.item} /></div>
-        : (
-          <div className='pb-2'>
-            <RootProvider root={n.item.root}>
-              <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
-            </RootProvider>
-          </div>
-          )}
+      <NoteHeader color='info'>
+        you asked to be reminded of this {n.item.title ? 'post' : 'comment'}
+      </NoteHeader>
+      <NoteItem item={n.item} />
     </>
   )
 }

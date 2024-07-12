@@ -118,7 +118,7 @@ a.link:visited {
     display: flex;
     justify-content: flex-start;
     min-width: 0;
-    padding-bottom: .5rem;
+    padding-top: .5rem;
 }
 
 .item .companyImage {
@@ -169,7 +169,8 @@ a.link:visited {
 }
 
 .children {
-    margin-left: 28px;
+    margin-left: 27px;
+    padding-top: .5rem;
 }
 
 .rank {

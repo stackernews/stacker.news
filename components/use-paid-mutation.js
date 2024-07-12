@@ -63,6 +63,14 @@ export function usePaidMutation (mutation,
 
     // if the mutation returns an invoice, pay it
     if (invoice) {
+      // adds payError, escalating to a normal error if the invoice is not canceled or
+      // has an actionError
+      const addPayError = (e, rest) => ({
+        ...rest,
+        payError: e,
+        error: e instanceof InvoiceCanceledError && e.actionError ? e : undefined
+      })
+
       // should we wait for the invoice to be paid?
       if (response?.paymentMethod === 'OPTIMISTIC' && !forceWaitForPayment) {
         // onCompleted is called before the invoice is paid for optimistic updates
@@ -75,7 +83,7 @@ export function usePaidMutation (mutation,
           // onPayError is called after the invoice fails to pay
           // useful for updating invoiceActionState to FAILED
           onPayError?.(e, client.cache, { data })
-          setInnerResult(r => ({ payError: e, ...r }))
+          setInnerResult(r => addPayError(e, r))
         })
       } else {
         // the action is pessimistic
@@ -95,7 +103,7 @@ export function usePaidMutation (mutation,
         } catch (e) {
           console.error('usePaidMutation: failed to pay invoice', e)
           onPayError?.(e, client.cache, { data })
-          rest = { ...rest, payError: e, error: e }
+          rest = addPayError(e, rest)
         }
       }
     } else {

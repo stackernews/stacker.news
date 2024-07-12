@@ -16,15 +16,13 @@ export default function TerritoryPaymentDue ({ sub }) {
   const client = useApolloClient()
   const [paySub] = usePaidMutation(SUB_PAY)
 
-  const onSubmit = useCallback(
-    async ({ ...variables }) => {
-      const { error, payError } = await paySub({
-        variables
-      })
+  const onSubmit = useCallback(async ({ ...variables }) => {
+    const { error } = await paySub({
+      variables
+    })
 
-      if (error) throw error
-      if (payError) throw new Error('payment required')
-    }, [client, paySub])
+    if (error) throw error
+  }, [client, paySub])
 
   if (!sub || sub.userId !== Number(me?.id) || sub.status === 'ACTIVE') return null
 

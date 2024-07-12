@@ -25,7 +25,7 @@ export default function Related ({ ssrData }) {
   return (
     <Layout>
       <Item item={item} />
-      <div className='fw-bold my-2'>related</div>
+      <div className='fw-bold mt-2'>related</div>
       <Items
         ssrData={ssrData}
         query={RELATED_ITEMS}

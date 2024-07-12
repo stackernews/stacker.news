@@ -5,7 +5,7 @@ import { useMe } from './me'
 import styles from './poll.module.css'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
-import { InvoiceCanceledError, useQrPayment } from './payment'
+import { useQrPayment } from './payment'
 import { useToast } from './toast'
 import { usePaidMutation } from './use-paid-mutation'
 import { POLL_VOTE, RETRY_PAID_ACTION } from '@/fragments/paidAction'
@@ -25,18 +25,14 @@ export default function Poll ({ item }) {
               const variables = { id: v.id }
               const optimisticResponse = { pollVote: { __typename: 'PollVotePaidAction', result: { id: v.id } } }
               try {
-                await pollVote({
+                const { error } = await pollVote({
                   variables,
                   optimisticResponse
                 })
+                if (error) throw error
               } catch (error) {
-                if (error instanceof InvoiceCanceledError) {
-                  return
-                }
-
                 const reason = error?.message || error?.toString?.()
-
-                toaster.danger('poll vote failed: ' + reason)
+                toaster.danger(reason)
               }
             }
             : signIn}

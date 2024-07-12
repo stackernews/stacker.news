@@ -13,6 +13,7 @@ export class InvoiceCanceledError extends Error {
     super(actionError ?? `invoice canceled: ${hash}`)
     this.name = 'InvoiceCanceledError'
     this.hash = hash
+    this.actionError = actionError
   }
 }
 

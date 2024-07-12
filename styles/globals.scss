@@ -151,6 +151,8 @@ $zindex-sticky: 900;
   --theme-quoteBar: rgb(206, 208, 212);
   --theme-linkHover: #004a72;
   --theme-linkVisited: #53758;
+  --theme-note-reply: rgba(0, 0, 0, 0.04);
+  --theme-note-fresh: rgba(0, 124, 190, 0.5);
 }
 
 [data-bs-theme=dark] {
@@ -175,6 +177,8 @@ $zindex-sticky: 900;
   --theme-quoteColor: rgb(141, 144, 150);
   --theme-linkHover: #007cbe;
   --theme-linkVisited: #56798E;
+  --theme-note-reply: rgba(255, 255, 255, 0.05);
+  --theme-note-fresh: rgba(0, 124, 190, 0.75);
 }
 
 @import '../node_modules/bootstrap/scss/bootstrap.scss';

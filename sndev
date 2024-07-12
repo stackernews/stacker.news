@@ -3,14 +3,14 @@
 set -e
 
 docker__compose() {
-  if [ ! -x "$(command -v docker-compose)" ]; then
+  if [ ! -x "$(command -v docker)" ]; then
     echo "docker compose is not installed"
     echo "installation instructions are here: https://docs.docker.com/desktop/"
     exit 0
   fi
 
   if [ -z "$COMPOSE_PROFILES" ]; then
-    COMPOSE_PROFILES="images,search,payments,email,capture"
+    COMPOSE_PROFILES="images,search,payments,wallets,email,capture"
   fi
 
   ENV_LOCAL=

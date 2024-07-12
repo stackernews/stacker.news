@@ -11,9 +11,13 @@
     border-top: solid 1px var(--theme-note-fresh);
 }
 
-.fresh:has(+ :not(.fresh)) {
+.fresh:has(+ :not(.fresh)):has(+ :not(.reply)),
+.fresh:not(.reply):has(+ :not(.fresh)) {
     border-bottom-left-radius: .4rem;
     border-bottom-right-radius: .4rem;
+}
+
+.fresh:has(+ :not(.fresh)) {
     border-bottom: solid 1px var(--theme-note-fresh);
 }
 

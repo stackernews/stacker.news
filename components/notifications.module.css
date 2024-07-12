@@ -1,6 +1,6 @@
 .fresh {
     border-radius: 0;
-    border: solid 1px var(--bs-info);
+    border: solid 1px var(--theme-note-fresh);
     border-bottom: 0;
     border-top: 0;
 }
@@ -8,13 +8,13 @@
 .fresh:not(.fresh ~ .fresh) {
     border-top-left-radius: .4rem;
     border-top-right-radius: .4rem;
-    border-top: solid 1px var(--bs-info);
+    border-top: solid 1px var(--theme-note-fresh);
 }
 
 .fresh:has(+ :not(.fresh)) {
     border-bottom-left-radius: .4rem;
     border-bottom-right-radius: .4rem;
-    border-bottom: solid 1px var(--bs-info);
+    border-bottom: solid 1px var(--theme-note-fresh);
 }
 
 .reply {

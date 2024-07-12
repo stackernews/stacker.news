@@ -96,7 +96,7 @@ function NotificationLayout ({ children, type, nid, href, as, fresh }) {
 
 function NoteHeader ({ color, children, big }) {
   return (
-    <div className={`fw-bold text-${color} ${big ? '' : 'small'} d-inline-flex align-items-center pb-2`} style={{ lineHeight: '1.25' }}>
+    <div className={`fw-bold text-${color} ${big ? '' : 'small'} d-inline-block align-items-center pb-2`} style={{ lineHeight: '1.25' }}>
       {children}
     </div>
   )
@@ -227,7 +227,7 @@ function ReferralReward ({ n }) {
         {n.sources &&
           <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
             {n.sources.forever > 0 && <span>{numWithUnits(n.sources.forever, { abbreviate: false })} for stackers joining because of you</span>}
-            {n.sources.oneDay > 0 && <span>{n.sources.oneDay > 0 && ' \\ '}{numWithUnits(n.sources.oneDay, { abbreviate: false })} for stackers referred to content by you today</span>}
+            {n.sources.oneDay > 0 && <span>{n.sources.forever > 0 && ' \\ '}{numWithUnits(n.sources.oneDay, { abbreviate: false })} for stackers referred to content by you today</span>}
           </div>}
         <div style={{ lineHeight: '140%' }}>
           SN gives referral rewards to stackers like you for referring the top stackers daily. You refer stackers when they visit your posts, comments, profile, territory, or if they visit SN through your referral links.

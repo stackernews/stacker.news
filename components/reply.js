@@ -113,7 +113,7 @@ export default forwardRef(function Reply ({
   return (
     <div>
       {replyOpen
-        ? <div className={styles.replyButtons} />
+        ? <div className='p-3' />
         : (
           <div className={styles.replyButtons}>
             <div

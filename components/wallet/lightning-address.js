@@ -10,7 +10,6 @@ export const fields = [
     name: 'address',
     label: 'lightning address',
     type: 'text',
-    hint: 'tor or clearnet',
     autoComplete: 'off'
   }
 ]

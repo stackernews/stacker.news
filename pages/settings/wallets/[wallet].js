@@ -36,7 +36,7 @@ export default function WalletSettings () {
   return (
     <CenterLayout>
       <h2 className='pb-2'>{wallet.card.title}</h2>
-      <h6 className='text-muted text-center pb-3'>{wallet.card.subtitle}</h6>
+      <h6 className='text-muted text-center pb-3'><Text>{wallet.card.subtitle}</Text></h6>
       {!wallet.server && <WalletSecurityBanner />}
       <Form
         initial={initial}
@@ -113,7 +113,7 @@ function WalletFields ({ wallet: { config, fields } }) {
           )}
           {optional && (
             <small className='text-muted ms-2'>
-              {typeof optional === 'boolean' ? 'optional' : optional}
+              {typeof optional === 'boolean' ? 'optional' : <Text>{optional}</Text>}
             </small>
           )}
         </div>

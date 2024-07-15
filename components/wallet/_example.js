@@ -1,4 +1,3 @@
-import React from 'react'
 import { lnbitsSchema } from '@/lib/validate'
 
 // ~~~
@@ -16,8 +15,6 @@ export const name = 'lnbits-as-an-example'
 // The form to configure this wallet is generated from these fields,
 // see the component <WalletFields /> in pages/settings/wallets/[wallet].js.
 //
-// If you need to include React code, you need to use React.createElement
-// since the worker will also import this file and does not support JSX syntax.
 //
 // If not handled otherwise in <WalletFields />, field properties are simply
 // passed into <ClientInput /> or <PasswordInput /> as props (component depends on 'type').
@@ -48,13 +45,8 @@ export const fields = [
 // [required]
 export const card = {
   title: 'LNbits',
-  // as mentioned above, you need to use React.createElement instead of JSX for more complex content
-  subtitle: React.createElement(
-    React.Fragment,
-    {},
-    'use ',
-    React.createElement('a', { href: 'https://lnbits.com/', target: '_blank', rel: 'noreferrer' }, 'LNbits'),
-    ' for payments'),
+  // subtitle supports markdown
+  subtitle: 'use [LNbits](https://lnbits.com/) for payments',
   badges: ['send only', 'non-custodialish']
 }
 

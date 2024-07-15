@@ -1,4 +1,3 @@
-import React from 'react'
 import { lnbitsSchema } from '@/lib/validate'
 
 export const name = 'lnbits'
@@ -18,12 +17,7 @@ export const fields = [
 
 export const card = {
   title: 'LNbits',
-  subtitle: React.createElement(
-    React.Fragment,
-    {},
-    'use ',
-    React.createElement('a', { href: 'https://lnbits.com/', target: '_blank', rel: 'noreferrer' }, 'LNbits'),
-    ' for payments'),
+  subtitle: 'use [LNbits](https://lnbits.com/) for payments',
   badges: ['send only', 'non-custodialish']
 }
 

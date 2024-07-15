@@ -1165,7 +1165,7 @@ export default {
           FROM "Item"
           ${whereClause(
             '"Item".id = $1',
-            `("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id})`
+            `("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID'${me ? ` OR "Item"."userId" = ${me.id}` : ''})`
           )}`
       }, Number(item.rootId))
 

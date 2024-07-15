@@ -67,8 +67,9 @@ export async function validate ({ nwcUrl }, { logger }) {
       })
     })
   } finally {
-    // For some reason, websocket is already in CLOSING or CLOSED state.
-    // relay?.close()
+    // For some reason, this throws 'WebSocket is already in CLOSING or CLOSED state'
+    // even though relay connection is still open here
+    relay?.close()?.catch()
     if (relay) logger.info(`closed connection to ${relayUrl}`)
   }
 }
@@ -126,8 +127,9 @@ export async function sendPayment (bolt11, { nwcUrl }, { logger }) {
     })
     return ret
   } finally {
-    // For some reason, websocket is already in CLOSING or CLOSED state.
-    // relay?.close()
+    // For some reason, this throws 'WebSocket is already in CLOSING or CLOSED state'
+    // even though relay connection is still open here
+    relay?.close()?.catch()
     if (relay) logger.info(`closed connection to ${relayUrl}`)
   }
 }

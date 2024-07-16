@@ -95,13 +95,6 @@ export const server = {
   // [required]
   walletField: 'walletLNbits',
 
-  // This can be any name but it makes sense to use something appropriate here like 'upsertWallet<WalletName>'.
-  // This is used to generate the mutation during save (see `generateMutation` in components/wallets/index.js)
-  // and inject the corresponding resolver into the GraphQL schema
-  // (see `injectResolvers` in pages/api/resolvers/wallet.js.).
-  // [required]
-  resolverName: 'upsertWalletLNbits',
-
   // Similar to validate above, this function should throw an error if the connection test fails.
   // It is called on save on the server before writing the configuration to the database.
   // As the name suggests, a good idea is to try to connect to the wallet and create an invoice in this function.

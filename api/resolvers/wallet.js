@@ -20,15 +20,21 @@ import { fetchLnAddrInvoice } from '@/lib/wallet'
 
 export const SERVER_WALLET_DEFS = [lnd, lnAddr, cln]
 
+export function generateResolverName (walletField) {
+  const capitalized = walletField[0].toUpperCase() + walletField.slice(1)
+  return `upsertWallet${capitalized}`
+}
+
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
   for (
     const w of SERVER_WALLET_DEFS) {
     const {
       schema,
-      server: { walletType, walletField, resolverName, testConnect }
+      server: { walletType, walletField, testConnect }
       // app and worker import file differently
     } = w.default || w
+    const resolverName = generateResolverName(walletField)
     console.log(resolverName)
     resolvers.Mutation[resolverName] = async (parent, { settings, ...data }, { me, models }) => {
       return await upsertWallet({

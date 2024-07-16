@@ -18,12 +18,8 @@ import { lnAddrOptions } from '@/lib/lnurl'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
-  for (
-    // FIXME: this throws
-    //   TypeError: import_server.default is not iterable
-    const w of walletDefs) {
-    // app and worker import file differently
-    const { schema, walletType, walletField, testConnect } = w.default || w
+  for (const w of walletDefs) {
+    const { schema, walletType, walletField, testConnect } = w
     const resolverName = generateResolverName(walletField)
     console.log(resolverName)
     resolvers.Mutation[resolverName] = async (parent, { settings, ...data }, { me, models }) => {

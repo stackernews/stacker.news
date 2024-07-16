@@ -47,9 +47,9 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   })
 
   for (const wallet of wallets) {
-    const w = walletDefs.find(({ default: w }) => w.walletType === wallet.type)
+    const w = walletDefs.find(w => w.walletType === wallet.type)
     try {
-      const { walletType, walletField, createInvoice } = w.default
+      const { walletType, walletField, createInvoice } = w
       return await autowithdraw(
         { walletType, walletField, createInvoice },
         { amount, maxFee },

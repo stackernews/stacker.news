@@ -1,26 +1,3 @@
-import { lnbitsSchema } from '@/lib/validate'
-
-export const name = 'lnbits'
-
-export const fields = [
-  {
-    name: 'url',
-    label: 'lnbits url',
-    type: 'text'
-  },
-  {
-    name: 'adminKey',
-    label: 'admin key',
-    type: 'password'
-  }
-]
-
-export const card = {
-  title: 'LNbits',
-  subtitle: 'use [LNbits](https://lnbits.com/) for payments',
-  badges: ['send only', 'non-custodialish']
-}
-
 export async function validate ({ url, adminKey }, { logger }) {
   logger.info('trying to fetch wallet')
 
@@ -29,8 +6,6 @@ export async function validate ({ url, adminKey }, { logger }) {
 
   logger.ok('wallet found')
 }
-
-export const schema = lnbitsSchema
 
 export async function sendPayment (bolt11, { url, adminKey }) {
   url = url.replace(/\/+$/, '')

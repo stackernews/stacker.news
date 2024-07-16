@@ -5,7 +5,7 @@ import { Button } from 'react-bootstrap'
 import { useToast } from './toast'
 import { useShowModal } from './modal'
 import { WALLET_LOGS } from '@/fragments/wallet'
-import { getServerWallet } from '../wallets'
+import { getServerWallet } from 'wallets'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { useMe } from './me'
 

@@ -16,14 +16,9 @@ import { checkInvoice } from 'worker/wallet'
 import * as lnd from 'wallets/lnd'
 import * as lnAddr from 'wallets/lightning-address'
 import * as cln from 'wallets/cln'
-import { fetchLnAddrInvoice } from '@/lib/wallet'
+import { fetchLnAddrInvoice, generateResolverName } from '@/lib/wallet'
 
 export const SERVER_WALLET_DEFS = [lnd, lnAddr, cln]
-
-export function generateResolverName (walletField) {
-  const capitalized = walletField[0].toUpperCase() + walletField.slice(1)
-  return `upsertWallet${capitalized}`
-}
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')

@@ -3,7 +3,6 @@ import { ensureB64 } from '@/lib/format'
 export const server = {
   walletType: 'CLN',
   walletField: 'walletCLN',
-  resolverName: 'upsertWalletCLN',
   testConnect: async (
     { socket, rune, cert },
     { me, models, addWalletLog, cln: { createInvoice } }

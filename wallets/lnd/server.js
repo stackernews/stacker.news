@@ -4,7 +4,6 @@ import { datePivot } from '@/lib/time'
 export const server = {
   walletType: 'LND',
   walletField: 'walletLND',
-  resolverName: 'upsertWalletLND',
   testConnect: async (
     { cert, macaroon, socket },
     { me, models, addWalletLog, lnService: { authenticatedLndGrpc, createInvoice } }

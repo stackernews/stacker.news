@@ -1,5 +1,6 @@
 import { gql } from 'graphql-tag'
-import { SERVER_WALLET_DEFS, generateResolverName } from '@/api/resolvers/wallet'
+import { SERVER_WALLET_DEFS } from '@/api/resolvers/wallet'
+import { generateResolverName } from '@/lib/wallet'
 
 function injectTypeDefs (typeDefs) {
   console.group('injected GraphQL type defs:')

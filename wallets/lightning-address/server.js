@@ -4,7 +4,6 @@ import { fetchLnAddrInvoice } from '@/lib/wallet'
 export const server = {
   walletType: 'LIGHTNING_ADDRESS',
   walletField: 'walletLightningAddress',
-  resolverName: 'upsertWalletLNAddr',
   testConnect: async (
     { address },
     { me, models, addWalletLog }

@@ -16,6 +16,7 @@ import { REMOVE_WALLET, WALLET_BY_TYPE } from '@/fragments/wallet'
 import { autowithdrawInitial } from '@/components/autowithdraw-shared'
 import { useShowModal } from '@/components/modal'
 import { useToast } from '../components/toast'
+import { generateResolverName } from '@/lib/wallet'
 
 // wallet definitions
 export const WALLET_DEFS = [lnbits, nwc, lnc, lnd, lnAddr, cln]
@@ -224,7 +225,9 @@ function useServerConfig (wallet) {
 }
 
 function generateMutation (wallet) {
-  const { resolverName } = wallet.server
+  const { walletField } = wallet.server
+
+  const resolverName = generateResolverName(walletField)
 
   let headerArgs = '$id: ID, '
   headerArgs += wallet.fields.map(f => {

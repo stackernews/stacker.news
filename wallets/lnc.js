@@ -4,7 +4,7 @@ import { Form, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
 import { InvoiceCanceledError, InvoiceExpiredError } from '@/components/payment'
 import { bolt11Tags } from '@/lib/bolt11'
-import { Status } from '@/components/wallet'
+import { Status } from 'wallets'
 import { lncSchema } from '@/lib/validate'
 
 export const name = 'lnc'

@@ -22,7 +22,7 @@ import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
-import { useWallets } from '@/components/wallet'
+import { useWallets } from 'wallets'
 
 export function Brand ({ className }) {
   return (

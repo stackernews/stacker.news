@@ -13,9 +13,9 @@ import assertApiKeyNotPermitted from './apiKey'
 import { createInvoice as clnCreateInvoice } from '@/lib/cln'
 import { bolt11Tags } from '@/lib/bolt11'
 import { checkInvoice } from 'worker/wallet'
-import * as lnd from '@/components/wallet/lnd'
-import * as lnAddr from '@/components/wallet/lightning-address'
-import * as cln from '@/components/wallet/cln'
+import * as lnd from 'wallets/lnd'
+import * as lnAddr from 'wallets/lightning-address'
+import * as cln from 'wallets/cln'
 import { fetchLnAddrInvoice } from '@/lib/wallet'
 
 export const SERVER_WALLET_DEFS = [lnd, lnAddr, cln]

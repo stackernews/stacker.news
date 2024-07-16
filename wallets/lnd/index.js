@@ -41,3 +41,7 @@ export const card = {
 }
 
 export const schema = LNDAutowithdrawSchema
+
+export const walletType = 'LND'
+
+export const walletField = 'walletLND'

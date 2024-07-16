@@ -37,7 +37,7 @@ export default function WalletSettings () {
     <CenterLayout>
       <h2 className='pb-2'>{wallet.card.title}</h2>
       <h6 className='text-muted text-center pb-3'><Text>{wallet.card.subtitle}</Text></h6>
-      {!wallet.server && <WalletSecurityBanner />}
+      {!wallet.walletType && <WalletSecurityBanner />}
       <Form
         initial={initial}
         schema={wallet.schema}
@@ -65,7 +65,7 @@ export default function WalletSettings () {
         }}
       >
         <WalletFields wallet={wallet} />
-        {wallet.server
+        {wallet.walletType
           ? <AutowithdrawSettings wallet={wallet} />
           : (
             <ClientCheckbox

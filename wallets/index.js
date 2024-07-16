@@ -123,7 +123,7 @@ function useConfig (wallet) {
   const [serverConfig, setServerConfig, clearServerConfig] = useServerConfig(wallet)
 
   const hasLocalConfig = !!wallet?.sendPayment
-  const hasServerConfig = !!wallet?.server
+  const hasServerConfig = !!wallet?.walletType
 
   const config = {
     // only include config if it makes sense for this wallet
@@ -161,7 +161,7 @@ function useServerConfig (wallet) {
   const client = useApolloClient()
   const me = useMe()
 
-  const { data, refetch: refetchConfig } = useQuery(WALLET_BY_TYPE, { variables: { type: wallet?.server?.walletType }, skip: !wallet?.server })
+  const { data, refetch: refetchConfig } = useQuery(WALLET_BY_TYPE, { variables: { type: wallet?.walletType }, skip: !wallet?.walletType })
 
   const walletId = data?.walletByType?.id
   const serverConfig = {
@@ -217,9 +217,7 @@ function useServerConfig (wallet) {
 }
 
 function generateMutation (wallet) {
-  const { walletField } = wallet.server
-
-  const resolverName = generateResolverName(walletField)
+  const resolverName = generateResolverName(wallet.walletField)
 
   let headerArgs = '$id: ID, '
   headerArgs += wallet.fields.map(f => {
@@ -245,7 +243,7 @@ export function getWalletByName (name) {
 }
 
 export function getWalletByType (type) {
-  return walletDefs.find(def => def.server?.walletType === type)
+  return walletDefs.find(def => def.walletType === type)
 }
 
 export function getEnabledWallet (me) {

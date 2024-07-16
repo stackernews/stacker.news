@@ -40,3 +40,7 @@ export const card = {
 }
 
 export const schema = CLNAutowithdrawSchema
+
+export const walletType = 'CLN'
+
+export const walletField = 'walletCLN'

@@ -204,8 +204,8 @@ export const WalletLoggerProvider = ({ children }) => {
   }, [saveLog])
 
   const deleteLogs = useCallback(async (wallet) => {
-    if (!wallet || wallet.server) {
-      await deleteServerWalletLogs({ variables: { wallet: wallet?.server?.walletType } })
+    if (!wallet || wallet.walletType) {
+      await deleteServerWalletLogs({ variables: { wallet: wallet?.walletType } })
     }
     if (!wallet || wallet.sendPayment) {
       const tx = idb.current.transaction(idbStoreName, 'readwrite')
@@ -244,7 +244,7 @@ export function useWalletLogger (wallet) {
     }
 
     // don't store logs for receiving wallets on client since logs are stored on server
-    if (wallet.server) return
+    if (wallet.walletType) return
 
     // TODO:
     //   also send this to us if diagnostics was enabled,

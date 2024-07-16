@@ -19,3 +19,7 @@ export const card = {
 }
 
 export const schema = lnAddrAutowithdrawSchema
+
+export const walletType = 'LIGHTNING_ADDRESS'
+
+export const walletField = 'walletLightningAddress'

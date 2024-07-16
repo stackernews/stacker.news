@@ -22,11 +22,8 @@ function injectResolvers (resolvers) {
     // FIXME: this throws
     //   TypeError: import_server.default is not iterable
     const w of walletDefs) {
-    const {
-      schema,
-      walletType, walletField, testConnect
-      // app and worker import file differently
-    } = w.default || w
+    // app and worker import file differently
+    const { schema, walletType, walletField, testConnect } = w.default || w
     const resolverName = generateResolverName(walletField)
     console.log(resolverName)
     resolvers.Mutation[resolverName] = async (parent, { settings, ...data }, { me, models }) => {
@@ -34,13 +31,7 @@ function injectResolvers (resolvers) {
         schema,
         wallet: { field: walletField, type: walletType },
         testConnect: (data) =>
-          testConnect(
-            data,
-            {
-              me,
-              models
-            }
-          )
+          testConnect(data, { me, models })
       }, { settings, data }, { me, models })
     }
   }

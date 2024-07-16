@@ -3,10 +3,6 @@ import { lnAddrOptions } from '@/lib/lnurl'
 
 export * from 'wallets/lightning-address'
 
-export const walletType = 'LIGHTNING_ADDRESS'
-
-export const walletField = 'walletLightningAddress'
-
 export const testConnect = async (
   { address },
   { me, models, addWalletLog }

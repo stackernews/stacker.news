@@ -5,21 +5,13 @@ import { useWalletLogger } from '@/components/wallet-logger'
 import { SSR } from '@/lib/constants'
 import { bolt11Tags } from '@/lib/bolt11'
 
-import * as lnbits from 'wallets/lnbits'
-import * as nwc from 'wallets/nwc'
-import * as lnc from 'wallets/lnc'
-import * as lnd from 'wallets/lnd'
-import * as lnAddr from 'wallets/lightning-address'
-import * as cln from 'wallets/cln'
+import walletDefs from 'wallets/client'
 import { gql, useApolloClient, useQuery } from '@apollo/client'
 import { REMOVE_WALLET, WALLET_BY_TYPE } from '@/fragments/wallet'
 import { autowithdrawInitial } from '@/components/autowithdraw-shared'
 import { useShowModal } from '@/components/modal'
 import { useToast } from '../components/toast'
 import { generateResolverName } from '@/lib/wallet'
-
-// wallet definitions
-export const WALLET_DEFS = [lnbits, nwc, lnc, lnd, lnAddr, cln]
 
 export const Status = {
   Initialized: 'Initialized',
@@ -249,15 +241,15 @@ function generateMutation (wallet) {
 }
 
 export function getWalletByName (name) {
-  return WALLET_DEFS.find(def => def.name === name)
+  return walletDefs.find(def => def.name === name)
 }
 
-export function getServerWallet (type) {
-  return WALLET_DEFS.find(def => def.server?.walletType === type)
+export function getWalletByType (type) {
+  return walletDefs.find(def => def.server?.walletType === type)
 }
 
 export function getEnabledWallet (me) {
-  return WALLET_DEFS
+  return walletDefs
     .filter(def => !!def.sendPayment)
     .map(def => {
       // populate definition with properties from useWallet that are required for sorting
@@ -290,7 +282,7 @@ export function walletPrioritySort (w1, w2) {
 }
 
 export function useWallets () {
-  const wallets = WALLET_DEFS.map(def => useWallet(def.name))
+  const wallets = walletDefs.map(def => useWallet(def.name))
 
   const resetClient = useCallback(async (wallet) => {
     for (const w of wallets) {

@@ -5,7 +5,7 @@ import { Button } from 'react-bootstrap'
 import { useToast } from './toast'
 import { useShowModal } from './modal'
 import { WALLET_LOGS } from '@/fragments/wallet'
-import { getServerWallet } from 'wallets'
+import { getWalletByType } from 'wallets'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { useMe } from './me'
 
@@ -128,7 +128,7 @@ export const WalletLoggerProvider = ({ children }) => {
           .map(({ createdAt, wallet: walletType, ...log }) => {
             return {
               ts: +new Date(createdAt),
-              wallet: tag(getServerWallet(walletType)),
+              wallet: tag(getWalletByType(walletType)),
               ...log
             }
           })
@@ -146,7 +146,7 @@ export const WalletLoggerProvider = ({ children }) => {
     {
       onCompleted: (_, { variables: { wallet: walletType } }) => {
         setLogs((logs) => {
-          return logs.filter(l => walletType ? l.wallet !== getServerWallet(walletType).name : false)
+          return logs.filter(l => walletType ? l.wallet !== getWalletByType(walletType).name : false)
         })
       }
     }

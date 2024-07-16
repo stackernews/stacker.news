@@ -1,7 +1,6 @@
-import { authenticatedLndGrpc, createInvoice as lndCreateInvoice, getIdentity, decodePaymentRequest } from 'ln-service'
 import { msatsToSats, satsToMsats } from '@/lib/format'
-import { createWithdrawal, addWalletLog, SERVER_WALLET_DEFS } from '@/api/resolvers/wallet'
-import { createInvoice as clnCreateInvoice } from '@/lib/cln'
+import { createWithdrawal, addWalletLog } from '@/api/resolvers/wallet'
+import walletDefs from 'wallets/server'
 
 export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const user = await models.user.findUnique({ where: { id } })
@@ -48,9 +47,9 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   })
 
   for (const wallet of wallets) {
-    const w = SERVER_WALLET_DEFS.find(({ default: w }) => w.server.walletType === wallet.type)
+    const w = walletDefs.find(({ default: w }) => w.walletType === wallet.type)
     try {
-      const { server: { walletType, walletField, createInvoice } } = w.default
+      const { walletType, walletField, createInvoice } = w.default
       return await autowithdraw(
         { walletType, walletField, createInvoice },
         { amount, maxFee },
@@ -58,6 +57,9 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
       )
     } catch (error) {
       console.error(error)
+
+      // TODO: I think this is a bug, `walletCreateInvoice` in `autowithdraw` should parse the error
+
       // LND errors are in this shape: [code, type, { err: { code, details, metadata } }]
       const details = error[2]?.err?.details || error.message || error.toString?.()
       await addWalletLog({
@@ -99,16 +101,7 @@ async function autowithdraw (
     {
       me,
       models,
-      lnd,
-      lnService: {
-        authenticatedLndGrpc,
-        createInvoice: lndCreateInvoice,
-        getIdentity,
-        decodePaymentRequest
-      },
-      cln: {
-        createInvoice: clnCreateInvoice
-      }
+      lnd
     })
 
   return await createWithdrawal(null, { invoice: bolt11, maxFee }, { me, models, lnd, walletId: wallet.id })

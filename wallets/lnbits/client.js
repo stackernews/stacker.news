@@ -1,3 +1,5 @@
+export * from 'wallets/lnbits'
+
 export async function validate ({ url, adminKey }, { logger }) {
   logger.info('trying to fetch wallet')
 

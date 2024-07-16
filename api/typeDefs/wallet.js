@@ -1,10 +1,11 @@
 import { gql } from 'graphql-tag'
-import { SERVER_WALLET_DEFS } from '@/api/resolvers/wallet'
 import { generateResolverName } from '@/lib/wallet'
+
+import walletDefs from 'wallets/server'
 
 function injectTypeDefs (typeDefs) {
   console.group('injected GraphQL type defs:')
-  const injected = SERVER_WALLET_DEFS.map(
+  const injected = walletDefs.map(
     (w) => {
       let args = 'id: ID, '
       args += w.fields.map(f => {
@@ -15,7 +16,7 @@ function injectTypeDefs (typeDefs) {
         return arg
       }).join(', ')
       args += ', settings: AutowithdrawSettings!'
-      const resolverName = generateResolverName(w.server.walletField)
+      const resolverName = generateResolverName(w.walletField)
       const typeDef = `${resolverName}(${args}): Boolean`
       console.log(typeDef)
       return typeDef

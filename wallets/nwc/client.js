@@ -1,6 +1,8 @@
 import { parseNwcUrl } from '@/lib/url'
 import { Relay, finalizeEvent, nip04 } from 'nostr-tools'
 
+export * from 'wallets/nwc'
+
 export async function validate ({ nwcUrl }, { logger }) {
   const { relayUrl, walletPubkey } = parseNwcUrl(nwcUrl)
 

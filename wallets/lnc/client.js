@@ -6,6 +6,8 @@ import LNC from '@lightninglabs/lnc-web'
 import { Mutex } from 'async-mutex'
 import { Status } from 'wallets'
 
+export * from 'wallets/lnc'
+
 const XXX_DEFAULT_PASSWORD = 'password'
 
 export async function validate ({ pairingPhrase, password }, { me, logger }) {

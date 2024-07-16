@@ -1,32 +1,30 @@
-import { getIdentity, createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, authenticatedLndGrpc, deletePayment, getPayment } from 'ln-service'
+import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, deletePayment, getPayment, getIdentity } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto, { timingSafeEqual } from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
 import { msatsToSats, msatsToSatsDecimal } from '@/lib/format'
-import { amountSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
+import { amountSchema, ssValidate, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
-import { createInvoice as clnCreateInvoice } from '@/lib/cln'
 import { bolt11Tags } from '@/lib/bolt11'
 import { checkInvoice } from 'worker/wallet'
-import * as lnd from 'wallets/lnd'
-import * as lnAddr from 'wallets/lightning-address'
-import * as cln from 'wallets/cln'
-import { fetchLnAddrInvoice, generateResolverName } from '@/lib/wallet'
-
-export const SERVER_WALLET_DEFS = [lnd, lnAddr, cln]
+import walletDefs from 'wallets/server'
+import { generateResolverName } from '@/lib/wallet'
+import { lnAddrOptions } from '@/lib/lnurl'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
   for (
-    const w of SERVER_WALLET_DEFS) {
+    // FIXME: this throws
+    //   TypeError: import_server.default is not iterable
+    const w of walletDefs) {
     const {
       schema,
-      server: { walletType, walletField, testConnect }
+      walletType, walletField, testConnect
       // app and worker import file differently
     } = w.default || w
     const resolverName = generateResolverName(walletField)
@@ -40,10 +38,7 @@ function injectResolvers (resolvers) {
             data,
             {
               me,
-              models,
-              addWalletLog,
-              lnService: { authenticatedLndGrpc, createInvoice },
-              cln: { createInvoice: clnCreateInvoice }
+              models
             }
           )
       }, { settings, data }, { me, models })
@@ -726,10 +721,69 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
     {
       me,
       models,
-      lnd,
-      lnService: { decodePaymentRequest, getIdentity }
+      lnd
     })
 
   // take pr and createWithdrawl
   return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers })
+}
+
+export async function fetchLnAddrInvoice (
+  { addr, amount, maxFee, comment, ...payer },
+  {
+    me, models, lnd, autoWithdraw = false
+  }) {
+  const options = await lnAddrOptions(addr)
+  await ssValidate(lnAddrSchema, { addr, amount, maxFee, comment, ...payer }, options)
+
+  if (payer) {
+    payer = {
+      ...payer,
+      identifier: payer.identifier ? `${me.name}@stacker.news` : undefined
+    }
+    payer = Object.fromEntries(
+      Object.entries(payer).filter(([, value]) => !!value)
+    )
+  }
+
+  const milliamount = 1000 * amount
+  const callback = new URL(options.callback)
+  callback.searchParams.append('amount', milliamount)
+
+  if (comment?.length) {
+    callback.searchParams.append('comment', comment)
+  }
+
+  let stringifiedPayerData = ''
+  if (payer && Object.entries(payer).length) {
+    stringifiedPayerData = JSON.stringify(payer)
+    callback.searchParams.append('payerdata', stringifiedPayerData)
+  }
+
+  // call callback with amount and conditionally comment
+  const res = await (await fetch(callback.toString())).json()
+  if (res.status === 'ERROR') {
+    throw new Error(res.reason)
+  }
+
+  // decode invoice
+  try {
+    const decoded = await decodePaymentRequest({ lnd, request: res.pr })
+    const ourPubkey = (await getIdentity({ lnd })).public_key
+    if (autoWithdraw && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
+      // unset lnaddr so we don't trigger another withdrawal with same destination
+      await models.wallet.deleteMany({
+        where: { userId: me.id, type: 'LIGHTNING_ADDRESS' }
+      })
+      throw new Error('automated withdrawals to other stackers are not allowed')
+    }
+    if (!decoded.mtokens || BigInt(decoded.mtokens) !== BigInt(milliamount)) {
+      throw new Error('invoice has incorrect amount')
+    }
+  } catch (e) {
+    console.log(e)
+    throw e
+  }
+
+  return res
 }

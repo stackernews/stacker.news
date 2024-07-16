@@ -1,5 +1,4 @@
 import { LNDAutowithdrawSchema } from '@/lib/validate'
-import { server } from 'wallets/lnd/server'
 
 export const name = 'lnd'
 
@@ -42,5 +41,3 @@ export const card = {
 }
 
 export const schema = LNDAutowithdrawSchema
-
-export { server }

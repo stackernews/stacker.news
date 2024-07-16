@@ -1,5 +1,4 @@
 import { lncSchema } from '@/lib/validate'
-import { sendPayment, validate } from 'wallets/lnc/client'
 
 export const name = 'lnc'
 
@@ -26,5 +25,3 @@ export const card = {
 }
 
 export const schema = lncSchema
-
-export { sendPayment, validate }

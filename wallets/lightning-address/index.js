@@ -1,5 +1,4 @@
 import { lnAddrAutowithdrawSchema } from '@/lib/validate'
-import { server } from 'wallets/lightning-address/server'
 
 export const name = 'lightning-address'
 export const shortName = 'lnAddr'
@@ -20,5 +19,3 @@ export const card = {
 }
 
 export const schema = lnAddrAutowithdrawSchema
-
-export { server }

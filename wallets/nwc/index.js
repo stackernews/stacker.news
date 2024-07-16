@@ -1,5 +1,4 @@
 import { nwcSchema } from '@/lib/validate'
-import { sendPayment, validate } from 'wallets/nwc/client'
 
 export const name = 'nwc'
 
@@ -18,5 +17,3 @@ export const card = {
 }
 
 export const schema = nwcSchema
-
-export { sendPayment, validate }

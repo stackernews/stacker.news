@@ -1,5 +1,4 @@
 import { CLNAutowithdrawSchema } from '@/lib/validate'
-import { server } from 'wallets/cln/server'
 
 export const name = 'cln'
 
@@ -41,5 +40,3 @@ export const card = {
 }
 
 export const schema = CLNAutowithdrawSchema
-
-export { server }

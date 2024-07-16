@@ -1,5 +1,4 @@
 import { lnbitsSchema } from '@/lib/validate'
-import { sendPayment, validate } from 'wallets/lnbits/client'
 
 export const name = 'lnbits'
 
@@ -23,5 +22,3 @@ export const card = {
 }
 
 export const schema = lnbitsSchema
-
-export { sendPayment, validate }

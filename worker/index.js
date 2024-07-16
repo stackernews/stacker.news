@@ -1,6 +1,6 @@
 import PgBoss from 'pg-boss'
 import nextEnv from '@next/env'
-import { PrismaClient } from '@prisma/client'
+import createPrisma from '@/lib/create-prisma.js'
 import {
   autoDropBolt11s, checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
   finalizeHodlInvoice, subscribeToWallet
@@ -34,7 +34,9 @@ loadEnvConfig('.', process.env.NODE_ENV === 'development')
 
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)
-  const models = new PrismaClient()
+  const models = createPrisma({
+    connectionParams: { connection_limit: process.env.DB_WORKER_CONNECTION_LIMIT }
+  })
 
   const apollo = new ApolloClient({
     link: new HttpLink({

@@ -7,7 +7,7 @@ export const fields = [
     type: 'text',
     validate: {
       type: 'url',
-      onionAllowed: true
+      torAllowed: true
     }
   },
   {

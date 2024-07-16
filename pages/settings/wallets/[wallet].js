@@ -175,7 +175,7 @@ function generateSchema (wallet, { me }) {
         : validator
           .url()
           .test(async (url, context) => {
-            if (field.validate.onionAllowed && TOR_REGEXP.test(url)) {
+            if (field.validate.torAllowed && TOR_REGEXP.test(url)) {
               // allow HTTP and HTTPS over Tor
               if (!/^https?:\/\//.test(url)) {
                 return context.createError({ message: 'http or https required' })

@@ -10,7 +10,7 @@ import Info from '@/components/info'
 import Text from '@/components/text'
 import { AutowithdrawSettings } from '@/components/autowithdraw-shared'
 import dynamic from 'next/dynamic'
-import { object, string } from 'yup'
+import { array, object, string } from 'yup'
 import { autowithdrawSchemaMembers } from '@/lib/validate'
 import { useMe } from '@/components/me'
 import { TOR_REGEXP } from '@/lib/url'
@@ -154,7 +154,7 @@ function generateSchema (wallet, { me }) {
       return field.validate.schema
     }
 
-    const { type: validationType } = field.validate
+    const { type: validationType, words, min, max } = field.validate
 
     let validator
 
@@ -191,6 +191,29 @@ function generateSchema (wallet, { me }) {
             return true
           })
     }
+
+    if (words) {
+      validator = array()
+        .transform(function (value, originalValue) {
+          if (this.isType(value) && value !== null) {
+            return value
+          }
+          return originalValue ? originalValue.trim().split(/[\s]+/) : []
+        })
+        .test(async (values, context) => {
+          for (const v of values) {
+            try {
+              await string().oneOf(words).validate(v)
+            } catch {
+              return context.createError({ message: `'${v}' is not a valid ${field.label} word` })
+            }
+          }
+          return true
+        })
+    }
+
+    if (min !== undefined) validator = validator.min(min)
+    if (max !== undefined) validator = validator.max(max)
 
     if (!field.optional) validator = validator.required('required')
 

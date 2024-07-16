@@ -10,6 +10,10 @@ import Info from '@/components/info'
 import Text from '@/components/text'
 import { AutowithdrawSettings } from '@/components/autowithdraw-shared'
 import dynamic from 'next/dynamic'
+import { object, string } from 'yup'
+import { autowithdrawSchemaMembers } from '@/lib/validate'
+import { useMe } from '@/components/me'
+import { TOR_REGEXP } from '@/lib/url'
 
 const WalletButtonBar = dynamic(() => import('@/components/wallet-buttonbar.js'), { ssr: false })
 
@@ -20,6 +24,7 @@ export default function WalletSettings () {
   const router = useRouter()
   const { wallet: name } = router.query
   const wallet = useWallet(name)
+  const me = useMe()
 
   const initial = wallet.fields.reduce((acc, field) => {
     // We still need to run over all wallet fields via reduce
@@ -33,6 +38,8 @@ export default function WalletSettings () {
     }
   }, wallet.config)
 
+  const schema = generateSchema(wallet, { me })
+
   return (
     <CenterLayout>
       <h2 className='pb-2'>{wallet.card.title}</h2>
@@ -40,7 +47,7 @@ export default function WalletSettings () {
       {!wallet.walletType && <WalletSecurityBanner />}
       <Form
         initial={initial}
-        schema={wallet.schema}
+        schema={schema}
         onSubmit={async (values) => {
           try {
             const newConfig = !wallet.isConfigured
@@ -129,4 +136,68 @@ function WalletFields ({ wallet: { config, fields } }) {
     }
     return null
   })
+}
+
+function generateSchema (wallet, { me }) {
+  if (wallet.schema) return wallet.schema
+
+  const fieldValidator = (field) => {
+    if (!field.validate) {
+      // default validation
+      let validator = string()
+      if (!field.optional) validator = validator.required('required')
+      return validator
+    }
+
+    const { type: validationType } = field.validate
+
+    let validator
+
+    const stringTypes = ['url', 'string']
+
+    if (stringTypes.includes(validationType)) {
+      validator = string()
+
+      if (field.validate.length) {
+        validator = validator.length(field.validate.length)
+      }
+    }
+
+    if (validationType === 'url') {
+      validator = process.env.NODE_ENV === 'development'
+        ? validator
+          .or([string().matches(/^(http:\/\/)?localhost:\d+$/), string().url()], 'invalid url')
+        : validator
+          .url()
+          .test(async (url, context) => {
+            if (field.validate.onionAllowed && TOR_REGEXP.test(url)) {
+              // allow HTTP and HTTPS over Tor
+              if (!/^https?:\/\//.test(url)) {
+                return context.createError({ message: 'http or https required' })
+              }
+              return true
+            }
+            try {
+              // force HTTPS over clearnet
+              await string().https().validate(url)
+            } catch (err) {
+              return context.createError({ message: err.message })
+            }
+            return true
+          })
+    }
+
+    if (!field.optional) validator = validator.required('required')
+
+    return validator
+  }
+
+  return object(
+    wallet.fields.reduce((acc, field) => {
+      return {
+        ...acc,
+        [field.name]: fieldValidator(field)
+      }
+    }, wallet.walletType ? autowithdrawSchemaMembers({ me }) : {})
+  )
 }

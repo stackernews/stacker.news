@@ -281,7 +281,7 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     if (code === 0 && dbWdrwl.wallet) {
       // add error into log for autowithdrawal
       await addWalletLog({
-        wallet: dbWdrwl.wallet.type,
+        wallet: dbWdrwl.wallet,
         level: 'ERROR',
         message: 'autowithdrawal failed: ' + message
       }, { models, me: { id: dbWdrwl.userId } })

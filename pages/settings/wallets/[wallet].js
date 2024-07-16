@@ -149,6 +149,11 @@ function generateSchema (wallet, { me }) {
       return validator
     }
 
+    if (field.validate.schema) {
+      // complex validation
+      return field.validate.schema
+    }
+
     const { type: validationType } = field.validate
 
     let validator

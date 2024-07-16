@@ -273,7 +273,7 @@ export function walletPrioritySort (w1, w2) {
 
   // if both wallets have an id, use that as tie breaker
   // since that's the order in which autowithdrawals are attempted
-  if (w1.id && w2.id) return Number(w1.id) - Number(w2.id)
+  if (w1.config?.id && w2.config?.id) return Number(w1.config.id) - Number(w2.config.id)
 
   // else we will use the card title as tie breaker
   return w1.card.title < w2.card.title ? -1 : 1

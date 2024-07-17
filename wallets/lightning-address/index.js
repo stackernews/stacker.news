@@ -9,8 +9,10 @@ export const fields = [
     autoComplete: 'off',
     validate: {
       type: 'email',
-      test: addr => !addr.endsWith('@stacker.news'),
-      message: 'automated withdrawals must be external'
+      test: {
+        test: addr => !addr.endsWith('@stacker.news'),
+        message: 'automated withdrawals must be external'
+      }
     }
   }
 ]

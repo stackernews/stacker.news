@@ -27,8 +27,10 @@ export const fields = [
     clear: true,
     validate: {
       type: 'hexOrBase64',
-      test: v => isInvoiceMacaroon(v) || isInvoicableMacaroon(v),
-      message: 'not an invoice macaroon or an invoicable macaroon'
+      test: {
+        test: v => isInvoiceMacaroon(v) || isInvoicableMacaroon(v),
+        message: 'not an invoice macaroon or an invoicable macaroon'
+      }
     }
   },
   {

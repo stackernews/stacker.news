@@ -13,18 +13,18 @@ import assertApiKeyNotPermitted from './apiKey'
 import { bolt11Tags } from '@/lib/bolt11'
 import { checkInvoice } from 'worker/wallet'
 import walletDefs from 'wallets/server'
-import { generateResolverName } from '@/lib/wallet'
+import { generateResolverName, generateSchema } from '@/lib/wallet'
 import { lnAddrOptions } from '@/lib/lnurl'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
   for (const w of walletDefs) {
-    const { schema, walletType, walletField, testConnect } = w
+    const { walletType, walletField, testConnect } = w
     const resolverName = generateResolverName(walletField)
     console.log(resolverName)
     resolvers.Mutation[resolverName] = async (parent, { settings, ...data }, { me, models }) => {
       return await upsertWallet({
-        schema,
+        schema: generateSchema(w),
         wallet: { field: walletField, type: walletType },
         testConnect: (data) =>
           testConnect(data, { me, models })

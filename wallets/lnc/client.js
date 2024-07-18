@@ -1,86 +1,64 @@
-import CancelButton from '@/components/cancel-button'
-import { Form, PasswordInput, SubmitButton } from '@/components/form'
 import { InvoiceCanceledError, InvoiceExpiredError } from '@/components/payment'
 import { bolt11Tags } from '@/lib/bolt11'
-import LNC from '@lightninglabs/lnc-web'
 import { Mutex } from 'async-mutex'
-import { Status } from 'wallets'
-
 export * from 'wallets/lnc'
 
-const XXX_DEFAULT_PASSWORD = 'password'
+async function disconnect (lnc, logger) {
+  if (lnc) {
+    try {
+      lnc.disconnect()
+      logger.info('disconnecting...')
+      // wait for lnc to disconnect before releasing the mutex
+      await new Promise((resolve, reject) => {
+        let counter = 0
+        const interval = setInterval(() => {
+          if (lnc?.isConnected) {
+            if (counter++ > 100) {
+              logger.error('failed to disconnect from lnc')
+              clearInterval(interval)
+              reject(new Error('failed to disconnect from lnc'))
+            }
+            return
+          }
+          clearInterval(interval)
+          resolve()
+        })
+      }, 50)
+    } catch (err) {
+      logger.error('failed to disconnect from lnc', err)
+    }
+  }
+}
 
-export async function validate ({ pairingPhrase, password }, { me, logger }) {
-  const lnc = await getLNC({ me })
+export async function validate (credentials, { me, logger }) {
+  let lnc
   try {
-    lnc.credentials.pairingPhrase = pairingPhrase
+    lnc = await getLNC(credentials)
+
     logger.info('connecting ...')
     await lnc.connect()
     logger.ok('connected')
+
     logger.info('validating permissions ...')
     await validateNarrowPerms(lnc)
     logger.ok('permissions ok')
-    lnc.credentials.password = password || XXX_DEFAULT_PASSWORD
+
+    return lnc.credentials.credentials
   } finally {
-    lnc.disconnect()
+    await disconnect(lnc, logger)
   }
 }
 
 const mutex = new Mutex()
 
-async function unlock ({ password }, { lnc, status, showModal, logger }) {
-  if (status === Status.Enabled) return password
-
-  return await new Promise((resolve, reject) => {
-    const cancelAndReject = async () => {
-      reject(new Error('password canceled'))
-    }
-    showModal(onClose => {
-      return (
-        <Form
-          initial={{
-            password: ''
-          }}
-          onSubmit={async (values) => {
-            try {
-              lnc.credentials.password = values?.password
-              logger.ok('wallet unlocked')
-              onClose()
-              resolve(values.password)
-            } catch (err) {
-              logger.error('failed to unlock wallet:', err)
-              throw err
-            }
-          }}
-        >
-          <h4 className='text-center mb-3'>Unlock LNC</h4>
-          <PasswordInput
-            label='password'
-            name='password'
-          />
-          <div className='mt-5 d-flex justify-content-between'>
-            <CancelButton onClick={() => { onClose(); cancelAndReject() }} />
-            <SubmitButton variant='primary'>unlock</SubmitButton>
-          </div>
-        </Form>
-      )
-    }
-    )
-  })
-}
-
-// FIXME: pass me, status, showModal in useWallet hook
-export async function sendPayment (bolt11, { pairingPhrase, password: configuredPassword }, { me, status, showModal, logger }) {
+export async function sendPayment (bolt11, credentials, { me, status, logger }) {
   const hash = bolt11Tags(bolt11).payment_hash
 
   return await mutex.runExclusive(async () => {
     let lnc
     try {
-      lnc = await getLNC({ me })
-      // TODO: pass status, showModal to unlock
-      const password = await unlock({ password: configuredPassword }, { lnc, status, showModal, logger })
-      // credentials need to be decrypted before connecting after a disconnect
-      lnc.credentials.password = password || XXX_DEFAULT_PASSWORD
+      lnc = await getLNC(credentials)
+
       await lnc.connect()
       const { paymentError, paymentPreimage: preimage } =
           await lnc.lnd.lightning.sendPaymentSync({ payment_request: bolt11 })
@@ -99,36 +77,16 @@ export async function sendPayment (bolt11, { pairingPhrase, password: configured
       }
       throw err
     } finally {
-      try {
-        lnc.disconnect()
-        logger.info('disconnecting after:', `payment_hash=${hash}`)
-        // wait for lnc to disconnect before releasing the mutex
-        await new Promise((resolve, reject) => {
-          let counter = 0
-          const interval = setInterval(() => {
-            if (lnc.isConnected) {
-              if (counter++ > 100) {
-                logger.error('failed to disconnect from lnc')
-                clearInterval(interval)
-                reject(new Error('failed to disconnect from lnc'))
-              }
-              return
-            }
-            clearInterval(interval)
-            resolve()
-          })
-        }, 50)
-      } catch (err) {
-        logger.error('failed to disconnect from lnc', err)
-      }
+      await disconnect(lnc, logger)
     }
   })
 }
 
-function getLNC ({ me }) {
-  if (window.lnc) return window.lnc
-  window.lnc = new LNC({ namespace: me?.id ? `stacker:${me.id}` : undefined })
-  return window.lnc
+async function getLNC (credentials = {}) {
+  const { default: { default: LNC } } = await import('@lightninglabs/lnc-web')
+  return new LNC({
+    credentialStore: new LncCredentialStore({ ...credentials, serverHost: 'mailbox.terminal.lightning.today:443' })
+  })
 }
 
 function validateNarrowPerms (lnc) {
@@ -140,4 +98,64 @@ function validateNarrowPerms (lnc) {
   }
   // TODO: need to check for more narrow permissions
   // blocked by https://github.com/lightninglabs/lnc-web/issues/112
+}
+
+// default credential store can go fuck itself
+class LncCredentialStore {
+  credentials = {
+    localKey: '',
+    remoteKey: '',
+    pairingPhrase: '',
+    serverHost: ''
+  }
+
+  constructor (credentials = {}) {
+    this.credentials = { ...this.credentials, ...credentials }
+  }
+
+  get password () {
+    return ''
+  }
+
+  set password (password) { }
+
+  get serverHost () {
+    return this.credentials.serverHost
+  }
+
+  set serverHost (host) {
+    this.credentials.serverHost = host
+  }
+
+  get pairingPhrase () {
+    return this.credentials.pairingPhrase
+  }
+
+  set pairingPhrase (phrase) {
+    this.credentials.pairingPhrase = phrase
+  }
+
+  get localKey () {
+    return this.credentials.localKey
+  }
+
+  set localKey (key) {
+    this.credentials.localKey = key
+  }
+
+  get remoteKey () {
+    return this.credentials.remoteKey
+  }
+
+  set remoteKey (key) {
+    this.credentials.remoteKey = key
+  }
+
+  get isPaired () {
+    return !!this.credentials.remoteKey || !!this.credentials.pairingPhrase
+  }
+
+  clear () {
+    this.credentials = {}
+  }
 }

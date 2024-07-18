@@ -73,8 +73,8 @@ export function useWallet (name) {
       // validate should log custom INFO and OK message
       // validate is optional since validation might happen during save on server
       // TODO: add timeout
-      await wallet.validate?.(newConfig, { me, logger })
-      await saveConfig(newConfig)
+      const validConfig = await wallet.validate?.(newConfig, { me, logger })
+      await saveConfig(validConfig ?? newConfig)
       logger.ok(_isConfigured ? 'wallet updated' : 'wallet attached')
     } catch (err) {
       const message = err.message || err.toString?.()

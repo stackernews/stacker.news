@@ -12,19 +12,31 @@ export const fields = [
       words: bip39Words,
       min: 2,
       max: 10
-    }
+    },
+    editable: false
   },
   {
-    name: 'password',
-    label: 'password',
-    type: 'password',
-    hint: 'encrypts your pairing phrase when stored locally',
-    optional: true
+    name: 'localKey',
+    type: 'text',
+    optional: true,
+    hidden: true
+  },
+  {
+    name: 'remoteKey',
+    type: 'text',
+    optional: true,
+    hidden: true
+  },
+  {
+    name: 'serverHost',
+    type: 'text',
+    optional: true,
+    hidden: true
   }
 ]
 
 export const card = {
   title: 'LNC',
   subtitle: 'use Lightning Node Connect for LND payments',
-  badges: ['send only', 'non-custodialish', 'budgetable']
+  badges: ['send only', 'non-custodial', 'budgetable']
 }

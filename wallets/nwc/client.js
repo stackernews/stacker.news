@@ -18,7 +18,7 @@ export async function validate ({ nwcUrl }, { logger }) {
   logger.ok(`connected to ${relayUrl}`)
 
   try {
-    return await new Promise((resolve, reject) => {
+    await new Promise((resolve, reject) => {
       let found = false
       const sub = relay.subscribe([
         {

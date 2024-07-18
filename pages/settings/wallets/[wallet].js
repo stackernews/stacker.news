@@ -44,7 +44,7 @@ export default function WalletSettings () {
       <Form
         initial={initial}
         schema={schema}
-        onSubmit={async (values) => {
+        onSubmit={async ({ amount, ...values }) => {
           try {
             const newConfig = !wallet.isConfigured
 
@@ -99,37 +99,42 @@ export default function WalletSettings () {
   )
 }
 
-function WalletFields ({ wallet: { config, fields } }) {
-  return fields.map(({ name, label, type, help, optional, ...props }, i) => {
-    const rawProps = {
-      ...props,
-      name,
-      initialValue: config?.[name],
-      label: (
-        <div className='d-flex align-items-center'>
-          {label}
-          {/* help can be a string or object to customize the label */}
-          {help && (
-            <Info label={help.label || 'help'}>
-              <Text>{help.text || help}</Text>
-            </Info>
-          )}
-          {optional && (
-            <small className='text-muted ms-2'>
-              {typeof optional === 'boolean' ? 'optional' : <Text>{optional}</Text>}
-            </small>
-          )}
-        </div>
-      ),
-      required: !optional,
-      autoFocus: i === 0
-    }
-    if (type === 'text') {
-      return <ClientInput key={i} {...rawProps} />
-    }
-    if (type === 'password') {
-      return <PasswordInput key={i} {...rawProps} newPass />
-    }
-    return null
-  })
+function WalletFields ({ wallet: { config, fields, isConfigured } }) {
+  return fields
+    .map(({ name, label, type, help, optional, editable, ...props }, i) => {
+      const rawProps = {
+        ...props,
+        name,
+        initialValue: config?.[name],
+        readOnly: isConfigured && editable === false,
+        groupClassName: props.hidden ? 'd-none' : undefined,
+        label: label
+          ? (
+            <div className='d-flex align-items-center'>
+              {label}
+              {/* help can be a string or object to customize the label */}
+              {help && (
+                <Info label={help.label || 'help'}>
+                  <Text>{help.text || help}</Text>
+                </Info>
+              )}
+              {optional && (
+                <small className='text-muted ms-2'>
+                  {typeof optional === 'boolean' ? 'optional' : <Text>{optional}</Text>}
+                </small>
+              )}
+            </div>
+            )
+          : undefined,
+        required: !optional,
+        autoFocus: i === 0
+      }
+      if (type === 'text') {
+        return <ClientInput key={i} {...rawProps} />
+      }
+      if (type === 'password') {
+        return <PasswordInput key={i} {...rawProps} newPass />
+      }
+      return null
+    })
 }

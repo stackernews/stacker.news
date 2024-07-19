@@ -1,6 +1,6 @@
 export * from 'wallets/lnbits'
 
-export async function validate ({ url, adminKey }, { logger }) {
+export async function testConnectClient ({ url, adminKey }, { logger }) {
   logger.info('trying to fetch wallet')
 
   url = url.replace(/\/+$/, '')

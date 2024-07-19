@@ -3,7 +3,7 @@ import { lnAddrOptions } from '@/lib/lnurl'
 
 export * from 'wallets/lightning-address'
 
-export const testConnect = async (
+export const testConnectServer = async (
   { address },
   { me, models }
 ) => {

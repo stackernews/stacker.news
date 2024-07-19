@@ -70,10 +70,10 @@ export function useWallet (name) {
 
   const save = useCallback(async (newConfig) => {
     try {
-      // validate should log custom INFO and OK message
-      // validate is optional since validation might happen during save on server
+      // testConnectClient should log custom INFO and OK message
+      // testConnectClient is optional since validation might happen during save on server
       // TODO: add timeout
-      const validConfig = await wallet.validate?.(newConfig, { me, logger })
+      const validConfig = await wallet.testConnectClient?.(newConfig, { me, logger })
       await saveConfig(validConfig ?? newConfig)
       logger.ok(_isConfigured ? 'wallet updated' : 'wallet attached')
     } catch (err) {

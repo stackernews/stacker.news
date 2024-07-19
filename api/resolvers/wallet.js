@@ -19,7 +19,7 @@ import { lnAddrOptions } from '@/lib/lnurl'
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
   for (const w of walletDefs) {
-    const { fieldValidation, walletType, walletField, testConnect } = w
+    const { fieldValidation, walletType, walletField, testConnectServer } = w
     const resolverName = generateResolverName(walletField)
     console.log(resolverName)
 
@@ -32,8 +32,7 @@ function injectResolvers (resolvers) {
       return await upsertWallet({
         ...validateArgs,
         wallet: { field: walletField, type: walletType },
-        testConnect: (data) =>
-          testConnect(data, { me, models })
+        testConnectServer: (data) => testConnectServer(data, { me, models })
       }, { settings, data }, { me, models })
     }
   }
@@ -558,7 +557,7 @@ export const addWalletLog = async ({ wallet, level, message }, { me, models }) =
 }
 
 async function upsertWallet (
-  { schema, formikValidate: validate, wallet, testConnect }, { settings, data }, { me, models }) {
+  { schema, formikValidate: validate, wallet, testConnectServer }, { settings, data }, { me, models }) {
   if (!me) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
   }
@@ -571,9 +570,9 @@ async function upsertWallet (
     await formikValidate(validate, { ...data, ...settings })
   }
 
-  if (testConnect) {
+  if (testConnectServer) {
     try {
-      await testConnect(data)
+      await testConnectServer(data)
     } catch (err) {
       console.error(err)
       const message = err.message || err.toString?.()

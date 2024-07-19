@@ -5,7 +5,7 @@ import { addWalletLog } from '@/api/resolvers/wallet'
 
 export * from 'wallets/lnd'
 
-export const testConnect = async (
+export const testConnectServer = async (
   { cert, macaroon, socket },
   { me, models }
 ) => {

@@ -3,7 +3,7 @@ import { Relay, finalizeEvent, nip04 } from 'nostr-tools'
 
 export * from 'wallets/nwc'
 
-export async function validate ({ nwcUrl }, { logger }) {
+export async function testConnectClient ({ nwcUrl }, { logger }) {
   const { relayUrl, walletPubkey } = parseNwcUrl(nwcUrl)
 
   logger.info(`requesting info event from ${relayUrl}`)

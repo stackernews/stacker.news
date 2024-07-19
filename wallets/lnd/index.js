@@ -37,7 +37,7 @@ export const fields = [
 export const card = {
   title: 'LND',
   subtitle: 'autowithdraw to your Lightning Labs node',
-  badges: ['receive only', 'non-custodial']
+  badges: ['receive only']
 }
 
 export const yupSchema = LNDAutowithdrawSchema

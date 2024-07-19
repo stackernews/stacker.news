@@ -18,7 +18,7 @@ export const fields = [
 export const card = {
   title: 'LNbits',
   subtitle: 'use [LNbits](https://lnbits.com/) for payments',
-  badges: ['send only', 'non-custodialish']
+  badges: ['send only']
 }
 
 export const yupSchema = lnbitsSchema

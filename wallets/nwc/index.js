@@ -13,7 +13,7 @@ export const fields = [
 export const card = {
   title: 'NWC',
   subtitle: 'use Nostr Wallet Connect for payments',
-  badges: ['send only', 'non-custodialish']
+  badges: ['send only']
 }
 
 export const yupSchema = nwcSchema

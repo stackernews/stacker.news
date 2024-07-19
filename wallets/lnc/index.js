@@ -33,7 +33,7 @@ export const fields = [
 export const card = {
   title: 'LNC',
   subtitle: 'use Lightning Node Connect for LND payments',
-  badges: ['send only', 'non-custodial', 'budgetable']
+  badges: ['send only', 'budgetable']
 }
 
 export const yupSchema = lncSchema

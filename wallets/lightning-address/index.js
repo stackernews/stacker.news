@@ -15,7 +15,7 @@ export const fields = [
 export const card = {
   title: 'lightning address',
   subtitle: 'autowithdraw to a lightning address',
-  badges: ['receive only', 'non-custodialish']
+  badges: ['receive only']
 }
 
 export const yupSchema = lnAddrAutowithdrawSchema

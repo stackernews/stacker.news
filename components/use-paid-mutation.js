@@ -29,7 +29,7 @@ export function usePaidMutation (mutation,
   const [innerResult, setInnerResult] = useState(result)
 
   const waitForPayment = useCallback(async (invoice, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor }) => {
-    let webLnError
+    let walletError
     const start = Date.now()
     try {
       return await waitForWalletPayment(invoice, waitFor)

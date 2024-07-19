@@ -96,6 +96,8 @@ export function useWallet (name) {
     }
   }, [clearConfig, logger, disable])
 
+  if (!wallet) return null
+
   return {
     ...wallet,
     sendPayment,

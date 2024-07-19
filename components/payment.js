@@ -131,7 +131,7 @@ export const useWalletPayment = () => {
   const wallet = useWallet()
 
   const waitForWalletPayment = useCallback(async ({ id, bolt11 }, waitFor) => {
-    if (!wallet?.enabled) {
+    if (!wallet) {
       throw new NoAttachedWalletError()
     }
     try {

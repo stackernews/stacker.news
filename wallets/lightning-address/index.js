@@ -18,7 +18,7 @@ export const card = {
   badges: ['receive only']
 }
 
-export const yupSchema = lnAddrAutowithdrawSchema
+export const fieldValidation = lnAddrAutowithdrawSchema
 
 export const walletType = 'LIGHTNING_ADDRESS'
 

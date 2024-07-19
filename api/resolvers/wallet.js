@@ -19,13 +19,18 @@ import { lnAddrOptions } from '@/lib/lnurl'
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
   for (const w of walletDefs) {
-    const { yupSchema, formikValidate, walletType, walletField, testConnect } = w
+    const { fieldValidation, walletType, walletField, testConnect } = w
     const resolverName = generateResolverName(walletField)
     console.log(resolverName)
+
+    // check if wallet uses the form-level validation built into Formik or a Yup schema
+    const validateArgs = typeof fieldValidation === 'function'
+      ? { formikValidate: fieldValidation }
+      : { schema: fieldValidation }
+
     resolvers.Mutation[resolverName] = async (parent, { settings, ...data }, { me, models }) => {
       return await upsertWallet({
-        schema: yupSchema,
-        formikValidate,
+        ...validateArgs,
         wallet: { field: walletField, type: walletType },
         testConnect: (data) =>
           testConnect(data, { me, models })

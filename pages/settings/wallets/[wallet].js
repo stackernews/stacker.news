@@ -33,6 +33,11 @@ export default function WalletSettings () {
     }
   }, wallet.config)
 
+  // check if wallet uses the form-level validation built into Formik or a Yup schema
+  const validateProps = typeof wallet.fieldValidation === 'function'
+    ? { validate: wallet.fieldValidation }
+    : { schema: wallet.fieldValidation }
+
   return (
     <CenterLayout>
       <h2 className='pb-2'>{wallet.card.title}</h2>
@@ -40,8 +45,7 @@ export default function WalletSettings () {
       {!wallet.walletType && <WalletSecurityBanner />}
       <Form
         initial={initial}
-        validate={wallet.formikValidate}
-        schema={wallet.yupSchema}
+        {...validateProps}
         onSubmit={async ({ amount, ...values }) => {
           try {
             const newConfig = !wallet.isConfigured

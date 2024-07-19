@@ -28,13 +28,16 @@ export function usePaidMutation (mutation,
   // innerResult is used to store/control the result of the mutation when innerMutate runs
   const [innerResult, setInnerResult] = useState(result)
 
-  const waitForPayment = useCallback(async (invoice, { persistOnNavigate = false, waitFor }) => {
+  const waitForPayment = useCallback(async (invoice, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor }) => {
     let webLnError
     const start = Date.now()
     try {
       return await waitForWebLnPayment(invoice, waitFor)
     } catch (err) {
-      if (Date.now() - start > 1000 || err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError) {
+      if (
+        (!alwaysShowQROnFailure && Date.now() - start > 1000) ||
+        err instanceof InvoiceCanceledError ||
+        err instanceof InvoiceExpiredError) {
         // bail since qr code payment will also fail
         // also bail if the payment took more than 1 second
         throw err
@@ -89,7 +92,7 @@ export function usePaidMutation (mutation,
         // the action is pessimistic
         try {
           // wait for the invoice to be paid
-          await waitForPayment(invoice, { persistOnNavigate, waitFor: inv => inv?.actionState === 'PAID' })
+          await waitForPayment(invoice, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor: inv => inv?.actionState === 'PAID' })
           if (!response.result) {
             // if the mutation didn't return any data, ie pessimistic, we need to fetch it
             const { data: { paidAction } } = await getPaidAction({ variables: { invoiceId: parseInt(invoice.id) } })

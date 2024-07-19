@@ -19,12 +19,12 @@ import { lnAddrOptions } from '@/lib/lnurl'
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
   for (const w of walletDefs) {
-    const { schema, walletType, walletField, testConnect } = w
+    const { yupSchema, walletType, walletField, testConnect } = w
     const resolverName = generateResolverName(walletField)
     console.log(resolverName)
     resolvers.Mutation[resolverName] = async (parent, { settings, ...data }, { me, models }) => {
       return await upsertWallet({
-        schema,
+        schema: yupSchema,
         wallet: { field: walletField, type: walletType },
         testConnect: (data) =>
           testConnect(data, { me, models })

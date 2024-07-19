@@ -40,7 +40,7 @@ export const card = {
   badges: ['receive only', 'non-custodial']
 }
 
-export const schema = LNDAutowithdrawSchema
+export const yupSchema = LNDAutowithdrawSchema
 
 export const walletType = 'LND'
 

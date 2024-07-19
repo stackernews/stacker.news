@@ -40,7 +40,7 @@ export default function WalletSettings () {
       {!wallet.walletType && <WalletSecurityBanner />}
       <Form
         initial={initial}
-        schema={wallet.schema}
+        schema={wallet.yupSchema}
         onSubmit={async ({ amount, ...values }) => {
           try {
             const newConfig = !wallet.isConfigured

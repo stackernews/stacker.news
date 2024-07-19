@@ -16,4 +16,4 @@ export const card = {
   badges: ['send only', 'non-custodialish']
 }
 
-export const schema = nwcSchema
+export const yupSchema = nwcSchema

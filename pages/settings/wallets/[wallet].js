@@ -40,6 +40,7 @@ export default function WalletSettings () {
       {!wallet.walletType && <WalletSecurityBanner />}
       <Form
         initial={initial}
+        validate={wallet.formikValidate}
         schema={wallet.yupSchema}
         onSubmit={async ({ amount, ...values }) => {
           try {

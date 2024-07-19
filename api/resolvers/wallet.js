@@ -5,7 +5,7 @@ import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
 import { msatsToSats, msatsToSatsDecimal } from '@/lib/format'
-import { amountSchema, ssValidate, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
+import { amountSchema, ssValidate, withdrawlSchema, lnAddrSchema, formikValidate } from '@/lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
@@ -19,12 +19,13 @@ import { lnAddrOptions } from '@/lib/lnurl'
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
   for (const w of walletDefs) {
-    const { yupSchema, walletType, walletField, testConnect } = w
+    const { yupSchema, formikValidate, walletType, walletField, testConnect } = w
     const resolverName = generateResolverName(walletField)
     console.log(resolverName)
     resolvers.Mutation[resolverName] = async (parent, { settings, ...data }, { me, models }) => {
       return await upsertWallet({
         schema: yupSchema,
+        formikValidate,
         wallet: { field: walletField, type: walletType },
         testConnect: (data) =>
           testConnect(data, { me, models })
@@ -552,13 +553,18 @@ export const addWalletLog = async ({ wallet, level, message }, { me, models }) =
 }
 
 async function upsertWallet (
-  { schema, wallet, testConnect }, { settings, data }, { me, models }) {
+  { schema, formikValidate: validate, wallet, testConnect }, { settings, data }, { me, models }) {
   if (!me) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
   }
   assertApiKeyNotPermitted({ me })
 
-  await ssValidate(schema, { ...data, ...settings }, { me, models })
+  if (schema) {
+    await ssValidate(schema, { ...data, ...settings }, { me, models })
+  }
+  if (validate) {
+    await formikValidate(validate, { ...data, ...settings })
+  }
 
   if (testConnect) {
     try {

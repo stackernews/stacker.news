@@ -1,3 +1,5 @@
+import { lnAddrAutowithdrawSchema } from '@/lib/validate'
+
 export const name = 'lightning-address'
 export const shortName = 'lnAddr'
 
@@ -6,14 +8,7 @@ export const fields = [
     name: 'address',
     label: 'lightning address',
     type: 'text',
-    autoComplete: 'off',
-    validate: {
-      type: 'email',
-      test: {
-        test: addr => !addr.endsWith('@stacker.news'),
-        message: 'automated withdrawals must be external'
-      }
-    }
+    autoComplete: 'off'
   }
 ]
 
@@ -22,6 +17,8 @@ export const card = {
   subtitle: 'autowithdraw to a lightning address',
   badges: ['receive only', 'non-custodialish']
 }
+
+export const schema = lnAddrAutowithdrawSchema
 
 export const walletType = 'LIGHTNING_ADDRESS'
 

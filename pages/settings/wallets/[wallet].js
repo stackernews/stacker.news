@@ -10,7 +10,6 @@ import Info from '@/components/info'
 import Text from '@/components/text'
 import { AutowithdrawSettings } from '@/components/autowithdraw-shared'
 import dynamic from 'next/dynamic'
-import { generateSchema } from '@/lib/wallet'
 
 const WalletButtonBar = dynamic(() => import('@/components/wallet-buttonbar.js'), { ssr: false })
 
@@ -34,8 +33,6 @@ export default function WalletSettings () {
     }
   }, wallet.config)
 
-  const schema = generateSchema(wallet)
-
   return (
     <CenterLayout>
       <h2 className='pb-2'>{wallet.card.title}</h2>
@@ -43,7 +40,7 @@ export default function WalletSettings () {
       {!wallet.walletType && <WalletSecurityBanner />}
       <Form
         initial={initial}
-        schema={schema}
+        schema={wallet.schema}
         onSubmit={async ({ amount, ...values }) => {
           try {
             const newConfig = !wallet.isConfigured

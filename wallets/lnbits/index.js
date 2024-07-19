@@ -1,23 +1,17 @@
+import { lnbitsSchema } from '@/lib/validate'
+
 export const name = 'lnbits'
 
 export const fields = [
   {
     name: 'url',
     label: 'lnbits url',
-    type: 'text',
-    validate: {
-      type: 'url',
-      torAllowed: true
-    }
+    type: 'text'
   },
   {
     name: 'adminKey',
     label: 'admin key',
-    type: 'password',
-    validate: {
-      type: 'string',
-      length: 32
-    }
+    type: 'password'
   }
 ]
 
@@ -26,3 +20,5 @@ export const card = {
   subtitle: 'use [LNbits](https://lnbits.com/) for payments',
   badges: ['send only', 'non-custodialish']
 }
+
+export const schema = lnbitsSchema

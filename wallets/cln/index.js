@@ -39,7 +39,7 @@ export const card = {
   badges: ['receive only']
 }
 
-export const yupSchema = CLNAutowithdrawSchema
+export const fieldValidation = CLNAutowithdrawSchema
 
 export const walletType = 'CLN'
 

@@ -36,4 +36,4 @@ export const card = {
   badges: ['send only', 'budgetable']
 }
 
-export const yupSchema = lncSchema
+export const fieldValidation = lncSchema

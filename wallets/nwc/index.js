@@ -16,4 +16,4 @@ export const card = {
   badges: ['send only']
 }
 
-export const yupSchema = nwcSchema
+export const fieldValidation = nwcSchema

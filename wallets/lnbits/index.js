@@ -21,4 +21,4 @@ export const card = {
   badges: ['send only']
 }
 
-export const yupSchema = lnbitsSchema
+export const fieldValidation = lnbitsSchema

@@ -1,6 +1,6 @@
 import { useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import { useCallback, useState } from 'react'
-import { InvoiceCanceledError, InvoiceExpiredError, useQrPayment, useWebLnPayment } from './payment'
+import { InvoiceCanceledError, InvoiceExpiredError, useQrPayment, useWalletPayment } from './payment'
 import { GET_PAID_ACTION } from '@/fragments/paidAction'
 
 /*
@@ -22,17 +22,17 @@ export function usePaidMutation (mutation,
   const [getPaidAction] = useLazyQuery(GET_PAID_ACTION, {
     fetchPolicy: 'network-only'
   })
-  const waitForWebLnPayment = useWebLnPayment()
+  const waitForWalletPayment = useWalletPayment()
   const waitForQrPayment = useQrPayment()
   const client = useApolloClient()
   // innerResult is used to store/control the result of the mutation when innerMutate runs
   const [innerResult, setInnerResult] = useState(result)
 
   const waitForPayment = useCallback(async (invoice, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor }) => {
-    let webLnError
+    let walletError
     const start = Date.now()
     try {
-      return await waitForWebLnPayment(invoice, waitFor)
+      return await waitForWalletPayment(invoice, waitFor)
     } catch (err) {
       if (
         (!alwaysShowQROnFailure && Date.now() - start > 1000) ||
@@ -42,10 +42,10 @@ export function usePaidMutation (mutation,
         // also bail if the payment took more than 1 second
         throw err
       }
-      webLnError = err
+      walletError = err
     }
-    return await waitForQrPayment(invoice, webLnError, { persistOnNavigate, waitFor })
-  }, [waitForWebLnPayment, waitForQrPayment])
+    return await waitForQrPayment(invoice, walletError, { persistOnNavigate, waitFor })
+  }, [waitForWalletPayment, waitForQrPayment])
 
   const innerMutate = useCallback(async ({
     onCompleted: innerOnCompleted, ...innerOptions

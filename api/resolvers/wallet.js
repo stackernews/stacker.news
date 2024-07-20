@@ -1,19 +1,45 @@
-import { getIdentity, createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, authenticatedLndGrpc, deletePayment, getPayment } from 'ln-service'
+import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, deletePayment, getPayment, getIdentity } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto, { timingSafeEqual } from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
-import { lnAddrOptions } from '@/lib/lnurl'
-import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '@/lib/format'
-import { CLNAutowithdrawSchema, LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
-import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, Wallet } from '@/lib/constants'
+import { msatsToSats, msatsToSatsDecimal } from '@/lib/format'
+import { amountSchema, ssValidate, withdrawlSchema, lnAddrSchema, formikValidate } from '@/lib/validate'
+import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
-import { createInvoice as createInvoiceCLN } from '@/lib/cln'
 import { bolt11Tags } from '@/lib/bolt11'
 import { checkInvoice } from 'worker/wallet'
+import walletDefs from 'wallets/server'
+import { generateResolverName } from '@/lib/wallet'
+import { lnAddrOptions } from '@/lib/lnurl'
+
+function injectResolvers (resolvers) {
+  console.group('injected GraphQL resolvers:')
+  for (const w of walletDefs) {
+    const { fieldValidation, walletType, walletField, testConnectServer } = w
+    const resolverName = generateResolverName(walletField)
+    console.log(resolverName)
+
+    // check if wallet uses the form-level validation built into Formik or a Yup schema
+    const validateArgs = typeof fieldValidation === 'function'
+      ? { formikValidate: fieldValidation }
+      : { schema: fieldValidation }
+
+    resolvers.Mutation[resolverName] = async (parent, { settings, ...data }, { me, models }) => {
+      return await upsertWallet({
+        ...validateArgs,
+        wallet: { field: walletField, type: walletType },
+        testConnectServer: (data) => testConnectServer(data, { me, models })
+      }, { settings, data }, { me, models })
+    }
+  }
+  console.groupEnd()
+
+  return resolvers
+}
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -93,7 +119,7 @@ export function createHmac (hash) {
   return crypto.createHmac('sha256', key).update(Buffer.from(hash, 'hex')).digest('hex')
 }
 
-export default {
+const resolvers = {
   Query: {
     invoice: getInvoice,
     wallet: async (parent, { id }, { me, models }) => {
@@ -318,9 +344,10 @@ export default {
         where: {
           userId: me.id
         },
-        orderBy: {
-          createdAt: 'asc'
-        }
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'desc' }
+        ]
       })
     }
   },
@@ -423,85 +450,6 @@ export default {
       }
       return { id }
     },
-    upsertWalletLND: async (parent, { settings, ...data }, { me, models }) => {
-      // make sure inputs are base64
-      data.macaroon = ensureB64(data.macaroon)
-      data.cert = ensureB64(data.cert)
-
-      const wallet = Wallet.LND
-      return await upsertWallet(
-        {
-          schema: LNDAutowithdrawSchema,
-          wallet,
-          testConnect: async ({ cert, macaroon, socket }) => {
-            try {
-              const { lnd } = await authenticatedLndGrpc({
-                cert,
-                macaroon,
-                socket
-              })
-              const inv = await createInvoice({
-                description: 'SN connection test',
-                lnd,
-                tokens: 0,
-                expires_at: new Date()
-              })
-              // we wrap both calls in one try/catch since connection attempts happen on RPC calls
-              await addWalletLog({ wallet, level: 'SUCCESS', message: 'connected to LND' }, { me, models })
-              return inv
-            } catch (err) {
-              // LND errors are in this shape: [code, type, { err: { code, details, metadata } }]
-              const details = err[2]?.err?.details || err.message || err.toString?.()
-              await addWalletLog({ wallet, level: 'ERROR', message: `could not connect to LND: ${details}` }, { me, models })
-              throw err
-            }
-          }
-        },
-        { settings, data }, { me, models })
-    },
-    upsertWalletCLN: async (parent, { settings, ...data }, { me, models }) => {
-      data.cert = ensureB64(data.cert)
-
-      const wallet = Wallet.CLN
-      return await upsertWallet(
-        {
-          schema: CLNAutowithdrawSchema,
-          wallet,
-          testConnect: async ({ socket, rune, cert }) => {
-            try {
-              const inv = await createInvoiceCLN({
-                socket,
-                rune,
-                cert,
-                description: 'SN connection test',
-                msats: 'any',
-                expiry: 0
-              })
-              await addWalletLog({ wallet, level: 'SUCCESS', message: 'connected to CLN' }, { me, models })
-              return inv
-            } catch (err) {
-              const details = err.details || err.message || err.toString?.()
-              await addWalletLog({ wallet, level: 'ERROR', message: `could not connect to CLN: ${details}` }, { me, models })
-              throw err
-            }
-          }
-        },
-        { settings, data }, { me, models })
-    },
-    upsertWalletLNAddr: async (parent, { settings, ...data }, { me, models }) => {
-      const wallet = Wallet.LnAddr
-      return await upsertWallet(
-        {
-          schema: lnAddrAutowithdrawSchema,
-          wallet,
-          testConnect: async ({ address }) => {
-            const options = await lnAddrOptions(address)
-            await addWalletLog({ wallet, level: 'SUCCESS', message: 'fetched payment details' }, { me, models })
-            return options
-          }
-        },
-        { settings, data }, { me, models })
-    },
     removeWallet: async (parent, { id }, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
@@ -514,7 +462,7 @@ export default {
 
       await models.$transaction([
         models.wallet.delete({ where: { userId: me.id, id: Number(id) } }),
-        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet deleted' } })
+        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet detached' } })
       ])
 
       return true
@@ -598,6 +546,8 @@ export default {
   }
 }
 
+export default injectResolvers(resolvers)
+
 export const addWalletLog = async ({ wallet, level, message }, { me, models }) => {
   try {
     await models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level, message } })
@@ -607,26 +557,32 @@ export const addWalletLog = async ({ wallet, level, message }, { me, models }) =
 }
 
 async function upsertWallet (
-  { schema, wallet, testConnect }, { settings, data }, { me, models }) {
+  { schema, formikValidate: validate, wallet, testConnectServer }, { settings, data }, { me, models }) {
   if (!me) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
   }
   assertApiKeyNotPermitted({ me })
 
-  await ssValidate(schema, { ...data, ...settings }, { me, models })
+  if (schema) {
+    await ssValidate(schema, { ...data, ...settings }, { me, models })
+  }
+  if (validate) {
+    await formikValidate(validate, { ...data, ...settings })
+  }
 
-  if (testConnect) {
+  if (testConnectServer) {
     try {
-      await testConnect(data)
+      await testConnectServer(data)
     } catch (err) {
       console.error(err)
-      await addWalletLog({ wallet, level: 'ERROR', message: 'failed to attach wallet' }, { me, models })
-      throw new GraphQLError('failed to connect to wallet', { extensions: { code: 'BAD_INPUT' } })
+      const message = err.message || err.toString?.()
+      await addWalletLog({ wallet, level: 'ERROR', message: 'failed to attach: ' + message }, { me, models })
+      throw new GraphQLError(message, { extensions: { code: 'BAD_INPUT' } })
     }
   }
 
   const { id, ...walletData } = data
-  const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, priority } = settings
+  const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, enabled, priority } = settings
 
   const txs = [
     models.user.update({
@@ -638,24 +594,13 @@ async function upsertWallet (
     })
   ]
 
-  if (priority) {
-    txs.push(
-      models.wallet.updateMany({
-        where: {
-          userId: me.id
-        },
-        data: {
-          priority: 0
-        }
-      }))
-  }
-
   if (id) {
     txs.push(
       models.wallet.update({
         where: { id: Number(id), userId: me.id },
         data: {
-          priority: priority ? 1 : 0,
+          enabled,
+          priority,
           [wallet.field]: {
             update: {
               where: { walletId: Number(id) },
@@ -663,24 +608,42 @@ async function upsertWallet (
             }
           }
         }
-      }),
-      models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet updated' } })
+      })
     )
   } else {
     txs.push(
       models.wallet.create({
         data: {
-          priority: Number(priority),
+          enabled,
+          priority,
           userId: me.id,
           type: wallet.type,
           [wallet.field]: {
             create: walletData
           }
         }
-      }),
-      models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet created' } })
+      })
     )
   }
+
+  txs.push(
+    models.walletLog.createMany({
+      data: {
+        userId: me.id,
+        wallet: wallet.type,
+        level: 'SUCCESS',
+        message: id ? 'wallet updated' : 'wallet attached'
+      }
+    }),
+    models.walletLog.create({
+      data: {
+        userId: me.id,
+        wallet: wallet.type,
+        level: enabled ? 'SUCCESS' : 'INFO',
+        message: enabled ? 'wallet enabled' : 'wallet disabled'
+      }
+    })
+  )
 
   await models.$transaction(txs)
   return true
@@ -745,12 +708,28 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
 }
 
 export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },
-  { me, models, lnd, headers, walletId }) {
+  { me, models, lnd, headers }) {
   if (!me) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
   }
   assertApiKeyNotPermitted({ me })
 
+  const res = await fetchLnAddrInvoice({ addr, amount, maxFee, comment, ...payer },
+    {
+      me,
+      models,
+      lnd
+    })
+
+  // take pr and createWithdrawl
+  return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers })
+}
+
+export async function fetchLnAddrInvoice (
+  { addr, amount, maxFee, comment, ...payer },
+  {
+    me, models, lnd, autoWithdraw = false
+  }) {
   const options = await lnAddrOptions(addr)
   await ssValidate(lnAddrSchema, { addr, amount, maxFee, comment, ...payer }, options)
 
@@ -788,10 +767,10 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
   try {
     const decoded = await decodePaymentRequest({ lnd, request: res.pr })
     const ourPubkey = (await getIdentity({ lnd })).public_key
-    if (walletId && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
+    if (autoWithdraw && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
       // unset lnaddr so we don't trigger another withdrawal with same destination
       await models.wallet.deleteMany({
-        where: { userId: me.id, type: Wallet.LnAddr.type }
+        where: { userId: me.id, type: 'LIGHTNING_ADDRESS' }
       })
       throw new Error('automated withdrawals to other stackers are not allowed')
     }
@@ -803,6 +782,5 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
     throw e
   }
 
-  // take pr and createWithdrawl
-  return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers, walletId })
+  return res
 }

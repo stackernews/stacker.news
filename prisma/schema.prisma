@@ -173,6 +173,7 @@ model Wallet {
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   userId    Int
   label     String?
+  enabled   Boolean  @default(true)
   priority  Int      @default(0)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

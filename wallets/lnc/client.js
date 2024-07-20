@@ -30,7 +30,7 @@ async function disconnect (lnc, logger) {
   }
 }
 
-export async function testConnectClient (credentials, { me, logger }) {
+export async function testConnectClient (credentials, { logger }) {
   let lnc
   try {
     lnc = await getLNC(credentials)
@@ -51,7 +51,7 @@ export async function testConnectClient (credentials, { me, logger }) {
 
 const mutex = new Mutex()
 
-export async function sendPayment (bolt11, credentials, { me, status, logger }) {
+export async function sendPayment (bolt11, credentials, { logger }) {
   const hash = bolt11Tags(bolt11).payment_hash
 
   return await mutex.runExclusive(async () => {

@@ -383,6 +383,7 @@ export default {
               ${relationClause(type)}
               ${whereClause(
                 '"Item"."deletedAt" IS NULL',
+                type === 'posts' && '"Item"."subName" IS NOT NULL',
                 subClause(sub, 5, subClauseTable(type), me, showNsfw),
                 typeClause(type),
                 whenClause(when, 'Item'),

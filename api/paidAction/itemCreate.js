@@ -194,21 +194,20 @@ export async function onPaid ({ invoice, id }, context) {
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', ${item.id}::INTEGER), 21, true, now() + interval '5 seconds')`
 
-  // TODO: referals for boost
-
   if (item.parentId) {
     // denormalize ncomments, lastCommentAt, and "weightedComments" for ancestors, and insert into reply table
     await tx.$executeRaw`
       WITH comment AS (
-        SELECT *
+        SELECT "Item".*, users.trust
         FROM "Item"
-        WHERE id = ${item.id}::INTEGER
+        JOIN users ON "Item"."userId" = users.id
+        WHERE "Item".id = ${item.id}::INTEGER
       ), ancestors AS (
         UPDATE "Item"
         SET ncomments = "Item".ncomments + 1,
           "lastCommentAt" = now(),
           "weightedComments" = "Item"."weightedComments" +
-            CASE WHEN comment."userId" = "Item"."userId" THEN 0 ELSE ${item.user.trust}::FLOAT END
+            CASE WHEN comment."userId" = "Item"."userId" THEN 0 ELSE comment.trust END
         FROM comment
         WHERE "Item".path @> comment.path AND "Item".id <> comment.id
         RETURNING "Item".*

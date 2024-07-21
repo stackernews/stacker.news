@@ -143,7 +143,6 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
       FROM zapped
       WHERE "Item".path @> zapped.path AND "Item".id <> zapped.id`
 
-  // TODO: referrals
   notifyZapped({ models, item }).catch(console.error)
 }
 

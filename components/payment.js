@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { useMe } from './me'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
-import { useWebLN } from './webln'
+import { useWallet } from 'wallets'
 import { FAST_POLL_INTERVAL, JIT_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { INVOICE } from '@/fragments/wallet'
 import Invoice from '@/components/invoice'
@@ -17,10 +17,10 @@ export class InvoiceCanceledError extends Error {
   }
 }
 
-export class WebLnNotEnabledError extends Error {
+export class NoAttachedWalletError extends Error {
   constructor () {
-    super('no enabled WebLN provider found')
-    this.name = 'WebLnNotEnabledError'
+    super('no attached wallet found')
+    this.name = 'NoAttachedWalletError'
   }
 }
 
@@ -126,19 +126,19 @@ export const useInvoice = () => {
   return { create, waitUntilPaid: waitController.wait, stopWaiting: waitController.stop, cancel }
 }
 
-export const useWebLnPayment = () => {
+export const useWalletPayment = () => {
   const invoice = useInvoice()
-  const provider = useWebLN()
+  const wallet = useWallet()
 
-  const waitForWebLnPayment = useCallback(async ({ id, bolt11 }, waitFor) => {
-    if (!provider) {
-      throw new WebLnNotEnabledError()
+  const waitForWalletPayment = useCallback(async ({ id, bolt11 }, waitFor) => {
+    if (!wallet) {
+      throw new NoAttachedWalletError()
     }
     try {
       return await new Promise((resolve, reject) => {
         // can't use await here since we might pay JIT invoices and sendPaymentAsync is not supported yet.
         // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
-        provider.sendPayment(bolt11)
+        wallet.sendPayment(bolt11)
           // JIT invoice payments will never resolve here
           // since they only get resolved after settlement which can't happen here
           .then(resolve)
@@ -148,21 +148,21 @@ export const useWebLnPayment = () => {
           .catch(reject)
       })
     } catch (err) {
-      console.error('WebLN payment failed:', err)
+      console.error('payment failed:', err)
       throw err
     } finally {
       invoice.stopWaiting()
     }
-  }, [provider, invoice])
+  }, [wallet, invoice])
 
-  return waitForWebLnPayment
+  return waitForWalletPayment
 }
 
 export const useQrPayment = () => {
   const invoice = useInvoice()
   const showModal = useShowModal()
 
-  const waitForQrPayment = useCallback(async (inv, webLnError,
+  const waitForQrPayment = useCallback(async (inv, walletError,
     {
       keepOpen = true,
       cancelOnClose = true,
@@ -186,8 +186,8 @@ export const useQrPayment = () => {
           description
           status='loading'
           successVerb='received'
-          webLn={false}
-          webLnError={webLnError}
+          useWallet={false}
+          walletError={walletError}
           waitFor={waitFor}
           onCanceled={inv => { onClose(); reject(new InvoiceCanceledError(inv?.hash, inv?.actionError)) }}
           onPayment={() => { paid = true; onClose(); resolve() }}
@@ -204,22 +204,22 @@ export const usePayment = () => {
   const me = useMe()
   const feeButton = useFeeButton()
   const invoice = useInvoice()
-  const waitForWebLnPayment = useWebLnPayment()
+  const waitForWalletPayment = useWalletPayment()
   const waitForQrPayment = useQrPayment()
 
   const waitForPayment = useCallback(async (invoice) => {
-    let webLnError
+    let walletError
     try {
-      return await waitForWebLnPayment(invoice)
+      return await waitForWalletPayment(invoice)
     } catch (err) {
       if (err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError) {
         // bail since qr code payment will also fail
         throw err
       }
-      webLnError = err
+      walletError = err
     }
-    return await waitForQrPayment(invoice, webLnError)
-  }, [waitForWebLnPayment, waitForQrPayment])
+    return await waitForQrPayment(invoice, walletError)
+  }, [waitForWalletPayment, waitForQrPayment])
 
   const request = useCallback(async (amount) => {
     amount ??= feeButton?.total

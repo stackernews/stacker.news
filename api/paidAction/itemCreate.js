@@ -215,8 +215,7 @@ export async function onPaid ({ invoice, id }, context) {
       INSERT INTO "Reply" (created_at, updated_at, "ancestorId", "ancestorUserId", "itemId", "userId", level)
         SELECT comment.created_at, comment.updated_at, ancestors.id, ancestors."userId",
           comment.id, comment."userId", nlevel(comment.path) - nlevel(ancestors.path)
-        FROM ancestors, comment
-        WHERE ancestors."userId" <> comment."userId"`
+        FROM ancestors, comment`
 
     notifyItemParents({ item, models }).catch(console.error)
   }

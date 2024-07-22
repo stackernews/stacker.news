@@ -283,6 +283,7 @@ export default {
             '"ThreadSubscription"."userId" = $1',
             'r.created_at > $2',
             'r.created_at >= "ThreadSubscription".created_at',
+            'r."userId" <> $1',
             activeOrMine(me),
             await filterClause(me, models),
             muteClause(me),

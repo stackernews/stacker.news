@@ -1328,7 +1328,7 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
   return resultItem
 }
 
-const getForwardUsers = async (models, forward) => {
+export const getForwardUsers = async (models, forward) => {
   const fwdUsers = []
   if (forward) {
     // find all users in one db query

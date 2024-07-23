@@ -10,6 +10,7 @@ import Info from '@/components/info'
 import Text from '@/components/text'
 import { AutowithdrawSettings } from '@/components/autowithdraw-shared'
 import dynamic from 'next/dynamic'
+import { useEffect, useState } from 'react'
 
 const WalletButtonBar = dynamic(() => import('@/components/wallet-buttonbar.js'), { ssr: false })
 
@@ -20,6 +21,14 @@ export default function WalletSettings () {
   const router = useRouter()
   const { wallet: name } = router.query
   const wallet = useWallet(name)
+
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    // mounted is required since available might depend
+    // on values that are only available on the client (and not during SSR)
+    // and thus we need to render the component again on the client
+    setMounted(true)
+  }, [])
 
   const initial = wallet.fields.reduce((acc, field) => {
     // We still need to run over all wallet fields via reduce
@@ -38,11 +47,13 @@ export default function WalletSettings () {
     ? { validate: wallet.fieldValidation }
     : { schema: wallet.fieldValidation }
 
+  const available = mounted && wallet.available !== undefined ? wallet.available : wallet.isConfigured
+
   return (
     <CenterLayout>
       <h2 className='pb-2'>{wallet.card.title}</h2>
       <h6 className='text-muted text-center pb-3'><Text>{wallet.card.subtitle}</Text></h6>
-      {!wallet.walletType && <WalletSecurityBanner />}
+      {!wallet.walletType && wallet.hasConfig > 0 && <WalletSecurityBanner />}
       <Form
         initial={initial}
         {...validateProps}
@@ -74,7 +85,7 @@ export default function WalletSettings () {
           ? <AutowithdrawSettings wallet={wallet} />
           : (
             <ClientCheckbox
-              disabled={!wallet.isConfigured}
+              disabled={!available}
               initialValue={wallet.status === Status.Enabled}
               label='enabled'
               name='enabled'

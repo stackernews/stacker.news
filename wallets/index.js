@@ -29,6 +29,7 @@ export function useWallet (name) {
   const { logger, deleteLogs } = useWalletLogger(wallet)
 
   const [config, saveConfig, clearConfig] = useConfig(wallet)
+  const hasConfig = wallet?.fields.length > 0
   const _isConfigured = isConfigured({ ...wallet, config })
 
   const status = config?.enabled ? Status.Enabled : Status.Initialized
@@ -108,6 +109,7 @@ export function useWallet (name) {
     enable,
     disable,
     setPriority,
+    hasConfig,
     isConfigured: _isConfigured,
     status,
     enabled,
@@ -133,6 +135,11 @@ function useConfig (wallet) {
     // which might be confusing to have for wallets that don't support autowithdraw
     ...(hasLocalConfig ? localConfig : {}),
     ...(hasServerConfig ? serverConfig : {})
+  }
+
+  if (wallet?.available !== undefined && config.enabled !== undefined) {
+    // wallet must be available to be enabled
+    config.enabled &&= wallet.available
   }
 
   const saveConfig = useCallback(async (config) => {
@@ -258,7 +265,13 @@ export function getEnabledWallet (me) {
       const priority = config?.priority
       return { ...def, config, priority }
     })
-    .filter(({ config }) => config?.enabled)
+    .filter(({ available, config }) => {
+      if (available !== undefined && config?.enabled !== undefined) {
+        // wallet must be available to be enabled
+        config.enabled &&= available
+      }
+      return config?.enabled
+    })
     .sort(walletPrioritySort)[0]
 }
 

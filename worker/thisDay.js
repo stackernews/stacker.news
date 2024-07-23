@@ -7,21 +7,23 @@ import { getForwardUsers } from '@/api/resolvers/item'
 
 export async function thisDay ({ models, apollo }) {
   const days = []
-  let day = datePivot(new Date(), { years: -1 })
-  while (day > new Date('2021-06-10')) {
-    const [from, to] = [
-      String(new Date(new Date(day).setHours(0, 0, 0, 0)).getTime()),
-      String(new Date(new Date(day).setHours(23, 59, 59, 999)).getTime())]
+  let yearsAgo = 1
+  while (datePivot(new Date(), { years: -yearsAgo }) > new Date('2021-06-10')) {
+    const [{ from, to }] = await models.$queryRaw`
+    SELECT (date_trunc('day',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago') - ${`${yearsAgo} year`}::interval as from,
+           (date_trunc('day',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago') - ${`${yearsAgo} year`}::interval + interval '1 day - 1 second' as to`
+
     const { data } = await apollo.query({
       query: THIS_DAY,
-      variables: { from, to }
-    })
-    days.push({
-      data,
-      day: day.toLocaleString('default', { timeZone: 'America/Chicago', month: 'long', day: 'numeric', year: 'numeric' })
+      variables: { from: new Date(from).getTime().toString(), to: new Date(to).getTime().toString() }
     })
 
-    day = datePivot(day, { years: -1 })
+    days.push({
+      data,
+      day: new Date(from).toLocaleString('default', { timeZone: 'America/Chicago', month: 'long', day: 'numeric', year: 'numeric' })
+    })
+
+    yearsAgo++
   }
 
   const date = new Date().toLocaleString('default', { timeZone: 'America/Chicago', month: 'long', day: 'numeric' })

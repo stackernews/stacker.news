@@ -18,13 +18,13 @@ export async function thisDay ({ models, apollo }) {
     })
     days.push({
       data,
-      day: day.toLocaleString('default', { month: 'long', day: 'numeric', year: 'numeric' })
+      day: day.toLocaleString('default', { timeZone: 'America/Chicago', month: 'long', day: 'numeric', year: 'numeric' })
     })
 
     day = datePivot(day, { years: -1 })
   }
 
-  const date = new Date().toLocaleString('default', { month: 'long', day: 'numeric' })
+  const date = new Date().toLocaleString('default', { timeZone: 'America/Chicago', month: 'long', day: 'numeric' })
 
   const text = `${topPosts(days)}
 ${topStackers(days)}

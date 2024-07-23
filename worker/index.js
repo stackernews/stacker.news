@@ -26,6 +26,7 @@ import { autoWithdraw } from './autowithdraw.js'
 import { saltAndHashEmails } from './saltAndHashEmails.js'
 import { remindUser } from './reminder.js'
 import { holdAction, settleAction, settleActionError } from './paidAction.js'
+import { thisDay } from './thisDay.js'
 
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
@@ -111,6 +112,7 @@ async function work () {
   await boss.work('settleAction', jobWrapper(settleAction))
   await boss.work('holdAction', jobWrapper(holdAction))
   await boss.work('checkInvoice', jobWrapper(checkInvoice))
+  await boss.work('thisDay', jobWrapper(thisDay))
 
   console.log('working jobs')
 }

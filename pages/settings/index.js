@@ -169,9 +169,8 @@ export default function Settings ({ ssrData }) {
                 variables: {
                   settings: {
                     tipDefault: Number(tipDefault),
-                    tipRandom,
-                    tipRandomMin: Number(tipRandomMin),
-                    tipRandomMax: Number(tipRandomMax),
+                    tipRandomMin: tipRandom ? Number(tipRandomMin) : null,
+                    tipRandomMax: tipRandom ? Number(tipRandomMax) : null,
                     withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
                     zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
                     nostrPubkey,

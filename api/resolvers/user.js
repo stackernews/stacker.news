@@ -1003,6 +1003,12 @@ export default {
       })
 
       return relays?.map(r => r.nostrRelayAddr)
+    },
+    tipRandom: async (user, args, { me }) => {
+      if (!me || me.id !== user.id) {
+        return false
+      }
+      return !!user.tipRandomMin && !!user.tipRandomMax
     }
   },
 

@@ -30,7 +30,6 @@ model User {
   apiKeyHash                String?              @unique(map: "users.apikeyhash_unique") @db.Char(64)
   apiKeyEnabled             Boolean              @default(false)
   tipDefault                Int                  @default(100)
-  tipRandom                 Boolean              @default(false)
   tipRandomMin              Int?
   tipRandomMax              Int?
   bioId                     Int?

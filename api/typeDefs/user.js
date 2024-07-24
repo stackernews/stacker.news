@@ -98,7 +98,6 @@ export default gql`
     noteItemMentions: Boolean!
     nsfwMode: Boolean!
     tipDefault: Int!
-    tipRandom: Boolean!
     tipRandomMin: Int
     tipRandomMax: Int
     turboTipping: Boolean!

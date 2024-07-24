@@ -29,13 +29,13 @@ export function PriceProvider ({ price, children }) {
           pollInterval: NORMAL_POLL_INTERVAL,
           nextFetchPolicy: 'cache-and-network'
         })
-  });
+  })
 
   useEffect(() => {
     if (fiatCurrency) {
-      refetch({ fiatCurrency });
+      refetch({ fiatCurrency })
     }
-  }, [fiatCurrency, refetch]);
+  }, [fiatCurrency, refetch])
   const contextValue = useMemo(() => ({
     price: data?.price || price,
     fiatSymbol: CURRENCY_SYMBOLS[fiatCurrency] || '$'

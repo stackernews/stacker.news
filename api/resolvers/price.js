@@ -20,14 +20,14 @@ async function getPrice (fiat) {
     const { price, createdAt } = cache.get(fiat)
     const expired = createdAt + expiresIn < Date.now()
     if (expired) {
-      const newPrice = await fetchPrice(fiat);
-      return newPrice;
+      const newPrice = await fetchPrice(fiat)
+      return newPrice
     } else {
-      return price;
+      return price
     }
   } else {
-    const newPrice = await fetchPrice(fiat);
-    return newPrice;
+    const newPrice = await fetchPrice(fiat)
+    return newPrice
   }
 }
 

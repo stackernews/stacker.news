@@ -2,26 +2,25 @@ import QRCode from 'qrcode.react'
 import { CopyInput, InputSkeleton } from './form'
 import InvoiceStatus from './invoice-status'
 import { useEffect } from 'react'
-import { useWebLN } from './webln'
-import SimpleCountdown from './countdown'
+import { useWallet } from 'wallets'
 import Bolt11Info from './bolt11-info'
 
-export default function Qr ({ asIs, value, webLn, statusVariant, description, status }) {
+export default function Qr ({ asIs, value, useWallet: automated, statusVariant, description, status }) {
   const qrValue = asIs ? value : 'lightning:' + value.toUpperCase()
-  const provider = useWebLN()
+  const wallet = useWallet()
 
   useEffect(() => {
     async function effect () {
-      if (webLn && provider) {
+      if (automated && wallet) {
         try {
-          await provider.sendPayment({ bolt11: value })
+          await wallet.sendPayment(value)
         } catch (e) {
           console.log(e?.message)
         }
       }
     }
     effect()
-  }, [provider])
+  }, [wallet])
 
   return (
     <>
@@ -48,9 +47,6 @@ export function QrSkeleton ({ status, description, bolt11Info }) {
         <InputSkeleton />
       </div>
       <InvoiceStatus variant='default' status={status} />
-      <div className='text-muted text-center invisible'>
-        <SimpleCountdown date={Date.now()} />
-      </div>
       {bolt11Info && <Bolt11Info />}
     </>
   )

@@ -1,74 +1,23 @@
 import { DateTimeInput, Form, Input, MarkdownInput, VariableInput } from '@/components/form'
-import { useRouter } from 'next/router'
-import { gql, useApolloClient, useMutation } from '@apollo/client'
+import { useApolloClient } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import { pollSchema } from '@/lib/validate'
 import { SubSelectInitial } from './sub-select'
-import { useCallback } from 'react'
-import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
-import useCrossposter from './use-crossposter'
+import { normalizeForwards } from '@/lib/form'
 import { useMe } from './me'
-import { useToast } from './toast'
 import { ItemButtonBar } from './post'
+import { UPSERT_POLL } from '@/fragments/paidAction'
+import useItemSubmit from './use-item-submit'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
-  const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
-  const toaster = useToast()
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
 
-  const crossposter = useCrossposter()
-
-  const [upsertPoll] = useMutation(
-    gql`
-      mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
-        $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String, $pollExpiresAt: Date) {
-        upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
-          options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac, pollExpiresAt: $pollExpiresAt) {
-          id
-          deleteScheduledAt
-          reminderScheduledAt
-        }
-      }`
-  )
-
-  const onSubmit = useCallback(
-    async ({ boost, title, options, crosspost, ...values }) => {
-      const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
-      const { data, error } = await upsertPoll({
-        variables: {
-          id: item?.id,
-          sub: item?.subName || sub?.name,
-          boost: boost ? Number(boost) : undefined,
-          title: title.trim(),
-          options: optionsFiltered,
-          ...values,
-          forward: normalizeForwards(values.forward)
-        }
-      })
-      if (error) {
-        throw new Error({ message: error.toString() })
-      }
-
-      const pollId = data?.upsertPoll?.id
-
-      if (crosspost && pollId) {
-        await crossposter(pollId)
-      }
-
-      if (item) {
-        await router.push(`/items/${item.id}`)
-      } else {
-        const prefix = sub?.name ? `/~${sub.name}` : ''
-        await router.push(prefix + '/recent')
-      }
-      toastUpsertSuccessMessages(toaster, data, 'upsertPoll', !!item, values.text)
-    }, [upsertPoll, router]
-  )
+  const onSubmit = useItemSubmit(UPSERT_POLL, { item, sub })
 
   const initialOptions = item?.poll?.options.map(i => i.option)
 
@@ -86,7 +35,6 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      invoiceable
       onSubmit={onSubmit}
       storageKeyPrefix={storageKeyPrefix}
     >

@@ -1,12 +1,37 @@
 import { gql } from '@apollo/client'
-import { ITEM_FULL_FIELDS } from './items'
+import { ITEM_FULL_FIELDS, POLL_FIELDS } from './items'
 import { INVITE_FIELDS } from './invites'
 import { SUB_FIELDS } from './subs'
+import { INVOICE_FIELDS } from './wallet'
 
 export const HAS_NOTIFICATIONS = gql`{ hasNewNotes }`
 
-export const NOTIFICATIONS = gql`
+export const INVOICIFICATION = gql`
   ${ITEM_FULL_FIELDS}
+  ${POLL_FIELDS}
+  ${INVOICE_FIELDS}
+  fragment InvoicificationFields on Invoicification {
+    id
+    sortTime
+    invoice {
+      ...InvoiceFields
+      item {
+        ...ItemFullFields
+        ...PollFields
+      }
+      itemAct {
+        id
+        act
+        invoice {
+          id
+          actionState
+        }
+      }
+    }
+  }`
+
+export const NOTIFICATIONS = gql`
+  ${INVOICIFICATION}
   ${INVITE_FIELDS}
   ${SUB_FIELDS}
 
@@ -20,6 +45,14 @@ export const NOTIFICATIONS = gql`
           id
           sortTime
           mention
+          item {
+            ...ItemFullFields
+            text
+          }
+        }
+        ... on ItemMention {
+          id
+          sortTime
           item {
             ...ItemFullFields
             text
@@ -64,6 +97,15 @@ export const NOTIFICATIONS = gql`
             comments
             tipPosts
             tipComments
+          }
+        }
+        ... on ReferralReward {
+          id
+          sortTime
+          earnedSats
+          sources {
+            forever
+            oneDay
           }
         }
         ... on Referral {
@@ -132,6 +174,9 @@ export const NOTIFICATIONS = gql`
             comment
             lud18Data
           }
+        }
+        ... on Invoicification {
+          ...InvoicificationFields
         }
         ... on WithdrawlPaid {
           id

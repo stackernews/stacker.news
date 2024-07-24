@@ -26,11 +26,20 @@ export default function HoverablePopover ({ id, trigger, body, onShow }) {
       show={showOverlay}
       placement='bottom'
       onHide={handleMouseLeave}
+      popperConfig={{
+        modifiers: {
+          preventOverflow: {
+            enabled: false
+          }
+        }
+      }}
       overlay={
         <Popover
           onPointerEnter={handleMouseEnter}
           onPointerLeave={handleMouseLeave}
+          onMouseLeave={handleMouseLeave}
           className={styles.HoverablePopover}
+          style={{ position: 'fixed' }}
         >
           <Popover.Body className={styles.HoverablePopover}>
             {body}

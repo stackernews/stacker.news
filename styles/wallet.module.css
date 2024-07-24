@@ -7,6 +7,14 @@
   margin-top: 3rem;
 }
 
+.drag {
+  opacity: 33%;
+}
+
+.drop {
+  box-shadow: 0 0 10px var(--bs-info);
+}
+
 .card {
   width: 160px;
   height: 180px;

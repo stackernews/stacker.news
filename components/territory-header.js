@@ -81,7 +81,7 @@ export default function TerritoryHeader ({ sub }) {
   return (
     <>
       <TerritoryPaymentDue sub={sub} />
-      <div className='mb-3'>
+      <div className='mb-2 mt-1'>
         <div>
           <TerritoryDetails sub={sub}>
             <div className='d-flex my-2 justify-content-end'>

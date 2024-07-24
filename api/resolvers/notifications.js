@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
-import { getItem, filterClause, whereClause, muteClause } from './item'
+import { getItem, filterClause, whereClause, muteClause, activeOrMine } from './item'
 import { getInvoice, getWithdrawl } from './wallet'
 import { pushSubscriptionSchema, ssValidate } from '@/lib/validate'
 import { replyToSubscription } from '@/lib/webPush'
@@ -140,6 +140,22 @@ export default {
             LIMIT ${LIMIT}`
         )
       }
+      // item mentions
+      if (meFull.noteItemMentions) {
+        itemDrivenQueries.push(
+          `SELECT "Referrer".*, "ItemMention".created_at AS "sortTime", 'ItemMention' AS type
+            FROM "ItemMention"
+            JOIN "Item" "Referee" ON "ItemMention"."refereeId" = "Referee".id
+            JOIN "Item" "Referrer" ON "ItemMention"."referrerId" = "Referrer".id
+            ${whereClause(
+              '"ItemMention".created_at < $2',
+              '"Referrer"."userId" <> $1',
+              '"Referee"."userId" = $1'
+            )}
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}`
+        )
+      }
       // Inner union to de-dupe item-driven notifications
       queries.push(
         // Only record per item ID
@@ -151,12 +167,14 @@ export default {
           ${whereClause(
             '"Item".created_at < $2',
             await filterClause(me, models),
-            muteClause(me))}
+            muteClause(me),
+            activeOrMine(me))}
           ORDER BY id ASC, CASE
             WHEN type = 'Mention' THEN 1
             WHEN type = 'Reply' THEN 2
             WHEN type = 'FollowActivity' THEN 3
             WHEN type = 'TerritoryPost' THEN 4
+            WHEN type = 'ItemMention' THEN 5
           END ASC
         )`
       )
@@ -216,6 +234,7 @@ export default {
             WHERE "Invoice"."userId" = $1
             AND "confirmedAt" IS NOT NULL
             AND "isHeld" IS NULL
+            AND "actionState" IS NULL
             AND created_at < $2
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
@@ -265,6 +284,7 @@ export default {
           FROM "Earn"
           WHERE "userId" = $1
           AND created_at < $2
+          AND (type IS NULL OR type NOT IN ('FOREVER_REFERRAL', 'ONE_DAY_REFERRAL'))
           GROUP BY "userId", created_at
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT})`
@@ -277,6 +297,17 @@ export default {
           AND type = 'REVENUE'
           AND created_at < $2
           GROUP BY "userId", "subName", created_at
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT})`
+        )
+        queries.push(
+          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
+          'ReferralReward' AS type
+          FROM "Earn"
+          WHERE "userId" = $1
+          AND created_at < $2
+          AND type IN ('FOREVER_REFERRAL', 'ONE_DAY_REFERRAL')
+          GROUP BY "userId", created_at
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT})`
         )
@@ -309,6 +340,22 @@ export default {
         FROM "Reminder"
         WHERE "Reminder"."userId" = $1
         AND "Reminder"."remindAt" < $2
+        ORDER BY "sortTime" DESC
+        LIMIT ${LIMIT})`
+      )
+
+      queries.push(
+        `(SELECT "Invoice".id::text, "Invoice"."updated_at" AS "sortTime", NULL as "earnedSats", 'Invoicification' AS type
+        FROM "Invoice"
+        WHERE "Invoice"."userId" = $1
+        AND "Invoice"."updated_at" < $2
+        AND "Invoice"."actionState" = 'FAILED'
+        AND (
+          "Invoice"."actionType" = 'ITEM_CREATE' OR
+          "Invoice"."actionType" = 'ZAP' OR
+          "Invoice"."actionType" = 'DOWN_ZAP' OR
+          "Invoice"."actionType" = 'POLL_VOTE'
+        )
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT})`
       )
@@ -452,11 +499,33 @@ export default {
       return null
     }
   },
+  ReferralReward: {
+    sources: async (n, args, { me, models }) => {
+      const [sources] = await models.$queryRawUnsafe(`
+        SELECT
+        COALESCE(FLOOR(sum(msats) FILTER(WHERE type = 'FOREVER_REFERRAL') / 1000), 0) AS forever,
+        COALESCE(FLOOR(sum(msats) FILTER(WHERE type = 'ONE_DAY_REFERRAL') / 1000), 0) AS "oneDay"
+        FROM "Earn"
+        WHERE "userId" = $1 AND created_at = $2
+      `, Number(me.id), new Date(n.sortTime))
+      if (sources.forever + sources.oneDay > 0) {
+        return sources
+      }
+
+      return null
+    }
+  },
   Mention: {
     mention: async (n, args, { models }) => true,
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
+  ItemMention: {
+    item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
   InvoicePaid: {
+    invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })
+  },
+  Invoicification: {
     invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })
   },
   WithdrawlPaid: {

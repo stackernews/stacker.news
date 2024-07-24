@@ -1,5 +1,4 @@
 import { Form, MarkdownInput } from '@/components/form'
-import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '@/fragments/comments'
 import { useMe } from './me'
@@ -8,13 +7,13 @@ import Link from 'next/link'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import { commentsViewedAfterComment } from '@/lib/new-comments'
 import { commentSchema } from '@/lib/validate'
-import { useToast } from './toast'
-import { toastUpsertSuccessMessages } from '@/lib/form'
 import { ItemButtonBar } from './post'
 import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
 import { commentSubTreeRootId } from '@/lib/item'
+import { CREATE_COMMENT } from '@/fragments/paidAction'
+import useItemSubmit from './use-item-submit'
 
 export function ReplyOnAnotherPage ({ item }) {
   const rootId = commentSubTreeRootId(item)
@@ -31,12 +30,19 @@ export function ReplyOnAnotherPage ({ item }) {
   )
 }
 
-export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children, placeholder, onQuoteReply, onCancelQuote, quote }, ref) {
+export default forwardRef(function Reply ({
+  item,
+  replyOpen,
+  children,
+  placeholder,
+  onQuoteReply,
+  onCancelQuote,
+  quote
+}, ref) {
   const [reply, setReply] = useState(replyOpen || quote)
   const me = useMe()
   const parentId = item.id
   const replyInput = useRef(null)
-  const toaster = useToast()
   const showModal = useShowModal()
   const root = useRoot()
   const sub = item?.sub || root?.sub
@@ -47,26 +53,18 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
     }
   }, [replyOpen, quote, parentId])
 
-  const [upsertComment] = useMutation(
-    gql`
-      ${COMMENTS}
-      mutation upsertComment($text: String!, $parentId: ID!, $hash: String, $hmac: String) {
-        upsertComment(text: $text, parentId: $parentId, hash: $hash, hmac: $hmac) {
-          ...CommentFields
-          deleteScheduledAt
-          reminderScheduledAt
-          comments {
-            ...CommentsRecursive
-          }
-        }
-      }`, {
-      update (cache, { data: { upsertComment } }) {
+  const onSubmit = useItemSubmit(CREATE_COMMENT, {
+    extraValues: { parentId },
+    paidMutationOptions: {
+      update (cache, { data: { upsertComment: { result, invoice } } }) {
+        if (!result) return
+
         cache.modify({
           id: `Item:${parentId}`,
           fields: {
             comments (existingCommentRefs = []) {
               const newCommentRef = cache.writeFragment({
-                data: upsertComment,
+                data: result,
                 fragment: COMMENTS,
                 fragmentName: 'CommentsRecursive'
               })
@@ -92,17 +90,15 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
         // so that we don't see indicator for our own comments, we record this comments as the latest time
         // but we also have record num comments, in case someone else commented when we did
         const root = ancestors[0]
-        commentsViewedAfterComment(root, upsertComment.createdAt)
+        commentsViewedAfterComment(root, result.createdAt)
       }
-    }
-  )
-
-  const onSubmit = useCallback(async ({ amount, hash, hmac, ...values }, { resetForm }) => {
-    const { data } = await upsertComment({ variables: { parentId, hash, hmac, ...values } })
-    toastUpsertSuccessMessages(toaster, data, 'upsertComment', false, values.text)
-    resetForm({ text: '' })
-    setReply(replyOpen || false)
-  }, [upsertComment, setReply, parentId])
+    },
+    onSuccessfulSubmit: (data, { resetForm }) => {
+      resetForm({ text: '' })
+      setReply(replyOpen || false)
+    },
+    navigateOnSubmit: false
+  })
 
   useEffect(() => {
     if (replyInput.current && reply && !replyOpen) replyInput.current.focus()
@@ -117,7 +113,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   return (
     <div>
       {replyOpen
-        ? <div className={styles.replyButtons} />
+        ? <div className='p-3' />
         : (
           <div className={styles.replyButtons}>
             <div
@@ -166,7 +162,6 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
                 text: ''
               }}
               schema={commentSchema}
-              invoiceable
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >

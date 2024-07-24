@@ -51,9 +51,7 @@ function InviteForm () {
             gift: Number(gift), limit: limit ? Number(limit) : limit
           }
         })
-        if (error) {
-          throw new Error({ message: error.String() })
-        }
+        if (error) throw error
       }}
     >
       <Input

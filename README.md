@@ -30,7 +30,8 @@ Go to [localhost:3000](http://localhost:3000).
 - Clone the repo
    - ssh: `git clone git@github.com:stackernews/stacker.news.git`
    - https: `git clone https://github.com/stackernews/stacker.news.git`
-- Install [docker](https://docs.docker.com/get-docker/)
+- Install [docker](https://docs.docker.com/compose/install/)
+- Please make sure that at least 10 GB of free space is available, otherwise you may encounter issues while setting up the development environment.
 
 <br>
 
@@ -104,7 +105,7 @@ COMMANDS
 
 #### Running specific services
 
-By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments|email|capture`. To only run mininal services without images, search, or payments:
+By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments|wallets|email|capture`. To only run mininal services without images, search, email, wallets, or payments:
 
 ```sh
 $ COMPOSE_PROFILES=minimal ./sndev start

@@ -39,7 +39,13 @@ export function CompactLongCountdown (props) {
           <>
             {Number(props.formatted.days) > 0
               ? ` ${props.formatted.days}d ${props.formatted.hours}h ${props.formatted.minutes}m ${props.formatted.seconds}s`
-              : ` ${props.formatted.hours}:${props.formatted.minutes}:${props.formatted.seconds}`}
+              : Number(props.formatted.hours) > 0
+                ? ` ${props.formatted.hours}:${props.formatted.minutes}:${props.formatted.seconds}`
+                : Number(props.formatted.minutes) > 0
+                  ? ` ${props.formatted.minutes}:${props.formatted.seconds}`
+                  : Number(props.formatted.seconds) > 0
+                    ? ` ${props.formatted.seconds}s`
+                    : ' '}
           </>
         )
       }}

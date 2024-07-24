@@ -13,12 +13,19 @@ export async function computeStreaks ({ models }) {
       ((SELECT "userId", floor(sum("ItemAct".msats)/1000) as sats_spent
           FROM "ItemAct"
           WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date
+          AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
           GROUP BY "userId")
       UNION ALL
       (SELECT "userId", sats as sats_spent
           FROM "Donation"
           WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date
-      )) spending
+      )
+      UNION ALL
+      (SELECT "userId", floor(sum("SubAct".msats)/1000) as sats_spent
+        FROM "SubAct"
+        WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date
+        AND "type" = 'BILLING'
+        GROUP BY "userId")) spending
       GROUP BY "userId"
       HAVING sum(sats_spent) >= 100
     ), existing_streaks (id, started_at) AS (
@@ -84,13 +91,22 @@ export async function checkStreak ({ data: { id }, models }) {
             FROM "ItemAct"
             WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= (now() AT TIME ZONE 'America/Chicago')::date
             AND "userId" = ${Number(id)}
+            AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
             GROUP BY "userId")
         UNION ALL
         (SELECT "userId", sats as sats_spent
             FROM "Donation"
             WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= (now() AT TIME ZONE 'America/Chicago')::date
             AND "userId" = ${Number(id)}
-        )) spending
+        )
+        UNION ALL
+        (SELECT "userId", floor(sum("SubAct".msats)/1000) as sats_spent
+          FROM "SubAct"
+          WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= (now() AT TIME ZONE 'America/Chicago')::date
+          AND "userId" = ${Number(id)}
+          AND "type" = 'BILLING'
+          GROUP BY "userId")
+        ) spending
           GROUP BY "userId"
           HAVING sum(sats_spent) >= ${STREAK_THRESHOLD}
     ), user_start_streak AS (

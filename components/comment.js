@@ -9,7 +9,7 @@ import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
 import CommentEdit from './comment-edit'
-import { ANON_USER_ID, COMMENT_DEPTH_LIMIT, UNKNOWN_LINK_REL } from '@/lib/constants'
+import { USER_ID, COMMENT_DEPTH_LIMIT, UNKNOWN_LINK_REL } from '@/lib/constants'
 import PayBounty from './pay-bounty'
 import BountyIcon from '@/svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
@@ -77,7 +77,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
           </div>)
         : <div />}
       <LinkToContext
-        className={siblingComments ? 'py-3' : 'py-2'}
+        className='py-2'
         onClick={e => {
           router.push(href, as)
         }}
@@ -128,9 +128,9 @@ export default function Comment ({
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT
   // Don't show OP badge when anon user comments on anon user posts
-  const op = root.user.name === item.user.name && Number(item.user.id) !== ANON_USER_ID
+  const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon
     ? 'OP'
-    : root.forwards?.some(f => f.user.name === item.user.name) && Number(item.user.id) !== ANON_USER_ID
+    : root.forwards?.some(f => f.user.name === item.user.name) && Number(item.user.id) !== USER_ID.anon
       ? 'fwd'
       : null
   const bountyPaid = root.bountyPaidTo?.includes(Number(item.id))
@@ -145,7 +145,7 @@ export default function Comment ({
         {item.outlawed && !me?.privates?.wildWestMode
           ? <Skull className={styles.dontLike} width={24} height={24} />
           : item.meDontLikeSats > item.meSats
-            ? <DownZap width={24} height={24} className={styles.dontLike} id={item.id} meDontLikeSats={item.meDontLikeSats} />
+            ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
             : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>

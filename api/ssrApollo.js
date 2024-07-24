@@ -54,6 +54,69 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
   return client
 }
 
+function oneDayReferral (request, { me }) {
+  if (!me) return
+  const refHeader = request.headers['x-stacker-news-referrer']
+  if (!refHeader) return
+
+  const referrers = refHeader.split('; ').filter(Boolean)
+  for (const referrer of referrers) {
+    let prismaPromise, getData
+
+    if (referrer.startsWith('item-')) {
+      prismaPromise = models.item.findUnique({ where: { id: parseInt(referrer.slice(5)) } })
+      getData = item => ({
+        referrerId: item.userId,
+        refereeId: parseInt(me.id),
+        type: item.parentId ? 'COMMENT' : 'POST',
+        typeId: String(item.id)
+      })
+    } else if (referrer.startsWith('profile-')) {
+      const name = referrer.slice(8)
+      // exclude all pages that are not user profiles
+      if (['api', 'auth', 'day', 'invites', 'invoices', 'referrals', 'rewards',
+        'satistics', 'settings', 'stackers', 'wallet', 'withdrawals', '404', '500',
+        'email', 'live', 'login', 'notifications', 'offline', 'search', 'share',
+        'signup', 'territory', 'recent', 'top', 'edit', 'post', 'rss', 'saloon',
+        'faq', 'story', 'privacy', 'copyright', 'tos', 'changes', 'guide', 'daily',
+        'anon', 'ad'].includes(name)) continue
+
+      prismaPromise = models.user.findUnique({ where: { name } })
+      getData = user => ({
+        referrerId: user.id,
+        refereeId: parseInt(me.id),
+        type: 'PROFILE',
+        typeId: String(user.id)
+      })
+    } else if (referrer.startsWith('territory-')) {
+      prismaPromise = models.sub.findUnique({ where: { name: referrer.slice(10) } })
+      getData = sub => ({
+        referrerId: sub.userId,
+        refereeId: parseInt(me.id),
+        type: 'TERRITORY',
+        typeId: sub.name
+      })
+    } else {
+      prismaPromise = models.user.findUnique({ where: { name: referrer } })
+      getData = user => ({
+        referrerId: user.id,
+        refereeId: parseInt(me.id),
+        type: 'REFERRAL',
+        typeId: String(user.id)
+      })
+    }
+
+    prismaPromise?.then(ref => {
+      if (ref && getData) {
+        const data = getData(ref)
+        // can't refer yourself
+        if (data.refereeId === data.referrerId) return
+        models.oneDayReferral.create({ data }).catch(console.error)
+      }
+    }).catch(console.error)
+  }
+}
+
 /**
  * Takes a query and variables and returns a getServerSideProps function
  *
@@ -123,6 +186,8 @@ export function getGetServerSideProps (
         }
       }
     }
+
+    oneDayReferral(req, { me })
 
     return {
       props: {

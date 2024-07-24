@@ -6,7 +6,7 @@ export default function SecondBar (props) {
   const { prefix, topNavKey, sub } = props
   if (!hasNavSelect(props)) return null
   return (
-    <Navbar className='pt-0 pb-3'>
+    <Navbar className='pt-0 pb-2'>
       <Nav
         className={styles.navbarNav}
         activeKey={topNavKey}

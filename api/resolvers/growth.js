@@ -1,26 +1,5 @@
 import { timeUnitForRange, whenRange } from '@/lib/time'
 
-export function withClause (range) {
-  const unit = timeUnitForRange(range)
-
-  return `
-    WITH range_values AS (
-      SELECT date_trunc('${unit}', $1) as minval,
-             date_trunc('${unit}', $2) as maxval
-    ),
-    times AS (
-      SELECT generate_series(minval, maxval, interval '1 ${unit}') as time
-      FROM range_values
-    )
-  `
-}
-
-export function intervalClause (range, table) {
-  const unit = timeUnitForRange(range)
-
-  return `date_trunc('${unit}', "${table}".created_at)  >= date_trunc('${unit}', $1) AND date_trunc('${unit}', "${table}".created_at) <= date_trunc('${unit}', $2) `
-}
-
 export function viewIntervalClause (range, view) {
   const unit = timeUnitForRange(range)
   return `"${view}".t >= date_trunc('${unit}', timezone('America/Chicago', $1)) AND date_trunc('${unit}', "${view}".t) <= date_trunc('${unit}', timezone('America/Chicago', $2)) `
@@ -42,29 +21,9 @@ export function viewGroup (range, view) {
       ${view}(
       date_trunc('hour', timezone('America/Chicago', now())),
       date_trunc('hour', timezone('America/Chicago', now())), '1 hour'::INTERVAL, 'hour')
-      WHERE "${view}".t >= date_trunc('${unit}', timezone('America/Chicago', $1))
-      AND "${view}".t <= date_trunc('${unit}', timezone('America/Chicago', $2)))
+      WHERE "${view}".t >= date_trunc('hour', timezone('America/Chicago', $1))
+      AND "${view}".t <= date_trunc('hour', timezone('America/Chicago', $2)))
   ) u`
-}
-
-export function subViewGroup (range) {
-  const unit = timeUnitForRange(range)
-  return `(
-    (SELECT *
-      FROM sub_stats_days
-      WHERE ${viewIntervalClause(range, 'sub_stats_days')})
-    UNION ALL
-    (SELECT *
-      FROM sub_stats_hours
-      WHERE ${viewIntervalClause(range, 'sub_stats_hours')}
-      ${unit === 'hour' ? '' : 'AND "sub_stats_hours".t >= date_trunc(\'day\', timezone(\'America/Chicago\', now()))'})
-    UNION ALL
-    (SELECT * FROM
-      sub_stats(
-      date_trunc('hour', timezone('America/Chicago', now())),
-      date_trunc('hour', timezone('America/Chicago', now())), '1 hour'::INTERVAL, 'hour')
-      WHERE "sub_stats".t >= date_trunc('${unit}', timezone('America/Chicago', $1)))
-  )`
 }
 
 export default {

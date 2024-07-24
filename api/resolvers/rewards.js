@@ -1,9 +1,8 @@
 import { GraphQLError } from 'graphql'
 import { amountSchema, ssValidate } from '@/lib/validate'
-import serialize from './serial'
-import { ANON_USER_ID } from '@/lib/constants'
 import { getItem } from './item'
 import { topUsers } from './user'
+import performPaidAction from '../paidAction'
 
 let rewardCache
 
@@ -142,6 +141,7 @@ export default {
           (SELECT FLOOR("Earn".msats / 1000.0) as sats, type, rank, "typeId"
             FROM "Earn"
             WHERE "Earn"."userId" = ${me.id}
+            AND (type IS NULL OR type NOT IN ('FOREVER_REFERRAL', 'ONE_DAY_REFERRAL'))
             AND date_trunc('day', "Earn".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = days_cte.day
             ORDER BY "Earn".msats DESC)
         ) "Earn"
@@ -158,18 +158,19 @@ export default {
         SELECT date_trunc('day',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago' as from,
                (date_trunc('day',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago') + interval '1 day - 1 second' as to`
       return await topUsers(parent, { when: 'custom', to: new Date(to).getTime().toString(), from: new Date(from).getTime().toString(), limit: 100 }, { models, ...context })
+    },
+    total: async (parent, args, { models }) => {
+      if (!parent.total) {
+        return 0
+      }
+      return parent.total
     }
   },
   Mutation: {
-    donateToRewards: async (parent, { sats, hash, hmac }, { me, models, lnd }) => {
+    donateToRewards: async (parent, { sats }, { me, models, lnd }) => {
       await ssValidate(amountSchema, { amount: sats })
 
-      await serialize(
-        models.$queryRaw`SELECT donate(${sats}::INTEGER, ${me?.id || ANON_USER_ID}::INTEGER)`,
-        { models, lnd, me, hash, hmac, fee: sats }
-      )
-
-      return sats
+      return await performPaidAction('DONATE', { sats }, { me, models, lnd })
     }
   },
   Reward: {

@@ -4,7 +4,7 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Form, Input, SubmitButton } from '@/components/form'
 import Layout from '@/components/layout'
-import { useMutation, useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client'
 import Link from 'next/link'
 import { amountSchema } from '@/lib/validate'
 import { numWithUnits } from '@/lib/format'
@@ -21,6 +21,8 @@ import { useData } from '@/components/use-data'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
 import { useMemo } from 'react'
 import { CompactLongCountdown } from '@/components/countdown'
+import { usePaidMutation } from '@/components/use-paid-mutation'
+import { DONATE } from '@/fragments/paidAction'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <GrowthPieChartSkeleton />
@@ -108,10 +110,13 @@ export default function Rewards ({ ssrData }) {
   if (!dat) return <PageLoading />
 
   function EstimatedReward ({ rank }) {
+    const referrerReward = Math.floor(total * proportions[rank - 1] * 0.2)
+    const reward = Math.floor(total * proportions[rank - 1]) - referrerReward
+
     return (
       <div className='text-muted fst-italic'>
         <small>
-          <span>estimated reward: {numWithUnits(Math.floor(total * proportions[rank - 1]))}</span>
+          <span>estimated reward: {numWithUnits(reward)} <small className='fw-light'>(+ {numWithUnits(referrerReward)} to referrers)</small></span>
         </small>
       </div>
     )
@@ -119,11 +124,12 @@ export default function Rewards ({ ssrData }) {
 
   return (
     <Layout footerLinks>
-      <Link className='text-reset align-self-center' href='/items/141924'>
-        <h4 className='pt-3 text-start text-reset' style={{ lineHeight: 1.5, textDecoration: 'underline' }}>
-          rewards are sponsored by ... we are hiring
-        </h4>
-      </Link>
+      <h4 className='pt-3 align-self-center text-reset'>
+        <small className='text-muted'>rewards are sponsored by ...</small>
+        <Link className='text-reset ms-2' href='/items/141924' style={{ lineHeight: 1.5, textDecoration: 'underline' }}>
+          SN is hiring
+        </Link>
+      </h4>
       <Row className='pb-3'>
         <Col lg={leaderboard?.users && 5}>
           <div
@@ -159,11 +165,7 @@ export function DonateButton () {
   const showModal = useShowModal()
   const toaster = useToast()
   const strike = useLightning()
-  const [donateToRewards] = useMutation(
-    gql`
-      mutation donateToRewards($sats: Int!, $hash: String, $hmac: String) {
-        donateToRewards(sats: $sats, hash: $hash, hmac: $hmac)
-      }`)
+  const [donateToRewards] = usePaidMutation(DONATE)
 
   return (
     <>
@@ -174,25 +176,18 @@ export function DonateButton () {
               amount: 10000
             }}
             schema={amountSchema}
-            invoiceable
-            onSubmit={async ({ amount, hash, hmac }) => {
+            onSubmit={async ({ amount }) => {
               const { error } = await donateToRewards({
                 variables: {
-                  sats: Number(amount),
-                  hash,
-                  hmac
-                }
-              })
-              if (error) {
-                console.error(error)
-                toaster.danger('failed to donate')
-              } else {
-                const didStrike = strike()
-                if (!didStrike) {
+                  sats: Number(amount)
+                },
+                onCompleted: () => {
+                  strike()
                   toaster.success('donated')
                 }
-              }
+              })
               onClose()
+              if (error) throw error
             }}
           >
             <Input

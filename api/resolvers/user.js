@@ -4,8 +4,8 @@ import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '@/lib/validate'
-import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
-import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS } from '@/lib/constants'
+import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
+import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES } from '@/lib/constants'
 import { viewGroup } from './growth'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
@@ -217,7 +217,7 @@ export default {
           SELECT name
           FROM users
           WHERE (
-            id > ${RESERVED_MAX_USER_ID} OR id IN (${ANON_USER_ID}, ${DELETE_USER_ID})
+            id > ${RESERVED_MAX_USER_ID} OR id IN (${USER_ID.anon}, ${USER_ID.delete})
           )
           AND SIMILARITY(name, ${q}) > 0.1
           ORDER BY SIMILARITY(name, ${q}) DESC
@@ -283,6 +283,8 @@ export default {
             '"ThreadSubscription"."userId" = $1',
             'r.created_at > $2',
             'r.created_at >= "ThreadSubscription".created_at',
+            'r."userId" <> $1',
+            activeOrMine(me),
             await filterClause(me, models),
             muteClause(me),
             ...(user.noteAllDescendants ? [] : ['r.level = 1'])
@@ -304,9 +306,28 @@ export default {
               ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
               OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
             )`,
+            activeOrMine(me),
             await filterClause(me, models),
             muteClause(me))})`, me.id, lastChecked)
       if (newUserSubs.exists) {
+        foundNotes()
+        return true
+      }
+
+      const [newSubPost] = await models.$queryRawUnsafe(`
+        SELECT EXISTS(
+          SELECT *
+          FROM "SubSubscription"
+          JOIN "Item" ON "SubSubscription"."subName" = "Item"."subName"
+          ${whereClause(
+            '"SubSubscription"."userId" = $1',
+            '"Item".created_at > $2',
+            '"Item"."parentId" IS NULL',
+            '"Item"."userId" <> $1',
+            activeOrMine(me),
+            await filterClause(me, models),
+            muteClause(me))})`, me.id, lastChecked)
+      if (newSubPost.exists) {
         foundNotes()
         return true
       }
@@ -322,6 +343,28 @@ export default {
             '"Mention"."userId" = $1',
             '"Mention".created_at > $2',
             '"Item"."userId" <> $1',
+            activeOrMine(me),
+            await filterClause(me, models),
+            muteClause(me)
+          )})`, me.id, lastChecked)
+        if (newMentions.exists) {
+          foundNotes()
+          return true
+        }
+      }
+
+      if (user.noteItemMentions) {
+        const [newMentions] = await models.$queryRawUnsafe(`
+        SELECT EXISTS(
+          SELECT *
+          FROM "ItemMention"
+          JOIN "Item" "Referee" ON "ItemMention"."refereeId" = "Referee".id
+          JOIN "Item" ON "ItemMention"."referrerId" = "Item".id
+          ${whereClause(
+            '"ItemMention".created_at > $2',
+            '"Item"."userId" <> $1',
+            '"Referee"."userId" = $1',
+            activeOrMine(me),
             await filterClause(me, models),
             muteClause(me)
           )})`, me.id, lastChecked)
@@ -339,8 +382,13 @@ export default {
           JOIN "ItemForward" ON
             "ItemForward"."itemId" = "Item".id
             AND "ItemForward"."userId" = $1
-          WHERE "Item"."lastZapAt" > $2
-          AND "Item"."userId" <> $1)`, me.id, lastChecked)
+          ${whereClause(
+            '"Item"."lastZapAt" > $2',
+            '"Item"."userId" <> $1',
+            activeOrMine(me),
+            await filterClause(me, models),
+            muteClause(me)
+          )})`, me.id, lastChecked)
         if (newFwdSats.exists) {
           foundNotes()
           return true
@@ -388,7 +436,8 @@ export default {
             confirmedAt: {
               gt: lastChecked
             },
-            isHeld: null
+            isHeld: null,
+            actionType: null
           }
         })
         if (invoice) {
@@ -487,6 +536,24 @@ export default {
         return true
       }
 
+      const invoiceActionFailed = await models.invoice.findFirst({
+        where: {
+          userId: me.id,
+          updatedAt: {
+            gt: lastChecked
+          },
+          actionType: {
+            in: INVOICE_ACTION_NOTIFICATION_TYPES
+          },
+          actionState: 'FAILED'
+        }
+      })
+
+      if (invoiceActionFailed) {
+        foundNotes()
+        return true
+      }
+
       // update checkedNotesAt to prevent rechecking same time period
       models.user.update({
         where: { id: me.id },
@@ -502,7 +569,7 @@ export default {
       return await models.$queryRaw`
         SELECT *
         FROM users
-        WHERE (id > ${RESERVED_MAX_USER_ID} OR id IN (${ANON_USER_ID}, ${DELETE_USER_ID}))
+        WHERE (id > ${RESERVED_MAX_USER_ID} OR id IN (${USER_ID.anon}, ${USER_ID.delete}))
         AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit) || 5}`
     },
     userStatsActions: async (parent, { when, from, to }, { me, models }) => {
@@ -513,7 +580,8 @@ export default {
         json_build_object('name', 'comments', 'value', COALESCE(SUM(comments), 0)),
         json_build_object('name', 'posts', 'value', COALESCE(SUM(posts), 0)),
         json_build_object('name', 'territories', 'value', COALESCE(SUM(territories), 0)),
-        json_build_object('name', 'referrals', 'value', COALESCE(SUM(referrals), 0))
+        json_build_object('name', 'referrals', 'value', COALESCE(SUM(referrals), 0)),
+        json_build_object('name', 'one day referrals', 'value', COALESCE(SUM(one_day_referrals), 0))
       ) AS data
         FROM ${viewGroup(range, 'user_stats')}
         WHERE id = ${me.id}
@@ -528,6 +596,7 @@ export default {
         json_build_object('name', 'zaps', 'value', ROUND(COALESCE(SUM(msats_tipped), 0) / 1000)),
         json_build_object('name', 'rewards', 'value', ROUND(COALESCE(SUM(msats_rewards), 0) / 1000)),
         json_build_object('name', 'referrals', 'value', ROUND( COALESCE(SUM(msats_referrals), 0) / 1000)),
+        json_build_object('name', 'one day referrals', 'value', ROUND( COALESCE(SUM(msats_one_day_referrals), 0) / 1000)),
         json_build_object('name', 'territories', 'value', ROUND(COALESCE(SUM(msats_revenue), 0) / 1000))
       ) AS data
         FROM ${viewGroup(range, 'user_stats')}
@@ -541,6 +610,7 @@ export default {
       SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
       json_build_array(
         json_build_object('name', 'fees', 'value', FLOOR(COALESCE(SUM(msats_fees), 0) / 1000)),
+        json_build_object('name', 'zapping', 'value', FLOOR(COALESCE(SUM(msats_zaps), 0) / 1000)),
         json_build_object('name', 'donations', 'value', FLOOR(COALESCE(SUM(msats_donated), 0) / 1000)),
         json_build_object('name', 'territories', 'value', FLOOR(COALESCE(SUM(msats_billing), 0) / 1000))
       ) AS data
@@ -684,7 +754,7 @@ export default {
       } else if (authType === 'nostr') {
         user = await models.user.update({ where: { id: me.id }, data: { hideNostr: true, nostrAuthPubkey: null } })
       } else if (authType === 'email') {
-        user = await models.user.update({ where: { id: me.id }, data: { email: null, emailVerified: null } })
+        user = await models.user.update({ where: { id: me.id }, data: { email: null, emailVerified: null, emailHash: null } })
       } else {
         throw new GraphQLError('no such account', { extensions: { code: 'BAD_INPUT' } })
       }

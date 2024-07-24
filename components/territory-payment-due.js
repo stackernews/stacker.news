@@ -6,25 +6,23 @@ import { Form } from './form'
 import { timeSince } from '@/lib/time'
 import { LongCountdown } from './countdown'
 import { useCallback } from 'react'
-import { useApolloClient, useMutation } from '@apollo/client'
-import { SUB_PAY } from '@/fragments/subs'
+import { useApolloClient } from '@apollo/client'
 import { nextBillingWithGrace } from '@/lib/territory'
+import { usePaidMutation } from './use-paid-mutation'
+import { SUB_PAY } from '@/fragments/paidAction'
 
 export default function TerritoryPaymentDue ({ sub }) {
   const me = useMe()
   const client = useApolloClient()
-  const [paySub] = useMutation(SUB_PAY)
+  const [paySub] = usePaidMutation(SUB_PAY)
 
-  const onSubmit = useCallback(
-    async ({ ...variables }) => {
-      const { error } = await paySub({
-        variables
-      })
+  const onSubmit = useCallback(async ({ ...variables }) => {
+    const { error } = await paySub({
+      variables
+    })
 
-      if (error) {
-        throw new Error({ message: error.toString() })
-      }
-    }, [client, paySub])
+    if (error) throw error
+  }, [client, paySub])
 
   if (!sub || sub.userId !== Number(me?.id) || sub.status === 'ACTIVE') return null
 
@@ -56,7 +54,6 @@ export default function TerritoryPaymentDue ({ sub }) {
 
       <FeeButtonProvider baseLineItems={{ territory: TERRITORY_BILLING_OPTIONS('one')[sub.billingType.toLowerCase()] }}>
         <Form
-          invoiceable
           initial={{
             name: sub.name
           }}

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react'
 import Modal from 'react-bootstrap/Modal'
 import BackArrow from '@/svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
@@ -23,73 +23,86 @@ export function useShowModal () {
 }
 
 export default function useModal () {
-  const [modalContent, setModalContent] = useState(null)
-  const [modalOptions, setModalOptions] = useState(null)
-  const [modalStack, setModalStack] = useState([])
+  const modalStack = useRef([])
+  const [render, forceUpdate] = useReducer(x => x + 1, 0)
+
+  const getCurrentContent = useCallback(() => {
+    return modalStack.current[modalStack.current.length - 1]
+  }, [])
 
   const onBack = useCallback(() => {
-    if (modalStack.length === 0) {
-      return setModalContent(null)
-    }
-    const previousModalContent = modalStack[modalStack.length - 1]
-    setModalStack(modalStack.slice(0, -1))
-    modalOptions?.onClose?.()
-    return setModalContent(previousModalContent)
-  }, [modalStack, setModalStack, modalOptions?.onClose])
+    getCurrentContent()?.options?.onClose?.()
+    modalStack.current.pop()
+    forceUpdate()
+  }, [])
 
   // this is called on every navigation due to below useEffect
   const onClose = useCallback(() => {
-    setModalContent(null)
-    setModalStack(ms => ms.length > 0 ? [] : ms)
-    modalOptions?.onClose?.()
-  }, [setModalStack, setModalContent, modalOptions?.onClose])
+    while (modalStack.current.length) {
+      getCurrentContent()?.options?.onClose?.()
+      modalStack.current.pop()
+    }
+    forceUpdate()
+  }, [])
 
   const router = useRouter()
   useEffect(() => {
-    router.events.on('routeChangeStart', onClose)
-    return () => router.events.off('routeChangeStart', onClose)
-  }, [router.events, onClose])
+    const maybeOnClose = () => {
+      const content = getCurrentContent()
+      const { persistOnNavigate } = content?.options || {}
+      if (!persistOnNavigate) {
+        onClose()
+      }
+    }
+
+    router.events.on('routeChangeStart', maybeOnClose)
+    return () => router.events.off('routeChangeStart', maybeOnClose)
+  }, [router.events, onClose, getCurrentContent])
 
   const modal = useMemo(() => {
-    if (modalContent === null) {
+    if (modalStack.current.length === 0) {
       return null
     }
-    const className = modalOptions?.fullScreen ? 'fullscreen' : ''
+
+    const content = getCurrentContent()
+    const { overflow, keepOpen, fullScreen } = content.options || {}
+    const className = fullScreen ? 'fullscreen' : ''
+
     return (
       <Modal
-        onHide={modalOptions?.keepOpen ? null : onClose} show={!!modalContent}
+        onHide={keepOpen ? null : onClose} show={!!content}
         className={className}
         dialogClassName={className}
         contentClassName={className}
       >
         <div className='d-flex flex-row'>
-          {modalOptions?.overflow &&
+          {overflow &&
             <div className={'modal-btn modal-overflow ' + className}>
               <ActionDropdown>
-                {modalOptions.overflow}
+                {overflow}
               </ActionDropdown>
             </div>}
-          {modalStack.length > 0 ? <div className='modal-btn modal-back' onClick={onBack}><BackArrow width={18} height={18} className='fill-white' /></div> : null}
+          {modalStack.current.length > 1 ? <div className='modal-btn modal-back' onClick={onBack}><BackArrow width={18} height={18} className='fill-white' /></div> : null}
           <div className={'modal-btn modal-close ' + className} onClick={onClose}>X</div>
         </div>
         <Modal.Body className={className}>
-          {modalContent}
+          {content.node}
         </Modal.Body>
       </Modal>
     )
-  }, [modalContent, onClose, modalOptions, onBack, modalStack])
+  }, [render])
 
   const showModal = useCallback(
     (getContent, options) => {
-      if (modalContent) {
-        if (options?.replaceModal) {
-          setModalStack(stack => ([]))
-        } else setModalStack(stack => ([...stack, modalContent]))
+      const ref = { node: getContent(onClose), options }
+      if (options?.replaceModal) {
+        modalStack.current = [ref]
+      } else {
+        modalStack.current.push(ref)
       }
-      setModalOptions(options)
-      setModalContent(getContent(onClose))
+      forceUpdate()
     },
-    [modalContent, onClose]
+    [onClose]
   )
 
   return [modal, showModal]

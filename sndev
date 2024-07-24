@@ -3,14 +3,14 @@
 set -e
 
 docker__compose() {
-  if [ ! -x "$(command -v docker-compose)" ]; then
+  if [ ! -x "$(command -v docker)" ]; then
     echo "docker compose is not installed"
     echo "installation instructions are here: https://docs.docker.com/desktop/"
     exit 0
   fi
 
   if [ -z "$COMPOSE_PROFILES" ]; then
-    COMPOSE_PROFILES="images,search,payments,email,capture"
+    COMPOSE_PROFILES="images,search,payments,wallets,email,capture"
   fi
 
   ENV_LOCAL=
@@ -159,6 +159,11 @@ OPTIONS"
 
 sndev__logs() {
   shift
+  if [ $# -eq 1 ]; then
+    docker__compose logs -t --tail=1000 -f "$@"
+    exit 0
+  fi
+
   docker__compose logs "$@"
 }
 
@@ -214,6 +219,43 @@ equivalent to sndev stop --volumes --remove-orphans
 
 USAGE
   $ sndev delete
+"
+
+  echo "$help"
+}
+
+sndev__fund_user() {
+  shift
+  if [ -z "$1" ]; then
+    echo "<nym> argument required"
+    sndev__help_fund_user
+    exit 1
+  fi
+  if [ -z "$2" ]; then
+    echo "<msats> argument required"
+    sndev__help_fund_user
+    exit 2
+  fi
+  re='^[0-9]+$'
+  if ! [[ $2 =~ $re ]]; then
+   echo "<msats> is not a positive integer"
+   sndev__help_fund_user
+   exit 3
+  fi
+  docker__exec db psql -U sn -d stackernews -q <<EOF
+    UPDATE users set msats = $2 where name = '$1';
+EOF
+}
+
+sndev__help_fund_user() {
+  help="
+fund a nym without using an LN invoice (local only)
+
+USAGE
+  $ sndev fund_user <nym> <msats>
+
+  <nym> - the name of the user you want to fund
+  <msats> - the amount of millisatoshis to set the account to. Must be >= 0
 "
 
   echo "$help"
@@ -400,7 +442,8 @@ __sndev__pr_track() {
 
   ref=$(echo "$json" | grep -e '"ref"' | head -n1 | sed -e 's/^.*"ref":[[:space:]]*"//; s/",[[:space:]]*$//')
   git fetch "$remote" "$ref"
-  git checkout -b "pr/$1" "$remote/$ref"
+  git checkout -t -b "pr/$1" "$remote/$ref"
+  git config --local "remote.$remote.push" pr/$1:$ref
   exit 0
 }
 
@@ -515,6 +558,7 @@ COMMANDS
 
   sn:
     login         login as a nym
+    fund_user     fund a nym without using an LN invoice
 
   lnd:
     fund          pay a bolt11 for funding

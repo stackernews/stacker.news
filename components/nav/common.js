@@ -6,7 +6,7 @@ import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
-import { ANON_USER_ID, BALANCE_LIMIT_MSATS, Wallet } from '../../lib/constants'
+import { USER_ID, BALANCE_LIMIT_MSATS } from '../../lib/constants'
 import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
@@ -22,8 +22,7 @@ import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
-import { useWalletLogger } from '../logger'
-import { useWebLNConfigurator } from '../webln'
+import { useWallets } from 'wallets'
 
 export function Brand ({ className }) {
   return (
@@ -257,8 +256,7 @@ export default function LoginButton ({ className }) {
 
 export function LogoutDropdownItem () {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
-  const webLN = useWebLNConfigurator()
-  const { deleteLogs } = useWalletLogger()
+  const wallets = useWallets()
   return (
     <Dropdown.Item
       onClick={async () => {
@@ -267,12 +265,9 @@ export function LogoutDropdownItem () {
         if (pushSubscription) {
           await togglePushSubscription().catch(console.error)
         }
-        // detach wallets
-        await webLN.clearConfig().catch(console.error)
-        // delete client wallet logs to prevent leak of private data if a shared device was used
-        await deleteLogs(Wallet.NWC).catch(console.error)
-        await deleteLogs(Wallet.LNbits).catch(console.error)
-        await deleteLogs(Wallet.LNC).catch(console.error)
+
+        await wallets.resetClient().catch(console.error)
+
         await signOut({ callbackUrl: '/' })
       }}
     >logout
@@ -307,7 +302,7 @@ export function AnonDropdown ({ path }) {
       <Dropdown className={styles.dropdown} align='end'>
         <Dropdown.Toggle className='nav-link nav-item' id='profile' variant='custom'>
           <Nav.Link eventKey='anon' as='span' className='p-0 fw-normal'>
-            @anon<Hat user={{ id: ANON_USER_ID }} />
+            @anon<Hat user={{ id: USER_ID.anon }} />
           </Nav.Link>
         </Dropdown.Toggle>
         <Dropdown.Menu className='p-3'>

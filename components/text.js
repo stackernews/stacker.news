@@ -13,9 +13,9 @@ import Thumb from '@/svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
 import ZoomableImage, { decodeOriginalUrl } from './image'
-import { IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, parseInternalLinks, parseEmbedUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
-import { rehypeInlineCodeProperty } from '@/lib/md'
+import { rehypeInlineCodeProperty, rehypeStyler } from '@/lib/md'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
@@ -23,6 +23,10 @@ import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
 import UserPopover from './user-popover'
 import ItemPopover from './item-popover'
+
+// Explicitely defined start/end tags & which CSS class from text.module.css to apply
+export const rehypeSuperscript = () => rehypeStyler('<sup>', '</sup>', styles.superscript)
+export const rehypeSubscript = () => rehypeStyler('<sub>', '</sub>', styles.subscript)
 
 export function SearchText ({ text }) {
   return (
@@ -186,6 +190,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             } catch {
               // ignore invalid URLs
             }
+
             const internalURL = process.env.NEXT_PUBLIC_URL
             if (!!text && !/^https?:\/\//.test(text)) {
               if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
@@ -199,8 +204,10 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                 )
               }
               if (text.startsWith?.('@')) {
+                // user mention might be within a markdown link like this: [@user foo bar](url)
+                const name = text.replace('@', '').split(' ')[0]
                 return (
-                  <UserPopover name={text.replace('@', '')}>
+                  <UserPopover name={name}>
                     <Link
                       id={props.id}
                       href={href}
@@ -210,6 +217,19 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                   </UserPopover>
                 )
               } else if (href.startsWith('/') || url?.origin === internalURL) {
+                try {
+                  const { linkText } = parseInternalLinks(href)
+                  if (linkText) {
+                    return (
+                      <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
+                        <Link href={href}>{text}</Link>
+                      </ItemPopover>
+                    )
+                  }
+                } catch {
+                  // ignore errors like invalid URLs
+                }
+
                 return (
                   <Link
                     id={props.id}
@@ -226,7 +246,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             }
 
             try {
-              const linkText = parseInternalLinks(href)
+              const { linkText } = parseInternalLinks(href)
               if (linkText) {
                 return (
                   <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
@@ -238,18 +258,55 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
               // ignore errors like invalid URLs
             }
 
-            // if the link is to a youtube video, render the video
-            const youtube = href.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
-            if (youtube?.groups?.id) {
+            const videoWrapperStyles = {
+              maxWidth: topLevel ? '640px' : '320px',
+              margin: '0.5rem 0',
+              paddingRight: '15px'
+            }
+
+            const { provider, id, meta } = parseEmbedUrl(href)
+            // Youtube video embed
+            if (provider === 'youtube') {
               return (
-                <div style={{ maxWidth: topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
+                <div style={videoWrapperStyles}>
                   <YouTube
-                    videoId={youtube.groups.id} className={styles.youtubeContainer} opts={{
+                    videoId={id} className={styles.videoContainer} opts={{
                       playerVars: {
-                        start: youtube?.groups?.start
+                        start: meta?.start || 0
                       }
                     }}
                   />
+                </div>
+              )
+            }
+
+            // Rumble video embed
+            if (provider === 'rumble') {
+              return (
+                <div style={videoWrapperStyles}>
+                  <div className={styles.videoContainer}>
+                    <iframe
+                      title='Rumble Video'
+                      allowFullScreen
+                      src={meta?.href}
+                      sandbox='allow-scripts'
+                    />
+                  </div>
+                </div>
+              )
+            }
+
+            if (provider === 'peertube') {
+              return (
+                <div style={videoWrapperStyles}>
+                  <div className={styles.videoContainer}>
+                    <iframe
+                      title='PeerTube Video'
+                      allowFullScreen
+                      src={meta?.href}
+                      sandbox='allow-scripts'
+                    />
+                  </div>
                 </div>
               )
             }
@@ -260,7 +317,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
           img: Img
         }}
         remarkPlugins={[gfm, mention, sub]}
-        rehypePlugins={[rehypeInlineCodeProperty]}
+        rehypePlugins={[rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript]}
       >
         {children}
       </ReactMarkdown>

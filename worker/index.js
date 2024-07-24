@@ -1,6 +1,6 @@
 import PgBoss from 'pg-boss'
 import nextEnv from '@next/env'
-import { PrismaClient } from '@prisma/client'
+import createPrisma from '@/lib/create-prisma.js'
 import {
   autoDropBolt11s, checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
   checkWithdrawal,
@@ -26,6 +26,8 @@ import { ofac } from './ofac.js'
 import { autoWithdraw } from './autowithdraw.js'
 import { saltAndHashEmails } from './saltAndHashEmails.js'
 import { remindUser } from './reminder.js'
+import { holdAction, settleAction, settleActionError } from './paidAction.js'
+import { thisDay } from './thisDay.js'
 
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
@@ -34,7 +36,9 @@ loadEnvConfig('.', process.env.NODE_ENV === 'development')
 
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)
-  const models = new PrismaClient()
+  const models = createPrisma({
+    connectionParams: { connection_limit: process.env.DB_WORKER_CONNECTION_LIMIT }
+  })
 
   const apollo = new ApolloClient({
     link: new HttpLink({
@@ -107,6 +111,11 @@ async function work () {
   await boss.work('ofac', jobWrapper(ofac))
   await boss.work('saltAndHashEmails', jobWrapper(saltAndHashEmails))
   await boss.work('reminder', jobWrapper(remindUser))
+  await boss.work('settleActionError', jobWrapper(settleActionError))
+  await boss.work('settleAction', jobWrapper(settleAction))
+  await boss.work('holdAction', jobWrapper(holdAction))
+  await boss.work('checkInvoice', jobWrapper(checkInvoice))
+  await boss.work('thisDay', jobWrapper(thisDay))
 
   console.log('working jobs')
 }

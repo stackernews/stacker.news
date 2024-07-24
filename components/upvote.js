@@ -2,7 +2,7 @@ import UpBolt from '@/svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
 import ActionTooltip from './action-tooltip'
-import ItemAct, { useAct, useZap } from './item-act'
+import ItemAct, { ZapUndoController, useZap } from './item-act'
 import { useMe } from './me'
 import getColor from '@/lib/rainbow'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -59,7 +59,7 @@ export function DropdownItemUpVote ({ item }) {
     <Dropdown.Item
       onClick={async () => {
         showModal(onClose =>
-          <ItemAct onClose={onClose} itemId={item.id} />)
+          <ItemAct onClose={onClose} item={item} />)
       }}
     >
       <span className='text-success'>zap</span>
@@ -97,6 +97,9 @@ export default function UpVote ({ item, className }) {
       }`
   )
 
+  const [controller, setController] = useState(null)
+  const [pending, setPending] = useState(false)
+
   const setVoteShow = useCallback((yes) => {
     if (!me) return
 
@@ -125,7 +128,6 @@ export default function UpVote ({ item, className }) {
     }
   }, [me, tipShow, setWalkthrough])
 
-  const [act] = useAct()
   const zap = useZap()
 
   const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
@@ -155,11 +157,20 @@ export default function UpVote ({ item, className }) {
     }
 
     setTipShow(false)
+
+    if (pending) {
+      controller.abort()
+      setController(null)
+      return
+    }
+    const c = new ZapUndoController({ onStart: () => setPending(true), onDone: () => setPending(false) })
+    setController(c)
+
     showModal(onClose =>
-      <ItemAct onClose={onClose} itemId={item.id} />, { onClose: handleModalClosed })
+      <ItemAct onClose={onClose} item={item} abortSignal={c.signal} />, { onClose: handleModalClosed })
   }
 
-  const handleShortPress = () => {
+  const handleShortPress = async () => {
     if (me) {
       if (!item) return
 
@@ -174,13 +185,21 @@ export default function UpVote ({ item, className }) {
         setTipShow(true)
       }
 
-      zap({ item, me })
+      if (pending) {
+        controller.abort()
+        setController(null)
+        return
+      }
+      const c = new ZapUndoController({ onStart: () => setPending(true), onDone: () => setPending(false) })
+      setController(c)
+
+      await zap({ item, me, abortSignal: c.signal })
     } else {
-      showModal(onClose => <ItemAct onClose={onClose} itemId={item.id} act={act} />, { onClose: handleModalClosed })
+      showModal(onClose => <ItemAct onClose={onClose} item={item} />, { onClose: handleModalClosed })
     }
   }
 
-  const fillColor = hover ? nextColor : color
+  const fillColor = hover || pending ? nextColor : color
 
   return (
     <div ref={ref} className='upvoteParent'>
@@ -202,9 +221,10 @@ export default function UpVote ({ item, className }) {
                       `${styles.upvote}
                       ${className || ''}
                       ${disabled ? styles.noSelfTips : ''}
-                      ${meSats ? styles.voted : ''}`
+                      ${meSats ? styles.voted : ''}
+                      ${pending ? styles.pending : ''}`
                     }
-              style={meSats || hover
+              style={meSats || hover || pending
                 ? {
                     fill: fillColor,
                     filter: `drop-shadow(0 0 6px ${fillColor}90)`

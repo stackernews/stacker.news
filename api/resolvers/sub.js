@@ -1,66 +1,10 @@
 import { GraphQLError } from 'graphql'
-import serialize from './serial'
-import { TERRITORY_COST_MONTHLY, TERRITORY_COST_ONCE, TERRITORY_COST_YEARLY, TERRITORY_PERIOD_COST } from '@/lib/constants'
-import { datePivot, whenRange } from '@/lib/time'
+import { whenRange } from '@/lib/time'
 import { ssValidate, territorySchema } from '@/lib/validate'
-import { nextBilling, proratedBillingCost } from '@/lib/territory'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
-import { subViewGroup } from './growth'
+import { viewGroup } from './growth'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
-export function paySubQueries (sub, models) {
-  if (sub.billingType === 'ONCE') {
-    return []
-  }
-
-  // if in active or grace, consider we are billing them from where they are paid up
-  // and use grandfathered cost
-  let billedLastAt = sub.billPaidUntil
-  let billingCost = sub.billingCost
-
-  // if the sub is archived, they are paying to reactivate it
-  if (sub.status === 'STOPPED') {
-    // get non-grandfathered cost and reset their billing to start now
-    billedLastAt = new Date()
-    billingCost = TERRITORY_PERIOD_COST(sub.billingType)
-  }
-
-  const billPaidUntil = nextBilling(billedLastAt, sub.billingType)
-  const cost = BigInt(billingCost) * BigInt(1000)
-
-  return [
-    models.user.update({
-      where: {
-        id: sub.userId
-      },
-      data: {
-        msats: {
-          decrement: cost
-        }
-      }
-    }),
-    // update 'em
-    models.sub.update({
-      where: {
-        name: sub.name
-      },
-      data: {
-        billedLastAt,
-        billPaidUntil,
-        billingCost,
-        status: 'ACTIVE'
-      }
-    }),
-    // record 'em
-    models.subAct.create({
-      data: {
-        userId: sub.userId,
-        subName: sub.name,
-        msats: cost,
-        type: 'BILLING'
-      }
-    })
-  ]
-}
+import performPaidAction from '../paidAction'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
@@ -150,8 +94,8 @@ export default {
             COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
             COALESCE(sum(posts), 0) as nposts,
             COALESCE(sum(comments), 0) as ncomments
-          FROM ${subViewGroup(range)} ss
-          JOIN "Sub" on "Sub".name = ss.sub_name
+          FROM ${viewGroup(range, 'sub_stats')}
+          JOIN "Sub" on "Sub".name = u.sub_name
           GROUP BY "Sub".name
           ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
           OFFSET $3
@@ -192,8 +136,8 @@ export default {
             COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
             COALESCE(sum(posts), 0) as nposts,
             COALESCE(sum(comments), 0) as ncomments
-          FROM ${subViewGroup(range)} ss
-          JOIN "Sub" on "Sub".name = ss.sub_name
+          FROM ${viewGroup(range, 'sub_stats')}
+          JOIN "Sub" on "Sub".name = u.sub_name
           WHERE "Sub"."userId" = $3
             AND "Sub".status = 'ACTIVE'
           GROUP BY "Sub".name
@@ -208,7 +152,7 @@ export default {
     }
   },
   Mutation: {
-    upsertSub: async (parent, { hash, hmac, ...data }, { me, models, lnd }) => {
+    upsertSub: async (parent, { ...data }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
@@ -216,12 +160,12 @@ export default {
       await ssValidate(territorySchema, data, { models, me, sub: { name: data.oldName } })
 
       if (data.oldName) {
-        return await updateSub(parent, data, { me, models, lnd, hash, hmac })
+        return await updateSub(parent, data, { me, models, lnd })
       } else {
-        return await createSub(parent, data, { me, models, lnd, hash, hmac })
+        return await createSub(parent, data, { me, models, lnd })
       }
     },
-    paySub: async (parent, { name, hash, hmac }, { me, models, lnd }) => {
+    paySub: async (parent, { name }, { me, models, lnd }) => {
       // check that they own the sub
       const sub = await models.sub.findUnique({
         where: {
@@ -241,15 +185,7 @@ export default {
         return sub
       }
 
-      const queries = paySubQueries(sub, models)
-      if (queries.length === 0) {
-        return sub
-      }
-
-      const results = await serialize(
-        queries,
-        { models, lnd, me, hash, hmac, fee: sub.billingCost })
-      return results[1]
+      return await performPaidAction('TERRITORY_BILLING', { name }, { me, models, lnd })
     },
     toggleMuteSub: async (parent, { name }, { me, models }) => {
       if (!me) {
@@ -317,7 +253,7 @@ export default {
 
       return updatedSub
     },
-    unarchiveTerritory: async (parent, { hash, hmac, ...data }, { me, models, lnd }) => {
+    unarchiveTerritory: async (parent, { ...data }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
@@ -340,37 +276,7 @@ export default {
         throw new GraphQLError('sub should not be archived', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      const billingCost = TERRITORY_PERIOD_COST(data.billingType)
-      const billPaidUntil = nextBilling(new Date(), data.billingType)
-      const cost = BigInt(1000) * BigInt(billingCost)
-      const newSub = { ...data, billPaidUntil, billingCost, userId: me.id, status: 'ACTIVE' }
-      const isTransfer = oldSub.userId !== me.id
-
-      await serialize([
-        models.user.update({
-          where: {
-            id: me.id
-          },
-          data: {
-            msats: {
-              decrement: cost
-            }
-          }
-        }),
-        models.subAct.create({
-          data: {
-            subName: name,
-            userId: me.id,
-            msats: cost,
-            type: 'BILLING'
-          }
-        }),
-        models.sub.update({ where: { name }, data: newSub }),
-        isTransfer && models.territoryTransfer.create({ data: { subName: name, oldUserId: oldSub.userId, newUserId: me.id } })
-      ],
-      { models, lnd, hash, me, hmac, fee: billingCost })
-
-      if (isTransfer) notifyTerritoryTransfer({ models, sub: newSub, to: me })
+      return await performPaidAction('TERRITORY_UNARCHIVE', data, { me, models, lnd })
     }
   },
   Sub: {
@@ -382,7 +288,10 @@ export default {
       return await models.user.findUnique({ where: { id: sub.userId } })
     },
     meMuteSub: async (sub, args, { models }) => {
-      return sub.meMuteSub || sub.MuteSub?.length > 0
+      if (sub.meMuteSub !== undefined) {
+        return sub.meMuteSub
+      }
+      return sub.MuteSub?.length > 0
     },
     nposts: async (sub, { when, from, to }, { models }) => {
       if (typeof sub.nposts !== 'undefined') {
@@ -395,71 +304,19 @@ export default {
       }
     },
     meSubscription: async (sub, args, { me, models }) => {
-      return sub.meSubscription || sub.SubSubscription?.length > 0
+      if (sub.meSubscription !== undefined) {
+        return sub.meSubscription
+      }
+
+      return sub.SubSubscription?.length > 0
     },
     createdAt: sub => sub.createdAt || sub.created_at
   }
 }
 
-async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
-  const { billingType } = data
-  let billingCost = TERRITORY_COST_MONTHLY
-  const billedLastAt = new Date()
-  let billPaidUntil = datePivot(billedLastAt, { months: 1 })
-
-  if (billingType === 'ONCE') {
-    billingCost = TERRITORY_COST_ONCE
-    billPaidUntil = null
-  } else if (billingType === 'YEARLY') {
-    billingCost = TERRITORY_COST_YEARLY
-    billPaidUntil = datePivot(billedLastAt, { years: 1 })
-  }
-
-  const cost = BigInt(1000) * BigInt(billingCost)
-
+async function createSub (parent, data, { me, models, lnd }) {
   try {
-    const results = await serialize([
-      // bill 'em
-      models.user.update({
-        where: {
-          id: me.id
-        },
-        data: {
-          msats: {
-            decrement: cost
-          }
-        }
-      }),
-      // create 'em
-      models.sub.create({
-        data: {
-          ...data,
-          billedLastAt,
-          billPaidUntil,
-          billingCost,
-          rankingType: 'WOT',
-          userId: me.id
-        }
-      }),
-      // record 'em
-      models.subAct.create({
-        data: {
-          userId: me.id,
-          subName: data.name,
-          msats: cost,
-          type: 'BILLING'
-        }
-      }),
-      // notify 'em (in the future)
-      models.subSubscription.create({
-        data: {
-          userId: me.id,
-          subName: data.name
-        }
-      })
-    ], { models, lnd, me, hash, hmac, fee: billingCost })
-
-    return results[1]
+    return await performPaidAction('TERRITORY_CREATE', data, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {
       throw new GraphQLError('name taken', { extensions: { code: 'BAD_INPUT' } })
@@ -468,7 +325,7 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
   }
 }
 
-async function updateSub (parent, { oldName, ...data }, { me, models, lnd, hash, hmac }) {
+async function updateSub (parent, { oldName, ...data }, { me, models, lnd }) {
   const oldSub = await models.sub.findUnique({
     where: {
       name: oldName,
@@ -486,71 +343,7 @@ async function updateSub (parent, { oldName, ...data }, { me, models, lnd, hash,
   }
 
   try {
-    // if the cost is changing, record the new cost and update billing job
-    if (oldSub.billingType !== data.billingType) {
-      // make sure the current cost is recorded so they are grandfathered in
-      data.billingCost = TERRITORY_PERIOD_COST(data.billingType)
-
-      // we never want to bill them again if they are changing to ONCE
-      if (data.billingType === 'ONCE') {
-        data.billPaidUntil = null
-        data.billingAutoRenew = false
-      }
-
-      // if they are changing to YEARLY, bill them in a year
-      // if they are changing to MONTHLY from YEARLY, do nothing
-      if (oldSub.billingType === 'MONTHLY' && data.billingType === 'YEARLY') {
-        data.billPaidUntil = datePivot(new Date(oldSub.billedLastAt), { years: 1 })
-      }
-
-      // if this billing change makes their bill paid up, set them to active
-      if (data.billPaidUntil === null || data.billPaidUntil >= new Date()) {
-        data.status = 'ACTIVE'
-      }
-
-      // if the billing type is changing such that it's more expensive, bill 'em the difference
-      const proratedCost = proratedBillingCost(oldSub, data.billingType)
-      if (proratedCost > 0) {
-        const cost = BigInt(1000) * BigInt(proratedCost)
-        const results = await serialize([
-          models.user.update({
-            where: {
-              id: me.id
-            },
-            data: {
-              msats: {
-                decrement: cost
-              }
-            }
-          }),
-          models.subAct.create({
-            data: {
-              userId: me.id,
-              subName: oldName,
-              msats: cost,
-              type: 'BILLING'
-            }
-          }),
-          models.sub.update({
-            data,
-            where: {
-              name: oldName,
-              userId: me.id
-            }
-          })
-        ], { models, lnd, me, hash, hmac, fee: proratedCost })
-        return results[2]
-      }
-    }
-
-    // if we get here they are changin in a way that doesn't cost them anything
-    return await models.sub.update({
-      data,
-      where: {
-        name: oldName,
-        userId: me.id
-      }
-    })
+    return await performPaidAction('TERRITORY_UPDATE', { oldName, ...data }, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {
       throw new GraphQLError('name taken', { extensions: { code: 'BAD_INPUT' } })

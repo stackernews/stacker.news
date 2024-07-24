@@ -44,6 +44,7 @@ model User {
   noteInvites               Boolean              @default(true)
   noteItemSats              Boolean              @default(true)
   noteMentions              Boolean              @default(true)
+  noteItemMentions          Boolean              @default(true)
   noteForwardedSats         Boolean              @default(true)
   lastCheckedJobs           DateTime?
   noteJobIndicator          Boolean              @default(true)
@@ -79,7 +80,6 @@ model User {
   actions                   ItemAct[]
   mentions                  Mention[]
   messages                  Message[]
-  PollVote                  PollVote[]
   PushSubscriptions         PushSubscription[]
   ReferralAct               ReferralAct[]
   Streak                    Streak[]
@@ -125,11 +125,40 @@ model User {
   Replies                   Reply[]
   walletLogs                WalletLog[]
   Reminder                  Reminder[]
+  PollBlindVote             PollBlindVote[]
+  ItemUserAgg               ItemUserAgg[]
+  oneDayReferrals           OneDayReferral[]     @relation("OneDayReferral_referrer")
+  oneDayReferrees           OneDayReferral[]     @relation("OneDayReferral_referrees")
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
   @@map("users")
+}
+
+enum OneDayReferralType {
+  REFERRAL
+  POST
+  COMMENT
+  PROFILE
+  TERRITORY
+}
+
+model OneDayReferral {
+  id         Int                @id @default(autoincrement())
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @default(now()) @updatedAt @map("updated_at")
+  referrerId Int
+  refereeId  Int
+  referrer   User               @relation("OneDayReferral_referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referee    User               @relation("OneDayReferral_referrees", fields: [refereeId], references: [id], onDelete: Cascade)
+  type       OneDayReferralType
+  typeId     String
+
+  @@index([createdAt])
+  @@index([referrerId])
+  @@index([refereeId])
+  @@index([type, typeId])
 }
 
 enum WalletType {
@@ -144,6 +173,7 @@ model Wallet {
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   userId    Int
   label     String?
+  enabled   Boolean  @default(true)
   priority  Int      @default(0)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -285,21 +315,26 @@ model ItemUpload {
 }
 
 model Upload {
-  id         Int          @id @default(autoincrement())
-  createdAt  DateTime     @default(now()) @map("created_at")
-  updatedAt  DateTime     @default(now()) @updatedAt @map("updated_at")
-  type       String
-  size       Int
-  width      Int?
-  height     Int?
-  userId     Int
-  paid       Boolean?
-  user       User         @relation("Uploads", fields: [userId], references: [id], onDelete: Cascade)
-  User       User[]
-  ItemUpload ItemUpload[]
+  id                 Int                 @id @default(autoincrement())
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at")
+  type               String
+  size               Int
+  width              Int?
+  height             Int?
+  userId             Int
+  paid               Boolean?
+  invoiceId          Int?
+  invoiceActionState InvoiceActionState?
+  invoice            Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  user               User                @relation("Uploads", fields: [userId], references: [id], onDelete: Cascade)
+  User               User[]
+  ItemUpload         ItemUpload[]
 
   @@index([createdAt], map: "Upload.created_at_index")
   @@index([userId], map: "Upload.userId_index")
+  @@index([invoiceId])
+  @@index([invoiceActionState])
 }
 
 model Earn {
@@ -359,71 +394,80 @@ model Message {
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model Item {
-  id                 Int                   @id @default(autoincrement())
-  createdAt          DateTime              @default(now()) @map("created_at")
-  updatedAt          DateTime              @default(now()) @updatedAt @map("updated_at")
-  title              String?
-  text               String?
-  url                String?
-  userId             Int
-  parentId           Int?
-  path               Unsupported("ltree")?
-  pinId              Int?
-  latitude           Float?
-  location           String?
-  longitude          Float?
-  maxBid             Int?
-  maxSalary          Int?
-  minSalary          Int?
-  remote             Boolean?
-  subName            String?               @db.Citext
-  statusUpdatedAt    DateTime?
-  status             Status                @default(ACTIVE)
-  company            String?
-  weightedVotes      Float                 @default(0)
-  boost              Int                   @default(0)
-  pollCost           Int?
-  paidImgLink        Boolean               @default(false)
-  commentMsats       BigInt                @default(0)
-  lastCommentAt      DateTime?
-  lastZapAt          DateTime?
-  ncomments          Int                   @default(0)
-  msats              BigInt                @default(0)
-  weightedDownVotes  Float                 @default(0)
-  bio                Boolean               @default(false)
-  freebie            Boolean               @default(false)
-  deletedAt          DateTime?
-  otsFile            Bytes?
-  otsHash            String?
-  imgproxyUrls       Json?
-  bounty             Int?
-  noteId             String?               @unique(map: "Item.noteId_unique")
-  rootId             Int?
-  bountyPaidTo       Int[]
-  upvotes            Int                   @default(0)
-  weightedComments   Float                 @default(0)
-  Bookmark           Bookmark[]
-  parent             Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
-  children           Item[]                @relation("ParentChildren")
-  pin                Pin?                  @relation(fields: [pinId], references: [id])
-  root               Item?                 @relation("RootDescendant", fields: [rootId], references: [id])
-  descendants        Item[]                @relation("RootDescendant")
-  sub                Sub?                  @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
-  user               User                  @relation("UserItems", fields: [userId], references: [id], onDelete: Cascade)
-  actions            ItemAct[]
-  mentions           Mention[]
-  PollOption         PollOption[]
-  PollVote           PollVote[]
-  ThreadSubscription ThreadSubscription[]
-  User               User[]
-  itemForwards       ItemForward[]
-  ItemUpload         ItemUpload[]
-  uploadId           Int?
-  outlawed           Boolean               @default(false)
-  pollExpiresAt      DateTime?
-  Ancestors          Reply[]               @relation("AncestorReplyItem")
-  Replies            Reply[]
-  Reminder           Reminder[]
+  id                  Int                   @id @default(autoincrement())
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @default(now()) @updatedAt @map("updated_at")
+  title               String?
+  text                String?
+  url                 String?
+  userId              Int
+  parentId            Int?
+  path                Unsupported("ltree")?
+  pinId               Int?
+  latitude            Float?
+  location            String?
+  longitude           Float?
+  maxBid              Int?
+  maxSalary           Int?
+  minSalary           Int?
+  remote              Boolean?
+  subName             String?               @db.Citext
+  statusUpdatedAt     DateTime?
+  status              Status                @default(ACTIVE)
+  company             String?
+  weightedVotes       Float                 @default(0)
+  boost               Int                   @default(0)
+  pollCost            Int?
+  paidImgLink         Boolean               @default(false)
+  commentMsats        BigInt                @default(0)
+  lastCommentAt       DateTime?
+  lastZapAt           DateTime?
+  ncomments           Int                   @default(0)
+  msats               BigInt                @default(0)
+  weightedDownVotes   Float                 @default(0)
+  bio                 Boolean               @default(false)
+  freebie             Boolean               @default(false)
+  deletedAt           DateTime?
+  otsFile             Bytes?
+  otsHash             String?
+  imgproxyUrls        Json?
+  bounty              Int?
+  noteId              String?               @unique(map: "Item.noteId_unique")
+  rootId              Int?
+  bountyPaidTo        Int[]
+  upvotes             Int                   @default(0)
+  weightedComments    Float                 @default(0)
+  Bookmark            Bookmark[]
+  parent              Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
+  children            Item[]                @relation("ParentChildren")
+  pin                 Pin?                  @relation(fields: [pinId], references: [id])
+  root                Item?                 @relation("RootDescendant", fields: [rootId], references: [id])
+  descendants         Item[]                @relation("RootDescendant")
+  sub                 Sub?                  @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  user                User                  @relation("UserItems", fields: [userId], references: [id], onDelete: Cascade)
+  itemActs            ItemAct[]
+  mentions            Mention[]
+  itemReferrers       ItemMention[]         @relation("referrer")
+  itemReferees        ItemMention[]         @relation("referee")
+  pollOptions         PollOption[]
+  PollVote            PollVote[]
+  threadSubscriptions ThreadSubscription[]
+  User                User[]
+  itemForwards        ItemForward[]
+  itemUploads         ItemUpload[]
+  uploadId            Int?
+  invoiceId           Int?
+  invoiceActionState  InvoiceActionState?
+  invoicePaidAt       DateTime?
+  outlawed            Boolean               @default(false)
+  apiKey              Boolean               @default(false)
+  pollExpiresAt       DateTime?
+  Ancestors           Reply[]               @relation("AncestorReplyItem")
+  Replies             Reply[]
+  Reminder            Reminder[]
+  invoice             Invoice?              @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  PollBlindVote       PollBlindVote[]
+  ItemUserAgg         ItemUserAgg[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -442,6 +486,32 @@ model Item {
   @@index([userId], map: "Item.userId_index")
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
+  @@index([invoiceId])
+  @@index([invoiceActionState])
+}
+
+// we use this to denormalize a user's aggregated interactions (zaps) with an item
+// we need to do this to safely modify the aggregates in a read committed transaction
+// because we can't lock an aggregate query to guard a potentially conflicting update
+// (e.g. sum("ItemAct".msats), but we can lock a row where we store the aggregate
+// this is important because zaps do not update "weightedVotes" linearly
+// see: https://stackoverflow.com/questions/61781595/postgres-read-commited-doesnt-re-read-updated-row?noredirect=1#comment109279507_61781595
+// or: https://www.cybertec-postgresql.com/en/transaction-anomalies-with-select-for-update/
+model ItemUserAgg {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  itemId      Int
+  userId      Int
+  zapSats     BigInt   @default(0)
+  downZapSats BigInt   @default(0)
+  item        Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, userId])
+  @@index([itemId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 // this is a denomalized table that is used to make reply notifications
@@ -498,19 +568,37 @@ model PollOption {
 }
 
 model PollVote {
-  id           Int        @id @default(autoincrement())
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @default(now()) @updatedAt @map("updated_at")
-  userId       Int
-  itemId       Int
-  pollOptionId Int
-  item         Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  pollOption   PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 Int                 @id @default(autoincrement())
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at")
+  itemId             Int
+  pollOptionId       Int
+  invoiceId          Int?
+  invoiceActionState InvoiceActionState?
+  invoice            Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  item               Item                @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  pollOption         PollOption          @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
 
-  @@unique([itemId, userId], map: "PollVote.itemId_userId_unique")
   @@index([pollOptionId], map: "PollVote.pollOptionId_index")
-  @@index([userId], map: "PollVote.userId_index")
+  @@index([invoiceId])
+  @@index([invoiceActionState])
+}
+
+model PollBlindVote {
+  id                 Int                 @id @default(autoincrement())
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at")
+  itemId             Int
+  userId             Int
+  invoiceId          Int?
+  invoiceActionState InvoiceActionState?
+  invoice            Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  item               Item                @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, userId], map: "PollBlindVote.itemId_userId_unique")
+  @@index([userId], map: "PollBlindVote.userId_index")
+  @@index([invoiceActionState])
 }
 
 enum BillingType {
@@ -623,13 +711,17 @@ model ReferralAct {
 }
 
 model ItemAct {
-  id          Int           @id(map: "Vote_pkey") @default(autoincrement())
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @default(now()) @updatedAt @map("updated_at")
-  msats       BigInt
-  act         ItemActType
-  itemId      Int
-  userId      Int
+  id                 Int                 @id(map: "Vote_pkey") @default(autoincrement())
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at")
+  msats              BigInt
+  act                ItemActType
+  itemId             Int
+  userId             Int
+  invoiceId          Int?
+  invoiceActionState InvoiceActionState?
+
+  invoice     Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   item        Item          @relation(fields: [itemId], references: [id], onDelete: Cascade)
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   ReferralAct ReferralAct[]
@@ -644,6 +736,8 @@ model ItemAct {
   @@index([userId], map: "ItemAct.userId_index")
   @@index([itemId], map: "Vote.itemId_index")
   @@index([userId], map: "Vote.userId_index")
+  @@index([invoiceId])
+  @@index([invoiceActionState])
 }
 
 model Mention {
@@ -659,6 +753,44 @@ model Mention {
   @@index([createdAt], map: "Mention.created_at_index")
   @@index([itemId], map: "Mention.itemId_index")
   @@index([userId], map: "Mention.userId_index")
+}
+
+enum InvoiceActionType {
+  BUY_CREDITS
+  ITEM_CREATE
+  ITEM_UPDATE
+  ZAP
+  DOWN_ZAP
+  DONATE
+  POLL_VOTE
+  TERRITORY_CREATE
+  TERRITORY_UPDATE
+  TERRITORY_BILLING
+  TERRITORY_UNARCHIVE
+}
+
+enum InvoiceActionState {
+  PENDING
+  PENDING_HELD
+  HELD
+  PAID
+  FAILED
+  RETRYING
+}
+
+model ItemMention {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  referrerId   Int
+  refereeId    Int
+  referrerItem Item     @relation("referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  refereeItem  Item     @relation("referee", fields: [refereeId], references: [id], onDelete: Cascade)
+
+  @@unique([referrerId, refereeId], map: "ItemMention.referrerId_refereeId_unique")
+  @@index([createdAt], map: "ItemMention.created_at_index")
+  @@index([referrerId], map: "ItemMention.referrerId_index")
+  @@index([refereeId], map: "ItemMention.refereeId_index")
 }
 
 model Invoice {
@@ -681,6 +813,18 @@ model Invoice {
   lud18Data      Json?
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   invoiceForward InvoiceForward?
+
+  actionState   InvoiceActionState?
+  actionType    InvoiceActionType?
+  actionId      Int?
+  actionArgs    Json?               @db.JsonB
+  actionError   String?
+  actionResult  Json?               @db.JsonB
+  ItemAct       ItemAct[]
+  Item          Item[]
+  Upload        Upload[]
+  PollVote      PollVote[]
+  PollBlindVote PollBlindVote[]
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")
@@ -919,6 +1063,8 @@ enum EarnType {
   COMMENT
   TIP_COMMENT
   TIP_POST
+  FOREVER_REFERRAL
+  ONE_DAY_REFERRAL
 }
 
 enum SubActType {

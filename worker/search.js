@@ -96,7 +96,6 @@ async function _indexItem (item, { models, updatedAt }) {
       console.log('version conflict ignoring', item.id)
       return
     }
-    console.log(e)
     throw e
   }
 }
@@ -145,7 +144,6 @@ export async function indexAllItems ({ apollo, models }) {
       items.forEach(i => _indexItem(i, { models }))
     } catch (e) {
       // ignore errors
-      console.log(e)
     }
   } while (cursor)
 }

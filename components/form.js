@@ -18,7 +18,6 @@ import { gql, useLazyQuery } from '@apollo/client'
 import { USER_SUGGESTIONS } from '@/fragments/users'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
-import { useInvoiceable } from './invoice'
 import { numWithUnits } from '@/lib/format'
 import textAreaCaret from 'textarea-caret'
 import ReactDatePicker from 'react-datepicker'
@@ -32,17 +31,29 @@ import Thumb from '@/svgs/thumb-up-fill.svg'
 import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
+import { useMe } from './me'
+import classNames from 'classnames'
+
+export class SessionRequiredError extends Error {
+  constructor () {
+    super('session required')
+    this.name = 'SessionRequiredError'
+  }
+}
 
 export function SubmitButton ({
-  children, variant, value, onClick, disabled, nonDisabledText, ...props
+  children, variant, value, onClick, disabled, appendText, submittingText,
+  className, ...props
 }) {
   const formik = useFormikContext()
 
   disabled ||= formik.isSubmitting
+  submittingText ||= children
 
   return (
     <Button
       variant={variant || 'main'}
+      className={classNames(formik.isSubmitting && styles.pending, className)}
       type='submit'
       disabled={disabled}
       onClick={value
@@ -53,7 +64,7 @@ export function SubmitButton ({
         : onClick}
       {...props}
     >
-      {children}{!disabled && nonDisabledText && <small> {nonDisabledText}</small>}
+      {formik.isSubmitting ? submittingText : children}{!disabled && appendText && <small> {appendText}</small>}
     </Button>
   )
 }
@@ -110,7 +121,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const imageUploadRef = useRef(null)
   const previousTab = useRef(tab)
   const { merge, setDisabled: setSubmitDisabled } = useFeeButton()
-  const toaster = useToast()
+
   const [updateImageFeesInfo] = useLazyQuery(gql`
     query imageFeesInfo($s3Keys: [Int]!) {
       imageFeesInfo(s3Keys: $s3Keys) {
@@ -124,7 +135,6 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     nextFetchPolicy: 'no-cache',
     onError: (err) => {
       console.error(err)
-      toaster.danger(`unabled to get image fees: ${err.message || err.toString?.()}`)
     },
     onCompleted: ({ imageFeesInfo }) => {
       merge({
@@ -792,12 +802,14 @@ export function CheckboxGroup ({ label, groupClassName, children, ...props }) {
 const StorageKeyPrefixContext = createContext()
 
 export function Form ({
-  initial, schema, onSubmit, children, initialError, validateImmediately,
-  storageKeyPrefix, validateOnChange = true, invoiceable, innerRef, ...props
+  initial, validate, schema, onSubmit, children, initialError, validateImmediately,
+  storageKeyPrefix, validateOnChange = true, requireSession, innerRef,
+  ...props
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
-  const feeButton = useFeeButton()
+  const me = useMe()
+
   useEffect(() => {
     if (initialError && !initialErrorToasted.current) {
       toaster.danger('form error: ' + initialError.message || initialError.toString?.())
@@ -820,42 +832,31 @@ export function Form ({
     })
   }, [storageKeyPrefix])
 
-  // if `invoiceable` is set,
-  // support for payment per invoice if they are lurking or don't have enough balance
-  // is added to submit handlers.
-  // submit handlers need to accept { satsReceived, hash, hmac } in their first argument
-  // and use them as variables in their GraphQL mutation
-  if (invoiceable && onSubmit) {
-    const options = typeof invoiceable === 'object' ? invoiceable : undefined
-    onSubmit = useInvoiceable(onSubmit, options)
-  }
+  const onSubmitInner = useCallback(async ({ amount, ...values }, ...args) => {
+    const variables = { amount, ...values }
+    if (requireSession && !me) {
+      throw new SessionRequiredError()
+    }
 
-  const onSubmitInner = useCallback(async (values, ...args) => {
     try {
       if (onSubmit) {
-        // extract cost from formik fields
-        // (cost may also be set in a formik field named 'amount')
-        const cost = feeButton?.total || values?.amount
-        if (cost) {
-          values.cost = cost
-        }
-        await onSubmit(values, ...args)
-        if (!storageKeyPrefix) return
-        clearLocalStorage(values)
+        await onSubmit(variables, ...args)
       }
     } catch (err) {
-      const msg = err.message || err.toString?.()
-      // ignore errors from JIT invoices or payments from attached wallets
-      // that mean that submit failed because user aborted the payment
-      if (msg === 'modal closed' || msg === 'invoice canceled') return
-      toaster.danger('submit error: ' + msg)
+      console.log(err.message, err)
+      toaster.danger(err.message ?? err.toString?.())
+      return
     }
-  }, [onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix])
+
+    if (!storageKeyPrefix) return
+    clearLocalStorage(values)
+  }, [me, onSubmit, clearLocalStorage, storageKeyPrefix])
 
   return (
     <Formik
       initialValues={initial}
       validateOnChange={validateOnChange}
+      validate={validate}
       validationSchema={schema}
       initialTouched={validateImmediately && initial}
       validateOnBlur={false}

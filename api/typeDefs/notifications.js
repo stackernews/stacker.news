@@ -43,9 +43,21 @@ export default gql`
     sortTime: Date!
   }
 
+  type ItemMention {
+    id: ID!
+    item: Item!
+    sortTime: Date!
+  }
+
   type Invitification {
     id: ID!
     invite: Invite!
+    sortTime: Date!
+  }
+
+  type Invoicification {
+    id: ID!
+    invoice: Invoice!
     sortTime: Date!
   }
 
@@ -75,6 +87,19 @@ export default gql`
     minSortTime: Date!
     sortTime: Date!
     sources: EarnSources
+  }
+
+  type ReferralSources {
+    id: ID!
+    forever: Int!
+    oneDay: Int!
+  }
+
+  type ReferralReward {
+    id: ID!
+    earnedSats: Int!
+    sortTime: Date!
+    sources: ReferralSources
   }
 
   type Revenue {
@@ -130,7 +155,8 @@ export default gql`
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
     | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus
-    | TerritoryPost | TerritoryTransfer | Reminder
+    | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | Invoicification
+    | ReferralReward
 
   type Notifications {
     lastChecked: Date

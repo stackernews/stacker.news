@@ -113,7 +113,7 @@ export const createImgproxyUrls = async (id, text, { models, forceFetch }) => {
         dimensions: await getDimensions(fetchUrl)
       }
     } catch (err) {
-      console.log('[imgproxy] id:', id, '-- error getting dimensions (possibly not running imgproxy pro)')
+      console.log('[imgproxy] id:', id, '-- error getting dimensions (possibly not running imgproxy pro)', err)
     }
     for (const res of resolutions) {
       const [w, h] = res.split('x')

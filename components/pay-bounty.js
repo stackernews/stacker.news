@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React from 'react'
 import Button from 'react-bootstrap/Button'
 import styles from './pay-bounty.module.css'
 import ActionTooltip from './action-tooltip'
@@ -6,16 +6,15 @@ import { useMe } from './me'
 import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
-import { payOrLoginError, useInvoiceModal } from './invoice'
-import { useAct } from './item-act'
+import { ActCanceledError, useAct } from './item-act'
+import { useLightning } from './lightning'
+import { useToast } from './toast'
 
-export default function PayBounty ({ children, item }) {
-  const me = useMe()
-  const showModal = useShowModal()
-  const root = useRoot()
-
-  const onUpdate = useCallback((cache, { data: { act: { id, path } } }) => {
-    // update root bounty status
+export const payBountyCacheMods = {
+  onPaid: (cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.result) return
+    const { id, path } = response.result
     const root = path.split('.')[0]
     cache.modify({
       id: `Item:${root}`,
@@ -25,30 +24,48 @@ export default function PayBounty ({ children, item }) {
         }
       }
     })
-  }, [])
-
-  const [act] = useAct({ onUpdate })
-
-  const showInvoiceModal = useInvoiceModal(async ({ hash, hmac }, { variables }) => {
-    await act({ variables: { ...variables, hash, hmac } })
-  }, [act])
-
-  const handlePayBounty = async onComplete => {
-    const variables = { id: item.id, sats: root.bounty, act: 'TIP', path: item.path }
-    try {
-      await act({
-        variables,
-        optimisticResponse: {
-          act: variables
+  },
+  onPayError: (e, cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.result) return
+    const { id, path } = response.result
+    const root = path.split('.')[0]
+    cache.modify({
+      id: `Item:${root}`,
+      fields: {
+        bountyPaidTo (existingPaidTo = []) {
+          return (existingPaidTo || []).filter(i => i !== Number(id))
         }
-      })
-      onComplete()
+      }
+    })
+  }
+}
+
+export default function PayBounty ({ children, item }) {
+  const me = useMe()
+  const showModal = useShowModal()
+  const root = useRoot()
+  const strike = useLightning()
+  const toaster = useToast()
+  const variables = { id: item.id, sats: root.bounty, act: 'TIP' }
+  const act = useAct({
+    variables,
+    optimisticResponse: { act: { __typename: 'ItemActPaidAction', result: { ...variables, path: item.path } } },
+    ...payBountyCacheMods
+  })
+
+  const handlePayBounty = async onCompleted => {
+    try {
+      strike()
+      const { error } = await act({ onCompleted })
+      if (error) throw error
     } catch (error) {
-      if (payOrLoginError(error)) {
-        showInvoiceModal({ amount: root.bounty }, { variables })
+      if (error instanceof ActCanceledError) {
         return
       }
-      throw new Error({ message: error.toString() })
+
+      const reason = error?.message || error?.toString?.()
+      toaster.danger(reason)
     }
   }
 

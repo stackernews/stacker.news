@@ -33,7 +33,7 @@ export default function MoreFooter ({ cursor, count, fetchMore, Skeleton, invisi
     )
   }
 
-  return <div className={`d-flex justify-content-center mt-3 mb-1 ${invisible ? 'invisible' : ''}`}><Footer /></div>
+  return <div className={`d-flex justify-content-center mt-4 mb-1 ${invisible ? 'invisible' : ''}`}><Footer /></div>
 }
 
 export function NavigateFooter ({ cursor, count, fetchMore, href, text, invisible, noMoreText = 'NO MORE' }) {

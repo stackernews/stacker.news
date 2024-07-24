@@ -37,6 +37,8 @@ services:
       CONNECT: "localhost:5431"
   app:
     container_name: app
+    stdin_open: true
+    tty: true
     build:
       context: ./
       args:
@@ -390,9 +392,10 @@ services:
         "
   litd:
     container_name: litd
-    image: lightninglabs/lightning-terminal:v0.12.4-alpha
+    build:
+      context: ./docker/litd
     profiles:
-      - payments
+      - wallets
     restart: unless-stopped
     healthcheck:
       <<: *healthcheck
@@ -498,7 +501,7 @@ services:
       context: ./docker/nwc
     container_name: nwc
     profiles:
-      - payments
+      - wallets
     restart: unless-stopped
     depends_on:
       stacker_lnd:
@@ -520,11 +523,15 @@ services:
       - 'stacker_lnd'
       - '--lnd-port'
       - '10009'
+      - '--max-amount'
+      - '0'
+      - '--daily-limit'
+      - '0'
   lnbits:
     image: lnbits/lnbits:0.12.5
     container_name: lnbits
     profiles:
-      - payments
+      - wallets
     restart: unless-stopped
     ports:
       - "${LNBITS_WEB_PORT}:5000"

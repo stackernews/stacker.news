@@ -9,7 +9,7 @@ import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
-import { checkInvoiceForwardIncoming, checkInvoiceForwardOutgoing } from './invoiceForward'
+import { holdAction, settleAction, settleActionError } from './paidAction'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -78,7 +78,7 @@ async function subscribeToDeposits (args) {
     return sub
   })
 
-  // check pending deposits as a redundancy in case we failed to record
+  // check pending deposits as a redundancy in case we failed to rehcord
   // an invoice_updated event
   await checkPendingDeposits(args)
 }
@@ -130,11 +130,15 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   }
 
   // if this is an incoming invoice forward, it requires special handling
-  if (dbInv.invoiceForward) {
-    return await checkInvoiceForwardIncoming(dbInv.invoiceForward, { invoice: inv, boss, models, lnd })
-  }
+  // if (dbInv.invoiceForward) {
+  //   return await checkInvoiceForwardIncoming(dbInv.invoiceForward, { invoice: inv, boss, models, lnd })
+  // }
 
   if (inv.is_confirmed) {
+    if (dbInv.actionType) {
+      return await settleAction({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+    }
+
     // NOTE: confirm invoice prevents double confirmations (idempotent)
     // ALSO: is_confirmed and is_held are mutually exclusive
     // that is, a hold invoice will first be is_held but not is_confirmed
@@ -154,6 +158,9 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   }
 
   if (inv.is_held) {
+    if (dbInv.actionType) {
+      return await holdAction({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+    }
     // First query makes sure that after payment, JIT invoices are settled
     // within 60 seconds or they will be canceled to minimize risk of
     // force closures or wallets banning us.
@@ -177,6 +184,10 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   }
 
   if (inv.is_canceled) {
+    if (dbInv.actionType) {
+      return await settleActionError({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+    }
+
     return await serialize(
       models.invoice.update({
         where: {
@@ -261,9 +272,9 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
   }
 
   // if this is an outgoing invoice forward, it requires special handling
-  if (dbWdrwl.invoiceForward.length > 0) {
-    return await checkInvoiceForwardOutgoing(dbWdrwl.invoiceForward[0], { withdrawal: wdrwl, boss, models, lnd })
-  }
+  // if (dbWdrwl.invoiceForward.length > 0) {
+  //   return await checkInvoiceForwardOutgoing(dbWdrwl.invoiceForward[0], { withdrawal: wdrwl, boss, models, lnd })
+  // }
 
   if (wdrwl?.is_confirmed) {
     const fee = Number(wdrwl.payment.fee_mtokens)
@@ -277,7 +288,7 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
       if (dbWdrwl.wallet) {
         // this was an autowithdrawal
         const message = `autowithdrawal of ${numWithUnits(msatsToSats(paid), { abbreviate: false })} with ${numWithUnits(msatsToSats(fee), { abbreviate: false })} as fee`
-        await addWalletLog({ wallet: dbWdrwl.wallet.type, level: 'SUCCESS', message }, { models, me: { id: dbWdrwl.userId } })
+        await addWalletLog({ wallet: dbWdrwl.wallet, level: 'SUCCESS', message }, { models, me: { id: dbWdrwl.userId } })
       }
     }
   } else if (wdrwl?.is_failed || notFound) {
@@ -305,7 +316,7 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     if (code === 0 && dbWdrwl.wallet) {
       // add error into log for autowithdrawal
       await addWalletLog({
-        wallet: dbWdrwl.wallet.type,
+        wallet: dbWdrwl.wallet,
         level: 'ERROR',
         message: 'autowithdrawal failed: ' + message
       }, { models, me: { id: dbWdrwl.userId } })

@@ -26,11 +26,11 @@ import { NostrAuth } from '@/components/nostr-auth'
 import { useToast } from '@/components/toast'
 import { useServiceWorkerLogger } from '@/components/logger'
 import { useMe } from '@/components/me'
-import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
+import { INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
-import DeleteIcon from '@/svgs/delete-bin-line.svg'
 import { useField } from 'formik'
 import styles from './settings.module.css'
+import { AuthBanner } from '@/components/banners'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -107,7 +107,7 @@ export default function Settings ({ ssrData }) {
   return (
     <Layout>
       <div className='pb-3 w-100 mt-2' style={{ maxWidth: '600px' }}>
-        {hasOnlyOneAuthMethod(settings?.authMethods) && <div className={styles.alert}>Please add a second auth method to avoid losing access to your account.</div>}
+        {hasOnlyOneAuthMethod(settings?.authMethods) && <AuthBanner />}
         <SettingsHeader />
         <Form
           initial={{
@@ -121,6 +121,7 @@ export default function Settings ({ ssrData }) {
             noteEarning: settings?.noteEarning,
             noteAllDescendants: settings?.noteAllDescendants,
             noteMentions: settings?.noteMentions,
+            noteItemMentions: settings?.noteItemMentions,
             noteDeposits: settings?.noteDeposits,
             noteWithdrawals: settings?.noteWithdrawals,
             noteInvites: settings?.noteInvites,
@@ -279,6 +280,11 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label='someone mentions me'
             name='noteMentions'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label='someone mentions one of my items'
+            name='noteItemMentions'
             groupClassName='mb-0'
           />
           <Checkbox
@@ -859,22 +865,25 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
   // link to DM with ek on SimpleX
   const simplexLink = 'https://simplex.chat/contact#/?v=1-2&smp=smp%3A%2F%2F6iIcWT_dF2zN_w5xzZEY7HI2Prbh3ldP07YTyDexPjE%3D%40smp10.simplex.im%2FxNnPk9DkTbQJ6NckWom9mi5vheo_VPLm%23%2F%3Fv%3D1-2%26dh%3DMCowBQYDK2VuAyEAnFUiU0M8jS1JY34LxUoPr7mdJlFZwf3pFkjRrhprdQs%253D%26srv%3Drb2pbttocvnbrngnwziclp2f4ckjq65kebafws6g4hy22cdaiv5dwjqd.onion'
 
-  const disabled = !enabled || apiKey
-
   return (
     <>
       <div className='form-label mt-3'>api key</div>
       <div className='mt-2 d-flex align-items-center'>
         <OverlayTrigger
           placement='bottom'
-          overlay={disabled ? <Tooltip>{apiKey ? 'you can have only one API key at a time' : 'request access to API keys in ~meta'}</Tooltip> : <></>}
+          overlay={!enabled ? <Tooltip>{apiKey ? 'you can have only one API key at a time' : 'request access to API keys in ~meta'}</Tooltip> : <></>}
           trigger={['hover', 'focus']}
         >
           <div>
             <Button
-              disabled={disabled}
-              variant='secondary'
+              disabled={!enabled}
+              variant={apiKey ? 'danger' : 'secondary'}
               onClick={async () => {
+                if (apiKey) {
+                  showModal((onClose) => <ApiKeyDeleteObstacle onClose={onClose} />)
+                  return
+                }
+
                 try {
                   const { data } = await generateApiKey({ variables: { id: me.id } })
                   const { generateApiKey: apiKey } = data
@@ -884,17 +893,10 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
                   toaster.danger('error generating api key')
                 }
               }}
-            >Generate API key
+            >{apiKey ? 'Delete' : 'Generate'} API key
             </Button>
           </div>
         </OverlayTrigger>
-        {apiKey &&
-          <DeleteIcon
-            style={{ cursor: 'pointer' }} className='fill-danger mx-1' width={24} height={24}
-            onClick={async () => {
-              showModal((onClose) => <ApiKeyDeleteObstacle onClose={onClose} />)
-            }}
-          />}
         <Info>
           <ul className='fw-bold'>
             <li>use API keys with our <Link target='_blank' href='/api/graphql'>GraphQL API</Link> for authentication</li>
@@ -1006,10 +1008,9 @@ const ZapUndosField = () => {
                 zap undos
                 <Info>
                   <ul className='fw-bold'>
-                    <li>An undo button is shown after every zap that exceeds or is equal to the threshold</li>
-                    <li>The button is shown for 5 seconds</li>
-                    <li>The button is only shown for zaps from the custodial wallet</li>
-                    <li>Use a budget or manual approval with attached wallets</li>
+                    <li>After every zap that exceeds or is equal to the threshold, the bolt will pulse</li>
+                    <li>You can undo the zap if you click the bolt while it's pulsing</li>
+                    <li>The bolt will pulse for {ZAP_UNDO_DELAY_MS / 1000} seconds</li>
                   </ul>
                 </Info>
               </div>

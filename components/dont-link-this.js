@@ -1,15 +1,15 @@
 import Dropdown from 'react-bootstrap/Dropdown'
 import { useShowModal } from './modal'
 import { useToast } from './toast'
-import ItemAct, { zapUndosThresholdReached } from './item-act'
+import ItemAct from './item-act'
 import AccordianItem from './accordian-item'
 import Flag from '@/svgs/flag-fill.svg'
 import { useMemo } from 'react'
 import getColor from '@/lib/rainbow'
 import { gql, useMutation } from '@apollo/client'
-import { useMe } from './me'
 
-export function DownZap ({ id, meDontLikeSats, ...props }) {
+export function DownZap ({ item, ...props }) {
+  const { meDontLikeSats } = item
   const style = useMemo(() => (meDontLikeSats
     ? {
         fill: getColor(meDontLikeSats),
@@ -17,14 +17,13 @@ export function DownZap ({ id, meDontLikeSats, ...props }) {
       }
     : undefined), [meDontLikeSats])
   return (
-    <DownZapper id={id} As={({ ...oprops }) => <Flag {...props} {...oprops} style={style} />} />
+    <DownZapper item={item} As={({ ...oprops }) => <Flag {...props} {...oprops} style={style} />} />
   )
 }
 
-function DownZapper ({ id, As, children }) {
+function DownZapper ({ item, As, children }) {
   const toaster = useToast()
   const showModal = useShowModal()
-  const me = useMe()
 
   return (
     <As
@@ -32,12 +31,7 @@ function DownZapper ({ id, As, children }) {
         try {
           showModal(onClose =>
             <ItemAct
-              onClose={(amount) => {
-                onClose()
-                // undo prompt was toasted before closing modal if zap undos are enabled
-                // so an additional success toast would be confusing
-                if (!zapUndosThresholdReached(me, amount)) toaster.success('item downzapped')
-              }} itemId={id} down
+              onClose={onClose} item={item} down
             >
               <AccordianItem
                 header='what is a downzap?' body={
@@ -59,11 +53,11 @@ function DownZapper ({ id, As, children }) {
   )
 }
 
-export default function DontLikeThisDropdownItem ({ id }) {
+export default function DontLikeThisDropdownItem ({ item }) {
   return (
     <DownZapper
       As={Dropdown.Item}
-      id={id}
+      item={item}
     >
       <span className='text-danger'>downzap</span>
     </DownZapper>

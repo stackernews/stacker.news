@@ -3,7 +3,9 @@ import AccordionContext from 'react-bootstrap/AccordionContext'
 import { useAccordionButton } from 'react-bootstrap/AccordionButton'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import ArrowDown from '@/svgs/arrow-down-s-fill.svg'
-import { useContext, useEffect } from 'react'
+import { useContext, useEffect, useState } from 'react'
+
+const KEY_ID = '0'
 
 function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', eventKey, show }) {
   const { activeEventKey } = useContext(AccordionContext)
@@ -29,10 +31,20 @@ function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', even
 }
 
 export default function AccordianItem ({ header, body, headerColor = 'var(--theme-grey)', show }) {
+  const [activeKey, setActiveKey] = useState()
+
+  useEffect(() => {
+    setActiveKey(show ? KEY_ID : null)
+  }, [show])
+
+  const handleOnSelect = () => {
+    setActiveKey(activeKey === KEY_ID ? null : KEY_ID)
+  }
+
   return (
-    <Accordion defaultActiveKey={show ? '0' : undefined}>
-      <ContextAwareToggle show={show} eventKey='0'><div style={{ color: headerColor }}>{header}</div></ContextAwareToggle>
-      <Accordion.Collapse eventKey='0' className='mt-2'>
+    <Accordion defaultActiveKey={activeKey} activeKey={activeKey} onSelect={handleOnSelect}>
+      <ContextAwareToggle show={show} eventKey={KEY_ID}><div style={{ color: headerColor }}>{header}</div></ContextAwareToggle>
+      <Accordion.Collapse eventKey={KEY_ID} className='mt-2'>
         <div>{body}</div>
       </Accordion.Collapse>
     </Accordion>

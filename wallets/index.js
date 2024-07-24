@@ -137,11 +137,6 @@ function useConfig (wallet) {
     ...(hasServerConfig ? serverConfig : {})
   }
 
-  if (wallet?.available !== undefined && config.enabled !== undefined) {
-    // wallet must be available to be enabled
-    config.enabled &&= wallet.available
-  }
-
   const saveConfig = useCallback(async (config) => {
     if (hasLocalConfig) setLocalConfig(config)
     if (hasServerConfig) await setServerConfig(config)
@@ -265,13 +260,7 @@ export function getEnabledWallet (me) {
       const priority = config?.priority
       return { ...def, config, priority }
     })
-    .filter(({ available, config }) => {
-      if (available !== undefined && config?.enabled !== undefined) {
-        // wallet must be available to be enabled
-        config.enabled &&= available
-      }
-      return config?.enabled
-    })
+    .filter(({ config }) => config?.enabled)
     .sort(walletPrioritySort)[0]
 }
 

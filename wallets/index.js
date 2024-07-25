@@ -12,6 +12,7 @@ import { autowithdrawInitial } from '@/components/autowithdraw-shared'
 import { useShowModal } from '@/components/modal'
 import { useToast } from '../components/toast'
 import { generateResolverName } from '@/lib/wallet'
+import { walletValidate } from '@/lib/validate'
 
 export const Status = {
   Initialized: 'Initialized',
@@ -51,12 +52,12 @@ export function useWallet (name) {
 
   const enable = useCallback(() => {
     enableWallet(name, me)
-    logger.ok('wallet enabled')
+    logger.ok('payments enabled')
   }, [name, me, logger])
 
   const disable = useCallback(() => {
     disableWallet(name, me)
-    logger.info('wallet disabled')
+    logger.info('payments disabled')
   }, [name, me, logger])
 
   const setPriority = useCallback(async (priority) => {
@@ -76,7 +77,7 @@ export function useWallet (name) {
       // TODO: add timeout
       const validConfig = await wallet.testConnectClient?.(newConfig, { me, logger })
       await saveConfig(validConfig ?? newConfig)
-      logger.ok(_isConfigured ? 'wallet updated' : 'wallet attached')
+      logger.ok(_isConfigured ? 'payment details updated' : 'wallet attached for payments')
     } catch (err) {
       const message = err.message || err.toString?.()
       logger.error('failed to attach: ' + message)
@@ -88,7 +89,7 @@ export function useWallet (name) {
   const delete_ = useCallback(async () => {
     try {
       await clearConfig()
-      logger.ok('wallet detached')
+      logger.ok('wallet detached for payments')
       disable()
     } catch (err) {
       const message = err.message || err.toString?.()
@@ -118,6 +119,37 @@ export function useWallet (name) {
   }
 }
 
+function extractConfig (fields, config, local) {
+  return Object.entries(config).reduce((acc, [key, value]) => {
+    const field = fields.find(({ name }) => name === key)
+    // field might not exist because config.enabled doesn't map to a wallet field
+    if (!field || (local ? isLocalField(field) : isServerField(field))) {
+      return {
+        ...acc,
+        [key]: value
+      }
+    } else {
+      return acc
+    }
+  }, {})
+}
+
+export function isServerField (f) {
+  return f.serverOnly || !f.clientOnly
+}
+
+export function isLocalField (f) {
+  return f.clientOnly || !f.serverOnly
+}
+
+function extractLocalConfig (fields, config) {
+  return extractConfig(fields, config, true)
+}
+
+function extractServerConfig (fields, config) {
+  return extractConfig(fields, config, false)
+}
+
 function useConfig (wallet) {
   const me = useMe()
 
@@ -129,17 +161,40 @@ function useConfig (wallet) {
   const hasLocalConfig = !!wallet?.sendPayment
   const hasServerConfig = !!wallet?.walletType
 
-  const config = {
-    // only include config if it makes sense for this wallet
-    // since server config always returns default values for autowithdraw settings
-    // which might be confusing to have for wallets that don't support autowithdraw
-    ...(hasLocalConfig ? localConfig : {}),
-    ...(hasServerConfig ? serverConfig : {})
+  let config = {}
+  if (hasLocalConfig) config = localConfig
+  if (hasServerConfig) {
+    const { enabled } = config || {}
+    config = {
+      ...config,
+      ...serverConfig
+    }
+    // wallet is enabled if enabled is set in local or server config
+    config.enabled ||= enabled
   }
 
   const saveConfig = useCallback(async (config) => {
-    if (hasLocalConfig) setLocalConfig(config)
-    if (hasServerConfig) await setServerConfig(config)
+    // NOTE:
+    //   verifying the local/server configuration before saving it
+    //   prevents unsetting just one configuration if both are set.
+    //   This means there is no way of unsetting just one configuration
+    //   since 'detach' detaches both.
+    //   Not optimal UX but the trade-off is saving invalid configurations
+    //   and maybe it's not that big of an issue.
+    if (hasLocalConfig) {
+      const newLocalConfig = extractLocalConfig(wallet.fields, config)
+      try {
+        await walletValidate(wallet, newLocalConfig)
+        setLocalConfig(newLocalConfig)
+      } catch {}
+    }
+    if (hasServerConfig) {
+      const newServerConfig = extractServerConfig(wallet.fields, config)
+      try {
+        await walletValidate(wallet, newServerConfig)
+        await setServerConfig(newServerConfig)
+      } catch {}
+    }
   }, [wallet])
 
   const clearConfig = useCallback(async () => {
@@ -206,6 +261,9 @@ function useServerConfig (wallet) {
   }, [client, walletId])
 
   const clearConfig = useCallback(async () => {
+    // only remove wallet if there is a wallet to remove
+    if (!walletId) return
+
     try {
       await client.mutate({
         mutation: REMOVE_WALLET,
@@ -224,17 +282,21 @@ function generateMutation (wallet) {
   const resolverName = generateResolverName(wallet.walletField)
 
   let headerArgs = '$id: ID, '
-  headerArgs += wallet.fields.map(f => {
-    let arg = `$${f.name}: String`
-    if (!f.optional) {
-      arg += '!'
-    }
-    return arg
-  }).join(', ')
+  headerArgs += wallet.fields
+    .filter(isServerField)
+    .map(f => {
+      let arg = `$${f.name}: String`
+      if (!f.optional) {
+        arg += '!'
+      }
+      return arg
+    }).join(', ')
   headerArgs += ', $settings: AutowithdrawSettings!'
 
   let inputArgs = 'id: $id, '
-  inputArgs += wallet.fields.map(f => `${f.name}: $${f.name}`).join(', ')
+  inputArgs += wallet.fields
+    .filter(isServerField)
+    .map(f => `${f.name}: $${f.name}`).join(', ')
   inputArgs += ', settings: $settings'
 
   return gql`mutation ${resolverName}(${headerArgs}) {

@@ -129,6 +129,10 @@ export const WALLET = gql`
           rune
           cert
         }
+        ... on WalletLNbits {
+          url
+          invoiceKey
+        }
       }
     }
   }
@@ -156,6 +160,10 @@ export const WALLET_BY_TYPE = gql`
           socket
           rune
           cert
+        }
+        ... on WalletLNbits {
+          url
+          invoiceKey
         }
       }
     }

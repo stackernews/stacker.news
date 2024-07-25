@@ -243,9 +243,6 @@ export function useWalletLogger (wallet) {
       return
     }
 
-    // don't store logs for receiving wallets on client since logs are stored on server
-    if (wallet.walletType) return
-
     // TODO:
     //   also send this to us if diagnostics was enabled,
     //   very similar to how the service worker logger works.

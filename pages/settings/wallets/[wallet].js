@@ -106,7 +106,7 @@ export default function WalletSettings () {
 
 function WalletFields ({ wallet: { config, fields, isConfigured } }) {
   return fields
-    .map(({ name, label, type, help, optional, editable, ...props }, i) => {
+    .map(({ name, label, type, help, optional, editable, clientOnly, serverOnly, ...props }, i) => {
       const rawProps = {
         ...props,
         name,

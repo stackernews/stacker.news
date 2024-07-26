@@ -14,7 +14,7 @@ async function fetchPrice (fiat) {
   return price
 }
 
-async function getPrice(fiat, changedCurrency = false) {
+async function getPrice (fiat, changedCurrency = false) {
   fiat ??= 'USD'
   if (cache.has(fiat)) {
     const { price, createdAt } = cache.get(fiat)

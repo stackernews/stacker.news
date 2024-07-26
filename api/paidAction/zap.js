@@ -74,6 +74,7 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
       SELECT "userId", ((${itemAct.msats}::BIGINT * pct) / 100)::BIGINT AS msats
       FROM "ItemForward"
       WHERE "itemId" = ${itemAct.itemId}::INTEGER
+      ORDER BY "userId" ASC -- order to prevent deadlocks
     ), total_forwarded AS (
       SELECT COALESCE(SUM(msats), 0) as msats
       FROM forwardees

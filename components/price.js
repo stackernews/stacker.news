@@ -33,7 +33,7 @@ export function PriceProvider ({ price, children }) {
 
   useEffect(() => {
     if (fiatCurrency) {
-      refetch({ fiatCurrency, changedCurrency: true });
+      refetch({ fiatCurrency, changedCurrency: true })
     }
   }, [fiatCurrency, refetch])
   const contextValue = useMemo(() => ({

@@ -14,27 +14,35 @@ async function fetchPrice (fiat) {
   return price
 }
 
-async function getPrice (fiat) {
+async function getPrice(fiat, changedCurrency = false) {
   fiat ??= 'USD'
   if (cache.has(fiat)) {
     const { price, createdAt } = cache.get(fiat)
     const expired = createdAt + expiresIn < Date.now()
     if (expired) {
+      if (changedCurrency) {
+        const newPrice = await fetchPrice(fiat)
+        return newPrice
+      } else {
+        fetchPrice(fiat).catch(console.error)
+      }
+    }
+    return price
+  } else {
+    if (changedCurrency) {
       const newPrice = await fetchPrice(fiat)
       return newPrice
     } else {
-      return price
+      fetchPrice(fiat).catch(console.error)
     }
-  } else {
-    const newPrice = await fetchPrice(fiat)
-    return newPrice
   }
+  return null
 }
 
 export default {
   Query: {
-    price: async (parent, { fiatCurrency }, ctx) => {
-      return await getPrice(fiatCurrency)
+    price: async (parent, { fiatCurrency, changedCurrency }, ctx) => {
+      return await getPrice(fiatCurrency, changedCurrency)
     }
   }
 }

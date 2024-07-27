@@ -26,7 +26,7 @@ const UpvotePopover = ({ target, show, handleClose }) => {
           <button type='button' className='btn-close' onClick={handleClose}><span className='visually-hidden-focusable'>Close alert</span></button>
         </Popover.Header>
         <Popover.Body>
-          <div className='mb-2'>Press the bolt again to zap {me?.privates?.tipDefault || 1} more sat{me?.privates?.tipDefault > 1 ? 's' : ''}.</div>
+          <div className='mb-2'>Press the bolt again to zap {me?.privates?.tipRandom ? 'a random amount of' : `${me?.privates?.tipDefault || 1} more`} sat{me?.privates?.tipDefault > 1 ? 's' : ''}.</div>
           <div>Repeatedly press the bolt to zap more sats.</div>
         </Popover.Body>
       </Popover>
@@ -67,11 +67,20 @@ export function DropdownItemUpVote ({ item }) {
   )
 }
 
-export const nextTip = (meSats, { tipDefault, turboTipping }) => {
-  // what should our next tip be?
-  if (!turboTipping) return (tipDefault || 1)
+export const defaultTipIncludingRandom = ({ tipDefault, tipRandom, tipRandomMin, tipRandomMax }) =>
+  tipRandom
+    ? Math.floor((Math.random() * (tipRandomMax - tipRandomMin)) + tipRandomMin)
+    : (tipDefault || 1)
 
-  let sats = tipDefault || 1
+export const nextTip = (meSats, { tipDefault, turboTipping, tipRandom, tipRandomMin, tipRandomMax }) => {
+  // what should our next tip be?
+  const calculatedDefault = defaultTipIncludingRandom({ tipDefault, tipRandom, tipRandomMin, tipRandomMax })
+
+  if (!turboTipping) {
+    return calculatedDefault
+  }
+
+  let sats = calculatedDefault
   if (turboTipping) {
     while (meSats >= sats) {
       sats *= 10
@@ -138,11 +147,17 @@ export default function UpVote ({ item, className }) {
 
     // what should our next tip be?
     const sats = nextTip(meSats, { ...me?.privates })
+    let overlayTextContent
+    if (me) {
+      overlayTextContent = me.privates?.tipRandom ? 'random' : numWithUnits(sats, { abbreviate: false })
+    } else {
+      overlayTextContent = 'zap it'
+    }
 
     return [
-      meSats, me ? numWithUnits(sats, { abbreviate: false }) : 'zap it',
+      meSats, overlayTextContent,
       getColor(meSats), getColor(meSats + sats)]
-  }, [item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
+  }, [item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault, me?.privates?.tipRandom, me?.privates?.tipRandomMin, me?.privates?.tipRandomMax])
 
   const handleModalClosed = () => {
     setHover(false)

@@ -41,6 +41,9 @@ export const ME = gql`
         noteItemMentions
         sats
         tipDefault
+        tipRandom
+        tipRandomMin
+        tipRandomMax
         tipPopover
         turboTipping
         zapUndos
@@ -66,6 +69,9 @@ export const SETTINGS_FIELDS = gql`
   fragment SettingsFields on User {
     privates {
       tipDefault
+      tipRandom
+      tipRandomMin
+      tipRandomMax
       turboTipping
       zapUndos
       fiatCurrency

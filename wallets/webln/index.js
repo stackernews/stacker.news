@@ -1,10 +1,18 @@
-import { SSR } from '@/lib/constants'
-
 export const name = 'webln'
 
 export const fields = []
 
-export const available = SSR ? false : typeof window.webln !== 'undefined'
+export const fieldValidation = ({ enabled }) => {
+  if (typeof window.webln === 'undefined') {
+    // don't prevent disabling WebLN if no WebLN provider found
+    if (enabled) {
+      return {
+        enabled: 'no WebLN provider found'
+      }
+    }
+  }
+  return {}
+}
 
 export const card = {
   title: 'WebLN',

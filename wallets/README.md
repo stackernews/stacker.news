@@ -64,10 +64,6 @@ Since `name` will also be used in [wallet logs](https://stacker.news/wallet/logs
 
 Wallet fields define what this wallet requires for configuration and thus are used to construct the forms like the one you can see at [/settings/wallets/lnbits](https://stacker.news/settings/walletslnbits).
 
-- `available?: boolean`
-
-This property can be used to override the default behavior of the `enabled` checkbox in the wallet configuration form. By default, it will be clickable when a wallet is configured. However, if a wallet does not have any configuration, this checkbox will always be disabled. You can set `available` to an expression that will determine when a wallet can be enabled.
-
 - `card: WalletCard`
 
 Wallet cards are the components you can see at [/settings/wallets](https://stacker.news/settings/wallets). This property customizes this card for this wallet.

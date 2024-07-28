@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Form, ClientInput, ClientCheckbox, PasswordInput } from '@/components/form'
+import { Form, ClientInput, ClientCheckbox, PasswordInput, CheckboxGroup } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
 import { WalletSecurityBanner } from '@/components/banners'
 import { WalletLogs } from '@/components/wallet-logger'
@@ -10,7 +10,6 @@ import Info from '@/components/info'
 import Text from '@/components/text'
 import { AutowithdrawSettings } from '@/components/autowithdraw-shared'
 import dynamic from 'next/dynamic'
-import { useEffect, useState } from 'react'
 
 const WalletButtonBar = dynamic(() => import('@/components/wallet-buttonbar.js'), { ssr: false })
 
@@ -21,14 +20,6 @@ export default function WalletSettings () {
   const router = useRouter()
   const { wallet: name } = router.query
   const wallet = useWallet(name)
-
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    // mounted is required since available might depend
-    // on values that are only available on the client (and not during SSR)
-    // and thus we need to render the component again on the client
-    setMounted(true)
-  }, [])
 
   const initial = wallet.fields.reduce((acc, field) => {
     // We still need to run over all wallet fields via reduce
@@ -46,8 +37,6 @@ export default function WalletSettings () {
   const validateProps = typeof wallet.fieldValidation === 'function'
     ? { validate: wallet.fieldValidation }
     : { schema: wallet.fieldValidation }
-
-  const available = mounted && wallet.available !== undefined ? wallet.available : wallet.isConfigured
 
   return (
     <CenterLayout>
@@ -84,12 +73,15 @@ export default function WalletSettings () {
         {wallet.walletType
           ? <AutowithdrawSettings wallet={wallet} />
           : (
-            <ClientCheckbox
-              disabled={!available}
-              initialValue={wallet.status === Status.Enabled}
-              label='enabled'
-              name='enabled'
-            />
+            <CheckboxGroup name='enabled'>
+              <ClientCheckbox
+                disabled={!wallet.isConfigured}
+                initialValue={wallet.status === Status.Enabled}
+                label='enabled'
+                name='enabled'
+                groupClassName='mb-0'
+              />
+            </CheckboxGroup>
             )}
         <WalletButtonBar
           wallet={wallet} onDelete={async () => {

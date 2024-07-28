@@ -127,7 +127,6 @@ export default function Settings ({ ssrData }) {
             noteItemMentions: settings?.noteItemMentions,
             noteDeposits: settings?.noteDeposits,
             noteWithdrawals: settings?.noteWithdrawals,
-            noteInvites: settings?.noteInvites,
             noteJobIndicator: settings?.noteJobIndicator,
             noteCowboyHat: settings?.noteCowboyHat,
             noteForwardedSats: settings?.noteForwardedSats,
@@ -266,11 +265,6 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label='someone replies to someone who replied to me'
             name='noteAllDescendants'
-            groupClassName='mb-0'
-          />
-          <Checkbox
-            label='someone joins using my invite or referral links'
-            name='noteInvites'
             groupClassName='mb-0'
           />
           <Checkbox

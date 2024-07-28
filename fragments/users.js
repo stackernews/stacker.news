@@ -34,7 +34,6 @@ export const ME = gql`
         noteWithdrawals
         noteEarning
         noteForwardedSats
-        noteInvites
         noteItemSats
         noteJobIndicator
         noteMentions
@@ -83,7 +82,6 @@ export const SETTINGS_FIELDS = gql`
       noteItemMentions
       noteDeposits
       noteWithdrawals
-      noteInvites
       noteJobIndicator
       noteCowboyHat
       noteForwardedSats

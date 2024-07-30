@@ -7,7 +7,7 @@ async function fetchPrice (fiat) {
     .then((res) => res.json())
     .then((body) => parseFloat(body.data.amount))
     .catch((err) => {
-      console.error(err)
+      console.error('price', err)
       return -1
     })
   cache.set(fiat, { price, createdAt: Date.now() })

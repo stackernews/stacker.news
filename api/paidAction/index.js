@@ -14,6 +14,7 @@ import * as TERRITORY_BILLING from './territoryBilling'
 import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
 import wrapInvoice from 'wallets/wrap'
+import { createInvoice as createUserInvoice } from 'wallets/server'
 
 export const paidActions = {
   ITEM_CREATE,
@@ -222,7 +223,7 @@ export async function createLightningInvoice (actionType, args, context) {
 
   if (userId) {
     const description = await paidActions[actionType].describe(args, context)
-    const { invoice, wallet } = await createInvoice(userId, {
+    const { invoice, wallet } = await createUserInvoice(userId, {
       msats: cost * BigInt(9) / BigInt(10),
       description,
       expiry: 600
@@ -291,6 +292,7 @@ async function createDbInvoice (actionType, args, context,
   let invoice
   if (wrappedInvoice) {
     invoice = (await db.invoiceForward.create({
+      include: { invoice: true },
       data: {
         bolt11: unwrappedInvoice,
         maxFeeMsats: maxFee,

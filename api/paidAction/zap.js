@@ -12,15 +12,15 @@ export async function getCost ({ sats }) {
 
 export async function invoiceablePeer ({ id }, { models }) {
   const item = await models.item.findUnique({
-    where: { id },
+    where: { id: parseInt(id) },
     include: {
       user: {
-        include: { wallet: true }
+        include: { wallets: true }
       }
     }
   })
 
-  return item.user.wallet.length > 0 ? item.userId : null
+  return item.user.wallets.length > 0 ? item.userId : null
 }
 
 export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, cost, tx }) {
@@ -91,10 +91,14 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
       SELECT COALESCE(SUM(msats), 0) as msats
       FROM forwardees
     ), recipients AS (
-      SELECT "userId", msats FROM forwardees
+      SELECT "userId", msats, msats AS "stackedMsats" FROM forwardees
       UNION
       SELECT ${itemAct.item.userId}::INTEGER as "userId",
-        ${itemAct.msats}::BIGINT - (SELECT msats FROM total_forwarded)::BIGINT as msats
+        CASE WHEN ${!!invoice?.invoiceForward}::BOOLEAN
+          THEN 0::BIGINT
+          ELSE ${itemAct.msats}::BIGINT - (SELECT msats FROM total_forwarded)::BIGINT
+        END as msats,
+        ${itemAct.msats}::BIGINT - (SELECT msats FROM total_forwarded)::BIGINT as "stackedMsats"
       ORDER BY "userId" ASC -- order to prevent deadlocks
     )
     UPDATE users

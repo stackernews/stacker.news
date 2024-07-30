@@ -120,7 +120,7 @@ model User {
   Sub                       Sub[]
   SubAct                    SubAct[]
   MuteSub                   MuteSub[]
-  Wallet                    Wallet[]
+  wallets                   Wallet[]
   TerritoryTransfers        TerritoryTransfer[]  @relation("TerritoryTransfer_oldUser")
   TerritoryReceives         TerritoryTransfer[]  @relation("TerritoryTransfer_newUser")
   AncestorReplies           Reply[]              @relation("AncestorReplyUser")

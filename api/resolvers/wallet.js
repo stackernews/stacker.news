@@ -103,14 +103,6 @@ export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
     throw new GraphQLError('not ur withdrawal', { extensions: { code: 'FORBIDDEN' } })
   }
 
-  try {
-    if (wdrwl.status === 'CONFIRMED') {
-      wdrwl.preimage = (await getPayment({ id: wdrwl.hash, lnd })).payment.secret
-    }
-  } catch (err) {
-    console.error('error fetching payment from LND', err)
-  }
-
   return wdrwl
 }
 
@@ -482,7 +474,16 @@ const resolvers = {
     satsPaying: w => msatsToSats(w.msatsPaying),
     satsPaid: w => msatsToSats(w.msatsPaid),
     satsFeePaying: w => msatsToSats(w.msatsFeePaying),
-    satsFeePaid: w => msatsToSats(w.msatsFeePaid)
+    satsFeePaid: w => msatsToSats(w.msatsFeePaid),
+    preimage: async (withdrawl, args, { lnd }) => {
+      try {
+        if (withdrawl.status === 'CONFIRMED') {
+          return (await getPayment({ id: withdrawl.hash, lnd })).payment.secret
+        }
+      } catch (err) {
+        console.error('error fetching payment from LND', err)
+      }
+    }
   },
 
   Invoice: {

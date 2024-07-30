@@ -264,7 +264,7 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
 
   if (wdrwl?.is_confirmed) {
     if (dbWdrwl.invoiceForward.length > 0) {
-      return await settleForwardAction({ data: { invoiceId: dbWdrwl.invoiceForward.invoice.id }, models, lnd, boss })
+      return await settleForwardAction({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id }, models, lnd, boss })
     }
 
     const fee = Number(wdrwl.payment.fee_mtokens)
@@ -277,7 +277,9 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
       notifyWithdrawal(dbWdrwl.userId, wdrwl)
       if (dbWdrwl.wallet) {
         // this was an autowithdrawal
-        const message = `autowithdrawal of ${numWithUnits(msatsToSats(paid), { abbreviate: false })} with ${numWithUnits(msatsToSats(fee), { abbreviate: false })} as fee`
+        const message = `autowithdrawal of ${
+          numWithUnits(msatsToSats(paid), { abbreviate: false })} with ${
+          numWithUnits(msatsToSats(fee), { abbreviate: false })} as fee`
         await addWalletLog({ wallet: dbWdrwl.wallet, level: 'SUCCESS', message }, { models, me: { id: dbWdrwl.userId } })
       }
     }

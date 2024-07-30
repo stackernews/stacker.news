@@ -25,6 +25,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
     const w = walletDefs.find(w => w.walletType === wallet.type)
     try {
       const { walletType, walletField, createInvoice } = w
+
       const walletFull = await models.wallet.findFirst({
         where: {
           userId,

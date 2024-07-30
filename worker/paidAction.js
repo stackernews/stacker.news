@@ -2,7 +2,7 @@ import { getPaymentFailureStatus, hodlInvoiceCltvDetails } from '@/api/lnd'
 import { paidActions } from '@/api/paidAction'
 import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
-import { getInvoice, getPayment, payViaPaymentRequest, settleHodlInvoice } from 'ln-service'
+import { getInvoice, getPayment, parsePaymentRequest, payViaPaymentRequest, settleHodlInvoice } from 'ln-service'
 import { MIN_SETTLEMENT_CLTV_DELTA } from 'wallets/wrap'
 
 async function transitionInvoice (jobName, { invoiceId, fromState, toState, transition }, { models, lnd, boss }) {
@@ -146,7 +146,7 @@ export async function forwardAction ({ data: { invoiceId }, models, lnd, boss })
     // optimistic actions use PENDING as starting state even if we're using a forward invoice
     fromState: ['PENDING_HELD', 'PENDING'],
     toState: 'PENDING_FORWARD',
-    onTransition: async ({ lndInvoice, dbInvoice, tx }) => {
+    transition: async ({ lndInvoice, dbInvoice, tx }) => {
       if (!lndInvoice.is_held) {
         throw new Error('invoice is not held')
       }
@@ -170,12 +170,14 @@ export async function forwardAction ({ data: { invoiceId }, models, lnd, boss })
         await performPessimisticAction({ lndInvoice, dbInvoice, tx, models, lnd, boss })
       }
 
+      const invoice = await parsePaymentRequest({ request: bolt11 })
+
       // create the withdrawl record outside of the transaction in case the tx fails
       const withdrawal = await models.withdrawl.create({
         data: {
-          hash: dbInvoice.id,
+          hash: invoice.id,
           bolt11,
-          msatsPaying: bolt11.msats,
+          msatsPaying: BigInt(invoice.mtokens),
           msatsFeePaying: maxFeeMsats,
           autoWithdraw: true,
           walletId: invoiceForward.walletId,
@@ -217,7 +219,7 @@ export async function settleForwardAction ({ data: { invoiceId }, models, lnd, b
     fromState: 'PENDING_FORWARD',
     toState: 'FORWARDED',
     transition: async ({ lndInvoice, dbInvoice, tx }) => {
-      if (!lndInvoice.is_held) {
+      if (!(lndInvoice.is_held || lndInvoice.is_confirmed)) {
         throw new Error('invoice is not held')
       }
 
@@ -227,14 +229,13 @@ export async function settleForwardAction ({ data: { invoiceId }, models, lnd, b
       }
 
       // settle the invoice, allowing us to transition to PAID
-      await settleHodlInvoice({ secret: dbInvoice.preimage, lnd })
+      await settleHodlInvoice({ secret: payment.secret, lnd })
 
       return {
         invoiceForward: {
           update: {
             withdrawl: {
               update: {
-                confirmedAt: new Date(),
                 status: 'CONFIRMED',
                 msatsPaid: BigInt(payment.mtokens),
                 msatsFeePaid: BigInt(payment.fee_mtokens),

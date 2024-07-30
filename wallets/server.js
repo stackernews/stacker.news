@@ -45,7 +45,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
         description: wallet.user.hideInvoiceDesc ? undefined : description,
         descriptionHash,
         expiry
-      }, walletFull[walletField], { me: wallet.user, models })
+      }, walletFull[walletField])
 
       const bolt11 = await parsePaymentRequest({ request: invoice })
       if (BigInt(bolt11.mtokens) !== BigInt(msats)) {

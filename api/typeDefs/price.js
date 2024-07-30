@@ -2,6 +2,6 @@ import { gql } from 'graphql-tag'
 
 export default gql`
   extend type Query {
-    price(fiatCurrency: String, changedCurrency: Boolean): Float
+    price(fiatCurrency: String, fromCache: Boolean = true): Float
   }
 `

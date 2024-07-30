@@ -14,35 +14,29 @@ async function fetchPrice (fiat) {
   return price
 }
 
-async function getPrice (fiat, changedCurrency = false) {
+async function getPrice (fiat, fromCache = true) {
   fiat ??= 'USD'
+
+  if (!fromCache) {
+    const newPrice = await fetchPrice(fiat)
+    return newPrice
+  }
+
   if (cache.has(fiat)) {
     const { price, createdAt } = cache.get(fiat)
     const expired = createdAt + expiresIn < Date.now()
-    if (expired) {
-      if (changedCurrency) {
-        const newPrice = await fetchPrice(fiat)
-        return newPrice
-      } else {
-        fetchPrice(fiat).catch(console.error)
-      }
-    }
-    return price
+    if (expired) fetchPrice(fiat).catch(console.error)
+    return price // serve stale price (this on the SSR critical path)
   } else {
-    if (changedCurrency) {
-      const newPrice = await fetchPrice(fiat)
-      return newPrice
-    } else {
-      fetchPrice(fiat).catch(console.error)
-    }
+    fetchPrice(fiat).catch(console.error)
+    return null
   }
-  return null
 }
 
 export default {
   Query: {
-    price: async (parent, { fiatCurrency, changedCurrency }, ctx) => {
-      return await getPrice(fiatCurrency, changedCurrency)
+    price: async (parent, { fiatCurrency, fromCache }, ctx) => {
+      return await getPrice(fiatCurrency, fromCache)
     }
   }
 }

@@ -164,6 +164,12 @@ export async function forwardAction ({ data: { invoiceId }, models, lnd, boss })
         return
       }
 
+      // if this is a pessimistic action, we want to perform it now
+      // ... we don't want it to fail after the outgoing payment is in flight
+      if (!dbInvoice.actionOptimistic) {
+        await performPessimisticAction({ lndInvoice, dbInvoice, tx, models, lnd, boss })
+      }
+
       // create the withdrawl record outside of the transaction in case the tx fails
       const withdrawal = await models.withdrawl.create({
         data: {
@@ -218,11 +224,6 @@ export async function settleForwardAction ({ data: { invoiceId }, models, lnd, b
       const { payment, is_confirmed: isConfirmed } = await getPayment({ id: dbInvoice.invoiceForward.withdrawl.hash, lnd })
       if (!isConfirmed) {
         throw new Error('payment is not confirmed')
-      }
-
-      // if this is a pessimistic action, we need to perform it now
-      if (!dbInvoice.actionOptimistic) {
-        await performPessimisticAction({ lndInvoice, dbInvoice, tx, models, lnd, boss })
       }
 
       // settle the invoice, allowing us to transition to PAID

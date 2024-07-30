@@ -149,7 +149,6 @@ export default async function wrapInvoice (invoice, { description, descriptionHa
 
   return {
     invoice: await createHodlInvoice({ lnd, ...wrapped }),
-    invoiceParams: wrapped,
     maxFee: outgoingMaxFeeMsat
   }
 }

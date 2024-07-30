@@ -69,4 +69,22 @@ export function hodlInvoiceCltvDetails (inv) {
   }
 }
 
+export function getPaymentFailureStatus (withdrawal) {
+  if (!withdrawal.is_failed) {
+    throw new Error('withdrawal is not failed')
+  }
+
+  if (withdrawal?.failed.is_insufficient_balance) {
+    return 'INSUFFICIENT_BALANCE'
+  } else if (withdrawal?.failed.is_invalid_payment) {
+    return 'INVALID_PAYMENT'
+  } else if (withdrawal?.failed.is_pathfinding_timeout) {
+    return 'PATHFINDING_TIMEOUT'
+  } else if (withdrawal?.failed.is_route_not_found) {
+    return 'ROUTE_NOT_FOUND'
+  }
+
+  return 'UNKNOWN_FAILURE'
+}
+
 export default lnd

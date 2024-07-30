@@ -38,9 +38,8 @@ export const testConnectServer = async (
 }
 
 export const createInvoice = async (
-  { amount },
-  { cert, macaroon, socket },
-  { me }
+  { msats, description, descriptionHash, expiry },
+  { cert, macaroon, socket }
 ) => {
   const { lnd } = await authenticatedLndGrpc({
     cert,
@@ -49,10 +48,11 @@ export const createInvoice = async (
   })
 
   const invoice = await lndCreateInvoice({
-    description: me.hideInvoiceDesc ? undefined : 'autowithdraw to LND from SN',
     lnd,
-    tokens: amount,
-    expires_at: datePivot(new Date(), { seconds: 360 })
+    description,
+    description_hash: descriptionHash,
+    mtokens: String(msats),
+    expires_at: datePivot(new Date(), { seconds: expiry })
   })
 
   return invoice.request

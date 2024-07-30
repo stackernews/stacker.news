@@ -774,9 +774,12 @@ enum InvoiceActionType {
 enum InvoiceActionState {
   PENDING
   PENDING_HELD
+  PENDING_FORWARD
+  FORWARDED
   HELD
   PAID
   FAILED
+  FAILED_FORWARD
   RETRYING
 }
 
@@ -816,41 +819,32 @@ model Invoice {
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   invoiceForward InvoiceForward?
 
-  actionState   InvoiceActionState?
-  actionType    InvoiceActionType?
-  actionId      Int?
-  actionArgs    Json?               @db.JsonB
-  actionError   String?
-  actionResult  Json?               @db.JsonB
-  ItemAct       ItemAct[]
-  Item          Item[]
-  Upload        Upload[]
-  PollVote      PollVote[]
-  PollBlindVote PollBlindVote[]
+  actionState      InvoiceActionState?
+  actionType       InvoiceActionType?
+  actionOptimistic Boolean?
+  actionId         Int?
+  actionArgs       Json?               @db.JsonB
+  actionError      String?
+  actionResult     Json?               @db.JsonB
+  ItemAct          ItemAct[]
+  Item             Item[]
+  Upload           Upload[]
+  PollVote         PollVote[]
+  PollBlindVote    PollBlindVote[]
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")
   @@index([confirmedIndex], map: "Invoice.confirmedIndex_index")
   @@index([isHeld])
   @@index([confirmedAt])
-}
-
-enum InvoiceForwardStatus {
-  CREATED
-  HELD
-  FORWARD_PENDING
-  FORWARD_FAILED
-  FORWARD_CONFIRMED
-  SETTLED
-  CONFIRMED
-  CANCELLED
+  @@index([actionType])
+  @@index([actionState])
 }
 
 model InvoiceForward {
-  id          Int                  @id @default(autoincrement())
-  createdAt   DateTime             @default(now()) @map("created_at")
-  updatedAt   DateTime             @default(now()) @updatedAt @map("updated_at")
-  status      InvoiceForwardStatus @default(CREATED)
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
   bolt11      String
   maxFeeMsats Int
   walletId    Int

@@ -1,4 +1,4 @@
-import { createHodlInvoice, createInvoice } from 'ln-service'
+import { createHodlInvoice, createInvoice, parsePaymentRequest } from 'ln-service'
 import { datePivot } from '@/lib/time'
 import { USER_ID } from '@/lib/constants'
 import { createHmac } from '../resolvers/wallet'
@@ -13,6 +13,7 @@ import * as TERRITORY_UPDATE from './territoryUpdate'
 import * as TERRITORY_BILLING from './territoryBilling'
 import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
+import wrapInvoice from 'wallets/wrap'
 
 export const paidActions = {
   ITEM_CREATE,
@@ -122,12 +123,12 @@ async function performOptimisticAction (actionType, args, context) {
   const action = paidActions[actionType]
 
   context.optimistic = true
-  context.lndInvoice = await createLndInvoice(actionType, args, context)
+  const invoiceArgs = await createLightningInvoice(actionType, args, context)
 
   return await models.$transaction(async tx => {
     context.tx = tx
 
-    const invoice = await createDbInvoice(actionType, args, context)
+    const invoice = await createDbInvoice(actionType, args, context, invoiceArgs)
 
     return {
       invoice,
@@ -145,9 +146,9 @@ async function performPessimisticAction (actionType, args, context) {
   }
 
   // just create the invoice and complete action when it's paid
-  context.lndInvoice = await createLndInvoice(actionType, args, context)
+  const invoiceArgs = await createLightningInvoice(actionType, args, context)
   return {
-    invoice: await createDbInvoice(actionType, args, context),
+    invoice: await createDbInvoice(actionType, args, context, invoiceArgs),
     paymentMethod: 'PESSIMISTIC'
   }
 }
@@ -182,7 +183,7 @@ export async function retryPaidAction (actionType, args, context) {
 
   const { msatsRequested } = await models.invoice.findUnique({ where: { id: invoiceId, actionState: 'FAILED' } })
   context.cost = BigInt(msatsRequested)
-  context.lndInvoice = await createLndInvoice(actionType, args, context)
+  const invoiceArgs = { invoice: await createSNInvoice(actionType, args, context) }
 
   return await models.$transaction(async tx => {
     context.tx = tx
@@ -201,7 +202,7 @@ export async function retryPaidAction (actionType, args, context) {
     context.actionId = actionId
 
     // create a new invoice
-    const invoice = await createDbInvoice(actionType, args, context)
+    const invoice = await createDbInvoice(actionType, args, context, invoiceArgs)
 
     return {
       result: await action.retry({ invoiceId, newInvoiceId: invoice.id }, context),
@@ -213,10 +214,32 @@ export async function retryPaidAction (actionType, args, context) {
 
 const OPTIMISTIC_INVOICE_EXPIRE = { minutes: 10 }
 const PESSIMISTIC_INVOICE_EXPIRE = { minutes: 10 }
+export async function createLightningInvoice (actionType, args, context) {
+  // if the action has an invoiceable peer, we'll create a peer invoice
+  // wrap it, and return the wrapped invoice
+  const { cost, models, lnd } = context
+  const userId = await paidActions[actionType]?.invoiceablePeer?.(args, context)
+
+  if (userId) {
+    const description = await paidActions[actionType].describe(args, context)
+    const { invoice, wallet } = await createInvoice(userId, {
+      msats: cost * BigInt(9) / BigInt(10),
+      description,
+      expiry: 600
+    }, { models })
+
+    const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(
+      invoice, { description }, { lnd })
+
+    return { invoice, wrappedInvoice, wallet, maxFee }
+  } else {
+    return { invoice: await createSNInvoice(actionType, args, context) }
+  }
+}
 
 // we seperate the invoice creation into two functions because
 // because if lnd is slow, it'll timeout the interactive tx
-async function createLndInvoice (actionType, args, context) {
+async function createSNInvoice (actionType, args, context) {
   const { me, lnd, cost, optimistic } = context
   const action = paidActions[actionType]
   const [createLNDInvoice, expirePivot] = optimistic
@@ -237,39 +260,59 @@ async function createLndInvoice (actionType, args, context) {
   })
 }
 
-async function createDbInvoice (actionType, args, context) {
-  const { me, models, tx, lndInvoice, cost, optimistic, actionId } = context
+async function createDbInvoice (actionType, args, context,
+  { invoice: unwrappedInvoice, wrappedInvoice, wallet, maxFee }) {
+  const { me, models, tx, cost, optimistic, actionId } = context
   const db = tx ?? models
-  const [expirePivot, actionState] = optimistic
-    ? [OPTIMISTIC_INVOICE_EXPIRE, 'PENDING']
-    : [PESSIMISTIC_INVOICE_EXPIRE, 'PENDING_HELD']
 
   if (cost < 1000n) {
     // sanity check
     throw new Error('The cost of the action must be at least 1 sat')
   }
 
-  const expiresAt = datePivot(new Date(), expirePivot)
-  const invoice = await db.invoice.create({
-    data: {
-      hash: lndInvoice.id,
-      msatsRequested: cost,
-      preimage: optimistic ? undefined : lndInvoice.secret,
-      bolt11: lndInvoice.request,
-      userId: me?.id ?? USER_ID.anon,
-      actionType,
-      actionState,
-      actionArgs: args,
-      expiresAt,
-      actionId
-    }
-  })
+  const servedInvoice = wrappedInvoice ?? unwrappedInvoice
+  const request = parsePaymentRequest({ request: servedInvoice.request })
+  const expiresAt = new Date(request.expires_at)
+
+  const invoiceData = {
+    hash: servedInvoice.id,
+    msatsRequested: BigInt(servedInvoice.mtokens),
+    preimage: optimistic ? undefined : servedInvoice.secret,
+    bolt11: servedInvoice.request,
+    userId: me?.id ?? USER_ID.anon,
+    actionType,
+    actionState: optimistic ? 'PENDING' : 'PENDING_HELD',
+    actionOptimistic: optimistic,
+    actionArgs: args,
+    expiresAt,
+    actionId
+  }
+
+  let invoice
+  if (wrappedInvoice) {
+    invoice = (await db.invoiceForward.create({
+      data: {
+        bolt11: unwrappedInvoice,
+        maxFeeMsats: maxFee,
+        invoice: {
+          create: invoiceData
+        },
+        wallet: {
+          connect: {
+            id: wallet.id
+          }
+        }
+      }
+    })).invoice
+  } else {
+    invoice = await db.invoice.create({ data: invoiceData })
+  }
 
   // insert a job to check the invoice after it's set to expire
   await db.$executeRaw`
       INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein, priority)
       VALUES ('checkInvoice',
-        jsonb_build_object('hash', ${lndInvoice.id}::TEXT), 21, true,
+        jsonb_build_object('hash', ${servedInvoice.id}::TEXT), 21, true,
           ${expiresAt}::TIMESTAMP WITH TIME ZONE,
           ${expiresAt}::TIMESTAMP WITH TIME ZONE - now() + interval '10m', 100)`
 

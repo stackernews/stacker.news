@@ -1,6 +1,5 @@
 import { createHodlInvoice, parsePaymentRequest } from 'ln-service'
-import { estimateRouteFee } from '../lnd'
-import createUserInvoice from '.'
+import { estimateRouteFee } from '../api/lnd'
 
 const MIN_OUTGOING_MSATS = BigInt(900) // the minimum msats we'll allow for the outgoing invoice
 const MAX_OUTGOING_MSATS = BigInt(9_000_000_000) // the maximum msats we'll allow for the outgoing  invoice
@@ -13,8 +12,6 @@ const FEE_ESTIMATE_TIMEOUT_SECS = 5 // the timeout for the fee estimate request
 const MAX_FEE_ESTIMATE_PERCENT = 0.02 // the maximum fee relative to outgoing we'll allow for the fee estimate
 const OUTGOING_ROUTING_ESTIMATE_MULT = 1.1 // pad the budget for outgoing routing
 const ZAP_SYBIL_FEE_MULT = 10 / 9 // the fee for the zap sybil service
-const ZAP_FORWARD_MULT = 9 / 10 // the percentage of the zap that's sybil fee
-
 /*
   The wrapInvoice function is used to wrap an outgoing invoice with the necessary parameters for an incoming hold invoice.
 
@@ -33,7 +30,7 @@ const ZAP_FORWARD_MULT = 9 / 10 // the percentage of the zap that's sybil fee
     outgoingMaxFeeMsat: number
   }
 */
-export async function wrapInvoice (invoice, { description, descriptionHash }, { lnd }) {
+export default async function wrapInvoice (invoice, { description, descriptionHash }, { lnd }) {
   // create a new object to hold the wrapped invoice values
   const wrapped = {}
   let outgoingMsat
@@ -155,37 +152,4 @@ export async function wrapInvoice (invoice, { description, descriptionHash }, { 
     invoiceParams: wrapped,
     maxFee: outgoingMaxFeeMsat
   }
-}
-
-export async function wrapZapInvoice ({ item, sats }, { models, me, lnd }) {
-  const { invoice, wallet } = await createUserInvoice({
-    userId: item.userId,
-    msats: BigInt(sats * 1000 * ZAP_FORWARD_MULT),
-    description: `zap for #${item.id}`
-  }, { models })
-  const { invoice: wrappedInvoice, invoiceParams, maxFee } = await wrapInvoice(
-    invoice, { description: `zap for #${item.id}` }, { lnd })
-  await models.invoiceForward.create({
-    data: {
-      bolt11: invoice,
-      maxFeeMsats: maxFee,
-      status: 'CREATED',
-      invoice: {
-        create: {
-          userId: me.id,
-          hash: wrappedInvoice.id,
-          bolt11: wrappedInvoice.request,
-          msatsRequested: BigInt(invoiceParams.mtokens),
-          expiresAt: invoiceParams.expires_at,
-          desc: invoiceParams.description
-        }
-      },
-      wallet: {
-        connect: {
-          id: wallet.id
-        }
-      }
-    }
-  })
-  return wrappedInvoice.request
 }

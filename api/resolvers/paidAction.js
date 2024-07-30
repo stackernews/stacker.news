@@ -26,7 +26,12 @@ function paidActionType (actionType) {
 export default {
   Query: {
     paidAction: async (parent, { invoiceId }, { models, me }) => {
-      const invoice = await models.invoice.findUnique({ where: { id: invoiceId, userId: me?.id ?? USER_ID.anon } })
+      const invoice = await models.invoice.findUnique({
+        where: {
+          id: invoiceId,
+          userId: me?.id ?? USER_ID.anon
+        }
+      })
       if (!invoice) {
         throw new Error('Invoice not found')
       }
@@ -35,7 +40,7 @@ export default {
         type: paidActionType(invoice.actionType),
         invoice,
         result: invoice.actionResult,
-        paymentMethod: invoice.preimage ? 'PESSIMISTIC' : 'OPTIMISTIC'
+        paymentMethod: invoice.actionOptimistic ? 'OPTIMISTIC' : 'PESSIMISTIC'
       }
     }
   },

@@ -10,6 +10,19 @@ export async function getCost ({ sats }) {
   return satsToMsats(sats)
 }
 
+export async function invoiceablePeer ({ id }, { models }) {
+  const item = await models.item.findUnique({
+    where: { id },
+    include: {
+      user: {
+        include: { wallet: true }
+      }
+    }
+  })
+
+  return item.user.wallet.length > 0 ? item.userId : null
+}
+
 export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, cost, tx }) {
   const feeMsats = cost / BigInt(10) // 10% fee
   const zapMsats = cost - feeMsats

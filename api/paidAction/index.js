@@ -223,21 +223,25 @@ export async function createLightningInvoice (actionType, args, context) {
   const userId = await paidActions[actionType]?.invoiceablePeer?.(args, context)
 
   if (userId) {
-    const description = await paidActions[actionType].describe(args, context)
-    const { invoice, wallet } = await createUserInvoice(userId, {
-      // this is the amount the stacker will receive, the other 1/10th is the fee
-      msats: cost * BigInt(9) / BigInt(10),
-      description,
-      expiry: INVOICE_EXPIRE_SECS
-    }, { models })
+    try {
+      const description = await paidActions[actionType].describe(args, context)
+      const { invoice, wallet } = await createUserInvoice(userId, {
+        // this is the amount the stacker will receive, the other 1/10th is the fee
+        msats: cost * BigInt(9) / BigInt(10),
+        description,
+        expiry: INVOICE_EXPIRE_SECS
+      }, { models })
 
-    const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(
-      invoice, { description }, { lnd })
+      const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(
+        invoice, { description }, { lnd })
 
-    return { invoice, wrappedInvoice, wallet, maxFee }
-  } else {
-    return { invoice: await createSNInvoice(actionType, args, context) }
+      return { invoice, wrappedInvoice, wallet, maxFee }
+    } catch (e) {
+      console.error('failed to create stacker invoice, falling back to SN invoice', e)
+    }
   }
+
+  return { invoice: await createSNInvoice(actionType, args, context) }
 }
 
 // we seperate the invoice creation into two functions because

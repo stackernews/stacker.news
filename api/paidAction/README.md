@@ -54,6 +54,26 @@ Internally, pessimistic flows use hold invoices. If the action doesn't succeed, 
 | update posts      | x           |            | x           |          | x          |             | x            |
 | update comments   | x           |            | x           |          | x          |             | x            |
 
+## Not-custodial zaps (ie p2p wrapped payments)
+Zaps, and possibly other future actions, can be performed peer to peer and non-custodially. This means that the payment is made directly from the client to the recipient, without the server taking custody of the funds. Currently, in order to trigger this behavior, the recipient must have a receiving wallet attached and the sender must have insufficient funds in their custodial wallet to perform the requested zap.
+
+This works by requesting an invoice from the recipient's wallet, wrapping it in a hold invoice paid to SN (to collect the sybil fee) which we serve to the sender. When the sender pays the wrapped invoice, we forward our own money to the recipient, who then reveals the preimage to us, allowing us to settle the wrapped invoice and claim the sender's funds. This effectively does what a lightning node does when forwarding a payment but allows us to do it at the application layer.
+
+<details>
+  <summary>Internals</summary>
+
+   Internally, p2p wrapped payments make use of a the same paid action state machine but it's transitioned by both the incoming invoice payment progress *and* the outgoing invoice payment progress. All p2p wrapped payments start in a `PENDING` or `PENDING_HELD` state (depending on whether the action is optimistic or pessimistic respectively) and have the following transitions:
+
+- `PENDING_HELD` -> `PENDING_FORWARD`: when the invoice is paid/held, the action's `perform` is run, and SN's funds are forwarded
+- `PENDING` -> `PENDING_FORWARD`: when the invoice is paid/held, SN's funds are forwarded
+- `PENDING_FORWARD` -> `FORWARDED`: when the outgoing invoice is confirmed, we settle the incoming invoice
+- `FORWARDED` -> `PAID`: when the incoming invoice is settled, the action's `onPaid` is called
+- `PENDING_FORWARD` -> `FAILED_FORWARD`: when the outgoing invoice fails to forward, the incoming invoice is cancelled returning the funds to the sender
+- `FAILED_FORWARD` -> `FAILED`: when the the incoming invoice is cancelled as a result of a failed forward, and the action's `onFail` is called
+- `PENDING_HELD` -> `FAILED`: when the invoice for the action expires or is cancelled before funds are forwarded, and the action's `onFail` is called
+- `PENDING` -> `FAILED`: when the invoice for the action expires or is cancelled before funds are forwarded, and the action's `onFail` is called
+</details>
+
 ## Paid Action Interface
 
 Each paid action is implemented in its own file in the `paidAction` directory. Each file exports a module with the following properties:

@@ -183,6 +183,7 @@ export async function retryPaidAction (actionType, args, context) {
   context.me = await models.user.findUnique({ where: { id: me.id } })
 
   const { msatsRequested } = await models.invoice.findUnique({ where: { id: invoiceId, actionState: 'FAILED' } })
+  // TODO: msatsRequested includes routing fees if this was originally a wrapped invoice
   context.cost = BigInt(msatsRequested)
   const invoiceArgs = { invoice: await createSNInvoice(actionType, args, context) }
 
@@ -213,8 +214,8 @@ export async function retryPaidAction (actionType, args, context) {
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 }
 
-const OPTIMISTIC_INVOICE_EXPIRE = { minutes: 10 }
-const PESSIMISTIC_INVOICE_EXPIRE = { minutes: 10 }
+const INVOICE_EXPIRE_SECS = 600
+
 export async function createLightningInvoice (actionType, args, context) {
   // if the action has an invoiceable peer, we'll create a peer invoice
   // wrap it, and return the wrapped invoice
@@ -224,9 +225,10 @@ export async function createLightningInvoice (actionType, args, context) {
   if (userId) {
     const description = await paidActions[actionType].describe(args, context)
     const { invoice, wallet } = await createUserInvoice(userId, {
+      // this is the amount the stacker will receive, the other 1/10th is the fee
       msats: cost * BigInt(9) / BigInt(10),
       description,
-      expiry: 600
+      expiry: INVOICE_EXPIRE_SECS
     }, { models })
 
     const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(
@@ -243,16 +245,14 @@ export async function createLightningInvoice (actionType, args, context) {
 async function createSNInvoice (actionType, args, context) {
   const { me, lnd, cost, optimistic } = context
   const action = paidActions[actionType]
-  const [createLNDInvoice, expirePivot] = optimistic
-    ? [createInvoice, OPTIMISTIC_INVOICE_EXPIRE]
-    : [createHodlInvoice, PESSIMISTIC_INVOICE_EXPIRE]
+  const createLNDInvoice = optimistic ? createInvoice : createHodlInvoice
 
   if (cost < 1000n) {
     // sanity check
     throw new Error('The cost of the action must be at least 1 sat')
   }
 
-  const expiresAt = datePivot(new Date(), expirePivot)
+  const expiresAt = datePivot(new Date(), { seconds: INVOICE_EXPIRE_SECS })
   return await createLNDInvoice({
     description: me?.hideInvoiceDesc ? undefined : await action.describe(args, context),
     lnd,

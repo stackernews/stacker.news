@@ -12,25 +12,18 @@ const FEE_ESTIMATE_TIMEOUT_SECS = 5 // the timeout for the fee estimate request
 const MAX_FEE_ESTIMATE_PERCENT = 0.02 // the maximum fee relative to outgoing we'll allow for the fee estimate
 const OUTGOING_ROUTING_ESTIMATE_MULT = 1.1 // pad the budget for outgoing routing
 const ZAP_SYBIL_FEE_MULT = 10 / 9 // the fee for the zap sybil service
+
 /*
   The wrapInvoice function is used to wrap an outgoing invoice with the necessary parameters for an incoming hold invoice.
 
   @param bolt11 {string} the bolt11 invoice to wrap
-  @param description {string} the description to use for the incoming invoice
-  @param descriptionHash {string} the description hash to use for the incoming invoice
+  @param options {object}
   @returns {
-    invoiceParams: {
-      id: string,
-      description: string,
-      description_hash: string,
-      expires_at: Date,
-      cltv_delta: number,
-      mtokens: string
-    },
+    invoice: the wrapped incoming invoice,
     outgoingMaxFeeMsat: number
   }
 */
-export default async function wrapInvoice (invoice, { description, descriptionHash }, { lnd }) {
+export default async function wrapInvoice (bolt11, { description, descriptionHash }, { lnd }) {
   try {
     console.group('wrapInvoice', description)
 
@@ -40,7 +33,7 @@ export default async function wrapInvoice (invoice, { description, descriptionHa
     let outgoingMaxFeeMsat
 
     // decode the invoice
-    const inv = await parsePaymentRequest({ request: invoice })
+    const inv = await parsePaymentRequest({ request: bolt11 })
     if (!inv) {
       throw new Error('Unable to decode invoice')
     }
@@ -116,8 +109,8 @@ export default async function wrapInvoice (invoice, { description, descriptionHa
     // trim the expiration to the maximum allowed with a buffer
       wrapped.expires_at = new Date(Date.now() + MAX_EXPIRATION_INCOMING_MSECS - INCOMING_EXPIRATION_BUFFER_MSECS)
     } else {
-    // give the existing expiration a buffer
-      wrapped.expires_at = new Date(new Date(inv.expires_at) - INCOMING_EXPIRATION_BUFFER_MSECS)
+      // give the existing expiration a buffer
+      wrapped.expires_at = new Date(new Date(inv.expires_at).getTime() - INCOMING_EXPIRATION_BUFFER_MSECS)
     }
 
     // get routing estimates
@@ -126,13 +119,20 @@ export default async function wrapInvoice (invoice, { description, descriptionHa
       lnd,
       destination: inv.destination,
       mtokens: inv.mtokens,
-      request: invoice,
+      request: bolt11,
       timeout: FEE_ESTIMATE_TIMEOUT_SECS
     })
 
     const { current_block_height: blockHeight } = await getHeight({ lnd })
-    // we want the incoming invoice to have MIN_SETTLEMENT_CLTV_DELTA higher cltv delta than
-    // the expected ctlv_delta of the outgoing invoice's route
+    /*
+      we want the incoming invoice to have MIN_SETTLEMENT_CLTV_DELTA higher final cltv delta than
+      the expected ctlv_delta of the outgoing invoice's entire route
+
+      timeLockDelay is the absolute height the outgoing route is estimated to expire in the worst case.
+      It excludes the final hop's cltv_delta, so we add it. We subtract the blockheight,
+      then add on how many blocks we want to reserve to settle the incoming payment,
+      assuming the outgoing payment settles at the worst case (ie largest) height.
+    */
     wrapped.cltv_delta = Number(timeLockDelay) + inv.cltv_delta - blockHeight + MIN_SETTLEMENT_CLTV_DELTA
     console.log('routingFeeMsat', routingFeeMsat, 'timeLockDelay', timeLockDelay, 'blockHeight', blockHeight)
 
@@ -140,16 +140,18 @@ export default async function wrapInvoice (invoice, { description, descriptionHa
     if (wrapped.cltv_delta > MAX_OUTGOING_CLTV_DELTA) {
       throw new Error('Estimated outgoing cltv delta is too high: ' + wrapped.cltv_delta)
     } else if (wrapped.cltv_delta < MIN_INCOMING_CLTV_DELTA) {
-    // enforce a minimum cltv delta for the incoming invoice
+      // enforce a minimum cltv delta for the incoming invoice
       wrapped.cltv_delta = MIN_INCOMING_CLTV_DELTA
     }
 
     // validate the fee budget
+    // TODO: it might make sense to charge outgoing fees to the recipient instead of the sender
+    // it's more incentive compatible, but it's also more complex
     const minEstFees = Number(routingFeeMsat)
     if (minEstFees > MAX_FEE_ESTIMATE_PERCENT * outgoingMsat) {
       throw new Error('Estimated fees are too high')
     } else {
-    // calculate the fees, adding a little extra incase estimate is off
+      // calculate the fees, adding a little extra incase estimate is off
       outgoingMaxFeeMsat = Math.ceil(minEstFees * OUTGOING_ROUTING_ESTIMATE_MULT)
       // calculate the incoming invoice amount, without fees
       const incomingMsat = Math.ceil(outgoingMsat * ZAP_SYBIL_FEE_MULT)

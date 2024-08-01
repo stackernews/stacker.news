@@ -1,4 +1,8 @@
-x-env_file: &env_file .env.development
+x-env_file: &env_file
+  - path: .env.development
+    required: true
+  - path: .env.local
+    required: false
 x-healthcheck: &healthcheck
   interval: 10s
   timeout: 10s

@@ -1,8 +1,9 @@
 import { getPaymentFailureStatus, hodlInvoiceCltvDetails } from '@/api/lnd'
 import { paidActions } from '@/api/paidAction'
+import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
-import { getInvoice, getPayment, parsePaymentRequest, payViaPaymentRequest, settleHodlInvoice } from 'ln-service'
+import { getHeight, getInvoice, getPayment, parsePaymentRequest, payViaPaymentRequest, settleHodlInvoice } from 'ln-service'
 import { MIN_SETTLEMENT_CLTV_DELTA } from 'wallets/wrap'
 
 async function transitionInvoice (jobName, { invoiceId, fromState, toState, transition }, { models, lnd, boss }) {
@@ -158,10 +159,11 @@ export async function forwardAction ({ data: { invoiceId }, models, lnd, boss })
 
       const { expiryHeight, acceptHeight } = hodlInvoiceCltvDetails(lndInvoice)
       const { bolt11, maxFeeMsats } = invoiceForward
-      if (expiryHeight - acceptHeight < MIN_SETTLEMENT_CLTV_DELTA) {
-        // cancel
+      const invoice = await parsePaymentRequest({ request: bolt11 })
+      if (expiryHeight - acceptHeight - invoice.cltv_delta < MIN_SETTLEMENT_CLTV_DELTA) {
+        // cancel and allow transition from PENDING[_HELD] -> FAILED
         boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash })
-        return
+        throw new Error('invoice has insufficient cltv delta for forward')
       }
 
       // if this is a pessimistic action, we want to perform it now
@@ -169,8 +171,6 @@ export async function forwardAction ({ data: { invoiceId }, models, lnd, boss })
       if (!dbInvoice.actionOptimistic) {
         await performPessimisticAction({ lndInvoice, dbInvoice, tx, models, lnd, boss })
       }
-
-      const invoice = await parsePaymentRequest({ request: bolt11 })
 
       // create the withdrawl record outside of the transaction in case the tx fails
       const withdrawal = await models.withdrawl.create({
@@ -185,12 +185,16 @@ export async function forwardAction ({ data: { invoiceId }, models, lnd, boss })
         }
       })
 
+      const { current_block_height: blockHeight } = await getHeight({ lnd })
+      console.log('with max fee', maxFeeMsats,
+        'max_timeout_height', blockHeight + expiryHeight - acceptHeight - MIN_SETTLEMENT_CLTV_DELTA)
+
       payViaPaymentRequest({
         lnd,
         request: bolt11,
         max_fee_mtokens: String(maxFeeMsats),
-        pathfinding_timeout: 30000,
-        max_timeout_height: expiryHeight - acceptHeight - MIN_SETTLEMENT_CLTV_DELTA
+        pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
+        max_timeout_height: blockHeight + expiryHeight - acceptHeight - MIN_SETTLEMENT_CLTV_DELTA
       }).catch(console.error)
 
       return {
@@ -260,8 +264,21 @@ export async function forwardActionError ({ data: { invoiceId }, models, lnd, bo
         throw new Error('invoice is not held')
       }
 
-      const withdrawal = await getPayment({ id: dbInvoice.invoiceForward.withdrawl.hash, lnd })
-      if (!withdrawal?.is_failed) {
+      let withdrawal
+      let notSent = false
+      try {
+        withdrawal = await getPayment({ id: dbInvoice.invoiceForward.withdrawl.hash, lnd })
+      } catch (err) {
+        if (err[1] === 'SentPaymentNotFound' &&
+          dbInvoice.invoiceForward.withdrawl.createdAt < datePivot(new Date(), { milliseconds: -LND_PATHFINDING_TIMEOUT_MS * 2 })) {
+          // if the payment is older than 2x timeout, but not found in LND, we can assume it errored before lnd stored it
+          notSent = true
+        } else {
+          throw err
+        }
+      }
+
+      if (!(withdrawal?.is_failed || notSent)) {
         throw new Error('payment has not failed')
       }
 

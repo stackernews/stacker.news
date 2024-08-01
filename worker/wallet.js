@@ -4,7 +4,7 @@ import {
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
 import { notifyDeposit, notifyWithdrawal } from '@/lib/webPush'
-import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
+import { INVOICE_RETENTION_DAYS, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
@@ -250,15 +250,16 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
   }
 
   let wdrwl
-  let notFound = false
+  let notSent = false
   try {
     wdrwl = await getPayment({ id: hash, lnd })
   } catch (err) {
-    if (err[1] === 'SentPaymentNotFound') {
-      notFound = true
+    if (err[1] === 'SentPaymentNotFound' &&
+      dbWdrwl.createdAt < datePivot(new Date(), { milliseconds: -LND_PATHFINDING_TIMEOUT_MS * 2 })) {
+      // if the payment is older than 2x timeout, but not found in LND, we can assume it errored before lnd stored it
+      notSent = true
     } else {
-      console.error('error getting payment', err)
-      return
+      throw err
     }
   }
 
@@ -283,9 +284,9 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
         await addWalletLog({ wallet: dbWdrwl.wallet, level: 'SUCCESS', message }, { models, me: { id: dbWdrwl.userId } })
       }
     }
-  } else if (wdrwl?.is_failed || notFound) {
+  } else if (wdrwl?.is_failed || notSent) {
     if (dbWdrwl.invoiceForward.length > 0) {
-      return await forwardActionError({ data: { invoiceId: dbWdrwl.invoiceForward.invoice.id }, models, lnd, boss })
+      return await forwardActionError({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id }, models, lnd, boss })
     }
 
     let status = 'UNKNOWN_FAILURE'; let message = 'unknown failure'
@@ -387,8 +388,8 @@ export async function checkPendingWithdrawals (args) {
     try {
       await checkWithdrawal({ data: { id: w.id, hash: w.hash }, ...args })
       await sleep(10)
-    } catch {
-      console.error('error checking withdrawal', w.hash)
+    } catch (err) {
+      console.error('error checking withdrawal', w.hash, err)
     }
   }
 }

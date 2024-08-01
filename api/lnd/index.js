@@ -70,7 +70,7 @@ export function hodlInvoiceCltvDetails (inv) {
 }
 
 export function getPaymentFailureStatus (withdrawal) {
-  if (!withdrawal.is_failed) {
+  if (withdrawal && !withdrawal.is_failed) {
     throw new Error('withdrawal is not failed')
   }
 

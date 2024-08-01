@@ -1,6 +1,11 @@
 #!/bin/sh
 
 set -e
+set -a # automatically export all variables
+. .env.development
+if [ -f .env.local ]; then
+  . .env.local
+fi
 
 docker__compose() {
   if [ ! -x "$(command -v docker)" ]; then
@@ -9,16 +14,12 @@ docker__compose() {
     exit 0
   fi
 
-  if [ -z "$COMPOSE_PROFILES" ]; then
-    COMPOSE_PROFILES="images,search,payments,wallets,email,capture"
-  fi
-
   ENV_LOCAL=
   if [ -f .env.local ]; then
     ENV_LOCAL='--env-file .env.local'
   fi
 
-  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) COMPOSE_PROFILES=$COMPOSE_PROFILES command docker compose --env-file .env.development $ENV_LOCAL "$@"
+  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) command docker compose --env-file .env.development $ENV_LOCAL "$@"
 }
 
 docker__exec() {

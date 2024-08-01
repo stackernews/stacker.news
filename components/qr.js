@@ -29,7 +29,7 @@ export default function Qr ({ asIs, value, useWallet: automated, statusVariant, 
           className='h-auto mw-100' value={qrValue} renderAs='svg' size={300}
         />
       </a>
-      {description && <div className='mt-1 fst-italic text-center text-muted'>{description}</div>}
+      {description && <div className='mt-1 text-center text-muted'>{description}</div>}
       <div className='mt-3 w-100'>
         <CopyInput type='text' placeholder={value} readOnly noForm />
       </div>

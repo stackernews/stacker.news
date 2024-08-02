@@ -182,16 +182,17 @@ export async function retryPaidAction (actionType, args, context) {
   context.optimistic = true
   context.me = await models.user.findUnique({ where: { id: me.id } })
 
-  const { msatsRequested } = await models.invoice.findUnique({ where: { id: invoiceId, actionState: 'FAILED' } })
+  const { msatsRequested, actionId } = await models.invoice.findUnique({ where: { id: invoiceId, actionState: 'FAILED' } })
   // TODO: msatsRequested includes routing fees if this was originally a wrapped invoice
   context.cost = BigInt(msatsRequested)
+  context.actionId = actionId
   const invoiceArgs = { invoice: await createSNInvoice(actionType, args, context) }
 
   return await models.$transaction(async tx => {
     context.tx = tx
 
     // update the old invoice to RETRYING, so that it's not confused with FAILED
-    const { actionId } = await tx.invoice.update({
+    await tx.invoice.update({
       where: {
         id: invoiceId,
         actionState: 'FAILED'
@@ -200,8 +201,6 @@ export async function retryPaidAction (actionType, args, context) {
         actionState: 'RETRYING'
       }
     })
-
-    context.actionId = actionId
 
     // create a new invoice
     const invoice = await createDbInvoice(actionType, args, context, invoiceArgs)

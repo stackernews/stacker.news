@@ -107,7 +107,7 @@ export default function UpVote ({ item, className }) {
   )
 
   const [controller, setController] = useState(null)
-  const [pending, setPending] = useState(false)
+  const [pending, setPending] = useState(0)
 
   const setVoteShow = useCallback((yes) => {
     if (!me) return
@@ -146,7 +146,7 @@ export default function UpVote ({ item, className }) {
     const meSats = (item?.meSats || item?.meAnonSats || 0)
 
     // what should our next tip be?
-    const sats = nextTip(meSats, { ...me?.privates })
+    const sats = pending || nextTip(meSats, { ...me?.privates })
     let overlayTextContent
     if (me) {
       overlayTextContent = me.privates?.tipRandom ? 'random' : numWithUnits(sats, { abbreviate: false })
@@ -157,7 +157,9 @@ export default function UpVote ({ item, className }) {
     return [
       meSats, overlayTextContent,
       getColor(meSats), getColor(meSats + sats)]
-  }, [item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault, me?.privates?.tipRandom, me?.privates?.tipRandomMin, me?.privates?.tipRandomMax])
+  }, [
+    item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault,
+    me?.privates?.tipRandom, me?.privates?.tipRandomMin, me?.privates?.tipRandomMax, pending])
 
   const handleModalClosed = () => {
     setHover(false)
@@ -178,7 +180,7 @@ export default function UpVote ({ item, className }) {
       setController(null)
       return
     }
-    const c = new ZapUndoController({ onStart: () => setPending(true), onDone: () => setPending(false) })
+    const c = new ZapUndoController({ onStart: (sats) => setPending(sats), onDone: () => setPending(0) })
     setController(c)
 
     showModal(onClose =>
@@ -205,7 +207,7 @@ export default function UpVote ({ item, className }) {
         setController(null)
         return
       }
-      const c = new ZapUndoController({ onStart: () => setPending(true), onDone: () => setPending(false) })
+      const c = new ZapUndoController({ onStart: (sats) => setPending(sats), onDone: () => setPending(0) })
       setController(c)
 
       await zap({ item, me, abortSignal: c.signal })

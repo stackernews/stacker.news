@@ -246,7 +246,7 @@ export class ZapUndoController extends AbortController {
     this.signal.done = onDone
     this.signal.pause = async ({ me, amount }) => {
       if (zapUndoTrigger({ me, amount })) {
-        await zapUndo(this.signal)
+        await zapUndo(this.signal, amount)
       }
     }
   }
@@ -258,9 +258,9 @@ const zapUndoTrigger = ({ me, amount }) => {
   return enabled ? amount >= me.privates.zapUndos : false
 }
 
-const zapUndo = async (signal) => {
+const zapUndo = async (signal, amount) => {
   return await new Promise((resolve, reject) => {
-    signal.start()
+    signal.start(amount)
     const abortHandler = () => {
       reject(new ActCanceledError())
       signal.done()

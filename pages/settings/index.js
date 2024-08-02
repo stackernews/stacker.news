@@ -1022,7 +1022,7 @@ const ZapUndosField = () => {
         <Input
           name='zapUndos'
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-          hint={<small className='text-muted'>threshold at which undo button is shown</small>}
+          hint={<small className='text-muted'>threshold at which undos will be possible</small>}
           groupClassName='mt-1'
         />}
     </>

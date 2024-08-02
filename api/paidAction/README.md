@@ -104,6 +104,8 @@ All functions have the following signature: `function(args: Object, context: Obj
     - this function is called when an optimistic action is retried
     - it's passed the original `invoiceId` and the `newInvoiceId`
     - this function should update the rows created in `perform` to contain the new `newInvoiceId` and remark the row as `PENDING`
+- `invoiceablePeer`: returns the userId of the peer that's capable of generating an invoice so they can be paid for the action
+    - this is only used for p2p wrapped zaps currently
 - `describe`: returns a description as a string of the action
     - for actions that require generating an invoice, and for stackers that don't hide invoice descriptions, this is used in the invoice description
 

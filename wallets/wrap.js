@@ -115,13 +115,13 @@ export default async function wrapInvoice (bolt11, { description, descriptionHas
 
     // get routing estimates
     const { routingFeeMsat, timeLockDelay } =
-    await estimateRouteFee({
-      lnd,
-      destination: inv.destination,
-      mtokens: inv.mtokens,
-      request: bolt11,
-      timeout: FEE_ESTIMATE_TIMEOUT_SECS
-    })
+      await estimateRouteFee({
+        lnd,
+        destination: inv.destination,
+        mtokens: inv.mtokens,
+        request: bolt11,
+        timeout: FEE_ESTIMATE_TIMEOUT_SECS
+      })
 
     const { current_block_height: blockHeight } = await getHeight({ lnd })
     /*
@@ -145,7 +145,7 @@ export default async function wrapInvoice (bolt11, { description, descriptionHas
     }
 
     // validate the fee budget
-    // TODO: it might make sense to charge outgoing fees to the recipient instead of the sender
+    // ???: it might make sense to charge outgoing fees to the recipient instead of the sender
     // it's more incentive compatible, but it's also more complex
     const minEstFees = Number(routingFeeMsat)
     if (minEstFees > MAX_FEE_ESTIMATE_PERCENT * outgoingMsat) {

@@ -3,7 +3,10 @@ import { paidActions } from '@/api/paidAction'
 import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
-import { getHeight, getInvoice, getPayment, parsePaymentRequest, payViaPaymentRequest, settleHodlInvoice } from 'ln-service'
+import {
+  getHeight, getInvoice, getPayment, parsePaymentRequest,
+  payViaPaymentRequest, settleHodlInvoice
+} from 'ln-service'
 import { MIN_SETTLEMENT_CLTV_DELTA } from 'wallets/wrap'
 
 async function transitionInvoice (jobName, { invoiceId, fromState, toState, transition }, { models, lnd, boss }) {
@@ -260,7 +263,7 @@ export async function paidActionFailedForward ({ data: { invoiceId }, models, ln
     fromState: 'PENDING_FORWARD',
     toState: 'FAILED_FORWARD',
     transition: async ({ lndInvoice, dbInvoice, tx }) => {
-      if (!lndInvoice.is_held) {
+      if (!(lndInvoice.is_held || lndInvoice.is_cancelled)) {
         throw new Error('invoice is not held')
       }
 

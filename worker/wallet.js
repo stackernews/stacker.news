@@ -12,7 +12,7 @@ import { msatsToSats, numWithUnits } from '@/lib/format'
 import {
   paidActionPaid, paidActionPendingForward, paidActionForwarded,
   paidActionFailedForward, paidActionHeld, paidActionFailed
-} from './paidAction'
+} from './paidAction.js'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)

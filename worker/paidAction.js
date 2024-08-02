@@ -85,7 +85,7 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
     boss.send(
       jobName,
       { invoiceId },
-      { startAfter: datePivot(new Date(), { minutes: 1 }), priority: 1000 })
+      { startAfter: datePivot(new Date(), { seconds: 30 }), priority: 1000 })
   } finally {
     console.groupEnd()
   }
@@ -116,8 +116,8 @@ async function performPessimisticAction ({ lndInvoice, dbInvoice, tx, models, ln
   }
 }
 
-export async function settleAction ({ data: { invoiceId }, models, lnd, boss }) {
-  return await transitionInvoice('settleAction', {
+export async function paidActionPaid ({ data: { invoiceId }, models, lnd, boss }) {
+  return await transitionInvoice('paidActionPaid', {
     invoiceId,
     fromState: ['HELD', 'PENDING', 'FORWARDED'],
     toState: 'PAID',
@@ -141,8 +141,8 @@ export async function settleAction ({ data: { invoiceId }, models, lnd, boss }) 
 }
 
 // this performs forward creating the outgoing payment
-export async function forwardAction ({ data: { invoiceId }, models, lnd, boss }) {
-  return await transitionInvoice('forwardAction', {
+export async function paidActionPendingForward ({ data: { invoiceId }, models, lnd, boss }) {
+  return await transitionInvoice('paidActionPendingForward', {
     invoiceId,
     // optimistic actions use PENDING as starting state even if we're using a forward invoice
     fromState: ['PENDING_HELD', 'PENDING'],
@@ -217,8 +217,8 @@ export async function forwardAction ({ data: { invoiceId }, models, lnd, boss })
 }
 
 // this finalizes the forward by settling the incoming invoice after the outgoing payment is confirmed
-export async function settleForwardAction ({ data: { invoiceId }, models, lnd, boss }) {
-  return await transitionInvoice('settleForwardAction', {
+export async function paidActionForwarded ({ data: { invoiceId }, models, lnd, boss }) {
+  return await transitionInvoice('paidActionForwarded', {
     invoiceId,
     fromState: 'PENDING_FORWARD',
     toState: 'FORWARDED',
@@ -254,8 +254,8 @@ export async function settleForwardAction ({ data: { invoiceId }, models, lnd, b
 }
 
 // when the pending forward fails, we need to cancel the incoming invoice
-export async function forwardActionError ({ data: { invoiceId }, models, lnd, boss }) {
-  return await transitionInvoice('forwardActionError', {
+export async function paidActionFailedForward ({ data: { invoiceId }, models, lnd, boss }) {
+  return await transitionInvoice('paidActionFailedForward', {
     invoiceId,
     fromState: 'PENDING_FORWARD',
     toState: 'FAILED_FORWARD',
@@ -300,8 +300,8 @@ export async function forwardActionError ({ data: { invoiceId }, models, lnd, bo
   }, { models, lnd, boss })
 }
 
-export async function holdAction ({ data: { invoiceId }, models, lnd, boss }) {
-  return await transitionInvoice('holdAction', {
+export async function paidActionHeld ({ data: { invoiceId }, models, lnd, boss }) {
+  return await transitionInvoice('paidActionHeld', {
     invoiceId,
     fromState: 'PENDING_HELD',
     toState: 'HELD',
@@ -334,8 +334,8 @@ export async function holdAction ({ data: { invoiceId }, models, lnd, boss }) {
   }, { models, lnd, boss })
 }
 
-export async function settleActionError ({ data: { invoiceId }, models, lnd, boss }) {
-  return await transitionInvoice('settleActionError', {
+export async function paidActionFailed ({ data: { invoiceId }, models, lnd, boss }) {
+  return await transitionInvoice('paidActionFailed', {
     invoiceId,
     // any of these states can transition to FAILED
     fromState: ['PENDING', 'PENDING_HELD', 'HELD', 'FAILED_FORWARD'],

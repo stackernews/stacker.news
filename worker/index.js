@@ -26,7 +26,10 @@ import { ofac } from './ofac.js'
 import { autoWithdraw } from './autowithdraw.js'
 import { saltAndHashEmails } from './saltAndHashEmails.js'
 import { remindUser } from './reminder.js'
-import { holdAction, settleAction, settleActionError } from './paidAction.js'
+import {
+  paidActionPaid, paidActionPendingForward, paidActionForwarded,
+  paidActionFailedForward, paidActionHeld, paidActionFailed
+} from './paidAction.js'
 import { thisDay } from './thisDay.js'
 import { isServiceEnabled } from '@/lib/sndev.js'
 
@@ -91,11 +94,19 @@ async function work () {
     await boss.work('checkPendingWithdrawals', jobWrapper(checkPendingWithdrawals))
     await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
     await boss.work('autoWithdraw', jobWrapper(autoWithdraw))
-    await boss.work('settleActionError', jobWrapper(settleActionError))
-    await boss.work('settleAction', jobWrapper(settleAction))
     await boss.work('checkInvoice', jobWrapper(checkInvoice))
     await boss.work('checkWithdrawal', jobWrapper(checkWithdrawal))
-    await boss.work('holdAction', jobWrapper(holdAction))
+    // paidAction jobs
+    await boss.work('paidActionPendingForward', jobWrapper(paidActionPendingForward))
+    await boss.work('paidActionForwarded', jobWrapper(paidActionForwarded))
+    await boss.work('paidActionFailedForward', jobWrapper(paidActionFailedForward))
+    await boss.work('paidActionHeld', jobWrapper(paidActionHeld))
+    await boss.work('paidActionFailed', jobWrapper(paidActionFailed))
+    await boss.work('paidActionPaid', jobWrapper(paidActionPaid))
+    // we renamed these jobs so we leave them so they can "migrate"
+    await boss.work('holdAction', jobWrapper(paidActionHeld))
+    await boss.work('settleActionError', jobWrapper(paidActionFailed))
+    await boss.work('settleAction', jobWrapper(paidActionPaid))
   }
   if (isServiceEnabled('search')) {
     await boss.work('indexItem', jobWrapper(indexItem))

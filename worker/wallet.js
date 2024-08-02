@@ -9,7 +9,10 @@ import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
-import { forwardAction, forwardActionError, holdAction, settleAction, settleActionError, settleForwardAction } from './paidAction'
+import {
+  paidActionPaid, paidActionPendingForward, paidActionForwarded,
+  paidActionFailedForward, paidActionHeld, paidActionFailed
+} from './paidAction'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -125,7 +128,7 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
 
   if (inv.is_confirmed) {
     if (dbInv.actionType) {
-      return await settleAction({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+      return await paidActionPaid({ data: { invoiceId: dbInv.id }, models, lnd, boss })
     }
 
     // NOTE: confirm invoice prevents double confirmations (idempotent)
@@ -149,9 +152,9 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   if (inv.is_held) {
     if (dbInv.actionType) {
       if (dbInv.invoiceForward) {
-        return await forwardAction({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+        return await paidActionPendingForward({ data: { invoiceId: dbInv.id }, models, lnd, boss })
       }
-      return await holdAction({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+      return await paidActionHeld({ data: { invoiceId: dbInv.id }, models, lnd, boss })
     }
     // First query makes sure that after payment, JIT invoices are settled
     // within 60 seconds or they will be canceled to minimize risk of
@@ -177,7 +180,7 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
 
   if (inv.is_canceled) {
     if (dbInv.actionType) {
-      return await settleActionError({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+      return await paidActionFailed({ data: { invoiceId: dbInv.id }, models, lnd, boss })
     }
 
     return await serialize(
@@ -265,7 +268,7 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
 
   if (wdrwl?.is_confirmed) {
     if (dbWdrwl.invoiceForward.length > 0) {
-      return await settleForwardAction({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id }, models, lnd, boss })
+      return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id }, models, lnd, boss })
     }
 
     const fee = Number(wdrwl.payment.fee_mtokens)
@@ -286,7 +289,7 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     }
   } else if (wdrwl?.is_failed || notSent) {
     if (dbWdrwl.invoiceForward.length > 0) {
-      return await forwardActionError({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id }, models, lnd, boss })
+      return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id }, models, lnd, boss })
     }
 
     let status = 'UNKNOWN_FAILURE'; let message = 'unknown failure'

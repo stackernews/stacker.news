@@ -1040,7 +1040,7 @@ const TipRandomField = () => {
         groupClassName='mb-0'
         label={
           <div className='d-flex align-items-center'>
-            random zap values
+            random zaps
             <Info>
               <ul className='fw-bold'>
                 <li>Set a minimum and maximum zap amount</li>

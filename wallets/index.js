@@ -87,8 +87,7 @@ export function useWallet (name) {
   // delete is a reserved keyword
   const delete_ = useCallback(async () => {
     try {
-      await clearConfig()
-      logger.ok('wallet detached for payments')
+      await clearConfig({ logger })
     } catch (err) {
       const message = err.message || err.toString?.()
       logger.error(message)
@@ -201,10 +200,11 @@ function useConfig (wallet) {
     }
   }, [wallet])
 
-  const clearConfig = useCallback(async () => {
+  const clearConfig = useCallback(async ({ logger }) => {
     if (hasLocalConfig) {
       clearLocalConfig()
       wallet.disablePayments()
+      logger.ok('wallet detached for payments')
     }
     if (hasServerConfig) await clearServerConfig()
   }, [wallet])

@@ -198,7 +198,7 @@ function useConfig (wallet) {
           if (valid) return await setServerConfig(newServerConfig)
         })
     }
-  }, [wallet])
+  }, [setLocalConfig, setServerConfig, wallet])
 
   const clearConfig = useCallback(async ({ logger }) => {
     if (hasLocalConfig) {

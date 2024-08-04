@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useMe } from '@/components/me'
-import useLocalConfig from '@/components/use-local-state'
+import useClientConfig from '@/components/use-local-state'
 import { useWalletLogger } from '@/components/wallet-logger'
 import { SSR } from '@/lib/constants'
 import { bolt11Tags } from '@/lib/bolt11'
@@ -119,15 +119,15 @@ export function useWallet (name) {
   }
 }
 
-function extractConfig (fields, config, local) {
+function extractConfig (fields, config, client) {
   return Object.entries(config).reduce((acc, [key, value]) => {
     const field = fields.find(({ name }) => name === key)
 
     // filter server config which isn't specified as wallet fields
-    if (local && (key.startsWith('autoWithdraw') || key === 'id')) return acc
+    if (client && (key.startsWith('autoWithdraw') || key === 'id')) return acc
 
     // field might not exist because config.enabled doesn't map to a wallet field
-    if (!field || (local ? isLocalField(field) : isServerField(field))) {
+    if (!field || (client ? isClientField(field) : isServerField(field))) {
       return {
         ...acc,
         [key]: value
@@ -142,11 +142,11 @@ export function isServerField (f) {
   return f.serverOnly || !f.clientOnly
 }
 
-export function isLocalField (f) {
+export function isClientField (f) {
   return f.clientOnly || !f.serverOnly
 }
 
-function extractLocalConfig (fields, config) {
+function extractClientConfig (fields, config) {
   return extractConfig(fields, config, true)
 }
 
@@ -158,42 +158,42 @@ function useConfig (wallet) {
   const me = useMe()
 
   const storageKey = getStorageKey(wallet?.name, me)
-  const [localConfig, setLocalConfig, clearLocalConfig] = useLocalConfig(storageKey)
+  const [clientConfig, setClientConfig, clearClientConfig] = useClientConfig(storageKey)
 
   const [serverConfig, setServerConfig, clearServerConfig] = useServerConfig(wallet)
 
-  const hasLocalConfig = !!wallet?.sendPayment
+  const hasClientConfig = !!wallet?.sendPayment
   const hasServerConfig = !!wallet?.walletType
 
   let config = {}
-  if (hasLocalConfig) config = localConfig
+  if (hasClientConfig) config = clientConfig
   if (hasServerConfig) {
     const { enabled } = config || {}
     config = {
       ...config,
       ...serverConfig
     }
-    // wallet is enabled if enabled is set in local or server config
+    // wallet is enabled if enabled is set in client or server config
     config.enabled ||= enabled
   }
 
   const saveConfig = useCallback(async (newConfig, { logger }) => {
     // NOTE:
-    //   verifying the local/server configuration before saving it
+    //   verifying the client/server configuration before saving it
     //   prevents unsetting just one configuration if both are set.
     //   This means there is no way of unsetting just one configuration
     //   since 'detach' detaches both.
     //   Not optimal UX but the trade-off is saving invalid configurations
     //   and maybe it's not that big of an issue.
-    if (hasLocalConfig) {
-      const newLocalConfig = extractLocalConfig(wallet.fields, newConfig)
-      await walletValidate(wallet, newLocalConfig)
+    if (hasClientConfig) {
+      const newClientConfig = extractClientConfig(wallet.fields, newConfig)
+      await walletValidate(wallet, newClientConfig)
         .then(() => true)
         // don't throw on validation errors, only use for control flow
         .catch(() => false)
         .then(async (valid) => {
           if (!valid) return
-          setLocalConfig(newLocalConfig)
+          setClientConfig(newClientConfig)
           logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
           if (newConfig.enabled) wallet.enablePayments()
           else wallet.disablePayments()
@@ -208,16 +208,16 @@ function useConfig (wallet) {
           if (valid) return await setServerConfig(newServerConfig)
         })
     }
-  }, [setLocalConfig, setServerConfig, wallet])
+  }, [setClientConfig, setServerConfig, wallet])
 
   const clearConfig = useCallback(async ({ logger }) => {
-    if (hasLocalConfig) {
-      clearLocalConfig()
+    if (hasClientConfig) {
+      clearClientConfig()
       wallet.disablePayments()
       logger.ok('wallet detached for payments')
     }
     if (hasServerConfig) await clearServerConfig()
-  }, [clearLocalConfig, clearServerConfig, wallet])
+  }, [clearClientConfig, clearServerConfig, wallet])
 
   return [config, saveConfig, clearConfig]
 }

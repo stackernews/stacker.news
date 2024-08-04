@@ -257,8 +257,8 @@ function useServerConfig (wallet) {
       return await client.mutate({
         mutation,
         variables: {
-          id: walletId,
           ...config,
+          id: walletId,
           settings: {
             autoWithdrawThreshold: Number(autoWithdrawThreshold),
             autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent),

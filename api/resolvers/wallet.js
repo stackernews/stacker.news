@@ -456,6 +456,7 @@ const resolvers = {
 
       await models.$transaction([
         models.wallet.delete({ where: { userId: me.id, id: Number(id) } }),
+        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'INFO', message: 'receivals disabled' } }),
         models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet detached for receivals' } })
       ])
 

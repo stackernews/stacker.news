@@ -114,7 +114,7 @@ export default function Settings ({ ssrData }) {
             tipDefault: settings?.tipDefault || 21,
             tipRandom: settings?.tipRandom,
             tipRandomMin: settings?.tipRandomMin || 1,
-            tipRandomMax: settings?.tipRandomMax || settings?.tipDefault || 21,
+            tipRandomMax: settings?.tipRandomMax || 10,
             turboTipping: settings?.turboTipping,
             zapUndos: settings?.zapUndos || (settings?.tipDefault ? 100 * settings.tipDefault : 2100),
             zapUndosEnabled: settings?.zapUndos !== null,

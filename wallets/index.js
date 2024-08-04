@@ -74,7 +74,7 @@ export function useWallet (name) {
         toaster.danger(`failed to change priority of ${wallet.name} wallet: ${err.message}`)
       }
     }
-  }, [wallet, config, logger, toaster])
+  }, [wallet, config, toaster])
 
   const save = useCallback(async (newConfig) => {
     // testConnectClient should log custom INFO and OK message

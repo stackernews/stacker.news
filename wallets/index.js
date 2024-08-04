@@ -116,6 +116,10 @@ export function useWallet (name) {
 function extractConfig (fields, config, local) {
   return Object.entries(config).reduce((acc, [key, value]) => {
     const field = fields.find(({ name }) => name === key)
+
+    // filter server config which isn't specified as wallet fields
+    if (local && (key.startsWith('autoWithdraw') || key === 'id')) return acc
+
     // field might not exist because config.enabled doesn't map to a wallet field
     if (!field || (local ? isLocalField(field) : isServerField(field))) {
       return {
@@ -236,6 +240,8 @@ function useServerConfig (wallet) {
     enabled: data?.walletByType?.enabled,
     ...data?.walletByType?.wallet
   }
+  delete serverConfig.__typename
+
   const autowithdrawSettings = autowithdrawInitial({ me })
   const config = { ...serverConfig, ...autowithdrawSettings }
 

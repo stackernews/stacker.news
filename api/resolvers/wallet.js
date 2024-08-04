@@ -456,8 +456,8 @@ const resolvers = {
 
       await models.$transaction([
         models.wallet.delete({ where: { userId: me.id, id: Number(id) } }),
-        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'INFO', message: 'receivals disabled' } }),
-        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet detached for receivals' } })
+        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'INFO', message: 'receives disabled' } }),
+        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet detached for receives' } })
       ])
 
       return true
@@ -565,7 +565,7 @@ async function upsertWallet (
       console.error(err)
       const message = 'failed to create test invoice: ' + (err.message || err.toString?.())
       await addWalletLog({ wallet, level: 'ERROR', message }, { me, models })
-      await addWalletLog({ wallet, level: 'INFO', message: 'receivals disabled' }, { me, models })
+      await addWalletLog({ wallet, level: 'INFO', message: 'receives disabled' }, { me, models })
       throw new GraphQLError(message, { extensions: { code: 'BAD_INPUT' } })
     }
   }
@@ -621,7 +621,7 @@ async function upsertWallet (
         userId: me.id,
         wallet: wallet.type,
         level: 'SUCCESS',
-        message: id ? 'receival details updated' : 'wallet attached for receivals'
+        message: id ? 'receive details updated' : 'wallet attached for receives'
       }
     }),
     models.walletLog.create({
@@ -629,7 +629,7 @@ async function upsertWallet (
         userId: me.id,
         wallet: wallet.type,
         level: enabled ? 'SUCCESS' : 'INFO',
-        message: enabled ? 'receivals enabled' : 'receivals disabled'
+        message: enabled ? 'receives enabled' : 'receives disabled'
       }
     })
   )

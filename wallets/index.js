@@ -207,7 +207,7 @@ function useConfig (wallet) {
       logger.ok('wallet detached for payments')
     }
     if (hasServerConfig) await clearServerConfig()
-  }, [wallet])
+  }, [clearLocalConfig, clearServerConfig, wallet])
 
   return [config, saveConfig, clearConfig]
 }

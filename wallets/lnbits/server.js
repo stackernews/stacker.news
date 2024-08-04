@@ -1,6 +1,6 @@
 export * from 'wallets/lnbits'
 
-async function _createInvoice ({ url, invoiceKey, amount, expiry }) {
+async function _createInvoice ({ url, invoiceKey, amount, expiry }, { me }) {
   const path = '/api/v1/payments'
 
   const headers = new Headers()
@@ -8,8 +8,10 @@ async function _createInvoice ({ url, invoiceKey, amount, expiry }) {
   headers.append('Content-Type', 'application/json')
   headers.append('X-Api-Key', invoiceKey)
 
-  const body = JSON.stringify({ amount, unit: 'sat', expiry, out: false })
+  const memo = me.hideInvoiceDesc ? undefined : 'autowithdraw to LNbits from SN'
+  const body = JSON.stringify({ amount, unit: 'sat', expiry, memo, out: false })
 
+  url = 'http://lnbits:5000'
   const res = await fetch(url + path, { method: 'POST', headers, body })
   if (!res.ok) {
     const errBody = await res.json()
@@ -20,10 +22,10 @@ async function _createInvoice ({ url, invoiceKey, amount, expiry }) {
   return payment.payment_request
 }
 
-export async function testConnectServer ({ url, invoiceKey }) {
-  return await _createInvoice({ url, invoiceKey, amount: 1, expiry: 1 })
+export async function testConnectServer ({ url, invoiceKey }, { me }) {
+  return await _createInvoice({ url, invoiceKey, amount: 1, expiry: 1 }, { me })
 }
 
-export async function createInvoice ({ amount, maxFee }, { url, invoiceKey }) {
-  return await _createInvoice({ url, invoiceKey, amount, expiry: 360 })
+export async function createInvoice ({ amount, maxFee }, { url, invoiceKey }, { me }) {
+  return await _createInvoice({ url, invoiceKey, amount, expiry: 360 }, { me })
 }

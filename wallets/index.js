@@ -33,6 +33,22 @@ export function useWallet (name) {
   const hasConfig = wallet?.fields.length > 0
   const _isConfigured = isConfigured({ ...wallet, config })
 
+  const enablePayments = useCallback(() => {
+    enableWallet(name, me)
+    logger.ok('payments enabled')
+  }, [name, me, logger])
+
+  const disablePayments = useCallback(() => {
+    disableWallet(name, me)
+    logger.info('payments disabled')
+  }, [name, me, logger])
+
+  if (wallet) {
+    wallet.isConfigured = _isConfigured
+    wallet.enablePayments = enablePayments
+    wallet.disablePayments = disablePayments
+  }
+
   const status = config?.enabled ? Status.Enabled : Status.Initialized
   const enabled = status === Status.Enabled
   const priority = config?.priority
@@ -50,16 +66,6 @@ export function useWallet (name) {
     }
   }, [me, wallet, config, logger, status])
 
-  const enable = useCallback(() => {
-    enableWallet(name, me)
-    logger.ok('payments enabled')
-  }, [name, me, logger])
-
-  const disable = useCallback(() => {
-    disableWallet(name, me)
-    logger.info('payments disabled')
-  }, [name, me, logger])
-
   const setPriority = useCallback(async (priority) => {
     if (_isConfigured && priority !== config.priority) {
       try {
@@ -71,32 +77,24 @@ export function useWallet (name) {
   }, [wallet, config, logger, toaster])
 
   const save = useCallback(async (newConfig) => {
-    try {
-      // testConnectClient should log custom INFO and OK message
-      // testConnectClient is optional since validation might happen during save on server
-      // TODO: add timeout
-      const validConfig = await wallet.testConnectClient?.(newConfig, { me, logger })
-      await saveConfig(validConfig ?? newConfig)
-      logger.ok(_isConfigured ? 'payment details updated' : 'wallet attached for payments')
-    } catch (err) {
-      const message = err.message || err.toString?.()
-      logger.error('failed to attach: ' + message)
-      throw err
-    }
-  }, [_isConfigured, saveConfig, me, logger])
+    // testConnectClient should log custom INFO and OK message
+    // testConnectClient is optional since validation might happen during save on server
+    // TODO: add timeout
+    const validConfig = await wallet.testConnectClient?.(newConfig, { me, logger })
+    await saveConfig(validConfig ?? newConfig, { logger })
+  }, [saveConfig, me, logger])
 
   // delete is a reserved keyword
   const delete_ = useCallback(async () => {
     try {
       await clearConfig()
       logger.ok('wallet detached for payments')
-      disable()
     } catch (err) {
       const message = err.message || err.toString?.()
       logger.error(message)
       throw err
     }
-  }, [clearConfig, logger, disable])
+  }, [clearConfig, logger, disablePayments])
 
   if (!wallet) return null
 
@@ -107,11 +105,8 @@ export function useWallet (name) {
     save,
     delete: delete_,
     deleteLogs,
-    enable,
-    disable,
     setPriority,
     hasConfig,
-    isConfigured: _isConfigured,
     status,
     enabled,
     priority,
@@ -173,7 +168,7 @@ function useConfig (wallet) {
     config.enabled ||= enabled
   }
 
-  const saveConfig = useCallback(async (config) => {
+  const saveConfig = useCallback(async (newConfig, { logger }) => {
     // NOTE:
     //   verifying the local/server configuration before saving it
     //   prevents unsetting just one configuration if both are set.
@@ -182,23 +177,35 @@ function useConfig (wallet) {
     //   Not optimal UX but the trade-off is saving invalid configurations
     //   and maybe it's not that big of an issue.
     if (hasLocalConfig) {
-      const newLocalConfig = extractLocalConfig(wallet.fields, config)
-      try {
-        await walletValidate(wallet, newLocalConfig)
-        setLocalConfig(newLocalConfig)
-      } catch {}
+      const newLocalConfig = extractLocalConfig(wallet.fields, newConfig)
+      await walletValidate(wallet, newLocalConfig)
+        .then(() => true)
+        // don't throw on validation errors, only use for control flow
+        .catch(() => false)
+        .then(async (valid) => {
+          if (!valid) return
+          setLocalConfig(newLocalConfig)
+          logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
+          if (newConfig.enabled) wallet.enablePayments()
+          else wallet.disablePayments()
+        })
     }
     if (hasServerConfig) {
-      const newServerConfig = extractServerConfig(wallet.fields, config)
-      try {
-        await walletValidate(wallet, newServerConfig)
-        await setServerConfig(newServerConfig)
-      } catch {}
+      const newServerConfig = extractServerConfig(wallet.fields, newConfig)
+      await walletValidate(wallet, newServerConfig)
+        .then(() => true)
+        .catch(() => false)
+        .then(async (valid) => {
+          if (valid) return await setServerConfig(newServerConfig)
+        })
     }
   }, [wallet])
 
   const clearConfig = useCallback(async () => {
-    if (hasLocalConfig) clearLocalConfig()
+    if (hasLocalConfig) {
+      clearLocalConfig()
+      wallet.disablePayments()
+    }
     if (hasServerConfig) await clearServerConfig()
   }, [wallet])
 

@@ -21,6 +21,12 @@ export async function createInvoice (userId, { msats, description, descriptionHa
     ]
   })
 
+  if (msats <= Number.MAX_SAFE_INTEGER) {
+    msats = Number(msats)
+  } else {
+    throw new Error('msats is too large')
+  }
+
   for (const wallet of wallets) {
     const w = walletDefs.find(w => w.walletType === wallet.type)
     try {

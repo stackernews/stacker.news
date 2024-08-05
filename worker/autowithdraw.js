@@ -12,11 +12,11 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   // excess must be greater than 10% of threshold
   if (excess < Number(threshold) * 0.1) return
 
-  const maxFee = msatsToSats(Math.ceil(excess * (user.autoWithdrawMaxFeePercent / 100.0)))
-  const amount = msatsToSats(excess) - maxFee
+  const maxFeeMsats = Math.ceil(excess * (user.autoWithdrawMaxFeePercent / 100.0))
+  const msats = excess - maxFeeMsats
 
   // must be >= 1 sat
-  if (amount < 1) return
+  if (msats < 1000) return
 
   // check that
   // 1. the user doesn't have an autowithdraw pending
@@ -30,12 +30,14 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
       OR (
         status <> 'CONFIRMED' AND
         now() < created_at + interval '1 hour' AND
-        "msatsFeePaying" >= ${satsToMsats(maxFee)}
+        "msatsFeePaying" >= ${maxFeeMsats}
       ))
     )`
 
   if (pendingOrFailed.exists) return
 
-  const { invoice, wallet } = await createInvoice(id, { msats: amount, description: 'SN: autowithdrawal', expiry: 360 }, { models })
-  return await createWithdrawal(null, { invoice, maxFee }, { me: { id }, models, lnd, walletId: wallet.id })
+  const { invoice, wallet } = await createInvoice(id, { msats, description: 'SN: autowithdrawal', expiry: 360 }, { models })
+  return await createWithdrawal(null,
+    { invoice, maxFee: msatsToSats(maxFeeMsats) },
+    { me: { id }, models, lnd, walletId: wallet.id })
 }

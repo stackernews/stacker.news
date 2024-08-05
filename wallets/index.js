@@ -187,26 +187,32 @@ function useConfig (wallet) {
     //   and maybe it's not that big of an issue.
     if (hasClientConfig) {
       const newClientConfig = extractClientConfig(wallet.fields, newConfig)
-      await walletValidate(wallet, newClientConfig)
-        .then(() => true)
-        // don't throw on validation errors, only use for control flow
-        .catch(() => false)
-        .then(async (valid) => {
-          if (!valid) return
-          setClientConfig(newClientConfig)
-          logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
-          if (newConfig.enabled) wallet.enablePayments()
-          else wallet.disablePayments()
-        })
+
+      let valid
+      try {
+        await walletValidate(wallet, newClientConfig)
+      } catch {
+        valid = false
+      }
+
+      if (valid) {
+        setClientConfig(newClientConfig)
+        logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
+        if (newConfig.enabled) wallet.enablePayments()
+        else wallet.disablePayments()
+      }
     }
     if (hasServerConfig) {
       const newServerConfig = extractServerConfig(wallet.fields, newConfig)
-      await walletValidate(wallet, newServerConfig)
-        .then(() => true)
-        .catch(() => false)
-        .then(async (valid) => {
-          if (valid) return await setServerConfig(newServerConfig)
-        })
+
+      let valid = true
+      try {
+        await walletValidate(wallet, newServerConfig)
+      } catch {
+        valid = false
+      }
+
+      if (valid) await setServerConfig(newServerConfig)
     }
   }, [setClientConfig, setServerConfig, wallet])
 

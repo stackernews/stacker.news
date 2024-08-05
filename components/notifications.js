@@ -461,7 +461,7 @@ function WithdrawlPaid ({ n }) {
       <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
       {n.withdrawl.direct || n.withdrawl.autoWithdraw ? 'sent to your attached wallet' : 'withdrawn from your account'}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      {(n.withdrawl.direct && <Badge className={styles.badge} bg={null}>direct</Badge>) ||
+      {(n.withdrawl.direct && <Badge className={styles.badge} bg={null}>p2p</Badge>) ||
       (n.withdrawl.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>)}
     </div>
   )

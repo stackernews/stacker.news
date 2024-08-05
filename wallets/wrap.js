@@ -6,11 +6,10 @@ const MAX_OUTGOING_MSATS = BigInt(9_000_000_000) // the maximum msats we'll allo
 const MAX_EXPIRATION_INCOMING_MSECS = 900_000 // the maximum expiration time we'll allow for the incoming invoice
 const INCOMING_EXPIRATION_BUFFER_MSECS = 300_000 // the buffer enforce for the incoming invoice expiration
 const MIN_INCOMING_CLTV_DELTA = 200 // the minimum cltv delta we'll allow for the incoming invoice
-const MAX_OUTGOING_CLTV_DELTA = 360 // the maximum cltv delta we'll allow for the outgoing invoice
+const MAX_OUTGOING_CLTV_DELTA = 500 // the maximum cltv delta we'll allow for the outgoing invoice
 export const MIN_SETTLEMENT_CLTV_DELTA = 80 // the minimum blocks we'll leave for settling the incoming invoice
 const FEE_ESTIMATE_TIMEOUT_SECS = 5 // the timeout for the fee estimate request
-const MAX_FEE_ESTIMATE_PERCENT = 0.02 // the maximum fee relative to outgoing we'll allow for the fee estimate
-const OUTGOING_ROUTING_ESTIMATE_MULT = 1.1 // pad the budget for outgoing routing
+const MAX_FEE_ESTIMATE_PERCENT = 0.025 // the maximum fee relative to outgoing we'll allow for the fee estimate
 const ZAP_SYBIL_FEE_MULT = 10 / 9 // the fee for the zap sybil service
 
 /*
@@ -30,7 +29,6 @@ export default async function wrapInvoice (bolt11, { description, descriptionHas
     // create a new object to hold the wrapped invoice values
     const wrapped = {}
     let outgoingMsat
-    let outgoingMaxFeeMsat
 
     // decode the invoice
     const inv = await parsePaymentRequest({ request: bolt11 })
@@ -145,20 +143,14 @@ export default async function wrapInvoice (bolt11, { description, descriptionHas
     }
 
     // validate the fee budget
-    // ???: it might make sense to charge outgoing fees to the recipient instead of the sender
-    // it's more incentive compatible, but it's also more complex
     const minEstFees = Number(routingFeeMsat)
-    if (minEstFees > MAX_FEE_ESTIMATE_PERCENT * outgoingMsat) {
+    const outgoingMaxFeeMsat = Math.ceil(outgoingMsat * MAX_FEE_ESTIMATE_PERCENT)
+    if (minEstFees > outgoingMaxFeeMsat) {
       throw new Error('Estimated fees are too high')
-    } else {
-      // calculate the fees, adding a little extra incase estimate is off
-      outgoingMaxFeeMsat = Math.ceil(minEstFees * OUTGOING_ROUTING_ESTIMATE_MULT)
-      // calculate the incoming invoice amount, without fees
-      const incomingMsat = Math.ceil(outgoingMsat * ZAP_SYBIL_FEE_MULT)
-      // the incoming invoice amount with the outgoing fees included
-      wrapped.mtokens = String(incomingMsat + outgoingMaxFeeMsat)
     }
 
+    // calculate the incoming invoice amount, without fees
+    wrapped.mtokens = String(Math.ceil(outgoingMsat * ZAP_SYBIL_FEE_MULT))
     console.log('outgoingMaxFeeMsat', outgoingMaxFeeMsat, 'wrapped', wrapped)
 
     return {

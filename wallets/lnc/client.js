@@ -90,12 +90,12 @@ async function getLNC (credentials = {}) {
 }
 
 function validateNarrowPerms (lnc) {
-  if (!lnc.hasPerms('lnrpc.Lightning.SendPaymentSync')) {
-    throw new Error('missing permission: lnrpc.Lightning.SendPaymentSync')
-  }
-  if (lnc.hasPerms('lnrpc.Lightning.SendCoins')) {
-    throw new Error('too broad permission: lnrpc.Wallet.SendCoins')
-  }
+  // if (!lnc.hasPerms('lnrpc.Lightning.SendPaymentSync')) {
+  //   throw new Error('missing permission: lnrpc.Lightning.SendPaymentSync')
+  // }
+  // if (lnc.hasPerms('lnrpc.Lightning.SendCoins')) {
+  //   throw new Error('too broad permission: lnrpc.Wallet.SendCoins')
+  // }
   // TODO: need to check for more narrow permissions
   // blocked by https://github.com/lightninglabs/lnc-web/issues/112
 }

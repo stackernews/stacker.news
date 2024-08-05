@@ -230,7 +230,8 @@ export async function paidActionForwarded ({ data: { invoiceId }, models, lnd, b
         throw new Error('invoice is not held')
       }
 
-      const { payment, is_confirmed: isConfirmed } = await getPayment({ id: dbInvoice.invoiceForward.withdrawl.hash, lnd })
+      const { hash, msatsPaying } = dbInvoice.invoiceForward.withdrawl
+      const { payment, is_confirmed: isConfirmed } = await getPayment({ id: hash, lnd })
       if (!isConfirmed) {
         throw new Error('payment is not confirmed')
       }
@@ -244,7 +245,7 @@ export async function paidActionForwarded ({ data: { invoiceId }, models, lnd, b
             withdrawl: {
               update: {
                 status: 'CONFIRMED',
-                msatsPaid: BigInt(payment.mtokens),
+                msatsPaid: msatsPaying,
                 msatsFeePaid: BigInt(payment.fee_mtokens),
                 preimage: payment.secret
               }

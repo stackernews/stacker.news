@@ -91,7 +91,8 @@ export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
       id: Number(id)
     },
     include: {
-      user: true
+      user: true,
+      invoiceForward: true
     }
   })
 
@@ -473,8 +474,9 @@ const resolvers = {
   Withdrawl: {
     satsPaying: w => msatsToSats(w.msatsPaying),
     satsPaid: w => msatsToSats(w.msatsPaid),
-    satsFeePaying: w => msatsToSats(w.msatsFeePaying),
-    satsFeePaid: w => msatsToSats(w.msatsFeePaid),
+    satsFeePaying: w => w.invoiceForward?.length > 0 ? 0 : msatsToSats(w.msatsFeePaying),
+    satsFeePaid: w => w.invoiceForward?.length > 0 ? 0 : msatsToSats(w.msatsFeePaid),
+    direct: w => !!w.invoiceForward?.length,
     preimage: async (withdrawl, args, { lnd }) => {
       try {
         if (withdrawl.status === 'CONFIRMED') {

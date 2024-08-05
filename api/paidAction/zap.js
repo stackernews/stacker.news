@@ -14,13 +14,17 @@ export async function invoiceablePeer ({ id }, { models }) {
   const item = await models.item.findUnique({
     where: { id: parseInt(id) },
     include: {
+      itemForwards: true,
       user: {
-        include: { wallets: true }
+        include: {
+          wallets: true
+        }
       }
     }
   })
 
-  return item.user.wallets.length > 0 ? item.userId : null
+  // request peer invoice if they have an attached wallet and have not forwarded the item
+  return item.user.wallets.length > 0 && item.itemForwards.length === 0 ? item.userId : null
 }
 
 export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, cost, tx }) {

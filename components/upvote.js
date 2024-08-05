@@ -67,29 +67,39 @@ export function DropdownItemUpVote ({ item }) {
   )
 }
 
-export const defaultTipIncludingRandom = ({ tipDefault, tipRandom, tipRandomMin, tipRandomMax } = {}) =>
-  tipRandom
-    ? Math.floor((Math.random() * (tipRandomMax - tipRandomMin)) + tipRandomMin)
+export const defaultTipIncludingRandom = ({ tipDefault, tipRandom, tipRandomMin, tipRandomMax } = {}) => {
+  return tipRandom
+    ? Math.floor((Math.random() * (tipRandomMax - tipRandomMin + 1)) + tipRandomMin)
     : (tipDefault || 100)
+}
 
 export const nextTip = (meSats, { tipDefault, turboTipping, tipRandom, tipRandomMin, tipRandomMax }) => {
-  // what should our next tip be?
-  const calculatedDefault = defaultTipIncludingRandom({ tipDefault, tipRandom, tipRandomMin, tipRandomMax })
-
-  if (!turboTipping) {
-    return calculatedDefault
-  }
-
-  let sats = calculatedDefault
   if (turboTipping) {
+    if (tipRandom) {
+      let pow = 0
+      // find the first power of 10 that is greater than meSats
+      while (!(meSats <= tipRandomMax * 10 ** pow)) {
+        pow++
+      }
+      // if meSats is in that power of 10's range already, move into the next range
+      if (meSats >= tipRandomMin * 10 ** pow) {
+        pow++
+      }
+      // make sure the our range minimum doesn't overlap with the previous range maximum
+      tipRandomMin = tipRandomMax * 10 ** (pow - 1) >= tipRandomMin * 10 ** pow ? tipRandomMax * 10 ** (pow - 1) + 1 : tipRandomMin * 10 ** pow
+      tipRandomMax = tipRandomMax * 10 ** pow
+      return Math.floor((Math.random() * (tipRandomMax - tipRandomMin + 1)) + tipRandomMin) - meSats
+    }
+
+    let sats = defaultTipIncludingRandom({ tipDefault, tipRandom, tipRandomMin, tipRandomMax })
     while (meSats >= sats) {
       sats *= 10
     }
     // deduct current sats since turbo tipping is about total zap not making the next zap 10x
-    sats -= meSats
+    return sats - meSats
   }
 
-  return sats
+  return defaultTipIncludingRandom({ tipDefault, tipRandom, tipRandomMin, tipRandomMax })
 }
 
 export default function UpVote ({ item, className }) {

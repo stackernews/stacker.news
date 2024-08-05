@@ -456,7 +456,6 @@ function Invoicification ({ n: { invoice, sortTime } }) {
 }
 
 function WithdrawlPaid ({ n }) {
-  console.log(n)
   return (
     <div className='fw-bold text-info'>
       <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}

@@ -62,7 +62,7 @@ This works by requesting an invoice from the recipient's wallet and reusing the 
 <details>
   <summary>Internals</summary>
 
-   Internally, p2p wrapped payments make use of a the same paid action state machine but it's transitioned by both the incoming invoice payment progress *and* the outgoing invoice payment progress. All p2p wrapped payments start in a `PENDING` or `PENDING_HELD` state (depending on whether the action is optimistic or pessimistic respectively) and have the following transitions:
+   Internally, p2p wrapped payments make use of the same paid action state machine but it's transitioned by both the incoming invoice payment progress *and* the outgoing invoice payment progress. All p2p wrapped payments start in a `PENDING` or `PENDING_HELD` state (depending on whether the action is optimistic or pessimistic respectively) and have the following transitions:
 
 - `PENDING_HELD` -> `PENDING_FORWARD`: when the invoice is paid/held, the action's `perform` is run, and SN's funds are forwarded
 - `PENDING` -> `PENDING_FORWARD`: when the invoice is paid/held, SN's funds are forwarded

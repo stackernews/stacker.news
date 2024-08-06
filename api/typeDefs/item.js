@@ -22,7 +22,6 @@ export default gql`
     sats: Int!
     path: String
     act: String!
-    bolt11: String
   }
 
   type ItemAct {

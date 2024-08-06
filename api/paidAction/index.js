@@ -183,7 +183,6 @@ export async function retryPaidAction (actionType, args, context) {
   context.me = await models.user.findUnique({ where: { id: me.id } })
 
   const { msatsRequested, actionId } = await models.invoice.findUnique({ where: { id: invoiceId, actionState: 'FAILED' } })
-  // TODO: msatsRequested includes routing fees if this was originally a wrapped invoice
   context.cost = BigInt(msatsRequested)
   context.actionId = actionId
   const invoiceArgs = { invoice: await createSNInvoice(actionType, args, context) }

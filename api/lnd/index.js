@@ -25,21 +25,21 @@ export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, req
     }, (err, res) => {
       if (err) {
         reject(err)
-      } else {
-        if (res.failure_reason) {
-          reject(new Error(`Unable to estimate route: ${res.failure_reason}`))
-        }
-
-        if (res.routing_fee_msat < 0 || res.routing_fee_msat >= Number.MAX_SAFE_INTEGER ||
-          res.time_lock_delay <= 0 || res.time_lock_delay >= Number.MAX_SAFE_INTEGER) {
-          reject(new Error('Unable to estimate route, excessive values: ' + JSON.stringify(res)))
-        }
-
-        resolve({
-          routingFeeMsat: Number(res.routing_fee_msat),
-          timeLockDelay: Number(res.time_lock_delay)
-        })
       }
+
+      if (res.failure_reason) {
+        reject(new Error(`Unable to estimate route: ${res.failure_reason}`))
+      }
+
+      if (res.routing_fee_msat < 0 || res.routing_fee_msat >= Number.MAX_SAFE_INTEGER ||
+          res.time_lock_delay <= 0 || res.time_lock_delay >= Number.MAX_SAFE_INTEGER) {
+        reject(new Error('Unable to estimate route, excessive values: ' + JSON.stringify(res)))
+      }
+
+      resolve({
+        routingFeeMsat: Number(res.routing_fee_msat),
+        timeLockDelay: Number(res.time_lock_delay)
+      })
     })
   })
 }

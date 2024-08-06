@@ -184,7 +184,7 @@ export const NOTIFICATIONS = gql`
           earnedSats
           withdrawl {
             autoWithdraw
-            direct
+            p2p
             satsFeePaid
           }
         }

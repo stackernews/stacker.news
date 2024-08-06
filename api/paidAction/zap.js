@@ -108,7 +108,7 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
     UPDATE users
     SET
       msats = users.msats + recipients.msats,
-      "stackedMsats" = users."stackedMsats" + recipients.msats
+      "stackedMsats" = users."stackedMsats" + recipients."stackedMsats"
     FROM recipients
     WHERE users.id = recipients."userId"`
 

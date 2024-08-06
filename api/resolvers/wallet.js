@@ -481,7 +481,7 @@ const resolvers = {
     satsPaid: w => msatsToSats(w.msatsPaid),
     satsFeePaying: w => w.invoiceForward?.length > 0 ? 0 : msatsToSats(w.msatsFeePaying),
     satsFeePaid: w => w.invoiceForward?.length > 0 ? 0 : msatsToSats(w.msatsFeePaid),
-    direct: w => !!w.invoiceForward?.length,
+    p2p: w => !!w.invoiceForward?.length,
     preimage: async (withdrawl, args, { lnd }) => {
       try {
         if (withdrawl.status === 'CONFIRMED') {

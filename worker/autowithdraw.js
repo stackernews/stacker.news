@@ -18,6 +18,9 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   // must be >= 1 sat
   if (msats < 1000) return
 
+  // maxFee is expected to be in sats, ie "msatsFeePaying" is always divisible by 1000
+  const maxFee = msatsToSats(maxFeeMsats)
+
   // check that
   // 1. the user doesn't have an autowithdraw pending
   // 2. we have not already attempted to autowithdraw this fee recently
@@ -30,7 +33,7 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
       OR (
         status <> 'CONFIRMED' AND
         now() < created_at + interval '1 hour' AND
-        "msatsFeePaying" >= ${maxFeeMsats}
+        "msatsFeePaying" >= ${satsToMsats(maxFee)}
       ))
     )`
 
@@ -38,6 +41,6 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
 
   const { invoice, wallet } = await createInvoice(id, { msats, description: 'SN: autowithdrawal', expiry: 360 }, { models })
   return await createWithdrawal(null,
-    { invoice, maxFee: msatsToSats(maxFeeMsats) },
+    { invoice, maxFee },
     { me: { id }, models, lnd, walletId: wallet.id })
 }

@@ -199,17 +199,19 @@ const resolvers = {
       if (include.has('withdrawal')) {
         queries.push(
           `(SELECT
-              id, created_at as "createdAt",
+              "Withdrawl".id, "Withdrawl".created_at as "createdAt",
               COALESCE("msatsPaid", "msatsPaying") as msats,
-              'withdrawal' as type,
+              CASE WHEN bool_and("InvoiceForward".id IS NULL) THEN 'withdrawal' ELSE 'p2p' END as type,
               jsonb_build_object(
-                'bolt11', bolt11,
+                'bolt11', "Withdrawl".bolt11,
                 'autoWithdraw', "autoWithdraw",
                 'status', COALESCE(status::text, 'PENDING'),
                 'msatsFee', COALESCE("msatsFeePaid", "msatsFeePaying")) as other
             FROM "Withdrawl"
-            WHERE "userId" = $1
-            AND created_at <= $2)`
+            LEFT JOIN "InvoiceForward" ON "Withdrawl".id = "InvoiceForward"."withdrawlId"
+            WHERE "Withdrawl"."userId" = $1
+            AND "Withdrawl".created_at <= $2
+            GROUP BY "Withdrawl".id)`
         )
       }
 
@@ -310,6 +312,9 @@ const resolvers = {
         switch (f.type) {
           case 'withdrawal':
             f.msats = (-1 * Number(f.msats)) - Number(f.msatsFee)
+            break
+          case 'p2p':
+            f.msats = -1 * Number(f.msats)
             break
           case 'spent':
           case 'donation':

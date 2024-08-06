@@ -57,7 +57,7 @@ Internally, pessimistic flows use hold invoices. If the action doesn't succeed, 
 ## Not-custodial zaps (ie p2p wrapped payments)
 Zaps, and possibly other future actions, can be performed peer to peer and non-custodially. This means that the payment is made directly from the client to the recipient, without the server taking custody of the funds. Currently, in order to trigger this behavior, the recipient must have a receiving wallet attached and the sender must have insufficient funds in their custodial wallet to perform the requested zap.
 
-This works by requesting an invoice from the recipient's wallet, wrapping it in a hold invoice paid to SN (to collect the sybil fee) which we serve to the sender. When the sender pays the wrapped invoice, we forward our own money to the recipient, who then reveals the preimage to us, allowing us to settle the wrapped invoice and claim the sender's funds. This effectively does what a lightning node does when forwarding a payment but allows us to do it at the application layer.
+This works by requesting an invoice from the recipient's wallet and reusing the payment hash in a hold invoice paid to SN (to collect the sybil fee) which we serve to the sender. When the sender pays this wrapped invoice, we forward our own money to the recipient, who then reveals the preimage to us, allowing us to settle the wrapped invoice and claim the sender's funds. This effectively does what a lightning node does when forwarding a payment but allows us to do it at the application layer.
 
 <details>
   <summary>Internals</summary>

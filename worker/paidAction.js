@@ -17,7 +17,7 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
     dbInvoice = await models.invoice.findUnique({ where: { id: invoiceId } })
     console.log('invoice is in state', dbInvoice.actionState)
 
-    if (['FAILED', 'PAID'].includes(dbInvoice.actionState)) {
+    if (['FAILED', 'PAID', 'RETRYING'].includes(dbInvoice.actionState)) {
       console.log('invoice is already in a terminal state, skipping transition')
       return
     }

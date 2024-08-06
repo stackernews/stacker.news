@@ -376,7 +376,7 @@ export async function checkPendingDeposits (args) {
   const pendingDeposits = await models.invoice.findMany({ where: { confirmedAt: null, cancelled: false } })
   for (const d of pendingDeposits) {
     try {
-      await checkInvoice({ data: { id: d.id, hash: d.hash }, ...args })
+      await checkInvoice({ data: { hash: d.hash }, ...args })
       await sleep(10)
     } catch {
       console.error('error checking invoice', d.hash)
@@ -389,7 +389,7 @@ export async function checkPendingWithdrawals (args) {
   const pendingWithdrawals = await models.withdrawl.findMany({ where: { status: null } })
   for (const w of pendingWithdrawals) {
     try {
-      await checkWithdrawal({ data: { id: w.id, hash: w.hash }, ...args })
+      await checkWithdrawal({ data: { hash: w.hash }, ...args })
       await sleep(10)
     } catch (err) {
       console.error('error checking withdrawal', w.hash, err)

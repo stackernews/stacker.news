@@ -45,7 +45,7 @@ export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, req
 }
 
 // created_height is the accepted_height, timeout is the expiry height
-// ln-service has remaps the `htlcs` field of lookupInvoice to `payments` and
+// ln-service remaps the `htlcs` field of lookupInvoice to `payments` and
 // see: https://github.com/alexbosworth/lightning/blob/master/lnd_responses/htlc_as_payment.js
 // and: https://lightning.engineering/api-docs/api/lnd/lightning/lookup-invoice/index.html#lnrpcinvoicehtlc
 export function hodlInvoiceCltvDetails (inv) {

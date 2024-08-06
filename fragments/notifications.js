@@ -185,6 +185,7 @@ export const NOTIFICATIONS = gql`
           withdrawl {
             autoWithdraw
             direct
+            satsFeePaid
           }
         }
         ... on Reminder {

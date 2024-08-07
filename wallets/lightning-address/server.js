@@ -13,11 +13,12 @@ export const testConnectServer = async (
 }
 
 export const createInvoice = async (
-  { amount, maxFee },
+  amount,
   { address },
   { me, models, lnd, lnService }
 ) => {
-  const res = await fetchLnAddrInvoice({ addr: address, amount, maxFee }, {
+  // maxFee is only required to pass schema validation
+  const res = await fetchLnAddrInvoice({ addr: address, amount, maxFee: 0 }, {
     me,
     models,
     lnd,

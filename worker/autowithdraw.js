@@ -96,7 +96,7 @@ async function autowithdraw (
   }
 
   const bolt11 = await walletCreateInvoice(
-    { amount, maxFee },
+    amount,
     wallet[walletField],
     {
       me,

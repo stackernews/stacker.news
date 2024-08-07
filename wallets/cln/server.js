@@ -22,7 +22,7 @@ export const testConnectServer = async (
 }
 
 export const createInvoice = async (
-  { amount },
+  amount,
   { socket, rune, cert },
   { me, models, lnd }
 ) => {

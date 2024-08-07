@@ -2,6 +2,7 @@ import { getPaymentFailureStatus, hodlInvoiceCltvDetails } from '@/api/lnd'
 import { paidActions } from '@/api/paidAction'
 import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
+import { toPositiveNumber } from '@/lib/validate'
 import { Prisma } from '@prisma/client'
 import {
   getHeight, getInvoice, getPayment, parsePaymentRequest,
@@ -163,7 +164,10 @@ export async function paidActionPendingForward ({ data: { invoiceId }, models, l
       const { expiryHeight, acceptHeight } = hodlInvoiceCltvDetails(lndInvoice)
       const { bolt11, maxFeeMsats } = invoiceForward
       const invoice = await parsePaymentRequest({ request: bolt11 })
-      if (expiryHeight - acceptHeight - invoice.cltv_delta < MIN_SETTLEMENT_CLTV_DELTA) {
+      // maxTimeoutDelta is the number of blocks left for the outgoing payment to settle
+      const maxTimeoutDelta = toPositiveNumber(expiryHeight) - toPositiveNumber(acceptHeight) - MIN_SETTLEMENT_CLTV_DELTA
+      if (maxTimeoutDelta - toPositiveNumber(invoice.cltv_delta) <= 0) {
+        // the payment will certainly fail, so we can
         // cancel and allow transition from PENDING[_HELD] -> FAILED
         boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash })
         throw new Error('invoice has insufficient cltv delta for forward')
@@ -189,15 +193,15 @@ export async function paidActionPendingForward ({ data: { invoiceId }, models, l
       })
 
       const { current_block_height: blockHeight } = await getHeight({ lnd })
-      console.log('with max fee', maxFeeMsats,
-        'max_timeout_height', blockHeight + expiryHeight - acceptHeight - MIN_SETTLEMENT_CLTV_DELTA)
+      const maxTimeoutHeight = toPositiveNumber(toPositiveNumber(blockHeight) + maxTimeoutDelta)
+      console.log('with max fee', maxFeeMsats, 'max_timeout_height', maxTimeoutHeight)
 
       payViaPaymentRequest({
         lnd,
         request: bolt11,
         max_fee_mtokens: String(maxFeeMsats),
         pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
-        max_timeout_height: blockHeight + expiryHeight - acceptHeight - MIN_SETTLEMENT_CLTV_DELTA
+        max_timeout_height: maxTimeoutHeight
       }).catch(console.error)
 
       return {

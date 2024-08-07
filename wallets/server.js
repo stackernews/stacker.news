@@ -4,6 +4,7 @@ import * as lnAddr from 'wallets/lightning-address/server'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import walletDefs from 'wallets/server'
 import { parsePaymentRequest } from 'ln-service'
+import { toPositiveNumber } from '@/lib/validate'
 
 export default [lnd, cln, lnAddr]
 
@@ -21,11 +22,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
     ]
   })
 
-  if (msats <= Number.MAX_SAFE_INTEGER) {
-    msats = Number(msats)
-  } else {
-    throw new Error('msats is too large')
-  }
+  msats = toPositiveNumber(msats)
 
   for (const wallet of wallets) {
     const w = walletDefs.find(w => w.walletType === wallet.type)

@@ -1,5 +1,6 @@
 import { createHodlInvoice, getHeight, parsePaymentRequest } from 'ln-service'
 import { estimateRouteFee } from '../api/lnd'
+import { toPositiveNumber } from '@/lib/validate'
 
 const MIN_OUTGOING_MSATS = BigInt(900) // the minimum msats we'll allow for the outgoing invoice
 const MAX_OUTGOING_MSATS = BigInt(9_000_000_000) // the maximum msats we'll allow for the outgoing  invoice
@@ -40,13 +41,13 @@ export default async function wrapInvoice (bolt11, { description, descriptionHas
 
     // validate amount
     if (inv.mtokens) {
-      if (inv.mtokens < MIN_OUTGOING_MSATS) {
-        throw new Error(`Invoice amount is too low: ${inv.mtokens}`)
+      outgoingMsat = toPositiveNumber(inv.mtokens)
+      if (outgoingMsat < MIN_OUTGOING_MSATS) {
+        throw new Error(`Invoice amount is too low: ${outgoingMsat}`)
       }
-      if (inv.mtokens > MAX_OUTGOING_MSATS || inv.mtokens >= Number.MAX_SAFE_INTEGER) {
-        throw new Error(`Invoice amount is too high: ${inv.mtokens}`)
+      if (inv.mtokens > MAX_OUTGOING_MSATS) {
+        throw new Error(`Invoice amount is too high: ${outgoingMsat}`)
       }
-      outgoingMsat = Number(inv.mtokens)
     } else {
       throw new Error('Invoice amount is missing')
     }
@@ -55,7 +56,7 @@ export default async function wrapInvoice (bolt11, { description, descriptionHas
     if (inv.features) {
       for (const f of inv.features) {
         switch (Number(f.bit)) {
-        // supported features
+          // supported features
           case 8: // variable length routing onion
           case 9:
           case 14: // payment secret
@@ -87,16 +88,16 @@ export default async function wrapInvoice (bolt11, { description, descriptionHas
     if (description && descriptionHash) {
       throw new Error('Only one of description or descriptionHash is allowed')
     } else if (description) {
-    // use our wrapped description
+      // use our wrapped description
       wrapped.description = description
     } else if (descriptionHash) {
-    // use our wrapped description hash
+      // use our wrapped description hash
       wrapped.description_hash = descriptionHash
     } else if (inv.description_hash) {
-    // use the invoice description hash
+      // use the invoice description hash
       wrapped.description_hash = inv.description_hash
     } else {
-    // use the invoice description
+      // use the invoice description
       wrapped.description = inv.description
     }
 
@@ -104,7 +105,7 @@ export default async function wrapInvoice (bolt11, { description, descriptionHas
     if (new Date(inv.expires_at) < new Date(Date.now() + INCOMING_EXPIRATION_BUFFER_MSECS)) {
       throw new Error('Invoice expiration is too soon')
     } else if (new Date(inv.expires_at) > new Date(Date.now() + MAX_EXPIRATION_INCOMING_MSECS)) {
-    // trim the expiration to the maximum allowed with a buffer
+      // trim the expiration to the maximum allowed with a buffer
       wrapped.expires_at = new Date(Date.now() + MAX_EXPIRATION_INCOMING_MSECS - INCOMING_EXPIRATION_BUFFER_MSECS)
     } else {
       // give the existing expiration a buffer
@@ -131,7 +132,9 @@ export default async function wrapInvoice (bolt11, { description, descriptionHas
       then add on how many blocks we want to reserve to settle the incoming payment,
       assuming the outgoing payment settles at the worst case (ie largest) height.
     */
-    wrapped.cltv_delta = Number(timeLockDelay) + inv.cltv_delta - blockHeight + MIN_SETTLEMENT_CLTV_DELTA
+    wrapped.cltv_delta = toPositiveNumber(
+      toPositiveNumber(timeLockDelay) + toPositiveNumber(inv.cltv_delta) -
+      toPositiveNumber(blockHeight) + MIN_SETTLEMENT_CLTV_DELTA)
     console.log('routingFeeMsat', routingFeeMsat, 'timeLockDelay', timeLockDelay, 'blockHeight', blockHeight)
 
     // validate the cltv delta
@@ -143,7 +146,7 @@ export default async function wrapInvoice (bolt11, { description, descriptionHas
     }
 
     // validate the fee budget
-    const minEstFees = Number(routingFeeMsat)
+    const minEstFees = toPositiveNumber(routingFeeMsat)
     const outgoingMaxFeeMsat = Math.ceil(outgoingMsat * MAX_FEE_ESTIMATE_PERCENT)
     if (minEstFees > outgoingMaxFeeMsat) {
       throw new Error('Estimated fees are too high')

@@ -118,7 +118,11 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   const dbInv = await models.invoice.findUnique({
     where: { hash },
     include: {
-      invoiceForward: true
+      invoiceForward: {
+        include: {
+          withdrawl: true
+        }
+      }
     }
   })
   if (!dbInv) {
@@ -152,6 +156,10 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   if (inv.is_held) {
     if (dbInv.actionType) {
       if (dbInv.invoiceForward) {
+        if (dbInv.invoiceForward.withdrawl) {
+          // transitions are dependent on the withdrawl status
+          return await checkWithdrawal({ data: { hash: dbInv.invoiceForward.withdrawl.hash }, models, lnd, boss })
+        }
         return await paidActionPendingForward({ data: { invoiceId: dbInv.id }, models, lnd, boss })
       }
       return await paidActionHeld({ data: { invoiceId: dbInv.id }, models, lnd, boss })
@@ -231,8 +239,7 @@ async function subscribeToWithdrawals (args) {
 export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
   const dbWdrwl = await models.withdrawl.findFirst({
     where: {
-      hash,
-      status: null
+      hash
     },
     include: {
       wallet: true,
@@ -270,6 +277,8 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     if (dbWdrwl.invoiceForward.length > 0) {
       return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id }, models, lnd, boss })
     }
+    // already recorded
+    if (wdrwl.status) return
 
     const fee = Number(wdrwl.payment.fee_mtokens)
     const paid = Number(wdrwl.payment.mtokens) - fee
@@ -291,6 +300,8 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     if (dbWdrwl.invoiceForward.length > 0) {
       return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id }, models, lnd, boss })
     }
+    // already recorded
+    if (wdrwl.status) return
 
     let status = 'UNKNOWN_FAILURE'; let message = 'unknown failure'
     if (wdrwl?.failed.is_insufficient_balance) {

@@ -5,10 +5,13 @@ import { datePivot } from '@/lib/time'
 import { toPositiveNumber } from '@/lib/validate'
 import { Prisma } from '@prisma/client'
 import {
-  getHeight, getInvoice, getPayment, parsePaymentRequest,
+  getInvoice, getPayment, parsePaymentRequest,
   payViaPaymentRequest, settleHodlInvoice
 } from 'ln-service'
 import { MIN_SETTLEMENT_CLTV_DELTA } from 'wallets/wrap'
+
+// aggressive finalization retry options
+const FINALIZE_OPTIONS = { retryLimit: 2 ** 31 - 1, retryBackoff: false, retryDelay: 5, priority: 1000 }
 
 async function transitionInvoice (jobName, { invoiceId, fromState, toState, transition }, { models, lnd, boss }) {
   console.group(`${jobName}: transitioning invoice ${invoiceId} from ${fromState} to ${toState}`)
@@ -86,7 +89,7 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
     }
 
     console.error('unexpected error', e)
-    boss.send(
+    await boss.send(
       jobName,
       { invoiceId },
       { startAfter: datePivot(new Date(), { seconds: 30 }), priority: 1000 })
@@ -115,7 +118,8 @@ async function performPessimisticAction ({ lndInvoice, dbInvoice, tx, models, ln
         actionError: e.message
       }
     }).catch(e => console.error('failed to store action error', e))
-    boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash })
+    boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash }, FINALIZE_OPTIONS)
+      .catch(e => console.error('failed to finalize', e))
     throw e
   }
 }
@@ -166,10 +170,11 @@ export async function paidActionPendingForward ({ data: { invoiceId }, models, l
       const invoice = await parsePaymentRequest({ request: bolt11 })
       // maxTimeoutDelta is the number of blocks left for the outgoing payment to settle
       const maxTimeoutDelta = toPositiveNumber(expiryHeight) - toPositiveNumber(acceptHeight) - MIN_SETTLEMENT_CLTV_DELTA
-      if (maxTimeoutDelta - toPositiveNumber(invoice.cltv_delta) <= 0) {
+      if (maxTimeoutDelta - toPositiveNumber(invoice.cltv_delta) < 0) {
         // the payment will certainly fail, so we can
         // cancel and allow transition from PENDING[_HELD] -> FAILED
-        boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash })
+        boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash }, FINALIZE_OPTIONS)
+          .catch(e => console.error('failed to finalize', e))
         throw new Error('invoice has insufficient cltv delta for forward')
       }
 
@@ -192,9 +197,10 @@ export async function paidActionPendingForward ({ data: { invoiceId }, models, l
         }
       })
 
-      const { current_block_height: blockHeight } = await getHeight({ lnd })
-      const maxTimeoutHeight = toPositiveNumber(toPositiveNumber(blockHeight) + maxTimeoutDelta)
-      console.log('with max fee', maxFeeMsats, 'max_timeout_height', maxTimeoutHeight)
+      // give ourselves at least MIN_SETTLEMENT_CLTV_DELTA blocks to settle the incoming payment
+      const maxTimeoutHeight = toPositiveNumber(toPositiveNumber(expiryHeight) - MIN_SETTLEMENT_CLTV_DELTA)
+      console.log('with max fee', maxFeeMsats, 'max_timeout_height', maxTimeoutHeight,
+        'accept_height', acceptHeight, 'expiry_height', expiryHeight)
 
       payViaPaymentRequest({
         lnd,
@@ -291,7 +297,8 @@ export async function paidActionFailedForward ({ data: { invoiceId }, models, ln
       }
 
       // cancel to transition to FAILED ... independent of the state transition
-      boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash })
+      boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash }, FINALIZE_OPTIONS)
+        .catch(e => console.error('failed to finalize', e))
 
       return {
         invoiceForward: {
@@ -323,10 +330,8 @@ export async function paidActionHeld ({ data: { invoiceId }, models, lnd, boss }
 
       // make sure settled or cancelled in 60 seconds to minimize risk of force closures
       const expiresAt = new Date(Math.min(dbInvoice.expiresAt, datePivot(new Date(), { seconds: 60 })))
-      // do outside of transaction because we don't want this to rollback if the rest of the job fails
-      await models.$executeRaw`
-        INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
-        VALUES ('finalizeHodlInvoice', jsonb_build_object('hash', ${dbInvoice.hash}), 21, true, ${expiresAt})`
+      boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash }, { startAfter: expiresAt, ...FINALIZE_OPTIONS })
+        .catch(e => console.error('failed to finalize', e))
 
       // perform the action now that we have the funds
       await performPessimisticAction({ lndInvoice, dbInvoice, tx, models, lnd, boss })

@@ -7,30 +7,36 @@ async function fetchPrice (fiat) {
     .then((res) => res.json())
     .then((body) => parseFloat(body.data.amount))
     .catch((err) => {
-      console.error(err)
+      console.error('price', err)
       return -1
     })
   cache.set(fiat, { price, createdAt: Date.now() })
   return price
 }
 
-async function getPrice (fiat) {
+async function getPrice (fiat, fromCache = true) {
   fiat ??= 'USD'
+
+  if (!fromCache) {
+    const newPrice = await fetchPrice(fiat)
+    return newPrice
+  }
+
   if (cache.has(fiat)) {
     const { price, createdAt } = cache.get(fiat)
     const expired = createdAt + expiresIn < Date.now()
-    if (expired) fetchPrice(fiat).catch(console.error) // update cache
+    if (expired) fetchPrice(fiat).catch(console.error)
     return price // serve stale price (this on the SSR critical path)
   } else {
     fetchPrice(fiat).catch(console.error)
+    return null
   }
-  return null
 }
 
 export default {
   Query: {
-    price: async (parent, { fiatCurrency }, ctx) => {
-      return await getPrice(fiatCurrency)
+    price: async (parent, { fiatCurrency, fromCache }, ctx) => {
+      return await getPrice(fiatCurrency, fromCache)
     }
   }
 }

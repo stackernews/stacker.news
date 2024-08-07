@@ -21,7 +21,7 @@ export function usePrice () {
 export function PriceProvider ({ price, children }) {
   const me = useMe()
   const fiatCurrency = me?.privates?.fiatCurrency
-  const { data } = useQuery(PRICE, {
+  const { data, refetch } = useQuery(PRICE, {
     variables: { fiatCurrency },
     ...(SSR
       ? {}
@@ -31,6 +31,11 @@ export function PriceProvider ({ price, children }) {
         })
   })
 
+  useEffect(() => {
+    if (fiatCurrency) {
+      refetch({ fiatCurrency, fromCache: false })
+    }
+  }, [fiatCurrency, refetch])
   const contextValue = useMemo(() => ({
     price: data?.price || price,
     fiatSymbol: CURRENCY_SYMBOLS[fiatCurrency] || '$'

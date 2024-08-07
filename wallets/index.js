@@ -188,7 +188,7 @@ function useConfig (wallet) {
     if (hasClientConfig) {
       const newClientConfig = extractClientConfig(wallet.fields, newConfig)
 
-      let valid
+      let valid = true
       try {
         await walletValidate(wallet, newClientConfig)
       } catch {

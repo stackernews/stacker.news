@@ -11,7 +11,6 @@ async function _createInvoice ({ url, invoiceKey, amount, expiry }, { me }) {
   const memo = me.hideInvoiceDesc ? undefined : 'autowithdraw to LNbits from SN'
   const body = JSON.stringify({ amount, unit: 'sat', expiry, memo, out: false })
 
-  url = 'http://lnbits:5000'
   const res = await fetch(url + path, { method: 'POST', headers, body })
   if (!res.ok) {
     const errBody = await res.json()

@@ -184,8 +184,8 @@ const resolvers = {
               jsonb_build_object(
                 'bolt11', bolt11,
                 'status', CASE WHEN "confirmedAt" IS NOT NULL THEN 'CONFIRMED'
-                              WHEN "expiresAt" <= $2 THEN 'EXPIRED'
                               WHEN cancelled THEN 'CANCELLED'
+                              WHEN "expiresAt" <= $2 AND NOT "isHeld" THEN 'EXPIRED'
                               ELSE 'PENDING' END,
                 'description', "desc",
                 'invoiceComment', comment,

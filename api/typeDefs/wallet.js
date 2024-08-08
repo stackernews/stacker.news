@@ -2,19 +2,22 @@ import { gql } from 'graphql-tag'
 import { generateResolverName } from '@/lib/wallet'
 
 import walletDefs from 'wallets/server'
+import { isServerField } from 'wallets'
 
 function injectTypeDefs (typeDefs) {
   console.group('injected GraphQL type defs:')
   const injected = walletDefs.map(
     (w) => {
       let args = 'id: ID, '
-      args += w.fields.map(f => {
-        let arg = `${f.name}: String`
-        if (!f.optional) {
-          arg += '!'
-        }
-        return arg
-      }).join(', ')
+      args += w.fields
+        .filter(isServerField)
+        .map(f => {
+          let arg = `${f.name}: String`
+          if (!f.optional) {
+            arg += '!'
+          }
+          return arg
+        }).join(', ')
       args += ', settings: AutowithdrawSettings!'
       const resolverName = generateResolverName(w.walletField)
       const typeDef = `${resolverName}(${args}): Boolean`
@@ -74,7 +77,12 @@ const typeDefs = `
     cert: String
   }
 
-  union WalletDetails = WalletLNAddr | WalletLND | WalletCLN
+  type WalletLNbits {
+    url: String!
+    invoiceKey: String!
+  }
+
+  union WalletDetails = WalletLNAddr | WalletLND | WalletCLN | WalletLNbits
 
   input AutowithdrawSettings {
     autoWithdrawThreshold: Int!

@@ -5,7 +5,7 @@ import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
 import { msatsToSats, msatsToSatsDecimal } from '@/lib/format'
-import { amountSchema, ssValidate, withdrawlSchema, lnAddrSchema, formikValidate } from '@/lib/validate'
+import { amountSchema, ssValidate, withdrawlSchema, lnAddrSchema, walletValidate } from '@/lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
@@ -19,20 +19,14 @@ import { lnAddrOptions } from '@/lib/lnurl'
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
   for (const w of walletDefs) {
-    const { fieldValidation, walletType, walletField, testConnectServer } = w
-    const resolverName = generateResolverName(walletField)
+    const resolverName = generateResolverName(w.walletField)
     console.log(resolverName)
 
-    // check if wallet uses the form-level validation built into Formik or a Yup schema
-    const validateArgs = typeof fieldValidation === 'function'
-      ? { formikValidate: fieldValidation }
-      : { schema: fieldValidation }
-
     resolvers.Mutation[resolverName] = async (parent, { settings, ...data }, { me, models }) => {
+      await walletValidate(w, { ...data, ...settings })
       return await upsertWallet({
-        ...validateArgs,
-        wallet: { field: walletField, type: walletType },
-        testConnectServer: (data) => testConnectServer(data, { me, models })
+        wallet: { field: w.walletField, type: w.walletType },
+        testConnectServer: (data) => w.testConnectServer(data, { me, models })
       }, { settings, data }, { me, models })
     }
   }
@@ -353,7 +347,7 @@ const resolvers = {
   },
   WalletDetails: {
     __resolveType (wallet) {
-      return wallet.address ? 'WalletLNAddr' : wallet.macaroon ? 'WalletLND' : 'WalletCLN'
+      return wallet.address ? 'WalletLNAddr' : wallet.macaroon ? 'WalletLND' : wallet.rune ? 'WalletCLN' : 'WalletLNbits'
     }
   },
   Mutation: {
@@ -462,7 +456,8 @@ const resolvers = {
 
       await models.$transaction([
         models.wallet.delete({ where: { userId: me.id, id: Number(id) } }),
-        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet detached' } })
+        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'INFO', message: 'receives disabled' } }),
+        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet detached for receives' } })
       ])
 
       return true
@@ -557,26 +552,20 @@ export const addWalletLog = async ({ wallet, level, message }, { me, models }) =
 }
 
 async function upsertWallet (
-  { schema, formikValidate: validate, wallet, testConnectServer }, { settings, data }, { me, models }) {
+  { wallet, testConnectServer }, { settings, data }, { me, models }) {
   if (!me) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
   }
   assertApiKeyNotPermitted({ me })
-
-  if (schema) {
-    await ssValidate(schema, { ...data, ...settings }, { me, models })
-  }
-  if (validate) {
-    await formikValidate(validate, { ...data, ...settings })
-  }
 
   if (testConnectServer) {
     try {
       await testConnectServer(data)
     } catch (err) {
       console.error(err)
-      const message = err.message || err.toString?.()
-      await addWalletLog({ wallet, level: 'ERROR', message: 'failed to attach: ' + message }, { me, models })
+      const message = 'failed to create test invoice: ' + (err.message || err.toString?.())
+      await addWalletLog({ wallet, level: 'ERROR', message }, { me, models })
+      await addWalletLog({ wallet, level: 'INFO', message: 'receives disabled' }, { me, models })
       throw new GraphQLError(message, { extensions: { code: 'BAD_INPUT' } })
     }
   }
@@ -632,7 +621,7 @@ async function upsertWallet (
         userId: me.id,
         wallet: wallet.type,
         level: 'SUCCESS',
-        message: id ? 'wallet updated' : 'wallet attached'
+        message: id ? 'receive details updated' : 'wallet attached for receives'
       }
     }),
     models.walletLog.create({
@@ -640,7 +629,7 @@ async function upsertWallet (
         userId: me.id,
         wallet: wallet.type,
         level: enabled ? 'SUCCESS' : 'INFO',
-        message: enabled ? 'wallet enabled' : 'wallet disabled'
+        message: enabled ? 'receives enabled' : 'receives disabled'
       }
     })
   )

@@ -57,15 +57,11 @@ export default function WalletSettings () {
 
             await wallet.save(values)
 
-            if (values.enabled) wallet.enable()
-            else wallet.disable()
-
             toaster.success('saved settings')
             router.push('/settings/wallets')
           } catch (err) {
             console.error(err)
-            const message = 'failed to attach: ' + err.message || err.toString?.()
-            toaster.danger(message)
+            toaster.danger(err.message || err.toString?.())
           }
         }}
       >
@@ -106,7 +102,7 @@ export default function WalletSettings () {
 
 function WalletFields ({ wallet: { config, fields, isConfigured } }) {
   return fields
-    .map(({ name, label, type, help, optional, editable, ...props }, i) => {
+    .map(({ name, label, type, help, optional, editable, clientOnly, serverOnly, ...props }, i) => {
       const rawProps = {
         ...props,
         name,

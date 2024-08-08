@@ -11,10 +11,10 @@ async function fetchBlockHeight () {
   try {
     const height = await lndService.getHeight({ lnd })
     blockHeight = height.current_block_height
+    cache.set('block', { height: blockHeight, createdAt: Date.now() })
   } catch (err) {
     console.error('fetchBlockHeight', err)
   }
-  cache.set('block', { height: blockHeight, createdAt: Date.now() })
   return blockHeight
 }
 

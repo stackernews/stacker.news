@@ -22,9 +22,8 @@ export const testConnectServer = async (
 }
 
 export const createInvoice = async (
-  { amount },
-  { socket, rune, cert },
-  { me, models, lnd }
+  { msats, description, descriptionHash, expiry },
+  { socket, rune, cert }
 ) => {
   cert = ensureB64(cert)
 
@@ -32,9 +31,11 @@ export const createInvoice = async (
     socket,
     rune,
     cert,
-    description: me.hideInvoiceDesc ? undefined : 'autowithdraw to CLN from SN',
-    msats: amount + 'sat',
-    expiry: 360
+    description,
+    descriptionHash,
+    msats,
+    expiry
   })
+
   return inv.bolt11
 }

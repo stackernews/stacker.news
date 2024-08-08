@@ -6,7 +6,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
 import { msatsToSats, msatsToSatsDecimal } from '@/lib/format'
 import { amountSchema, ssValidate, withdrawlSchema, lnAddrSchema, formikValidate } from '@/lib/validate'
-import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
+import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
@@ -91,7 +91,8 @@ export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
       id: Number(id)
     },
     include: {
-      user: true
+      user: true,
+      invoiceForward: true
     }
   })
 
@@ -101,14 +102,6 @@ export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
 
   if (wdrwl.user.id !== me.id) {
     throw new GraphQLError('not ur withdrawal', { extensions: { code: 'FORBIDDEN' } })
-  }
-
-  try {
-    if (wdrwl.status === 'CONFIRMED') {
-      wdrwl.preimage = (await getPayment({ id: wdrwl.hash, lnd })).payment.secret
-    }
-  } catch (err) {
-    console.error('error fetching payment from LND', err)
   }
 
   return wdrwl
@@ -191,8 +184,8 @@ const resolvers = {
               jsonb_build_object(
                 'bolt11', bolt11,
                 'status', CASE WHEN "confirmedAt" IS NOT NULL THEN 'CONFIRMED'
-                              WHEN "expiresAt" <= $2 THEN 'EXPIRED'
                               WHEN cancelled THEN 'CANCELLED'
+                              WHEN "expiresAt" <= $2 AND NOT "isHeld" THEN 'EXPIRED'
                               ELSE 'PENDING' END,
                 'description', "desc",
                 'invoiceComment', comment,
@@ -206,17 +199,19 @@ const resolvers = {
       if (include.has('withdrawal')) {
         queries.push(
           `(SELECT
-              id, created_at as "createdAt",
+              "Withdrawl".id, "Withdrawl".created_at as "createdAt",
               COALESCE("msatsPaid", "msatsPaying") as msats,
-              'withdrawal' as type,
+              CASE WHEN bool_and("InvoiceForward".id IS NULL) THEN 'withdrawal' ELSE 'p2p' END as type,
               jsonb_build_object(
-                'bolt11', bolt11,
+                'bolt11', "Withdrawl".bolt11,
                 'autoWithdraw', "autoWithdraw",
                 'status', COALESCE(status::text, 'PENDING'),
                 'msatsFee', COALESCE("msatsFeePaid", "msatsFeePaying")) as other
             FROM "Withdrawl"
-            WHERE "userId" = $1
-            AND created_at <= $2)`
+            LEFT JOIN "InvoiceForward" ON "Withdrawl".id = "InvoiceForward"."withdrawlId"
+            WHERE "Withdrawl"."userId" = $1
+            AND "Withdrawl".created_at <= $2
+            GROUP BY "Withdrawl".id)`
         )
       }
 
@@ -317,6 +312,9 @@ const resolvers = {
         switch (f.type) {
           case 'withdrawal':
             f.msats = (-1 * Number(f.msats)) - Number(f.msatsFee)
+            break
+          case 'p2p':
+            f.msats = -1 * Number(f.msats)
             break
           case 'spent':
           case 'donation':
@@ -481,8 +479,18 @@ const resolvers = {
   Withdrawl: {
     satsPaying: w => msatsToSats(w.msatsPaying),
     satsPaid: w => msatsToSats(w.msatsPaid),
-    satsFeePaying: w => msatsToSats(w.msatsFeePaying),
-    satsFeePaid: w => msatsToSats(w.msatsFeePaid)
+    satsFeePaying: w => w.invoiceForward?.length > 0 ? 0 : msatsToSats(w.msatsFeePaying),
+    satsFeePaid: w => w.invoiceForward?.length > 0 ? 0 : msatsToSats(w.msatsFeePaid),
+    p2p: w => !!w.invoiceForward?.length,
+    preimage: async (withdrawl, args, { lnd }) => {
+      try {
+        if (withdrawl.status === 'CONFIRMED') {
+          return (await getPayment({ id: withdrawl.hash, lnd })).payment.secret
+        }
+      } catch (err) {
+        console.error('error fetching payment from LND', err)
+      }
+    }
   },
 
   Invoice: {
@@ -701,7 +709,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     request: invoice,
     // can't use max_fee_mtokens https://github.com/alexbosworth/ln-service/issues/141
     max_fee: Number(maxFee),
-    pathfinding_timeout: 30000
+    pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS
   }).catch(console.error)
 
   return withdrawl

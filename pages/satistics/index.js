@@ -139,7 +139,7 @@ function Detail ({ fact }) {
            (fact.description && <span className='d-block'>{fact.description}</span>)}
           <PayerData data={fact.invoicePayerData} className='text-muted' header />
           {fact.invoiceComment && <small className='text-muted'><b>sender says:</b> {fact.invoiceComment}</small>}
-          <Satus status={fact.status} />{fact.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>}
+          <Satus status={fact.status} />{fact.autoWithdraw && <Badge className={styles.badge} bg={null}>{fact.type === 'p2p' ? 'p2p' : 'autowithdraw'}</Badge>}
         </Link>
       </div>
     )

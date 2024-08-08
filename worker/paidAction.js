@@ -296,9 +296,9 @@ export async function paidActionFailedForward ({ data: { invoiceId }, models, ln
         throw new Error('payment has not failed')
       }
 
-      // cancel to transition to FAILED ... independent of the state transition
-      boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash }, FINALIZE_OPTIONS)
-        .catch(e => console.error('failed to finalize', e))
+      // cancel to transition to FAILED ... this is really important we do not transition unless this call succeeds
+      // which once it does succeed will ensure we will try to cancel the held invoice until it actually cancels
+      await boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash }, FINALIZE_OPTIONS)
 
       return {
         invoiceForward: {

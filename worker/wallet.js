@@ -157,7 +157,7 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
     if (dbInv.actionType) {
       if (dbInv.invoiceForward) {
         if (dbInv.invoiceForward.withdrawl) {
-          // transitions are dependent on the withdrawl status
+          // transitions when held are dependent on the withdrawl status
           return await checkWithdrawal({ data: { hash: dbInv.invoiceForward.withdrawl.hash }, models, lnd, boss })
         }
         return await paidActionPendingForward({ data: { invoiceId: dbInv.id }, models, lnd, boss })
@@ -259,6 +259,9 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     return
   }
 
+  // already recorded and no invoiceForward to handle
+  if (dbWdrwl.status && dbWdrwl.invoiceForward.length === 0) return
+
   let wdrwl
   let notSent = false
   try {
@@ -277,8 +280,6 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     if (dbWdrwl.invoiceForward.length > 0) {
       return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id }, models, lnd, boss })
     }
-    // already recorded
-    if (wdrwl.status) return
 
     const fee = Number(wdrwl.payment.fee_mtokens)
     const paid = Number(wdrwl.payment.mtokens) - fee
@@ -300,8 +301,6 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     if (dbWdrwl.invoiceForward.length > 0) {
       return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id }, models, lnd, boss })
     }
-    // already recorded
-    if (wdrwl.status) return
 
     let status = 'UNKNOWN_FAILURE'; let message = 'unknown failure'
     if (wdrwl?.failed.is_insufficient_balance) {

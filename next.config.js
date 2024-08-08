@@ -232,10 +232,7 @@ module.exports = withPlausibleProxy()({
         })
       }
 
-      // const ignorePlugin = new webpack.IgnorePlugin({ resourceRegExp: /server\.js$/ })
-
       config.plugins.push(workboxPlugin)
-      // config.plugins.push(ignorePlugin)
     }
 
     config.module.rules.push(

@@ -225,22 +225,16 @@ export async function filterClause (me, models, type) {
 
   // handle freebies
   // by default don't include freebies unless they have upvotes
-  let freebieClauses = ['NOT "Item".freebie', '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 0']
+  let investmentClause = '("Item".cost + "Item".boost + ("Item".msats / 1000)) >= 10'
   if (me) {
     const user = await models.user.findUnique({ where: { id: me.id } })
-    // wild west mode has everything
-    if (user.wildWestMode) {
-      return ''
-    }
-    // greeter mode includes freebies if feebies haven't been flagged
-    if (user.greeterMode) {
-      freebieClauses = ['NOT "Item".freebie', '"Item"."weightedVotes" - "Item"."weightedDownVotes" >= 0']
-    }
 
-    // always include if it's mine
-    freebieClauses.push(`"Item"."userId" = ${me.id}`)
+    investmentClause = `(("Item".cost + "Item".boost + ("Item".msats / 1000)) >= ${user.investmentFilter} OR "Item"."userId" = ${me.id})`
+
+    if (user.wildWestMode) {
+      return investmentClause
+    }
   }
-  const freebieClause = '(' + freebieClauses.join(' OR ') + ')'
 
   // handle outlawed
   // if the item is above the threshold or is mine
@@ -250,7 +244,7 @@ export async function filterClause (me, models, type) {
   }
   const outlawClause = '(' + outlawClauses.join(' OR ') + ')'
 
-  return [freebieClause, outlawClause]
+  return [investmentClause, outlawClause]
 }
 
 function typeClause (type) {

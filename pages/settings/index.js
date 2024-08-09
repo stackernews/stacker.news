@@ -140,7 +140,7 @@ export default function Settings ({ ssrData }) {
             hideTwitter: settings?.hideTwitter,
             imgproxyOnly: settings?.imgproxyOnly,
             wildWestMode: settings?.wildWestMode,
-            greeterMode: settings?.greeterMode,
+            investmentFilter: settings?.investmentFilter,
             nsfwMode: settings?.nsfwMode,
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
             nostrCrossposting: settings?.nostrCrossposting,
@@ -152,7 +152,11 @@ export default function Settings ({ ssrData }) {
             noReferralLinks: settings?.noReferralLinks
           }}
           schema={settingsSchema}
-          onSubmit={async ({ tipDefault, tipRandom, tipRandomMin, tipRandomMax, withdrawMaxFeeDefault, zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, ...values }) => {
+          onSubmit={async ({
+            tipDefault, tipRandom, tipRandomMin, tipRandomMax, withdrawMaxFeeDefault,
+            zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, investmentFilter,
+            ...values
+          }) => {
             if (nostrPubkey.length === 0) {
               nostrPubkey = null
             } else {
@@ -172,6 +176,7 @@ export default function Settings ({ ssrData }) {
                     tipRandomMin: tipRandom ? Number(tipRandomMin) : null,
                     tipRandomMax: tipRandom ? Number(tipRandomMax) : null,
                     withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
+                    investmentFilter: Number(investmentFilter),
                     zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
                     nostrPubkey,
                     nostrRelays: nostrRelaysFiltered,
@@ -467,7 +472,27 @@ export default function Settings ({ ssrData }) {
             label={<>don't create referral links on copy</>}
             name='noReferralLinks'
           />
-          <div className='form-label'>content</div>
+          <h4>content</h4>
+          <Input
+            label={
+              <div className='d-flex align-items-center'>filter posts with fewer than this many sats invested
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>hide the post if the sum of these is less than your setting:</li>
+                    <ul>
+                      <li>posting cost</li>
+                      <li>total sats from zaps</li>
+                      <li>boost</li>
+                    </ul>
+                    <li>set to zero to be a greeter, with the tradeoff of seeing more spam</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='investmentFilter'
+            required
+            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
           <Checkbox
             label={
               <div className='d-flex align-items-center'>wild west mode
@@ -480,21 +505,6 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='wildWestMode'
-            groupClassName='mb-0'
-          />
-          <Checkbox
-            label={
-              <div className='d-flex align-items-center'>greeter mode
-                <Info>
-                  <ul className='fw-bold'>
-                    <li>see and screen free posts and comments</li>
-                    <li>help onboard new stackers to SN and Lightning</li>
-                    <li>you might be subject to more spam</li>
-                  </ul>
-                </Info>
-              </div>
-            }
-            name='greeterMode'
             groupClassName='mb-0'
           />
           <Checkbox

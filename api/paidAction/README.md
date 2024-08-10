@@ -2,6 +2,38 @@
 
 Paid actions are actions that require payments to perform. Given that we support several payment flows, some of which require more than one round of communication either with LND or the client, and several paid actions, we have this plugin-like interface to easily add new paid actions.
 
+<details>
+    <summary>internals</summary>
+
+    All paid action progress, regardless of flow, is managed using a state machine that's transitioned by the invoice progress and payment progress (in the case of p2p paid action). Below is the full state machine for paid actions:
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING
+    PENDING --> PAID
+    PENDING --> CANCELING
+    PENDING --> FAILED
+    PAID --> [*]
+    CANCELING --> FAILED
+    FAILED --> RETRYING
+    FAILED --> [*]
+    RETRYING --> [*]
+    [*] --> PENDING_HELD
+    PENDING_HELD --> HELD
+    PENDING_HELD --> FORWARDING
+    PENDING_HELD --> CANCELING
+    PENDING_HELD --> FAILED
+    HELD --> PAID
+    HELD --> CANCELING
+    HELD --> FAILED
+    FORWARDING --> FORWARDED
+    FORWARDING --> FAILED_FORWARD
+    FORWARDED --> PAID
+    FAILED_FORWARD --> CANCELING
+    FAILED_FORWARD --> FAILED
+```
+</details>
+
 ## Payment Flows
 
 There are three payment flows:
@@ -17,11 +49,20 @@ For paid actions that support it, if the stacker doesn't have enough fee credits
 <details>
   <summary>Internals</summary>
 
-   Internally, optimistic flows make use of a state machine that's transitioned by the invoice payment progress. All optimistic actions start in a `PENDING` state and have the following transitions:
+   Internally, optimistic flows make use of a state machine that's transitioned by the invoice payment progress.
 
-- `PENDING` -> `PAID`: when the invoice is paid
-- `PENDING` -> `FAILED`: when the invoice expires or is cancelled
-- `FAILED` -> `RETRYING`: when the invoice for the action is replaced with a new invoice
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING
+    PENDING --> PAID
+    PENDING --> CANCELING
+    PENDING --> FAILED
+    PAID --> [*]
+    CANCELING --> FAILED
+    FAILED --> RETRYING
+    FAILED --> [*]
+    RETRYING --> [*]
+```
 </details>
 
 ### Pessimistic
@@ -32,12 +73,21 @@ Internally, pessimistic flows use hold invoices. If the action doesn't succeed, 
 <details>
   <summary>Internals</summary>
 
-   Internally, pessimistic flows make use of a state machine that's transitioned by the invoice payment progress much like optimistic flows, but with extra steps. All pessimistic actions start in a `PENDING_HELD` state and has the following transitions:
+   Internally, pessimistic flows make use of a state machine that's transitioned by the invoice payment progress much like optimistic flows, but with extra steps.
 
-- `PENDING_HELD` -> `HELD`: when the invoice is paid and the action's `perform` is run and the invoice is settled
-- `HELD` -> `PAID`: when the action's `onPaid` is called
-- `PENDING_HELD` -> `FAILED`: when the invoice for the action expires or is cancelled
-- `HELD` -> `FAILED`: when the action fails after the invoice is paid
+```mermaid
+stateDiagram-v2
+    PAID --> [*]
+    CANCELING --> FAILED
+    FAILED --> [*]
+    [*] --> PENDING_HELD
+    PENDING_HELD --> HELD
+    PENDING_HELD --> CANCELING
+    PENDING_HELD --> FAILED
+    HELD --> PAID
+    HELD --> CANCELING
+    HELD --> FAILED
+```
 </details>
 
 ### Table of existing paid actions and their supported flows
@@ -62,16 +112,25 @@ This works by requesting an invoice from the recipient's wallet and reusing the 
 <details>
   <summary>Internals</summary>
 
-   Internally, p2p wrapped payments make use of the same paid action state machine but it's transitioned by both the incoming invoice payment progress *and* the outgoing invoice payment progress. All p2p wrapped payments start in a `PENDING` or `PENDING_HELD` state (depending on whether the action is optimistic or pessimistic respectively) and have the following transitions:
+   Internally, p2p wrapped payments make use of the same paid action state machine but it's transitioned by both the incoming invoice payment progress *and* the outgoing invoice payment progress.
 
-- `PENDING_HELD` -> `FORWARDING`: when the invoice is paid/held, the action's `perform` is run, and SN's funds are forwarded
-- `PENDING` -> `FORWARDING`: when the invoice is paid/held, SN's funds are forwarded
-- `FORWARDING` -> `FORWARDED`: when the outgoing invoice is confirmed, we settle the incoming invoice
-- `FORWARDED` -> `PAID`: when the incoming invoice is settled, the action's `onPaid` is called
-- `FORWARDING` -> `FAILED_FORWARD`: when the outgoing invoice fails to forward, the incoming invoice is cancelled returning the funds to the sender
-- `FAILED_FORWARD` -> `FAILED`: when the the incoming invoice is cancelled as a result of a failed forward, and the action's `onFail` is called
-- `PENDING_HELD` -> `FAILED`: when the invoice for the action expires or is cancelled before funds are forwarded, and the action's `onFail` is called
-- `PENDING` -> `FAILED`: when the invoice for the action expires or is cancelled before funds are forwarded, and the action's `onFail` is called
+```mermaid
+stateDiagram-v2
+    PAID --> [*]
+    CANCELING --> FAILED
+    FAILED --> RETRYING
+    FAILED --> [*]
+    RETRYING --> [*]
+    [*] --> PENDING_HELD
+    PENDING_HELD --> FORWARDING
+    PENDING_HELD --> CANCELING
+    PENDING_HELD --> FAILED
+    FORWARDING --> FORWARDED
+    FORWARDING --> FAILED_FORWARD
+    FORWARDED --> PAID
+    FAILED_FORWARD --> CANCELING
+    FAILED_FORWARD --> FAILED
+```
 </details>
 
 ## Paid Action Interface

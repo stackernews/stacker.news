@@ -3,10 +3,9 @@ import { estimateRouteFee } from '../api/lnd'
 import { toPositiveNumber } from '@/lib/validate'
 
 const MIN_OUTGOING_MSATS = BigInt(900) // the minimum msats we'll allow for the outgoing invoice
-const MAX_OUTGOING_MSATS = BigInt(9_000_000_000) // the maximum msats we'll allow for the outgoing  invoice
+const MAX_OUTGOING_MSATS = BigInt(9_000_000_000) // the maximum msats we'll allow for the outgoing invoice
 const MAX_EXPIRATION_INCOMING_MSECS = 900_000 // the maximum expiration time we'll allow for the incoming invoice
 const INCOMING_EXPIRATION_BUFFER_MSECS = 300_000 // the buffer enforce for the incoming invoice expiration
-const MIN_INCOMING_CLTV_DELTA = 200 // the minimum cltv delta we'll allow for the incoming invoice
 const MAX_OUTGOING_CLTV_DELTA = 500 // the maximum cltv delta we'll allow for the outgoing invoice
 export const MIN_SETTLEMENT_CLTV_DELTA = 80 // the minimum blocks we'll leave for settling the incoming invoice
 const FEE_ESTIMATE_TIMEOUT_SECS = 5 // the timeout for the fee estimate request
@@ -140,9 +139,8 @@ export default async function wrapInvoice (bolt11, { description, descriptionHas
     // validate the cltv delta
     if (wrapped.cltv_delta > MAX_OUTGOING_CLTV_DELTA) {
       throw new Error('Estimated outgoing cltv delta is too high: ' + wrapped.cltv_delta)
-    } else if (wrapped.cltv_delta < MIN_INCOMING_CLTV_DELTA) {
-      // enforce a minimum cltv delta for the incoming invoice
-      wrapped.cltv_delta = MIN_INCOMING_CLTV_DELTA
+    } else if (wrapped.cltv_delta < MIN_SETTLEMENT_CLTV_DELTA + toPositiveNumber(inv.cltv_delta)) {
+      throw new Error('Estimated outgoing cltv delta is too low: ' + wrapped.cltv_delta)
     }
 
     // validate the fee budget

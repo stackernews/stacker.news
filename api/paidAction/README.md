@@ -64,11 +64,11 @@ This works by requesting an invoice from the recipient's wallet and reusing the 
 
    Internally, p2p wrapped payments make use of the same paid action state machine but it's transitioned by both the incoming invoice payment progress *and* the outgoing invoice payment progress. All p2p wrapped payments start in a `PENDING` or `PENDING_HELD` state (depending on whether the action is optimistic or pessimistic respectively) and have the following transitions:
 
-- `PENDING_HELD` -> `PENDING_FORWARD`: when the invoice is paid/held, the action's `perform` is run, and SN's funds are forwarded
-- `PENDING` -> `PENDING_FORWARD`: when the invoice is paid/held, SN's funds are forwarded
-- `PENDING_FORWARD` -> `FORWARDED`: when the outgoing invoice is confirmed, we settle the incoming invoice
+- `PENDING_HELD` -> `FORWARDING`: when the invoice is paid/held, the action's `perform` is run, and SN's funds are forwarded
+- `PENDING` -> `FORWARDING`: when the invoice is paid/held, SN's funds are forwarded
+- `FORWARDING` -> `FORWARDED`: when the outgoing invoice is confirmed, we settle the incoming invoice
 - `FORWARDED` -> `PAID`: when the incoming invoice is settled, the action's `onPaid` is called
-- `PENDING_FORWARD` -> `FAILED_FORWARD`: when the outgoing invoice fails to forward, the incoming invoice is cancelled returning the funds to the sender
+- `FORWARDING` -> `FAILED_FORWARD`: when the outgoing invoice fails to forward, the incoming invoice is cancelled returning the funds to the sender
 - `FAILED_FORWARD` -> `FAILED`: when the the incoming invoice is cancelled as a result of a failed forward, and the action's `onFail` is called
 - `PENDING_HELD` -> `FAILED`: when the invoice for the action expires or is cancelled before funds are forwarded, and the action's `onFail` is called
 - `PENDING` -> `FAILED`: when the invoice for the action expires or is cancelled before funds are forwarded, and the action's `onFail` is called

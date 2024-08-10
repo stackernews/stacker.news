@@ -27,8 +27,9 @@ import { autoWithdraw } from './autowithdraw.js'
 import { saltAndHashEmails } from './saltAndHashEmails.js'
 import { remindUser } from './reminder.js'
 import {
-  paidActionPaid, paidActionPendingForward, paidActionForwarded,
-  paidActionFailedForward, paidActionHeld, paidActionFailed
+  paidActionPaid, paidActionForwarding, paidActionForwarded,
+  paidActionFailedForward, paidActionHeld, paidActionFailed,
+  paidActionCanceling
 } from './paidAction.js'
 import { thisDay } from './thisDay.js'
 import { isServiceEnabled } from '@/lib/sndev.js'
@@ -97,10 +98,11 @@ async function work () {
     await boss.work('checkInvoice', jobWrapper(checkInvoice))
     await boss.work('checkWithdrawal', jobWrapper(checkWithdrawal))
     // paidAction jobs
-    await boss.work('paidActionPendingForward', jobWrapper(paidActionPendingForward))
+    await boss.work('paidActionForwarding', jobWrapper(paidActionForwarding))
     await boss.work('paidActionForwarded', jobWrapper(paidActionForwarded))
     await boss.work('paidActionFailedForward', jobWrapper(paidActionFailedForward))
     await boss.work('paidActionHeld', jobWrapper(paidActionHeld))
+    await boss.work('paidActionCanceling', jobWrapper(paidActionCanceling))
     await boss.work('paidActionFailed', jobWrapper(paidActionFailed))
     await boss.work('paidActionPaid', jobWrapper(paidActionPaid))
     // we renamed these jobs so we leave them so they can "migrate"

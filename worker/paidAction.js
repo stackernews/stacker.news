@@ -5,6 +5,7 @@ import { datePivot } from '@/lib/time'
 import { toPositiveNumber } from '@/lib/validate'
 import { Prisma } from '@prisma/client'
 import {
+  cancelHodlInvoice,
   getInvoice, getPayment, parsePaymentRequest,
   payViaPaymentRequest, settleHodlInvoice
 } from 'ln-service'
@@ -149,12 +150,12 @@ export async function paidActionPaid ({ data: { invoiceId }, models, lnd, boss }
 }
 
 // this performs forward creating the outgoing payment
-export async function paidActionPendingForward ({ data: { invoiceId }, models, lnd, boss }) {
-  return await transitionInvoice('paidActionPendingForward', {
+export async function paidActionForwarding ({ data: { invoiceId }, models, lnd, boss }) {
+  return await transitionInvoice('paidActionForwarding', {
     invoiceId,
     // optimistic actions use PENDING as starting state even if we're using a forward invoice
     fromState: ['PENDING_HELD', 'PENDING'],
-    toState: 'PENDING_FORWARD',
+    toState: 'FORWARDING',
     transition: async ({ lndInvoice, dbInvoice, tx }) => {
       if (!lndInvoice.is_held) {
         throw new Error('invoice is not held')
@@ -233,7 +234,7 @@ export async function paidActionPendingForward ({ data: { invoiceId }, models, l
 export async function paidActionForwarded ({ data: { invoiceId }, models, lnd, boss }) {
   return await transitionInvoice('paidActionForwarded', {
     invoiceId,
-    fromState: 'PENDING_FORWARD',
+    fromState: 'FORWARDING',
     toState: 'FORWARDED',
     transition: async ({ lndInvoice, dbInvoice, tx }) => {
       if (!(lndInvoice.is_held || lndInvoice.is_confirmed)) {
@@ -271,7 +272,7 @@ export async function paidActionForwarded ({ data: { invoiceId }, models, lnd, b
 export async function paidActionFailedForward ({ data: { invoiceId }, models, lnd, boss }) {
   return await transitionInvoice('paidActionFailedForward', {
     invoiceId,
-    fromState: 'PENDING_FORWARD',
+    fromState: 'FORWARDING',
     toState: 'FAILED_FORWARD',
     transition: async ({ lndInvoice, dbInvoice, tx }) => {
       if (!(lndInvoice.is_held || lndInvoice.is_cancelled)) {
@@ -347,11 +348,28 @@ export async function paidActionHeld ({ data: { invoiceId }, models, lnd, boss }
   }, { models, lnd, boss })
 }
 
+export async function paidActionCanceling ({ data: { invoiceId }, models, lnd, boss }) {
+  return await transitionInvoice('paidActionCancel', {
+    invoiceId,
+    fromState: ['HELD', 'PENDING', 'PENDING_HELD', 'FAILED_FORWARD'],
+    toState: 'CANCELING',
+    transition: async ({ lndInvoice, dbInvoice, tx }) => {
+      if (lndInvoice.is_confirmed) {
+        throw new Error('invoice is confirmed already')
+      }
+
+      await cancelHodlInvoice({ id: dbInvoice.hash, lnd })
+
+      return {}
+    }
+  }, { models, lnd, boss })
+}
+
 export async function paidActionFailed ({ data: { invoiceId }, models, lnd, boss }) {
   return await transitionInvoice('paidActionFailed', {
     invoiceId,
     // any of these states can transition to FAILED
-    fromState: ['PENDING', 'PENDING_HELD', 'HELD', 'FAILED_FORWARD'],
+    fromState: ['PENDING', 'PENDING_HELD', 'HELD', 'FAILED_FORWARD', 'CANCELING'],
     toState: 'FAILED',
     transition: async ({ lndInvoice, dbInvoice, tx }) => {
       if (!lndInvoice.is_canceled) {

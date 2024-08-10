@@ -1,4 +1,4 @@
-import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, deletePayment, getPayment, getIdentity } from 'ln-service'
+import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, getInvoice as getInvoiceFromLnd, getNode, deletePayment, getPayment, getIdentity } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto, { timingSafeEqual } from 'crypto'
 import serialize from './serial'
@@ -11,7 +11,7 @@ import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { bolt11Tags } from '@/lib/bolt11'
-import { checkInvoice } from 'worker/wallet'
+import { finalizeHodlInvoice } from 'worker/wallet'
 import walletDefs from 'wallets/server'
 import { generateResolverName } from '@/lib/wallet'
 import { lnAddrOptions } from '@/lib/lnurl'
@@ -402,14 +402,12 @@ const resolvers = {
     },
     createWithdrawl: createWithdrawal,
     sendToLnAddr,
-    cancelInvoice: async (parent, { hash, hmac }, { models, lnd }) => {
+    cancelInvoice: async (parent, { hash, hmac }, { models, lnd, boss }) => {
       const hmac2 = createHmac(hash)
       if (!timingSafeEqual(Buffer.from(hmac), Buffer.from(hmac2))) {
         throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
       }
-      await cancelHodlInvoice({ id: hash, lnd })
-      // transition invoice to cancelled action state
-      await checkInvoice({ data: { hash }, models, lnd })
+      await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
       return await models.invoice.findFirst({ where: { hash } })
     },
     dropBolt11: async (parent, { id }, { me, models, lnd }) => {

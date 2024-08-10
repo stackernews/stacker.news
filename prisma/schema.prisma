@@ -774,13 +774,14 @@ enum InvoiceActionType {
 enum InvoiceActionState {
   PENDING
   PENDING_HELD
-  PENDING_FORWARD
-  FORWARDED
   HELD
   PAID
   FAILED
+  FORWARDING
+  FORWARDED
   FAILED_FORWARD
   RETRYING
+  CANCELING
 }
 
 model ItemMention {

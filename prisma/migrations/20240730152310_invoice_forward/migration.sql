@@ -6,9 +6,10 @@
 -- the enum.
 
 
-ALTER TYPE "InvoiceActionState" ADD VALUE 'PENDING_FORWARD';
+ALTER TYPE "InvoiceActionState" ADD VALUE 'FORWARDING';
 ALTER TYPE "InvoiceActionState" ADD VALUE 'FORWARDED';
 ALTER TYPE "InvoiceActionState" ADD VALUE 'FAILED_FORWARD';
+ALTER TYPE "InvoiceActionState" ADD VALUE 'CANCELING';
 
 -- AlterTable
 ALTER TABLE "Invoice" ADD COLUMN     "actionOptimistic" BOOLEAN;

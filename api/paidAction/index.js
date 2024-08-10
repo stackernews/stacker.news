@@ -185,7 +185,7 @@ export async function retryPaidAction (actionType, args, context) {
   const { msatsRequested, actionId } = await models.invoice.findUnique({ where: { id: invoiceId, actionState: 'FAILED' } })
   context.cost = BigInt(msatsRequested)
   context.actionId = actionId
-  const invoiceArgs = { invoice: await createSNInvoice(actionType, args, context) }
+  const invoiceArgs = await createSNInvoice(actionType, args, context)
 
   return await models.$transaction(async tx => {
     context.tx = tx
@@ -223,7 +223,7 @@ export async function createLightningInvoice (actionType, args, context) {
   if (userId) {
     try {
       const description = await paidActions[actionType].describe(args, context)
-      const { invoice, wallet } = await createUserInvoice(userId, {
+      const { invoice: bolt11, wallet } = await createUserInvoice(userId, {
         // this is the amount the stacker will receive, the other 1/10th is the fee
         msats: cost * BigInt(9) / BigInt(10),
         description,
@@ -231,15 +231,20 @@ export async function createLightningInvoice (actionType, args, context) {
       }, { models })
 
       const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(
-        invoice, { description }, { lnd })
+        bolt11, { description }, { lnd })
 
-      return { invoice, wrappedInvoice, wallet, maxFee }
+      return {
+        bolt11,
+        wrappedBolt11: wrappedInvoice.request,
+        wallet,
+        maxFee
+      }
     } catch (e) {
       console.error('failed to create stacker invoice, falling back to SN invoice', e)
     }
   }
 
-  return { invoice: await createSNInvoice(actionType, args, context) }
+  return await createSNInvoice(actionType, args, context)
 }
 
 // we seperate the invoice creation into two functions because
@@ -255,16 +260,17 @@ async function createSNInvoice (actionType, args, context) {
   }
 
   const expiresAt = datePivot(new Date(), { seconds: INVOICE_EXPIRE_SECS })
-  return await createLNDInvoice({
+  const invoice = await createLNDInvoice({
     description: me?.hideInvoiceDesc ? undefined : await action.describe(args, context),
     lnd,
     mtokens: String(cost),
     expires_at: expiresAt
   })
+  return { bolt11: invoice.request, preimage: invoice.secret }
 }
 
 async function createDbInvoice (actionType, args, context,
-  { invoice: unwrappedInvoice, wrappedInvoice, wallet, maxFee }) {
+  { bolt11, wrappedBolt11, preimage, wallet, maxFee }) {
   const { me, models, tx, cost, optimistic, actionId } = context
   const db = tx ?? models
 
@@ -273,15 +279,15 @@ async function createDbInvoice (actionType, args, context,
     throw new Error('The cost of the action must be at least 1 sat')
   }
 
-  const servedInvoice = wrappedInvoice ?? unwrappedInvoice
-  const request = parsePaymentRequest({ request: servedInvoice.request })
-  const expiresAt = new Date(request.expires_at)
+  const servedBolt11 = wrappedBolt11 ?? bolt11
+  const servedInvoice = parsePaymentRequest({ request: servedBolt11 })
+  const expiresAt = new Date(servedInvoice.expires_at)
 
   const invoiceData = {
     hash: servedInvoice.id,
     msatsRequested: BigInt(servedInvoice.mtokens),
-    preimage: optimistic ? undefined : servedInvoice.secret,
-    bolt11: servedInvoice.request,
+    preimage: optimistic ? undefined : preimage,
+    bolt11: servedBolt11,
     userId: me?.id ?? USER_ID.anon,
     actionType,
     actionState: optimistic ? 'PENDING' : 'PENDING_HELD',
@@ -292,11 +298,11 @@ async function createDbInvoice (actionType, args, context,
   }
 
   let invoice
-  if (wrappedInvoice) {
+  if (wrappedBolt11) {
     invoice = (await db.invoiceForward.create({
       include: { invoice: true },
       data: {
-        bolt11: unwrappedInvoice,
+        bolt11,
         maxFeeMsats: maxFee,
         invoice: {
           create: invoiceData
@@ -316,7 +322,7 @@ async function createDbInvoice (actionType, args, context,
   await db.$executeRaw`
       INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein, priority)
       VALUES ('checkInvoice',
-        jsonb_build_object('hash', ${servedInvoice.id}::TEXT), 21, true,
+        jsonb_build_object('hash', ${invoice.hash}::TEXT), 21, true,
           ${expiresAt}::TIMESTAMP WITH TIME ZONE,
           ${expiresAt}::TIMESTAMP WITH TIME ZONE - now() + interval '10m', 100)`
 

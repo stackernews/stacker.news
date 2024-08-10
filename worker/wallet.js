@@ -10,8 +10,10 @@ import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
 import {
-  paidActionPaid, paidActionPendingForward, paidActionForwarded,
-  paidActionFailedForward, paidActionHeld, paidActionFailed
+  paidActionPaid, paidActionForwarded,
+  paidActionFailedForward, paidActionHeld, paidActionFailed,
+  paidActionForwarding,
+  paidActionCanceling
 } from './paidAction.js'
 
 export async function subscribeToWallet (args) {
@@ -160,7 +162,7 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
           // transitions when held are dependent on the withdrawl status
           return await checkWithdrawal({ data: { hash: dbInv.invoiceForward.withdrawl.hash }, models, lnd, boss })
         }
-        return await paidActionPendingForward({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+        return await paidActionForwarding({ data: { invoiceId: dbInv.id }, models, lnd, boss })
       }
       return await paidActionHeld({ data: { invoiceId: dbInv.id }, models, lnd, boss })
     }
@@ -369,14 +371,33 @@ export async function autoDropBolt11s ({ models, lnd }) {
 
 // The callback subscriptions above will NOT get called for JIT invoices that are already paid.
 // So we manually cancel the HODL invoice here if it wasn't settled by user action
-export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, ...args }) {
+export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, ...args }) {
   const inv = await getInvoice({ id: hash, lnd })
   if (inv.is_confirmed) {
     return
   }
 
-  await cancelHodlInvoice({ id: hash, lnd })
+  const dbInv = await models.invoice.findUnique({
+    where: { hash },
+    include: {
+      invoiceForward: {
+        include: {
+          withdrawl: true
+        }
+      }
+    }
+  })
+  if (!dbInv) {
+    console.log('invoice not found in database', hash)
+    return
+  }
 
+  // if this is an actionType we need to cancel conditionally
+  if (dbInv.actionType) {
+    return await paidActionCanceling({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+  }
+
+  await cancelHodlInvoice({ id: hash, lnd })
   // sync LND invoice status with invoice status in database
   await checkInvoice({ data: { hash }, models, lnd, ...args })
 }

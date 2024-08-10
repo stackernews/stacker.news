@@ -65,7 +65,7 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
 
       const data = await transition({ lndInvoice, dbInvoice, tx })
 
-      await tx.invoice.update({
+      data && await tx.invoice.update({
         where: { id: dbInvoice.id },
         data
       })
@@ -359,8 +359,6 @@ export async function paidActionCanceling ({ data: { invoiceId }, models, lnd, b
       }
 
       await cancelHodlInvoice({ id: dbInvoice.hash, lnd })
-
-      return {}
     }
   }, { models, lnd, boss })
 }

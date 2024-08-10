@@ -347,6 +347,7 @@ export async function autoDropBolt11s ({ models, lnd }) {
       WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
       AND now() > created_at + interval '${retention}'
       AND hash IS NOT NULL
+      AND status IS NOT NULL
     ), updated_rows AS (
       UPDATE "Withdrawl"
       SET hash = NULL, bolt11 = NULL

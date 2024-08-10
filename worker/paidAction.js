@@ -153,8 +153,7 @@ export async function paidActionPaid ({ data: { invoiceId }, models, lnd, boss }
 export async function paidActionForwarding ({ data: { invoiceId }, models, lnd, boss }) {
   return await transitionInvoice('paidActionForwarding', {
     invoiceId,
-    // optimistic actions use PENDING as starting state even if we're using a forward invoice
-    fromState: ['PENDING_HELD', 'PENDING'],
+    fromState: 'PENDING_HELD',
     toState: 'FORWARDING',
     transition: async ({ lndInvoice, dbInvoice, tx }) => {
       if (!lndInvoice.is_held) {
@@ -327,6 +326,10 @@ export async function paidActionHeld ({ data: { invoiceId }, models, lnd, boss }
       // timeout and rollback the transaction, leaving the invoice in a pending_held state
       if (!(lndInvoice.is_held || lndInvoice.is_confirmed)) {
         throw new Error('invoice is not held')
+      }
+
+      if (dbInvoice.invoiceForward) {
+        throw new Error('invoice is associated with a forward')
       }
 
       // make sure settled or cancelled in 60 seconds to minimize risk of force closures

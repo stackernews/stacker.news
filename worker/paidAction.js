@@ -352,7 +352,7 @@ export async function paidActionHeld ({ data: { invoiceId }, models, lnd, boss }
 }
 
 export async function paidActionCanceling ({ data: { invoiceId }, models, lnd, boss }) {
-  return await transitionInvoice('paidActionCancel', {
+  return await transitionInvoice('paidActionCanceling', {
     invoiceId,
     fromState: ['HELD', 'PENDING', 'PENDING_HELD', 'FAILED_FORWARD'],
     toState: 'CANCELING',

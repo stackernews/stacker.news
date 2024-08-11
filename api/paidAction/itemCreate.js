@@ -52,8 +52,6 @@ export async function perform (args, context) {
       msats: cost - boostMsats, act: 'FEE', userId: data.userId, ...invoiceData
     })
     data.cost = msatsToSats(cost - boostMsats)
-  } else {
-    data.freebie = true
   }
 
   const mentions = await getMentions(args, context)

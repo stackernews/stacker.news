@@ -428,7 +428,6 @@ model Item {
   cost                Int                   @default(0)
   weightedDownVotes   Float                 @default(0)
   bio                 Boolean               @default(false)
-  freebie             Boolean               @default(false)
   deletedAt           DateTime?
   otsFile             Bytes?
   otsHash             String?
@@ -475,7 +474,6 @@ model Item {
   @@index([lastZapAt])
   @@index([bio], map: "Item.bio_index")
   @@index([createdAt], map: "Item.created_at_index")
-  @@index([freebie], map: "Item.freebie_index")
   @@index([maxBid], map: "Item.maxBid_index")
   @@index([parentId], map: "Item.parentId_index")
   @@index([path], map: "Item.path_index", type: Gist)
@@ -490,6 +488,7 @@ model Item {
   @@index([weightedVotes], map: "Item.weightedVotes_index")
   @@index([invoiceId])
   @@index([invoiceActionState])
+  @@index([cost])
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item

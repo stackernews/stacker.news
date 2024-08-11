@@ -142,7 +142,11 @@ export function getGetServerSideProps (
     const { data: { me } } = await client.query({ query: ME })
 
     if (authRequired && !me) {
-      const callback = process.env.NEXT_PUBLIC_URL + req.url
+      let callback = process.env.NEXT_PUBLIC_URL + req.url
+      // On client-side routing, the callback is a NextJS URL
+      // so we need to remove the NextJS stuff.
+      // Example: /_next/data/development/territory.json
+      callback = callback.replace(/\/_next\/data\/\w+\//, '/').replace(/\.json$/, '')
       return {
         redirect: {
           destination: `/signup?callbackUrl=${encodeURIComponent(callback)}`

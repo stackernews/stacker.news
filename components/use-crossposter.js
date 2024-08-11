@@ -119,7 +119,7 @@ export default function useCrossposter () {
         removeToast()
       }
 
-      const removeToast = toaster.danger(
+      const removeToast = toaster.warning(
         <>
           Crossposting failed for {failedRelays.join(', ')} <br />
           <Button
@@ -145,7 +145,7 @@ export default function useCrossposter () {
   }
 
   const crosspostError = (errorMessage) => {
-    return toaster.danger(`Error crossposting: ${errorMessage}`)
+    return toaster.warning(`crossposting failed: ${errorMessage}`)
   }
 
   async function handleEventCreation (item) {

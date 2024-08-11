@@ -229,7 +229,7 @@ export async function filterClause (me, models, type) {
   if (me) {
     const user = await models.user.findUnique({ where: { id: me.id } })
 
-    investmentClause = `(("Item".cost + "Item".boost + ("Item".msats / 1000)) >= ${user.investmentFilter} OR "Item"."userId" = ${me.id})`
+    investmentClause = `(("Item".cost + "Item".boost + ("Item".msats / 1000)) >= ${user.satsFilter} OR "Item"."userId" = ${me.id})`
 
     if (user.wildWestMode) {
       return investmentClause

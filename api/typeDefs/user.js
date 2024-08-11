@@ -71,7 +71,7 @@ export default gql`
     diagnostics: Boolean!
     noReferralLinks: Boolean!
     fiatCurrency: String!
-    investmentFilter: Int!
+    satsFilter: Int!
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
     hideGithub: Boolean!
@@ -140,7 +140,7 @@ export default gql`
     diagnostics: Boolean!
     noReferralLinks: Boolean!
     fiatCurrency: String!
-    investmentFilter: Int!
+    satsFilter: Int!
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
     hideGithub: Boolean!

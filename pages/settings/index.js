@@ -140,7 +140,7 @@ export default function Settings ({ ssrData }) {
             hideTwitter: settings?.hideTwitter,
             imgproxyOnly: settings?.imgproxyOnly,
             wildWestMode: settings?.wildWestMode,
-            investmentFilter: settings?.investmentFilter,
+            satsFilter: settings?.satsFilter,
             nsfwMode: settings?.nsfwMode,
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
             nostrCrossposting: settings?.nostrCrossposting,
@@ -154,7 +154,7 @@ export default function Settings ({ ssrData }) {
           schema={settingsSchema}
           onSubmit={async ({
             tipDefault, tipRandom, tipRandomMin, tipRandomMax, withdrawMaxFeeDefault,
-            zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, investmentFilter,
+            zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, satsFilter,
             ...values
           }) => {
             if (nostrPubkey.length === 0) {
@@ -176,7 +176,7 @@ export default function Settings ({ ssrData }) {
                     tipRandomMin: tipRandom ? Number(tipRandomMin) : null,
                     tipRandomMax: tipRandom ? Number(tipRandomMax) : null,
                     withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
-                    investmentFilter: Number(investmentFilter),
+                    satsFilter: Number(satsFilter),
                     zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
                     nostrPubkey,
                     nostrRelays: nostrRelaysFiltered,
@@ -475,7 +475,7 @@ export default function Settings ({ ssrData }) {
           <h4>content</h4>
           <Input
             label={
-              <div className='d-flex align-items-center'>filter posts with fewer than this many sats invested
+              <div className='d-flex align-items-center'>filter by sats
                 <Info>
                   <ul className='fw-bold'>
                     <li>hide the post if the sum of these is less than your setting:</li>
@@ -489,7 +489,7 @@ export default function Settings ({ ssrData }) {
                 </Info>
               </div>
             }
-            name='investmentFilter'
+            name='satsFilter'
             required
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />

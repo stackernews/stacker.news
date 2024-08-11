@@ -15,7 +15,7 @@ export const ME = gql`
         diagnostics
         noReferralLinks
         fiatCurrency
-        investmentFilter
+        satsFilter
         hideCowboyHat
         hideFromTopUsers
         hideGithub
@@ -104,7 +104,7 @@ export const SETTINGS_FIELDS = gql`
       nostrCrossposting
       nostrRelays
       wildWestMode
-      investmentFilter
+      satsFilter
       nsfwMode
       authMethods {
         lightning

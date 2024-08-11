@@ -5,7 +5,7 @@ Paid actions are actions that require payments to perform. Given that we support
 <details>
     <summary>internals</summary>
 
-    All paid action progress, regardless of flow, is managed using a state machine that's transitioned by the invoice progress and payment progress (in the case of p2p paid action). Below is the full state machine for paid actions:
+All paid action progress, regardless of flow, is managed using a state machine that's transitioned by the invoice progress and payment progress (in the case of p2p paid action). Below is the full state machine for paid actions:
 
 ```mermaid
 stateDiagram-v2
@@ -49,7 +49,7 @@ For paid actions that support it, if the stacker doesn't have enough fee credits
 <details>
   <summary>Internals</summary>
 
-   Internally, optimistic flows make use of a state machine that's transitioned by the invoice payment progress.
+Internally, optimistic flows make use of a state machine that's transitioned by the invoice payment progress.
 
 ```mermaid
 stateDiagram-v2
@@ -73,7 +73,7 @@ Internally, pessimistic flows use hold invoices. If the action doesn't succeed, 
 <details>
   <summary>Internals</summary>
 
-   Internally, pessimistic flows make use of a state machine that's transitioned by the invoice payment progress much like optimistic flows, but with extra steps.
+Internally, pessimistic flows make use of a state machine that's transitioned by the invoice payment progress much like optimistic flows, but with extra steps.
 
 ```mermaid
 stateDiagram-v2
@@ -142,7 +142,7 @@ Each paid action is implemented in its own file in the `paidAction` directory. E
 - `supportsPessimism`: supports a pessimistic payment flow
 - `supportsOptimism`: supports an optimistic payment flow
 
-#### Functions
+### Functions
 
 All functions have the following signature: `function(args: Object, context: Object): Promise`
 
@@ -229,7 +229,7 @@ COMMIT;
 -- item_zaps.sats is 100, but we would expect it to be 200
 ```
 
-Note that row level locks wouldn't help in this case, because we can't lock the rows that the transactions doesn't know to exist yet.
+Note that row level locks wouldn't help in this case, because we can't lock the rows that the transactions don't know to exist yet.
 
 #### Subqueries are still incorrect
 
@@ -288,6 +288,8 @@ From the [postgres source docs](https://git.postgresql.org/gitweb/?p=postgresql.
 
 Deadlocks can occur when two transactions are waiting for each other to release locks. This can happen when two transactions lock rows in different orders whether explicit or implicit.
 
+If both transactions lock the rows in the same order, the deadlock is avoided.
+
 ### Incorrect
 
 ```sql
@@ -304,9 +306,7 @@ UPDATE users set msats = msats + 1 WHERE id = 1;
 -- deadlock occurs because neither transaction can proceed to here
 ```
 
-If both transactions lock the rows in the same order, the deadlock is avoided.
-
-Most often this occurs when selecting multiple rows for update in different orders. Recently, we had a deadlock when spliting zaps to multiple users. The solution was to select the rows for update in the same order.
+In practice, this most often occurs when selecting multiple rows for update in different orders. Recently, we had a deadlock when spliting zaps to multiple users. The solution was to select the rows for update in the same order.
 
 ### Incorrect
 

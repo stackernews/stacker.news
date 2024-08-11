@@ -35,6 +35,7 @@ services:
       - db:/var/lib/postgresql/data
     labels:
       CONNECT: "localhost:5431"
+    cpu_shares: "${CPU_SHARES_IMPORTANT}"
   app:
     container_name: app
     stdin_open: true
@@ -58,6 +59,7 @@ services:
       - ./:/app
     labels:
       CONNECT: "localhost:3000"
+    cpu_shares: "${CPU_SHARES_IMPORTANT}"
   capture:
     container_name: capture
     build:
@@ -79,6 +81,7 @@ services:
       - "5678:5678"
     labels:
       CONNECT: "localhost:5678"
+    cpu_shares: "${CPU_SHARES_LOW}"
   worker:
     container_name: worker
     build:
@@ -97,6 +100,7 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - npm run worker:dev
+    cpu_shares: "${CPU_SHARES_IMPORTANT}"
   imgproxy:
     container_name: imgproxy
     image: darthsim/imgproxy:v3.23.0
@@ -113,6 +117,7 @@ services:
       - "8080"
     labels:
       - "CONNECT=localhost:3001"
+    cpu_shares: "${CPU_SHARES_LOW}"
   s3:
     container_name: s3
     image: localstack/localstack:s3-latest
@@ -138,6 +143,7 @@ services:
       - './docker/s3/cors.json:/etc/localstack/init/ready.d/cors.json'
     labels:
       - "CONNECT=localhost:4566"
+    cpu_shares: "${CPU_SHARES_LOW}"
   opensearch:
     image: opensearchproject/opensearch:2.12.0
     container_name: opensearch
@@ -177,6 +183,7 @@ services:
         echo "OpenSearch index created."
         fg
       '
+    cpu_shares: "${CPU_SHARES_LOW}"
   os-dashboard:
     image: opensearchproject/opensearch-dashboards:2.12.0
     container_name: os-dashboard
@@ -198,6 +205,7 @@ services:
       - opensearch
     labels:
       CONNECT: "localhost:5601"
+    cpu_shares: "${CPU_SHARES_LOW}"
   bitcoin:
     image: polarlightning/bitcoind:26.0
     container_name: bitcoin
@@ -254,6 +262,7 @@ services:
             bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${STACKER_CLN_ADDR}
           fi
         '
+    cpu_shares: "${CPU_SHARES_MODERATE}"
   sn_lnd:
     build:
       context: ./docker/lnd
@@ -311,6 +320,7 @@ services:
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
         "
+    cpu_shares: "${CPU_SHARES_MODERATE}"
   stacker_lnd:
     build:
       context: ./docker/lnd
@@ -370,6 +380,7 @@ services:
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
         "
+    cpu_shares: "${CPU_SHARES_MODERATE}"
   litd:
     container_name: litd
     build:
@@ -404,6 +415,7 @@ services:
       - '--loop.server.host=test.swap.lightning.today:11010'
     labels:
       CONNECT: "localhost:8443"
+    cpu_shares: "${CPU_SHARES_MODERATE}"
   stacker_cln:
     build:
       context: ./docker/cln
@@ -446,6 +458,7 @@ services:
               amount=1000000000 push_msat=500000000000 minconf=0
           fi
         "
+    cpu_shares: "${CPU_SHARES_MODERATE}"
   channdler:
     image: mcuadros/ofelia:latest
     container_name: channdler
@@ -460,6 +473,7 @@ services:
     command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    cpu_shares: "${CPU_SHARES_LOW}"
   mailhog:
     image: mailhog/mailhog:latest
     container_name: mailhog
@@ -476,6 +490,7 @@ services:
       - app
     labels:
       CONNECT: "localhost:8025"
+    cpu_shares: "${CPU_SHARES_LOW}"
   nwc:
     build:
       context: ./docker/nwc
@@ -507,6 +522,7 @@ services:
       - '0'
       - '--daily-limit'
       - '0'
+    cpu_shares: "${CPU_SHARES_LOW}"
   lnbits:
     image: lnbits/lnbits:0.12.5
     container_name: lnbits
@@ -525,6 +541,7 @@ services:
       - LND_GRPC_MACAROON=/app/.lnd/regtest/admin.macaroon
     volumes:
       - ./docker/lnd/stacker:/app/.lnd
+    cpu_shares: "${CPU_SHARES_LOW}"
 volumes:
   db:
   os:

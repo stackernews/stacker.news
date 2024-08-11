@@ -12,10 +12,5 @@ UPDATE "users" SET "satsFilter" = 0 WHERE "greeterMode";
 
 ALTER TABLE "users" DROP COLUMN "greeterMode";
 
-DROP INDEX "Item.freebie_index";
-
--- AlterTable
-ALTER TABLE "Item" DROP COLUMN "freebie";
-
 -- CreateIndex
 CREATE INDEX "Item_cost_idx" ON "Item"("cost");

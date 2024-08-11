@@ -100,27 +100,6 @@ export const SEND_TO_LNADDR = gql`
     }
 }`
 
-export const UPSERT_WALLET_LNADDR =
-gql`
-mutation upsertWalletLNAddr($id: ID, $address: String!, $settings: AutowithdrawSettings!) {
-  upsertWalletLNAddr(id: $id, address: $address, settings: $settings)
-}
-`
-
-export const UPSERT_WALLET_LND =
-gql`
-mutation upsertWalletLND($id: ID, $socket: String!, $macaroon: String!, $cert: String, $settings: AutowithdrawSettings!) {
-  upsertWalletLND(id: $id, socket: $socket, macaroon: $macaroon, cert: $cert, settings: $settings)
-}
-`
-
-export const UPSERT_WALLET_CLN =
-gql`
-mutation upsertWalletCLN($id: ID, $socket: String!, $rune: String!, $cert: String, $settings: AutowithdrawSettings!) {
-  upsertWalletCLN(id: $id, socket: $socket, rune: $rune, cert: $cert, settings: $settings)
-}
-`
-
 export const REMOVE_WALLET =
 gql`
 mutation removeWallet($id: ID!) {
@@ -160,6 +139,7 @@ export const WALLET_BY_TYPE = gql`
     walletByType(type: $type) {
       id
       createdAt
+      enabled
       priority
       type
       wallet {

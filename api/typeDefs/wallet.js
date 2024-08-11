@@ -1,6 +1,32 @@
 import { gql } from 'graphql-tag'
+import { generateResolverName } from '@/lib/wallet'
 
-export default gql`
+import walletDefs from 'wallets/server'
+
+function injectTypeDefs (typeDefs) {
+  console.group('injected GraphQL type defs:')
+  const injected = walletDefs.map(
+    (w) => {
+      let args = 'id: ID, '
+      args += w.fields.map(f => {
+        let arg = `${f.name}: String`
+        if (!f.optional) {
+          arg += '!'
+        }
+        return arg
+      }).join(', ')
+      args += ', settings: AutowithdrawSettings!'
+      const resolverName = generateResolverName(w.walletField)
+      const typeDef = `${resolverName}(${args}): Boolean`
+      console.log(typeDef)
+      return typeDef
+    })
+  console.groupEnd()
+
+  return `${typeDefs}\n\nextend type Mutation {\n${injected.join('\n')}\n}`
+}
+
+const typeDefs = `
   extend type Query {
     invoice(id: ID!): Invoice!
     withdrawl(id: ID!): Withdrawl!
@@ -19,9 +45,6 @@ export default gql`
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
     cancelInvoice(hash: String!, hmac: String!): Invoice!
     dropBolt11(id: ID): Withdrawl
-    upsertWalletLND(id: ID, socket: String!, macaroon: String!, cert: String, settings: AutowithdrawSettings!): Boolean
-    upsertWalletCLN(id: ID, socket: String!, rune: String!, cert: String, settings: AutowithdrawSettings!): Boolean
-    upsertWalletLNAddr(id: ID, address: String!, settings: AutowithdrawSettings!): Boolean
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(wallet: String): Boolean
   }
@@ -30,7 +53,8 @@ export default gql`
     id: ID!
     createdAt: Date!
     type: String!
-    priority: Boolean!
+    enabled: Boolean!
+    priority: Int!
     wallet: WalletDetails!
   }
 
@@ -55,7 +79,8 @@ export default gql`
   input AutowithdrawSettings {
     autoWithdrawThreshold: Int!
     autoWithdrawMaxFeePercent: Float!
-    priority: Boolean!
+    priority: Int
+    enabled: Boolean
   }
 
   type Invoice {
@@ -123,3 +148,5 @@ export default gql`
     message: String!
   }
 `
+
+export default gql`${injectTypeDefs(typeDefs)}`

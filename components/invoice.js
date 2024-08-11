@@ -8,17 +8,13 @@ import Bolt11Info from './bolt11-info'
 import { useQuery } from '@apollo/client'
 import { INVOICE } from '@/fragments/wallet'
 import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
-import { WebLnNotEnabledError } from './payment'
+import { NoAttachedWalletError } from './payment'
 import ItemJob from './item-job'
 import Item from './item'
 import { CommentFlat } from './comment'
 import classNames from 'classnames'
 
-export default function Invoice ({
-  id, query = INVOICE, modal, onPayment, onCanceled,
-  info, successVerb, webLn = true, webLnError,
-  poll, waitFor, ...props
-}) {
+export default function Invoice ({ id, query = INVOICE, modal, onPayment, onCanceled, info, successVerb, useWallet = true, walletError, poll, waitFor, ...props }) {
   const [expired, setExpired] = useState(false)
   const { data, error } = useQuery(query, SSR
     ? {}
@@ -58,15 +54,15 @@ export default function Invoice ({
   if (invoice.cancelled) {
     variant = 'failed'
     status = 'cancelled'
-    webLn = false
+    useWallet = false
   } else if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived && !expired)) {
     variant = 'confirmed'
     status = `${numWithUnits(invoice.satsReceived, { abbreviate: false })} ${successVerb || 'deposited'}`
-    webLn = false
+    useWallet = false
   } else if (expired) {
     variant = 'failed'
     status = 'expired'
-    webLn = false
+    useWallet = false
   } else if (invoice.expiresAt) {
     variant = 'pending'
     status = (
@@ -82,13 +78,13 @@ export default function Invoice ({
 
   return (
     <>
-      {webLnError && !(webLnError instanceof WebLnNotEnabledError) &&
+      {walletError && !(walletError instanceof NoAttachedWalletError) &&
         <div className='text-center fw-bold text-info mb-3' style={{ lineHeight: 1.25 }}>
           Paying from attached wallet failed:
-          <code> {webLnError.message}</code>
+          <code> {walletError.message}</code>
         </div>}
       <Qr
-        webLn={webLn} value={invoice.bolt11}
+        useWallet={useWallet} value={invoice.bolt11}
         description={numWithUnits(invoice.satsRequested, { abbreviate: false })}
         statusVariant={variant} status={status}
       />

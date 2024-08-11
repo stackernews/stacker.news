@@ -30,6 +30,8 @@ model User {
   apiKeyHash                String?              @unique(map: "users.apikeyhash_unique") @db.Char(64)
   apiKeyEnabled             Boolean              @default(false)
   tipDefault                Int                  @default(100)
+  tipRandomMin              Int?
+  tipRandomMax              Int?
   bioId                     Int?
   inviteId                  String?
   tipPopover                Boolean              @default(false)
@@ -173,6 +175,7 @@ model Wallet {
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   userId    Int
   label     String?
+  enabled   Boolean  @default(true)
   priority  Int      @default(0)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

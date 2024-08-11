@@ -141,6 +141,7 @@ export default {
           (SELECT FLOOR("Earn".msats / 1000.0) as sats, type, rank, "typeId"
             FROM "Earn"
             WHERE "Earn"."userId" = ${me.id}
+            AND (type IS NULL OR type NOT IN ('FOREVER_REFERRAL', 'ONE_DAY_REFERRAL'))
             AND date_trunc('day', "Earn".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = days_cte.day
             ORDER BY "Earn".msats DESC)
         ) "Earn"

@@ -202,3 +202,68 @@ From the [postgres docs](https://www.postgresql.org/docs/current/transaction-iso
 
 From the [postgres source docs](https://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/backend/executor/README#l350):
 > It is also possible that there are relations in the query that are not to be locked (they are neither the UPDATE/DELETE/MERGE target nor specified to be locked in SELECT FOR UPDATE/SHARE).  When re-running the test query ***we want to use the same rows*** from these relations that were joined to the locked rows.
+
+## `IMPORTANT: deadlocks`
+
+Deadlocks can occur when two transactions are waiting for each other to release locks. This can happen when two transactions lock rows in different orders whether explicit or implicit.
+
+### Incorrect
+
+```sql
+-- transaction 1
+BEGIN;
+UPDATE users set msats = msats + 1 WHERE id = 1;
+-- transaction 2
+BEGIN;
+UPDATE users set msats = msats + 1 WHERE id = 2;
+-- transaction 1 (blocks here until transaction 2 commits)
+UPDATE users set msats = msats + 1 WHERE id = 2;
+-- transaction 2 (blocks here until transaction 1 commits)
+UPDATE users set msats = msats + 1 WHERE id = 1;
+-- deadlock occurs because neither transaction can proceed to here
+```
+
+If both transactions lock the rows in the same order, the deadlock is avoided.
+
+Most often this occurs when selecting multiple rows for update in different orders. Recently, we had a deadlock when spliting zaps to multiple users. The solution was to select the rows for update in the same order.
+
+### Incorrect
+
+```sql
+WITH forwardees AS (
+    SELECT "userId", (($1::BIGINT * pct) / 100)::BIGINT AS msats
+    FROM "ItemForward"
+    WHERE "itemId" = $2::INTEGER
+),
+UPDATE users
+    SET
+    msats = users.msats + forwardees.msats,
+    "stackedMsats" = users."stackedMsats" + forwardees.msats
+    FROM forwardees
+    WHERE users.id = forwardees."userId";
+```
+
+If forwardees are selected in a different order in two concurrent transactions, e.g. (1,2) in tx 1 and (2,1) in tx 2, a deadlock can occur. To avoid this, always select rows for update in the same order.
+
+### Correct
+
+We fixed the deadlock by selecting the forwardees in the same order in these transactions.
+
+```sql
+WITH forwardees AS (
+    SELECT "userId", (($1::BIGINT * pct) / 100)::BIGINT AS msats
+    FROM "ItemForward"
+    WHERE "itemId" = $2::INTEGER
+    ORDER BY "userId" ASC
+),
+UPDATE users
+    SET
+    msats = users.msats + forwardees.msats,
+    "stackedMsats" = users."stackedMsats" + forwardees.msats
+    FROM forwardees
+    WHERE users.id = forwardees."userId";
+```
+
+### More resources
+
+- https://www.postgresql.org/docs/current/explicit-locking.html#LOCKING-DEADLOCKS

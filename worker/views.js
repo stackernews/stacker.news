@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import createPrisma from '@/lib/create-prisma.js'
 
 const viewPrefixes = ['reg_growth', 'spender_growth', 'item_growth', 'spending_growth',
   'stackers_growth', 'stacking_growth', 'user_stats', 'sub_stats']
@@ -6,7 +6,7 @@ const viewPrefixes = ['reg_growth', 'spender_growth', 'item_growth', 'spending_g
 // this is intended to be run everyday after midnight CT
 export async function views ({ data: { period } = { period: 'days' } }) {
   // grab a greedy connection
-  const models = new PrismaClient()
+  const models = createPrisma({ connectionParams: { connection_limit: 1 } })
 
   try {
     // these views are bespoke so we can't use the loop
@@ -29,7 +29,7 @@ export async function views ({ data: { period } = { period: 'days' } }) {
 // this should be run regularly ... like, every 5 minutes
 export async function rankViews () {
   // grab a greedy connection
-  const models = new PrismaClient()
+  const models = createPrisma({ connectionParams: { connection_limit: 1 } })
 
   try {
     for (const view of ['zap_rank_personal_view']) {

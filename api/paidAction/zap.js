@@ -77,19 +77,19 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
     ), total_forwarded AS (
       SELECT COALESCE(SUM(msats), 0) as msats
       FROM forwardees
-    ), forward AS (
-      UPDATE users
-      SET
-        msats = users.msats + forwardees.msats,
-        "stackedMsats" = users."stackedMsats" + forwardees.msats
-      FROM forwardees
-      WHERE users.id = forwardees."userId"
+    ), recipients AS (
+      SELECT "userId", msats FROM forwardees
+      UNION
+      SELECT ${itemAct.item.userId}::INTEGER as "userId",
+        ${itemAct.msats}::BIGINT - (SELECT msats FROM total_forwarded)::BIGINT as msats
+      ORDER BY "userId" ASC -- order to prevent deadlocks
     )
     UPDATE users
     SET
-      msats = msats + ${itemAct.msats}::BIGINT - (SELECT msats FROM total_forwarded)::BIGINT,
-      "stackedMsats" = "stackedMsats" + ${itemAct.msats}::BIGINT - (SELECT msats FROM total_forwarded)::BIGINT
-    WHERE id = ${itemAct.item.userId}::INTEGER`
+      msats = users.msats + recipients.msats,
+      "stackedMsats" = users."stackedMsats" + recipients.msats
+    FROM recipients
+    WHERE users.id = recipients."userId"`
 
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
@@ -143,7 +143,6 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
       FROM zapped
       WHERE "Item".path @> zapped.path AND "Item".id <> zapped.id`
 
-  // TODO: referrals
   notifyZapped({ models, item }).catch(console.error)
 }
 

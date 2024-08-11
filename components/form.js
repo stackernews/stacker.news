@@ -802,7 +802,7 @@ export function CheckboxGroup ({ label, groupClassName, children, ...props }) {
 const StorageKeyPrefixContext = createContext()
 
 export function Form ({
-  initial, schema, onSubmit, children, initialError, validateImmediately,
+  initial, validate, schema, onSubmit, children, initialError, validateImmediately,
   storageKeyPrefix, validateOnChange = true, requireSession, innerRef,
   ...props
 }) {
@@ -856,6 +856,7 @@ export function Form ({
     <Formik
       initialValues={initial}
       validateOnChange={validateOnChange}
+      validate={validate}
       validationSchema={schema}
       initialTouched={validateImmediately && initial}
       validateOnBlur={false}

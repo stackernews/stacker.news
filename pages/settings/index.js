@@ -112,6 +112,9 @@ export default function Settings ({ ssrData }) {
         <Form
           initial={{
             tipDefault: settings?.tipDefault || 21,
+            tipRandom: settings?.tipRandom,
+            tipRandomMin: settings?.tipRandomMin || 1,
+            tipRandomMax: settings?.tipRandomMax || 10,
             turboTipping: settings?.turboTipping,
             zapUndos: settings?.zapUndos || (settings?.tipDefault ? 100 * settings.tipDefault : 2100),
             zapUndosEnabled: settings?.zapUndos !== null,
@@ -149,7 +152,7 @@ export default function Settings ({ ssrData }) {
             noReferralLinks: settings?.noReferralLinks
           }}
           schema={settingsSchema}
-          onSubmit={async ({ tipDefault, withdrawMaxFeeDefault, zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, ...values }) => {
+          onSubmit={async ({ tipDefault, tipRandom, tipRandomMin, tipRandomMax, withdrawMaxFeeDefault, zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, ...values }) => {
             if (nostrPubkey.length === 0) {
               nostrPubkey = null
             } else {
@@ -166,6 +169,8 @@ export default function Settings ({ ssrData }) {
                 variables: {
                   settings: {
                     tipDefault: Number(tipDefault),
+                    tipRandomMin: tipRandom ? Number(tipRandomMin) : null,
+                    tipRandomMax: tipRandom ? Number(tipRandomMax) : null,
                     withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
                     zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
                     nostrPubkey,
@@ -190,7 +195,7 @@ export default function Settings ({ ssrData }) {
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
             hint={<small className='text-muted'>note: you can also press and hold the lightning bolt to zap custom amounts</small>}
           />
-          <div className='mb-2'>
+          <div className='pb-4'>
             <AccordianItem
               show={settings?.turboTipping}
               header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
@@ -224,6 +229,7 @@ export default function Settings ({ ssrData }) {
                     groupClassName='mb-0'
                   />
                   <ZapUndosField />
+                  <TipRandomField />
                 </>
               }
             />
@@ -995,31 +1001,80 @@ function ApiKeyDeleteObstacle ({ onClose }) {
 const ZapUndosField = () => {
   const [checkboxField] = useField({ name: 'zapUndosEnabled' })
   return (
-    <div className='d-flex flex-row align-items-center'>
-      <Input
-        name='zapUndos'
-        disabled={!checkboxField.value}
+    <>
+      <Checkbox
+        name='zapUndosEnabled'
+        groupClassName='mb-0'
         label={
-          <Checkbox
-            name='zapUndosEnabled'
-            groupClassName='mb-0'
-            label={
-              <div className='d-flex align-items-center'>
-                zap undos
-                <Info>
-                  <ul className='fw-bold'>
-                    <li>After every zap that exceeds or is equal to the threshold, the bolt will pulse</li>
-                    <li>You can undo the zap if you click the bolt while it's pulsing</li>
-                    <li>The bolt will pulse for {ZAP_UNDO_DELAY_MS / 1000} seconds</li>
-                  </ul>
-                </Info>
-              </div>
-              }
-          />
-        }
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-        hint={<small className='text-muted'>threshold at which undo button is shown</small>}
+          <div className='d-flex align-items-center'>
+            zap undos
+            <Info>
+              <ul className='fw-bold'>
+                <li>After every zap that exceeds or is equal to the threshold, the bolt will pulse</li>
+                <li>You can undo the zap if you click the bolt while it's pulsing</li>
+                <li>The bolt will pulse for {ZAP_UNDO_DELAY_MS / 1000} seconds</li>
+              </ul>
+            </Info>
+          </div>
+          }
       />
-    </div>
+      {checkboxField.value &&
+        <Input
+          name='zapUndos'
+          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          hint={<small className='text-muted'>threshold at which undos will be possible</small>}
+          groupClassName='mt-1'
+        />}
+    </>
+  )
+}
+
+const TipRandomField = () => {
+  const [tipRandomField] = useField({ name: 'tipRandom' })
+  const [tipRandomMinField] = useField({ name: 'tipRandomMin' })
+  const [tipRandomMaxField] = useField({ name: 'tipRandomMax' })
+  return (
+    <>
+      <Checkbox
+        name='tipRandom'
+        groupClassName='mb-0'
+        label={
+          <div className='d-flex align-items-center'>
+            random zaps
+            <Info>
+              <ul className='fw-bold'>
+                <li>Set a minimum and maximum zap amount</li>
+                <li>Each time you zap something, a random amount of sats between your minimum and maximum will be zapped</li>
+                <li>If this setting is enabled, it will ignore your default zap amount</li>
+              </ul>
+            </Info>
+          </div>
+        }
+      />
+      {tipRandomField.value &&
+        <>
+          <Input
+            type='number'
+            label='minimum random zap'
+            name='tipRandomMin'
+            disabled={!tipRandomField.value}
+            groupClassName='mb-1'
+            required
+            autoFocus
+            max={tipRandomMaxField.value ? tipRandomMaxField.value - 1 : undefined}
+            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
+          <Input
+            type='number'
+            label='maximum random zap'
+            name='tipRandomMax'
+            disabled={!tipRandomField.value}
+            required
+            autoFocus
+            min={tipRandomMinField.value ? tipRandomMinField.value + 1 : undefined}
+            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
+        </>}
+    </>
   )
 }

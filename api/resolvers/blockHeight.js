@@ -1,11 +1,13 @@
 import lndService from 'ln-service'
 import lnd from '@/api/lnd'
+import { isServiceEnabled } from '@/lib/sndev'
 
 const cache = new Map()
 const expiresIn = 1000 * 30 // 30 seconds in milliseconds
 
 async function fetchBlockHeight () {
   let blockHeight = 0
+  if (!isServiceEnabled('payments')) return blockHeight
   try {
     const height = await lndService.getHeight({ lnd })
     blockHeight = height.current_block_height

@@ -2,25 +2,25 @@ import QRCode from 'qrcode.react'
 import { CopyInput, InputSkeleton } from './form'
 import InvoiceStatus from './invoice-status'
 import { useEffect } from 'react'
-import { useWebLN } from './webln'
+import { useWallet } from 'wallets'
 import Bolt11Info from './bolt11-info'
 
-export default function Qr ({ asIs, value, webLn, statusVariant, description, status }) {
+export default function Qr ({ asIs, value, useWallet: automated, statusVariant, description, status }) {
   const qrValue = asIs ? value : 'lightning:' + value.toUpperCase()
-  const provider = useWebLN()
+  const wallet = useWallet()
 
   useEffect(() => {
     async function effect () {
-      if (webLn && provider) {
+      if (automated && wallet) {
         try {
-          await provider.sendPayment(value)
+          await wallet.sendPayment(value)
         } catch (e) {
           console.log(e?.message)
         }
       }
     }
     effect()
-  }, [provider])
+  }, [wallet])
 
   return (
     <>
@@ -29,7 +29,7 @@ export default function Qr ({ asIs, value, webLn, statusVariant, description, st
           className='h-auto mw-100' value={qrValue} renderAs='svg' size={300}
         />
       </a>
-      {description && <div className='mt-1 fst-italic text-center text-muted'>{description}</div>}
+      {description && <div className='mt-1 text-center text-muted'>{description}</div>}
       <div className='mt-3 w-100'>
         <CopyInput type='text' placeholder={value} readOnly noForm />
       </div>

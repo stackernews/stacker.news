@@ -17,8 +17,8 @@ import { SSR } from '@/lib/constants'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 import { LoggerProvider } from '@/components/logger'
+import { WalletLoggerProvider } from '@/components/wallet-logger'
 import { ChainFeeProvider } from '@/components/chain-fee.js'
-import { WebLNProvider } from '@/components/webln'
 import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
 
@@ -105,11 +105,11 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
             <MeProvider me={me}>
               <HasNewNotesProvider>
                 <LoggerProvider>
-                  <ServiceWorkerProvider>
-                    <PriceProvider price={price}>
-                      <LightningProvider>
-                        <ToastProvider>
-                          <WebLNProvider>
+                  <WalletLoggerProvider>
+                    <ServiceWorkerProvider>
+                      <PriceProvider price={price}>
+                        <LightningProvider>
+                          <ToastProvider>
                             <ShowModalProvider>
                               <BlockHeightProvider blockHeight={blockHeight}>
                                 <ChainFeeProvider chainFee={chainFee}>
@@ -120,11 +120,11 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                                 </ChainFeeProvider>
                               </BlockHeightProvider>
                             </ShowModalProvider>
-                          </WebLNProvider>
-                        </ToastProvider>
-                      </LightningProvider>
-                    </PriceProvider>
-                  </ServiceWorkerProvider>
+                          </ToastProvider>
+                        </LightningProvider>
+                      </PriceProvider>
+                    </ServiceWorkerProvider>
+                  </WalletLoggerProvider>
                 </LoggerProvider>
               </HasNewNotesProvider>
             </MeProvider>

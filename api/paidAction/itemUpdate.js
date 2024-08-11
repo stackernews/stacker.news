@@ -131,8 +131,6 @@ export async function perform (args, context) {
 
   await performBotBehavior(args, context)
 
-  // TODO: referals for boost
-
   // compare timestamps to only notify if mention or item referral was just created to avoid duplicates on edits
   for (const { userId, createdAt } of item.mentions) {
     if (item.updatedAt.getTime() !== createdAt.getTime()) continue

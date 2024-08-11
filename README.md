@@ -30,7 +30,8 @@ Go to [localhost:3000](http://localhost:3000).
 - Clone the repo
    - ssh: `git clone git@github.com:stackernews/stacker.news.git`
    - https: `git clone https://github.com/stackernews/stacker.news.git`
-- Install [docker](https://docs.docker.com/get-docker/)
+- Install [docker](https://docs.docker.com/compose/install/)
+- Please make sure that at least 10 GB of free space is available, otherwise you may encounter issues while setting up the development environment.
 
 <br>
 
@@ -75,6 +76,7 @@ COMMANDS
 
   sn:
     login         login as a nym
+    fund_user     fund a nym without using an LN invoice
 
   lnd:
     fund          pay a bolt11 for funding
@@ -91,12 +93,14 @@ COMMANDS
   dev:
     pr            fetch and checkout a pr
     lint          run linters
+    open          open container url in browser
 
   other:
     compose         docker compose passthrough
     sn_lndcli       lncli passthrough on sn_lnd
     stacker_lndcli  lncli passthrough on stacker_lnd
     stacker_clncli  lightning-cli passthrough on stacker_cln
+    stacker_litcli  litcli passthrough on litd
 
 ```
 
@@ -104,23 +108,16 @@ COMMANDS
 
 #### Running specific services
 
-By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments|wallets|email|capture`. To only run mininal services without images, search, email, wallets, or payments:
+By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` in a `.env.local` file to one or more of `minimal,images,search,payments,wallets,email,capture`. To only run mininal necessary without things like payments in `.env.local`:
 
-```sh
-$ COMPOSE_PROFILES=minimal ./sndev start
-```
-
-Or, as I would recommend:
-
-```sh
-$ export COMPOSE_PROFILES=minimal
-$ ./sndev start
+```.env
+COMPOSE_PROFILES=minimal
 ```
 
 To run with images and payments services:
 
-```sh
-$ COMPOSE_PROFILES=images,payments ./sndev start
+```.env
+COMPOSE_PROFILES=images,payments
 ```
 
 #### Merging compose files
@@ -459,7 +456,9 @@ In addition, we run other critical services the above services interact with lik
 
 ## Wallet transaction safety
 
-To ensure stackers balances are kept sane, all wallet updates are run in [serializable transactions](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE) at the database level. Because early versions of prisma had relatively poor support for transactions most wallet touching code is written in [plpgsql](https://www.postgresql.org/docs/current/plpgsql.html) stored procedures and can be found in the `prisma/migrations` folder.
+To ensure stackers balances are kept sane, some wallet updates are run in [serializable transactions](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE) at the database level. Because early versions of prisma had relatively poor support for transactions most wallet touching code is written in [plpgsql](https://www.postgresql.org/docs/current/plpgsql.html) stored procedures and can be found in the `prisma/migrations` folder.
+
+*UPDATE*: Most wallet updates are now run in [read committed](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED) transactions. See `api/paidAction/README.md` for more information.
 
 <br>
 

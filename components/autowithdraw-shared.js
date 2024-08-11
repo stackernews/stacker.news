@@ -8,15 +8,14 @@ function autoWithdrawThreshold ({ me }) {
   return isNumber(me?.privates?.autoWithdrawThreshold) ? me?.privates?.autoWithdrawThreshold : 10000
 }
 
-export function autowithdrawInitial ({ me, priority = false }) {
+export function autowithdrawInitial ({ me }) {
   return {
-    priority,
     autoWithdrawThreshold: autoWithdrawThreshold({ me }),
     autoWithdrawMaxFeePercent: isNumber(me?.privates?.autoWithdrawMaxFeePercent) ? me?.privates?.autoWithdrawMaxFeePercent : 1
   }
 }
 
-export function AutowithdrawSettings ({ priority }) {
+export function AutowithdrawSettings ({ wallet }) {
   const me = useMe()
   const threshold = autoWithdrawThreshold({ me })
 
@@ -29,9 +28,10 @@ export function AutowithdrawSettings ({ priority }) {
   return (
     <>
       <Checkbox
-        label='make default autowithdraw method'
-        id='priority'
-        name='priority'
+        disabled={!wallet.isConfigured}
+        label='enabled'
+        id='enabled'
+        name='enabled'
       />
       <div className='my-4 border border-3 rounded'>
         <div className='p-3'>
@@ -46,12 +46,14 @@ export function AutowithdrawSettings ({ priority }) {
             }}
             hint={isNumber(sendThreshold) ? `will attempt auto-withdraw when your balance exceeds ${sendThreshold * 11} sats` : undefined}
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+            required
           />
           <Input
             label='max fee'
             name='autoWithdrawMaxFeePercent'
             hint='max fee as percent of withdrawal amount'
             append={<InputGroup.Text>%</InputGroup.Text>}
+            required
           />
         </div>
       </div>

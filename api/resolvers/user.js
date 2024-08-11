@@ -283,6 +283,7 @@ export default {
             '"ThreadSubscription"."userId" = $1',
             'r.created_at > $2',
             'r.created_at >= "ThreadSubscription".created_at',
+            'r."userId" <> $1',
             activeOrMine(me),
             await filterClause(me, models),
             muteClause(me),
@@ -1003,6 +1004,12 @@ export default {
       })
 
       return relays?.map(r => r.nostrRelayAddr)
+    },
+    tipRandom: async (user, args, { me }) => {
+      if (!me || me.id !== user.id) {
+        return false
+      }
+      return !!user.tipRandomMin && !!user.tipRandomMax
     }
   },
 

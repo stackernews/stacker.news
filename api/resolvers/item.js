@@ -30,12 +30,12 @@ function commentsOrderByClause (me, models, sort) {
     return `ORDER BY COALESCE(
         personal_hot_score,
         ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
-        "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
+        "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
   } else {
     if (sort === 'top') {
-      return `ORDER BY ${orderByNumerator(models, 0)} DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC,  "Item".id DESC`
+      return `ORDER BY ${orderByNumerator(models, 0)} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
     } else {
-      return `ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
+      return `ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
     }
   }
 }
@@ -225,22 +225,16 @@ export async function filterClause (me, models, type) {
 
   // handle freebies
   // by default don't include freebies unless they have upvotes
-  let freebieClauses = ['NOT "Item".freebie', '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 0']
+  let investmentClause = '("Item".cost + "Item".boost + ("Item".msats / 1000)) >= 10'
   if (me) {
     const user = await models.user.findUnique({ where: { id: me.id } })
-    // wild west mode has everything
-    if (user.wildWestMode) {
-      return ''
-    }
-    // greeter mode includes freebies if feebies haven't been flagged
-    if (user.greeterMode) {
-      freebieClauses = ['NOT "Item".freebie', '"Item"."weightedVotes" - "Item"."weightedDownVotes" >= 0']
-    }
 
-    // always include if it's mine
-    freebieClauses.push(`"Item"."userId" = ${me.id}`)
+    investmentClause = `(("Item".cost + "Item".boost + ("Item".msats / 1000)) >= ${user.satsFilter} OR "Item"."userId" = ${me.id})`
+
+    if (user.wildWestMode) {
+      return investmentClause
+    }
   }
-  const freebieClause = '(' + freebieClauses.join(' OR ') + ')'
 
   // handle outlawed
   // if the item is above the threshold or is mine
@@ -250,7 +244,7 @@ export async function filterClause (me, models, type) {
   }
   const outlawClause = '(' + outlawClauses.join(' OR ') + ')'
 
-  return [freebieClause, outlawClause]
+  return [investmentClause, outlawClause]
 }
 
 function typeClause (type) {
@@ -268,7 +262,7 @@ function typeClause (type) {
     case 'comments':
       return '"Item"."parentId" IS NOT NULL'
     case 'freebies':
-      return '"Item".freebie'
+      return '"Item".cost = 0'
     case 'outlawed':
       return `"Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD} OR "Item".outlawed`
     case 'borderland':
@@ -470,10 +464,10 @@ export default {
                         '"Item".bio = false',
                         activeOrMine(me),
                         await filterClause(me, models, type))}
-                        ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC
+                        ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC
                       OFFSET $1
                       LIMIT $2`,
-                  orderBy: `ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
+                  orderBy: `ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
                 }, decodedCursor.offset, limit, ...subArr)
               }
 
@@ -1054,6 +1048,9 @@ export default {
     freedFreebie: async (item) => {
       return item.weightedVotes - item.weightedDownVotes > 0
     },
+    freebie: async (item) => {
+      return item.cost === 0
+    },
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
       if (typeof item.meMsats !== 'undefined') {
@@ -1255,7 +1252,7 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
   const differentSub = subName && old.subName !== subName
   if (differentSub) {
     const sub = await models.sub.findUnique({ where: { name: subName } })
-    if (old.freebie) {
+    if (old.cost === 0) {
       if (!sub.allowFreebies) {
         throw new GraphQLError(`~${subName} does not allow freebies`, { extensions: { code: 'BAD_INPUT' } })
       }

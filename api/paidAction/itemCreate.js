@@ -1,7 +1,7 @@
 import { ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, USER_ID } from '@/lib/constants'
 import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers } from '@/lib/webPush'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
-import { satsToMsats } from '@/lib/format'
+import { msatsToSats, satsToMsats } from '@/lib/format'
 
 export const anonable = true
 export const supportsPessimism = true
@@ -51,8 +51,7 @@ export async function perform (args, context) {
     itemActs.push({
       msats: cost - boostMsats, act: 'FEE', userId: data.userId, ...invoiceData
     })
-  } else {
-    data.freebie = true
+    data.cost = msatsToSats(cost - boostMsats)
   }
 
   const mentions = await getMentions(args, context)

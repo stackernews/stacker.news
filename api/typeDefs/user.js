@@ -71,7 +71,7 @@ export default gql`
     diagnostics: Boolean!
     noReferralLinks: Boolean!
     fiatCurrency: String!
-    greeterMode: Boolean!
+    satsFilter: Int!
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
     hideGithub: Boolean!
@@ -140,7 +140,7 @@ export default gql`
     diagnostics: Boolean!
     noReferralLinks: Boolean!
     fiatCurrency: String!
-    greeterMode: Boolean!
+    satsFilter: Int!
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
     hideGithub: Boolean!
@@ -192,7 +192,7 @@ export default gql`
     twitterId: String
     nostrAuthPubkey: String
   }
-  
+
   type NameValue {
     name: String!
     value: Float!

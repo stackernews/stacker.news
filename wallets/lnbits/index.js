@@ -13,14 +13,16 @@ export const fields = [
     label: 'invoice key',
     type: 'password',
     optional: 'for receiving',
-    serverOnly: true
+    serverOnly: true,
+    editable: false
   },
   {
     name: 'adminKey',
     label: 'admin key',
     type: 'password',
     optional: 'for sending',
-    clientOnly: true
+    clientOnly: true,
+    editable: false
   }
 ]
 

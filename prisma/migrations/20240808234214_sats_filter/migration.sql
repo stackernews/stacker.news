@@ -10,7 +10,5 @@ ALTER TABLE "users" ADD COLUMN "satsFilter" INTEGER NOT NULL DEFAULT 10;
 
 UPDATE "users" SET "satsFilter" = 0 WHERE "greeterMode";
 
-ALTER TABLE "users" DROP COLUMN "greeterMode";
-
 -- CreateIndex
 CREATE INDEX "Item_cost_idx" ON "Item"("cost");

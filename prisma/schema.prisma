@@ -66,6 +66,7 @@ model User {
   hideWalletBalance         Boolean              @default(false)
   referrerId                Int?
   nostrPubkey               String?
+  greeterMode               Boolean              @default(false)
   nostrAuthPubkey           String?              @unique(map: "users.nostrAuthPubkey_unique")
   nostrCrossposting         Boolean              @default(false)
   slashtagId                String?              @unique(map: "users.slashtagId_unique")

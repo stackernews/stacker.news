@@ -72,6 +72,7 @@ export default gql`
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!
+    greeterMode: Boolean!
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
     hideGithub: Boolean!
@@ -141,6 +142,7 @@ export default gql`
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!
+    greeterMode: Boolean!
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
     hideGithub: Boolean!

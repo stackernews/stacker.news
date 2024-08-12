@@ -25,10 +25,15 @@ export function AutowithdrawSettings ({ wallet }) {
     setSendThreshold(Math.max(Math.floor(threshold / 10), 1))
   }, [autoWithdrawThreshold])
 
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   return (
     <>
       <Checkbox
-        disabled={!wallet.isConfigured}
+        disabled={mounted && !wallet.isConfigured}
         label='enabled'
         id='enabled'
         name='enabled'

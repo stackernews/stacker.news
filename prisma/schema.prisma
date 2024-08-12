@@ -167,6 +167,7 @@ enum WalletType {
   LIGHTNING_ADDRESS
   LND
   CLN
+  LNBITS
 }
 
 model Wallet {
@@ -190,6 +191,7 @@ model Wallet {
   walletLightningAddress WalletLightningAddress?
   walletLND              WalletLND?
   walletCLN              WalletCLN?
+  walletLNbits           WalletLNbits?
   withdrawals            Withdrawl[]
 
   @@index([userId])
@@ -236,6 +238,16 @@ model WalletCLN {
   socket    String
   rune      String
   cert      String?
+}
+
+model WalletLNbits {
+  int        Int      @id @default(autoincrement())
+  walletId   Int      @unique
+  wallet     Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+  url        String
+  invoiceKey String
 }
 
 model Mute {

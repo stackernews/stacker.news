@@ -54,7 +54,7 @@ model User {
   upvoteTrust               Float                @default(0)
   hideInvoiceDesc           Boolean              @default(false)
   wildWestMode              Boolean              @default(false)
-  greeterMode               Boolean              @default(false)
+  satsFilter                Int                  @default(10)
   nsfwMode                  Boolean              @default(false)
   fiatCurrency              String               @default("USD")
   withdrawMaxFeeDefault     Int                  @default(10)
@@ -426,6 +426,7 @@ model Item {
   lastZapAt           DateTime?
   ncomments           Int                   @default(0)
   msats               BigInt                @default(0)
+  cost                Int                   @default(0)
   weightedDownVotes   Float                 @default(0)
   bio                 Boolean               @default(false)
   freebie             Boolean               @default(false)
@@ -490,6 +491,7 @@ model Item {
   @@index([weightedVotes], map: "Item.weightedVotes_index")
   @@index([invoiceId])
   @@index([invoiceActionState])
+  @@index([cost])
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item

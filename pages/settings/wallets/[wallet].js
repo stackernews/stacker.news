@@ -107,7 +107,7 @@ function WalletFields ({ wallet: { config, fields, isConfigured } }) {
         ...props,
         name,
         initialValue: config?.[name],
-        readOnly: isConfigured && editable === false,
+        readOnly: isConfigured && editable === false && !!config?.[name],
         groupClassName: props.hidden ? 'd-none' : undefined,
         label: label
           ? (

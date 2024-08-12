@@ -17,12 +17,11 @@ const FINALIZE_OPTIONS = { retryLimit: 2 ** 31 - 1, retryBackoff: false, retryDe
 async function transitionInvoice (jobName, { invoiceId, fromState, toState, transition }, { models, lnd, boss }) {
   console.group(`${jobName}: transitioning invoice ${invoiceId} from ${fromState} to ${toState}`)
 
-  let dbInvoice
   try {
-    dbInvoice = await models.invoice.findUnique({ where: { id: invoiceId } })
-    console.log('invoice is in state', dbInvoice.actionState)
+    const currentDbInvoice = await models.invoice.findUnique({ where: { id: invoiceId } })
+    console.log('invoice is in state', currentDbInvoice.actionState)
 
-    if (['FAILED', 'PAID', 'RETRYING'].includes(dbInvoice.actionState)) {
+    if (['FAILED', 'PAID', 'RETRYING'].includes(currentDbInvoice.actionState)) {
       console.log('invoice is already in a terminal state, skipping transition')
       return
     }
@@ -31,21 +30,23 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
       fromState = [fromState]
     }
 
-    const lndInvoice = await getInvoice({ id: dbInvoice.hash, lnd })
+    const lndInvoice = await getInvoice({ id: currentDbInvoice.hash, lnd })
 
-    await models.$transaction(async tx => {
-      // grab optimistic concurrency lock and the invoice
-      dbInvoice = await tx.invoice.update({
-        include: {
-          user: true,
-          invoiceForward: {
-            include: {
-              invoice: true,
-              withdrawl: true,
-              wallet: true
-            }
+    const transitionedInvoice = await models.$transaction(async tx => {
+      const include = {
+        user: true,
+        invoiceForward: {
+          include: {
+            invoice: true,
+            withdrawl: true,
+            wallet: true
           }
-        },
+        }
+      }
+
+      // grab optimistic concurrency lock and the invoice
+      const dbInvoice = await tx.invoice.update({
+        include,
         where: {
           id: invoiceId,
           actionState: {
@@ -59,16 +60,20 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
 
       // our own optimistic concurrency check
       if (!dbInvoice) {
-        console.log('record not found, assuming concurrent worker transitioned it')
+        console.log('record not found in our own concurrency check, assuming concurrent worker transitioned it')
         return
       }
 
       const data = await transition({ lndInvoice, dbInvoice, tx })
+      if (data) {
+        return await tx.invoice.update({
+          include,
+          where: { id: dbInvoice.id },
+          data
+        })
+      }
 
-      data && await tx.invoice.update({
-        where: { id: dbInvoice.id },
-        data
-      })
+      return dbInvoice
     }, {
       isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
       // we only need to do this because we settleHodlInvoice inside the transaction
@@ -76,7 +81,10 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
       timeout: 60000
     })
 
-    console.log('transition succeeded')
+    if (transitionedInvoice) {
+      console.log('transition succeeded')
+      return transitionedInvoice
+    }
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
       if (e.code === 'P2025') {
@@ -151,7 +159,7 @@ export async function paidActionPaid ({ data: { invoiceId }, models, lnd, boss }
 
 // this performs forward creating the outgoing payment
 export async function paidActionForwarding ({ data: { invoiceId }, models, lnd, boss }) {
-  return await transitionInvoice('paidActionForwarding', {
+  const transitionedInvoice = await transitionInvoice('paidActionForwarding', {
     invoiceId,
     fromState: 'PENDING_HELD',
     toState: 'FORWARDING',
@@ -184,32 +192,6 @@ export async function paidActionForwarding ({ data: { invoiceId }, models, lnd, 
         await performPessimisticAction({ lndInvoice, dbInvoice, tx, models, lnd, boss })
       }
 
-      // create the withdrawl record outside of the transaction in case the tx fails
-      const withdrawal = await models.withdrawl.create({
-        data: {
-          hash: invoice.id,
-          bolt11,
-          msatsPaying: BigInt(invoice.mtokens),
-          msatsFeePaying: maxFeeMsats,
-          autoWithdraw: true,
-          walletId: invoiceForward.walletId,
-          userId: invoiceForward.wallet.userId
-        }
-      })
-
-      // give ourselves at least MIN_SETTLEMENT_CLTV_DELTA blocks to settle the incoming payment
-      const maxTimeoutHeight = toPositiveNumber(toPositiveNumber(expiryHeight) - MIN_SETTLEMENT_CLTV_DELTA)
-      console.log('with max fee', maxFeeMsats, 'max_timeout_height', maxTimeoutHeight,
-        'accept_height', acceptHeight, 'expiry_height', expiryHeight)
-
-      payViaPaymentRequest({
-        lnd,
-        request: bolt11,
-        max_fee_mtokens: String(maxFeeMsats),
-        pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
-        max_timeout_height: maxTimeoutHeight
-      }).catch(console.error)
-
       return {
         isHeld: true,
         msatsReceived: BigInt(lndInvoice.received_mtokens),
@@ -218,8 +200,14 @@ export async function paidActionForwarding ({ data: { invoiceId }, models, lnd, 
             expiryHeight,
             acceptHeight,
             withdrawl: {
-              connect: {
-                id: withdrawal.id
+              create: {
+                hash: invoice.id,
+                bolt11,
+                msatsPaying: BigInt(invoice.mtokens),
+                msatsFeePaying: maxFeeMsats,
+                autoWithdraw: true,
+                walletId: invoiceForward.walletId,
+                userId: invoiceForward.wallet.userId
               }
             }
           }
@@ -227,6 +215,26 @@ export async function paidActionForwarding ({ data: { invoiceId }, models, lnd, 
       }
     }
   }, { models, lnd, boss })
+
+  // only pay if we successfully transitioned which can only happen once
+  // we can't do this inside the transaction because it isn't necessarily idempotent
+  if (transitionedInvoice?.invoiceForward) {
+    const { bolt11, maxFeeMsats, expiryHeight, acceptHeight } = transitionedInvoice.invoiceForward
+
+    // give ourselves at least MIN_SETTLEMENT_CLTV_DELTA blocks to settle the incoming payment
+    const maxTimeoutHeight = toPositiveNumber(toPositiveNumber(expiryHeight) - MIN_SETTLEMENT_CLTV_DELTA)
+
+    console.log('forwarding with max fee', maxFeeMsats, 'max_timeout_height', maxTimeoutHeight,
+      'accept_height', acceptHeight, 'expiry_height', expiryHeight)
+
+    payViaPaymentRequest({
+      lnd,
+      request: bolt11,
+      max_fee_mtokens: String(maxFeeMsats),
+      pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
+      max_timeout_height: maxTimeoutHeight
+    }).catch(console.error)
+  }
 }
 
 // this finalizes the forward by settling the incoming invoice after the outgoing payment is confirmed

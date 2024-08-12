@@ -214,7 +214,7 @@ function useConfig (wallet) {
 
       if (valid) await setServerConfig(newServerConfig)
     }
-  }, [setClientConfig, setServerConfig, wallet])
+  }, [hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, wallet])
 
   const clearConfig = useCallback(async ({ logger }) => {
     if (hasClientConfig) {
@@ -223,7 +223,7 @@ function useConfig (wallet) {
       logger.ok('wallet detached for payments')
     }
     if (hasServerConfig) await clearServerConfig()
-  }, [clearClientConfig, clearServerConfig, wallet])
+  }, [hasClientConfig, hasServerConfig, clearClientConfig, clearServerConfig, wallet])
 
   return [config, saveConfig, clearConfig]
 }

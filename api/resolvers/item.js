@@ -212,6 +212,15 @@ const subClause = (sub, num, table, me, showNsfw) => {
   return excludeMuted + ' AND ' + HIDE_NSFW_CLAUSE
 }
 
+function investmentClause (sats) {
+  return `(
+    CASE WHEN "Item"."parentId" IS NULL
+      THEN ("Item".cost + "Item".boost + ("Item".msats / 1000)) >= ${sats}
+      ELSE ("Item".cost + "Item".boost + ("Item".msats / 1000)) >= ${Math.min(sats, 1)}
+    END
+  )`
+}
+
 export async function filterClause (me, models, type) {
   // if you are explicitly asking for marginal content, don't filter them
   if (['outlawed', 'borderland', 'freebies'].includes(type)) {
@@ -225,11 +234,11 @@ export async function filterClause (me, models, type) {
 
   // handle freebies
   // by default don't include freebies unless they have upvotes
-  let investmentClause = '("Item".cost + "Item".boost + ("Item".msats / 1000)) >= 10'
+  let satsFilter = investmentClause(10)
   if (me) {
     const user = await models.user.findUnique({ where: { id: me.id } })
 
-    investmentClause = `(("Item".cost + "Item".boost + ("Item".msats / 1000)) >= ${user.satsFilter} OR "Item"."userId" = ${me.id})`
+    satsFilter = `(${investmentClause(user.satsFilter)} OR "Item"."userId" = ${me.id})`
 
     if (user.wildWestMode) {
       return investmentClause
@@ -244,7 +253,7 @@ export async function filterClause (me, models, type) {
   }
   const outlawClause = '(' + outlawClauses.join(' OR ') + ')'
 
-  return [investmentClause, outlawClause]
+  return [satsFilter, outlawClause]
 }
 
 function typeClause (type) {

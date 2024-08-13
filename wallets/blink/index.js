@@ -17,7 +17,7 @@ export const fields = [
     name: 'currency',
     label: 'wallet type',
     type: 'text',
-    help: 'the blink wallet to use (BTC or USD for stable sats)',
+    help: 'the blink wallet to use (BTC or USD for stablesats)',
     placeholder: 'BTC',
     optional: true,
     clear: true

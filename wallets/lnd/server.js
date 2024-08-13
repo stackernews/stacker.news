@@ -3,10 +3,7 @@ import { authenticatedLndGrpc, createInvoice as lndCreateInvoice } from 'ln-serv
 
 export * from 'wallets/lnd'
 
-export const testConnectServer = async (
-  { cert, macaroon, socket },
-  { me, models }
-) => {
+export const testConnectServer = async ({ cert, macaroon, socket }) => {
   return await createInvoice({ msats: 1, expiry: 1 }, { cert, macaroon, socket })
 }
 

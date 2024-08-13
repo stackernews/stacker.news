@@ -1,15 +1,9 @@
-import { addWalletLog } from '@/api/resolvers/wallet'
 import { lnAddrOptions } from '@/lib/lnurl'
 
 export * from 'wallets/lightning-address'
 
-export const testConnectServer = async (
-  { address },
-  { me, models }
-) => {
-  const options = await lnAddrOptions(address)
-  await addWalletLog({ wallet: { type: 'LIGHTNING_ADDRESS' }, level: 'SUCCESS', message: 'fetched payment details' }, { me, models })
-  return options
+export const testConnectServer = async ({ address }) => {
+  return await createInvoice({ msats: 1000 }, { address })
 }
 
 export const createInvoice = async (

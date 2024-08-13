@@ -23,7 +23,13 @@ function injectResolvers (resolvers) {
     console.log(resolverName)
 
     resolvers.Mutation[resolverName] = async (parent, { settings, ...data }, { me, models }) => {
-      await walletValidate(w, { ...data, ...settings })
+      // allow transformation of the data on validation (this is optional ... won't do anything if not implemented)
+      const validData = await walletValidate(w, { ...data, ...settings })
+      if (validData) {
+        Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
+        Object.keys(validData).filter(key => key in settings).forEach(key => { settings[key] = validData[key] })
+      }
+
       return await upsertWallet({
         wallet: { field: w.walletField, type: w.walletType },
         testConnectServer: (data) => w.testConnectServer(data, { me, models })

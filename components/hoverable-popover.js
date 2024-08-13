@@ -1,56 +1,40 @@
-import { useRef, useState } from 'react'
 import { Popover } from 'react-bootstrap'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import styles from './hoverable-popover.module.css'
+import { useRef, useState } from 'react'
 
-export default function HoverablePopover ({ id, trigger, body, onShow }) {
-  const [showOverlay, setShowOverlay] = useState(false)
-
+export default function HoverablePopover ({ trigger, body, onShow }) {
+  const [show, setShow] = useState(false)
+  const popRef = useRef(null)
   const timeoutId = useRef(null)
 
-  const handleMouseEnter = () => {
+  const onToggle = show => {
     clearTimeout(timeoutId.current)
-    onShow && onShow()
-    timeoutId.current = setTimeout(() => {
-      setShowOverlay(true)
-    }, 500)
-  }
-
-  const handleMouseLeave = () => {
-    clearTimeout(timeoutId.current)
-    timeoutId.current = setTimeout(() => setShowOverlay(false), 100)
+    if (show) {
+      onShow?.()
+      timeoutId.current = setTimeout(() => setShow(true), 500)
+    } else {
+      timeoutId.current = setTimeout(() => setShow(!!popRef.current?.matches(':hover')), 500)
+    }
   }
 
   return (
     <OverlayTrigger
-      show={showOverlay}
       placement='bottom'
-      onHide={handleMouseLeave}
-      popperConfig={{
-        modifiers: {
-          preventOverflow: {
-            enabled: false
-          }
-        }
-      }}
+      trigger={['hover', 'focus']}
+      show={show}
+      onToggle={onToggle}
+      delay={1}
+      transition={false}
+      rootClose
       overlay={
-        <Popover
-          onPointerEnter={handleMouseEnter}
-          onPointerLeave={handleMouseLeave}
-          onMouseLeave={handleMouseLeave}
-          className={styles.HoverablePopover}
-          style={{ position: 'fixed' }}
-        >
-          <Popover.Body className={styles.HoverablePopover}>
+        <Popover style={{ position: 'fixed' }} onPointerLeave={() => onToggle(false)}>
+          <Popover.Body ref={popRef}>
             {body}
           </Popover.Body>
         </Popover>
       }
     >
-      <span
-        onPointerEnter={handleMouseEnter}
-        onPointerLeave={handleMouseLeave}
-      >
+      <span>
         {trigger}
       </span>
     </OverlayTrigger>

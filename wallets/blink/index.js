@@ -1,7 +1,6 @@
-import { blinkSchema, blinkStagingSchema } from '@/lib/validate'
+import { blinkSchema } from '@/lib/validate'
 
-export const galoyStaging = false
-export const galoyBlinkUrl = galoyStaging ? 'https://api.staging.galoy.io/graphql' : 'https://api.blink.sv/graphql'
+export const galoyBlinkUrl = 'https://api.blink.sv/graphql'
 export const galoyBlinkDashboardUrl = 'https://dashboard.blink.sv/'
 
 export const name = 'blink'
@@ -31,4 +30,4 @@ export const card = {
   badges: ['send only']
 }
 
-export const fieldValidation = galoyStaging ? blinkStagingSchema : blinkSchema
+export const fieldValidation = blinkSchema

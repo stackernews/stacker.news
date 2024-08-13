@@ -121,7 +121,7 @@ model User {
   Sub                       Sub[]
   SubAct                    SubAct[]
   MuteSub                   MuteSub[]
-  Wallet                    Wallet[]
+  wallets                   Wallet[]
   TerritoryTransfers        TerritoryTransfer[]  @relation("TerritoryTransfer_oldUser")
   TerritoryReceives         TerritoryTransfer[]  @relation("TerritoryTransfer_newUser")
   AncestorReplies           Reply[]              @relation("AncestorReplyUser")
@@ -194,6 +194,7 @@ model Wallet {
   walletCLN              WalletCLN?
   walletLNbits           WalletLNbits?
   withdrawals            Withdrawl[]
+  InvoiceForward         InvoiceForward[]
 
   @@index([userId])
 }
@@ -791,7 +792,11 @@ enum InvoiceActionState {
   HELD
   PAID
   FAILED
+  FORWARDING
+  FORWARDED
+  FAILED_FORWARD
   RETRYING
+  CANCELING
 }
 
 model ItemMention {
@@ -810,42 +815,71 @@ model ItemMention {
 }
 
 model Invoice {
-  id             Int       @id @default(autoincrement())
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+  id             Int             @id @default(autoincrement())
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at")
   userId         Int
-  hash           String    @unique(map: "Invoice.hash_unique")
-  preimage       String?   @unique(map: "Invoice.preimage_unique")
+  hash           String          @unique(map: "Invoice.hash_unique")
+  preimage       String?         @unique(map: "Invoice.preimage_unique")
   isHeld         Boolean?
   bolt11         String
   expiresAt      DateTime
   confirmedAt    DateTime?
   confirmedIndex BigInt?
-  cancelled      Boolean   @default(false)
+  cancelled      Boolean         @default(false)
   msatsRequested BigInt
   msatsReceived  BigInt?
   desc           String?
   comment        String?
   lud18Data      Json?
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoiceForward InvoiceForward?
 
-  actionState   InvoiceActionState?
-  actionType    InvoiceActionType?
-  actionId      Int?
-  actionArgs    Json?               @db.JsonB
-  actionError   String?
-  actionResult  Json?               @db.JsonB
-  ItemAct       ItemAct[]
-  Item          Item[]
-  Upload        Upload[]
-  PollVote      PollVote[]
-  PollBlindVote PollBlindVote[]
+  actionState      InvoiceActionState?
+  actionType       InvoiceActionType?
+  actionOptimistic Boolean?
+  actionId         Int?
+  actionArgs       Json?               @db.JsonB
+  actionError      String?
+  actionResult     Json?               @db.JsonB
+  ItemAct          ItemAct[]
+  Item             Item[]
+  Upload           Upload[]
+  PollVote         PollVote[]
+  PollBlindVote    PollBlindVote[]
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")
   @@index([confirmedIndex], map: "Invoice.confirmedIndex_index")
-  @@index([actionState])
+  @@index([isHeld])
+  @@index([confirmedAt])
   @@index([actionType])
+  @@index([actionState])
+}
+
+model InvoiceForward {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  bolt11      String
+  maxFeeMsats Int
+  walletId    Int
+
+  // we get these values when the invoice is held
+  expiryHeight Int?
+  acceptHeight Int?
+
+  // we get these values when the outgoing invoice is settled
+  invoiceId   Int  @unique
+  withdrawlId Int?
+
+  invoice   Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  wallet    Wallet     @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  withdrawl Withdrawl? @relation(fields: [withdrawlId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@index([walletId])
+  @@index([withdrawlId])
 }
 
 model Withdrawl {
@@ -854,6 +888,7 @@ model Withdrawl {
   updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at")
   userId         Int
   hash           String?
+  preimage       String?
   bolt11         String?
   msatsPaying    BigInt
   msatsPaid      BigInt?
@@ -864,10 +899,14 @@ model Withdrawl {
   walletId       Int?
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   wallet         Wallet?          @relation(fields: [walletId], references: [id], onDelete: SetNull)
+  invoiceForward InvoiceForward[]
 
   @@index([createdAt], map: "Withdrawl.created_at_index")
   @@index([userId], map: "Withdrawl.userId_index")
   @@index([hash])
+  @@index([walletId])
+  @@index([autoWithdraw])
+  @@index([status])
 }
 
 model Account {

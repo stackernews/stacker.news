@@ -3,6 +3,7 @@ import nextEnv from '@next/env'
 import createPrisma from '@/lib/create-prisma.js'
 import {
   autoDropBolt11s, checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
+  checkWithdrawal,
   finalizeHodlInvoice, subscribeToWallet
 } from './wallet.js'
 import { repin } from './repin.js'
@@ -25,7 +26,11 @@ import { ofac } from './ofac.js'
 import { autoWithdraw } from './autowithdraw.js'
 import { saltAndHashEmails } from './saltAndHashEmails.js'
 import { remindUser } from './reminder.js'
-import { holdAction, settleAction, settleActionError } from './paidAction.js'
+import {
+  paidActionPaid, paidActionForwarding, paidActionForwarded,
+  paidActionFailedForward, paidActionHeld, paidActionFailed,
+  paidActionCanceling
+} from './paidAction.js'
 import { thisDay } from './thisDay.js'
 import { isServiceEnabled } from '@/lib/sndev.js'
 
@@ -90,10 +95,20 @@ async function work () {
     await boss.work('checkPendingWithdrawals', jobWrapper(checkPendingWithdrawals))
     await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
     await boss.work('autoWithdraw', jobWrapper(autoWithdraw))
-    await boss.work('settleActionError', jobWrapper(settleActionError))
-    await boss.work('settleAction', jobWrapper(settleAction))
     await boss.work('checkInvoice', jobWrapper(checkInvoice))
-    await boss.work('holdAction', jobWrapper(holdAction))
+    await boss.work('checkWithdrawal', jobWrapper(checkWithdrawal))
+    // paidAction jobs
+    await boss.work('paidActionForwarding', jobWrapper(paidActionForwarding))
+    await boss.work('paidActionForwarded', jobWrapper(paidActionForwarded))
+    await boss.work('paidActionFailedForward', jobWrapper(paidActionFailedForward))
+    await boss.work('paidActionHeld', jobWrapper(paidActionHeld))
+    await boss.work('paidActionCanceling', jobWrapper(paidActionCanceling))
+    await boss.work('paidActionFailed', jobWrapper(paidActionFailed))
+    await boss.work('paidActionPaid', jobWrapper(paidActionPaid))
+    // we renamed these jobs so we leave them so they can "migrate"
+    await boss.work('holdAction', jobWrapper(paidActionHeld))
+    await boss.work('settleActionError', jobWrapper(paidActionFailed))
+    await boss.work('settleAction', jobWrapper(paidActionPaid))
   }
   if (isServiceEnabled('search')) {
     await boss.work('indexItem', jobWrapper(indexItem))

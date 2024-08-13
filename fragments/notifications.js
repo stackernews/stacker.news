@@ -184,6 +184,8 @@ export const NOTIFICATIONS = gql`
           earnedSats
           withdrawl {
             autoWithdraw
+            p2p
+            satsFeePaid
           }
         }
         ... on Reminder {

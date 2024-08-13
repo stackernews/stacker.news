@@ -1,17 +1,17 @@
-import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, deletePayment, getPayment, getIdentity } from 'ln-service'
+import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, getInvoice as getInvoiceFromLnd, getNode, deletePayment, getPayment, getIdentity } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto, { timingSafeEqual } from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
 import { msatsToSats, msatsToSatsDecimal } from '@/lib/format'
+import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { amountSchema, ssValidate, withdrawlSchema, lnAddrSchema, walletValidate } from '@/lib/validate'
-import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { bolt11Tags } from '@/lib/bolt11'
-import { checkInvoice } from 'worker/wallet'
+import { finalizeHodlInvoice } from 'worker/wallet'
 import walletDefs from 'wallets/server'
 import { generateResolverName } from '@/lib/wallet'
 import { lnAddrOptions } from '@/lib/lnurl'
@@ -23,7 +23,13 @@ function injectResolvers (resolvers) {
     console.log(resolverName)
 
     resolvers.Mutation[resolverName] = async (parent, { settings, ...data }, { me, models }) => {
-      await walletValidate(w, { ...data, ...settings })
+      // allow transformation of the data on validation (this is optional ... won't do anything if not implemented)
+      const validData = await walletValidate(w, { ...data, ...settings })
+      if (validData) {
+        Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
+        Object.keys(validData).filter(key => key in settings).forEach(key => { settings[key] = validData[key] })
+      }
+
       return await upsertWallet({
         wallet: { field: w.walletField, type: w.walletType },
         testConnectServer: (data) => w.testConnectServer(data, { me, models })
@@ -85,7 +91,8 @@ export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
       id: Number(id)
     },
     include: {
-      user: true
+      user: true,
+      invoiceForward: true
     }
   })
 
@@ -95,14 +102,6 @@ export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
 
   if (wdrwl.user.id !== me.id) {
     throw new GraphQLError('not ur withdrawal', { extensions: { code: 'FORBIDDEN' } })
-  }
-
-  try {
-    if (wdrwl.status === 'CONFIRMED') {
-      wdrwl.preimage = (await getPayment({ id: wdrwl.hash, lnd })).payment.secret
-    }
-  } catch (err) {
-    console.error('error fetching payment from LND', err)
   }
 
   return wdrwl
@@ -185,8 +184,8 @@ const resolvers = {
               jsonb_build_object(
                 'bolt11', bolt11,
                 'status', CASE WHEN "confirmedAt" IS NOT NULL THEN 'CONFIRMED'
-                              WHEN "expiresAt" <= $2 THEN 'EXPIRED'
                               WHEN cancelled THEN 'CANCELLED'
+                              WHEN "expiresAt" <= $2 AND NOT "isHeld" THEN 'EXPIRED'
                               ELSE 'PENDING' END,
                 'description', "desc",
                 'invoiceComment', comment,
@@ -200,17 +199,19 @@ const resolvers = {
       if (include.has('withdrawal')) {
         queries.push(
           `(SELECT
-              id, created_at as "createdAt",
+              "Withdrawl".id, "Withdrawl".created_at as "createdAt",
               COALESCE("msatsPaid", "msatsPaying") as msats,
-              'withdrawal' as type,
+              CASE WHEN bool_and("InvoiceForward".id IS NULL) THEN 'withdrawal' ELSE 'p2p' END as type,
               jsonb_build_object(
-                'bolt11', bolt11,
+                'bolt11', "Withdrawl".bolt11,
                 'autoWithdraw', "autoWithdraw",
                 'status', COALESCE(status::text, 'PENDING'),
                 'msatsFee', COALESCE("msatsFeePaid", "msatsFeePaying")) as other
             FROM "Withdrawl"
-            WHERE "userId" = $1
-            AND created_at <= $2)`
+            LEFT JOIN "InvoiceForward" ON "Withdrawl".id = "InvoiceForward"."withdrawlId"
+            WHERE "Withdrawl"."userId" = $1
+            AND "Withdrawl".created_at <= $2
+            GROUP BY "Withdrawl".id)`
         )
       }
 
@@ -312,6 +313,9 @@ const resolvers = {
           case 'withdrawal':
             f.msats = (-1 * Number(f.msats)) - Number(f.msatsFee)
             break
+          case 'p2p':
+            f.msats = -1 * Number(f.msats)
+            break
           case 'spent':
           case 'donation':
           case 'billing':
@@ -398,14 +402,12 @@ const resolvers = {
     },
     createWithdrawl: createWithdrawal,
     sendToLnAddr,
-    cancelInvoice: async (parent, { hash, hmac }, { models, lnd }) => {
+    cancelInvoice: async (parent, { hash, hmac }, { models, lnd, boss }) => {
       const hmac2 = createHmac(hash)
       if (!timingSafeEqual(Buffer.from(hmac), Buffer.from(hmac2))) {
         throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
       }
-      await cancelHodlInvoice({ id: hash, lnd })
-      // transition invoice to cancelled action state
-      await checkInvoice({ data: { hash }, models, lnd })
+      await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
       return await models.invoice.findFirst({ where: { hash } })
     },
     dropBolt11: async (parent, { id }, { me, models, lnd }) => {
@@ -423,6 +425,7 @@ const resolvers = {
         AND id = ${Number(id)}
         AND now() > created_at + interval '${retention}'
         AND hash IS NOT NULL
+        AND status IS NOT NULL
       ), updated_rows AS (
         UPDATE "Withdrawl"
         SET hash = NULL, bolt11 = NULL
@@ -476,8 +479,18 @@ const resolvers = {
   Withdrawl: {
     satsPaying: w => msatsToSats(w.msatsPaying),
     satsPaid: w => msatsToSats(w.msatsPaid),
-    satsFeePaying: w => msatsToSats(w.msatsFeePaying),
-    satsFeePaid: w => msatsToSats(w.msatsFeePaid)
+    satsFeePaying: w => w.invoiceForward?.length > 0 ? 0 : msatsToSats(w.msatsFeePaying),
+    satsFeePaid: w => w.invoiceForward?.length > 0 ? 0 : msatsToSats(w.msatsFeePaid),
+    p2p: w => !!w.invoiceForward?.length,
+    preimage: async (withdrawl, args, { lnd }) => {
+      try {
+        if (withdrawl.status === 'CONFIRMED') {
+          return (await getPayment({ id: withdrawl.hash, lnd })).payment.secret
+        }
+      } catch (err) {
+        console.error('error fetching payment from LND', err)
+      }
+    }
   },
 
   Invoice: {
@@ -690,7 +703,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     request: invoice,
     // can't use max_fee_mtokens https://github.com/alexbosworth/ln-service/issues/141
     max_fee: Number(maxFee),
-    pathfinding_timeout: 30000
+    pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS
   }).catch(console.error)
 
   return withdrawl

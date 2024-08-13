@@ -125,6 +125,7 @@ const typeDefs = `
     satsFeePaid: Int
     status: String
     autoWithdraw: Boolean!
+    p2p: Boolean!
     preimage: String
   }
 

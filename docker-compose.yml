@@ -1,4 +1,8 @@
-x-env_file: &env_file .env.development
+x-env_file: &env_file
+  - path: .env.development
+    required: true
+  - path: .env.local
+    required: false
 x-healthcheck: &healthcheck
   interval: 10s
   timeout: 10s
@@ -207,7 +211,7 @@ services:
       CONNECT: "localhost:5601"
     cpu_shares: "${CPU_SHARES_LOW}"
   bitcoin:
-    image: polarlightning/bitcoind:26.0
+    image: polarlightning/bitcoind:27.0
     container_name: bitcoin
     restart: unless-stopped
     profiles:
@@ -235,6 +239,7 @@ services:
       - '-fallbackfee=0.0002'
       - '-blockfilterindex=1'
       - '-peerblockfilters=1'
+      - '-maxmempool=5'
     expose:
       - "${RPC_PORT}"
       - "${P2P_PORT}"
@@ -247,19 +252,40 @@ services:
       ofelia.job-exec.minecron.schedule: "@every 1m"
       ofelia.job-exec.minecron.command: >
         bash -c '
-          blockcount=$$(bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} getblockcount 2>/dev/null)
+          bitcoin-cli () {
+            command bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} "$$@"
+          }
+          blockcount=$$(bitcoin-cli getblockcount 2>/dev/null)
+          nodes=(${LND_ADDR} ${STACKER_LND_ADDR} ${STACKER_CLN_ADDR})
           if (( blockcount <= 0 )); then
-            echo "Mining 10 blocks to sn_lnd, stacker_lnd, stacker_cln..."
-            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 100 ${LND_ADDR}
-            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 100 ${STACKER_LND_ADDR}
-            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 100 ${STACKER_CLN_ADDR}
+            echo "Creating wallet and address..."
+            bitcoin-cli createwallet ""
+            nodes+=($$(bitcoin-cli getnewaddress))
+            echo "Mining 100 blocks to sn_lnd, stacker_lnd, stacker_cln..."
+            for addr in  "$${nodes[@]}"; do
+              bitcoin-cli generatetoaddress 100 $$addr
+              echo "Mining 100 blocks to a random address..."
+              bitcoin-cli generatetoaddress 100 $$(bitcoin-cli getnewaddress)
+            done
           else
-            echo "Mining a block to sn_lnd... ${LND_ADDR}"
-            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${LND_ADDR}
-            echo "Mining a block to stacker_lnd... ${STACKER_LND_ADDR}"
-            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${STACKER_LND_ADDR}
-            echo "Mining a block to stacker_cln... ${STACKER_CLN_ADDR}"
-            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${STACKER_CLN_ADDR}
+            echo "generating txs for fee rate estimation..."
+            while true
+            do
+              i=0
+              range=$$(( $$RANDOM % 11 + 20 ))
+              while [ $$i -lt $$range ]
+              do
+                address=$$(bitcoin-cli getnewaddress)
+                bitcoin-cli -named sendtoaddress address=$$address amount=0.01 fee_rate=$$(( $$RANDOM % 25 + 1 ))
+                ((++i))
+              done
+              echo "generating block..."
+              bitcoin-cli generatetoaddress 1 "$${nodes[ $$RANDOM % $${#nodes[@]} ]}"
+              if [[ $$(bitcoin-cli estimatesmartfee 6) =~ "\\"feerate\\":" ]]; then
+                echo "fee estimation succeeded..."
+                break
+              fi
+            done
           fi
         '
     cpu_shares: "${CPU_SHARES_MODERATE}"

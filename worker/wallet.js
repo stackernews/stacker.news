@@ -296,7 +296,7 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
         const message = `autowithdrawal of ${
           numWithUnits(msatsToSats(paid), { abbreviate: false })} with ${
           numWithUnits(msatsToSats(fee), { abbreviate: false })} as fee`
-        await addWalletLog({ wallet: dbWdrwl.wallet, level: 'SUCCESS', message }, { models, me: { id: dbWdrwl.userId } })
+        await addWalletLog({ wallet: dbWdrwl.wallet, level: 'SUCCESS', message }, { models })
       }
     }
   } else if (wdrwl?.is_failed || notSent) {
@@ -331,7 +331,7 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
         wallet: dbWdrwl.wallet,
         level: 'ERROR',
         message: 'autowithdrawal failed: ' + message
-      }, { models, me: { id: dbWdrwl.userId } })
+      }, { models })
     }
   }
 }

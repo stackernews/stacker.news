@@ -68,7 +68,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
         wallet,
         level: 'ERROR',
         message: `creating invoice for ${description ?? ''} failed: ` + details
-      }, { me: wallet.user, models })
+      }, { models })
     }
   }
 

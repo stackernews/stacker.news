@@ -556,9 +556,9 @@ const resolvers = {
 
 export default injectResolvers(resolvers)
 
-export const addWalletLog = async ({ wallet, level, message }, { me, models }) => {
+export const addWalletLog = async ({ wallet, level, message }, { models }) => {
   try {
-    await models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level, message } })
+    await models.walletLog.create({ data: { userId: wallet.userId, wallet: wallet.type, level, message } })
   } catch (err) {
     console.error('error creating wallet log:', err)
   }
@@ -577,8 +577,8 @@ async function upsertWallet (
     } catch (err) {
       console.error(err)
       const message = 'failed to create test invoice: ' + (err.message || err.toString?.())
-      await addWalletLog({ wallet, level: 'ERROR', message }, { me, models })
-      await addWalletLog({ wallet, level: 'INFO', message: 'receives disabled' }, { me, models })
+      await addWalletLog({ wallet, level: 'ERROR', message }, { models })
+      await addWalletLog({ wallet, level: 'INFO', message: 'receives disabled' }, { models })
       throw new GraphQLError(message, { extensions: { code: 'BAD_INPUT' } })
     }
   }

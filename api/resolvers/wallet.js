@@ -577,6 +577,7 @@ async function upsertWallet (
     } catch (err) {
       console.error(err)
       const message = 'failed to create test invoice: ' + (err.message || err.toString?.())
+      wallet = { ...wallet, userId: me.id }
       await addWalletLog({ wallet, level: 'ERROR', message }, { models })
       await addWalletLog({ wallet, level: 'INFO', message: 'receives disabled' }, { models })
       throw new GraphQLError(message, { extensions: { code: 'BAD_INPUT' } })

@@ -2,7 +2,7 @@ import { blinkSchema, blinkStagingSchema } from '@/lib/validate'
 
 export const galoyStaging = false
 export const galoyBlinkUrl = galoyStaging ? 'https://api.staging.galoy.io/graphql' : 'https://api.blink.sv/graphql'
-export const galoyBlinkDashboardUrl = 'https://dashboard.blink.sv/'
+export const galoyBlinkDashboardUrl = galoyStaging ? 'https://dashboard.staging.galoy.io/' : 'https://dashboard.blink.sv/'
 
 export const name = 'blink'
 

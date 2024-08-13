@@ -2,9 +2,9 @@
 
 set -e
 set -a # automatically export all variables
-. .env.development
+. ./.env.development
 if [ -f .env.local ]; then
-  . .env.local
+  . ./.env.local
 fi
 
 docker__compose() {

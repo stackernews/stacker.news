@@ -212,7 +212,7 @@ const subClause = (sub, num, table, me, showNsfw) => {
   return excludeMuted + ' AND ' + HIDE_NSFW_CLAUSE
 }
 
-function investmentClause (sats) {
+function investmentClause (sats = 10) {
   return `(
     CASE WHEN "Item"."parentId" IS NULL
       THEN ("Item".cost + "Item".boost + ("Item".msats / 1000)) >= ${sats}
@@ -238,7 +238,8 @@ export async function filterClause (me, models, type) {
   if (me) {
     const user = await models.user.findUnique({ where: { id: me.id } })
 
-    satsFilter = `(${investmentClause(user.satsFilter)} OR "Item"."userId" = ${me.id})`
+    const satsFilterClause = investmentClause(user.satsFilter)
+    satsFilter = `(${satsFilterClause} OR "Item"."userId" = ${me.id})`
 
     if (user.wildWestMode) {
       return investmentClause

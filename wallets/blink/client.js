@@ -177,5 +177,13 @@ async function request (authToken, query, variables = {}) {
     },
     body: JSON.stringify({ query, variables })
   }
-  return fetch(galoyBlinkUrl, options).then(response => response.json())
+  const res = await fetch(galoyBlinkUrl, options)
+  if (res.status >= 400 && res.status <= 599) {
+    if (res.status === 401) {
+      throw new Error('unauthorized')
+    } else {
+      throw new Error(res.status + ' ' + res.statusText)
+    }
+  }
+  return res.json()
 }

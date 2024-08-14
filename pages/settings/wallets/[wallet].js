@@ -31,7 +31,7 @@ export default function WalletSettings () {
       ...acc,
       [field.name]: wallet.config?.[field.name] || ''
     }
-  }, wallet.config)
+  }, wallet.config || {})
 
   // check if wallet uses the form-level validation built into Formik or a Yup schema
   const validateProps = typeof wallet.fieldValidation === 'function'

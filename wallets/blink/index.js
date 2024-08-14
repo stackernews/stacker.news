@@ -20,7 +20,8 @@ export const fields = [
     help: 'the blink wallet to use (BTC or USD for stablesats)',
     placeholder: 'BTC',
     optional: true,
-    clear: true
+    clear: true,
+    autoComplete: 'off'
   }
 ]
 

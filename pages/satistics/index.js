@@ -131,9 +131,11 @@ function Detail ({ fact }) {
     try {
       zap = JSON.parse(fact.description)
     } catch { }
+
+    const pathRoot = fact.type === 'p2p' ? 'withdrawal' : fact.type
     return (
       <div className='px-3'>
-        <Link className={satusClass(fact.status)} href={`/${fact.type}s/${fact.id}`}>
+        <Link className={satusClass(fact.status)} href={`/${pathRoot}s/${fact.id}`}>
           {(!fact.bolt11 && <span className='d-block text-muted fw-bold fst-italic'>invoice deleted</span>) ||
            (zap && <span className='d-block'>nostr zap{zap.content && `: ${zap.content}`}</span>) ||
            (fact.description && <span className='d-block'>{fact.description}</span>)}

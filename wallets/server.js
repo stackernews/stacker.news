@@ -59,15 +59,10 @@ export async function createInvoice (userId, { msats, description, descriptionHa
       return { invoice, wallet }
     } catch (error) {
       console.error(error)
-
-      // TODO: I think this is a bug, `createInvoice` should parse the error
-
-      // LND errors are in this shape: [code, type, { err: { code, details, metadata } }]
-      const details = error[2]?.err?.details || error.message || error.toString?.()
       await addWalletLog({
         wallet,
         level: 'ERROR',
-        message: `creating invoice for ${description ?? ''} failed: ` + details
+        message: `creating invoice for ${description ?? ''} failed: ` + error
       }, { models })
     }
   }

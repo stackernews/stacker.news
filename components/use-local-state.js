@@ -1,10 +1,9 @@
 import { SSR } from '@/lib/constants'
 import { useCallback, useState } from 'react'
 
-export default function useLocalState (storageKey, initialValue = '') {
+export default function useLocalState (storageKey, defaultValue) {
   const [value, innerSetValue] = useState(
-    initialValue ||
-    (SSR ? null : JSON.parse(window.localStorage.getItem(storageKey)))
+    (SSR ? null : JSON.parse(window.localStorage.getItem(storageKey))) || defaultValue
   )
 
   const setValue = useCallback((newValue) => {

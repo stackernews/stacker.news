@@ -158,7 +158,7 @@ function useConfig (wallet) {
   const me = useMe()
 
   const storageKey = getStorageKey(wallet?.name, me)
-  const [clientConfig, setClientConfig, clearClientConfig] = useClientConfig(storageKey)
+  const [clientConfig, setClientConfig, clearClientConfig] = useClientConfig(storageKey, {})
 
   const [serverConfig, setServerConfig, clearServerConfig] = useServerConfig(wallet)
 

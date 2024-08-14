@@ -9,7 +9,6 @@ export async function testConnectClient ({ apiKey, currency }, { logger }) {
 }
 
 export async function sendPayment (bolt11, { apiKey, currency }) {
-  currency = currency ? currency.toUpperCase() : 'BTC'
   const wallet = await getWallet(apiKey, currency)
   const preImage = await payInvoice(apiKey, wallet, bolt11)
   return { preImage }
@@ -146,7 +145,7 @@ async function getTxInfo (authToken, wallet, invoice) {
   }
 }
 
-async function getWallet (authToken, currency = 'BTC') {
+async function getWallet (authToken, currency) {
   const out = await request(authToken, `
     query me {
         me {

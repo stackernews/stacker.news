@@ -181,7 +181,7 @@ async function request (authToken, query, variables = {}) {
     if (res.status === 401) {
       throw new Error('unauthorized')
     } else {
-      throw new Error(res.status + ' ' + res.statusText)
+      throw new Error('API responded with HTTP ' + res.status)
     }
   }
   return res.json()

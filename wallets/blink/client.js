@@ -3,9 +3,9 @@ export * from 'wallets/blink'
 
 export async function testConnectClient ({ apiKey, currency }, { logger }) {
   currency = currency ? currency.toUpperCase() : 'BTC'
-  logger.info('trying to fetch wallet')
+  logger.info('trying to fetch ' + currency + ' wallet')
   await getWallet(apiKey, currency)
-  logger.ok('wallet found')
+  logger.ok(currency + ' wallet found')
 }
 
 export async function sendPayment (bolt11, { apiKey, currency }) {

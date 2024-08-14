@@ -3,7 +3,7 @@ import { estimateRouteFee } from '../api/lnd'
 import { toPositiveNumber } from '@/lib/validate'
 
 const MIN_OUTGOING_MSATS = BigInt(900) // the minimum msats we'll allow for the outgoing invoice
-const MAX_OUTGOING_MSATS = BigInt(9_000_000_000) // the maximum msats we'll allow for the outgoing invoice
+const MAX_OUTGOING_MSATS = BigInt(900_000_000) // the maximum msats we'll allow for the outgoing invoice
 const MAX_EXPIRATION_INCOMING_MSECS = 900_000 // the maximum expiration time we'll allow for the incoming invoice
 const INCOMING_EXPIRATION_BUFFER_MSECS = 300_000 // the buffer enforce for the incoming invoice expiration
 const MAX_OUTGOING_CLTV_DELTA = 500 // the maximum cltv delta we'll allow for the outgoing invoice

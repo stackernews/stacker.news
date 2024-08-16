@@ -105,6 +105,7 @@ export function useWallet (name) {
 
   return {
     ...wallet,
+    canSend: !!wallet.sendPayment,
     sendPayment,
     config,
     save,
@@ -375,7 +376,7 @@ export function useWallets () {
 
   const resetClient = useCallback(async (wallet) => {
     for (const w of wallets) {
-      if (w.sendPayment) {
+      if (w.canSend) {
         await w.delete()
       }
       await w.deleteLogs()

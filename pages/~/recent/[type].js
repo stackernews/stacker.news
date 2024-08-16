@@ -11,6 +11,7 @@ import PageLoading from '@/components/page-loading'
 const staticVariables = { sort: 'recent' }
 const variablesFunc = vars =>
   ({ includeComments: COMMENT_TYPE_QUERY.includes(vars.type), ...staticVariables, ...vars })
+
 export const getServerSideProps = getGetServerSideProps({
   query: SUB_ITEMS,
   variables: variablesFunc,

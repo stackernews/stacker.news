@@ -80,6 +80,8 @@ const orderByClause = (by, me, models, type) => {
       return 'ORDER BY "Item".msats DESC'
     case 'zaprank':
       return topOrderByWeightedSats(me, models)
+    case 'random':
+      return 'ORDER BY "Item".msats DESC'
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
   }
@@ -396,6 +398,27 @@ export default {
               OFFSET $3
               LIMIT $4`,
             orderBy: orderByClause(by || 'zaprank', me, models, type)
+          }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
+          break
+        case 'random':
+          items = await itemQueryWithMeta({
+            me,
+            models,
+            query: `
+              ${selectClause(type)}
+              ${relationClause(type)}
+              ${whereClause(
+                '"Item"."deletedAt" IS NULL',
+                '"Item"."weightedVotes" > 10',
+                type === 'posts' && '"Item"."subName" IS NOT NULL',
+                subClause(sub, 5, subClauseTable(type), me, showNsfw),
+                typeClause(type),
+                await filterClause(me, models, type),
+                muteClause(me))}
+              ${orderByClause(by || 'random', me, models, type)}
+              OFFSET $3
+              LIMIT $4`,
+            orderBy: orderByClause(by || 'random', me, models, type)
           }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
           break
         default:

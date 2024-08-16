@@ -19,10 +19,10 @@ const ZAP_SYBIL_FEE_MULT = 10 / 9 // the fee for the zap sybil service
   @param options {object}
   @returns {
     invoice: the wrapped incoming invoice,
-    outgoingMaxFeeMsat: number
+    maxFee: number
   }
 */
-export default async function wrapInvoice (bolt11, { description, descriptionHash }, { lnd }) {
+export default async function wrapInvoice (bolt11, { msats, description, descriptionHash }, { lnd }) {
   try {
     console.group('wrapInvoice', description)
 
@@ -38,7 +38,7 @@ export default async function wrapInvoice (bolt11, { description, descriptionHas
 
     console.log('invoice', inv.mtokens, inv.expires_at, inv.cltv_delta)
 
-    // validate amount
+    // validate outgoing amount
     if (inv.mtokens) {
       outgoingMsat = toPositiveNumber(inv.mtokens)
       if (outgoingMsat < MIN_OUTGOING_MSATS) {
@@ -48,7 +48,17 @@ export default async function wrapInvoice (bolt11, { description, descriptionHas
         throw new Error(`Invoice amount is too high: ${outgoingMsat}`)
       }
     } else {
-      throw new Error('Invoice amount is missing')
+      throw new Error('Outgoing invoice is missing amount')
+    }
+
+    // validate incoming amount
+    if (msats) {
+      msats = toPositiveNumber(msats)
+      if (outgoingMsat * ZAP_SYBIL_FEE_MULT > msats) {
+        throw new Error('Sybil fee is too low')
+      }
+    } else {
+      throw new Error('Incoming invoice amount is missing')
     }
 
     // validate features
@@ -145,13 +155,13 @@ export default async function wrapInvoice (bolt11, { description, descriptionHas
 
     // validate the fee budget
     const minEstFees = toPositiveNumber(routingFeeMsat)
-    const outgoingMaxFeeMsat = Math.ceil(outgoingMsat * MAX_FEE_ESTIMATE_PERCENT)
+    const outgoingMaxFeeMsat = Math.ceil(msats * MAX_FEE_ESTIMATE_PERCENT)
     if (minEstFees > outgoingMaxFeeMsat) {
       throw new Error('Estimated fees are too high')
     }
 
     // calculate the incoming invoice amount, without fees
-    wrapped.mtokens = String(Math.ceil(outgoingMsat * ZAP_SYBIL_FEE_MULT))
+    wrapped.mtokens = String(msats)
     console.log('outgoingMaxFeeMsat', outgoingMaxFeeMsat, 'wrapped', wrapped)
 
     return {

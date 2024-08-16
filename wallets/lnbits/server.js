@@ -1,7 +1,7 @@
 export * from 'wallets/lnbits'
 
 export async function testConnectServer ({ url, invoiceKey }) {
-  return await createInvoice({ msats: 1, expiry: 1 }, { url, invoiceKey })
+  return await createInvoice({ msats: 1000, expiry: 1 }, { url, invoiceKey })
 }
 
 export async function createInvoice (

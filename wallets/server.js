@@ -53,7 +53,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 
       const bolt11 = await parsePaymentRequest({ request: invoice })
       if (BigInt(bolt11.mtokens) !== BigInt(msats)) {
-        throw new Error('invoice has incorrect amount')
+        throw new Error(`invoice has incorrect amount ${bolt11.mtokens} !== ${msats}`)
       }
 
       return { invoice, wallet }

@@ -353,7 +353,7 @@ const resolvers = {
     __resolveType (wallet) {
       // XXX [WALLET] this needs to be updated if another server wallet is added
       return wallet.address
-        ? 'WalletLNAddr'
+        ? 'WalletLightningAddress'
         : wallet.macaroon
           ? 'WalletLND'
           : wallet.rune

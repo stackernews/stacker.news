@@ -117,7 +117,7 @@ export const WALLET = gql`
       type
       wallet {
         __typename
-        ... on WalletLNAddr {
+        ... on WalletLightningAddress {
           address
         }
         ... on WalletLND {
@@ -150,7 +150,7 @@ export const WALLET_BY_TYPE = gql`
       type
       wallet {
         __typename
-        ... on WalletLNAddr {
+        ... on WalletLightningAddress {
           address
         }
         ... on WalletLND {

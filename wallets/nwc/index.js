@@ -27,7 +27,7 @@ export const fields = [
 export const card = {
   title: 'NWC',
   subtitle: 'use Nostr Wallet Connect for payments',
-  badges: ['send only', 'budgetable']
+  badges: ['send & receive', 'budgetable']
 }
 
 export const fieldValidation = nwcSchema

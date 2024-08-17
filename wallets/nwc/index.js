@@ -6,7 +6,18 @@ export const fields = [
   {
     name: 'nwcUrl',
     label: 'connection',
-    type: 'password'
+    type: 'password',
+    optional: 'for sending',
+    clientOnly: true,
+    editable: false
+  },
+  {
+    name: 'nwcUrlRecv',
+    label: 'connection',
+    type: 'password',
+    optional: 'for receiving',
+    serverOnly: true,
+    editable: false
   }
 ]
 
@@ -17,3 +28,7 @@ export const card = {
 }
 
 export const fieldValidation = nwcSchema
+
+export const walletType = 'NWC'
+
+export const walletField = 'walletNWC'

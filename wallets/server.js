@@ -53,7 +53,21 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 
       const bolt11 = await parsePaymentRequest({ request: invoice })
       if (BigInt(bolt11.mtokens) !== BigInt(msats)) {
-        throw new Error('invoice has incorrect amount')
+        if (BigInt(bolt11.mtokens) > BigInt(msats)) {
+          throw new Error(`invoice is for an amount greater than requested ${bolt11.mtokens} > ${msats}`)
+        }
+        if (BigInt(bolt11.mtokens) === 0n) {
+          throw new Error('invoice is for 0 msats')
+        }
+        if (BigInt(msats) - BigInt(bolt11.mtokens) >= 1000n) {
+          throw new Error(`invoice has a different satoshi amount ${bolt11.mtokens} !== ${msats}`)
+        }
+
+        await addWalletLog({
+          wallet,
+          level: 'INFO',
+          message: `wallet does not support msats so we floored ${msats} msats to nearest sat ${BigInt(bolt11.mtokens)} msats`
+        }, { models })
       }
 
       return { invoice, wallet }

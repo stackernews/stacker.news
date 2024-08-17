@@ -231,7 +231,7 @@ export async function createLightningInvoice (actionType, args, context) {
       }, { models })
 
       const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(
-        bolt11, { description }, { lnd })
+        bolt11, { msats: cost, description }, { lnd })
 
       return {
         bolt11,

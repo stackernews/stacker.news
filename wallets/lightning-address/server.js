@@ -1,3 +1,4 @@
+import { msatsSatsFloor } from '@/lib/format'
 import { lnAddrOptions } from '@/lib/lnurl'
 
 export * from 'wallets/lightning-address'
@@ -12,6 +13,10 @@ export const createInvoice = async (
 ) => {
   const { callback, commentAllowed } = await lnAddrOptions(address)
   const callbackUrl = new URL(callback)
+
+  // most lnurl providers suck nards so we have to floor to nearest sat
+  msats = msatsSatsFloor(msats)
+
   callbackUrl.searchParams.append('amount', msats)
 
   if (commentAllowed >= description?.length) {

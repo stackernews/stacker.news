@@ -107,6 +107,7 @@ mutation removeWallet($id: ID!) {
 }
 `
 
+// XXX [WALLET] this needs to be updated if another server wallet is added
 export const WALLET = gql`
   query Wallet($id: ID!) {
     wallet(id: $id) {
@@ -138,6 +139,7 @@ export const WALLET = gql`
   }
 `
 
+// XXX [WALLET] this needs to be updated if another server wallet is added
 export const WALLET_BY_TYPE = gql`
   query WalletByType($type: String!) {
     walletByType(type: $type) {

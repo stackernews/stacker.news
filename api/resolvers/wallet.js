@@ -351,7 +351,14 @@ const resolvers = {
   },
   WalletDetails: {
     __resolveType (wallet) {
-      return wallet.address ? 'WalletLNAddr' : wallet.macaroon ? 'WalletLND' : wallet.rune ? 'WalletCLN' : 'WalletLNbits'
+      // XXX [WALLET] this needs to be updated if another server wallet is added
+      return wallet.address
+        ? 'WalletLNAddr'
+        : wallet.macaroon
+          ? 'WalletLND'
+          : wallet.rune
+            ? 'WalletCLN'
+            : 'WalletLNbits'
     }
   },
   Mutation: {

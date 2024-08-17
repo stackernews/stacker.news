@@ -51,11 +51,11 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
 
     console.log('zap note', e, relays)
     await Promise.allSettled(
-      relays.map(r => (async function () {
+      relays.map(async r => {
         const timeout = 1000
         const relay = await Relay.connect(r, { timeout })
         await relay.publish(e, { timeout })
-      })())
+      })
     )
   } catch (e) {
     console.log(e)

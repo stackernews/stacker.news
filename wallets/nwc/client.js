@@ -20,10 +20,8 @@ export async function testConnectClient ({ nwcUrl }, { logger }) {
 
     if (info) {
       logger.ok(`received info event from ${relayUrl}`)
-      return info
     } else {
-      logger.error('info event not found')
-      return null
+      throw new Error('info event not found')
     }
   } finally {
     relay?.close()

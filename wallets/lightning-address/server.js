@@ -1,4 +1,4 @@
-import { msatsToSats, satsToMsats } from '@/lib/format'
+import { msatsSatsFloor } from '@/lib/format'
 import { lnAddrOptions } from '@/lib/lnurl'
 
 export * from 'wallets/lightning-address'
@@ -15,7 +15,7 @@ export const createInvoice = async (
   const callbackUrl = new URL(callback)
 
   // most lnurl providers suck nards so we have to floor to nearest sat
-  msats = satsToMsats(msatsToSats(msats))
+  msats = msatsSatsFloor(msats)
 
   callbackUrl.searchParams.append('amount', msats)
 

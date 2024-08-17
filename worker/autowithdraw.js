@@ -1,4 +1,4 @@
-import { msatsToSats, satsToMsats } from '@/lib/format'
+import { msatsSatsFloor, msatsToSats, satsToMsats } from '@/lib/format'
 import { createWithdrawal } from '@/api/resolvers/wallet'
 import { createInvoice } from 'wallets/server'
 
@@ -12,10 +12,9 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   // excess must be greater than 10% of threshold
   if (excess < Number(threshold) * 0.1) return
 
-  // round these to nearest sat because lightning developers denominate in msats
-  // but only because they like 3 extra zeros at the end of numbers and forbid us
-  // from using the precision they suggest they want
-  const maxFeeMsats = satsToMsats(msatsToSats(Math.ceil(excess * (user.autoWithdrawMaxFeePercent / 100.0))))
+  // floor fee to nearest sat but still denominated in msats
+  const maxFeeMsats = msatsSatsFloor(Math.ceil(excess * (user.autoWithdrawMaxFeePercent / 100.0)))
+  // msats will be floored by createInvoice if it needs to be
   const msats = BigInt(excess) - maxFeeMsats
 
   // must be >= 1 sat

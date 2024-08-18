@@ -1,5 +1,6 @@
 import { getInvoice } from 'ln-service'
-import { Relay, signId, calculateId, getPublicKey } from 'nostr'
+import { signId, calculateId, getPublicKey } from 'nostr'
+import { Relay } from '@/lib/nostr'
 
 const nostrOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
@@ -50,31 +51,12 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
 
     console.log('zap note', e, relays)
     await Promise.allSettled(
-      relays.map(r => new Promise((resolve, reject) => {
+      relays.map(async r => {
         const timeout = 1000
-        const relay = Relay(r)
-
-        function timedout () {
-          relay.close()
-          console.log('failed to send to', r)
-          reject(new Error('relay timeout'))
-        }
-
-        let timer = setTimeout(timedout, timeout)
-
-        relay.on('open', () => {
-          clearTimeout(timer)
-          timer = setTimeout(timedout, timeout)
-          relay.send(['EVENT', e])
-        })
-
-        relay.on('ok', () => {
-          clearTimeout(timer)
-          relay.close()
-          console.log('sent zap to', r)
-          resolve()
-        })
-      })))
+        const relay = await Relay.connect(r, { timeout })
+        await relay.publish(e, { timeout })
+      })
+    )
   } catch (e) {
     console.log(e)
   }

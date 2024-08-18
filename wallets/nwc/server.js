@@ -1,7 +1,8 @@
-import { nwcCall } from 'wallets/nwc'
+import { hasMethod, nwcCall } from 'wallets/nwc'
 export * from 'wallets/nwc'
 
 export async function testConnectServer ({ nwcUrlRecv }) {
+  await hasMethod(nwcUrlRecv, 'make_invoice')
   return await createInvoice({ msats: 1000, expiry: 1 }, { nwcUrlRecv })
 }
 

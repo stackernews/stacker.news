@@ -1,32 +1,14 @@
-import { parseNwcUrl } from '@/lib/url'
-import { Relay } from '@/lib/nostr'
-
-import { nwcCall } from 'wallets/nwc'
+import { hasMethod, nwcCall } from 'wallets/nwc'
 export * from 'wallets/nwc'
 
 export async function testConnectClient ({ nwcUrl }, { logger }) {
-  const { relayUrl, walletPubkey } = parseNwcUrl(nwcUrl)
-
-  logger.info(`requesting info event from ${relayUrl}`)
-
-  const relay = await Relay.connect(relayUrl)
-  logger.ok(`connected to ${relayUrl}`)
-
-  try {
-    const [info] = await relay.fetch([{
-      kinds: [13194],
-      authors: [walletPubkey]
-    }])
-
-    if (info) {
-      logger.ok(`received info event from ${relayUrl}`)
-    } else {
-      throw new Error('info event not found')
-    }
-  } finally {
-    relay?.close()
-    logger.info(`closed connection to ${relayUrl}`)
-  }
+  // TODO:
+  //   This will also run if only receive config was specified.
+  //   This means that this will either
+  //     a) enforce that 'pay_invoice' is supported which is the opposite of what we want
+  //       OR
+  //     b) throw because nwcUrl is undefined.
+  await hasMethod(nwcUrl, 'pay_invoice', { logger })
 }
 
 export async function sendPayment (bolt11, { nwcUrl }, { logger }) {

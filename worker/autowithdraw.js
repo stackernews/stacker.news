@@ -27,13 +27,11 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
     SELECT EXISTS(
       SELECT *
       FROM "Withdrawl"
-      WHERE "userId" = ${id} AND "autoWithdraw"
-      AND (status IS NULL
-      OR (
-        status <> 'CONFIRMED' AND
-        now() < created_at + interval '1 hour' AND
-        "msatsFeePaying" >= ${maxFeeMsats}
-      ))
+      WHERE "userId" = ${id}
+      AND "autoWithdraw"
+      AND status IS DISTINCT FROM 'CONFIRMED'
+      AND now() < created_at + interval '1 hour'
+      AND "msatsFeePaying" >= ${maxFeeMsats}
     )`
 
   if (pendingOrFailed.exists) return

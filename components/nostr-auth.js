@@ -17,6 +17,9 @@ import CancelButton from './cancel-button'
 export function NostrAuth ({ text, callbackUrl }) {
   const [signer, setSigner] = useState(null)
   const [nostrConnect, setNostrConnect] = useState('')
+  const [status, setStatus] = useState('')
+  const [statusVariant, setStatusVariant] = useState('')
+
   const toaster = useToast()
 
   const [createAuth, { data, error }] = useMutation(gql`
@@ -29,15 +32,37 @@ export function NostrAuth ({ text, callbackUrl }) {
     fetchPolicy: 'no-cache'
   })
 
+  // print an error message
+  const handleError = useCallback((e) => {
+    console.error(e)
+    toaster.danger(e.message || e.toString())
+    setStatus(e.message || e.toString())
+    setStatusVariant('failed')
+    // clear the error after a while
+    // the connection can be retried
+    setTimeout(() => {
+      setStatus('')
+      setStatusVariant('')
+    }, 1000)
+  }, [])
+
+  // print a progress message with the pending status
+  const handleProgress = useCallback((msg) => {
+    console.log(msg)
+    setStatus(msg)
+    setStatusVariant('')
+  }, [])
+
   useEffect(() => {
     createAuth()
     if (error) {
-      toaster.danger('auth failed')
+      handleError('auth failed')
     }
   }, [])
 
   const k1 = data?.createAuth.k1
 
+  // Prompt the user to execute a challenge
   const challengeHandler = useCallback(async (challenge, type) => {
     const sanitizeURL = (s) => {
       try {
@@ -64,7 +89,9 @@ export function NostrAuth ({ text, callbackUrl }) {
                 <Button
                   variant='primary'
                   onClick={() => {
+                    handleProgress('Waiting for challenge')
                     window.open(challengeUrl, '_blank')
+                    onClose()
                   }}
                 >Confirm
                 </Button>
@@ -78,6 +105,7 @@ export function NostrAuth ({ text, callbackUrl }) {
 
   // authorize user
   const auth = useCallback(async (preferExt = false) => {
+    handleProgress('Waiting for authorization')
     const event = {
       kind: 22242,
       created_at: Math.floor(Date.now() / 1000),
@@ -95,11 +123,15 @@ export function NostrAuth ({ text, callbackUrl }) {
   const connect = useCallback(async (bunker) => {
     try {
       if (signer && bunker) {
-        await signer.connectApp(bunker, challengeHandler)
-        await auth()
+        handleProgress('Connecting to signer')
+        if (await signer.connectApp(bunker, challengeHandler)) {
+          await auth()
+        } else {
+          throw new Error('failed to connect')
+        }
       }
     } catch (e) {
-      toaster.danger(e.message || e.toString())
+      handleError(e)
     }
   }, [k1, signer])
 
@@ -110,7 +142,7 @@ export function NostrAuth ({ text, callbackUrl }) {
       try {
         await auth()
       } catch (e) {
-        toaster.danger(e.message || e.toString())
+        handleError(e)
       }
     })
     return () => {
@@ -126,7 +158,7 @@ export function NostrAuth ({ text, callbackUrl }) {
       try {
         if (signer) signer.close()
       } catch (e) {
-        toaster.danger(e.message || e.toString())
+        handleError(e)
       }
       try {
         const newSigner = new NostrSigner(
@@ -140,7 +172,7 @@ export function NostrAuth ({ text, callbackUrl }) {
         setNostrConnect(newSigner.getNostrConnectUrl())
         setSigner(newSigner)
       } catch (e) {
-        toaster.danger(e.message || e.toString())
+        handleError(e)
       }
     })()
   }, [])
@@ -148,15 +180,17 @@ export function NostrAuth ({ text, callbackUrl }) {
   const showModal = useShowModal()
   return (
     <>
-
       <Row className='w-100 g-1'>
         <Qr
           asIs
           value={nostrConnect}
           className='mw-100'
+          status={status}
+          statusVariant={statusVariant}
           description={`Use a NIP-46 signer to ${text || 'Login'}  with Nostr`}
         />
         <Button
+          disabled={status !== ''}
           variant='primary'
           type='submit'
           className='mt-4'
@@ -167,7 +201,10 @@ export function NostrAuth ({ text, callbackUrl }) {
                 <Form
                   initial={{ token: '' }}
                   onSubmit={values => {
-                    connect(values.token)
+                    if (values.token) {
+                      connect(values.token)
+                      onClose()
+                    }
                   }}
                 >
                   <Input
@@ -193,10 +230,11 @@ export function NostrAuth ({ text, callbackUrl }) {
             )
           }}
         >
-          Use token or nip-05 address
+          {text || 'Login'} token or nip-05 address
         </Button>
         <div className='mt-2 text-center text-muted fw-bold'>or</div>
         <Button
+          disabled={status !== ''}
           variant='nostr'
           className='w-100'
           type='submit'
@@ -204,7 +242,7 @@ export function NostrAuth ({ text, callbackUrl }) {
             try {
               await auth(signer, true)
             } catch (e) {
-              toaster.danger(e.message || e.toString())
+              handleError(e)
             }
           }}
         >
@@ -281,83 +319,6 @@ export function NostrAuth ({ text, callbackUrl }) {
     </>
   )
 }
-
-// export function NostrAuth ({ text, callbackUrl }) {
-//   const [createAuth, { data, error }] = useMutation(gql`
-//     mutation createAuth {
-//       createAuth {
-//         k1
-//       }
-//     }`, {
-//     // don't cache this mutation
-//     fetchPolicy: 'no-cache'
-//   })
-//   const [hasExtension, setHasExtension] = useState(undefined)
-//   const [extensionError, setExtensionError] = useState(null)
-
-//   useEffect(() => {
-//     createAuth()
-//     setHasExtension(!!window.nostr)
-//   }, [])
-
-//   const k1 = data?.createAuth.k1
-
-//   useEffect(() => {
-//     if (!k1 || !hasExtension) return
-
-//     console.info('nostr extension detected')
-
-//     let mounted = true;
-//     (async function () {
-//       try {
-//         // have them sign a message with the challenge
-//         let event
-//         try {
-//           event = await callWithTimeout(() => window.nostr.signEvent({
-//             kind: 22242,
-//             created_at: Math.floor(Date.now() / 1000),
-//             tags: [['challenge', k1]],
-//             content: 'Stacker News Authentication'
-//           }), 5000)
-//           if (!event) throw new Error('extension returned empty event')
-//         } catch (e) {
-//           if (e.message === 'window.nostr call already executing' || !mounted) return
-//           setExtensionError({ message: 'nostr extension failed to sign event', details: e.message })
-//           return
-//         }
-
-//         // sign them in
-//         try {
-//           await signIn('nostr', {
-//             event: JSON.stringify(event),
-//             callbackUrl
-//           })
-//         } catch (e) {
-//           throw new Error('authorization failed', e)
-//         }
-//       } catch (e) {
-//         if (!mounted) return
-//         console.log('nostr auth error', e)
-//         setExtensionError({ message: `${text} failed`, details: e.message })
-//       }
-//     })()
-//     return () => { mounted = false }
-//   }, [k1, hasExtension])
-
-//   if (error) return <div>error</div>
-
-//   return (
-//     <>
-//       {hasExtension === false && <NostrExplainer text={text} />}
-//       {extensionError && <ExtensionError {...extensionError} />}
-//       {hasExtension && !extensionError &&
-//         <>
-//           <h4 className='fw-bold text-success pb-1'>nostr extension found</h4>
-//           <h6 className='text-muted pb-4'>authorize event signature in extension</h6>
-//         </>}
-//     </>
-//   )
-// }
 
 export default function NostrAuthWithExplainer ({ text, callbackUrl }) {
   return (

@@ -395,7 +395,9 @@ export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, 
 
   // if this is an actionType we need to cancel conditionally
   if (dbInv.actionType) {
-    return await paidActionCanceling({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+    await paidActionCanceling({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+    await checkInvoice({ data: { hash }, models, lnd, ...args })
+    return
   }
 
   await cancelHodlInvoice({ id: hash, lnd })

@@ -91,7 +91,7 @@ export function middleware (request) {
     // Using nonces and strict-dynamic deploys a strict CSP.
     // see https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html#strict-policy.
     // Old browsers will ignore nonce and strict-dynamic and fallback to host-based matching and unsafe-inline
-    `script-src 'self' 'unsafe-inline' 'nonce-${nonce}' 'strict-dynamic' https:` + devScriptSrc,
+    `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' 'nonce-${nonce}' 'strict-dynamic' https:` + devScriptSrc,
     // unsafe-inline for styles is not ideal but okay if script-src is using nonces
     "style-src 'self' a.stacker.news 'unsafe-inline'",
     "manifest-src 'self'",

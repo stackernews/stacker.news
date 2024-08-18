@@ -16,10 +16,9 @@ import CancelButton from './cancel-button'
 
 export function NostrAuth ({ text, callbackUrl }) {
   const [signer, setSigner] = useState(null)
-  const [nostrConnect, setNostrConnect] = useState('')
+  const [nostrConnectUrl, setNostrConnectUrl] = useState('')
   const [status, setStatus] = useState('')
   const [statusVariant, setStatusVariant] = useState('')
-
   const toaster = useToast()
 
   const [createAuth, { data, error }] = useMutation(gql`
@@ -78,7 +77,7 @@ export function NostrAuth ({ text, callbackUrl }) {
       <div>
         <h2>Challenge Request</h2>
         <p>
-          The remote signer is requesting you to confirm this action.
+          Please confirm the action on the remote signer to proceed.
         </p>
         {!challengeUrl && (<pre>{challenge}</pre>)}
         <div className='mt-3'>
@@ -166,7 +165,7 @@ export function NostrAuth ({ text, callbackUrl }) {
             description: 'Login to Stacker News'
           }
         )
-        setNostrConnect(newSigner.getNostrConnectUrl())
+        setNostrConnectUrl(newSigner.getNostrConnectUrl())
         setSigner(newSigner)
       } catch (e) {
         handleError(e)
@@ -180,7 +179,7 @@ export function NostrAuth ({ text, callbackUrl }) {
       <Row className='w-100 g-1'>
         <Qr
           asIs
-          value={nostrConnect}
+          value={nostrConnectUrl}
           className='mw-100'
           status={status}
           statusVariant={statusVariant}
@@ -227,7 +226,7 @@ export function NostrAuth ({ text, callbackUrl }) {
             )
           }}
         >
-          {text || 'Login'} token or nip-05 address
+          {text || 'Login'} with token or nip-05 address
         </Button>
         <div className='mt-2 text-center text-muted fw-bold'>or</div>
         <Button
@@ -268,7 +267,7 @@ export function NostrAuth ({ text, callbackUrl }) {
                     </li>
                     <li>
                       <a href='https://app.nsecbunker.com/'>nsecBunker</a><br />
-                      self-hosted on Linux or as cloud service
+                      available as: SaaS or self-hosted on Linux
                     </li>
                   </ul>
                 </Col>

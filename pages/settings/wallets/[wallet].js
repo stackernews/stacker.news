@@ -102,7 +102,7 @@ export default function WalletSettings () {
 
 function WalletFields ({ wallet: { config, fields, isConfigured } }) {
   return fields
-    .map(({ name, label, type, help, optional, editable, clientOnly, serverOnly, ...props }, i) => {
+    .map(({ name, label = '', type, help, optional, editable, clientOnly, serverOnly, ...props }, i) => {
       const rawProps = {
         ...props,
         name,
@@ -115,7 +115,7 @@ function WalletFields ({ wallet: { config, fields, isConfigured } }) {
               {label}
               {/* help can be a string or object to customize the label */}
               {help && (
-                <Info label={help.label || 'help'}>
+                <Info label={help.label}>
                   <Text>{help.text || help}</Text>
                 </Info>
               )}

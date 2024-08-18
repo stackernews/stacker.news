@@ -187,11 +187,11 @@ function useConfig (wallet) {
     //   Not optimal UX but the trade-off is saving invalid configurations
     //   and maybe it's not that big of an issue.
     if (hasClientConfig) {
-      const newClientConfig = extractClientConfig(wallet.fields, newConfig)
+      let newClientConfig = extractClientConfig(wallet.fields, newConfig)
 
       let valid = true
       try {
-        await walletValidate(wallet, newClientConfig)
+        newClientConfig = await walletValidate(wallet, newClientConfig)
       } catch {
         valid = false
       }
@@ -204,11 +204,11 @@ function useConfig (wallet) {
       }
     }
     if (hasServerConfig) {
-      const newServerConfig = extractServerConfig(wallet.fields, newConfig)
+      let newServerConfig = extractServerConfig(wallet.fields, newConfig)
 
       let valid = true
       try {
-        await walletValidate(wallet, newServerConfig)
+        newServerConfig = await walletValidate(wallet, newServerConfig)
       } catch {
         valid = false
       }

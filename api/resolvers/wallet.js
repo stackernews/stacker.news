@@ -13,7 +13,7 @@ import assertApiKeyNotPermitted from './apiKey'
 import { bolt11Tags } from '@/lib/bolt11'
 import { finalizeHodlInvoice } from 'worker/wallet'
 import walletDefs from 'wallets/server'
-import { generateResolverName } from '@/lib/wallet'
+import { generateResolverName, walletTypeToResolveType } from '@/lib/wallet'
 import { lnAddrOptions } from '@/lib/lnurl'
 
 function injectResolvers (resolvers) {
@@ -349,10 +349,16 @@ const resolvers = {
       })
     }
   },
-  WalletDetails: {
-    __resolveType (wallet) {
-      return wallet.address ? 'WalletLNAddr' : wallet.macaroon ? 'WalletLND' : wallet.rune ? 'WalletCLN' : 'WalletLNbits'
+  Wallet: {
+    wallet: async (wallet) => {
+      return {
+        ...wallet.wallet,
+        __resolveType: walletTypeToResolveType(wallet.type)
+      }
     }
+  },
+  WalletDetails: {
+    __resolveType: wallet => wallet.__resolveType
   },
   Mutation: {
     createInvoice: async (parent, { amount, hodlInvoice = false, expireSecs = 3600 }, { me, models, lnd, headers }) => {

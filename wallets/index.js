@@ -233,9 +233,15 @@ function isConfigured ({ fields, config }) {
   if (!config || !fields) return false
 
   // a wallet is configured if all of its required fields are set
-  const val = fields.every(field => {
-    return field.optional ? true : !!config?.[field.name]
+  let val = fields.every(f => {
+    return f.optional ? true : !!config?.[f.name]
   })
+
+  // however, a wallet is not configured if all fields are optional and none are set
+  // since that usually means that one of them is required
+  if (fields.length > 0) {
+    val = !(fields.every(f => f.optional) && fields.every(f => !config?.[f.name]))
+  }
 
   return val
 }

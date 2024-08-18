@@ -124,11 +124,8 @@ export function NostrAuth ({ text, callbackUrl }) {
     try {
       if (signer && bunker) {
         handleProgress('Connecting to signer')
-        if (await signer.connectApp(bunker, challengeHandler)) {
-          await auth()
-        } else {
-          throw new Error('failed to connect')
-        }
+        await signer.connect(bunker, challengeHandler)
+        await auth()
       }
     } catch (e) {
       handleError(e)

@@ -1,32 +1,59 @@
 import { gql } from 'graphql-tag'
-import { generateResolverName } from '@/lib/wallet'
+import { fieldToGqlArg, generateResolverName, generateTypeDefName } from '@/lib/wallet'
 
 import walletDefs from 'wallets/server'
 import { isServerField } from 'wallets'
 
 function injectTypeDefs (typeDefs) {
-  console.group('injected GraphQL type defs:')
-  const injected = walletDefs.map(
-    (w) => {
-      let args = 'id: ID, '
-      args += w.fields
-        .filter(isServerField)
-        .map(f => {
-          let arg = `${f.name}: String`
-          if (!f.optional) {
-            arg += '!'
-          }
-          return arg
-        }).join(', ')
-      args += ', settings: AutowithdrawSettings!'
-      const resolverName = generateResolverName(w.walletField)
-      const typeDef = `${resolverName}(${args}): Boolean`
-      console.log(typeDef)
-      return typeDef
-    })
+  const injected = [rawTypeDefs(), mutationTypeDefs()]
+  return `${typeDefs}\n\n${injected.join('\n\n')}\n`
+}
+
+function mutationTypeDefs () {
+  console.group('injected GraphQL mutations:')
+
+  const typeDefs = walletDefs.map((w) => {
+    let args = 'id: ID, '
+    args += w.fields
+      .filter(isServerField)
+      .map(fieldToGqlArg).join(', ')
+    args += ', settings: AutowithdrawSettings!'
+    const resolverName = generateResolverName(w.walletField)
+    const typeDef = `${resolverName}(${args}): Boolean`
+    console.log(typeDef)
+    return typeDef
+  })
+
   console.groupEnd()
 
-  return `${typeDefs}\n\nextend type Mutation {\n${injected.join('\n')}\n}`
+  return `extend type Mutation {\n${typeDefs.join('\n')}\n}`
+}
+
+function rawTypeDefs () {
+  console.group('injected GraphQL type defs:')
+
+  const typeDefs = walletDefs.map((w) => {
+    const args = w.fields
+      .filter(isServerField)
+      .map(fieldToGqlArg)
+      .map(s => '  ' + s)
+      .join('\n')
+    const typeDefName = generateTypeDefName(w.walletField)
+    const typeDef = `type ${typeDefName} {\n${args}\n}`
+    console.log(typeDef)
+    return typeDef
+  })
+
+  let union = 'union WalletDetails = '
+  union += walletDefs.map((w) => {
+    const typeDefName = generateTypeDefName(w.walletField)
+    return typeDefName
+  }).join(' | ')
+  console.log(union)
+
+  console.groupEnd()
+
+  return typeDefs.join('\n\n') + union
 }
 
 const typeDefs = `
@@ -60,29 +87,6 @@ const typeDefs = `
     priority: Int!
     wallet: WalletDetails!
   }
-
-  type WalletLNAddr {
-    address: String!
-  }
-
-  type WalletLND {
-    socket: String!
-    macaroon: String!
-    cert: String
-  }
-
-  type WalletCLN {
-    socket: String!
-    rune: String!
-    cert: String
-  }
-
-  type WalletLNbits {
-    url: String!
-    invoiceKey: String!
-  }
-
-  union WalletDetails = WalletLNAddr | WalletLND | WalletCLN | WalletLNbits
 
   input AutowithdrawSettings {
     autoWithdrawThreshold: Int!

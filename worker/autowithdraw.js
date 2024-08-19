@@ -1,4 +1,4 @@
-import { msatsToSats, satsToMsats } from '@/lib/format'
+import { msatsSatsFloor, msatsToSats, satsToMsats } from '@/lib/format'
 import { createWithdrawal } from '@/api/resolvers/wallet'
 import { createInvoice } from 'wallets/server'
 
@@ -12,14 +12,13 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   // excess must be greater than 10% of threshold
   if (excess < Number(threshold) * 0.1) return
 
-  const maxFeeMsats = Math.ceil(excess * (user.autoWithdrawMaxFeePercent / 100.0))
-  const msats = excess - maxFeeMsats
+  // floor fee to nearest sat but still denominated in msats
+  const maxFeeMsats = msatsSatsFloor(Math.ceil(excess * (user.autoWithdrawMaxFeePercent / 100.0)))
+  // msats will be floored by createInvoice if it needs to be
+  const msats = BigInt(excess) - maxFeeMsats
 
   // must be >= 1 sat
-  if (msats < 1000) return
-
-  // maxFee is expected to be in sats, ie "msatsFeePaying" is always divisible by 1000
-  const maxFee = msatsToSats(maxFeeMsats)
+  if (msats < 1000n) return
 
   // check that
   // 1. the user doesn't have an autowithdraw pending
@@ -28,19 +27,17 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
     SELECT EXISTS(
       SELECT *
       FROM "Withdrawl"
-      WHERE "userId" = ${id} AND "autoWithdraw"
-      AND (status IS NULL
-      OR (
-        status <> 'CONFIRMED' AND
-        now() < created_at + interval '1 hour' AND
-        "msatsFeePaying" >= ${satsToMsats(maxFee)}
-      ))
+      WHERE "userId" = ${id}
+      AND "autoWithdraw"
+      AND status IS DISTINCT FROM 'CONFIRMED'
+      AND now() < created_at + interval '1 hour'
+      AND "msatsFeePaying" >= ${maxFeeMsats}
     )`
 
   if (pendingOrFailed.exists) return
 
   const { invoice, wallet } = await createInvoice(id, { msats, description: 'SN: autowithdrawal', expiry: 360 }, { models })
   return await createWithdrawal(null,
-    { invoice, maxFee },
+    { invoice, maxFee: msatsToSats(maxFeeMsats) },
     { me: { id }, models, lnd, walletId: wallet.id })
 }

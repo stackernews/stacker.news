@@ -5,5 +5,6 @@ import * as lnAddr from 'wallets/lightning-address/client'
 import * as cln from 'wallets/cln/client'
 import * as lnd from 'wallets/lnd/client'
 import * as webln from 'wallets/webln/client'
+import * as blink from 'wallets/blink/client'
 
-export default [nwc, lnbits, lnc, lnAddr, cln, lnd, webln]
+export default [nwc, lnbits, lnc, lnAddr, cln, lnd, webln, blink]

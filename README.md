@@ -230,6 +230,7 @@ _Due to Rule 3, make sure that you mark your PR as a draft when you create it an
 
 | tag               | multiplier |
 | ----------------- | ---------- |
+| `priority:low`    | 0.5        |
 | `priority:medium` | 1.5        |
 | `priority:high`   | 2          |
 | `priority:urgent` | 3          |

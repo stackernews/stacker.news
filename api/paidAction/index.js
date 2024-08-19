@@ -158,6 +158,8 @@ export async function retryPaidAction (actionType, args, context) {
   const { models, me } = context
   const { invoiceId } = args
 
+  console.log('retryPaidAction', actionType, args)
+
   const action = paidActions[actionType]
   if (!action) {
     throw new Error(`retryPaidAction - invalid action type ${actionType}`)
@@ -231,7 +233,7 @@ export async function createLightningInvoice (actionType, args, context) {
       }, { models })
 
       const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(
-        bolt11, { description }, { lnd })
+        bolt11, { msats: cost, description }, { lnd })
 
       return {
         bolt11,

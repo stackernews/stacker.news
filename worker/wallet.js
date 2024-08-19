@@ -239,9 +239,14 @@ async function subscribeToWithdrawals (args) {
 }
 
 export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
+  // get the withdrawl if pending or it's an invoiceForward
   const dbWdrwl = await models.withdrawl.findFirst({
     where: {
-      hash
+      hash,
+      OR: [
+        { status: null },
+        { invoiceForward: { some: { } } }
+      ]
     },
     include: {
       wallet: true,
@@ -253,16 +258,9 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
       }
     }
   })
-  if (!dbWdrwl) {
-    // [WARNING] LND paid an invoice that wasn't created via the SN GraphQL API.
-    // >>> an adversary might be draining our funds right now <<<
-    console.error('unexpected outgoing payment detected:', hash)
-    // TODO: log this in Slack
-    return
-  }
 
-  // already recorded and no invoiceForward to handle
-  if (dbWdrwl.status && dbWdrwl.invoiceForward.length === 0) return
+  // nothing to do if the withdrawl is already recorded and it isn't an invoiceForward
+  if (!dbWdrwl) return
 
   let wdrwl
   let notSent = false
@@ -395,7 +393,9 @@ export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, 
 
   // if this is an actionType we need to cancel conditionally
   if (dbInv.actionType) {
-    return await paidActionCanceling({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+    await paidActionCanceling({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+    await checkInvoice({ data: { hash }, models, lnd, ...args })
+    return
   }
 
   await cancelHodlInvoice({ id: hash, lnd })

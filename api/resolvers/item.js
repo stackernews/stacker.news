@@ -204,7 +204,10 @@ export const nsfwClause = showNsfw => showNsfw ? '' : HIDE_NSFW_CLAUSE
 
 const subClause = (sub, num, table, me, showNsfw) => {
   // Intentionally show nsfw posts (i.e. no nsfw clause) when viewing a specific nsfw sub
-  if (sub) { return `${table ? `"${table}".` : ''}"subName" = $${num}::CITEXT` }
+  if (sub) {
+    const tables = [...new Set(['Item', table])].map(t => `"${t}".`)
+    return `(${tables.map(t => `${t}"subName" = $${num}::CITEXT`).join(' OR ')})`
+  }
 
   if (!me) { return HIDE_NSFW_CLAUSE }
 
@@ -348,7 +351,6 @@ export default {
               ${whereClause(
                 `"${table}"."userId" = $3`,
                 activeOrMine(me),
-                await filterClause(me, models, type),
                 nsfwClause(showNsfw),
                 typeClause(type),
                 whenClause(when || 'forever', table))}

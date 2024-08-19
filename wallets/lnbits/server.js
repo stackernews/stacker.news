@@ -1,7 +1,9 @@
+import { msatsToSats } from '@/lib/format'
+
 export * from 'wallets/lnbits'
 
 export async function testConnectServer ({ url, invoiceKey }) {
-  return await createInvoice({ msats: 1, expiry: 1 }, { url, invoiceKey })
+  return await createInvoice({ msats: 1000, expiry: 1 }, { url, invoiceKey })
 }
 
 export async function createInvoice (
@@ -14,9 +16,12 @@ export async function createInvoice (
   headers.append('Content-Type', 'application/json')
   headers.append('X-Api-Key', invoiceKey)
 
+  // lnbits doesn't support msats so we have to floor to nearest sat
+  const sats = msatsToSats(msats)
+
   const body = JSON.stringify({
-    amount: msats,
-    unit: 'msat',
+    amount: sats,
+    unit: 'sat',
     expiry,
     memo: description,
     out: false

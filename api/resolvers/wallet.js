@@ -13,7 +13,7 @@ import assertApiKeyNotPermitted from './apiKey'
 import { bolt11Tags } from '@/lib/bolt11'
 import { finalizeHodlInvoice } from 'worker/wallet'
 import walletDefs from 'wallets/server'
-import { generateResolverName, walletTypeToResolveType } from '@/lib/wallet'
+import { generateResolverName, generateTypeDefName } from '@/lib/wallet'
 import { lnAddrOptions } from '@/lib/lnurl'
 
 function injectResolvers (resolvers) {
@@ -353,7 +353,7 @@ const resolvers = {
     wallet: async (wallet) => {
       return {
         ...wallet.wallet,
-        __resolveType: walletTypeToResolveType(wallet.type)
+        __resolveType: generateTypeDefName(wallet.type)
       }
     }
   },

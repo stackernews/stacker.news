@@ -77,12 +77,12 @@ export function useWallet (name) {
   }, [wallet, config, toaster])
 
   const save = useCallback(async (newConfig) => {
-    // testConnectClient should log custom INFO and OK message
-    // testConnectClient is optional since validation might happen during save on server
+    // testSendPayment should log custom INFO and OK message
+    // testSendPayment is optional since validation might happen during save on server
     // TODO: add timeout
     let validConfig
     try {
-      validConfig = await wallet.testConnectClient?.(newConfig, { me, logger })
+      validConfig = await wallet.testSendPayment?.(newConfig, { me, logger })
     } catch (err) {
       logger.error(err.message)
       throw err

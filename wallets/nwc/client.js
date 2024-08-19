@@ -1,7 +1,7 @@
 import { hasMethod, nwcCall } from 'wallets/nwc'
 export * from 'wallets/nwc'
 
-export async function testConnectClient ({ nwcUrl }, { logger }) {
+export async function testSendPayment ({ nwcUrl }, { logger }) {
   // TODO:
   //   This will also run if only receive config was specified.
   //   This means that this will either

@@ -106,7 +106,5 @@ async function getInfo (nwcUrl, { logger } = {}) {
 export async function hasMethod (nwcUrl, method, { logger } = {}) {
   const info = await getInfo(nwcUrl, { logger })
   const supportedMethods = info.content.split(/[\s,]+/)
-  if (!supportedMethods.includes(method)) {
-    throw new Error('method not supported:', method)
-  }
+  return supportedMethods.includes(method)
 }

@@ -8,7 +8,10 @@ export async function testConnectClient ({ nwcUrl }, { logger }) {
   //     a) enforce that 'pay_invoice' is supported which is the opposite of what we want
   //       OR
   //     b) throw because nwcUrl is undefined.
-  await hasMethod(nwcUrl, 'pay_invoice', { logger })
+  const supported = await hasMethod(nwcUrl, 'pay_invoice', { logger })
+  if (!supported) {
+    throw new Error('pay_invoice not supported')
+  }
 }
 
 export async function sendPayment (bolt11, { nwcUrl }, { logger }) {

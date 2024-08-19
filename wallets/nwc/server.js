@@ -3,7 +3,16 @@ import { hasMethod, nwcCall } from 'wallets/nwc'
 export * from 'wallets/nwc'
 
 export async function testConnectServer ({ nwcUrlRecv }) {
-  await hasMethod(nwcUrlRecv, 'make_invoice')
+  const supported = await hasMethod(nwcUrlRecv, 'make_invoice')
+  if (!supported) {
+    throw new Error('make_invoice not supported')
+  }
+
+  const unrestricted = await hasMethod(nwcUrlRecv, 'pay_invoice')
+  if (unrestricted) {
+    throw new Error('pay_invoice must not be supported')
+  }
+
   return await withTimeout(createInvoice({ msats: 1000, expiry: 1 }, { nwcUrlRecv }), 5000)
 }
 

@@ -136,6 +136,7 @@ export function NostrAuth ({ text, callbackUrl }) {
     if (!signer) return
     signer.startListeningForSpontaneousConnections(challengeHandler, async () => {
       try {
+        console.log('Received NIP-46 nostrconnect event')
         await auth()
       } catch (e) {
         handleError(e)
@@ -204,9 +205,9 @@ export function NostrAuth ({ text, callbackUrl }) {
                   }}
                 >
                   <Input
-                    label='Paste a connection token or nip-05 address'
+                    label='Paste a connection token or NIP-05 address'
                     name='token'
-                    placeholder='bunker://...  or nip-05 address'
+                    placeholder='bunker://...  or NIP-05 address'
                     required
                     autoFocus
                   />
@@ -226,7 +227,7 @@ export function NostrAuth ({ text, callbackUrl }) {
             )
           }}
         >
-          {text || 'Login'} with token or nip-05 address
+          {text || 'Login'} with token or NIP-05
         </Button>
         <div className='mt-2 text-center text-muted fw-bold'>or</div>
         <Button

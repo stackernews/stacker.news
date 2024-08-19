@@ -32,7 +32,7 @@ function injectResolvers (resolvers) {
 
       return await upsertWallet({
         wallet: { field: w.walletField, type: w.walletType },
-        testConnectServer: (data) => w.testConnectServer(data, { me, models })
+        testCreateInvoice: (data) => w.testCreateInvoice(data, { me, models })
       }, { settings, data }, { me, models })
     }
   }
@@ -571,15 +571,15 @@ export const addWalletLog = async ({ wallet, level, message }, { models }) => {
 }
 
 async function upsertWallet (
-  { wallet, testConnectServer }, { settings, data }, { me, models }) {
+  { wallet, testCreateInvoice }, { settings, data }, { me, models }) {
   if (!me) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
   }
   assertApiKeyNotPermitted({ me })
 
-  if (testConnectServer) {
+  if (testCreateInvoice) {
     try {
-      await testConnectServer(data)
+      await testCreateInvoice(data)
     } catch (err) {
       console.error(err)
       const message = 'failed to create test invoice: ' + (err.message || err.toString?.())

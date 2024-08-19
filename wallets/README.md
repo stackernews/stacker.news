@@ -199,9 +199,9 @@ The first argument is the [BOLT11 payment request](https://github.com/lightning/
 
 A wallet that supports receiving must export the following properties in server.js which are only available if this wallet is imported on the server:
 
-- `testConnectServer: async (config, context) => Promise<void>`
+- `testCreateInvoice: async (config, context) => Promise<void>`
 
-`testConnectServer` is called on the server during submit and can thus use server dependencies like [`ln-service`](https://github.com/alexbosworth/ln-service).
+`testCreateInvoice` is called on the server during submit and can thus use server dependencies like [`ln-service`](https://github.com/alexbosworth/ln-service).
 
 It should attempt to create a test invoice to make sure that this wallet can later create invoices for receiving.
 
@@ -209,7 +209,7 @@ Again, like `testConnectClient`, the first argument is the wallet configuration 
 
 - `createInvoice: async (amount: int, config, context) => Promise<bolt11: string>`
 
-`createInvoice` will be called whenever this wallet should receive a payment. It should return a BOLT11 payment request. The first argument `amount` specifies the amount in satoshis. The second argument `config` is the current configuration of this wallet. The third argument `context` is the same as in `testConnectServer` except it also includes `lnd` which is the return value of [`authenticatedLndGrpc`](https://github.com/alexbosworth/ln-service?tab=readme-ov-file#authenticatedlndgrpc) using the SN node credentials.
+`createInvoice` will be called whenever this wallet should receive a payment. It should return a BOLT11 payment request. The first argument `amount` specifies the amount in satoshis. The second argument `config` is the current configuration of this wallet. The third argument `context` is the same as in `testCreateInvoice` except it also includes `lnd` which is the return value of [`authenticatedLndGrpc`](https://github.com/alexbosworth/ln-service?tab=readme-ov-file#authenticatedlndgrpc) using the SN node credentials.
 
 
 > [!IMPORTANT]

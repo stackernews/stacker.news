@@ -2,7 +2,7 @@ import { withTimeout } from '@/lib/time'
 import { hasMethod, nwcCall } from 'wallets/nwc'
 export * from 'wallets/nwc'
 
-export async function testConnectServer ({ nwcUrlRecv }) {
+export async function testCreateInvoice ({ nwcUrlRecv }) {
   const supported = await hasMethod(nwcUrlRecv, 'make_invoice')
   if (!supported) {
     throw new Error('make_invoice not supported')

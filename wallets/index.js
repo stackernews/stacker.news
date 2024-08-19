@@ -239,7 +239,7 @@ function isConfigured ({ fields, config }) {
 
   // however, a wallet is not configured if all fields are optional and none are set
   // since that usually means that one of them is required
-  if (fields.length > 0) {
+  if (val && fields.length > 0) {
     val = !(fields.every(f => f.optional) && fields.every(f => !config?.[f.name]))
   }
 

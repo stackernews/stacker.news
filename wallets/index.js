@@ -77,17 +77,7 @@ export function useWallet (name) {
   }, [wallet, config, toaster])
 
   const save = useCallback(async (newConfig) => {
-    // testSendPayment should log custom INFO and OK message
-    // testSendPayment is optional since validation might happen during save on server
-    // TODO: add timeout
-    let validConfig
-    try {
-      validConfig = await wallet.testSendPayment?.(newConfig, { me, logger })
-    } catch (err) {
-      logger.error(err.message)
-      throw err
-    }
-    await saveConfig(validConfig ?? newConfig, { logger })
+    await saveConfig(newConfig, { logger })
   }, [saveConfig, me, logger])
 
   // delete is a reserved keyword
@@ -197,6 +187,13 @@ function useConfig (wallet) {
       }
 
       if (valid) {
+        try {
+          await wallet.testSendPayment?.(newConfig, { me, logger })
+        } catch (err) {
+          logger.error(err.message)
+          throw err
+        }
+
         setClientConfig(newClientConfig)
         logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
         if (newConfig.enabled) wallet.enablePayments()

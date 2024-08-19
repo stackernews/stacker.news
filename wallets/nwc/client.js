@@ -2,12 +2,6 @@ import { hasMethod, nwcCall } from 'wallets/nwc'
 export * from 'wallets/nwc'
 
 export async function testSendPayment ({ nwcUrl }, { logger }) {
-  // TODO:
-  //   This will also run if only receive config was specified.
-  //   This means that this will either
-  //     a) enforce that 'pay_invoice' is supported which is the opposite of what we want
-  //       OR
-  //     b) throw because nwcUrl is undefined.
   const supported = await hasMethod(nwcUrl, 'pay_invoice', { logger })
   if (!supported) {
     throw new Error('pay_invoice not supported')

@@ -81,7 +81,7 @@ const orderByClause = (by, me, models, type) => {
     case 'zaprank':
       return topOrderByWeightedSats(me, models)
     case 'random':
-      return 'ORDER BY "Item".msats DESC'
+      return 'ORDER BY RANDOM()'
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
   }

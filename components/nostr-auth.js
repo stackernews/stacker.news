@@ -162,8 +162,11 @@ export function NostrAuth ({ text, callbackUrl }) {
           [22242],
           {
             name: 'Stacker News',
-            url: process.env.PUBLIC_URL,
-            description: 'Login to Stacker News'
+            url: process.env.NEXT_PUBLIC_URL,
+            description: 'Login to Stacker News',
+            icons: [
+              `${process.env.NEXT_PUBLIC_URL}/icons/icon_x128.png`
+            ]
           }
         )
         setNostrConnectUrl(newSigner.getNostrConnectUrl())

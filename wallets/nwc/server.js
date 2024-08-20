@@ -1,17 +1,17 @@
 import { withTimeout } from '@/lib/time'
-import { hasMethod, nwcCall } from 'wallets/nwc'
+import { nwcCall, supportedMethods } from 'wallets/nwc'
 export * from 'wallets/nwc'
 
 export async function testCreateInvoice ({ nwcUrlRecv }) {
   const timeout = 15_000
 
-  const supported = await withTimeout(hasMethod(nwcUrlRecv, 'make_invoice'), timeout)
-  if (!supported) {
+  const supported = await withTimeout(supportedMethods(nwcUrlRecv), timeout)
+
+  if (!supported.includes('make_invoice')) {
     throw new Error('make_invoice not supported')
   }
 
-  const unrestricted = await withTimeout(hasMethod(nwcUrlRecv, 'pay_invoice'), timeout)
-  if (unrestricted) {
+  if (supported.includes('pay_invoice')) {
     throw new Error('pay_invoice must not be supported')
   }
 

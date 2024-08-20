@@ -77,7 +77,7 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger } = {}) {
   }
 }
 
-export async function hasMethod (nwcUrl, method, { logger } = {}) {
+export async function supportedMethods (nwcUrl, { logger } = {}) {
   const result = await nwcCall({ nwcUrl, method: 'get_info' }, { logger })
-  return result.methods.includes(method)
+  return result.methods
 }

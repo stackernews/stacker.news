@@ -54,6 +54,9 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger } = {}) {
     }, secret)
     await relay.publish(request)
 
+    logger?.info(`published ${method} request`)
+
+    logger?.info('waiting for response ...')
     const [response] = await relay.fetch([{
       kinds: [23195],
       authors: [walletPubkey],
@@ -63,6 +66,8 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger } = {}) {
     if (!response) {
       throw new Error('no response')
     }
+
+    logger?.ok('response received')
 
     const decrypted = await nip04.decrypt(secret, walletPubkey, response.content)
     const content = JSON.parse(decrypted)

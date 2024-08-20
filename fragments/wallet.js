@@ -134,7 +134,7 @@ export const WALLET = gql`
           url
           invoiceKey
         }
-        ... on WalletNWC {
+        ... on WalletNwc {
           nwcUrlRecv
         }
       }
@@ -170,7 +170,7 @@ export const WALLET_BY_TYPE = gql`
           url
           invoiceKey
         }
-        ... on WalletNWC {
+        ... on WalletNwc {
           nwcUrlRecv
         }
       }

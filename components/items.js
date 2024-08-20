@@ -51,7 +51,7 @@ export default function Items ({ ssrData, variables = {}, query, destructureData
     <>
       <div className={styles.grid}>
         {itemsWithPins.filter(filter).map((item, i) => (
-          <ListItem key={item.id} item={item} rank={rank && i + 1} itemClassName={variables.includeComments ? 'py-2' : ''} pinnable={isHome ? false : pins?.length > 0} />
+          <ListItem key={`${item.id}-${i + 1}`} item={item} rank={rank && i + 1} itemClassName={variables.includeComments ? 'py-2' : ''} pinnable={isHome ? false : pins?.length > 0} />
         ))}
       </div>
       <Foooter

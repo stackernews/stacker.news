@@ -411,17 +411,17 @@ export default {
               ${relationClause(type)}
               ${whereClause(
                 '"Item"."deletedAt" IS NULL',
-                '"Item"."weightedVotes" > 10',
+                '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 1.5',
                 type === 'posts' && '"Item"."subName" IS NOT NULL',
-                subClause(sub, 5, subClauseTable(type), me, showNsfw),
+                subClause(sub, 3, subClauseTable(type), me, showNsfw),
                 typeClause(type),
                 await filterClause(me, models, type),
                 muteClause(me))}
-              ${orderByClause(by || 'random', me, models, type)}
-              OFFSET $3
-              LIMIT $4`,
-            orderBy: orderByClause(by || 'random', me, models, type)
-          }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
+              ${orderByClause('random', me, models, type)}
+              OFFSET $1
+              LIMIT $2`,
+            orderBy: orderByClause('random', me, models, type)
+          }, decodedCursor.offset, limit, ...subArr)
           break
         default:
           // sub so we know the default ranking

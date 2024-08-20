@@ -77,34 +77,7 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger } = {}) {
   }
 }
 
-async function getInfo (nwcUrl, { logger } = {}) {
-  const { relayUrl, walletPubkey } = parseNwcUrl(nwcUrl)
-
-  logger?.info(`requesting info event from ${relayUrl}`)
-
-  const relay = await Relay.connect(relayUrl)
-  logger?.ok(`connected to ${relayUrl}`)
-
-  try {
-    const [info] = await relay.fetch([{
-      kinds: [13194],
-      authors: [walletPubkey]
-    }])
-
-    if (!info) {
-      throw new Error('info event not found')
-    }
-
-    logger?.ok(`received info event from ${relayUrl}`)
-    return info
-  } finally {
-    relay?.close()
-    logger?.info(`closed connection to ${relayUrl}`)
-  }
-}
-
 export async function hasMethod (nwcUrl, method, { logger } = {}) {
-  const info = await getInfo(nwcUrl, { logger })
-  const supportedMethods = info.content.split(/[\s,]+/)
-  return supportedMethods.includes(method)
+  const result = await nwcCall({ nwcUrl, method: 'get_info' }, { logger })
+  return result.methods.includes(method)
 }

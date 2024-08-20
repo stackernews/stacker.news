@@ -411,7 +411,7 @@ export default {
               ${relationClause(type)}
               ${whereClause(
                 '"Item"."deletedAt" IS NULL',
-                '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 1.5',
+                '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 2',
                 type === 'posts' && '"Item"."subName" IS NOT NULL',
                 subClause(sub, 3, subClauseTable(type), me, showNsfw),
                 typeClause(type),

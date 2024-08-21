@@ -7,12 +7,17 @@ export async function testCreateInvoice ({ nwcUrlRecv }) {
 
   const supported = await supportedMethods(nwcUrlRecv, { timeout })
 
-  if (!supported.includes('make_invoice')) {
+  const supports = (method) => supported.includes(method)
+
+  if (!supports('make_invoice')) {
     throw new Error('make_invoice not supported')
   }
 
-  if (supported.includes('pay_invoice')) {
-    throw new Error('pay_invoice must not be supported')
+  const mustNotSupport = ['pay_invoice', 'multi_pay_invoice', 'pay_keysend', 'multi_pay_keysend']
+  for (const method of mustNotSupport) {
+    if (supports(method)) {
+      throw new Error(`${method} must not be supported`)
+    }
   }
 
   return await withTimeout(createInvoice({ msats: 1000, expiry: 1 }, { nwcUrlRecv }), timeout)

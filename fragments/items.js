@@ -65,6 +65,7 @@ export const ITEM_FIELDS = gql`
       actionState
       confirmedAt
     }
+    cost
   }`
 
 export const ITEM_FULL_FIELDS = gql`

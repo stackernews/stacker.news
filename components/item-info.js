@@ -25,6 +25,7 @@ import UserPopover from './user-popover'
 import { useQrPayment } from './payment'
 import { useRetryCreateItem } from './use-item-submit'
 import { useToast } from './toast'
+import { useShowModal } from './modal'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
@@ -210,6 +211,7 @@ export default function ItemInfo ({
             <EditInfo />
             <ActionDropdown>
               <CopyLinkDropdownItem item={item} />
+              <InfoDropdownItem item={item} />
               {(item.parentId || item.text) && onQuoteReply &&
                 <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
               {me && <BookmarkDropdownItem item={item} />}
@@ -267,5 +269,41 @@ export default function ItemInfo ({
       }
       {extraInfo}
     </div>
+  )
+}
+
+function InfoDropdownItem ({ item }) {
+  const me = useMe()
+  const showModal = useShowModal()
+
+  const onClick = () => {
+    showModal((onClose) => {
+      return (
+        <div className={styles.details}>
+          <div>id</div>
+          <div>{item.id}</div>
+          <div>created at</div>
+          <div>{item.createdAt}</div>
+          <div>cost</div>
+          <div>{item.cost}</div>
+          <div>sats</div>
+          <div>{item.sats}</div>
+          {me && (
+            <>
+              <div>sats from me</div>
+              <div>{item.meSats}</div>
+            </>
+          )}
+          <div>upvotes</div>
+          <div>{item.upvotes}</div>
+        </div>
+      )
+    })
+  }
+
+  return (
+    <Dropdown.Item onClick={onClick}>
+      details
+    </Dropdown.Item>
   )
 }

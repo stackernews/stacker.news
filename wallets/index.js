@@ -6,7 +6,7 @@ import { SSR } from '@/lib/constants'
 import { bolt11Tags } from '@/lib/bolt11'
 
 import walletDefs from 'wallets/client'
-import { gql, useApolloClient, useQuery } from '@apollo/client'
+import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { REMOVE_WALLET, WALLET_BY_TYPE } from '@/fragments/wallet'
 import { autowithdrawInitial } from '@/components/autowithdraw-shared'
 import { useShowModal } from '@/components/modal'
@@ -25,6 +25,7 @@ export function useWallet (name) {
   const me = useMe()
   const showModal = useShowModal()
   const toaster = useToast()
+  const [disableFreebies] = useMutation(gql`mutation { disableFreebies }`)
 
   const wallet = name ? getWalletByName(name) : getEnabledWallet(me)
   const { logger, deleteLogs } = useWalletLogger(wallet)
@@ -36,6 +37,7 @@ export function useWallet (name) {
   const enablePayments = useCallback(() => {
     enableWallet(name, me)
     logger.ok('payments enabled')
+    disableFreebies().catch(console.error)
   }, [name, me, logger])
 
   const disablePayments = useCallback(() => {

@@ -53,6 +53,7 @@ export const ME = gql`
         lnAddr
         autoWithdrawMaxFeePercent
         autoWithdrawThreshold
+        disableFreebies
       }
       optional {
         isContributor
@@ -105,6 +106,7 @@ export const SETTINGS_FIELDS = gql`
       nostrRelays
       wildWestMode
       satsFilter
+      disableFreebies
       nsfwMode
       authMethods {
         lightning

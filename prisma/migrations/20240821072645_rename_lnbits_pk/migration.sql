@@ -9,7 +9,6 @@
 ALTER TABLE "WalletLNbits" RENAME COLUMN "int" TO "id";
 
 UPDATE "Wallet"
-SET wallet = to_jsonb(NEW)
-WHERE id IN (
-  SELECT "walletId" FROM "WalletLNbits"
-)
+SET wallet = to_jsonb("WalletLNbits")
+FROM "WalletLNbits"
+WHERE "Wallet".id = "WalletLNbits"."walletId";

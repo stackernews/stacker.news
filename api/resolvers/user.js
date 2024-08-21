@@ -628,10 +628,10 @@ export default {
       }
 
       // disable freebies if it hasn't been set yet
-      models.user.update({
+      await models.user.update({
         where: { id: me.id, disableFreebies: null },
         data: { disableFreebies: true }
-      }).catch()
+      })
 
       return true
     },

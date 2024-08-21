@@ -259,9 +259,9 @@ export default function Settings ({ ssrData }) {
                 <Info>
                   <p>Some posts and comments can be created without paying. However, that content has limited visibility.</p>
 
-                  <p>If you disable freebies, you will always be prompted to pay for your posts and comments.</p>
+                  <p>If you disable freebies, you will always pay for your posts and comments and get standard visibility.</p>
 
-                  <p>If you attach a sending wallet, we disable freebies for you unless you have unchecked this box.</p>
+                  <p>If you attach a sending wallet, we disable freebies for you unless you have checked/unchecked this value already.</p>
                 </Info>
               </div>
             }

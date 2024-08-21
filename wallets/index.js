@@ -190,7 +190,11 @@ function useConfig (wallet) {
 
       if (valid) {
         try {
-          await wallet.testSendPayment?.(newConfig, { me, logger })
+          // XXX: testSendPayment can return a new config (e.g. lnc)
+          const newerConfig = await wallet.testSendPayment?.(newConfig, { me, logger })
+          if (newerConfig) {
+            newClientConfig = newerConfig
+          }
         } catch (err) {
           logger.error(err.message)
           throw err

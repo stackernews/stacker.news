@@ -66,9 +66,9 @@ export function NostrAuth ({ text, callbackUrl }) {
     const challengeUrl = sanitizeURL(challenge)
     showModal((onClose) => (
       <div>
-        <h2>Challenge Request</h2>
+        <h2>Waiting for confirmation</h2>
         <p>
-          Please confirm the action on the remote signer to proceed.
+          Please confirm this action on your remote signer.
         </p>
         {!challengeUrl && (<pre>{challenge}</pre>)}
         <div className='mt-3'>
@@ -83,7 +83,7 @@ export function NostrAuth ({ text, callbackUrl }) {
                     window.open(challengeUrl, '_blank')
                     onClose()
                   }}
-                >Confirm
+                >confirm
                 </Button>
               )}
             </div>
@@ -211,7 +211,7 @@ export function NostrAuth ({ text, callbackUrl }) {
                   }}
                 >
                   <Input
-                    label='Paste a connection token or NIP-05 address'
+                    label='Use a connection token or NIP-05 address'
                     name='token'
                     placeholder='bunker://...  or NIP-05 address'
                     required
@@ -222,7 +222,7 @@ export function NostrAuth ({ text, callbackUrl }) {
                       <div className='d-flex align-items-center ms-auto'>
                         <CancelButton onClick={onClose} />
                         <SubmitButton variant='primary'>
-                          Submit
+                          submit
                         </SubmitButton>
                       </div>
                     </div>
@@ -274,7 +274,7 @@ export function NostrAuth ({ text, callbackUrl }) {
                     </li>
                     <li>
                       <a href='https://app.nsecbunker.com/'>nsecBunker</a><br />
-                      available as: SaaS or self-hosted on Linux
+                      available as: SaaS or self-hosted
                     </li>
                   </ul>
                 </Col>

@@ -43,6 +43,7 @@ export default gql`
     toggleMute(id: ID): User
     generateApiKey(id: ID!): String
     deleteApiKey(id: ID!): User
+    disableFreebies: Boolean
   }
 
   type User {
@@ -72,6 +73,7 @@ export default gql`
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!
+    disableFreebies: Boolean
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
     hideGithub: Boolean!
@@ -141,6 +143,7 @@ export default gql`
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!
+    disableFreebies: Boolean
     greeterMode: Boolean!
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!

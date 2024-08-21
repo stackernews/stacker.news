@@ -622,6 +622,19 @@ export default {
   },
 
   Mutation: {
+    disableFreebies: async (parent, args, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      // disable freebies if it hasn't been set yet
+      await models.user.update({
+        where: { id: me.id, disableFreebies: null },
+        data: { disableFreebies: true }
+      })
+
+      return true
+    },
     setName: async (parent, data, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })

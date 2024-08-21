@@ -30,7 +30,7 @@ async function disconnect (lnc, logger) {
   }
 }
 
-export async function testConnectClient (credentials, { logger }) {
+export async function testSendPayment (credentials, { logger }) {
   let lnc
   try {
     lnc = await getLNC(credentials)

@@ -5,7 +5,7 @@ export * from 'wallets/nwc'
 export async function testCreateInvoice ({ nwcUrlRecv }) {
   const timeout = 15_000
 
-  const supported = await withTimeout(supportedMethods(nwcUrlRecv), timeout)
+  const supported = await supportedMethods(nwcUrlRecv, { timeout })
 
   if (!supported.includes('make_invoice')) {
     throw new Error('make_invoice not supported')

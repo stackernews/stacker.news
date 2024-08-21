@@ -36,10 +36,10 @@ export const walletType = 'NWC'
 
 export const walletField = 'walletNWC'
 
-export async function nwcCall ({ nwcUrl, method, params }, { logger } = {}) {
+export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } = {}) {
   const { relayUrl, walletPubkey, secret } = parseNwcUrl(nwcUrl)
 
-  const relay = await Relay.connect(relayUrl)
+  const relay = await Relay.connect(relayUrl, { timeout })
   logger?.ok(`connected to ${relayUrl}`)
 
   try {
@@ -52,7 +52,7 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger } = {}) {
       tags: [['p', walletPubkey]],
       content: encrypted
     }, secret)
-    await relay.publish(request)
+    await relay.publish(request, { timeout })
 
     logger?.info(`published ${method} request`)
 
@@ -61,7 +61,7 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger } = {}) {
       kinds: [23195],
       authors: [walletPubkey],
       '#e': [request.id]
-    }])
+    }], { timeout })
 
     if (!response) {
       throw new Error('no response')
@@ -82,7 +82,7 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger } = {}) {
   }
 }
 
-export async function supportedMethods (nwcUrl, { logger } = {}) {
-  const result = await nwcCall({ nwcUrl, method: 'get_info' }, { logger })
+export async function supportedMethods (nwcUrl, { logger, timeout } = {}) {
+  const result = await nwcCall({ nwcUrl, method: 'get_info' }, { logger, timeout })
   return result.methods
 }

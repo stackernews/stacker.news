@@ -64,6 +64,7 @@ model User {
   zapUndos                  Int?
   imgproxyOnly              Boolean              @default(false)
   hideWalletBalance         Boolean              @default(false)
+  disableFreebies           Boolean?
   referrerId                Int?
   nostrPubkey               String?
   greeterMode               Boolean              @default(false)

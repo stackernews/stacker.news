@@ -116,6 +116,7 @@ export default function Settings ({ ssrData }) {
             tipRandomMin: settings?.tipRandomMin || 1,
             tipRandomMax: settings?.tipRandomMax || 10,
             turboTipping: settings?.turboTipping,
+            disableFreebies: settings?.disableFreebies,
             zapUndos: settings?.zapUndos || (settings?.tipDefault ? 100 * settings.tipDefault : 2100),
             zapUndosEnabled: settings?.zapUndos !== null,
             fiatCurrency: settings?.fiatCurrency || 'USD',
@@ -251,6 +252,20 @@ export default function Settings ({ ssrData }) {
             name='withdrawMaxFeeDefault'
             required
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>disable freebies
+                <Info>
+                  <p>Some posts and comments can be created without paying. However, that content has limited visibility.</p>
+
+                  <p>If you disable freebies, you will always pay for your posts and comments and get standard visibility.</p>
+
+                  <p>If you attach a sending wallet, we disable freebies for you unless you have checked/unchecked this value already.</p>
+                </Info>
+              </div>
+            }
+            name='disableFreebies'
           />
           <div className='form-label'>notify me when ...</div>
           <Checkbox

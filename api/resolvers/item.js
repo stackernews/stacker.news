@@ -413,6 +413,8 @@ export default {
                 '"Item"."deletedAt" IS NULL',
                 '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 2',
                 '"Item"."ncomments" > 0',
+                '"Item"."parentId" IS NULL',
+                '"Item".bio = false',
                 type === 'posts' && '"Item"."subName" IS NOT NULL',
                 subClause(sub, 3, subClauseTable(type), me, showNsfw),
                 typeClause(type),

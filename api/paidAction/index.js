@@ -1,6 +1,6 @@
 import { createHodlInvoice, createInvoice, parsePaymentRequest } from 'ln-service'
 import { datePivot } from '@/lib/time'
-import { USER_ID } from '@/lib/constants'
+import { PAID_ACTION_TERMINAL_STATES, USER_ID } from '@/lib/constants'
 import { createHmac } from '../resolvers/wallet'
 import { Prisma } from '@prisma/client'
 import * as ITEM_CREATE from './itemCreate'
@@ -215,12 +215,29 @@ export async function retryPaidAction (actionType, args, context) {
 }
 
 const INVOICE_EXPIRE_SECS = 600
+const MAX_PENDING_PAID_ACTIONS_PER_USER = 100
 
 export async function createLightningInvoice (actionType, args, context) {
   // if the action has an invoiceable peer, we'll create a peer invoice
   // wrap it, and return the wrapped invoice
-  const { cost, models, lnd } = context
+  const { cost, models, lnd, me } = context
   const userId = await paidActions[actionType]?.invoiceablePeer?.(args, context)
+
+  // count pending invoices and bail if we're over the limit
+  const pendingInvoices = await models.invoice.count({
+    where: {
+      userId: me?.id ?? USER_ID.anon,
+      actionState: {
+        // not in a terminal state. Note: null isn't counted by prisma
+        notIn: PAID_ACTION_TERMINAL_STATES
+      }
+    }
+  })
+
+  console.log('pending paid actions', pendingInvoices)
+  if (pendingInvoices >= MAX_PENDING_PAID_ACTIONS_PER_USER) {
+    throw new Error('You have too many pending paid actions, cancel some or wait for them to expire')
+  }
 
   if (userId) {
     try {

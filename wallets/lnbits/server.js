@@ -2,7 +2,7 @@ import { msatsToSats } from '@/lib/format'
 
 export * from 'wallets/lnbits'
 
-export async function testConnectServer ({ url, invoiceKey }) {
+export async function testCreateInvoice ({ url, invoiceKey }) {
   return await createInvoice({ msats: 1000, expiry: 1 }, { url, invoiceKey })
 }
 

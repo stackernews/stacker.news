@@ -79,17 +79,7 @@ export function useWallet (name) {
   }, [wallet, config, toaster])
 
   const save = useCallback(async (newConfig) => {
-    // testConnectClient should log custom INFO and OK message
-    // testConnectClient is optional since validation might happen during save on server
-    // TODO: add timeout
-    let validConfig
-    try {
-      validConfig = await wallet.testConnectClient?.(newConfig, { me, logger })
-    } catch (err) {
-      logger.error(err.message)
-      throw err
-    }
-    await saveConfig(validConfig ?? newConfig, { logger })
+    await saveConfig(newConfig, { logger })
   }, [saveConfig, me, logger])
 
   // delete is a reserved keyword
@@ -199,6 +189,17 @@ function useConfig (wallet) {
       }
 
       if (valid) {
+        try {
+          // XXX: testSendPayment can return a new config (e.g. lnc)
+          const newerConfig = await wallet.testSendPayment?.(newConfig, { me, logger })
+          if (newerConfig) {
+            newClientConfig = newerConfig
+          }
+        } catch (err) {
+          logger.error(err.message)
+          throw err
+        }
+
         setClientConfig(newClientConfig)
         logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
         if (newConfig.enabled) wallet.enablePayments()
@@ -235,9 +236,15 @@ function isConfigured ({ fields, config }) {
   if (!config || !fields) return false
 
   // a wallet is configured if all of its required fields are set
-  const val = fields.every(field => {
-    return field.optional ? true : !!config?.[field.name]
+  let val = fields.every(f => {
+    return f.optional ? true : !!config?.[f.name]
   })
+
+  // however, a wallet is not configured if all fields are optional and none are set
+  // since that usually means that one of them is required
+  if (val && fields.length > 0) {
+    val = !(fields.every(f => f.optional) && fields.every(f => !config?.[f.name]))
+  }
 
   return val
 }

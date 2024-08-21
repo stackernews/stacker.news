@@ -170,6 +170,7 @@ enum WalletType {
   LND
   CLN
   LNBITS
+  NWC
 }
 
 model Wallet {
@@ -194,6 +195,7 @@ model Wallet {
   walletLND              WalletLND?
   walletCLN              WalletCLN?
   walletLNbits           WalletLNbits?
+  walletNWC              WalletNWC?
   withdrawals            Withdrawl[]
   InvoiceForward         InvoiceForward[]
 
@@ -251,6 +253,15 @@ model WalletLNbits {
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
   url        String
   invoiceKey String
+}
+
+model WalletNWC {
+  int        Int      @id @default(autoincrement())
+  walletId   Int      @unique
+  wallet     Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+  nwcUrlRecv String
 }
 
 model Mute {

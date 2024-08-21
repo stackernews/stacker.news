@@ -137,6 +137,10 @@ export const WALLET = gql`
         ... on WalletNwc {
           nwcUrlRecv
         }
+        ... on WalletPhoenixd {
+          url
+          secondaryPassword
+        }
       }
     }
   }
@@ -172,6 +176,10 @@ export const WALLET_BY_TYPE = gql`
         }
         ... on WalletNwc {
           nwcUrlRecv
+        }
+        ... on WalletPhoenixd {
+          url
+          secondaryPassword
         }
       }
     }

@@ -97,6 +97,7 @@ export function NostrAuth ({ text, callbackUrl }) {
   const auth = useCallback(async (preferExt = false) => {
     handleProgress('Waiting for authorization')
     const k1 = data?.createAuth.k1
+    if (!k1) throw new Error('Error generating challenge') // should never happen
     const event = {
       kind: 22242,
       created_at: Math.floor(Date.now() / 1000),

@@ -80,6 +80,8 @@ const orderByClause = (by, me, models, type) => {
       return 'ORDER BY "Item".msats DESC'
     case 'zaprank':
       return topOrderByWeightedSats(me, models)
+    case 'random':
+      return 'ORDER BY RANDOM()'
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
   }
@@ -200,7 +202,7 @@ const HIDE_NSFW_CLAUSE = '("Sub"."nsfw" = FALSE OR "Sub"."nsfw" IS NULL)'
 
 export const nsfwClause = showNsfw => showNsfw ? '' : HIDE_NSFW_CLAUSE
 
-const subClause = (sub, num, table, me, showNsfw) => {
+const subClause = (sub, num, table = 'Item', me, showNsfw) => {
   // Intentionally show nsfw posts (i.e. no nsfw clause) when viewing a specific nsfw sub
   if (sub) {
     const tables = [...new Set(['Item', table])].map(t => `"${t}".`)
@@ -399,6 +401,31 @@ export default {
               LIMIT $4`,
             orderBy: orderByClause(by || 'zaprank', me, models, type)
           }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
+          break
+        case 'random':
+          items = await itemQueryWithMeta({
+            me,
+            models,
+            query: `
+              ${selectClause(type)}
+              ${relationClause(type)}
+              ${whereClause(
+                '"Item"."deletedAt" IS NULL',
+                '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 2',
+                '"Item"."ncomments" > 0',
+                '"Item"."parentId" IS NULL',
+                '"Item".bio = false',
+                type === 'posts' && '"Item"."subName" IS NOT NULL',
+                subClause(sub, 3, subClauseTable(type), me, showNsfw),
+                typeClause(type),
+                await filterClause(me, models, type),
+                activeOrMine(me),
+                muteClause(me))}
+              ${orderByClause('random', me, models, type)}
+              OFFSET $1
+              LIMIT $2`,
+            orderBy: orderByClause('random', me, models, type)
+          }, decodedCursor.offset, limit, ...subArr)
           break
         default:
           // sub so we know the default ranking

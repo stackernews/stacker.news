@@ -202,7 +202,7 @@ const HIDE_NSFW_CLAUSE = '("Sub"."nsfw" = FALSE OR "Sub"."nsfw" IS NULL)'
 
 export const nsfwClause = showNsfw => showNsfw ? '' : HIDE_NSFW_CLAUSE
 
-const subClause = (sub, num, table, me, showNsfw) => {
+const subClause = (sub, num, table = 'Item', me, showNsfw) => {
   // Intentionally show nsfw posts (i.e. no nsfw clause) when viewing a specific nsfw sub
   if (sub) {
     const tables = [...new Set(['Item', table])].map(t => `"${t}".`)

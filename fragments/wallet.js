@@ -120,19 +120,22 @@ export const WALLET = gql`
         ... on WalletLightningAddress {
           address
         }
-        ... on WalletLND {
+        ... on WalletLnd {
           socket
           macaroon
           cert
         }
-        ... on WalletCLN {
+        ... on WalletCln {
           socket
           rune
           cert
         }
-        ... on WalletLNbits {
+        ... on WalletLnbits {
           url
           invoiceKey
+        }
+        ... on WalletNwc {
+          nwcUrlRecv
         }
       }
     }
@@ -153,19 +156,22 @@ export const WALLET_BY_TYPE = gql`
         ... on WalletLightningAddress {
           address
         }
-        ... on WalletLND {
+        ... on WalletLnd {
           socket
           macaroon
           cert
         }
-        ... on WalletCLN {
+        ... on WalletCln {
           socket
           rune
           cert
         }
-        ... on WalletLNbits {
+        ... on WalletLnbits {
           url
           invoiceKey
+        }
+        ... on WalletNwc {
+          nwcUrlRecv
         }
       }
     }

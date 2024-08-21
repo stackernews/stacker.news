@@ -1,7 +1,7 @@
 import { galoyBlinkUrl } from 'wallets/blink'
 export * from 'wallets/blink'
 
-export async function testConnectClient ({ apiKey, currency }, { logger }) {
+export async function testSendPayment ({ apiKey, currency }, { logger }) {
   currency = currency ? currency.toUpperCase() : 'BTC'
   logger.info('trying to fetch ' + currency + ' wallet')
   await getWallet(apiKey, currency)

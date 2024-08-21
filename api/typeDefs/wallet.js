@@ -38,7 +38,7 @@ function rawTypeDefs () {
       .map(fieldToGqlArg)
       .map(s => '  ' + s)
       .join('\n')
-    const typeDefName = generateTypeDefName(w.walletField)
+    const typeDefName = generateTypeDefName(w.walletType)
     const typeDef = `type ${typeDefName} {\n${args}\n}`
     console.log(typeDef)
     return typeDef
@@ -46,7 +46,7 @@ function rawTypeDefs () {
 
   let union = 'union WalletDetails = '
   union += walletDefs.map((w) => {
-    const typeDefName = generateTypeDefName(w.walletField)
+    const typeDefName = generateTypeDefName(w.walletType)
     return typeDefName
   }).join(' | ')
   console.log(union)

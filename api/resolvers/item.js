@@ -412,10 +412,12 @@ export default {
               ${whereClause(
                 '"Item"."deletedAt" IS NULL',
                 '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 2',
+                '"Item"."ncomments" > 0',
                 type === 'posts' && '"Item"."subName" IS NOT NULL',
                 subClause(sub, 3, subClauseTable(type), me, showNsfw),
                 typeClause(type),
                 await filterClause(me, models, type),
+                activeOrMine(me),
                 muteClause(me))}
               ${orderByClause('random', me, models, type)}
               OFFSET $1

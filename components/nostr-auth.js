@@ -11,7 +11,7 @@ import { NostrSigner } from '@/lib/nostr'
 import { useShowModal } from './modal'
 import Button from 'react-bootstrap/Button'
 import { Input, Form, SubmitButton } from './form'
-import Qr from './qr'
+import Qr, { QrSkeleton } from './qr'
 import CancelButton from './cancel-button'
 
 export function NostrAuth ({ text, callbackUrl }) {
@@ -51,15 +51,6 @@ export function NostrAuth ({ text, callbackUrl }) {
     setStatus(msg)
     setStatusVariant('')
   }, [])
-
-  useEffect(() => {
-    createAuth()
-    if (error) {
-      handleError('auth failed')
-    }
-  }, [])
-
-  const k1 = data?.createAuth.k1
 
   // Prompt the user to execute a challenge
   const challengeHandler = useCallback(async (challenge, type) => {
@@ -105,6 +96,7 @@ export function NostrAuth ({ text, callbackUrl }) {
   // authorize user
   const auth = useCallback(async (preferExt = false) => {
     handleProgress('Waiting for authorization')
+    const k1 = data?.createAuth.k1
     const event = {
       kind: 22242,
       created_at: Math.floor(Date.now() / 1000),
@@ -116,7 +108,7 @@ export function NostrAuth ({ text, callbackUrl }) {
       event: JSON.stringify(signedEvent),
       callbackUrl
     })
-  }, [k1, signer])
+  }, [signer])
 
   // connect app to signer
   const connect = useCallback(async (bunker) => {
@@ -129,7 +121,12 @@ export function NostrAuth ({ text, callbackUrl }) {
     } catch (e) {
       handleError(e)
     }
-  }, [k1, signer])
+  }, [signer])
+
+  // Init auth
+  useEffect(() => {
+    createAuth()
+  }, [])
 
   // Restart signer on change
   useEffect(() => {
@@ -151,6 +148,7 @@ export function NostrAuth ({ text, callbackUrl }) {
 
   // initialize signer
   useEffect(() => {
+    if (!data) return
     (async () => {
       try {
         if (signer) signer.close()
@@ -175,9 +173,13 @@ export function NostrAuth ({ text, callbackUrl }) {
         handleError(e)
       }
     })()
-  }, [])
+  }, [data])
 
   const showModal = useShowModal()
+
+  if (!data) return <QrSkeleton status='generating' />
+  if (error) return <div>error</div>
+
   return (
     <>
       <Row className='w-100 g-1'>

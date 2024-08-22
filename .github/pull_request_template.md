@@ -32,7 +32,7 @@ You can mention here anything that you think is relevant for this PR. Some examp
 If your PR is not ready for review yet, please mark your PR as a draft.
 If changes were requested, request a new review when you incorporated the feedback.
 -->
-**Did you QA this? Could we deploy this straight to production? Please answer below:**
+**On a scale of 1-10 how well and how have you QA'd this change and any features it might affect? Please answer below:**
 
 <!-- put your answer about QA here -->
 

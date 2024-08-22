@@ -161,13 +161,16 @@ function useConfig (wallet) {
   let config = {}
   if (hasClientConfig) config = clientConfig
   if (hasServerConfig) {
-    const { enabled } = config || {}
+    const { enabled, priority } = config || {}
     config = {
       ...config,
       ...serverConfig
     }
     // wallet is enabled if enabled is set in client or server config
     config.enabled ||= enabled
+    // priority might only be set on client or server
+    // ie. if send+recv is available but only one is configured
+    config.priority ||= priority
   }
 
   const saveConfig = useCallback(async (newConfig, { logger, priorityOnly }) => {

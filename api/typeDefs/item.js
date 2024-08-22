@@ -146,6 +146,7 @@ export default gql`
     rel: String
     apiKey: Boolean
     invoice: Invoice
+    cost: Int!
   }
 
   input ItemForwardInput {

@@ -154,6 +154,12 @@ a.link:visited {
     grid-template-columns: auto minmax(0, 1fr);
 }
 
+.details {
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: 1rem;
+}
+
 /* .itemJob .hunk {
     align-self: center;
 }

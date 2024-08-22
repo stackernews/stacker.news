@@ -628,10 +628,17 @@ export default {
       }
 
       // disable freebies if it hasn't been set yet
-      await models.user.update({
-        where: { id: me.id, disableFreebies: null },
-        data: { disableFreebies: true }
-      })
+      try {
+        await models.user.update({
+          where: { id: me.id, disableFreebies: null },
+          data: { disableFreebies: true }
+        })
+      } catch (err) {
+        // ignore 'record not found' errors
+        if (err.code !== 'P2025') {
+          throw err
+        }
+      }
 
       return true
     },

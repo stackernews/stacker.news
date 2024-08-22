@@ -294,7 +294,7 @@ function InfoDropdownItem ({ item }) {
               <div>{item.meSats}</div>
             </>
           )}
-          <div>upvotes</div>
+          <div>zappers</div>
           <div>{item.upvotes}</div>
         </div>
       )

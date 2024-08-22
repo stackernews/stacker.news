@@ -71,7 +71,7 @@ export function useWallet (name) {
   const setPriority = useCallback(async (priority) => {
     if (_isConfigured && priority !== config.priority) {
       try {
-        await saveConfig({ ...config, priority }, { logger })
+        await saveConfig({ ...config, priority }, { logger, priorityOnly: true })
       } catch (err) {
         toaster.danger(`failed to change priority of ${wallet.name} wallet: ${err.message}`)
       }
@@ -170,7 +170,7 @@ function useConfig (wallet) {
     config.enabled ||= enabled
   }
 
-  const saveConfig = useCallback(async (newConfig, { logger }) => {
+  const saveConfig = useCallback(async (newConfig, { logger, priorityOnly }) => {
     // NOTE:
     //   verifying the client/server configuration before saving it
     //   prevents unsetting just one configuration if both are set.
@@ -189,23 +189,28 @@ function useConfig (wallet) {
       }
 
       if (valid) {
-        try {
+        if (priorityOnly) {
+          setClientConfig(newConfig)
+        } else {
+          try {
           // XXX: testSendPayment can return a new config (e.g. lnc)
-          const newerConfig = await wallet.testSendPayment?.(newConfig, { me, logger })
-          if (newerConfig) {
-            newClientConfig = newerConfig
+            const newerConfig = await wallet.testSendPayment?.(newConfig, { me, logger })
+            if (newerConfig) {
+              newClientConfig = newerConfig
+            }
+          } catch (err) {
+            logger.error(err.message)
+            throw err
           }
-        } catch (err) {
-          logger.error(err.message)
-          throw err
-        }
 
-        setClientConfig(newClientConfig)
-        logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
-        if (newConfig.enabled) wallet.enablePayments()
-        else wallet.disablePayments()
+          setClientConfig(newClientConfig)
+          logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
+          if (newConfig.enabled) wallet.enablePayments()
+          else wallet.disablePayments()
+        }
       }
     }
+
     if (hasServerConfig) {
       let newServerConfig = extractServerConfig(wallet.fields, newConfig)
 
@@ -216,7 +221,7 @@ function useConfig (wallet) {
         valid = false
       }
 
-      if (valid) await setServerConfig(newServerConfig)
+      if (valid) await setServerConfig(newServerConfig, { priorityOnly })
     }
   }, [hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, wallet])
 
@@ -273,7 +278,7 @@ function useServerConfig (wallet) {
     priority,
     enabled,
     ...config
-  }) => {
+  }, { priorityOnly }) => {
     try {
       const mutation = generateMutation(wallet)
       return await client.mutate({
@@ -286,7 +291,8 @@ function useServerConfig (wallet) {
             autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent),
             priority,
             enabled
-          }
+          },
+          priorityOnly
         }
       })
     } finally {
@@ -316,7 +322,7 @@ function useServerConfig (wallet) {
 function generateMutation (wallet) {
   const resolverName = generateResolverName(wallet.walletField)
 
-  let headerArgs = '$id: ID, '
+  let headerArgs = '$id: ID, $priorityOnly: Boolean, '
   headerArgs += wallet.fields
     .filter(isServerField)
     .map(f => {
@@ -328,7 +334,7 @@ function generateMutation (wallet) {
     }).join(', ')
   headerArgs += ', $settings: AutowithdrawSettings!'
 
-  let inputArgs = 'id: $id, '
+  let inputArgs = 'id: $id, priorityOnly: $priorityOnly, '
   inputArgs += wallet.fields
     .filter(isServerField)
     .map(f => `${f.name}: $${f.name}`).join(', ')

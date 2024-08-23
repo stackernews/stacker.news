@@ -325,7 +325,7 @@ function useServerConfig (wallet) {
 function generateMutation (wallet) {
   const resolverName = generateResolverName(wallet.walletField)
 
-  let headerArgs = '$id: ID, $priorityOnly: Boolean, '
+  let headerArgs = '$id: ID, '
   headerArgs += wallet.fields
     .filter(isServerField)
     .map(f => {
@@ -335,13 +335,13 @@ function generateMutation (wallet) {
       }
       return arg
     }).join(', ')
-  headerArgs += ', $settings: AutowithdrawSettings!'
+  headerArgs += ', $settings: AutowithdrawSettings!, $priorityOnly: Boolean'
 
-  let inputArgs = 'id: $id, priorityOnly: $priorityOnly, '
+  let inputArgs = 'id: $id, '
   inputArgs += wallet.fields
     .filter(isServerField)
     .map(f => `${f.name}: $${f.name}`).join(', ')
-  inputArgs += ', settings: $settings'
+  inputArgs += ', settings: $settings, priorityOnly: $priorityOnly'
 
   return gql`mutation ${resolverName}(${headerArgs}) {
     ${resolverName}(${inputArgs})

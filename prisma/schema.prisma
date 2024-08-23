@@ -256,7 +256,7 @@ model WalletLNbits {
 }
 
 model WalletNWC {
-  int        Int      @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   walletId   Int      @unique
   wallet     Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now()) @map("created_at")

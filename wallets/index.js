@@ -186,7 +186,10 @@ function useConfig (wallet) {
 
       let valid = true
       try {
-        newClientConfig = await walletValidate(wallet, newClientConfig)
+        const transformedConfig = await walletValidate(wallet, newClientConfig)
+        if (transformedConfig) {
+          newClientConfig = Object.assign(newClientConfig, transformedConfig)
+        }
       } catch {
         valid = false
       }

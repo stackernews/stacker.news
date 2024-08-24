@@ -7,8 +7,10 @@ import { addWalletLog } from '@/api/resolvers/wallet'
 import walletDefs from 'wallets/server'
 import { parsePaymentRequest } from 'ln-service'
 import { toPositiveNumber } from '@/lib/validate'
-
+import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 export default [lnd, cln, lnAddr, lnbits, nwc]
+
+const MAX_PENDING_INVOICES_PER_WALLET = 25
 
 export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { models }) {
   // get the wallets in order of priority
@@ -43,6 +45,31 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 
       if (!walletFull || !walletFull[walletField]) {
         throw new Error(`no ${walletType} wallet found`)
+      }
+
+      // check for pending withdrawals
+      const pendingWithdrawals = await models.withdrawl.count({
+        where: {
+          walletId: walletFull.id,
+          status: null
+        }
+      })
+
+      // and pending forwards
+      const pendingForwards = await models.invoiceForward.count({
+        where: {
+          walletId: walletFull.id,
+          invoice: {
+            actionState: {
+              notIn: PAID_ACTION_TERMINAL_STATES
+            }
+          }
+        }
+      })
+
+      console.log('pending invoices', pendingWithdrawals + pendingForwards)
+      if (pendingWithdrawals + pendingForwards >= MAX_PENDING_INVOICES_PER_WALLET) {
+        throw new Error('wallet has too many pending invoices')
       }
 
       const invoice = await createInvoice({

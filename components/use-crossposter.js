@@ -139,7 +139,8 @@ export default function useCrossposter () {
           </Button>
         </>,
         {
-          onCancel: () => handleSkip()
+          onClose: () => handleSkip(),
+          autohide: false
         }
       )
     })

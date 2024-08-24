@@ -71,7 +71,7 @@ export function useWallet (name) {
   const setPriority = useCallback(async (priority) => {
     if (_isConfigured && priority !== config.priority) {
       try {
-        await saveConfig({ ...config, priority }, { logger })
+        await saveConfig({ ...config, priority }, { logger, priorityOnly: true })
       } catch (err) {
         toaster.danger(`failed to change priority of ${wallet.name} wallet: ${err.message}`)
       }
@@ -161,16 +161,19 @@ function useConfig (wallet) {
   let config = {}
   if (hasClientConfig) config = clientConfig
   if (hasServerConfig) {
-    const { enabled } = config || {}
+    const { enabled, priority } = config || {}
     config = {
       ...config,
       ...serverConfig
     }
     // wallet is enabled if enabled is set in client or server config
     config.enabled ||= enabled
+    // priority might only be set on client or server
+    // ie. if send+recv is available but only one is configured
+    config.priority ||= priority
   }
 
-  const saveConfig = useCallback(async (newConfig, { logger }) => {
+  const saveConfig = useCallback(async (newConfig, { logger, priorityOnly }) => {
     // NOTE:
     //   verifying the client/server configuration before saving it
     //   prevents unsetting just one configuration if both are set.
@@ -189,23 +192,28 @@ function useConfig (wallet) {
       }
 
       if (valid) {
-        try {
+        if (priorityOnly) {
+          setClientConfig(newConfig)
+        } else {
+          try {
           // XXX: testSendPayment can return a new config (e.g. lnc)
-          const newerConfig = await wallet.testSendPayment?.(newConfig, { me, logger })
-          if (newerConfig) {
-            newClientConfig = newerConfig
+            const newerConfig = await wallet.testSendPayment?.(newConfig, { me, logger })
+            if (newerConfig) {
+              newClientConfig = newerConfig
+            }
+          } catch (err) {
+            logger.error(err.message)
+            throw err
           }
-        } catch (err) {
-          logger.error(err.message)
-          throw err
-        }
 
-        setClientConfig(newClientConfig)
-        logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
-        if (newConfig.enabled) wallet.enablePayments()
-        else wallet.disablePayments()
+          setClientConfig(newClientConfig)
+          logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
+          if (newConfig.enabled) wallet.enablePayments()
+          else wallet.disablePayments()
+        }
       }
     }
+
     if (hasServerConfig) {
       let newServerConfig = extractServerConfig(wallet.fields, newConfig)
 
@@ -216,7 +224,7 @@ function useConfig (wallet) {
         valid = false
       }
 
-      if (valid) await setServerConfig(newServerConfig)
+      if (valid) await setServerConfig(newServerConfig, { priorityOnly })
     }
   }, [hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, wallet])
 
@@ -273,7 +281,7 @@ function useServerConfig (wallet) {
     priority,
     enabled,
     ...config
-  }) => {
+  }, { priorityOnly }) => {
     try {
       const mutation = generateMutation(wallet)
       return await client.mutate({
@@ -286,7 +294,8 @@ function useServerConfig (wallet) {
             autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent),
             priority,
             enabled
-          }
+          },
+          priorityOnly
         }
       })
     } finally {
@@ -326,13 +335,13 @@ function generateMutation (wallet) {
       }
       return arg
     }).join(', ')
-  headerArgs += ', $settings: AutowithdrawSettings!'
+  headerArgs += ', $settings: AutowithdrawSettings!, $priorityOnly: Boolean'
 
   let inputArgs = 'id: $id, '
   inputArgs += wallet.fields
     .filter(isServerField)
     .map(f => `${f.name}: $${f.name}`).join(', ')
-  inputArgs += ', settings: $settings'
+  inputArgs += ', settings: $settings, priorityOnly: $priorityOnly'
 
   return gql`mutation ${resolverName}(${headerArgs}) {
     ${resolverName}(${inputArgs})

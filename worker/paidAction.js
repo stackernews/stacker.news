@@ -1,6 +1,6 @@
 import { getPaymentFailureStatus, hodlInvoiceCltvDetails } from '@/api/lnd'
 import { paidActions } from '@/api/paidAction'
-import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
+import { LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import { toPositiveNumber } from '@/lib/validate'
 import { Prisma } from '@prisma/client'
@@ -21,7 +21,7 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
     const currentDbInvoice = await models.invoice.findUnique({ where: { id: invoiceId } })
     console.log('invoice is in state', currentDbInvoice.actionState)
 
-    if (['FAILED', 'PAID', 'RETRYING'].includes(currentDbInvoice.actionState)) {
+    if (PAID_ACTION_TERMINAL_STATES.includes(currentDbInvoice.actionState)) {
       console.log('invoice is already in a terminal state, skipping transition')
       return
     }

@@ -24,6 +24,7 @@ async function disconnect (lnc, logger) {
           resolve()
         })
       }, 50)
+      logger.info('disconnected')
     } catch (err) {
       logger.error('failed to disconnect from lnc', err)
     }
@@ -83,10 +84,25 @@ export async function sendPayment (bolt11, credentials, { logger }) {
 }
 
 async function getLNC (credentials = {}) {
+  const serverHost = 'mailbox.terminal.lightning.today:443'
+  // XXX we MUST reuse the same instance of LNC because it references a global Go object
+  // that holds closures to the first LNC instance it's created with
+  if (window.lnc) {
+    window.lnc.credentials.credentials = {
+      ...window.lnc.credentials.credentials,
+      ...credentials,
+      serverHost
+    }
+    return window.lnc
+  }
   const { default: { default: LNC } } = await import('@lightninglabs/lnc-web')
-  return new LNC({
-    credentialStore: new LncCredentialStore({ ...credentials, serverHost: 'mailbox.terminal.lightning.today:443' })
+  window.lnc = new LNC({
+    credentialStore: new LncCredentialStore({
+      ...credentials,
+      serverHost
+    })
   })
+  return window.lnc
 }
 
 function validateNarrowPerms (lnc) {

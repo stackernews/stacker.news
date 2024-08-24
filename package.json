@@ -18,7 +18,7 @@
     "@as-integrations/next": "^2.0.2",
     "@auth/prisma-adapter": "^1.0.3",
     "@graphql-tools/schema": "^10.0.0",
-    "@lightninglabs/lnc-web": "^0.3.1-alpha",
+    "@lightninglabs/lnc-web": "^0.3.2-alpha",
     "@noble/curves": "^1.2.0",
     "@opensearch-project/opensearch": "^2.4.0",
     "@prisma/client": "^5.17.0",

@@ -254,7 +254,7 @@ export function NostrAuth ({ text, callbackUrl }) {
       </Row>
       <Row className='w-100 mt-4 text-muted small'>
         <AccordianItem
-          header='Which NIP-46 signed can I use?'
+          header='Which NIP-46 signers can I use?'
           body={
             <>
               <Row>

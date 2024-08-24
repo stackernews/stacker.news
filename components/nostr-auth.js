@@ -152,7 +152,7 @@ export function NostrAuth ({ text, callbackUrl }) {
     if (!data) return
     (async () => {
       try {
-        if (signer) signer.close()
+        signer?.close()
       } catch (e) {
         handleError(e)
       }

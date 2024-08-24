@@ -193,7 +193,7 @@ function useConfig (wallet) {
 
       if (valid) {
         if (priorityOnly) {
-          setClientConfig(newConfig)
+          setClientConfig(newClientConfig)
         } else {
           try {
           // XXX: testSendPayment can return a new config (e.g. lnc)

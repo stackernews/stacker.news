@@ -150,30 +150,28 @@ export function NostrAuth ({ text, callbackUrl }) {
   // initialize signer
   useEffect(() => {
     if (!data) return
-    (async () => {
-      try {
-        signer?.close()
-      } catch (e) {
-        handleError(e)
-      }
-      try {
-        const newSigner = new NostrSigner(
-          [22242],
-          {
-            name: 'Stacker News',
-            url: process.env.NEXT_PUBLIC_URL,
-            description: 'Login to Stacker News',
-            icons: [
-              `${process.env.NEXT_PUBLIC_URL}/icons/icon_x128.png`
-            ]
-          }
-        )
-        setNostrConnectUrl(newSigner.getNostrConnectUrl())
-        setSigner(newSigner)
-      } catch (e) {
-        handleError(e)
-      }
-    })()
+    try {
+      signer?.close()
+    } catch (e) {
+      handleError(e)
+    }
+    try {
+      const newSigner = new NostrSigner(
+        [22242],
+        {
+          name: 'Stacker News',
+          url: process.env.NEXT_PUBLIC_URL,
+          description: 'Login to Stacker News',
+          icons: [
+            `${process.env.NEXT_PUBLIC_URL}/icons/icon_x128.png`
+          ]
+        }
+      )
+      setNostrConnectUrl(newSigner.getNostrConnectUrl())
+      setSigner(newSigner)
+    } catch (e) {
+      handleError(e)
+    }
   }, [data])
 
   const showModal = useShowModal()

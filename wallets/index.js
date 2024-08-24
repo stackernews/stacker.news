@@ -199,10 +199,10 @@ function useConfig (wallet) {
           setClientConfig(newClientConfig)
         } else {
           try {
-          // XXX: testSendPayment can return a new config (e.g. lnc)
+            // XXX: testSendPayment can return a new config (e.g. lnc)
             const newerConfig = await wallet.testSendPayment?.(newConfig, { me, logger })
             if (newerConfig) {
-              newClientConfig = newerConfig
+              newClientConfig = Object.assign(newClientConfig, newerConfig)
             }
           } catch (err) {
             logger.error(err.message)
@@ -222,7 +222,10 @@ function useConfig (wallet) {
 
       let valid = true
       try {
-        newServerConfig = await walletValidate(wallet, newServerConfig)
+        const transformedConfig = await walletValidate(wallet, newServerConfig)
+        if (transformedConfig) {
+          newServerConfig = Object.assign(newServerConfig, transformedConfig)
+        }
       } catch {
         valid = false
       }

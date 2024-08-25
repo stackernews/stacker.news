@@ -40,6 +40,7 @@ export const COMMENT_FIELDS = gql`
       actionState
       confirmedAt
     }
+    cost
   }
 `
 

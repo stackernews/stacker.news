@@ -13,6 +13,7 @@ import Button from 'react-bootstrap/Button'
 import { Input, Form, SubmitButton } from './form'
 import Qr, { QrSkeleton } from './qr'
 import CancelButton from './cancel-button'
+import { nip19 } from 'nostr-tools'
 
 export function NostrAuth ({ text, callbackUrl }) {
   const [signer, setSigner] = useState(null)
@@ -93,6 +94,48 @@ export function NostrAuth ({ text, callbackUrl }) {
     ))
   }, [])
 
+  // authorize connection request
+  const authorizeConnectionRequest = useCallback(async (pubkey) => {
+    return new Promise((resolve, reject) => {
+      const npub = nip19.npubEncode(pubkey)
+      handleProgress('Approving connection request')
+      showModal((onClose) => (
+        <div>
+          <h2>Incoming Connection</h2>
+          <p>
+            Do you want to authorize this public key to connect to your account?
+          </p>
+          <pre>{npub}</pre>
+
+          <div className='mt-3'>
+            <div className='d-flex justify-content-between'>
+              <div className='d-flex align-items-center ms-auto'>
+                <CancelButton onClick={() => {
+                  resolve(false)
+                  onClose()
+                }}
+                />
+                <Button
+                  variant='primary'
+                  onClick={() => {
+                    try {
+                      resolve(true)
+                      handleProgress('Connection authorized')
+                      onClose()
+                    } catch (e) {
+                      handleError(e)
+                    }
+                  }}
+                >authorize
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))
+    })
+  })
+
   // authorize user
   const auth = useCallback(async (preferExt = false) => {
     handleProgress('Waiting for authorization')
@@ -132,7 +175,16 @@ export function NostrAuth ({ text, callbackUrl }) {
   // Restart signer on change
   useEffect(() => {
     if (!signer) return
-    signer.startListeningForSpontaneousConnections(challengeHandler, async () => {
+    signer.startListeningForSpontaneousConnections(challengeHandler, async (pubkey) => {
+      try {
+        console.log('Received NIP-46 nostrconnect request')
+        if (!await authorizeConnectionRequest(pubkey)) throw new Error('Connection rejected')
+        return true
+      } catch (e) {
+        handleError(e)
+      }
+      return false
+    }, async () => {
       try {
         console.log('Received NIP-46 nostrconnect event')
         await auth()

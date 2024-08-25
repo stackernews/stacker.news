@@ -141,6 +141,12 @@ export const WALLET = gql`
           url
           secondaryPassword
         }
+        ... on WalletLnc {
+          pairingPhraseRecv
+          localKeyRecv
+          remoteKeyRecv
+          serverHostRecv
+        }
       }
     }
   }
@@ -180,6 +186,12 @@ export const WALLET_BY_TYPE = gql`
         ... on WalletPhoenixd {
           url
           secondaryPassword
+        }
+        ... on WalletLnc {
+          pairingPhraseRecv
+          localKeyRecv
+          remoteKeyRecv
+          serverHostRecv
         }
       }
     }

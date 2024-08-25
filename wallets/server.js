@@ -4,12 +4,13 @@ import * as lnAddr from 'wallets/lightning-address/server'
 import * as lnbits from 'wallets/lnbits/server'
 import * as nwc from 'wallets/nwc/server'
 import * as phoenixd from 'wallets/phoenixd/server'
+import * as lnc from 'wallets/lnc/server'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import walletDefs from 'wallets/server'
 import { parsePaymentRequest } from 'ln-service'
 import { toPositiveNumber } from '@/lib/validate'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
-export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd]
+export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, lnc]
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 

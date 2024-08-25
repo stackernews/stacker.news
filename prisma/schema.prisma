@@ -172,6 +172,7 @@ enum WalletType {
   LNBITS
   NWC
   PHOENIXD
+  LNC
 }
 
 model Wallet {
@@ -198,6 +199,7 @@ model Wallet {
   walletLNbits           WalletLNbits?
   walletNWC              WalletNWC?
   walletPhoenixd         WalletPhoenixd?
+  walletLNC              WalletLNC?
   withdrawals            Withdrawl[]
   InvoiceForward         InvoiceForward[]
 
@@ -264,6 +266,18 @@ model WalletNWC {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
   nwcUrlRecv String
+}
+
+model WalletLNC {
+  id                Int      @id @default(autoincrement())
+  walletId          Int      @unique
+  wallet            Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+  pairingPhraseRecv String
+  localKeyRecv      String?
+  remoteKeyRecv     String?
+  serverHostRecv    String?
 }
 
 model WalletPhoenixd {

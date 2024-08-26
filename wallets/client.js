@@ -6,5 +6,6 @@ import * as cln from 'wallets/cln/client'
 import * as lnd from 'wallets/lnd/client'
 import * as webln from 'wallets/webln/client'
 import * as blink from 'wallets/blink/client'
+import * as phoenixd from 'wallets/phoenixd/client'
 
-export default [nwc, lnbits, lnc, lnAddr, cln, lnd, webln, blink]
+export default [nwc, lnbits, lnc, lnAddr, cln, lnd, webln, blink, phoenixd]

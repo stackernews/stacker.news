@@ -23,19 +23,19 @@ import performPaidAction from '../paidAction'
 
 function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
-    return 'ORDER BY "Item".created_at DESC, "Item".id DESC'
+    return 'ORDER BY ("Item"."deletedAt" IS NULL) DESC, ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC, "Item".created_at DESC, "Item".id DESC'
   }
 
   if (me && sort === 'hot') {
-    return `ORDER BY COALESCE(
+    return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, COALESCE(
         personal_hot_score,
         ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
         "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
   } else {
     if (sort === 'top') {
-      return `ORDER BY ${orderByNumerator(models, 0)} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
+      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator(models, 0)} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
     } else {
-      return `ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
     }
   }
 }

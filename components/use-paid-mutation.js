@@ -1,6 +1,6 @@
 import { useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import { useCallback, useState } from 'react'
-import { InvoiceCanceledError, InvoiceExpiredError, useQrPayment, useWalletPayment } from './payment'
+import { InvoiceCanceledError, InvoiceExpiredError, useInvoice, useQrPayment, useWalletPayment } from './payment'
 import { GET_PAID_ACTION } from '@/fragments/paidAction'
 
 /*
@@ -23,6 +23,7 @@ export function usePaidMutation (mutation,
     fetchPolicy: 'network-only'
   })
   const waitForWalletPayment = useWalletPayment()
+  const invoiceHelper = useInvoice()
   const waitForQrPayment = useQrPayment()
   const client = useApolloClient()
   // innerResult is used to store/control the result of the mutation when innerMutate runs
@@ -40,12 +41,14 @@ export function usePaidMutation (mutation,
         err instanceof InvoiceExpiredError) {
         // bail since qr code payment will also fail
         // also bail if the payment took more than 1 second
+        // and cancel the invoice if it's not already canceled so it can be retried
+        invoiceHelper.cancel(invoice).catch(console.error)
         throw err
       }
       walletError = err
     }
     return await waitForQrPayment(invoice, walletError, { persistOnNavigate, waitFor })
-  }, [waitForWalletPayment, waitForQrPayment])
+  }, [waitForWalletPayment, waitForQrPayment, invoiceHelper])
 
   const innerMutate = useCallback(async ({
     onCompleted: innerOnCompleted, ...innerOptions

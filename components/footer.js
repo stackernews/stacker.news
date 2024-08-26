@@ -87,15 +87,15 @@ const SocialsPopover = (
 const ChatPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
-      <a
+      {/* <a
         href='https://tribes.sphinx.chat/t/stackerzchat' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
       >
         sphinx
       </a>
-      <span className='mx-2 text-muted'> \ </span>
+      <span className='mx-2 text-muted'> \ </span> */}
       <a
-        href='https://t.me/stackernews' className='nav-link p-0 d-inline-flex'
+        href='https://t.me/k00bideh' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
       >
         telegram

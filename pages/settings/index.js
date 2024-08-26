@@ -257,9 +257,9 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>disable freebies
                 <Info>
-                  <p>Some posts and comments can be created without paying. However, that content has limited visibility.</p>
+                  <p>Some comments can be created without paying. However, those comments have limited visibility.</p>
 
-                  <p>If you disable freebies, you will always pay for your posts and comments and get standard visibility.</p>
+                  <p>If you disable freebies, you will always pay for your comments and get standard visibility.</p>
 
                   <p>If you attach a sending wallet, we disable freebies for you unless you have checked/unchecked this value already.</p>
                 </Info>

@@ -1290,11 +1290,7 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
   const differentSub = subName && old.subName !== subName
   if (differentSub) {
     const sub = await models.sub.findUnique({ where: { name: subName } })
-    if (old.cost === 0) {
-      if (!sub.allowFreebies) {
-        throw new GraphQLError(`~${subName} does not allow freebies`, { extensions: { code: 'BAD_INPUT' } })
-      }
-    } else if (sub.baseCost > old.sub.baseCost) {
+    if (sub.baseCost > old.sub.baseCost) {
       throw new GraphQLError('cannot change to a more expensive sub', { extensions: { code: 'BAD_INPUT' } })
     }
   }

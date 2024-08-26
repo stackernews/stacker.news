@@ -223,10 +223,10 @@ export const UPDATE_COMMENT = gql`
 export const UPSERT_SUB = gql`
   ${PAID_ACTION}
   mutation upsertSub($oldName: String, $name: String!, $desc: String, $baseCost: Int!,
-    $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
+    $postTypes: [String!]!, $billingType: String!,
     $billingAutoRenew: Boolean!, $moderated: Boolean!, $nsfw: Boolean!) {
       upsertSub(oldName: $oldName, name: $name, desc: $desc, baseCost: $baseCost,
-        postTypes: $postTypes, allowFreebies: $allowFreebies, billingType: $billingType,
+        postTypes: $postTypes, billingType: $billingType,
         billingAutoRenew: $billingAutoRenew, moderated: $moderated, nsfw: $nsfw) {
       result {
         name
@@ -238,10 +238,10 @@ export const UPSERT_SUB = gql`
 export const UNARCHIVE_TERRITORY = gql`
   ${PAID_ACTION}
   mutation unarchiveTerritory($name: String!, $desc: String, $baseCost: Int!,
-    $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
+    $postTypes: [String!]!, $billingType: String!,
     $billingAutoRenew: Boolean!, $moderated: Boolean!, $nsfw: Boolean!) {
       unarchiveTerritory(name: $name, desc: $desc, baseCost: $baseCost,
-        postTypes: $postTypes, allowFreebies: $allowFreebies, billingType: $billingType,
+        postTypes: $postTypes, billingType: $billingType,
         billingAutoRenew: $billingAutoRenew, moderated: $moderated, nsfw: $nsfw) {
       result {
         name

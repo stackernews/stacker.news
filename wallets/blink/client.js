@@ -10,8 +10,7 @@ export async function testSendPayment ({ apiKey, currency }, { logger }) {
 
 export async function sendPayment (bolt11, { apiKey, currency }) {
   const wallet = await getWallet(apiKey, currency)
-  const preImage = await payInvoice(apiKey, wallet, bolt11)
-  return { preImage }
+  return await payInvoice(apiKey, wallet, bolt11)
 }
 
 async function payInvoice (authToken, wallet, invoice) {

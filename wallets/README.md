@@ -163,11 +163,11 @@ This function must throw an error if the configuration was found to be invalid.
 
 The `context` argument is an object. It makes the wallet logger for this wallet as returned by `useWalletLogger` available under `context.logger`. See [components/wallet-logger.js](../components/wallet-logger.js).
 
-- `sendPayment: async (bolt11: string, config, context) => Promise<{ preimage: string }>`
+- `sendPayment: async (bolt11: string, config, context) => Promise<string>`
 
 `sendPayment` will be called if a payment is required. Therefore, this function should implement the code to pay invoices from this wallet.
 
-The first argument is the [BOLT11 payment request](https://github.com/lightning/bolts/blob/master/11-payment-encoding.md). The `config` argument is the current configuration of this wallet (that was validated before). The `context` argument is the same as for `testSendPayment`.
+The first argument is the [BOLT11 payment request](https://github.com/lightning/bolts/blob/master/11-payment-encoding.md). The `config` argument is the current configuration of this wallet (that was validated before). The `context` argument is the same as for `testSendPayment`. The function should return the preimage on payment success.
 
 > [!IMPORTANT]
 > As mentioned above, this file must exist for every wallet and at least reexport everything in index.js so make sure that the following line is included:

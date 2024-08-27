@@ -35,5 +35,5 @@ export async function sendPayment (bolt11, { url, primaryPassword }) {
     throw new Error(payment.reason)
   }
 
-  return payment.paymentPreimage
+  return preimage
 }

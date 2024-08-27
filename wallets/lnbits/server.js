@@ -1,4 +1,5 @@
 import { msatsToSats } from '@/lib/format'
+import { getAgent } from '@/lib/proxy'
 
 export * from 'wallets/lnbits'
 
@@ -27,7 +28,15 @@ export async function createInvoice (
     out: false
   })
 
-  const res = await fetch(url + path, { method: 'POST', headers, body })
+  const hostname = url.replace(/^https?:\/\//, '')
+  const agent = getAgent({ hostname })
+
+  const res = await fetch(`${agent.protocol}//${hostname}${path}`, {
+    method: 'POST',
+    headers,
+    agent,
+    body
+  })
   if (!res.ok) {
     const errBody = await res.json()
     throw new Error(errBody.detail)

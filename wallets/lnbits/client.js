@@ -19,8 +19,7 @@ export async function sendPayment (bolt11, { url, adminKey }) {
     throw new Error('No preimage')
   }
 
-  const preimage = checkResponse.preimage
-  return { preimage }
+  return checkResponse.preimage
 }
 
 async function getWallet ({ url, adminKey, invoiceKey }) {

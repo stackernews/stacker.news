@@ -67,7 +67,7 @@ export async function sendPayment (bolt11, credentials, { logger }) {
       if (paymentError) throw new Error(paymentError)
       if (!preimage) throw new Error('No preimage in response')
 
-      return { preimage }
+      return preimage
     } catch (err) {
       const msg = err.message || err.toString?.()
       if (msg.includes('invoice expired')) {

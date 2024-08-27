@@ -10,3 +10,5 @@ RUN apt-get update -y \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN cargo build --release && cargo install --path .
+
+COPY keys.json .

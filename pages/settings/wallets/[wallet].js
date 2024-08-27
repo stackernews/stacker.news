@@ -42,7 +42,7 @@ export default function WalletSettings () {
     <CenterLayout>
       <h2 className='pb-2'>{wallet.card.title}</h2>
       <h6 className='text-muted text-center pb-3'><Text>{wallet.card.subtitle}</Text></h6>
-      {!wallet.walletType && wallet.hasConfig > 0 && <WalletSecurityBanner />}
+      {wallet.canSend && wallet.hasConfig > 0 && <WalletSecurityBanner />}
       <Form
         initial={initial}
         {...validateProps}

@@ -54,7 +54,11 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
       relays.map(async r => {
         const timeout = 1000
         const relay = await Relay.connect(r, { timeout })
-        await relay.publish(e, { timeout })
+        try {
+          await relay.publish(e, { timeout })
+        } finally {
+          relay.close()
+        }
       })
     )
   } catch (e) {

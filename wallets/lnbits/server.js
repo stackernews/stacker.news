@@ -29,9 +29,9 @@ export async function createInvoice (
   })
 
   const hostname = url.replace(/^https?:\/\//, '')
-  const { protocol, agent } = getAgent({ hostname })
+  const agent = getAgent({ hostname })
 
-  const res = await fetch(`${protocol}//${hostname}${path}`, {
+  const res = await fetch(`${agent.protocol}//${hostname}${path}`, {
     method: 'POST',
     headers,
     agent,

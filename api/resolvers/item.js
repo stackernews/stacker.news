@@ -23,19 +23,19 @@ import performPaidAction from '../paidAction'
 
 function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
-    return 'ORDER BY "Item".created_at DESC, "Item".id DESC'
+    return 'ORDER BY ("Item"."deletedAt" IS NULL) DESC, ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC, "Item".created_at DESC, "Item".id DESC'
   }
 
   if (me && sort === 'hot') {
-    return `ORDER BY COALESCE(
+    return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, COALESCE(
         personal_hot_score,
         ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
         "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
   } else {
     if (sort === 'top') {
-      return `ORDER BY ${orderByNumerator(models, 0)} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
+      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator(models, 0)} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
     } else {
-      return `ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
     }
   }
 }
@@ -1290,11 +1290,7 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
   const differentSub = subName && old.subName !== subName
   if (differentSub) {
     const sub = await models.sub.findUnique({ where: { name: subName } })
-    if (old.cost === 0) {
-      if (!sub.allowFreebies) {
-        throw new GraphQLError(`~${subName} does not allow freebies`, { extensions: { code: 'BAD_INPUT' } })
-      }
-    } else if (sub.baseCost > old.sub.baseCost) {
+    if (sub.baseCost > old.sub.baseCost) {
       throw new GraphQLError('cannot change to a more expensive sub', { extensions: { code: 'BAD_INPUT' } })
     }
   }

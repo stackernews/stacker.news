@@ -7,7 +7,6 @@ export const SUB_FIELDS = gql`
     name
     createdAt
     postTypes
-    allowFreebies
     rankingType
     billingType
     billingCost

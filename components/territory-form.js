@@ -91,7 +91,6 @@ export default function TerritoryForm ({ sub }) {
           desc: sub?.desc || '',
           baseCost: sub?.baseCost || 10,
           postTypes: sub?.postTypes || POST_TYPES,
-          allowFreebies: typeof sub?.allowFreebies === 'undefined' ? true : sub?.allowFreebies,
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false,
           moderated: sub?.moderated || false,
@@ -133,14 +132,8 @@ export default function TerritoryForm ({ sub }) {
           label='post cost'
           name='baseCost'
           type='number'
-          groupClassName='mb-2'
           required
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-        />
-        <Checkbox
-          label='allow free posts'
-          name='allowFreebies'
-          groupClassName='ms-1'
         />
         <CheckboxGroup label='post types' name='postTypes'>
           <Row>

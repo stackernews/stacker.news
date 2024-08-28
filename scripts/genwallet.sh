@@ -75,10 +75,6 @@ EOF
 cat > wallets/$wallet/client.js <<EOF
 export * from 'wallets/$wallet'
 
-export async function testSendPayment (config, { logger }) {
-    $(todo)
-}
-
 export async function sendPayment (bolt11, config) {
     $(todo)
 }

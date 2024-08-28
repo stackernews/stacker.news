@@ -13,6 +13,8 @@ import { useShowModal } from '@/components/modal'
 import { useToast } from '../components/toast'
 import { generateResolverName } from '@/lib/wallet'
 import { walletValidate } from '@/lib/validate'
+import { useInvoice } from '@/components/payment'
+import { withTimeout } from '@/lib/time'
 
 export const Status = {
   Initialized: 'Initialized',
@@ -149,6 +151,7 @@ function extractServerConfig (fields, config) {
 
 function useConfig (wallet) {
   const me = useMe()
+  const invoice = useInvoice()
 
   const storageKey = getStorageKey(wallet?.name, me)
   const [clientConfig, setClientConfig, clearClientConfig] = useClientConfig(storageKey, {})
@@ -172,6 +175,45 @@ function useConfig (wallet) {
     // ie. if send+recv is available but only one is configured
     config.priority ||= priority
   }
+
+  const testSendPayment = useCallback(async (config, { logger, ...context }) => {
+    const timeout = 15_000
+    const inv = await invoice.create(1)
+
+    logger.info('sending test payment:', `payment_hash=${inv.hash}`)
+
+    try {
+      const paymentPromise = wallet.sendPayment(inv.bolt11, config, context)
+
+      // test is successful if invoice is held
+      const invHeldPromise = invoice.waitUntilPaid({
+        id: inv.id,
+        waitFor: inv => inv.isHeld
+      })
+
+      // now check if payment is received within timeout
+      // or if wallet throws error first
+      // TODO: payment promise is rejected sometimes for NWC
+      //  because invoice is immediately canceled on backend
+      //  when payment is held but I don't see why
+      await withTimeout(
+        Promise.race([
+          invHeldPromise,
+          paymentPromise
+        ]), timeout)
+
+      // if we get here, this means that we are currently holding the payment
+      // since the paymentPromise cannot settle without releasing the preimage
+      // which we will never do for test payments
+      logger.ok('test payment received')
+    } catch (err) {
+      // test payment failures are not blocking attachment,
+      // we only want to let the user know that there _might_ be an issue
+      logger.warn('test payment failed:', err.message)
+    } finally {
+      await invoice.cancel(inv)
+    }
+  }, [invoice, wallet])
 
   const saveConfig = useCallback(async (newConfig, { logger, priorityOnly }) => {
     // NOTE:
@@ -199,8 +241,14 @@ function useConfig (wallet) {
           setClientConfig(newClientConfig)
         } else {
           try {
-            // XXX: testSendPayment can return a new config (e.g. lnc)
-            const newerConfig = await wallet.testSendPayment?.(newConfig, { me, logger })
+            await testSendPayment(newConfig, { me, logger })
+          } catch (err) {
+            logger.error('test payment failed:', err.message)
+            throw err
+          }
+
+          try {
+            const newerConfig = await wallet.transformConfig?.(newConfig, { me, logger })
             if (newerConfig) {
               newClientConfig = Object.assign(newClientConfig, newerConfig)
             }
@@ -232,7 +280,7 @@ function useConfig (wallet) {
 
       if (valid) await setServerConfig(newServerConfig, { priorityOnly })
     }
-  }, [hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, wallet])
+  }, [hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, testSendPayment, wallet])
 
   const clearConfig = useCallback(async ({ logger }) => {
     if (hasClientConfig) {

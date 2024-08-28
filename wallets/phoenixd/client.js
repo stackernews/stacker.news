@@ -1,13 +1,5 @@
 export * from 'wallets/phoenixd'
 
-export async function testSendPayment (config, { logger }) {
-  // TODO:
-  //   Not sure which endpoint to call to test primary password
-  //   see https://phoenix.acinq.co/server/api
-  //   Maybe just wait until test payments with HODL invoices?
-
-}
-
 export async function sendPayment (bolt11, { url, primaryPassword }) {
   // https://phoenix.acinq.co/server/api#pay-bolt11-invoice
   const path = '/payinvoice'

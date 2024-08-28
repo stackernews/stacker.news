@@ -259,6 +259,7 @@ export function useWalletLogger (wallet) {
   const logger = useMemo(() => ({
     ok: (...message) => log('ok')(message.join(' ')),
     info: (...message) => log('info')(message.join(' ')),
+    warn: (...message) => log('warn')(message.join(' ')),
     error: (...message) => log('error')(message.join(' '))
   }), [log, wallet?.name])
 

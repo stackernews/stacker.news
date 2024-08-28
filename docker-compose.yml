@@ -535,7 +535,7 @@ services:
     entrypoint:
       - 'nostr-wallet-connect-lnd'
       - '--relay'
-      - 'wss://relay.damus.io'
+      - 'wss://relay.primal.net'
       - '--macaroon-file'
       - '/root/.lnd/regtest/admin.macaroon'
       - '--cert-file'

@@ -4,7 +4,7 @@ import { checkPerms, LncCredentialStore } from 'wallets/lnc'
 import { Mutex } from 'async-mutex'
 export * from 'wallets/lnc'
 
-const mutexes = {}
+const mutexes = []
 
 export async function testCreateInvoice (credentials) {
   const timeout = 15_000
@@ -14,19 +14,22 @@ export async function testCreateInvoice (credentials) {
 export async function createInvoice ({ msats, description, expiry }, credentials) {
   const mutexTimeout = 120_000
   let mutex
-  for (const [key, value] of Object.entries(mutexes)) {
-    if (!value.mutex.isLocked() && Date.now() - value.lastAccess > mutexTimeout) {
-      delete mutexes[key]
-    } else if (key === credentials.pairingPhraseRecv) {
-      mutex = value
+  for (let i = 0; i < mutexes.length; i++) {
+    const v = mutexes[i]
+    if (!v.mutex.isLocked() && Date.now() - v.lastAccess > mutexTimeout) {
+      mutexes.splice(i, 1)
+      i--
+    } else if (v.key === credentials.pairingPhraseRecv) {
+      mutex = v
     }
   }
   if (!mutex) {
     mutex = new Mutex()
-    mutexes[credentials.pairingPhraseRecv] = {
+    mutexes.push({
       mutex,
-      lastAccess: Date.now()
-    }
+      lastAccess: Date.now(),
+      key: credentials.pairingPhraseRecv
+    })
   } else {
     mutex.lastAccess = Date.now()
     mutex = mutex.mutex

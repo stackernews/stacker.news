@@ -99,106 +99,107 @@ async function getLNC (credentials, timeout = 21000, serverHost = 'mailbox.termi
   }
 
   const code = `
-const LNC = require('@lightninglabs/lnc-web');
-let lncInstance;
-let closing;
+const LNC = require('@lightninglabs/lnc-web')
+let lncInstance
+let closing
 
-function clone(data) {
-    return JSON.parse(JSON.stringify(data));
+function clone (data) {
+  return JSON.parse(JSON.stringify(data))
 }
 
 // force kill the go process
 // workaround for https://github.com/lightninglabs/lnc-web/issues/83
-async function kill() {
-    try {
-      closing = true;
-      if ( !lncInstance || !lncInstance.go._inst) {
-        console.log("Already killed");
-        return;
-      }
-      console.log("Killing...");
-      lncInstance.go.exited = true;
-      lncInstance.go.exit(0);
-    } catch (e) {
-        console.error("LNC(vm): Error while killing the go runtime: ", e);
+async function kill () {
+  try {
+    closing = true
+    if (!lncInstance || !lncInstance.go._inst) {
+      console.log('Already killed')
+      return
     }
+    console.log('Killing...')
+    lncInstance.go.exited = true
+    lncInstance.go.exit(0)
+  } catch (e) {
+    console.error('LNC(vm): Error while killing the go runtime: ', e)
+  }
 }
 
 async function disconnect() {
-    closing = true;
-    if (lncInstance && lncInstance.isConnected ) {
-        try {
-            console.log('LNC(vm): disconnecting...')
-            if (lncInstance.isConnected) lncInstance.disconnect();
-            await new Promise((resolve, reject) => {
-                let counter = 0;
-                const interval = setInterval(() => {
-                    if (lncInstance.isConnected) {
-                        if (counter++ > 100) {
-                            console.error('LNC(vm): failed to disconnect from lnc');
-                            clearInterval(interval);
-                            reject(new Error('failed to disconnect from lnc'));
-                        }
-                        return;
-                    }
-                    clearInterval(interval);
-                    resolve();
-                }, 100);
-            })
-        } catch (e) {
-            console.error("LNC(vm): Error while disconnecting: ", e);
-        }
-    }
-}
-
-async function addInvoice(args) {
-    if (!lncInstance || !lncInstance.isConnected) return;
-    const resp = await lncInstance.lnd.lightning.addInvoice(args);
-    return resp;
-}
-
-function hasPerms(perm) {
-    if (!lncInstance) throw new Error('LNC(vm): LNC not initialized');
-    return lncInstance.hasPerms(perm);
-}
-
-function getCredentials() {
-    if (!lncInstance) throw new Error('LNC(vm): LNC not initialized');
-    return clone(lncInstance.credentials.credentials);
-}
-
-async function connect(credentials, serverHost, timeout) {
-    credentials = credentials || globalThis.credentials;
-    timeout = timeout || globalThis.lncTimeout;
-    serverHost = serverHost || globalThis.serverHost;
-    return new Promise(async (resolve, reject) => {
-        try {
-            const timeoutTimer = setTimeout(() => {
-                kill();
-                reject(new Error("Timeout"))
-            }, timeout);
-            lncInstance = new LNC.default({
-                credentialStore: new LncCredentialStore({ ...credentials, serverHost })
-            });      
-            await lncInstance.connect();
-            globalThis.credentials.credentials = getCredentials();
-            closing = false;
-            while (!closing) {
-                if (lncInstance.isConnected) break;
-                console.info("LNC(vm): LNC is not ready yet...waiting...");
-                await new Promise(resolve => setTimeout(resolve, 100));
+  closing = true
+  if (lncInstance && lncInstance.isConnected) {
+    try {
+      console.log('LNC(vm): disconnecting...')
+      if (lncInstance.isConnected) lncInstance.disconnect();
+      await new Promise((resolve, reject) => {
+        let counter = 0
+        const interval = setInterval(() => {
+          if (lncInstance.isConnected) {
+            if (counter++ > 100) {
+              console.error('LNC(vm): failed to disconnect from lnc')
+              clearInterval(interval)
+              reject(new Error('failed to disconnect from lnc'))
             }
-            clearTimeout(timeoutTimer);
-            console.info("LNC(vm): LNC is connected");
-            resolve();
-        } catch (e) {
-            console.error("LNC(vm): ", e);
-            reject(e);
-        }
-    });
+            return
+          }
+          clearInterval(interval)
+          resolve()
+        }, 100)
+      })
+    } catch (e) {
+      console.error('LNC(vm): Error while disconnecting: ', e)
+    }
+  }
 }
 
-globalThis.lnd.lightning.addInvoice = addInvoice;
+async function addInvoice (args) {
+  if (!lncInstance || !lncInstance.isConnected) return
+  const resp = await lncInstance.lnd.lightning.addInvoice(args)
+  return resp
+}
+
+function hasPerms (perm) {
+  if (!lncInstance) throw new Error('LNC(vm): LNC not initialized')
+  return lncInstance.hasPerms(perm)
+}
+
+function getCredentials () {
+  if (!lncInstance) throw new Error('LNC(vm): LNC not initialized')
+  return clone(lncInstance.credentials.credentials)
+}
+
+async function connect (credentials, serverHost, timeout) {
+  credentials = credentials || globalThis.credentials
+  timeout = timeout || globalThis.lncTimeout
+  serverHost = serverHost || globalThis.serverHost
+  return new Promise(async (resolve, reject) => {
+    try {
+      const timeoutTimer = setTimeout(() => {
+        kill()
+        reject(new Error('Timeout'))
+      }, timeout)
+      lncInstance = new LNC.default({
+        credentialStore: new LncCredentialStore({ ...credentials, serverHost })
+      })
+      await lncInstance.connect()
+      globalThis.credentials.credentials = getCredentials()
+      closing = false
+      while (!closing) {
+        if (lncInstance.isConnected) break
+        console.info('LNC(vm): LNC is not ready yet...waiting...')
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+      clearTimeout(timeoutTimer)
+      console.info('LNC(vm): LNC is connected')
+      resolve()
+    } catch (e) {
+      console.error('LNC(vm):', e)
+      reject(e)
+    }
+  })
+}
+
+globalThis.lnd.lightning.addInvoice = addInvoice
+
   `
   const g = initContext({})
   g.require = (module) => {

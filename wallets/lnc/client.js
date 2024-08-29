@@ -24,8 +24,8 @@ async function disconnect (lnc, logger) {
           }
           clearInterval(interval)
           resolve()
-        })
-      }, 50)
+        }, 50)
+      })
     } catch (err) {
       logger.error('failed to disconnect from lnc', err)
     }

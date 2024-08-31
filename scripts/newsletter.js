@@ -92,7 +92,7 @@ async function bountyWinner (q) {
 
   const bounty = await client.query({
     query: SEARCH,
-    variables: { q: `${q} @sn`, sort: 'recent', what: 'posts', when: 'week' }
+    variables: { q: `${q} @grayruby`, sort: 'recent', what: 'posts', when: 'week' }
   })
 
   const items = bounty.data.search.items.filter(i => i.bountyPaidTo?.length > 0)
@@ -132,7 +132,7 @@ async function getTopUsers ({ by, cowboys = false, includeHidden = false, count 
         variables
       })
       cursor = result.data[cowboys ? 'topCowboys' : 'topUsers'].cursor
-      accum.push(...result.data[cowboys ? 'topCowboys' : 'topUsers'].users.filter(user => includeHidden ? true : !!user))
+      accum.push(...result.data[cowboys ? 'topCowboys' : 'topUsers'].users.filter(user => includeHidden ? true : !!user).filter(user => user.name !== 'k00b'))
     }
   } catch (e) {
 
@@ -158,10 +158,10 @@ async function main () {
     variables: { sub: 'jobs' }
   })
 
-  const thisDay = await client.query({
-    query: SEARCH,
-    variables: { q: 'This Day in Stacker News @Undisciplined', sort: 'recent', what: 'posts', when: 'week' }
-  })
+  // const thisDay = await client.query({
+  //   query: SEARCH,
+  //   variables: { q: 'This Day in Stacker News @Undisciplined', sort: 'recent', what: 'posts', when: 'week' }
+  // })
 
   const topMeme = await bountyWinner('meme monday')
   const topFact = await bountyWinner('fun fact')
@@ -176,7 +176,7 @@ async function main () {
 Have a great weekend!
 
 ##### Top Posts
-${top.data.items.items.slice(0, 10).map((item, i) =>
+${top.data.items.items.map((item, i) =>
   `${i + 1}. [${item.title}](https://stacker.news/items/${item.id})
     - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
 
@@ -190,13 +190,6 @@ ${top.data.items.items.map((item, i) =>
 
 ##### Top meta
 ${meta.data.items.items.slice(0, 10).map((item, i) =>
-  `- [${item.title}](https://stacker.news/items/${item.id})\n`).join('')}
-
-##### This day in Stacker News
-
-*a series by [@Undisciplined](https://stacker.news/Undisciplined)*
-
-${[...thisDay.data.search.items].reverse().map((item, i) =>
   `- [${item.title}](https://stacker.news/items/${item.id})\n`).join('')}
 
 [**all meta**](https://stacker.news/~meta/top/posts/week)

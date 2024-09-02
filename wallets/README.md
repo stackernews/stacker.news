@@ -170,6 +170,7 @@ The first argument is the [BOLT11 payment request](https://github.com/lightning/
 > As mentioned above, this file must exist for every wallet and at least reexport everything in index.js so make sure that the following line is included:
 >
 > ```js
+> // wallets/<wallet>/client.js
 > export * from 'wallets/<name>'
 > ```
 >
@@ -213,6 +214,7 @@ Again, like `testSendPayment`, the first argument is the wallet configuration th
 > Don't forget to include the following line:
 >
 > ```js
+> // wallets/<wallet>/server.js
 > export * from 'wallets/<name>'
 > ```
 >

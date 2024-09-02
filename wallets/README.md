@@ -42,9 +42,6 @@ A _server.js_ file is only required for wallets that support receiving by exposi
 >
 > If a wallet does not support paying invoices, this is all that client.js of this wallet does. The reason for this structure is to make sure the client does not import dependencies that can only be imported on the server and would thus break the build.
 
-> [!WARNING]
-> Wallets that support spending **AND** receiving have not been tested yet. For now, only implement either the interface for spending **OR** receiving until this warning is removed.
-
 > [!TIP]
 > Don't hesitate to use the implementation of existing wallets as a reference.
 
@@ -173,6 +170,7 @@ The first argument is the [BOLT11 payment request](https://github.com/lightning/
 > As mentioned above, this file must exist for every wallet and at least reexport everything in index.js so make sure that the following line is included:
 >
 > ```js
+> // wallets/<wallet>/client.js
 > export * from 'wallets/<name>'
 > ```
 >
@@ -207,15 +205,16 @@ It should attempt to create a test invoice to make sure that this wallet can lat
 
 Again, like `testSendPayment`, the first argument is the wallet configuration that we should validate and this should thrown an error if validation fails. However, unlike `testSendPayment`, the `context` argument here contains `me` (the user object) and `models` (the Prisma client).
 
-- `createInvoice: async (amount: int, config, context) => Promise<bolt11: string>`
+- `createInvoice: async (invoiceParams, config, context) => Promise<bolt11: string>`
 
-`createInvoice` will be called whenever this wallet should receive a payment. It should return a BOLT11 payment request. The first argument `amount` specifies the amount in satoshis. The second argument `config` is the current configuration of this wallet. The third argument `context` is the same as in `testCreateInvoice` except it also includes `lnd` which is the return value of [`authenticatedLndGrpc`](https://github.com/alexbosworth/ln-service?tab=readme-ov-file#authenticatedlndgrpc) using the SN node credentials.
+`createInvoice` will be called whenever this wallet should receive a payment. It should return a BOLT11 payment request. The first argument `invoiceParams` is an object that contains the invoice parameters. These include `msats`, `description`, `descriptionHash` and `expiry`. The second argument `config` is the current configuration of this wallet. The third argument `context` is the same as in `testCreateInvoice` except it also includes `lnd` which is the return value of [`authenticatedLndGrpc`](https://github.com/alexbosworth/ln-service?tab=readme-ov-file#authenticatedlndgrpc) using the SN node credentials.
 
 
 > [!IMPORTANT]
 > Don't forget to include the following line:
 >
 > ```js
+> // wallets/<wallet>/server.js
 > export * from 'wallets/<name>'
 > ```
 >

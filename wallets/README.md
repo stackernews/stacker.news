@@ -42,9 +42,6 @@ A _server.js_ file is only required for wallets that support receiving by exposi
 >
 > If a wallet does not support paying invoices, this is all that client.js of this wallet does. The reason for this structure is to make sure the client does not import dependencies that can only be imported on the server and would thus break the build.
 
-> [!WARNING]
-> Wallets that support spending **AND** receiving have not been tested yet. For now, only implement either the interface for spending **OR** receiving until this warning is removed.
-
 > [!TIP]
 > Don't hesitate to use the implementation of existing wallets as a reference.
 

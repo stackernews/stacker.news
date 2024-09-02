@@ -83,7 +83,7 @@ export function middleware (request) {
 
   const cspHeader = [
     // if something is not explicitly allowed, we don't allow it.
-    "default-src 'none'",
+    "default-src 'self' a.stacker.news",
     "font-src 'self' a.stacker.news",
     // we want to load images from everywhere but we can limit to HTTPS at least
     "img-src 'self' a.stacker.news m.stacker.news https: data: blob:" + devSrc,

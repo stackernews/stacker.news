@@ -205,9 +205,9 @@ It should attempt to create a test invoice to make sure that this wallet can lat
 
 Again, like `testSendPayment`, the first argument is the wallet configuration that we should validate and this should thrown an error if validation fails. However, unlike `testSendPayment`, the `context` argument here contains `me` (the user object) and `models` (the Prisma client).
 
-- `createInvoice: async (amount: int, config, context) => Promise<bolt11: string>`
+- `createInvoice: async (invoiceParams, config, context) => Promise<bolt11: string>`
 
-`createInvoice` will be called whenever this wallet should receive a payment. It should return a BOLT11 payment request. The first argument `amount` specifies the amount in satoshis. The second argument `config` is the current configuration of this wallet. The third argument `context` is the same as in `testCreateInvoice` except it also includes `lnd` which is the return value of [`authenticatedLndGrpc`](https://github.com/alexbosworth/ln-service?tab=readme-ov-file#authenticatedlndgrpc) using the SN node credentials.
+`createInvoice` will be called whenever this wallet should receive a payment. It should return a BOLT11 payment request. The first argument `invoiceParams` is an object that contains the invoice parameters. These include `msats`, `description`, `descriptionHash` and `expiry`. The second argument `config` is the current configuration of this wallet. The third argument `context` is the same as in `testCreateInvoice` except it also includes `lnd` which is the return value of [`authenticatedLndGrpc`](https://github.com/alexbosworth/ln-service?tab=readme-ov-file#authenticatedlndgrpc) using the SN node credentials.
 
 
 > [!IMPORTANT]

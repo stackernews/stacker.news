@@ -13,7 +13,7 @@ export default function HoverablePopover ({ trigger, body, onShow }) {
       onShow?.()
       timeoutId.current = setTimeout(() => setShow(true), 500)
     } else {
-      timeoutId.current = setTimeout(() => setShow(!!popRef.current?.matches(':hover')), 500)
+      timeoutId.current = setTimeout(() => setShow(!!popRef.current?.matches(':hover')), 300)
     }
   }
 
@@ -23,8 +23,7 @@ export default function HoverablePopover ({ trigger, body, onShow }) {
       trigger={['hover', 'focus']}
       show={show}
       onToggle={onToggle}
-      delay={1}
-      transition={false}
+      transition
       rootClose
       overlay={
         <Popover style={{ position: 'fixed' }} onPointerLeave={() => onToggle(false)}>

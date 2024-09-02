@@ -70,7 +70,7 @@ export default function useModal () {
 
     return (
       <Modal
-        onHide={keepOpen ? null : onClose} show={!!content}
+        onHide={keepOpen ? () => {} : onClose} show={!!content}
         className={className}
         dialogClassName={className}
         contentClassName={className}

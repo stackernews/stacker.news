@@ -150,7 +150,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
       return url
     }
     const srcSet = imgproxyUrls?.[url]
-    return <ZoomableImage srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} topLevel />
+    return <ZoomableImage srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} topLevel={topLevel} />
   }, [imgproxyUrls, topLevel, tab])
 
   return (

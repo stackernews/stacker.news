@@ -57,7 +57,7 @@ function ImageOriginal ({ src, topLevel, rel, tab, children, onClick, ...props }
         target='_blank'
         rel={rel ?? UNKNOWN_LINK_REL}
         href={src}
-      >{isRawURL ? src : children}
+      >{isRawURL || !children ? src : children}
       </a>
     )
   }

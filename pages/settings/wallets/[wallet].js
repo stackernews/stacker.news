@@ -1,11 +1,11 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Form, ClientInput, ClientCheckbox, PasswordInput, CheckboxGroup } from '@/components/form'
+import { Form, ClientInput, PasswordInput, CheckboxGroup, Checkbox } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
 import { WalletSecurityBanner } from '@/components/banners'
 import { WalletLogs } from '@/components/wallet-logger'
 import { useToast } from '@/components/toast'
 import { useRouter } from 'next/router'
-import { useWallet, Status } from 'wallets'
+import { useWallet } from 'wallets'
 import Info from '@/components/info'
 import Text from '@/components/text'
 import { AutowithdrawSettings } from '@/components/autowithdraw-shared'
@@ -71,9 +71,8 @@ export default function WalletSettings () {
           ? <AutowithdrawSettings wallet={wallet} />
           : (
             <CheckboxGroup name='enabled'>
-              <ClientCheckbox
+              <Checkbox
                 disabled={!wallet.isConfigured}
-                initialValue={wallet.status === Status.Enabled}
                 label='enabled'
                 name='enabled'
                 groupClassName='mb-0'

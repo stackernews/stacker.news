@@ -10,6 +10,7 @@ import Info from '@/components/info'
 import Text from '@/components/text'
 import { AutowithdrawSettings } from '@/components/autowithdraw-shared'
 import dynamic from 'next/dynamic'
+import { useEffect, useState } from 'react'
 
 const WalletButtonBar = dynamic(() => import('@/components/wallet-buttonbar.js'), { ssr: false })
 
@@ -101,13 +102,18 @@ export default function WalletSettings () {
 }
 
 function WalletFields ({ wallet: { config, fields, isConfigured } }) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   return fields
     .map(({ name, label = '', type, help, optional, editable, clientOnly, serverOnly, ...props }, i) => {
       const rawProps = {
         ...props,
         name,
         initialValue: config?.[name],
-        readOnly: isConfigured && editable === false && !!config?.[name],
+        readOnly: mounted && isConfigured && editable === false && !!config?.[name],
         groupClassName: props.hidden ? 'd-none' : undefined,
         label: label
           ? (

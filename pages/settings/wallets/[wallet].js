@@ -45,6 +45,7 @@ export default function WalletSettings () {
       {wallet.canSend && wallet.hasConfig > 0 && <WalletSecurityBanner />}
       <Form
         initial={initial}
+        enableReinitialize
         {...validateProps}
         onSubmit={async ({ amount, ...values }) => {
           try {

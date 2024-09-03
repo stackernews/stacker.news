@@ -22,6 +22,7 @@ export function decodeOriginalUrl (imgproxyUrl) {
 function ImageOriginal ({ src, topLevel, rel, tab, children, onClick, ...props }) {
   const me = useMe()
   const [showImage, setShowImage] = useState(false)
+  const [showVideo, setShowVideo] = useState(false)
 
   useEffect(() => {
     if (me?.privates?.imgproxyOnly && tab !== 'preview') return
@@ -29,10 +30,15 @@ function ImageOriginal ({ src, topLevel, rel, tab, children, onClick, ...props }
     const img = new window.Image()
     img.onload = () => setShowImage(true)
     img.src = src
+    const video = document.createElement('video')
+    video.onloadeddata = () => setShowVideo(true)
+    video.src = src
 
     return () => {
       img.onload = null
       img.src = ''
+      video.onloadeddata = null
+      video.src = ''
     }
   }, [src, showImage])
 
@@ -45,6 +51,8 @@ function ImageOriginal ({ src, topLevel, rel, tab, children, onClick, ...props }
         onError={() => setShowImage(false)}
       />
     )
+  } else if (showVideo) {
+    return <video src={src} controls />
   } else {
     // user is not okay with loading original url automatically or there was an error loading the image
 

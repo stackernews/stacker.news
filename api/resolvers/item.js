@@ -570,40 +570,34 @@ export default {
     },
     dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))
-      const { hostname, pathname } = urlObj
+      let { hostname, pathname } = urlObj
 
-      let hostnameRegex = hostname + '(:[0-9]+)?'
+      // remove subdomain from hostname
       const parseResult = parse(urlObj.hostname)
-      if (parseResult?.subdomain?.length) {
-        const { subdomain } = parseResult
-        hostnameRegex = hostnameRegex.replace(subdomain, '(%)?')
-      } else {
-        hostnameRegex = `(%.)?${hostnameRegex}`
+      if (parseResult?.subdomain?.length > 0) {
+        hostname = hostname.replace(`${parseResult.subdomain}.`, '')
       }
+      // hostname with optional protocol, subdomain, and port
+      const hostnameRegex = `^(http(s)?:\\/\\/)?(\\w+\\.)?${(hostname + '(:[0-9]+)?').replace(/\./g, '\\.')}`
+      // pathname with trailing slash and escaped special characters
+      const pathnameRegex = stripTrailingSlash(pathname).replace(/(\+|\.|\/)/g, '\\$1') + '\\/?'
+      // url with optional trailing slash
+      let similar = hostnameRegex + pathnameRegex
 
-      // escape postgres regex meta characters
-      let pathnameRegex = pathname.replace(/\+/g, '\\+')
-      pathnameRegex = pathnameRegex.replace(/%/g, '\\%')
-      pathnameRegex = pathnameRegex.replace(/_/g, '\\_')
-
-      const uriRegex = stripTrailingSlash(hostnameRegex + pathnameRegex)
-
-      let similar = `(http(s)?://)?${uriRegex}/?`
       const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php']
       const youtube = ['www.youtube.com', 'youtube.com', 'm.youtube.com', 'youtu.be']
 
       const hostAndPath = stripTrailingSlash(urlObj.hostname + urlObj.pathname)
       if (whitelist.includes(hostAndPath)) {
+        // make query string match for whitelist domains
         similar += `\\${urlObj.search}`
       } else if (youtube.includes(urlObj.hostname)) {
         // extract id and create both links
         const matches = url.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)/i)
-        similar = `(http(s)?://)?((www.|m.)?youtube.com/(watch\\?v=|v/|live/)${matches?.groups?.id}|youtu.be/${matches?.groups?.id})((\\?|&|#)%)?`
+        similar = `^(http(s)?:\\/\\/)?((www\\.|m\\.)?youtube.com\\/(watch\\?v\\=|v\\/|live\\/)${matches?.groups?.id}|youtu\\.be\\/${matches?.groups?.id})&?`
       } else if (urlObj.hostname === 'yewtu.be') {
         const matches = url.match(/(https?:\/\/)?yewtu\.be.*(v=|embed\/)(?<id>[_0-9a-z-]+)/i)
-        similar = `(http(s)?://)?yewtu.be/(watch\\?v=|embed/)${matches?.groups?.id}((\\?|&|#)%)?`
-      } else {
-        similar += '((\\?|#)%)?'
+        similar = `^(http(s)?:\\/\\/)?yewtu\\.be\\/(watch\\?v\\=|embed\\/)${matches?.groups?.id}&?`
       }
 
       return await itemQueryWithMeta({
@@ -612,7 +606,7 @@ export default {
         query: `
           ${SELECT}
           FROM "Item"
-          WHERE LOWER(url) SIMILAR TO LOWER($1)
+          WHERE url ~* $1
           ORDER BY created_at DESC
           LIMIT 3`
       }, similar)

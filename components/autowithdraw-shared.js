@@ -3,6 +3,7 @@ import { Checkbox, Input } from './form'
 import { useMe } from './me'
 import { useEffect, useState } from 'react'
 import { isNumber } from '@/lib/validate'
+import { useIsClient } from './use-client'
 
 function autoWithdrawThreshold ({ me }) {
   return isNumber(me?.privates?.autoWithdrawThreshold) ? me?.privates?.autoWithdrawThreshold : 10000
@@ -25,15 +26,12 @@ export function AutowithdrawSettings ({ wallet }) {
     setSendThreshold(Math.max(Math.floor(threshold / 10), 1))
   }, [autoWithdrawThreshold])
 
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const isClient = useIsClient()
 
   return (
     <>
       <Checkbox
-        disabled={mounted && !wallet.isConfigured}
+        disabled={isClient && !wallet.isConfigured}
         label='enabled'
         id='enabled'
         name='enabled'

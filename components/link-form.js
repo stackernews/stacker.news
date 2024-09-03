@@ -16,6 +16,7 @@ import { useMe } from './me'
 import { ItemButtonBar } from './post'
 import { UPSERT_LINK } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
+import useDebounceCallback from './use-debounce-callback'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -25,6 +26,8 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   // if Web Share Target API was used
   const shareUrl = router.query.url
   const shareTitle = router.query.title
+  // allows finer control over dupe accordian layout shift
+  const [dupes, setDupes] = useState()
 
   const [getPageTitleAndUnshorted, { data }] = useLazyQuery(gql`
     query PageTitleAndUnshorted($url: String!) {
@@ -39,9 +42,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       dupes(url: $url) {
         ...ItemFields
       }
-    }`, {
-    onCompleted: () => setPostDisabled(false)
-  })
+    }`)
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`
     ${ITEM_FIELDS}
     query related($title: String!) {
@@ -69,6 +70,8 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
 
   const onSubmit = useItemSubmit(UPSERT_LINK, { item, sub })
 
+  const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args), 1000, [getDupes])
+
   useEffect(() => {
     if (data?.pageTitleAndUnshorted?.title) {
       setTitleOverride(data.pageTitleAndUnshorted.title)
@@ -76,12 +79,18 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   }, [data?.pageTitleAndUnshorted?.title])
 
   useEffect(() => {
+    if (!dupesLoading) {
+      setDupes(dupesData?.dupes)
+    }
+  }, [dupesLoading, dupesData, setDupes])
+
+  useEffect(() => {
     if (data?.pageTitleAndUnshorted?.unshorted) {
-      getDupes({
+      getDupesDebounce({
         variables: { url: data?.pageTitleAndUnshorted?.unshorted }
       })
     }
-  }, [data?.pageTitleAndUnshorted?.unshorted])
+  }, [data?.pageTitleAndUnshorted?.unshorted, getDupesDebounce])
 
   const [postDisabled, setPostDisabled] = useState(false)
   const [titleOverride, setTitleOverride] = useState()
@@ -147,8 +156,8 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           }
           if (e.target.value) {
             setPostDisabled(true)
-            setTimeout(() => setPostDisabled(false), 3000)
-            getDupes({
+            setTimeout(() => setPostDisabled(false), 2000)
+            getDupesDebounce({
               variables: { url: e.target.value }
             })
           }
@@ -164,15 +173,15 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         />
       </AdvPostForm>
       <ItemButtonBar itemId={item?.id} disable={postDisabled}>
-        {!item && dupesLoading &&
-          <div className='d-flex justify-content-center'>
-            <Moon className='spin fill-grey' />
-            <div className='ms-2 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
+        {!item && postDisabled &&
+          <div className='d-flex align-items-center small'>
+            <Moon className='spin fill-grey' height={16} width={16} />
+            <div className='ms-2 text-muted'>searching for dupes</div>
           </div>}
       </ItemButtonBar>
       {!item &&
         <>
-          {dupesData?.dupes?.length > 0 &&
+          {dupes?.length > 0 &&
             <div className='mt-3'>
               <AccordianItem
                 show
@@ -180,7 +189,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
                 header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>dupes</div>}
                 body={
                   <div>
-                    {dupesData.dupes.map((item, i) => (
+                    {dupes.map((item, i) => (
                       <Item item={item} key={item.id} />
                     ))}
                   </div>

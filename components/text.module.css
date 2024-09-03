@@ -128,21 +128,24 @@
     margin-bottom: .5rem;
 }
 
-.text img {
+.text img, .text video {
     display: block;
     margin-top: .5rem;
     margin-bottom: .5rem;
     max-width: 100%;
-    cursor: zoom-in;
     height: auto;
     max-height: 25vh;
-    object-fit: contain;
-    object-position: left top;
     min-width: 50%;
     aspect-ratio: var(--aspect-ratio);
 }
 
-.text img.topLevel {
+.text img {
+    cursor: zoom-in;
+    object-fit: contain;
+    object-position: left top;
+}
+
+.text img.topLevel, .text video.topLevel {
     margin-top: .75rem;
     margin-bottom: .75rem;
     max-height: 35vh;

@@ -19,13 +19,25 @@ export function decodeOriginalUrl (imgproxyUrl) {
   return originalUrl
 }
 
-function ImageOriginal ({ src, topLevel, rel, tab, children, onClick, ...props }) {
+function LinkRaw ({ href, children, src, rel, onClick, ...props }) {
+  const isRawURL = /^https?:\/\//.test(children?.[0])
+  return (
+    // eslint-disable-next-line
+    <a
+      target='_blank'
+      rel={rel ?? UNKNOWN_LINK_REL}
+      href={src}
+    >{isRawURL || !children ? src : children}
+    </a>
+  )
+}
+
+function ImageOriginal ({ src, topLevel, tab, onClick, ...props }) {
   const me = useMe()
   const [showImage, setShowImage] = useState(false)
   const [showVideo, setShowVideo] = useState(false)
 
   useEffect(() => {
-    if (me?.privates?.imgproxyOnly && tab !== 'preview') return
     // make sure it's not a false negative by trying to load URL as <img>
     const img = new window.Image()
     img.onload = () => setShowImage(true)
@@ -42,7 +54,9 @@ function ImageOriginal ({ src, topLevel, rel, tab, children, onClick, ...props }
     }
   }, [src, showImage])
 
-  if (showImage) {
+  const showMedia = (tab === 'preview' || (me?.privates?.showImagesAndVideos !== false && !me?.privates?.imgproxyOnly))
+
+  if (showImage && showMedia) {
     return (
       <img
         className={topLevel ? styles.topLevel : undefined}
@@ -51,23 +65,14 @@ function ImageOriginal ({ src, topLevel, rel, tab, children, onClick, ...props }
         onError={() => setShowImage(false)}
       />
     )
-  } else if (showVideo) {
+  } else if (showVideo && showMedia) {
     return <video src={src} controls />
   } else {
     // user is not okay with loading original url automatically or there was an error loading the image
 
     // If element parsed by markdown is a raw URL, we use src as the text to not mislead users.
     // This will not be the case if [text](url) format is used. Then we will show what was chosen as text.
-    const isRawURL = /^https?:\/\//.test(children?.[0])
-    return (
-      // eslint-disable-next-line
-      <a
-        target='_blank'
-        rel={rel ?? UNKNOWN_LINK_REL}
-        href={src}
-      >{isRawURL || !children ? src : children}
-      </a>
-    )
+    return <LinkRaw src={src} {...props} />
   }
 }
 
@@ -138,6 +143,7 @@ const Image = memo(({ className, src, srcSet, sizes, width, height, onClick, onE
 
 export default function ZoomableImage ({ src, srcSet, ...props }) {
   const showModal = useShowModal()
+  const me = useMe()
 
   // if `srcSet` is falsy, it means the image was not processed by worker yet
   const [trustedDomain, setTrustedDomain] = useState(!!srcSet || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src))
@@ -171,12 +177,16 @@ export default function ZoomableImage ({ src, srcSet, ...props }) {
   if (!src) return null
 
   if (trustedDomain) {
-    return (
-      <TrustedImage
-        src={src} srcSet={srcSet}
-        onClick={handleClick} onError={handleError} {...props}
-      />
-    )
+    if (me?.privates?.showImagesAndVideos !== false) {
+      return (
+        <TrustedImage
+          src={src} srcSet={srcSet}
+          onClick={handleClick} onError={handleError} {...props}
+        />
+      )
+    } else {
+      return <LinkRaw src={src} onClick={handleClick} {...props} />
+    }
   }
 
   return <ImageOriginal src={originalUrl} onClick={handleClick} {...props} />

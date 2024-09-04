@@ -140,6 +140,7 @@ export default function Settings ({ ssrData }) {
             hideNostr: settings?.hideNostr,
             hideTwitter: settings?.hideTwitter,
             imgproxyOnly: settings?.imgproxyOnly,
+            showImagesAndVideos: settings?.showImagesAndVideos,
             wildWestMode: settings?.wildWestMode,
             satsFilter: settings?.satsFilter,
             nsfwMode: settings?.nsfwMode,
@@ -507,6 +508,17 @@ export default function Settings ({ ssrData }) {
             name='satsFilter'
             required
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>show images and video
+                <Info>
+                  <p>disable to show images and videos as links instead of embedding them</p>
+                </Info>
+              </div>
+            }
+            name='showImagesAndVideos'
+            groupClassName='mb-0'
           />
           <Checkbox
             label={

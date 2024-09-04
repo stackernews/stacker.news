@@ -135,13 +135,13 @@
     max-width: 100%;
     height: auto;
     max-height: 25vh;
-    min-width: 50%;
     aspect-ratio: var(--aspect-ratio);
 }
 
 .text img {
     cursor: zoom-in;
     object-fit: contain;
+    min-width: 50%;
     object-position: left top;
 }
 

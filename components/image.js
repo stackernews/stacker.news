@@ -177,7 +177,7 @@ export default function ZoomableImage ({ src, srcSet, ...props }) {
   if (!src) return null
 
   if (trustedDomain) {
-    if (me?.privates?.showImagesAndVideos !== false) {
+    if (props.tab === 'preview' || !me || me.privates.showImagesAndVideos) {
       return (
         <TrustedImage
           src={src} srcSet={srcSet}

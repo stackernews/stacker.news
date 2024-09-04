@@ -163,8 +163,6 @@ export function NavWalletSummary ({ className }) {
 }
 
 export function MeDropdown ({ me, dropNavKey }) {
-  const showModal = useShowModal()
-
   if (!me) return null
   return (
     <div className='position-relative'>
@@ -204,7 +202,6 @@ export function MeDropdown ({ me, dropNavKey }) {
             </Link>
           </div>
           <Dropdown.Divider />
-          <Dropdown.Item onClick={() => showModal(onClose => <SwitchAccountList onClose={onClose} />)}>switch account</Dropdown.Item>
           <LogoutDropdownItem />
         </Dropdown.Menu>
       </Dropdown>
@@ -226,7 +223,7 @@ export function SignUpButton ({ className = 'py-0' }) {
   return (
     <Button
       className={classNames('align-items-center ps-2 pe-3', className)}
-      style={{ borderWidth: '2px', width: '112px' }}
+      style={{ borderWidth: '2px', width: '150px' }}
       id='signup'
       onClick={() => handleLogin('/signup')}
     >
@@ -250,7 +247,7 @@ export default function LoginButton ({ className }) {
     <Button
       className='align-items-center px-3 py-1 mb-2'
       id='login'
-      style={{ borderWidth: '2px', width: '112px' }}
+      style={{ borderWidth: '2px', width: '150px' }}
       variant='outline-grey-darkmode'
       onClick={() => handleLogin('/login')}
     >
@@ -263,37 +260,57 @@ export function LogoutDropdownItem () {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const wallets = useWallets()
   const { multiAuthSignout } = useAccounts()
-
-  return (
-    <Dropdown.Item
-      onClick={async () => {
-        const status = await multiAuthSignout()
-        // only signout if multiAuth did not find a next available account
-        if (status === 201) return
-
-        // order is important because we need to be logged in to delete push subscription on server
-        const pushSubscription = await swRegistration?.pushManager.getSubscription()
-        if (pushSubscription) {
-          await togglePushSubscription().catch(console.error)
-        }
-
-        await wallets.resetClient().catch(console.error)
-
-        await signOut({ callbackUrl: '/' })
-      }}
-    >logout
-    </Dropdown.Item>
-  )
-}
-
-export function LoginButtons () {
   const showModal = useShowModal()
 
   return (
     <>
+      <Dropdown.Item onClick={() => showModal(onClose => <SwitchAccountList onClose={onClose} />)}>switch account</Dropdown.Item>
+      <Dropdown.Item
+        onClick={async () => {
+          const status = await multiAuthSignout()
+          // only signout if multiAuth did not find a next available account
+          if (status === 201) return
+
+          // order is important because we need to be logged in to delete push subscription on server
+          const pushSubscription = await swRegistration?.pushManager.getSubscription()
+          if (pushSubscription) {
+            await togglePushSubscription().catch(console.error)
+          }
+
+          await wallets.resetClient().catch(console.error)
+
+          await signOut({ callbackUrl: '/' })
+        }}
+      >logout
+      </Dropdown.Item>
+    </>
+  )
+}
+
+function SwitchAccountButton () {
+  const showModal = useShowModal()
+  const { accounts } = useAccounts()
+
+  if (accounts.length === 0) return null
+
+  return (
+    <Button
+      className='align-items-center px-3 py-1 mb-2 text-muted'
+      variant='outline-grey-darkmode'
+      style={{ borderWidth: '2px', width: '150px' }}
+      onClick={() => showModal(onClose => <SwitchAccountList onClose={onClose} />)}
+    >
+      switch account
+    </Button>
+  )
+}
+
+export function LoginButtons () {
+  return (
+    <>
       <LoginButton />
-      <SignUpButton className='py-1' />
-      <Button onClick={() => showModal(onClose => <SwitchAccountList onClose={onClose} />)}>switch account</Button>
+      <SignUpButton className='mb-2 py-1' />
+      <SwitchAccountButton />
     </>
   )
 }

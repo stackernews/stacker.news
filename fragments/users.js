@@ -26,6 +26,7 @@ export const ME = gql`
         hideWalletBalance
         hideWelcomeBanner
         imgproxyOnly
+        showImagesAndVideos
         lastCheckedJobs
         nostrCrossposting
         noteAllDescendants
@@ -98,6 +99,7 @@ export const SETTINGS_FIELDS = gql`
       hideTwitter
       hideIsContributor
       imgproxyOnly
+      showImagesAndVideos
       hideWalletBalance
       diagnostics
       noReferralLinks

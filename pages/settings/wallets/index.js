@@ -3,8 +3,9 @@ import Layout from '@/components/layout'
 import styles from '@/styles/wallet.module.css'
 import Link from 'next/link'
 import { useWallets, walletPrioritySort } from 'wallets'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import dynamic from 'next/dynamic'
+import { useIsClient } from '@/components/use-client'
 
 const WalletCard = dynamic(() => import('@/components/wallet-card'), { ssr: false })
 
@@ -29,16 +30,9 @@ async function reorder (wallets, sourceIndex, targetIndex) {
 export default function Wallet ({ ssrData }) {
   const { wallets } = useWallets()
 
-  const [mounted, setMounted] = useState(false)
+  const isClient = useIsClient()
   const [sourceIndex, setSourceIndex] = useState(null)
   const [targetIndex, setTargetIndex] = useState(null)
-
-  useEffect(() => {
-    // mounted is required since draggable is false
-    // for wallets only available on the client during SSR
-    // and thus we need to render the component again on the client
-    setMounted(true)
-  }, [])
 
   const onDragStart = (i) => (e) => {
     // e.dataTransfer.dropEffect = 'move'
@@ -94,7 +88,7 @@ export default function Wallet ({ ssrData }) {
               return walletPrioritySort(w1, w2)
             })
             .map((w, i) => {
-              const draggable = mounted && w.enabled
+              const draggable = isClient && w.enabled
 
               return (
                 <div

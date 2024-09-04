@@ -129,8 +129,8 @@ export function WalletSecurityBanner () {
         Wallet Security Disclaimer
       </Alert.Heading>
       <p className='mb-1'>
-        Your wallet's credentials are stored in the browser and never go to the server.<br />
-        However, you should definitely <strong>set a budget in your wallet</strong>.
+        Your wallet's credentials for spending are stored in the browser and never go to the server.
+        However, you should definitely <strong>set a budget in your wallet</strong> if you can.
       </p>
       <p>
         Also, for the time being, you will have to reenter your credentials on other devices.

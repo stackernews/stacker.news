@@ -63,6 +63,7 @@ model User {
   turboTipping              Boolean              @default(false)
   zapUndos                  Int?
   imgproxyOnly              Boolean              @default(false)
+  showImagesAndVideos       Boolean              @default(true)
   hideWalletBalance         Boolean              @default(false)
   disableFreebies           Boolean?
   referrerId                Int?
@@ -543,6 +544,7 @@ model Item {
   @@index([invoiceId])
   @@index([invoiceActionState])
   @@index([cost])
+  @@index([url])
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item

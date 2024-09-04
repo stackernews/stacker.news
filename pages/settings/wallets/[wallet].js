@@ -1,15 +1,16 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Form, ClientInput, ClientCheckbox, PasswordInput, CheckboxGroup } from '@/components/form'
+import { Form, ClientInput, PasswordInput, CheckboxGroup, Checkbox } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
 import { WalletSecurityBanner } from '@/components/banners'
 import { WalletLogs } from '@/components/wallet-logger'
 import { useToast } from '@/components/toast'
 import { useRouter } from 'next/router'
-import { useWallet, Status } from 'wallets'
+import { useWallet } from 'wallets'
 import Info from '@/components/info'
 import Text from '@/components/text'
 import { AutowithdrawSettings } from '@/components/autowithdraw-shared'
 import dynamic from 'next/dynamic'
+import { useIsClient } from '@/components/use-client'
 
 const WalletButtonBar = dynamic(() => import('@/components/wallet-buttonbar.js'), { ssr: false })
 
@@ -42,9 +43,10 @@ export default function WalletSettings () {
     <CenterLayout>
       <h2 className='pb-2'>{wallet.card.title}</h2>
       <h6 className='text-muted text-center pb-3'><Text>{wallet.card.subtitle}</Text></h6>
-      {!wallet.walletType && wallet.hasConfig > 0 && <WalletSecurityBanner />}
+      {wallet.canSend && wallet.hasConfig > 0 && <WalletSecurityBanner />}
       <Form
         initial={initial}
+        enableReinitialize
         {...validateProps}
         onSubmit={async ({ amount, ...values }) => {
           try {
@@ -70,9 +72,8 @@ export default function WalletSettings () {
           ? <AutowithdrawSettings wallet={wallet} />
           : (
             <CheckboxGroup name='enabled'>
-              <ClientCheckbox
+              <Checkbox
                 disabled={!wallet.isConfigured}
-                initialValue={wallet.status === Status.Enabled}
                 label='enabled'
                 name='enabled'
                 groupClassName='mb-0'
@@ -101,13 +102,15 @@ export default function WalletSettings () {
 }
 
 function WalletFields ({ wallet: { config, fields, isConfigured } }) {
+  const isClient = useIsClient()
+
   return fields
     .map(({ name, label = '', type, help, optional, editable, clientOnly, serverOnly, ...props }, i) => {
       const rawProps = {
         ...props,
         name,
         initialValue: config?.[name],
-        readOnly: isConfigured && editable === false && !!config?.[name],
+        readOnly: isClient && isConfigured && editable === false && !!config?.[name],
         groupClassName: props.hidden ? 'd-none' : undefined,
         label: label
           ? (

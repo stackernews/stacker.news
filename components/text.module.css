@@ -128,27 +128,27 @@
     margin-bottom: .5rem;
 }
 
-.text img {
-    --height: 35vh;
-    --width: 100%;
+.text img, .text video {
     display: block;
     margin-top: .5rem;
     margin-bottom: .5rem;
-    width: auto;
-    max-width: min(var(--width), 100%);
-    cursor: zoom-in;
+    max-width: 100%;
     height: auto;
-    max-height: min(var(--height), 25vh);
-    object-fit: contain;
-    object-position: left top;
+    max-height: 25vh;
     min-width: 50%;
     aspect-ratio: var(--aspect-ratio);
 }
 
-.text img.topLevel {
+.text img {
+    cursor: zoom-in;
+    object-fit: contain;
+    object-position: left top;
+}
+
+.text img.topLevel, .text video.topLevel {
     margin-top: .75rem;
     margin-bottom: .75rem;
-    max-height: min(var(--height), 35vh);
+    max-height: 35vh;
 }
 
 img.fullScreen {

@@ -803,7 +803,7 @@ const StorageKeyPrefixContext = createContext()
 
 export function Form ({
   initial, validate, schema, onSubmit, children, initialError, validateImmediately,
-  storageKeyPrefix, validateOnChange = true, requireSession, innerRef,
+  storageKeyPrefix, validateOnChange = true, requireSession, innerRef, enableReinitialize,
   ...props
 }) {
   const toaster = useToast()
@@ -855,6 +855,7 @@ export function Form ({
   return (
     <Formik
       initialValues={initial}
+      enableReinitialize={enableReinitialize}
       validateOnChange={validateOnChange}
       validate={validate}
       validationSchema={schema}

@@ -1,5 +1,6 @@
+// environment variables are loaded from files and imports run before the rest of the code
+import './loadenv.js'
 import PgBoss from 'pg-boss'
-import nextEnv from '@next/env'
 import createPrisma from '@/lib/create-prisma.js'
 import {
   autoDropBolt11s, checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
@@ -34,10 +35,7 @@ import {
 import { thisDay } from './thisDay.js'
 import { isServiceEnabled } from '@/lib/sndev.js'
 
-const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
-
-loadEnvConfig('.', process.env.NODE_ENV === 'development')
 
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)

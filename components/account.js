@@ -105,7 +105,16 @@ const AccountListRow = ({ account, ...props }) => {
       // order is important to prevent flashes of inconsistent data in switch account dialog
       setIsAnon(account.id === USER_ID.anon)
     }
-    await client.refetchQueries({ include: 'active' })
+    await client.refetchQueries({
+      include: 'active',
+      onQueryUpdated: (query, diff, lastDiff) => {
+        if (anonRow) {
+          // don't fetch queries which require a session
+          if (['WalletByType', 'WalletLogs', 'Settings'].includes(query.queryName)) return
+        }
+        return query.refetch()
+      }
+    })
   }
 
   return (

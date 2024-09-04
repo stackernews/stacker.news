@@ -124,7 +124,7 @@ export const SETTINGS_FIELDS = gql`
 
 export const SETTINGS = gql`
 ${SETTINGS_FIELDS}
-{
+query Settings {
   settings {
     ...SettingsFields
   }

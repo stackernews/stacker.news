@@ -84,6 +84,7 @@ export default gql`
     hideIsContributor: Boolean!
     hideWalletBalance: Boolean!
     imgproxyOnly: Boolean!
+    showImagesAndVideos: Boolean!
     nostrCrossposting: Boolean!
     nostrPubkey: String
     nostrRelays: [String!]
@@ -155,6 +156,7 @@ export default gql`
     hideIsContributor: Boolean!
     hideWalletBalance: Boolean!
     imgproxyOnly: Boolean!
+    showImagesAndVideos: Boolean!
     nostrCrossposting: Boolean!
     nostrPubkey: String
     nostrRelays: [String!]

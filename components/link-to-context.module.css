@@ -29,6 +29,8 @@
 .linkBoxParent textarea,
 .linkBoxParent button,
 .linkBoxParent input,
-.linkBoxParent iframe {
+.linkBoxParent iframe,
+.linkBoxParent video,
+.linkBoxParent img {
     pointer-events: auto !important;
 }

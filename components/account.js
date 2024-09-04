@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { useRouter } from 'next/router'
 import cookie from 'cookie'
 import { useMe } from '@/components/me'
-import { ANON_USER_ID, SSR } from '@/lib/constants'
+import { USER_ID, SSR } from '@/lib/constants'
 import { USER } from '@/fragments/users'
 import { useApolloClient, useQuery } from '@apollo/client'
 import { UserListRow } from '@/components/user-list'
@@ -75,7 +75,7 @@ export const useAccounts = () => useContext(AccountContext)
 const AccountListRow = ({ account, ...props }) => {
   const { isAnon, setIsAnon } = useAccounts()
   const { me, refreshMe } = useMe()
-  const anonRow = account.id === ANON_USER_ID
+  const anonRow = account.id === USER_ID.anon
   const selected = (isAnon && anonRow) || Number(me?.id) === Number(account.id)
   const client = useApolloClient()
 
@@ -103,12 +103,8 @@ const AccountListRow = ({ account, ...props }) => {
     } else {
       await refreshMe()
       // order is important to prevent flashes of inconsistent data in switch account dialog
-      setIsAnon(account.id === ANON_USER_ID)
+      setIsAnon(account.id === USER_ID.anon)
     }
-    // TODO: this throws
-    //   Invalid `prisma.user.findUnique()` invocation:
-    // because for some reason, a USER query with no variables is executed
-    // (next to a USER query with the correct variables)
     await client.refetchQueries({ include: 'active' })
   }
 
@@ -134,7 +130,7 @@ export default function SwitchAccountList () {
     <>
       <div className='my-2'>
         <div className='d-flex flex-column flex-wrap'>
-          <AccountListRow account={{ id: ANON_USER_ID, name: 'anon' }} showHat={false} />
+          <AccountListRow account={{ id: USER_ID.anon, name: 'anon' }} showHat={false} />
           {
             accounts.map((account) => <AccountListRow key={account.id} account={account} showHat={false} />)
           }

@@ -4,7 +4,7 @@ import styles from '../../header.module.css'
 import { useMe } from '@/components/me'
 
 export default function SecondBar (props) {
-  const me = useMe()
+  const { me } = useMe()
   const { topNavKey } = props
   if (!hasNavSelect(props)) return null
   return (

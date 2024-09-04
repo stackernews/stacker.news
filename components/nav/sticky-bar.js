@@ -7,7 +7,7 @@ import classNames from 'classnames'
 
 export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey }) {
   const ref = useRef()
-  const me = useMe()
+  const { me } = useMe()
 
   useEffect(() => {
     const stick = () => {

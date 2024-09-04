@@ -38,7 +38,7 @@ async function share (title, url, toaster) {
 }
 
 export default function Share ({ path, title = '', className = '' }) {
-  const me = useMe()
+  const { me } = useMe()
   const toaster = useToast()
   const url = referrurl(path, me)
 
@@ -56,7 +56,7 @@ export default function Share ({ path, title = '', className = '' }) {
 }
 
 export function CopyLinkDropdownItem ({ item }) {
-  const me = useMe()
+  const { me } = useMe()
   const toaster = useToast()
   const router = useRouter()
   let url = referrurl(`/items/${item.id}`, me)

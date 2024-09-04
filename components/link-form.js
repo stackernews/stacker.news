@@ -21,7 +21,7 @@ import useDebounceCallback from './use-debounce-callback'
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
-  const me = useMe()
+  const { me } = useMe()
   const schema = linkSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareUrl = router.query.url

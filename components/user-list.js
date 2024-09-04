@@ -40,6 +40,31 @@ function seperate (arr, seperator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])
 }
 
+export function UserListRow ({ user, stats, className, onNymClick, showHat = true }) {
+  return (
+    <div className={`${styles.item} mb-2`} key={user.name}>
+      <Link href={`/${user.name}`}>
+        <Image
+          src={user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
+          className={`${userStyles.userimg} me-2`}
+        />
+      </Link>
+      <div className={`${styles.hunk} ${className}`}>
+        <Link
+          href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`} onClick={onNymClick}
+        >
+          @{user.name}{showHat && <Hat className='ms-1 fill-grey' height={14} width={14} user={user} />}
+        </Link>
+        {stats && (
+          <div className={styles.other}>
+            {stats.map((Comp, i) => <Comp key={i} user={user} />)}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function UserBase ({ user, className, children, nymActionDropdown }) {
   return (
     <div className={classNames(styles.item, className)}>
@@ -63,7 +88,7 @@ export function UserBase ({ user, className, children, nymActionDropdown }) {
 }
 
 export function User ({ user, rank, statComps, className = 'mb-2', Embellish, nymActionDropdown = false }) {
-  const me = useMe()
+  const { me } = useMe()
   const showStatComps = statComps && statComps.length > 0
   return (
     <>

@@ -23,6 +23,8 @@ import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
 import { useWallets } from 'wallets'
+import SwitchAccountList, { useAccounts } from '@/components/account'
+import { useShowModal } from '@/components/modal'
 
 export function Brand ({ className }) {
   return (
@@ -137,7 +139,7 @@ export function NavNotifications ({ className }) {
 }
 
 export function WalletSummary () {
-  const me = useMe()
+  const { me } = useMe()
   if (!me) return null
   if (me.privates?.hideWalletBalance) {
     return <HiddenWalletSummary abbreviate fixedWidth />
@@ -146,7 +148,7 @@ export function WalletSummary () {
 }
 
 export function NavWalletSummary ({ className }) {
-  const me = useMe()
+  const { me } = useMe()
   const walletLimitReached = me?.privates?.sats >= msatsToSats(BALANCE_LIMIT_MSATS)
 
   return (
@@ -161,6 +163,8 @@ export function NavWalletSummary ({ className }) {
 }
 
 export function MeDropdown ({ me, dropNavKey }) {
+  const showModal = useShowModal()
+
   if (!me) return null
   return (
     <div className='position-relative'>
@@ -200,6 +204,7 @@ export function MeDropdown ({ me, dropNavKey }) {
             </Link>
           </div>
           <Dropdown.Divider />
+          <Dropdown.Item onClick={() => showModal(onClose => <SwitchAccountList onClose={onClose} />)}>switch account</Dropdown.Item>
           <LogoutDropdownItem />
         </Dropdown.Menu>
       </Dropdown>
@@ -257,9 +262,15 @@ export default function LoginButton ({ className }) {
 export function LogoutDropdownItem () {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const wallets = useWallets()
+  const { multiAuthSignout } = useAccounts()
+
   return (
     <Dropdown.Item
       onClick={async () => {
+        const status = await multiAuthSignout()
+        // only signout if multiAuth did not find a next available account
+        if (status === 201) return
+
         // order is important because we need to be logged in to delete push subscription on server
         const pushSubscription = await swRegistration?.pushManager.getSubscription()
         if (pushSubscription) {
@@ -276,10 +287,13 @@ export function LogoutDropdownItem () {
 }
 
 export function LoginButtons () {
+  const showModal = useShowModal()
+
   return (
     <>
       <LoginButton />
       <SignUpButton className='py-1' />
+      <Button onClick={() => showModal(onClose => <SwitchAccountList onClose={onClose} />)}>switch account</Button>
     </>
   )
 }

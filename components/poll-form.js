@@ -14,7 +14,7 @@ import useItemSubmit from './use-item-submit'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
   const client = useApolloClient()
-  const me = useMe()
+  const { me } = useMe()
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
 
   const onSubmit = useItemSubmit(UPSERT_POLL, { item, sub })

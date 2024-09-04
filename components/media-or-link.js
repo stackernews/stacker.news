@@ -109,7 +109,7 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
 
 // determines how the media should be displayed given the params, me settings, and editor tab
 export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) => {
-  const me = useMe()
+  const { me } = useMe()
   const trusted = useMemo(() => !!srcSetIntital || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [!!srcSetIntital, src])
   const { dimensions, video, format, ...srcSetObj } = srcSetIntital || {}
   const [isImage, setIsImage] = useState(!video && trusted)

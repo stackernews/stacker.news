@@ -64,7 +64,7 @@ function NostrExplainer ({ text }) {
   )
 }
 
-export function NostrAuth ({ text, callbackUrl }) {
+export function NostrAuth ({ text, callbackUrl, multiAuth }) {
   const [createAuth, { data, error }] = useMutation(gql`
     mutation createAuth {
       createAuth {
@@ -112,7 +112,8 @@ export function NostrAuth ({ text, callbackUrl }) {
         try {
           await signIn('nostr', {
             event: JSON.stringify(event),
-            callbackUrl
+            callbackUrl,
+            multiAuth
           })
         } catch (e) {
           throw new Error('authorization failed', e)

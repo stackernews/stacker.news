@@ -14,7 +14,7 @@ import { numWithUnits } from '@/lib/format'
 import { Dropdown } from 'react-bootstrap'
 
 const UpvotePopover = ({ target, show, handleClose }) => {
-  const me = useMe()
+  const { me } = useMe()
   return (
     <Overlay
       show={show}
@@ -107,7 +107,7 @@ export default function UpVote ({ item, className }) {
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
-  const me = useMe()
+  const { me } = useMe()
   const [hover, setHover] = useState(false)
   const [setWalkthrough] = useMutation(
     gql`

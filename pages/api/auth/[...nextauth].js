@@ -7,11 +7,13 @@ import EmailProvider from 'next-auth/providers/email'
 import prisma from '@/api/models'
 import nodemailer from 'nodemailer'
 import { PrismaAdapter } from '@auth/prisma-adapter'
-import { getToken } from 'next-auth/jwt'
-import { NodeNextRequest } from 'next/dist/server/base-http/node'
+import { NodeNextRequest, NodeNextResponse } from 'next/dist/server/base-http/node'
+import { getToken, encode as encodeJWT } from 'next-auth/jwt'
+import { datePivot } from '@/lib/time'
 import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
+import cookie from 'cookie'
 
 /**
  * Stores userIds in user table
@@ -53,7 +55,7 @@ async function getReferrerId (referrer) {
 }
 
 /** @returns {Partial<import('next-auth').CallbacksOptions>} */
-function getCallbacks (req) {
+function getCallbacks (req, res) {
   return {
     /**
      * @param  {object}  token     Decrypted JSON Web Token
@@ -88,6 +90,16 @@ function getCallbacks (req) {
         token.sub = Number(token.id)
       }
 
+      // response is only defined during signup/login
+      if (req && res) {
+        req = new NodeNextRequest(req)
+        res = new NodeNextResponse(res)
+        const secret = process.env.NEXTAUTH_SECRET
+        const jwt = await encodeJWT({ token, secret })
+        const me = await prisma.user.findUnique({ where: { id: token.id } })
+        setMultiAuthCookies(req, res, { ...me, jwt })
+      }
+
       return token
     },
     async session ({ session, token }) {
@@ -100,8 +112,35 @@ function getCallbacks (req) {
   }
 }
 
-async function pubkeyAuth (credentials, req, pubkeyColumnName) {
-  const { k1, pubkey } = credentials
+function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
+  const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
+  const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
+  // default expiration for next-auth JWTs is in 1 month
+  const expiresAt = datePivot(new Date(), { months: 1 })
+  const cookieOptions = {
+    path: '/',
+    httpOnly: true,
+    secure: req.secure,
+    sameSite: 'lax',
+    expires: expiresAt
+  }
+  res.appendHeader('Set-Cookie', cookie.serialize(`multi_auth.${id}`, jwt, cookieOptions))
+  // don't overwrite multi auth cookie, only add
+  let newMultiAuth = [{ id, name, photoId }]
+  if (req.cookies.multi_auth) {
+    const oldMultiAuth = b64Decode(req.cookies.multi_auth)
+    // only add if multi auth does not exist yet
+    if (oldMultiAuth.some(({ id: id_ }) => id_ === id)) return
+    newMultiAuth = [...oldMultiAuth, ...newMultiAuth]
+  }
+  res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', b64Encode(newMultiAuth), { ...cookieOptions, httpOnly: false }))
+}
+
+async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
+  const { k1, pubkey, multiAuth: multiAuthParam } = credentials
+  // multiAuth query param is a string
+  const multiAuth = typeof multiAuthParam === 'string' ? multiAuthParam === 'true' : !!multiAuthParam
+
   try {
     const lnauth = await prisma.lnAuth.findUnique({ where: { k1 } })
     await prisma.lnAuth.delete({ where: { k1 } })
@@ -109,13 +148,21 @@ async function pubkeyAuth (credentials, req, pubkeyColumnName) {
       let user = await prisma.user.findUnique({ where: { [pubkeyColumnName]: pubkey } })
       const token = await getToken({ req })
       if (!user) {
-        // if we are logged in, update rather than create
-        if (token?.id) {
+        // never update account if multi auth is used, only create
+        if (token?.id && !multiAuth) {
+          // TODO: consider multi auth if logged in but user does not exist yet
           user = await prisma.user.update({ where: { id: token.id }, data: { [pubkeyColumnName]: pubkey } })
         } else {
           user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), [pubkeyColumnName]: pubkey } })
         }
       } else if (token && token?.id !== user.id) {
+        if (multiAuth) {
+          // don't switch accounts, we only want to add. switching is done in client via "pointer cookie"
+          const secret = process.env.NEXTAUTH_SECRET
+          const userJWT = await encodeJWT({ token: { id: user.id, name: user.name, email: user.email }, secret })
+          setMultiAuthCookies(req, res, { ...user, jwt: userJWT })
+          return token
+        }
         return null
       }
 
@@ -160,7 +207,7 @@ async function nostrEventAuth (event) {
 }
 
 /** @type {import('next-auth/providers').Provider[]} */
-const providers = [
+const getProviders = res => [
   CredentialsProvider({
     id: 'lightning',
     name: 'Lightning',
@@ -168,7 +215,9 @@ const providers = [
       pubkey: { label: 'publickey', type: 'text' },
       k1: { label: 'k1', type: 'text' }
     },
-    authorize: async (credentials, req) => await pubkeyAuth(credentials, new NodeNextRequest(req), 'pubkey')
+    authorize: async (credentials, req) => {
+      return await pubkeyAuth(credentials, new NodeNextRequest(req), new NodeNextResponse(res), 'pubkey')
+    }
   }),
   CredentialsProvider({
     id: 'nostr',
@@ -178,7 +227,7 @@ const providers = [
     },
     authorize: async ({ event }, req) => {
       const credentials = await nostrEventAuth(event)
-      return await pubkeyAuth(credentials, new NodeNextRequest(req), 'nostrAuthPubkey')
+      return await pubkeyAuth(credentials, new NodeNextRequest(req), new NodeNextResponse(res), 'nostrAuthPubkey')
     }
   }),
   GitHubProvider({
@@ -213,9 +262,9 @@ const providers = [
 ]
 
 /** @returns {import('next-auth').AuthOptions} */
-export const getAuthOptions = req => ({
-  callbacks: getCallbacks(req),
-  providers,
+export const getAuthOptions = (req, res) => ({
+  callbacks: getCallbacks(req, res),
+  providers: getProviders(res),
   adapter: {
     ...PrismaAdapter(prisma),
     createUser: data => {
@@ -299,7 +348,7 @@ async function enrollInNewsletter ({ email }) {
 }
 
 export default async (req, res) => {
-  await NextAuth(req, res, getAuthOptions(req))
+  await NextAuth(req, res, getAuthOptions(req, res))
 }
 
 async function sendVerificationRequest ({

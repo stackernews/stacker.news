@@ -25,7 +25,7 @@ import { useQuoteReply } from './use-quote-reply'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 
 function BioItem ({ item, handleClick }) {
-  const me = useMe()
+  const { me } = useMe()
   if (!item.text) {
     return null
   }

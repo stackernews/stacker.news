@@ -18,7 +18,7 @@ import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/paidAction'
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
   const client = useApolloClient()
-  const me = useMe()
+  const { me } = useMe()
   const [upsertSub] = usePaidMutation(UPSERT_SUB)
   const [unarchiveTerritory] = usePaidMutation(UNARCHIVE_TERRITORY)
 

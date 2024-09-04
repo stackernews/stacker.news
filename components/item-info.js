@@ -33,7 +33,7 @@ export default function ItemInfo ({
   onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true
 }) {
   const editThreshold = new Date(item.invoice?.confirmedAt ?? item.createdAt).getTime() + 10 * 60000
-  const me = useMe()
+  const { me } = useMe()
   const toaster = useToast()
   const router = useRouter()
   const [canEdit, setCanEdit] =
@@ -273,7 +273,7 @@ export default function ItemInfo ({
 }
 
 function InfoDropdownItem ({ item }) {
-  const me = useMe()
+  const { me } = useMe()
   const showModal = useShowModal()
 
   const onClick = () => {

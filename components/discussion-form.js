@@ -22,7 +22,7 @@ export function DiscussionForm ({
 }) {
   const router = useRouter()
   const client = useApolloClient()
-  const me = useMe()
+  const { me } = useMe()
   const onSubmit = useItemSubmit(UPSERT_DISCUSSION, { item, sub })
   const schema = discussionSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used

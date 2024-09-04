@@ -808,7 +808,7 @@ export function Form ({
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
-  const me = useMe()
+  const { me } = useMe()
 
   useEffect(() => {
     if (initialError && !initialErrorToasted.current) {

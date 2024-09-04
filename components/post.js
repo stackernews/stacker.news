@@ -17,7 +17,7 @@ import CancelButton from './cancel-button'
 import { TerritoryInfo } from './territory-header'
 
 export function PostForm ({ type, sub, children }) {
-  const me = useMe()
+  const { me } = useMe()
   const [errorMessage, setErrorMessage] = useState()
 
   const prefix = sub?.name ? `/~${sub.name}` : ''
@@ -150,7 +150,7 @@ export function PostForm ({ type, sub, children }) {
   return (
     <FeeButtonProvider
       baseLineItems={sub ? postCommentBaseLineItems({ baseCost: sub.baseCost, me: !!me }) : undefined}
-      useRemoteLineItems={postCommentUseRemoteLineItems({ me: !!me })}
+      useRemoteLineItems={postCommentUseRemoteLineItems()}
     >
       <FormType sub={sub}>{children}</FormType>
     </FeeButtonProvider>

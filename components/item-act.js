@@ -50,7 +50,7 @@ const setItemMeAnonSats = ({ id, amount }) => {
 
 export default function ItemAct ({ onClose, item, down, children, abortSignal }) {
   const inputRef = useRef(null)
-  const me = useMe()
+  const { me } = useMe()
   const [oValue, setOValue] = useState()
 
   useEffect(() => {
@@ -203,7 +203,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
 
 export function useZap () {
   const act = useAct()
-  const me = useMe()
+  const { me } = useMe()
   const strike = useLightning()
   const toaster = useToast()
 

@@ -27,7 +27,7 @@ const FormStatus = {
 }
 
 export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
-  const me = useMe()
+  const { me } = useMe()
   const { merge } = useFeeButton()
   const router = useRouter()
   const [itemType, setItemType] = useState()

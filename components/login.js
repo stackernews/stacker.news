@@ -9,7 +9,7 @@ import NostrAuth from './nostr-auth'
 import LoginButton from './login-button'
 import { emailSchema } from '@/lib/validate'
 
-export function EmailLoginForm ({ text, callbackUrl }) {
+export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
   return (
     <Form
       initial={{
@@ -17,7 +17,7 @@ export function EmailLoginForm ({ text, callbackUrl }) {
       }}
       schema={emailSchema}
       onSubmit={async ({ email }) => {
-        signIn('email', { email, callbackUrl })
+        signIn('email', { email, callbackUrl, multiAuth })
       }}
     >
       <Input
@@ -48,16 +48,16 @@ export function authErrorMessage (error) {
   return error && (authErrorMessages[error] ?? authErrorMessages.default)
 }
 
-export default function Login ({ providers, callbackUrl, error, text, Header, Footer }) {
+export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer }) {
   const [errorMessage, setErrorMessage] = useState(authErrorMessage(error))
   const router = useRouter()
 
   if (router.query.type === 'lightning') {
-    return <LightningAuthWithExplainer callbackUrl={callbackUrl} text={text} />
+    return <LightningAuthWithExplainer callbackUrl={callbackUrl} text={text} multiAuth={multiAuth} />
   }
 
   if (router.query.type === 'nostr') {
-    return <NostrAuth callbackUrl={callbackUrl} text={text} />
+    return <NostrAuth callbackUrl={callbackUrl} text={text} multiAuth={multiAuth} />
   }
 
   return (
@@ -76,7 +76,7 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
             return (
               <div className='w-100' key={provider.id}>
                 <div className='mt-2 text-center text-muted fw-bold'>or</div>
-                <EmailLoginForm text={text} callbackUrl={callbackUrl} />
+                <EmailLoginForm text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
               </div>
             )
           case 'Lightning':
@@ -103,7 +103,7 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
                 className={`mt-2 ${styles.providerButton}`}
                 key={provider.id}
                 type={provider.id.toLowerCase()}
-                onClick={() => signIn(provider.id, { callbackUrl })}
+                onClick={() => signIn(provider.id, { callbackUrl, multiAuth })}
                 text={`${text || 'Login'} with`}
               />
             )

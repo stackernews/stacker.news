@@ -116,7 +116,7 @@ export default function Settings ({ ssrData }) {
             tipRandomMin: settings?.tipRandomMin || 1,
             tipRandomMax: settings?.tipRandomMax || 10,
             turboTipping: settings?.turboTipping,
-            disableFreebies: settings?.disableFreebies,
+            disableFreebies: settings?.disableFreebies || undefined,
             zapUndos: settings?.zapUndos || (settings?.tipDefault ? 100 * settings.tipDefault : 2100),
             zapUndosEnabled: settings?.zapUndos !== null,
             fiatCurrency: settings?.fiatCurrency || 'USD',

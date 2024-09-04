@@ -141,7 +141,7 @@
 .text img {
     cursor: zoom-in;
     object-fit: contain;
-    min-width: 50%;
+    min-width: 30%;
     object-position: left top;
 }
 

@@ -75,10 +75,10 @@ export default function OffCanvas ({ me, dropNavKey }) {
                     </Link>
                   </div>
                   <Dropdown.Divider />
-                  <LogoutDropdownItem />
+                  <LogoutDropdownItem handleClose={handleClose} />
                 </>
                 )
-              : <LoginButtons />}
+              : <LoginButtons handleClose={handleClose} />}
             <div className={classNames(styles.footerPadding, 'mt-auto')}>
               <Navbar className={classNames('container d-flex flex-row px-0 text-muted')}>
                 <Nav>

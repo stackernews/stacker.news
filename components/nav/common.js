@@ -245,7 +245,7 @@ export default function LoginButton ({ className }) {
 
   return (
     <Button
-      className='align-items-center px-3 py-1 mb-2'
+      className='align-items-center px-3 py-1'
       id='login'
       style={{ borderWidth: '2px', width: '150px' }}
       variant='outline-grey-darkmode'
@@ -256,7 +256,7 @@ export default function LoginButton ({ className }) {
   )
 }
 
-export function LogoutDropdownItem () {
+export function LogoutDropdownItem ({ handleClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const wallets = useWallets()
   const { multiAuthSignout } = useAccounts()
@@ -264,7 +264,12 @@ export function LogoutDropdownItem () {
 
   return (
     <>
-      <Dropdown.Item onClick={() => showModal(onClose => <SwitchAccountList onClose={onClose} />)}>switch account</Dropdown.Item>
+      <Dropdown.Item onClick={() => {
+        handleClose?.()
+        showModal(onClose => <SwitchAccountList onClose={onClose} />)
+      }}
+      >switch account
+      </Dropdown.Item>
       <Dropdown.Item
         onClick={async () => {
           const switchSuccess = await multiAuthSignout()
@@ -287,7 +292,7 @@ export function LogoutDropdownItem () {
   )
 }
 
-function SwitchAccountButton () {
+function SwitchAccountButton ({ handleClose }) {
   const showModal = useShowModal()
   const { accounts } = useAccounts()
 
@@ -295,22 +300,33 @@ function SwitchAccountButton () {
 
   return (
     <Button
-      className='align-items-center px-3 py-1 mb-2 text-muted'
+      className='align-items-center px-3 py-1'
       variant='outline-grey-darkmode'
       style={{ borderWidth: '2px', width: '150px' }}
-      onClick={() => showModal(onClose => <SwitchAccountList onClose={onClose} />)}
+      onClick={() => {
+        // login buttons rendered in offcanvas aren't wrapped inside <Dropdown>
+        // so we manually close the offcanvas in that case by passing down handleClose here
+        handleClose?.()
+        showModal(onClose => <SwitchAccountList onClose={onClose} />)
+      }}
     >
       switch account
     </Button>
   )
 }
 
-export function LoginButtons () {
+export function LoginButtons ({ handleClose }) {
   return (
     <>
-      <LoginButton />
-      <SignUpButton className='mb-2 py-1' />
-      <SwitchAccountButton />
+      <Dropdown.Item>
+        <LoginButton />
+      </Dropdown.Item>
+      <Dropdown.Item>
+        <SignUpButton />
+      </Dropdown.Item>
+      <Dropdown.Item>
+        <SwitchAccountButton handleClose={handleClose} />
+      </Dropdown.Item>
     </>
   )
 }
@@ -330,7 +346,7 @@ export function AnonDropdown ({ path }) {
 
   return (
     <div className='position-relative'>
-      <Dropdown className={styles.dropdown} align='end'>
+      <Dropdown className={styles.dropdown} align='end' autoClose>
         <Dropdown.Toggle className='nav-link nav-item' id='profile' variant='custom'>
           <Nav.Link eventKey='anon' as='span' className='p-0 fw-normal'>
             @anon<Hat user={{ id: USER_ID.anon }} />

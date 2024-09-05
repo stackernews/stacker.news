@@ -116,6 +116,7 @@ export default function Settings ({ ssrData }) {
         {hasOnlyOneAuthMethod(settings?.authMethods) && <AuthBanner />}
         <SettingsHeader />
         <Form
+          enableReinitialize
           initial={{
             tipDefault: settings?.tipDefault || 21,
             tipRandom: settings?.tipRandom,

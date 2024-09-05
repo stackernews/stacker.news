@@ -153,7 +153,7 @@ const AccountListRow = ({ account, ...props }) => {
       onQueryUpdated: (query, diff, lastDiff) => {
         if (anonRow) {
           // don't fetch queries which require a session
-          if (['WalletByType', 'WalletLogs', 'Settings'].includes(query.queryName)) {
+          if (['WalletByType', 'WalletLogs', 'WalletHistory', 'Settings'].includes(query.queryName)) {
             return false
           }
         }

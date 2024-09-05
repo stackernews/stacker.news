@@ -236,7 +236,7 @@ export function SignUpButton ({ className = 'py-0', width }) {
   )
 }
 
-export default function LoginButton ({ className }) {
+export default function LoginButton () {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
     pathname,

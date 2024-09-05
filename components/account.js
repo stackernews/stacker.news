@@ -6,6 +6,7 @@ import { USER_ID, SSR } from '@/lib/constants'
 import { USER } from '@/fragments/users'
 import { useApolloClient, useQuery } from '@apollo/client'
 import { UserListRow } from '@/components/user-list'
+import { Button } from 'react-bootstrap'
 
 const AccountContext = createContext()
 
@@ -138,13 +139,16 @@ export default function SwitchAccountList () {
   return (
     <>
       <div className='my-2'>
-        <div className='d-flex flex-column flex-wrap'>
+        <div className='d-flex flex-column flex-wrap my-2'>
+          <div className='fw-bold'>available accounts</div>
           <AccountListRow account={{ id: USER_ID.anon, name: 'anon' }} showHat={false} />
           {
             accounts.map((account) => <AccountListRow key={account.id} account={account} showHat={false} />)
           }
-          <div style={{ cursor: 'pointer' }} onClick={addAccount}>+ add account</div>
         </div>
+        <Button variant='outline-grey-darkmode' onClick={addAccount}>
+          add account
+        </Button>
       </div>
     </>
   )

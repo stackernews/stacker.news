@@ -7,6 +7,7 @@ import { USER } from '@/fragments/users'
 import { useApolloClient, useQuery } from '@apollo/client'
 import { UserListRow } from '@/components/user-list'
 import { Button } from 'react-bootstrap'
+import { ITEM_FULL } from '@/fragments/items'
 
 const AccountContext = createContext()
 
@@ -80,6 +81,7 @@ const AccountListRow = ({ account, ...props }) => {
   const anonRow = account.id === USER_ID.anon
   const selected = (meAnon && anonRow) || Number(me?.id) === Number(account.id)
   const client = useApolloClient()
+  const router = useRouter()
 
   // fetch updated names and photo ids since they might have changed since we were issued the JWTs
   const [name, setName] = useState(account.name)
@@ -97,7 +99,11 @@ const AccountListRow = ({ account, ...props }) => {
   const onClick = async (e) => {
     // prevent navigation
     e.preventDefault()
+
+    // update pointer cookie
     document.cookie = maybeSecureCookie(`multi_auth.user-id=${anonRow ? 'anonymous' : account.id}; Path=/`)
+
+    // update state
     if (anonRow) {
       // order is important to prevent flashes of no session
       setMeAnon(true)
@@ -107,13 +113,51 @@ const AccountListRow = ({ account, ...props }) => {
       // order is important to prevent flashes of inconsistent data in switch account dialog
       setMeAnon(account.id === USER_ID.anon)
     }
+
+    // account changes on some pages require a hard reload
+    // 1) anons don't have access to some pages
+    // ( search for 'authRequired: true' to find all such pages )
+    const privatePages = ['/notifications', '/territory', '/items/[id]/edit', '/referrals', '/satistics', '/settings', '/wallet', '/~/edit']
+    if (anonRow && privatePages.some(p => router.pathname.startsWith(p))) {
+      router.reload()
+      return
+    }
+
+    const authPages = ['/signup', '/login']
+    // 2) if we're on /signup or /login, reload so we get redirected to the callback url
+    if (!anonRow && authPages.some(p => router.pathname.startsWith(p))) {
+      router.reload()
+      return
+    }
+
+    // 3) not everyone has access to every item
+    if (router.asPath.startsWith('/items')) {
+      const itemId = router.asPath.split('/')[2]
+      // check if we have access to the item
+      const { item } = client.cache.readQuery({
+        query: ITEM_FULL,
+        variables: { id: itemId }
+      })
+
+      const isMine = item.userId === account.id
+      const isPrivate = item.invoice && item.invoice.actionState !== 'PAID'
+
+      if (!isMine && isPrivate) {
+        router.reload()
+        return
+      }
+    }
+
     await client.refetchQueries({
       include: 'active',
       onQueryUpdated: (query, diff, lastDiff) => {
         if (anonRow) {
           // don't fetch queries which require a session
-          if (['WalletByType', 'WalletLogs', 'Settings'].includes(query.queryName)) return
+          if (['WalletByType', 'WalletLogs', 'Settings'].includes(query.queryName)) {
+            return false
+          }
         }
+
         return query.refetch()
       }
     })

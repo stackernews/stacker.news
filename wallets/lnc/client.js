@@ -7,14 +7,14 @@ async function disconnect (lnc, logger) {
   if (lnc) {
     try {
       lnc.disconnect()
-      logger.info('disconnecting...')
+      logger?.info('disconnecting...')
       // wait for lnc to disconnect before releasing the mutex
       await new Promise((resolve, reject) => {
         let counter = 0
         const interval = setInterval(() => {
           if (lnc?.isConnected) {
             if (counter++ > 100) {
-              logger.error('failed to disconnect from lnc')
+              logger?.error('failed to disconnect from lnc')
               clearInterval(interval)
               reject(new Error('failed to disconnect from lnc'))
             }
@@ -24,25 +24,25 @@ async function disconnect (lnc, logger) {
           resolve()
         })
       }, 50)
-      logger.info('disconnected')
+      logger?.info('disconnected')
     } catch (err) {
-      logger.error('failed to disconnect from lnc', err)
+      logger?.error('failed to disconnect from lnc', err)
     }
   }
 }
 
-export async function testSendPayment (credentials, { logger }) {
+export async function transformConfig (credentials, { logger }) {
   let lnc
   try {
     lnc = await getLNC(credentials)
 
-    logger.info('connecting ...')
+    logger?.info('connecting ...')
     await lnc.connect()
-    logger.ok('connected')
+    logger?.ok('connected')
 
-    logger.info('validating permissions ...')
+    logger?.info('validating permissions ...')
     await validateNarrowPerms(lnc)
-    logger.ok('permissions ok')
+    logger?.ok('permissions ok')
 
     return lnc.credentials.credentials
   } finally {

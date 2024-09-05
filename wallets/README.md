@@ -150,21 +150,15 @@ The badges that are shown inside the card.
 
 A wallet that supports paying invoices must export the following properties in client.js which are only available if this wallet is imported on the client:
 
-- `testSendPayment: async (config, context) => Promise<void>`
-
-`testSendPayment` will be called during submit on the client to validate the configuration (that is passed as the first argument) more thoroughly than the initial validation by `fieldValidation`. It contains validation code that should only be called during submits instead of possibly on every change like `fieldValidation`.
-
-How this validation is implemented depends heavily on the wallet. For example, for NWC, this function attempts to fetch the info event from the relay specified in the connection string whereas for LNbits, it makes an HTTP request to /api/v1/wallet using the given URL and API key.
-
-This function must throw an error if the configuration was found to be invalid.
-
-The `context` argument is an object. It makes the wallet logger for this wallet as returned by `useWalletLogger` available under `context.logger`. See [components/wallet-logger.js](../components/wallet-logger.js).
-
 - `sendPayment: async (bolt11: string, config, context) => Promise<string>`
 
-`sendPayment` will be called if a payment is required. Therefore, this function should implement the code to pay invoices from this wallet.
+`sendPayment` will be called if a payment is required. It will also be called during validation to pay a test invoice. Therefore, this function must implement the code to pay invoices from this wallet.
 
-The first argument is the [BOLT11 payment request](https://github.com/lightning/bolts/blob/master/11-payment-encoding.md). The `config` argument is the current configuration of this wallet (that was validated before). The `context` argument is the same as for `testSendPayment`. The function should return the preimage on payment success.
+The first argument is the [BOLT11 payment request](https://github.com/lightning/bolts/blob/master/11-payment-encoding.md). The `config` argument is the current configuration of this wallet (that was validated before). The `context` argument is an object that optionally includes the wallet logger (it is not included during test payments). The function must return the preimage on payment success.
+
+- `transformConfig: async (config, context) => Promise<any>`
+
+This is an optional function that can be used to transform the configuration right before it gets saved.
 
 > [!IMPORTANT]
 > As mentioned above, this file must exist for every wallet and at least reexport everything in index.js so make sure that the following line is included:
@@ -203,7 +197,7 @@ A wallet that supports receiving must export the following properties in server.
 
 It should attempt to create a test invoice to make sure that this wallet can later create invoices for receiving.
 
-Again, like `testSendPayment`, the first argument is the wallet configuration that we should validate and this should thrown an error if validation fails. However, unlike `testSendPayment`, the `context` argument here contains `me` (the user object) and `models` (the Prisma client).
+The first argument is the wallet configuration that we should validate and this should thrown an error if validation fails. The `context` argument here contains `me` (the user object) and `models` (the Prisma client).
 
 - `createInvoice: async (invoiceParams, config, context) => Promise<bolt11: string>`
 

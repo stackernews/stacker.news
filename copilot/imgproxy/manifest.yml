@@ -16,7 +16,7 @@ http:
 
 # Configuration for your containers and service.
 image:
-  location: ${PRIVATE_REPO}/imgproxy:v3.21.0-ml-amd64
+  location: docker.imgproxy.pro/imgproxy:v3.25.0-ml-amd64
   # Port exposed through your container to route traffic to it.
   port: 8080
 
@@ -49,6 +49,7 @@ variables: # Pass environment variables as key value pairs.
   IMGPROXY_WRITE_TIMEOUT: 10
   IMGPROXY_DOWNLOAD_TIMEOUT: 9
   IMGPROXY_WORKERS: 4
+  IMGPROXY_ENABLE_VIDEO_THUMBNAILS: 1
 
 secrets:                      # Pass secrets from AWS Systems Manager (SSM) Parameter Store.
   IMGPROXY_KEY: /copilot/${COPILOT_APPLICATION_NAME}/${COPILOT_ENVIRONMENT_NAME}/secrets/imgproxy_key

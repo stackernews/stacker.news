@@ -12,8 +12,8 @@ import LinkIcon from '@/svgs/link.svg'
 import Thumb from '@/svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
-import ZoomableImage, { decodeOriginalUrl } from './image'
-import { IMGPROXY_URL_REGEXP, parseInternalLinks, parseEmbedUrl } from '@/lib/url'
+import MediaOrLink from './media-or-link'
+import { IMGPROXY_URL_REGEXP, parseInternalLinks, parseEmbedUrl, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
 import { rehypeInlineCodeProperty, rehypeStyler } from '@/lib/md'
 import { Button } from 'react-bootstrap'
@@ -143,14 +143,14 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
 
   const P = useCallback(({ children, node, ...props }) => <div className={styles.p} {...props}>{children}</div>, [])
 
-  const Img = useCallback(({ node, src, ...props }) => {
-    const url = IMGPROXY_URL_REGEXP.test(src) ? decodeOriginalUrl(src) : src
-    // if outlawed, render the image link as text
+  const TextMediaOrLink = useCallback(({ node, src, ...props }) => {
+    const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
+    // if outlawed, render the media link as text
     if (outlawed) {
       return url
     }
     const srcSet = imgproxyUrls?.[url]
-    return <ZoomableImage srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} topLevel={topLevel} />
+    return <MediaOrLink srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} topLevel={topLevel} />
   }, [imgproxyUrls, topLevel, tab])
 
   return (
@@ -312,9 +312,9 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             }
 
             // assume the link is an image which will fallback to link if it's not
-            return <Img src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</Img>
+            return <TextMediaOrLink src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</TextMediaOrLink>
           },
-          img: Img
+          img: TextMediaOrLink
         }}
         remarkPlugins={[gfm, mention, sub]}
         rehypePlugins={[rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript]}

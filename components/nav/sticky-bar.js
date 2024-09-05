@@ -49,7 +49,7 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey })
           >
             <Back />
             <NavPrice className='flex-shrink-1 flex-grow-0' />
-            {me ? <NavWalletSummary className='px-2' /> : <SignUpButton />}
+            {me ? <NavWalletSummary className='px-2' /> : <SignUpButton width='fit-content' />}
           </Nav>
         </Navbar>
       </Container>

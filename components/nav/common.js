@@ -213,7 +213,7 @@ export function MeDropdown ({ me, dropNavKey }) {
   )
 }
 
-export function SignUpButton ({ className = 'py-0' }) {
+export function SignUpButton ({ className = 'py-0', width }) {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
     pathname,
@@ -223,7 +223,7 @@ export function SignUpButton ({ className = 'py-0' }) {
   return (
     <Button
       className={classNames('align-items-center ps-2 pe-3', className)}
-      style={{ borderWidth: '2px', width: '150px' }}
+      style={{ borderWidth: '2px', width: width || '150px' }}
       id='signup'
       onClick={() => handleLogin('/signup')}
     >

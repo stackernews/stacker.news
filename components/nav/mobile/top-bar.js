@@ -17,7 +17,7 @@ export default function TopBar ({ prefix, sub, path, pathname, topNavKey, dropNa
           : (
             <>
               <NavPrice className='flex-shrink-1' />
-              {me ? <NavWalletSummary /> : <SignUpButton />}
+              {me ? <NavWalletSummary /> : <SignUpButton width='fit-content' />}
             </>)}
       </Nav>
     </Navbar>

@@ -34,6 +34,7 @@ import {
 } from './paidAction.js'
 import { thisDay } from './thisDay.js'
 import { isServiceEnabled } from '@/lib/sndev.js'
+import { payWeeklyPostBounty, weeklyPost } from './weeklyPosts.js'
 
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
 
@@ -116,6 +117,8 @@ async function work () {
     await boss.work('imgproxy', jobWrapper(imgproxy))
     await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
   }
+  await boss.work('weeklyPost-*', jobWrapper(weeklyPost))
+  await boss.work('payWeeklyPostBounty', jobWrapper(payWeeklyPostBounty))
   await boss.work('repin-*', jobWrapper(repin))
   await boss.work('trust', jobWrapper(trust))
   await boss.work('timestampItem', jobWrapper(timestampItem))

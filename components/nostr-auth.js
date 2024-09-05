@@ -142,14 +142,14 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
   )
 }
 
-export default function NostrAuthWithExplainer ({ text, callbackUrl }) {
+export function NostrAuthWithExplainer ({ text, callbackUrl, multiAuth }) {
   const router = useRouter()
   return (
     <Container>
       <div className={styles.login}>
         <div className='w-100 mb-3 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>
         <h3 className='w-100 pb-2'>{text || 'Login'} with Nostr</h3>
-        <NostrAuth text={text} callbackUrl={callbackUrl} />
+        <NostrAuth text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
       </div>
     </Container>
   )

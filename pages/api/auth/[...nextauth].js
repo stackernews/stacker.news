@@ -137,9 +137,10 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
 }
 
 async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
-  const { k1, pubkey, multiAuth: multiAuthParam } = credentials
-  // multiAuth query param is a string
-  const multiAuth = typeof multiAuthParam === 'string' ? multiAuthParam === 'true' : !!multiAuthParam
+  const { k1, pubkey } = credentials
+
+  const { body } = req.body
+  const multiAuth = typeof body.multiAuth === 'string' ? body.multiAuth === 'true' : !!body.multiAuth
 
   try {
     const lnauth = await prisma.lnAuth.findUnique({ where: { k1 } })

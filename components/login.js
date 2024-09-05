@@ -5,7 +5,7 @@ import { useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import { useRouter } from 'next/router'
 import { LightningAuthWithExplainer } from './lightning-auth'
-import NostrAuth from './nostr-auth'
+import { NostrAuthWithExplainer } from './nostr-auth'
 import LoginButton from './login-button'
 import { emailSchema } from '@/lib/validate'
 
@@ -57,7 +57,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
   }
 
   if (router.query.type === 'nostr') {
-    return <NostrAuth callbackUrl={callbackUrl} text={text} multiAuth={multiAuth} />
+    return <NostrAuthWithExplainer callbackUrl={callbackUrl} text={text} multiAuth={multiAuth} />
   }
 
   return (

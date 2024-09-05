@@ -165,7 +165,13 @@ const AccountListRow = ({ account, ...props }) => {
 
   return (
     <div className='d-flex flex-row'>
-      <UserListRow user={{ ...account, photoId, name }} className='d-flex align-items-center me-2' {...props} onNymClick={onClick} selected={selected} />
+      <UserListRow
+        user={{ ...account, photoId, name }}
+        className='d-flex align-items-center me-2'
+        {...props}
+        onNymClick={onClick}
+        selected={selected}
+      />
     </div>
   )
 }

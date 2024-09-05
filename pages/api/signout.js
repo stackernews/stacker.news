@@ -53,7 +53,7 @@ export default (req, res) => {
     cookie.serialize(sessionCookieName, newUserJWT, cookieOptions)
   ])
 
-  res.status(201).end()
+  res.status(302).end()
 }
 
 const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')

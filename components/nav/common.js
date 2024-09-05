@@ -267,9 +267,9 @@ export function LogoutDropdownItem () {
       <Dropdown.Item onClick={() => showModal(onClose => <SwitchAccountList onClose={onClose} />)}>switch account</Dropdown.Item>
       <Dropdown.Item
         onClick={async () => {
-          const status = await multiAuthSignout()
+          const switchSuccess = await multiAuthSignout()
           // only signout if multiAuth did not find a next available account
-          if (status === 201) return
+          if (switchSuccess) return
 
           // order is important because we need to be logged in to delete push subscription on server
           const pushSubscription = await swRegistration?.pushManager.getSubscription()

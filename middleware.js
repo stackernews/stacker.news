@@ -128,8 +128,6 @@ export const config = {
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' }
       ]
-    },
-    // account switching
-    '/api/graphql', '/_next/data/(.*)'
+    }
   ]
 }

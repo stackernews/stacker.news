@@ -40,12 +40,12 @@ function seperate (arr, seperator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])
 }
 
-export function UserListRow ({ user, stats, className, onNymClick, showHat = true }) {
+export function UserListRow ({ user, stats, className, onNymClick, showHat = true, selected }) {
   return (
     <div className={`${styles.item} mb-2`} key={user.name}>
       <Link href={`/${user.name}`}>
         <Image
-          src={user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
+          src={user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
           className={`${userStyles.userimg} me-2`}
         />
       </Link>

@@ -1,7 +1,7 @@
 import { InvoiceCanceledError, InvoiceExpiredError } from '@/components/payment'
 import { bolt11Tags } from '@/lib/bolt11'
 import { Mutex } from 'async-mutex'
-import { LncCredentialStore, checkPerms } from 'wallets/lnc'
+import { computePerms } from 'wallets/lnc'
 
 export * from 'wallets/lnc'
 
@@ -42,7 +42,7 @@ export async function testSendPayment (credentials, { logger }) {
     logger.ok('connected')
 
     logger.info('validating permissions ...')
-    checkPerms(lnc, { canSend: true })
+    checkPerms(lnc, computePerms({ canSend: true }))
     logger.ok('permissions ok')
 
     return lnc.credentials.credentials
@@ -89,4 +89,78 @@ async function getLNC (credentials = {}) {
   return new LNC({
     credentialStore: new LncCredentialStore({ ...credentials, serverHost: 'mailbox.terminal.lightning.today:443' })
   })
+}
+
+function checkPerms (lnc, { expectedPerms, unexpectedPerms }) {
+  for (const perm of expectedPerms) {
+    if (!lnc.hasPerms(perm)) {
+      throw new Error('missing permission: ' + perm)
+    }
+  }
+
+  for (const perm of unexpectedPerms) {
+    if (lnc.hasPerms(perm)) {
+      throw new Error('unexpected permission: ' + perm)
+    }
+  }
+}
+
+// default credential store can go fuck itself
+class LncCredentialStore {
+  credentials = {
+    localKey: '',
+    remoteKey: '',
+    pairingPhrase: '',
+    serverHost: ''
+  }
+
+  constructor (credentials = {}) {
+    this.credentials = { ...this.credentials, ...credentials }
+  }
+
+  get password () {
+    return ''
+  }
+
+  set password (password) { }
+
+  get serverHost () {
+    return this.credentials.serverHost
+  }
+
+  set serverHost (host) {
+    this.credentials.serverHost = host
+  }
+
+  get pairingPhrase () {
+    return this.credentials.pairingPhrase
+  }
+
+  set pairingPhrase (phrase) {
+    this.credentials.pairingPhrase = phrase
+  }
+
+  get localKey () {
+    return this.credentials.localKey
+  }
+
+  set localKey (key) {
+    this.credentials.localKey = key
+  }
+
+  get remoteKey () {
+    return this.credentials.remoteKey
+  }
+
+  set remoteKey (key) {
+    this.credentials.remoteKey = key
+  }
+
+  get isPaired () {
+    return !!this.credentials.remoteKey || !!this.credentials.pairingPhrase
+  }
+
+  clear () {
+    this.credentials = {}
+  }
 }

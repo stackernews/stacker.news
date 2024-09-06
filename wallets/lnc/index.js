@@ -77,7 +77,7 @@ export const walletType = 'LNC'
 
 export const walletField = 'walletLNC'
 
-export function checkPerms (lnc, { canSend, canReceive }, strict = true) {
+export function computePerms ({ canSend, canReceive }, strict = true) {
   const expectedPerms = []
   const unexpectedPerms = []
   const setPerm = (name, expected) => {
@@ -98,75 +98,5 @@ export function checkPerms (lnc, { canSend, canReceive }, strict = true) {
     // ...
   }
 
-  for (const perm of expectedPerms) {
-    if (!lnc.hasPerms(perm)) {
-      throw new Error('missing permission: ' + perm)
-    }
-  }
-
-  for (const perm of unexpectedPerms) {
-    if (lnc.hasPerms(perm)) {
-      throw new Error('unexpected permission: ' + perm)
-    }
-  }
-}
-
-// default credential store can go fuck itself
-export class LncCredentialStore {
-  credentials = {
-    localKey: '',
-    remoteKey: '',
-    pairingPhrase: '',
-    serverHost: ''
-  }
-
-  constructor (credentials = {}) {
-    this.credentials = { ...this.credentials, ...credentials }
-  }
-
-  get password () {
-    return ''
-  }
-
-  set password (password) { }
-
-  get serverHost () {
-    return this.credentials.serverHost
-  }
-
-  set serverHost (host) {
-    this.credentials.serverHost = host
-  }
-
-  get pairingPhrase () {
-    return this.credentials.pairingPhrase
-  }
-
-  set pairingPhrase (phrase) {
-    this.credentials.pairingPhrase = phrase
-  }
-
-  get localKey () {
-    return this.credentials.localKey
-  }
-
-  set localKey (key) {
-    this.credentials.localKey = key
-  }
-
-  get remoteKey () {
-    return this.credentials.remoteKey
-  }
-
-  set remoteKey (key) {
-    this.credentials.remoteKey = key
-  }
-
-  get isPaired () {
-    return !!this.credentials.remoteKey || !!this.credentials.pairingPhrase
-  }
-
-  clear () {
-    this.credentials = {}
-  }
+  return { expectedPerms, unexpectedPerms }
 }

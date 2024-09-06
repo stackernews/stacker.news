@@ -82,7 +82,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     }
   }, [containerRef.current, setOverflowing])
 
-  const slugger = new GithubSlugger()
+  const slugger = useMemo(() => new GithubSlugger(), [])
 
   const Heading = useCallback(({ children, node, ...props }) => {
     const [copied, setCopied] = useState(false)
@@ -120,7 +120,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
           </a>}
       </span>
     )
-  }, [topLevel, noFragments, slugger.current])
+  }, [topLevel, noFragments, slugger])
 
   const Table = useCallback(({ node, ...props }) =>
     <span className='table-responsive'>

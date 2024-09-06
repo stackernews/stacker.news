@@ -152,7 +152,7 @@ const useMediaHelper = ({ src, srcSet: { dimensions, video, ...srcSetObj } = {},
       return [style, width, height]
     }
     return []
-  }, [dimensions])
+  }, [dimensions?.width, dimensions?.height])
 
   return {
     src,

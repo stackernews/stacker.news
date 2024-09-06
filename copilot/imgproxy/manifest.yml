@@ -16,7 +16,7 @@ http:
 
 # Configuration for your containers and service.
 image:
-  location: docker.imgproxy.pro/imgproxy:v3.25.0-ml-amd64
+  location: ${PRIVATE_REPO}/imgproxy:latest
   # Port exposed through your container to route traffic to it.
   port: 8080
 

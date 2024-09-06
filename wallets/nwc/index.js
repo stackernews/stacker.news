@@ -1,7 +1,7 @@
 import { Relay } from '@/lib/nostr'
 import { parseNwcUrl } from '@/lib/url'
 import { nwcSchema } from '@/lib/validate'
-import { finalizeEvent, nip04 } from 'nostr-tools'
+import { finalizeEvent, nip04, verifyEvent } from 'nostr-tools'
 
 export const name = 'nwc'
 
@@ -75,13 +75,15 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } =
 
     logger?.ok('response received')
 
+    if (!verifyEvent(response)) throw new Error('invalid response: failed to verify')
+
     const decrypted = await nip04.decrypt(secret, walletPubkey, response.content)
     const content = JSON.parse(decrypted)
 
     if (content.error) throw new Error(content.error.message)
     if (content.result) return content.result
 
-    throw new Error('invalid response')
+    throw new Error('invalid response: missing error or result')
   } finally {
     relay?.close()
     logger?.info(`closed connection to ${relayUrl}`)

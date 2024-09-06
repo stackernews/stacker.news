@@ -52,16 +52,22 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } =
       tags: [['p', walletPubkey]],
       content: encrypted
     }, secret)
+
+    // we need to subscribe to the response before publishing the request
+    // since NWC events are ephemeral (20000 <= kind < 30000)
+    const subscription = relay.fetch([{
+      kinds: [23195],
+      authors: [walletPubkey],
+      '#e': [request.id]
+    }], { timeout })
+
     await relay.publish(request, { timeout })
 
     logger?.info(`published ${method} request`)
 
     logger?.info('waiting for response ...')
-    const [response] = await relay.fetch([{
-      kinds: [23195],
-      authors: [walletPubkey],
-      '#e': [request.id]
-    }], { timeout })
+
+    const [response] = await subscription
 
     if (!response) {
       throw new Error('no response')

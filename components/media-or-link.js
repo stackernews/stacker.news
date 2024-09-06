@@ -91,7 +91,12 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
     }
 
     if (media.embed) {
-      return <Embed {...media.embed} className={media.className} onError={handleError} topLevel={props.topLevel} />
+      return (
+        <Embed
+          {...media.embed} src={media.src}
+          className={media.className} onError={handleError} topLevel={props.topLevel}
+        />
+      )
     }
   }
 
@@ -200,7 +205,7 @@ function TweetSkeleton ({ className }) {
   )
 }
 
-export const Embed = memo(function Embed ({ provider, id, meta, className, topLevel, onError }) {
+export const Embed = memo(function Embed ({ src, provider, id, meta, className, topLevel, onError }) {
   const [darkMode] = useDarkMode()
   const [overflowing, setOverflowing] = useState(false)
   const [show, setShow] = useState(false)
@@ -227,7 +232,31 @@ export const Embed = memo(function Embed ({ provider, id, meta, className, topLe
   if (provider === 'wavlake') {
     return (
       <div className={classNames(styles.wavlakeWrapper, className)}>
-        <iframe src={`https://embed.wavlake.com/track/${id}`} width='100%' height='380' frameBorder='0' />
+        <iframe
+          src={`https://embed.wavlake.com/track/${id}`} width='100%' height='380' frameBorder='0'
+          allow='encrypted-media'
+        />
+      </div>
+    )
+  }
+
+  if (provider === 'spotify') {
+    // https://open.spotify.com/track/1KFxcj3MZrpBGiGA8ZWriv?si=f024c3aa52294aa1
+    // Remove any additional path segments
+    const url = new URL(src)
+    url.pathname = url.pathname.replace(/\/intl-\w+\//, '/')
+    return (
+      <div className={classNames(styles.spotifyWrapper, className)}>
+        <iframe
+          title='Spotify Web Player'
+          src={`https://open.spotify.com/embed${url.pathname}`}
+          width='100%'
+          height='152'
+          allowfullscreen=''
+          frameBorder='0'
+          allow='encrypted-media; clipboard-write;'
+          style={{ borderRadius: '12px' }}
+        />
       </div>
     )
   }

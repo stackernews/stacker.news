@@ -371,6 +371,15 @@ img.fullScreen {
 .wavlakeWrapper {
     width: 100%;
     height: 380px;
+    max-width: 480px;
     border-radius: 1.65rem;
+    overflow: hidden;
+}
+
+.spotifyWrapper {
+    width: 100%;
+    height: 152px;
+    max-width: 480px;
+    border-radius: 13px;
     overflow: hidden;
 }

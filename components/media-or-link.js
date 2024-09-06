@@ -71,15 +71,17 @@ export default function MediaOrLink (props) {
       </Dropdown.Item>)
   }), [showModal, media.originalSrc, styles, media.bestResSrc])
 
+  const handleError = useCallback((err) => {
+    console.error('Error loading media', err)
+    setError(true)
+  }, [setError])
+
   if (!media.src) return null
 
   if (!error && (media.image || media.video)) {
     return (
       <Media
-        {...media} onClick={handleClick} onError={(err) => {
-          console.error('Error loading media', err)
-          setError(true)
-        }}
+        {...media} onClick={handleClick} onError={handleError}
       />
     )
   }
@@ -90,14 +92,14 @@ export default function MediaOrLink (props) {
 // determines how the media should be displayed given the params, me settings, and editor tab
 const useMediaHelper = ({ src, srcSet: { dimensions, video, ...srcSetObj } = {}, topLevel, tab }) => {
   const me = useMe()
-  const trusted = useMemo(() => !!srcSetObj || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [srcSetObj, src])
+  const trusted = useMemo(() => !!srcSetObj || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [!!srcSetObj, src])
   const [isImage, setIsImage] = useState(!video && trusted)
   const [isVideo, setIsVideo] = useState(video)
   const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [tab, me?.privates?.showImagesAndVideos])
 
   useEffect(() => {
     // don't load the video at all if use doesn't want these
-    if (!showMedia || isVideo) return
+    if (!showMedia || isVideo || isImage) return
     // make sure it's not a false negative by trying to load URL as <img>
     const img = new window.Image()
     img.onload = () => setIsImage(true)
@@ -125,7 +127,7 @@ const useMediaHelper = ({ src, srcSet: { dimensions, video, ...srcSetObj } = {},
       return acc + `${url} ${wDescriptor}` + (i < arr.length - 1 ? ', ' : '')
     }, '')
   }, [srcSetObj])
-  const sizes = srcSet ? `${(topLevel ? 100 : 66)}vw` : undefined
+  const sizes = useMemo(() => srcSet ? `${(topLevel ? 100 : 66)}vw` : undefined)
 
   // get source url in best resolution
   const bestResSrc = useMemo(() => {

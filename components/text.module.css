@@ -128,24 +128,33 @@
     margin-bottom: .5rem;
 }
 
-.text img, .text video {
+.text .mediaContainer {
     display: block;
     margin-top: .5rem;
     margin-bottom: .5rem;
-    max-width: 100%;
+    width: 100%;
     height: auto;
+    overflow: hidden;
     max-height: 25vh;
     aspect-ratio: var(--aspect-ratio);
 }
 
-.text img {
-    cursor: zoom-in;
+.mediaContainer img, .mediaContainer video {
+    display: block;
     object-fit: contain;
+    width: auto;
+    max-height: inherit;
+    height: 100%;
+    aspect-ratio: var(--aspect-ratio);
+}
+
+.mediaContainer img {
+    cursor: zoom-in;
     min-width: 30%;
     object-position: left top;
 }
 
-.text img.topLevel, .text video.topLevel {
+.mediaContainer.topLevel {
     margin-top: .75rem;
     margin-bottom: .75rem;
     max-height: 35vh;

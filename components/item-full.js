@@ -3,7 +3,7 @@ import ItemJob from './item-job'
 import Reply from './reply'
 import Comment from './comment'
 import Text, { SearchText } from './text'
-import ZoomableImage from './image'
+import MediaOrLink from './media-or-link'
 import Comments from './comments'
 import styles from '@/styles/item.module.css'
 import itemStyles from './item.module.css'
@@ -131,7 +131,7 @@ function ItemEmbed ({ item }) {
   }
 
   if (item.url?.match(IMGPROXY_URL_REGEXP)) {
-    return <ZoomableImage src={item.url} rel={item.rel ?? UNKNOWN_LINK_REL} />
+    return <MediaOrLink src={item.url} rel={item.rel ?? UNKNOWN_LINK_REL} />
   }
 
   return null

@@ -101,14 +101,9 @@ export default function Settings ({ ssrData }) {
 
   const { data } = useQuery(SETTINGS)
   const { settings: { privates: settings } } = useMemo(() => data ?? ssrData, [data, ssrData])
-  if (!data && !ssrData) return <PageLoading />
 
-  // if we switched to anon, me is no longer defined
-  const router = useRouter()
-  if (!me) {
-    router.push('/login')
-    return null
-  }
+  // if we switched to anon, me is null before the page is reloaded
+  if ((!data && !ssrData) || !me) return <PageLoading />
 
   return (
     <Layout>

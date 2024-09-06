@@ -448,12 +448,12 @@ export default function Settings ({ ssrData }) {
             />}
           <Checkbox
             label={
-              <div className='d-flex align-items-center'>only load images from proxy
+              <div className='d-flex align-items-center'>do not load images, videos, or content from external sites
                 <Info>
-                  <ul className='fw-bold'>
-                    <li>only load images from our image proxy automatically</li>
+                  <ul>
+                    <li>only load images and videos when we can proxy them</li>
                     <li>this prevents IP address leaks to arbitrary sites</li>
-                    <li>if we fail to load an image, the raw link will be shown</li>
+                    <li>the raw link will be shown instead</li>
                   </ul>
                 </Info>
               </div>
@@ -511,9 +511,9 @@ export default function Settings ({ ssrData }) {
           />
           <Checkbox
             label={
-              <div className='d-flex align-items-center'>show images and video
+              <div className='d-flex align-items-center'>show images, video, and 3rd party embeds
                 <Info>
-                  <p>disable to show images and videos as links instead of embedding them</p>
+                  <p>uncheck to show links for images, video, and 3rd party embeds instead of embedding them</p>
                 </Info>
               </div>
             }

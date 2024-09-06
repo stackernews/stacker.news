@@ -23,6 +23,7 @@ import classNames from 'classnames'
 import removeMd from 'remove-markdown'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
 import ItemPopover from './item-popover'
+import { useMe } from './me'
 
 function onItemClick (e, router, item) {
   const viewedAt = commentsViewedAt(item)
@@ -49,8 +50,12 @@ export function SearchTitle ({ title }) {
 }
 
 function mediaType ({ url, imgproxyUrls }) {
+  const me = useMe()
   const src = IMGPROXY_URL_REGEXP.test(url) ? decodeProxyUrl(url) : url
-  if (!imgproxyUrls?.[src]) return
+  if (!imgproxyUrls?.[src] ||
+    me?.privates?.showImagesAndVideos === false ||
+    // we don't proxy videos even if we have thumbnails
+    (me?.privates?.imgproxyOnly && imgproxyUrls?.[src]?.video)) return
   return imgproxyUrls?.[src]?.video ? 'video' : 'image'
 }
 

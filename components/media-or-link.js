@@ -181,7 +181,7 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
     className: classNames(topLevel && styles.topLevel),
     image: (!me?.privates?.imgproxyOnly || trusted) && showMedia && isImage && !isVideo && !embed,
     video: !me?.privates?.imgproxyOnly && showMedia && isVideo && !embed,
-    embed: showMedia ? embed : undefined
+    embed: !me?.privates?.imgproxyOnly && showMedia && embed
   }
 }
 

@@ -51,7 +51,10 @@ export function UserListRow ({ user, stats, className, onNymClick, showHat = tru
       </Link>
       <div className={`${styles.hunk} ${className}`}>
         <Link
-          href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset ${selected ? 'fw-bold' : ''}`} onClick={onNymClick}
+          href={`/${user.name}`}
+          className={`${styles.title} d-inline-flex align-items-center text-reset ${selected ? 'fw-bold text-underline' : ''}`}
+          style={{ textUnderlineOffset: '0.25em' }}
+          onClick={onNymClick}
         >
           @{user.name}{showHat && <Hat className='ms-1 fill-grey' height={14} width={14} user={user} />}
         </Link>

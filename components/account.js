@@ -150,15 +150,18 @@ const AccountListRow = ({ account, ...props }) => {
 
     await client.refetchQueries({
       include: 'active',
-      onQueryUpdated: (query, diff, lastDiff) => {
-        if (anonRow) {
-          // don't fetch queries which require a session
-          if (['WalletByType', 'WalletLogs', 'WalletHistory', 'Settings'].includes(query.queryName)) {
-            return false
+      onQueryUpdated: async (query) => {
+        try {
+          return await query.refetch()
+        } catch (err) {
+          const code = err.graphQLErrors?.[0]?.extensions?.code
+          if (['FORBIDDEN', 'UNAUTHENTICATED', 'BAD_INPUT', 'BAD_USER_INPUT'].includes(code)) {
+            return
           }
-        }
 
-        return query.refetch()
+          // never throw but log unexpected errors
+          console.error(err)
+        }
       }
     })
   }

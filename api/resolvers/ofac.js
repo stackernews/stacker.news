@@ -1,13 +1,11 @@
-import { GraphQLError } from 'graphql'
+import { GqlAuthorizationError } from '@/lib/error'
 
 // this function makes america more secure apparently
 export default async function assertGofacYourself ({ models, headers, ip }) {
   const country = await gOFACYourself({ models, headers, ip })
   if (!country) return
 
-  throw new GraphQLError(
-    `Your IP address is in ${country}. We cannot provide financial services to residents of ${country}.`,
-    { extensions: { code: 'FORBIDDEN' } })
+  throw new GqlAuthorizationError(`Your IP address is in ${country}. We cannot provide financial services to residents of ${country}.`)
 }
 
 export async function gOFACYourself ({ models, headers = {}, ip }) {

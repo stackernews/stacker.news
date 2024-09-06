@@ -1,17 +1,17 @@
-import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
 import { getItem, filterClause, whereClause, muteClause, activeOrMine } from './item'
 import { getInvoice, getWithdrawl } from './wallet'
 import { pushSubscriptionSchema, ssValidate } from '@/lib/validate'
 import { replyToSubscription } from '@/lib/webPush'
 import { getSub } from './sub'
+import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 
 export default {
   Query: {
     notifications: async (parent, { cursor, inc }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const meFull = await models.user.findUnique({ where: { id: me.id } })
@@ -382,7 +382,7 @@ export default {
   Mutation: {
     savePushSubscription: async (parent, { endpoint, p256dh, auth, oldEndpoint }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       await ssValidate(pushSubscriptionSchema, { endpoint, p256dh, auth })
@@ -406,12 +406,12 @@ export default {
     },
     deletePushSubscription: async (parent, { endpoint }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const subscription = await models.pushSubscription.findFirst({ where: { endpoint, userId: Number(me.id) } })
       if (!subscription) {
-        throw new GraphQLError('endpoint not found', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('endpoint not found')
       }
       const deletedSubscription = await models.pushSubscription.delete({ where: { id: subscription.id } })
       console.log(`[webPush] deleted subscription ${deletedSubscription.id} of user ${deletedSubscription.userId} due to client request`)

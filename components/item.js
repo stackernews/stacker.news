@@ -9,6 +9,7 @@ import PollIcon from '@/svgs/bar-chart-horizontal-fill.svg'
 import BountyIcon from '@/svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
 import ImageIcon from '@/svgs/image-fill.svg'
+import VideoIcon from '@/svgs/video-on-fill.svg'
 import { numWithUnits } from '@/lib/format'
 import ItemInfo from './item-info'
 import Prism from '@/svgs/prism.svg'
@@ -20,6 +21,8 @@ import { DownZap } from './dont-link-this'
 import { timeLeft } from '@/lib/time'
 import classNames from 'classnames'
 import removeMd from 'remove-markdown'
+import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
+import ItemPopover from './item-popover'
 
 function onItemClick (e, router, item) {
   const viewedAt = commentsViewedAt(item)
@@ -45,6 +48,37 @@ export function SearchTitle ({ title }) {
   })
 }
 
+function mediaType ({ url, imgproxyUrls }) {
+  const src = IMGPROXY_URL_REGEXP.test(url) ? decodeProxyUrl(url) : url
+  if (!imgproxyUrls?.[src]) return
+  return imgproxyUrls?.[src]?.video ? 'video' : 'image'
+}
+
+function ItemLink ({ url, rel }) {
+  try {
+    const { linkText } = parseInternalLinks(url)
+    if (linkText) {
+      return (
+        <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
+          <Link href={url} className={styles.link}>{linkText}</Link>
+        </ItemPopover>
+      )
+    }
+
+    return (
+      // eslint-disable-next-line
+      <a
+        className={styles.link} target='_blank' href={url}
+        rel={rel ?? UNKNOWN_LINK_REL}
+      >
+        {url.replace(/(^https?:|^)\/\//, '')}
+      </a>
+    )
+  } catch {
+    return null
+  }
+}
+
 export default function Item ({
   item, rank, belowTitle, right, full, children, itemClassName,
   onQuoteReply, pinnable
@@ -52,7 +86,8 @@ export default function Item ({
   const titleRef = useRef()
   const router = useRouter()
 
-  const image = item.url && item.url.startsWith(process.env.NEXT_PUBLIC_IMGPROXY_URL)
+  const media = mediaType({ url: item.url, imgproxyUrls: item.imgproxyUrls })
+  const MediaIcon = media === 'video' ? VideoIcon : ImageIcon
 
   return (
     <>
@@ -87,16 +122,9 @@ export default function Item ({
                   </ActionTooltip>
                 </span>}
               {item.forwards?.length > 0 && <span className={styles.icon}><Prism className='fill-grey ms-1' height={14} width={14} /></span>}
-              {image && <span className={styles.icon}><ImageIcon className='fill-grey ms-2' height={16} width={16} /></span>}
+              {media && <span className={styles.icon}><MediaIcon className='fill-grey ms-2' height={16} width={16} /></span>}
             </Link>
-            {item.url && !image &&
-              // eslint-disable-next-line
-              <a
-                className={styles.link} target='_blank' href={item.url}
-                rel={item.rel ?? UNKNOWN_LINK_REL}
-              >
-                {item.url.replace(/(^https?:|^)\/\//, '')}
-              </a>}
+            {item.url && !media && <ItemLink url={item.url} rel={UNKNOWN_LINK_REL} />}
           </div>
           <ItemInfo
             full={full} item={item}

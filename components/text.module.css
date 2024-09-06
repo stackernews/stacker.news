@@ -246,6 +246,28 @@ img.fullScreen {
     font-size: .85rem;
 }
 
+
+/* Utility classes used in rehype plugins in md.js */
+.subscript {
+    vertical-align: sub;
+    font-size: smaller;
+}
+
+.superscript {
+    vertical-align: super;
+    font-size: smaller;
+}
+
+.videoWrapper {
+    max-width: 320px;
+    padding-right: 15px;
+    margin: '0.5rem 0',
+}
+
+.videoWrapper.topLevel {
+    max-width: 640px;
+}
+
 .videoContainer {
     position: relative;
     width: 100%;
@@ -262,14 +284,85 @@ img.fullScreen {
     left: 0;
 }
 
-
-/* Utility classes used in rehype plugins in md.js */
-.subscript {
-    vertical-align: sub;
-    font-size: smaller;
+.twitterContainer {
+    margin-top: .25rem;
+    position: relative;
 }
 
-.superscript {
-    vertical-align: super;
-    font-size: smaller;
+.twitterContainer:not(:first-child) {
+    margin-top: .75rem;
+}
+
+.twitterContainer iframe {
+    border-radius: 12px;
+}
+
+.videoWrapper:not(:first-child) {
+    margin-top: .75rem;
+}
+
+.twitterContained {
+    height: 150px;
+    overflow: hidden;
+}
+
+.twitterContained.topLevel {
+    height: 200px;
+}
+
+.twitterShowFull {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    border-radius: 0;
+}
+
+.tweetsSkeleton {
+    display: flex;
+    flex-flow: row wrap;
+    max-width: 350px;
+    width: 100%;
+    padding-right: 12px;
+}
+
+.tweetsSkeleton.topLevel {
+    max-width: 550px;
+}
+
+.tweetSkeleton {
+    width: 100%;
+}
+
+.tweetSkeleton {
+    border: 0.05rem solid var(--theme-borderColor);
+    border-radius: 12px;
+    height: 150px;
+    padding: 1.5rem;
+}
+
+.topLevel .tweetSkeleton {
+    height: 200px;
+}
+
+.tweetSkeleton .img {
+    height: 48px;
+    width: 48px;
+    border-radius: 50%;
+}
+
+.tweetSkeleton .content1,
+.tweetSkeleton .content2 {
+    height: 50%;
+    margin-top: 1rem;
+}
+
+.tweetSkeleton .line {
+    height: 25%;
+    margin: 0.5rem 0;
+    width: 100%;
+    border-radius: .4rem;
+}
+
+.tweetSkeleton .line:last-child {
+    width: 75%;
 }

@@ -1,11 +1,14 @@
 import styles from './text.module.css'
 import { useState, useEffect, useMemo, useCallback, memo } from 'react'
-import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
+import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP, parseEmbedUrl } from '@/lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
-import { Dropdown } from 'react-bootstrap'
+import { Button, Dropdown } from 'react-bootstrap'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import classNames from 'classnames'
+import { TwitterTweetEmbed } from 'react-twitter-embed'
+import YouTube from 'react-youtube'
+import useDarkMode from './dark-mode'
 
 function LinkRaw ({ href, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -46,7 +49,7 @@ const Media = memo(function Media ({ src, bestResSrc, srcSet, sizes, width, heig
   )
 })
 
-export default function MediaOrLink (props) {
+export default function MediaOrLink ({ linkFallback = true, ...props }) {
   const media = useMediaHelper(props)
   const [error, setError] = useState(false)
   const showModal = useShowModal()
@@ -78,28 +81,40 @@ export default function MediaOrLink (props) {
 
   if (!media.src) return null
 
-  if (!error && (media.image || media.video)) {
-    return (
-      <Media
-        {...media} onClick={handleClick} onError={handleError}
-      />
-    )
+  if (!error) {
+    if (media.image || media.video) {
+      return (
+        <Media
+          {...media} onClick={handleClick} onError={handleError}
+        />
+      )
+    }
+
+    if (media.embed) {
+      return <Embed {...media.embed} className={media.className} onError={handleError} topLevel={props.topLevel} />
+    }
   }
 
-  return <LinkRaw {...props} />
+  if (linkFallback) {
+    return <LinkRaw {...props} />
+  }
+
+  return null
 }
 
 // determines how the media should be displayed given the params, me settings, and editor tab
-const useMediaHelper = ({ src, srcSet: { dimensions, video, ...srcSetObj } = {}, topLevel, tab }) => {
+export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) => {
   const me = useMe()
-  const trusted = useMemo(() => !!srcSetObj || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [!!srcSetObj, src])
+  const trusted = useMemo(() => !!srcSetIntital || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [!!srcSetIntital, src])
+  const { dimensions, video, ...srcSetObj } = srcSetIntital || {}
   const [isImage, setIsImage] = useState(!video && trusted)
   const [isVideo, setIsVideo] = useState(video)
   const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [tab, me?.privates?.showImagesAndVideos])
+  const embed = useMemo(() => parseEmbedUrl(src), [src])
 
   useEffect(() => {
     // don't load the video at all if use doesn't want these
-    if (!showMedia || isVideo || isImage) return
+    if (!showMedia || isVideo || isImage || embed) return
     // make sure it's not a false negative by trying to load URL as <img>
     const img = new window.Image()
     img.onload = () => setIsImage(true)
@@ -114,7 +129,7 @@ const useMediaHelper = ({ src, srcSet: { dimensions, video, ...srcSetObj } = {},
       video.onloadeddata = null
       video.src = ''
     }
-  }, [src, setIsImage, setIsVideo, showMedia, isVideo])
+  }, [src, setIsImage, setIsVideo, showMedia, isVideo, embed])
 
   const srcSet = useMemo(() => {
     if (Object.keys(srcSetObj).length === 0) return undefined
@@ -164,7 +179,94 @@ const useMediaHelper = ({ src, srcSet: { dimensions, video, ...srcSetObj } = {},
     width,
     height,
     className: classNames(topLevel && styles.topLevel),
-    image: (!me?.privates?.imgproxyOnly || trusted) && showMedia && isImage && !isVideo,
-    video: !me?.privates?.imgproxyOnly && showMedia && isVideo
+    image: (!me?.privates?.imgproxyOnly || trusted) && showMedia && isImage && !isVideo && !embed,
+    video: !me?.privates?.imgproxyOnly && showMedia && isVideo && !embed,
+    embed: showMedia ? embed : undefined
   }
 }
+
+function TweetSkeleton ({ className }) {
+  return (
+    <div className={classNames(styles.tweetsSkeleton, className)}>
+      <div className={styles.tweetSkeleton}>
+        <div className={`${styles.img} clouds`} />
+        <div className={styles.content1}>
+          <div className={`${styles.line} clouds`} />
+          <div className={`${styles.line} clouds`} />
+          <div className={`${styles.line} clouds`} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export const Embed = memo(function Embed ({ provider, id, meta, className, topLevel, onError }) {
+  const [darkMode] = useDarkMode()
+  const [overflowing, setOverflowing] = useState(false)
+  const [show, setShow] = useState(false)
+
+  // This Twitter embed could use similar logic to the video embeds below
+  if (provider === 'twitter') {
+    return (
+      <div className={classNames(styles.twitterContainer, !show && styles.twitterContained, className)}>
+        <TwitterTweetEmbed
+          tweetId={id}
+          options={{ theme: darkMode ? 'dark' : 'light', width: topLevel ? '550px' : '350px' }}
+          key={darkMode ? '1' : '2'}
+          placeholder={<TweetSkeleton className={className} />}
+          onLoad={() => setOverflowing(true)}
+        />
+        {overflowing && !show &&
+          <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
+            show full tweet
+          </Button>}
+      </div>
+    )
+  }
+
+  if (provider === 'youtube') {
+    return (
+      <div className={classNames(styles.videoWrapper, className)}>
+        <YouTube
+          videoId={id} className={styles.videoContainer} opts={{
+            playerVars: {
+              start: meta?.start || 0
+            }
+          }}
+        />
+      </div>
+    )
+  }
+
+  if (provider === 'rumble') {
+    return (
+      <div className={classNames(styles.videoWrapper, className)}>
+        <div className={styles.videoContainer}>
+          <iframe
+            title='Rumble Video'
+            allowFullScreen
+            src={meta?.href}
+            sandbox='allow-scripts'
+          />
+        </div>
+      </div>
+    )
+  }
+
+  if (provider === 'peertube') {
+    return (
+      <div className={classNames(styles.videoWrapper, className)}>
+        <div className={styles.videoContainer}>
+          <iframe
+            title='PeerTube Video'
+            allowFullScreen
+            src={meta?.href}
+            sandbox='allow-scripts'
+          />
+        </div>
+      </div>
+    )
+  }
+
+  return null
+})

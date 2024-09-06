@@ -318,13 +318,13 @@ function SwitchAccountButton ({ handleClose }) {
 export function LoginButtons ({ handleClose }) {
   return (
     <>
-      <Dropdown.Item>
+      <Dropdown.Item className='py-1'>
         <LoginButton />
       </Dropdown.Item>
-      <Dropdown.Item>
+      <Dropdown.Item className='py-1'>
         <SignUpButton />
       </Dropdown.Item>
-      <Dropdown.Item>
+      <Dropdown.Item className='py-1'>
         <SwitchAccountButton handleClose={handleClose} />
       </Dropdown.Item>
     </>

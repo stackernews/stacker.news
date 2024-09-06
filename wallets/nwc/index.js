@@ -1,7 +1,7 @@
 import { Relay } from '@/lib/nostr'
 import { parseNwcUrl } from '@/lib/url'
 import { nwcSchema } from '@/lib/validate'
-import { finalizeEvent, nip04 } from 'nostr-tools'
+import { finalizeEvent, nip04, verifyEvent } from 'nostr-tools'
 
 export const name = 'nwc'
 
@@ -52,16 +52,22 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } =
       tags: [['p', walletPubkey]],
       content: encrypted
     }, secret)
+
+    // we need to subscribe to the response before publishing the request
+    // since NWC events are ephemeral (20000 <= kind < 30000)
+    const subscription = relay.fetch([{
+      kinds: [23195],
+      authors: [walletPubkey],
+      '#e': [request.id]
+    }], { timeout })
+
     await relay.publish(request, { timeout })
 
     logger?.info(`published ${method} request`)
 
     logger?.info('waiting for response ...')
-    const [response] = await relay.fetch([{
-      kinds: [23195],
-      authors: [walletPubkey],
-      '#e': [request.id]
-    }], { timeout })
+
+    const [response] = await subscription
 
     if (!response) {
       throw new Error('no response')
@@ -69,13 +75,15 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } =
 
     logger?.ok('response received')
 
+    if (!verifyEvent(response)) throw new Error('invalid response: failed to verify')
+
     const decrypted = await nip04.decrypt(secret, walletPubkey, response.content)
     const content = JSON.parse(decrypted)
 
     if (content.error) throw new Error(content.error.message)
     if (content.result) return content.result
 
-    throw new Error('invalid response')
+    throw new Error('invalid response: missing error or result')
   } finally {
     relay?.close()
     logger?.info(`closed connection to ${relayUrl}`)

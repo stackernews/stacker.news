@@ -111,7 +111,7 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
 export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) => {
   const me = useMe()
   const trusted = useMemo(() => !!srcSetIntital || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [!!srcSetIntital, src])
-  const { dimensions, video, ...srcSetObj } = srcSetIntital || {}
+  const { dimensions, video, format, ...srcSetObj } = srcSetIntital || {}
   const [isImage, setIsImage] = useState(!video && trusted)
   const [isVideo, setIsVideo] = useState(video)
   const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [tab, me?.privates?.showImagesAndVideos])

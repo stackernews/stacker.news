@@ -8,6 +8,7 @@ import { useApolloClient, useQuery } from '@apollo/client'
 import { UserListRow } from '@/components/user-list'
 import { Button } from 'react-bootstrap'
 import { ITEM_FULL } from '@/fragments/items'
+import { E_BAD_INPUT, E_FORBIDDEN, E_UNAUTHENTICATED } from '@/lib/error'
 
 const AccountContext = createContext()
 
@@ -155,7 +156,7 @@ const AccountListRow = ({ account, ...props }) => {
           return await query.refetch()
         } catch (err) {
           const code = err.graphQLErrors?.[0]?.extensions?.code
-          if (['FORBIDDEN', 'UNAUTHENTICATED', 'BAD_INPUT', 'BAD_USER_INPUT'].includes(code)) {
+          if ([E_FORBIDDEN, E_UNAUTHENTICATED, E_BAD_INPUT].includes(code)) {
             return
           }
 

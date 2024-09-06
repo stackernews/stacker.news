@@ -224,6 +224,14 @@ export const Embed = memo(function Embed ({ provider, id, meta, className, topLe
     )
   }
 
+  if (provider === 'wavlake') {
+    return (
+      <div className={classNames(styles.wavlakeWrapper, className)}>
+        <iframe src={`https://embed.wavlake.com/track/${id}`} width='100%' height='380' frameBorder='0' />
+      </div>
+    )
+  }
+
   if (provider === 'youtube') {
     return (
       <div className={classNames(styles.videoWrapper, className)}>

@@ -320,6 +320,8 @@ img.fullScreen {
     bottom: 0;
     left: 0;
     border-radius: 0;
+    line-height: 1.2;
+    padding: .75rem 1rem;
 }
 
 .tweetsSkeleton {

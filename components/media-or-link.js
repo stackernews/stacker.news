@@ -236,9 +236,11 @@ export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, 
         style={{ maxWidth: '100%' }}
         height={frameHeight ? `${frameHeight}px` : topLevel ? '200px' : '150px'}
         frameBorder='0'
+        sandbox='allow-scripts allow-same-origin'
+        allow=''
       />
       {!show &&
-        <Button size='md' variant='info' className={styles.twitterShowFull} style={{ lineHeight: 1.2 }} onClick={() => setShow(true)}>
+        <Button size='md' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
           <div>show full note</div>
           <small className='fw-normal fst-italic'>or other stuff</small>
         </Button>}
@@ -282,6 +284,7 @@ export const Embed = memo(function Embed ({ src, provider, id, meta, className, 
         <iframe
           src={`https://embed.wavlake.com/track/${id}`} width='100%' height='380' frameBorder='0'
           allow='encrypted-media'
+          sandbox='allow-scripts'
         />
       </div>
     )
@@ -303,6 +306,7 @@ export const Embed = memo(function Embed ({ src, provider, id, meta, className, 
           frameBorder='0'
           allow='encrypted-media; clipboard-write;'
           style={{ borderRadius: '12px' }}
+          sandbox='allow-scripts'
         />
       </div>
     )

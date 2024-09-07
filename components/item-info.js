@@ -39,7 +39,6 @@ export default function ItemInfo ({
   const [canEdit, setCanEdit] =
     useState(item.mine && (Date.now() < editThreshold))
   const [hasNewComments, setHasNewComments] = useState(false)
-  const [meTotalSats, setMeTotalSats] = useState(0)
   const root = useRoot()
   const retryCreateItem = useRetryCreateItem({ id: item.id })
   const sub = item?.sub || root?.sub
@@ -54,10 +53,6 @@ export default function ItemInfo ({
     setCanEdit(item.mine && (Date.now() < editThreshold))
   }, [item.mine, editThreshold])
 
-  useEffect(() => {
-    if (item) setMeTotalSats((me ? item.meSats : item.meAnonSats) || 0)
-  }, [me, item?.meSats, item?.meAnonSats])
-
   // territory founders can pin any post in their territory
   // and OPs can pin any root reply in their post
   const isPost = !item.parentId
@@ -65,6 +60,7 @@ export default function ItemInfo ({
   const myPost = (me && root && Number(me.id) === Number(root.user.id))
   const rootReply = item.path.split('.').length === 2
   const canPin = (isPost && mySub) || (myPost && rootReply)
+  const meSats = (me ? item.meSats : item.meAnonSats) || 0
 
   const EditInfo = () => {
     const waitForQrPayment = useQrPayment()
@@ -131,7 +127,7 @@ export default function ItemInfo ({
             unitPlural: 'stackers'
           })} ${item.mine
             ? `\\ ${numWithUnits(item.meSats, { abbreviate: false })} to post`
-            : `(${numWithUnits(meTotalSats, { abbreviate: false })}${item.meDontLikeSats
+            : `(${numWithUnits(meSats, { abbreviate: false })}${item.meDontLikeSats
               ? ` & ${numWithUnits(item.meDontLikeSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
               : ''} from me)`} `}
           >
@@ -229,7 +225,7 @@ export default function ItemInfo ({
                 <CrosspostDropdownItem item={item} />}
               {me && !item.position &&
             !item.mine && !item.deletedAt &&
-            (item.meDontLikeSats > meTotalSats
+            (item.meDontLikeSats > meSats
               ? <DropdownItemUpVote item={item} />
               : <DontLikeThisDropdownItem item={item} />)}
               {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&

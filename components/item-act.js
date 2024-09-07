@@ -11,6 +11,7 @@ import { nextTip, defaultTipIncludingRandom } from './upvote'
 import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { usePaidMutation } from './use-paid-mutation'
 import { ACT_MUTATION } from '@/fragments/paidAction'
+import { meAnonSats } from '@/lib/apollo'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -43,8 +44,12 @@ const addCustomTip = (amount) => {
 }
 
 const setItemMeAnonSats = ({ id, amount }) => {
+  const reactiveVar = meAnonSats[id]
+  const existingAmount = reactiveVar()
+  reactiveVar(existingAmount + amount)
+
+  // save for next page load
   const storageKey = `TIP-item:${id}`
-  const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
   window.localStorage.setItem(storageKey, existingAmount + amount)
 }
 

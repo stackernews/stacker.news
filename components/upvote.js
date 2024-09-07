@@ -168,7 +168,7 @@ export default function UpVote ({ item, className }) {
       meSats, overlayTextContent,
       getColor(meSats), getColor(meSats + sats)]
   }, [
-    item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault,
+    me, item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault,
     me?.privates?.tipRandom, me?.privates?.tipRandomMin, me?.privates?.tipRandomMax, pending])
 
   const handleModalClosed = () => {

@@ -5,21 +5,20 @@ import { useMutation, useQuery } from '@apollo/client'
 import { GET_ENTRY, SET_ENTRY, UNSET_ENTRY, CLEAR_VAULT, SET_VAULT_KEY_HASH } from '@/fragments/userVault'
 
 export function useVaultConfigState () {
+  const me = useMe()
   const [setVaultKeyHash] = useMutation(SET_VAULT_KEY_HASH)
 
-  const [value, innerSetValue] = useState(SSR ? null : JSON.parse(window.localStorage.getItem('user-vault-key') || 'null'))
+  const [value, innerSetValue] = useState(SSR ? null : JSON.parse(window.localStorage.getItem('user-vault-key' + me?.id) || 'null'))
 
   const [clearVault] = useMutation(CLEAR_VAULT, {
     onCompleted: () => {
-      window.localStorage.removeItem('user-vault-key')
+      window.localStorage.removeItem('user-vault-key' + me?.id)
       innerSetValue(null)
     }
   })
 
   const setVaultKey = useCallback(async (passphrase) => {
     const { key, hash } = await deriveStorageKey(passphrase)
-    innerSetValue({ passphrase, key, hash })
-    window.localStorage.setItem('user-vault-key', JSON.stringify({ passphrase, key, hash }))
     await setVaultKeyHash({
       variables: { hash },
       onError: (error) => {
@@ -31,10 +30,12 @@ export function useVaultConfigState () {
         }
       }
     })
+    innerSetValue({ passphrase, key, hash })
+    window.localStorage.setItem('user-vault-key' + me?.id, JSON.stringify({ passphrase, key, hash }))
   })
 
   const disconnectVault = useCallback(() => {
-    if (!SSR) window.localStorage.removeItem('user-vault-key')
+    if (!SSR) window.localStorage.removeItem('user-vault-key' + me?.id)
     innerSetValue(null)
   })
 
@@ -53,21 +54,21 @@ export default function useVaultStorageState (storageKey, defaultValue) {
   })
 
   const getLocalStorageValue = () => {
-    return JSON.parse(window.localStorage.getItem('vault-' + storageKey))
+    return JSON.parse(window.localStorage.getItem('vault-' + storageKey + me?.id))
   }
 
   const setLocalStorageValue = (newValue) => {
-    window.localStorage.setItem('vault-' + storageKey, JSON.stringify(newValue))
+    window.localStorage.setItem('vault-' + storageKey + me?.id, JSON.stringify(newValue))
   }
 
   const unsetLocalStorageValue = () => {
-    window.localStorage.removeItem('vault-' + storageKey)
+    window.localStorage.removeItem('vault-' + storageKey + me?.id)
   }
 
   useEffect(() => {
     if (SSR) return
     (async () => {
-      const vaultKey = JSON.parse(window.localStorage.getItem('user-vault-key') || 'null')
+      const vaultKey = JSON.parse(window.localStorage.getItem('user-vault-key' + me?.id) || 'null')
       if (me?.privates?.vaultKeyHash && vaultData?.getVaultEntry?.value && vaultKey) {
         // if vault key hash is set on the server, vault entry exists and vault key is set on the device
         // decrypt and use the value from the server
@@ -87,7 +88,7 @@ export default function useVaultStorageState (storageKey, defaultValue) {
 
   const setValue = useCallback(async (newValue) => {
     if (SSR) return
-    const vaultKey = JSON.parse(window.localStorage.getItem('user-vault-key') || 'null')
+    const vaultKey = JSON.parse(window.localStorage.getItem('user-vault-key' + me?.id) || 'null')
     const userVault = me?.privates?.vaultKeyHash
     // if device sync is enabled, retrieve the data from the server
     if (userVault && vaultKey) {

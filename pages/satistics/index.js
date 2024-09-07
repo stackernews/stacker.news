@@ -76,17 +76,17 @@ function Satus ({ status }) {
   const Icon = () => {
     switch (status) {
       case 'CONFIRMED':
-        return <Check width='20' height='20' className={`fill-${color}`} />
+        return <Check width='20' height='20' className={`fill-${color} ms-1`} />
       case 'PENDING':
-        return <Moon width='20' height='20' className={`fill-${color} spin`} />
+        return <Moon width='20' height='20' className={`fill-${color} ms-1 spin`} />
       default:
-        return <ThumbDown width='18' height='18' className={`fill-${color}`} />
+        return <ThumbDown width='18' height='18' className={`fill-${color} ms-1`} />
     }
   }
 
   return (
     <span className='d-inline-block'>
-      <Icon /><small className={`text-${color} fw-bold ms-2`}>{desc}</small>
+      <Icon /><small className={`text-${color} fw-bold ms-1`}>{desc}</small>
     </span>
   )
 }

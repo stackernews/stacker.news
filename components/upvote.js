@@ -153,7 +153,7 @@ export default function UpVote ({ item, className }) {
     [item?.mine, item?.meForward, item?.deletedAt])
 
   const [meSats, overlayText, color, nextColor] = useMemo(() => {
-    const meSats = (item?.meSats || item?.meAnonSats || 0)
+    const meSats = (me ? item?.meSats : item?.meAnonSats) || 0
 
     // what should our next tip be?
     const sats = pending || nextTip(meSats, { ...me?.privates })

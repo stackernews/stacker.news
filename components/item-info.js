@@ -55,8 +55,8 @@ export default function ItemInfo ({
   }, [item.mine, editThreshold])
 
   useEffect(() => {
-    if (item) setMeTotalSats(item.meSats || item.meAnonSats || 0)
-  }, [item?.meSats, item?.meAnonSats])
+    if (item) setMeTotalSats((me ? item.meSats : item.meAnonSats) || 0)
+  }, [me, item?.meSats, item?.meAnonSats])
 
   // territory founders can pin any post in their territory
   // and OPs can pin any root reply in their post

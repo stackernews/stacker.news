@@ -118,7 +118,7 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
   const embed = useMemo(() => parseEmbedUrl(src), [src])
 
   useEffect(() => {
-    // don't load the video at all if use doesn't want these
+    // don't load the video at all if user doesn't want these
     if (!showMedia || isVideo || isImage || embed) return
     // make sure it's not a false negative by trying to load URL as <img>
     const img = new window.Image()

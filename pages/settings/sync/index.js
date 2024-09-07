@@ -4,16 +4,41 @@ import useVaultStorageState, { useVaultConfigState } from '@/components/use-user
 import { useMe } from '@/components/me'
 import { useShowModal } from '@/components/modal'
 import CancelButton from '@/components/cancel-button'
-import { Input, Form, SubmitButton } from '@/components/form'
+import { Input, Form, SubmitButton, PasswordInput } from '@/components/form'
 import Button from 'react-bootstrap/Button'
 import { useToast } from '@/components/toast'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import DoubleCheck from '@/svgs/check-double-line.svg'
 import Check from '@/svgs/check-line.svg'
 import * as yup from 'yup'
+import bip39Words from '@/lib/bip39-words'
+import { useFormikContext } from 'formik'
 
 import { useEffect, useCallback, useState } from 'react'
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
+
+function generatePassphrase (n = 12) {
+  const rand = new Uint32Array(n)
+  window.crypto.getRandomValues(rand)
+  return Array.from(rand).map(i => bip39Words[i % bip39Words.length]).join(' ')
+}
+
+function PassphraseGeneratorButton () {
+  const formik = useFormikContext()
+  return (
+    <>
+      <Button
+        variant='info'
+        onClick={() => {
+          const pass = generatePassphrase()
+          formik.setFieldValue('passphrase', pass)
+        }}
+      >
+        generate random passphrase
+      </Button>
+    </>
+  )
+}
 
 export default function DeviceSync ({ ssrData }) {
   const me = useMe()
@@ -52,13 +77,21 @@ export default function DeviceSync ({ ssrData }) {
             }
           }}
         >
-          <Input
+          <PasswordInput
             label='Passphrase'
             name='passphrase'
             placeholder=''
             required
             autoFocus
           />
+          {isNew && (
+            <div className='d-flex justify-content-between mb-3'>
+              <div className='d-flex align-items-center ms-auto'>
+                <PassphraseGeneratorButton />
+              </div>
+            </div>
+          )}
+
           <p className='text-muted text-sm'>
             {
               isNew
@@ -121,6 +154,34 @@ export default function DeviceSync ({ ssrData }) {
     ))
   }, [])
 
+  const showPassphrase = useCallback(async () => {
+    showModal((onClose) => (
+      <div>
+        <h2>Your current passphrase</h2>
+        <p>
+          This is the passphrase configured in this device. You can copy it to your other devices to connect them to your device sync.
+        </p>
+        <p className='text-muted text-sm'>
+          This passphrase is stored securely in your device and is never sent to our servers.
+        </p>
+        <Form
+          initial={{ passphrase: value?.passphrase }}
+        >
+          <PasswordInput
+            label='Keep this passphrase safe'
+            type='password'
+            name='passphrase'
+          />
+        </Form>
+        <div className='d-flex justify-content-between'>
+          <div className='d-flex align-items-center ms-auto'>
+            <Button className='me-4 text-muted nav-link fw-bold' variant='link' onClick={onClose}>close</Button>
+          </div>
+        </div>
+      </div>
+    ))
+  }, [value])
+
   return (
     <Layout>
       <div className='pb-3 w-100 mt-2'>
@@ -150,6 +211,9 @@ export default function DeviceSync ({ ssrData }) {
                           </Button>
                           <Button variant='warning' onClick={() => disconnectVault()}>
                             disconnect
+                          </Button>
+                          <Button variant='info' onClick={() => showPassphrase()}>
+                            show passphrase
                           </Button>
                         </div>
                       </div>

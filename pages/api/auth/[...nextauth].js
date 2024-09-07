@@ -112,9 +112,10 @@ function getCallbacks (req, res) {
   }
 }
 
-function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
+function setMultiAuthCookies (req, res, { id, jwt, name, photoId, switchUser }) {
   const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
   const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
+
   // default expiration for next-auth JWTs is in 1 month
   const expiresAt = datePivot(new Date(), { months: 1 })
   const cookieOptions = {
@@ -124,47 +125,67 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
     sameSite: 'lax',
     expires: expiresAt
   }
+
+  // add JWT to **httpOnly** cookie
   res.appendHeader('Set-Cookie', cookie.serialize(`multi_auth.${id}`, jwt, cookieOptions))
-  // don't overwrite multi auth cookie, only add
+
   let newMultiAuth = [{ id, name, photoId }]
   if (req.cookies.multi_auth) {
     const oldMultiAuth = b64Decode(req.cookies.multi_auth)
-    // only add if multi auth does not exist yet
+    // make sure we don't add duplicates
     if (oldMultiAuth.some(({ id: id_ }) => id_ === id)) return
     newMultiAuth = [...oldMultiAuth, ...newMultiAuth]
   }
   res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', b64Encode(newMultiAuth), { ...cookieOptions, httpOnly: false }))
+
+  if (switchUser) {
+    // switch to user we just added
+    res.appendHeader('Set-Cookie', cookie.serialize('multi_auth.user-id', id, { ...cookieOptions, httpOnly: false }))
+  }
 }
 
 async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
   const { k1, pubkey } = credentials
 
+  // are we trying to add a new account for switching between?
   const { body } = req.body
   const multiAuth = typeof body.multiAuth === 'string' ? body.multiAuth === 'true' : !!body.multiAuth
 
   try {
+    // does the given challenge (k1) exist in our db?
     const lnauth = await prisma.lnAuth.findUnique({ where: { k1 } })
+
+    // delete challenge to prevent replay attacks
     await prisma.lnAuth.delete({ where: { k1 } })
+
+    // does the given pubkey match the one for which we verified the signature?
     if (lnauth.pubkey === pubkey) {
+      // does the pubkey already exist in our db?
       let user = await prisma.user.findUnique({ where: { [pubkeyColumnName]: pubkey } })
+
+      // get token if it exists
       const token = await getToken({ req })
       if (!user) {
-        // never update account if multi auth is used, only create
+        // we have not seen this pubkey before
+
+        // only update our pubkey if we're not currently trying to add a new account
         if (token?.id && !multiAuth) {
-          // TODO: consider multi auth if logged in but user does not exist yet
           user = await prisma.user.update({ where: { id: token.id }, data: { [pubkeyColumnName]: pubkey } })
         } else {
+          // we're not logged in: create new user with that pubkey
           user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), [pubkeyColumnName]: pubkey } })
         }
-      } else if (token && token?.id !== user.id) {
-        if (multiAuth) {
-          // don't switch accounts, we only want to add. switching is done in client via "pointer cookie"
-          const secret = process.env.NEXTAUTH_SECRET
-          const userJWT = await encodeJWT({ token: { id: user.id, name: user.name, email: user.email }, secret })
-          setMultiAuthCookies(req, res, { ...user, jwt: userJWT })
-          return token
-        }
-        return null
+      }
+
+      if (token && token?.id !== user.id && multiAuth) {
+        // we're logged in as a different user than the one we're authenticating as
+        // and we want to add a new account. this means we want to add this account
+        // to our list of accounts for switching between so we issue a new JWT and
+        // update the cookies for multi-authentication.
+        const secret = process.env.NEXTAUTH_SECRET
+        const userJWT = await encodeJWT({ token: { id: user.id, name: user.name, email: user.email }, secret })
+        setMultiAuthCookies(req, res, { ...user, jwt: userJWT, switchUser: true })
+        return token
       }
 
       return user

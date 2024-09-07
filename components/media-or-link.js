@@ -1,5 +1,5 @@
 import styles from './text.module.css'
-import { useState, useEffect, useMemo, useCallback, memo } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP, parseEmbedUrl } from '@/lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
@@ -205,9 +205,50 @@ function TweetSkeleton ({ className }) {
   )
 }
 
+export const useFrameHeight = (
+  iframeRef
+) => {
+  const [height, setHeight] = useState(0)
+  const iframeCurrent = iframeRef.current
+  useEffect(() => {
+    const setHeightFromIframe = (e) => {
+      if (e.origin !== 'https://njump.me' || !e?.data?.height) return
+      setHeight(e.data.height)
+    }
+    window?.addEventListener('message', setHeightFromIframe)
+    return () => {
+      window?.removeEventListener('message', setHeightFromIframe)
+    }
+  }, [iframeCurrent])
+  return height
+}
+
+export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, id }) {
+  const [show, setShow] = useState(false)
+  const iframeRef = useRef(null)
+  const frameHeight = useFrameHeight(iframeRef)
+  return (
+    <div className={classNames(styles.nostrContainer, !show && styles.twitterContained, className)}>
+      <iframe
+        ref={iframeRef}
+        src={`https://njump.me/${id}?embed=yes`}
+        width={topLevel ? '550px' : '350px'}
+        style={{ maxWidth: '100%' }}
+        height={frameHeight ? `${frameHeight}px` : topLevel ? '200px' : '150px'}
+        frameBorder='0'
+      />
+      {!show &&
+        <Button size='md' variant='info' className={styles.twitterShowFull} style={{ lineHeight: 1.2 }} onClick={() => setShow(true)}>
+          <div>show full note</div>
+          <small className='fw-normal fst-italic'>or other stuff</small>
+        </Button>}
+    </div>
+  )
+})
+
 export const Embed = memo(function Embed ({ src, provider, id, meta, className, topLevel, onError }) {
   const [darkMode] = useDarkMode()
-  const [overflowing, setOverflowing] = useState(false)
+  const [overflowing, setOverflowing] = useState(true)
   const [show, setShow] = useState(false)
 
   // This Twitter embed could use similar logic to the video embeds below
@@ -226,6 +267,12 @@ export const Embed = memo(function Embed ({ src, provider, id, meta, className, 
             show full tweet
           </Button>}
       </div>
+    )
+  }
+
+  if (provider === 'nostr') {
+    return (
+      <NostrEmbed src={src} className={className} topLevel={topLevel} id={id} />
     )
   }
 

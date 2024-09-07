@@ -284,18 +284,22 @@ img.fullScreen {
     left: 0;
 }
 
-.twitterContainer {
+.twitterContainer, .nostrContainer {
     margin-top: .25rem;
     position: relative;
     overflow: hidden;
 }
 
-.twitterContainer:not(:first-child) {
+.twitterContainer:not(:first-child), .nostrContainer:not(:first-child) {
     margin-top: .75rem;
 }
 
-.twitterContainer iframe {
+.twitterContainer iframe, .nostrContainer iframe {
     border-radius: 13px;
+}
+
+.nostrContainer {
+    margin-right: 15px;
 }
 
 .videoWrapper:not(:first-child) {

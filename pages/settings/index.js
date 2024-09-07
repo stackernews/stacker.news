@@ -352,7 +352,7 @@ export default function Settings ({ ssrData }) {
                     <li>use this to protect receiver privacy</li>
                     <li>applies retroactively, cannot be reversed</li>
                     <li>withdrawal invoices are kept at least {INVOICE_RETENTION_DAYS} days for security and debugging purposes</li>
-                    <li>autodeletions are run a daily basis at night</li>
+                    <li>autodeletions are run on a daily basis at night</li>
                   </ul>
                 </Info>
               </div>

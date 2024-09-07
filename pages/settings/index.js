@@ -453,7 +453,7 @@ export default function Settings ({ ssrData }) {
                   <ul>
                     <li>only load images and videos when we can proxy them</li>
                     <li>this prevents IP address leaks to arbitrary sites</li>
-                    <li>the raw link will be shown instead</li>
+                    <li>if we can't, the raw link will be shown instead</li>
                   </ul>
                 </Info>
               </div>

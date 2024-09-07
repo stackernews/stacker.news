@@ -513,7 +513,20 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>show images, video, and 3rd party embeds
                 <Info>
-                  <p>uncheck to show links for images, video, and 3rd party embeds instead of embedding them</p>
+                  <ul>
+                    <li>if checked and a link is an image, video or can be embedded in another way, we will do it</li>
+                    <li>we support embeds from following sites:</li>
+                    <ul>
+                      <li>njump.me</li>
+                      <li>youtube.com</li>
+                      <li>twitter.com</li>
+                      <li>spotify.com</li>
+                      <li>rumble.com</li>
+                      <li>wavlake.com</li>
+                      <li>bitcointv.com</li>
+                      <li>peertube.tv</li>
+                    </ul>
+                  </ul>
                 </Info>
               </div>
             }

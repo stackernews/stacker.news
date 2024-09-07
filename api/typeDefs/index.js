@@ -19,6 +19,7 @@ import blockHeight from './blockHeight'
 import chainFee from './chainFee'
 import image from './image'
 import paidAction from './paidAction'
+import userVault from './userVault'
 
 const common = gql`
   type Query {
@@ -39,4 +40,4 @@ const common = gql`
 `
 
 export default [common, user, item, itemForward, message, wallet, lnurl, notifications, invite,
-  sub, upload, growth, rewards, referrals, price, admin, blockHeight, chainFee, image, paidAction]
+  sub, upload, growth, rewards, referrals, price, admin, blockHeight, chainFee, image, paidAction, userVault]

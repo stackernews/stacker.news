@@ -20,6 +20,7 @@ import image from './image'
 import { GraphQLScalarType, Kind } from 'graphql'
 import { createIntScalar } from 'graphql-scalar'
 import paidAction from './paidAction'
+import userVault from './userVault'
 
 const date = new GraphQLScalarType({
   name: 'Date',
@@ -56,4 +57,4 @@ const limit = createIntScalar({
 
 export default [user, item, message, wallet, lnurl, notifications, invite, sub,
   upload, search, growth, rewards, referrals, price, admin, blockHeight, chainFee,
-  image, { JSONObject }, { Date: date }, { Limit: limit }, paidAction]
+  image, { JSONObject }, { Date: date }, { Limit: limit }, paidAction, userVault]

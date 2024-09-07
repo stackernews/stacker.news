@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useMe } from '@/components/me'
-import useClientConfig from '@/components/use-local-state'
+import useClientConfig from '@/components/use-user-vault-state'
 import { useWalletLogger } from '@/components/wallet-logger'
 import { SSR } from '@/lib/constants'
 import { bolt11Tags } from '@/lib/bolt11'

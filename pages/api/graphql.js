@@ -87,6 +87,7 @@ function multiAuthMiddleware (request) {
   // is there a cookie pointer?
   const cookiePointerName = 'multi_auth.user-id'
   const hasCookiePointer = !!request.cookies[cookiePointerName]
+
   // is there a session?
   const sessionCookieName = request.secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
   const hasSession = !!request.cookies[sessionCookieName]
@@ -105,12 +106,12 @@ function multiAuthMiddleware (request) {
 
   const userJWT = request.cookies[`multi_auth.${userId}`]
   if (!userJWT) {
-    // no multi auth JWT found
+    // no JWT for account switching found
     return request
   }
 
   if (userJWT) {
-    // multi auth JWT found in cookie that pointed to by cookie pointer that is different to current session cookie.
+    // use JWT found in cookie pointed to by cookie pointer
     request.cookies[sessionCookieName] = userJWT
     return request
   }

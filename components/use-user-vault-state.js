@@ -43,36 +43,47 @@ export function useVaultConfigState () {
 
 export default function useVaultStorageState (storageKey, defaultValue) {
   const me = useMe()
+  const [setVaultValue] = useMutation(SET_ENTRY)
+  const [clearVaultValue] = useMutation(UNSET_ENTRY)
+  const [value, innerSetValue] = useState(undefined)
+
   const { data: vaultData, refetch: refetchVaultValue } = useQuery(GET_ENTRY, {
     variables: { key: storageKey },
     fetchPolicy: 'no-cache'
   })
-  const getLocalValue = useCallback(() => {
+
+  const getLocalStorageValue = () => {
     return JSON.parse(window.localStorage.getItem('vault-' + storageKey))
-  }, [storageKey])
-  const [value, innerSetValue] = useState(() => {
-    if (SSR) return null
-    return (me?.privates?.vaultKeyHash ? vaultData?.getVaultEntry?.value : getLocalValue()) || defaultValue
-  })
-  const [setVaultValue] = useMutation(SET_ENTRY)
-  const [clearVaultValue] = useMutation(UNSET_ENTRY)
+  }
+
+  const setLocalStorageValue = (newValue) => {
+    window.localStorage.setItem('vault-' + storageKey, JSON.stringify(newValue))
+  }
+
+  const unsetLocalStorageValue = () => {
+    window.localStorage.removeItem('vault-' + storageKey)
+  }
 
   useEffect(() => {
     if (SSR) return
     (async () => {
       const vaultKey = JSON.parse(window.localStorage.getItem('user-vault-key') || 'null')
-      console.log(vaultData?.getVaultEntry?.value)
       if (me?.privates?.vaultKeyHash && vaultData?.getVaultEntry?.value && vaultKey) {
-        const decryptedData = await decryptStorageData(vaultKey.key, vaultData?.getVaultEntry?.value)
+        // if vault key hash is set on the server, vault entry exists and vault key is set on the device
+        // decrypt and use the value from the server
+        const decryptedData = JSON.parse(await decryptStorageData(vaultKey.key, vaultData?.getVaultEntry?.value))
         innerSetValue(decryptedData)
-        window.localStorage.removeItem('vault-' + storageKey)
-      } else if (getLocalValue()) {
-        innerSetValue(getLocalValue())
+        // remove local storage value
+        unsetLocalStorageValue()
+      } else if (getLocalStorageValue()) {
+        // otherwise, if there is a local storage use, return that
+        innerSetValue(getLocalStorageValue())
       } else {
+        // otherwise, use the default value
         innerSetValue(defaultValue)
       }
     })()
-  }, [vaultData, getLocalValue, me?.privates?.vaultKeyHash, defaultValue, storageKey])
+  }, [vaultData, me?.privates?.vaultKeyHash])
 
   const setValue = useCallback(async (newValue) => {
     if (SSR) return
@@ -80,31 +91,28 @@ export default function useVaultStorageState (storageKey, defaultValue) {
     const userVault = me?.privates?.vaultKeyHash
     // if device sync is enabled, retrieve the data from the server
     if (userVault && vaultKey) {
-      console.log('Device sync enabled')
       const { hash, key } = vaultKey
       if (hash === userVault) {
         const encryptedValue = await encryptStorageData(key, JSON.stringify(newValue))
         await setVaultValue({ variables: { key: storageKey, value: encryptedValue } })
-        window.localStorage.removeItem('vault-' + storageKey)
+        unsetLocalStorageValue()
       } else {
-        console.log('Device sync enabled with different key, storing locally')
-        window.localStorage.setItem('vault-' + storageKey, JSON.stringify(newValue))
+        setLocalStorageValue(newValue)
       }
     } else {
-      console.log('Device sync not enabled', userVault, vaultKey)
-      window.localStorage.setItem('vault-' + storageKey, JSON.stringify(newValue))
+      setLocalStorageValue(newValue)
     }
     innerSetValue(newValue)
-  }, [me, storageKey, setVaultValue])
+  }, [me?.privates?.vaultKeyHash])
 
   const clearValue = useCallback(async () => {
     if (SSR) return
     await clearVaultValue({ variables: { key: storageKey } })
     await refetchVaultValue()
     // clear locally
-    window.localStorage.removeItem('vault-' + storageKey)
+    unsetLocalStorageValue()
     innerSetValue(undefined)
-  }, [storageKey, clearVaultValue])
+  }, [])
 
   return [value, setValue, clearValue, refetchVaultValue]
 }

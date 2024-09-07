@@ -10,12 +10,13 @@ export default (req, res) => {
   // is there a cookie pointer?
   const cookiePointerName = 'multi_auth.user-id'
   const userId = req.cookies[cookiePointerName]
+
   // is there a session?
   const sessionCookieName = req.secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
   const sessionJWT = req.cookies[sessionCookieName]
 
-  if (!userId || !sessionJWT) {
-    // no cookie pointer or no session cookie present. do nothing.
+  if (!userId && !sessionJWT) {
+    // no cookie pointer and no session cookie present. nothing to do.
     res.status(404).end()
     return
   }

@@ -112,7 +112,7 @@ function getCallbacks (req, res) {
   }
 }
 
-function setMultiAuthCookies (req, res, { id, jwt, name, photoId, switchUser }) {
+function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
   const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
   const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
 
@@ -138,10 +138,8 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId, switchUser }) 
   }
   res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', b64Encode(newMultiAuth), { ...cookieOptions, httpOnly: false }))
 
-  if (switchUser) {
-    // switch to user we just added
-    res.appendHeader('Set-Cookie', cookie.serialize('multi_auth.user-id', id, { ...cookieOptions, httpOnly: false }))
-  }
+  // switch to user we just added
+  res.appendHeader('Set-Cookie', cookie.serialize('multi_auth.user-id', id, { ...cookieOptions, httpOnly: false }))
 }
 
 async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
@@ -184,7 +182,7 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
         // update the cookies for multi-authentication.
         const secret = process.env.NEXTAUTH_SECRET
         const userJWT = await encodeJWT({ token: { id: user.id, name: user.name, email: user.email }, secret })
-        setMultiAuthCookies(req, res, { ...user, jwt: userJWT, switchUser: true })
+        setMultiAuthCookies(req, res, { ...user, jwt: userJWT })
         return token
       }
 

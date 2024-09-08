@@ -8,17 +8,17 @@ export function useVaultConfigState () {
   const me = useMe()
   const [setVaultKeyHash] = useMutation(SET_VAULT_KEY_HASH)
 
-  const [value, innerSetValue] = useState(SSR ? null : JSON.parse(window.localStorage.getItem('user-vault-key' + me?.id) || 'null'))
+  const [value, innerSetValue] = useState(SSR ? null : getLocalStorage(me?.id, 'vault', 'key'))
 
   const [clearVault] = useMutation(CLEAR_VAULT, {
     onCompleted: () => {
-      window.localStorage.removeItem('user-vault-key' + me?.id)
+      if (!SSR) unsetLocalStorage(me?.id, 'vault', 'key')
       innerSetValue(null)
     }
   })
 
   const setVaultKey = useCallback(async (passphrase) => {
-    const { key, hash } = await deriveStorageKey(passphrase)
+    const { key, hash } = await deriveStorageKey(me?.id, passphrase)
     await setVaultKeyHash({
       variables: { hash },
       onError: (error) => {
@@ -31,11 +31,11 @@ export function useVaultConfigState () {
       }
     })
     innerSetValue({ passphrase, key, hash })
-    window.localStorage.setItem('user-vault-key' + me?.id, JSON.stringify({ passphrase, key, hash }))
+    if (!SSR) setLocalStorage(me?.id, 'vault', { passphrase, key, hash }, 'key')
   })
 
   const disconnectVault = useCallback(() => {
-    if (!SSR) window.localStorage.removeItem('user-vault-key' + me?.id)
+    if (!SSR) unsetLocalStorage(me?.id, 'vault', 'key')
     innerSetValue(null)
   })
 
@@ -53,32 +53,20 @@ export default function useVaultStorageState (storageKey, defaultValue) {
     fetchPolicy: 'no-cache'
   })
 
-  const getLocalStorageValue = () => {
-    return JSON.parse(window.localStorage.getItem('vault-' + storageKey + me?.id))
-  }
-
-  const setLocalStorageValue = (newValue) => {
-    window.localStorage.setItem('vault-' + storageKey + me?.id, JSON.stringify(newValue))
-  }
-
-  const unsetLocalStorageValue = () => {
-    window.localStorage.removeItem('vault-' + storageKey + me?.id)
-  }
-
   useEffect(() => {
     if (SSR) return
     (async () => {
-      const vaultKey = JSON.parse(window.localStorage.getItem('user-vault-key' + me?.id) || 'null')
+      const vaultKey = getLocalStorage(me?.id, 'vault', 'key')
       if (me?.privates?.vaultKeyHash && vaultData?.getVaultEntry?.value && vaultKey) {
         // if vault key hash is set on the server, vault entry exists and vault key is set on the device
         // decrypt and use the value from the server
         const decryptedData = JSON.parse(await decryptStorageData(vaultKey.key, vaultData?.getVaultEntry?.value))
         innerSetValue(decryptedData)
         // remove local storage value
-        unsetLocalStorageValue()
-      } else if (getLocalStorageValue()) {
+        unsetLocalStorage(me?.id, storageKey)
+      } else if (getLocalStorage(me?.id, storageKey)) {
         // otherwise, if there is a local storage use, return that
-        innerSetValue(getLocalStorageValue())
+        innerSetValue(getLocalStorage(me?.id, storageKey))
       } else {
         // otherwise, use the default value
         innerSetValue(defaultValue)
@@ -88,7 +76,7 @@ export default function useVaultStorageState (storageKey, defaultValue) {
 
   const setValue = useCallback(async (newValue) => {
     if (SSR) return
-    const vaultKey = JSON.parse(window.localStorage.getItem('user-vault-key' + me?.id) || 'null')
+    const vaultKey = getLocalStorage(me?.id, 'vault', 'key')
     const userVault = me?.privates?.vaultKeyHash
     // if device sync is enabled, retrieve the data from the server
     if (userVault && vaultKey) {
@@ -96,12 +84,12 @@ export default function useVaultStorageState (storageKey, defaultValue) {
       if (hash === userVault) {
         const encryptedValue = await encryptStorageData(key, JSON.stringify(newValue))
         await setVaultValue({ variables: { key: storageKey, value: encryptedValue } })
-        unsetLocalStorageValue()
+        unsetLocalStorage(me?.id, storageKey)
       } else {
-        setLocalStorageValue(newValue)
+        setLocalStorage(me?.id, storageKey, newValue)
       }
     } else {
-      setLocalStorageValue(newValue)
+      setLocalStorage(me?.id, storageKey, newValue)
     }
     innerSetValue(newValue)
   }, [me?.privates?.vaultKeyHash])
@@ -111,11 +99,24 @@ export default function useVaultStorageState (storageKey, defaultValue) {
     await clearVaultValue({ variables: { key: storageKey } })
     await refetchVaultValue()
     // clear locally
-    unsetLocalStorageValue()
+    unsetLocalStorage(me?.id, storageKey)
     innerSetValue(undefined)
   }, [])
 
   return [value, setValue, clearValue, refetchVaultValue]
+}
+
+function setLocalStorage (userId, key, value, prefix = 'vault') {
+  window.localStorage.setItem(prefix + '-' + key + '-' + userId, JSON.stringify(value))
+}
+
+function getLocalStorage (userId, key, prefix = 'vault') {
+  const v = window.localStorage.getItem(prefix + '-' + key + '-' + userId)
+  return v ? JSON.parse(v) : null
+}
+
+function unsetLocalStorage (userId, key, prefix = 'vault') {
+  window.localStorage.removeItem(prefix + '-' + key + '-' + userId)
 }
 
 function toHex (buffer) {
@@ -129,7 +130,7 @@ function fromHex (hex) {
   return byteArray.buffer
 }
 
-async function deriveStorageKey (passphrase) {
+async function deriveStorageKey (userId, passphrase) {
   const enc = new TextEncoder()
   const keyMaterial = await window.crypto.subtle.importKey(
     'raw',
@@ -141,7 +142,7 @@ async function deriveStorageKey (passphrase) {
   const key = await window.crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: enc.encode('stacker news'),
+      salt: enc.encode(`stacker${userId}`),
       iterations: 100000,
       hash: 'SHA-256'
     },
@@ -176,11 +177,9 @@ async function encryptStorageData (key, data) {
     key,
     enc.encode(data)
   )
-  const hash = await window.crypto.subtle.digest('SHA-256', encrypted)
   return JSON.stringify({
     iv: toHex(iv.buffer),
-    data: toHex(encrypted),
-    hash: toHex(hash)
+    data: toHex(encrypted)
   })
 }
 

@@ -295,7 +295,7 @@ export const Embed = memo(function Embed ({ src, provider, id, meta, className, 
           src={`https://open.spotify.com/embed${url.pathname}`}
           width='100%'
           height='152'
-          allowfullscreen=''
+          allowFullScreen
           frameBorder='0'
           allow='encrypted-media; clipboard-write;'
           style={{ borderRadius: '12px' }}

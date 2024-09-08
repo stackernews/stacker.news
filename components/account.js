@@ -39,19 +39,17 @@ export const AccountProvider = ({ children }) => {
     } catch (err) {
       console.error('error parsing cookies:', err)
     }
-  }, [setAccounts])
-
-  useEffect(() => {
-    updateAccountsFromCookie()
   }, [])
+
+  useEffect(updateAccountsFromCookie, [])
 
   const addAccount = useCallback(user => {
     setAccounts(accounts => [...accounts, user])
-  }, [setAccounts])
+  }, [])
 
   const removeAccount = useCallback(userId => {
     setAccounts(accounts => accounts.filter(({ id }) => id !== userId))
-  }, [setAccounts])
+  }, [])
 
   const multiAuthSignout = useCallback(async () => {
     const { status } = await fetch('/api/signout', { credentials: 'include' })

@@ -210,11 +210,18 @@ export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, 
   const iframeRef = useRef(null)
 
   useEffect(() => {
+    if (!iframeRef.current) return
+
     const setHeightFromIframe = (e) => {
       if (e.origin !== 'https://njump.me' || !e?.data?.height || e.source !== iframeRef.current.contentWindow) return
       iframeRef.current.height = `${e.data.height}px`
     }
+
     window?.addEventListener('message', setHeightFromIframe)
+
+    // https://github.com/vercel/next.js/issues/39451
+    iframeRef.current.src = `https://njump.me/${id}?embed=yes`
+
     return () => {
       window?.removeEventListener('message', setHeightFromIframe)
     }
@@ -224,12 +231,11 @@ export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, 
     <div className={classNames(styles.nostrContainer, !show && styles.twitterContained, className)}>
       <iframe
         ref={iframeRef}
-        src={`https://njump.me/${id}?embed=yes`}
         width={topLevel ? '550px' : '350px'}
         style={{ maxWidth: '100%' }}
         height={iframeRef.current?.height || (topLevel ? '200px' : '150px')}
         frameBorder='0'
-        sandbox='allow-scripts allow-same-origin allow-popups'
+        sandbox='allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox'
         allow=''
       />
       {!show &&
@@ -240,6 +246,49 @@ export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, 
     </div>
   )
 })
+
+const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
+  const iframeRef = useRef(null)
+
+  // https://open.spotify.com/track/1KFxcj3MZrpBGiGA8ZWriv?si=f024c3aa52294aa1
+  // Remove any additional path segments
+  const url = new URL(src)
+  url.pathname = url.pathname.replace(/\/intl-\w+\//, '/')
+
+  useEffect(() => {
+    if (!iframeRef.current) return
+
+    const id = url.pathname.split('/').pop()
+
+    // https://developer.spotify.com/documentation/embeds/tutorials/using-the-iframe-api
+    window.onSpotifyIframeApiReady = (IFrameAPI) => {
+      const options = {
+        uri: `spotify:episode:${id}`
+      }
+      const callback = (EmbedController) => {}
+      IFrameAPI.createController(iframeRef.current, options, callback)
+    }
+
+    return () => { window.onSpotifyIframeApiReady = null }
+  }, [iframeRef.current, url.pathname])
+
+  return (
+    <div className={classNames(styles.spotifyWrapper, className)}>
+      <iframe
+        ref={iframeRef}
+        title='Spotify Web Player'
+        src={`https://open.spotify.com/embed${url.pathname}`}
+        width='100%'
+        height='152'
+        allowFullScreen
+        frameBorder='0'
+        allow='encrypted-media; clipboard-write;'
+        style={{ borderRadius: '12px' }}
+        sandbox='allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-presentation'
+      />
+    </div>
+  )
+}
 
 export const Embed = memo(function Embed ({ src, provider, id, meta, className, topLevel, onError }) {
   const [darkMode] = useDarkMode()
@@ -277,31 +326,15 @@ export const Embed = memo(function Embed ({ src, provider, id, meta, className, 
         <iframe
           src={`https://embed.wavlake.com/track/${id}`} width='100%' height='380' frameBorder='0'
           allow='encrypted-media'
-          sandbox='allow-scripts'
+          sandbox='allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-same-origin'
         />
       </div>
     )
   }
 
   if (provider === 'spotify') {
-    // https://open.spotify.com/track/1KFxcj3MZrpBGiGA8ZWriv?si=f024c3aa52294aa1
-    // Remove any additional path segments
-    const url = new URL(src)
-    url.pathname = url.pathname.replace(/\/intl-\w+\//, '/')
     return (
-      <div className={classNames(styles.spotifyWrapper, className)}>
-        <iframe
-          title='Spotify Web Player'
-          src={`https://open.spotify.com/embed${url.pathname}`}
-          width='100%'
-          height='152'
-          allowfullscreen=''
-          frameBorder='0'
-          allow='encrypted-media; clipboard-write;'
-          style={{ borderRadius: '12px' }}
-          sandbox='allow-scripts'
-        />
-      </div>
+      <SpotifyEmbed src={src} className={className} />
     )
   }
 

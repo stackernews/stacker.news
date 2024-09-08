@@ -210,11 +210,18 @@ export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, 
   const iframeRef = useRef(null)
 
   useEffect(() => {
+    if (!iframeRef.current) return
+
     const setHeightFromIframe = (e) => {
       if (e.origin !== 'https://njump.me' || !e?.data?.height || e.source !== iframeRef.current.contentWindow) return
       iframeRef.current.height = `${e.data.height}px`
     }
+
     window?.addEventListener('message', setHeightFromIframe)
+
+    // https://github.com/vercel/next.js/issues/39451
+    iframeRef.current.src = `https://njump.me/${id}?embed=yes`
+
     return () => {
       window?.removeEventListener('message', setHeightFromIframe)
     }
@@ -224,7 +231,6 @@ export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, 
     <div className={classNames(styles.nostrContainer, !show && styles.twitterContained, className)}>
       <iframe
         ref={iframeRef}
-        src={`https://njump.me/${id}?embed=yes`}
         width={topLevel ? '550px' : '350px'}
         style={{ maxWidth: '100%' }}
         height={iframeRef.current?.height || (topLevel ? '200px' : '150px')}

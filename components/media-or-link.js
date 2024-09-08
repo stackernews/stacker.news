@@ -205,28 +205,21 @@ function TweetSkeleton ({ className }) {
   )
 }
 
-export const useFrameHeight = (
-  iframeRef
-) => {
-  const [height, setHeight] = useState(0)
-  const iframeCurrent = iframeRef.current
+export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, id }) {
+  const [show, setShow] = useState(false)
+  const iframeRef = useRef(null)
+
   useEffect(() => {
     const setHeightFromIframe = (e) => {
-      if (e.origin !== 'https://njump.me' || !e?.data?.height) return
-      setHeight(e.data.height)
+      if (e.origin !== 'https://njump.me' || !e?.data?.height || e.source !== iframeRef.current.contentWindow) return
+      iframeRef.current.height = `${e.data.height}px`
     }
     window?.addEventListener('message', setHeightFromIframe)
     return () => {
       window?.removeEventListener('message', setHeightFromIframe)
     }
-  }, [iframeCurrent])
-  return height
-}
+  }, [iframeRef.current])
 
-export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, id }) {
-  const [show, setShow] = useState(false)
-  const iframeRef = useRef(null)
-  const frameHeight = useFrameHeight(iframeRef)
   return (
     <div className={classNames(styles.nostrContainer, !show && styles.twitterContained, className)}>
       <iframe
@@ -234,9 +227,9 @@ export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, 
         src={`https://njump.me/${id}?embed=yes`}
         width={topLevel ? '550px' : '350px'}
         style={{ maxWidth: '100%' }}
-        height={frameHeight ? `${frameHeight}px` : topLevel ? '200px' : '150px'}
+        height={iframeRef.current?.height || (topLevel ? '200px' : '150px')}
         frameBorder='0'
-        sandbox='allow-scripts allow-same-origin'
+        sandbox='allow-scripts allow-same-origin allow-popups'
         allow=''
       />
       {!show &&

@@ -235,7 +235,7 @@ export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, 
         style={{ maxWidth: '100%' }}
         height={iframeRef.current?.height || (topLevel ? '200px' : '150px')}
         frameBorder='0'
-        sandbox='allow-scripts allow-same-origin allow-popups'
+        sandbox='allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox'
         allow=''
       />
       {!show &&
@@ -284,7 +284,7 @@ const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
         frameBorder='0'
         allow='encrypted-media; clipboard-write;'
         style={{ borderRadius: '12px' }}
-        sandbox='allow-scripts allow-popups allow-same-origin allow-presentation'
+        sandbox='allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-presentation'
       />
     </div>
   )
@@ -326,7 +326,7 @@ export const Embed = memo(function Embed ({ src, provider, id, meta, className, 
         <iframe
           src={`https://embed.wavlake.com/track/${id}`} width='100%' height='380' frameBorder='0'
           allow='encrypted-media'
-          sandbox='allow-scripts allow-popups allow-forms allow-same-origin'
+          sandbox='allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-same-origin'
         />
       </div>
     )

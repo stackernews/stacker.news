@@ -213,7 +213,7 @@ export default function Settings ({ ssrData }) {
                     label={
                       <div className='d-flex align-items-center'>turbo zapping
                         <Info>
-                          <ul className='fw-bold'>
+                          <ul>
                             <li>Makes every additional bolt click raise your total zap to another 10x multiple of your default zap</li>
                             <li>e.g. if your zap default is 10 sats
                               <ul>
@@ -328,7 +328,7 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>hide invoice descriptions
                 <Info>
-                  <ul className='fw-bold'>
+                  <ul>
                     <li>Use this if you don't want funding sources to be linkable to your SN identity.</li>
                     <li>It makes your invoice descriptions blank.</li>
                     <li>This only applies to invoices you create
@@ -348,7 +348,7 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>autodelete withdrawal invoices
                 <Info>
-                  <ul className='fw-bold'>
+                  <ul>
                     <li>use this to protect receiver privacy</li>
                     <li>applies retroactively, cannot be reversed</li>
                     <li>withdrawal invoices are kept at least {INVOICE_RETENTION_DAYS} days for security and debugging purposes</li>
@@ -385,7 +385,7 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>hide my linked github profile
                 <Info>
-                  <ul className='fw-bold'>
+                  <ul>
                     <li>Linked accounts are hidden from your profile by default</li>
                     <li>uncheck this to display your github on your profile</li>
                     {me.optional.githubId === null &&
@@ -405,7 +405,7 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>hide my linked nostr profile
                 <Info>
-                  <ul className='fw-bold'>
+                  <ul>
                     <li>Linked accounts are hidden from your profile by default</li>
                     <li>Uncheck this to display your npub on your profile</li>
                     {me.optional.nostrAuthPubkey === null &&
@@ -425,7 +425,7 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>hide my linked twitter profile
                 <Info>
-                  <ul className='fw-bold'>
+                  <ul>
                     <li>Linked accounts are hidden from your profile by default</li>
                     <li>Uncheck this to display your twitter on your profile</li>
                     {me.optional.twitterId === null &&
@@ -465,7 +465,7 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>allow anonymous diagnostics
                 <Info>
-                  <ul className='fw-bold'>
+                  <ul>
                     <li>collect and send back anonymous diagnostics data</li>
                     <li>this information is used to fix bugs</li>
                     <li>this information includes:
@@ -493,7 +493,7 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>filter by sats
                 <Info>
-                  <ul className='fw-bold'>
+                  <ul>
                     <li>hide the post if the sum of these is less than your setting:</li>
                     <ul>
                       <li>posting cost</li>
@@ -537,7 +537,7 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>wild west mode
                 <Info>
-                  <ul className='fw-bold'>
+                  <ul>
                     <li>don't hide flagged content</li>
                     <li>don't down rank flagged content</li>
                   </ul>
@@ -551,7 +551,7 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>nsfw mode
                 <Info>
-                  <ul className='fw-bold'>
+                  <ul>
                     <li>see posts from nsfw territories</li>
                   </ul>
                 </Info>
@@ -564,7 +564,7 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>crosspost to nostr
                 <Info>
-                  <ul className='fw-bold'>
+                  <ul>
                     <li>crosspost your items to nostr</li>
                     <li>requires NIP-07 extension for signing</li>
                     <li>we use your NIP-05 relays if set</li>
@@ -954,7 +954,7 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
           </div>
         </OverlayTrigger>
         <Info>
-          <ul className='fw-bold'>
+          <ul>
             <li>use API keys with our <Link target='_blank' href='/api/graphql'>GraphQL API</Link> for authentication</li>
             <li>you need to add the API key to the <span className='text-monospace'>X-API-Key</span> header of your requests</li>
             <li>you can currently only generate API keys if we enabled it for your account</li>
@@ -1059,7 +1059,7 @@ const ZapUndosField = () => {
           <div className='d-flex align-items-center'>
             zap undos
             <Info>
-              <ul className='fw-bold'>
+              <ul>
                 <li>After every zap that exceeds or is equal to the threshold, the bolt will pulse</li>
                 <li>You can undo the zap if you click the bolt while it's pulsing</li>
                 <li>The bolt will pulse for {ZAP_UNDO_DELAY_MS / 1000} seconds</li>
@@ -1092,7 +1092,7 @@ const TipRandomField = () => {
           <div className='d-flex align-items-center'>
             random zaps
             <Info>
-              <ul className='fw-bold'>
+              <ul>
                 <li>Set a minimum and maximum zap amount</li>
                 <li>Each time you zap something, a random amount of sats between your minimum and maximum will be zapped</li>
                 <li>If this setting is enabled, it will ignore your default zap amount</li>

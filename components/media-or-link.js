@@ -277,7 +277,7 @@ export const Embed = memo(function Embed ({ src, provider, id, meta, className, 
         <iframe
           src={`https://embed.wavlake.com/track/${id}`} width='100%' height='380' frameBorder='0'
           allow='encrypted-media'
-          sandbox='allow-scripts'
+          sandbox='allow-scripts allow-popups allow-forms allow-same-origin'
         />
       </div>
     )

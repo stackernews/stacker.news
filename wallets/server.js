@@ -9,6 +9,7 @@ import walletDefs from 'wallets/server'
 import { parsePaymentRequest } from 'ln-service'
 import { toPositiveNumber } from '@/lib/validate'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
+import { withTimeout } from '@/lib/time'
 export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd]
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
@@ -73,12 +74,13 @@ export async function createInvoice (userId, { msats, description, descriptionHa
         throw new Error('wallet has too many pending invoices')
       }
 
-      const invoice = await createInvoice({
-        msats,
-        description: wallet.user.hideInvoiceDesc ? undefined : description,
-        descriptionHash,
-        expiry
-      }, walletFull[walletField])
+      const invoice = await withTimeout(
+        createInvoice({
+          msats,
+          description: wallet.user.hideInvoiceDesc ? undefined : description,
+          descriptionHash,
+          expiry
+        }, walletFull[walletField]), 10_000)
 
       const bolt11 = await parsePaymentRequest({ request: invoice })
       if (BigInt(bolt11.mtokens) !== BigInt(msats)) {

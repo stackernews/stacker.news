@@ -8,8 +8,11 @@ import { LightningAuthWithExplainer } from './lightning-auth'
 import { NostrAuthWithExplainer } from './nostr-auth'
 import LoginButton from './login-button'
 import { emailSchema } from '@/lib/validate'
+import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 
 export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
+  const disabled = multiAuth
+
   return (
     <Form
       initial={{
@@ -26,8 +29,9 @@ export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
         placeholder='email@example.com'
         required
         autoFocus
+        disabled={disabled}
       />
-      <SubmitButton variant='secondary' className={styles.providerButton}>{text || 'Login'} with Email</SubmitButton>
+      <SubmitButton disabled={disabled} variant='secondary' className={styles.providerButton}>{text || 'Login'} with Email</SubmitButton>
     </Form>
   )
 }
@@ -74,10 +78,16 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
         switch (provider.name) {
           case 'Email':
             return (
-              <div className='w-100' key={provider.id}>
-                <div className='mt-2 text-center text-muted fw-bold'>or</div>
-                <EmailLoginForm text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
-              </div>
+              <OverlayTrigger
+                placement='bottom'
+                overlay={multiAuth ? <Tooltip>not available for account switching yet</Tooltip> : <></>}
+                trigger={['hover', 'focus']}
+              >
+                <div className='w-100' key={provider.id}>
+                  <div className='mt-2 text-center text-muted fw-bold'>or</div>
+                  <EmailLoginForm text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
+                </div>
+              </OverlayTrigger>
             )
           case 'Lightning':
           case 'Slashtags':
@@ -99,13 +109,22 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
             )
           default:
             return (
-              <LoginButton
-                className={`mt-2 ${styles.providerButton}`}
-                key={provider.id}
-                type={provider.id.toLowerCase()}
-                onClick={() => signIn(provider.id, { callbackUrl, multiAuth })}
-                text={`${text || 'Login'} with`}
-              />
+              <OverlayTrigger
+                placement='bottom'
+                overlay={multiAuth ? <Tooltip>not available for account switching yet</Tooltip> : <></>}
+                trigger={['hover', 'focus']}
+              >
+                <div className='w-100'>
+                  <LoginButton
+                    className={`mt-2 ${styles.providerButton}`}
+                    key={provider.id}
+                    type={provider.id.toLowerCase()}
+                    onClick={() => signIn(provider.id, { callbackUrl, multiAuth })}
+                    text={`${text || 'Login'} with`}
+                    disabled={multiAuth}
+                  />
+                </div>
+              </OverlayTrigger>
             )
         }
       })}

@@ -47,15 +47,6 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
   }
 
   const providers = await getProviders()
-  if (multiAuth) {
-    // multi auth only supported for login with lightning and nostr
-    const multiAuthSupport = key => ['lightning', 'nostr'].includes(key)
-    Object.keys(providers).forEach(key => {
-      if (!multiAuthSupport(key)) {
-        delete providers[key]
-      }
-    })
-  }
 
   return {
     props: {

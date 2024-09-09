@@ -8,7 +8,7 @@ export function useVaultConfigState () {
   const me = useMe()
   const [setVaultKeyHash] = useMutation(SET_VAULT_KEY_HASH)
 
-  const [value, innerSetValue] = useState(SSR ? null : getLocalStorage(me?.id, 'vault', 'key'))
+  const [value, innerSetValue] = useState(SSR ? null : getLocalStorage(me?.id, 'vault', { prefix: 'key' }))
 
   const [clearVault] = useMutation(CLEAR_VAULT, {
     onCompleted: () => {
@@ -42,6 +42,33 @@ export function useVaultConfigState () {
   return [value, setVaultKey, clearVault, disconnectVault]
 }
 
+export function useLocalStorageToVaultMigration () {
+  const me = useMe()
+  const [setVaultValue] = useMutation(SET_ENTRY)
+
+  const count = () => {
+    if (SSR) return 0
+    return getMigrableStorageKeys(me?.id).length
+  }
+
+  const migrate = async () => {
+    if (SSR) return
+    const vaultKey = getLocalStorage(me?.id, 'vault', { prefix: 'key' })
+    if (!vaultKey) throw new Error('Unexpected error: vault key not found')
+    const keys = getMigrableStorageKeys(me?.id)
+    for (const key of keys) {
+      const localStorageValue = window.localStorage.getItem(key.localKey)
+      if (localStorageValue) {
+        console.log('Migrating', key, localStorageValue, vaultKey)
+        const encryptedValue = await encryptStorageData(vaultKey.key, localStorageValue)
+        await setVaultValue({ variables: { key: key.vaultKey, value: encryptedValue } })
+        window.localStorage.removeItem(key.localKey)
+      }
+    }
+  }
+
+  return [count, migrate]
+}
 export default function useVaultStorageState (storageKey, defaultValue) {
   const me = useMe()
   const [setVaultValue] = useMutation(SET_ENTRY)
@@ -56,7 +83,7 @@ export default function useVaultStorageState (storageKey, defaultValue) {
   useEffect(() => {
     if (SSR) return
     (async () => {
-      const vaultKey = getLocalStorage(me?.id, 'vault', 'key')
+      const vaultKey = getLocalStorage(me?.id, 'vault', { prefix: 'key' })
       if (me?.privates?.vaultKeyHash && vaultData?.getVaultEntry?.value && vaultKey) {
         // if vault key hash is set on the server, vault entry exists and vault key is set on the device
         // decrypt and use the value from the server
@@ -64,9 +91,9 @@ export default function useVaultStorageState (storageKey, defaultValue) {
         innerSetValue(decryptedData)
         // remove local storage value
         unsetLocalStorage(me?.id, storageKey)
-      } else if (getLocalStorage(me?.id, storageKey)) {
+      } else if (getLocalStorage(me?.id, storageKey, { backwardCompatible: true })) {
         // otherwise, if there is a local storage use, return that
-        innerSetValue(getLocalStorage(me?.id, storageKey))
+        innerSetValue(getLocalStorage(me?.id, storageKey, { backwardCompatible: true }))
       } else {
         // otherwise, use the default value
         innerSetValue(defaultValue)
@@ -76,7 +103,7 @@ export default function useVaultStorageState (storageKey, defaultValue) {
 
   const setValue = useCallback(async (newValue) => {
     if (SSR) return
-    const vaultKey = getLocalStorage(me?.id, 'vault', 'key')
+    const vaultKey = getLocalStorage(me?.id, 'vault', { prefix: 'key' })
     const userVault = me?.privates?.vaultKeyHash
     // if device sync is enabled, retrieve the data from the server
     if (userVault && vaultKey) {
@@ -106,17 +133,47 @@ export default function useVaultStorageState (storageKey, defaultValue) {
   return [value, setValue, clearValue, refetchVaultValue]
 }
 
-function setLocalStorage (userId, key, value, prefix = 'vault') {
-  window.localStorage.setItem(prefix + '-' + key + '-' + userId, JSON.stringify(value))
+function getMigrableStorageKeys (userId) {
+  if (!userId) return []
+  const out = []
+  const vaultPrefix = 'vault:'
+  const vaultSuffix = ':' + userId
+  for (const key of Object.keys(window.localStorage)) {
+    console.log(key)
+    if (key.startsWith(vaultPrefix) && key.endsWith(vaultSuffix)) {
+      out.push({
+        vaultKey: key.substring(vaultPrefix.length, key.length - vaultSuffix.length),
+        localKey: key
+      })
+    } else if (key.startsWith('wallet:') && key.endsWith(':' + userId)) {
+      out.push({
+        vaultKey: key,
+        localKey: key
+      })
+    }
+  }
+  console.log(out)
+  return out
 }
 
-function getLocalStorage (userId, key, prefix = 'vault') {
-  const v = window.localStorage.getItem(prefix + '-' + key + '-' + userId)
-  return v ? JSON.parse(v) : null
+function setLocalStorage (userId, key, value, prefix = 'vault') {
+  window.localStorage.setItem(prefix + ':' + key + ':' + userId, JSON.stringify(value))
+}
+
+function getLocalStorage (userId, key, { prefix = 'vault', backwardCompatible = false }) {
+  const v = window.localStorage.getItem(prefix + ':' + key + ':' + userId)
+  if (v) {
+    return JSON.parse(v)
+  }
+  if (backwardCompatible) {
+    const vb = window.localStorage.getItem(key)
+    return vb ? JSON.parse(vb) : null
+  }
+  return null
 }
 
 function unsetLocalStorage (userId, key, prefix = 'vault') {
-  window.localStorage.removeItem(prefix + '-' + key + '-' + userId)
+  window.localStorage.removeItem(prefix + ':' + key + ':' + userId)
 }
 
 function toHex (buffer) {

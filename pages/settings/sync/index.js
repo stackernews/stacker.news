@@ -1,6 +1,6 @@
 import Layout from '@/components/layout'
 import { SettingsHeader } from '../index'
-import useVaultStorageState, { useVaultConfigState } from '@/components/use-user-vault-state'
+import useVaultStorageState, { useVaultConfigState, useLocalStorageToVaultMigration } from '@/components/use-user-vault-state'
 import { useMe } from '@/components/me'
 import { useShowModal } from '@/components/modal'
 import CancelButton from '@/components/cancel-button'
@@ -47,6 +47,7 @@ export default function DeviceSync ({ ssrData }) {
   const toaster = useToast()
   const [connected, setConnected] = useState(false)
   const [enabled, setEnabled] = useState(false)
+  const [countMigrableKeys, migrateKeys] = useLocalStorageToVaultMigration()
 
   const [conf, setConf, clearConf] = useVaultStorageState('test-debug')
 
@@ -54,6 +55,44 @@ export default function DeviceSync ({ ssrData }) {
     setEnabled(!!me?.privates?.vaultKeyHash)
     setConnected(!!value?.key)
   }, [me?.privates?.vaultKeyHash, value])
+
+  const migrate = useCallback(async (close) => {
+    const migrableKeys = countMigrableKeys()
+    if (migrableKeys > 0) {
+      showModal((onClose) => (
+        <div>
+          <h2>Migrate to Device Sync</h2>
+          <p>
+            It looks like you have some data stored in your local storage that can be migrated to your device sync.
+          </p>
+          <p>
+            Would you like to migrate this data now?
+          </p>
+          <div className='d-flex justify-content-between'>
+            <div className='d-flex align-items-center ms-auto'>
+              <CancelButton onClick={onClose} />
+              <Button
+                variant='primary'
+                onClick={async () => {
+                  try {
+                    await migrateKeys()
+                    toaster.success(`Successfully migrated ${migrableKeys} entries to your device sync.`)
+                    onClose()
+                  } catch (e) {
+                    toaster.danger(e.message)
+                  }
+                }}
+              >
+                migrate now
+              </Button>
+            </div>
+          </div>
+        </div>
+      ))
+    } else {
+      close()
+    }
+  }, [])
 
   const inputPassphrase = useCallback(async (isNew) => {
     showModal((onClose) => (
@@ -70,10 +109,10 @@ export default function DeviceSync ({ ssrData }) {
             if (values.passphrase) {
               try {
                 await setVaultKey(values.passphrase)
+                migrate(onClose)
               } catch (e) {
                 toaster.danger(e.message)
               }
-              onClose()
             }
           }}
         >
@@ -135,7 +174,7 @@ export default function DeviceSync ({ ssrData }) {
           }}
         >
           <Input
-            label='Input `yes` if you want to reset your device sync'
+            label='Do you wish to continue? Type `yes` to confirm.'
             name='confirm'
             placeholder=''
             required

@@ -5,7 +5,7 @@ import BootstrapForm from 'react-bootstrap/Form'
 import EditImage from '@/svgs/image-edit-fill.svg'
 import Moon from '@/svgs/moon-fill.svg'
 import { useShowModal } from './modal'
-import { ImageUpload } from './image'
+import { ImageUpload } from './image-upload'
 
 export default function Avatar ({ onSuccess }) {
   const [uploading, setUploading] = useState()

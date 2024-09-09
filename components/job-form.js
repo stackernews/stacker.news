@@ -167,7 +167,7 @@ function PromoteJob ({ item, sub }) {
             label={
               <div className='d-flex align-items-center'>bid
                 <Info>
-                  <ol className='fw-bold'>
+                  <ol>
                     <li>The higher your bid the higher your job will rank</li>
                     <li>You can increase, decrease, or remove your bid at anytime</li>
                     <li>You can edit or stop your job at anytime</li>

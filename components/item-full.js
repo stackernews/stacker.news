@@ -3,16 +3,13 @@ import ItemJob from './item-job'
 import Reply from './reply'
 import Comment from './comment'
 import Text, { SearchText } from './text'
-import ZoomableImage from './image'
+import MediaOrLink from './media-or-link'
 import Comments from './comments'
 import styles from '@/styles/item.module.css'
 import itemStyles from './item.module.css'
 import { useMe } from './me'
 import Button from 'react-bootstrap/Button'
-import { TwitterTweetEmbed } from 'react-twitter-embed'
-import YouTube from 'react-youtube'
-import useDarkMode from './dark-mode'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import Poll from './poll'
 import { commentsViewed } from '@/lib/new-comments'
 import Related from './related'
@@ -22,7 +19,7 @@ import Share from './share'
 import Toc from './table-of-contents'
 import Link from 'next/link'
 import { RootProvider } from './root'
-import { IMGPROXY_URL_REGEXP, parseEmbedUrl } from '@/lib/url'
+import { decodeProxyUrl, IMGPROXY_URL_REGEXP } from '@/lib/url'
 import { numWithUnits } from '@/lib/format'
 import { useQuoteReply } from './use-quote-reply'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
@@ -50,91 +47,11 @@ function BioItem ({ item, handleClick }) {
   )
 }
 
-function TweetSkeleton () {
-  return (
-    <div className={styles.tweetsSkeleton}>
-      <div className={styles.tweetSkeleton}>
-        <div className={`${styles.img} clouds`} />
-        <div className={styles.content1}>
-          <div className={`${styles.line} clouds`} />
-          <div className={`${styles.line} clouds`} />
-          <div className={`${styles.line} clouds`} />
-        </div>
-      </div>
-    </div>
-  )
-}
+function ItemEmbed ({ url, imgproxyUrls }) {
+  const src = IMGPROXY_URL_REGEXP.test(url) ? decodeProxyUrl(url) : url
+  const srcSet = imgproxyUrls?.[url]
 
-function ItemEmbed ({ item }) {
-  const [darkMode] = useDarkMode()
-  const [overflowing, setOverflowing] = useState(false)
-  const [show, setShow] = useState(false)
-
-  // This Twitter embed could use similar logic to the video embeds below
-  const twitter = item.url?.match(/^https?:\/\/(?:twitter|x)\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)/)
-  if (twitter?.groups?.id) {
-    return (
-      <div className={`${styles.twitterContainer} ${show ? '' : styles.twitterContained}`}>
-        <TwitterTweetEmbed tweetId={twitter.groups.id} options={{ theme: darkMode ? 'dark' : 'light', width: '550px' }} key={darkMode ? '1' : '2'} placeholder={<TweetSkeleton />} onLoad={() => setOverflowing(true)} />
-        {overflowing && !show &&
-          <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
-            show full tweet
-          </Button>}
-      </div>
-    )
-  }
-
-  const { provider, id, meta } = parseEmbedUrl(item.url)
-
-  if (provider === 'youtube') {
-    return (
-      <div className={styles.videoWrapper}>
-        <YouTube
-          videoId={id} className={styles.videoContainer} opts={{
-            playerVars: {
-              start: meta?.start || 0
-            }
-          }}
-        />
-      </div>
-    )
-  }
-
-  if (provider === 'rumble') {
-    return (
-      <div className={styles.videoWrapper}>
-        <div className={styles.videoContainer}>
-          <iframe
-            title='Rumble Video'
-            allowFullScreen
-            src={meta?.href}
-            sandbox='allow-scripts'
-          />
-        </div>
-      </div>
-    )
-  }
-
-  if (provider === 'peertube') {
-    return (
-      <div className={styles.videoWrapper}>
-        <div className={styles.videoContainer}>
-          <iframe
-            title='PeerTube Video'
-            allowFullScreen
-            src={meta?.href}
-            sandbox='allow-scripts'
-          />
-        </div>
-      </div>
-    )
-  }
-
-  if (item.url?.match(IMGPROXY_URL_REGEXP)) {
-    return <ZoomableImage src={item.url} rel={item.rel ?? UNKNOWN_LINK_REL} />
-  }
-
-  return null
+  return <MediaOrLink src={src} srcSet={srcSet} topLevel linkFallback={false} />
 }
 
 function FwdUsers ({ forwards }) {
@@ -174,7 +91,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
     >
       <article className={styles.fullItemContainer} ref={textRef}>
         {item.text && <ItemText item={item} />}
-        {item.url && <ItemEmbed item={item} />}
+        {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
         {item.poll && <Poll item={item} />}
         {item.bounty &&
           <div className='fw-bold mt-2'>

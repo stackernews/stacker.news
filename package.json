@@ -123,5 +123,10 @@
     "eslint": "^8.51.0",
     "jest": "^29.7.0",
     "standard": "^17.1.0"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "@/(.*)": "<rootDir>/$1"
+    }
   }
 }

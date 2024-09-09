@@ -1,6 +1,5 @@
 import styles from './text.module.css'
 import ReactMarkdown from 'react-markdown'
-import YouTube from 'react-youtube'
 import gfm from 'remark-gfm'
 import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
@@ -12,8 +11,8 @@ import LinkIcon from '@/svgs/link.svg'
 import Thumb from '@/svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
-import ZoomableImage, { decodeOriginalUrl } from './image'
-import { IMGPROXY_URL_REGEXP, parseInternalLinks, parseEmbedUrl } from '@/lib/url'
+import MediaOrLink from './media-or-link'
+import { IMGPROXY_URL_REGEXP, parseInternalLinks, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
 import { rehypeInlineCodeProperty, rehypeStyler } from '@/lib/md'
 import { Button } from 'react-bootstrap'
@@ -82,7 +81,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     }
   }, [containerRef.current, setOverflowing])
 
-  const slugger = new GithubSlugger()
+  const slugger = useMemo(() => new GithubSlugger(), [])
 
   const Heading = useCallback(({ children, node, ...props }) => {
     const [copied, setCopied] = useState(false)
@@ -120,7 +119,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
           </a>}
       </span>
     )
-  }, [topLevel, noFragments, slugger.current])
+  }, [topLevel, noFragments, slugger])
 
   const Table = useCallback(({ node, ...props }) =>
     <span className='table-responsive'>
@@ -143,181 +142,133 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
 
   const P = useCallback(({ children, node, ...props }) => <div className={styles.p} {...props}>{children}</div>, [])
 
-  const Img = useCallback(({ node, src, ...props }) => {
-    const url = IMGPROXY_URL_REGEXP.test(src) ? decodeOriginalUrl(src) : src
-    // if outlawed, render the image link as text
+  const TextMediaOrLink = useCallback(({ node, src, ...props }) => {
+    const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
+    // if outlawed, render the media link as text
     if (outlawed) {
       return url
     }
     const srcSet = imgproxyUrls?.[url]
-    return <ZoomableImage srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} topLevel={topLevel} />
+    return <MediaOrLink srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} topLevel={topLevel} />
   }, [imgproxyUrls, topLevel, tab])
+
+  const components = useMemo(() => ({
+    h1: Heading,
+    h2: Heading,
+    h3: Heading,
+    h4: Heading,
+    h5: Heading,
+    h6: Heading,
+    table: Table,
+    p: P,
+    li: props => {
+      return <li {...props} id={props.id && itemId ? `${props.id}-${itemId}` : props.id} />
+    },
+    code: Code,
+    a: ({ node, href, children, ...props }) => {
+      children = children ? Array.isArray(children) ? children : [children] : []
+      // don't allow zoomable images to be wrapped in links
+      if (children.some(e => e?.props?.node?.tagName === 'img')) {
+        return <>{children}</>
+      }
+
+      // if outlawed, render the link as text
+      if (outlawed) {
+        return href
+      }
+
+      // If [text](url) was parsed as <a> and text is not empty and not a link itself,
+      // we don't render it as an image since it was probably a conscious choice to include text.
+      const text = children[0]
+      let url
+      try {
+        url = !href.startsWith('/') && new URL(href)
+      } catch {
+        // ignore invalid URLs
+      }
+
+      const internalURL = process.env.NEXT_PUBLIC_URL
+      if (!!text && !/^https?:\/\//.test(text)) {
+        if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
+          return (
+            <Link
+              {...props}
+              id={props.id && itemId ? `${props.id}-${itemId}` : props.id}
+              href={itemId ? `${href}-${itemId}` : href}
+            >{text}
+            </Link>
+          )
+        }
+        if (text.startsWith?.('@')) {
+          // user mention might be within a markdown link like this: [@user foo bar](url)
+          const name = text.replace('@', '').split(' ')[0]
+          return (
+            <UserPopover name={name}>
+              <Link
+                id={props.id}
+                href={href}
+              >
+                {text}
+              </Link>
+            </UserPopover>
+          )
+        } else if (href.startsWith('/') || url?.origin === internalURL) {
+          try {
+            const { linkText } = parseInternalLinks(href)
+            if (linkText) {
+              return (
+                <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
+                  <Link href={href}>{text}</Link>
+                </ItemPopover>
+              )
+            }
+          } catch {
+            // ignore errors like invalid URLs
+          }
+
+          return (
+            <Link
+              id={props.id}
+              href={href}
+            >
+              {text}
+            </Link>
+          )
+        }
+        return (
+          // eslint-disable-next-line
+          <a id={props.id} target='_blank' rel={rel ?? UNKNOWN_LINK_REL} href={href}>{text}</a>
+        )
+      }
+
+      try {
+        const { linkText } = parseInternalLinks(href)
+        if (linkText) {
+          return (
+            <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
+              <Link href={href}>{linkText}</Link>
+            </ItemPopover>
+          )
+        }
+      } catch {
+        // ignore errors like invalid URLs
+      }
+
+      // assume the link is an image which will fallback to link if it's not
+      return <TextMediaOrLink src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</TextMediaOrLink>
+    },
+    img: TextMediaOrLink
+  }), [outlawed, rel, itemId, Code, P, Heading, Table, TextMediaOrLink])
+
+  const remarkPlugins = useMemo(() => [gfm, mention, sub], [])
+  const rehypePlugins = useMemo(() => [rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript], [])
 
   return (
     <div className={`${styles.text} ${show ? styles.textUncontained : overflowing ? styles.textContained : ''}`} ref={containerRef}>
       <ReactMarkdown
-        components={{
-          h1: Heading,
-          h2: Heading,
-          h3: Heading,
-          h4: Heading,
-          h5: Heading,
-          h6: Heading,
-          table: Table,
-          p: P,
-          li: props => {
-            return <li {...props} id={props.id && itemId ? `${props.id}-${itemId}` : props.id} />
-          },
-          code: Code,
-          a: ({ node, href, children, ...props }) => {
-            children = children ? Array.isArray(children) ? children : [children] : []
-            // don't allow zoomable images to be wrapped in links
-            if (children.some(e => e?.props?.node?.tagName === 'img')) {
-              return <>{children}</>
-            }
-
-            // if outlawed, render the link as text
-            if (outlawed) {
-              return href
-            }
-
-            // If [text](url) was parsed as <a> and text is not empty and not a link itself,
-            // we don't render it as an image since it was probably a conscious choice to include text.
-            const text = children[0]
-            let url
-            try {
-              url = !href.startsWith('/') && new URL(href)
-            } catch {
-              // ignore invalid URLs
-            }
-
-            const internalURL = process.env.NEXT_PUBLIC_URL
-            if (!!text && !/^https?:\/\//.test(text)) {
-              if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
-                return (
-                  <Link
-                    {...props}
-                    id={props.id && itemId ? `${props.id}-${itemId}` : props.id}
-                    href={itemId ? `${href}-${itemId}` : href}
-                  >{text}
-                  </Link>
-                )
-              }
-              if (text.startsWith?.('@')) {
-                // user mention might be within a markdown link like this: [@user foo bar](url)
-                const name = text.replace('@', '').split(' ')[0]
-                return (
-                  <UserPopover name={name}>
-                    <Link
-                      id={props.id}
-                      href={href}
-                    >
-                      {text}
-                    </Link>
-                  </UserPopover>
-                )
-              } else if (href.startsWith('/') || url?.origin === internalURL) {
-                try {
-                  const { linkText } = parseInternalLinks(href)
-                  if (linkText) {
-                    return (
-                      <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
-                        <Link href={href}>{text}</Link>
-                      </ItemPopover>
-                    )
-                  }
-                } catch {
-                  // ignore errors like invalid URLs
-                }
-
-                return (
-                  <Link
-                    id={props.id}
-                    href={href}
-                  >
-                    {text}
-                  </Link>
-                )
-              }
-              return (
-                // eslint-disable-next-line
-                <a id={props.id} target='_blank' rel={rel ?? UNKNOWN_LINK_REL} href={href}>{text}</a>
-              )
-            }
-
-            try {
-              const { linkText } = parseInternalLinks(href)
-              if (linkText) {
-                return (
-                  <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
-                    <Link href={href}>{linkText}</Link>
-                  </ItemPopover>
-                )
-              }
-            } catch {
-              // ignore errors like invalid URLs
-            }
-
-            const videoWrapperStyles = {
-              maxWidth: topLevel ? '640px' : '320px',
-              margin: '0.5rem 0',
-              paddingRight: '15px'
-            }
-
-            const { provider, id, meta } = parseEmbedUrl(href)
-            // Youtube video embed
-            if (provider === 'youtube') {
-              return (
-                <div style={videoWrapperStyles}>
-                  <YouTube
-                    videoId={id} className={styles.videoContainer} opts={{
-                      playerVars: {
-                        start: meta?.start || 0
-                      }
-                    }}
-                  />
-                </div>
-              )
-            }
-
-            // Rumble video embed
-            if (provider === 'rumble') {
-              return (
-                <div style={videoWrapperStyles}>
-                  <div className={styles.videoContainer}>
-                    <iframe
-                      title='Rumble Video'
-                      allowFullScreen
-                      src={meta?.href}
-                      sandbox='allow-scripts'
-                    />
-                  </div>
-                </div>
-              )
-            }
-
-            if (provider === 'peertube') {
-              return (
-                <div style={videoWrapperStyles}>
-                  <div className={styles.videoContainer}>
-                    <iframe
-                      title='PeerTube Video'
-                      allowFullScreen
-                      src={meta?.href}
-                      sandbox='allow-scripts'
-                    />
-                  </div>
-                </div>
-              )
-            }
-
-            // assume the link is an image which will fallback to link if it's not
-            return <Img src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</Img>
-          },
-          img: Img
-        }}
-        remarkPlugins={[gfm, mention, sub]}
-        rehypePlugins={[rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript]}
+        components={components}
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={rehypePlugins}
       >
         {children}
       </ReactMarkdown>

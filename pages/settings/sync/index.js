@@ -61,7 +61,7 @@ export default function DeviceSync ({ ssrData }) {
     if (migrableKeys > 0) {
       showModal((onClose) => (
         <div>
-          <h2>Migrate to Device Sync</h2>
+          <h2>Migrate to device sync</h2>
           <p>
             It looks like you have some data stored in your local storage that can be migrated to your device sync.
           </p>
@@ -242,7 +242,7 @@ export default function DeviceSync ({ ssrData }) {
                       <DoubleCheck width='20' height='20' className='fill-success me-2' />
                       Device sync is enabled!
                     </p>
-                    <div className='mt-3'>
+                    <div className='d-flex flex-column  mt-3 gap-2'>
                       <div className='d-flex justify-content-between'>
                         <div className='d-flex align-items-center ms-auto gap-2'>
                           <Button variant='danger' onClick={() => resetPassphrase()}>
@@ -251,6 +251,10 @@ export default function DeviceSync ({ ssrData }) {
                           <Button variant='warning' onClick={() => disconnectVault()}>
                             disconnect
                           </Button>
+                        </div>
+                      </div>
+                      <div className='d-flex justify-content-between'>
+                        <div className='d-flex align-items-center ms-auto gap-2'>
                           <Button variant='info' onClick={() => showPassphrase()}>
                             show passphrase
                           </Button>

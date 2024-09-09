@@ -113,7 +113,7 @@ export default function TerritoryForm ({ sub }) {
           warn={archived && (
             <div className='d-flex align-items-center'>this territory is archived
               <Info>
-                <ul className='fw-bold'>
+                <ul>
                   <li>This territory got archived because the previous founder did not pay for the upkeep</li>
                   <li>You can proceed but will inherit the old content</li>
                 </ul>

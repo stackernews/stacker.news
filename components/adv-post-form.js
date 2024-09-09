@@ -115,7 +115,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
             label={
               <div className='d-flex align-items-center'>boost
                 <Info>
-                  <ol className='fw-bold'>
+                  <ol>
                     <li>Boost ranks posts higher temporarily based on the amount</li>
                     <li>The minimum boost is {numWithUnits(BOOST_MIN, { abbreviate: false })}</li>
                     <li>Each {numWithUnits(BOOST_MULT, { abbreviate: false })} of boost is equivalent to one trusted upvote
@@ -179,7 +179,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
               label={
                 <div className='d-flex align-items-center'>crosspost to nostr
                   <Info>
-                    <ul className='fw-bold'>
+                    <ul>
                       {renderCrosspostDetails(itemType)}
                       <li>requires NIP-07 extension for signing</li>
                       <li>we use your NIP-05 relays if set</li>

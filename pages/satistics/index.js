@@ -18,6 +18,7 @@ import PageLoading from '@/components/page-loading'
 import PayerData from '@/components/payer-data'
 import { Badge } from 'react-bootstrap'
 import navStyles from '../settings/settings.module.css'
+import classNames from 'classnames'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
 
@@ -36,7 +37,7 @@ function satusClass (status) {
   }
 }
 
-function Satus ({ status }) {
+function Satus ({ status, className }) {
   if (!status) {
     return null
   }
@@ -85,8 +86,8 @@ function Satus ({ status }) {
   }
 
   return (
-    <span className='d-inline-block'>
-      <Icon /><small className={`text-${color} fw-bold ms-2`}>{desc}</small>
+    <span className={classNames('d-inline-block', className)}>
+      <Icon /><small className={`text-${color} fw-bold ms-1`}>{desc}</small>
     </span>
   )
 }
@@ -141,7 +142,8 @@ function Detail ({ fact }) {
            (fact.description && <span className='d-block'>{fact.description}</span>)}
           <PayerData data={fact.invoicePayerData} className='text-muted' header />
           {fact.invoiceComment && <small className='text-muted'><b>sender says:</b> {fact.invoiceComment}</small>}
-          <Satus status={fact.status} />{fact.autoWithdraw && <Badge className={styles.badge} bg={null}>{fact.type === 'p2p' ? 'p2p' : 'autowithdraw'}</Badge>}
+          <Satus className={fact.invoiceComment ? 'ms-1' : ''} status={fact.status} />
+          {fact.autoWithdraw && <Badge className={styles.badge} bg={null}>{fact.type === 'p2p' ? 'p2p' : 'autowithdraw'}</Badge>}
         </Link>
       </div>
     )

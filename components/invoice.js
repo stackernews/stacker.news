@@ -109,7 +109,8 @@ export default function Invoice ({ id, query = INVOICE, modal, onPayment, onCanc
             <div className='w-100'>
               <AccordianItem
                 header='sender information'
-                body={<PayerData data={lud18Data} className='text-muted ms-3 mb-3' />}
+                body={<PayerData data={lud18Data} className='text-muted ms-3' />}
+                className='mb-3'
               />
             </div>}
           {comment &&
@@ -117,6 +118,7 @@ export default function Invoice ({ id, query = INVOICE, modal, onPayment, onCanc
               <AccordianItem
                 header='sender comments'
                 body={<span className='text-muted ms-3'>{comment}</span>}
+                className='mb-3'
               />
             </div>}
           <Bolt11Info bolt11={bolt11} preimage={confirmedPreimage} />

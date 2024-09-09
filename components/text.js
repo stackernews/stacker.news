@@ -1,6 +1,5 @@
 import styles from './text.module.css'
 import ReactMarkdown from 'react-markdown'
-import YouTube from 'react-youtube'
 import gfm from 'remark-gfm'
 import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
@@ -13,7 +12,7 @@ import Thumb from '@/svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
 import MediaOrLink from './media-or-link'
-import { IMGPROXY_URL_REGEXP, parseInternalLinks, parseEmbedUrl, decodeProxyUrl } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, parseInternalLinks, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
 import { rehypeInlineCodeProperty, rehypeStyler } from '@/lib/md'
 import { Button } from 'react-bootstrap'
@@ -255,64 +254,11 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
         // ignore errors like invalid URLs
       }
 
-      const videoWrapperStyles = {
-        maxWidth: topLevel ? '640px' : '320px',
-        margin: '0.5rem 0',
-        paddingRight: '15px'
-      }
-
-      const { provider, id, meta } = parseEmbedUrl(href)
-      // Youtube video embed
-      if (provider === 'youtube') {
-        return (
-          <div style={videoWrapperStyles}>
-            <YouTube
-              videoId={id} className={styles.videoContainer} opts={{
-                playerVars: {
-                  start: meta?.start || 0
-                }
-              }}
-            />
-          </div>
-        )
-      }
-
-      // Rumble video embed
-      if (provider === 'rumble') {
-        return (
-          <div style={videoWrapperStyles}>
-            <div className={styles.videoContainer}>
-              <iframe
-                title='Rumble Video'
-                allowFullScreen
-                src={meta?.href}
-                sandbox='allow-scripts'
-              />
-            </div>
-          </div>
-        )
-      }
-
-      if (provider === 'peertube') {
-        return (
-          <div style={videoWrapperStyles}>
-            <div className={styles.videoContainer}>
-              <iframe
-                title='PeerTube Video'
-                allowFullScreen
-                src={meta?.href}
-                sandbox='allow-scripts'
-              />
-            </div>
-          </div>
-        )
-      }
-
       // assume the link is an image which will fallback to link if it's not
       return <TextMediaOrLink src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</TextMediaOrLink>
     },
     img: TextMediaOrLink
-  }), [outlawed, rel, topLevel, itemId, Code, P, Heading, Table, TextMediaOrLink])
+  }), [outlawed, rel, itemId, Code, P, Heading, Table, TextMediaOrLink])
 
   const remarkPlugins = useMemo(() => [gfm, mention, sub], [])
   const rehypePlugins = useMemo(() => [rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript], [])

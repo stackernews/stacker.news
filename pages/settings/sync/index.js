@@ -271,7 +271,7 @@ export default function DeviceSync ({ ssrData }) {
                           <Button variant='danger' onClick={() => resetPassphrase()}>
                             reset
                           </Button>
-                          <Button variant='warning' onClick={() => inputPassphrase()}>
+                          <Button variant='primary' onClick={() => inputPassphrase()}>
                             connect
                           </Button>
                         </div>

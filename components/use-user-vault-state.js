@@ -4,12 +4,15 @@ import { useMe } from '@/components/me'
 import { useMutation, useQuery } from '@apollo/client'
 import { GET_ENTRY, SET_ENTRY, UNSET_ENTRY, CLEAR_VAULT, SET_VAULT_KEY_HASH } from '@/fragments/userVault'
 
+// used to set and configure the vault
 export function useVaultConfigState () {
   const me = useMe()
   const [setVaultKeyHash] = useMutation(SET_VAULT_KEY_HASH)
 
+  // vault key stored locally
   const [value, innerSetValue] = useState(SSR ? null : getLocalStorage(me?.id, 'vault', { prefix: 'key' }))
 
+  // clear vault: remove everything and reset the key
   const [clearVault] = useMutation(CLEAR_VAULT, {
     onCompleted: () => {
       if (!SSR) unsetLocalStorage(me?.id, 'vault', 'key')
@@ -17,6 +20,7 @@ export function useVaultConfigState () {
     }
   })
 
+  // initialize the vault and set a vault key
   const setVaultKey = useCallback(async (passphrase) => {
     const { key, hash } = await deriveStorageKey(me?.id, passphrase)
     await setVaultKeyHash({
@@ -34,6 +38,7 @@ export function useVaultConfigState () {
     if (!SSR) setLocalStorage(me?.id, 'vault', { passphrase, key, hash }, 'key')
   })
 
+  // disconnect the user from the vault (will not clear or reset the passphrase, use clearVault for that)
   const disconnectVault = useCallback(() => {
     if (!SSR) unsetLocalStorage(me?.id, 'vault', 'key')
     innerSetValue(null)
@@ -42,15 +47,18 @@ export function useVaultConfigState () {
   return [value, setVaultKey, clearVault, disconnectVault]
 }
 
+// use to migrate the local storage to vault
 export function useLocalStorageToVaultMigration () {
   const me = useMe()
   const [setVaultValue] = useMutation(SET_ENTRY)
 
+  // count how many local storage keys can be migrated
   const count = () => {
     if (SSR) return 0
     return getMigrableStorageKeys(me?.id).length
   }
 
+  // migrate local storage to vault
   const migrate = async () => {
     if (SSR) return
     const vaultKey = getLocalStorage(me?.id, 'vault', { prefix: 'key' })
@@ -59,7 +67,7 @@ export function useLocalStorageToVaultMigration () {
     for (const key of keys) {
       const localStorageValue = window.localStorage.getItem(key.localKey)
       if (localStorageValue) {
-        console.log('Migrating', key, localStorageValue, vaultKey)
+        console.log('Migrating', localStorageValue, 'to vault', vaultKey)
         const encryptedValue = await encryptStorageData(vaultKey.key, localStorageValue)
         await setVaultValue({ variables: { key: key.vaultKey, value: encryptedValue } })
         window.localStorage.removeItem(key.localKey)
@@ -69,12 +77,13 @@ export function useLocalStorageToVaultMigration () {
 
   return [count, migrate]
 }
+
+// used to get and set values in the vault
 export default function useVaultStorageState (storageKey, defaultValue) {
   const me = useMe()
   const [setVaultValue] = useMutation(SET_ENTRY)
   const [clearVaultValue] = useMutation(UNSET_ENTRY)
   const [value, innerSetValue] = useState(undefined)
-
   const { data: vaultData, refetch: refetchVaultValue } = useQuery(GET_ENTRY, {
     variables: { key: storageKey },
     fetchPolicy: 'no-cache'
@@ -105,28 +114,29 @@ export default function useVaultStorageState (storageKey, defaultValue) {
     if (SSR) return
     const vaultKey = getLocalStorage(me?.id, 'vault', { prefix: 'key' })
     const userVault = me?.privates?.vaultKeyHash
-    // if device sync is enabled, retrieve the data from the server
-    if (userVault && vaultKey) {
-      const { hash, key } = vaultKey
-      if (hash === userVault) {
-        const encryptedValue = await encryptStorageData(key, JSON.stringify(newValue))
-        await setVaultValue({ variables: { key: storageKey, value: encryptedValue } })
-        unsetLocalStorage(me?.id, storageKey)
-      } else {
-        setLocalStorage(me?.id, storageKey, newValue)
-      }
+    if (userVault && vaultKey && vaultKey.hash === userVault && vaultKey.key) {
+      // if vault key is enabled an properly connected, set the value in the server
+      const encryptedValue = await encryptStorageData(vaultKey.key, JSON.stringify(newValue))
+      await setVaultValue({ variables: { key: storageKey, value: encryptedValue } })
+      // clear local storage (we get rid of stored unencrypted data as soon as it can be stored on the vault)
+      unsetLocalStorage(me?.id, storageKey)
     } else {
+      // otherwise use local storage
       setLocalStorage(me?.id, storageKey, newValue)
     }
+    // refresh in-memory value
     innerSetValue(newValue)
   }, [me?.privates?.vaultKeyHash])
 
   const clearValue = useCallback(async () => {
+    // unset a value
     if (SSR) return
+    // clear server
     await clearVaultValue({ variables: { key: storageKey } })
     await refetchVaultValue()
-    // clear locally
+    // clear local storage
     unsetLocalStorage(me?.id, storageKey)
+    // clear in-memory value
     innerSetValue(undefined)
   }, [])
 
@@ -134,25 +144,27 @@ export default function useVaultStorageState (storageKey, defaultValue) {
 }
 
 function getMigrableStorageKeys (userId) {
+  // get all the local storage keys that can be migrated
   if (!userId) return []
   const out = []
   const vaultPrefix = 'vault:'
   const vaultSuffix = ':' + userId
   for (const key of Object.keys(window.localStorage)) {
-    console.log(key)
     if (key.startsWith(vaultPrefix) && key.endsWith(vaultSuffix)) {
+      // everything that is set by the local storage vault (ie. if the user doesn't have device sync enabled yet)
       out.push({
         vaultKey: key.substring(vaultPrefix.length, key.length - vaultSuffix.length),
         localKey: key
       })
     } else if (key.startsWith('wallet:') && key.endsWith(':' + userId)) {
+      // every old setting related to the wallet attachments
       out.push({
         vaultKey: key,
         localKey: key
       })
     }
+    // check here for more keys that can be migrated if needed
   }
-  console.log(out)
   return out
 }
 

@@ -412,9 +412,13 @@ export function useWallets () {
 
 function getStorageKey (name, me) {
   let storageKey = `wallet:${name}`
-  if (me) {
+
+  // WebLN has no credentials we need to scope to users
+  // so we can use the same storage key for all users
+  if (me && name !== 'webln') {
     storageKey = `${storageKey}:${me.id}`
   }
+
   return storageKey
 }
 

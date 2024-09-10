@@ -24,15 +24,15 @@ export const card = {
 }
 
 export default function WebLnProvider ({ children }) {
-  const webLnWallet = useWallet(name)
+  const wallet = useWallet(name)
 
   useEffect(() => {
     const onEnable = () => {
-      webLnWallet.enablePayments()
+      wallet.enablePayments()
     }
 
     const onDisable = () => {
-      webLnWallet.disablePayments()
+      wallet.disablePayments()
     }
 
     window.addEventListener('webln:enabled', onEnable)

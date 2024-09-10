@@ -1,11 +1,11 @@
 import { datePivot } from '@/lib/time'
 import gql from 'graphql-tag'
 import { numWithUnits, abbrNum } from '@/lib/format'
-import { paidActions } from '@/api/paidAction'
 import { USER_ID } from '@/lib/constants'
 import { getForwardUsers } from '@/api/resolvers/item'
+import { autoPost } from './weeklyPosts'
 
-export async function thisDay ({ models, apollo }) {
+export async function thisDay ({ models, apollo, lnd, boss }) {
   const days = []
   let yearsAgo = 1
   while (datePivot(new Date(), { years: -yearsAgo }) > new Date('2021-06-10')) {
@@ -33,16 +33,22 @@ ${topStackers(days)}
 ${topComments(days)}
 ${topSubs(days)}`
 
-  const user = await models.user.findUnique({ where: { id: USER_ID.sn } })
   const forward = days.map(({ data }) => data.users.users?.[0]?.name).filter(Boolean).map(name => ({ nym: name, pct: 10 }))
   forward.push({ nym: 'Undisciplined', pct: 50 })
   const forwardUsers = await getForwardUsers(models, forward)
-  await models.$transaction(async tx => {
-    const context = { tx, cost: BigInt(1), user, models }
-    const result = await paidActions.ITEM_CREATE.perform({
-      text, title: `This Day on SN: ${date}`, subName: 'meta', userId: USER_ID.sn, forwardUsers
-    }, context)
-    await paidActions.ITEM_CREATE.onPaid(result, context)
+
+  await autoPost({
+    data: {
+      text,
+      title: `This Day on SN: ${date}`,
+      subName: 'meta',
+      userId: USER_ID.sn,
+      forwardUsers
+    },
+    models,
+    apollo,
+    lnd,
+    boss
   })
 }
 

@@ -1,4 +1,4 @@
-import { GraphQLError } from 'graphql'
+import { GqlInputError } from '@/lib/error'
 
 export default {
   Query: {
@@ -11,7 +11,7 @@ export default {
   Mutation: {
     createMessage: async (parent, { text }, { me, models }) => {
       if (!text) {
-        throw new GraphQLError('Must have text', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('must have text')
       }
 
       return await models.message.create({

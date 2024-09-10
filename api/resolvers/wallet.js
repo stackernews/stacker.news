@@ -1,5 +1,4 @@
 import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, getInvoice as getInvoiceFromLnd, getNode, deletePayment, getPayment, getIdentity } from 'ln-service'
-import { GraphQLError } from 'graphql'
 import crypto, { timingSafeEqual } from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
@@ -15,6 +14,7 @@ import { finalizeHodlInvoice } from 'worker/wallet'
 import walletDefs from 'wallets/server'
 import { generateResolverName, generateTypeDefName } from '@/lib/wallet'
 import { lnAddrOptions } from '@/lib/lnurl'
+import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
@@ -54,17 +54,17 @@ export async function getInvoice (parent, { id }, { me, models, lnd }) {
   })
 
   if (!inv) {
-    throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
+    throw new GqlInputError('invoice not found')
   }
 
   if (inv.user.id === USER_ID.anon) {
     return inv
   }
   if (!me) {
-    throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+    throw new GqlAuthenticationError()
   }
   if (inv.user.id !== me.id) {
-    throw new GraphQLError('not ur invoice', { extensions: { code: 'FORBIDDEN' } })
+    throw new GqlInputError('not ur invoice')
   }
 
   try {
@@ -85,7 +85,7 @@ export async function getInvoice (parent, { id }, { me, models, lnd }) {
 
 export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
   if (!me) {
-    throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+    throw new GqlAuthenticationError()
   }
 
   const wdrwl = await models.withdrawl.findUnique({
@@ -99,11 +99,11 @@ export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
   })
 
   if (!wdrwl) {
-    throw new GraphQLError('withdrawal not found', { extensions: { code: 'BAD_INPUT' } })
+    throw new GqlInputError('withdrawal not found')
   }
 
   if (wdrwl.user.id !== me.id) {
-    throw new GraphQLError('not ur withdrawal', { extensions: { code: 'FORBIDDEN' } })
+    throw new GqlInputError('not ur withdrawal')
   }
 
   return wdrwl
@@ -119,7 +119,7 @@ const resolvers = {
     invoice: getInvoice,
     wallet: async (parent, { id }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
       return await models.wallet.findUnique({
@@ -131,7 +131,7 @@ const resolvers = {
     },
     walletByType: async (parent, { type }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
       const wallet = await models.wallet.findFirst({
@@ -144,7 +144,7 @@ const resolvers = {
     },
     wallets: async (parent, args, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
       return await models.wallet.findMany({
@@ -156,7 +156,7 @@ const resolvers = {
     withdrawl: getWithdrawl,
     numBolt11s: async (parent, args, { me, models, lnd }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
       return await models.withdrawl.count({
@@ -172,7 +172,7 @@ const resolvers = {
     walletHistory: async (parent, { cursor, inc }, { me, models, lnd }) => {
       const decodedCursor = decodeCursor(cursor)
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
       const include = new Set(inc?.split(','))
@@ -337,7 +337,7 @@ const resolvers = {
     },
     walletLogs: async (parent, args, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
       return await models.walletLog.findMany({
@@ -413,14 +413,14 @@ const resolvers = {
     cancelInvoice: async (parent, { hash, hmac }, { models, lnd, boss }) => {
       const hmac2 = createHmac(hash)
       if (!timingSafeEqual(Buffer.from(hmac), Buffer.from(hmac2))) {
-        throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthorizationError('bad hmac')
       }
       await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
       return await models.invoice.findFirst({ where: { hash } })
     },
     dropBolt11: async (parent, { id }, { me, models, lnd }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const retention = `${INVOICE_RETENTION_DAYS} days`
@@ -450,19 +450,19 @@ const resolvers = {
             where: { id: invoice.id },
             data: { hash: invoice.hash, bolt11: invoice.bolt11 }
           })
-          throw new GraphQLError('failed to drop bolt11 from lnd', { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError('failed to drop bolt11 from lnd')
         }
       }
       return { id }
     },
     removeWallet: async (parent, { id }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const wallet = await models.wallet.findUnique({ where: { userId: me.id, id: Number(id) } })
       if (!wallet) {
-        throw new GraphQLError('wallet not found', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('wallet not found')
       }
 
       await models.$transaction([
@@ -475,7 +475,7 @@ const resolvers = {
     },
     deleteWalletLogs: async (parent, { wallet }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       await models.walletLog.deleteMany({ where: { userId: me.id, wallet } })
@@ -575,7 +575,7 @@ export const addWalletLog = async ({ wallet, level, message }, { models }) => {
 async function upsertWallet (
   { wallet, testCreateInvoice }, { settings, data, priorityOnly }, { me, models }) {
   if (!me) {
-    throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+    throw new GqlAuthenticationError()
   }
   assertApiKeyNotPermitted({ me })
 
@@ -588,7 +588,7 @@ async function upsertWallet (
       wallet = { ...wallet, userId: me.id }
       await addWalletLog({ wallet, level: 'ERROR', message }, { models })
       await addWalletLog({ wallet, level: 'INFO', message: 'receives disabled' }, { models })
-      throw new GraphQLError(message, { extensions: { code: 'BAD_INPUT' } })
+      throw new GqlInputError(message)
     }
   }
 
@@ -674,7 +674,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     decoded = await decodePaymentRequest({ lnd, request: invoice })
   } catch (error) {
     console.log(error)
-    throw new GraphQLError('could not decode invoice', { extensions: { code: 'BAD_INPUT' } })
+    throw new GqlInputError('could not decode invoice')
   }
 
   try {
@@ -692,7 +692,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   }
 
   if (!decoded.mtokens || BigInt(decoded.mtokens) <= 0) {
-    throw new GraphQLError('your invoice must specify an amount', { extensions: { code: 'BAD_INPUT' } })
+    throw new GqlInputError('your invoice must specify an amount')
   }
 
   const msatsFee = Number(maxFee) * 1000
@@ -721,7 +721,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
 export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },
   { me, models, lnd, headers }) {
   if (!me) {
-    throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+    throw new GqlAuthenticationError()
   }
   assertApiKeyNotPermitted({ me })
 

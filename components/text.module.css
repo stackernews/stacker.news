@@ -139,6 +139,18 @@
     aspect-ratio: var(--aspect-ratio);
 }
 
+.p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) {
+    display: inline-block;
+    width: fit-content;
+    margin-right: 1rem;
+}
+
+.p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) {
+    display: inline-block;
+    width: fit-content;
+    margin-right: 1rem;
+}
+
 .mediaContainer img, .mediaContainer video {
     display: block;
     object-fit: contain;

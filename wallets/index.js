@@ -420,16 +420,14 @@ function getStorageKey (name, me) {
 
 function enableWallet (name, me) {
   const key = getStorageKey(name, me)
-  const config = JSON.parse(window.localStorage.getItem(key))
-  if (!config) return
+  const config = JSON.parse(window.localStorage.getItem(key)) || {}
   config.enabled = true
   window.localStorage.setItem(key, JSON.stringify(config))
 }
 
 function disableWallet (name, me) {
   const key = getStorageKey(name, me)
-  const config = JSON.parse(window.localStorage.getItem(key))
-  if (!config) return
+  const config = JSON.parse(window.localStorage.getItem(key)) || {}
   config.enabled = false
   window.localStorage.setItem(key, JSON.stringify(config))
 }

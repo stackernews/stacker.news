@@ -27,6 +27,18 @@ function QrAuth ({ k1, encodedUrl, callbackUrl }) {
     }
   }, [data?.lnAuth])
 
+  useEffect(() => {
+    if (typeof window.webln === 'undefined') return
+
+    // optimistically use WebLN for authentication
+    async function effect () {
+      // this will also enable our WebLN wallet
+      await window.webln.enable()
+      await window.webln.lnurl(encodedUrl)
+    }
+    effect()
+  }, [encodedUrl])
+
   // output pubkey and k1
   return (
     <Qr value={encodedUrl} status='waiting for you' />

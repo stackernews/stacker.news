@@ -28,7 +28,7 @@ export async function invoiceablePeer ({ id }, { models }) {
 }
 
 export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, cost, tx }) {
-  const feeMsats = cost / BigInt(10) // 10% fee
+  const feeMsats = 3n * (cost / BigInt(10)) // 30% fee
   const zapMsats = cost - feeMsats
   itemId = parseInt(itemId)
 

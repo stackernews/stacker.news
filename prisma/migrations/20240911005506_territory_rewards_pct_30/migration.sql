@@ -1,0 +1,1 @@
+UPDATE "Sub" SET "rewardsPct" = 30;

@@ -22,6 +22,7 @@ import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
 import UserPopover from './user-popover'
 import ItemPopover from './item-popover'
+import classNames from 'classnames'
 
 // Explicitely defined start/end tags & which CSS class from text.module.css to apply
 export const rehypeSuperscript = () => rehypeStyler('<sup>', '</sup>', styles.superscript)
@@ -264,7 +265,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
   const rehypePlugins = useMemo(() => [rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript], [])
 
   return (
-    <div className={`${styles.text} ${show ? styles.textUncontained : overflowing ? styles.textContained : ''}`} ref={containerRef}>
+    <div className={classNames(styles.text, topLevel && styles.topLevel, show ? styles.textUncontained : overflowing && styles.textContained)} ref={containerRef}>
       <ReactMarkdown
         components={components}
         remarkPlugins={remarkPlugins}

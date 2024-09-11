@@ -36,8 +36,7 @@ export default function ItemInfo ({
   const { me } = useMe()
   const toaster = useToast()
   const router = useRouter()
-  const [canEdit, setCanEdit] =
-    useState(item.mine && (Date.now() < editThreshold))
+  const [canEdit, setCanEdit] = useState(item.mine && (Date.now() < editThreshold))
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
   const retryCreateItem = useRetryCreateItem({ id: item.id })
@@ -50,8 +49,9 @@ export default function ItemInfo ({
   }, [item])
 
   useEffect(() => {
-    setCanEdit(item.mine && (Date.now() < editThreshold))
-  }, [item.mine, editThreshold])
+    const invoice = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
+    setCanEdit((item.mine || invoice) && (Date.now() < editThreshold))
+  }, [item.id, item.mine, editThreshold])
 
   // territory founders can pin any post in their territory
   // and OPs can pin any root reply in their post

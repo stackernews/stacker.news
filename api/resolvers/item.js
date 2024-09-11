@@ -20,6 +20,7 @@ import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { verifyHmac } from './wallet'
 
 function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
@@ -1257,9 +1258,9 @@ export default {
   }
 }
 
-export const updateItem = async (parent, { sub: subName, forward, ...item }, { me, models, lnd }) => {
+export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ...item }, { me, models, lnd }) => {
   // update iff this item belongs to me
-  const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { sub: true } })
+  const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { invoice: true, sub: true } })
 
   if (old.deletedAt) {
     throw new GqlInputError('item is deleted')
@@ -1269,14 +1270,19 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
     throw new GqlInputError('cannot edit unpaid item')
   }
 
-  // author can edit their own item
-  const mid = Number(me?.id)
-  const authorEdit = Number(old.userId) === mid
+  // author can edit their own item (except anon)
+  const meId = Number(me?.id ?? USER_ID.anon)
+  const authorEdit = !!me && Number(old.userId) === meId
   // admins can edit special items
-  const adminEdit = ADMIN_ITEMS.includes(old.id) && SN_ADMIN_IDS.includes(mid)
+  const adminEdit = ADMIN_ITEMS.includes(old.id) && SN_ADMIN_IDS.includes(meId)
+  // anybody can edit with valid hash+hmac
+  let hmacEdit = false
+  if (old.invoice?.hash && hash && hmac) {
+    hmacEdit = old.invoice.hash === hash && verifyHmac(hash, hmac)
+  }
 
   // ownership permission check
-  if (!authorEdit && !adminEdit) {
+  if (!authorEdit && !adminEdit && !hmacEdit) {
     throw new GqlInputError('item does not belong to you')
   }
 
@@ -1291,7 +1297,7 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
   // in case they lied about their existing boost
   await ssValidate(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
 
-  const user = await models.user.findUnique({ where: { id: me.id } })
+  const user = await models.user.findUnique({ where: { id: meId } })
 
   // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
   const myBio = user.bioId === old.id
@@ -1309,12 +1315,12 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
 
   if (old.bio) {
     // prevent editing a bio like a regular item
-    item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio`, userId: me.id }
+    item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio`, userId: meId }
   } else if (old.parentId) {
     // prevent editing a comment like a post
-    item = { id: Number(item.id), text: item.text, userId: me.id }
+    item = { id: Number(item.id), text: item.text, userId: meId }
   } else {
-    item = { subName, userId: me.id, ...item }
+    item = { subName, userId: meId, ...item }
     item.forwardUsers = await getForwardUsers(models, forward)
   }
   item.uploadIds = uploadIdsFromText(item.text, { models })

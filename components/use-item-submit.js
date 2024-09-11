@@ -27,6 +27,15 @@ export default function useItemSubmit (mutation,
         options = options.slice(item?.poll?.options?.length || 0).filter(o => o.trim().length > 0)
       }
 
+      if (item?.id) {
+        const invoiceData = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
+        if (invoiceData) {
+          const [hash, hmac] = invoiceData.split(':')
+          values.hash = hash
+          values.hmac = hmac
+        }
+      }
+
       const { data, error, payError } = await upsertItem({
         variables: {
           id: item?.id,
@@ -55,6 +64,7 @@ export default function useItemSubmit (mutation,
         onCompleted: (data) => {
           onSuccessfulSubmit?.(data, { resetForm })
           paidMutationOptions?.onCompleted?.(data)
+          saveItemInvoiceHmac(data)
         }
       })
 
@@ -113,4 +123,17 @@ export function useRetryCreateItem ({ id }) {
   )
 
   return retryPaidAction
+}
+
+function saveItemInvoiceHmac (mutationData) {
+  const response = Object.values(mutationData)[0]
+
+  if (!response?.invoice) return
+
+  const id = response.result.id
+  const { hash, hmac } = response.invoice
+
+  if (id && hash && hmac) {
+    window.localStorage.setItem(`item:${id}:hash:hmac`, `${hash}:${hmac}`)
+  }
 }

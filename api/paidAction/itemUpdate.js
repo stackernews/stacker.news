@@ -4,7 +4,7 @@ import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import { satsToMsats } from '@/lib/format'
 
-export const anonable = false
+export const anonable = true
 export const supportsPessimism = true
 export const supportsOptimism = false
 

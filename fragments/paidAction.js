@@ -3,6 +3,9 @@ import { COMMENTS } from './comments'
 import { SUB_FULL_FIELDS } from './subs'
 import { INVOICE_FIELDS } from './wallet'
 
+const HASH_HMAC_INPUT_1 = '$hash: String, $hmac: String'
+const HASH_HMAC_INPUT_2 = 'hash: $hash, hmac: $hmac'
+
 export const PAID_ACTION = gql`
   ${INVOICE_FIELDS}
   fragment PaidActionFields on PaidAction {
@@ -115,9 +118,9 @@ export const ACT_MUTATION = gql`
 export const UPSERT_DISCUSSION = gql`
   ${PAID_ACTION}
   mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String,
-    $boost: Int, $forward: [ItemForwardInput]) {
+    $boost: Int, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
     upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost,
-      forward: $forward) {
+      forward: $forward, ${HASH_HMAC_INPUT_2}) {
       result {
         id
         deleteScheduledAt
@@ -147,9 +150,9 @@ export const UPSERT_JOB = gql`
 export const UPSERT_LINK = gql`
   ${PAID_ACTION}
   mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!,
-    $text: String, $boost: Int, $forward: [ItemForwardInput]) {
+    $text: String, $boost: Int, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
     upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text,
-      boost: $boost, forward: $forward) {
+      boost: $boost, forward: $forward, ${HASH_HMAC_INPUT_2}) {
       result {
         id
         deleteScheduledAt
@@ -162,9 +165,11 @@ export const UPSERT_LINK = gql`
 export const UPSERT_POLL = gql`
   ${PAID_ACTION}
   mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
-    $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $pollExpiresAt: Date) {
+    $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $pollExpiresAt: Date,
+    ${HASH_HMAC_INPUT_1}) {
     upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
-      options: $options, boost: $boost, forward: $forward, pollExpiresAt: $pollExpiresAt) {
+      options: $options, boost: $boost, forward: $forward, pollExpiresAt: $pollExpiresAt,
+      ${HASH_HMAC_INPUT_2}) {
       result {
         id
         deleteScheduledAt
@@ -213,8 +218,8 @@ export const CREATE_COMMENT = gql`
 export const UPDATE_COMMENT = gql`
   ${ITEM_PAID_ACTION_FIELDS}
   ${PAID_ACTION}
-  mutation upsertComment($id: ID!, $text: String!) {
-    upsertComment(id: $id, text: $text) {
+  mutation upsertComment($id: ID!, $text: String!, ${HASH_HMAC_INPUT_1}) {
+    upsertComment(id: $id, text: $text, ${HASH_HMAC_INPUT_2}) {
       ...ItemPaidActionFields
       ...PaidActionFields
     }

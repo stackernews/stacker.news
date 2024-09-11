@@ -128,7 +128,7 @@
     margin-bottom: .5rem;
 }
 
-.text .mediaContainer {
+.mediaContainer {
     display: block;
     margin-top: .5rem;
     margin-bottom: .5rem;
@@ -260,12 +260,12 @@ img.fullScreen {
 
 .videoWrapper {
     max-width: 320px;
-    padding-right: 15px;
-    margin: '0.5rem 0',
+    margin: 0.5rem 0;
 }
 
 .videoWrapper.topLevel {
     max-width: 640px;
+    margin: 0.75rem 0;
 }
 
 .videoContainer {

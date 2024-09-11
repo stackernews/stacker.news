@@ -1,10 +1,10 @@
-import { GraphQLError } from 'graphql'
+import { E_VAULT_KEY_EXISTS, GqlAuthenticationError, GqlInputError } from '@/lib/error'
 
 export default {
   Query: {
     getVaultEntry: async (parent, { key }, { me, models }) => {
       if (!key) {
-        throw new GraphQLError('Must have key', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('must have key')
       }
       // return await models.userVault.findUnique({ where: { key, userId: me.id } })
       const k = await models.userVault.findFirst({ where: { key, userId: me.id } })
@@ -15,15 +15,15 @@ export default {
   Mutation: {
     setVaultKeyHash: async (parent, { hash }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
       if (!hash) {
-        throw new GraphQLError('hash cannot be empty or null', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('hash required')
       }
       const oldKeyHash = await models.user.findUnique({ where: { id: me.id } }).then(u => u.vaultKeyHash)
       if (oldKeyHash) {
         if (oldKeyHash !== hash) {
-          throw new GraphQLError('vault key already set', { extensions: { code: 'VAULT_KEY_ALREADY_SET' } })
+          throw new GqlInputError('vault key already set', E_VAULT_KEY_EXISTS)
         } else {
           return true
         }
@@ -37,10 +37,10 @@ export default {
     },
     setVaultEntry: async (parent, { key, value }, { me, models }) => {
       if (!key) {
-        throw new GraphQLError('Must have key', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('must have key')
       }
       if (!value) {
-        throw new GraphQLError('Must have value', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('must have value')
       }
       console.log('setVaultEntry', key, value)
       // const exists = await models.userVault.findUnique({ where: { key, userId: me.id } })
@@ -64,7 +64,7 @@ export default {
     },
     unsetVaultEntry: async (parent, { key }, { me, models }) => {
       if (!key) {
-        throw new GraphQLError('Must have key', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('must have key')
       }
       await models.userVault.deleteMany({
         where: {

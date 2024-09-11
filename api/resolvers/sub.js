@@ -1,10 +1,10 @@
-import { GraphQLError } from 'graphql'
 import { whenRange } from '@/lib/time'
 import { ssValidate, territorySchema } from '@/lib/validate'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { viewGroup } from './growth'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
 import performPaidAction from '../paidAction'
+import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
@@ -108,12 +108,12 @@ export default {
     },
     userSubs: async (_parent, { name, cursor, when, by, from, to, limit = LIMIT }, { models }) => {
       if (!name) {
-        throw new GraphQLError('must supply user name', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('must supply user name')
       }
 
       const user = await models.user.findUnique({ where: { name } })
       if (!user) {
-        throw new GraphQLError('no user has that name', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('no user has that name')
       }
 
       const decodedCursor = decodeCursor(cursor)
@@ -154,7 +154,7 @@ export default {
   Mutation: {
     upsertSub: async (parent, { ...data }, { me, models, lnd }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       await ssValidate(territorySchema, data, { models, me, sub: { name: data.oldName } })
@@ -174,11 +174,11 @@ export default {
       })
 
       if (!sub) {
-        throw new GraphQLError('sub not found', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('sub not found')
       }
 
       if (sub.userId !== me.id) {
-        throw new GraphQLError('you do not own this sub', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('you do not own this sub')
       }
 
       if (sub.status === 'ACTIVE') {
@@ -189,7 +189,7 @@ export default {
     },
     toggleMuteSub: async (parent, { name }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const lookupData = { userId: Number(me.id), subName: name }
@@ -205,7 +205,7 @@ export default {
     },
     toggleSubSubscription: async (sub, { name }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const lookupData = { userId: me.id, subName: name }
@@ -221,7 +221,7 @@ export default {
     },
     transferTerritory: async (parent, { subName, userName }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const sub = await models.sub.findUnique({
@@ -230,18 +230,18 @@ export default {
         }
       })
       if (!sub) {
-        throw new GraphQLError('sub not found', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('sub not found')
       }
       if (sub.userId !== me.id) {
-        throw new GraphQLError('you do not own this sub', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('you do not own this sub')
       }
 
       const user = await models.user.findFirst({ where: { name: userName } })
       if (!user) {
-        throw new GraphQLError('user not found', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('user not found')
       }
       if (user.id === me.id) {
-        throw new GraphQLError('cannot transfer territory to yourself', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('cannot transfer territory to yourself')
       }
 
       const [, updatedSub] = await models.$transaction([
@@ -255,7 +255,7 @@ export default {
     },
     unarchiveTerritory: async (parent, { ...data }, { me, models, lnd }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const { name } = data
@@ -264,16 +264,16 @@ export default {
 
       const oldSub = await models.sub.findUnique({ where: { name } })
       if (!oldSub) {
-        throw new GraphQLError('sub not found', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('sub not found')
       }
       if (oldSub.status !== 'STOPPED') {
-        throw new GraphQLError('sub is not archived', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('sub is not archived')
       }
       if (oldSub.billingType === 'ONCE') {
         // sanity check. this should never happen but leaving this comment here
         // to stop error propagation just in case and document that this should never happen.
         // #defensivecode
-        throw new GraphQLError('sub should not be archived', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('sub should not be archived')
       }
 
       return await performPaidAction('TERRITORY_UNARCHIVE', data, { me, models, lnd })
@@ -319,7 +319,7 @@ async function createSub (parent, data, { me, models, lnd }) {
     return await performPaidAction('TERRITORY_CREATE', data, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {
-      throw new GraphQLError('name taken', { extensions: { code: 'BAD_INPUT' } })
+      throw new GqlInputError('name taken')
     }
     throw error
   }
@@ -339,14 +339,14 @@ async function updateSub (parent, { oldName, ...data }, { me, models, lnd }) {
   })
 
   if (!oldSub) {
-    throw new GraphQLError('sub not found', { extensions: { code: 'BAD_INPUT' } })
+    throw new GqlInputError('sub not found')
   }
 
   try {
     return await performPaidAction('TERRITORY_UPDATE', { oldName, ...data }, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {
-      throw new GraphQLError('name taken', { extensions: { code: 'BAD_INPUT' } })
+      throw new GqlInputError('name taken')
     }
     throw error
   }

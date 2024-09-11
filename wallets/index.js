@@ -412,24 +412,26 @@ export function useWallets () {
 
 function getStorageKey (name, me) {
   let storageKey = `wallet:${name}`
-  if (me) {
+
+  // WebLN has no credentials we need to scope to users
+  // so we can use the same storage key for all users
+  if (me && name !== 'webln') {
     storageKey = `${storageKey}:${me.id}`
   }
+
   return storageKey
 }
 
 function enableWallet (name, me) {
   const key = getStorageKey(name, me)
-  const config = JSON.parse(window.localStorage.getItem(key))
-  if (!config) return
+  const config = JSON.parse(window.localStorage.getItem(key)) || {}
   config.enabled = true
   window.localStorage.setItem(key, JSON.stringify(config))
 }
 
 function disableWallet (name, me) {
   const key = getStorageKey(name, me)
-  const config = JSON.parse(window.localStorage.getItem(key))
-  if (!config) return
+  const config = JSON.parse(window.localStorage.getItem(key)) || {}
   config.enabled = false
   window.localStorage.setItem(key, JSON.stringify(config))
 }

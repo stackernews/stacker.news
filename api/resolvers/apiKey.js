@@ -1,7 +1,7 @@
-import { GraphQLError } from 'graphql'
+import { GqlAuthorizationError } from '@/lib/error'
 
 export default function assertApiKeyNotPermitted ({ me }) {
   if (me?.apiKey === true) {
-    throw new GraphQLError('this operation is not allowed to be performed via API Key', { extensions: { code: 'FORBIDDEN' } })
+    throw new GqlAuthorizationError('this operation is not allowed to be performed via API Key')
   }
 }

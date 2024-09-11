@@ -17,6 +17,9 @@
             "@/components/*": [
                 "components/*"
             ],
+            "@/wallets/*": [
+                "wallets/*"
+            ],
             "@/styles/*": [
                 "styles/*"
             ],

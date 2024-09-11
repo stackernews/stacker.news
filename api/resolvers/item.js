@@ -1,4 +1,3 @@
-import { GraphQLError } from 'graphql'
 import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
@@ -20,6 +19,7 @@ import { uploadIdsFromText } from './image'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import performPaidAction from '../paidAction'
+import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 
 function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
@@ -333,12 +333,12 @@ export default {
       switch (sort) {
         case 'user':
           if (!name) {
-            throw new GraphQLError('must supply name', { extensions: { code: 'BAD_INPUT' } })
+            throw new GqlInputError('must supply name')
           }
 
           user ??= await models.user.findUnique({ where: { name } })
           if (!user) {
-            throw new GraphQLError('no user has that name', { extensions: { code: 'BAD_INPUT' } })
+            throw new GqlInputError('no user has that name')
           }
 
           table = type === 'bookmarks' ? 'Bookmark' : 'Item'
@@ -657,7 +657,7 @@ export default {
     },
     pinItem: async (parent, { id }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
       const [item] = await models.$queryRawUnsafe(
@@ -671,7 +671,7 @@ export default {
 
         // OPs can only pin top level replies
         if (item.path.split('.').length > 2) {
-          throw new GraphQLError('can only pin root replies', { extensions: { code: 'FORBIDDEN' } })
+          throw new GqlInputError('can only pin root replies')
         }
 
         const root = await models.item.findUnique({
@@ -682,7 +682,7 @@ export default {
         })
 
         if (root.userId !== Number(me.id)) {
-          throw new GraphQLError('not your post', { extensions: { code: 'FORBIDDEN' } })
+          throw new GqlInputError('not your post')
         }
       } else if (item.subName) {
         args.push(item.subName)
@@ -690,10 +690,10 @@ export default {
         // only territory founder can pin posts
         const sub = await models.sub.findUnique({ where: { name: item.subName } })
         if (Number(me.id) !== sub.userId) {
-          throw new GraphQLError('not your sub', { extensions: { code: 'FORBIDDEN' } })
+          throw new GqlInputError('not your sub')
         }
       } else {
-        throw new GraphQLError('item must have subName or parentId', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('item must have subName or parentId')
       }
 
       let pinId
@@ -723,7 +723,7 @@ export default {
           }`, ...args)
 
         if (npins >= 3) {
-          throw new GraphQLError('max 3 pins allowed', { extensions: { code: 'FORBIDDEN' } })
+          throw new GqlInputError('max 3 pins allowed')
         }
 
         const [{ pinId: newPinId }] = await models.$queryRawUnsafe(`
@@ -757,10 +757,10 @@ export default {
     deleteItem: async (parent, { id }, { me, models }) => {
       const old = await models.item.findUnique({ where: { id: Number(id) } })
       if (Number(old.userId) !== Number(me?.id)) {
-        throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlInputError('item does not belong to you')
       }
       if (old.bio) {
-        throw new GraphQLError('cannot delete bio', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('cannot delete bio')
       }
 
       return await deleteItemByAuthor({ models, id, item: old })
@@ -812,7 +812,7 @@ export default {
     },
     upsertJob: async (parent, { id, ...item }, { me, models, lnd }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in to create job', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
       item.location = item.location?.toLowerCase() === 'remote' ? undefined : item.location
@@ -841,7 +841,7 @@ export default {
     },
     updateNoteId: async (parent, { id, noteId }, { me, models }) => {
       if (!id) {
-        throw new GraphQLError('id required', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('id required')
       }
 
       await models.item.update({
@@ -853,7 +853,7 @@ export default {
     },
     pollVote: async (parent, { id }, { me, models, lnd }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
       return await performPaidAction('POLL_VOTE', { id }, { me, models, lnd })
@@ -869,24 +869,24 @@ export default {
         WHERE id = $1`, Number(id))
 
       if (item.deletedAt) {
-        throw new GraphQLError('item is deleted', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('item is deleted')
       }
 
       if (item.invoiceActionState && item.invoiceActionState !== 'PAID') {
-        throw new GraphQLError('cannot act on unpaid item', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('cannot act on unpaid item')
       }
 
       // disallow self tips except anons
       if (me) {
         if (Number(item.userId) === Number(me.id)) {
-          throw new GraphQLError('cannot zap your self', { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError('cannot zap yourself')
         }
 
         // Disallow tips if me is one of the forward user recipients
         if (act === 'TIP') {
           const existingForwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
           if (existingForwards.some(fwd => Number(fwd.userId) === Number(me.id))) {
-            throw new GraphQLError('cannot zap a post for which you are forwarded zaps', { extensions: { code: 'BAD_INPUT' } })
+            throw new GqlInputError('cannot zap a post for which you are forwarded zaps')
           }
         }
       }
@@ -896,12 +896,12 @@ export default {
       } else if (act === 'DONT_LIKE_THIS') {
         return await performPaidAction('DOWN_ZAP', { id, sats }, { me, models, lnd })
       } else {
-        throw new GraphQLError('unknown act', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('unknown act')
       }
     },
     toggleOutlaw: async (parent, { id }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
       const item = await models.item.findUnique({
@@ -919,7 +919,7 @@ export default {
       const sub = item.sub || item.root?.sub
 
       if (Number(sub.userId) !== Number(me.id)) {
-        throw new GraphQLError('you cant do this broh', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlInputError('you cant do this broh')
       }
 
       if (item.outlawed) {
@@ -1262,11 +1262,11 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
   const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { sub: true } })
 
   if (old.deletedAt) {
-    throw new GraphQLError('item is deleted', { extensions: { code: 'BAD_INPUT' } })
+    throw new GqlInputError('item is deleted')
   }
 
   if (old.invoiceActionState && old.invoiceActionState !== 'PAID') {
-    throw new GraphQLError('cannot edit unpaid item', { extensions: { code: 'BAD_INPUT' } })
+    throw new GqlInputError('cannot edit unpaid item')
   }
 
   // author can always edit their own item
@@ -1278,14 +1278,14 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
   const adminEdit = SN_USER_IDS.includes(mid) && allowEdit
 
   if (!isMine && !adminEdit) {
-    throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
+    throw new GqlInputError('item does not belong to you')
   }
 
   const differentSub = subName && old.subName !== subName
   if (differentSub) {
     const sub = await models.sub.findUnique({ where: { name: subName } })
     if (sub.baseCost > old.sub.baseCost) {
-      throw new GraphQLError('cannot change to a more expensive sub', { extensions: { code: 'BAD_INPUT' } })
+      throw new GqlInputError('cannot change to a more expensive sub')
     }
   }
 
@@ -1299,7 +1299,7 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
   const timer = Date.now() < new Date(old.invoicePaidAt ?? old.createdAt).getTime() + 10 * 60_000
 
   if (!allowEdit && !myBio && !timer && !isJob(item)) {
-    throw new GraphQLError('item can no longer be editted', { extensions: { code: 'BAD_INPUT' } })
+    throw new GqlInputError('item can no longer be edited')
   }
 
   if (item.url && !isJob(item)) {
@@ -1343,7 +1343,7 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
   if (item.parentId) {
     const parent = await models.item.findUnique({ where: { id: parseInt(item.parentId) } })
     if (parent.invoiceActionState && parent.invoiceActionState !== 'PAID') {
-      throw new GraphQLError('cannot comment on unpaid item', { extensions: { code: 'BAD_INPUT' } })
+      throw new GqlInputError('cannot comment on unpaid item')
     }
   }
 

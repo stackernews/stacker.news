@@ -1,6 +1,5 @@
 import { readFile } from 'fs/promises'
 import { join, resolve } from 'path'
-import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '@/lib/validate'
@@ -11,6 +10,7 @@ import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
+import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 
 const contributors = new Set()
 
@@ -125,7 +125,7 @@ export default {
     },
     settings: async (parent, args, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       return await models.user.findUnique({ where: { id: me.id } })
@@ -144,7 +144,7 @@ export default {
     },
     mySubscribedUsers: async (parent, { cursor }, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('You must be logged in to view subscribed users', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const decodedCursor = decodeCursor(cursor)
@@ -165,7 +165,7 @@ export default {
     },
     myMutedUsers: async (parent, { cursor }, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('You must be logged in to view muted users', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const decodedCursor = decodeCursor(cursor)
@@ -624,7 +624,7 @@ export default {
   Mutation: {
     disableFreebies: async (parent, args, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       // disable freebies if it hasn't been set yet
@@ -644,7 +644,7 @@ export default {
     },
     setName: async (parent, data, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       await ssValidate(userSchema, data, { models })
@@ -654,14 +654,14 @@ export default {
         return data.name
       } catch (error) {
         if (error.code === 'P2002') {
-          throw new GraphQLError('name taken', { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError('name taken')
         }
         throw error
       }
     },
     setSettings: async (parent, { settings: { nostrRelays, ...data } }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       await ssValidate(settingsSchema, { nostrRelays, ...data })
@@ -687,7 +687,7 @@ export default {
     },
     setWalkthrough: async (parent, { upvotePopover, tipPopover }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       await models.user.update({ where: { id: me.id }, data: { upvotePopover, tipPopover } })
@@ -696,7 +696,7 @@ export default {
     },
     setPhoto: async (parent, { photoId }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       await models.user.update({
@@ -708,7 +708,7 @@ export default {
     },
     upsertBio: async (parent, { bio }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       await ssValidate(bioSchema, { bio })
@@ -725,12 +725,12 @@ export default {
     },
     generateApiKey: async (parent, { id }, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const user = await models.user.findUnique({ where: { id: me.id } })
       if (!user.apiKeyEnabled) {
-        throw new GraphQLError('you are not allowed to generate api keys', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthorizationError('you are not allowed to generate api keys')
       }
 
       // I trust postgres CSPRNG more than the one from JS
@@ -745,14 +745,14 @@ export default {
     },
     deleteApiKey: async (parent, { id }, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       return await models.user.update({ where: { id: me.id }, data: { apiKeyHash: null } })
     },
     unlinkAuth: async (parent, { authType }, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
       assertApiKeyNotPermitted({ me })
 
@@ -761,7 +761,7 @@ export default {
         user = await models.user.findUnique({ where: { id: me.id } })
         const account = await models.account.findFirst({ where: { userId: me.id, provider: authType } })
         if (!account) {
-          throw new GraphQLError('no such account', { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError('no such account')
         }
         await models.account.delete({ where: { id: account.id } })
         if (authType === 'twitter') {
@@ -776,14 +776,14 @@ export default {
       } else if (authType === 'email') {
         user = await models.user.update({ where: { id: me.id }, data: { email: null, emailVerified: null, emailHash: null } })
       } else {
-        throw new GraphQLError('no such account', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('no such account')
       }
 
       return await authMethods(user, undefined, { models, me })
     },
     linkUnverifiedEmail: async (parent, { email }, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
       assertApiKeyNotPermitted({ me })
 
@@ -796,7 +796,7 @@ export default {
         })
       } catch (error) {
         if (error.code === 'P2002') {
-          throw new GraphQLError('email taken', { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError('email taken')
         }
         throw error
       }
@@ -809,12 +809,12 @@ export default {
       const muted = await isMuted({ models, muterId: me?.id, mutedId: id })
       if (existing) {
         if (muted && !existing.postsSubscribedAt) {
-          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError("you can't subscribe to a stacker that you've muted")
         }
         await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { postsSubscribedAt: existing.postsSubscribedAt ? null : new Date() } })
       } else {
         if (muted) {
-          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError("you can't subscribe to a stacker that you've muted")
         }
         await models.userSubscription.create({ data: { ...lookupData, postsSubscribedAt: new Date() } })
       }
@@ -826,12 +826,12 @@ export default {
       const muted = await isMuted({ models, muterId: me?.id, mutedId: id })
       if (existing) {
         if (muted && !existing.commentsSubscribedAt) {
-          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError("you can't subscribe to a stacker that you've muted")
         }
         await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { commentsSubscribedAt: existing.commentsSubscribedAt ? null : new Date() } })
       } else {
         if (muted) {
-          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError("you can't subscribe to a stacker that you've muted")
         }
         await models.userSubscription.create({ data: { ...lookupData, commentsSubscribedAt: new Date() } })
       }
@@ -854,7 +854,7 @@ export default {
           }
         })
         if (subscription?.postsSubscribedAt || subscription?.commentsSubscribedAt) {
-          throw new GraphQLError("you can't mute a stacker to whom you've subscribed", { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError("you can't mute a stacker to whom you've subscribed")
         }
         await models.mute.create({ data: { ...lookupData } })
       }
@@ -862,7 +862,7 @@ export default {
     },
     hideWelcomeBanner: async (parent, data, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       await models.user.update({ where: { id: me.id }, data: { hideWelcomeBanner: true } })

@@ -1,8 +1,8 @@
-import { GraphQLError } from 'graphql'
 import retry from 'async-retry'
 import Prisma from '@prisma/client'
 import { msatsToSats, numWithUnits } from '@/lib/format'
 import { BALANCE_LIMIT_MSATS } from '@/lib/constants'
+import { GqlInputError } from '@/lib/error'
 
 export default async function serialize (trx, { models, lnd }) {
   // wrap first argument in array if not array already
@@ -28,7 +28,7 @@ export default async function serialize (trx, { models, lnd }) {
       // have to check the error message
       if (error.message.includes('SN_INSUFFICIENT_FUNDS') ||
         error.message.includes('\\"users\\" violates check constraint \\"msats_positive\\"')) {
-        bail(new GraphQLError('insufficient funds', { extensions: { code: 'BAD_INPUT' } }))
+        bail(new GqlInputError('insufficient funds'))
       }
       if (error.message.includes('SN_NOT_SERIALIZABLE')) {
         bail(new Error('wallet balance transaction is not serializable'))

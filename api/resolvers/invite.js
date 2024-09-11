@@ -1,13 +1,13 @@
-import { GraphQLError } from 'graphql'
 import { inviteSchema, ssValidate } from '@/lib/validate'
 import { msatsToSats } from '@/lib/format'
 import assertApiKeyNotPermitted from './apiKey'
+import { GqlAuthenticationError } from '@/lib/error'
 
 export default {
   Query: {
     invites: async (parent, args, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
       return await models.invite.findMany({
@@ -31,7 +31,7 @@ export default {
   Mutation: {
     createInvite: async (parent, { gift, limit }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
       assertApiKeyNotPermitted({ me })
 
@@ -43,7 +43,7 @@ export default {
     },
     revokeInvite: async (parent, { id }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
       return await models.invite.update({

@@ -17,7 +17,7 @@ export function autowithdrawInitial ({ me }) {
 }
 
 export function AutowithdrawSettings ({ wallet }) {
-  const me = useMe()
+  const { me } = useMe()
   const threshold = autoWithdrawThreshold({ me })
 
   const [sendThreshold, setSendThreshold] = useState(Math.max(Math.floor(threshold / 10), 1))

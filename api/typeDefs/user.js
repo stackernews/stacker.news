@@ -4,7 +4,7 @@ export default gql`
   extend type Query {
     me: User
     settings: User
-    user(name: String!): User
+    user(id: ID, name: String): User
     users: [User!]
     nameAvailable(name: String!): Boolean!
     topUsers(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): UsersNullable!

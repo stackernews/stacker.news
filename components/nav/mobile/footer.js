@@ -30,7 +30,7 @@ function useDetectKeyboardOpen (minKeyboardHeight = 300, defaultValue) {
 
 export default function BottomBar ({ sub }) {
   const router = useRouter()
-  const me = useMe()
+  const { me } = useMe()
   const isKeyboardOpen = useDetectKeyboardOpen(200, false)
 
   if (isKeyboardOpen) {

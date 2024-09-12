@@ -84,7 +84,7 @@ export function SettingsHeader () {
 
 export default function Settings ({ ssrData }) {
   const toaster = useToast()
-  const me = useMe()
+  const { me } = useMe()
   const [setSettings] = useMutation(SET_SETTINGS, {
     update (cache, { data: { setSettings } }) {
       cache.modify({
@@ -96,13 +96,14 @@ export default function Settings ({ ssrData }) {
         }
       })
     }
-  }
-  )
+  })
   const logger = useServiceWorkerLogger()
 
   const { data } = useQuery(SETTINGS)
   const { settings: { privates: settings } } = useMemo(() => data ?? ssrData, [data, ssrData])
-  if (!data && !ssrData) return <PageLoading />
+
+  // if we switched to anon, me is null before the page is reloaded
+  if ((!data && !ssrData) || !me) return <PageLoading />
 
   return (
     <Layout>
@@ -110,6 +111,7 @@ export default function Settings ({ ssrData }) {
         <SettingsHeader />
         {hasOnlyOneAuthMethod(settings?.authMethods) && <AuthBanner />}
         <Form
+          enableReinitialize
           initial={{
             tipDefault: settings?.tipDefault || 21,
             tipRandom: settings?.tipRandom,
@@ -870,7 +872,7 @@ export function EmailLinkForm ({ callbackUrl }) {
 
 function ApiKey ({ enabled, apiKey }) {
   const showModal = useShowModal()
-  const me = useMe()
+  const { me } = useMe()
   const [generateApiKey] = useMutation(
     gql`
       mutation generateApiKey($id: ID!) {
@@ -996,7 +998,7 @@ function ApiKeyModal ({ apiKey }) {
 }
 
 function ApiKeyDeleteObstacle ({ onClose }) {
-  const me = useMe()
+  const { me } = useMe()
   const [deleteApiKey] = useMutation(
     gql`
       mutation deleteApiKey($id: ID!) {

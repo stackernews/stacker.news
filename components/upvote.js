@@ -14,7 +14,7 @@ import { numWithUnits } from '@/lib/format'
 import { Dropdown } from 'react-bootstrap'
 
 const UpvotePopover = ({ target, show, handleClose }) => {
-  const me = useMe()
+  const { me } = useMe()
   return (
     <Overlay
       show={show}
@@ -107,7 +107,7 @@ export default function UpVote ({ item, className }) {
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
-  const me = useMe()
+  const { me } = useMe()
   const [hover, setHover] = useState(false)
   const [setWalkthrough] = useMutation(
     gql`
@@ -153,7 +153,7 @@ export default function UpVote ({ item, className }) {
     [item?.mine, item?.meForward, item?.deletedAt])
 
   const [meSats, overlayText, color, nextColor] = useMemo(() => {
-    const meSats = (item?.meSats || item?.meAnonSats || 0)
+    const meSats = (me ? item?.meSats : item?.meAnonSats) || 0
 
     // what should our next tip be?
     const sats = pending || nextTip(meSats, { ...me?.privates })
@@ -168,7 +168,7 @@ export default function UpVote ({ item, className }) {
       meSats, overlayTextContent,
       getColor(meSats), getColor(meSats + sats)]
   }, [
-    item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault,
+    me, item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault,
     me?.privates?.tipRandom, me?.privates?.tipRandomMin, me?.privates?.tipRandomMax, pending])
 
   const handleModalClosed = () => {

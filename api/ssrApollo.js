@@ -139,7 +139,13 @@ export function getGetServerSideProps (
 
     const client = await getSSRApolloClient({ req, res })
 
-    const { data: { me } } = await client.query({ query: ME })
+    let { data: { me } } = await client.query({ query: ME })
+
+    // required to redirect to /signup on page reload
+    // if we switched to anon and authentication is required
+    if (req.cookies['multi_auth.user-id'] === 'anonymous') {
+      me = null
+    }
 
     if (authRequired && !me) {
       let callback = process.env.NEXT_PUBLIC_URL + req.url

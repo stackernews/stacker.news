@@ -241,6 +241,10 @@ $zindex-sticky: 900;
   display: none;
 }
 
+.w-fit-content {
+  width: fit-content;
+}
+
 @media (display-mode: standalone) {
   .standalone {
     display: flex
@@ -249,6 +253,14 @@ $zindex-sticky: 900;
 
 .justify-self-center {
   justify-self: center;
+}
+
+svg {
+  fill: var(--bs-body-color);
+}
+
+.fill-primary {
+  fill: var(--bs-primary);
 }
 
 .text-primary svg {

@@ -22,7 +22,7 @@ export const Status = {
 }
 
 export function useWallet (name) {
-  const me = useMe()
+  const { me } = useMe()
   const showModal = useShowModal()
   const toaster = useToast()
   const [disableFreebies] = useMutation(gql`mutation { disableFreebies }`)
@@ -151,7 +151,7 @@ function extractServerConfig (fields, config) {
 }
 
 function useConfig (wallet) {
-  const me = useMe()
+  const { me } = useMe()
 
   const storageKey = getStorageKey(wallet?.name, me)
   const [clientConfig, setClientConfig, clearClientConfig] = useClientConfig(storageKey, {})
@@ -268,7 +268,7 @@ function isConfigured ({ fields, config }) {
 
 function useServerConfig (wallet) {
   const client = useApolloClient()
-  const me = useMe()
+  const { me } = useMe()
 
   const { data, refetch: refetchConfig } = useQuery(WALLET_BY_TYPE, { variables: { type: wallet?.walletType }, skip: !wallet?.walletType })
 

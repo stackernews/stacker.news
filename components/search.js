@@ -11,7 +11,7 @@ export default function Search ({ sub }) {
   const router = useRouter()
   const [q, setQ] = useState(router.query.q || '')
   const inputRef = useRef(null)
-  const me = useMe()
+  const { me } = useMe()
 
   useEffect(() => {
     inputRef.current?.focus()

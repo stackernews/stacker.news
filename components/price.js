@@ -19,7 +19,7 @@ export function usePrice () {
 }
 
 export function PriceProvider ({ price, children }) {
-  const me = useMe()
+  const { me } = useMe()
   const fiatCurrency = me?.privates?.fiatCurrency
   const { data } = useQuery(PRICE, {
     variables: { fiatCurrency },

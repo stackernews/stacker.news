@@ -11,7 +11,7 @@ import { usePaidMutation } from './use-paid-mutation'
 import { POLL_VOTE, RETRY_PAID_ACTION } from '@/fragments/paidAction'
 
 export default function Poll ({ item }) {
-  const me = useMe()
+  const { me } = useMe()
   const pollVote = usePollVote({ query: POLL_VOTE, itemId: item.id })
   const toaster = useToast()
 

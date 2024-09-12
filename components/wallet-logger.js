@@ -112,7 +112,7 @@ const initIndexedDB = async (dbName, storeName) => {
 }
 
 export const WalletLoggerProvider = ({ children }) => {
-  const me = useMe()
+  const { me } = useMe()
   const [logs, setLogs] = useState([])
   let dbName = 'app:storage'
   if (me) {

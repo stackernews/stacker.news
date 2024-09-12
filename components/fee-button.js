@@ -64,7 +64,7 @@ export function postCommentUseRemoteLineItems ({ parentId } = {}) {
 export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = () => null, children }) {
   const [lineItems, setLineItems] = useState({})
   const [disabled, setDisabled] = useState(false)
-  const me = useMe()
+  const { me } = useMe()
 
   const remoteLineItems = useRemoteLineItems()
 
@@ -115,7 +115,7 @@ function FreebieDialog () {
 }
 
 export default function FeeButton ({ ChildButton = SubmitButton, variant, text, disabled }) {
-  const me = useMe()
+  const { me } = useMe()
   const { lines, total, disabled: ctxDisabled, free } = useFeeButton()
   const feeText = free
     ? 'free'

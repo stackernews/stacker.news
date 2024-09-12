@@ -50,7 +50,7 @@ export function SearchTitle ({ title }) {
 }
 
 function mediaType ({ url, imgproxyUrls }) {
-  const me = useMe()
+  const { me } = useMe()
   const src = IMGPROXY_URL_REGEXP.test(url) ? decodeProxyUrl(url) : url
   if (!imgproxyUrls?.[src] ||
     me?.privates?.showImagesAndVideos === false ||

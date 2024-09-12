@@ -108,8 +108,8 @@ export default function Settings ({ ssrData }) {
   return (
     <Layout>
       <div className='pb-3 w-100 mt-2' style={{ maxWidth: '600px' }}>
-        {hasOnlyOneAuthMethod(settings?.authMethods) && <AuthBanner />}
         <SettingsHeader />
+        {hasOnlyOneAuthMethod(settings?.authMethods) && <AuthBanner />}
         <Form
           enableReinitialize
           initial={{

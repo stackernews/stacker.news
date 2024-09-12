@@ -251,6 +251,14 @@ $zindex-sticky: 900;
   justify-self: center;
 }
 
+svg {
+  fill: var(--bs-body-color);
+}
+
+.fill-primary {
+  fill: var(--bs-primary);
+}
+
 .text-primary svg {
   fill: var(--bs-primary);
 }

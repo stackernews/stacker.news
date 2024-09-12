@@ -6,7 +6,8 @@ import { USER_ID, SSR } from '@/lib/constants'
 import { USER } from '@/fragments/users'
 import { useQuery } from '@apollo/client'
 import { UserListRow } from '@/components/user-list'
-import { Button } from 'react-bootstrap'
+import Link from 'next/link'
+import AddIcon from '@/svgs/add-fill.svg'
 
 const AccountContext = createContext()
 
@@ -130,26 +131,27 @@ const AccountListRow = ({ account, ...props }) => {
 export default function SwitchAccountList () {
   const { accounts } = useAccounts()
   const router = useRouter()
-  const addAccount = () => {
-    router.push({
-      pathname: '/login',
-      query: { callbackUrl: window.location.origin + router.asPath, multiAuth: true }
-    })
-  }
+
   // can't show hat since the streak is not included in the JWT payload
   return (
     <>
       <div className='my-2'>
-        <div className='d-flex flex-column flex-wrap my-2'>
-          <div className='fw-bold'>available accounts</div>
+        <div className='d-flex flex-column flex-wrap mt-2 mb-3'>
+          <h4 className='text-muted'>Accounts</h4>
           <AccountListRow account={{ id: USER_ID.anon, name: 'anon' }} showHat={false} />
           {
             accounts.map((account) => <AccountListRow key={account.id} account={account} showHat={false} />)
           }
         </div>
-        <Button variant='outline-grey-darkmode' onClick={addAccount}>
-          add account
-        </Button>
+        <Link
+          href={{
+            pathname: '/login',
+            query: { callbackUrl: window.location.origin + router.asPath, multiAuth: true }
+          }}
+          className='text-reset fw-bold'
+        >
+          <AddIcon height={20} width={20} /> another account
+        </Link>
       </div>
     </>
   )

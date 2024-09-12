@@ -12,6 +12,7 @@ import { useMe } from './me'
 import { MEDIA_URL } from '@/lib/constants'
 import { NymActionDropdown } from '@/components/user-header'
 import classNames from 'classnames'
+import CheckCircle from '@/svgs/checkbox-circle-fill.svg'
 
 // all of this nonsense is to show the stat we are sorting by first
 const Stacked = ({ user }) => (user.optional.stacked !== null && <span>{abbrNum(user.optional.stacked)} stacked</span>)
@@ -52,11 +53,11 @@ export function UserListRow ({ user, stats, className, onNymClick, showHat = tru
       <div className={`${styles.hunk} ${className}`}>
         <Link
           href={`/${user.name}`}
-          className={`${styles.title} d-inline-flex align-items-center text-reset ${selected ? 'fw-bold text-underline' : ''}`}
+          className={`d-inline-flex align-items-center text-reset ${selected ? 'fw-bold text-underline' : 'text-muted'}`}
           style={{ textUnderlineOffset: '0.25em' }}
           onClick={onNymClick}
         >
-          @{user.name}{showHat && <Hat className='ms-1 fill-grey' height={14} width={14} user={user} />}
+          @{user.name}{showHat && <Hat className='ms-1 fill-grey' height={14} width={14} user={user} />}{selected && <CheckCircle className='ms-3 fill-primary' height={14} width={14} />}
         </Link>
         {stats && (
           <div className={styles.other}>

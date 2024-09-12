@@ -17,7 +17,7 @@ export async function getCost ({ id, boost = 0, uploadIds }, { me, models }) {
 }
 
 export async function perform (args, context) {
-  const { id, boost = 0, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], invoiceId, ...data } = args
+  const { id, boost = 0, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], ...data } = args
   const { tx, me, models } = context
   const old = await tx.item.findUnique({
     where: { id: parseInt(id) },

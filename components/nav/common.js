@@ -256,10 +256,50 @@ export default function LoginButton () {
   )
 }
 
-export function LogoutDropdownItem ({ handleClose }) {
+function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const wallets = useWallets()
   const { multiAuthSignout } = useAccounts()
+
+  return (
+    <div className='d-flex m-auto flex-column w-fit-content'>
+      <h4 className='mb-3'>I reckon you want to logout?</h4>
+      <div className='mt-2 d-flex justify-content-between'>
+        <Button
+          className='me-2'
+          variant='grey-medium'
+          onClick={onClose}
+        >
+          cancel
+        </Button>
+        <Button
+          onClick={async () => {
+            const switchSuccess = await multiAuthSignout()
+            // only signout if multiAuth did not find a next available account
+            if (switchSuccess) {
+              onClose()
+              return
+            }
+
+            // order is important because we need to be logged in to delete push subscription on server
+            const pushSubscription = await swRegistration?.pushManager.getSubscription()
+            if (pushSubscription) {
+              await togglePushSubscription().catch(console.error)
+            }
+
+            await wallets.resetClient().catch(console.error)
+
+            await signOut({ callbackUrl: '/' })
+          }}
+        >
+          logout
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+export function LogoutDropdownItem ({ handleClose }) {
   const showModal = useShowModal()
 
   return (
@@ -272,19 +312,7 @@ export function LogoutDropdownItem ({ handleClose }) {
       </Dropdown.Item>
       <Dropdown.Item
         onClick={async () => {
-          const switchSuccess = await multiAuthSignout()
-          // only signout if multiAuth did not find a next available account
-          if (switchSuccess) return
-
-          // order is important because we need to be logged in to delete push subscription on server
-          const pushSubscription = await swRegistration?.pushManager.getSubscription()
-          if (pushSubscription) {
-            await togglePushSubscription().catch(console.error)
-          }
-
-          await wallets.resetClient().catch(console.error)
-
-          await signOut({ callbackUrl: '/' })
+          showModal(onClose => (<LogoutObstacle onClose={onClose} />))
         }}
       >logout
       </Dropdown.Item>

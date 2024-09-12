@@ -77,15 +77,20 @@ export function useWallet (name) {
   }, [saveConfig, me, logger])
 
   // delete is a reserved keyword
-  const delete_ = useCallback(async () => {
+  const delete_ = useCallback(async (options) => {
     try {
-      await clearConfig({ logger })
+      await clearConfig({ logger, ...options })
     } catch (err) {
       const message = err.message || err.toString?.()
       logger.error(message)
       throw err
     }
   }, [clearConfig, logger, disablePayments])
+
+  const deleteLogs_ = useCallback(async (options) => {
+    // first argument is to override the wallet
+    return await deleteLogs(options)
+  }, [deleteLogs])
 
   if (!wallet) return null
 
@@ -102,7 +107,7 @@ export function useWallet (name) {
   wallet.config = config
   wallet.save = save
   wallet.delete = delete_
-  wallet.deleteLogs = deleteLogs
+  wallet.deleteLogs = deleteLogs_
   wallet.setPriority = setPriority
   wallet.hasConfig = hasConfig
   wallet.status = status
@@ -237,13 +242,13 @@ function useConfig (wallet) {
     }
   }, [hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, wallet])
 
-  const clearConfig = useCallback(async ({ logger }) => {
+  const clearConfig = useCallback(async ({ logger, clientOnly }) => {
     if (hasClientConfig) {
       clearClientConfig()
       wallet.disablePayments()
       logger.ok('wallet detached for payments')
     }
-    if (hasServerConfig) await clearServerConfig()
+    if (hasServerConfig && !clientOnly) await clearServerConfig()
   }, [hasClientConfig, hasServerConfig, clearClientConfig, clearServerConfig, wallet])
 
   return [config, saveConfig, clearConfig]
@@ -404,9 +409,9 @@ export function useWallets () {
   const resetClient = useCallback(async (wallet) => {
     for (const w of wallets) {
       if (w.canSend) {
-        await w.delete()
+        await w.delete({ clientOnly: true })
       }
-      await w.deleteLogs()
+      await w.deleteLogs({ clientOnly: true })
     }
   }, [wallets])
 

@@ -87,7 +87,7 @@ export function middleware (request) {
     "font-src 'self' a.stacker.news",
     // we want to load images from everywhere but we can limit to HTTPS at least
     "img-src 'self' a.stacker.news m.stacker.news https: data: blob:" + devSrc,
-    "media-src 'self' a.stacker.news m.stacker.news https:" + devSrc,
+    "media-src 'self' a.stacker.news m.stacker.news https: blob:" + devSrc,
     // Using nonces and strict-dynamic deploys a strict CSP.
     // see https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html#strict-policy.
     // Old browsers will ignore nonce and strict-dynamic and fallback to host-based matching and unsafe-inline

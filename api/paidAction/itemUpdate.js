@@ -1,5 +1,5 @@
 import { USER_ID } from '@/lib/constants'
-import { imageFeesInfo } from '../resolvers/image'
+import { uploadFees } from '../resolvers/upload'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import { satsToMsats } from '@/lib/format'
@@ -12,7 +12,7 @@ export async function getCost ({ id, boost = 0, uploadIds }, { me, models }) {
   // the only reason updating items costs anything is when it has new uploads
   // or more boost
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
-  const { totalFeesMsats } = await imageFeesInfo(uploadIds, { models, me })
+  const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
   return BigInt(totalFeesMsats) + satsToMsats(boost - (old.boost || 0))
 }
 

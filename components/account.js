@@ -4,11 +4,9 @@ import cookie from 'cookie'
 import { useMe } from '@/components/me'
 import { USER_ID, SSR } from '@/lib/constants'
 import { USER } from '@/fragments/users'
-import { useApolloClient, useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client'
 import { UserListRow } from '@/components/user-list'
 import { Button } from 'react-bootstrap'
-import { ITEM_FULL } from '@/fragments/items'
-import { E_BAD_INPUT, E_FORBIDDEN, E_UNAUTHENTICATED } from '@/lib/error'
 
 const AccountContext = createContext()
 
@@ -79,7 +77,6 @@ const AccountListRow = ({ account, ...props }) => {
   const { me, refreshMe } = useMe()
   const anonRow = account.id === USER_ID.anon
   const selected = (meAnon && anonRow) || Number(me?.id) === Number(account.id)
-  const client = useApolloClient()
   const router = useRouter()
 
   // fetch updated names and photo ids since they might have changed since we were issued the JWTs
@@ -113,56 +110,8 @@ const AccountListRow = ({ account, ...props }) => {
       setMeAnon(account.id === USER_ID.anon)
     }
 
-    // account changes on some pages require a hard reload
-    // 1) anons don't have access to some pages
-    // ( search for 'authRequired: true' to find all such pages )
-    const privatePages = ['/notifications', '/territory', '/items/[id]/edit', '/referrals', '/satistics', '/settings', '/wallet', '/~/edit']
-    if (anonRow && privatePages.some(p => router.pathname.startsWith(p))) {
-      router.reload()
-      return
-    }
-
-    const authPages = ['/signup', '/login']
-    // 2) if we're on /signup or /login, reload so we get redirected to the callback url
-    if (!anonRow && authPages.some(p => router.pathname.startsWith(p))) {
-      router.reload()
-      return
-    }
-
-    // 3) not everyone has access to every item
-    if (router.asPath.startsWith('/items')) {
-      const itemId = router.asPath.split('/')[2]
-      // check if we have access to the item
-      const { item } = client.cache.readQuery({
-        query: ITEM_FULL,
-        variables: { id: itemId }
-      })
-
-      const isMine = item.userId === account.id
-      const isPrivate = item.invoice && item.invoice.actionState !== 'PAID'
-
-      if (!isMine && isPrivate) {
-        router.reload()
-        return
-      }
-    }
-
-    await client.refetchQueries({
-      include: 'active',
-      onQueryUpdated: async (query) => {
-        try {
-          return await query.refetch()
-        } catch (err) {
-          const code = err.graphQLErrors?.[0]?.extensions?.code
-          if ([E_FORBIDDEN, E_UNAUTHENTICATED, E_BAD_INPUT].includes(code)) {
-            return
-          }
-
-          // never throw but log unexpected errors
-          console.error(err)
-        }
-      }
-    })
+    // reload whatever page we're on to avoid any bugs due to missing authorization etc.
+    router.reload()
   }
 
   return (

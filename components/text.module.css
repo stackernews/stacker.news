@@ -137,7 +137,8 @@
 .mediaContainer {
     display: block;
     margin-bottom: .5rem;
-    width: 100%;
+    width: calc(100% - var(--grid-gap));
+    max-width: calc(100% - var(--grid-gap));
     height: auto;
     overflow: hidden;
     max-height: 25vh;
@@ -147,6 +148,7 @@
 .p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) {
     display: inline-block;
     width: min-content;
+    max-width: calc(100% - var(--grid-gap));
     margin-bottom: 0;
 }
 
@@ -163,6 +165,7 @@
 .p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) {
     display: inline-block;
     width: min-content;
+    max-width: calc(100% - var(--grid-gap));
     margin-bottom: 0;
 }
 
@@ -187,7 +190,7 @@
     max-height: inherit;
     height: 100%;
     aspect-ratio: var(--aspect-ratio);
-    inline-size: intrinsic;
+    block-size: stretch;
 }
 
 .mediaContainer img {

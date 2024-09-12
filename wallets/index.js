@@ -89,7 +89,7 @@ export function useWallet (name) {
 
   const deleteLogs_ = useCallback(async (options) => {
     // first argument is to override the wallet
-    return await deleteLogs(null, options)
+    return await deleteLogs(options)
   }, [deleteLogs])
 
   if (!wallet) return null

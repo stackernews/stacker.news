@@ -262,8 +262,8 @@ export function useWalletLogger (wallet) {
     error: (...message) => log('error')(message.join(' '))
   }), [log, wallet?.name])
 
-  const deleteLogs = useCallback((walletOverride, options = {}) => {
-    return innerDeleteLogs(walletOverride || wallet, options)
+  const deleteLogs = useCallback((options) => {
+    return innerDeleteLogs(wallet, options)
   }, [innerDeleteLogs, wallet])
 
   return { logger, deleteLogs }

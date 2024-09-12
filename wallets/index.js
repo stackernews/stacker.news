@@ -98,6 +98,7 @@ export function useWallet (name) {
   wallet.enablePayments = enablePayments
   wallet.disablePayments = disablePayments
   wallet.canSend = !!wallet.sendPayment
+  wallet.canReceive = !!wallet.createInvoice
   wallet.config = config
   wallet.save = save
   wallet.delete = delete_

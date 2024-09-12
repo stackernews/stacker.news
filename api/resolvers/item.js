@@ -7,7 +7,7 @@ import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   USER_ID, POLL_COST,
-  ITEM_ALLOW_EDITS, GLOBAL_SEED, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_USER_IDS
+  ADMIN_ITEMS, GLOBAL_SEED, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
@@ -1269,15 +1269,14 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
     throw new GqlInputError('cannot edit unpaid item')
   }
 
-  // author can always edit their own item
+  // author can edit their own item
   const mid = Number(me?.id)
-  const isMine = Number(old.userId) === mid
+  const authorEdit = Number(old.userId) === mid
+  // admins can edit special items
+  const adminEdit = ADMIN_ITEMS.includes(old.id) && SN_ADMIN_IDS.includes(mid)
 
-  // allow admins to edit special items
-  const allowEdit = ITEM_ALLOW_EDITS.includes(old.id)
-  const adminEdit = SN_USER_IDS.includes(mid) && allowEdit
-
-  if (!isMine && !adminEdit) {
+  // ownership permission check
+  if (!authorEdit && !adminEdit) {
     throw new GqlInputError('item does not belong to you')
   }
 
@@ -1298,7 +1297,8 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
   const myBio = user.bioId === old.id
   const timer = Date.now() < new Date(old.invoicePaidAt ?? old.createdAt).getTime() + 10 * 60_000
 
-  if (!allowEdit && !myBio && !timer && !isJob(item)) {
+  // timer permission check
+  if (!adminEdit && !myBio && !timer && !isJob(item)) {
     throw new GqlInputError('item can no longer be edited')
   }
 

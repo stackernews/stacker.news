@@ -87,6 +87,11 @@ export function useWallet (name) {
     }
   }, [clearConfig, logger, disablePayments])
 
+  const deleteLogs_ = useCallback(async (options) => {
+    // first argument is to override the wallet
+    return await deleteLogs(null, options)
+  }, [deleteLogs])
+
   if (!wallet) return null
 
   // Assign everything to wallet object so every function that is passed this wallet object in this
@@ -102,7 +107,7 @@ export function useWallet (name) {
   wallet.config = config
   wallet.save = save
   wallet.delete = delete_
-  wallet.deleteLogs = deleteLogs
+  wallet.deleteLogs = deleteLogs_
   wallet.setPriority = setPriority
   wallet.hasConfig = hasConfig
   wallet.status = status
@@ -406,7 +411,7 @@ export function useWallets () {
       if (w.canSend) {
         await w.delete({ clientOnly: true })
       }
-      await w.deleteLogs()
+      await w.deleteLogs({ clientOnly: true })
     }
   }, [wallets])
 

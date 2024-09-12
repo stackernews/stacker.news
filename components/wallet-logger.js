@@ -209,8 +209,8 @@ export const WalletLoggerProvider = ({ children }) => {
     setLogs((prevLogs) => [log, ...prevLogs])
   }, [saveLog])
 
-  const deleteLogs = useCallback(async (wallet) => {
-    if (!wallet || wallet.walletType) {
+  const deleteLogs = useCallback(async (wallet, options) => {
+    if ((!wallet || wallet.walletType) && !options?.clientOnly) {
       await deleteServerWalletLogs({ variables: { wallet: wallet?.walletType } })
     }
     if (!wallet || wallet.sendPayment) {
@@ -262,7 +262,9 @@ export function useWalletLogger (wallet) {
     error: (...message) => log('error')(message.join(' '))
   }), [log, wallet?.name])
 
-  const deleteLogs = useCallback((w) => innerDeleteLogs(w || wallet), [innerDeleteLogs, wallet])
+  const deleteLogs = useCallback((walletOverride, options = {}) => {
+    return innerDeleteLogs(walletOverride || wallet, options)
+  }, [innerDeleteLogs, wallet])
 
   return { logger, deleteLogs }
 }

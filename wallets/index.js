@@ -45,12 +45,6 @@ export function useWallet (name) {
     logger.info('payments disabled')
   }, [name, me, logger])
 
-  if (wallet) {
-    wallet.isConfigured = _isConfigured
-    wallet.enablePayments = enablePayments
-    wallet.disablePayments = disablePayments
-  }
-
   const status = config?.enabled ? Status.Enabled : Status.Initialized
   const enabled = status === Status.Enabled
   const priority = config?.priority
@@ -95,21 +89,30 @@ export function useWallet (name) {
 
   if (!wallet) return null
 
-  return {
-    ...wallet,
-    canSend: !!wallet.sendPayment,
-    sendPayment,
-    config,
-    save,
-    delete: delete_,
-    deleteLogs,
-    setPriority,
-    hasConfig,
-    status,
-    enabled,
-    priority,
-    logger
-  }
+  // Assign everything to wallet object so every function that is passed this wallet object in this
+  // `useWallet` hook has access to all others via the reference to it.
+  // Essentially, you can now use functions like `enablePayments` _inside_ of functions that are
+  // called by `useWallet` even before enablePayments is defined and not only in functions
+  // that use the return value of `useWallet`.
+  wallet.isConfigured = _isConfigured
+  wallet.enablePayments = enablePayments
+  wallet.disablePayments = disablePayments
+  wallet.canSend = !!wallet.sendPayment
+  wallet.canReceive = !!wallet.createInvoice
+  wallet.config = config
+  wallet.save = save
+  wallet.delete = delete_
+  wallet.deleteLogs = deleteLogs
+  wallet.setPriority = setPriority
+  wallet.hasConfig = hasConfig
+  wallet.status = status
+  wallet.enabled = enabled
+  wallet.priority = priority
+  wallet.logger = logger
+
+  // can't assign sendPayment to wallet object because it already exists
+  // as an imported function and thus can't be overwritten
+  return { ...wallet, sendPayment }
 }
 
 function extractConfig (fields, config, client) {

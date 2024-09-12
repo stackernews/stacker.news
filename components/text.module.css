@@ -145,6 +145,10 @@
     aspect-ratio: var(--aspect-ratio);
 }
 
+.p:has(> .mediaContainer) {
+    white-space: normal;
+}
+
 .p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) {
     display: inline-block;
     width: min-content;

@@ -49,9 +49,11 @@ export default function ItemInfo ({
   }, [item])
 
   useEffect(() => {
-    const invoice = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
-    setCanEdit((item.mine || invoice) && (Date.now() < editThreshold))
-  }, [item.id, item.mine, editThreshold])
+    const authorEdit = item.mine
+    const invParams = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
+    const hmacEdit = !!invParams && !me && Number(item.user.id) === USER_ID.anon
+    setCanEdit((authorEdit || hmacEdit) && (Date.now() < editThreshold))
+  }, [me, item.id, item.mine, editThreshold])
 
   // territory founders can pin any post in their territory
   // and OPs can pin any root reply in their post

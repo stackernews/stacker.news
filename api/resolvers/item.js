@@ -1315,15 +1315,18 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
 
   if (old.bio) {
     // prevent editing a bio like a regular item
-    item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio`, userId: meId }
+    item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio` }
   } else if (old.parentId) {
     // prevent editing a comment like a post
-    item = { id: Number(item.id), text: item.text, userId: meId }
+    item = { id: Number(item.id), text: item.text }
   } else {
-    item = { subName, userId: meId, ...item }
+    item = { subName, ...item }
     item.forwardUsers = await getForwardUsers(models, forward)
   }
   item.uploadIds = uploadIdsFromText(item.text, { models })
+
+  // never change author of item
+  item.userId = old.userId
 
   const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd })
 

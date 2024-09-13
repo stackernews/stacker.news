@@ -39,8 +39,8 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         try {
           ({ data } = await getSignedPOST({ variables }))
         } catch (e) {
-          toaster.danger('error initiating upload: ' + e.message || e.toString?.())
           onError?.({ ...variables, name: file.name, file })
+          reject(e)
           return
         }
 
@@ -58,10 +58,8 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
 
         if (!res.ok) {
           // TODO make sure this is actually a helpful error message and does not expose anything to the user we don't want
-          const err = res.statusText
-          toaster.danger('error uploading: ' + err)
           onError?.({ ...variables, name: file.name, file })
-          reject(err)
+          reject(new Error(res.statusText))
           return
         }
 
@@ -96,16 +94,20 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         onChange={async (e) => {
           const fileList = e.target.files
           for (const file of Array.from(fileList)) {
-            if (accept.indexOf(file.type) === -1) {
-              toaster.danger(`image must be ${accept.map(t => t.replace('image/', '').replace('video/', '')).join(', ')}`)
+            try {
+              if (accept.indexOf(file.type) === -1) {
+                throw new Error(`file must be ${accept.map(t => t.replace(/^(image|video)\//, '')).join(', ')}`)
+              }
+              if (onSelect) await onSelect?.(file, s3Upload)
+              else await s3Upload(file)
+            } catch (e) {
+              toaster.danger(`upload of '${file.name}' failed: ` + e.message || e.toString?.())
               continue
             }
-            if (onSelect) await onSelect?.(file, s3Upload)
-            else await s3Upload(file)
-            // reset file input
-            // see https://bobbyhadz.com/blog/react-reset-file-input#reset-a-file-input-in-react
-            e.target.value = null
           }
+          // reset file input
+          // see https://bobbyhadz.com/blog/react-reset-file-input#reset-a-file-input-in-react
+          e.target.value = null
         }}
       />
       <div

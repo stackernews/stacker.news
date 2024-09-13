@@ -101,7 +101,7 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
               if (onSelect) await onSelect?.(file, s3Upload)
               else await s3Upload(file)
             } catch (e) {
-              toaster.danger('upload failed: ' + e.message || e.toString?.())
+              toaster.danger(`upload of '${file.name}' failed: ` + e.message || e.toString?.())
               continue
             }
           }

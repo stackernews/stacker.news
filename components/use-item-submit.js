@@ -6,6 +6,8 @@ import { useCallback } from 'react'
 import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
 import gql from 'graphql-tag'
+import { USER_ID } from '@/lib/constants'
+import { useMe } from './me'
 
 // this is intented to be compatible with upsert item mutations
 // so that it can be reused for all post types and comments and we don't have
@@ -19,6 +21,7 @@ export default function useItemSubmit (mutation,
   const toaster = useToast()
   const crossposter = useCrossposter()
   const [upsertItem] = usePaidMutation(mutation)
+  const { me } = useMe()
 
   return useCallback(
     async ({ boost, crosspost, title, options, bounty, maxBid, start, stop, ...values }, { resetForm }) => {
@@ -27,10 +30,11 @@ export default function useItemSubmit (mutation,
         options = options.slice(item?.poll?.options?.length || 0).filter(o => o.trim().length > 0)
       }
 
-      if (item?.id) {
-        const invoiceData = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
-        if (invoiceData) {
-          const [hash, hmac] = invoiceData.split(':')
+      const hmacEdit = item?.id && Number(item.user.id) === USER_ID.anon && !me
+      if (hmacEdit) {
+        const invParams = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
+        if (invParams) {
+          const [hash, hmac] = invParams.split(':')
           values.hash = hash
           values.hmac = hmac
         }
@@ -89,7 +93,7 @@ export default function useItemSubmit (mutation,
           await router.push(sub ? `/~${sub.name}/recent` : '/recent')
         }
       }
-    }, [upsertItem, router, crossposter, item, sub, onSuccessfulSubmit,
+    }, [me, upsertItem, router, crossposter, item, sub, onSuccessfulSubmit,
       navigateOnSubmit, extraValues, paidMutationOptions]
   )
 }

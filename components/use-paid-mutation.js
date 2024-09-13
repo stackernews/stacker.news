@@ -100,7 +100,13 @@ export function usePaidMutation (mutation,
             // if the mutation didn't return any data, ie pessimistic, we need to fetch it
             const { data: { paidAction } } = await getPaidAction({ variables: { invoiceId: parseInt(invoice.id) } })
             // create new data object
-            data = { [Object.keys(data)[0]]: paidAction }
+            // ( hmac is only returned on invoice creation so we need to add it back to the data )
+            data = {
+              [Object.keys(data)[0]]: {
+                ...paidAction,
+                invoice: { ...paidAction.invoice, hmac: invoice.hmac }
+              }
+            }
             // we need to run update functions on mutations now that we have the data
             update?.(client.cache, { data })
           }

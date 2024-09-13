@@ -114,6 +114,14 @@ export function createHmac (hash) {
   return crypto.createHmac('sha256', key).update(Buffer.from(hash, 'hex')).digest('hex')
 }
 
+export function verifyHmac (hash, hmac) {
+  const hmac2 = createHmac(hash)
+  if (!timingSafeEqual(Buffer.from(hmac), Buffer.from(hmac2))) {
+    throw new GqlAuthorizationError('bad hmac')
+  }
+  return true
+}
+
 const resolvers = {
   Query: {
     invoice: getInvoice,
@@ -411,10 +419,7 @@ const resolvers = {
     createWithdrawl: createWithdrawal,
     sendToLnAddr,
     cancelInvoice: async (parent, { hash, hmac }, { models, lnd, boss }) => {
-      const hmac2 = createHmac(hash)
-      if (!timingSafeEqual(Buffer.from(hmac), Buffer.from(hmac2))) {
-        throw new GqlAuthorizationError('bad hmac')
-      }
+      verifyHmac(hash, hmac)
       await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
       return await models.invoice.findFirst({ where: { hash } })
     },

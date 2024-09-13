@@ -48,11 +48,13 @@ export default async function performPaidAction (actionType, args, context) {
         throw new Error('You must be logged in to perform this action')
       }
 
-      console.log('we are anon so can only perform pessimistic action')
-      return await performPessimisticAction(actionType, args, context)
+      if (context.cost > 0) {
+        console.log('we are anon so can only perform pessimistic action that require payment')
+        return await performPessimisticAction(actionType, args, context)
+      }
     }
 
-    const isRich = context.cost <= context.me.msats
+    const isRich = context.cost <= (context.me?.msats ?? 0)
     if (isRich) {
       try {
         console.log('enough fee credits available, performing fee credit action')
@@ -100,7 +102,7 @@ async function performFeeCreditAction (actionType, args, context) {
 
     await tx.user.update({
       where: {
-        id: me.id
+        id: me?.id ?? USER_ID.anon
       },
       data: {
         msats: {

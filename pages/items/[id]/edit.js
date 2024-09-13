@@ -15,8 +15,7 @@ import SubSelect from '@/components/sub-select'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM,
-  notFound: data => !data.item,
-  authRequired: true
+  notFound: data => !data.item
 })
 
 export default function PostEdit ({ ssrData }) {

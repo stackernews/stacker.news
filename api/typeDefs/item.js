@@ -35,14 +35,23 @@ export default gql`
     pinItem(id: ID): Item
     subscribeItem(id: ID): Item
     deleteItem(id: ID): Item
-    upsertLink(id: ID, sub: String, title: String!, url: String!, text: String, boost: Int, forward: [ItemForwardInput]): ItemPaidAction!
-    upsertDiscussion(id: ID, sub: String, title: String!, text: String, boost: Int, forward: [ItemForwardInput]): ItemPaidAction!
-    upsertBounty(id: ID, sub: String, title: String!, text: String, bounty: Int, boost: Int, forward: [ItemForwardInput]): ItemPaidAction!
-    upsertJob(id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
+    upsertLink(
+      id: ID, sub: String, title: String!, url: String!, text: String, boost: Int, forward: [ItemForwardInput],
+      hash: String, hmac: String): ItemPaidAction!
+    upsertDiscussion(
+      id: ID, sub: String, title: String!, text: String, boost: Int, forward: [ItemForwardInput],
+      hash: String, hmac: String): ItemPaidAction!
+    upsertBounty(
+      id: ID, sub: String, title: String!, text: String, bounty: Int, boost: Int, forward: [ItemForwardInput],
+      hash: String, hmac: String): ItemPaidAction!
+    upsertJob(
+      id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
       text: String!, url: String!, maxBid: Int!, status: String, logo: Int): ItemPaidAction!
-    upsertPoll(id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], pollExpiresAt: Date): ItemPaidAction!
+    upsertPoll(
+      id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], pollExpiresAt: Date,
+      hash: String, hmac: String): ItemPaidAction!
     updateNoteId(id: ID!, noteId: String!): Item!
-    upsertComment(id:ID, text: String!, parentId: ID): ItemPaidAction!
+    upsertComment(id: ID, text: String!, parentId: ID, hash: String, hmac: String): ItemPaidAction!
     act(id: ID!, sats: Int, act: String, idempotent: Boolean): ItemActPaidAction!
     pollVote(id: ID!): PollVotePaidAction!
     toggleOutlaw(id: ID!): Item!

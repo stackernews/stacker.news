@@ -784,6 +784,10 @@ div[contenteditable]:focus,
   fill: white;
 }
 
+.fill-dark {
+  fill: #212529;
+}
+
 .fill-success {
   fill: var(--bs-success);
 }

@@ -14,7 +14,7 @@ export default function Hat ({ user, badge, className = 'ms-1', height = 16, wid
         {badge
           ? (
             <Badge bg='grey-medium' className='ms-2 d-inline-flex align-items-center'>
-              <AnonIcon className={`${className} align-middle`} height={height} width={width} />
+              <AnonIcon className={`${className} fill-dark align-middle`} height={height} width={width} />
             </Badge>)
           : <span><AnonIcon className={`${className} align-middle`} height={height} width={width} /></span>}
       </HatTooltip>
@@ -34,7 +34,7 @@ export default function Hat ({ user, badge, className = 'ms-1', height = 16, wid
       {badge
         ? (
           <Badge bg='grey-medium' className='ms-2 d-inline-flex align-items-center'>
-            <CowboyHatIcon className={className} height={height} width={width} />
+            <CowboyHatIcon className={`${className} fill-dark`} height={height} width={width} />
             <span className='ms-1 text-dark'>{streak || 'new'}</span>
           </Badge>)
         : <span><CowboyHatIcon className={className} height={height} width={width} /></span>}

@@ -6,7 +6,7 @@ import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
 import mention from '@/lib/remark-mention'
 import sub from '@/lib/remark-sub'
 import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
-import GithubSlugger from 'github-slugger'
+import { slug } from 'github-slugger'
 import LinkIcon from '@/svgs/link.svg'
 import Thumb from '@/svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
@@ -82,12 +82,10 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     }
   }, [containerRef.current, setOverflowing])
 
-  const slugger = useMemo(() => new GithubSlugger(), [])
-
   const Heading = useCallback(({ children, node, ...props }) => {
     const [copied, setCopied] = useState(false)
     const nodeText = toString(node)
-    const id = useMemo(() => noFragments ? undefined : slugger?.slug(nodeText.replace(/[^\w\-\s]+/gi, '')), [nodeText, noFragments, slugger])
+    const id = useMemo(() => noFragments ? undefined : slug(nodeText.replace(/[^\w\-\s]+/gi, '')), [nodeText, noFragments])
     const h = useMemo(() => {
       if (topLevel) {
         return node?.TagName
@@ -120,7 +118,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
           </a>}
       </span>
     )
-  }, [topLevel, noFragments, slugger])
+  }, [topLevel, noFragments])
 
   const Table = useCallback(({ node, ...props }) =>
     <span className='table-responsive'>

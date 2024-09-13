@@ -5,7 +5,7 @@ import BootstrapForm from 'react-bootstrap/Form'
 import EditImage from '@/svgs/image-edit-fill.svg'
 import Moon from '@/svgs/moon-fill.svg'
 import { useShowModal } from './modal'
-import { ImageUpload } from './image-upload'
+import { FileUpload } from './file-upload'
 
 export default function Avatar ({ onSuccess }) {
   const [uploading, setUploading] = useState()
@@ -49,7 +49,8 @@ export default function Avatar ({ onSuccess }) {
   }
 
   return (
-    <ImageUpload
+    <FileUpload
+      allow='image/*'
       avatar
       onError={e => {
         console.log(e)
@@ -84,6 +85,6 @@ export default function Avatar ({ onSuccess }) {
           ? <Moon className='fill-white spin' />
           : <EditImage className='fill-white' />}
       </div>
-    </ImageUpload>
+    </FileUpload>
   )
 }

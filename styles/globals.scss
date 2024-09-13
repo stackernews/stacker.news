@@ -245,6 +245,14 @@ $zindex-sticky: 900;
   width: fit-content;
 }
 
+.line-height-sm {
+  line-height: 1.25;
+}
+
+.line-height-md {
+  line-height: 1.5;
+}
+
 @media (display-mode: standalone) {
   .standalone {
     display: flex

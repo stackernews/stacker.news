@@ -26,9 +26,51 @@ const FormStatus = {
   ERROR: 'error'
 }
 
+export function BoostInput ({ onChange, ...props }) {
+  const { merge } = useFeeButton()
+  return (
+    <Input
+      label={
+        <div className='d-flex align-items-center'>boost
+          <Info>
+            <ol>
+              <li>Boost ranks item higher temporarily based on the amount</li>
+              <li>The minimum boost is {numWithUnits(BOOST_MIN, { abbreviate: false })}</li>
+              <li>Each {numWithUnits(BOOST_MULT, { abbreviate: false })} of boost is equivalent to one trusted upvote
+                <ul>
+                  <li>e.g. {numWithUnits(BOOST_MULT * 5, { abbreviate: false })} is like 5 votes</li>
+                </ul>
+              </li>
+              <li>The decay of boost "votes" increases at 1.25x the rate of organic votes
+                <ul>
+                  <li>i.e. boost votes fall out of ranking faster</li>
+                </ul>
+              </li>
+              <li>100% of sats from boost are given back to top stackers as rewards</li>
+            </ol>
+          </Info>
+        </div>
+    }
+      name='boost'
+      onChange={(_, e) => {
+        merge({
+          boost: {
+            term: `+ ${e.target.value}`,
+            label: 'boost',
+            modifier: cost => cost + Number(e.target.value)
+          }
+        })
+        onChange && onChange(_, e)
+      }}
+      hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
+      append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+      {...props}
+    />
+  )
+}
+
 export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
   const { me } = useMe()
-  const { merge } = useFeeButton()
   const router = useRouter()
   const [itemType, setItemType] = useState()
   const formik = useFormikContext()
@@ -111,39 +153,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
       body={
         <>
           {children}
-          <Input
-            label={
-              <div className='d-flex align-items-center'>boost
-                <Info>
-                  <ol>
-                    <li>Boost ranks posts higher temporarily based on the amount</li>
-                    <li>The minimum boost is {numWithUnits(BOOST_MIN, { abbreviate: false })}</li>
-                    <li>Each {numWithUnits(BOOST_MULT, { abbreviate: false })} of boost is equivalent to one trusted upvote
-                      <ul>
-                        <li>e.g. {numWithUnits(BOOST_MULT * 5, { abbreviate: false })} is like 5 votes</li>
-                      </ul>
-                    </li>
-                    <li>The decay of boost "votes" increases at 1.25x the rate of organic votes
-                      <ul>
-                        <li>i.e. boost votes fall out of ranking faster</li>
-                      </ul>
-                    </li>
-                    <li>100% of sats from boost are given back to top stackers as rewards</li>
-                  </ol>
-                </Info>
-              </div>
-            }
-            name='boost'
-            onChange={(_, e) => merge({
-              boost: {
-                term: `+ ${e.target.value}`,
-                label: 'boost',
-                modifier: cost => cost + Number(e.target.value)
-              }
-            })}
-            hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-          />
+          <BoostInput />
           <VariableInput
             label='forward sats to'
             name='forward'

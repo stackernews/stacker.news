@@ -133,11 +133,11 @@ export const UPSERT_DISCUSSION = gql`
 export const UPSERT_JOB = gql`
   ${PAID_ACTION}
   mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!,
-    $location: String, $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!,
+    $location: String, $remote: Boolean, $text: String!, $url: String!, $boost: Int,
     $status: String, $logo: Int) {
     upsertJob(sub: $sub, id: $id, title: $title, company: $company,
       location: $location, remote: $remote, text: $text,
-      url: $url, maxBid: $maxBid, status: $status, logo: $logo) {
+      url: $url, boost: $boost, status: $status, logo: $logo) {
       result {
         id
         deleteScheduledAt

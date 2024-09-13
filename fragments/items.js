@@ -46,7 +46,6 @@ export const ITEM_FIELDS = gql`
     ncomments
     commentSats
     lastCommentAt
-    maxBid
     isJob
     company
     location
@@ -54,7 +53,6 @@ export const ITEM_FIELDS = gql`
     subName
     pollCost
     pollExpiresAt
-    status
     uploadId
     mine
     imgproxyUrls

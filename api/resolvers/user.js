@@ -396,22 +396,6 @@ export default {
         }
       }
 
-      const job = await models.item.findFirst({
-        where: {
-          maxBid: {
-            not: null
-          },
-          userId: me.id,
-          statusUpdatedAt: {
-            gt: lastChecked
-          }
-        }
-      })
-      if (job && job.statusUpdatedAt > job.createdAt) {
-        foundNotes()
-        return true
-      }
-
       if (user.noteEarning) {
         const earn = await models.earn.findFirst({
           where: {

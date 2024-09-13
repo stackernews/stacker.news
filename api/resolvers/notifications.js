@@ -179,17 +179,6 @@ export default {
         )`
       )
 
-      queries.push(
-        `(SELECT "Item".id::text, "Item"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
-          'JobChanged' AS type
-          FROM "Item"
-          WHERE "Item"."userId" = $1
-          AND "maxBid" IS NOT NULL
-          AND "statusUpdatedAt" < $2 AND "statusUpdatedAt" <> created_at
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
-      )
-
       // territory transfers
       queries.push(
         `(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL as "earnedSats",

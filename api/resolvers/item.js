@@ -441,23 +441,21 @@ export default {
                 models,
                 query: `
                   ${SELECT},
-                    CASE WHEN status = 'ACTIVE' AND "maxBid" > 0
-                         THEN 0 ELSE 1 END AS group_rank,
-                    CASE WHEN status = 'ACTIVE' AND "maxBid" > 0
-                         THEN rank() OVER (ORDER BY "maxBid" DESC, created_at ASC)
+                    (boost IS NOT NULL AND boost > 0)::INT AS group_rank,
+                    CASE WHEN boost IS NOT NULL AND boost > 0
+                         THEN rank() OVER (ORDER BY boost DESC, created_at ASC)
                          ELSE rank() OVER (ORDER BY created_at DESC) END AS rank
                     FROM "Item"
                     ${whereClause(
                       '"parentId" IS NULL',
                       'created_at <= $1',
                       '"pinId" IS NULL',
-                      subClause(sub, 4),
-                      "status IN ('ACTIVE', 'NOSATS')"
+                      subClause(sub, 4)
                     )}
                     ORDER BY group_rank, rank
                   OFFSET $2
                   LIMIT $3`,
-                orderBy: 'ORDER BY group_rank, rank'
+                orderBy: 'ORDER BY group_rank DESC, rank'
               }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
               break
             default:
@@ -612,18 +610,17 @@ export default {
           LIMIT 3`
       }, similar)
     },
-    auctionPosition: async (parent, { id, sub, bid }, { models, me }) => {
+    auctionPosition: async (parent, { id, sub, boost }, { models, me }) => {
       const createdAt = id ? (await getItem(parent, { id }, { models, me })).createdAt : new Date()
       let where
-      if (bid > 0) {
-        // if there's a bid
-        // it's ACTIVE and has a larger bid than ours, or has an equal bid and is older
-        // count items: (bid > ours.bid OR (bid = ours.bid AND create_at < ours.created_at)) AND status = 'ACTIVE'
+      if (boost > 0) {
+        // if there's boost
+        // has a larger boost than ours, or has an equal boost and is older
+        // count items: (boost > ours.boost OR (boost = ours.boost AND create_at < ours.created_at))
         where = {
-          status: 'ACTIVE',
           OR: [
-            { maxBid: { gt: bid } },
-            { maxBid: bid, createdAt: { lt: createdAt } }
+            { boost: { gt: boost } },
+            { boost, createdAt: { lt: createdAt } }
           ]
         }
       } else {
@@ -632,8 +629,8 @@ export default {
         // count items: ((bid > ours.bid AND status = 'ACTIVE') OR (created_at > ours.created_at AND status <> 'STOPPED'))
         where = {
           OR: [
-            { maxBid: { gt: 0 }, status: 'ACTIVE' },
-            { createdAt: { gt: createdAt }, status: { not: 'STOPPED' } }
+            { boost: { gt: 0 } },
+            { createdAt: { gt: createdAt } }
           ]
         }
       }
@@ -822,7 +819,6 @@ export default {
         item.uploadId = item.logo
         delete item.logo
       }
-      item.maxBid ??= 0
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })

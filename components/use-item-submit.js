@@ -24,7 +24,7 @@ export default function useItemSubmit (mutation,
   const { me } = useMe()
 
   return useCallback(
-    async ({ boost, crosspost, title, options, bounty, maxBid, start, stop, ...values }, { resetForm }) => {
+    async ({ boost, crosspost, title, options, bounty, start, stop, ...values }, { resetForm }) => {
       if (options) {
         // remove existing poll options since else they will be appended as duplicates
         options = options.slice(item?.poll?.options?.length || 0).filter(o => o.trim().length > 0)
@@ -46,7 +46,6 @@ export default function useItemSubmit (mutation,
           sub: item?.subName || sub?.name,
           boost: boost ? Number(boost) : undefined,
           bounty: bounty ? Number(bounty) : undefined,
-          maxBid: (maxBid || Number(maxBid) === 0) ? Number(maxBid) : undefined,
           status: start ? 'ACTIVE' : stop ? 'STOPPED' : undefined,
           title: title?.trim(),
           options,

@@ -210,6 +210,7 @@ export default function DeviceSync ({ ssrData }) {
             label='Keep this passphrase safe'
             type='password'
             name='passphrase'
+            readOnly
           />
         </Form>
         <div className='d-flex justify-content-between'>

@@ -88,8 +88,10 @@ function multiAuthMiddleware (request) {
   const cookiePointerName = 'multi_auth.user-id'
   const hasCookiePointer = !!request.cookies[cookiePointerName]
 
+  const secure = request.headers['x-forwarded-proto'] === 'https'
+
   // is there a session?
-  const sessionCookieName = request.secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
+  const sessionCookieName = secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
   const hasSession = !!request.cookies[sessionCookieName]
 
   if (!hasCookiePointer || !hasSession) {

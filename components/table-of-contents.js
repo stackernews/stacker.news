@@ -5,7 +5,7 @@ import TocIcon from '@/svgs/list-unordered.svg'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { visit } from 'unist-util-visit'
 import { toString } from 'mdast-util-to-string'
-import GithubSlugger from 'github-slugger'
+import { slug } from 'github-slugger'
 import { useRouter } from 'next/router'
 
 export default function Toc ({ text }) {
@@ -17,11 +17,11 @@ export default function Toc ({ text }) {
   const toc = useMemo(() => {
     const tree = fromMarkdown(text)
     const toc = []
-    const slugger = new GithubSlugger()
     visit(tree, 'heading', (node, position, parent) => {
       const str = toString(node)
-      toc.push({ heading: str, slug: slugger.slug(str.replace(/[^\w\-\s]+/gi, '')), depth: node.depth })
+      toc.push({ heading: str, slug: slug(str.replace(/[^\w\-\s]+/gi, '')), depth: node.depth })
     })
+
     return toc
   }, [text])
 

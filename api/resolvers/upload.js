@@ -1,4 +1,4 @@
-import { USER_ID, IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_SIZE_MAX_AVATAR, UPLOAD_TYPES_ALLOW, AWS_S3_URL_REGEXP } from '@/lib/constants'
+import { USER_ID, IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_SIZE_MAX_AVATAR, UPLOAD_TYPES_ALLOW, AWS_S3_URL_REGEXP, AVATAR_TYPES_ALLOW } from '@/lib/constants'
 import { createPresignedPost } from '@/api/s3'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { msatsToSats } from '@/lib/format'
@@ -12,15 +12,21 @@ export default {
   Mutation: {
     getSignedPOST: async (parent, { type, size, width, height, avatar }, { models, me }) => {
       if (UPLOAD_TYPES_ALLOW.indexOf(type) === -1) {
-        throw new GqlInputError(`image must be ${UPLOAD_TYPES_ALLOW.map(t => t.replace('image/', '')).join(', ')}`)
+        throw new GqlInputError(`upload must be ${UPLOAD_TYPES_ALLOW.map(t => t.replace(/^(image|video)\//, '')).join(', ')}`)
       }
 
       if (size > UPLOAD_SIZE_MAX) {
-        throw new GqlInputError(`image must be less than ${UPLOAD_SIZE_MAX / (1024 ** 2)} megabytes`)
+        throw new GqlInputError(`upload must be less than ${UPLOAD_SIZE_MAX / (1024 ** 2)} megabytes`)
       }
 
-      if (avatar && size > UPLOAD_SIZE_MAX_AVATAR) {
-        throw new GqlInputError(`image must be less than ${UPLOAD_SIZE_MAX_AVATAR / (1024 ** 2)} megabytes`)
+      if (avatar) {
+        if (AVATAR_TYPES_ALLOW.indexOf(type) === -1) {
+          throw new GqlInputError(`avatar must be ${AVATAR_TYPES_ALLOW.map(t => t.replace('image/', '')).join(', ')}`)
+        }
+
+        if (size > UPLOAD_SIZE_MAX_AVATAR) {
+          throw new GqlInputError(`avatar must be less than ${UPLOAD_SIZE_MAX_AVATAR / (1024 ** 2)} megabytes`)
+        }
       }
 
       if (width * height > IMAGE_PIXELS_MAX) {

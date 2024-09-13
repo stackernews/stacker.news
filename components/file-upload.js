@@ -41,7 +41,6 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         } catch (e) {
           toaster.danger('error initiating upload: ' + e.message || e.toString?.())
           onError?.({ ...variables, name: file.name, file })
-          reject(e)
           return
         }
 

@@ -1,8 +1,14 @@
-import { USER_ID, IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_SIZE_MAX_AVATAR, UPLOAD_TYPES_ALLOW } from '@/lib/constants'
+import { USER_ID, IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_SIZE_MAX_AVATAR, UPLOAD_TYPES_ALLOW, AWS_S3_URL_REGEXP } from '@/lib/constants'
 import { createPresignedPost } from '@/api/s3'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { msatsToSats } from '@/lib/format'
 
 export default {
+  Query: {
+    uploadFees: async (parent, { s3Keys }, { models, me }) => {
+      return uploadFees(s3Keys, { models, me })
+    }
+  },
   Mutation: {
     getSignedPOST: async (parent, { type, size, width, height, avatar }, { models, me }) => {
       if (UPLOAD_TYPES_ALLOW.indexOf(type) === -1) {
@@ -39,4 +45,19 @@ export default {
       return createPresignedPost({ key: String(upload.id), type, size })
     }
   }
+}
+
+export function uploadIdsFromText (text, { models }) {
+  if (!text) return []
+  return [...new Set([...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])))]
+}
+
+export async function uploadFees (s3Keys, { models, me }) {
+  // returns info object in this format:
+  // { bytes24h: int, bytesUnpaid: int, nUnpaid: int, uploadFeesMsats: BigInt }
+  const [info] = await models.$queryRawUnsafe('SELECT * FROM upload_fees($1::INTEGER, $2::INTEGER[])', me ? me.id : USER_ID.anon, s3Keys)
+  const uploadFees = msatsToSats(info.uploadFeesMsats)
+  const totalFeesMsats = info.nUnpaid * Number(info.uploadFeesMsats)
+  const totalFees = msatsToSats(totalFeesMsats)
+  return { ...info, uploadFees, totalFees, totalFeesMsats }
 }

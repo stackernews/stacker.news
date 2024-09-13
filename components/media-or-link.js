@@ -112,7 +112,7 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
   const { me } = useMe()
   const trusted = useMemo(() => !!srcSetIntital || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [!!srcSetIntital, src])
   const { dimensions, video, format, ...srcSetObj } = srcSetIntital || {}
-  const [isImage, setIsImage] = useState(!video && trusted)
+  const [isImage, setIsImage] = useState(video === false && trusted)
   const [isVideo, setIsVideo] = useState(video)
   const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [tab, me?.privates?.showImagesAndVideos])
   const embed = useMemo(() => parseEmbedUrl(src), [src])
@@ -123,15 +123,19 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
     // make sure it's not a false negative by trying to load URL as <img>
     const img = new window.Image()
     img.onload = () => setIsImage(true)
+    img.onerror = () => setIsImage(false)
     img.src = src
     const video = document.createElement('video')
     video.onloadeddata = () => setIsVideo(true)
+    video.onerror = () => setIsVideo(false)
     video.src = src
 
     return () => {
       img.onload = null
+      img.onerror = null
       img.src = ''
       video.onloadeddata = null
+      video.onerror = null
       video.src = ''
     }
   }, [src, setIsImage, setIsVideo, showMedia, isVideo, embed])

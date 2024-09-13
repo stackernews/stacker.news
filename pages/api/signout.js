@@ -11,7 +11,7 @@ export default (req, res) => {
   const cookiePointerName = 'multi_auth.user-id'
   const userId = req.cookies[cookiePointerName]
 
-  const secure = req.headers['x-forwarded-proto'] === 'https'
+  const secure = process.env.NODE_ENV === 'production'
 
   // is there a session?
   const sessionCookieName = secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token'

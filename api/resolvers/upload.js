@@ -29,11 +29,12 @@ export default {
         }
       }
 
+      // width and height is 0 for videos
       if (width * height > IMAGE_PIXELS_MAX) {
         throw new GqlInputError(`image must be less than ${IMAGE_PIXELS_MAX} pixels`)
       }
 
-      const imgParams = {
+      const fileParams = {
         type,
         size,
         width,
@@ -44,10 +45,10 @@ export default {
 
       if (avatar) {
         if (!me) throw new GqlAuthenticationError()
-        imgParams.paid = undefined
+        fileParams.paid = undefined
       }
 
-      const upload = await models.upload.create({ data: { ...imgParams } })
+      const upload = await models.upload.create({ data: { ...fileParams } })
       return createPresignedPost({ key: String(upload.id), type, size })
     }
   }

@@ -96,7 +96,7 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
           for (const file of Array.from(fileList)) {
             try {
               if (accept.indexOf(file.type) === -1) {
-                throw new Error(`image must be ${accept.map(t => t.replace('image/', '').replace('video/', '')).join(', ')}`)
+                throw new Error(`file must be ${accept.map(t => t.replace(/^(image|video)\//, '')).join(', ')}`)
               }
               if (onSelect) await onSelect?.(file, s3Upload)
               else await s3Upload(file)

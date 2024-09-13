@@ -118,10 +118,11 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
 
   // default expiration for next-auth JWTs is in 1 month
   const expiresAt = datePivot(new Date(), { months: 1 })
+  const secure = req.headers['x-forwarded-proto'] === 'https'
   const cookieOptions = {
     path: '/',
     httpOnly: true,
-    secure: req.secure,
+    secure,
     sameSite: 'lax',
     expires: expiresAt
   }

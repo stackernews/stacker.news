@@ -11,8 +11,10 @@ export default (req, res) => {
   const cookiePointerName = 'multi_auth.user-id'
   const userId = req.cookies[cookiePointerName]
 
+  const secure = req.headers['x-forwarded-proto'] === 'https'
+
   // is there a session?
-  const sessionCookieName = req.secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
+  const sessionCookieName = secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
   const sessionJWT = req.cookies[sessionCookieName]
 
   if (!userId && !sessionJWT) {
@@ -25,7 +27,7 @@ export default (req, res) => {
 
   const cookieOptions = {
     path: '/',
-    secure: req.secure,
+    secure,
     httpOnly: true,
     sameSite: 'lax',
     expires: datePivot(new Date(), { months: 1 })

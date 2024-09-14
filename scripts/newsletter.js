@@ -92,7 +92,7 @@ async function bountyWinner (q) {
 
   const bounty = await client.query({
     query: SEARCH,
-    variables: { q: `${q} @grayruby`, sort: 'recent', what: 'posts', when: 'week' }
+    variables: { q: `${q} @sn`, sort: 'recent', what: 'posts', when: 'week' }
   })
 
   const items = bounty.data.search.items.filter(i => i.bountyPaidTo?.length > 0)

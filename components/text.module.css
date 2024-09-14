@@ -149,23 +149,7 @@
     white-space: normal;
 }
 
-.p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) {
-    display: inline-block;
-    width: min-content;
-    max-width: calc(100% - var(--grid-gap));
-    margin-bottom: 0;
-}
-
-.mediaContainer ~ .mediaContainer {
-    display: inline-block;
-    width: min-content;
-    margin-right: var(--grid-gap);
-}
-
-.p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) > .mediaContainer:only-child {
-    margin-right: var(--grid-gap);
-}
-
+.p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child),
 .p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) {
     display: inline-block;
     width: min-content;
@@ -173,18 +157,27 @@
     margin-bottom: 0;
 }
 
-.p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) > .mediaContainer:only-child {
-    margin-right: var(--grid-gap);
-}
-
-.mediaContainer:has(+ .mediaContainer) {
+.mediaContainer ~ .mediaContainer, .mediaContainer:has(+ .mediaContainer) {
     display: inline-block;
     width: min-content;
     margin-right: var(--grid-gap);
 }
 
-.mediaContainer:first-child:has(+ .mediaContainer) {
-    margin-top: var(--grid-gap);
+.p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) > .mediaContainer:only-child,
+.p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) > .mediaContainer:only-child,
+.mediaContainer:first-child:has(+ .mediaContainer)  {
+    margin-right: var(--grid-gap);
+}
+
+.p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) > .mediaContainer:only-child img,
+.p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) > .mediaContainer:only-child img,
+.mediaContainer ~ .mediaContainer img,
+.mediaContainer:has(+ .mediaContainer) img,
+.p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) > .mediaContainer:only-child video,
+.p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) > .mediaContainer:only-child video,
+.mediaContainer ~ .mediaContainer video,
+.mediaContainer:has(+ .mediaContainer) video {
+    block-size: stretch;
 }
 
 .mediaContainer img, .mediaContainer video {
@@ -194,7 +187,6 @@
     max-height: inherit;
     height: 100%;
     aspect-ratio: var(--aspect-ratio);
-    block-size: stretch;
 }
 
 .mediaContainer img {

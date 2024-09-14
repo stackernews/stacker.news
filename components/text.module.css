@@ -6,6 +6,7 @@
     overflow-y: hidden;
     position: relative;
     max-height: 200vh;
+    --grid-gap: 0.5rem;
 }
 
 
@@ -98,24 +99,44 @@
 }
 
 .text hr {
-    border-top: 1px solid var(--theme-clickToContextColor);
+    border-top: 3px solid var(--theme-quoteBar);
+}
+
+.text.topLevel {
+    --grid-gap: 0.75rem;
 }
 
 .text .p {
     display: block;
-    margin-bottom: .5rem;
     white-space: pre-wrap;
     word-break: break-word;
-    --grid-gap: 0.5rem;
+    padding-top: .25rem;
+    padding-bottom: .25rem;
 }
 
 .text.topLevel .p {
-    margin-bottom: 0.75rem;
-    --grid-gap: 0.75rem;
+    padding-top: .375rem;
+    padding-bottom: .375rem;
 }
 
-.text pre {
-    margin-bottom: .5rem;
+.text>*:not(.heading) {
+    padding-top: .25rem;
+    padding-bottom: .25rem;
+}
+
+.text.topLevel>*:not(.heading) {
+    padding-top: .375rem;
+    padding-bottom: .375rem;
+}
+
+.text pre, .text blockquote {
+    margin-top: .25rem;
+    margin-bottom: .25rem;
+}
+
+.text.topLevel pre, .text.topLevel blockquote {
+    margin-top: .375rem;
+    margin-bottom: .375rem;
 }
 
 .text pre>div {
@@ -123,20 +144,30 @@
 }
 
 .text>*:last-child {
+    padding-bottom: 0 !important;
     margin-bottom: 0 !important;
 }
 
-.text blockquote:last-child {
-    margin-bottom: 0 !important;
+.text>*:first-child {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
 }
 
-.text blockquote:has(+ :not(blockquote)) {
-    margin-bottom: .5rem;
+.text blockquote, .text.topLevel blockquote  {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.text blockquote *:first-child, .text.topLevel blockquote *:first-child {
+    padding-top: 0;
+}
+
+.text blockquote *:last-child, .text.topLevel blockquote *:last-child {
+    padding-bottom: 0;
 }
 
 .mediaContainer {
     display: block;
-    margin-bottom: .5rem;
     width: calc(100% - var(--grid-gap));
     max-width: calc(100% - var(--grid-gap));
     height: auto;
@@ -147,6 +178,7 @@
 
 .p:has(> .mediaContainer) {
     white-space: normal;
+    padding: 0 !important;
 }
 
 .p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child),
@@ -154,7 +186,6 @@
     display: inline-block;
     width: min-content;
     max-width: calc(100% - var(--grid-gap));
-    margin-bottom: 0;
 }
 
 .mediaContainer ~ .mediaContainer, .mediaContainer:has(+ .mediaContainer) {
@@ -195,8 +226,7 @@
     object-position: left top;
 }
 
-.mediaContainer.topLevel {
-    margin-bottom: .75rem;
+.topLevel .mediaContainer {
     max-height: 35vh;
 }
 
@@ -225,9 +255,8 @@ img.fullScreen {
 }
 
 .text blockquote {
-    border-left: 2px solid var(--theme-quoteBar);
+    border-left: 3px solid var(--theme-quoteBar);
     padding-left: .75rem;
-    margin-bottom: 0;
 }
 
 .text li {
@@ -237,17 +266,8 @@ img.fullScreen {
 .text ul,
 .text ol {
   margin-top: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 0rem;
   padding-left: 2rem;
-}
-
-.text ul:last-child, .text ol:last-child {
-    margin-bottom: 0;
-}
-
-.text li > .p {
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
 }
 
 .text ol ol,
@@ -260,6 +280,11 @@ img.fullScreen {
 .text ol ul ol,
 .text ol ol ol {
   list-style-type: lower-alpha;
+}
+
+.text h1, .text h2, .text h3, .text h4, .text h5, .text h6 {
+    margin-top: 0.75rem;
+    margin-bottom: 0.5rem;
 }
 
 .text h1 {
@@ -298,12 +323,21 @@ img.fullScreen {
     font-size: smaller;
 }
 
-.videoWrapper {
-    max-width: 320px;
-    margin: 0.5rem 0;
+.twitterContainer, .nostrContainer, .videoWrapper, .wavlakeWrapper, .spotifyWrapper, .mediaContainer {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
 }
 
-.videoWrapper.topLevel {
+.topLevel .twitterContainer, .topLevel .nostrContainer, .topLevel .videoWrapper, .topLevel .wavlakeWrapper, .topLevel .spotifyWrapper, .topLevel .mediaContainer {
+    margin-top: 0.375rem;
+    margin-bottom: 0.375rem;
+}
+
+.videoWrapper {
+    max-width: 320px;
+}
+
+.topLevel .videoWrapper {
     max-width: 640px;
     margin: 0.75rem 0;
 }
@@ -325,13 +359,8 @@ img.fullScreen {
 }
 
 .twitterContainer, .nostrContainer {
-    margin-top: .25rem;
     position: relative;
     overflow: hidden;
-}
-
-.twitterContainer:not(:first-child), .nostrContainer:not(:first-child) {
-    margin-top: .75rem;
 }
 
 .twitterContainer iframe, .nostrContainer iframe {
@@ -351,7 +380,7 @@ img.fullScreen {
     overflow: hidden;
 }
 
-.twitterContained.topLevel {
+.topLevel .twitterContained {
     height: 200px;
 }
 
@@ -372,7 +401,7 @@ img.fullScreen {
     padding-right: 12px;
 }
 
-.tweetsSkeleton.topLevel {
+.topLevel .tweetsSkeleton {
     max-width: 550px;
 }
 

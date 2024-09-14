@@ -93,8 +93,7 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
     if (media.embed) {
       return (
         <Embed
-          {...media.embed} src={media.src}
-          className={media.className} onError={handleError} topLevel={props.topLevel}
+          {...media.embed} topLevel={props.topLevel} src={media.src} onError={handleError}
         />
       )
     }
@@ -187,7 +186,6 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
     style,
     width,
     height,
-    className: classNames(topLevel && styles.topLevel),
     image: (!me?.privates?.imgproxyOnly || trusted) && showMedia && isImage && !isVideo && !embed,
     video: !me?.privates?.imgproxyOnly && showMedia && isVideo && !embed,
     embed: !me?.privates?.imgproxyOnly && showMedia && embed

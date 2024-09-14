@@ -13,7 +13,7 @@ export async function getCost ({ id, boost = 0, uploadIds }, { me, models }) {
   // or more boost
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
-  return BigInt(totalFeesMsats) + satsToMsats(boost - (old.boost || 0))
+  return BigInt(totalFeesMsats) + satsToMsats(boost - old.boost)
 }
 
 export async function perform (args, context) {
@@ -30,9 +30,10 @@ export async function perform (args, context) {
     }
   })
 
-  const boostMsats = satsToMsats(boost - (old.boost || 0))
+  const newBoost = boost - old.boost
   const itemActs = []
-  if (boostMsats > 0) {
+  if (newBoost > 0) {
+    const boostMsats = satsToMsats(newBoost)
     itemActs.push({
       msats: boostMsats, act: 'BOOST', userId: me?.id || USER_ID.anon
     })
@@ -54,15 +55,19 @@ export async function perform (args, context) {
     data: { paid: true }
   })
 
+  // we put boost in the where clause because we don't want to update the boost
+  // if it has changed concurrently
   const item = await tx.item.update({
-    where: { id: parseInt(id) },
+    where: { id: parseInt(id), boost: old.boost },
     include: {
       mentions: true,
       itemReferrers: { include: { refereeItem: true } }
     },
     data: {
       ...data,
-      boost,
+      boost: {
+        increment: newBoost
+      },
       pollOptions: {
         createMany: {
           data: pollOptions?.map(option => ({ option }))
@@ -126,8 +131,12 @@ export async function perform (args, context) {
     }
   })
 
-  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
-    VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true, now() + interval '5 seconds')`
+  await tx.$executeRaw`
+    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expireafter)
+    VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true,
+              now() + interval '5 seconds', now() + interval '1 day'),
+           ('expireBoost', jsonb_build_object('id', ${id}::INTEGER), 21, true,
+              now() + interval '30 days', now() + interval '40 days')`
 
   await performBotBehavior(args, context)
 

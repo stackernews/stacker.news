@@ -205,6 +205,7 @@
 .mediaContainer ~ .mediaContainer img,
 .mediaContainer:has(+ .mediaContainer) img {
     block-size: revert-layer;
+    max-width: stretch;
 }
 .p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) > .mediaContainer:only-child video,
 .p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) > .mediaContainer:only-child video,

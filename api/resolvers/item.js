@@ -476,6 +476,7 @@ export default {
                       sub ? '"Item"."pinId" IS NULL' : '',
                       '"Item"."deletedAt" IS NULL',
                       '"Item"."parentId" IS NULL',
+                      '"Item".outlawed = false',
                       '"Item".bio = false',
                       activeOrMine(me),
                       subClause(sub, 3, 'Item', me, showNsfw),

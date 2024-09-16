@@ -143,7 +143,7 @@
     margin: 0 !important;
 }
 
-.text>*:last-child {
+.text>*:last-child:not(.textShowFull) {
     padding-bottom: 0 !important;
     margin-bottom: 0 !important;
 }
@@ -229,7 +229,7 @@
     object-position: left top;
 }
 
-.topLevel .mediaContainer {
+.topLevel .mediaContainer, :global(.topLevel) .mediaContainer {
     max-height: 35vh;
 }
 
@@ -331,7 +331,10 @@ img.fullScreen {
     margin-bottom: 0.25rem;
 }
 
-.topLevel .twitterContainer, .topLevel .nostrContainer, .topLevel .videoWrapper, .topLevel .wavlakeWrapper, .topLevel .spotifyWrapper, .topLevel .mediaContainer {
+.topLevel .twitterContainer, .topLevel .nostrContainer, .topLevel .videoWrapper,
+.topLevel .wavlakeWrapper, .topLevel .spotifyWrapper, .topLevel .mediaContainer,
+:global(.topLevel) .twitterContainer, :global(.topLevel) .nostrContainer, :global(.topLevel) .videoWrapper,
+:global(.topLevel) .wavlakeWrapper, :global(.topLevel) .spotifyWrapper, :global(.topLevel) .mediaContainer {
     margin-top: 0.375rem;
     margin-bottom: 0.375rem;
 }
@@ -340,7 +343,7 @@ img.fullScreen {
     max-width: 320px;
 }
 
-.topLevel .videoWrapper {
+.topLevel .videoWrapper, :global(.topLevel) .videoWrapper {
     max-width: 640px;
     margin: 0.75rem 0;
 }
@@ -383,7 +386,7 @@ img.fullScreen {
     overflow: hidden;
 }
 
-.topLevel .twitterContained {
+.topLevel .twitterContained, :global(.topLevel) .twitterContained {
     height: 200px;
 }
 
@@ -404,7 +407,7 @@ img.fullScreen {
     padding-right: 12px;
 }
 
-.topLevel .tweetsSkeleton {
+.topLevel .tweetsSkeleton, :global(.topLevel) .tweetsSkeleton {
     max-width: 550px;
 }
 
@@ -419,7 +422,7 @@ img.fullScreen {
     padding: 1.5rem;
 }
 
-.topLevel .tweetSkeleton {
+.topLevel .tweetSkeleton, :global(.topLevel) .tweetSkeleton {
     height: 200px;
 }
 

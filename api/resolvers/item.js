@@ -370,6 +370,7 @@ export default {
               ${relationClause(type)}
               ${whereClause(
                 '"Item".created_at <= $1',
+                '"Item"."deletedAt" IS NULL',
                 subClause(sub, 4, subClauseTable(type), me, showNsfw),
                 activeOrMine(me),
                 await filterClause(me, models, type),
@@ -449,6 +450,7 @@ export default {
                     FROM "Item"
                     ${whereClause(
                       '"parentId" IS NULL',
+                      '"Item"."deletedAt" IS NULL',
                       'created_at <= $1',
                       '"pinId" IS NULL',
                       subClause(sub, 4),

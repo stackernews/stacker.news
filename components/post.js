@@ -187,7 +187,7 @@ export default function Post ({ sub }) {
 export function ItemButtonBar ({
   itemId, canDelete = true, disable,
   className, children, onDelete, onCancel, hasCancel = true,
-  createText = 'post', editText = 'save'
+  createText = 'post', editText = 'save', deleteText = 'delete'
 }) {
   const router = useRouter()
 
@@ -199,7 +199,7 @@ export function ItemButtonBar ({
             itemId={itemId}
             onDelete={onDelete || (() => router.push(`/items/${itemId}`))}
           >
-            <Button variant='grey-medium'>delete</Button>
+            <Button variant='grey-medium'>{deleteText}</Button>
           </Delete>}
         {children}
         <div className='d-flex align-items-center ms-auto'>

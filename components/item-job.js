@@ -65,7 +65,9 @@ export default function ItemJob ({ item, toc, rank, children }) {
               <Link href={`/~${item.subName}`}>
                 {' '}<Badge className={styles.newComment} bg={null}>{item.subName}</Badge>
               </Link>}
-            {item.mine &&
+            {item.status === 'STOPPED' &&
+              <>{' '}<Badge bg='info' className={styles.badge}>stopped</Badge></>}
+            {item.mine && !item.deletedAt &&
               (
                 <>
                   <wbr />

@@ -450,6 +450,7 @@ export default {
                     ${whereClause(
                       '"parentId" IS NULL',
                       '"Item"."deletedAt" IS NULL',
+                      '"Item"."status" = \'ACTIVE\'',
                       'created_at <= $1',
                       '"pinId" IS NULL',
                       subClause(sub, 4)
@@ -638,9 +639,13 @@ export default {
         }
       }
 
-      where.subName = sub
+      where.AND = {
+        subName: sub,
+        status: 'ACTIVE',
+        deletedAt: null
+      }
       if (id) {
-        where.id = { not: Number(id) }
+        where.AND.id = { not: Number(id) }
       }
 
       return await models.item.count({ where }) + 1

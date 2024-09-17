@@ -47,6 +47,7 @@ export const ITEM_FIELDS = gql`
     commentSats
     lastCommentAt
     isJob
+    status
     company
     location
     remote

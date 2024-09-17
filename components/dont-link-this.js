@@ -31,7 +31,7 @@ function DownZapper ({ item, As, children }) {
         try {
           showModal(onClose =>
             <ItemAct
-              onClose={onClose} item={item} down
+              onClose={onClose} item={item} act='DONT_LIKE_THIS'
             >
               <AccordianItem
                 header='what is a downzap?' body={

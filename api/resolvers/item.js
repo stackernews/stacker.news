@@ -863,7 +863,7 @@ export default {
 
       return await performPaidAction('POLL_VOTE', { id }, { me, models, lnd })
     },
-    act: async (parent, { id, sats, act = 'TIP', idempotent }, { me, models, lnd, headers }) => {
+    act: async (parent, { id, sats, act = 'TIP' }, { me, models, lnd, headers }) => {
       assertApiKeyNotPermitted({ me })
       await ssValidate(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
@@ -882,7 +882,7 @@ export default {
       }
 
       // disallow self tips except anons
-      if (me) {
+      if (me && ['TIP', 'DONT_LIKE_THIS'].includes(act)) {
         if (Number(item.userId) === Number(me.id)) {
           throw new GqlInputError('cannot zap yourself')
         }
@@ -900,6 +900,8 @@ export default {
         return await performPaidAction('ZAP', { id, sats }, { me, models, lnd })
       } else if (act === 'DONT_LIKE_THIS') {
         return await performPaidAction('DOWN_ZAP', { id, sats }, { me, models, lnd })
+      } else if (act === 'BOOST') {
+        return await performPaidAction('BOOST', { id, sats }, { me, models, lnd })
       } else {
         throw new GqlInputError('unknown act')
       }

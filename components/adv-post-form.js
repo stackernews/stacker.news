@@ -26,6 +26,27 @@ const FormStatus = {
   ERROR: 'error'
 }
 
+export function BoostHelp () {
+  return (
+    <ol style={{ lineHeight: 1.25 }}>
+      <li>Boost ranks items higher based on the amount</li>
+      <li>The highest boost in a territory over the last 30 days is pinned to the top of the territory</li>
+      <li>The minimum boost is {numWithUnits(BOOST_MIN, { abbreviate: false })}</li>
+      <li>Each {numWithUnits(BOOST_MULT, { abbreviate: false })} of boost is equivalent to a zap-vote from a maximally trusted stacker
+        <ul>
+          <li>e.g. {numWithUnits(BOOST_MULT * 5, { abbreviate: false })} is like five zap-votes from a maximally trusted stacker</li>
+        </ul>
+      </li>
+      <li>The decay of boost "votes" increases at 1.25x the rate of organic votes
+        <ul>
+          <li>i.e. boost votes fall out of ranking faster</li>
+        </ul>
+      </li>
+      <li>100% of boost goes to the territory founder and top stackers as rewards</li>
+    </ol>
+  )
+}
+
 export function BoostInput ({ onChange, ...props }) {
   const { merge } = useFeeButton()
   return (
@@ -33,21 +54,7 @@ export function BoostInput ({ onChange, ...props }) {
       label={
         <div className='d-flex align-items-center'>boost
           <Info>
-            <ol>
-              <li>Boost ranks item higher temporarily based on the amount</li>
-              <li>The minimum boost is {numWithUnits(BOOST_MIN, { abbreviate: false })}</li>
-              <li>Each {numWithUnits(BOOST_MULT, { abbreviate: false })} of boost is equivalent to one trusted upvote
-                <ul>
-                  <li>e.g. {numWithUnits(BOOST_MULT * 5, { abbreviate: false })} is like 5 votes</li>
-                </ul>
-              </li>
-              <li>The decay of boost "votes" increases at 1.25x the rate of organic votes
-                <ul>
-                  <li>i.e. boost votes fall out of ranking faster</li>
-                </ul>
-              </li>
-              <li>100% of sats from boost are given back to top stackers as rewards</li>
-            </ol>
+            <BoostHelp />
           </Info>
         </div>
     }

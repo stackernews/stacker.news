@@ -343,7 +343,8 @@ export default {
           "Invoice"."actionType" = 'ITEM_CREATE' OR
           "Invoice"."actionType" = 'ZAP' OR
           "Invoice"."actionType" = 'DOWN_ZAP' OR
-          "Invoice"."actionType" = 'POLL_VOTE'
+          "Invoice"."actionType" = 'POLL_VOTE' OR
+          "Invoice"."actionType" = 'BOOST'
         )
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT})`

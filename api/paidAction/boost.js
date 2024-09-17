@@ -1,7 +1,7 @@
 import { msatsToSats, satsToMsats } from '@/lib/format'
 
 export const anonable = false
-export const supportsPessimism = true
+export const supportsPessimism = false
 export const supportsOptimism = true
 
 export async function getCost ({ sats }) {
@@ -21,7 +21,7 @@ export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, c
     })
   }
 
-  const act = await tx.itemAct.create({ msats: cost, itemId, userId: me.id, act: 'BOOST', ...invoiceData })
+  const act = await tx.itemAct.create({ data: { msats: cost, itemId, userId: me.id, act: 'BOOST', ...invoiceData } })
 
   const [{ path }] = await tx.$queryRaw`
     SELECT ltree2text(path) as path FROM "Item" WHERE id = ${itemId}::INTEGER`
@@ -63,9 +63,9 @@ export async function onPaid ({ invoice, actId }, { models, tx }) {
   })
 
   await tx.$executeRaw`
-    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expireafter)
+    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein)
     VALUES ('expireBoost', jsonb_build_object('id', ${itemAct.itemId}::INTEGER), 21, true,
-              now() + interval '30 days', now() + interval '40 days')`
+              now() + interval '30 days', interval '40 days')`
 }
 
 export async function onFail ({ invoice }, { tx }) {

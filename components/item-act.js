@@ -53,7 +53,7 @@ const setItemMeAnonSats = ({ id, amount }) => {
   window.localStorage.setItem(storageKey, existingAmount + amount)
 }
 
-export default function ItemAct ({ onClose, item, down, children, abortSignal }) {
+export default function ItemAct ({ onClose, item, act = 'TIP', step, children, abortSignal }) {
   const inputRef = useRef(null)
   const { me } = useMe()
   const [oValue, setOValue] = useState()
@@ -62,7 +62,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
     inputRef.current?.focus()
   }, [onClose, item.id])
 
-  const act = useAct()
+  const actor = useAct()
   const strike = useLightning()
 
   const onSubmit = useCallback(async ({ amount }) => {
@@ -76,18 +76,18 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         }
       }
     }
-    const { error } = await act({
+    const { error } = await actor({
       variables: {
         id: item.id,
         sats: Number(amount),
-        act: down ? 'DONT_LIKE_THIS' : 'TIP'
+        act
       },
       optimisticResponse: me
         ? {
             act: {
               __typename: 'ItemActPaidAction',
               result: {
-                id: item.id, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP', path: item.path
+                id: item.id, sats: Number(amount), act, path: item.path
               }
             }
           }
@@ -101,13 +101,12 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
     })
     if (error) throw error
     addCustomTip(Number(amount))
-  }, [me, act, down, item.id, onClose, abortSignal, strike])
+  }, [me, actor, act, item.id, onClose, abortSignal, strike])
 
   return (
     <Form
       initial={{
-        amount: defaultTipIncludingRandom(me?.privates) || defaultTips[0],
-        default: false
+        amount: act === 'BOOST' ? step : (defaultTipIncludingRandom(me?.privates) || defaultTips[0])
       }}
       schema={amountSchema}
       onSubmit={onSubmit}
@@ -118,16 +117,21 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         type='number'
         innerRef={inputRef}
         overrideValue={oValue}
+        step={step}
         required
         autoFocus
         append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
       />
-      <div>
-        <Tips setOValue={setOValue} />
-      </div>
+      {act !== 'BOOST' && (
+        <div>
+          <Tips setOValue={setOValue} />
+        </div>
+      )}
       {children}
       <div className='d-flex mt-3'>
-        <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
+        <SubmitButton variant={act === 'DONT_LIKE_THIS' ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value={act}>
+          {act === 'DONT_LIKE_THIS' ? 'downzap' : act === 'BOOST' ? 'boost' : 'zap'}
+        </SubmitButton>
       </div>
     </Form>
   )
@@ -156,6 +160,12 @@ function modifyActCache (cache, { result, invoice }) {
           return existingSats + sats
         }
         return existingSats
+      },
+      boost: (existingBoost = 0) => {
+        if (act === 'BOOST') {
+          return existingBoost + sats
+        }
+        return existingBoost
       }
     }
   })

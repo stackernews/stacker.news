@@ -516,6 +516,7 @@ const resolvers = {
         case 'ZAP':
         case 'DOWN_ZAP':
         case 'POLL_VOTE':
+        case 'BOOST':
           return (await itemQueryWithMeta({
             me,
             models,
@@ -532,12 +533,14 @@ const resolvers = {
       const action2act = {
         ZAP: 'TIP',
         DOWN_ZAP: 'DONT_LIKE_THIS',
-        POLL_VOTE: 'POLL'
+        POLL_VOTE: 'POLL',
+        BOOST: 'BOOST'
       }
       switch (invoice.actionType) {
         case 'ZAP':
         case 'DOWN_ZAP':
         case 'POLL_VOTE':
+        case 'BOOST':
           return (await models.$queryRaw`
               SELECT id, act, "invoiceId", "invoiceActionState", msats
               FROM "ItemAct"

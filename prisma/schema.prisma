@@ -805,6 +805,7 @@ enum InvoiceActionType {
   ITEM_UPDATE
   ZAP
   DOWN_ZAP
+  BOOST
   DONATE
   POLL_VOTE
   TERRITORY_CREATE

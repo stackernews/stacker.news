@@ -25,6 +25,7 @@ import Skull from '@/svgs/death-skull.svg'
 import { commentSubTreeRootId } from '@/lib/item'
 import Pin from '@/svgs/pushpin-fill.svg'
 import LinkToContext from './link-to-context'
+import Boost from './boost-button'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -144,9 +145,11 @@ export default function Comment ({
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.outlawed && !me?.privates?.wildWestMode
           ? <Skull className={styles.dontLike} width={24} height={24} />
-          : item.meDontLikeSats > item.meSats
-            ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
-            : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />}
+          : item.mine
+            ? <Boost item={item} className={styles.upvote} width={24} height={24} />
+            : item.meDontLikeSats > item.meSats
+              ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
+              : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             {item.user?.meMute && !includeParent && collapse === 'yep'

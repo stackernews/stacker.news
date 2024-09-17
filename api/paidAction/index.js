@@ -13,6 +13,7 @@ import * as TERRITORY_UPDATE from './territoryUpdate'
 import * as TERRITORY_BILLING from './territoryBilling'
 import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
+import * as BOOST from './boost'
 import wrapInvoice from 'wallets/wrap'
 import { createInvoice as createUserInvoice } from 'wallets/server'
 
@@ -21,6 +22,7 @@ export const paidActions = {
   ITEM_UPDATE,
   ZAP,
   DOWN_ZAP,
+  BOOST,
   POLL_VOTE,
   TERRITORY_CREATE,
   TERRITORY_UPDATE,
@@ -186,7 +188,12 @@ export async function retryPaidAction (actionType, args, context) {
   context.optimistic = true
   context.me = await models.user.findUnique({ where: { id: me.id } })
 
-  const { msatsRequested, actionId } = await models.invoice.findUnique({ where: { id: invoiceId, actionState: 'FAILED' } })
+  const failedInvoice = await models.invoice.findUnique({ where: { id: invoiceId, actionState: 'FAILED' } })
+  if (!failedInvoice) {
+    throw new Error(`retryPaidAction - invoice not found or not in failed state ${actionType}`)
+  }
+
+  const { msatsRequested, actionId } = failedInvoice
   context.cost = BigInt(msatsRequested)
   context.actionId = actionId
   const invoiceArgs = await createSNInvoice(actionType, args, context)

@@ -78,6 +78,7 @@ export const ITEM_FULL_FIELDS = gql`
       bounty
       bountyPaidTo
       subName
+      mine
       user {
         id
         name

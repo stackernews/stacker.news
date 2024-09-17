@@ -236,7 +236,7 @@ export default function UpVote ({ item, className }) {
       >
         <ActionTooltip notForm disable={disabled} overlayText={overlayText}>
           <div
-            className={styles.upvoteWrapper}
+            className={`${disabled ? styles.noSelfTips : ''} ${styles.upvoteWrapper}`}
           >
             <UpBolt
               onPointerEnter={() => setHover(true)}
@@ -248,8 +248,15 @@ export default function UpVote ({ item, className }) {
                       `${styles.upvote}
                       ${className || ''}
                       ${disabled ? styles.noSelfTips : ''}
+                      ${meSats ? styles.voted : ''}
                       ${pending ? styles.pending : ''}`
                     }
+              style={meSats || hover || pending
+                ? {
+                    fill: fillColor,
+                    filter: `drop-shadow(0 0 6px ${fillColor}90)`
+                  }
+                : undefined}
             />
           </div>
         </ActionTooltip>

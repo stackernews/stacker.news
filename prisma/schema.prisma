@@ -457,6 +457,7 @@ model Item {
   company             String?
   weightedVotes       Float                 @default(0)
   boost               Int                   @default(0)
+  oldBoost            Int                   @default(0)
   pollCost            Int?
   paidImgLink         Boolean               @default(false)
   commentMsats        BigInt                @default(0)

@@ -74,6 +74,29 @@ export async function getItem (parent, { id }, { me, models }) {
   return item
 }
 
+export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { me, models }) {
+  return (await itemQueryWithMeta({
+    me,
+    models,
+    query: `
+      ${SELECT}
+      FROM "Item"
+      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+      ${whereClause(
+        '"parentId" IS NULL',
+        '"Item"."pinId" IS NULL',
+        '"Item"."deletedAt" IS NULL',
+        '"Item"."parentId" IS NULL',
+        '"Item".bio = false',
+        '"Item".boost > 0',
+        activeOrMine(me),
+        subClause(sub, 1, 'Item', me, showNsfw),
+        muteClause(me))}
+      ORDER BY boost desc
+      LIMIT 1`
+  }, ...subArr))?.[0] || null
+}
+
 const orderByClause = (by, me, models, type) => {
   switch (by) {
     case 'comments':
@@ -305,7 +328,7 @@ export default {
     },
     items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit = LIMIT }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      let items, user, pins, subFull, table
+      let items, user, pins, subFull, table, ad
 
       // special authorization for bookmarks depending on owning users' privacy settings
       if (type === 'bookmarks' && name && me?.name !== name) {
@@ -463,6 +486,34 @@ export default {
               }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
               break
             default:
+              if (decodedCursor.offset === 0) {
+              // get pins for the page and return those separately
+                pins = await itemQueryWithMeta({
+                  me,
+                  models,
+                  query: `
+                  SELECT rank_filter.*
+                    FROM (
+                      ${SELECT}, position,
+                      rank() OVER (
+                          PARTITION BY "pinId"
+                          ORDER BY "Item".created_at DESC
+                      )
+                      FROM "Item"
+                      JOIN "Pin" ON "Item"."pinId" = "Pin".id
+                      ${whereClause(
+                        '"pinId" IS NOT NULL',
+                        '"parentId" IS NULL',
+                        sub ? '"subName" = $1' : '"subName" IS NULL',
+                        muteClause(me))}
+                  ) rank_filter WHERE RANK = 1
+                  ORDER BY position ASC`,
+                  orderBy: 'ORDER BY position ASC'
+                }, ...subArr)
+
+                ad = await getAd(parent, { sub, subArr, showNsfw }, { me, models })
+              }
+
               items = await itemQueryWithMeta({
                 me,
                 models,
@@ -478,6 +529,7 @@ export default {
                       '"Item"."parentId" IS NULL',
                       '"Item".outlawed = false',
                       '"Item".bio = false',
+                      ad ? `"Item".id <> ${ad.id}` : '',
                       activeOrMine(me),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
@@ -504,6 +556,7 @@ export default {
                         '"Item"."deletedAt" IS NULL',
                         '"Item"."parentId" IS NULL',
                         '"Item".bio = false',
+                        ad ? `"Item".id <> ${ad.id}` : '',
                         activeOrMine(me),
                         await filterClause(me, models, type))}
                         ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
@@ -514,32 +567,6 @@ export default {
                     "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
                 }, decodedCursor.offset, limit, ...subArr)
               }
-
-              if (decodedCursor.offset === 0) {
-                // get pins for the page and return those separately
-                pins = await itemQueryWithMeta({
-                  me,
-                  models,
-                  query: `
-                    SELECT rank_filter.*
-                      FROM (
-                        ${SELECT}, position,
-                        rank() OVER (
-                            PARTITION BY "pinId"
-                            ORDER BY "Item".created_at DESC
-                        )
-                        FROM "Item"
-                        JOIN "Pin" ON "Item"."pinId" = "Pin".id
-                        ${whereClause(
-                          '"pinId" IS NOT NULL',
-                          '"parentId" IS NULL',
-                          sub ? '"subName" = $1' : '"subName" IS NULL',
-                          muteClause(me))}
-                    ) rank_filter WHERE RANK = 1
-                    ORDER BY position ASC`,
-                  orderBy: 'ORDER BY position ASC'
-                }, ...subArr)
-              }
               break
           }
           break
@@ -547,7 +574,8 @@ export default {
       return {
         cursor: items.length === limit ? nextCursorEncoded(decodedCursor) : null,
         items,
-        pins
+        pins,
+        ad
       }
     },
     item: getItem,

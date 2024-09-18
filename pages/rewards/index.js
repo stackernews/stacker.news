@@ -23,12 +23,15 @@ import { useMemo } from 'react'
 import { CompactLongCountdown } from '@/components/countdown'
 import { usePaidMutation } from '@/components/use-paid-mutation'
 import { DONATE } from '@/fragments/paidAction'
+import { ITEM_FULL_FIELDS } from '@/fragments/items'
+import { ListItem } from '@/components/items'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <GrowthPieChartSkeleton />
 })
 
 const REWARDS_FULL = gql`
+${ITEM_FULL_FIELDS}
 {
   rewards {
     total
@@ -36,6 +39,9 @@ const REWARDS_FULL = gql`
     sources {
       name
       value
+    }
+    ad {
+      ...ItemFullFields
     }
     leaderboard {
       users {
@@ -97,7 +103,7 @@ export default function Rewards ({ ssrData }) {
   const { data } = useQuery(REWARDS_FULL)
   const dat = useData(data, ssrData)
 
-  let { rewards: [{ total, sources, time, leaderboard }] } = useMemo(() => {
+  let { rewards: [{ total, sources, time, leaderboard, ad }] } = useMemo(() => {
     return dat || { rewards: [{}] }
   }, [dat])
 
@@ -124,12 +130,12 @@ export default function Rewards ({ ssrData }) {
 
   return (
     <Layout footerLinks>
-      <h4 className='pt-3 align-self-center text-reset'>
-        <small className='text-muted'>rewards are sponsored by ...</small>
-        <Link className='text-reset ms-2' href='/items/141924' style={{ lineHeight: 1.5, textDecoration: 'underline' }}>
-          SN is hiring
-        </Link>
-      </h4>
+      <div className='pt-3 align-self-center'>
+        <div className='fw-bold text-muted pb-2'>
+          top boost this month
+        </div>
+        {ad && <ListItem item={ad} />}
+      </div>
       <Row className='pb-3'>
         <Col lg={leaderboard?.users && 5}>
           <div

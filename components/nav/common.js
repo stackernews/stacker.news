@@ -401,22 +401,24 @@ export function Sorts ({ sub, prefix, className }) {
           <Nav.Link eventKey='recent' className={styles.navLink}>recent</Nav.Link>
         </Link>
       </Nav.Item>
-      <Nav.Item className={className}>
-        <Link href={prefix + '/random'} passHref legacyBehavior>
-          <Nav.Link eventKey='random' className={styles.navLink}>random</Nav.Link>
-        </Link>
-      </Nav.Item>
       {sub !== 'jobs' &&
-        <Nav.Item className={className}>
-          <Link
-            href={{
-              pathname: '/~/top/[type]/[when]',
-              query: { type: 'posts', when: 'day', sub }
-            }} as={prefix + '/top/posts/day'} passHref legacyBehavior
-          >
-            <Nav.Link eventKey='top' className={styles.navLink}>top</Nav.Link>
-          </Link>
-        </Nav.Item>}
+        <>
+          <Nav.Item className={className}>
+            <Link href={prefix + '/random'} passHref legacyBehavior>
+              <Nav.Link eventKey='random' className={styles.navLink}>random</Nav.Link>
+            </Link>
+          </Nav.Item>
+          <Nav.Item className={className}>
+            <Link
+              href={{
+                pathname: '/~/top/[type]/[when]',
+                query: { type: 'posts', when: 'day', sub }
+              }} as={prefix + '/top/posts/day'} passHref legacyBehavior
+            >
+              <Nav.Link eventKey='top' className={styles.navLink}>top</Nav.Link>
+            </Link>
+          </Nav.Item>
+        </>}
     </>
   )
 }

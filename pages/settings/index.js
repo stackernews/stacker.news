@@ -170,7 +170,9 @@ export default function Settings ({ ssrData }) {
               }
             }
 
-            const nostrRelaysFiltered = nostrRelays?.filter(word => word.trim().length > 0)
+            const nostrRelaysFiltered = nostrRelays
+              ?.filter(word => word.trim().length > 0)
+              .map(relay => relay.startsWith('wss://') ? relay : `wss://${relay}`)
 
             try {
               await setSettings({

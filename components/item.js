@@ -107,7 +107,7 @@ export default function Item ({
         {item.position && (pinnable || !item.subName)
           ? <Pin width={24} height={24} className={styles.pin} />
           : item.mine
-            ? <Boost item={item} className={styles.upvote} width={26} height={26} />
+            ? <Boost item={item} className={styles.upvote} />
             : item.meDontLikeSats > item.meSats
               ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
               : Number(item.user?.id) === USER_ID.ad

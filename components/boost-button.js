@@ -24,13 +24,17 @@ export default function Boost ({ item, className, ...props }) {
   return (
     <Booster
       item={item} As={({ ...oprops }) =>
-        <div
-          className={styles.upvoteWrapper}
-        >
-          <UpBolt
-            {...props} {...oprops} style={style}
-            className={classNames(styles.upvote, className, boost && styles.voted)}
-          />
+        <div className='upvoteParent'>
+          <div
+            className={styles.upvoteWrapper}
+          >
+            <UpBolt
+              {...props} {...oprops} style={style}
+              width={26}
+              height={26}
+              className={classNames(styles.upvote, className, boost && styles.voted)}
+            />
+          </div>
         </div>}
     />
   )

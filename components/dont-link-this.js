@@ -17,7 +17,12 @@ export function DownZap ({ item, ...props }) {
       }
     : undefined), [meDontLikeSats])
   return (
-    <DownZapper item={item} As={({ ...oprops }) => <Flag {...props} {...oprops} style={style} />} />
+    <DownZapper
+      item={item} As={({ ...oprops }) =>
+        <div className='upvoteParent'>
+          <Flag {...props} {...oprops} style={style} />
+        </div>}
+    />
   )
 }
 

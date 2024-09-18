@@ -146,7 +146,7 @@ export default function Comment ({
         {item.outlawed && !me?.privates?.wildWestMode
           ? <Skull className={styles.dontLike} width={24} height={24} />
           : item.mine
-            ? <Boost item={item} className={styles.upvote} width={24} height={24} />
+            ? <Boost item={item} className={styles.upvote} />
             : item.meDontLikeSats > item.meSats
               ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
               : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />}

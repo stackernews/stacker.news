@@ -6,8 +6,9 @@ import domino from 'domino'
 import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
-  USER_ID, POLL_COST,
-  ADMIN_ITEMS, GLOBAL_SEED, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS
+  USER_ID, POLL_COST, ADMIN_ITEMS, GLOBAL_SEED,
+  NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS,
+  BOOST_MULT
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
@@ -30,13 +31,13 @@ function commentsOrderByClause (me, models, sort) {
   if (me && sort === 'hot') {
     return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, COALESCE(
         personal_hot_score,
-        ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
+        ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
         "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
   } else {
     if (sort === 'top') {
-      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator(models, 0)} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
+      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator({ models, commentScaler: 0 })} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
     } else {
-      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
     }
   }
 }
@@ -88,12 +89,12 @@ const orderByClause = (by, me, models, type) => {
   }
 }
 
-export function orderByNumerator (models, commentScaler = 0.5) {
+export function orderByNumerator ({ models, commentScaler = 0.5, considerBoost = false }) {
   return `(CASE WHEN "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0 THEN
               GREATEST("Item"."weightedVotes" - "Item"."weightedDownVotes", POWER("Item"."weightedVotes" - "Item"."weightedDownVotes", 1.2))
             ELSE
               "Item"."weightedVotes" - "Item"."weightedDownVotes"
-            END + "Item"."weightedComments"*${commentScaler})`
+            END + "Item"."weightedComments"*${commentScaler}) + ${considerBoost ? `("Item".boost / ${BOOST_MULT})` : 0}`
 }
 
 export function joinZapRankPersonalView (me, models) {
@@ -486,8 +487,8 @@ export default {
                 orderBy: 'ORDER BY rank DESC'
               }, decodedCursor.offset, limit, ...subArr)
 
-              // XXX this is just for subs that are really empty
-              if (decodedCursor.offset === 0 && items.length < limit) {
+              // XXX this is mostly for subs that are really empty
+              if (items.length < limit) {
                 items = await itemQueryWithMeta({
                   me,
                   models,
@@ -505,10 +506,12 @@ export default {
                         '"Item".bio = false',
                         activeOrMine(me),
                         await filterClause(me, models, type))}
-                        ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC
+                        ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
+                          "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC
                       OFFSET $1
                       LIMIT $2`,
-                  orderBy: `ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+                  orderBy: `ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
+                    "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
                 }, decodedCursor.offset, limit, ...subArr)
               }
 
@@ -1393,5 +1396,5 @@ export const SELECT =
     ltree2text("Item"."path") AS "path"`
 
 function topOrderByWeightedSats (me, models) {
-  return `ORDER BY ${orderByNumerator(models)} DESC NULLS LAST, "Item".id DESC`
+  return `ORDER BY ${orderByNumerator({ models })} DESC NULLS LAST, "Item".id DESC`
 }

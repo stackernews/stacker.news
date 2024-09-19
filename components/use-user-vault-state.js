@@ -27,7 +27,7 @@ export function useVaultConfigState () {
   // clear vault: remove everything and reset the key
   const [clearVault] = useMutation(CLEAR_VAULT, {
     onCompleted: () => {
-      if (!SSR) unsetLocalStorage(me?.id, 'vault', 'key')
+      unsetLocalStorage(me?.id, 'vault', 'key')
       innerSetValue(null)
     }
   })

@@ -6,8 +6,14 @@ export default {
       if (!key) {
         throw new GqlInputError('must have key')
       }
-      // return await models.userVault.findUnique({ where: { key, userId: me.id } })
-      const k = await models.userVault.findFirst({ where: { key, userId: me.id } })
+      const k = await models.userVault.findUnique({
+        where: {
+          userId_key: {
+            key,
+            userId: me.id
+          }
+        }
+      })
       return k
     }
   },
@@ -20,7 +26,7 @@ export default {
       if (!hash) {
         throw new GqlInputError('hash required')
       }
-      const oldKeyHash = await models.user.findUnique({ where: { id: me.id } }).then(u => u.vaultKeyHash)
+      const { vaultKeyHash: oldKeyHash } = await models.user.findUnique({ where: { id: me.id } })
       if (oldKeyHash) {
         if (oldKeyHash !== hash) {
           throw new GqlInputError('vault key already set', E_VAULT_KEY_EXISTS)
@@ -43,23 +49,22 @@ export default {
         throw new GqlInputError('must have value')
       }
       console.log('setVaultEntry', key, value)
-      // const exists = await models.userVault.findUnique({ where: { key, userId: me.id } })
-      const exists = await models.userVault.findFirst({ where: { key, userId: me.id } })
-      if (exists) {
-        await models.userVault.update({
-          where: {
-            userId_key: {
-              userId: me.id,
-              key
-            }
-          },
-          data: { value }
-        })
-      } else {
-        await models.userVault.create({
-          data: { key, value, userId: me.id }
-        })
-      }
+      await models.userVault.upsert({
+        where: {
+          userId_key: {
+            userId: me.id,
+            key
+          }
+        },
+        update: {
+          value
+        },
+        create: {
+          key,
+          value,
+          userId: me.id
+        }
+      })
       return true
     },
     unsetVaultEntry: async (parent, { key }, { me, models }) => {

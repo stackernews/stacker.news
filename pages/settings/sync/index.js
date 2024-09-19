@@ -47,7 +47,7 @@ export default function DeviceSync ({ ssrData }) {
   const toaster = useToast()
   const [connected, setConnected] = useState(false)
   const [enabled, setEnabled] = useState(false)
-  const [countMigrableKeys, migrateKeys] = useLocalStorageToVaultMigration()
+  const [nMigrableKeys, migrateKeys] = useLocalStorageToVaultMigration()
 
   const [conf, setConf, clearConf] = useVaultStorageState('test-debug')
 
@@ -57,8 +57,7 @@ export default function DeviceSync ({ ssrData }) {
   }, [me?.privates?.vaultKeyHash, value])
 
   const migrate = useCallback(async (close) => {
-    const migrableKeys = countMigrableKeys()
-    if (migrableKeys > 0) {
+    if (nMigrableKeys > 0) {
       showModal((onClose) => (
         <div>
           <h2>Migrate to device sync</h2>
@@ -76,7 +75,7 @@ export default function DeviceSync ({ ssrData }) {
                 onClick={async () => {
                   try {
                     await migrateKeys()
-                    toaster.success(`Successfully migrated ${migrableKeys} entries to your device sync.`)
+                    toaster.success(`Successfully migrated ${nMigrableKeys} entries to your device sync.`)
                     onClose()
                   } catch (e) {
                     toaster.danger(e.message)

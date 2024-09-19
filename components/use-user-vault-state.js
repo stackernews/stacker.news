@@ -22,7 +22,7 @@ export function useVaultConfigState () {
 
   // initialize the vault and set a vault key
   const setVaultKey = useCallback(async (passphrase) => {
-    const { key, hash } = await deriveStorageKey(me?.id, passphrase)
+    const { key, hash } = await deriveKey(me?.id, passphrase)
     await setVaultKeyHash({
       variables: { hash },
       onError: (error) => {
@@ -53,16 +53,13 @@ export function useLocalStorageToVaultMigration () {
   const [setVaultValue] = useMutation(SET_ENTRY)
 
   // count how many local storage keys can be migrated
-  const count = () => {
-    if (SSR) return 0
-    return getMigrableStorageKeys(me?.id).length
-  }
+  const count = SSR ? 0 : getMigrableStorageKeys(me?.id).length
 
   // migrate local storage to vault
   const migrate = async () => {
     if (SSR) return
-    const vaultKey = getLocalStorage(me?.id, 'vault', { prefix: 'key' })
-    if (!vaultKey) throw new Error('Unexpected error: vault key not found')
+    const vaultKey = getLocalStorage(me?.id, 'vault', 'key')
+    if (!vaultKey) throw new Error('vault key not found')
     const keys = getMigrableStorageKeys(me?.id)
     for (const key of keys) {
       const localStorageValue = window.localStorage.getItem(key.localKey)
@@ -96,17 +93,27 @@ export default function useVaultStorageState (storageKey, defaultValue) {
       if (me?.privates?.vaultKeyHash && vaultData?.getVaultEntry?.value && vaultKey) {
         // if vault key hash is set on the server, vault entry exists and vault key is set on the device
         // decrypt and use the value from the server
-        const decryptedData = JSON.parse(await decryptStorageData(vaultKey.key, vaultData?.getVaultEntry?.value))
-        innerSetValue(decryptedData)
-        // remove local storage value
-        unsetLocalStorage(me?.id, storageKey)
-      } else if (getLocalStorage(me?.id, storageKey, { backwardCompatible: true })) {
-        // otherwise, if there is a local storage use, return that
-        innerSetValue(getLocalStorage(me?.id, storageKey, { backwardCompatible: true }))
-      } else {
-        // otherwise, use the default value
-        innerSetValue(defaultValue)
+        try {
+          const decryptedData = JSON.parse(await decryptStorageData(vaultKey.key, vaultData?.getVaultEntry?.value))
+          innerSetValue(decryptedData)
+          // remove local storage value
+          unsetLocalStorage(me?.id, storageKey)
+          return
+        } catch (e) {
+          console.error('Cannot read vault data', e)
+        }
       }
+      if (getLocalStorage(me?.id, storageKey, { backwardCompatible: true })) {
+        // otherwise, if there is a local storage use, return that
+        try {
+          innerSetValue(getLocalStorage(me?.id, storageKey, { backwardCompatible: true }))
+          return
+        } catch (e) {
+          console.error('Cannot read local storage data', e)
+        }
+      }
+      // otherwise, use the default value
+      innerSetValue(defaultValue)
     })()
   }, [vaultData, me?.privates?.vaultKeyHash])
 
@@ -199,7 +206,7 @@ function fromHex (hex) {
   return byteArray.buffer
 }
 
-async function deriveStorageKey (userId, passphrase) {
+async function deriveKey (userId, passphrase) {
   const enc = new TextEncoder()
   const keyMaterial = await window.crypto.subtle.importKey(
     'raw',

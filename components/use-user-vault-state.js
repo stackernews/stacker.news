@@ -10,7 +10,19 @@ export function useVaultConfigState () {
   const [setVaultKeyHash] = useMutation(SET_VAULT_KEY_HASH)
 
   // vault key stored locally
-  const [value, innerSetValue] = useState(SSR ? null : getLocalStorage(me?.id, 'vault', { prefix: 'key' }))
+  const [value, innerSetValue] = useState(null)
+
+  useEffect(() => {
+    if (!SSR) {
+      let localVaultKey = getLocalStorage(me?.id, 'vault', { prefix: 'key' })
+      if (localVaultKey?.hash !== me?.privates?.vaultKeyHash) {
+        // if the vault key is not synced with the server, clear it
+        localVaultKey = null
+        unsetLocalStorage(me?.id, 'vault', 'key')
+      }
+      innerSetValue(localVaultKey)
+    }
+  }, [me?.privates?.vaultKeyHash])
 
   // clear vault: remove everything and reset the key
   const [clearVault] = useMutation(CLEAR_VAULT, {
@@ -90,19 +102,25 @@ export default function useVaultStorageState (storageKey, defaultValue) {
     if (SSR) return
     (async () => {
       const vaultKey = getLocalStorage(me?.id, 'vault', { prefix: 'key' })
-      if (me?.privates?.vaultKeyHash && vaultData?.getVaultEntry?.value && vaultKey) {
+      if (me?.privates?.vaultKeyHash && vaultKey?.hash === me.privates.vaultKeyHash) {
         // if vault key hash is set on the server, vault entry exists and vault key is set on the device
         // decrypt and use the value from the server
-        try {
-          const decryptedData = JSON.parse(await decryptStorageData(vaultKey.key, vaultData?.getVaultEntry?.value))
-          innerSetValue(decryptedData)
-          // remove local storage value
-          unsetLocalStorage(me?.id, storageKey)
-          return
-        } catch (e) {
-          console.error('Cannot read vault data', e)
+        if (vaultData?.getVaultEntry?.value) {
+          try {
+            const decryptedData = JSON.parse(await decryptStorageData(vaultKey.key, vaultData?.getVaultEntry?.value))
+            innerSetValue(decryptedData)
+            // remove local storage value
+            unsetLocalStorage(me?.id, storageKey)
+            return
+          } catch (e) {
+            console.error('Cannot read vault data', e)
+          }
         }
+      } else {
+        // if the vault key is unsynced, we clear it from local storage
+        unsetLocalStorage(me?.id, 'vault', 'key')
       }
+
       if (getLocalStorage(me?.id, storageKey, { backwardCompatible: true })) {
         // otherwise, if there is a local storage use, return that
         try {

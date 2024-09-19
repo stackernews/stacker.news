@@ -680,6 +680,26 @@ export default {
       }
 
       return await models.item.count({ where }) + 1
+    },
+    boostPosition: async (parent, { id, sub, boost }, { models, me }) => {
+      if (boost <= 0) {
+        throw new GqlInputError('boost must be greater than 0')
+      }
+
+      const where = {
+        boost: { gte: boost },
+        status: 'ACTIVE',
+        deletedAt: null,
+        outlawed: false
+      }
+      if (id) {
+        where.id = { not: Number(id) }
+      }
+
+      return {
+        home: await models.item.count({ where }) === 0,
+        sub: await models.item.count({ where: { ...where, subName: sub } }) === 0
+      }
     }
   },
 

@@ -130,12 +130,13 @@ export default function Rewards ({ ssrData }) {
 
   return (
     <Layout footerLinks>
-      <div className='pt-3 align-self-center'>
-        <div className='fw-bold text-muted pb-2'>
-          top boost this month
-        </div>
-        {ad && <ListItem item={ad} />}
-      </div>
+      {ad &&
+        <div className='pt-3 align-self-center' style={{ maxWidth: '480px', width: '100%' }}>
+          <div className='fw-bold text-muted pb-2'>
+            top boost this month
+          </div>
+          <ListItem item={ad} />
+        </div>}
       <Row className='pb-3'>
         <Col lg={leaderboard?.users && 5}>
           <div

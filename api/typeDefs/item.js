@@ -9,7 +9,13 @@ export default gql`
     related(cursor: String, title: String, id: ID, minMatch: String, limit: Limit): Items
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
     auctionPosition(sub: String, id: ID, boost: Int): Int!
+    boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
+  }
+
+  type BoostPositions {
+    home: Boolean!
+    sub: Boolean!
   }
 
   type TitleUnshorted {

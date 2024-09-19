@@ -80,7 +80,7 @@ export function BountyForm ({
             : null
         }
       />
-      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} />
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />
       <ItemButtonBar itemId={item?.id} canDelete={false} />
     </Form>
   )

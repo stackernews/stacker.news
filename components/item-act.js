@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
-import { amountSchema } from '@/lib/validate'
+import { amountSchema, boostSchema } from '@/lib/validate'
 import { useToast } from './toast'
 import { useLightning } from './lightning'
 import { nextTip, defaultTipIncludingRandom } from './upvote'
@@ -12,6 +12,7 @@ import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { usePaidMutation } from './use-paid-mutation'
 import { ACT_MUTATION } from '@/fragments/paidAction'
 import { meAnonSats } from '@/lib/apollo'
+import { BoostItemInput } from './adv-post-form'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -51,6 +52,38 @@ const setItemMeAnonSats = ({ id, amount }) => {
   // save for next page load
   const storageKey = `TIP-item:${id}`
   window.localStorage.setItem(storageKey, existingAmount + amount)
+}
+
+function BoostForm ({ step, onSubmit, children, item, oValue, inputRef, act = 'BOOST' }) {
+  return (
+    <Form
+      initial={{
+        amount: step
+      }}
+      schema={boostSchema}
+      onSubmit={onSubmit}
+    >
+      <BoostItemInput
+        label='add boost'
+        act
+        name='amount'
+        type='number'
+        innerRef={inputRef}
+        overrideValue={oValue}
+        sub={item.sub}
+        step={step}
+        required
+        autoFocus
+        item={item}
+      />
+      {children}
+      <div className='d-flex mt-3'>
+        <SubmitButton variant='success' className='ms-auto mt-1 px-4' value={act}>
+          boost
+        </SubmitButton>
+      </div>
+    </Form>
+  )
 }
 
 export default function ItemAct ({ onClose, item, act = 'TIP', step, children, abortSignal }) {
@@ -103,38 +136,38 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
     addCustomTip(Number(amount))
   }, [me, actor, act, item.id, onClose, abortSignal, strike])
 
-  return (
-    <Form
-      initial={{
-        amount: act === 'BOOST' ? step : (defaultTipIncludingRandom(me?.privates) || defaultTips[0])
-      }}
-      schema={amountSchema}
-      onSubmit={onSubmit}
-    >
-      <Input
-        label='amount'
-        name='amount'
-        type='number'
-        innerRef={inputRef}
-        overrideValue={oValue}
-        step={step}
-        required
-        autoFocus
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-      />
-      {act !== 'BOOST' && (
+  return act === 'BOOST'
+    ? <BoostForm step={step} onSubmit={onSubmit} item={item} oValue={oValue} inputRef={inputRef} act={act}>{children}</BoostForm>
+    : (
+      <Form
+        initial={{
+          amount: defaultTipIncludingRandom(me?.privates) || defaultTips[0]
+        }}
+        schema={amountSchema}
+        onSubmit={onSubmit}
+      >
+        <Input
+          label='amount'
+          name='amount'
+          type='number'
+          innerRef={inputRef}
+          overrideValue={oValue}
+          step={step}
+          required
+          autoFocus
+          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        />
+
         <div>
           <Tips setOValue={setOValue} />
         </div>
-      )}
-      {children}
-      <div className='d-flex mt-3'>
-        <SubmitButton variant={act === 'DONT_LIKE_THIS' ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value={act}>
-          {act === 'DONT_LIKE_THIS' ? 'downzap' : act === 'BOOST' ? 'boost' : 'zap'}
-        </SubmitButton>
-      </div>
-    </Form>
-  )
+        {children}
+        <div className='d-flex mt-3'>
+          <SubmitButton variant={act === 'DONT_LIKE_THIS' ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value={act}>
+            {act === 'DONT_LIKE_THIS' ? 'downzap' : 'zap'}
+          </SubmitButton>
+        </div>
+      </Form>)
 }
 
 function modifyActCache (cache, { result, invoice }) {

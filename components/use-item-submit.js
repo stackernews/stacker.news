@@ -44,7 +44,7 @@ export default function useItemSubmit (mutation,
         variables: {
           id: item?.id,
           sub: item?.subName || sub?.name,
-          boost: boost ? Number(boost) : undefined,
+          boost: boost ? Number(boost) : item?.boost ? Number(item.boost) : undefined,
           bounty: bounty ? Number(bounty) : undefined,
           status: status === 'STOPPED' ? 'STOPPED' : 'ACTIVE',
           title: title?.trim(),

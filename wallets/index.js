@@ -2,7 +2,6 @@ import { useCallback } from 'react'
 import { useMe } from '@/components/me'
 import useClientConfig from '@/components/use-user-vault-state'
 import { useWalletLogger } from '@/components/wallet-logger'
-import { SSR } from '@/lib/constants'
 import { bolt11Tags } from '@/lib/bolt11'
 
 import walletDefs from 'wallets/client'
@@ -22,12 +21,26 @@ export const Status = {
 }
 
 export function useWallet (name) {
+  if (!name) {
+    const defaultWallet = walletDefs
+      .filter(def => !!def.sendPayment && !!def.name)
+      .map(def => {
+        const w = useWallet(def.name)
+        return w
+      })
+      .filter((wallet) => {
+        return wallet?.enabled
+      })
+      .sort(walletPrioritySort)[0]
+    return defaultWallet
+  }
+
   const me = useMe()
   const showModal = useShowModal()
   const toaster = useToast()
   const [disableFreebies] = useMutation(gql`mutation { disableFreebies }`)
 
-  const wallet = name ? getWalletByName(name) : getEnabledWallet(me)
+  const wallet = getWalletByName(name)
   const { logger, deleteLogs } = useWalletLogger(wallet)
 
   const [config, saveConfig, clearConfig] = useConfig(wallet)
@@ -35,13 +48,13 @@ export function useWallet (name) {
   const _isConfigured = isConfigured({ ...wallet, config })
 
   const enablePayments = useCallback(() => {
-    enableWallet(name, me)
+    enableWalletLocally(name, me)
     logger.ok('payments enabled')
     disableFreebies().catch(console.error)
   }, [name, me, logger])
 
   const disablePayments = useCallback(() => {
-    disableWallet(name, me)
+    disableWalletLocally(name, me)
     logger.info('payments disabled')
   }, [name, me, logger])
 
@@ -51,7 +64,7 @@ export function useWallet (name) {
     wallet.disablePayments = disablePayments
   }
 
-  const status = config?.enabled ? Status.Enabled : Status.Initialized
+  const status = config?.enabled && !isWalletDisabledLocally(name, me) ? Status.Enabled : Status.Initialized
   const enabled = status === Status.Enabled
   const priority = config?.priority
 
@@ -362,20 +375,6 @@ export function getWalletByType (type) {
   return walletDefs.find(def => def.walletType === type)
 }
 
-export function getEnabledWallet (me) {
-  return walletDefs
-    .filter(def => !!def.sendPayment)
-    .map(def => {
-      // populate definition with properties from useWallet that are required for sorting
-      const key = getStorageKey(def.name, me)
-      const config = SSR ? null : JSON.parse(window?.localStorage.getItem(key))
-      const priority = config?.priority
-      return { ...def, config, priority }
-    })
-    .filter(({ config }) => config?.enabled)
-    .sort(walletPrioritySort)[0]
-}
-
 export function walletPrioritySort (w1, w2) {
   const delta = w1.priority - w2.priority
   // delta is NaN if either priority is undefined
@@ -422,16 +421,22 @@ function getStorageKey (name, me) {
   return storageKey
 }
 
-function enableWallet (name, me) {
-  const key = getStorageKey(name, me)
+function enableWalletLocally (name, me) {
+  const key = 'local:' + getStorageKey(name, me)
   const config = JSON.parse(window.localStorage.getItem(key)) || {}
   config.enabled = true
   window.localStorage.setItem(key, JSON.stringify(config))
 }
 
-function disableWallet (name, me) {
-  const key = getStorageKey(name, me)
+function disableWalletLocally (name, me) {
+  const key = 'local:' + getStorageKey(name, me)
   const config = JSON.parse(window.localStorage.getItem(key)) || {}
   config.enabled = false
   window.localStorage.setItem(key, JSON.stringify(config))
+}
+
+function isWalletDisabledLocally (name, me) {
+  const key = 'local:' + getStorageKey(name, me)
+  const config = JSON.parse(window.localStorage.getItem(key)) || {}
+  return config?.enabled !== undefined && !config?.enabled
 }

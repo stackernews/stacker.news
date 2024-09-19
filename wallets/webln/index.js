@@ -35,6 +35,8 @@ export default function WebLnProvider ({ children }) {
       wallet.disablePayments()
     }
 
+    if (!window.webln) onDisable()
+
     window.addEventListener('webln:enabled', onEnable)
     // event is not fired by Alby browser extension but added here for sake of completeness
     window.addEventListener('webln:disabled', onDisable)

@@ -141,6 +141,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
         uploadFees: {
           term: `+ ${numWithUnits(uploadFees.totalFees, { abbreviate: false })}`,
           label: 'upload fee',
+          op: '+',
           modifier: cost => cost + uploadFees.totalFees,
           omit: !uploadFees.totalFees
         }

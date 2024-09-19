@@ -49,6 +49,7 @@ export default function PostEdit ({ ssrData }) {
         existingBoost: {
           label: 'old boost',
           term: `- ${item.boost}`,
+          op: '-',
           modifier: cost => cost - item.boost
         }
       }

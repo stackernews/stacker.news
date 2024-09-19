@@ -72,6 +72,7 @@ export function BoostInput ({ onChange, ...props }) {
           boost: {
             term: `+ ${e.target.value}`,
             label: 'boost',
+            op: '+',
             modifier: cost => cost + Number(e.target.value)
           }
         })

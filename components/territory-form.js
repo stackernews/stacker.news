@@ -77,6 +77,7 @@ export default function TerritoryForm ({ sub }) {
       lines.paid = {
         term: `- ${abbrNum(alreadyBilled)} sats`,
         label: 'already paid',
+        op: '-',
         modifier: cost => cost - alreadyBilled
       }
       return lines

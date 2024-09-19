@@ -252,8 +252,8 @@ export async function createLightningInvoice (actionType, args, context) {
     try {
       const description = await paidActions[actionType].describe(args, context)
       const { invoice: bolt11, wallet } = await createUserInvoice(userId, {
-        // this is the amount the stacker will receive, the other 1/10th is the fee
-        msats: cost * BigInt(9) / BigInt(10),
+        // this is the amount the stacker will receive, the other 3/10ths is the sybil fee
+        msats: cost * BigInt(7) / BigInt(10),
         description,
         expiry: INVOICE_EXPIRE_SECS
       }, { models })

@@ -89,7 +89,7 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
         '"Item"."parentId" IS NULL',
         '"Item".bio = false',
         '"Item".boost > 0',
-        activeOrMine(me),
+        activeOrMine(),
         subClause(sub, 1, 'Item', me, showNsfw),
         muteClause(me))}
       ORDER BY boost desc, "Item".created_at ASC

@@ -1187,7 +1187,7 @@ function DeviceSync () {
         <div>
           <h2>Device sync is enabled!</h2>
           <p>
-            This is the passphrase configured in this device. You can copy it to your other devices to connect them to your device sync.
+            Device sync is enabled and connected to this device. Use this passphrase on other devices to sync them.
           </p>
           <p className='text-muted text-sm'>
             This passphrase is stored securely in your device and is never sent to our servers.

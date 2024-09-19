@@ -1139,7 +1139,7 @@ export default {
       return item.weightedVotes - item.weightedDownVotes > 0
     },
     freebie: async (item) => {
-      return item.cost === 0
+      return item.cost === 0 && item.boost === 0
     },
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0

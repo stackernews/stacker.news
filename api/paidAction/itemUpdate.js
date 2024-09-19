@@ -134,9 +134,14 @@ export async function perform (args, context) {
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein)
     VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true,
-              now() + interval '5 seconds', interval '1 day'),
-           ('expireBoost', jsonb_build_object('id', ${id}::INTEGER), 21, true,
-              now() + interval '30 days', interval '40 days')`
+              now() + interval '5 seconds', interval '1 day')`
+
+  if (newBoost > 0) {
+    await tx.$executeRaw`
+      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein)
+      VALUES ('expireBoost', jsonb_build_object('id', ${id}::INTEGER), 21, true,
+                now() + interval '30 days', interval '40 days')`
+  }
 
   await performBotBehavior(args, context)
 

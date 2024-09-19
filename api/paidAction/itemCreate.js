@@ -195,6 +195,13 @@ export async function onPaid ({ invoice, id }, context) {
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', ${item.id}::INTEGER), 21, true, now() + interval '5 seconds')`
 
+  if (item.boost > 0) {
+    await tx.$executeRaw`
+    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein)
+    VALUES ('expireBoost', jsonb_build_object('id', ${item.id}::INTEGER), 21, true,
+              now() + interval '30 days', interval '40 days')`
+  }
+
   if (item.parentId) {
     // denormalize ncomments, lastCommentAt, and "weightedComments" for ancestors, and insert into reply table
     await tx.$executeRaw`

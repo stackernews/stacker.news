@@ -479,7 +479,7 @@ export default {
                       '"pinId" IS NULL',
                       subClause(sub, 4)
                     )}
-                    ORDER BY group_rank, rank
+                    ORDER BY group_rank DESC, rank
                   OFFSET $2
                   LIMIT $3`,
                 orderBy: 'ORDER BY group_rank DESC, rank'

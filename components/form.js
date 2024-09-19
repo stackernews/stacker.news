@@ -42,7 +42,7 @@ export class SessionRequiredError extends Error {
 }
 
 export function SubmitButton ({
-  children, variant, value, onClick, disabled, appendText, submittingText,
+  children, variant, valueName = 'submit', value, onClick, disabled, appendText, submittingText,
   className, ...props
 }) {
   const formik = useFormikContext()
@@ -58,7 +58,7 @@ export function SubmitButton ({
       disabled={disabled}
       onClick={value
         ? e => {
-          formik.setFieldValue('submit', value)
+          formik.setFieldValue(valueName, value)
           onClick && onClick(e)
         }
         : onClick}
@@ -141,6 +141,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
         uploadFees: {
           term: `+ ${numWithUnits(uploadFees.totalFees, { abbreviate: false })}`,
           label: 'upload fee',
+          op: '+',
           modifier: cost => cost + uploadFees.totalFees,
           omit: !uploadFees.totalFees
         }

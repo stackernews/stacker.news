@@ -9,7 +9,6 @@ import {
 } from './wallet.js'
 import { repin } from './repin.js'
 import { trust } from './trust.js'
-import { auction } from './auction.js'
 import { earn } from './earn.js'
 import apolloClient from '@apollo/client'
 import { indexItem, indexAllItems } from './search.js'
@@ -35,6 +34,7 @@ import {
 import { thisDay } from './thisDay.js'
 import { isServiceEnabled } from '@/lib/sndev.js'
 import { payWeeklyPostBounty, weeklyPost } from './weeklyPosts.js'
+import { expireBoost } from './expireBoost.js'
 
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
 
@@ -117,12 +117,12 @@ async function work () {
     await boss.work('imgproxy', jobWrapper(imgproxy))
     await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
   }
+  await boss.work('expireBoost', jobWrapper(expireBoost))
   await boss.work('weeklyPost-*', jobWrapper(weeklyPost))
   await boss.work('payWeeklyPostBounty', jobWrapper(payWeeklyPostBounty))
   await boss.work('repin-*', jobWrapper(repin))
   await boss.work('trust', jobWrapper(trust))
   await boss.work('timestampItem', jobWrapper(timestampItem))
-  await boss.work('auction', jobWrapper(auction))
   await boss.work('earn', jobWrapper(earn))
   await boss.work('streak', jobWrapper(computeStreaks))
   await boss.work('checkStreak', jobWrapper(checkStreak))

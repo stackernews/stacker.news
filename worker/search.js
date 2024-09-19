@@ -22,7 +22,6 @@ const ITEM_SEARCH_FIELDS = gql`
       subName
     }
     status
-    maxBid
     company
     location
     remote

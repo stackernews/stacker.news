@@ -163,7 +163,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           }
         }}
       />
-      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item}>
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub}>
         <MarkdownInput
           label='context'
           name='text'

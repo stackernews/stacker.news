@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import AccordianItem from './accordian-item'
 import { Input, InputUserSuggest, VariableInput, Checkbox } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
@@ -11,6 +11,8 @@ import { useMe } from './me'
 import { useFeeButton } from './fee-button'
 import { useRouter } from 'next/router'
 import { useFormikContext } from 'formik'
+import { gql, useLazyQuery } from '@apollo/client'
+import useDebounceCallback from './use-debounce-callback'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
@@ -26,9 +28,116 @@ const FormStatus = {
   ERROR: 'error'
 }
 
-export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
+export function BoostHelp () {
+  return (
+    <ol style={{ lineHeight: 1.25 }}>
+      <li>Boost ranks items higher based on the amount</li>
+      <li>The highest boost in a territory over the last 30 days is pinned to the top of the territory</li>
+      <li>The highest boost across all territories over the last 30 days is pinned to the top of the homepage</li>
+      <li>The minimum boost is {numWithUnits(BOOST_MIN, { abbreviate: false })}</li>
+      <li>Each {numWithUnits(BOOST_MULT, { abbreviate: false })} of boost is equivalent to a zap-vote from a maximally trusted stacker
+        <ul>
+          <li>e.g. {numWithUnits(BOOST_MULT * 5, { abbreviate: false })} is like five zap-votes from a maximally trusted stacker</li>
+        </ul>
+      </li>
+      <li>The decay of boost "votes" increases at 1.25x the rate of organic votes
+        <ul>
+          <li>i.e. boost votes fall out of ranking faster</li>
+        </ul>
+      </li>
+      <li>boost can take a few minutes to show higher ranking in feed</li>
+      <li>100% of boost goes to the territory founder and top stackers as rewards</li>
+    </ol>
+  )
+}
+
+export function BoostInput ({ onChange, ...props }) {
+  const feeButton = useFeeButton()
+  let merge
+  if (feeButton) {
+    ({ merge } = feeButton)
+  }
+  return (
+    <Input
+      label={
+        <div className='d-flex align-items-center'>boost
+          <Info>
+            <BoostHelp />
+          </Info>
+        </div>
+    }
+      name='boost'
+      onChange={(_, e) => {
+        merge?.({
+          boost: {
+            term: `+ ${e.target.value}`,
+            label: 'boost',
+            op: '+',
+            modifier: cost => cost + Number(e.target.value)
+          }
+        })
+        onChange && onChange(_, e)
+      }}
+      hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
+      append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+      {...props}
+    />
+  )
+}
+
+// act means we are adding to existing boost
+export function BoostItemInput ({ item, sub, act = false, ...props }) {
+  const [boost, setBoost] = useState(Number(item?.boost) + (act ? BOOST_MULT : 0))
+
+  const [getBoostPosition, { data }] = useLazyQuery(gql`
+    query BoostPosition($id: ID, $boost: Int) {
+      boostPosition(sub: "${item?.subName || sub?.name}", id: $id, boost: $boost) {
+        home
+        sub
+      }
+    }`,
+  { fetchPolicy: 'cache-and-network' })
+
+  const getPositionDebounce = useDebounceCallback((...args) => getBoostPosition(...args), 1000, [getBoostPosition])
+
+  useEffect(() => {
+    if (boost) {
+      getPositionDebounce({ variables: { boost: Number(boost), id: item?.id } })
+    }
+  }, [boost, item?.id])
+
+  const boostMessage = useMemo(() => {
+    if (data?.boostPosition?.home || data?.boostPosition?.sub) {
+      const boostPinning = []
+      if (data?.boostPosition?.home) {
+        boostPinning.push('homepage')
+      }
+      if (data?.boostPosition?.sub) {
+        boostPinning.push(`~${item?.subName || sub?.name}`)
+      }
+      return `pins to the top of ${boostPinning.join(' and ')}`
+    } else if (boost >= 0 && boost % BOOST_MULT === 0) {
+      return `${act ? 'brings to' : 'equivalent to'} ${numWithUnits(boost / BOOST_MULT, { unitPlural: 'zapvotes', unitSingular: 'zapvote' })}`
+    } else {
+      return 'ranks posts higher based on the amount'
+    }
+  }, [boost, data?.boostPosition?.home, data?.boostPosition?.sub, item?.subName, sub?.name])
+
+  return (
+    <BoostInput
+      hint={<span className='text-muted'>{boostMessage}</span>}
+      onChange={(_, e) => {
+        if (e.target.value >= 0) {
+          setBoost(Number(e.target.value) + (act ? Number(item?.boost) : 0))
+        }
+      }}
+      {...props}
+    />
+  )
+}
+
+export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) {
   const { me } = useMe()
-  const { merge } = useFeeButton()
   const router = useRouter()
   const [itemType, setItemType] = useState()
   const formik = useFormikContext()
@@ -111,39 +220,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
       body={
         <>
           {children}
-          <Input
-            label={
-              <div className='d-flex align-items-center'>boost
-                <Info>
-                  <ol>
-                    <li>Boost ranks posts higher temporarily based on the amount</li>
-                    <li>The minimum boost is {numWithUnits(BOOST_MIN, { abbreviate: false })}</li>
-                    <li>Each {numWithUnits(BOOST_MULT, { abbreviate: false })} of boost is equivalent to one trusted upvote
-                      <ul>
-                        <li>e.g. {numWithUnits(BOOST_MULT * 5, { abbreviate: false })} is like 5 votes</li>
-                      </ul>
-                    </li>
-                    <li>The decay of boost "votes" increases at 1.25x the rate of organic votes
-                      <ul>
-                        <li>i.e. boost votes fall out of ranking faster</li>
-                      </ul>
-                    </li>
-                    <li>100% of sats from boost are given back to top stackers as rewards</li>
-                  </ol>
-                </Info>
-              </div>
-            }
-            name='boost'
-            onChange={(_, e) => merge({
-              boost: {
-                term: `+ ${e.target.value}`,
-                label: 'boost',
-                modifier: cost => cost + Number(e.target.value)
-              }
-            })}
-            hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-          />
+          <BoostItemInput item={item} sub={sub} />
           <VariableInput
             label='forward sats to'
             name='forward'

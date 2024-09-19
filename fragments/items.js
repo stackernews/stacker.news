@@ -46,15 +46,14 @@ export const ITEM_FIELDS = gql`
     ncomments
     commentSats
     lastCommentAt
-    maxBid
     isJob
+    status
     company
     location
     remote
     subName
     pollCost
     pollExpiresAt
-    status
     uploadId
     mine
     imgproxyUrls
@@ -79,6 +78,7 @@ export const ITEM_FULL_FIELDS = gql`
       bounty
       bountyPaidTo
       subName
+      mine
       user {
         id
         name

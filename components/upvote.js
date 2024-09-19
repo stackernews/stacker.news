@@ -12,6 +12,7 @@ import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
 import { numWithUnits } from '@/lib/format'
 import { Dropdown } from 'react-bootstrap'
+import classNames from 'classnames'
 
 const UpvotePopover = ({ target, show, handleClose }) => {
   const { me } = useMe()
@@ -226,7 +227,14 @@ export default function UpVote ({ item, className }) {
     }
   }
 
-  const fillColor = hover || pending ? nextColor : color
+  const fillColor = meSats && (hover || pending ? nextColor : color)
+
+  const style = useMemo(() => (fillColor
+    ? {
+        fill: fillColor,
+        filter: `drop-shadow(0 0 6px ${fillColor}90)`
+      }
+    : undefined), [fillColor])
 
   return (
     <div ref={ref} className='upvoteParent'>
@@ -236,7 +244,7 @@ export default function UpVote ({ item, className }) {
       >
         <ActionTooltip notForm disable={disabled} overlayText={overlayText}>
           <div
-            className={`${disabled ? styles.noSelfTips : ''} ${styles.upvoteWrapper}`}
+            className={classNames(disabled && styles.noSelfTips, styles.upvoteWrapper)}
           >
             <UpBolt
               onPointerEnter={() => setHover(true)}
@@ -244,19 +252,12 @@ export default function UpVote ({ item, className }) {
               onTouchEnd={() => setHover(false)}
               width={26}
               height={26}
-              className={
-                      `${styles.upvote}
-                      ${className || ''}
-                      ${disabled ? styles.noSelfTips : ''}
-                      ${meSats ? styles.voted : ''}
-                      ${pending ? styles.pending : ''}`
-                    }
-              style={meSats || hover || pending
-                ? {
-                    fill: fillColor,
-                    filter: `drop-shadow(0 0 6px ${fillColor}90)`
-                  }
-                : undefined}
+              className={classNames(styles.upvote,
+                className,
+                disabled && styles.noSelfTips,
+                meSats && styles.voted,
+                pending && styles.pending)}
+              style={style}
             />
           </div>
         </ActionTooltip>

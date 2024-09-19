@@ -8,8 +8,14 @@ export default gql`
     dupes(url: String!): [Item!]
     related(cursor: String, title: String, id: ID, minMatch: String, limit: Limit): Items
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
-    auctionPosition(sub: String, id: ID, bid: Int!): Int!
+    auctionPosition(sub: String, id: ID, boost: Int): Int!
+    boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
+  }
+
+  type BoostPositions {
+    home: Boolean!
+    sub: Boolean!
   }
 
   type TitleUnshorted {
@@ -46,7 +52,7 @@ export default gql`
       hash: String, hmac: String): ItemPaidAction!
     upsertJob(
       id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
-      text: String!, url: String!, maxBid: Int!, status: String, logo: Int): ItemPaidAction!
+      text: String!, url: String!, boost: Int, status: String, logo: Int): ItemPaidAction!
     upsertPoll(
       id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], pollExpiresAt: Date,
       hash: String, hmac: String): ItemPaidAction!
@@ -79,6 +85,7 @@ export default gql`
     cursor: String
     items: [Item!]!
     pins: [Item!]
+    ad: Item
   }
 
   type Comments {
@@ -136,7 +143,6 @@ export default gql`
     path: String
     position: Int
     prior: Int
-    maxBid: Int
     isJob: Boolean!
     pollCost: Int
     poll: Poll

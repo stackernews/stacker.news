@@ -79,7 +79,7 @@ export function DiscussionForm ({
           ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
           : null}
       />
-      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} />
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />
       <ItemButtonBar itemId={item?.id} />
       {!item &&
         <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>

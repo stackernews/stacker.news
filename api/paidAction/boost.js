@@ -49,7 +49,7 @@ export async function onPaid ({ invoice, actId }, { models, tx }) {
     })
     itemAct = await tx.itemAct.findFirst({ where: { invoiceId: invoice.id } })
   } else if (actId) {
-    itemAct = await tx.itemAct.findFirst({ where: { id: { in: actId } } })
+    itemAct = await tx.itemAct.findFirst({ where: { id: actId } })
   } else {
     throw new Error('No invoice or actId')
   }

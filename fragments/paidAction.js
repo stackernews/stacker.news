@@ -218,8 +218,8 @@ export const CREATE_COMMENT = gql`
 export const UPDATE_COMMENT = gql`
   ${ITEM_PAID_ACTION_FIELDS}
   ${PAID_ACTION}
-  mutation upsertComment($id: ID!, $text: String!, ${HASH_HMAC_INPUT_1}) {
-    upsertComment(id: $id, text: $text, ${HASH_HMAC_INPUT_2}) {
+  mutation upsertComment($id: ID!, $text: String!, $boost: Int, ${HASH_HMAC_INPUT_1}) {
+    upsertComment(id: $id, text: $text, boost: $boost, ${HASH_HMAC_INPUT_2}) {
       ...ItemPaidActionFields
       ...PaidActionFields
     }

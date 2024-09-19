@@ -107,20 +107,22 @@ export function BoostItemInput ({ item, sub, act = false, ...props }) {
   }, [boost, item?.id])
 
   const boostMessage = useMemo(() => {
-    if (data?.boostPosition?.home || data?.boostPosition?.sub) {
-      const boostPinning = []
-      if (data?.boostPosition?.home) {
-        boostPinning.push('homepage')
+    if (!item?.parentId) {
+      if (data?.boostPosition?.home || data?.boostPosition?.sub) {
+        const boostPinning = []
+        if (data?.boostPosition?.home) {
+          boostPinning.push('homepage')
+        }
+        if (data?.boostPosition?.sub) {
+          boostPinning.push(`~${item?.subName || sub?.name}`)
+        }
+        return `pins to the top of ${boostPinning.join(' and ')}`
       }
-      if (data?.boostPosition?.sub) {
-        boostPinning.push(`~${item?.subName || sub?.name}`)
-      }
-      return `pins to the top of ${boostPinning.join(' and ')}`
-    } else if (boost >= 0 && boost % BOOST_MULT === 0) {
-      return `${act ? 'brings to' : 'equivalent to'} ${numWithUnits(boost / BOOST_MULT, { unitPlural: 'zapvotes', unitSingular: 'zapvote' })}`
-    } else {
-      return 'ranks posts higher based on the amount'
     }
+    if (boost >= 0 && boost % BOOST_MULT === 0) {
+      return `${act ? 'brings to' : 'equivalent to'} ${numWithUnits(boost / BOOST_MULT, { unitPlural: 'zapvotes', unitSingular: 'zapvote' })}`
+    }
+    return 'ranks posts higher based on the amount'
   }, [boost, data?.boostPosition?.home, data?.boostPosition?.sub, item?.subName, sub?.name])
 
   return (

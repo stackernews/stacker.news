@@ -57,7 +57,7 @@ export default gql`
       id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], pollExpiresAt: Date,
       hash: String, hmac: String): ItemPaidAction!
     updateNoteId(id: ID!, noteId: String!): Item!
-    upsertComment(id: ID, text: String!, parentId: ID, hash: String, hmac: String): ItemPaidAction!
+    upsertComment(id: ID, text: String!, parentId: ID, boost: Int, hash: String, hmac: String): ItemPaidAction!
     act(id: ID!, sats: Int, act: String, idempotent: Boolean): ItemActPaidAction!
     pollVote(id: ID!): PollVotePaidAction!
     toggleOutlaw(id: ID!): Item!

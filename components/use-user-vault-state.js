@@ -59,7 +59,7 @@ export function useVaultConfigState () {
   return [value, setVaultKey, clearVault, disconnectVault]
 }
 
-// use to migrate the local storage to vault
+// use to migrate the local storage to vault (do not overwrite existing vault entries)
 export function useLocalStorageToVaultMigration () {
   const me = useMe()
   const [setVaultValue] = useMutation(SET_ENTRY)
@@ -70,18 +70,25 @@ export function useLocalStorageToVaultMigration () {
   // migrate local storage to vault
   const migrate = async () => {
     if (SSR) return
-    const vaultKey = getLocalStorage(me?.id, 'vault', 'key')
+    const vaultKey = getLocalStorage(me?.id, 'vault', { prefix: 'key' })
     if (!vaultKey) throw new Error('vault key not found')
     const keys = getMigrableStorageKeys(me?.id)
+    let migratedCount = 0
     for (const key of keys) {
       const localStorageValue = window.localStorage.getItem(key.localKey)
       if (localStorageValue) {
-        console.log('Migrating', localStorageValue, 'to vault', vaultKey)
         const encryptedValue = await encryptStorageData(vaultKey.key, localStorageValue)
-        await setVaultValue({ variables: { key: key.vaultKey, value: encryptedValue } })
-        window.localStorage.removeItem(key.localKey)
+        const res = await setVaultValue({ variables: { key: key.vaultKey, value: encryptedValue, skipIfSet: true } })
+        if (res?.data?.setVaultEntry) {
+          console.info(localStorageValue, 'migrated to vault', vaultKey.key, res)
+          window.localStorage.removeItem(key.localKey)
+          migratedCount++
+        } else {
+          console.warn(localStorageValue, 'could be migrated to vault', vaultKey.key)
+        }
       }
     }
+    return migratedCount
   }
 
   return [count, migrate]

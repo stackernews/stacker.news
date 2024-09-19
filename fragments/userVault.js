@@ -9,8 +9,8 @@ export const GET_ENTRY = gql`
 `
 
 export const SET_ENTRY = gql`
-  mutation SetVaultEntry($key: String!, $value: String!) {
-    setVaultEntry(key: $key, value: $value)
+  mutation SetVaultEntry($key: String!, $value: String!, $skipIfSet: Boolean) {
+    setVaultEntry(key: $key, value: $value, skipIfSet: $skipIfSet)
   }
 `
 

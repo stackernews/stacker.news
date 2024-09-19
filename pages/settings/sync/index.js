@@ -58,39 +58,10 @@ export default function DeviceSync ({ ssrData }) {
 
   const migrate = useCallback(async (close) => {
     if (nMigrableKeys > 0) {
-      showModal((onClose) => (
-        <div>
-          <h2>Migrate to device sync</h2>
-          <p>
-            It looks like you have some data stored in your local storage that can be migrated to your device sync.
-          </p>
-          <p>
-            Would you like to migrate this data now?
-          </p>
-          <div className='d-flex justify-content-between'>
-            <div className='d-flex align-items-center ms-auto'>
-              <CancelButton onClick={onClose} />
-              <Button
-                variant='primary'
-                onClick={async () => {
-                  try {
-                    await migrateKeys()
-                    toaster.success(`Successfully migrated ${nMigrableKeys} entries to your device sync.`)
-                    onClose()
-                  } catch (e) {
-                    toaster.danger(e.message)
-                  }
-                }}
-              >
-                migrate now
-              </Button>
-            </div>
-          </div>
-        </div>
-      ))
-    } else {
-      close()
+      const nMigrated = await migrateKeys()
+      if (nMigrated > 0) toaster.success(`Successfully migrated ${nMigrated} entries to your device sync.`)
     }
+    close()
   }, [])
 
   const inputPassphrase = useCallback(async (isNew) => {

@@ -41,14 +41,26 @@ export default {
       }
       return true
     },
-    setVaultEntry: async (parent, { key, value }, { me, models }) => {
+    setVaultEntry: async (parent, { key, value, skipIfSet }, { me, models }) => {
       if (!key) {
         throw new GqlInputError('must have key')
       }
       if (!value) {
         throw new GqlInputError('must have value')
       }
-      console.log('setVaultEntry', key, value)
+      if (skipIfSet) {
+        const existing = await models.userVault.findUnique({
+          where: {
+            userId_key: {
+              userId: me.id,
+              key
+            }
+          }
+        })
+        if (existing) {
+          return false
+        }
+      }
       await models.userVault.upsert({
         where: {
           userId_key: {

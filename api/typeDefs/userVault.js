@@ -14,7 +14,7 @@ export default gql`
   }
 
   extend type Mutation {
-    setVaultEntry(key: String!, value: String!): Boolean
+    setVaultEntry(key: String!, value: String!, skipIfSet: Boolean): Boolean
     unsetVaultEntry(key: String!): Boolean
     clearVault: Boolean
     setVaultKeyHash(hash: String!): String

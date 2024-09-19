@@ -61,7 +61,7 @@ export default function Wallet () {
 }
 
 function YouHaveSats () {
-  const me = useMe()
+  const { me } = useMe()
   const limitReached = me?.privates?.sats >= msatsToSats(BALANCE_LIMIT_MSATS)
   return (
     <h2 className={`${me ? 'visible' : 'invisible'} ${limitReached ? 'text-warning' : 'text-success'}`}>
@@ -108,7 +108,7 @@ export function WalletForm () {
 }
 
 export function FundForm () {
-  const me = useMe()
+  const { me } = useMe()
   const [showAlert, setShowAlert] = useState(true)
   const router = useRouter()
   const [createInvoice, { called, error }] = useMutation(gql`
@@ -211,7 +211,7 @@ export function SelectedWithdrawalForm () {
 
 export function InvWithdrawal () {
   const router = useRouter()
-  const me = useMe()
+  const { me } = useMe()
 
   const [createWithdrawl, { called, error }] = useMutation(CREATE_WITHDRAWL)
 
@@ -358,7 +358,7 @@ export function LnWithdrawal () {
 }
 
 export function LnAddrWithdrawal () {
-  const me = useMe()
+  const { me } = useMe()
   const router = useRouter()
   const [sendToLnAddr, { called, error }] = useMutation(SEND_TO_LNADDR)
   const defaultOptions = { min: 1 }

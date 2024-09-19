@@ -49,7 +49,7 @@ export const LoggerProvider = ({ children }) => {
 const ServiceWorkerLoggerContext = createContext()
 
 function ServiceWorkerLoggerProvider ({ children }) {
-  const me = useMe()
+  const { me } = useMe()
   const [name, setName] = useState()
   const [os, setOS] = useState()
 

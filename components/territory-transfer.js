@@ -57,7 +57,7 @@ function TransferObstacle ({ sub, onClose, userName }) {
 function TerritoryTransferForm ({ sub, onClose }) {
   const showModal = useShowModal()
   const client = useApolloClient()
-  const me = useMe()
+  const { me } = useMe()
   const schema = territoryTransferSchema({ me, client })
 
   const onSubmit = useCallback(async (values) => {

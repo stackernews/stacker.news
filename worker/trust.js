@@ -1,5 +1,5 @@
 import * as math from 'mathjs'
-import { USER_ID, SN_USER_IDS } from '@/lib/constants.js'
+import { USER_ID, SN_ADMIN_IDS } from '@/lib/constants.js'
 
 export async function trust ({ boss, models }) {
   try {
@@ -68,7 +68,7 @@ function trustGivenGraph (graph) {
 
   console.timeLog('trust', 'transforming result')
 
-  const seedIdxs = SN_USER_IDS.map(id => posByUserId[id])
+  const seedIdxs = SN_ADMIN_IDS.map(id => posByUserId[id])
   const isOutlier = (fromIdx, idx) => [...seedIdxs, fromIdx].includes(idx)
   const sqapply = (mat, fn) => {
     let idx = 0
@@ -151,10 +151,10 @@ async function getGraph (models) {
             confidence(before - disagree, b_total - after, ${Z_CONFIDENCE})
           ELSE 0 END AS trust
         FROM user_pair
-        WHERE NOT (b_id = ANY (${SN_USER_IDS}))
+        WHERE NOT (b_id = ANY (${SN_ADMIN_IDS}))
         UNION ALL
         SELECT a_id AS id, seed_id AS oid, ${MAX_TRUST}::numeric as trust
-        FROM user_pair, unnest(${SN_USER_IDS}::int[]) seed_id
+        FROM user_pair, unnest(${SN_ADMIN_IDS}::int[]) seed_id
         GROUP BY a_id, a_total, seed_id
         UNION ALL
         SELECT a_id AS id, a_id AS oid, ${MAX_TRUST}::float as trust

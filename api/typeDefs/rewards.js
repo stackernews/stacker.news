@@ -19,6 +19,7 @@ export default gql`
     time: Date!
     sources: [NameValue!]!
     leaderboard: UsersNullable
+    ad: Item
   }
 
   type Reward {

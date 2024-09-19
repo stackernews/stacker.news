@@ -33,13 +33,11 @@ export default function ItemInfo ({
   onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true
 }) {
   const editThreshold = new Date(item.invoice?.confirmedAt ?? item.createdAt).getTime() + 10 * 60000
-  const me = useMe()
+  const { me } = useMe()
   const toaster = useToast()
   const router = useRouter()
-  const [canEdit, setCanEdit] =
-    useState(item.mine && (Date.now() < editThreshold))
+  const [canEdit, setCanEdit] = useState(item.mine && (Date.now() < editThreshold))
   const [hasNewComments, setHasNewComments] = useState(false)
-  const [meTotalSats, setMeTotalSats] = useState(0)
   const root = useRoot()
   const retryCreateItem = useRetryCreateItem({ id: item.id })
   const sub = item?.sub || root?.sub
@@ -51,12 +49,11 @@ export default function ItemInfo ({
   }, [item])
 
   useEffect(() => {
-    setCanEdit(item.mine && (Date.now() < editThreshold))
-  }, [item.mine, editThreshold])
-
-  useEffect(() => {
-    if (item) setMeTotalSats(item.meSats || item.meAnonSats || 0)
-  }, [item?.meSats, item?.meAnonSats])
+    const authorEdit = item.mine
+    const invParams = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
+    const hmacEdit = !!invParams && !me && Number(item.user.id) === USER_ID.anon
+    setCanEdit((authorEdit || hmacEdit) && (Date.now() < editThreshold))
+  }, [me, item.id, item.mine, editThreshold])
 
   // territory founders can pin any post in their territory
   // and OPs can pin any root reply in their post
@@ -65,6 +62,7 @@ export default function ItemInfo ({
   const myPost = (me && root && Number(me.id) === Number(root.user.id))
   const rootReply = item.path.split('.').length === 2
   const canPin = (isPost && mySub) || (myPost && rootReply)
+  const meSats = (me ? item.meSats : item.meAnonSats) || 0
 
   const EditInfo = () => {
     const waitForQrPayment = useQrPayment()
@@ -131,7 +129,7 @@ export default function ItemInfo ({
             unitPlural: 'stackers'
           })} ${item.mine
             ? `\\ ${numWithUnits(item.meSats, { abbreviate: false })} to post`
-            : `(${numWithUnits(meTotalSats, { abbreviate: false })}${item.meDontLikeSats
+            : `(${numWithUnits(meSats, { abbreviate: false })}${item.meDontLikeSats
               ? ` & ${numWithUnits(item.meDontLikeSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
               : ''} from me)`} `}
           >
@@ -229,7 +227,7 @@ export default function ItemInfo ({
                 <CrosspostDropdownItem item={item} />}
               {me && !item.position &&
             !item.mine && !item.deletedAt &&
-            (item.meDontLikeSats > meTotalSats
+            (item.meDontLikeSats > meSats
               ? <DropdownItemUpVote item={item} />
               : <DontLikeThisDropdownItem item={item} />)}
               {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
@@ -273,7 +271,7 @@ export default function ItemInfo ({
 }
 
 function InfoDropdownItem ({ item }) {
-  const me = useMe()
+  const { me } = useMe()
   const showModal = useShowModal()
 
   const onClick = () => {

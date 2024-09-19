@@ -12,6 +12,7 @@ import { useMe } from './me'
 import { MEDIA_URL } from '@/lib/constants'
 import { NymActionDropdown } from '@/components/user-header'
 import classNames from 'classnames'
+import CheckCircle from '@/svgs/checkbox-circle-fill.svg'
 
 // all of this nonsense is to show the stat we are sorting by first
 const Stacked = ({ user }) => (user.optional.stacked !== null && <span>{abbrNum(user.optional.stacked)} stacked</span>)
@@ -40,6 +41,34 @@ function seperate (arr, seperator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])
 }
 
+export function UserListRow ({ user, stats, className, onNymClick, showHat = true, selected }) {
+  return (
+    <div className={`${styles.item} mb-2`} key={user.name}>
+      <Link href={`/${user.name}`}>
+        <Image
+          src={user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
+          className={`${userStyles.userimg} me-2`}
+        />
+      </Link>
+      <div className={`${styles.hunk} ${className}`}>
+        <Link
+          href={`/${user.name}`}
+          className={`d-inline-flex align-items-center text-reset ${selected ? 'fw-bold text-underline' : 'text-muted'}`}
+          style={{ textUnderlineOffset: '0.25em' }}
+          onClick={onNymClick}
+        >
+          @{user.name}{showHat && <Hat className='ms-1 fill-grey' height={14} width={14} user={user} />}{selected && <CheckCircle className='ms-3 fill-primary' height={14} width={14} />}
+        </Link>
+        {stats && (
+          <div className={styles.other}>
+            {stats.map((Comp, i) => <Comp key={i} user={user} />)}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function UserBase ({ user, className, children, nymActionDropdown }) {
   return (
     <div className={classNames(styles.item, className)}>
@@ -63,7 +92,7 @@ export function UserBase ({ user, className, children, nymActionDropdown }) {
 }
 
 export function User ({ user, rank, statComps, className = 'mb-2', Embellish, nymActionDropdown = false }) {
-  const me = useMe()
+  const { me } = useMe()
   const showStatComps = statComps && statComps.length > 0
   return (
     <>

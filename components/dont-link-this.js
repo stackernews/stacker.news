@@ -17,7 +17,12 @@ export function DownZap ({ item, ...props }) {
       }
     : undefined), [meDontLikeSats])
   return (
-    <DownZapper item={item} As={({ ...oprops }) => <Flag {...props} {...oprops} style={style} />} />
+    <DownZapper
+      item={item} As={({ ...oprops }) =>
+        <div className='upvoteParent'>
+          <Flag {...props} {...oprops} style={style} />
+        </div>}
+    />
   )
 }
 
@@ -31,7 +36,7 @@ function DownZapper ({ item, As, children }) {
         try {
           showModal(onClose =>
             <ItemAct
-              onClose={onClose} item={item} down
+              onClose={onClose} item={item} act='DONT_LIKE_THIS'
             >
               <AccordianItem
                 header='what is a downzap?' body={

@@ -6,7 +6,7 @@ import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
 import mention from '@/lib/remark-mention'
 import sub from '@/lib/remark-sub'
 import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
-import GithubSlugger from 'github-slugger'
+import { slug } from 'github-slugger'
 import LinkIcon from '@/svgs/link.svg'
 import Thumb from '@/svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
@@ -22,6 +22,7 @@ import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
 import UserPopover from './user-popover'
 import ItemPopover from './item-popover'
+import classNames from 'classnames'
 
 // Explicitely defined start/end tags & which CSS class from text.module.css to apply
 export const rehypeSuperscript = () => rehypeStyler('<sup>', '</sup>', styles.superscript)
@@ -81,12 +82,10 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     }
   }, [containerRef.current, setOverflowing])
 
-  const slugger = useMemo(() => new GithubSlugger(), [])
-
   const Heading = useCallback(({ children, node, ...props }) => {
     const [copied, setCopied] = useState(false)
     const nodeText = toString(node)
-    const id = useMemo(() => noFragments ? undefined : slugger?.slug(nodeText.replace(/[^\w\-\s]+/gi, '')), [nodeText, noFragments, slugger])
+    const id = useMemo(() => noFragments ? undefined : slug(nodeText.replace(/[^\w\-\s]+/gi, '')), [nodeText, noFragments])
     const h = useMemo(() => {
       if (topLevel) {
         return node?.TagName
@@ -119,7 +118,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
           </a>}
       </span>
     )
-  }, [topLevel, noFragments, slugger])
+  }, [topLevel, noFragments])
 
   const Table = useCallback(({ node, ...props }) =>
     <span className='table-responsive'>
@@ -264,7 +263,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
   const rehypePlugins = useMemo(() => [rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript], [])
 
   return (
-    <div className={`${styles.text} ${show ? styles.textUncontained : overflowing ? styles.textContained : ''}`} ref={containerRef}>
+    <div className={classNames(styles.text, topLevel && styles.topLevel, show ? styles.textUncontained : overflowing && styles.textContained)} ref={containerRef}>
       <ReactMarkdown
         components={components}
         remarkPlugins={remarkPlugins}

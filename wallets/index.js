@@ -22,7 +22,7 @@ export const Status = {
 }
 
 export function useWallet (name) {
-  const me = useMe()
+  const { me } = useMe()
   const showModal = useShowModal()
   const toaster = useToast()
   const [disableFreebies] = useMutation(gql`mutation { disableFreebies }`)
@@ -44,12 +44,6 @@ export function useWallet (name) {
     disableWallet(name, me)
     logger.info('payments disabled')
   }, [name, me, logger])
-
-  if (wallet) {
-    wallet.isConfigured = _isConfigured
-    wallet.enablePayments = enablePayments
-    wallet.disablePayments = disablePayments
-  }
 
   const status = config?.enabled ? Status.Enabled : Status.Initialized
   const enabled = status === Status.Enabled
@@ -83,9 +77,9 @@ export function useWallet (name) {
   }, [saveConfig, me, logger])
 
   // delete is a reserved keyword
-  const delete_ = useCallback(async () => {
+  const delete_ = useCallback(async (options) => {
     try {
-      await clearConfig({ logger })
+      await clearConfig({ logger, ...options })
     } catch (err) {
       const message = err.message || err.toString?.()
       logger.error(message)
@@ -93,23 +87,37 @@ export function useWallet (name) {
     }
   }, [clearConfig, logger, disablePayments])
 
+  const deleteLogs_ = useCallback(async (options) => {
+    // first argument is to override the wallet
+    return await deleteLogs(options)
+  }, [deleteLogs])
+
   if (!wallet) return null
 
-  return {
-    ...wallet,
-    canSend: !!wallet.sendPayment,
-    sendPayment,
-    config,
-    save,
-    delete: delete_,
-    deleteLogs,
-    setPriority,
-    hasConfig,
-    status,
-    enabled,
-    priority,
-    logger
-  }
+  // Assign everything to wallet object so every function that is passed this wallet object in this
+  // `useWallet` hook has access to all others via the reference to it.
+  // Essentially, you can now use functions like `enablePayments` _inside_ of functions that are
+  // called by `useWallet` even before enablePayments is defined and not only in functions
+  // that use the return value of `useWallet`.
+  wallet.isConfigured = _isConfigured
+  wallet.enablePayments = enablePayments
+  wallet.disablePayments = disablePayments
+  wallet.canSend = !!wallet.sendPayment
+  wallet.canReceive = !!wallet.createInvoice
+  wallet.config = config
+  wallet.save = save
+  wallet.delete = delete_
+  wallet.deleteLogs = deleteLogs_
+  wallet.setPriority = setPriority
+  wallet.hasConfig = hasConfig
+  wallet.status = status
+  wallet.enabled = enabled
+  wallet.priority = priority
+  wallet.logger = logger
+
+  // can't assign sendPayment to wallet object because it already exists
+  // as an imported function and thus can't be overwritten
+  return { ...wallet, sendPayment }
 }
 
 function extractConfig (fields, config, client) {
@@ -148,7 +156,7 @@ function extractServerConfig (fields, config) {
 }
 
 function useConfig (wallet) {
-  const me = useMe()
+  const { me } = useMe()
 
   const storageKey = getStorageKey(wallet?.name, me)
   const [clientConfig, setClientConfig, clearClientConfig] = useClientConfig(storageKey, {})
@@ -234,13 +242,13 @@ function useConfig (wallet) {
     }
   }, [hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, wallet])
 
-  const clearConfig = useCallback(async ({ logger }) => {
+  const clearConfig = useCallback(async ({ logger, clientOnly }) => {
     if (hasClientConfig) {
       clearClientConfig()
       wallet.disablePayments()
       logger.ok('wallet detached for payments')
     }
-    if (hasServerConfig) await clearServerConfig()
+    if (hasServerConfig && !clientOnly) await clearServerConfig()
   }, [hasClientConfig, hasServerConfig, clearClientConfig, clearServerConfig, wallet])
 
   return [config, saveConfig, clearConfig]
@@ -265,7 +273,7 @@ function isConfigured ({ fields, config }) {
 
 function useServerConfig (wallet) {
   const client = useApolloClient()
-  const me = useMe()
+  const { me } = useMe()
 
   const { data, refetch: refetchConfig } = useQuery(WALLET_BY_TYPE, { variables: { type: wallet?.walletType }, skip: !wallet?.walletType })
 
@@ -401,9 +409,9 @@ export function useWallets () {
   const resetClient = useCallback(async (wallet) => {
     for (const w of wallets) {
       if (w.canSend) {
-        await w.delete()
+        await w.delete({ clientOnly: true })
       }
-      await w.deleteLogs()
+      await w.deleteLogs({ clientOnly: true })
     }
   }, [wallets])
 

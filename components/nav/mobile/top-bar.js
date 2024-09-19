@@ -4,7 +4,7 @@ import { Back, NavPrice, NavSelect, NavWalletSummary, SignUpButton, hasNavSelect
 import { useMe } from '@/components/me'
 
 export default function TopBar ({ prefix, sub, path, pathname, topNavKey, dropNavKey }) {
-  const me = useMe()
+  const { me } = useMe()
   return (
     <Navbar>
       <Nav
@@ -17,7 +17,7 @@ export default function TopBar ({ prefix, sub, path, pathname, topNavKey, dropNa
           : (
             <>
               <NavPrice className='flex-shrink-1' />
-              {me ? <NavWalletSummary /> : <SignUpButton />}
+              {me ? <NavWalletSummary /> : <SignUpButton width='fit-content' />}
             </>)}
       </Nav>
     </Navbar>

@@ -406,9 +406,18 @@ function Invoicification ({ n: { invoice, sortTime } }) {
     invoiceId = invoice.item.poll?.meInvoiceId
     invoiceActionState = invoice.item.poll?.meInvoiceActionState
   } else {
-    actionString = `${invoice.actionType === 'ZAP'
-      ? invoice.item.root?.bounty ? 'bounty payment' : 'zap'
-      : 'downzap'} on ${itemType} `
+    if (invoice.actionType === 'ZAP') {
+      if (invoice.item.root?.bounty === invoice.satsRequested && invoice.item.root.mine) {
+        actionString = 'bounty payment'
+      } else {
+        actionString = 'zap'
+      }
+    } else if (invoice.actionType === 'DOWN_ZAP') {
+      actionString = 'downzap'
+    } else if (invoice.actionType === 'BOOST') {
+      actionString = 'boost'
+    }
+    actionString = `${actionString} on ${itemType} `
     retry = actRetry;
     ({ id: invoiceId, actionState: invoiceActionState } = invoice.itemAct.invoice)
   }

@@ -15,8 +15,7 @@ import SubSelect from '@/components/sub-select'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM,
-  notFound: data => !data.item,
-  authRequired: true
+  notFound: data => !data.item
 })
 
 export default function PostEdit ({ ssrData }) {
@@ -50,6 +49,7 @@ export default function PostEdit ({ ssrData }) {
         existingBoost: {
           label: 'old boost',
           term: `- ${item.boost}`,
+          op: '-',
           modifier: cost => cost - item.boost
         }
       }

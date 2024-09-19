@@ -36,6 +36,7 @@
     "canonical-json": "0.0.4",
     "classnames": "^2.5.1",
     "clipboard-copy": "^4.0.1",
+    "cookie": "^0.6.0",
     "cross-fetch": "^4.0.0",
     "csv-parser": "^3.0.0",
     "domino": "^2.1.6",

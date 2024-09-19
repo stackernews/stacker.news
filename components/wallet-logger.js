@@ -112,7 +112,7 @@ const initIndexedDB = async (dbName, storeName) => {
 }
 
 export const WalletLoggerProvider = ({ children }) => {
-  const me = useMe()
+  const { me } = useMe()
   const [logs, setLogs] = useState([])
   let dbName = 'app:storage'
   if (me) {
@@ -209,8 +209,8 @@ export const WalletLoggerProvider = ({ children }) => {
     setLogs((prevLogs) => [log, ...prevLogs])
   }, [saveLog])
 
-  const deleteLogs = useCallback(async (wallet) => {
-    if (!wallet || wallet.walletType) {
+  const deleteLogs = useCallback(async (wallet, options) => {
+    if ((!wallet || wallet.walletType) && !options?.clientOnly) {
       await deleteServerWalletLogs({ variables: { wallet: wallet?.walletType } })
     }
     if (!wallet || wallet.sendPayment) {
@@ -262,7 +262,9 @@ export function useWalletLogger (wallet) {
     error: (...message) => log('error')(message.join(' '))
   }), [log, wallet?.name])
 
-  const deleteLogs = useCallback((w) => innerDeleteLogs(w || wallet), [innerDeleteLogs, wallet])
+  const deleteLogs = useCallback((options) => {
+    return innerDeleteLogs(wallet, options)
+  }, [innerDeleteLogs, wallet])
 
   return { logger, deleteLogs }
 }

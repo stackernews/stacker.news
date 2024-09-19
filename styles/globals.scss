@@ -241,6 +241,18 @@ $zindex-sticky: 900;
   display: none;
 }
 
+.w-fit-content {
+  width: fit-content;
+}
+
+.line-height-sm {
+  line-height: 1.25;
+}
+
+.line-height-md {
+  line-height: 1.5;
+}
+
 @media (display-mode: standalone) {
   .standalone {
     display: flex
@@ -249,6 +261,14 @@ $zindex-sticky: 900;
 
 .justify-self-center {
   justify-self: center;
+}
+
+svg {
+  fill: var(--bs-body-color);
+}
+
+.fill-primary {
+  fill: var(--bs-primary);
 }
 
 .text-primary svg {
@@ -770,6 +790,10 @@ div[contenteditable]:focus,
 
 .fill-white {
   fill: white;
+}
+
+.fill-dark {
+  fill: #212529;
 }
 
 .fill-success {

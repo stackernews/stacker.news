@@ -12,9 +12,10 @@ import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
 import { numWithUnits } from '@/lib/format'
 import { Dropdown } from 'react-bootstrap'
+import classNames from 'classnames'
 
 const UpvotePopover = ({ target, show, handleClose }) => {
-  const me = useMe()
+  const { me } = useMe()
   return (
     <Overlay
       show={show}
@@ -107,7 +108,7 @@ export default function UpVote ({ item, className }) {
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
-  const me = useMe()
+  const { me } = useMe()
   const [hover, setHover] = useState(false)
   const [setWalkthrough] = useMutation(
     gql`
@@ -153,7 +154,7 @@ export default function UpVote ({ item, className }) {
     [item?.mine, item?.meForward, item?.deletedAt])
 
   const [meSats, overlayText, color, nextColor] = useMemo(() => {
-    const meSats = (item?.meSats || item?.meAnonSats || 0)
+    const meSats = (me ? item?.meSats : item?.meAnonSats) || 0
 
     // what should our next tip be?
     const sats = pending || nextTip(meSats, { ...me?.privates })
@@ -168,7 +169,7 @@ export default function UpVote ({ item, className }) {
       meSats, overlayTextContent,
       getColor(meSats), getColor(meSats + sats)]
   }, [
-    item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault,
+    me, item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault,
     me?.privates?.tipRandom, me?.privates?.tipRandomMin, me?.privates?.tipRandomMax, pending])
 
   const handleModalClosed = () => {
@@ -226,7 +227,14 @@ export default function UpVote ({ item, className }) {
     }
   }
 
-  const fillColor = hover || pending ? nextColor : color
+  const fillColor = meSats && (hover || pending ? nextColor : color)
+
+  const style = useMemo(() => (fillColor
+    ? {
+        fill: fillColor,
+        filter: `drop-shadow(0 0 6px ${fillColor}90)`
+      }
+    : undefined), [fillColor])
 
   return (
     <div ref={ref} className='upvoteParent'>
@@ -236,7 +244,7 @@ export default function UpVote ({ item, className }) {
       >
         <ActionTooltip notForm disable={disabled} overlayText={overlayText}>
           <div
-            className={`${disabled ? styles.noSelfTips : ''} ${styles.upvoteWrapper}`}
+            className={classNames(disabled && styles.noSelfTips, styles.upvoteWrapper)}
           >
             <UpBolt
               onPointerEnter={() => setHover(true)}
@@ -244,19 +252,12 @@ export default function UpVote ({ item, className }) {
               onTouchEnd={() => setHover(false)}
               width={26}
               height={26}
-              className={
-                      `${styles.upvote}
-                      ${className || ''}
-                      ${disabled ? styles.noSelfTips : ''}
-                      ${meSats ? styles.voted : ''}
-                      ${pending ? styles.pending : ''}`
-                    }
-              style={meSats || hover || pending
-                ? {
-                    fill: fillColor,
-                    filter: `drop-shadow(0 0 6px ${fillColor}90)`
-                  }
-                : undefined}
+              className={classNames(styles.upvote,
+                className,
+                disabled && styles.noSelfTips,
+                meSats && styles.voted,
+                pending && styles.pending)}
+              style={style}
             />
           </div>
         </ActionTooltip>

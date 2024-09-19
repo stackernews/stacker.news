@@ -42,7 +42,7 @@ export const payBountyCacheMods = {
 }
 
 export default function PayBounty ({ children, item }) {
-  const me = useMe()
+  const { me } = useMe()
   const showModal = useShowModal()
   const root = useRoot()
   const strike = useLightning()

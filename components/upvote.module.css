@@ -13,8 +13,7 @@
 }
 
 .noSelfTips {
-    fill: transparent !important;
-    filter: none !important;
+    transform: scaleX(-1);
 }
 
 .upvoteWrapper:not(.noSelfTips):hover {

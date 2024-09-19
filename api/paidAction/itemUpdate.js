@@ -1,10 +1,10 @@
 import { USER_ID } from '@/lib/constants'
-import { imageFeesInfo } from '../resolvers/image'
+import { uploadFees } from '../resolvers/upload'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import { satsToMsats } from '@/lib/format'
 
-export const anonable = false
+export const anonable = true
 export const supportsPessimism = true
 export const supportsOptimism = false
 
@@ -12,12 +12,12 @@ export async function getCost ({ id, boost = 0, uploadIds }, { me, models }) {
   // the only reason updating items costs anything is when it has new uploads
   // or more boost
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
-  const { totalFeesMsats } = await imageFeesInfo(uploadIds, { models, me })
-  return BigInt(totalFeesMsats) + satsToMsats(boost - (old.boost || 0))
+  const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
+  return BigInt(totalFeesMsats) + satsToMsats(boost - old.boost)
 }
 
 export async function perform (args, context) {
-  const { id, boost = 0, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], invoiceId, ...data } = args
+  const { id, boost = 0, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], ...data } = args
   const { tx, me, models } = context
   const old = await tx.item.findUnique({
     where: { id: parseInt(id) },
@@ -30,9 +30,10 @@ export async function perform (args, context) {
     }
   })
 
-  const boostMsats = satsToMsats(boost - (old.boost || 0))
+  const newBoost = boost - old.boost
   const itemActs = []
-  if (boostMsats > 0) {
+  if (newBoost > 0) {
+    const boostMsats = satsToMsats(newBoost)
     itemActs.push({
       msats: boostMsats, act: 'BOOST', userId: me?.id || USER_ID.anon
     })
@@ -54,15 +55,19 @@ export async function perform (args, context) {
     data: { paid: true }
   })
 
+  // we put boost in the where clause because we don't want to update the boost
+  // if it has changed concurrently
   const item = await tx.item.update({
-    where: { id: parseInt(id) },
+    where: { id: parseInt(id), boost: old.boost },
     include: {
       mentions: true,
       itemReferrers: { include: { refereeItem: true } }
     },
     data: {
       ...data,
-      boost,
+      boost: {
+        increment: newBoost
+      },
       pollOptions: {
         createMany: {
           data: pollOptions?.map(option => ({ option }))
@@ -126,8 +131,17 @@ export async function perform (args, context) {
     }
   })
 
-  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
-    VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true, now() + interval '5 seconds')`
+  await tx.$executeRaw`
+    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein)
+    VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true,
+              now() + interval '5 seconds', interval '1 day')`
+
+  if (newBoost > 0) {
+    await tx.$executeRaw`
+      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein)
+      VALUES ('expireBoost', jsonb_build_object('id', ${id}::INTEGER), 21, true,
+                now() + interval '30 days', interval '40 days')`
+  }
 
   await performBotBehavior(args, context)
 

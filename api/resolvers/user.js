@@ -130,8 +130,9 @@ export default {
 
       return await models.user.findUnique({ where: { id: me.id } })
     },
-    user: async (parent, { name }, { models }) => {
-      return await models.user.findUnique({ where: { name } })
+    user: async (parent, { id, name }, { models }) => {
+      if (id) id = Number(id)
+      return await models.user.findUnique({ where: { id, name } })
     },
     users: async (parent, args, { models }) =>
       await models.user.findMany(),
@@ -393,22 +394,6 @@ export default {
           foundNotes()
           return true
         }
-      }
-
-      const job = await models.item.findFirst({
-        where: {
-          maxBid: {
-            not: null
-          },
-          userId: me.id,
-          statusUpdatedAt: {
-            gt: lastChecked
-          }
-        }
-      })
-      if (job && job.statusUpdatedAt > job.createdAt) {
-        foundNotes()
-        return true
       }
 
       if (user.noteEarning) {

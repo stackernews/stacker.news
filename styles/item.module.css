@@ -17,6 +17,7 @@
 
 .fullItemContainer {
     margin-bottom: .5rem;
+    padding-right: 15px;
 }
 
 .fullItemContainer:empty {

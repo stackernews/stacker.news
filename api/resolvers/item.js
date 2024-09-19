@@ -690,7 +690,8 @@ export default {
         boost: { gte: boost },
         status: 'ACTIVE',
         deletedAt: null,
-        outlawed: false
+        outlawed: false,
+        parentId: null
       }
       if (id) {
         where.id = { not: Number(id) }
@@ -698,7 +699,7 @@ export default {
 
       return {
         home: await models.item.count({ where }) === 0,
-        sub: await models.item.count({ where: { ...where, subName: sub } }) === 0
+        sub: sub ? await models.item.count({ where: { ...where, subName: sub } }) === 0 : false
       }
     }
   },

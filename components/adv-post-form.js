@@ -45,6 +45,7 @@ export function BoostHelp () {
           <li>i.e. boost votes fall out of ranking faster</li>
         </ul>
       </li>
+      <li>boost can take a few minutes to show higher ranking in feed</li>
       <li>100% of boost goes to the territory founder and top stackers as rewards</li>
     </ol>
   )

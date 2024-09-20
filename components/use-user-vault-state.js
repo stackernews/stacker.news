@@ -10,7 +10,7 @@ export function useVaultConfigState () {
   const [setVaultKeyHash] = useMutation(SET_VAULT_KEY_HASH)
 
   // vault key stored locally
-  const [value, innerSetValue] = useState(null)
+  const [vaultKey, innerSetVaultKey] = useState(null)
 
   useEffect(() => {
     if (!SSR) {
@@ -20,7 +20,7 @@ export function useVaultConfigState () {
         localVaultKey = null
         unsetLocalStorage(me?.id, 'vault', 'key')
       }
-      innerSetValue(localVaultKey)
+      innerSetVaultKey(localVaultKey)
     }
   }, [me?.privates?.vaultKeyHash])
 
@@ -28,7 +28,7 @@ export function useVaultConfigState () {
   const [clearVault] = useMutation(CLEAR_VAULT, {
     onCompleted: () => {
       unsetLocalStorage(me?.id, 'vault', 'key')
-      innerSetValue(null)
+      innerSetVaultKey(null)
     }
   })
 
@@ -46,17 +46,17 @@ export function useVaultConfigState () {
         }
       }
     })
-    innerSetValue({ passphrase, key, hash })
+    innerSetVaultKey({ passphrase, key, hash })
     if (!SSR) setLocalStorage(me?.id, 'vault', { passphrase, key, hash }, 'key')
   })
 
   // disconnect the user from the vault (will not clear or reset the passphrase, use clearVault for that)
   const disconnectVault = useCallback(() => {
     if (!SSR) unsetLocalStorage(me?.id, 'vault', 'key')
-    innerSetValue(null)
+    innerSetVaultKey(null)
   })
 
-  return [value, setVaultKey, clearVault, disconnectVault]
+  return [vaultKey, setVaultKey, clearVault, disconnectVault]
 }
 
 // use to migrate the local storage to vault (do not overwrite existing vault entries)

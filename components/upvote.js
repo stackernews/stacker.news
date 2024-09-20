@@ -227,14 +227,15 @@ export default function UpVote ({ item, className }) {
     }
   }
 
-  const fillColor = hover || pending ? nextColor : color
-
-  const style = useMemo(() => (fillColor
-    ? {
-        fill: fillColor,
-        filter: `drop-shadow(0 0 6px ${fillColor}90)`
-      }
-    : undefined), [fillColor])
+  const style = useMemo(() => {
+    const fillColor = pending || hover ? nextColor : color
+    return meSats || hover || pending
+      ? {
+          fill: fillColor,
+          filter: `drop-shadow(0 0 6px ${fillColor}90)`
+        }
+      : undefined
+  }, [hover, pending, nextColor, color, meSats])
 
   return (
     <div ref={ref} className='upvoteParent'>

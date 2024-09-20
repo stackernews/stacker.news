@@ -227,7 +227,7 @@ export default function UpVote ({ item, className }) {
     }
   }
 
-  const fillColor = meSats && (hover || pending ? nextColor : color)
+  const fillColor = hover || pending ? nextColor : color
 
   const style = useMemo(() => (fillColor
     ? {

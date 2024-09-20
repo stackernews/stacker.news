@@ -3,6 +3,9 @@ import { E_VAULT_KEY_EXISTS, GqlAuthenticationError, GqlInputError } from '@/lib
 export default {
   Query: {
     getVaultEntry: async (parent, { key }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
       if (!key) {
         throw new GqlInputError('must have key')
       }
@@ -42,6 +45,9 @@ export default {
       return true
     },
     setVaultEntry: async (parent, { key, value, skipIfSet }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
       if (!key) {
         throw new GqlInputError('must have key')
       }
@@ -80,6 +86,9 @@ export default {
       return true
     },
     unsetVaultEntry: async (parent, { key }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
       if (!key) {
         throw new GqlInputError('must have key')
       }
@@ -92,6 +101,9 @@ export default {
       return true
     },
     clearVault: async (parent, args, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
       await models.user.update({
         where: { id: me.id },
         data: { vaultKeyHash: '' }

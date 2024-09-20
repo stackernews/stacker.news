@@ -5,6 +5,13 @@
     -webkit-touch-callout: none;
 }
 
+.boost {
+    fill: var(--theme-clickToContextColor);
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
 .upvoteWrapper {
     position: relative;
     padding-right: .2rem;

@@ -23,7 +23,7 @@ export function BountyForm ({
   children
 }) {
   const client = useApolloClient()
-  const me = useMe()
+  const { me } = useMe()
   const schema = bountySchema({ client, me, existingBoost: item?.boost })
 
   const onSubmit = useItemSubmit(UPSERT_BOUNTY, { item, sub })
@@ -80,7 +80,7 @@ export function BountyForm ({
             : null
         }
       />
-      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} />
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />
       <ItemButtonBar itemId={item?.id} canDelete={false} />
     </Form>
   )

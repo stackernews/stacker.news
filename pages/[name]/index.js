@@ -86,7 +86,7 @@ export default function User ({ ssrData }) {
   const [create, setCreate] = useState(false)
   const [edit, setEdit] = useState(false)
   const router = useRouter()
-  const me = useMe()
+  const { me } = useMe()
 
   const { data } = useQuery(USER_FULL, { variables: { ...router.query } })
   if (!data && !ssrData) return <PageLoading />

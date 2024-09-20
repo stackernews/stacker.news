@@ -16,7 +16,6 @@ import { GraphQLJSONObject as JSONObject } from 'graphql-type-json'
 import admin from './admin'
 import blockHeight from './blockHeight'
 import chainFee from './chainFee'
-import image from './image'
 import { GraphQLScalarType, Kind } from 'graphql'
 import { createIntScalar } from 'graphql-scalar'
 import paidAction from './paidAction'
@@ -57,4 +56,4 @@ const limit = createIntScalar({
 
 export default [user, item, message, wallet, lnurl, notifications, invite, sub,
   upload, search, growth, rewards, referrals, price, admin, blockHeight, chainFee,
-  image, { JSONObject }, { Date: date }, { Limit: limit }, paidAction, userVault]
+  { JSONObject }, { Date: date }, { Limit: limit }, paidAction, userVault]

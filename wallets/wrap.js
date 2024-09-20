@@ -10,7 +10,7 @@ const MAX_OUTGOING_CLTV_DELTA = 500 // the maximum cltv delta we'll allow for th
 export const MIN_SETTLEMENT_CLTV_DELTA = 80 // the minimum blocks we'll leave for settling the incoming invoice
 const FEE_ESTIMATE_TIMEOUT_SECS = 5 // the timeout for the fee estimate request
 const MAX_FEE_ESTIMATE_PERCENT = 0.025 // the maximum fee relative to outgoing we'll allow for the fee estimate
-const ZAP_SYBIL_FEE_MULT = 10 / 9 // the fee for the zap sybil service
+const ZAP_SYBIL_FEE_MULT = 10 / 7 // the fee for the zap sybil service
 
 /*
   The wrapInvoice function is used to wrap an outgoing invoice with the necessary parameters for an incoming hold invoice.

@@ -5,7 +5,7 @@ import gql from 'graphql-tag'
 import { useMutation } from '@apollo/client'
 import piexif from 'piexifjs'
 
-export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload, onSuccess, onError, multiple, avatar }, ref) => {
+export const FileUpload = forwardRef(({ children, className, onSelect, onUpload, onSuccess, onError, multiple, avatar, allow }, ref) => {
   const toaster = useToast()
   ref ??= useRef(null)
 
@@ -19,23 +19,26 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
       }`)
 
   const s3Upload = useCallback(async file => {
-    const img = new window.Image()
+    const element = file.type.startsWith('image/')
+      ? new window.Image()
+      : document.createElement('video')
+
     file = await removeExifData(file)
+
     return new Promise((resolve, reject) => {
-      img.onload = async () => {
+      async function onload () {
         onUpload?.(file)
         let data
         const variables = {
           avatar,
           type: file.type,
           size: file.size,
-          width: img.width,
-          height: img.height
+          width: element.width,
+          height: element.height
         }
         try {
           ({ data } = await getSignedPOST({ variables }))
         } catch (e) {
-          toaster.danger('error initiating upload: ' + e.message || e.toString?.())
           onError?.({ ...variables, name: file.name, file })
           reject(e)
           return
@@ -55,10 +58,8 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
 
         if (!res.ok) {
           // TODO make sure this is actually a helpful error message and does not expose anything to the user we don't want
-          const err = res.statusText
-          toaster.danger('error uploading: ' + err)
           onError?.({ ...variables, name: file.name, file })
-          reject(err)
+          reject(new Error(res.statusText))
           return
         }
 
@@ -66,12 +67,21 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
         // key is upload id in database
         const id = data.getSignedPOST.fields.key
         onSuccess?.({ ...variables, id, name: file.name, url, file })
+
+        console.log('resolve id', id)
         resolve(id)
       }
-      img.onerror = reject
-      img.src = window.URL.createObjectURL(file)
+
+      // img fire 'load' event while videos fire 'loadeddata'
+      element.onload = onload
+      element.onloadeddata = onload
+
+      element.onerror = reject
+      element.src = window.URL.createObjectURL(file)
     })
   }, [toaster, getSignedPOST])
+
+  const accept = UPLOAD_TYPES_ALLOW.filter(type => allow ? new RegExp(allow).test(type) : true)
 
   return (
     <>
@@ -80,20 +90,24 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
         type='file'
         multiple={multiple}
         className='d-none'
-        accept={UPLOAD_TYPES_ALLOW.join(', ')}
+        accept={accept.join(', ')}
         onChange={async (e) => {
           const fileList = e.target.files
           for (const file of Array.from(fileList)) {
-            if (UPLOAD_TYPES_ALLOW.indexOf(file.type) === -1) {
-              toaster.danger(`image must be ${UPLOAD_TYPES_ALLOW.map(t => t.replace('image/', '')).join(', ')}`)
+            try {
+              if (accept.indexOf(file.type) === -1) {
+                throw new Error(`file must be ${accept.map(t => t.replace(/^(image|video)\//, '')).join(', ')}`)
+              }
+              if (onSelect) await onSelect?.(file, s3Upload)
+              else await s3Upload(file)
+            } catch (e) {
+              toaster.danger(`upload of '${file.name}' failed: ` + e.message || e.toString?.())
               continue
             }
-            if (onSelect) await onSelect?.(file, s3Upload)
-            else await s3Upload(file)
-            // reset file input
-            // see https://bobbyhadz.com/blog/react-reset-file-input#reset-a-file-input-in-react
-            e.target.value = null
           }
+          // reset file input
+          // see https://bobbyhadz.com/blog/react-reset-file-input#reset-a-file-input-in-react
+          e.target.value = null
         }}
       />
       <div

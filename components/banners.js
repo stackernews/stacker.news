@@ -9,7 +9,7 @@ import { BALANCE_LIMIT_MSATS } from '@/lib/constants'
 import { msatsToSats, numWithUnits } from '@/lib/format'
 
 export function WelcomeBanner ({ Banner }) {
-  const me = useMe()
+  const { me } = useMe()
   const toaster = useToast()
   const [hidden, setHidden] = useState(true)
   const handleClose = async () => {
@@ -70,7 +70,7 @@ export function WelcomeBanner ({ Banner }) {
 }
 
 export function MadnessBanner ({ handleClose }) {
-  const me = useMe()
+  const { me } = useMe()
   return (
     <Alert className={styles.banner} key='info' variant='info' onClose={handleClose} dismissible>
       <Alert.Heading>
@@ -102,7 +102,7 @@ export function MadnessBanner ({ handleClose }) {
 }
 
 export function WalletLimitBanner () {
-  const me = useMe()
+  const { me } = useMe()
 
   const limitReached = me?.privates?.sats >= msatsToSats(BALANCE_LIMIT_MSATS)
   if (!me || !limitReached) return

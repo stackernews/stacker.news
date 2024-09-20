@@ -11,7 +11,6 @@ const ITEMS = gql`
         ncomments
         sats
         company
-        maxBid
         status
         location
         remote
@@ -92,7 +91,7 @@ async function bountyWinner (q) {
 
   const bounty = await client.query({
     query: SEARCH,
-    variables: { q: `${q} @grayruby`, sort: 'recent', what: 'posts', when: 'week' }
+    variables: { q: `${q} @sn`, sort: 'recent', what: 'posts', when: 'week' }
   })
 
   const items = bounty.data.search.items.filter(i => i.bountyPaidTo?.length > 0)
@@ -232,7 +231,7 @@ ${topCowboys.map((user, i) =>
 ------
 
 ##### Promoted jobs
-${jobs.data.items.items.filter(i => i.maxBid > 0 && i.status === 'ACTIVE').slice(0, 5).map((item, i) =>
+${jobs.data.items.items.filter(i => i.boost > 0).slice(0, 5).map((item, i) =>
   `${i + 1}. [${item.title.trim()} \\ ${item.company} \\ ${item.location}${item.remote ? ' or Remote' : ''}](https://stacker.news/items/${item.id})\n`).join('')}
 
 [**all jobs**](https://stacker.news/~jobs)

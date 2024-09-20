@@ -17,7 +17,7 @@ import CancelButton from './cancel-button'
 import { TerritoryInfo } from './territory-header'
 
 export function PostForm ({ type, sub, children }) {
-  const me = useMe()
+  const { me } = useMe()
   const [errorMessage, setErrorMessage] = useState()
 
   const prefix = sub?.name ? `/~${sub.name}` : ''
@@ -150,7 +150,7 @@ export function PostForm ({ type, sub, children }) {
   return (
     <FeeButtonProvider
       baseLineItems={sub ? postCommentBaseLineItems({ baseCost: sub.baseCost, me: !!me }) : undefined}
-      useRemoteLineItems={postCommentUseRemoteLineItems({ me: !!me })}
+      useRemoteLineItems={postCommentUseRemoteLineItems()}
     >
       <FormType sub={sub}>{children}</FormType>
     </FeeButtonProvider>
@@ -187,7 +187,7 @@ export default function Post ({ sub }) {
 export function ItemButtonBar ({
   itemId, canDelete = true, disable,
   className, children, onDelete, onCancel, hasCancel = true,
-  createText = 'post', editText = 'save'
+  createText = 'post', editText = 'save', deleteText = 'delete'
 }) {
   const router = useRouter()
 
@@ -199,7 +199,7 @@ export function ItemButtonBar ({
             itemId={itemId}
             onDelete={onDelete || (() => router.push(`/items/${itemId}`))}
           >
-            <Button variant='grey-medium'>delete</Button>
+            <Button variant='grey-medium'>{deleteText}</Button>
           </Delete>}
         {children}
         <div className='d-flex align-items-center ms-auto'>

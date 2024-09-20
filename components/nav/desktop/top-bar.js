@@ -4,7 +4,7 @@ import { AnonCorner, Back, Brand, MeCorner, NavPrice, SearchItem } from '../comm
 import { useMe } from '../../me'
 
 export default function TopBar ({ prefix, sub, path, topNavKey, dropNavKey }) {
-  const me = useMe()
+  const { me } = useMe()
   return (
     <Navbar>
       <Nav

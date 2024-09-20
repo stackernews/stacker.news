@@ -21,6 +21,7 @@ export function postCommentBaseLineItems ({ baseCost = 1, comment = false, me })
         anonCharge: {
           term: `x ${ANON_FEE_MULTIPLIER}`,
           label: 'anon mult',
+          op: '*',
           modifier: (cost) => cost * ANON_FEE_MULTIPLIER
         }
       }
@@ -28,6 +29,7 @@ export function postCommentBaseLineItems ({ baseCost = 1, comment = false, me })
     baseCost: {
       term: baseCost,
       label: `${comment ? 'comment' : 'post'} cost`,
+      op: '_',
       modifier: (cost) => cost + baseCost,
       allowFreebies: comment
     },
@@ -48,10 +50,12 @@ export function postCommentUseRemoteLineItems ({ parentId } = {}) {
     useEffect(() => {
       const repetition = data?.itemRepetition
       if (!repetition) return setLine({})
+      console.log('repetition', repetition)
       setLine({
         itemRepetition: {
           term: <>x 10<sup>{repetition}</sup></>,
           label: <>{repetition} {parentId ? 'repeat or self replies' : 'posts'} in 10m</>,
+          op: '*',
           modifier: (cost) => cost * Math.pow(10, repetition)
         }
       })
@@ -61,10 +65,39 @@ export function postCommentUseRemoteLineItems ({ parentId } = {}) {
   }
 }
 
+function sortHelper (a, b) {
+  if (a.op === '_') {
+    return -1
+  } else if (b.op === '_') {
+    return 1
+  } else if (a.op === '*' || a.op === '/') {
+    if (b.op === '*' || b.op === '/') {
+      return 0
+    }
+    // a is higher precedence
+    return -1
+  } else {
+    if (b.op === '*' || b.op === '/') {
+      // b is higher precedence
+      return 1
+    }
+
+    // postive first
+    if (a.op === '+' && b.op === '-') {
+      return -1
+    }
+    if (a.op === '-' && b.op === '+') {
+      return 1
+    }
+    // both are + or -
+    return 0
+  }
+}
+
 export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = () => null, children }) {
   const [lineItems, setLineItems] = useState({})
   const [disabled, setDisabled] = useState(false)
-  const me = useMe()
+  const { me } = useMe()
 
   const remoteLineItems = useRemoteLineItems()
 
@@ -77,7 +110,7 @@ export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = ()
 
   const value = useMemo(() => {
     const lines = { ...baseLineItems, ...lineItems, ...remoteLineItems }
-    const total = Object.values(lines).reduce((acc, { modifier }) => modifier(acc), 0)
+    const total = Object.values(lines).sort(sortHelper).reduce((acc, { modifier }) => modifier(acc), 0)
     // freebies: there's only a base cost and we don't have enough sats
     const free = total === lines.baseCost?.modifier(0) && lines.baseCost?.allowFreebies && me?.privates?.sats < total && !me?.privates?.disableFreebies
     return {
@@ -115,7 +148,7 @@ function FreebieDialog () {
 }
 
 export default function FeeButton ({ ChildButton = SubmitButton, variant, text, disabled }) {
-  const me = useMe()
+  const { me } = useMe()
   const { lines, total, disabled: ctxDisabled, free } = useFeeButton()
   const feeText = free
     ? 'free'
@@ -145,7 +178,7 @@ function Receipt ({ lines, total }) {
   return (
     <Table className={styles.receipt} borderless size='sm'>
       <tbody>
-        {Object.entries(lines).map(([key, { term, label, omit }]) => (
+        {Object.entries(lines).sort(([, a], [, b]) => sortHelper(a, b)).map(([key, { term, label, omit }]) => (
           !omit &&
             <tr key={key}>
               <td>{term}</td>

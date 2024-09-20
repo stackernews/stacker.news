@@ -123,7 +123,7 @@ function LoadWithdrawl () {
 function PrivacyOption ({ wd }) {
   if (!wd.bolt11) return
 
-  const me = useMe()
+  const { me } = useMe()
   const keepUntil = datePivot(new Date(wd.createdAt), { days: INVOICE_RETENTION_DAYS })
   const oldEnough = new Date() >= keepUntil
   if (!oldEnough) {

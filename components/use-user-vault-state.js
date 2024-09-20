@@ -6,7 +6,7 @@ import { GET_ENTRY, SET_ENTRY, UNSET_ENTRY, CLEAR_VAULT, SET_VAULT_KEY_HASH } fr
 
 // used to set and configure the vault
 export function useVaultConfigState () {
-  const me = useMe()
+  const { me } = useMe()
   const [setVaultKeyHash] = useMutation(SET_VAULT_KEY_HASH)
 
   // vault key stored locally
@@ -61,7 +61,7 @@ export function useVaultConfigState () {
 
 // use to migrate the local storage to vault (do not overwrite existing vault entries)
 export function useLocalStorageToVaultMigration () {
-  const me = useMe()
+  const { me } = useMe()
   const [setVaultValue] = useMutation(SET_ENTRY)
 
   // count how many local storage keys can be migrated
@@ -96,7 +96,7 @@ export function useLocalStorageToVaultMigration () {
 
 // used to get and set values in the vault
 export default function useVaultStorageState (storageKey, defaultValue) {
-  const me = useMe()
+  const { me } = useMe()
   const [setVaultValue] = useMutation(SET_ENTRY)
   const [clearVaultValue] = useMutation(UNSET_ENTRY)
   const [value, innerSetValue] = useState(undefined)

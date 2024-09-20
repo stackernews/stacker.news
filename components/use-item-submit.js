@@ -6,6 +6,8 @@ import { useCallback } from 'react'
 import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
 import gql from 'graphql-tag'
+import { USER_ID } from '@/lib/constants'
+import { useMe } from './me'
 
 // this is intented to be compatible with upsert item mutations
 // so that it can be reused for all post types and comments and we don't have
@@ -19,22 +21,32 @@ export default function useItemSubmit (mutation,
   const toaster = useToast()
   const crossposter = useCrossposter()
   const [upsertItem] = usePaidMutation(mutation)
+  const { me } = useMe()
 
   return useCallback(
-    async ({ boost, crosspost, title, options, bounty, maxBid, start, stop, ...values }, { resetForm }) => {
+    async ({ boost, crosspost, title, options, bounty, status, ...values }, { resetForm }) => {
       if (options) {
         // remove existing poll options since else they will be appended as duplicates
         options = options.slice(item?.poll?.options?.length || 0).filter(o => o.trim().length > 0)
+      }
+
+      const hmacEdit = item?.id && Number(item.user.id) === USER_ID.anon && !me
+      if (hmacEdit) {
+        const invParams = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
+        if (invParams) {
+          const [hash, hmac] = invParams.split(':')
+          values.hash = hash
+          values.hmac = hmac
+        }
       }
 
       const { data, error, payError } = await upsertItem({
         variables: {
           id: item?.id,
           sub: item?.subName || sub?.name,
-          boost: boost ? Number(boost) : undefined,
+          boost: boost ? Number(boost) : item?.boost ? Number(item.boost) : undefined,
           bounty: bounty ? Number(bounty) : undefined,
-          maxBid: (maxBid || Number(maxBid) === 0) ? Number(maxBid) : undefined,
-          status: start ? 'ACTIVE' : stop ? 'STOPPED' : undefined,
+          status: status === 'STOPPED' ? 'STOPPED' : 'ACTIVE',
           title: title?.trim(),
           options,
           ...values,
@@ -55,6 +67,7 @@ export default function useItemSubmit (mutation,
         onCompleted: (data) => {
           onSuccessfulSubmit?.(data, { resetForm })
           paidMutationOptions?.onCompleted?.(data)
+          saveItemInvoiceHmac(data)
         }
       })
 
@@ -79,7 +92,7 @@ export default function useItemSubmit (mutation,
           await router.push(sub ? `/~${sub.name}/recent` : '/recent')
         }
       }
-    }, [upsertItem, router, crossposter, item, sub, onSuccessfulSubmit,
+    }, [me, upsertItem, router, crossposter, item, sub, onSuccessfulSubmit,
       navigateOnSubmit, extraValues, paidMutationOptions]
   )
 }
@@ -113,4 +126,17 @@ export function useRetryCreateItem ({ id }) {
   )
 
   return retryPaidAction
+}
+
+function saveItemInvoiceHmac (mutationData) {
+  const response = Object.values(mutationData)[0]
+
+  if (!response?.invoice) return
+
+  const id = response.result.id
+  const { hash, hmac } = response.invoice
+
+  if (id && hash && hmac) {
+    window.localStorage.setItem(`item:${id}:hash:hmac`, `${hash}:${hmac}`)
+  }
 }

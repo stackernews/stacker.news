@@ -125,7 +125,7 @@ export const SETTINGS_FIELDS = gql`
 
 export const SETTINGS = gql`
 ${SETTINGS_FIELDS}
-{
+query Settings {
   settings {
     ...SettingsFields
   }
@@ -321,8 +321,8 @@ export const USER_FULL = gql`
 
 export const USER = gql`
   ${USER_FIELDS}
-  query User($name: String!) {
-    user(name: $name) {
+  query User($id: ID, $name: String) {
+    user(id: $id, name: $name) {
       ...UserFields
     }
   }`

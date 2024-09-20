@@ -201,7 +201,7 @@ export const useQrPayment = () => {
 }
 
 export const usePayment = () => {
-  const me = useMe()
+  const { me } = useMe()
   const feeButton = useFeeButton()
   const invoice = useInvoice()
   const waitForWalletPayment = useWalletPayment()

@@ -23,9 +23,10 @@ import { decodeProxyUrl, IMGPROXY_URL_REGEXP } from '@/lib/url'
 import { numWithUnits } from '@/lib/format'
 import { useQuoteReply } from './use-quote-reply'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
+import classNames from 'classnames'
 
 function BioItem ({ item, handleClick }) {
-  const me = useMe()
+  const { me } = useMe()
   if (!item.text) {
     return null
   }
@@ -89,7 +90,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
       belowTitle={item.forwards && item.forwards.length > 0 && <FwdUsers forwards={item.forwards} />}
       {...props}
     >
-      <article className={styles.fullItemContainer} ref={textRef}>
+      <article className={classNames(styles.fullItemContainer, 'topLevel')} ref={textRef}>
         {item.text && <ItemText item={item} />}
         {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
         {item.poll && <Poll item={item} />}

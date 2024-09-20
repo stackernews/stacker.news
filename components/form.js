@@ -9,7 +9,7 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import Nav from 'react-bootstrap/Nav'
 import Row from 'react-bootstrap/Row'
 import Markdown from '@/svgs/markdown-line.svg'
-import AddImageIcon from '@/svgs/image-add-line.svg'
+import AddFileIcon from '@/svgs/file-upload-line.svg'
 import styles from './form.module.css'
 import Text from '@/components/text'
 import AddIcon from '@/svgs/add-fill.svg'
@@ -23,7 +23,7 @@ import textAreaCaret from 'textarea-caret'
 import ReactDatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import useDebounceCallback, { debounce } from './use-debounce-callback'
-import { ImageUpload } from './image-upload'
+import { FileUpload } from './file-upload'
 import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 import { whenRange } from '@/lib/time'
 import { useFeeButton } from './fee-button'
@@ -42,7 +42,7 @@ export class SessionRequiredError extends Error {
 }
 
 export function SubmitButton ({
-  children, variant, value, onClick, disabled, appendText, submittingText,
+  children, variant, valueName = 'submit', value, onClick, disabled, appendText, submittingText,
   className, ...props
 }) {
   const formik = useFormikContext()
@@ -58,7 +58,7 @@ export function SubmitButton ({
       disabled={disabled}
       onClick={value
         ? e => {
-          formik.setFieldValue('submit', value)
+          formik.setFieldValue(valueName, value)
           onClick && onClick(e)
         }
         : onClick}
@@ -122,12 +122,12 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const previousTab = useRef(tab)
   const { merge, setDisabled: setSubmitDisabled } = useFeeButton()
 
-  const [updateImageFeesInfo] = useLazyQuery(gql`
-    query imageFeesInfo($s3Keys: [Int]!) {
-      imageFeesInfo(s3Keys: $s3Keys) {
+  const [updateUploadFees] = useLazyQuery(gql`
+    query uploadFees($s3Keys: [Int]!) {
+      uploadFees(s3Keys: $s3Keys) {
         totalFees
         nUnpaid
-        imageFee
+        uploadFees
         bytes24h
       }
     }`, {
@@ -136,13 +136,14 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     onError: (err) => {
       console.error(err)
     },
-    onCompleted: ({ imageFeesInfo }) => {
+    onCompleted: ({ uploadFees }) => {
       merge({
-        imageFee: {
-          term: `+ ${numWithUnits(imageFeesInfo.totalFees, { abbreviate: false })}`,
-          label: 'image fee',
-          modifier: cost => cost + imageFeesInfo.totalFees,
-          omit: !imageFeesInfo.totalFees
+        uploadFees: {
+          term: `+ ${numWithUnits(uploadFees.totalFees, { abbreviate: false })}`,
+          label: 'upload fee',
+          op: '+',
+          modifier: cost => cost + uploadFees.totalFees,
+          omit: !uploadFees.totalFees
         }
       })
     }
@@ -184,17 +185,17 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     innerRef.current.focus()
   }, [mention, meta?.value, helpers?.setValue])
 
-  const imageFeesUpdate = useDebounceCallback(
+  const uploadFeesUpdate = useDebounceCallback(
     (text) => {
       const s3Keys = text ? [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])) : []
-      updateImageFeesInfo({ variables: { s3Keys } })
-    }, 1000, [updateImageFeesInfo])
+      updateUploadFees({ variables: { s3Keys } })
+    }, 1000, [updateUploadFees])
 
   const onChangeInner = useCallback((formik, e) => {
     if (onChange) onChange(formik, e)
     // check for mention editing
     const { value, selectionStart } = e.target
-    imageFeesUpdate(value)
+    uploadFeesUpdate(value)
 
     if (!value || selectionStart === undefined) {
       setMention(undefined)
@@ -233,7 +234,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     } else {
       setMention(undefined)
     }
-  }, [onChange, setMention, imageFeesUpdate])
+  }, [onChange, setMention, uploadFeesUpdate])
 
   const onKeyDownInner = useCallback((userSuggestOnKeyDown) => {
     return (e) => {
@@ -321,7 +322,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
             <Nav.Link className={styles.previewTab} eventKey='preview' disabled={!meta.value}>preview</Nav.Link>
           </Nav.Item>
           <span className='ms-auto text-muted d-flex align-items-center'>
-            <ImageUpload
+            <FileUpload
               multiple
               ref={imageUploadRef}
               className='d-flex align-items-center me-1'
@@ -344,7 +345,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
                 text = text.replace(`![Uploading ${name}…]()`, `![](${url})`)
                 helpers.setValue(text)
                 const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
-                updateImageFeesInfo({ variables: { s3Keys } })
+                updateUploadFees({ variables: { s3Keys } })
                 setSubmitDisabled?.(false)
               }}
               onError={({ name }) => {
@@ -354,8 +355,8 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
                 setSubmitDisabled?.(false)
               }}
             >
-              <AddImageIcon width={18} height={18} />
-            </ImageUpload>
+              <AddFileIcon width={18} height={18} />
+            </FileUpload>
             <a
               className='d-flex align-items-center'
               href='https://guides.github.com/features/mastering-markdown/' target='_blank' rel='noreferrer'
@@ -808,7 +809,7 @@ export function Form ({
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
-  const me = useMe()
+  const { me } = useMe()
 
   useEffect(() => {
     if (initialError && !initialErrorToasted.current) {

@@ -179,17 +179,6 @@ export default {
         )`
       )
 
-      queries.push(
-        `(SELECT "Item".id::text, "Item"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
-          'JobChanged' AS type
-          FROM "Item"
-          WHERE "Item"."userId" = $1
-          AND "maxBid" IS NOT NULL
-          AND "statusUpdatedAt" < $2 AND "statusUpdatedAt" <> created_at
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
-      )
-
       // territory transfers
       queries.push(
         `(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL as "earnedSats",
@@ -354,7 +343,8 @@ export default {
           "Invoice"."actionType" = 'ITEM_CREATE' OR
           "Invoice"."actionType" = 'ZAP' OR
           "Invoice"."actionType" = 'DOWN_ZAP' OR
-          "Invoice"."actionType" = 'POLL_VOTE'
+          "Invoice"."actionType" = 'POLL_VOTE' OR
+          "Invoice"."actionType" = 'BOOST'
         )
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT})`

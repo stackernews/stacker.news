@@ -93,8 +93,7 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
     if (media.embed) {
       return (
         <Embed
-          {...media.embed} src={media.src}
-          className={media.className} onError={handleError} topLevel={props.topLevel}
+          {...media.embed} topLevel={props.topLevel} src={media.src} onError={handleError}
         />
       )
     }
@@ -109,10 +108,10 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
 
 // determines how the media should be displayed given the params, me settings, and editor tab
 export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) => {
-  const me = useMe()
+  const { me } = useMe()
   const trusted = useMemo(() => !!srcSetIntital || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [!!srcSetIntital, src])
   const { dimensions, video, format, ...srcSetObj } = srcSetIntital || {}
-  const [isImage, setIsImage] = useState(!video && trusted)
+  const [isImage, setIsImage] = useState(video === false && trusted)
   const [isVideo, setIsVideo] = useState(video)
   const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [tab, me?.privates?.showImagesAndVideos])
   const embed = useMemo(() => parseEmbedUrl(src), [src])
@@ -183,7 +182,6 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
     style,
     width,
     height,
-    className: classNames(topLevel && styles.topLevel),
     image: (!me?.privates?.imgproxyOnly || trusted) && showMedia && isImage && !isVideo && !embed,
     video: !me?.privates?.imgproxyOnly && showMedia && isVideo && !embed,
     embed: !me?.privates?.imgproxyOnly && showMedia && embed

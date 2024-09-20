@@ -24,6 +24,7 @@ import removeMd from 'remove-markdown'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
 import ItemPopover from './item-popover'
 import { useMe } from './me'
+import Boost from './boost-button'
 
 function onItemClick (e, router, item) {
   const viewedAt = commentsViewedAt(item)
@@ -50,7 +51,7 @@ export function SearchTitle ({ title }) {
 }
 
 function mediaType ({ url, imgproxyUrls }) {
-  const me = useMe()
+  const { me } = useMe()
   const src = IMGPROXY_URL_REGEXP.test(url) ? decodeProxyUrl(url) : url
   if (!imgproxyUrls?.[src] ||
     me?.privates?.showImagesAndVideos === false ||
@@ -105,11 +106,13 @@ export default function Item ({
       <div className={classNames(styles.item, itemClassName)}>
         {item.position && (pinnable || !item.subName)
           ? <Pin width={24} height={24} className={styles.pin} />
-          : item.meDontLikeSats > item.meSats
-            ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
-            : Number(item.user?.id) === USER_ID.ad
-              ? <AdIcon width={24} height={24} className={styles.ad} />
-              : <UpVote item={item} className={styles.upvote} />}
+          : item.mine
+            ? <Boost item={item} className={styles.upvote} />
+            : item.meDontLikeSats > item.meSats
+              ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
+              : Number(item.user?.id) === USER_ID.ad
+                ? <AdIcon width={24} height={24} className={styles.ad} />
+                : <UpVote item={item} className={styles.upvote} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
             <Link

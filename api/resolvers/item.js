@@ -6,8 +6,9 @@ import domino from 'domino'
 import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
-  USER_ID, POLL_COST,
-  ITEM_ALLOW_EDITS, GLOBAL_SEED, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_USER_IDS
+  USER_ID, POLL_COST, ADMIN_ITEMS, GLOBAL_SEED,
+  NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS,
+  BOOST_MULT
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
@@ -15,11 +16,12 @@ import uu from 'url-unshort'
 import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
-import { uploadIdsFromText } from './image'
+import { uploadIdsFromText } from './upload'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { verifyHmac } from './wallet'
 
 function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
@@ -29,13 +31,13 @@ function commentsOrderByClause (me, models, sort) {
   if (me && sort === 'hot') {
     return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, COALESCE(
         personal_hot_score,
-        ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
+        ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
         "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
   } else {
     if (sort === 'top') {
-      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator(models, 0)} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
+      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator({ models, commentScaler: 0 })} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
     } else {
-      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
     }
   }
 }
@@ -72,6 +74,29 @@ export async function getItem (parent, { id }, { me, models }) {
   return item
 }
 
+export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { me, models }) {
+  return (await itemQueryWithMeta({
+    me,
+    models,
+    query: `
+      ${SELECT}
+      FROM "Item"
+      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+      ${whereClause(
+        '"parentId" IS NULL',
+        '"Item"."pinId" IS NULL',
+        '"Item"."deletedAt" IS NULL',
+        '"Item"."parentId" IS NULL',
+        '"Item".bio = false',
+        '"Item".boost > 0',
+        activeOrMine(),
+        subClause(sub, 1, 'Item', me, showNsfw),
+        muteClause(me))}
+      ORDER BY boost desc, "Item".created_at ASC
+      LIMIT 1`
+  }, ...subArr))?.[0] || null
+}
+
 const orderByClause = (by, me, models, type) => {
   switch (by) {
     case 'comments':
@@ -87,12 +112,12 @@ const orderByClause = (by, me, models, type) => {
   }
 }
 
-export function orderByNumerator (models, commentScaler = 0.5) {
+export function orderByNumerator ({ models, commentScaler = 0.5, considerBoost = false }) {
   return `(CASE WHEN "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0 THEN
               GREATEST("Item"."weightedVotes" - "Item"."weightedDownVotes", POWER("Item"."weightedVotes" - "Item"."weightedDownVotes", 1.2))
             ELSE
               "Item"."weightedVotes" - "Item"."weightedDownVotes"
-            END + "Item"."weightedComments"*${commentScaler})`
+            END + "Item"."weightedComments"*${commentScaler}) + ${considerBoost ? `("Item".boost / ${BOOST_MULT})` : 0}`
 }
 
 export function joinZapRankPersonalView (me, models) {
@@ -303,7 +328,7 @@ export default {
     },
     items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit = LIMIT }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      let items, user, pins, subFull, table
+      let items, user, pins, subFull, table, ad
 
       // special authorization for bookmarks depending on owning users' privacy settings
       if (type === 'bookmarks' && name && me?.name !== name) {
@@ -369,6 +394,7 @@ export default {
               ${relationClause(type)}
               ${whereClause(
                 '"Item".created_at <= $1',
+                '"Item"."deletedAt" IS NULL',
                 subClause(sub, 4, subClauseTable(type), me, showNsfw),
                 activeOrMine(me),
                 await filterClause(me, models, type),
@@ -440,26 +466,54 @@ export default {
                 models,
                 query: `
                   ${SELECT},
-                    CASE WHEN status = 'ACTIVE' AND "maxBid" > 0
-                         THEN 0 ELSE 1 END AS group_rank,
-                    CASE WHEN status = 'ACTIVE' AND "maxBid" > 0
-                         THEN rank() OVER (ORDER BY "maxBid" DESC, created_at ASC)
+                    (boost IS NOT NULL AND boost > 0)::INT AS group_rank,
+                    CASE WHEN boost IS NOT NULL AND boost > 0
+                         THEN rank() OVER (ORDER BY boost DESC, created_at ASC)
                          ELSE rank() OVER (ORDER BY created_at DESC) END AS rank
                     FROM "Item"
                     ${whereClause(
                       '"parentId" IS NULL',
+                      '"Item"."deletedAt" IS NULL',
+                      '"Item"."status" = \'ACTIVE\'',
                       'created_at <= $1',
                       '"pinId" IS NULL',
-                      subClause(sub, 4),
-                      "status IN ('ACTIVE', 'NOSATS')"
+                      subClause(sub, 4)
                     )}
                     ORDER BY group_rank, rank
                   OFFSET $2
                   LIMIT $3`,
-                orderBy: 'ORDER BY group_rank, rank'
+                orderBy: 'ORDER BY group_rank DESC, rank'
               }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
               break
             default:
+              if (decodedCursor.offset === 0) {
+              // get pins for the page and return those separately
+                pins = await itemQueryWithMeta({
+                  me,
+                  models,
+                  query: `
+                  SELECT rank_filter.*
+                    FROM (
+                      ${SELECT}, position,
+                      rank() OVER (
+                          PARTITION BY "pinId"
+                          ORDER BY "Item".created_at DESC
+                      )
+                      FROM "Item"
+                      JOIN "Pin" ON "Item"."pinId" = "Pin".id
+                      ${whereClause(
+                        '"pinId" IS NOT NULL',
+                        '"parentId" IS NULL',
+                        sub ? '"subName" = $1' : '"subName" IS NULL',
+                        muteClause(me))}
+                  ) rank_filter WHERE RANK = 1
+                  ORDER BY position ASC`,
+                  orderBy: 'ORDER BY position ASC'
+                }, ...subArr)
+
+                ad = await getAd(parent, { sub, subArr, showNsfw }, { me, models })
+              }
+
               items = await itemQueryWithMeta({
                 me,
                 models,
@@ -473,7 +527,9 @@ export default {
                       sub ? '"Item"."pinId" IS NULL' : '',
                       '"Item"."deletedAt" IS NULL',
                       '"Item"."parentId" IS NULL',
+                      '"Item".outlawed = false',
                       '"Item".bio = false',
+                      ad ? `"Item".id <> ${ad.id}` : '',
                       activeOrMine(me),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
@@ -483,8 +539,8 @@ export default {
                 orderBy: 'ORDER BY rank DESC'
               }, decodedCursor.offset, limit, ...subArr)
 
-              // XXX this is just for subs that are really empty
-              if (decodedCursor.offset === 0 && items.length < limit) {
+              // XXX this is mostly for subs that are really empty
+              if (items.length < limit) {
                 items = await itemQueryWithMeta({
                   me,
                   models,
@@ -500,39 +556,16 @@ export default {
                         '"Item"."deletedAt" IS NULL',
                         '"Item"."parentId" IS NULL',
                         '"Item".bio = false',
+                        ad ? `"Item".id <> ${ad.id}` : '',
                         activeOrMine(me),
                         await filterClause(me, models, type))}
-                        ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC
+                        ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
+                          "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC
                       OFFSET $1
                       LIMIT $2`,
-                  orderBy: `ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+                  orderBy: `ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
+                    "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
                 }, decodedCursor.offset, limit, ...subArr)
-              }
-
-              if (decodedCursor.offset === 0) {
-                // get pins for the page and return those separately
-                pins = await itemQueryWithMeta({
-                  me,
-                  models,
-                  query: `
-                    SELECT rank_filter.*
-                      FROM (
-                        ${SELECT}, position,
-                        rank() OVER (
-                            PARTITION BY "pinId"
-                            ORDER BY "Item".created_at DESC
-                        )
-                        FROM "Item"
-                        JOIN "Pin" ON "Item"."pinId" = "Pin".id
-                        ${whereClause(
-                          '"pinId" IS NOT NULL',
-                          '"parentId" IS NULL',
-                          sub ? '"subName" = $1' : '"subName" IS NULL',
-                          muteClause(me))}
-                    ) rank_filter WHERE RANK = 1
-                    ORDER BY position ASC`,
-                  orderBy: 'ORDER BY position ASC'
-                }, ...subArr)
               }
               break
           }
@@ -541,7 +574,8 @@ export default {
       return {
         cursor: items.length === limit ? nextCursorEncoded(decodedCursor) : null,
         items,
-        pins
+        pins,
+        ad
       }
     },
     item: getItem,
@@ -611,18 +645,17 @@ export default {
           LIMIT 3`
       }, similar)
     },
-    auctionPosition: async (parent, { id, sub, bid }, { models, me }) => {
+    auctionPosition: async (parent, { id, sub, boost }, { models, me }) => {
       const createdAt = id ? (await getItem(parent, { id }, { models, me })).createdAt : new Date()
       let where
-      if (bid > 0) {
-        // if there's a bid
-        // it's ACTIVE and has a larger bid than ours, or has an equal bid and is older
-        // count items: (bid > ours.bid OR (bid = ours.bid AND create_at < ours.created_at)) AND status = 'ACTIVE'
+      if (boost > 0) {
+        // if there's boost
+        // has a larger boost than ours, or has an equal boost and is older
+        // count items: (boost > ours.boost OR (boost = ours.boost AND create_at < ours.created_at))
         where = {
-          status: 'ACTIVE',
           OR: [
-            { maxBid: { gt: bid } },
-            { maxBid: bid, createdAt: { lt: createdAt } }
+            { boost: { gt: boost } },
+            { boost, createdAt: { lt: createdAt } }
           ]
         }
       } else {
@@ -631,18 +664,42 @@ export default {
         // count items: ((bid > ours.bid AND status = 'ACTIVE') OR (created_at > ours.created_at AND status <> 'STOPPED'))
         where = {
           OR: [
-            { maxBid: { gt: 0 }, status: 'ACTIVE' },
-            { createdAt: { gt: createdAt }, status: { not: 'STOPPED' } }
+            { boost: { gt: 0 } },
+            { createdAt: { gt: createdAt } }
           ]
         }
       }
 
-      where.subName = sub
+      where.AND = {
+        subName: sub,
+        status: 'ACTIVE',
+        deletedAt: null
+      }
+      if (id) {
+        where.AND.id = { not: Number(id) }
+      }
+
+      return await models.item.count({ where }) + 1
+    },
+    boostPosition: async (parent, { id, sub, boost }, { models, me }) => {
+      if (boost <= 0) {
+        throw new GqlInputError('boost must be greater than 0')
+      }
+
+      const where = {
+        boost: { gte: boost },
+        status: 'ACTIVE',
+        deletedAt: null,
+        outlawed: false
+      }
       if (id) {
         where.id = { not: Number(id) }
       }
 
-      return await models.item.count({ where }) + 1
+      return {
+        home: await models.item.count({ where }) === 0,
+        sub: await models.item.count({ where: { ...where, subName: sub } }) === 0
+      }
     }
   },
 
@@ -821,7 +878,6 @@ export default {
         item.uploadId = item.logo
         delete item.logo
       }
-      item.maxBid ??= 0
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -858,7 +914,7 @@ export default {
 
       return await performPaidAction('POLL_VOTE', { id }, { me, models, lnd })
     },
-    act: async (parent, { id, sats, act = 'TIP', idempotent }, { me, models, lnd, headers }) => {
+    act: async (parent, { id, sats, act = 'TIP' }, { me, models, lnd, headers }) => {
       assertApiKeyNotPermitted({ me })
       await ssValidate(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
@@ -877,7 +933,7 @@ export default {
       }
 
       // disallow self tips except anons
-      if (me) {
+      if (me && ['TIP', 'DONT_LIKE_THIS'].includes(act)) {
         if (Number(item.userId) === Number(me.id)) {
           throw new GqlInputError('cannot zap yourself')
         }
@@ -895,6 +951,8 @@ export default {
         return await performPaidAction('ZAP', { id, sats }, { me, models, lnd })
       } else if (act === 'DONT_LIKE_THIS') {
         return await performPaidAction('DOWN_ZAP', { id, sats }, { me, models, lnd })
+      } else if (act === 'BOOST') {
+        return await performPaidAction('BOOST', { id, sats }, { me, models, lnd })
       } else {
         throw new GqlInputError('unknown act')
       }
@@ -1257,9 +1315,9 @@ export default {
   }
 }
 
-export const updateItem = async (parent, { sub: subName, forward, ...item }, { me, models, lnd }) => {
+export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ...item }, { me, models, lnd }) => {
   // update iff this item belongs to me
-  const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { sub: true } })
+  const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { invoice: true, sub: true } })
 
   if (old.deletedAt) {
     throw new GqlInputError('item is deleted')
@@ -1269,15 +1327,19 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
     throw new GqlInputError('cannot edit unpaid item')
   }
 
-  // author can always edit their own item
-  const mid = Number(me?.id)
-  const isMine = Number(old.userId) === mid
+  // author can edit their own item (except anon)
+  const meId = Number(me?.id ?? USER_ID.anon)
+  const authorEdit = !!me && Number(old.userId) === meId
+  // admins can edit special items
+  const adminEdit = ADMIN_ITEMS.includes(old.id) && SN_ADMIN_IDS.includes(meId)
+  // anybody can edit with valid hash+hmac
+  let hmacEdit = false
+  if (old.invoice?.hash && hash && hmac) {
+    hmacEdit = old.invoice.hash === hash && verifyHmac(hash, hmac)
+  }
 
-  // allow admins to edit special items
-  const allowEdit = ITEM_ALLOW_EDITS.includes(old.id)
-  const adminEdit = SN_USER_IDS.includes(mid) && allowEdit
-
-  if (!isMine && !adminEdit) {
+  // ownership permission check
+  if (!authorEdit && !adminEdit && !hmacEdit) {
     throw new GqlInputError('item does not belong to you')
   }
 
@@ -1292,13 +1354,14 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
   // in case they lied about their existing boost
   await ssValidate(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
 
-  const user = await models.user.findUnique({ where: { id: me.id } })
+  const user = await models.user.findUnique({ where: { id: meId } })
 
   // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
   const myBio = user.bioId === old.id
   const timer = Date.now() < new Date(old.invoicePaidAt ?? old.createdAt).getTime() + 10 * 60_000
 
-  if (!allowEdit && !myBio && !timer && !isJob(item)) {
+  // timer permission check
+  if (!adminEdit && !myBio && !timer && !isJob(item)) {
     throw new GqlInputError('item can no longer be edited')
   }
 
@@ -1309,15 +1372,18 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
 
   if (old.bio) {
     // prevent editing a bio like a regular item
-    item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio`, userId: me.id }
+    item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio` }
   } else if (old.parentId) {
     // prevent editing a comment like a post
-    item = { id: Number(item.id), text: item.text, userId: me.id }
+    item = { id: Number(item.id), text: item.text, boost: item.boost }
   } else {
-    item = { subName, userId: me.id, ...item }
+    item = { subName, ...item }
     item.forwardUsers = await getForwardUsers(models, forward)
   }
   item.uploadIds = uploadIdsFromText(item.text, { models })
+
+  // never change author of item
+  item.userId = old.userId
 
   const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd })
 
@@ -1378,5 +1444,5 @@ export const SELECT =
     ltree2text("Item"."path") AS "path"`
 
 function topOrderByWeightedSats (me, models) {
-  return `ORDER BY ${orderByNumerator(models)} DESC NULLS LAST, "Item".id DESC`
+  return `ORDER BY ${orderByNumerator({ models })} DESC NULLS LAST, "Item".id DESC`
 }

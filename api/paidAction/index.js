@@ -13,6 +13,7 @@ import * as TERRITORY_UPDATE from './territoryUpdate'
 import * as TERRITORY_BILLING from './territoryBilling'
 import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
+import * as BOOST from './boost'
 import wrapInvoice from 'wallets/wrap'
 import { createInvoice as createUserInvoice } from 'wallets/server'
 
@@ -21,6 +22,7 @@ export const paidActions = {
   ITEM_UPDATE,
   ZAP,
   DOWN_ZAP,
+  BOOST,
   POLL_VOTE,
   TERRITORY_CREATE,
   TERRITORY_UPDATE,
@@ -48,11 +50,13 @@ export default async function performPaidAction (actionType, args, context) {
         throw new Error('You must be logged in to perform this action')
       }
 
-      console.log('we are anon so can only perform pessimistic action')
-      return await performPessimisticAction(actionType, args, context)
+      if (context.cost > 0) {
+        console.log('we are anon so can only perform pessimistic action that require payment')
+        return await performPessimisticAction(actionType, args, context)
+      }
     }
 
-    const isRich = context.cost <= context.me.msats
+    const isRich = context.cost <= (context.me?.msats ?? 0)
     if (isRich) {
       try {
         console.log('enough fee credits available, performing fee credit action')
@@ -100,7 +104,7 @@ async function performFeeCreditAction (actionType, args, context) {
 
     await tx.user.update({
       where: {
-        id: me.id
+        id: me?.id ?? USER_ID.anon
       },
       data: {
         msats: {
@@ -184,7 +188,12 @@ export async function retryPaidAction (actionType, args, context) {
   context.optimistic = true
   context.me = await models.user.findUnique({ where: { id: me.id } })
 
-  const { msatsRequested, actionId } = await models.invoice.findUnique({ where: { id: invoiceId, actionState: 'FAILED' } })
+  const failedInvoice = await models.invoice.findUnique({ where: { id: invoiceId, actionState: 'FAILED' } })
+  if (!failedInvoice) {
+    throw new Error(`retryPaidAction - invoice not found or not in failed state ${actionType}`)
+  }
+
+  const { msatsRequested, actionId } = failedInvoice
   context.cost = BigInt(msatsRequested)
   context.actionId = actionId
   const invoiceArgs = await createSNInvoice(actionType, args, context)
@@ -243,8 +252,8 @@ export async function createLightningInvoice (actionType, args, context) {
     try {
       const description = await paidActions[actionType].describe(args, context)
       const { invoice: bolt11, wallet } = await createUserInvoice(userId, {
-        // this is the amount the stacker will receive, the other 1/10th is the fee
-        msats: cost * BigInt(9) / BigInt(10),
+        // this is the amount the stacker will receive, the other 3/10ths is the sybil fee
+        msats: cost * BigInt(7) / BigInt(10),
         description,
         expiry: INVOICE_EXPIRE_SECS
       }, { models })

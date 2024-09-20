@@ -57,7 +57,7 @@ export function TerritoryInfo ({ sub }) {
 }
 
 export default function TerritoryHeader ({ sub }) {
-  const me = useMe()
+  const { me } = useMe()
   const toaster = useToast()
 
   const [toggleMuteSub] = useMutation(

@@ -12,7 +12,7 @@ import { usePaidMutation } from './use-paid-mutation'
 import { SUB_PAY } from '@/fragments/paidAction'
 
 export default function TerritoryPaymentDue ({ sub }) {
-  const me = useMe()
+  const { me } = useMe()
   const client = useApolloClient()
   const [paySub] = usePaidMutation(SUB_PAY)
 
@@ -72,7 +72,7 @@ export default function TerritoryPaymentDue ({ sub }) {
 }
 
 export function TerritoryBillingLine ({ sub }) {
-  const me = useMe()
+  const { me } = useMe()
   if (!sub || sub.userId !== Number(me?.id)) return null
 
   const dueDate = sub.billPaidUntil && new Date(sub.billPaidUntil)

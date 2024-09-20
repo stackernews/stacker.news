@@ -8,6 +8,7 @@ function paidActionType (actionType) {
       return 'ItemPaidAction'
     case 'ZAP':
     case 'DOWN_ZAP':
+    case 'BOOST':
       return 'ItemActPaidAction'
     case 'TERRITORY_CREATE':
     case 'TERRITORY_UPDATE':

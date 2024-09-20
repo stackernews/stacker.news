@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useMe } from '@/components/me'
-import useClientConfig from '@/components/use-user-vault-state'
+import useVaultStorageState from '@/components/use-user-vault-state'
 import { useWalletLogger } from '@/components/wallet-logger'
 import { bolt11Tags } from '@/lib/bolt11'
 
@@ -48,17 +48,17 @@ export function useWallet (name) {
   const _isConfigured = isConfigured({ ...wallet, config })
 
   const enablePayments = useCallback(() => {
-    enableWalletLocally(name, me)
+    saveConfig(config => ({ ...config, enabled: true }), { skipTests: true })
     logger.ok('payments enabled')
     disableFreebies().catch(console.error)
-  }, [name, me, logger])
+  }, [saveConfig, logger])
 
   const disablePayments = useCallback(() => {
-    disableWalletLocally(name, me)
+    saveConfig(config => ({ ...config, enabled: false }), { skipTests: true })
     logger.info('payments disabled')
   }, [name, me, logger])
 
-  const status = config?.enabled && !isWalletDisabledLocally(name, me) ? Status.Enabled : Status.Initialized
+  const status = config?.enabled ? Status.Enabled : Status.Initialized
   const enabled = status === Status.Enabled
   const priority = config?.priority
 
@@ -171,8 +171,8 @@ function extractServerConfig (fields, config) {
 function useConfig (wallet) {
   const { me } = useMe()
 
-  const storageKey = getStorageKey(wallet?.name, me)
-  const [clientConfig, setClientConfig, clearClientConfig] = useClientConfig(storageKey, {})
+  const storageKey = `wallet:${wallet.name}`
+  const [clientConfig, setClientConfig, clearClientConfig] = useVaultStorageState(storageKey, {})
 
   const [serverConfig, setServerConfig, clearServerConfig] = useServerConfig(wallet)
 
@@ -194,7 +194,11 @@ function useConfig (wallet) {
     config.priority ||= priority
   }
 
-  const saveConfig = useCallback(async (newConfig, { logger, priorityOnly }) => {
+  const saveConfig = useCallback(async (newConfig, { logger, skipTests } = {}) => {
+    if (typeof newConfig === 'function') {
+      newConfig = newConfig(config)
+    }
+
     // NOTE:
     //   verifying the client/server configuration before saving it
     //   prevents unsetting just one configuration if both are set.
@@ -216,7 +220,7 @@ function useConfig (wallet) {
       }
 
       if (valid) {
-        if (priorityOnly) {
+        if (skipTests) {
           setClientConfig(newClientConfig)
         } else {
           try {
@@ -251,9 +255,9 @@ function useConfig (wallet) {
         valid = false
       }
 
-      if (valid) await setServerConfig(newServerConfig, { priorityOnly })
+      if (valid) await setServerConfig(newServerConfig, { priorityOnly: skipTests })
     }
-  }, [hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, wallet])
+  }, [config, hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, wallet])
 
   const clearConfig = useCallback(async ({ logger, clientOnly }) => {
     if (hasClientConfig) {
@@ -415,36 +419,4 @@ export function useWallets () {
   }, [wallets])
 
   return { wallets, resetClient }
-}
-
-function getStorageKey (name, me) {
-  let storageKey = `wallet:${name}`
-
-  // WebLN has no credentials we need to scope to users
-  // so we can use the same storage key for all users
-  if (me && name !== 'webln') {
-    storageKey = `${storageKey}:${me.id}`
-  }
-
-  return storageKey
-}
-
-function enableWalletLocally (name, me) {
-  const key = 'local:' + getStorageKey(name, me)
-  const config = JSON.parse(window.localStorage.getItem(key)) || {}
-  config.enabled = true
-  window.localStorage.setItem(key, JSON.stringify(config))
-}
-
-function disableWalletLocally (name, me) {
-  const key = 'local:' + getStorageKey(name, me)
-  const config = JSON.parse(window.localStorage.getItem(key)) || {}
-  config.enabled = false
-  window.localStorage.setItem(key, JSON.stringify(config))
-}
-
-function isWalletDisabledLocally (name, me) {
-  const key = 'local:' + getStorageKey(name, me)
-  const config = JSON.parse(window.localStorage.getItem(key)) || {}
-  return config?.enabled !== undefined && !config?.enabled
 }

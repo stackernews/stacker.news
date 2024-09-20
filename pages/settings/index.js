@@ -5,7 +5,7 @@ import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import Nav from 'react-bootstrap/Nav'
 import Layout from '@/components/layout'
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import LoginButton from '@/components/login-button'
@@ -1165,25 +1165,14 @@ function DeviceSync () {
   const [value, setVaultKey, clearVault, disconnectVault] = useVaultConfigState()
   const showModal = useShowModal()
   const toaster = useToast()
-  const [connected, setConnected] = useState(false)
-  const [enabled, setEnabled] = useState(false)
-  const [nMigrableKeys, migrateKeys] = useLocalStorageToVaultMigration()
+
+  const enabled = !!me?.privates?.vaultKeyHash
+  const connected = !!value?.key
+
+  const migrateStorage = useLocalStorageToVaultMigration()
 
   // TODO: remove
   const [conf, setConf, clearConf] = useVaultStorageState('test-debug')
-
-  useEffect(() => {
-    setEnabled(!!me?.privates?.vaultKeyHash)
-    setConnected(!!value?.key)
-  }, [me?.privates?.vaultKeyHash, value])
-
-  const migrate = useCallback(async (close) => {
-    if (nMigrableKeys > 0) {
-      const nMigrated = await migrateKeys()
-      if (nMigrated > 0) toaster.success(`Successfully migrated ${nMigrated} entries to your device sync.`)
-    }
-    close()
-  }, [])
 
   const manage = useCallback(async () => {
     if (enabled && connected) {
@@ -1243,7 +1232,8 @@ function DeviceSync () {
               if (values.passphrase) {
                 try {
                   await setVaultKey(values.passphrase)
-                  await migrate(onClose)
+                  await migrateStorage()
+                  onClose()
                 } catch (e) {
                   toaster.danger(e.message)
                 }
@@ -1295,7 +1285,7 @@ function DeviceSync () {
         </div>
       ))
     }
-  }, [enabled, connected, value])
+  }, [migrateStorage, enabled, connected, value])
 
   const resetPassphrase = useCallback(async () => {
     const schema = yup.object().shape({

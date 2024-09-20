@@ -1243,7 +1243,7 @@ function DeviceSync () {
               if (values.passphrase) {
                 try {
                   await setVaultKey(values.passphrase)
-                  migrate(onClose)
+                  await migrate(onClose)
                 } catch (e) {
                   toaster.danger(e.message)
                 }

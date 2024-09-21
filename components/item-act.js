@@ -277,7 +277,7 @@ export function useZap () {
       const reason = error?.message || error?.toString?.()
       toaster.danger(reason)
     }
-  }, [me?.id, strike])
+  }, [act, me?.id, strike])
 }
 
 export class ActCanceledError extends Error {

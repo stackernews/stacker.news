@@ -16,7 +16,7 @@ export async function expireBoost ({ data: { id }, models }) {
           AND "itemId" = ${Number(id)}::INTEGER
         )
         UPDATE "Item"
-        SET boost = COALESCE(boost.cur_msats, 0), "oldBoost" = COALESCE(boost.old_msats, 0)
+        SET boost = COALESCE(boost.cur_msats, 0) / 1000, "oldBoost" = COALESCE(boost.old_msats, 0) / 1000
         FROM boost
         WHERE "Item".id = ${Number(id)}::INTEGER`
     ],

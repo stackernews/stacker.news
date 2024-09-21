@@ -90,8 +90,8 @@ export function BoostItemInput ({ item, sub, act = false, ...props }) {
   const [boost, setBoost] = useState(Number(item?.boost) + (act ? BOOST_MULT : 0))
 
   const [getBoostPosition, { data }] = useLazyQuery(gql`
-    query BoostPosition($id: ID, $boost: Int) {
-      boostPosition(sub: "${item?.subName || sub?.name}", id: $id, boost: $boost) {
+    query BoostPosition($sub: String, $id: ID, $boost: Int) {
+      boostPosition(sub: $sub, id: $id, boost: $boost) {
         home
         sub
       }
@@ -101,10 +101,10 @@ export function BoostItemInput ({ item, sub, act = false, ...props }) {
   const getPositionDebounce = useDebounceCallback((...args) => getBoostPosition(...args), 1000, [getBoostPosition])
 
   useEffect(() => {
-    if (boost) {
-      getPositionDebounce({ variables: { boost: Number(boost), id: item?.id } })
+    if (boost >= 0 && !item?.parentId) {
+      getPositionDebounce({ variables: { sub: item?.subName || sub?.name, boost: Number(boost), id: item?.id } })
     }
-  }, [boost, item?.id])
+  }, [boost, item?.id, !item?.parentId, item?.subName || sub?.name])
 
   const boostMessage = useMemo(() => {
     if (!item?.parentId) {

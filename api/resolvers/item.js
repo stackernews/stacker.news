@@ -479,7 +479,7 @@ export default {
                       '"pinId" IS NULL',
                       subClause(sub, 4)
                     )}
-                    ORDER BY group_rank, rank
+                    ORDER BY group_rank DESC, rank
                   OFFSET $2
                   LIMIT $3`,
                 orderBy: 'ORDER BY group_rank DESC, rank'
@@ -690,7 +690,8 @@ export default {
         boost: { gte: boost },
         status: 'ACTIVE',
         deletedAt: null,
-        outlawed: false
+        outlawed: false,
+        parentId: null
       }
       if (id) {
         where.id = { not: Number(id) }
@@ -698,7 +699,7 @@ export default {
 
       return {
         home: await models.item.count({ where }) === 0,
-        sub: await models.item.count({ where: { ...where, subName: sub } }) === 0
+        sub: sub ? await models.item.count({ where: { ...where, subName: sub } }) === 0 : false
       }
     }
   },
@@ -1139,7 +1140,7 @@ export default {
       return item.weightedVotes - item.weightedDownVotes > 0
     },
     freebie: async (item) => {
-      return item.cost === 0
+      return item.cost === 0 && item.boost === 0
     },
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0

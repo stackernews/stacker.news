@@ -190,7 +190,7 @@ export async function retryPaidAction (actionType, args, context) {
 
   const failedInvoice = await models.invoice.findUnique({ where: { id: invoiceId, actionState: 'FAILED' } })
   if (!failedInvoice) {
-    throw new Error(`retryPaidAction - invoice not found or not in failed state ${actionType}`)
+    throw new Error(`retryPaidAction ${actionType} - invoice ${invoiceId} not found or not in failed state`)
   }
 
   const { msatsRequested, actionId } = failedInvoice

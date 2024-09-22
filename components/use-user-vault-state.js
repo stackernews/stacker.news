@@ -112,6 +112,9 @@ export default function useVaultStorageState (unscopedStorageKey, defaultValue) 
   const [clearVaultValue] = useMutation(UNSET_ENTRY)
   const { data: vaultData, refetch: refetchVaultValue } = useQuery(GET_ENTRY, {
     variables: { key: storageKey },
+    // fetchPolicy only applies to first execution on mount so we also need to
+    // set nextFetchPolicy to make sure we don't serve stale values from cache
+    nextFetchPolicy: 'no-cache',
     fetchPolicy: 'no-cache'
   })
 

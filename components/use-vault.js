@@ -73,23 +73,23 @@ export function useVaultMigration () {
 
     let migratedCount = 0
 
-    for (const storageKey of Object.keys(window.localStorage)) {
-      if (!storageKey.startsWith('wallet:')) continue
-      if (storageKey.includes(':local-only:')) continue
+    for (const migratableKey of retrieveMigratableKeys(me.id)) {
+      try {
+        const value = JSON.parse(window.localStorage.getItem(migratableKey.oldKey))
+        if (!value) throw new Error('no value found in local storage')
 
-      const value = getLocalStorage(storageKey)
-      if (!value) continue
+        const encrypted = await encryptJSON(vaultKey.key, value)
 
-      const encrypted = await encryptJSON(vaultKey.key, value)
-
-      const { data } = await setVaultEntry({ variables: { key: storageKey, value: encrypted, skipIfSet: true } })
-      if (data?.setVaultEntry) {
-        unsetLocalStorage(storageKey)
-        window.localStorage.removeItem(storageKey.localKey)
-        migratedCount++
-        console.log('stored encrypted value in vault:', storageKey, value, encrypted)
-      } else {
-        console.error('failed to store encrypted value in vault:', storageKey)
+        const { data } = await setVaultEntry({ variables: { key: migratableKey.newKey, value: encrypted, skipIfSet: true } })
+        if (data?.setVaultEntry) {
+          window.localStorage.removeItem(migratableKey.oldKey)
+          migratedCount++
+          console.log('migrated to vault:', migratableKey)
+        } else {
+          throw new Error('could not set vault entry')
+        }
+      } catch (e) {
+        console.error('failed migrate to vault:', migratableKey, e)
       }
     }
 
@@ -100,11 +100,8 @@ export function useVaultMigration () {
 }
 
 // used to get and set values in the vault
-export default function useVault (unscopedStorageKey, defaultValue) {
+export default function useVault (storageKey, defaultValue) {
   const { me } = useMe()
-
-  // scope all storage to user
-  const storageKey = `${unscopedStorageKey}:${me?.id}`
 
   const localOnly = storageKey.includes(':local-only:')
 
@@ -124,7 +121,7 @@ export default function useVault (unscopedStorageKey, defaultValue) {
       if (!me) return
 
       if (localOnly) {
-        innerSetValue(getLocalStorage(storageKey) || defaultValue)
+        innerSetValue(getLocalStorage(me.id, storageKey) || defaultValue)
         return
       }
 
@@ -134,7 +131,7 @@ export default function useVault (unscopedStorageKey, defaultValue) {
         // no or different vault setup on server
         // use unencrypted local storage
         unsetLocalKey(me.id)
-        innerSetValue(getLocalStorage(storageKey) || defaultValue)
+        innerSetValue(getLocalStorage(me.id, storageKey) || defaultValue)
         return
       }
 
@@ -147,7 +144,7 @@ export default function useVault (unscopedStorageKey, defaultValue) {
           // console.log('decrypted value from vault:', storageKey, encrypted, decrypted)
           innerSetValue(decrypted)
           // remove local storage value if it exists
-          unsetLocalStorage(storageKey)
+          unsetLocalStorage(me.id, storageKey)
           return
         } catch (e) {
           console.error('cannot read vault data:', storageKey, e)
@@ -155,7 +152,7 @@ export default function useVault (unscopedStorageKey, defaultValue) {
       }
 
       // fallback to local storage
-      innerSetValue(getLocalStorage(storageKey) || defaultValue)
+      innerSetValue(getLocalStorage(me.id, storageKey) || defaultValue)
     })()
   }, [vaultData, me?.privates?.vaultKeyHash])
 
@@ -169,11 +166,11 @@ export default function useVault (unscopedStorageKey, defaultValue) {
       await setVaultValue({ variables: { key: storageKey, value: encryptedValue } })
       console.log('stored encrypted value in vault:', storageKey, newValue, encryptedValue)
       // clear local storage (we get rid of stored unencrypted data as soon as it can be stored on the vault)
-      unsetLocalStorage(storageKey)
+      unsetLocalStorage(me.id, storageKey)
     } else {
       console.log('stored value in local storage:', storageKey, newValue)
       // otherwise use local storage
-      setLocalStorage(storageKey, newValue)
+      setLocalStorage(me.id, storageKey, newValue)
     }
     // refresh in-memory value
     innerSetValue(newValue)
@@ -185,7 +182,7 @@ export default function useVault (unscopedStorageKey, defaultValue) {
     await clearVaultValue({ variables: { key: storageKey } })
     await refetchVaultValue()
     // clear local storage
-    unsetLocalStorage(storageKey)
+    unsetLocalStorage(me.id, storageKey)
     // clear in-memory value
     innerSetValue(undefined)
   }, [storageKey])
@@ -193,29 +190,49 @@ export default function useVault (unscopedStorageKey, defaultValue) {
   return [value, setValue, clearValue, refetchVaultValue]
 }
 
-function setLocalStorage (key, value) {
-  window.localStorage.setItem(key, JSON.stringify(value))
+function retrieveMigratableKeys (userId) {
+  // get all the local storage keys that can be migrated
+  const out = []
+  for (const key of Object.keys(window.localStorage)) {
+    if (key.includes(':local-only:')) continue
+    if (key.startsWith('vault:') && key.endsWith(`:${userId}`)) {
+      out.push({
+        newKey: key.substring('vault:'.length, key.length - `:${userId}`.length),
+        oldKey: key
+      })
+    } else if (key.startsWith('wallet:') && key.endsWith(':' + userId)) {
+      out.push({
+        newKey: key.substring(0, key.length - `:${userId}`.length),
+        oldKey: key
+      })
+    } // check here for more keys that can be migrated if needed
+  }
+  return out
+}
+
+function setLocalStorage (userId, key, value) {
+  window.localStorage.setItem(`vault:${key}:${userId}`, JSON.stringify(value))
 }
 
 function setLocalKey (userId, key) {
-  return setLocalStorage(`vault:key:${userId}`, key)
+  return window.localStorage.setItem(`vault-key:local-only:${userId}`, JSON.stringify(key))
 }
 
-function getLocalStorage (key) {
-  const v = window.localStorage.getItem(key)
+function getLocalStorage (userId, key) {
+  const v = window.localStorage.getItem(`vault:${key}:${userId}`)
   return v ? JSON.parse(v) : null
 }
 
-function getLocalKey (userId) {
-  return getLocalStorage(`vault:key:${userId}`)
+function unsetLocalStorage (userId, key) {
+  window.localStorage.removeItem(`vault:${key}:${userId}`)
 }
 
-function unsetLocalStorage (key) {
-  window.localStorage.removeItem(key)
+function getLocalKey (userId) {
+  return JSON.parse(window.localStorage.getItem(`vault-key:local-only:${userId}`) || '{}')
 }
 
 function unsetLocalKey (userId) {
-  return unsetLocalStorage(`vault:key:${userId}`)
+  return window.localStorage.removeItem(`vault-key:local-only:${userId}`)
 }
 
 function toHex (buffer) {

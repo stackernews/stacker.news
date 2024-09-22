@@ -34,7 +34,7 @@ import styles from './settings.module.css'
 import { AuthBanner } from '@/components/banners'
 import bip39Words from '@/lib/bip39-words'
 import * as yup from 'yup'
-import { useVaultConfigurator, useVaultMigration } from '@/components/use-vault'
+import useVaultStorageState, { useVaultConfigurator, useVaultMigration } from '@/components/use-vault'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -1171,6 +1171,9 @@ function DeviceSync () {
 
   const migrate = useVaultMigration()
 
+  // TODO: remove
+  const [conf, setConf, clearConf] = useVaultStorageState('test-debug')
+
   const manage = useCallback(async () => {
     if (enabled && connected) {
       showModal((onClose) => (
@@ -1286,7 +1289,7 @@ function DeviceSync () {
 
   const resetPassphrase = useCallback(async () => {
     const schema = yup.object().shape({
-      confirm: yup.string().oneOf(['yes'], 'You must confirm by typing "yes"').required('required')
+      confirm: yup.string().oneOf(['yes'], 'You must confirm by typing "yes"').required('Confirmation is required')
     })
     showModal((onClose) => (
       <div>
@@ -1345,6 +1348,18 @@ function DeviceSync () {
             Your sensitive settings remain private and inaccessible to our servers while being synced across all your connected devices using only a passphrase.
           </p>
         </Info>
+      </div>
+      <div className='mt-4'>
+        <h4>Debug Buttons (TODO: remove from final release)</h4>
+        <Button onClick={() => {
+          const input = window.prompt('value')
+          setConf(input)
+        }}
+        >set
+        </Button>
+        <Button onClick={() => clearConf()}>unset</Button>
+        <Button onClick={() => window.alert(conf)}>show</Button>
+
       </div>
     </>
   )

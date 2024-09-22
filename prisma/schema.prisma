@@ -135,7 +135,7 @@ model User {
   oneDayReferrals           OneDayReferral[]     @relation("OneDayReferral_referrer")
   oneDayReferrees           OneDayReferral[]     @relation("OneDayReferral_referrees")
   vaultKeyHash              String               @default("")
-  vaultEntries              UserVault[]          @relation("UserVaultEntries")
+  vaultEntries              Vault[]              @relation("VaultEntries")
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -1100,18 +1100,17 @@ model Reminder {
   @@index([userId, remindAt], map: "Reminder.userId_reminderAt_index")
 }
 
-
-model UserVault {
+model Vault {
   id        Int      @id @default(autoincrement())
   key       String   @db.VarChar(64)
   value     String   @db.Text
   userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, name: "UserVaultEntries")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, name: "VaultEntries")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@unique([userId, key])
-  @@index([userId], map: "UserVault.userId_index")
+  @@index([userId], map: "Vault.userId_index")
 }
 
 enum EarnType {

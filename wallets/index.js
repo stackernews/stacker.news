@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useMe } from '@/components/me'
-import useVaultStorageState from '@/components/use-user-vault-state'
+import useVault from '@/components/use-vault'
 import { useWalletLogger } from '@/components/wallet-logger'
 import { bolt11Tags } from '@/lib/bolt11'
 
@@ -177,7 +177,7 @@ function useConfig (wallet) {
     storageKey += ':local-only'
   }
 
-  const [clientConfig, setClientConfig, clearClientConfig] = useVaultStorageState(storageKey, {})
+  const [clientConfig, setClientConfig, clearClientConfig] = useVault(storageKey, {})
 
   const [serverConfig, setServerConfig, clearServerConfig] = useServerConfig(wallet)
 

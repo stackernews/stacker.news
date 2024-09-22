@@ -9,7 +9,7 @@ export default {
       if (!key) {
         throw new GqlInputError('must have key')
       }
-      const k = await models.userVault.findUnique({
+      const k = await models.vault.findUnique({
         where: {
           userId_key: {
             key,
@@ -55,7 +55,7 @@ export default {
         throw new GqlInputError('must have value')
       }
       if (skipIfSet) {
-        const existing = await models.userVault.findUnique({
+        const existing = await models.vault.findUnique({
           where: {
             userId_key: {
               userId: me.id,
@@ -67,7 +67,7 @@ export default {
           return false
         }
       }
-      await models.userVault.upsert({
+      await models.vault.upsert({
         where: {
           userId_key: {
             userId: me.id,
@@ -92,7 +92,7 @@ export default {
       if (!key) {
         throw new GqlInputError('must have key')
       }
-      await models.userVault.deleteMany({
+      await models.vault.deleteMany({
         where: {
           userId: me.id,
           key
@@ -108,7 +108,7 @@ export default {
         where: { id: me.id },
         data: { vaultKeyHash: '' }
       })
-      await models.userVault.deleteMany({ where: { userId: me.id } })
+      await models.vault.deleteMany({ where: { userId: me.id } })
       return true
     }
   }

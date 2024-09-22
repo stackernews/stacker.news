@@ -1,7 +1,7 @@
 import { gql } from 'graphql-tag'
 
 export default gql`
-  type UserVault {
+  type Vault {
     id: ID!
     key: String!
     value: String!
@@ -10,7 +10,7 @@ export default gql`
   }
 
   extend type Query {
-    getVaultEntry(key: String!): UserVault
+    getVaultEntry(key: String!): Vault
   }
 
   extend type Mutation {

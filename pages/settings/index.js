@@ -34,7 +34,7 @@ import styles from './settings.module.css'
 import { AuthBanner } from '@/components/banners'
 import bip39Words from '@/lib/bip39-words'
 import * as yup from 'yup'
-import { useVaultConfigState, useLocalStorageToVaultMigration } from '@/components/use-user-vault-state'
+import { useVaultConfigurator, useVaultMigration } from '@/components/use-vault'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -1162,14 +1162,14 @@ function PassphraseGeneratorButton () {
 
 function DeviceSync () {
   const { me } = useMe()
-  const [value, setVaultKey, clearVault, disconnectVault] = useVaultConfigState()
+  const [value, setVaultKey, clearVault, disconnectVault] = useVaultConfigurator()
   const showModal = useShowModal()
   const toaster = useToast()
 
   const enabled = !!me?.privates?.vaultKeyHash
   const connected = !!value?.key
 
-  const migrateStorage = useLocalStorageToVaultMigration()
+  const migrate = useVaultMigration()
 
   const manage = useCallback(async () => {
     if (enabled && connected) {
@@ -1229,7 +1229,7 @@ function DeviceSync () {
               if (values.passphrase) {
                 try {
                   await setVaultKey(values.passphrase)
-                  await migrateStorage()
+                  await migrate()
                   onClose()
                 } catch (e) {
                   toaster.danger(e.message)
@@ -1282,7 +1282,7 @@ function DeviceSync () {
         </div>
       ))
     }
-  }, [migrateStorage, enabled, connected, value])
+  }, [migrate, enabled, connected, value])
 
   const resetPassphrase = useCallback(async () => {
     const schema = yup.object().shape({

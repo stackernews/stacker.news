@@ -1,10 +1,9 @@
 import { useCallback, useState, useEffect } from 'react'
 import { useMe } from '@/components/me'
 import { useMutation, useQuery } from '@apollo/client'
-import { GET_ENTRY, SET_ENTRY, UNSET_ENTRY, CLEAR_VAULT, SET_VAULT_KEY_HASH } from '@/fragments/userVault'
+import { GET_ENTRY, SET_ENTRY, UNSET_ENTRY, CLEAR_VAULT, SET_VAULT_KEY_HASH } from '@/fragments/vault'
 
-// used to set and configure the vault
-export function useVaultConfigState () {
+export function useVaultConfigurator () {
   const { me } = useMe()
   const [setVaultKeyHash] = useMutation(SET_VAULT_KEY_HASH)
 
@@ -63,8 +62,7 @@ export function useVaultConfigState () {
   return [vaultKey, setVaultKey, clearVault, disconnectVault]
 }
 
-// use to migrate the local storage to vault (do not overwrite existing vault entries)
-export function useLocalStorageToVaultMigration () {
+export function useVaultMigration () {
   const { me } = useMe()
   const [setVaultEntry] = useMutation(SET_ENTRY)
 
@@ -102,7 +100,7 @@ export function useLocalStorageToVaultMigration () {
 }
 
 // used to get and set values in the vault
-export default function useVaultStorageState (unscopedStorageKey, defaultValue) {
+export default function useVault (unscopedStorageKey, defaultValue) {
   const { me } = useMe()
 
   // scope all storage to user

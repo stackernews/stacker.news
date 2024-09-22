@@ -3,6 +3,8 @@ import { useWallet } from 'wallets'
 
 export const name = 'webln'
 
+export const perDevice = true
+
 export const fields = []
 
 export const fieldValidation = ({ enabled }) => {

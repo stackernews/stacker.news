@@ -77,6 +77,7 @@ export function useLocalStorageToVaultMigration () {
 
     for (const storageKey of Object.keys(window.localStorage)) {
       if (!storageKey.startsWith('wallet:')) continue
+      if (storageKey.includes(':local-only:')) continue
 
       const value = getLocalStorage(storageKey)
       if (!value) continue
@@ -107,6 +108,8 @@ export default function useVaultStorageState (unscopedStorageKey, defaultValue) 
   // scope all storage to user
   const storageKey = `${unscopedStorageKey}:${me?.id}`
 
+  const localOnly = storageKey.includes(':local-only:')
+
   const [setVaultValue] = useMutation(SET_ENTRY)
   const [value, innerSetValue] = useState(undefined)
   const [clearVaultValue] = useMutation(UNSET_ENTRY)
@@ -121,6 +124,11 @@ export default function useVaultStorageState (unscopedStorageKey, defaultValue) 
   useEffect(() => {
     (async () => {
       if (!me) return
+
+      if (localOnly) {
+        innerSetValue(getLocalStorage(storageKey) || defaultValue)
+        return
+      }
 
       const localVaultKey = getLocalKey(me.id)
 
@@ -158,7 +166,7 @@ export default function useVaultStorageState (unscopedStorageKey, defaultValue) 
 
     const useVault = vaultKey && vaultKey.key && vaultKey.hash === me.privates.vaultKeyHash
 
-    if (useVault) {
+    if (useVault && !localOnly) {
       const encryptedValue = await encryptJSON(vaultKey.key, newValue)
       await setVaultValue({ variables: { key: storageKey, value: encryptedValue } })
       console.log('stored encrypted value in vault:', storageKey, newValue, encryptedValue)

@@ -87,9 +87,9 @@ export function useVaultMigration () {
         unsetLocalStorage(storageKey)
         window.localStorage.removeItem(storageKey.localKey)
         migratedCount++
-        console.log('stored encrypted value on server:', storageKey, value, encrypted)
+        console.log('stored encrypted value in vault:', storageKey, value, encrypted)
       } else {
-        console.error('failed to store encrypted value on server:', storageKey)
+        console.error('failed to store encrypted value in vault:', storageKey)
       }
     }
 
@@ -144,7 +144,7 @@ export default function useVault (unscopedStorageKey, defaultValue) {
       if (encrypted) {
         try {
           const decrypted = await decryptJSON(localVaultKey.key, encrypted)
-          console.log('decrypted value from vault:', storageKey, encrypted, decrypted)
+          // console.log('decrypted value from vault:', storageKey, encrypted, decrypted)
           innerSetValue(decrypted)
           // remove local storage value if it exists
           unsetLocalStorage(storageKey)

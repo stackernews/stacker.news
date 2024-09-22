@@ -1,8 +1,8 @@
 const { ApolloClient, InMemoryCache, HttpLink, gql } = require('@apollo/client')
 
 const ITEMS = gql`
-  query items ($sort: String, $when: String, $sub: String) {
-    items (sort: $sort, when: $when, sub: $sub) {
+  query items ($sort: String, $when: String, $sub: String, $by: String) {
+    items (sort: $sort, when: $when, sub: $sub, by: $by) {
       cursor
       items {
         id
@@ -15,6 +15,7 @@ const ITEMS = gql`
         location
         remote
         boost
+        subName
         user {
           id
           name
@@ -157,15 +158,10 @@ async function main () {
     variables: { sort: 'top', when: 'week', sub: 'ama' }
   })
 
-  const jobs = await client.query({
+  const boosts = await client.query({
     query: ITEMS,
-    variables: { sub: 'jobs' }
+    variables: { sort: 'top', when: 'forever', by: 'boost' }
   })
-
-  // const thisDay = await client.query({
-  //   query: SEARCH,
-  //   variables: { q: 'This Day in Stacker News @Undisciplined', sort: 'recent', what: 'posts', when: 'week' }
-  // })
 
   const topMeme = await bountyWinner('meme monday')
   const topFact = await bountyWinner('fun fact')
@@ -242,9 +238,12 @@ ${topCowboys.map((user, i) =>
 
 ------
 
-##### Promoted jobs
-${jobs.data.items.items.filter(i => i.boost > 0).slice(0, 5).map((item, i) =>
-  `${i + 1}. [${item.title.trim()} \\ ${item.company} \\ ${item.location}${item.remote ? ' or Remote' : ''}](https://stacker.news/items/${item.id})\n`).join('')}
+##### Top Boosts
+${boosts.data.items.items.map((item, i) =>
+  item.subName === 'jobs'
+  ? `${i + 1}. [${item.title.trim()} \\ ${item.company} \\ ${item.location}${item.remote ? ' or Remote' : ''}](https://stacker.news/items/${item.id})\n`
+  : `${i + 1}. [${item.title.trim()}](https://stacker.news/items/${item.id})\n`
+  ).join('')}
 
 [**all jobs**](https://stacker.news/~jobs)
 

@@ -81,14 +81,14 @@ export function useLocalStorageToVaultMigration () {
       const value = getLocalStorage(storageKey)
       if (!value) continue
 
-      const encryptedValue = await encryptStorageData(vaultKey.key, value)
+      const encrypted = await encryptJSON(vaultKey.key, value)
 
-      const { data } = await setVaultEntry({ variables: { key: storageKey, value: encryptedValue, skipIfSet: true } })
+      const { data } = await setVaultEntry({ variables: { key: storageKey, value: encrypted, skipIfSet: true } })
       if (data?.setVaultEntry) {
         unsetLocalStorage(storageKey)
         window.localStorage.removeItem(storageKey.localKey)
         migratedCount++
-        console.log('stored encrypted value on server:', storageKey, encryptedValue)
+        console.log('stored encrypted value on server:', storageKey, value, encrypted)
       } else {
         console.error('failed to store encrypted value on server:', storageKey)
       }
@@ -134,15 +134,14 @@ export default function useVaultStorageState (unscopedStorageKey, defaultValue) 
       const encrypted = vaultData?.getVaultEntry?.value
       if (encrypted) {
         try {
-          const rawDecrypted = await decryptStorageData(localVaultKey.key, encrypted)
-          const decrypted = JSON.parse(rawDecrypted)
-          console.log('decrypted vault data:', storageKey, decrypted)
+          const decrypted = await decryptJSON(localVaultKey.key, encrypted)
+          console.log('decrypted value from vault:', storageKey, encrypted, decrypted)
           innerSetValue(decrypted)
           // remove local storage value if it exists
           unsetLocalStorage(storageKey)
           return
         } catch (e) {
-          console.error('cannot read vault data:', e)
+          console.error('cannot read vault data:', storageKey, e)
         }
       }
 
@@ -153,14 +152,17 @@ export default function useVaultStorageState (unscopedStorageKey, defaultValue) 
 
   const setValue = useCallback(async (newValue) => {
     const vaultKey = getLocalKey(me.id)
-    const userVault = me.privates.vaultKeyHash
-    if (userVault && vaultKey && vaultKey.hash === userVault && vaultKey.key) {
-      // if vault key is enabled an properly connected, set the value in the server
-      const encryptedValue = await encryptStorageData(vaultKey.key, JSON.stringify(newValue))
+
+    const useVault = vaultKey && vaultKey.key && vaultKey.hash === me.privates.vaultKeyHash
+
+    if (useVault) {
+      const encryptedValue = await encryptJSON(vaultKey.key, newValue)
       await setVaultValue({ variables: { key: storageKey, value: encryptedValue } })
+      console.log('stored encrypted value in vault:', storageKey, newValue, encryptedValue)
       // clear local storage (we get rid of stored unencrypted data as soon as it can be stored on the vault)
       unsetLocalStorage(storageKey)
     } else {
+      console.log('stored value in local storage:', storageKey, newValue)
       // otherwise use local storage
       setLocalStorage(storageKey, newValue)
     }
@@ -247,7 +249,7 @@ async function deriveKey (userId, passphrase) {
   }
 }
 
-async function encryptStorageData (key, data) {
+async function encryptJSON (key, jsonData) {
   key = await window.crypto.subtle.importKey(
     'raw',
     fromHex(key),
@@ -255,24 +257,28 @@ async function encryptStorageData (key, data) {
     true,
     ['encrypt', 'decrypt']
   )
-  const enc = new TextEncoder()
   const iv = window.crypto.getRandomValues(new Uint8Array(12))
+
+  const encoded = new TextEncoder().encode(JSON.stringify(jsonData))
+
   const encrypted = await window.crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
       iv
     },
     key,
-    enc.encode(data)
+    encoded
   )
+
   return JSON.stringify({
     iv: toHex(iv.buffer),
     data: toHex(encrypted)
   })
 }
 
-async function decryptStorageData (key, encryptedData) {
+async function decryptJSON (key, encryptedData) {
   let { iv, data } = JSON.parse(encryptedData)
+
   iv = fromHex(iv)
   data = fromHex(data)
   key = await window.crypto.subtle.importKey(
@@ -282,6 +288,7 @@ async function decryptStorageData (key, encryptedData) {
     true,
     ['encrypt', 'decrypt']
   )
+
   const decrypted = await window.crypto.subtle.decrypt(
     {
       name: 'AES-GCM',
@@ -290,6 +297,8 @@ async function decryptStorageData (key, encryptedData) {
     key,
     data
   )
-  const dec = new TextDecoder()
-  return dec.decode(decrypted)
+
+  const decoded = new TextDecoder().decode(decrypted)
+
+  return JSON.parse(decoded)
 }

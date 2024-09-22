@@ -113,7 +113,6 @@ function TopLevelItem ({ item, noReply, ...props }) {
           <Reply
             item={item}
             replyOpen
-            placeholder={item.ncomments > 3 ? 'fractions of a penny for your thoughts?' : 'early comments get more zaps'}
             onCancelQuote={cancelQuote}
             onQuoteReply={quoteReply}
             quote={quote}

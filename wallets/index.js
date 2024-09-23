@@ -171,13 +171,9 @@ function extractServerConfig (fields, config) {
 function useConfig (wallet) {
   const { me } = useMe()
 
-  let storageKey = `wallet:${wallet.name}`
+  const storageKey = `wallet:${wallet.name}`
 
-  if (wallet.perDevice) {
-    storageKey += ':local-only'
-  }
-
-  const [clientConfig, setClientConfig, clearClientConfig] = useVault(storageKey, {})
+  const [clientConfig, setClientConfig, clearClientConfig] = useVault(storageKey, {}, { localOnly: wallet.perDevice })
 
   const [serverConfig, setServerConfig, clearServerConfig] = useServerConfig(wallet)
 

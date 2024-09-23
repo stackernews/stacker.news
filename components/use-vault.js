@@ -219,7 +219,11 @@ function setLocalKey (userId, key) {
 }
 
 function getLocalStorage (userId, key) {
-  const v = window.localStorage.getItem(`vault:${key}:${userId}`)
+  let v = window.localStorage.getItem(`vault:${key}:${userId}`)
+
+  // ensure backwards compatible with wallet keys that we used before we had the vault
+  if (!v) v = window.localStorage.getItem(`${key}:${userId}`)
+
   return v ? JSON.parse(v) : null
 }
 

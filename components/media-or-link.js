@@ -9,6 +9,8 @@ import classNames from 'classnames'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
 import useDarkMode from './dark-mode'
+import ArrowLeft from '@/svgs/arrow-left-wide-line.svg'
+import ArrowRight from '@/svgs/arrow-right-wide-line.svg'
 
 function LinkRaw ({ href, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -49,21 +51,52 @@ const Media = memo(function Media ({ src, bestResSrc, srcSet, sizes, width, heig
   )
 })
 
-export default function MediaOrLink ({ linkFallback = true, ...props }) {
+function Carousel ({ close, images, initialSrc }) {
+  const [index, setIndex] = useState(images.indexOf(initialSrc))
+
+  // TODO: add navigation per arrow keys
+  // I tried to get this to work with onKeyDown and tabIndex="0" but I
+  // couldn't get the event to trigger, so leaving this as a TODO for now.
+
+  const src = images[index]
+  const canGoLeft = index > 0
+  const canGoRight = index < images.length - 1
+
+  return (
+    <div className={styles.fullScreenContainer}>
+      <div
+        className={styles.fullScreenNav}
+        onClick={() => setIndex(i => Math.max(0, i - 1))}
+      >
+        {canGoLeft
+          ? <ArrowLeft className={classNames(styles.fullScreenNav, 'justify-self-left')} width={32} height={32} />
+          : <div style={{ width: '32px' }} />}
+      </div>
+      <img className={styles.fullScreen} src={src} onClick={close} />
+      <div
+        className={styles.fullScreenNav}
+        onClick={() => setIndex(i => Math.min(images.length - 1, i + 1))}
+      >
+        {canGoRight
+          ? <ArrowRight className={classNames(styles.fullScreenNav, 'justify-self-right')} width={32} height={32} />
+          : <div style={{ width: '32px' }} />}
+      </div>
+    </div>
+  )
+}
+
+export default function MediaOrLink ({ linkFallback = true, images, ...props }) {
   const media = useMediaHelper(props)
   const [error, setError] = useState(false)
   const showModal = useShowModal()
 
-  const handleClick = useCallback(() => showModal(close => {
-    return (
-      <div
-        className={styles.fullScreenContainer}
-        onClick={close}
-      >
-        <img className={styles.fullScreen} src={media.bestResSrc} />
-      </div>
-    )
-  }, {
+  useEffect(() => {
+    if (!images || images.includes(media.bestResSrc)) return
+    images.push(media.bestResSrc)
+  }, [images])
+
+  const handleClick = useCallback(() => showModal(close =>
+    <Carousel close={close} images={images} initialSrc={media.bestResSrc} />, {
     fullScreen: true,
     overflow: (
       <Dropdown.Item

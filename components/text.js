@@ -47,6 +47,11 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
   const [show, setShow] = useState(false)
   const containerRef = useRef(null)
 
+  // * we pass this array reference to all images
+  // * every image will include itself in this array
+  // * we use this for a carousel during fullscreen
+  const images = useRef([])
+
   useEffect(() => {
     setShow(router.asPath.includes('#'))
     const handleRouteChange = (url, { shallow }) => {
@@ -148,7 +153,8 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
       return url
     }
     const srcSet = imgproxyUrls?.[url]
-    return <MediaOrLink srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} topLevel={topLevel} />
+
+    return <MediaOrLink srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} images={images.current} {...props} topLevel={topLevel} />
   }, [imgproxyUrls, topLevel, tab])
 
   const components = useMemo(() => ({

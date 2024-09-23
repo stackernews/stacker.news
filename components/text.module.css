@@ -236,7 +236,7 @@
 img.fullScreen {
     cursor: zoom-out !important;
     max-height: 100%;
-    max-width: 100vw;
+    max-width: 100%;
     min-width: 0;
     min-height: 0;
     align-self: center;
@@ -249,8 +249,28 @@ img.fullScreen {
     display: grid;
     width: 100%;
     height: 100%;
-    align-content: center;
-    justify-content: center;
+    grid-template-columns: auto auto auto;
+}
+
+
+div.fullScreenNav {
+    display: grid;
+    height: 100%;
+    width: 100%;
+}
+
+
+div.fullScreenNav:hover > svg {
+    fill: var(--theme-navLinkActive);
+}
+svg.fullScreenNav {
+    fill: var(--theme-grey);
+    height: 100%;
+    max-width: 32px;
+}
+
+svg.fullScreenNav:hover {
+    fill: var(--theme-navLinkActive);
 }
 
 .text table {

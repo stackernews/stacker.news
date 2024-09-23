@@ -75,14 +75,14 @@ export function useVaultMigration () {
 
     for (const migratableKey of retrieveMigratableKeys(me.id)) {
       try {
-        const value = JSON.parse(window.localStorage.getItem(migratableKey.oldKey))
+        const value = JSON.parse(window.localStorage.getItem(migratableKey.localStorageKey))
         if (!value) throw new Error('no value found in local storage')
 
         const encrypted = await encryptJSON(vaultKey.key, value)
 
-        const { data } = await setVaultEntry({ variables: { key: migratableKey.newKey, value: encrypted, skipIfSet: true } })
+        const { data } = await setVaultEntry({ variables: { key: migratableKey.vaultStorageKey, value: encrypted, skipIfSet: true } })
         if (data?.setVaultEntry) {
-          window.localStorage.removeItem(migratableKey.oldKey)
+          window.localStorage.removeItem(migratableKey.localStorageKey)
           migratedCount++
           console.log('migrated to vault:', migratableKey)
         } else {
@@ -198,19 +198,25 @@ export default function useVault (vaultStorageKey, defaultValue, options = { loc
 function retrieveMigratableKeys (userId) {
   // get all the local storage keys that can be migrated
   const out = []
+
   for (const key of Object.keys(window.localStorage)) {
     if (key.includes(':local-only:')) continue
-    if (key.startsWith('vault:') && key.endsWith(`:${userId}`)) {
+    if (!key.endsWith(`:${userId}`)) continue
+
+    if (key.startsWith('vault:')) {
       out.push({
-        newKey: key.substring('vault:'.length, key.length - `:${userId}`.length),
-        oldKey: key
+        vaultStorageKey: key.substring('vault:'.length, key.length - `:${userId}`.length),
+        localStorageKey: key
       })
-    } else if (key.startsWith('wallet:') && key.endsWith(':' + userId)) {
+    }
+
+    // required for backwards compatibility with keys that were stored before we had the vault
+    if (key.startsWith('wallet:')) {
       out.push({
-        newKey: key.substring(0, key.length - `:${userId}`.length),
-        oldKey: key
+        vaultStorageKey: key.substring(0, key.length - `:${userId}`.length),
+        localStorageKey: key
       })
-    } // check here for more keys that can be migrated if needed
+    }
   }
   return out
 }

@@ -178,7 +178,17 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
 
       // If [text](url) was parsed as <a> and text is not empty and not a link itself,
       // we don't render it as an image since it was probably a conscious choice to include text.
-      const text = children[0]
+      let text
+
+      // This prevents "stacker.news" string being used in text part of link
+      // to make it look like a stackernews link - text part will be stripped out
+      const regex = /stacker.news/ // used a regex to allow for easy improvements
+      if (children[0].match(regex)) {
+        children[0] = href
+      } else {
+        text = children[0]
+      }
+
       let url
       try {
         url = !href.startsWith('/') && new URL(href)
@@ -253,6 +263,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
         // ignore errors like invalid URLs
       }
 
+      console.log('HIT 1')
       // assume the link is an image which will fallback to link if it's not
       return <TextMediaOrLink src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</TextMediaOrLink>
     },

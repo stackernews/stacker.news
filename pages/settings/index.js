@@ -1314,6 +1314,7 @@ function DeviceSync () {
             placeholder=''
             required
             autoFocus
+            autoComplete='off'
           />
           <div className='d-flex justify-content-between'>
             <div className='d-flex align-items-center ms-auto'>

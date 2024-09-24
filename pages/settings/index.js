@@ -1164,7 +1164,6 @@ function DeviceSync () {
   const { me } = useMe()
   const [value, setVaultKey, clearVault, disconnectVault] = useVaultConfigurator()
   const showModal = useShowModal()
-  const toaster = useToast()
 
   const enabled = !!me?.privates?.vaultKeyHash
   const connected = !!value?.key
@@ -1229,14 +1228,14 @@ function DeviceSync () {
           </p>
           <Form
             initial={{ passphrase: '' }}
-            onSubmit={async values => {
+            onSubmit={async (values, formik) => {
               if (values.passphrase) {
                 try {
                   await setVaultKey(values.passphrase)
                   await migrate()
                   onClose()
                 } catch (e) {
-                  toaster.danger(e.message)
+                  formik?.setErrors({ passphrase: e.message })
                 }
               }
             }}

@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect } from 'react'
 import { useMe } from '@/components/me'
 import { useMutation, useQuery } from '@apollo/client'
 import { GET_ENTRY, SET_ENTRY, UNSET_ENTRY, CLEAR_VAULT, SET_VAULT_KEY_HASH } from '@/fragments/vault'
+import { E_VAULT_KEY_EXISTS } from '@/lib/error'
 
 export function useVaultConfigurator () {
   const { me } = useMe()
@@ -42,11 +43,10 @@ export function useVaultConfigurator () {
       variables: { hash },
       onError: (error) => {
         const errorCode = error.graphQLErrors[0]?.extensions?.code
-        if (errorCode === 'VAULT_KEY_ALREADY_SET') {
-          throw new Error('Device sync is already enabled with a different key. Please input the correct key or reset the device sync.')
-        } else {
-          throw new Error(error)
+        if (errorCode === E_VAULT_KEY_EXISTS) {
+          throw new Error('wrong passphrase')
         }
+        throw new Error(error)
       }
     })
     innerSetVaultKey({ passphrase, key, hash })

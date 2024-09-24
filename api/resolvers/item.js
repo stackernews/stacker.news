@@ -1328,10 +1328,6 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     throw new GqlInputError('item is deleted')
   }
 
-  if (old.invoiceActionState && old.invoiceActionState !== 'PAID') {
-    throw new GqlInputError('cannot edit unpaid item')
-  }
-
   // author can edit their own item (except anon)
   const meId = Number(me?.id ?? USER_ID.anon)
   const authorEdit = !!me && Number(old.userId) === meId

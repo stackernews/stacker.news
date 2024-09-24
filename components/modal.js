@@ -37,13 +37,20 @@ export default function useModal () {
   }, [])
 
   // this is called on every navigation due to below useEffect
-  const onClose = useCallback(() => {
+  const onClose = useCallback((options) => {
+    if (options?.back) {
+      for (let i = 0; i < options.back; i++) {
+        onBack()
+      }
+      return
+    }
+
     while (modalStack.current.length) {
       getCurrentContent()?.options?.onClose?.()
       modalStack.current.pop()
     }
     forceUpdate()
-  }, [])
+  }, [onBack])
 
   const router = useRouter()
   useEffect(() => {

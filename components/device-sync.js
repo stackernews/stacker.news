@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useMe } from './me'
 import { useShowModal } from './modal'
 import useVault, { useVaultConfigurator, useVaultMigration } from './use-vault'
@@ -50,9 +50,7 @@ export default function DeviceSync () {
               <Button className='me-4 text-muted nav-link fw-bold' variant='link' onClick={onClose}>close</Button>
               <Button
                 variant='danger'
-                onClick={() => {
-                  resetPassphrase()
-                }}
+                onClick={reset}
               >reset
               </Button>
               <Button
@@ -69,77 +67,16 @@ export default function DeviceSync () {
       ))
     } else {
       showModal((onClose) => (
-        <div>
-          <h2>{!enabled ? 'Create a' : 'Input your'} Passphrase</h2>
-          <p>
-            {!enabled
-              ? 'Enter a passphrase to securely sync your data with other devices, you’ll need to enter this passphrase on each device you want to sync.'
-              : 'Enter your passphrase to connect to your device sync.'}
-          </p>
-          <Form
-            initial={{ passphrase: '' }}
-            onSubmit={async (values, formik) => {
-              if (values.passphrase) {
-                try {
-                  await setVaultKey(values.passphrase)
-                  await migrate()
-                  onClose()
-                } catch (e) {
-                  formik?.setErrors({ passphrase: e.message })
-                }
-              }
-            }}
-          >
-            <PasswordInput
-              label='Passphrase'
-              name='passphrase'
-              placeholder=''
-              required
-              autoFocus
-            />
-            {!enabled && (
-              <div className='d-flex justify-content-between mb-3'>
-                <div className='d-flex align-items-center ms-auto'>
-                  <PassphraseGeneratorButton />
-                </div>
-              </div>
-            )}
-
-            <p className='text-muted text-sm'>
-              {
-                !enabled
-                  ? 'We never have access to your passphrase, so make sure to store it safely.'
-                  : 'If you have forgotten your passphrase, you can reset your device sync and start over.'
-              }
-            </p>
-            <div className='mt-3'>
-              <div className='d-flex justify-content-between'>
-                <div className='d-flex align-items-center ms-auto gap-2'>
-                  <CancelButton onClick={onClose} />
-                  {enabled && (
-                    <Button
-                      variant='danger'
-                      onClick={() => {
-                        resetPassphrase()
-                      }}
-                    >reset
-                    </Button>
-                  )}
-                  <SubmitButton variant='primary'>
-                    connect
-                  </SubmitButton>
-                </div>
-              </div>
-            </div>
-          </Form>
-        </div>
+        <ConnectForm onClose={onClose} onReset={reset} onConnect={onConnect} enabled={enabled} />
       ))
     }
   }, [migrate, enabled, connected, value])
 
-  const resetPassphrase = useCallback(async () => {
+  const reset = useCallback(async () => {
     const schema = yup.object().shape({
-      confirm: yup.string().oneOf(['yes'], 'You must confirm by typing "yes"').required('Confirmation is required')
+      confirm: yup.string()
+        .oneOf(['yes'], 'you must confirm by typing "yes"')
+        .required('required')
     })
     showModal((onClose) => (
       <div>
@@ -178,6 +115,17 @@ export default function DeviceSync () {
     ))
   }, [])
 
+  const onConnect = useCallback(async (values, formik) => {
+    if (values.passphrase) {
+      try {
+        await setVaultKey(values.passphrase)
+        await migrate()
+      } catch (e) {
+        formik?.setErrors({ passphrase: e.message })
+      }
+    }
+  }, [setVaultKey, migrate])
+
   return (
     <>
       <div className='form-label mt-3'>device sync</div>
@@ -210,7 +158,6 @@ export default function DeviceSync () {
         </Button>
         <Button onClick={() => clearConf()}>unset</Button>
         <Button onClick={() => window.alert(conf)}>show</Button>
-
       </div>
     </>
   )
@@ -235,5 +182,70 @@ function PassphraseGeneratorButton () {
         generate random passphrase
       </Button>
     </>
+  )
+}
+
+function ConnectForm ({ onClose, onConnect, onReset, enabled }) {
+  const [passphrase, setPassphrase] = useState('')
+
+  useEffect(() => {
+    const scannedPassphrase = window.localStorage.getItem('qr:passphrase')
+    if (scannedPassphrase) {
+      setPassphrase(scannedPassphrase)
+      window.localStorage.removeItem('qr:passphrase')
+    }
+  })
+
+  return (
+    <div>
+      <h2>{!enabled ? 'Create a' : 'Input your'} Passphrase</h2>
+      <p>
+        {!enabled
+          ? 'Enter a passphrase to securely sync your data with other devices, you’ll need to enter this passphrase on each device you want to sync.'
+          : 'Enter your passphrase to connect to your device sync.'}
+      </p>
+      <Form
+        initial={{ passphrase }}
+        enableReinitialize
+        onSubmit={(values, formik) => {
+          onClose()
+          return onConnect(values, formik)
+        }}
+      >
+        <PasswordInput
+          label='Passphrase'
+          name='passphrase'
+          placeholder=''
+          required
+          autoFocus
+          qr={enabled}
+        />
+        {!enabled && (
+          <div className='d-flex justify-content-between mb-3'>
+            <div className='d-flex align-items-center ms-auto'>
+              <PassphraseGeneratorButton />
+            </div>
+          </div>
+        )}
+        <p className='text-muted text-sm'>
+          {
+            !enabled
+              ? 'We never have access to your passphrase, so make sure to store it safely.'
+              : 'If you have forgotten your passphrase, you can reset your device sync and start over.'
+          }
+        </p>
+        <div className='mt-3'>
+          <div className='d-flex justify-content-between'>
+            <div className='d-flex align-items-center ms-auto gap-2'>
+              <CancelButton onClick={onClose} />
+              {enabled && (
+                <Button variant='danger' onClick={onReset}>reset</Button>
+              )}
+              <SubmitButton variant='primary'>connect</SubmitButton>
+            </div>
+          </div>
+        </div>
+      </Form>
+    </div>
   )
 }

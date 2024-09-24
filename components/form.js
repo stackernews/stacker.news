@@ -34,6 +34,11 @@ import Info from './info'
 import { useMe } from './me'
 import classNames from 'classnames'
 import Clipboard from '@/svgs/clipboard-line.svg'
+import QrIcon from '@/svgs/qr-code-line.svg'
+import QrScanIcon from '@/svgs/qr-scan-line.svg'
+import { useShowModal } from './modal'
+import QRCode from 'qrcode.react'
+import { QrScanner } from '@yudiel/react-qr-scanner'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -1085,7 +1090,72 @@ function PasswordHider ({ onClick, showPass }) {
   )
 }
 
-export function PasswordInput ({ newPass, copy, ...props }) {
+function QrPassword ({ value }) {
+  const showModal = useShowModal()
+  const toaster = useToast()
+
+  const showQr = useCallback(() => {
+    copy(value)
+    toaster.success('copied passphrase')
+    showModal(close => (
+      <div className={styles.qr}>
+        <p className='text-muted'>Import this passphrase into another device by scanning this QR code</p>
+        <QRCode value={value} renderAs='svg' />
+      </div>
+    ))
+  }, [toaster, value, showModal])
+
+  return (
+    <>
+      <InputGroup.Text
+        style={{ cursor: 'pointer' }}
+        onClick={showQr}
+      >
+        <QrIcon height={16} width={16} />
+      </InputGroup.Text>
+    </>
+  )
+}
+
+function PasswordScanner ({ onDecode }) {
+  const showModal = useShowModal()
+  const toaster = useToast()
+  const ref = useRef(false)
+
+  return (
+    <InputGroup.Text
+      style={{ cursor: 'pointer' }}
+      onClick={() => {
+        showModal(onClose => {
+          return (
+            <QrScanner
+              onDecode={(decoded) => {
+                onDecode(decoded)
+
+                // avoid accidentally caling onClose multiple times
+                if (ref?.current) return
+                ref.current = true
+
+                onClose({ back: 1 })
+              }}
+              onError={(error) => {
+                if (error instanceof DOMException) return
+                toaster.danger('qr scan error:', error.message || error.toString?.())
+                onClose({ back: 1 })
+              }}
+            />
+          )
+        })
+      }}
+    >
+      <QrScanIcon
+        height={20} width={20} fill='var(--bs-body-color)'
+      />
+    </InputGroup.Text>
+  )
+}
+
+export function PasswordInput ({ newPass, qr, readOnly, ...props }) {
   const [showPass, setShowPass] = useState(false)
   const [field] = useField(props)
 
@@ -1094,10 +1164,21 @@ export function PasswordInput ({ newPass, copy, ...props }) {
       {...props}
       type={showPass ? 'text' : 'password'}
       autoComplete={newPass ? 'new-password' : 'current-password'}
+      readOnly={readOnly}
       append={
         <>
           <PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />
-          {copy && <CopyButton value={field?.value} icon />}
+          {qr && (readOnly
+            ? <QrPassword value={field?.value} />
+            : <PasswordScanner
+                onDecode={decoded => {
+                  // Formik helpers don't seem to work in another modal.
+                  // I assume it's because we unmount the Formik component
+                  // when replace it with another modal.
+                  // We use local storage to workaround this.
+                  window.localStorage.setItem('qr:passphrase', decoded)
+                }}
+              />)}
         </>
       }
     />

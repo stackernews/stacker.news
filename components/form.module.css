@@ -70,3 +70,13 @@
 		opacity: 42%;
 	}
 }
+
+div.qr {
+    display: grid;
+}
+
+div.qr > svg {
+    justify-self: center;
+    width: 100%;
+    height: auto;
+}

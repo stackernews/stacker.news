@@ -100,7 +100,7 @@ export function useWallet (name) {
       logger.error(message)
       throw err
     }
-  }, [clearConfig, logger, disablePayments])
+  }, [clearConfig, logger])
 
   const deleteLogs_ = useCallback(async (options) => {
     // first argument is to override the wallet
@@ -264,7 +264,7 @@ function useConfig (wallet) {
   const clearConfig = useCallback(async ({ logger, clientOnly }) => {
     if (hasClientConfig) {
       clearClientConfig()
-      wallet.disablePayments()
+      wallet.disablePayments({})
       logger.ok('wallet detached for payments')
     }
     if (hasServerConfig && !clientOnly) await clearServerConfig()

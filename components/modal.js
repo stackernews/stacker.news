@@ -89,7 +89,7 @@ export default function useModal () {
                 {overflow}
               </ActionDropdown>
             </div>}
-          {modalStack.current.length > 1 ? <div className='modal-btn modal-back' onClick={onBack}><BackArrow width={18} height={18} className='fill-white' /></div> : null}
+          {modalStack.current.length > 1 ? <div className='modal-btn modal-back' onClick={onBack}><BackArrow width={18} height={18} /></div> : null}
           <div className={'modal-btn modal-close ' + className} onClick={onClose}>X</div>
         </div>
         <Modal.Body className={className}>

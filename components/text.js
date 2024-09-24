@@ -263,7 +263,6 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
         // ignore errors like invalid URLs
       }
 
-      console.log('HIT 1')
       // assume the link is an image which will fallback to link if it's not
       return <TextMediaOrLink src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</TextMediaOrLink>
     },

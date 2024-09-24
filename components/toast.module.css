@@ -8,19 +8,19 @@
   width: fit-content;
   justify-self: right;
   color: #fff;
-  right: -100%;
+  bottom: -100%;
   border-width: 1px;
   border-style: solid;
   text-overflow: ellipsis;
-  animation: slide ease-out 0.25s;
+  animation: slide ease-out 0.2s;
 }
 
 @keyframes slide {
   0% {
-    transform: translateX(100%);
+    transform: translateY(100%);
   }
   100% {
-    transform: translateX(0%)
+    transform: translateY(0%)
   }
 }
 

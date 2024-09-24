@@ -2,7 +2,7 @@
     max-width: 250px;
     z-index: 10000;
     right: -100%;
-    animation: slide ease-out 0.25s;
+    animation: slide ease-out 0.2s;
 }
 
 @keyframes slide {

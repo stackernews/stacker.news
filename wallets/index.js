@@ -80,7 +80,7 @@ export function useWallet (name) {
   const setPriority = useCallback(async (priority) => {
     if (_isConfigured && priority !== config.priority) {
       try {
-        await saveConfig({ ...config, priority }, { logger, priorityOnly: true })
+        await saveConfig({ ...config, priority }, { logger, skipTests: true })
       } catch (err) {
         toaster.danger(`failed to change priority of ${wallet.name} wallet: ${err.message}`)
       }

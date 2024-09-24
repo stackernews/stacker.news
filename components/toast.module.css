@@ -1,13 +1,27 @@
 .toastContainer {
   transform: translate3d(0, 0, 0);
+  display: grid;
 }
 
 .toast {
-  width: auto;
+  font-size: small;
+  width: fit-content;
+  justify-self: right;
   color: #fff;
+  bottom: -100%;
   border-width: 1px;
   border-style: solid;
   text-overflow: ellipsis;
+  animation: slide ease-out 0.2s;
+}
+
+@keyframes slide {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0%)
+  }
 }
 
 .success {
@@ -69,10 +83,4 @@
 
 .toastClose:hover {
   opacity: 0.7;
-}
-
-@media screen and (min-width: 400px) {
-  .toast {
-    width: var(--bs-toast-max-width);
-  }
 }

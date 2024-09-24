@@ -65,6 +65,29 @@ export default function ItemInfo ({
   const meSats = (me ? item.meSats : item.meAnonSats) || 0
 
   const EditInfo = () => {
+    if (canEdit) {
+      return (
+        <>
+          <span> \ </span>
+          <span
+            className='text-reset pointer fw-bold'
+            onClick={() => onEdit ? onEdit() : router.push(`/items/${item.id}/edit`)}
+          >
+            <span>{editText || 'edit'} </span>
+            {(!item.invoice?.actionState || item.invoice?.actionState === 'PAID') &&
+              <Countdown
+                date={editThreshold}
+                onComplete={() => { setCanEdit(false) }}
+              />}
+          </span>
+        </>
+      )
+    }
+
+    return null
+  }
+
+  const PaymentInfo = () => {
     const waitForQrPayment = useQrPayment()
     if (item.deletedAt) return null
 
@@ -90,18 +113,6 @@ export default function ItemInfo ({
         )
         onClick = () => waitForQrPayment({ id: item.invoice?.id }, null, { cancelOnClose: false }).catch(console.error)
       }
-    } else if (canEdit) {
-      Component = () => (
-        <>
-          <span>{editText || 'edit'} </span>
-          <Countdown
-            date={editThreshold}
-            onComplete={() => {
-              setCanEdit(false)
-            }}
-          />
-        </>)
-      onClick = () => onEdit ? onEdit() : router.push(`/items/${item.id}/edit`)
     } else {
       return null
     }
@@ -207,6 +218,7 @@ export default function ItemInfo ({
         showActionDropdown &&
           <>
             <EditInfo />
+            <PaymentInfo />
             <ActionDropdown>
               <CopyLinkDropdownItem item={item} />
               <InfoDropdownItem item={item} />

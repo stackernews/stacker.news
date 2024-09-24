@@ -242,12 +242,12 @@ function RevenueNotification ({ n }) {
   return (
     <div className='d-flex'>
       <BountyIcon className='align-self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px' }} />
-      <div className=' pb-1'>
-        <div className='fw-bold text-success'>
+      <div className='ms-2'>
+        <NoteHeader color='success' big>
           you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in territory revenue<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-        </div>
+        </NoteHeader>
         <div style={{ lineHeight: '140%' }}>
-          As the founder of territory <Link href={`/~${n.subName}`}>~{n.subName}</Link>, you receive 50% of the revenue it generates and the other 50% go to <Link href='/rewards'>rewards</Link>.
+          As the founder of territory <Link href={`/~${n.subName}`}>~{n.subName}</Link>, you receive 70% of the post, comment, boost, and zap fees. The other 30% go to <Link href='/rewards'>rewards</Link>.
         </div>
       </div>
     </div>

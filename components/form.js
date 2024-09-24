@@ -271,6 +271,11 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
           e.preventDefault()
           insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
         }
+        if (e.key === 'u') {
+          // some browsers might use CTRL+U to do something else so prevent that behavior too
+          e.preventDefault()
+          imageUploadRef.current?.click()
+        }
         if (e.key === 'Tab' && e.altKey) {
           e.preventDefault()
           insertMarkdownTabFormatting(innerRef.current, helpers.setValue, setSelectionRange)

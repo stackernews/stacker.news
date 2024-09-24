@@ -105,6 +105,8 @@ const orderByClause = (by, me, models, type) => {
       return 'ORDER BY "Item".msats DESC'
     case 'zaprank':
       return topOrderByWeightedSats(me, models)
+    case 'boost':
+      return 'ORDER BY "Item".boost DESC'
     case 'random':
       return 'ORDER BY RANDOM()'
     default:
@@ -378,6 +380,7 @@ export default {
                 activeOrMine(me),
                 nsfwClause(showNsfw),
                 typeClause(type),
+                by === 'boost' && '"Item".boost > 0',
                 whenClause(when || 'forever', table))}
               ${orderByClause(by, me, models, type)}
               OFFSET $4
@@ -421,6 +424,7 @@ export default {
                 typeClause(type),
                 whenClause(when, 'Item'),
                 await filterClause(me, models, type),
+                by === 'boost' && '"Item".boost > 0',
                 muteClause(me))}
               ${orderByClause(by || 'zaprank', me, models, type)}
               OFFSET $3
@@ -1322,10 +1326,6 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
 
   if (old.deletedAt) {
     throw new GqlInputError('item is deleted')
-  }
-
-  if (old.invoiceActionState && old.invoiceActionState !== 'PAID') {
-    throw new GqlInputError('cannot edit unpaid item')
   }
 
   // author can edit their own item (except anon)

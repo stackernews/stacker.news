@@ -29,10 +29,11 @@ export default function DeviceSync () {
         <div>
           <h2>Device sync is enabled!</h2>
           <p>
-            Device sync is enabled and connected to this device. Use this passphrase on other devices to sync them.
+            Sensitive data (like wallet credentials) is now securely synced between all connected devices.
+            Use this passphrase on other devices to connect them.
           </p>
           <p className='text-muted text-sm'>
-            This passphrase is stored securely in your device and is never sent to our servers.
+            The passphrase is stored on your device and is never sent to our server.
           </p>
           <Form
             initial={{ passphrase: value?.passphrase || '' }}
@@ -82,8 +83,10 @@ export default function DeviceSync () {
       <div>
         <h2>Reset device sync</h2>
         <p>
-          Resetting your device sync will clear all your synced data and require you to set up a new passphrase.
-          This action cannot be undone.
+          This will delete all encrypted data on the server and disconnect all devices by deleting the passphrase on each.
+        </p>
+        <p>
+          You will need to enter a new passphrase on this and all other devices to sync data again.
         </p>
         <Form
           className='mt-3'
@@ -95,7 +98,7 @@ export default function DeviceSync () {
           }}
         >
           <Input
-            label='Do you wish to continue? Type `yes` to confirm.'
+            label='This action cannot be undone. Type `yes` to confirm.'
             name='confirm'
             placeholder=''
             required
@@ -202,8 +205,8 @@ function ConnectForm ({ onClose, onConnect, onReset, enabled }) {
       <h2>{!enabled ? 'Create a' : 'Input your'} Passphrase</h2>
       <p>
         {!enabled
-          ? 'Enter a passphrase to securely sync your data with other devices, you’ll need to enter this passphrase on each device you want to sync.'
-          : 'Enter your passphrase to connect to your device sync.'}
+          ? 'Enter a passphrase to securely sync sensitive data (like wallet credentials) between your devices. You’ll need to enter this passphrase on each device you want to connect.'
+          : 'Enter the passphrase you used during setup to access your encrypted sensitive data (like wallet credentials) on the server.'}
       </p>
       <Form
         initial={{ passphrase }}
@@ -233,8 +236,8 @@ function ConnectForm ({ onClose, onConnect, onReset, enabled }) {
         <p className='text-muted text-sm'>
           {
             !enabled
-              ? 'We never have access to your passphrase, so make sure to store it safely.'
-              : 'If you have forgotten your passphrase, you can reset your device sync and start over.'
+              ? 'This passphrase is stored only on your device.'
+              : 'If you have forgotten your passphrase, you can reset and start over.'
           }
         </p>
         <div className='mt-3'>

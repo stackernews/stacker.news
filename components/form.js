@@ -1099,7 +1099,7 @@ function QrPassword ({ value }) {
     toaster.success('copied passphrase')
     showModal(close => (
       <div className={styles.qr}>
-        <p className='text-muted'>Import this passphrase into another device by scanning this QR code</p>
+        <p>You can import this passphrase into another device by scanning this QR code</p>
         <QRCode value={value} renderAs='svg' />
       </div>
     ))

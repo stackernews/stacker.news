@@ -47,7 +47,7 @@ export default function DeviceSync () {
           </Form>
           <div className='d-flex justify-content-between'>
             <div className='d-flex align-items-center ms-auto gap-2'>
-              <Button className='me-4 text-muted nav-link fw-bold' variant='link' onClick={onClose}>close</Button>
+              <Button className='me-2 text-muted nav-link fw-bold' variant='link' onClick={onClose}>close</Button>
               <Button
                 variant='danger'
                 onClick={reset}

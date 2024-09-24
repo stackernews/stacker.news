@@ -188,7 +188,8 @@
     max-width: calc(100% - var(--grid-gap));
 }
 
-.mediaContainer ~ .mediaContainer, .mediaContainer:has(+ .mediaContainer) {
+.p:not(:has(> span)) .mediaContainer ~ .mediaContainer,
+.p:not(:has(> span)) .mediaContainer:has(+ .mediaContainer) {
     display: inline-block;
     width: min-content;
     margin-right: var(--grid-gap);
@@ -196,21 +197,21 @@
 
 .p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) > .mediaContainer:only-child,
 .p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) > .mediaContainer:only-child,
-.mediaContainer:first-child:has(+ .mediaContainer)  {
+.p:not(:has(> span)) .mediaContainer:first-child:has(+ .mediaContainer)  {
     margin-right: var(--grid-gap);
 }
 
 .p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) > .mediaContainer:only-child img,
 .p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) > .mediaContainer:only-child img,
-.mediaContainer ~ .mediaContainer img,
-.mediaContainer:has(+ .mediaContainer) img {
+.p:not(:has(> span)) .mediaContainer ~ .mediaContainer img,
+.p:not(:has(> span)) .mediaContainer:has(+ .mediaContainer) img {
     block-size: revert-layer;
     max-width: stretch;
 }
 .p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) > .mediaContainer:only-child video,
 .p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) > .mediaContainer:only-child video,
-.mediaContainer ~ .mediaContainer video,
-.mediaContainer:has(+ .mediaContainer) video {
+.p:not(:has(> span)) .mediaContainer ~ .mediaContainer video,
+.p:not(:has(> span)) .mediaContainer:has(+ .mediaContainer) video {
     block-size: stretch;
 }
 

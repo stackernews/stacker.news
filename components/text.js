@@ -14,7 +14,7 @@ import copy from 'clipboard-copy'
 import MediaOrLink from './media-or-link'
 import { IMGPROXY_URL_REGEXP, parseInternalLinks, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
-import { rehypeInlineCodeProperty, rehypeStyler } from '@/lib/md'
+import { rehypeInlineCodeProperty, rehypeStyler, rehypeWrapText } from '@/lib/md'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
@@ -164,6 +164,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
       return <li {...props} id={props.id && itemId ? `${props.id}-${itemId}` : props.id} />
     },
     code: Code,
+    span: ({ children, ...props }) => <span>{children}</span>,
     a: ({ node, href, children, ...props }) => {
       children = children ? Array.isArray(children) ? children : [children] : []
       // don't allow zoomable images to be wrapped in links
@@ -260,7 +261,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
   }), [outlawed, rel, itemId, Code, P, Heading, Table, TextMediaOrLink])
 
   const remarkPlugins = useMemo(() => [gfm, mention, sub], [])
-  const rehypePlugins = useMemo(() => [rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript], [])
+  const rehypePlugins = useMemo(() => [rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript, rehypeWrapText], [])
 
   return (
     <div className={classNames(styles.text, topLevel && styles.topLevel, show ? styles.textUncontained : overflowing && styles.textContained)} ref={containerRef}>

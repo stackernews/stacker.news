@@ -33,6 +33,7 @@ import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
 import { useMe } from './me'
 import classNames from 'classnames'
+import Clipboard from '@/svgs/clipboard-line.svg'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -69,31 +70,41 @@ export function SubmitButton ({
   )
 }
 
-export function CopyInput (props) {
+function CopyButton ({ value, icon, ...props }) {
   const toaster = useToast()
   const [copied, setCopied] = useState(false)
 
-  const handleClick = async () => {
+  const handleClick = useCallback(async () => {
     try {
-      await copy(props.placeholder)
+      await copy(value)
       toaster.success('copied')
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch (err) {
       toaster.danger('failed to copy')
     }
+  }, [toaster, value])
+
+  if (icon) {
+    return (
+      <InputGroup.Text style={{ cursor: 'pointer' }} onClick={handleClick}>
+        <Clipboard height={20} width={20} />
+      </InputGroup.Text>
+    )
   }
 
   return (
+    <Button className={styles.appendButton} {...props} onClick={handleClick}>
+      {copied ? <Thumb width={18} height={18} /> : 'copy'}
+    </Button>
+  )
+}
+
+export function CopyInput (props) {
+  return (
     <Input
-      onClick={handleClick}
       append={
-        <Button
-          className={styles.appendButton}
-          size={props.size}
-          onClick={handleClick}
-        >{copied ? <Thumb width={18} height={18} /> : 'copy'}
-        </Button>
+        <CopyButton value={props.placeholder} size={props.size} />
       }
       {...props}
     />
@@ -1065,24 +1076,30 @@ function PasswordHider ({ onClick, showPass }) {
     >
       {!showPass
         ? <Eye
-            fill='var(--bs-body-color)' height={20} width={20}
+            fill='var(--bs-body-color)' height={16} width={16}
           />
         : <EyeClose
-            fill='var(--bs-body-color)' height={20} width={20}
+            fill='var(--bs-body-color)' height={16} width={16}
           />}
     </InputGroup.Text>
   )
 }
 
-export function PasswordInput ({ newPass, ...props }) {
+export function PasswordInput ({ newPass, copy, ...props }) {
   const [showPass, setShowPass] = useState(false)
+  const [field] = useField(props)
 
   return (
     <ClientInput
       {...props}
       type={showPass ? 'text' : 'password'}
       autoComplete={newPass ? 'new-password' : 'current-password'}
-      append={<PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />}
+      append={
+        <>
+          <PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />
+          {copy && <CopyButton value={field?.value} icon />}
+        </>
+      }
     />
   )
 }

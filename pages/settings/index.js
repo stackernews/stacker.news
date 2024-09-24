@@ -1193,6 +1193,7 @@ function DeviceSync () {
               type='password'
               name='passphrase'
               readOnly
+              copy
             />
           </Form>
           <div className='d-flex justify-content-between'>

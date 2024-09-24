@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useMe } from './me'
 import { useShowModal } from './modal'
-import useVault, { useVaultConfigurator, useVaultMigration } from './use-vault'
+import { useVaultConfigurator, useVaultMigration } from './use-vault'
 import { Button } from 'react-bootstrap'
 import { Form, Input, PasswordInput, SubmitButton } from './form'
 import { useFormikContext } from 'formik'
@@ -19,9 +19,6 @@ export default function DeviceSync () {
   const connected = !!value?.key
 
   const migrate = useVaultMigration()
-
-  // TODO: remove
-  const [conf, setConf, clearConf] = useVault('test-debug')
 
   const manage = useCallback(async () => {
     if (enabled && connected) {
@@ -151,17 +148,6 @@ export default function DeviceSync () {
             Your sensitive settings remain private and inaccessible to our servers while being synced across all your connected devices using only a passphrase.
           </p>
         </Info>
-      </div>
-      <div className='mt-4'>
-        <h4>Debug Buttons (TODO: remove from final release)</h4>
-        <Button onClick={() => {
-          const input = window.prompt('value')
-          setConf(input)
-        }}
-        >set
-        </Button>
-        <Button onClick={() => clearConf()}>unset</Button>
-        <Button onClick={() => window.alert(conf)}>show</Button>
       </div>
     </>
   )

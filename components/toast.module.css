@@ -1,9 +1,12 @@
 .toastContainer {
   transform: translate3d(0, 0, 0);
+  display: grid;
 }
 
 .toast {
-  width: auto;
+  font-size: small;
+  width: fit-content;
+  justify-self: right;
   color: #fff;
   right: -100%;
   border-width: 1px;

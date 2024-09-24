@@ -13,6 +13,7 @@ import { usePaidMutation } from './use-paid-mutation'
 import { ACT_MUTATION } from '@/fragments/paidAction'
 import { meAnonSats } from '@/lib/apollo'
 import { BoostItemInput } from './adv-post-form'
+import { useWallet } from '../wallets'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -250,12 +251,12 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
 }
 
 export function useZap () {
+  const wallet = useWallet()
   const act = useAct()
-  const { me } = useMe()
   const strike = useLightning()
   const toaster = useToast()
 
-  return useCallback(async ({ item, abortSignal }) => {
+  return useCallback(async ({ item, me, abortSignal }) => {
     const meSats = (item?.meSats || 0)
 
     // add current sats to next tip since idempotent zaps use desired total zap not difference
@@ -267,7 +268,8 @@ export function useZap () {
     try {
       await abortSignal.pause({ me, amount: sats })
       strike()
-      const { error } = await act({ variables, optimisticResponse })
+      // batch zaps if wallet is enabled or using fee credits so they can be executed serially in a single request
+      const { error } = await act({ variables, optimisticResponse, context: { batch: !!wallet || me?.privates?.sats > sats } })
       if (error) throw error
     } catch (error) {
       if (error instanceof ActCanceledError) {
@@ -277,7 +279,7 @@ export function useZap () {
       const reason = error?.message || error?.toString?.()
       toaster.danger(reason)
     }
-  }, [act, me?.id, strike])
+  }, [act, toaster, strike, !!wallet])
 }
 
 export class ActCanceledError extends Error {

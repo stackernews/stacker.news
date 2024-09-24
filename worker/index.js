@@ -104,10 +104,6 @@ async function work () {
     await boss.work('paidActionCanceling', jobWrapper(paidActionCanceling))
     await boss.work('paidActionFailed', jobWrapper(paidActionFailed))
     await boss.work('paidActionPaid', jobWrapper(paidActionPaid))
-    // we renamed these jobs so we leave them so they can "migrate"
-    await boss.work('holdAction', jobWrapper(paidActionHeld))
-    await boss.work('settleActionError', jobWrapper(paidActionFailed))
-    await boss.work('settleAction', jobWrapper(paidActionPaid))
   }
   if (isServiceEnabled('search')) {
     await boss.work('indexItem', jobWrapper(indexItem))

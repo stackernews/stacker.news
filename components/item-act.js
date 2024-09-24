@@ -226,6 +226,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   const getPaidActionResult = data => Object.values(data)[0]
 
   const [act] = usePaidMutation(query, {
+    waitFor: inv => inv?.satsReceived > 0,
     ...options,
     update: (cache, { data }) => {
       const response = getPaidActionResult(data)

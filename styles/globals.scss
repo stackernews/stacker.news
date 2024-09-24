@@ -263,6 +263,20 @@ $zindex-sticky: 900;
   justify-self: center;
 }
 
+.pulse {
+  animation-name: pulse;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+  animation-duration: 0.66s;
+  animation-direction: alternate;
+}
+
+@keyframes pulse {
+0% {
+  opacity: 42%;
+}
+}
+
 svg {
   fill: var(--bs-body-color);
 }

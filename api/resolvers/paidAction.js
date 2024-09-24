@@ -1,3 +1,4 @@
+import { sleep } from '@/lib/time'
 import { retryPaidAction } from '../paidAction'
 import { USER_ID } from '@/lib/constants'
 
@@ -56,7 +57,14 @@ export default {
         throw new Error('Invoice not found')
       }
 
-      const result = await retryPaidAction(invoice.actionType, { invoiceId }, { models, me, lnd })
+      if (invoice.actionState !== 'FAILED') {
+        if (invoice.actionState === 'PAID') {
+          throw new Error('Invoice is already paid')
+        }
+        throw new Error(`Invoice is not in failed state: ${invoice.actionState}`)
+      }
+
+      const result = await retryPaidAction(invoice.actionType, { invoice }, { models, me, lnd })
 
       return {
         ...result,

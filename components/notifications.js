@@ -38,6 +38,7 @@ import { paidActionCacheMods } from './use-paid-mutation'
 import { useRetryCreateItem } from './use-item-submit'
 import { payBountyCacheMods } from './pay-bounty'
 import { useToast } from './toast'
+import classNames from 'classnames'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -102,14 +103,14 @@ function NoteHeader ({ color, children, big }) {
   )
 }
 
-function NoteItem ({ item }) {
+function NoteItem ({ item, ...props }) {
   return (
     <div>
       {item.title
-        ? <Item item={item} itemClassName='pt-0' />
+        ? <Item item={item} itemClassName='pt-0' {...props} />
         : (
           <RootProvider root={item.root}>
-            <Comment item={item} noReply includeParent clickToContext />
+            <Comment item={item} noReply includeParent clickToContext {...props} />
           </RootProvider>)}
     </div>
   )
@@ -343,7 +344,10 @@ function InvoicePaid ({ n }) {
 }
 
 function useActRetry ({ invoice }) {
-  const bountyCacheMods = invoice.item?.bounty ? payBountyCacheMods() : {}
+  const bountyCacheMods =
+    invoice.item.root?.bounty === invoice.satsRequested && invoice.item.root?.mine
+      ? payBountyCacheMods()
+      : {}
   return useAct({
     query: RETRY_PAID_ACTION,
     onPayError: (e, cache, { data }) => {
@@ -383,6 +387,7 @@ function Invoicification ({ n: { invoice, sortTime } }) {
   const actRetry = useActRetry({ invoice })
   const retryCreateItem = useRetryCreateItem({ id: invoice.item?.id })
   const retryPollVote = usePollVote({ query: RETRY_PAID_ACTION, itemId: invoice.item?.id })
+  const [disableRetry, setDisableRetry] = useState(false)
   // XXX if we navigate to an invoice after it is retried in notifications
   // the cache will clear invoice.item and will error on window.back
   // alternatively, we could/should
@@ -407,7 +412,7 @@ function Invoicification ({ n: { invoice, sortTime } }) {
     invoiceActionState = invoice.item.poll?.meInvoiceActionState
   } else {
     if (invoice.actionType === 'ZAP') {
-      if (invoice.item.root?.bounty === invoice.satsRequested && invoice.item.root.mine) {
+      if (invoice.item.root?.bounty === invoice.satsRequested && invoice.item.root?.mine) {
         actionString = 'bounty payment'
       } else {
         actionString = 'zap'
@@ -443,14 +448,19 @@ function Invoicification ({ n: { invoice, sortTime } }) {
         <span className='ms-1 text-muted fw-light'> {numWithUnits(invoice.satsRequested)}</span>
         <span className={invoiceActionState === 'FAILED' ? 'visible' : 'invisible'}>
           <Button
-            size='sm' variant='outline-warning ms-2 border-1 rounded py-0'
+            size='sm' variant={classNames('outline-warning ms-2 border-1 rounded py-0', disableRetry && 'pulse')}
             style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}
+            disabled={disableRetry}
             onClick={async () => {
+              if (disableRetry) return
+              setDisableRetry(true)
               try {
                 const { error } = await retry({ variables: { invoiceId: parseInt(invoiceId) } })
                 if (error) throw error
               } catch (error) {
                 toaster.danger(error?.message || error?.toString?.())
+              } finally {
+                setDisableRetry(false)
               }
             }}
           >
@@ -459,7 +469,7 @@ function Invoicification ({ n: { invoice, sortTime } }) {
           <span className='text-muted ms-2 fw-normal' suppressHydrationWarning>{timeSince(new Date(sortTime))}</span>
         </span>
       </NoteHeader>
-      <NoteItem item={invoice.item} />
+      <NoteItem item={invoice.item} setDisableRetry={setDisableRetry} disableRetry={disableRetry} />
     </div>
   )
 }

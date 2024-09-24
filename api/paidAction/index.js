@@ -160,7 +160,7 @@ async function performPessimisticAction (actionType, args, context) {
 
 export async function retryPaidAction (actionType, args, context) {
   const { models, me } = context
-  const { invoiceId } = args
+  const { invoice: failedInvoice } = args
 
   console.log('retryPaidAction', actionType, args)
 
@@ -181,17 +181,12 @@ export async function retryPaidAction (actionType, args, context) {
     throw new Error(`retryPaidAction - action does not support retrying ${actionType}`)
   }
 
-  if (!invoiceId) {
-    throw new Error(`retryPaidAction - missing invoiceId ${actionType}`)
+  if (!failedInvoice) {
+    throw new Error(`retryPaidAction - missing invoice ${actionType}`)
   }
 
   context.optimistic = true
   context.me = await models.user.findUnique({ where: { id: me.id } })
-
-  const failedInvoice = await models.invoice.findUnique({ where: { id: invoiceId, actionState: 'FAILED' } })
-  if (!failedInvoice) {
-    throw new Error(`retryPaidAction ${actionType} - invoice ${invoiceId} not found or not in failed state`)
-  }
 
   const { msatsRequested, actionId } = failedInvoice
   context.cost = BigInt(msatsRequested)
@@ -204,7 +199,7 @@ export async function retryPaidAction (actionType, args, context) {
     // update the old invoice to RETRYING, so that it's not confused with FAILED
     await tx.invoice.update({
       where: {
-        id: invoiceId,
+        id: failedInvoice.id,
         actionState: 'FAILED'
       },
       data: {
@@ -216,7 +211,7 @@ export async function retryPaidAction (actionType, args, context) {
     const invoice = await createDbInvoice(actionType, args, context, invoiceArgs)
 
     return {
-      result: await action.retry({ invoiceId, newInvoiceId: invoice.id }, context),
+      result: await action.retry({ invoiceId: failedInvoice.id, newInvoiceId: invoice.id }, context),
       invoice,
       paymentMethod: 'OPTIMISTIC'
     }

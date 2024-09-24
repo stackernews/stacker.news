@@ -47,16 +47,18 @@ export function useWallet (name) {
   const hasConfig = wallet?.fields.length > 0
   const _isConfigured = isConfigured({ ...wallet, config })
 
-  const enablePayments = useCallback(() => {
-    saveConfig(config => ({ ...config, enabled: true }), { skipTests: true })
+  const enablePayments = useCallback((updatedConfig) => {
+    // config might have been updated in the same render we call this function
+    // so we allow to pass in the updated config to not overwrite it a stale one
+    saveConfig({ ...(updatedConfig || config), enabled: true }, { skipTests: true })
     logger.ok('payments enabled')
     disableFreebies().catch(console.error)
-  }, [saveConfig, logger])
+  }, [config, logger])
 
-  const disablePayments = useCallback(() => {
-    saveConfig(config => ({ ...config, enabled: false }), { skipTests: true })
+  const disablePayments = useCallback((updatedConfig) => {
+    saveConfig({ ...(updatedConfig || config), enabled: false }, { skipTests: true })
     logger.info('payments disabled')
-  }, [name, me, logger])
+  }, [config, logger])
 
   const status = config?.enabled ? Status.Enabled : Status.Initialized
   const enabled = status === Status.Enabled
@@ -196,10 +198,6 @@ function useConfig (wallet) {
   }
 
   const saveConfig = useCallback(async (newConfig, { logger, skipTests } = {}) => {
-    if (typeof newConfig === 'function') {
-      newConfig = newConfig(config)
-    }
-
     // NOTE:
     //   verifying the client/server configuration before saving it
     //   prevents unsetting just one configuration if both are set.
@@ -236,9 +234,12 @@ function useConfig (wallet) {
           }
 
           setClientConfig(newClientConfig)
+
           logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
-          if (newConfig.enabled) wallet.enablePayments()
-          else wallet.disablePayments()
+
+          // we only call enable / disable for the side effects
+          if (newConfig.enabled) wallet.enablePayments(newClientConfig)
+          else wallet.disablePayments(newClientConfig)
         }
       }
     }
@@ -258,7 +259,7 @@ function useConfig (wallet) {
 
       if (valid) await setServerConfig(newServerConfig, { priorityOnly: skipTests })
     }
-  }, [config, hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, wallet])
+  }, [hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, wallet])
 
   const clearConfig = useCallback(async ({ logger, clientOnly }) => {
     if (hasClientConfig) {

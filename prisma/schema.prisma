@@ -532,6 +532,7 @@ model Item {
   @@index([invoiceActionState])
   @@index([cost])
   @@index([url])
+  @@index([boost])
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item

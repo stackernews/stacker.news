@@ -122,6 +122,7 @@ export default function DeviceSync () {
         await migrate()
       } catch (e) {
         formik?.setErrors({ passphrase: e.message })
+        throw e
       }
     }
   }, [setVaultKey, migrate])
@@ -207,9 +208,11 @@ function ConnectForm ({ onClose, onConnect, onReset, enabled }) {
       <Form
         initial={{ passphrase }}
         enableReinitialize
-        onSubmit={(values, formik) => {
-          onClose()
-          return onConnect(values, formik)
+        onSubmit={async (values, formik) => {
+          try {
+            await onConnect(values, formik)
+            onClose()
+          } catch {}
         }}
       >
         <PasswordInput

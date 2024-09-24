@@ -5,9 +5,20 @@
 .toast {
   width: auto;
   color: #fff;
+  right: -100%;
   border-width: 1px;
   border-style: solid;
   text-overflow: ellipsis;
+  animation: slide ease-out 0.25s;
+}
+
+@keyframes slide {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(0%)
+  }
 }
 
 .success {
@@ -69,10 +80,4 @@
 
 .toastClose:hover {
   opacity: 0.7;
-}
-
-@media screen and (min-width: 400px) {
-  .toast {
-    width: var(--bs-toast-max-width);
-  }
 }

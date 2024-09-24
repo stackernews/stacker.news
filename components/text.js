@@ -182,8 +182,8 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
 
       // This prevents "stacker.news" string being used in text part of link
       // to make it look like a stackernews link - text part will be stripped out
-      const regex = /stacker.news/ // used a regex to allow for easy improvements
-      if (children[0].match(regex)) {
+      // used a regex to allow for easy improvements
+      if (children.length > 0 && children[0].match(/stacker.news/)) {
         children[0] = href
       } else {
         text = children[0]

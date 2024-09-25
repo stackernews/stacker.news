@@ -11,10 +11,10 @@ import LinkIcon from '@/svgs/link.svg'
 import Thumb from '@/svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
-import MediaOrLink from './media-or-link'
+import MediaOrLink, { Embed } from './media-or-link'
 import { IMGPROXY_URL_REGEXP, parseInternalLinks, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
-import { rehypeInlineCodeProperty, rehypeStyler, rehypeWrapText } from '@/lib/md'
+import { rehypeEmbed, rehypeInlineCodeProperty, rehypeStyler, rehypeWrapText } from '@/lib/md'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
@@ -257,11 +257,12 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
       // assume the link is an image which will fallback to link if it's not
       return <TextMediaOrLink src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</TextMediaOrLink>
     },
-    img: TextMediaOrLink
-  }), [outlawed, rel, itemId, Code, P, Heading, Table, TextMediaOrLink])
+    img: TextMediaOrLink,
+    embed: Embed
+  }), [outlawed, rel, itemId, Code, P, Heading, Table, TextMediaOrLink, Embed])
 
   const remarkPlugins = useMemo(() => [gfm, mention, sub], [])
-  const rehypePlugins = useMemo(() => [rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript, rehypeWrapText], [])
+  const rehypePlugins = useMemo(() => [rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript, rehypeEmbed, rehypeWrapText], [])
 
   return (
     <div className={classNames(styles.text, topLevel && styles.topLevel, show ? styles.textUncontained : overflowing && styles.textContained)} ref={containerRef}>

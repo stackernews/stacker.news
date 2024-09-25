@@ -1,6 +1,6 @@
 import styles from './text.module.css'
 import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
-import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP, parseEmbedUrl } from '@/lib/url'
+import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
 import { Button, Dropdown } from 'react-bootstrap'
@@ -89,14 +89,6 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
         />
       )
     }
-
-    if (media.embed) {
-      return (
-        <Embed
-          {...media.embed} topLevel={props.topLevel} src={media.src} onError={handleError}
-        />
-      )
-    }
   }
 
   if (linkFallback) {
@@ -114,11 +106,10 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
   const [isImage, setIsImage] = useState(video === false && trusted)
   const [isVideo, setIsVideo] = useState(video)
   const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [tab, me?.privates?.showImagesAndVideos])
-  const embed = useMemo(() => parseEmbedUrl(src), [src])
 
   useEffect(() => {
     // don't load the video at all if user doesn't want these
-    if (!showMedia || isVideo || isImage || embed) return
+    if (!showMedia || isVideo || isImage) return
     // make sure it's not a false negative by trying to load URL as <img>
     const img = new window.Image()
     img.onload = () => setIsImage(true)
@@ -133,7 +124,7 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
       video.onloadeddata = null
       video.src = ''
     }
-  }, [src, setIsImage, setIsVideo, showMedia, isVideo, embed])
+  }, [src, setIsImage, setIsVideo, showMedia, isVideo])
 
   const srcSet = useMemo(() => {
     if (Object.keys(srcSetObj).length === 0) return undefined
@@ -182,9 +173,8 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
     style,
     width,
     height,
-    image: (!me?.privates?.imgproxyOnly || trusted) && showMedia && isImage && !isVideo && !embed,
-    video: !me?.privates?.imgproxyOnly && showMedia && isVideo && !embed,
-    embed: !me?.privates?.imgproxyOnly && showMedia && embed
+    image: (!me?.privates?.imgproxyOnly || trusted) && showMedia && isImage && !isVideo,
+    video: !me?.privates?.imgproxyOnly && showMedia && isVideo
   }
 }
 

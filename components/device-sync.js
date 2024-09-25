@@ -146,7 +146,7 @@ export default function DeviceSync () {
             Device Sync uses end-to-end encryption to securely synchronize your data across devices.
           </p>
           <p className='text-muted text-sm'>
-            Your sensitive settings remain private and inaccessible to our servers while being synced across all your connected devices using only a passphrase.
+            Your sensitive data remains private and inaccessible to our servers while being synced across all your connected devices using only a passphrase.
           </p>
         </Info>
       </div>

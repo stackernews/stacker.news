@@ -72,18 +72,22 @@ function Carousel ({ close, initialSrc, images, setItemId }) {
         className={styles.fullScreenNav}
         onClick={() => setIndex(i => Math.max(0, i - 1))}
       >
-        {canGoLeft
-          ? <ArrowLeft className={classNames(styles.fullScreenNav, 'justify-self-left')} width={32} height={32} />
-          : <div style={{ width: '32px' }} />}
+        <div>
+          {canGoLeft
+            ? <ArrowLeft className={classNames(styles.fullScreenNav, 'justify-self-left')} width={32} height={32} />
+            : <div style={{ width: '32px' }} />}
+        </div>
       </div>
       <img className={styles.fullScreen} src={src} onClick={close} />
       <div
         className={styles.fullScreenNav}
         onClick={() => setIndex(i => Math.min(images.length - 1, i + 1))}
       >
-        {canGoRight
-          ? <ArrowRight className={classNames(styles.fullScreenNav, 'justify-self-right')} width={32} height={32} />
-          : <div style={{ width: '32px' }} />}
+        <div>
+          {canGoRight
+            ? <ArrowRight className={classNames(styles.fullScreenNav, 'justify-self-right')} width={32} height={32} />
+            : <div style={{ width: '32px' }} />}
+        </div>
       </div>
     </div>
   )

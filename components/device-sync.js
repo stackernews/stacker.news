@@ -9,6 +9,7 @@ import bip39Words from '@/lib/bip39-words'
 import Info from './info'
 import CancelButton from './cancel-button'
 import * as yup from 'yup'
+import { deviceSyncSchema } from '@/lib/validate'
 
 export default function DeviceSync () {
   const { me } = useMe()
@@ -153,13 +154,14 @@ export default function DeviceSync () {
   )
 }
 
+const generatePassphrase = (n = 12) => {
+  const rand = new Uint32Array(n)
+  window.crypto.getRandomValues(rand)
+  return Array.from(rand).map(i => bip39Words[i % bip39Words.length]).join(' ')
+}
+
 function PassphraseGeneratorButton () {
   const formik = useFormikContext()
-  const generatePassphrase = (n = 12) => {
-    const rand = new Uint32Array(n)
-    window.crypto.getRandomValues(rand)
-    return Array.from(rand).map(i => bip39Words[i % bip39Words.length]).join(' ')
-  }
   return (
     <>
       <Button
@@ -169,14 +171,14 @@ function PassphraseGeneratorButton () {
           formik.setFieldValue('passphrase', pass)
         }}
       >
-        generate random passphrase
+        generate passphrase
       </Button>
     </>
   )
 }
 
 function ConnectForm ({ onClose, onConnect, onReset, enabled }) {
-  const [passphrase, setPassphrase] = useState('')
+  const [passphrase, setPassphrase] = useState(!enabled ? generatePassphrase : '')
 
   useEffect(() => {
     const scannedPassphrase = window.localStorage.getItem('qr:passphrase')
@@ -191,10 +193,11 @@ function ConnectForm ({ onClose, onConnect, onReset, enabled }) {
       <h2>{!enabled ? 'Create a' : 'Input your'} Passphrase</h2>
       <p>
         {!enabled
-          ? 'Enter a passphrase to securely sync sensitive data (like wallet credentials) between your devices. You’ll need to enter this passphrase on each device you want to connect.'
+          ? 'Generate a passphrase to securely sync sensitive data (like wallet credentials) between your devices. You’ll need to enter this passphrase on each device you want to connect.'
           : 'Enter the passphrase you used during setup to access your encrypted sensitive data (like wallet credentials) on the server.'}
       </p>
       <Form
+        schema={deviceSyncSchema}
         initial={{ passphrase }}
         enableReinitialize
         onSubmit={async (values, formik) => {
@@ -205,11 +208,12 @@ function ConnectForm ({ onClose, onConnect, onReset, enabled }) {
         }}
       >
         <PasswordInput
-          label='Passphrase'
+          label='passphrase'
           name='passphrase'
           placeholder=''
           required
           autoFocus
+          readOnly={!enabled}
           qr={enabled}
         />
         {!enabled && (

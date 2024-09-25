@@ -12,7 +12,7 @@ import Thumb from '@/svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
 import MediaOrLink from './media-or-link'
-import { IMGPROXY_URL_REGEXP, parseInternalLinks, decodeProxyUrl } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, isMisleadingLink, parseInternalLinks, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
 import { rehypeInlineCodeProperty, rehypeStyler } from '@/lib/md'
 import { Button } from 'react-bootstrap'
@@ -176,17 +176,11 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
         return href
       }
 
-      // If [text](url) was parsed as <a> and text is not empty and not a link itself,
-      // we don't render it as an image since it was probably a conscious choice to include text.
-      let text
+      let text = children[0]
 
-      // This prevents "stacker.news" string being used in text part of link
-      // to make it look like a stackernews link - text part will be stripped out
-      // used a regex to allow for easy improvements
-      if (children.length > 0 && children[0].match(/stacker.news/)) {
-        children[0] = href
-      } else {
-        text = children[0]
+      // Prevents text being used to appear like a link
+      if (isMisleadingLink(text, href)) {
+        text = href
       }
 
       let url
@@ -264,7 +258,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
       }
 
       // assume the link is an image which will fallback to link if it's not
-      return <TextMediaOrLink src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</TextMediaOrLink>
+      return <TextMediaOrLink src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{text}</TextMediaOrLink>
     },
     img: TextMediaOrLink
   }), [outlawed, rel, itemId, Code, P, Heading, Table, TextMediaOrLink])

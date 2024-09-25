@@ -324,11 +324,12 @@ function EditInfo ({ item, canEdit, setCanEdit, onEdit, editText, editThreshold 
           onClick={() => onEdit ? onEdit() : router.push(`/items/${item.id}/edit`)}
         >
           <span>{editText || 'edit'} </span>
-          {(!item.invoice?.actionState || item.invoice?.actionState === 'PAID') &&
-            <Countdown
-              date={editThreshold}
-              onComplete={() => { setCanEdit(false) }}
-            />}
+          {(!item.invoice?.actionState || item.invoice?.actionState === 'PAID')
+            ? <Countdown
+                date={editThreshold}
+                onComplete={() => { setCanEdit(false) }}
+              />
+            : <span>10:00</span>}
         </span>
       </>
     )

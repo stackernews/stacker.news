@@ -26,20 +26,20 @@ import { useQrPayment } from './payment'
 import { useRetryCreateItem } from './use-item-submit'
 import { useToast } from './toast'
 import { useShowModal } from './modal'
+import classNames from 'classnames'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
-  onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true
+  onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true,
+  setDisableRetry, disableRetry
 }) {
   const editThreshold = new Date(item.invoice?.confirmedAt ?? item.createdAt).getTime() + 10 * 60000
   const { me } = useMe()
-  const toaster = useToast()
   const router = useRouter()
   const [canEdit, setCanEdit] = useState(item.mine && (Date.now() < editThreshold))
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
-  const retryCreateItem = useRetryCreateItem({ id: item.id })
   const sub = item?.sub || root?.sub
 
   useEffect(() => {
@@ -63,72 +63,6 @@ export default function ItemInfo ({
   const rootReply = item.path.split('.').length === 2
   const canPin = (isPost && mySub) || (myPost && rootReply)
   const meSats = (me ? item.meSats : item.meAnonSats) || 0
-
-  const EditInfo = () => {
-    if (canEdit) {
-      return (
-        <>
-          <span> \ </span>
-          <span
-            className='text-reset pointer fw-bold'
-            onClick={() => onEdit ? onEdit() : router.push(`/items/${item.id}/edit`)}
-          >
-            <span>{editText || 'edit'} </span>
-            {(!item.invoice?.actionState || item.invoice?.actionState === 'PAID') &&
-              <Countdown
-                date={editThreshold}
-                onComplete={() => { setCanEdit(false) }}
-              />}
-          </span>
-        </>
-      )
-    }
-
-    return null
-  }
-
-  const PaymentInfo = () => {
-    const waitForQrPayment = useQrPayment()
-    if (item.deletedAt) return null
-
-    let Component
-    let onClick
-    if (me && item.invoice?.actionState && item.invoice?.actionState !== 'PAID') {
-      if (item.invoice?.actionState === 'FAILED') {
-        Component = () => <span className='text-warning'>retry payment</span>
-        onClick = async () => {
-          try {
-            const { error } = await retryCreateItem({ variables: { invoiceId: parseInt(item.invoice?.id) } })
-            if (error) throw error
-          } catch (error) {
-            toaster.danger(error.message)
-          }
-        }
-      } else {
-        Component = () => (
-          <span
-            className='text-info'
-          >pending
-          </span>
-        )
-        onClick = () => waitForQrPayment({ id: item.invoice?.id }, null, { cancelOnClose: false }).catch(console.error)
-      }
-    } else {
-      return null
-    }
-
-    return (
-      <>
-        <span> \ </span>
-        <span
-          className='text-reset pointer fw-bold'
-          onClick={onClick}
-        >
-          <Component />
-        </span>
-      </>
-    )
-  }
 
   return (
     <div className={className || `${styles.other}`}>
@@ -217,8 +151,11 @@ export default function ItemInfo ({
       {
         showActionDropdown &&
           <>
-            <EditInfo />
-            <PaymentInfo />
+            <EditInfo
+              item={item} canEdit={canEdit}
+              setCanEdit={setCanEdit} onEdit={onEdit} editText={editText} editThreshold={editThreshold}
+            />
+            <PaymentInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
             <ActionDropdown>
               <CopyLinkDropdownItem item={item} />
               <InfoDropdownItem item={item} />
@@ -316,4 +253,86 @@ function InfoDropdownItem ({ item }) {
       details
     </Dropdown.Item>
   )
+}
+
+function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
+  const { me } = useMe()
+  const toaster = useToast()
+  const retryCreateItem = useRetryCreateItem({ id: item.id })
+  const waitForQrPayment = useQrPayment()
+  const [disableInfoRetry, setDisableInfoRetry] = useState(disableRetry)
+  if (item.deletedAt) return null
+
+  const disableDualRetry = disableRetry || disableInfoRetry
+  function setDisableDualRetry (value) {
+    setDisableInfoRetry(value)
+    setDisableRetry?.(value)
+  }
+
+  let Component
+  let onClick
+  if (me && item.invoice?.actionState && item.invoice?.actionState !== 'PAID') {
+    if (item.invoice?.actionState === 'FAILED') {
+      Component = () => <span className={classNames('text-warning', disableDualRetry && 'pulse')}>retry payment</span>
+      onClick = async () => {
+        if (disableDualRetry) return
+        setDisableDualRetry(true)
+        try {
+          const { error } = await retryCreateItem({ variables: { invoiceId: parseInt(item.invoice?.id) } })
+          if (error) throw error
+        } catch (error) {
+          toaster.danger(error.message)
+        } finally {
+          setDisableDualRetry(false)
+        }
+      }
+    } else {
+      Component = () => (
+        <span
+          className='text-info'
+        >pending
+        </span>
+      )
+      onClick = () => waitForQrPayment({ id: item.invoice?.id }, null, { cancelOnClose: false }).catch(console.error)
+    }
+  } else {
+    return null
+  }
+
+  return (
+    <>
+      <span> \ </span>
+      <span
+        className='text-reset pointer fw-bold'
+        onClick={onClick}
+      >
+        <Component />
+      </span>
+    </>
+  )
+}
+
+function EditInfo ({ item, canEdit, setCanEdit, onEdit, editText, editThreshold }) {
+  const router = useRouter()
+
+  if (canEdit) {
+    return (
+      <>
+        <span> \ </span>
+        <span
+          className='text-reset pointer fw-bold'
+          onClick={() => onEdit ? onEdit() : router.push(`/items/${item.id}/edit`)}
+        >
+          <span>{editText || 'edit'} </span>
+          {(!item.invoice?.actionState || item.invoice?.actionState === 'PAID') &&
+            <Countdown
+              date={editThreshold}
+              onComplete={() => { setCanEdit(false) }}
+            />}
+        </span>
+      </>
+    )
+  }
+
+  return null
 }

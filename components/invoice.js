@@ -13,8 +13,12 @@ import ItemJob from './item-job'
 import Item from './item'
 import { CommentFlat } from './comment'
 import classNames from 'classnames'
+import Moon from '@/svgs/moon-fill.svg'
 
-export default function Invoice ({ id, query = INVOICE, modal, onPayment, onCanceled, info, successVerb, useWallet = true, walletError, poll, waitFor, ...props }) {
+export default function Invoice ({
+  id, query = INVOICE, modal, onPayment, onCanceled, info, successVerb = 'deposited',
+  heldVerb = 'settling', useWallet = true, walletError, poll, waitFor, ...props
+}) {
   const [expired, setExpired] = useState(false)
   const { data, error } = useQuery(query, SSR
     ? {}
@@ -55,9 +59,17 @@ export default function Invoice ({ id, query = INVOICE, modal, onPayment, onCanc
     variant = 'failed'
     status = 'cancelled'
     useWallet = false
-  } else if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived && !expired)) {
+  } else if (invoice.isHeld && invoice.satsReceived && !expired) {
+    variant = 'pending'
+    status = (
+      <div className='d-flex justify-content-center'>
+        <Moon className='spin fill-grey me-2' /> {heldVerb}
+      </div>
+    )
+    useWallet = false
+  } else if (invoice.confirmedAt) {
     variant = 'confirmed'
-    status = `${numWithUnits(invoice.satsReceived, { abbreviate: false })} ${successVerb || 'deposited'}`
+    status = `${numWithUnits(invoice.satsReceived, { abbreviate: false })} ${successVerb}`
     useWallet = false
   } else if (expired) {
     variant = 'failed'

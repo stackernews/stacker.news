@@ -57,7 +57,10 @@ export function usePaidMutation (mutation,
     let { data, ...rest } = await mutate(innerOptions)
 
     // use the most inner callbacks/options if they exist
-    const { onPaid, onPayError, forceWaitForPayment, persistOnNavigate, update } = { ...options, ...innerOptions }
+    const {
+      onPaid, onPayError, forceWaitForPayment, persistOnNavigate,
+      update, waitFor = inv => inv?.actionState === 'PAID'
+    } = { ...options, ...innerOptions }
     const ourOnCompleted = innerOnCompleted || onCompleted
 
     // get invoice without knowing the mutation name
@@ -95,7 +98,7 @@ export function usePaidMutation (mutation,
         // the action is pessimistic
         try {
           // wait for the invoice to be paid
-          await waitForPayment(invoice, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor: inv => inv?.actionState === 'PAID' })
+          await waitForPayment(invoice, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor })
           if (!response.result) {
             // if the mutation didn't return any data, ie pessimistic, we need to fetch it
             const { data: { paidAction } } = await getPaidAction({ variables: { invoiceId: parseInt(invoice.id) } })

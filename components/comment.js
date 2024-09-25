@@ -137,7 +137,7 @@ export default function Comment ({
     } else {
       ref.current.classList.add('outline-new-comment-unset')
     }
-  }, [imageItemId])
+  }, [item.id, imageItemId])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT
   // Don't show OP badge when anon user comments on anon user posts

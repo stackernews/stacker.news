@@ -1137,7 +1137,7 @@ function PasswordScanner ({ onDecode }) {
               onDecode={(decoded) => {
                 onDecode(decoded)
 
-                // avoid accidentally caling onClose multiple times
+                // avoid accidentally calling onClose multiple times
                 if (ref?.current) return
                 ref.current = true
 

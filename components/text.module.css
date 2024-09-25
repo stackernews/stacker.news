@@ -241,6 +241,7 @@ img.fullScreen {
     min-height: 0;
     align-self: center;
     justify-self: center;
+    user-select: none;
 }
 
 .fullScreenContainer {

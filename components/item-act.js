@@ -90,6 +90,7 @@ function BoostForm ({ step, onSubmit, children, item, oValue, inputRef, act = 'B
 export default function ItemAct ({ onClose, item, act = 'TIP', step, children, abortSignal }) {
   const inputRef = useRef(null)
   const { me } = useMe()
+  const wallet = useWallet()
   const [oValue, setOValue] = useState()
 
   useEffect(() => {
@@ -110,6 +111,18 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         }
       }
     }
+
+    const onPaid = () => {
+      strike()
+      onClose?.()
+      if (!me) setItemMeAnonSats({ id: item.id, amount })
+    }
+
+    const closeImmediately = !!wallet || me?.privates?.sats > Number(amount)
+    if (closeImmediately) {
+      onPaid()
+    }
+
     const { error } = await actor({
       variables: {
         id: item.id,
@@ -127,15 +140,11 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
           }
         : undefined,
       // don't close modal immediately because we want the QR modal to stack
-      onCompleted: () => {
-        strike()
-        onClose?.()
-        if (!me) setItemMeAnonSats({ id: item.id, amount })
-      }
+      onPaid: closeImmediately ? undefined : onPaid
     })
     if (error) throw error
     addCustomTip(Number(amount))
-  }, [me, actor, act, item.id, onClose, abortSignal, strike])
+  }, [me, actor, !!wallet, act, item.id, onClose, abortSignal, strike])
 
   return act === 'BOOST'
     ? <BoostForm step={step} onSubmit={onSubmit} item={item} oValue={oValue} inputRef={inputRef} act={act}>{children}</BoostForm>

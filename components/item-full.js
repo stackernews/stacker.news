@@ -3,7 +3,7 @@ import ItemJob from './item-job'
 import Reply from './reply'
 import Comment from './comment'
 import Text, { SearchText } from './text'
-import MediaOrLink from './media-or-link'
+import MediaOrLink, { ImageProvider } from './media-or-link'
 import Comments from './comments'
 import styles from '@/styles/item.module.css'
 import itemStyles from './item.module.css'
@@ -157,20 +157,22 @@ export default function ItemFull ({ item, bio, rank, ...props }) {
           </div>)
         : <div />}
       <RootProvider root={item.root || item}>
-        {item.parentId
-          ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
-          : (
-            <div>{bio
-              ? <BioItem item={item} {...props} />
-              : <TopLevelItem item={item} {...props} />}
-            </div>)}
-        {item.comments &&
-          <div className={styles.comments}>
-            <Comments
-              parentId={item.id} parentCreatedAt={item.createdAt}
-              pinned={item.position} bio={bio} commentSats={item.commentSats} comments={item.comments}
-            />
-          </div>}
+        <ImageProvider>
+          {item.parentId
+            ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
+            : (
+              <div>{bio
+                ? <BioItem item={item} {...props} />
+                : <TopLevelItem item={item} {...props} />}
+              </div>)}
+          {item.comments &&
+            <div className={styles.comments}>
+              <Comments
+                parentId={item.id} parentCreatedAt={item.createdAt}
+                pinned={item.position} bio={bio} commentSats={item.commentSats} comments={item.comments}
+              />
+            </div>}
+        </ImageProvider>
       </RootProvider>
     </>
   )

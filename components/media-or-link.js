@@ -1,5 +1,5 @@
 import styles from './text.module.css'
-import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo, useRef, createContext, useContext } from 'react'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP, parseEmbedUrl } from '@/lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
@@ -51,14 +51,18 @@ const Media = memo(function Media ({ src, bestResSrc, srcSet, sizes, width, heig
   )
 })
 
-function Carousel ({ close, images, initialSrc }) {
-  const [index, setIndex] = useState(images.indexOf(initialSrc))
+function Carousel ({ close, initialSrc, images, setItemId }) {
+  const [index, setIndex] = useState(images.map(img => img.src).indexOf(initialSrc))
+
+  useEffect(() => {
+    setItemId?.(images[index]?.itemId)
+  }, [index])
 
   // TODO: add navigation per arrow keys
   // I tried to get this to work with onKeyDown and tabIndex="0" but I
   // couldn't get the event to trigger, so leaving this as a TODO for now.
 
-  const src = images[index]
+  const { src } = images[index] || {}
   const canGoLeft = index > 0
   const canGoRight = index < images.length - 1
 
@@ -85,18 +89,20 @@ function Carousel ({ close, images, initialSrc }) {
   )
 }
 
-export default function MediaOrLink ({ linkFallback = true, images, ...props }) {
+export default function MediaOrLink ({ itemId, linkFallback = true, ...props }) {
   const media = useMediaHelper(props)
   const [error, setError] = useState(false)
   const showModal = useShowModal()
+  const { images, setItemId } = useImages()
 
   useEffect(() => {
-    if (!images || images.includes(media.bestResSrc)) return
-    images.push(media.bestResSrc)
-  }, [images])
+    if (!images || images.some(({ src }) => src === media.bestResSrc) || !media.image) return
+    console.log('push image', itemId, media.bestResSrc)
+    images.push({ itemId, src: media.bestResSrc })
+  }, [media, images])
 
   const handleClick = useCallback(() => showModal(close =>
-    <Carousel close={close} images={images} initialSrc={media.bestResSrc} />, {
+    <Carousel close={close} images={images} initialSrc={media.bestResSrc} setItemId={setItemId} />, {
     fullScreen: true,
     overflow: (
       <Dropdown.Item
@@ -415,3 +421,19 @@ export const Embed = memo(function Embed ({ src, provider, id, meta, className, 
 
   return null
 })
+
+const ImageContext = createContext({ images: [], itemId: null })
+
+export function ImageProvider ({ children }) {
+  const images = useRef([])
+
+  // id of the item of which we're currently viewing an image in fullscreen
+  const [itemId, setItemId] = useState()
+
+  const value = useMemo(() => ({ images: images.current, itemId, setItemId }), [images.current, itemId])
+  return <ImageContext.Provider value={value}>{children}</ImageContext.Provider>
+}
+
+export function useImages () {
+  return useContext(ImageContext)
+}

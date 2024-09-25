@@ -41,7 +41,7 @@ export function SearchText ({ text }) {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, outlawed, topLevel, noFragments }) {
+export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, outlawed, topLevel, noFragments, images: imagesParent }) {
   const [overflowing, setOverflowing] = useState(false)
   const router = useRouter()
   const [show, setShow] = useState(false)
@@ -50,7 +50,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
   // * we pass this array reference to all images
   // * every image will include itself in this array
   // * we use this for a carousel during fullscreen
-  const images = useRef([])
+  const images = imagesParent || useRef([])
 
   useEffect(() => {
     setShow(router.asPath.includes('#'))
@@ -154,7 +154,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     }
     const srcSet = imgproxyUrls?.[url]
 
-    return <MediaOrLink srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} images={images.current} {...props} topLevel={topLevel} />
+    return <MediaOrLink itemId={itemId} srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} images={images.current} {...props} topLevel={topLevel} />
   }, [imgproxyUrls, topLevel, tab])
 
   const components = useMemo(() => ({

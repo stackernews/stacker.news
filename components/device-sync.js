@@ -197,7 +197,7 @@ function ConnectForm ({ onClose, onConnect, onReset, enabled }) {
           : 'Enter the passphrase you used during setup to access your encrypted sensitive data (like wallet credentials) on the server.'}
       </p>
       <Form
-        schema={deviceSyncSchema}
+        schema={enabled ? undefined : deviceSyncSchema}
         initial={{ passphrase }}
         enableReinitialize
         onSubmit={async (values, formik) => {

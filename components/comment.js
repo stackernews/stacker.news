@@ -127,10 +127,6 @@ export default function Comment ({
     }
   }, [item.id])
 
-  useEffect(() => {
-    ref.current.classList.add('outline-new-comment-unset')
-  }, [item.id])
-
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT
   // Don't show OP badge when anon user comments on anon user posts
   const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon

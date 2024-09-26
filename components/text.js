@@ -42,7 +42,7 @@ export function SearchText ({ text }) {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, outlawed, topLevel, noFragments, images: imagesParent }) {
+export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, outlawed, topLevel, noFragments }) {
   const [overflowing, setOverflowing] = useState(false)
   const router = useRouter()
   const [show, setShow] = useState(false)
@@ -150,8 +150,8 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     }
     const srcSet = imgproxyUrls?.[url]
 
-    return <MediaOrLink itemId={itemId} srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} topLevel={topLevel} />
-  }, [imgproxyUrls, topLevel, tab, itemId, outlawed, rel])
+    return <MediaOrLink srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} topLevel={topLevel} />
+  }, [imgproxyUrls, topLevel, tab, outlawed, rel])
 
   const components = useMemo(() => ({
     h1: Heading,

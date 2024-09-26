@@ -49,7 +49,7 @@ export default function Carousel ({ close, mediaArr, src, originalSrc, setOption
     } else if (e.key === 'ArrowRight') {
       setIndex(i => Math.min(mediaArr.length - 1, i + 1))
     }
-  }, [mediaArr, setIndex])
+  }, [mediaArr.length, setIndex])
 
   useEffect(() => {
     document.addEventListener('keydown', onKeyDown)

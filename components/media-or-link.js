@@ -49,7 +49,7 @@ const Media = memo(function Media ({ src, bestResSrc, srcSet, sizes, width, heig
   )
 })
 
-export default function MediaOrLink ({ itemId, linkFallback = true, ...props }) {
+export default function MediaOrLink ({ linkFallback = true, ...props }) {
   const media = useMediaHelper(props)
   const [error, setError] = useState(false)
   const { showCarousel, addMedia } = useCarousel()

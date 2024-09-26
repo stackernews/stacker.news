@@ -267,7 +267,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
 
   return (
     <div className={classNames(styles.text, topLevel && styles.topLevel, show ? styles.textUncontained : overflowing && styles.textContained)} ref={containerRef}>
-      {carousel
+      {carousel && tab !== 'preview'
         ? (
           <ReactMarkdown
             components={components}

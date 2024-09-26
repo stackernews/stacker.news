@@ -95,7 +95,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel,
-  rootText, noComments, noReply, truncate, depth, pin
+  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
@@ -181,6 +181,8 @@ export default function Comment ({
                   embellishUser={op && <><span> </span><Badge bg={op === 'fwd' ? 'secondary' : 'boost'} className={`${styles.op} bg-opacity-75`}>{op}</Badge></>}
                   onQuoteReply={quoteReply}
                   nested={!includeParent}
+                  setDisableRetry={setDisableRetry}
+                  disableRetry={disableRetry}
                   extraInfo={
                     <>
                       {includeParent && <Parent item={item} rootText={rootText} />}

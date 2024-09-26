@@ -1,0 +1,15 @@
+.offcanvas {
+    max-width: 250px;
+    z-index: 10000;
+    right: -100%;
+    animation: slide ease-out 0.2s;
+}
+
+@keyframes slide {
+    0% {
+        transform: translateX(100%);
+    }
+    100% {
+        transform: translateX(0%)
+    }
+}

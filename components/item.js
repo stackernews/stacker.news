@@ -87,7 +87,7 @@ function ItemLink ({ url, rel }) {
 
 export default function Item ({
   item, rank, belowTitle, right, full, children, itemClassName,
-  onQuoteReply, pinnable
+  onQuoteReply, pinnable, setDisableRetry, disableRetry
 }) {
   const titleRef = useRef()
   const router = useRouter()
@@ -106,7 +106,7 @@ export default function Item ({
       <div className={classNames(styles.item, itemClassName)}>
         {item.position && (pinnable || !item.subName)
           ? <Pin width={24} height={24} className={styles.pin} />
-          : item.mine
+          : item.mine || item.meForward
             ? <Boost item={item} className={styles.upvote} />
             : item.meDontLikeSats > item.meSats
               ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
@@ -139,6 +139,8 @@ export default function Item ({
             onQuoteReply={onQuoteReply}
             pinnable={pinnable}
             extraBadges={Number(item?.user?.id) === USER_ID.ad && <Badge className={styles.newComment} bg={null}>AD</Badge>}
+            setDisableRetry={setDisableRetry}
+            disableRetry={disableRetry}
           />
           {belowTitle}
         </div>

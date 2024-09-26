@@ -53,7 +53,7 @@ export function SubmitButton ({
   return (
     <Button
       variant={variant || 'main'}
-      className={classNames(formik.isSubmitting && styles.pending, className)}
+      className={classNames(formik.isSubmitting && 'pulse', className)}
       type='submit'
       disabled={disabled}
       onClick={value
@@ -254,6 +254,11 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
           // some browsers might use CTRL+I to do something else so prevent that behavior too
           e.preventDefault()
           insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+        }
+        if (e.key === 'u') {
+          // some browsers might use CTRL+U to do something else so prevent that behavior too
+          e.preventDefault()
+          imageUploadRef.current?.click()
         }
         if (e.key === 'Tab' && e.altKey) {
           e.preventDefault()

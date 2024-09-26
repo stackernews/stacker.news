@@ -13,6 +13,7 @@ import { usePaidMutation } from './use-paid-mutation'
 import { ACT_MUTATION } from '@/fragments/paidAction'
 import { meAnonSats } from '@/lib/apollo'
 import { BoostItemInput } from './adv-post-form'
+import { useWallet } from '../wallets'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -89,6 +90,7 @@ function BoostForm ({ step, onSubmit, children, item, oValue, inputRef, act = 'B
 export default function ItemAct ({ onClose, item, act = 'TIP', step, children, abortSignal }) {
   const inputRef = useRef(null)
   const { me } = useMe()
+  const wallet = useWallet()
   const [oValue, setOValue] = useState()
 
   useEffect(() => {
@@ -109,6 +111,18 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         }
       }
     }
+
+    const onPaid = () => {
+      strike()
+      onClose?.()
+      if (!me) setItemMeAnonSats({ id: item.id, amount })
+    }
+
+    const closeImmediately = !!wallet || me?.privates?.sats > Number(amount)
+    if (closeImmediately) {
+      onPaid()
+    }
+
     const { error } = await actor({
       variables: {
         id: item.id,
@@ -126,15 +140,11 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
           }
         : undefined,
       // don't close modal immediately because we want the QR modal to stack
-      onCompleted: () => {
-        strike()
-        onClose?.()
-        if (!me) setItemMeAnonSats({ id: item.id, amount })
-      }
+      onPaid: closeImmediately ? undefined : onPaid
     })
     if (error) throw error
     addCustomTip(Number(amount))
-  }, [me, actor, act, item.id, onClose, abortSignal, strike])
+  }, [me, actor, !!wallet, act, item.id, onClose, abortSignal, strike])
 
   return act === 'BOOST'
     ? <BoostForm step={step} onSubmit={onSubmit} item={item} oValue={oValue} inputRef={inputRef} act={act}>{children}</BoostForm>
@@ -225,6 +235,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   const getPaidActionResult = data => Object.values(data)[0]
 
   const [act] = usePaidMutation(query, {
+    waitFor: inv => inv?.satsReceived > 0,
     ...options,
     update: (cache, { data }) => {
       const response = getPaidActionResult(data)
@@ -250,12 +261,12 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
 }
 
 export function useZap () {
+  const wallet = useWallet()
   const act = useAct()
-  const { me } = useMe()
   const strike = useLightning()
   const toaster = useToast()
 
-  return useCallback(async ({ item, abortSignal }) => {
+  return useCallback(async ({ item, me, abortSignal }) => {
     const meSats = (item?.meSats || 0)
 
     // add current sats to next tip since idempotent zaps use desired total zap not difference
@@ -267,7 +278,8 @@ export function useZap () {
     try {
       await abortSignal.pause({ me, amount: sats })
       strike()
-      const { error } = await act({ variables, optimisticResponse })
+      // batch zaps if wallet is enabled or using fee credits so they can be executed serially in a single request
+      const { error } = await act({ variables, optimisticResponse, context: { batch: !!wallet || me?.privates?.sats > sats } })
       if (error) throw error
     } catch (error) {
       if (error instanceof ActCanceledError) {
@@ -277,7 +289,7 @@ export function useZap () {
       const reason = error?.message || error?.toString?.()
       toaster.danger(reason)
     }
-  }, [me?.id, strike])
+  }, [act, toaster, strike, !!wallet])
 }
 
 export class ActCanceledError extends Error {

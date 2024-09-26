@@ -2,7 +2,7 @@ import { Form, MarkdownInput } from '@/components/form'
 import styles from './reply.module.css'
 import { COMMENTS } from '@/fragments/comments'
 import { useMe } from './me'
-import { forwardRef, useCallback, useEffect, useState, useRef } from 'react'
+import { forwardRef, useCallback, useEffect, useState, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import { commentsViewedAfterComment } from '@/lib/new-comments'
@@ -14,6 +14,7 @@ import { useRoot } from './root'
 import { commentSubTreeRootId } from '@/lib/item'
 import { CREATE_COMMENT } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
+import gql from 'graphql-tag'
 
 export function ReplyOnAnotherPage ({ item }) {
   const rootId = commentSubTreeRootId(item)
@@ -34,7 +35,6 @@ export default forwardRef(function Reply ({
   item,
   replyOpen,
   children,
-  placeholder,
   onQuoteReply,
   onCancelQuote,
   quote
@@ -52,6 +52,14 @@ export default forwardRef(function Reply ({
       setReply(true)
     }
   }, [replyOpen, quote, parentId])
+
+  const placeholder = useMemo(() => {
+    return [
+      'comment for currency?',
+      'fractions of a penny for your thoughts?',
+      'put your money where your mouth is?'
+    ][parentId % 3]
+  }, [parentId])
 
   const onSubmit = useItemSubmit(CREATE_COMMENT, {
     extraValues: { parentId },
@@ -72,6 +80,17 @@ export default forwardRef(function Reply ({
             }
           }
         })
+
+        // no lag for itemRepetition
+        if (!item.mine && me) {
+          cache.updateQuery({
+            query: gql`{ itemRepetition(parentId: "${parentId}") }`
+          }, data => {
+            return {
+              itemRepetition: (data?.itemRepetition || 0) + 1
+            }
+          })
+        }
 
         const ancestors = item.path.split('.')
 

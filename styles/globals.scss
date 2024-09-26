@@ -269,6 +269,7 @@ $zindex-sticky: 900;
 
 .justify-self-right {
   justify-self: right;
+}
 
 .pulse {
   animation-name: pulse;
@@ -279,9 +280,9 @@ $zindex-sticky: 900;
 }
 
 @keyframes pulse {
-0% {
-  opacity: 42%;
-}
+  0% {
+    opacity: 42%;
+  }
 }
 
 svg {

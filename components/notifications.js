@@ -346,7 +346,7 @@ function InvoicePaid ({ n }) {
 function useActRetry ({ invoice }) {
   const bountyCacheMods =
     invoice.item.root?.bounty === invoice.satsRequested && invoice.item.root?.mine
-      ? payBountyCacheMods()
+      ? payBountyCacheMods
       : {}
   return useAct({
     query: RETRY_PAID_ACTION,

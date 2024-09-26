@@ -82,7 +82,7 @@ export default forwardRef(function Reply ({
         })
 
         // no lag for itemRepetition
-        if (!item.mine) {
+        if (!item.mine && me) {
           cache.updateQuery({
             query: gql`{ itemRepetition(parentId: "${parentId}") }`
           }, data => {

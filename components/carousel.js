@@ -6,13 +6,7 @@ import styles from './carousel.module.css'
 import { useShowModal } from './modal'
 import { Dropdown } from 'react-bootstrap'
 
-export default function Carousel ({ close, mediaArr, src, originalSrc, setOptions }) {
-  const [index, setIndex] = useState(mediaArr.findIndex(([key]) => key === src))
-
-  const [currentSrc, canGoLeft, canGoRight] = useMemo(() => {
-    return [mediaArr[index][0], index > 0, index < mediaArr.length - 1]
-  }, [mediaArr, index])
-
+function useSwiping ({ moveLeft, moveRight }) {
   const [touchStartX, setTouchStartX] = useState(null)
 
   const onTouchStart = useCallback((e) => {
@@ -26,13 +20,13 @@ export default function Carousel ({ close, mediaArr, src, originalSrc, setOption
       const touchEndX = e.changedTouches[0].clientX
       const diff = touchEndX - touchStartX
       if (diff > 50) {
-        setIndex(i => Math.max(0, i - 1))
+        moveLeft()
       } else if (diff < -50) {
-        setIndex(i => Math.min(mediaArr.length - 1, i + 1))
+        moveRight()
       }
       setTouchStartX(null)
     }
-  }, [touchStartX, mediaArr.length, setIndex])
+  }, [touchStartX, moveLeft, moveRight])
 
   useEffect(() => {
     document.addEventListener('touchstart', onTouchStart)
@@ -42,19 +36,39 @@ export default function Carousel ({ close, mediaArr, src, originalSrc, setOption
       document.removeEventListener('touchend', onTouchEnd)
     }
   }, [onTouchStart, onTouchEnd])
+}
 
+function useArrowKeys ({ moveLeft, moveRight }) {
   const onKeyDown = useCallback((e) => {
     if (e.key === 'ArrowLeft') {
-      setIndex(i => Math.max(0, i - 1))
+      moveLeft()
     } else if (e.key === 'ArrowRight') {
-      setIndex(i => Math.min(mediaArr.length - 1, i + 1))
+      moveRight()
     }
-  }, [mediaArr.length, setIndex])
+  }, [moveLeft, moveRight])
 
   useEffect(() => {
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onKeyDown])
+}
+
+export default function Carousel ({ close, mediaArr, src, originalSrc, setOptions }) {
+  const [index, setIndex] = useState(mediaArr.findIndex(([key]) => key === src))
+  const [currentSrc, canGoLeft, canGoRight] = useMemo(() => {
+    return [mediaArr[index][0], index > 0, index < mediaArr.length - 1]
+  }, [mediaArr, index])
+
+  const moveLeft = useCallback(() => {
+    setIndex(i => Math.max(0, i - 1))
+  }, [setIndex])
+
+  const moveRight = useCallback(() => {
+    setIndex(i => Math.min(mediaArr.length - 1, i + 1))
+  }, [setIndex, mediaArr.length])
+
+  useSwiping({ moveLeft, moveRight })
+  useArrowKeys({ moveLeft, moveRight })
 
   return (
     <div className={styles.fullScreenContainer} onClick={close}>
@@ -64,7 +78,7 @@ export default function Carousel ({ close, mediaArr, src, originalSrc, setOption
           className={classNames(styles.fullScreenNav, !canGoLeft && 'invisible', styles.left)}
           onClick={(e) => {
             e.stopPropagation()
-            setIndex(i => Math.max(0, i - 1))
+            moveLeft()
           }}
         >
           <ArrowLeft width={34} height={34} />
@@ -73,7 +87,7 @@ export default function Carousel ({ close, mediaArr, src, originalSrc, setOption
           className={classNames(styles.fullScreenNav, !canGoRight && 'invisible', styles.right)}
           onClick={(e) => {
             e.stopPropagation()
-            setIndex(i => Math.min(mediaArr.length - 1, i + 1))
+            moveRight()
           }}
         >
           <ArrowRight width={34} height={34} />

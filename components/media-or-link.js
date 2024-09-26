@@ -67,26 +67,26 @@ function Carousel ({ close, initialSrc, images, setItemId }) {
   const canGoRight = index < images.length - 1
 
   return (
-    <div className={styles.fullScreenContainer}>
-      <div
-        className={styles.fullScreenNav}
-        onClick={() => setIndex(i => Math.max(0, i - 1))}
-      >
-        <div>
-          {canGoLeft
-            ? <ArrowLeft className={classNames(styles.fullScreenNav, 'justify-self-left')} width={32} height={32} />
-            : <div style={{ width: '32px' }} />}
+    <div className={styles.fullScreenContainer} onClick={close}>
+      <img className={styles.fullScreen} src={src} />
+      <div className={styles.fullScreenNavContainer}>
+        <div
+          className={classNames(styles.fullScreenNav, !canGoLeft && 'invisible', styles.left)}
+          onClick={(e) => {
+            e.stopPropagation()
+            setIndex(i => Math.max(0, i - 1))
+          }}
+        >
+          <ArrowLeft width={34} height={34} />
         </div>
-      </div>
-      <img className={styles.fullScreen} src={src} onClick={close} />
-      <div
-        className={styles.fullScreenNav}
-        onClick={() => setIndex(i => Math.min(images.length - 1, i + 1))}
-      >
-        <div>
-          {canGoRight
-            ? <ArrowRight className={classNames(styles.fullScreenNav, 'justify-self-right')} width={32} height={32} />
-            : <div style={{ width: '32px' }} />}
+        <div
+          className={classNames(styles.fullScreenNav, !canGoRight && 'invisible', styles.right)}
+          onClick={(e) => {
+            e.stopPropagation()
+            setIndex(i => Math.min(images.length - 1, i + 1))
+          }}
+        >
+          <ArrowRight width={34} height={34} />
         </div>
       </div>
     </div>

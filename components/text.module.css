@@ -250,33 +250,51 @@ img.fullScreen {
     display: grid;
     width: 100%;
     height: 100%;
-    grid-template-columns: auto auto auto;
 }
 
-div.fullScreenNav {
-    display: grid;
+div.fullScreenNavContainer {
     height: 100%;
     width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    flex-direction: row;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-div.fullScreenNav:hover>div>svg {
-    fill: var(--theme-navLinkActive);
+div.fullScreenNav:hover > svg {
+    background-color: rgba(0, 0, 0, .5);
 }
 
-div.fullScreenNav>div {
-    display: grid;
-    height: 100%;
+div.fullScreenNav  {
+    cursor: pointer;
+    pointer-events: auto;
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
 }
 
-div.fullScreenNav>div>svg {
-    z-index: 1;
-    align-self: center;
+div.fullScreenNav.left {
+    justify-content: flex-start;
+}
+
+div.fullScreenNav.right {
+    justify-content: flex-end;
+}
+
+div.fullScreenNav > svg {
     border-radius: 50%;
-    background-color: color-mix(in srgb, var(--bs-body-bg), transparent);
-    fill: var(--theme-grey);
-    max-height: 32px;
-    max-width: 32px;
-    margin: 0.25rem;
+    backdrop-filter: blur(4px);
+    background-color: rgba(0, 0, 0, 0.7);
+    fill: white;
+    max-height: 34px;
+    max-width: 34px;
+    padding: 0.35rem;
+    margin: .75rem;
 }
 
 .text table {

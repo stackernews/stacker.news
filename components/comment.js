@@ -26,7 +26,6 @@ import { commentSubTreeRootId } from '@/lib/item'
 import Pin from '@/svgs/pushpin-fill.svg'
 import LinkToContext from './link-to-context'
 import Boost from './boost-button'
-import { useImages } from '@/components/media-or-link'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -108,7 +107,6 @@ export default function Comment ({
   const router = useRouter()
   const root = useRoot()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
-  const { itemId: imageItemId } = useImages()
 
   useEffect(() => {
     setCollapse(window.localStorage.getItem(`commentCollapse:${item.id}`) || collapse)
@@ -130,14 +128,8 @@ export default function Comment ({
   }, [item.id])
 
   useEffect(() => {
-    if (item.id === imageItemId) {
-      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      ref.current.classList.remove('outline-new-comment-unset')
-      ref.current.classList.add('outline-new-comment')
-    } else {
-      ref.current.classList.add('outline-new-comment-unset')
-    }
-  }, [item.id, imageItemId])
+    ref.current.classList.add('outline-new-comment-unset')
+  }, [item.id])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT
   // Don't show OP badge when anon user comments on anon user posts

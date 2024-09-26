@@ -23,6 +23,7 @@ import isEqual from 'lodash/isEqual'
 import UserPopover from './user-popover'
 import ItemPopover from './item-popover'
 import classNames from 'classnames'
+import { CarouselProvider, useCarousel } from './carousel'
 
 // Explicitely defined start/end tags & which CSS class from text.module.css to apply
 export const rehypeSuperscript = () => rehypeStyler('<sup>', '</sup>', styles.superscript)
@@ -46,11 +47,6 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
   const router = useRouter()
   const [show, setShow] = useState(false)
   const containerRef = useRef(null)
-
-  // * we pass this array reference to all images
-  // * every image will include itself in this array
-  // * we use this for a carousel during fullscreen
-  const images = imagesParent || useRef([])
 
   useEffect(() => {
     setShow(router.asPath.includes('#'))
@@ -154,8 +150,8 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     }
     const srcSet = imgproxyUrls?.[url]
 
-    return <MediaOrLink itemId={itemId} srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} images={images.current} {...props} topLevel={topLevel} />
-  }, [imgproxyUrls, topLevel, tab])
+    return <MediaOrLink itemId={itemId} srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} topLevel={topLevel} />
+  }, [imgproxyUrls, topLevel, tab, itemId, outlawed, rel])
 
   const components = useMemo(() => ({
     h1: Heading,
@@ -267,16 +263,29 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
 
   const remarkPlugins = useMemo(() => [gfm, mention, sub], [])
   const rehypePlugins = useMemo(() => [rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript], [])
+  const carousel = useCarousel()
 
   return (
     <div className={classNames(styles.text, topLevel && styles.topLevel, show ? styles.textUncontained : overflowing && styles.textContained)} ref={containerRef}>
-      <ReactMarkdown
-        components={components}
-        remarkPlugins={remarkPlugins}
-        rehypePlugins={rehypePlugins}
-      >
-        {children}
-      </ReactMarkdown>
+      {carousel
+        ? (
+          <ReactMarkdown
+            components={components}
+            remarkPlugins={remarkPlugins}
+            rehypePlugins={rehypePlugins}
+          >
+            {children}
+          </ReactMarkdown>)
+        : (
+          <CarouselProvider>
+            <ReactMarkdown
+              components={components}
+              remarkPlugins={remarkPlugins}
+              rehypePlugins={rehypePlugins}
+            >
+              {children}
+            </ReactMarkdown>
+          </CarouselProvider>)}
       {overflowing && !show &&
         <Button size='lg' variant='info' className={styles.textShowFull} onClick={() => setShow(true)}>
           show full text

@@ -1,16 +1,14 @@
 import styles from './text.module.css'
-import { useState, useEffect, useMemo, useCallback, memo, useRef, createContext, useContext } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP, parseEmbedUrl } from '@/lib/url'
-import { useShowModal } from './modal'
 import { useMe } from './me'
-import { Button, Dropdown } from 'react-bootstrap'
+import { Button } from 'react-bootstrap'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import classNames from 'classnames'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
 import useDarkMode from './dark-mode'
-import ArrowLeft from '@/svgs/arrow-left-wide-line.svg'
-import ArrowRight from '@/svgs/arrow-right-wide-line.svg'
+import { useCarousel } from './carousel'
 
 function LinkRaw ({ href, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -51,71 +49,18 @@ const Media = memo(function Media ({ src, bestResSrc, srcSet, sizes, width, heig
   )
 })
 
-function Carousel ({ close, initialSrc, images, setItemId }) {
-  const [index, setIndex] = useState(images.map(img => img.src).indexOf(initialSrc))
-
-  useEffect(() => {
-    setItemId?.(images[index]?.itemId)
-  }, [index])
-
-  // TODO: add navigation per arrow keys
-  // I tried to get this to work with onKeyDown and tabIndex="0" but I
-  // couldn't get the event to trigger, so leaving this as a TODO for now.
-
-  const { src } = images[index] || {}
-  const canGoLeft = index > 0
-  const canGoRight = index < images.length - 1
-
-  return (
-    <div className={styles.fullScreenContainer} onClick={close}>
-      <img className={styles.fullScreen} src={src} />
-      <div className={styles.fullScreenNavContainer}>
-        <div
-          className={classNames(styles.fullScreenNav, !canGoLeft && 'invisible', styles.left)}
-          onClick={(e) => {
-            e.stopPropagation()
-            setIndex(i => Math.max(0, i - 1))
-          }}
-        >
-          <ArrowLeft width={34} height={34} />
-        </div>
-        <div
-          className={classNames(styles.fullScreenNav, !canGoRight && 'invisible', styles.right)}
-          onClick={(e) => {
-            e.stopPropagation()
-            setIndex(i => Math.min(images.length - 1, i + 1))
-          }}
-        >
-          <ArrowRight width={34} height={34} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function MediaOrLink ({ itemId, linkFallback = true, ...props }) {
   const media = useMediaHelper(props)
   const [error, setError] = useState(false)
-  const showModal = useShowModal()
-  const { images, setItemId } = useImages()
+  const { showCarousel, addMedia } = useCarousel()
 
   useEffect(() => {
-    if (!images || images.some(({ src }) => src === media.bestResSrc) || !media.image) return
-    console.log('push image', itemId, media.bestResSrc)
-    images.push({ itemId, src: media.bestResSrc })
-  }, [media, images])
+    if (!media.image) return
+    addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: props.rel })
+  }, [media.image])
 
-  const handleClick = useCallback(() => showModal(close =>
-    <Carousel close={close} images={images} initialSrc={media.bestResSrc} setItemId={setItemId} />, {
-    fullScreen: true,
-    overflow: (
-      <Dropdown.Item
-        href={media.originalSrc} target='_blank'
-        rel={props.rel ?? UNKNOWN_LINK_REL}
-      >
-        open original
-      </Dropdown.Item>)
-  }), [showModal, media.originalSrc, styles, media.bestResSrc])
+  const handleClick = useCallback(() => showCarousel({ src: media.bestResSrc }),
+    [showCarousel, media.bestResSrc])
 
   const handleError = useCallback((err) => {
     console.error('Error loading media', err)
@@ -425,19 +370,3 @@ export const Embed = memo(function Embed ({ src, provider, id, meta, className, 
 
   return null
 })
-
-const ImageContext = createContext({ images: [], itemId: null })
-
-export function ImageProvider ({ children }) {
-  const images = useRef([])
-
-  // id of the item of which we're currently viewing an image in fullscreen
-  const [itemId, setItemId] = useState()
-
-  const value = useMemo(() => ({ images: images.current, itemId, setItemId }), [images.current, itemId])
-  return <ImageContext.Provider value={value}>{children}</ImageContext.Provider>
-}
-
-export function useImages () {
-  return useContext(ImageContext)
-}

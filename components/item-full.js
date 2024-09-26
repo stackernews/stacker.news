@@ -3,7 +3,7 @@ import ItemJob from './item-job'
 import Reply from './reply'
 import Comment from './comment'
 import Text, { SearchText } from './text'
-import MediaOrLink, { ImageProvider } from './media-or-link'
+import MediaOrLink from './media-or-link'
 import Comments from './comments'
 import styles from '@/styles/item.module.css'
 import itemStyles from './item.module.css'
@@ -24,6 +24,7 @@ import { numWithUnits } from '@/lib/format'
 import { useQuoteReply } from './use-quote-reply'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import classNames from 'classnames'
+import { CarouselProvider } from './carousel'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
@@ -156,7 +157,7 @@ export default function ItemFull ({ item, bio, rank, ...props }) {
           </div>)
         : <div />}
       <RootProvider root={item.root || item}>
-        <ImageProvider>
+        <CarouselProvider key={item.id}>
           {item.parentId
             ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
             : (
@@ -171,7 +172,7 @@ export default function ItemFull ({ item, bio, rank, ...props }) {
                 pinned={item.position} bio={bio} commentSats={item.commentSats} comments={item.comments}
               />
             </div>}
-        </ImageProvider>
+        </CarouselProvider>
       </RootProvider>
     </>
   )

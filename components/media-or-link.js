@@ -1,6 +1,6 @@
 import styles from './text.module.css'
 import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
-import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP, parseEmbedUrl } from '@/lib/url'
+import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
 import { useMe } from './me'
 import { Button } from 'react-bootstrap'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'

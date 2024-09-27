@@ -24,6 +24,7 @@ import { numWithUnits } from '@/lib/format'
 import { useQuoteReply } from './use-quote-reply'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import classNames from 'classnames'
+import { CarouselProvider } from './carousel'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
@@ -156,20 +157,22 @@ export default function ItemFull ({ item, bio, rank, ...props }) {
           </div>)
         : <div />}
       <RootProvider root={item.root || item}>
-        {item.parentId
-          ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
-          : (
-            <div>{bio
-              ? <BioItem item={item} {...props} />
-              : <TopLevelItem item={item} {...props} />}
-            </div>)}
-        {item.comments &&
-          <div className={styles.comments}>
-            <Comments
-              parentId={item.id} parentCreatedAt={item.createdAt}
-              pinned={item.position} bio={bio} commentSats={item.commentSats} comments={item.comments}
-            />
-          </div>}
+        <CarouselProvider key={item.id}>
+          {item.parentId
+            ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
+            : (
+              <div>{bio
+                ? <BioItem item={item} {...props} />
+                : <TopLevelItem item={item} {...props} />}
+              </div>)}
+          {item.comments &&
+            <div className={styles.comments}>
+              <Comments
+                parentId={item.id} parentCreatedAt={item.createdAt}
+                pinned={item.position} bio={bio} commentSats={item.commentSats} comments={item.comments}
+              />
+            </div>}
+        </CarouselProvider>
       </RootProvider>
     </>
   )

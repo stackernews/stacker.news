@@ -1,14 +1,14 @@
 import styles from './text.module.css'
 import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
-import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
-import { useShowModal } from './modal'
+import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP, parseEmbedUrl } from '@/lib/url'
 import { useMe } from './me'
-import { Button, Dropdown } from 'react-bootstrap'
+import { Button } from 'react-bootstrap'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import classNames from 'classnames'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
 import useDarkMode from './dark-mode'
+import { useCarousel } from './carousel'
 
 function LinkRaw ({ href, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -52,27 +52,15 @@ const Media = memo(function Media ({ src, bestResSrc, srcSet, sizes, width, heig
 export default function MediaOrLink ({ linkFallback = true, ...props }) {
   const media = useMediaHelper(props)
   const [error, setError] = useState(false)
-  const showModal = useShowModal()
+  const { showCarousel, addMedia } = useCarousel()
 
-  const handleClick = useCallback(() => showModal(close => {
-    return (
-      <div
-        className={styles.fullScreenContainer}
-        onClick={close}
-      >
-        <img className={styles.fullScreen} src={media.bestResSrc} />
-      </div>
-    )
-  }, {
-    fullScreen: true,
-    overflow: (
-      <Dropdown.Item
-        href={media.originalSrc} target='_blank'
-        rel={props.rel ?? UNKNOWN_LINK_REL}
-      >
-        open original
-      </Dropdown.Item>)
-  }), [showModal, media.originalSrc, styles, media.bestResSrc])
+  useEffect(() => {
+    if (!media.image) return
+    addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: props.rel })
+  }, [media.image])
+
+  const handleClick = useCallback(() => showCarousel({ src: media.bestResSrc }),
+    [showCarousel, media.bestResSrc])
 
   const handleError = useCallback((err) => {
     console.error('Error loading media', err)

@@ -53,7 +53,7 @@ export function SubmitButton ({
   return (
     <Button
       variant={variant || 'main'}
-      className={classNames(formik.isSubmitting && styles.pending, className)}
+      className={classNames(formik.isSubmitting && 'pulse', className)}
       type='submit'
       disabled={disabled}
       onClick={value

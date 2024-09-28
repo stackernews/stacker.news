@@ -316,6 +316,9 @@ async function encryptJSON (key, jsonData) {
     true,
     ['encrypt', 'decrypt']
   )
+
+  // random IVs are _really_ important in GCM: reusing the IV once can lead to catastrophic failure
+  // see https://crypto.stackexchange.com/questions/26790/how-bad-it-is-using-the-same-iv-twice-with-aes-gcm
   const iv = window.crypto.getRandomValues(new Uint8Array(12))
 
   const encoded = new TextEncoder().encode(JSON.stringify(jsonData))

@@ -10,7 +10,7 @@ import Thumb from '@/svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
 import MediaOrLink, { Embed } from './media-or-link'
-import { IMGPROXY_URL_REGEXP, parseInternalLinks, decodeProxyUrl } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
@@ -183,29 +183,36 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     },
     code: Code,
     span: ({ children, className, ...props }) => <span className={className}>{children}</span>,
+    mention: ({ children, href, name, id }) => {
+      return (
+        <UserPopover name={name}>
+          <Link
+            id={id}
+            href={href}
+          >
+            {children}
+          </Link>
+        </UserPopover>
+      )
+    },
+    sub: ({ children, href, ...props }) => {
+      return <Link href={href}>{children}</Link>
+    },
+    item: ({ children, href, id }) => {
+      return (
+        <ItemPopover id={id}>
+          <Link href={href}>{children}</Link>
+        </ItemPopover>
+      )
+    },
     a: ({ node, href, children, ...props }) => {
-      children = children ? Array.isArray(children) ? children : [children] : []
-      // don't allow zoomable images to be wrapped in links
-      if (children.some(e => e?.props?.node?.tagName === 'img')) {
-        return <>{children}</>
-      }
-
       // if outlawed, render the link as text
       if (outlawed) {
         return href
       }
 
-      // If [text](url) was parsed as <a> and text is not empty and not a link itself,
-      // we don't render it as an image since it was probably a conscious choice to include text.
+      // if the link has text, and it's not a URL, render it as an external link
       const text = children[0]
-      let url
-      try {
-        url = !href.startsWith('/') && new URL(href)
-      } catch {
-        // ignore invalid URLs
-      }
-
-      const internalURL = process.env.NEXT_PUBLIC_URL
       if (!!text && !/^https?:\/\//.test(text)) {
         if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
           return (
@@ -217,59 +224,10 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             </Link>
           )
         }
-        if (text.startsWith?.('@')) {
-          // user mention might be within a markdown link like this: [@user foo bar](url)
-          const name = text.replace('@', '').split(' ')[0]
-          return (
-            <UserPopover name={name}>
-              <Link
-                id={props.id}
-                href={href}
-              >
-                {text}
-              </Link>
-            </UserPopover>
-          )
-        } else if (href.startsWith('/') || url?.origin === internalURL) {
-          try {
-            const { linkText } = parseInternalLinks(href)
-            if (linkText) {
-              return (
-                <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
-                  <Link href={href}>{text}</Link>
-                </ItemPopover>
-              )
-            }
-          } catch {
-            // ignore errors like invalid URLs
-          }
-
-          return (
-            <Link
-              id={props.id}
-              href={href}
-            >
-              {text}
-            </Link>
-          )
-        }
         return (
           // eslint-disable-next-line
-          <a id={props.id} target='_blank' rel={rel ?? UNKNOWN_LINK_REL} href={href}>{text}</a>
+          <a id={props.id} target='_blank' rel={rel ?? UNKNOWN_LINK_REL} href={href}>{children}</a>
         )
-      }
-
-      try {
-        const { linkText } = parseInternalLinks(href)
-        if (linkText) {
-          return (
-            <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
-              <Link href={href}>{linkText}</Link>
-            </ItemPopover>
-          )
-        }
-      } catch {
-        // ignore errors like invalid URLs
       }
 
       // assume the link is an image which will fallback to link if it's not
@@ -281,31 +239,38 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
 
   const carousel = useCarousel()
 
+  const markdownContent = useMemo(() => (
+    <ReactMarkdown
+      components={components}
+      remarkPlugins={remarkPlugins}
+      rehypePlugins={rehypePlugins}
+    >
+      {children}
+    </ReactMarkdown>
+  ), [components, remarkPlugins, rehypePlugins, children])
+
   return (
-    <div className={classNames(styles.text, topLevel && styles.topLevel, show ? styles.textUncontained : overflowing && styles.textContained)} ref={containerRef}>
+    <div
+      className={classNames(
+        styles.text,
+        topLevel && styles.topLevel,
+        show ? styles.textUncontained : overflowing && styles.textContained
+      )}
+      ref={containerRef}
+    >
       {carousel && tab !== 'preview'
-        ? (
-          <ReactMarkdown
-            components={components}
-            remarkPlugins={remarkPlugins}
-            rehypePlugins={rehypePlugins}
-          >
-            {children}
-          </ReactMarkdown>)
-        : (
-          <CarouselProvider>
-            <ReactMarkdown
-              components={components}
-              remarkPlugins={remarkPlugins}
-              rehypePlugins={rehypePlugins}
-            >
-              {children}
-            </ReactMarkdown>
-          </CarouselProvider>)}
-      {overflowing && !show &&
-        <Button size='lg' variant='info' className={styles.textShowFull} onClick={() => setShow(true)}>
+        ? markdownContent
+        : <CarouselProvider>{markdownContent}</CarouselProvider>}
+      {overflowing && !show && (
+        <Button
+          size='lg'
+          variant='info'
+          className={styles.textShowFull}
+          onClick={() => setShow(true)}
+        >
           show full text
-        </Button>}
+        </Button>
+      )}
     </div>
   )
 }, isEqual)

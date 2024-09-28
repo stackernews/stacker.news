@@ -2,14 +2,14 @@ import { useCallback, useEffect, useState } from 'react'
 import { useMe } from './me'
 import { useShowModal } from './modal'
 import { useVaultConfigurator, useVaultMigration } from './use-vault'
-import { Button } from 'react-bootstrap'
+import { Button, InputGroup } from 'react-bootstrap'
 import { Form, Input, PasswordInput, SubmitButton } from './form'
-import { useFormikContext } from 'formik'
 import bip39Words from '@/lib/bip39-words'
 import Info from './info'
 import CancelButton from './cancel-button'
 import * as yup from 'yup'
 import { deviceSyncSchema } from '@/lib/validate'
+import RefreshIcon from '@/svgs/refresh-line.svg'
 
 export default function DeviceSync () {
   const { me } = useMe()
@@ -28,7 +28,7 @@ export default function DeviceSync () {
           <h2>Device sync is enabled!</h2>
           <p>
             Sensitive data (like wallet credentials) is now securely synced between all connected devices.
-            Use this passphrase on other devices to connect them.
+            Enter this passphrase on other devices to connect them.
           </p>
           <p className='text-muted text-sm'>
             The passphrase is stored on your device and is never sent to our server.
@@ -160,23 +160,6 @@ const generatePassphrase = (n = 12) => {
   return Array.from(rand).map(i => bip39Words[i % bip39Words.length]).join(' ')
 }
 
-function PassphraseGeneratorButton () {
-  const formik = useFormikContext()
-  return (
-    <>
-      <Button
-        variant='info'
-        onClick={() => {
-          const pass = generatePassphrase()
-          formik.setFieldValue('passphrase', pass)
-        }}
-      >
-        generate passphrase
-      </Button>
-    </>
-  )
-}
-
 function ConnectForm ({ onClose, onConnect, onReset, enabled }) {
   const [passphrase, setPassphrase] = useState(!enabled ? generatePassphrase : '')
 
@@ -188,12 +171,16 @@ function ConnectForm ({ onClose, onConnect, onReset, enabled }) {
     }
   })
 
+  const newPassphrase = useCallback(() => {
+    setPassphrase(() => generatePassphrase(12))
+  }, [])
+
   return (
     <div>
-      <h2>{!enabled ? 'Create a' : 'Input your'} Passphrase</h2>
+      <h2>{!enabled ? 'Set a' : 'Input your'} Passphrase</h2>
       <p>
         {!enabled
-          ? 'Generate a passphrase to securely sync sensitive data (like wallet credentials) between your devices. You’ll need to enter this passphrase on each device you want to connect.'
+          ? 'Set a passphrase to enable secure sync of sensitive data (like wallet credentials) between your devices. You’ll need to enter this passphrase on each device you want to connect.'
           : 'Enter the passphrase you used during setup to access your encrypted sensitive data (like wallet credentials) on the server.'}
       </p>
       <Form
@@ -215,14 +202,14 @@ function ConnectForm ({ onClose, onConnect, onReset, enabled }) {
           autoFocus
           readOnly={!enabled}
           qr={enabled}
+          append={
+            !enabled && (
+              <InputGroup.Text style={{ cursor: 'pointer', userSelect: 'none' }} onClick={newPassphrase}>
+                <RefreshIcon width={16} height={16} />
+              </InputGroup.Text>
+            )
+        }
         />
-        {!enabled && (
-          <div className='d-flex justify-content-between mb-3'>
-            <div className='d-flex align-items-center ms-auto'>
-              <PassphraseGeneratorButton />
-            </div>
-          </div>
-        )}
         <p className='text-muted text-sm'>
           {
             !enabled

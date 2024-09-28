@@ -1160,7 +1160,7 @@ function PasswordScanner ({ onDecode }) {
   )
 }
 
-export function PasswordInput ({ newPass, qr, readOnly, ...props }) {
+export function PasswordInput ({ newPass, qr, readOnly, append, ...props }) {
   const [showPass, setShowPass] = useState(false)
   const [field] = useField(props)
 
@@ -1184,6 +1184,7 @@ export function PasswordInput ({ newPass, qr, readOnly, ...props }) {
                   window.localStorage.setItem('qr:passphrase', decoded)
                 }}
               />)}
+          {append}
         </>
       }
     />

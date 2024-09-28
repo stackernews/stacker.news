@@ -17,6 +17,8 @@
     font-size: smaller;
     color: #8b949e;
     border-top: 1px solid #30363d;
+    margin-top: calc(var(--grid-gap)* 0.5);
+    padding-top: 0 !important;
 }
 
   /* Hide the section label for visual users. */
@@ -38,6 +40,12 @@
 
 .text :global([data-footnote-ref])::after {
     content: ']';
+}
+
+.text :global(sup:has([data-footnote-ref])) {
+    top: 0;
+    font-size: 100%;
+    vertical-align: baseline;
 }
 
 .textUncontained {

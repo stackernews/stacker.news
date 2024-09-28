@@ -292,7 +292,9 @@ async function deriveKey (userId, passphrase) {
     {
       name: 'PBKDF2',
       salt: enc.encode(`stacker${userId}`),
-      iterations: 100000,
+      // 600,000 iterations is recommended by OWASP
+      // see https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#pbkdf2
+      iterations: 600_000,
       hash: 'SHA-256'
     },
     keyMaterial,

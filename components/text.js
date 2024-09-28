@@ -3,18 +3,10 @@ import ReactMarkdown from 'react-markdown'
 import gfm from 'remark-gfm'
 import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
-import mention from '@/lib/remark-mention'
-import sub from '@/lib/remark-sub'
 import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
-import { slug } from 'github-slugger'
-import LinkIcon from '@/svgs/link.svg'
-import Thumb from '@/svgs/thumb-up-fill.svg'
-import { toString } from 'mdast-util-to-string'
-import copy from 'clipboard-copy'
 import MediaOrLink from './media-or-link'
-import { IMGPROXY_URL_REGEXP, parseInternalLinks, decodeProxyUrl } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
-import { rehypeInlineCodeProperty, rehypeStyler } from '@/lib/md'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
@@ -24,10 +16,23 @@ import UserPopover from './user-popover'
 import ItemPopover from './item-popover'
 import classNames from 'classnames'
 import { CarouselProvider, useCarousel } from './carousel'
+import rehypeSN from '@/lib/rehype-sn'
+import Embed from './embed'
 
-// Explicitely defined start/end tags & which CSS class from text.module.css to apply
-export const rehypeSuperscript = () => rehypeStyler('<sup>', '</sup>', styles.superscript)
-export const rehypeSubscript = () => rehypeStyler('<sub>', '</sub>', styles.subscript)
+const rehypeSNStyled = () => rehypeSN({
+  stylers: [{
+    startTag: '<sup>',
+    endTag: '</sup>',
+    className: styles.superscript
+  }, {
+    startTag: '<sub>',
+    endTag: '</sub>',
+    className: styles.subscript
+  }]
+})
+
+const remarkPlugins = [gfm]
+const rehypePlugins = [rehypeSNStyled]
 
 export function SearchText ({ text }) {
   return (
@@ -42,16 +47,17 @@ export function SearchText ({ text }) {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, outlawed, topLevel, noFragments }) {
+export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
   const [overflowing, setOverflowing] = useState(false)
   const router = useRouter()
   const [show, setShow] = useState(false)
   const containerRef = useRef(null)
 
+  // if we are navigating to a hash, show the full text
   useEffect(() => {
-    setShow(router.asPath.includes('#'))
+    setShow(router.asPath.includes('#') && !router.asPath.includes('#itemfn-'))
     const handleRouteChange = (url, { shallow }) => {
-      setShow(url.includes('#'))
+      setShow(url.includes('#') && !url.includes('#itemfn-'))
     }
 
     router.events.on('hashChangeStart', handleRouteChange)
@@ -59,8 +65,9 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     return () => {
       router.events.off('hashChangeStart', handleRouteChange)
     }
-  }, [router])
+  }, [router.asPath, router.events])
 
+  // clip item and give it a`show full text` button if we are overflowing
   useEffect(() => {
     const container = containerRef.current
     if (!container || overflowing) return
@@ -83,213 +90,157 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     }
   }, [containerRef.current, setOverflowing])
 
-  const Heading = useCallback(({ children, node, ...props }) => {
-    const [copied, setCopied] = useState(false)
-    const nodeText = toString(node)
-    const id = useMemo(() => noFragments ? undefined : slug(nodeText.replace(/[^\w\-\s]+/gi, '')), [nodeText, noFragments])
-    const h = useMemo(() => {
-      if (topLevel) {
-        return node?.TagName
-      }
-
-      const h = parseInt(node?.tagName?.replace('h', '') || 0)
-      if (h < 4) return `h${h + 3}`
-
-      return 'h6'
-    }, [node, topLevel])
-    const Icon = copied ? Thumb : LinkIcon
-
-    return (
-      <span className={styles.heading}>
-        {React.createElement(h || node?.tagName, { id, ...props }, children)}
-        {!noFragments && topLevel &&
-          <a className={`${styles.headingLink} ${copied ? styles.copied : ''}`} href={`#${id}`}>
-            <Icon
-              onClick={() => {
-                const location = new URL(window.location)
-                location.hash = `${id}`
-                copy(location.href)
-                setTimeout(() => setCopied(false), 1500)
-                setCopied(true)
-              }}
-              width={18}
-              height={18}
-              className='fill-grey'
-            />
-          </a>}
-      </span>
-    )
-  }, [topLevel, noFragments])
-
-  const Table = useCallback(({ node, ...props }) =>
-    <span className='table-responsive'>
-      <table className='table table-bordered table-sm' {...props} />
-    </span>, [])
-
-  const Code = useCallback(({ node, inline, className, children, style, ...props }) => {
-    return inline
-      ? (
-        <code className={className} {...props}>
-          {children}
-        </code>
-        )
-      : (
-        <SyntaxHighlighter style={atomDark} language='text' PreTag='div' {...props}>
-          {children}
-        </SyntaxHighlighter>
-        )
-  }, [])
-
-  const P = useCallback(({ children, node, ...props }) => <div className={styles.p} {...props}>{children}</div>, [])
-
-  const TextMediaOrLink = useCallback(({ node, src, ...props }) => {
-    const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
-    // if outlawed, render the media link as text
-    if (outlawed) {
-      return url
-    }
-    const srcSet = imgproxyUrls?.[url]
-
-    return <MediaOrLink srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} topLevel={topLevel} />
-  }, [imgproxyUrls, topLevel, tab, outlawed, rel])
+  const TextMediaOrLink = useCallback(props => {
+    return <MediaLink {...props} outlawed={outlawed} imgproxyUrls={imgproxyUrls} topLevel={topLevel} rel={rel} />
+  },
+  [outlawed, imgproxyUrls, topLevel, rel])
 
   const components = useMemo(() => ({
-    h1: Heading,
-    h2: Heading,
-    h3: Heading,
-    h4: Heading,
-    h5: Heading,
-    h6: Heading,
+    h1: ({ node, id, ...props }) => <h1 id={topLevel ? id : undefined} {...props} />,
+    h2: ({ node, id, ...props }) => <h2 id={topLevel ? id : undefined} {...props} />,
+    h3: ({ node, id, ...props }) => <h3 id={topLevel ? id : undefined} {...props} />,
+    h4: ({ node, id, ...props }) => <h4 id={topLevel ? id : undefined} {...props} />,
+    h5: ({ node, id, ...props }) => <h5 id={topLevel ? id : undefined} {...props} />,
+    h6: ({ node, id, ...props }) => <h6 id={topLevel ? id : undefined} {...props} />,
     table: Table,
     p: P,
-    li: props => {
-      return <li {...props} id={props.id && itemId ? `${props.id}-${itemId}` : props.id} />
-    },
     code: Code,
+    mention: Mention,
+    sub: Sub,
+    item: Item,
+    footnote: Footnote,
+    headlink: ({ node, href, ...props }) => <Link href={href} {...props} />,
+    autolink: TextMediaOrLink,
     a: ({ node, href, children, ...props }) => {
-      children = children ? Array.isArray(children) ? children : [children] : []
-      // don't allow zoomable images to be wrapped in links
-      if (children.some(e => e?.props?.node?.tagName === 'img')) {
-        return <>{children}</>
-      }
-
       // if outlawed, render the link as text
       if (outlawed) {
         return href
       }
 
-      // If [text](url) was parsed as <a> and text is not empty and not a link itself,
-      // we don't render it as an image since it was probably a conscious choice to include text.
-      const text = children[0]
-      let url
-      try {
-        url = !href.startsWith('/') && new URL(href)
-      } catch {
-        // ignore invalid URLs
-      }
-
-      const internalURL = process.env.NEXT_PUBLIC_URL
-      if (!!text && !/^https?:\/\//.test(text)) {
-        if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
-          return (
-            <Link
-              {...props}
-              id={props.id && itemId ? `${props.id}-${itemId}` : props.id}
-              href={itemId ? `${href}-${itemId}` : href}
-            >{text}
-            </Link>
-          )
-        }
-        if (text.startsWith?.('@')) {
-          // user mention might be within a markdown link like this: [@user foo bar](url)
-          const name = text.replace('@', '').split(' ')[0]
-          return (
-            <UserPopover name={name}>
-              <Link
-                id={props.id}
-                href={href}
-              >
-                {text}
-              </Link>
-            </UserPopover>
-          )
-        } else if (href.startsWith('/') || url?.origin === internalURL) {
-          try {
-            const { linkText } = parseInternalLinks(href)
-            if (linkText) {
-              return (
-                <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
-                  <Link href={href}>{text}</Link>
-                </ItemPopover>
-              )
-            }
-          } catch {
-            // ignore errors like invalid URLs
-          }
-
-          return (
-            <Link
-              id={props.id}
-              href={href}
-            >
-              {text}
-            </Link>
-          )
-        }
-        return (
-          // eslint-disable-next-line
-          <a id={props.id} target='_blank' rel={rel ?? UNKNOWN_LINK_REL} href={href}>{text}</a>
-        )
-      }
-
-      try {
-        const { linkText } = parseInternalLinks(href)
-        if (linkText) {
-          return (
-            <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
-              <Link href={href}>{linkText}</Link>
-            </ItemPopover>
-          )
-        }
-      } catch {
-        // ignore errors like invalid URLs
-      }
-
-      // assume the link is an image which will fallback to link if it's not
-      return <TextMediaOrLink src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</TextMediaOrLink>
+      // eslint-disable-next-line
+      return <Link id={props.id} target='_blank' rel={rel} href={href}>{children}</Link>
     },
-    img: TextMediaOrLink
-  }), [outlawed, rel, itemId, Code, P, Heading, Table, TextMediaOrLink])
+    img: TextMediaOrLink,
+    embed: Embed
+  }), [outlawed, rel, TextMediaOrLink, topLevel])
 
-  const remarkPlugins = useMemo(() => [gfm, mention, sub], [])
-  const rehypePlugins = useMemo(() => [rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript], [])
   const carousel = useCarousel()
 
+  const markdownContent = useMemo(() => (
+    <ReactMarkdown
+      components={components}
+      remarkPlugins={remarkPlugins}
+      rehypePlugins={rehypePlugins}
+      remarkRehypeOptions={{ clobberPrefix: `itemfn-${itemId}-` }}
+    >
+      {children}
+    </ReactMarkdown>
+  ), [components, remarkPlugins, rehypePlugins, children, itemId])
+
+  const showOverflow = useCallback(() => setShow(true), [setShow])
+
   return (
-    <div className={classNames(styles.text, topLevel && styles.topLevel, show ? styles.textUncontained : overflowing && styles.textContained)} ref={containerRef}>
-      {carousel && tab !== 'preview'
-        ? (
-          <ReactMarkdown
-            components={components}
-            remarkPlugins={remarkPlugins}
-            rehypePlugins={rehypePlugins}
-          >
-            {children}
-          </ReactMarkdown>)
-        : (
-          <CarouselProvider>
-            <ReactMarkdown
-              components={components}
-              remarkPlugins={remarkPlugins}
-              rehypePlugins={rehypePlugins}
-            >
-              {children}
-            </ReactMarkdown>
-          </CarouselProvider>)}
-      {overflowing && !show &&
-        <Button size='lg' variant='info' className={styles.textShowFull} onClick={() => setShow(true)}>
+    <div
+      className={classNames(
+        styles.text,
+        topLevel && styles.topLevel,
+        show ? styles.textUncontained : overflowing && styles.textContained
+      )}
+      ref={containerRef}
+    >
+      {
+        carousel && tab !== 'preview'
+          ? markdownContent
+          : <CarouselProvider>{markdownContent}</CarouselProvider>
+      }
+      {overflowing && !show && (
+        <Button
+          size='lg'
+          variant='info'
+          className={styles.textShowFull}
+          onClick={showOverflow}
+        >
           show full text
-        </Button>}
+        </Button>
+      )}
     </div>
   )
 }, isEqual)
+
+function Mention ({ children, node, href, name, id }) {
+  return (
+    <UserPopover name={name}>
+      <Link
+        id={id}
+        href={href}
+      >
+        {children}
+      </Link>
+    </UserPopover>
+  )
+}
+
+function Sub ({ children, node, href, ...props }) {
+  return <Link href={href}>{children}</Link>
+}
+
+function Item ({ children, node, href, id }) {
+  return (
+    <ItemPopover id={id}>
+      <Link href={href}>{children}</Link>
+    </ItemPopover>
+  )
+}
+
+function Footnote ({ children, node, ...props }) {
+  return (
+    <Link {...props}>{children}</Link>
+  )
+}
+
+function MediaLink ({
+  node, src, outlawed, imgproxyUrls, rel = UNKNOWN_LINK_REL, ...props
+}) {
+  const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
+  // if outlawed, render the media link as text
+  if (outlawed) {
+    return url
+  }
+
+  const srcSet = imgproxyUrls?.[url]
+
+  return <MediaOrLink srcSet={srcSet} src={src} rel={rel} {...props} />
+}
+
+function Table ({ node, ...props }) {
+  return (
+    <span className='table-responsive'>
+      <table className='table table-bordered table-sm' {...props} />
+    </span>
+  )
+}
+
+function Code ({ node, inline, className, children, style, ...props }) {
+  return inline
+    ? (
+      <code className={className} {...props}>
+        {children}
+      </code>
+      )
+    : (
+      <SyntaxHighlighter style={atomDark} language='text' PreTag='div' {...props}>
+        {children}
+      </SyntaxHighlighter>
+      )
+}
+
+function P ({ children, node, onlyImages, somethingBefore, somethingAfter, ...props }) {
+  return (
+    <div
+      className={classNames(styles.p, onlyImages && styles.onlyImages,
+        somethingBefore && styles.somethingBefore, somethingAfter && styles.somethingAfter)} {...props}
+    >
+      {children}
+    </div>
+  )
+}

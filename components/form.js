@@ -393,7 +393,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
         {tab !== 'write' &&
           <div className='form-group'>
             <div className={`${styles.text} form-control`}>
-              <Text topLevel={topLevel} noFragments tab={tab}>{meta.value}</Text>
+              <Text topLevel={topLevel} tab={tab}>{meta.value}</Text>
             </div>
           </div>}
       </div>

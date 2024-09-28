@@ -265,30 +265,29 @@
 .text h1, .text h2, .text h3, .text h4, .text h5, .text h6 {
     margin-top: 0.75rem;
     margin-bottom: 0.5rem;
-}
-
-.text h1 {
-    font-size: 1.6rem;
-}
-
-.text h2 {
-    font-size: 1.45rem;
-}
-
-.text h3 {
-    font-size: 1.3rem;
-}
-
-.text h4 {
-    font-size: 1.15rem;
-}
-
-.text h5 {
     font-size: 1rem;
 }
 
-.text h6 {
-    font-size: .85rem;
+.text h1 a, .text h2 a, .text h3 a, .text h4 a, .text h5 a, .text h6 a {
+    text-decoration: none;
+    --bs-text-opacity: 1;
+    color: inherit !important;
+}
+
+.topLevel.text h1 {
+    font-size: 1.6rem;
+}
+
+.topLevel.text h2 {
+    font-size: 1.45rem;
+}
+
+.topLevel.text h3 {
+    font-size: 1.3rem;
+}
+
+.topLevel.text h4 {
+    font-size: 1.15rem;
 }
 
 

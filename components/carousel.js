@@ -120,7 +120,11 @@ export function CarouselProvider ({ children }) {
     media.current.set(src, { src, originalSrc, rel })
   }, [media.current])
 
-  const value = useMemo(() => ({ showCarousel, addMedia }), [showCarousel, addMedia])
+  const removeMedia = useCallback((src) => {
+    media.current.delete(src)
+  }, [media.current])
+
+  const value = useMemo(() => ({ showCarousel, addMedia, removeMedia }), [showCarousel, addMedia, removeMedia])
   return <CarouselContext.Provider value={value}>{children}</CarouselContext.Provider>
 }
 

@@ -3,12 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import gfm from 'remark-gfm'
 import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
-import React, { useState, memo, useRef, useCallback, useMemo, useEffect, createElement } from 'react'
-import { slug } from 'github-slugger'
-import LinkIcon from '@/svgs/link.svg'
-import Thumb from '@/svgs/thumb-up-fill.svg'
-import { toString } from 'mdast-util-to-string'
-import copy from 'clipboard-copy'
+import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
 import MediaOrLink, { Embed } from './media-or-link'
 import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
@@ -51,7 +46,7 @@ export function SearchText ({ text }) {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, outlawed, topLevel, noFragments }) {
+export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
   const [overflowing, setOverflowing] = useState(false)
   const router = useRouter()
   const [show, setShow] = useState(false)
@@ -98,16 +93,14 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     return <MediaLink {...props} outlawed={outlawed} imgproxyUrls={imgproxyUrls} topLevel={topLevel} rel={rel} />
   },
   [outlawed, imgproxyUrls, topLevel, rel])
-  const H = useCallback(props => <Heading {...props} topLevel={topLevel} noFragments={noFragments} />,
-    [topLevel, noFragments])
 
   const components = useMemo(() => ({
-    h1: H,
-    h2: H,
-    h3: H,
-    h4: H,
-    h5: H,
-    h6: H,
+    h1: ({ node, id, ...props }) => <h1 id={topLevel ? id : undefined} {...props} />,
+    h2: ({ node, id, ...props }) => <h2 id={topLevel ? id : undefined} {...props} />,
+    h3: ({ node, id, ...props }) => <h3 id={topLevel ? id : undefined} {...props} />,
+    h4: ({ node, id, ...props }) => <h4 id={topLevel ? id : undefined} {...props} />,
+    h5: ({ node, id, ...props }) => <h5 id={topLevel ? id : undefined} {...props} />,
+    h6: ({ node, id, ...props }) => <h6 id={topLevel ? id : undefined} {...props} />,
     table: Table,
     p: P,
     code: Code,
@@ -115,27 +108,20 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     sub: Sub,
     item: Item,
     footnote: Footnote,
+    headlink: ({ node, href, ...props }) => <Link href={href} {...props} />,
+    autolink: TextMediaOrLink,
     a: ({ node, href, children, ...props }) => {
       // if outlawed, render the link as text
       if (outlawed) {
         return href
       }
 
-      // if the link has text, and it's not a URL, render it as an external link
-      const text = children[0]
-      if (!!text && !/^https?:\/\//.test(text)) {
-        return (
-          // eslint-disable-next-line
-          <a id={props.id} target='_blank' rel={rel ?? UNKNOWN_LINK_REL} href={href}>{children}</a>
-        )
-      }
-
-      // assume the link is an image which will fallback to link if it's not
-      return <TextMediaOrLink src={href} {...props}>{children}</TextMediaOrLink>
+      // eslint-disable-next-line
+      return <Link id={props.id} target='_blank' rel={rel} href={href}>{children}</Link>
     },
     img: TextMediaOrLink,
     embed: Embed
-  }), [outlawed, rel, itemId, H, TextMediaOrLink])
+  }), [outlawed, rel, TextMediaOrLink, topLevel])
 
   const carousel = useCarousel()
 
@@ -180,7 +166,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
   )
 }, isEqual)
 
-function Mention ({ children, href, name, id }) {
+function Mention ({ children, node, href, name, id }) {
   return (
     <UserPopover name={name}>
       <Link
@@ -193,11 +179,11 @@ function Mention ({ children, href, name, id }) {
   )
 }
 
-function Sub ({ children, href, ...props }) {
+function Sub ({ children, node, href, ...props }) {
   return <Link href={href}>{children}</Link>
 }
 
-function Item ({ children, href, id }) {
+function Item ({ children, node, href, id }) {
   return (
     <ItemPopover id={id}>
       <Link href={href}>{children}</Link>
@@ -205,7 +191,7 @@ function Item ({ children, href, id }) {
   )
 }
 
-function Footnote ({ children, ...props }) {
+function Footnote ({ children, node, ...props }) {
   return (
     <Link {...props}>{children}</Link>
   )
@@ -223,44 +209,6 @@ function MediaLink ({
   const srcSet = imgproxyUrls?.[url]
 
   return <MediaOrLink srcSet={srcSet} src={src} rel={rel} {...props} />
-}
-
-function Heading ({ children, node, topLevel, noFragments, ...props }) {
-  const [copied, setCopied] = useState(false)
-  const nodeText = toString(node)
-  const id = useMemo(() => noFragments ? undefined : slug(nodeText.replace(/[^\w\-\s]+/gi, '')), [nodeText, noFragments])
-  const h = useMemo(() => {
-    if (topLevel) {
-      return node?.tagName
-    }
-
-    const h = parseInt(node?.tagName?.replace('h', '') || 0)
-    if (h < 4) return `h${h + 3}`
-
-    return 'h6'
-  }, [node?.tagName, topLevel])
-  const onClick = useCallback(() => {
-    const location = new URL(window.location)
-    location.hash = id
-    copy(location.href)
-    setTimeout(() => setCopied(false), 1500)
-    setCopied(true)
-  }, [id])
-  const Icon = copied ? Thumb : LinkIcon
-
-  return (
-    <span className={styles.heading}>
-      {createElement(h, { id, ...props }, children)}
-      {!noFragments && topLevel &&
-        <a className={classNames(styles.headingLink, copied && styles.copied)} href={`#${id}`} onClick={onClick}>
-          <Icon
-            width={18}
-            height={18}
-            className='fill-grey'
-          />
-        </a>}
-    </span>
-  )
 }
 
 function Table ({ node, ...props }) {

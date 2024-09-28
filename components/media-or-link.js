@@ -58,7 +58,7 @@ const Media = memo(function Media ({
 export default function MediaOrLink ({ linkFallback = true, ...props }) {
   const media = useMediaHelper(props)
   const [error, setError] = useState(false)
-  const { showCarousel, addMedia } = useCarousel()
+  const { showCarousel, addMedia, removeMedia } = useCarousel()
 
   useEffect(() => {
     if (!media.image) return
@@ -70,8 +70,9 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
 
   const handleError = useCallback((err) => {
     console.error('Error loading media', err)
+    removeMedia(media.bestResSrc)
     setError(true)
-  }, [setError])
+  }, [setError, removeMedia, media.bestResSrc])
 
   if (!media.src) return null
 

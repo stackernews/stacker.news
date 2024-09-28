@@ -4,7 +4,7 @@ import gfm from 'remark-gfm'
 import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
 import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
-import MediaOrLink, { Embed } from './media-or-link'
+import MediaOrLink from './media-or-link'
 import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
 import { Button } from 'react-bootstrap'
@@ -17,6 +17,7 @@ import ItemPopover from './item-popover'
 import classNames from 'classnames'
 import { CarouselProvider, useCarousel } from './carousel'
 import rehypeSN from '@/lib/rehype-sn'
+import Embed from './embed'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{

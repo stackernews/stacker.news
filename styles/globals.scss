@@ -940,6 +940,10 @@ div[contenteditable]:focus,
   animation: flipX 2s linear infinite;
 }
 
+.topLevel {
+  --grid-gap: 0.75rem;
+}
+
 @keyframes flipY {
   from {
     transform: rotateY(0deg);

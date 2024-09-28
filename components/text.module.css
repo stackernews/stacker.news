@@ -9,6 +9,9 @@
     --grid-gap: 0.5rem;
 }
 
+.text.topLevel {
+    --grid-gap: 0.75rem;
+}
 
 .text :global(.footnotes) {
     font-size: smaller;
@@ -110,33 +113,18 @@
     display: block;
     white-space: pre-wrap;
     word-break: break-word;
-    padding-top: .25rem;
-    padding-bottom: .25rem;
-}
-
-.text.topLevel .p {
-    padding-top: .375rem;
-    padding-bottom: .375rem;
+    padding-top: calc(var(--grid-gap) * 0.5);
+    padding-bottom: calc(var(--grid-gap) * 0.5);
 }
 
 .text>*:not(.heading) {
-    padding-top: .25rem;
-    padding-bottom: .25rem;
-}
-
-.text.topLevel>*:not(.heading) {
-    padding-top: .375rem;
-    padding-bottom: .375rem;
+    padding-top: calc(var(--grid-gap) * 0.5);
+    padding-bottom: calc(var(--grid-gap) * 0.5);
 }
 
 .text pre, .text blockquote {
-    margin-top: .25rem;
-    margin-bottom: .25rem;
-}
-
-.text.topLevel pre, .text.topLevel blockquote {
-    margin-top: .375rem;
-    margin-bottom: .375rem;
+    margin-top: calc(var(--grid-gap) * 0.5);
+    margin-bottom: calc(var(--grid-gap) * 0.5);
 }
 
 .text pre>div {
@@ -168,51 +156,56 @@
 
 .mediaContainer {
     display: block;
-    width: calc(100% - var(--grid-gap));
-    max-width: calc(100% - var(--grid-gap));
+    width: calc(100%);
+    max-width: calc(100%);
     height: auto;
     overflow: hidden;
     max-height: 25vh;
     aspect-ratio: var(--aspect-ratio);
+    margin: 0;
 }
 
-.p:has(> .mediaContainer) {
-    white-space: normal;
-    padding: 0 !important;
+.mediaContainer.hasTextSiblingsBefore {
+    margin-top: var(--grid-gap);
 }
 
-.p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child),
-.p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) {
-    display: inline-block;
+.mediaContainer.hasTextSiblingsAfter {
+    margin-bottom: var(--grid-gap);
+}
+
+.p:has(> .mediaContainer) .mediaContainer
+{
+    display: flex;
     width: min-content;
-    max-width: calc(100% - var(--grid-gap));
+    max-width: 100%;
 }
 
-.p:not(:has(> span)) .mediaContainer ~ .mediaContainer,
-.p:not(:has(> span)) .mediaContainer:has(+ .mediaContainer) {
-    display: inline-block;
-    width: min-content;
-    margin-right: var(--grid-gap);
-}
-
-.p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) > .mediaContainer:only-child,
-.p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) > .mediaContainer:only-child,
-.p:not(:has(> span)) .mediaContainer:first-child:has(+ .mediaContainer)  {
-    margin-right: var(--grid-gap);
-}
-
-.p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) > .mediaContainer:only-child img,
-.p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) > .mediaContainer:only-child img,
-.p:not(:has(> span)) .mediaContainer ~ .mediaContainer img,
-.p:not(:has(> span)) .mediaContainer:has(+ .mediaContainer) img {
+.p:has(> .mediaContainer) .mediaContainer img,
+.p:has(> .mediaContainer) .mediaContainer img
+{
     block-size: revert-layer;
     max-width: stretch;
 }
-.p:has(> .mediaContainer:only-child) ~ .p:has(> .mediaContainer:only-child) > .mediaContainer:only-child video,
-.p:has(> .mediaContainer:only-child):has(+ .p > .mediaContainer:only-child) > .mediaContainer:only-child video,
-.p:not(:has(> span)) .mediaContainer ~ .mediaContainer video,
-.p:not(:has(> span)) .mediaContainer:has(+ .mediaContainer) video {
+
+.p:has(> .mediaContainer) + .p:has(> .mediaContainer):not(.hasTextSiblings) video,
+.p:has(> .mediaContainer):has(+ .p > .mediaContainer):not(.hasTextSiblings) video
+{
     block-size: stretch;
+}
+
+.p.onlyImages {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--grid-gap);
+}
+
+.p.onlyImages:not(.somethingBefore) {
+    padding-top: 0;
+}
+
+.p.onlyImages:not(.somethingAfter) {
+    padding-bottom: 0;
 }
 
 .mediaContainer img, .mediaContainer video {
@@ -227,6 +220,7 @@
 .mediaContainer img {
     cursor: zoom-in;
     min-width: 30%;
+    max-width: 100%;
     object-position: left top;
 }
 
@@ -307,17 +301,9 @@
     font-size: smaller;
 }
 
-.twitterContainer, .nostrContainer, .videoWrapper, .wavlakeWrapper, .spotifyWrapper, .mediaContainer {
-    margin-top: 0.25rem;
-    margin-bottom: 0.25rem;
-}
-
-.topLevel .twitterContainer, .topLevel .nostrContainer, .topLevel .videoWrapper,
-.topLevel .wavlakeWrapper, .topLevel .spotifyWrapper, .topLevel .mediaContainer,
-:global(.topLevel) .twitterContainer, :global(.topLevel) .nostrContainer, :global(.topLevel) .videoWrapper,
-:global(.topLevel) .wavlakeWrapper, :global(.topLevel) .spotifyWrapper, :global(.topLevel) .mediaContainer {
-    margin-top: 0.375rem;
-    margin-bottom: 0.375rem;
+.twitterContainer, .nostrContainer, .videoWrapper, .wavlakeWrapper, .spotifyWrapper {
+    margin-top: calc(var(--grid-gap) * 0.5);
+    margin-bottom: calc(var(--grid-gap) * 0.5);
 }
 
 .videoWrapper {

@@ -23,9 +23,15 @@ function LinkRaw ({ href, children, src, rel }) {
   )
 }
 
-const Media = memo(function Media ({ src, bestResSrc, srcSet, sizes, width, height, onClick, onError, style, className, video }) {
+const Media = memo(function Media ({
+  src, bestResSrc, srcSet, sizes, width,
+  height, onClick, onError, style, className, video
+}) {
   return (
-    <div className={classNames(className, styles.mediaContainer)} style={style}>
+    <div
+      className={classNames(className, styles.mediaContainer)}
+      style={style}
+    >
       {video
         ? <video
             src={src}

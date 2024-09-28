@@ -3,8 +3,6 @@ import ReactMarkdown from 'react-markdown'
 import gfm from 'remark-gfm'
 import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
-import mention from '@/lib/remark-mention'
-import sub from '@/lib/remark-sub'
 import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
 import { slug } from 'github-slugger'
 import LinkIcon from '@/svgs/link.svg'
@@ -14,7 +12,6 @@ import copy from 'clipboard-copy'
 import MediaOrLink, { Embed } from './media-or-link'
 import { IMGPROXY_URL_REGEXP, parseInternalLinks, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
-import { rehypeEmbed, rehypeInlineCodeProperty, rehypeStyler, rehypeWrapText } from '@/lib/md'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
@@ -24,10 +21,22 @@ import UserPopover from './user-popover'
 import ItemPopover from './item-popover'
 import classNames from 'classnames'
 import { CarouselProvider, useCarousel } from './carousel'
+import rehypeSN from '@/lib/rehype-sn'
 
-// Explicitely defined start/end tags & which CSS class from text.module.css to apply
-export const rehypeSuperscript = () => rehypeStyler('<sup>', '</sup>', styles.superscript)
-export const rehypeSubscript = () => rehypeStyler('<sub>', '</sub>', styles.subscript)
+const rehypeSNStyled = () => rehypeSN({
+  stylers: [{
+    startTag: '<sup>',
+    endTag: '</sup>',
+    className: styles.superscript
+  }, {
+    startTag: '<sub>',
+    endTag: '</sub>',
+    className: styles.subscript
+  }]
+})
+
+const remarkPlugins = [gfm]
+const rehypePlugins = [rehypeSNStyled]
 
 export function SearchText ({ text }) {
   return (
@@ -48,6 +57,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
   const [show, setShow] = useState(false)
   const containerRef = useRef(null)
 
+  // if we are navigating to a hash, show the full text
   useEffect(() => {
     setShow(router.asPath.includes('#'))
     const handleRouteChange = (url, { shallow }) => {
@@ -61,6 +71,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     }
   }, [router])
 
+  // clip item and give it a`show full text` button if we are overflowing
   useEffect(() => {
     const container = containerRef.current
     if (!container || overflowing) return
@@ -140,7 +151,12 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
         )
   }, [])
 
-  const P = useCallback(({ children, node, ...props }) => <div className={styles.p} {...props}>{children}</div>, [])
+  const P = useCallback(({ children, node, onlyImages, somethingBefore, somethingAfter, ...props }) =>
+    <div
+      className={classNames(styles.p, onlyImages && styles.onlyImages,
+        somethingBefore && styles.somethingBefore, somethingAfter && styles.somethingAfter)} {...props}
+    >{children}
+    </div>, [])
 
   const TextMediaOrLink = useCallback(({ node, src, ...props }) => {
     const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
@@ -166,7 +182,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
       return <li {...props} id={props.id && itemId ? `${props.id}-${itemId}` : props.id} />
     },
     code: Code,
-    span: ({ children, ...props }) => <span>{children}</span>,
+    span: ({ children, className, ...props }) => <span className={className}>{children}</span>,
     a: ({ node, href, children, ...props }) => {
       children = children ? Array.isArray(children) ? children : [children] : []
       // don't allow zoomable images to be wrapped in links
@@ -263,9 +279,6 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     embed: Embed
   }), [outlawed, rel, itemId, Code, P, Heading, Table, TextMediaOrLink, Embed])
 
-  const remarkPlugins = useMemo(() => [gfm, mention, sub], [])
-
-  const rehypePlugins = useMemo(() => [rehypeInlineCodeProperty, rehypeSuperscript, rehypeSubscript, rehypeEmbed, rehypeWrapText], [])
   const carousel = useCarousel()
 
   return (

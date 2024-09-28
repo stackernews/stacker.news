@@ -315,7 +315,7 @@ async function encryptJSON (key, jsonData) {
     'raw',
     fromHex(key),
     { name: 'AES-GCM' },
-    true,
+    false,
     ['encrypt', 'decrypt']
   )
 
@@ -349,7 +349,7 @@ async function decryptJSON (key, encryptedData) {
     'raw',
     fromHex(key),
     { name: 'AES-GCM' },
-    true,
+    false,
     ['encrypt', 'decrypt']
   )
 

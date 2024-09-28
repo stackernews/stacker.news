@@ -156,8 +156,8 @@
 
 .mediaContainer {
     display: block;
-    width: calc(100%);
-    max-width: calc(100%);
+    width: 100%;
+    max-width: 100%;
     height: auto;
     overflow: hidden;
     max-height: 25vh;
@@ -181,16 +181,10 @@
 }
 
 .p:has(> .mediaContainer) .mediaContainer img,
-.p:has(> .mediaContainer) .mediaContainer img
+.p:has(> .mediaContainer) .mediaContainer video
 {
     block-size: revert-layer;
     max-width: stretch;
-}
-
-.p:has(> .mediaContainer) + .p:has(> .mediaContainer):not(.hasTextSiblings) video,
-.p:has(> .mediaContainer):has(+ .p > .mediaContainer):not(.hasTextSiblings) video
-{
-    block-size: stretch;
 }
 
 .p.onlyImages {

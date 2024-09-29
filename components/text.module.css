@@ -305,6 +305,7 @@
 .twitterContainer, .nostrContainer, .videoWrapper, .wavlakeWrapper, .spotifyWrapper {
     margin-top: calc(var(--grid-gap) * 0.5);
     margin-bottom: calc(var(--grid-gap) * 0.5);
+    background-color: var(--theme-bg);
 }
 
 .videoWrapper {

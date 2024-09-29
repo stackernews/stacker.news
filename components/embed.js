@@ -21,7 +21,7 @@ function TweetSkeleton ({ className }) {
   )
 }
 
-export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, id }) {
+export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, darkMode, id }) {
   const [show, setShow] = useState(false)
   const iframeRef = useRef(null)
 
@@ -35,13 +35,24 @@ export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, 
 
     window?.addEventListener('message', setHeightFromIframe)
 
+    const handleIframeLoad = () => {
+      iframeRef.current.contentWindow.postMessage({ setDarkMode: darkMode }, '*')
+    }
+
+    if (iframeRef.current.complete) {
+      handleIframeLoad()
+    } else {
+      iframeRef.current.addEventListener('load', handleIframeLoad)
+    }
+
     // https://github.com/vercel/next.js/issues/39451
     iframeRef.current.src = `https://njump.me/${id}?embed=yes`
 
     return () => {
       window?.removeEventListener('message', setHeightFromIframe)
+      iframeRef.current?.removeEventListener('load', handleIframeLoad)
     }
-  }, [iframeRef.current])
+  }, [iframeRef.current, darkMode])
 
   return (
     <div className={classNames(styles.nostrContainer, !show && styles.twitterContained, className)}>
@@ -132,7 +143,7 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
 
   if (provider === 'nostr') {
     return (
-      <NostrEmbed src={src} className={className} topLevel={topLevel} id={id} />
+      <NostrEmbed src={src} className={className} topLevel={topLevel} id={id} darkMode={darkMode} />
     )
   }
 

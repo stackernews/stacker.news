@@ -110,7 +110,7 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
     item: Item,
     footnote: Footnote,
     headlink: ({ node, href, ...props }) => <Link href={href} {...props} />,
-    autolink: TextMediaOrLink,
+    autolink: ({ href, ...props }) => <TextMediaOrLink src={href} {...props} />,
     a: ({ node, href, children, ...props }) => {
       // if outlawed, render the link as text
       if (outlawed) {

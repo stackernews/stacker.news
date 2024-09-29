@@ -19,12 +19,13 @@ import Share from './share'
 import Toc from './table-of-contents'
 import Link from 'next/link'
 import { RootProvider } from './root'
-import { decodeProxyUrl, IMGPROXY_URL_REGEXP } from '@/lib/url'
+import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseEmbedUrl } from '@/lib/url'
 import { numWithUnits } from '@/lib/format'
 import { useQuoteReply } from './use-quote-reply'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import classNames from 'classnames'
 import { CarouselProvider } from './carousel'
+import Embed from './embed'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
@@ -50,10 +51,18 @@ function BioItem ({ item, handleClick }) {
 }
 
 function ItemEmbed ({ url, imgproxyUrls }) {
-  const src = IMGPROXY_URL_REGEXP.test(url) ? decodeProxyUrl(url) : url
-  const srcSet = imgproxyUrls?.[url]
+  if (imgproxyUrls) {
+    const src = IMGPROXY_URL_REGEXP.test(url) ? decodeProxyUrl(url) : url
+    const srcSet = imgproxyUrls?.[url]
+    return <MediaOrLink src={src} srcSet={srcSet} topLevel linkFallback={false} />
+  }
 
-  return <MediaOrLink src={src} srcSet={srcSet} topLevel linkFallback={false} />
+  const provider = parseEmbedUrl(url)
+  if (provider) {
+    return <Embed url={url} {...provider} topLevel />
+  }
+
+  return null
 }
 
 function FwdUsers ({ forwards }) {

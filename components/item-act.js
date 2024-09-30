@@ -70,7 +70,6 @@ function BoostForm ({ step, onSubmit, children, item, oValue, inputRef, act = 'B
         name='amount'
         type='number'
         innerRef={inputRef}
-        overrideValue={oValue}
         sub={item.sub}
         step={step}
         required
@@ -147,7 +146,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
   }, [me, actor, !!wallet, act, item.id, onClose, abortSignal, strike])
 
   return act === 'BOOST'
-    ? <BoostForm step={step} onSubmit={onSubmit} item={item} oValue={oValue} inputRef={inputRef} act={act}>{children}</BoostForm>
+    ? <BoostForm step={step} onSubmit={onSubmit} item={item} inputRef={inputRef} act={act}>{children}</BoostForm>
     : (
       <Form
         initial={{

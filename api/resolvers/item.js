@@ -685,11 +685,7 @@ export default {
 
       return await models.item.count({ where }) + 1
     },
-    boostPosition: async (parent, { id, sub, boost }, { models, me }) => {
-      if (boost <= 0) {
-        throw new GqlInputError('boost must be greater than 0')
-      }
-
+    boostPosition: async (parent, { id, sub, boost = 0 }, { models, me }) => {
       const where = {
         boost: { gte: boost },
         status: 'ACTIVE',
@@ -701,9 +697,29 @@ export default {
         where.id = { not: Number(id) }
       }
 
+      const homeAgg = await models.item.aggregate({
+        _count: { id: true },
+        _max: { boost: true },
+        where
+      })
+
+      let subAgg
+      if (sub) {
+        subAgg = await models.item.aggregate({
+          _count: { id: true },
+          _max: { boost: true },
+          where: {
+            ...where,
+            subName: sub
+          }
+        })
+      }
+
       return {
-        home: await models.item.count({ where }) === 0,
-        sub: sub ? await models.item.count({ where: { ...where, subName: sub } }) === 0 : false
+        home: homeAgg._count.id === 0,
+        sub: subAgg?._count.id === 0,
+        homeMaxBoost: homeAgg._max.boost || 0,
+        subMaxBoost: subAgg?._max.boost || 0
       }
     }
   },

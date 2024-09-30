@@ -51,15 +51,15 @@ function BioItem ({ item, handleClick }) {
 }
 
 function ItemEmbed ({ url, imgproxyUrls }) {
+  const provider = parseEmbedUrl(url)
+  if (provider) {
+    return <Embed src={url} {...provider} topLevel />
+  }
+
   if (imgproxyUrls) {
     const src = IMGPROXY_URL_REGEXP.test(url) ? decodeProxyUrl(url) : url
     const srcSet = imgproxyUrls?.[url]
     return <MediaOrLink src={src} srcSet={srcSet} topLevel linkFallback={false} />
-  }
-
-  const provider = parseEmbedUrl(url)
-  if (provider) {
-    return <Embed src={url} {...provider} topLevel />
   }
 
   return null

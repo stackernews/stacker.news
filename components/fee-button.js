@@ -50,7 +50,6 @@ export function postCommentUseRemoteLineItems ({ parentId } = {}) {
     useEffect(() => {
       const repetition = data?.itemRepetition
       if (!repetition) return setLine({})
-      console.log('repetition', repetition)
       setLine({
         itemRepetition: {
           term: <>x 10<sup>{repetition}</sup></>,

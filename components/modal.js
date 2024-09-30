@@ -36,6 +36,14 @@ export default function useModal () {
     forceUpdate()
   }, [])
 
+  const setOptions = useCallback(options => {
+    const current = getCurrentContent()
+    if (current) {
+      current.options = { ...current.options, ...options }
+      forceUpdate()
+    }
+  }, [getCurrentContent, forceUpdate])
+
   // this is called on every navigation due to below useEffect
   const onClose = useCallback((options) => {
     if (options?.back) {
@@ -101,7 +109,7 @@ export default function useModal () {
 
   const showModal = useCallback(
     (getContent, options) => {
-      const ref = { node: getContent(onClose), options }
+      const ref = { node: getContent(onClose, setOptions), options }
       if (options?.replaceModal) {
         modalStack.current = [ref]
       } else {

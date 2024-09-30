@@ -19,11 +19,13 @@ import Share from './share'
 import Toc from './table-of-contents'
 import Link from 'next/link'
 import { RootProvider } from './root'
-import { decodeProxyUrl, IMGPROXY_URL_REGEXP } from '@/lib/url'
+import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseEmbedUrl } from '@/lib/url'
 import { numWithUnits } from '@/lib/format'
 import { useQuoteReply } from './use-quote-reply'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import classNames from 'classnames'
+import { CarouselProvider } from './carousel'
+import Embed from './embed'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
@@ -49,10 +51,18 @@ function BioItem ({ item, handleClick }) {
 }
 
 function ItemEmbed ({ url, imgproxyUrls }) {
-  const src = IMGPROXY_URL_REGEXP.test(url) ? decodeProxyUrl(url) : url
-  const srcSet = imgproxyUrls?.[url]
+  const provider = parseEmbedUrl(url)
+  if (provider) {
+    return <Embed src={url} {...provider} topLevel />
+  }
 
-  return <MediaOrLink src={src} srcSet={srcSet} topLevel linkFallback={false} />
+  if (imgproxyUrls) {
+    const src = IMGPROXY_URL_REGEXP.test(url) ? decodeProxyUrl(url) : url
+    const srcSet = imgproxyUrls?.[url]
+    return <MediaOrLink src={src} srcSet={srcSet} topLevel linkFallback={false} />
+  }
+
+  return null
 }
 
 function FwdUsers ({ forwards }) {
@@ -156,20 +166,22 @@ export default function ItemFull ({ item, bio, rank, ...props }) {
           </div>)
         : <div />}
       <RootProvider root={item.root || item}>
-        {item.parentId
-          ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
-          : (
-            <div>{bio
-              ? <BioItem item={item} {...props} />
-              : <TopLevelItem item={item} {...props} />}
-            </div>)}
-        {item.comments &&
-          <div className={styles.comments}>
-            <Comments
-              parentId={item.id} parentCreatedAt={item.createdAt}
-              pinned={item.position} bio={bio} commentSats={item.commentSats} comments={item.comments}
-            />
-          </div>}
+        <CarouselProvider key={item.id}>
+          {item.parentId
+            ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
+            : (
+              <div>{bio
+                ? <BioItem item={item} {...props} />
+                : <TopLevelItem item={item} {...props} />}
+              </div>)}
+          {item.comments &&
+            <div className={styles.comments}>
+              <Comments
+                parentId={item.id} parentCreatedAt={item.createdAt}
+                pinned={item.position} bio={bio} commentSats={item.commentSats} comments={item.comments}
+              />
+            </div>}
+        </CarouselProvider>
       </RootProvider>
     </>
   )

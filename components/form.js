@@ -59,7 +59,7 @@ export function SubmitButton ({
   return (
     <Button
       variant={variant || 'main'}
-      className={classNames(formik.isSubmitting && styles.pending, className)}
+      className={classNames(formik.isSubmitting && 'pulse', className)}
       type='submit'
       disabled={disabled}
       onClick={value
@@ -409,7 +409,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
         {tab !== 'write' &&
           <div className='form-group'>
             <div className={`${styles.text} form-control`}>
-              <Text topLevel={topLevel} noFragments tab={tab}>{meta.value}</Text>
+              <Text topLevel={topLevel} tab={tab}>{meta.value}</Text>
             </div>
           </div>}
       </div>

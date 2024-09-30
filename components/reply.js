@@ -14,6 +14,7 @@ import { useRoot } from './root'
 import { commentSubTreeRootId } from '@/lib/item'
 import { CREATE_COMMENT } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
+import gql from 'graphql-tag'
 
 export function ReplyOnAnotherPage ({ item }) {
   const rootId = commentSubTreeRootId(item)
@@ -79,6 +80,17 @@ export default forwardRef(function Reply ({
             }
           }
         })
+
+        // no lag for itemRepetition
+        if (!item.mine && me) {
+          cache.updateQuery({
+            query: gql`{ itemRepetition(parentId: "${parentId}") }`
+          }, data => {
+            return {
+              itemRepetition: (data?.itemRepetition || 0) + 1
+            }
+          })
+        }
 
         const ancestors = item.path.split('.')
 

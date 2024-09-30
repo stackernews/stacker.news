@@ -3,7 +3,7 @@ import { useMe } from '@/components/me'
 import { useMutation, useQuery } from '@apollo/client'
 import { GET_ENTRY, SET_ENTRY, UNSET_ENTRY, CLEAR_VAULT, SET_VAULT_KEY_HASH } from '@/fragments/vault'
 import { E_VAULT_KEY_EXISTS } from '@/lib/error'
-
+import { SSR } from '@/lib/constants'
 export function useVaultConfigurator () {
   const { me } = useMe()
   const [setVaultKeyHash] = useMutation(SET_VAULT_KEY_HASH)
@@ -102,7 +102,7 @@ export function useVaultMigration () {
 // used to get and set values in the vault
 export default function useVault (vaultStorageKey, defaultValue, options = { localOnly: false }) {
   const { me } = useMe()
-  const { localOnly } = options
+  const localOnly = options.localOnly || !me
 
   // This is the key that we will use in local storage whereas vaultStorageKey is the key that we
   // will use on the server ("the vault").
@@ -121,14 +121,12 @@ export default function useVault (vaultStorageKey, defaultValue, options = { loc
 
   useEffect(() => {
     (async () => {
-      if (!me) return
-
       if (localOnly) {
         innerSetValue(getLocalStorage(localStorageKey) || defaultValue)
         return
       }
 
-      const localVaultKey = getLocalKey(me.id)
+      const localVaultKey = getLocalKey(me?.id)
 
       if (!me.privates.vaultKeyHash || localVaultKey?.hash !== me.privates.vaultKeyHash) {
         // no or different vault setup on server
@@ -160,7 +158,7 @@ export default function useVault (vaultStorageKey, defaultValue, options = { loc
   }, [vaultData, me?.privates?.vaultKeyHash, localOnly])
 
   const setValue = useCallback(async (newValue) => {
-    const vaultKey = getLocalKey(me.id)
+    const vaultKey = getLocalKey(me?.id)
 
     const useVault = vaultKey && vaultKey.key && vaultKey.hash === me.privates.vaultKeyHash
 
@@ -222,6 +220,7 @@ function retrieveMigratableKeys (userId) {
 }
 
 function getLocalStorageKey (key, userId, localOnly) {
+  if (!userId) userId = 'anon'
   // We prefix localStorageKey with 'vault:' so we know which
   // keys we need to migrate to the vault when device sync is enabled.
   let localStorageKey = `vault:${key}`
@@ -237,14 +236,18 @@ function getLocalStorageKey (key, userId, localOnly) {
 }
 
 function setLocalStorage (key, value) {
+  if (SSR) return
   window.localStorage.setItem(key, JSON.stringify(value))
 }
 
 function setLocalKey (userId, key) {
+  if (SSR) return
+  if (!userId) userId = 'anon'
   return window.localStorage.setItem(`vault-key:local-only:${userId}`, JSON.stringify(key))
 }
 
 function getLocalStorage (key) {
+  if (SSR) return null
   let v = window.localStorage.getItem(key)
 
   // ensure backwards compatible with wallet keys that we used before we had the vault
@@ -257,14 +260,19 @@ function getLocalStorage (key) {
 }
 
 function unsetLocalStorage (key) {
+  if (SSR) return
   window.localStorage.removeItem(key)
 }
 
 function getLocalKey (userId) {
+  if (SSR) return null
+  if (!userId) userId = 'anon'
   return JSON.parse(window.localStorage.getItem(`vault-key:local-only:${userId}`) || '{}')
 }
 
 function unsetLocalKey (userId) {
+  if (SSR) return
+  if (!userId) userId = 'anon'
   return window.localStorage.removeItem(`vault-key:local-only:${userId}`)
 }
 

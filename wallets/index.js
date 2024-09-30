@@ -261,13 +261,13 @@ function useConfig (wallet) {
     }
   }, [hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, wallet])
 
-  const clearConfig = useCallback(async ({ logger, clientOnly }) => {
+  const clearConfig = useCallback(async ({ logger, clientOnly, ...options }) => {
     if (hasClientConfig) {
-      clearClientConfig()
+      clearClientConfig(options)
       wallet.disablePayments({})
       logger.ok('wallet detached for payments')
     }
-    if (hasServerConfig && !clientOnly) await clearServerConfig()
+    if (hasServerConfig && !clientOnly) await clearServerConfig(options)
   }, [hasClientConfig, hasServerConfig, clearClientConfig, clearServerConfig, wallet])
 
   return [config, saveConfig, clearConfig]
@@ -414,7 +414,7 @@ export function useWallets () {
   const resetClient = useCallback(async (wallet) => {
     for (const w of wallets) {
       if (w.canSend) {
-        await w.delete({ clientOnly: true })
+        await w.delete({ clientOnly: true, onlyFromLocalStorage: true })
       }
       await w.deleteLogs({ clientOnly: true })
     }

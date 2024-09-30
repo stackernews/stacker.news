@@ -177,10 +177,10 @@ export default function useVault (vaultStorageKey, defaultValue, options = { loc
     innerSetValue(newValue)
   }, [me?.privates?.vaultKeyHash, localStorageKey, vaultStorageKey, localOnly])
 
-  const clearValue = useCallback(async () => {
+  const clearValue = useCallback(async ({ onlyFromLocalStorage }) => {
     // unset a value
     // clear server
-    if (!localOnly) {
+    if (!localOnly && !onlyFromLocalStorage) {
       await clearVaultValue({ variables: { key: vaultStorageKey } })
       await refetchVaultValue()
     }
@@ -270,7 +270,7 @@ function getLocalKey (userId) {
   return JSON.parse(window.localStorage.getItem(`vault-key:local-only:${userId}`) || '{}')
 }
 
-function unsetLocalKey (userId) {
+export function unsetLocalKey (userId) {
   if (SSR) return
   if (!userId) userId = 'anon'
   return window.localStorage.removeItem(`vault-key:local-only:${userId}`)

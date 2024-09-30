@@ -59,7 +59,7 @@ function ItemEmbed ({ url, imgproxyUrls }) {
 
   const provider = parseEmbedUrl(url)
   if (provider) {
-    return <Embed url={url} {...provider} topLevel />
+    return <Embed src={url} {...provider} topLevel />
   }
 
   return null

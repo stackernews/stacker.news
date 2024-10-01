@@ -1160,7 +1160,7 @@ function PasswordScanner ({ onDecode }) {
   )
 }
 
-export function PasswordInput ({ newPass, qr, readOnly, append, ...props }) {
+export function PasswordInput ({ newPass, qr, copy, readOnly, append, ...props }) {
   const [showPass, setShowPass] = useState(false)
   const [field] = useField(props)
 
@@ -1173,6 +1173,9 @@ export function PasswordInput ({ newPass, qr, readOnly, append, ...props }) {
       append={
         <>
           <PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />
+          {copy && (
+            <CopyButton icon value={field?.value} />
+          )}
           {qr && (readOnly
             ? <QrPassword value={field?.value} />
             : <PasswordScanner

@@ -42,6 +42,7 @@ export default function DeviceSync () {
               name='passphrase'
               readOnly
               qr
+              copy
             />
           </Form>
           <div className='d-flex justify-content-between'>
@@ -202,6 +203,7 @@ function ConnectForm ({ onClose, onConnect, onReset, enabled }) {
           autoFocus
           readOnly={!enabled}
           qr={enabled}
+          copy={!enabled}
           append={
             !enabled && (
               <InputGroup.Text style={{ cursor: 'pointer', userSelect: 'none' }} onClick={newPassphrase}>

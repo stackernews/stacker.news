@@ -568,6 +568,7 @@ services:
       - LND_GRPC_MACAROON=/app/.lnd/regtest/admin.macaroon
     volumes:
       - ./docker/lnd/stacker:/app/.lnd
+      - ./docker/lnbits/database.sqlite3:/app/data/database.sqlite3
     labels:
       CONNECT: "localhost:${LNBITS_WEB_PORT}"
     cpu_shares: "${CPU_SHARES_LOW}"

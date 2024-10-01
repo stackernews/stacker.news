@@ -204,7 +204,7 @@ function ConnectForm ({ onClose, onConnect, enabled }) {
           required
           autoFocus
           readOnly={!enabled}
-          qr={enabled}
+          qr
           copy={!enabled}
           append={
             !enabled && (

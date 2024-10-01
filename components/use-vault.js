@@ -46,7 +46,8 @@ export function useVaultConfigurator () {
         if (errorCode === E_VAULT_KEY_EXISTS) {
           throw new Error('wrong passphrase')
         }
-        throw new Error(error)
+        console.error(error)
+        throw new Error('could not set the passphrase. Please try again.')
       }
     })
     innerSetVaultKey({ passphrase, key, hash })

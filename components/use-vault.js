@@ -172,7 +172,7 @@ export default function useVault (vaultStorageKey, defaultValue, options = { loc
     if (useVault && !localOnly) {
       const encryptedValue = await encryptJSON(vaultKey, newValue)
       await setVaultValue({ variables: { key: vaultStorageKey, value: encryptedValue } })
-      console.log('stored encrypted value in vault:', vaultStorageKey, newValue, encryptedValue)
+      console.log('stored encrypted value in vault:', vaultStorageKey, encryptedValue)
       // clear local storage (we get rid of stored unencrypted data as soon as it can be stored on the vault)
       await unsetLocalStorage(localStorageKey)
     } else {

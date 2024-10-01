@@ -49,11 +49,6 @@ export default function DeviceSync () {
             <div className='d-flex align-items-center ms-auto gap-2'>
               <Button className='me-2 text-muted nav-link fw-bold' variant='link' onClick={onClose}>close</Button>
               <Button
-                variant='danger'
-                onClick={reset}
-              >reset
-              </Button>
-              <Button
                 variant='primary'
                 onClick={() => {
                   disconnectVault()
@@ -67,7 +62,7 @@ export default function DeviceSync () {
       ))
     } else {
       showModal((onClose) => (
-        <ConnectForm onClose={onClose} onReset={reset} onConnect={onConnect} enabled={enabled} />
+        <ConnectForm onClose={onClose} onConnect={onConnect} enabled={enabled} />
       ))
     }
   }, [migrate, enabled, connected, value])
@@ -151,6 +146,26 @@ export default function DeviceSync () {
           </p>
         </Info>
       </div>
+      {enabled && !connected && (
+        <div className='mt-2 d-flex align-items-center'>
+          <div>
+            <Button
+              variant='danger'
+              onClick={reset}
+            >
+              Reset device sync data
+            </Button>
+          </div>
+          <Info>
+            <p>
+              If you have lost your passphrase or wish to erase all encrypted data from the server, you can reset the device sync data and start over.
+            </p>
+            <p className='text-muted text-sm'>
+              This action cannot be undone.
+            </p>
+          </Info>
+        </div>
+      )}
     </>
   )
 }
@@ -161,7 +176,7 @@ const generatePassphrase = (n = 12) => {
   return Array.from(rand).map(i => bip39Words[i % bip39Words.length]).join(' ')
 }
 
-function ConnectForm ({ onClose, onConnect, onReset, enabled }) {
+function ConnectForm ({ onClose, onConnect, enabled }) {
   const [passphrase, setPassphrase] = useState(!enabled ? generatePassphrase : '')
 
   useEffect(() => {
@@ -223,9 +238,6 @@ function ConnectForm ({ onClose, onConnect, onReset, enabled }) {
           <div className='d-flex justify-content-between'>
             <div className='d-flex align-items-center ms-auto gap-2'>
               <CancelButton onClick={onClose} />
-              {enabled && (
-                <Button variant='danger' onClick={onReset}>reset</Button>
-              )}
               <SubmitButton variant='primary'>connect</SubmitButton>
             </div>
           </div>

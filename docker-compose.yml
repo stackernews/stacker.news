@@ -89,6 +89,7 @@ services:
     cpu_shares: "${CPU_SHARES_LOW}"
   worker:
     container_name: worker
+    network_mode: host
     build:
       context: ./worker
       args:

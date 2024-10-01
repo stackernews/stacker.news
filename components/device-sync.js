@@ -17,7 +17,7 @@ export default function DeviceSync () {
   const showModal = useShowModal()
 
   const enabled = !!me?.privates?.vaultKeyHash
-  const connected = !!value?.skey
+  const connected = !!value?.key
 
   const migrate = useVaultMigration()
 

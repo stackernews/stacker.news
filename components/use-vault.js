@@ -5,6 +5,9 @@ import { GET_ENTRY, SET_ENTRY, UNSET_ENTRY, CLEAR_VAULT, SET_VAULT_KEY_HASH } fr
 import { E_VAULT_KEY_EXISTS } from '@/lib/error'
 import { SSR } from '@/lib/constants'
 import { useToast } from '@/components/toast'
+
+const USE_INDEXEDDB = true
+
 export function useVaultConfigurator () {
   const { me } = useMe()
   const [setVaultKeyHash] = useMutation(SET_VAULT_KEY_HASH)
@@ -223,9 +226,9 @@ function retrieveMigratableKeys (userId) {
   return out
 }
 
-async function getLocalStorageBackend (useIndexDb) {
+async function getLocalStorageBackend (useIndexedDb) {
   if (SSR) return null
-  if (useIndexDb && window.indexedDB && !window.snVaultIDB) {
+  if (USE_INDEXEDDB && useIndexedDb && window.indexedDB && !window.snVaultIDB) {
     try {
       const storage = await new Promise((resolve, reject) => {
         const db = window.indexedDB.open('sn-vault', 1)
@@ -245,7 +248,7 @@ async function getLocalStorageBackend (useIndexDb) {
     }
   }
 
-  const isIDB = useIndexDb && !!window.snVaultIDB
+  const isIDB = useIndexedDb && !!window.snVaultIDB
 
   return {
     isIDB,
@@ -313,12 +316,29 @@ async function setLocalKey (userId, localKey) {
   if (!userId) userId = 'anon'
   const storage = await getLocalStorageBackend(true)
   const k = `vault-key:local-only:${userId}`
+  const { key, hash } = localKey
+
+  const rawKey = await window.crypto.subtle.exportKey('raw', key)
   if (storage.isIDB) {
-    const { skey, hash } = localKey
-    return await storage.set(k, { skey, hash })
+    let nonExtractableKey
+    // if IDB, we ensure the key is non extractable
+    if (localKey.extractable) {
+      nonExtractableKey = await window.crypto.subtle.importKey(
+        'raw',
+        rawKey,
+        { name: 'AES-GCM' },
+        false,
+        ['encrypt', 'decrypt']
+      )
+    } else {
+      nonExtractableKey = localKey.key
+    }
+    // and we store it
+    return await storage.set(k, { key: nonExtractableKey, hash, extractable: false })
   } else {
-    const { passphrase, key, hash } = localKey
-    return await storage.set(k, { passphrase, key, hash })
+    // if non IDB we need to serialize the key to store it
+    const keyHex = toHex(rawKey)
+    return await storage.set(k, { key: keyHex, hash, extractable: true })
   }
 }
 
@@ -326,7 +346,22 @@ async function getLocalKey (userId) {
   if (SSR) return null
   if (!userId) userId = 'anon'
   const storage = await getLocalStorageBackend(true)
-  return await storage.get(`vault-key:local-only:${userId}`)
+  const key = await storage.get(`vault-key:local-only:${userId}`)
+  if (!key) return null
+  if (!storage.isIDB) {
+    // if non IDB we need to deserialize the key
+    const rawKey = fromHex(key.key)
+    const keyMaterial = await window.crypto.subtle.importKey(
+      'raw',
+      rawKey,
+      { name: 'AES-GCM' },
+      false,
+      ['encrypt', 'decrypt']
+    )
+    key.key = keyMaterial
+    key.extractable = true
+  }
+  return key
 }
 
 export async function unsetLocalKey (userId) {
@@ -398,39 +433,15 @@ async function deriveKey (userId, passphrase) {
   )
   const rawKey = await window.crypto.subtle.exportKey('raw', key)
   const rawHash = await window.crypto.subtle.digest('SHA-256', rawKey)
-
-  const nonExtractableKey = await window.crypto.subtle.importKey(
-    'raw',
-    rawKey,
-    { name: 'AES-GCM' },
-    false,
-    ['encrypt', 'decrypt']
-  )
-
   return {
-    passphrase,
-    key: toHex(rawKey),
+    key,
     hash: toHex(rawHash),
-    skey: nonExtractableKey
+    extractable: true
   }
 }
 
 async function encryptJSON (localKey, jsonData) {
-  let key
-
-  if (localKey.skey) {
-    key = localKey.skey
-  } else if (localKey.key) {
-    key = await window.crypto.subtle.importKey(
-      'raw',
-      fromHex(localKey.key),
-      { name: 'AES-GCM' },
-      false,
-      ['encrypt']
-    )
-  } else {
-    throw new Error('invalid local key')
-  }
+  const { key } = localKey
 
   // random IVs are _really_ important in GCM: reusing the IV once can lead to catastrophic failure
   // see https://crypto.stackexchange.com/questions/26790/how-bad-it-is-using-the-same-iv-twice-with-aes-gcm
@@ -454,21 +465,7 @@ async function encryptJSON (localKey, jsonData) {
 }
 
 async function decryptJSON (localKey, encryptedData) {
-  let key
-
-  if (localKey.skey) {
-    key = localKey.skey
-  } else if (localKey.key) {
-    key = await window.crypto.subtle.importKey(
-      'raw',
-      fromHex(localKey.key),
-      { name: 'AES-GCM' },
-      false,
-      ['decrypt']
-    )
-  } else {
-    throw new Error('invalid local key')
-  }
+  const { key } = localKey
 
   let { iv, data } = JSON.parse(encryptedData)
 

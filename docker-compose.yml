@@ -44,6 +44,7 @@ services:
     container_name: app
     stdin_open: true
     tty: true
+    network_mode: "host"
     build:
       context: ./
       args:

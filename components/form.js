@@ -727,10 +727,11 @@ export function InputUserSuggest ({
   )
 }
 
-export function Input ({ label, groupClassName, ...props }) {
+export function Input ({ label, groupClassName, under, ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
       <InputInner {...props} />
+      {under}
     </FormGroup>
   )
 }
@@ -1100,8 +1101,6 @@ function QrPassword ({ value }) {
   const toaster = useToast()
 
   const showQr = useCallback(() => {
-    copy(value)
-    toaster.success('copied passphrase')
     showModal(close => (
       <div className={styles.qr}>
         <p>You can import this passphrase into another device by scanning this QR code</p>
@@ -1164,32 +1163,45 @@ export function PasswordInput ({ newPass, qr, copy, readOnly, append, ...props }
   const [showPass, setShowPass] = useState(false)
   const [field] = useField(props)
 
+  const Append = useMemo(() => {
+    return (
+      <>
+        <PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />
+        {copy && (
+          <CopyButton icon value={field?.value} />
+        )}
+        {qr && (readOnly
+          ? <QrPassword value={field?.value} />
+          : <PasswordScanner
+              onDecode={decoded => {
+                // Formik helpers don't seem to work in another modal.
+                // I assume it's because we unmount the Formik component
+                // when replace it with another modal.
+                window.localStorage.setItem('qr:passphrase', decoded)
+              }}
+            />)}
+        {append}
+      </>
+    )
+  }, [showPass, copy, field?.value, qr, readOnly, append])
+
+  const maskedValue = !showPass && props.as === 'textarea' ? field?.value?.replace(/./g, '•') : field?.value
+
   return (
     <ClientInput
       {...props}
+      className={styles.passwordInput}
       type={showPass ? 'text' : 'password'}
       autoComplete={newPass ? 'new-password' : 'current-password'}
       readOnly={readOnly}
-      append={
-        <>
-          <PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />
-          {copy && (
-            <CopyButton icon value={field?.value} />
-          )}
-          {qr && (readOnly
-            ? <QrPassword value={field?.value} />
-            : <PasswordScanner
-                onDecode={decoded => {
-                  // Formik helpers don't seem to work in another modal.
-                  // I assume it's because we unmount the Formik component
-                  // when replace it with another modal.
-                  // We use local storage to workaround this.
-                  window.localStorage.setItem('qr:passphrase', decoded)
-                }}
-              />)}
-          {append}
-        </>
-      }
+      append={props.as === 'textarea' ? undefined : Append}
+      value={maskedValue}
+      under={props.as === 'textarea'
+        ? (
+          <div className='mt-2 d-flex justify-content-end' style={{ gap: '8px' }}>
+            {Append}
+          </div>)
+        : undefined}
     />
   )
 }

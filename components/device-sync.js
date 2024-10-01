@@ -30,7 +30,7 @@ export default function DeviceSync () {
             Sensitive data (like wallet credentials) is now securely synced between all connected devices.
           </p>
           <p className='text-muted text-sm'>
-            The passphrase is stored on your device and is never sent to our server.
+            Disconnect to prevent this device from syncing data or to reset your passphrase.
           </p>
           <div className='d-flex justify-content-between'>
             <div className='d-flex align-items-center ms-auto gap-2'>
@@ -64,7 +64,7 @@ export default function DeviceSync () {
       <div>
         <h2>Reset device sync</h2>
         <p>
-          This will delete all encrypted data on the server and disconnect all devices by deleting the passphrase on each.
+          This will delete all encrypted data on the server and disconnect all devices.
         </p>
         <p>
           You will need to enter a new passphrase on this and all other devices to sync data again.
@@ -126,7 +126,7 @@ export default function DeviceSync () {
         </div>
         <Info>
           <p>
-            Device Sync uses end-to-end encryption to securely synchronize your data across devices.
+            Device sync uses end-to-end encryption to securely synchronize your data across devices.
           </p>
           <p className='text-muted text-sm'>
             Your sensitive data remains private and inaccessible to our servers while being synced across all your connected devices using only a passphrase.
@@ -180,11 +180,11 @@ function ConnectForm ({ onClose, onConnect, enabled }) {
 
   return (
     <div>
-      <h2>{!enabled ? 'Set a' : 'Input your'} Passphrase</h2>
+      <h2>{!enabled ? 'Enable device sync' : 'Input your passphrase'}</h2>
       <p>
         {!enabled
-          ? 'Set a passphrase to enable secure sync of sensitive data (like wallet credentials) between your devices. You’ll need to enter this passphrase on each device you want to connect.'
-          : 'Enter the passphrase you used during setup to access your encrypted sensitive data (like wallet credentials) on the server.'}
+          ? 'Enable secure sync of sensitive data (like wallet credentials) between your devices. You’ll need to enter this passphrase on each device you want to connect.'
+          : 'Enter the passphrase from device sync to access your encrypted sensitive data (like wallet credentials) on the server.'}
       </p>
       <Form
         schema={enabled ? undefined : deviceSyncSchema}
@@ -203,8 +203,9 @@ function ConnectForm ({ onClose, onConnect, enabled }) {
           placeholder=''
           required
           autoFocus
+          as='textarea'
+          rows={3}
           readOnly={!enabled}
-          qr
           copy={!enabled}
           append={
             !enabled && (
@@ -217,7 +218,7 @@ function ConnectForm ({ onClose, onConnect, enabled }) {
         <p className='text-muted text-sm'>
           {
             !enabled
-              ? 'This passphrase is stored only on your device.'
+              ? 'This passphrase is stored only on your device and cannot be shown again.'
               : 'If you have forgotten your passphrase, you can reset and start over.'
           }
         </p>
@@ -225,7 +226,7 @@ function ConnectForm ({ onClose, onConnect, enabled }) {
           <div className='d-flex justify-content-between'>
             <div className='d-flex align-items-center ms-auto gap-2'>
               <CancelButton onClick={onClose} />
-              <SubmitButton variant='primary'>connect</SubmitButton>
+              <SubmitButton variant='primary'>{enabled ? 'connect' : 'enable'}</SubmitButton>
             </div>
           </div>
         </div>

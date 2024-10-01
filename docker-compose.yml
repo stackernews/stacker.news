@@ -517,10 +517,10 @@ services:
     labels:
       CONNECT: "localhost:8025"
     cpu_shares: "${CPU_SHARES_LOW}"
-  nwc:
+  nwc_send:
     build:
       context: ./docker/nwc
-    container_name: nwc
+    container_name: nwc_send
     profiles:
       - wallets
     restart: unless-stopped
@@ -536,7 +536,7 @@ services:
       - 'nostr-wallet-connect-lnd'
       - '--relay'
       - 'wss://relay.primal.net'
-      - '--macaroon-file'
+      - '--admin-macaroon-file'
       - '/root/.lnd/regtest/admin.macaroon'
       - '--cert-file'
       - '/root/.lnd/tls.cert'
@@ -548,6 +548,42 @@ services:
       - '0'
       - '--daily-limit'
       - '0'
+      - '--keys-file'
+      - 'admin-keys.json'
+    cpu_shares: "${CPU_SHARES_LOW}"
+  nwc_recv:
+    build:
+      context: ./docker/nwc
+    container_name: nwc_recv
+    profiles:
+      - wallets
+    restart: unless-stopped
+    depends_on:
+      stacker_lnd:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ./docker/lnd/stacker:/root/.lnd
+    environment:
+      - RUST_LOG=info
+    entrypoint:
+      - 'nostr-wallet-connect-lnd'
+      - '--relay'
+      - 'wss://relay.primal.net'
+      - '--invoice-macaroon-file'
+      - '/root/.lnd/regtest/invoice.macaroon'
+      - '--cert-file'
+      - '/root/.lnd/tls.cert'
+      - '--lnd-host'
+      - 'stacker_lnd'
+      - '--lnd-port'
+      - '10009'
+      - '--max-amount'
+      - '0'
+      - '--daily-limit'
+      - '0'
+      - '--keys-file'
+      - 'invoice-keys.json'
     cpu_shares: "${CPU_SHARES_LOW}"
   lnbits:
     image: lnbits/lnbits:0.12.5

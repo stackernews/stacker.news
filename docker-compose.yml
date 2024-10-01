@@ -552,7 +552,8 @@ services:
       - '0'
     cpu_shares: "${CPU_SHARES_LOW}"
   lnbits:
-    image: lnbits/lnbits:0.12.5
+    build:
+      context: ./docker/lnbits
     container_name: lnbits
     profiles:
       - wallets
@@ -562,6 +563,7 @@ services:
     depends_on:
       - stacker_lnd
     environment:
+      - LNBITS_ADMIN_UI=true
       - LNBITS_BACKEND_WALLET_CLASS=LndWallet
       - LND_GRPC_ENDPOINT=stacker_lnd
       - LND_GRPC_PORT=10009
@@ -569,7 +571,6 @@ services:
       - LND_GRPC_MACAROON=/app/.lnd/regtest/admin.macaroon
     volumes:
       - ./docker/lnd/stacker:/app/.lnd
-      - ./docker/lnbits/database.sqlite3:/app/data/database.sqlite3
     labels:
       CONNECT: "localhost:${LNBITS_WEB_PORT}"
     cpu_shares: "${CPU_SHARES_LOW}"

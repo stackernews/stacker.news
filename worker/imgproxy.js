@@ -3,6 +3,7 @@ import { extractUrls } from '@/lib/md.js'
 import { isJob } from '@/lib/item.js'
 import path from 'node:path'
 import { decodeProxyUrl } from '@/lib/url'
+import { fetchWithTimeout } from '@/lib/fetch'
 
 const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
   (process.env.NEXT_PUBLIC_IMGPROXY_URL && process.env.IMGPROXY_SALT && process.env.IMGPROXY_KEY)
@@ -131,19 +132,6 @@ const createImgproxyPath = ({ url, pathname = '/', options }) => {
   const target = path.join(options, b64Url)
   const signature = sign(target)
   return path.join(pathname, signature, target)
-}
-
-async function fetchWithTimeout (resource, { timeout = 1000, ...options } = {}) {
-  const controller = new AbortController()
-  const id = setTimeout(() => controller.abort(), timeout)
-
-  const response = await fetch(resource, {
-    ...options,
-    signal: controller.signal
-  })
-  clearTimeout(id)
-
-  return response
 }
 
 const isMediaURL = async (url, { forceFetch }) => {

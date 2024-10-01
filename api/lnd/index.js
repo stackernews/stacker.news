@@ -1,14 +1,15 @@
+import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/validate'
-import lndService from 'ln-service'
+import { authenticatedLndGrpc, getIdentity, getHeight, getWalletInfo, getNode } from 'ln-service'
 
-const { lnd } = lndService.authenticatedLndGrpc({
+const { lnd } = authenticatedLndGrpc({
   cert: process.env.LND_CERT,
   macaroon: process.env.LND_MACAROON,
   socket: process.env.LND_SOCKET
 })
 
 // Check LND GRPC connection
-lndService.getWalletInfo({ lnd }, (err, result) => {
+getWalletInfo({ lnd }, (err, result) => {
   if (err) {
     console.error('LND GRPC connection error')
     return
@@ -91,5 +92,43 @@ export function getPaymentFailureStatus (withdrawal) {
 
   return 'UNKNOWN_FAILURE'
 }
+
+export const getBlockHeight = cachedFetcher(async () => {
+  try {
+    const { current_block_height: height } = await getHeight({ lnd })
+    return height
+  } catch (err) {
+    throw new Error(`Unable to fetch block height: ${err.message}`)
+  }
+}, {
+  maxSize: 1,
+  cacheExpiry: 60 * 1000, // 1 minute
+  forceRefreshThreshold: 5 * 60 * 1000 // 5 minutes
+})
+
+export const getOurPubkey = cachedFetcher(async () => {
+  try {
+    const { identity } = await getIdentity({ lnd })
+    return identity.public_key
+  } catch (err) {
+    throw new Error(`Unable to fetch identity: ${err.message}`)
+  }
+}, {
+  maxSize: 1,
+  cacheExpiry: 0, // never expire
+  forceRefreshThreshold: 0 // never force refresh
+})
+
+export const getNodeInfo = cachedFetcher(async (args) => {
+  try {
+    return await getNode({ lnd, ...args })
+  } catch (err) {
+    throw new Error(`Unable to fetch node info: ${err.message}`)
+  }
+}, {
+  maxSize: 1000,
+  cacheExpiry: 1000 * 60 * 60 * 24, // 1 day
+  forceRefreshThreshold: 1000 * 60 * 60 * 24 * 7 // 1 week
+})
 
 export default lnd

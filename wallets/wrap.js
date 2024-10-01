@@ -1,5 +1,5 @@
-import { createHodlInvoice, getHeight, parsePaymentRequest } from 'ln-service'
-import { estimateRouteFee } from '../api/lnd'
+import { createHodlInvoice, parsePaymentRequest } from 'ln-service'
+import { estimateRouteFee, getBlockHeight } from '../api/lnd'
 import { toPositiveNumber } from '@/lib/validate'
 
 const MIN_OUTGOING_MSATS = BigInt(900) // the minimum msats we'll allow for the outgoing invoice
@@ -131,7 +131,7 @@ export default async function wrapInvoice (bolt11, { msats, description, descrip
         timeout: FEE_ESTIMATE_TIMEOUT_SECS
       })
 
-    const { current_block_height: blockHeight } = await getHeight({ lnd })
+    const blockHeight = await getBlockHeight()
     /*
       we want the incoming invoice to have MIN_SETTLEMENT_CLTV_DELTA higher final cltv delta than
       the expected ctlv_delta of the outgoing invoice's entire route

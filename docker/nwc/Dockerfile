@@ -1,9 +1,11 @@
 FROM rust:1.78
 
-RUN wget https://github.com/benthecarman/nostr-wallet-connect-lnd/archive/9d53490f0a0cf655030e4ef4d32b478d7f29af5b.zip \
- && unzip 9d53490f0a0cf655030e4ef4d32b478d7f29af5b.zip
+ARG KEY_FILE
 
-WORKDIR nostr-wallet-connect-lnd-9d53490f0a0cf655030e4ef4d32b478d7f29af5b
+RUN wget https://github.com/ekzyis/nostr-wallet-connect-lnd/archive/a02939c350191f8a6750a72d2456fbdf567e5848.zip \
+ && unzip a02939c350191f8a6750a72d2456fbdf567e5848.zip
+
+WORKDIR nostr-wallet-connect-lnd-a02939c350191f8a6750a72d2456fbdf567e5848
 
 RUN apt-get update -y \
   && apt-get install -y cmake \
@@ -11,4 +13,4 @@ RUN apt-get update -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN cargo build --release && cargo install --path .
 
-COPY keys.json .
+COPY . .

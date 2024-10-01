@@ -4,9 +4,11 @@ import { useMutation, useQuery } from '@apollo/client'
 import { GET_ENTRY, SET_ENTRY, UNSET_ENTRY, CLEAR_VAULT, SET_VAULT_KEY_HASH } from '@/fragments/vault'
 import { E_VAULT_KEY_EXISTS } from '@/lib/error'
 import { SSR } from '@/lib/constants'
+import { useToast } from '@/components/toast'
 export function useVaultConfigurator () {
   const { me } = useMe()
   const [setVaultKeyHash] = useMutation(SET_VAULT_KEY_HASH)
+  const toaster = useToast()
 
   // vault key stored locally
   const [vaultKey, innerSetVaultKey] = useState(null)
@@ -48,8 +50,7 @@ export function useVaultConfigurator () {
         if (errorCode === E_VAULT_KEY_EXISTS) {
           throw new Error('wrong passphrase')
         }
-        console.error(error)
-        throw new Error('could not set the passphrase. Please try again.')
+        toaster.danger(error.graphQLErrors[0].message)
       }
     })
     innerSetVaultKey(vaultKey)

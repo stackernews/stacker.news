@@ -13,34 +13,36 @@ export function useVaultConfigurator () {
 
   useEffect(() => {
     if (!me) return
+    (async () => {
+      let localVaultKey = await getLocalKey(me.id)
 
-    let localVaultKey = getLocalKey(me.id)
+      if (!me.privates.vaultKeyHash || localVaultKey?.hash !== me.privates.vaultKeyHash) {
+        // We can tell that another device has reset the vault if the values
+        // on the server are encrypted with a different key or no key exists anymore.
+        // In that case, our local key is no longer valid and our device needs to be connected
+        // to the vault again by entering the correct passphrase.
+        console.log('vault key hash mismatch, clearing local key', localVaultKey, me.privates.vaultKeyHash)
+        localVaultKey = null
+        await unsetLocalKey(me.id)
+      }
 
-    if (!me.privates.vaultKeyHash || localVaultKey?.hash !== me.privates.vaultKeyHash) {
-      // We can tell that another device has reset the vault if the values
-      // on the server are encrypted with a different key or no key exists anymore.
-      // In that case, our local key is no longer valid and our device needs to be connected
-      // to the vault again by entering the correct passphrase.
-      localVaultKey = null
-      unsetLocalKey(me.id)
-    }
-
-    innerSetVaultKey(localVaultKey)
+      innerSetVaultKey(localVaultKey)
+    })()
   }, [me?.privates?.vaultKeyHash])
 
   // clear vault: remove everything and reset the key
   const [clearVault] = useMutation(CLEAR_VAULT, {
-    onCompleted: () => {
-      unsetLocalKey(me.id)
+    onCompleted: async () => {
+      await unsetLocalKey(me.id)
       innerSetVaultKey(null)
     }
   })
 
   // initialize the vault and set a vault key
   const setVaultKey = useCallback(async (passphrase) => {
-    const { key, hash } = await deriveKey(me.id, passphrase)
+    const vaultKey = await deriveKey(me.id, passphrase)
     await setVaultKeyHash({
-      variables: { hash },
+      variables: { hash: vaultKey.hash },
       onError: (error) => {
         const errorCode = error.graphQLErrors[0]?.extensions?.code
         if (errorCode === E_VAULT_KEY_EXISTS) {
@@ -50,15 +52,15 @@ export function useVaultConfigurator () {
         throw new Error('could not set the passphrase. Please try again.')
       }
     })
-    innerSetVaultKey({ passphrase, key, hash })
-    setLocalKey(me.id, { passphrase, key, hash })
+    innerSetVaultKey(vaultKey)
+    await setLocalKey(me.id, vaultKey)
   }, [setVaultKeyHash])
 
   // disconnect the user from the vault (will not clear or reset the passphrase, use clearVault for that)
-  const disconnectVault = useCallback(() => {
-    unsetLocalKey(me.id)
+  const disconnectVault = useCallback(async () => {
+    await unsetLocalKey(me.id)
     innerSetVaultKey(null)
-  }, [unsetLocalKey, innerSetVaultKey])
+  }, [innerSetVaultKey])
 
   return [vaultKey, setVaultKey, clearVault, disconnectVault]
 }
@@ -69,7 +71,7 @@ export function useVaultMigration () {
 
   // migrate local storage to vault
   const migrate = useCallback(async () => {
-    const vaultKey = getLocalKey(me.id)
+    const vaultKey = await getLocalKey(me.id)
     if (!vaultKey) throw new Error('vault key not found')
 
     let migratedCount = 0
@@ -79,7 +81,7 @@ export function useVaultMigration () {
         const value = JSON.parse(window.localStorage.getItem(migratableKey.localStorageKey))
         if (!value) throw new Error('no value found in local storage')
 
-        const encrypted = await encryptJSON(vaultKey.key, value)
+        const encrypted = await encryptJSON(vaultKey, value)
 
         const { data } = await setVaultEntry({ variables: { key: migratableKey.vaultStorageKey, value: encrypted, skipIfSet: true } })
         if (data?.setVaultEntry) {
@@ -123,17 +125,17 @@ export default function useVault (vaultStorageKey, defaultValue, options = { loc
   useEffect(() => {
     (async () => {
       if (localOnly) {
-        innerSetValue(getLocalStorage(localStorageKey) || defaultValue)
+        innerSetValue((await getLocalStorage(localStorageKey)) || defaultValue)
         return
       }
 
-      const localVaultKey = getLocalKey(me?.id)
+      const localVaultKey = await getLocalKey(me?.id)
 
       if (!me.privates.vaultKeyHash || localVaultKey?.hash !== me.privates.vaultKeyHash) {
         // no or different vault setup on server
         // use unencrypted local storage
-        unsetLocalKey(me.id)
-        innerSetValue(getLocalStorage(localStorageKey) || defaultValue)
+        await unsetLocalKey(me.id)
+        innerSetValue((await getLocalStorage(localStorageKey)) || defaultValue)
         return
       }
 
@@ -142,11 +144,11 @@ export default function useVault (vaultStorageKey, defaultValue, options = { loc
       const encrypted = vaultData?.getVaultEntry?.value
       if (encrypted) {
         try {
-          const decrypted = await decryptJSON(localVaultKey.key, encrypted)
+          const decrypted = await decryptJSON(localVaultKey, encrypted)
           // console.log('decrypted value from vault:', storageKey, encrypted, decrypted)
           innerSetValue(decrypted)
           // remove local storage value if it exists
-          unsetLocalStorage(localStorageKey)
+          await unsetLocalStorage(localStorageKey)
           return
         } catch (e) {
           console.error('cannot read vault data:', vaultStorageKey, e)
@@ -154,25 +156,25 @@ export default function useVault (vaultStorageKey, defaultValue, options = { loc
       }
 
       // fallback to local storage
-      innerSetValue(getLocalStorage(localStorageKey) || defaultValue)
+      innerSetValue((await getLocalStorage(localStorageKey)) || defaultValue)
     })()
   }, [vaultData, me?.privates?.vaultKeyHash, localOnly])
 
   const setValue = useCallback(async (newValue) => {
-    const vaultKey = getLocalKey(me?.id)
+    const vaultKey = await getLocalKey(me?.id)
 
-    const useVault = vaultKey && vaultKey.key && vaultKey.hash === me.privates.vaultKeyHash
+    const useVault = vaultKey && vaultKey.hash === me.privates.vaultKeyHash
 
     if (useVault && !localOnly) {
-      const encryptedValue = await encryptJSON(vaultKey.key, newValue)
+      const encryptedValue = await encryptJSON(vaultKey, newValue)
       await setVaultValue({ variables: { key: vaultStorageKey, value: encryptedValue } })
       console.log('stored encrypted value in vault:', vaultStorageKey, newValue, encryptedValue)
       // clear local storage (we get rid of stored unencrypted data as soon as it can be stored on the vault)
-      unsetLocalStorage(localStorageKey)
+      await unsetLocalStorage(localStorageKey)
     } else {
       console.log('stored value in local storage:', localStorageKey, newValue)
       // otherwise use local storage
-      setLocalStorage(localStorageKey, newValue)
+      await setLocalStorage(localStorageKey, newValue)
     }
     // refresh in-memory value
     innerSetValue(newValue)
@@ -186,7 +188,7 @@ export default function useVault (vaultStorageKey, defaultValue, options = { loc
       await refetchVaultValue()
     }
     // clear local storage
-    unsetLocalStorage(localStorageKey)
+    await unsetLocalStorage(localStorageKey)
     // clear in-memory value
     innerSetValue(undefined)
   }, [vaultStorageKey, localStorageKey, localOnly])
@@ -220,6 +222,75 @@ function retrieveMigratableKeys (userId) {
   return out
 }
 
+async function getLocalStorageBackend (useIndexDb) {
+  if (SSR) return null
+  if (useIndexDb && window.indexedDB && !window.snVaultIDB) {
+    try {
+      const storage = await new Promise((resolve, reject) => {
+        const db = window.indexedDB.open('sn-vault', 1)
+        db.onupgradeneeded = (event) => {
+          const db = event.target.result
+          db.createObjectStore('vault', { keyPath: 'key' })
+        }
+        db.onsuccess = () => {
+          if (!db?.result?.transaction) reject(new Error('unsupported implementation'))
+          else resolve(db.result)
+        }
+        db.onerror = reject
+      })
+      window.snVaultIDB = storage
+    } catch (e) {
+      console.error('could not use indexedDB:', e)
+    }
+  }
+
+  const isIDB = useIndexDb && !!window.snVaultIDB
+
+  return {
+    isIDB,
+    set: async (key, value) => {
+      if (isIDB) {
+        const tx = window.snVaultIDB.transaction(['vault'], 'readwrite')
+        const objectStore = tx.objectStore('vault')
+        objectStore.add({ key, value })
+        await new Promise((resolve, reject) => {
+          tx.oncomplete = resolve
+          tx.onerror = reject
+        })
+      } else {
+        window.localStorage.setItem(key, JSON.stringify(value))
+      }
+    },
+    get: async (key) => {
+      if (isIDB) {
+        const tx = window.snVaultIDB.transaction(['vault'], 'readonly')
+        const objectStore = tx.objectStore('vault')
+        const request = objectStore.get(key)
+        return await new Promise((resolve, reject) => {
+          request.onsuccess = () => resolve(request.result?.value)
+          request.onerror = reject
+        })
+      } else {
+        const v = window.localStorage.getItem(key)
+        return v ? JSON.parse(v) : null
+      }
+    },
+    clear: async (key) => {
+      if (isIDB) {
+        const tx = window.snVaultIDB.transaction(['vault'], 'readwrite')
+        const objectStore = tx.objectStore('vault')
+        objectStore.delete(key)
+        await new Promise((resolve, reject) => {
+          tx.oncomplete = resolve
+          tx.onerror = reject
+        })
+      } else {
+        window.localStorage.removeItem(key)
+      }
+    }
+  }
+}
+
 function getLocalStorageKey (key, userId, localOnly) {
   if (!userId) userId = 'anon'
   // We prefix localStorageKey with 'vault:' so we know which
@@ -236,45 +307,58 @@ function getLocalStorageKey (key, userId, localOnly) {
   return `${localStorageKey}:${userId}`
 }
 
-function setLocalStorage (key, value) {
-  if (SSR) return
-  window.localStorage.setItem(key, JSON.stringify(value))
-}
-
-function setLocalKey (userId, key) {
+async function setLocalKey (userId, localKey) {
   if (SSR) return
   if (!userId) userId = 'anon'
-  return window.localStorage.setItem(`vault-key:local-only:${userId}`, JSON.stringify(key))
+  const storage = await getLocalStorageBackend(true)
+  const k = `vault-key:local-only:${userId}`
+  if (storage.isIDB) {
+    const { skey, hash } = localKey
+    return await storage.set(k, { skey, hash })
+  } else {
+    const { passphrase, key, hash } = localKey
+    return await storage.set(k, { passphrase, key, hash })
+  }
 }
 
-function getLocalStorage (key) {
+async function getLocalKey (userId) {
   if (SSR) return null
-  let v = window.localStorage.getItem(key)
+  if (!userId) userId = 'anon'
+  const storage = await getLocalStorageBackend(true)
+  return await storage.get(`vault-key:local-only:${userId}`)
+}
+
+export async function unsetLocalKey (userId) {
+  if (SSR) return
+  if (!userId) userId = 'anon'
+  const storage = await getLocalStorageBackend(true)
+  return await storage.clear(`vault-key:local-only:${userId}`)
+}
+
+async function setLocalStorage (key, value) {
+  if (SSR) return
+  const storage = await getLocalStorageBackend(false)
+  await storage.set(key, value)
+}
+
+async function getLocalStorage (key) {
+  if (SSR) return null
+  const storage = await getLocalStorageBackend(false)
+  let v = await storage.get(key)
 
   // ensure backwards compatible with wallet keys that we used before we had the vault
   if (!v) {
     const oldKey = key.replace(/vault:(local-only:)?/, '')
-    v = window.localStorage.getItem(oldKey)
+    v = await storage.get(oldKey)
   }
 
-  return v ? JSON.parse(v) : null
+  return v
 }
 
-function unsetLocalStorage (key) {
+async function unsetLocalStorage (key) {
   if (SSR) return
-  window.localStorage.removeItem(key)
-}
-
-function getLocalKey (userId) {
-  if (SSR) return null
-  if (!userId) userId = 'anon'
-  return JSON.parse(window.localStorage.getItem(`vault-key:local-only:${userId}`) || '{}')
-}
-
-export function unsetLocalKey (userId) {
-  if (SSR) return
-  if (!userId) userId = 'anon'
-  return window.localStorage.removeItem(`vault-key:local-only:${userId}`)
+  const storage = await getLocalStorageBackend(false)
+  await storage.clear(key)
 }
 
 function toHex (buffer) {
@@ -313,20 +397,39 @@ async function deriveKey (userId, passphrase) {
   )
   const rawKey = await window.crypto.subtle.exportKey('raw', key)
   const rawHash = await window.crypto.subtle.digest('SHA-256', rawKey)
-  return {
-    key: toHex(rawKey),
-    hash: toHex(rawHash)
-  }
-}
 
-async function encryptJSON (key, jsonData) {
-  key = await window.crypto.subtle.importKey(
+  const nonExtractableKey = await window.crypto.subtle.importKey(
     'raw',
-    fromHex(key),
+    rawKey,
     { name: 'AES-GCM' },
     false,
     ['encrypt', 'decrypt']
   )
+
+  return {
+    passphrase,
+    key: toHex(rawKey),
+    hash: toHex(rawHash),
+    skey: nonExtractableKey
+  }
+}
+
+async function encryptJSON (localKey, jsonData) {
+  let key
+
+  if (localKey.skey) {
+    key = localKey.skey
+  } else if (localKey.key) {
+    key = await window.crypto.subtle.importKey(
+      'raw',
+      fromHex(localKey.key),
+      { name: 'AES-GCM' },
+      false,
+      ['encrypt']
+    )
+  } else {
+    throw new Error('invalid local key')
+  }
 
   // random IVs are _really_ important in GCM: reusing the IV once can lead to catastrophic failure
   // see https://crypto.stackexchange.com/questions/26790/how-bad-it-is-using-the-same-iv-twice-with-aes-gcm
@@ -349,18 +452,27 @@ async function encryptJSON (key, jsonData) {
   })
 }
 
-async function decryptJSON (key, encryptedData) {
+async function decryptJSON (localKey, encryptedData) {
+  let key
+
+  if (localKey.skey) {
+    key = localKey.skey
+  } else if (localKey.key) {
+    key = await window.crypto.subtle.importKey(
+      'raw',
+      fromHex(localKey.key),
+      { name: 'AES-GCM' },
+      false,
+      ['decrypt']
+    )
+  } else {
+    throw new Error('invalid local key')
+  }
+
   let { iv, data } = JSON.parse(encryptedData)
 
   iv = fromHex(iv)
   data = fromHex(data)
-  key = await window.crypto.subtle.importKey(
-    'raw',
-    fromHex(key),
-    { name: 'AES-GCM' },
-    false,
-    ['encrypt', 'decrypt']
-  )
 
   const decrypted = await window.crypto.subtle.decrypt(
     {

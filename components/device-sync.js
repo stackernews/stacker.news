@@ -17,7 +17,7 @@ export default function DeviceSync () {
   const showModal = useShowModal()
 
   const enabled = !!me?.privates?.vaultKeyHash
-  const connected = !!value?.key
+  const connected = !!value?.key || !!value?.skey
 
   const migrate = useVaultMigration()
 
@@ -28,23 +28,24 @@ export default function DeviceSync () {
           <h2>Device sync is enabled!</h2>
           <p>
             Sensitive data (like wallet credentials) is now securely synced between all connected devices.
-            Enter this passphrase on other devices to connect them.
+            {value?.passphrase && 'Enter this passphrase on other devices to connect them.'}
           </p>
           <p className='text-muted text-sm'>
             The passphrase is stored on your device and is never sent to our server.
           </p>
-          <Form
-            initial={{ passphrase: value?.passphrase || '' }}
-          >
-            <PasswordInput
-              label='Keep this passphrase safe'
-              type='password'
-              name='passphrase'
-              readOnly
-              qr
-              copy
-            />
-          </Form>
+          {value?.passphrase &&
+            <Form
+              initial={{ passphrase: value?.passphrase || '' }}
+            >
+              <PasswordInput
+                label='Keep this passphrase safe'
+                type='password'
+                name='passphrase'
+                readOnly
+                qr
+                copy
+              />
+            </Form>}
           <div className='d-flex justify-content-between'>
             <div className='d-flex align-items-center ms-auto gap-2'>
               <Button className='me-2 text-muted nav-link fw-bold' variant='link' onClick={onClose}>close</Button>

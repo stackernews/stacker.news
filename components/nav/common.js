@@ -290,7 +290,7 @@ function LogoutObstacle ({ onClose }) {
             }
 
             await wallets.resetClient().catch(console.error)
-            resetVaultKey(me?.id)
+            await resetVaultKey(me?.id)
 
             await signOut({ callbackUrl: '/' })
           }}

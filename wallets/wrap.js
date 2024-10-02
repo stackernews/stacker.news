@@ -44,7 +44,7 @@ export default async function wrapInvoice (bolt11, { msats, description, descrip
       if (outgoingMsat < MIN_OUTGOING_MSATS) {
         throw new Error(`Invoice amount is too low: ${outgoingMsat}`)
       }
-      if (inv.mtokens > MAX_OUTGOING_MSATS) {
+      if (outgoingMsat > MAX_OUTGOING_MSATS) {
         throw new Error(`Invoice amount is too high: ${outgoingMsat}`)
       }
     } else {

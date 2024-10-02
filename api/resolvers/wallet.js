@@ -711,6 +711,10 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     throw new GqlInputError('your invoice must specify an amount')
   }
 
+  if (decoded.mtokens > Number.MAX_SAFE_INTEGER) {
+    throw new GqlInputError('your invoice amount is too large')
+  }
+
   const msatsFee = Number(maxFee) * 1000
 
   const user = await models.user.findUnique({ where: { id: me.id } })

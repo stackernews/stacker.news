@@ -55,7 +55,7 @@ export function BioForm ({ handleDone, bio }) {
       <FeeButtonProvider>
         <Form
           initial={{
-            bio: savedBioDraft || bio?.text || ""
+            bio: savedBioDraft || bio?.text || ''
           }}
           schema={bioSchema}
           onSubmit={async values => {

@@ -1,10 +1,17 @@
-import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, getInvoice as getInvoiceFromLnd, getNode, deletePayment, getPayment, getIdentity } from 'ln-service'
+import {
+  createHodlInvoice, createInvoice, payViaPaymentRequest,
+  getInvoice as getInvoiceFromLnd, deletePayment, getPayment,
+  parsePaymentRequest
+} from 'ln-service'
 import crypto, { timingSafeEqual } from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
 import { msatsToSats, msatsToSatsDecimal } from '@/lib/format'
-import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
+import {
+  ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS,
+  INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, LND_PATHFINDING_TIMEOUT_MS
+} from '@/lib/constants'
 import { amountSchema, ssValidate, withdrawlSchema, lnAddrSchema, walletValidate } from '@/lib/validate'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
@@ -15,6 +22,7 @@ import walletDefs from 'wallets/server'
 import { generateResolverName, generateTypeDefName } from '@/lib/wallet'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
+import { getNodeInfo, getOurPubkey } from '../lnd'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
@@ -74,7 +82,7 @@ export async function getInvoice (parent, { id }, { me, models, lnd }) {
 
   try {
     if (inv.confirmedAt) {
-      inv.confirmedPreimage = (await getInvoiceFromLnd({ id: inv.hash, lnd })).secret
+      inv.confirmedPreimage = inv.preimage ?? (await getInvoiceFromLnd({ id: inv.hash, lnd })).secret
     }
   } catch (err) {
     console.error('error fetching invoice from LND', err)
@@ -399,7 +407,7 @@ const resolvers = {
         })
 
         const [inv] = await serialize(
-          models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${hodlInvoice ? invoice.secret : null}::TEXT, ${invoice.request},
+          models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.secret}::TEXT, ${invoice.request},
             ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description}, NULL, NULL,
             ${invLimit}::INTEGER, ${balanceLimit})`,
           { models }
@@ -498,7 +506,7 @@ const resolvers = {
     preimage: async (withdrawl, args, { lnd }) => {
       try {
         if (withdrawl.status === 'CONFIRMED') {
-          return (await getPayment({ id: withdrawl.hash, lnd })).payment.secret
+          return withdrawl.preimage ?? (await getPayment({ id: withdrawl.hash, lnd })).payment.secret
         }
       } catch (err) {
         console.error('error fetching payment from LND', err)
@@ -679,14 +687,14 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   // decode invoice to get amount
   let decoded, node
   try {
-    decoded = await decodePaymentRequest({ lnd, request: invoice })
+    decoded = await parsePaymentRequest({ request: invoice })
   } catch (error) {
     console.log(error)
     throw new GqlInputError('could not decode invoice')
   }
 
   try {
-    node = await getNode({ lnd, public_key: decoded.destination, is_omitting_channels: true })
+    node = await getNodeInfo({ public_key: decoded.destination, is_omitting_channels: true })
   } catch (error) {
     // likely not found if it's an unannounced channel, e.g. phoenix
     console.log(error)
@@ -701,6 +709,10 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
 
   if (!decoded.mtokens || BigInt(decoded.mtokens) <= 0) {
     throw new GqlInputError('your invoice must specify an amount')
+  }
+
+  if (decoded.mtokens > Number.MAX_SAFE_INTEGER) {
+    throw new GqlInputError('your invoice amount is too large')
   }
 
   const msatsFee = Number(maxFee) * 1000
@@ -784,8 +796,8 @@ export async function fetchLnAddrInvoice (
 
   // decode invoice
   try {
-    const decoded = await decodePaymentRequest({ lnd, request: res.pr })
-    const ourPubkey = (await getIdentity({ lnd })).public_key
+    const decoded = await parsePaymentRequest({ request: res.pr })
+    const ourPubkey = await getOurPubkey()
     if (autoWithdraw && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
       // unset lnaddr so we don't trigger another withdrawal with same destination
       await models.wallet.deleteMany({

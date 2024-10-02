@@ -1,14 +1,15 @@
+import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/validate'
-import lndService from 'ln-service'
+import { authenticatedLndGrpc, getIdentity, getHeight, getWalletInfo, getNode } from 'ln-service'
 
-const { lnd } = lndService.authenticatedLndGrpc({
+const { lnd } = authenticatedLndGrpc({
   cert: process.env.LND_CERT,
   macaroon: process.env.LND_MACAROON,
   socket: process.env.LND_SOCKET
 })
 
 // Check LND GRPC connection
-lndService.getWalletInfo({ lnd }, (err, result) => {
+getWalletInfo({ lnd }, (err, result) => {
   if (err) {
     console.error('LND GRPC connection error')
     return
@@ -80,16 +81,69 @@ export function getPaymentFailureStatus (withdrawal) {
   }
 
   if (withdrawal?.failed.is_insufficient_balance) {
-    return 'INSUFFICIENT_BALANCE'
+    return {
+      status: 'INSUFFICIENT_BALANCE',
+      message: 'you didn\'t have enough sats'
+    }
   } else if (withdrawal?.failed.is_invalid_payment) {
-    return 'INVALID_PAYMENT'
+    return {
+      status: 'INVALID_PAYMENT',
+      message: 'invalid payment'
+    }
   } else if (withdrawal?.failed.is_pathfinding_timeout) {
-    return 'PATHFINDING_TIMEOUT'
+    return {
+      status: 'PATHFINDING_TIMEOUT',
+      message: 'no route found'
+    }
   } else if (withdrawal?.failed.is_route_not_found) {
-    return 'ROUTE_NOT_FOUND'
+    return {
+      status: 'ROUTE_NOT_FOUND',
+      message: 'no route found'
+    }
   }
 
-  return 'UNKNOWN_FAILURE'
+  return {
+    status: 'UNKNOWN_FAILURE',
+    message: 'unknown failure'
+  }
 }
+
+export const getBlockHeight = cachedFetcher(async () => {
+  try {
+    const { current_block_height: height } = await getHeight({ lnd })
+    return height
+  } catch (err) {
+    throw new Error(`Unable to fetch block height: ${err.message}`)
+  }
+}, {
+  maxSize: 1,
+  cacheExpiry: 60 * 1000, // 1 minute
+  forceRefreshThreshold: 5 * 60 * 1000 // 5 minutes
+})
+
+export const getOurPubkey = cachedFetcher(async () => {
+  try {
+    const { identity } = await getIdentity({ lnd })
+    return identity.public_key
+  } catch (err) {
+    throw new Error(`Unable to fetch identity: ${err.message}`)
+  }
+}, {
+  maxSize: 1,
+  cacheExpiry: 0, // never expire
+  forceRefreshThreshold: 0 // never force refresh
+})
+
+export const getNodeInfo = cachedFetcher(async (args) => {
+  try {
+    return await getNode({ lnd, ...args })
+  } catch (err) {
+    throw new Error(`Unable to fetch node info: ${err.message}`)
+  }
+}, {
+  maxSize: 1000,
+  cacheExpiry: 1000 * 60 * 60 * 24, // 1 day
+  forceRefreshThreshold: 1000 * 60 * 60 * 24 * 7 // 1 week
+})
 
 export default lnd

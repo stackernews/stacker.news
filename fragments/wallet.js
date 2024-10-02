@@ -16,10 +16,10 @@ export const INVOICE_FIELDS = gql`
     isHeld
     comment
     lud18Data
-    confirmedPreimage
     actionState
     actionType
     actionError
+    confirmedPreimage
   }`
 
 export const INVOICE_FULL = gql`

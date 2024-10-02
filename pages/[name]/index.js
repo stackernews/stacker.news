@@ -21,7 +21,7 @@ export const getServerSideProps = getGetServerSideProps({
   notFound: data => !data.user
 })
 
-export function BioForm ({ handleDone, bio }) {
+export function BioForm ({ handleDone, bio, me }) {
   const [upsertBio] = useMutation(
     gql`
       ${ITEM_FIELDS}
@@ -60,6 +60,7 @@ export function BioForm ({ handleDone, bio }) {
             if (error) throw error
             handleDone?.()
           }}
+          storageKeyPrefix={`bio-${me.id}`}
         >
           <MarkdownInput
             topLevel
@@ -100,14 +101,14 @@ export default function User ({ ssrData }) {
         ? (edit
             ? (
               <div className={styles.create}>
-                <BioForm bio={user.bio} handleDone={() => setEdit(false)} />
+                <BioForm bio={user.bio} me={me} handleDone={() => setEdit(false)} />
               </div>)
             : <ItemFull item={user.bio} bio handleClick={setEdit} />
           )
         : (mine &&
           <div className={styles.create}>
             {create
-              ? <BioForm handleDone={() => setCreate(false)} />
+              ? <BioForm me={me} handleDone={() => setCreate(false)} />
               : (
                   mine &&
                     <div className='text-center'>

@@ -15,6 +15,7 @@ import {
   paidActionForwarding,
   paidActionCanceling
 } from './paidAction.js'
+import { getPaymentFailureStatus } from '@/api/lnd/index.js'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -161,7 +162,7 @@ export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd
       if (dbInv.invoiceForward) {
         if (dbInv.invoiceForward.withdrawl) {
           // transitions when held are dependent on the withdrawl status
-          return await checkWithdrawal({ data: { hash: dbInv.invoiceForward.withdrawl.hash }, models, lnd, boss })
+          return await checkWithdrawal({ data: { hash: dbInv.invoiceForward.withdrawl.hash, invoice: inv }, models, lnd, boss })
         }
         return await paidActionForwarding({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
       }
@@ -229,7 +230,7 @@ async function subscribeToWithdrawals (args) {
       logEvent('failed', payment)
       try {
         // see https://github.com/alexbosworth/lightning/blob/ddf1f214ebddf62e9e19fd32a57fbeeba713340d/lnd_methods/offchain/subscribe_to_payments.js
-        const withdrawal = { failed: payment, is_failed: false }
+        const withdrawal = { failed: payment, is_failed: true }
         await checkWithdrawal({ data: { hash: payment.id, withdrawal }, ...args })
       } catch (error) {
         logEventError('failed', error)
@@ -245,7 +246,7 @@ async function subscribeToWithdrawals (args) {
 
 // if we already have the payment from a subscription event or previous call,
 // we can skip a getPayment call
-export async function checkWithdrawal ({ data: { hash, withdrawal }, boss, models, lnd }) {
+export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, boss, models, lnd }) {
   // get the withdrawl if pending or it's an invoiceForward
   const dbWdrwl = await models.withdrawl.findFirst({
     where: {
@@ -285,7 +286,7 @@ export async function checkWithdrawal ({ data: { hash, withdrawal }, boss, model
 
   if (wdrwl?.is_confirmed) {
     if (dbWdrwl.invoiceForward.length > 0) {
-      return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl }, models, lnd, boss })
+      return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
     }
 
     const fee = Number(wdrwl.payment.fee_mtokens)
@@ -312,23 +313,10 @@ export async function checkWithdrawal ({ data: { hash, withdrawal }, boss, model
     }
   } else if (wdrwl?.is_failed || notSent) {
     if (dbWdrwl.invoiceForward.length > 0) {
-      return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl }, models, lnd, boss })
+      return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
     }
 
-    let status = 'UNKNOWN_FAILURE'; let message = 'unknown failure'
-    if (wdrwl?.failed.is_insufficient_balance) {
-      status = 'INSUFFICIENT_BALANCE'
-      message = "you didn't have enough sats"
-    } else if (wdrwl?.failed.is_invalid_payment) {
-      status = 'INVALID_PAYMENT'
-      message = 'invalid payment'
-    } else if (wdrwl?.failed.is_pathfinding_timeout) {
-      status = 'PATHFINDING_TIMEOUT'
-      message = 'no route found'
-    } else if (wdrwl?.failed.is_route_not_found) {
-      status = 'ROUTE_NOT_FOUND'
-      message = 'no route found'
-    }
+    const { status, message } = getPaymentFailureStatus(wdrwl)
 
     const [{ reverse_withdrawl: code }] = await serialize(
       models.$queryRaw`

@@ -317,7 +317,7 @@ export async function paidActionFailedForward ({ data: { invoiceId, withdrawal: 
           update: {
             withdrawl: {
               update: {
-                status: getPaymentFailureStatus(withdrawal)
+                status: getPaymentFailureStatus(withdrawal).status
               }
             }
           }

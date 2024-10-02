@@ -81,16 +81,31 @@ export function getPaymentFailureStatus (withdrawal) {
   }
 
   if (withdrawal?.failed.is_insufficient_balance) {
-    return 'INSUFFICIENT_BALANCE'
+    return {
+      status: 'INSUFFICIENT_BALANCE',
+      message: 'you didn\'t have enough sats'
+    }
   } else if (withdrawal?.failed.is_invalid_payment) {
-    return 'INVALID_PAYMENT'
+    return {
+      status: 'INVALID_PAYMENT',
+      message: 'invalid payment'
+    }
   } else if (withdrawal?.failed.is_pathfinding_timeout) {
-    return 'PATHFINDING_TIMEOUT'
+    return {
+      status: 'PATHFINDING_TIMEOUT',
+      message: 'no route found'
+    }
   } else if (withdrawal?.failed.is_route_not_found) {
-    return 'ROUTE_NOT_FOUND'
+    return {
+      status: 'ROUTE_NOT_FOUND',
+      message: 'no route found'
+    }
   }
 
-  return 'UNKNOWN_FAILURE'
+  return {
+    status: 'UNKNOWN_FAILURE',
+    message: 'unknown failure'
+  }
 }
 
 export const getBlockHeight = cachedFetcher(async () => {

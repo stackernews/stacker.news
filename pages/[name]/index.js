@@ -21,7 +21,7 @@ export const getServerSideProps = getGetServerSideProps({
   notFound: data => !data.user
 })
 
-export function BioForm ({ handleDone, bio }) {
+export function BioForm({ handleDone, bio }) {
   const [upsertBio] = useMutation(
     gql`
       ${ITEM_FIELDS}
@@ -34,17 +34,17 @@ export function BioForm ({ handleDone, bio }) {
           }
         }
       }`, {
-      update (cache, { data: { upsertBio } }) {
-        cache.modify({
-          id: `User:${upsertBio.id}`,
-          fields: {
-            bio () {
-              return upsertBio.bio
-            }
+    update(cache, { data: { upsertBio } }) {
+      cache.modify({
+        id: `User:${upsertBio.id}`,
+        fields: {
+          bio() {
+            return upsertBio.bio
           }
-        })
-      }
+        }
+      })
     }
+  }
   )
 
   const localStorageBioDraftKey = "user:bio_draft"
@@ -79,7 +79,7 @@ export function BioForm ({ handleDone, bio }) {
   )
 }
 
-export function UserLayout ({ user, children, containClassName }) {
+export function UserLayout({ user, children, containClassName }) {
   return (
     <Layout user={user} footer footerLinks={false} containClassName={containClassName}>
       <UserHeader user={user} />
@@ -88,7 +88,7 @@ export function UserLayout ({ user, children, containClassName }) {
   )
 }
 
-export default function User ({ ssrData }) {
+export default function User({ ssrData }) {
   const [create, setCreate] = useState(false)
   const [edit, setEdit] = useState(false)
   const router = useRouter()
@@ -104,27 +104,27 @@ export default function User ({ ssrData }) {
     <UserLayout user={user} containClassName={!user.bio && mine && styles.contain}>
       {user.bio
         ? (edit
-            ? (
-              <div className={styles.create}>
-                <BioForm bio={user.bio} handleDone={() => setEdit(false)} />
-              </div>)
-            : <ItemFull item={user.bio} bio handleClick={setEdit} />
-          )
+          ? (
+            <div className={styles.create}>
+              <BioForm bio={user.bio} handleDone={() => setEdit(false)} />
+            </div>)
+          : <ItemFull item={user.bio} bio handleClick={setEdit} />
+        )
         : (mine &&
           <div className={styles.create}>
             {create
               ? <BioForm handleDone={() => setCreate(false)} />
               : (
-                  mine &&
-                    <div className='text-center'>
-                      <Button
-                        onClick={setCreate}
-                        size='md' variant='secondary'
-                      >create bio
-                      </Button>
-                      <small className='d-block mt-3 text-muted'>your bio is also a post introducing yourself to other stackers</small>
-                    </div>
-                )}
+                mine &&
+                <div className='text-center'>
+                  <Button
+                    onClick={setCreate}
+                    size='md' variant='secondary'
+                  >create bio
+                  </Button>
+                  <small className='d-block mt-3 text-muted'>your bio is also a post introducing yourself to other stackers</small>
+                </div>
+              )}
           </div>)}
     </UserLayout>
   )

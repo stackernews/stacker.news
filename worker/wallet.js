@@ -67,10 +67,11 @@ async function subscribeToDeposits (args) {
       try {
         logEvent('invoice_updated', inv)
         if (inv.secret) {
-          await checkInvoice({ data: { hash: inv.id }, ...args })
+          // subscribeToInvoices only returns when added or settled
+          await checkInvoice({ data: { hash: inv.id, invoice: inv }, ...args })
         } else {
           // this is a HODL invoice. We need to use SubscribeToInvoice which has is_held transitions
-          // https://api.lightning.community/api/lnd/invoices/subscribe-single-invoice
+          // and is_canceled transitions https://api.lightning.community/api/lnd/invoices/subscribe-single-invoice
           // SubscribeToInvoices is only for invoice creation and settlement transitions
           // https://api.lightning.community/api/lnd/lightning/subscribe-invoices
           subscribeToHodlInvoice({ hash: inv.id, ...args })
@@ -97,7 +98,7 @@ function subscribeToHodlInvoice (args) {
     sub.on('invoice_updated', async (inv) => {
       logEvent('hodl_invoice_updated', inv)
       try {
-        await checkInvoice({ data: { hash: inv.id }, ...args })
+        await checkInvoice({ data: { hash: inv.id, invoice: inv }, ...args })
         // after settle or confirm we can stop listening for updates
         if (inv.is_confirmed || inv.is_canceled) {
           resolve()
@@ -112,8 +113,10 @@ function subscribeToHodlInvoice (args) {
   })
 }
 
-export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
-  const inv = await getInvoice({ id: hash, lnd })
+// if we already have the invoice from a subscription event or previous call,
+// we can skip a getInvoice call
+export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd }) {
+  const inv = invoice ?? await getInvoice({ id: hash, lnd })
 
   // invoice could be created by LND but wasn't inserted into the database yet
   // this is expected and the function will be called again with the updates
@@ -134,7 +137,7 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
 
   if (inv.is_confirmed) {
     if (dbInv.actionType) {
-      return await paidActionPaid({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+      return await paidActionPaid({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
     }
 
     // NOTE: confirm invoice prevents double confirmations (idempotent)
@@ -162,9 +165,9 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
           // transitions when held are dependent on the withdrawl status
           return await checkWithdrawal({ data: { hash: dbInv.invoiceForward.withdrawl.hash }, models, lnd, boss })
         }
-        return await paidActionForwarding({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+        return await paidActionForwarding({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
       }
-      return await paidActionHeld({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+      return await paidActionHeld({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
     }
     // First query makes sure that after payment, JIT invoices are settled
     // within 60 seconds or they will be canceled to minimize risk of
@@ -190,7 +193,7 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
 
   if (inv.is_canceled) {
     if (dbInv.actionType) {
-      return await paidActionFailed({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+      return await paidActionFailed({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
     }
 
     return await serialize(
@@ -216,7 +219,9 @@ async function subscribeToWithdrawals (args) {
     sub.on('confirmed', async (payment) => {
       logEvent('confirmed', payment)
       try {
-        await checkWithdrawal({ data: { hash: payment.id }, ...args })
+        // see https://github.com/alexbosworth/lightning/blob/ddf1f214ebddf62e9e19fd32a57fbeeba713340d/lnd_methods/offchain/subscribe_to_payments.js
+        const withdrawal = { payment, is_confirmed: true }
+        await checkWithdrawal({ data: { hash: payment.id, withdrawal }, ...args })
       } catch (error) {
         logEventError('confirmed', error)
       }
@@ -225,7 +230,9 @@ async function subscribeToWithdrawals (args) {
     sub.on('failed', async (payment) => {
       logEvent('failed', payment)
       try {
-        await checkWithdrawal({ data: { hash: payment.id }, ...args })
+        // see https://github.com/alexbosworth/lightning/blob/ddf1f214ebddf62e9e19fd32a57fbeeba713340d/lnd_methods/offchain/subscribe_to_payments.js
+        const withdrawal = { failed: payment, is_failed: false }
+        await checkWithdrawal({ data: { hash: payment.id, withdrawal }, ...args })
       } catch (error) {
         logEventError('failed', error)
       }
@@ -238,7 +245,9 @@ async function subscribeToWithdrawals (args) {
   await checkPendingWithdrawals(args)
 }
 
-export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
+// if we already have the payment from a subscription event or previous call,
+// we can skip a getPayment call
+export async function checkWithdrawal ({ data: { hash, withdrawal }, boss, models, lnd }) {
   // get the withdrawl if pending or it's an invoiceForward
   const dbWdrwl = await models.withdrawl.findFirst({
     where: {
@@ -265,7 +274,7 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
   let wdrwl
   let notSent = false
   try {
-    wdrwl = await getPayment({ id: hash, lnd })
+    wdrwl = withdrawal ?? await getPayment({ id: hash, lnd })
   } catch (err) {
     if (err[1] === 'SentPaymentNotFound' &&
       dbWdrwl.createdAt < datePivot(new Date(), { milliseconds: -LND_PATHFINDING_TIMEOUT_MS * 2 })) {
@@ -278,7 +287,7 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
 
   if (wdrwl?.is_confirmed) {
     if (dbWdrwl.invoiceForward.length > 0) {
-      return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id }, models, lnd, boss })
+      return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl }, models, lnd, boss })
     }
 
     const fee = Number(wdrwl.payment.fee_mtokens)
@@ -299,7 +308,7 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     }
   } else if (wdrwl?.is_failed || notSent) {
     if (dbWdrwl.invoiceForward.length > 0) {
-      return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id }, models, lnd, boss })
+      return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl }, models, lnd, boss })
     }
 
     let status = 'UNKNOWN_FAILURE'; let message = 'unknown failure'
@@ -393,12 +402,11 @@ export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, 
 
   // if this is an actionType we need to cancel conditionally
   if (dbInv.actionType) {
-    await paidActionCanceling({ data: { invoiceId: dbInv.id }, models, lnd, boss })
-    await checkInvoice({ data: { hash }, models, lnd, ...args })
-    return
+    await paidActionCanceling({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
+  } else {
+    await cancelHodlInvoice({ id: hash, lnd })
   }
 
-  await cancelHodlInvoice({ id: hash, lnd })
   // sync LND invoice status with invoice status in database
   await checkInvoice({ data: { hash }, models, lnd, ...args })
 }

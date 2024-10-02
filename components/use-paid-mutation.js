@@ -178,7 +178,8 @@ export const paidActionCacheMods = {
       id: `Invoice:${invoice.id}`,
       fields: {
         actionState: () => 'PAID',
-        confirmedAt: () => new Date().toISOString()
+        confirmedAt: () => new Date().toISOString(),
+        satsReceived: () => invoice.satsRequested
       }
     })
   }

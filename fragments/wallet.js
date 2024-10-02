@@ -19,6 +19,7 @@ export const INVOICE_FIELDS = gql`
     actionState
     actionType
     actionError
+    confirmedPreimage
   }`
 
 export const INVOICE_FULL = gql`
@@ -28,7 +29,6 @@ export const INVOICE_FULL = gql`
   query Invoice($id: ID!) {
     invoice(id: $id) {
       ...InvoiceFields
-      confirmedPreimage
       item {
         ...ItemFullFields
       }

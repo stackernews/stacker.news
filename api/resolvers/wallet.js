@@ -82,7 +82,7 @@ export async function getInvoice (parent, { id }, { me, models, lnd }) {
 
   try {
     if (inv.confirmedAt) {
-      inv.confirmedPreimage = (await getInvoiceFromLnd({ id: inv.hash, lnd })).secret
+      inv.confirmedPreimage = inv.preimage ?? (await getInvoiceFromLnd({ id: inv.hash, lnd })).secret
     }
   } catch (err) {
     console.error('error fetching invoice from LND', err)
@@ -407,7 +407,7 @@ const resolvers = {
         })
 
         const [inv] = await serialize(
-          models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${hodlInvoice ? invoice.secret : null}::TEXT, ${invoice.request},
+          models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.secret}::TEXT, ${invoice.request},
             ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description}, NULL, NULL,
             ${invLimit}::INTEGER, ${balanceLimit})`,
           { models }
@@ -506,7 +506,7 @@ const resolvers = {
     preimage: async (withdrawl, args, { lnd }) => {
       try {
         if (withdrawl.status === 'CONFIRMED') {
-          return (await getPayment({ id: withdrawl.hash, lnd })).payment.secret
+          return withdrawl.preimage ?? (await getPayment({ id: withdrawl.hash, lnd })).payment.secret
         }
       } catch (err) {
         console.error('error fetching payment from LND', err)

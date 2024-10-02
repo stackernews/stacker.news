@@ -309,7 +309,7 @@ async function createDbInvoice (actionType, args, context,
   const invoiceData = {
     hash: servedInvoice.id,
     msatsRequested: BigInt(servedInvoice.mtokens),
-    preimage: optimistic ? undefined : preimage,
+    preimage,
     bolt11: servedBolt11,
     userId: me?.id ?? USER_ID.anon,
     actionType,

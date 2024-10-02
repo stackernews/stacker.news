@@ -260,6 +260,7 @@ export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...a
       await settleHodlInvoice({ secret: payment.secret, lnd })
 
       return {
+        preimage: payment.secret,
         invoiceForward: {
           update: {
             withdrawl: {

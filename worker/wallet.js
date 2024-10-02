@@ -149,8 +149,6 @@ export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd
       models.invoice.update({ where: { hash }, data: { confirmedIndex: inv.confirmed_index } })
     ], { models })
 
-    // don't send notifications for JIT invoices
-    if (dbInv.preimage) return
     if (code === 0) {
       notifyDeposit(dbInv.userId, { comment: dbInv.comment, ...inv })
     }
@@ -294,6 +292,12 @@ export async function checkWithdrawal ({ data: { hash, withdrawal }, boss, model
     const paid = Number(wdrwl.payment.mtokens) - fee
     const [{ confirm_withdrawl: code }] = await serialize(
       models.$queryRaw`SELECT confirm_withdrawl(${dbWdrwl.id}::INTEGER, ${paid}, ${fee})`,
+      models.withdrawl.update({
+        where: { id: dbWdrwl.id },
+        data: {
+          preimage: wdrwl.payment.secret
+        }
+      }),
       { models }
     )
     if (code === 0) {

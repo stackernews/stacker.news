@@ -16,7 +16,6 @@ export const INVOICE_FIELDS = gql`
     isHeld
     comment
     lud18Data
-    confirmedPreimage
     actionState
     actionType
     actionError
@@ -29,6 +28,7 @@ export const INVOICE_FULL = gql`
   query Invoice($id: ID!) {
     invoice(id: $id) {
       ...InvoiceFields
+      confirmedPreimage
       item {
         ...ItemFullFields
       }

@@ -1,11 +1,8 @@
-import lnd from '@/api/lnd'
-import { getInvoice } from 'ln-service'
-
-export default async ({ query: { hash } }, res) => {
+export default async ({ query: { hash }, models }, res) => {
   try {
-    const inv = await getInvoice({ id: hash, lnd })
-    const settled = inv.is_confirmed
-    return res.status(200).json({ status: 'OK', settled, preimage: settled ? inv.secret : null, pr: inv.request })
+    const inv = await models.invoice.findUnique({ where: { hash } })
+    const settled = inv.confirmedAt
+    return res.status(200).json({ status: 'OK', settled, preimage: settled ? inv.preimage : null, pr: inv.bolt11 })
   } catch (err) {
     if (err[1] === 'UnexpectedLookupInvoiceErr') {
       return res.status(404).json({ status: 'ERROR', reason: 'not found' })

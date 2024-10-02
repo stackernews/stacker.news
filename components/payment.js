@@ -67,10 +67,16 @@ export const useInvoice = () => {
     if (error) {
       throw error
     }
-    const { hash, cancelled, actionError } = data.invoice
+
+    const { hash, cancelled, actionError, actionState } = data.invoice
 
     if (cancelled || actionError) {
       throw new InvoiceCanceledError(hash, actionError)
+    }
+
+    // write to cache if paid
+    if (actionState === 'PAID') {
+      client.writeQuery({ query: INVOICE, variables: { id }, data: { invoice: data.invoice } })
     }
 
     return that(data.invoice)
@@ -79,7 +85,7 @@ export const useInvoice = () => {
   const waitController = useMemo(() => {
     const controller = new AbortController()
     const signal = controller.signal
-    controller.wait = async ({ id }, waitFor = inv => (inv.satsReceived > 0)) => {
+    controller.wait = async ({ id }, waitFor = inv => inv?.actionState === 'PAID') => {
       return await new Promise((resolve, reject) => {
         const interval = setInterval(async () => {
           try {
@@ -138,11 +144,7 @@ export const useWalletPayment = () => {
       return await new Promise((resolve, reject) => {
         // can't use await here since we might pay JIT invoices and sendPaymentAsync is not supported yet.
         // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
-        wallet.sendPayment(bolt11)
-          // JIT invoice payments will never resolve here
-          // since they only get resolved after settlement which can't happen here
-          .then(resolve)
-          .catch(reject)
+        wallet.sendPayment(bolt11).catch(reject)
         invoice.waitUntilPaid({ id }, waitFor)
           .then(resolve)
           .catch(reject)

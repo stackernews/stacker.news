@@ -691,7 +691,7 @@ export default {
 
       return Number(photoId)
     },
-    upsertBio: async (parent, { bio }, { me, models }) => {
+    upsertBio: async (parent, { bio }, { me, models, lnd }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
@@ -701,9 +701,9 @@ export default {
       const user = await models.user.findUnique({ where: { id: me.id } })
 
       if (user.bioId) {
-        await updateItem(parent, { id: user.bioId, text: bio, title: `@${user.name}'s bio` }, { me, models })
+        await updateItem(parent, { id: user.bioId, text: bio, title: `@${user.name}'s bio` }, { me, models, lnd })
       } else {
-        await createItem(parent, { bio: true, text: bio, title: `@${user.name}'s bio` }, { me, models })
+        await createItem(parent, { bio: true, text: bio, title: `@${user.name}'s bio` }, { me, models, lnd })
       }
 
       return await models.user.findUnique({ where: { id: me.id } })

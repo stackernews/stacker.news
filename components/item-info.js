@@ -37,7 +37,7 @@ export default function ItemInfo ({
   const editThreshold = new Date(item.invoice?.confirmedAt ?? item.createdAt).getTime() + 10 * 60000
   const { me } = useMe()
   const router = useRouter()
-  const [canEdit, setCanEdit] = useState(item.mine && (Date.now() < editThreshold))
+  const [canEdit, setCanEdit] = useState(item.mine && !item.bio && (Date.now() < editThreshold))
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
   const sub = item?.sub || root?.sub
@@ -49,7 +49,7 @@ export default function ItemInfo ({
   }, [item])
 
   useEffect(() => {
-    const authorEdit = item.mine
+    const authorEdit = item.mine && !item.bio
     const invParams = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
     const hmacEdit = !!invParams && !me && Number(item.user.id) === USER_ID.anon
     setCanEdit((authorEdit || hmacEdit) && (Date.now() < editThreshold))

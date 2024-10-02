@@ -47,12 +47,18 @@ export function BioForm ({ handleDone, bio }) {
     }
   )
 
+  const localStorageBioDraftKey = "userid-" + bio?.user?.id || "none" + ":bio_draft"
+  const savedBioDraft = localStorage.getItem(localStorageBioDraftKey)
+  const onChange = (v) => {
+    localStorage.setItem(localStorageBioDraftKey, v.target.value)
+  };
+
   return (
     <div className={styles.createFormContainer}>
       <FeeButtonProvider>
         <Form
           initial={{
-            bio: bio?.text || ''
+            bio: bio?.text || savedBioDraft
           }}
           schema={bioSchema}
           onSubmit={async values => {
@@ -60,6 +66,7 @@ export function BioForm ({ handleDone, bio }) {
             if (error) throw error
             handleDone?.()
           }}
+          onChange={onChange}
         >
           <MarkdownInput
             topLevel

@@ -33,7 +33,7 @@ export default gql`
     setName(name: String!): String
     setSettings(settings: SettingsInput!): User
     setPhoto(photoId: ID!): Int!
-    upsertBio(bio: String!): User!
+    upsertBio(text: String!): ItemPaidAction!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
     unlinkAuth(authType: String!): AuthMethods!
     linkUnverifiedEmail(email: String!): Boolean

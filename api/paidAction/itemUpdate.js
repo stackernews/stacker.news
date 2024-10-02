@@ -19,7 +19,7 @@ export async function getCost ({ id, boost = 0, uploadIds, bio }, { me, models }
     throw new Error('creation invoice not paid')
   }
 
-  return bio ? BigInt(0) : cost
+  return cost
 }
 
 export async function perform (args, context) {

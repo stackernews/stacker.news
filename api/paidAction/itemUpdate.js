@@ -8,7 +8,7 @@ export const anonable = true
 export const supportsPessimism = true
 export const supportsOptimism = false
 
-export async function getCost ({ id, boost = 0, uploadIds }, { me, models }) {
+export async function getCost ({ id, boost = 0, uploadIds, bio }, { me, models }) {
   // the only reason updating items costs anything is when it has new uploads
   // or more boost
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })

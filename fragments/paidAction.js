@@ -205,6 +205,16 @@ export const POLL_VOTE = gql`
     }
   }`
 
+export const UPSERT_BIO = gql`
+  ${ITEM_PAID_ACTION_FIELDS}
+  ${PAID_ACTION}
+  mutation upsertBio($text: String!) {
+    upsertBio(text: $text) {
+      ...ItemPaidActionFields
+      ...PaidActionFields
+    }
+  }`
+
 export const CREATE_COMMENT = gql`
   ${ITEM_PAID_ACTION_FIELDS}
   ${PAID_ACTION}

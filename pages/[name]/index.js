@@ -1,5 +1,5 @@
 import Layout from '@/components/layout'
-import { gql, useMutation, useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client'
 import UserHeader from '@/components/user-header'
 import Button from 'react-bootstrap/Button'
 import styles from '@/styles/user.module.css'
@@ -8,62 +8,56 @@ import ItemFull from '@/components/item-full'
 import { Form, MarkdownInput } from '@/components/form'
 import { useMe } from '@/components/me'
 import { USER_FULL } from '@/fragments/users'
-import { ITEM_FIELDS } from '@/fragments/items'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { FeeButtonProvider } from '@/components/fee-button'
 import { bioSchema } from '@/lib/validate'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import { ItemButtonBar } from '@/components/post'
+import useItemSubmit from '@/components/use-item-submit'
+import { UPSERT_BIO } from '@/fragments/paidAction'
 
 export const getServerSideProps = getGetServerSideProps({
   query: USER_FULL,
   notFound: data => !data.user
 })
 
-export function BioForm ({ handleDone, bio }) {
-  const [upsertBio] = useMutation(
-    gql`
-      ${ITEM_FIELDS}
-      mutation upsertBio($bio: String!) {
-        upsertBio(bio: $bio) {
-          id
-          bio {
-            ...ItemFields
-            text
-          }
-        }
-      }`, {
-      update (cache, { data: { upsertBio } }) {
+export function BioForm ({ handleDone, bio, me }) {
+  const onSubmit = useItemSubmit(UPSERT_BIO, {
+    navigateOnSubmit: false,
+    paidMutationOptions: {
+      update (cache, { data: { upsertBio: { result, invoice } } }) {
+        if (!result) return
+
         cache.modify({
-          id: `User:${upsertBio.id}`,
+          id: `User:${me.id}`,
           fields: {
             bio () {
-              return upsertBio.bio
+              return result.text
             }
           }
         })
       }
+    },
+    onSuccessfulSubmit: (data, { resetForm }) => {
+      handleDone?.()
     }
-  )
+  })
 
   return (
     <div className={styles.createFormContainer}>
       <FeeButtonProvider>
         <Form
           initial={{
-            bio: bio?.text || ''
+            text: bio?.text || ''
           }}
           schema={bioSchema}
-          onSubmit={async values => {
-            const { error } = await upsertBio({ variables: values })
-            if (error) throw error
-            handleDone?.()
-          }}
+          onSubmit={onSubmit}
+          storageKeyPrefix={`bio-${me.id}`}
         >
           <MarkdownInput
             topLevel
-            name='bio'
+            name='text'
             minRows={6}
           />
           <ItemButtonBar createText='save' onCancel={handleDone} />
@@ -100,14 +94,14 @@ export default function User ({ ssrData }) {
         ? (edit
             ? (
               <div className={styles.create}>
-                <BioForm bio={user.bio} handleDone={() => setEdit(false)} />
+                <BioForm bio={user.bio} me={me} handleDone={() => setEdit(false)} />
               </div>)
             : <ItemFull item={user.bio} bio handleClick={setEdit} />
           )
         : (mine &&
           <div className={styles.create}>
             {create
-              ? <BioForm handleDone={() => setCreate(false)} />
+              ? <BioForm me={me} handleDone={() => setCreate(false)} />
               : (
                   mine &&
                     <div className='text-center'>

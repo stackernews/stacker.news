@@ -85,7 +85,7 @@ export function usePaidMutation (mutation,
         // onCompleted is called before the invoice is paid for optimistic updates
         ourOnCompleted?.(data)
         // don't wait to pay the invoice
-        waitForPayment(invoice, { persistOnNavigate }).then(() => {
+        waitForPayment(invoice, { persistOnNavigate, waitFor }).then(() => {
           onPaid?.(client.cache, { data })
         }).catch(e => {
           console.error('usePaidMutation: failed to pay invoice', e)
@@ -178,7 +178,8 @@ export const paidActionCacheMods = {
       id: `Invoice:${invoice.id}`,
       fields: {
         actionState: () => 'PAID',
-        confirmedAt: () => new Date().toISOString()
+        confirmedAt: () => new Date().toISOString(),
+        satsReceived: () => invoice.satsRequested
       }
     })
   }

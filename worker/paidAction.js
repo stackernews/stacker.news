@@ -14,7 +14,7 @@ import { MIN_SETTLEMENT_CLTV_DELTA } from 'wallets/wrap'
 // aggressive finalization retry options
 const FINALIZE_OPTIONS = { retryLimit: 2 ** 31 - 1, retryBackoff: false, retryDelay: 5, priority: 1000 }
 
-async function transitionInvoice (jobName, { invoiceId, fromState, toState, transition }, { models, lnd, boss }) {
+async function transitionInvoice (jobName, { invoiceId, fromState, toState, transition, invoice }, { models, lnd, boss }) {
   console.group(`${jobName}: transitioning invoice ${invoiceId} from ${fromState} to ${toState}`)
 
   try {
@@ -30,7 +30,7 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
       fromState = [fromState]
     }
 
-    const lndInvoice = await getInvoice({ id: currentDbInvoice.hash, lnd })
+    const lndInvoice = invoice ?? await getInvoice({ id: currentDbInvoice.hash, lnd })
 
     const transitionedInvoice = await models.$transaction(async tx => {
       const include = {
@@ -133,7 +133,7 @@ async function performPessimisticAction ({ lndInvoice, dbInvoice, tx, models, ln
   }
 }
 
-export async function paidActionPaid ({ data: { invoiceId }, models, lnd, boss }) {
+export async function paidActionPaid ({ data: { invoiceId, ...args }, models, lnd, boss }) {
   return await transitionInvoice('paidActionPaid', {
     invoiceId,
     fromState: ['HELD', 'PENDING', 'FORWARDED'],
@@ -153,12 +153,13 @@ export async function paidActionPaid ({ data: { invoiceId }, models, lnd, boss }
         confirmedIndex: lndInvoice.confirmed_index,
         msatsReceived: BigInt(lndInvoice.received_mtokens)
       }
-    }
+    },
+    ...args
   }, { models, lnd, boss })
 }
 
 // this performs forward creating the outgoing payment
-export async function paidActionForwarding ({ data: { invoiceId }, models, lnd, boss }) {
+export async function paidActionForwarding ({ data: { invoiceId, ...args }, models, lnd, boss }) {
   const transitionedInvoice = await transitionInvoice('paidActionForwarding', {
     invoiceId,
     fromState: 'PENDING_HELD',
@@ -213,7 +214,8 @@ export async function paidActionForwarding ({ data: { invoiceId }, models, lnd, 
           }
         }
       }
-    }
+    },
+    ...args
   }, { models, lnd, boss })
 
   // only pay if we successfully transitioned which can only happen once
@@ -238,7 +240,7 @@ export async function paidActionForwarding ({ data: { invoiceId }, models, lnd, 
 }
 
 // this finalizes the forward by settling the incoming invoice after the outgoing payment is confirmed
-export async function paidActionForwarded ({ data: { invoiceId }, models, lnd, boss }) {
+export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...args }, models, lnd, boss }) {
   return await transitionInvoice('paidActionForwarded', {
     invoiceId,
     fromState: 'FORWARDING',
@@ -249,7 +251,7 @@ export async function paidActionForwarded ({ data: { invoiceId }, models, lnd, b
       }
 
       const { hash, msatsPaying } = dbInvoice.invoiceForward.withdrawl
-      const { payment, is_confirmed: isConfirmed } = await getPayment({ id: hash, lnd })
+      const { payment, is_confirmed: isConfirmed } = withdrawal ?? await getPayment({ id: hash, lnd })
       if (!isConfirmed) {
         throw new Error('payment is not confirmed')
       }
@@ -258,6 +260,7 @@ export async function paidActionForwarded ({ data: { invoiceId }, models, lnd, b
       await settleHodlInvoice({ secret: payment.secret, lnd })
 
       return {
+        preimage: payment.secret,
         invoiceForward: {
           update: {
             withdrawl: {
@@ -271,12 +274,13 @@ export async function paidActionForwarded ({ data: { invoiceId }, models, lnd, b
           }
         }
       }
-    }
+    },
+    ...args
   }, { models, lnd, boss })
 }
 
 // when the pending forward fails, we need to cancel the incoming invoice
-export async function paidActionFailedForward ({ data: { invoiceId }, models, lnd, boss }) {
+export async function paidActionFailedForward ({ data: { invoiceId, withdrawal: pWithdrawal, ...args }, models, lnd, boss }) {
   return await transitionInvoice('paidActionFailedForward', {
     invoiceId,
     fromState: 'FORWARDING',
@@ -289,7 +293,7 @@ export async function paidActionFailedForward ({ data: { invoiceId }, models, ln
       let withdrawal
       let notSent = false
       try {
-        withdrawal = await getPayment({ id: dbInvoice.invoiceForward.withdrawl.hash, lnd })
+        withdrawal = pWithdrawal ?? await getPayment({ id: dbInvoice.invoiceForward.withdrawl.hash, lnd })
       } catch (err) {
         if (err[1] === 'SentPaymentNotFound' &&
           dbInvoice.invoiceForward.withdrawl.createdAt < datePivot(new Date(), { milliseconds: -LND_PATHFINDING_TIMEOUT_MS * 2 })) {
@@ -313,17 +317,18 @@ export async function paidActionFailedForward ({ data: { invoiceId }, models, ln
           update: {
             withdrawl: {
               update: {
-                status: getPaymentFailureStatus(withdrawal)
+                status: getPaymentFailureStatus(withdrawal).status
               }
             }
           }
         }
       }
-    }
+    },
+    ...args
   }, { models, lnd, boss })
 }
 
-export async function paidActionHeld ({ data: { invoiceId }, models, lnd, boss }) {
+export async function paidActionHeld ({ data: { invoiceId, ...args }, models, lnd, boss }) {
   return await transitionInvoice('paidActionHeld', {
     invoiceId,
     fromState: 'PENDING_HELD',
@@ -355,11 +360,12 @@ export async function paidActionHeld ({ data: { invoiceId }, models, lnd, boss }
         isHeld: true,
         msatsReceived: BigInt(lndInvoice.received_mtokens)
       }
-    }
+    },
+    ...args
   }, { models, lnd, boss })
 }
 
-export async function paidActionCanceling ({ data: { invoiceId }, models, lnd, boss }) {
+export async function paidActionCanceling ({ data: { invoiceId, ...args }, models, lnd, boss }) {
   return await transitionInvoice('paidActionCanceling', {
     invoiceId,
     fromState: ['HELD', 'PENDING', 'PENDING_HELD', 'FAILED_FORWARD'],
@@ -370,11 +376,12 @@ export async function paidActionCanceling ({ data: { invoiceId }, models, lnd, b
       }
 
       await cancelHodlInvoice({ id: dbInvoice.hash, lnd })
-    }
+    },
+    ...args
   }, { models, lnd, boss })
 }
 
-export async function paidActionFailed ({ data: { invoiceId }, models, lnd, boss }) {
+export async function paidActionFailed ({ data: { invoiceId, ...args }, models, lnd, boss }) {
   return await transitionInvoice('paidActionFailed', {
     invoiceId,
     // any of these states can transition to FAILED
@@ -390,6 +397,7 @@ export async function paidActionFailed ({ data: { invoiceId }, models, lnd, boss
       return {
         cancelled: true
       }
-    }
+    },
+    ...args
   }, { models, lnd, boss })
 }

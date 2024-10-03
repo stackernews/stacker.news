@@ -163,9 +163,13 @@ export const WalletLoggerProvider = ({ children }) => {
       // IDB may not be ready yet
       return logQueue.current.push(log)
     }
-    const tx = idb.current.transaction(idbStoreName, 'readwrite')
-    const request = tx.objectStore(idbStoreName).add(log)
-    request.onerror = () => console.error('failed to save log:', log)
+    try {
+      const tx = idb.current.transaction(idbStoreName, 'readwrite')
+      const request = tx.objectStore(idbStoreName).add(log)
+      request.onerror = () => console.error('failed to save log:', log)
+    } catch (e) {
+      console.error('failed to save log:', log, e)
+    }
   }, [])
 
   useEffect(() => {
@@ -214,19 +218,23 @@ export const WalletLoggerProvider = ({ children }) => {
       await deleteServerWalletLogs({ variables: { wallet: wallet?.walletType } })
     }
     if (!wallet || wallet.sendPayment) {
-      const tx = idb.current.transaction(idbStoreName, 'readwrite')
-      const objectStore = tx.objectStore(idbStoreName)
-      const idx = objectStore.index('wallet_ts')
-      const request = wallet ? idx.openCursor(window.IDBKeyRange.bound([tag(wallet), -Infinity], [tag(wallet), Infinity])) : idx.openCursor()
-      request.onsuccess = function (event) {
-        const cursor = event.target.result
-        if (cursor) {
-          cursor.delete()
-          cursor.continue()
-        } else {
+      try {
+        const tx = idb.current.transaction(idbStoreName, 'readwrite')
+        const objectStore = tx.objectStore(idbStoreName)
+        const idx = objectStore.index('wallet_ts')
+        const request = wallet ? idx.openCursor(window.IDBKeyRange.bound([tag(wallet), -Infinity], [tag(wallet), Infinity])) : idx.openCursor()
+        request.onsuccess = function (event) {
+          const cursor = event.target.result
+          if (cursor) {
+            cursor.delete()
+            cursor.continue()
+          } else {
           // finished
-          setLogs((logs) => logs.filter(l => wallet ? l.wallet !== tag(wallet) : false))
+            setLogs((logs) => logs.filter(l => wallet ? l.wallet !== tag(wallet) : false))
+          }
         }
+      } catch (e) {
+        console.error('failed to delete logs', e)
       }
     }
   }, [me, setLogs])

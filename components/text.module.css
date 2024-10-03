@@ -216,13 +216,13 @@
     width: auto;
     max-height: inherit;
     height: 100%;
+    max-width: 100%;
     aspect-ratio: var(--aspect-ratio);
 }
 
 .mediaContainer img {
     cursor: zoom-in;
     min-width: 30%;
-    max-width: 100%;
     object-position: left top;
 }
 

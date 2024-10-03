@@ -97,13 +97,14 @@ const BoostMaxes = ({ subName, homeMax, subMax, boost, updateBoost }) => {
       >
         {abbrNum(homeMax + BOOST_MULT)} <small>top of homepage</small>
       </Button>
-      <Button
-        className={classNames(styles.boostMax, subMax + BOOST_MULT <= (boost || 0) && 'invisible')}
-        size='sm'
-        onClick={() => updateBoost(subMax + BOOST_MULT)}
-      >
-        {abbrNum(subMax + BOOST_MULT)} <small>top of ~{subName}</small>
-      </Button>
+      {subName &&
+        <Button
+          className={classNames(styles.boostMax, subMax + BOOST_MULT <= (boost || 0) && 'invisible')}
+          size='sm'
+          onClick={() => updateBoost(subMax + BOOST_MULT)}
+        >
+          {abbrNum(subMax + BOOST_MULT)} <small>top of ~{subName}</small>
+        </Button>}
     </div>
   )
 }
@@ -139,7 +140,7 @@ export function BoostItemInput ({ item, sub, act = false, ...props }) {
   const dat = data || previousData
 
   const boostMessage = useMemo(() => {
-    if (!item?.parentId) {
+    if (!item?.parentId && boost >= BOOST_MULT) {
       if (dat?.boostPosition?.home || dat?.boostPosition?.sub || boost > dat?.boostPosition?.homeMaxBoost || boost > dat?.boostPosition?.subMaxBoost) {
         const boostPinning = []
         if (dat?.boostPosition?.home || boost > dat?.boostPosition?.homeMaxBoost) {

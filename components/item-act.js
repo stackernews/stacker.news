@@ -76,12 +76,12 @@ function BoostForm ({ step, onSubmit, children, item, oValue, inputRef, act = 'B
         autoFocus
         item={item}
       />
-      {children}
       <div className='d-flex mt-3'>
         <SubmitButton variant='success' className='ms-auto mt-1 px-4' value={act}>
           boost
         </SubmitButton>
       </div>
+      {children}
     </Form>
   )
 }
@@ -170,12 +170,12 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         <div>
           <Tips setOValue={setOValue} />
         </div>
-        {children}
         <div className='d-flex mt-3'>
           <SubmitButton variant={act === 'DONT_LIKE_THIS' ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value={act}>
             {act === 'DONT_LIKE_THIS' ? 'downzap' : 'zap'}
           </SubmitButton>
         </div>
+        {children}
       </Form>)
 }
 

@@ -716,8 +716,8 @@ export default {
       }
 
       return {
-        home: homeAgg._count.id === 0,
-        sub: subAgg?._count.id === 0,
+        home: homeAgg._count.id === 0 && boost >= BOOST_MULT,
+        sub: subAgg?._count.id === 0 && boost >= BOOST_MULT,
         homeMaxBoost: homeAgg._max.boost || 0,
         subMaxBoost: subAgg?._max.boost || 0
       }

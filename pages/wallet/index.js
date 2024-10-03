@@ -88,6 +88,14 @@ function WalletHistory () {
   )
 }
 
+function LinkBackToWallet () {
+  return (
+    <Link href='/wallet' className='text-muted fw-bold text-underline mt-3'>
+      <medium className='ms-3'>go back to wallet</medium>
+    </Link>
+  )
+}
+
 export function WalletForm () {
   return (
     <div className='align-items-center text-center pt-5 pb-4'>
@@ -160,7 +168,7 @@ export function FundForm () {
           <SubmitButton variant='success' className='mt-2'>generate invoice</SubmitButton>
         </Form>
       </div>
-      <WalletHistory />
+      <LinkBackToWallet />
     </>
   )
 }
@@ -192,6 +200,7 @@ export function WithdrawalForm () {
         </Nav.Item>
       </Nav>
       <SelectedWithdrawalForm />
+      <LinkBackToWallet />
     </div>
   )
 }

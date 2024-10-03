@@ -18,6 +18,8 @@ import classNames from 'classnames'
 import { CarouselProvider, useCarousel } from './carousel'
 import rehypeSN from '@/lib/rehype-sn'
 import Embed from './embed'
+import remarkMath from 'remark-math'
+import rehypeMathjax from 'rehype-mathjax'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -31,8 +33,8 @@ const rehypeSNStyled = () => rehypeSN({
   }]
 })
 
-const remarkPlugins = [gfm]
-const rehypePlugins = [rehypeSNStyled]
+const remarkPlugins = [gfm, remarkMath]
+const rehypePlugins = [rehypeSNStyled, rehypeMathjax]
 
 export function SearchText ({ text }) {
   return (

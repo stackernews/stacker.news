@@ -1,18 +1,20 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import AccordianItem from './accordian-item'
 import { Input, InputUserSuggest, VariableInput, Checkbox } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
-import { BOOST_MIN, BOOST_MULT, MAX_FORWARDS } from '@/lib/constants'
+import { BOOST_MIN, BOOST_MULT, MAX_FORWARDS, SSR } from '@/lib/constants'
 import { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import Info from './info'
-import { numWithUnits } from '@/lib/format'
+import { abbrNum, numWithUnits } from '@/lib/format'
 import styles from './adv-post-form.module.css'
 import { useMe } from './me'
 import { useFeeButton } from './fee-button'
 import { useRouter } from 'next/router'
 import { useFormikContext } from 'formik'
-import { gql, useLazyQuery } from '@apollo/client'
+import { gql, useQuery } from '@apollo/client'
 import useDebounceCallback from './use-debounce-callback'
+import { Button } from 'react-bootstrap'
+import classNames from 'classnames'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
@@ -85,56 +87,96 @@ export function BoostInput ({ onChange, ...props }) {
   )
 }
 
+const BoostMaxes = ({ subName, homeMax, subMax, boost, updateBoost }) => {
+  return (
+    <div className='d-flex flex-row mb-2'>
+      <Button
+        className={classNames(styles.boostMax, 'me-2', homeMax + BOOST_MULT <= (boost || 0) && 'invisible')}
+        size='sm'
+        onClick={() => updateBoost(homeMax + BOOST_MULT)}
+      >
+        {abbrNum(homeMax + BOOST_MULT)} <small>top of homepage</small>
+      </Button>
+      {subName &&
+        <Button
+          className={classNames(styles.boostMax, subMax + BOOST_MULT <= (boost || 0) && 'invisible')}
+          size='sm'
+          onClick={() => updateBoost(subMax + BOOST_MULT)}
+        >
+          {abbrNum(subMax + BOOST_MULT)} <small>top of ~{subName}</small>
+        </Button>}
+    </div>
+  )
+}
+
 // act means we are adding to existing boost
 export function BoostItemInput ({ item, sub, act = false, ...props }) {
-  const [boost, setBoost] = useState(Number(item?.boost) + (act ? BOOST_MULT : 0))
+  // act adds boost to existing boost
+  const existingBoost = act ? Number(item?.boost || 0) : 0
+  const [boost, setBoost] = useState(act ? 0 : Number(item?.boost || 0))
 
-  const [getBoostPosition, { data }] = useLazyQuery(gql`
+  const { data, previousData, refetch } = useQuery(gql`
     query BoostPosition($sub: String, $id: ID, $boost: Int) {
       boostPosition(sub: $sub, id: $id, boost: $boost) {
         home
         sub
+        homeMaxBoost
+        subMaxBoost
       }
     }`,
-  { fetchPolicy: 'cache-and-network' })
+  {
+    variables: { sub: item?.subName || sub?.name, boost: existingBoost + boost, id: item?.id },
+    fetchPolicy: 'cache-and-network',
+    skip: !!item?.parentId || SSR
+  })
 
-  const getPositionDebounce = useDebounceCallback((...args) => getBoostPosition(...args), 1000, [getBoostPosition])
+  const getPositionDebounce = useDebounceCallback((...args) => refetch(...args), 1000, [refetch])
+  const updateBoost = useCallback((boost) => {
+    const boostToUse = Number(boost || 0)
+    setBoost(boostToUse)
+    getPositionDebounce({ sub: item?.subName || sub?.name, boost: Number(existingBoost + boostToUse), id: item?.id })
+  }, [getPositionDebounce, item?.id, item?.subName, sub?.name, existingBoost])
 
-  useEffect(() => {
-    if (boost >= 0 && !item?.parentId) {
-      getPositionDebounce({ variables: { sub: item?.subName || sub?.name, boost: Number(boost), id: item?.id } })
-    }
-  }, [boost, item?.id, !item?.parentId, item?.subName || sub?.name])
+  const dat = data || previousData
 
   const boostMessage = useMemo(() => {
-    if (!item?.parentId) {
-      if (data?.boostPosition?.home || data?.boostPosition?.sub) {
+    if (!item?.parentId && boost >= BOOST_MULT) {
+      if (dat?.boostPosition?.home || dat?.boostPosition?.sub || boost > dat?.boostPosition?.homeMaxBoost || boost > dat?.boostPosition?.subMaxBoost) {
         const boostPinning = []
-        if (data?.boostPosition?.home) {
+        if (dat?.boostPosition?.home || boost > dat?.boostPosition?.homeMaxBoost) {
           boostPinning.push('homepage')
         }
-        if (data?.boostPosition?.sub) {
+        if ((item?.subName || sub?.name) && (dat?.boostPosition?.sub || boost > dat?.boostPosition?.subMaxBoost)) {
           boostPinning.push(`~${item?.subName || sub?.name}`)
         }
         return `pins to the top of ${boostPinning.join(' and ')}`
       }
     }
-    if (boost >= 0 && boost % BOOST_MULT === 0) {
-      return `${act ? 'brings to' : 'equivalent to'} ${numWithUnits(boost / BOOST_MULT, { unitPlural: 'zapvotes', unitSingular: 'zapvote' })}`
-    }
     return 'ranks posts higher based on the amount'
-  }, [boost, data?.boostPosition?.home, data?.boostPosition?.sub, item?.subName, sub?.name])
+  }, [boost, dat?.boostPosition?.home, dat?.boostPosition?.sub, item?.subName, sub?.name])
 
   return (
-    <BoostInput
-      hint={<span className='text-muted'>{boostMessage}</span>}
-      onChange={(_, e) => {
-        if (e.target.value >= 0) {
-          setBoost(Number(e.target.value) + (act ? Number(item?.boost) : 0))
-        }
-      }}
-      {...props}
-    />
+    <>
+      <BoostInput
+        hint={<span className='text-muted'>{boostMessage}</span>}
+        onChange={(_, e) => {
+          if (e.target.value >= 0) {
+            updateBoost(Number(e.target.value))
+          }
+        }}
+        overrideValue={boost}
+        {...props}
+        groupClassName='mb-1'
+      />
+      {!item?.parentId &&
+        <BoostMaxes
+          subName={item?.subName || sub?.name}
+          homeMax={(dat?.boostPosition?.homeMaxBoost || 0) - existingBoost}
+          subMax={(dat?.boostPosition?.subMaxBoost || 0) - existingBoost}
+          boost={existingBoost + boost}
+          updateBoost={updateBoost}
+        />}
+    </>
   )
 }
 

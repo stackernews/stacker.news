@@ -70,19 +70,18 @@ function BoostForm ({ step, onSubmit, children, item, oValue, inputRef, act = 'B
         name='amount'
         type='number'
         innerRef={inputRef}
-        overrideValue={oValue}
         sub={item.sub}
         step={step}
         required
         autoFocus
         item={item}
       />
-      {children}
       <div className='d-flex mt-3'>
         <SubmitButton variant='success' className='ms-auto mt-1 px-4' value={act}>
           boost
         </SubmitButton>
       </div>
+      {children}
     </Form>
   )
 }
@@ -147,7 +146,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
   }, [me, actor, !!wallet, act, item.id, onClose, abortSignal, strike])
 
   return act === 'BOOST'
-    ? <BoostForm step={step} onSubmit={onSubmit} item={item} oValue={oValue} inputRef={inputRef} act={act}>{children}</BoostForm>
+    ? <BoostForm step={step} onSubmit={onSubmit} item={item} inputRef={inputRef} act={act}>{children}</BoostForm>
     : (
       <Form
         initial={{
@@ -171,12 +170,12 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         <div>
           <Tips setOValue={setOValue} />
         </div>
-        {children}
         <div className='d-flex mt-3'>
           <SubmitButton variant={act === 'DONT_LIKE_THIS' ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value={act}>
             {act === 'DONT_LIKE_THIS' ? 'downzap' : 'zap'}
           </SubmitButton>
         </div>
+        {children}
       </Form>)
 }
 

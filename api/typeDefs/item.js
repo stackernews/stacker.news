@@ -16,6 +16,8 @@ export default gql`
   type BoostPositions {
     home: Boolean!
     sub: Boolean!
+    homeMaxBoost: Int!
+    subMaxBoost: Int!
   }
 
   type TitleUnshorted {

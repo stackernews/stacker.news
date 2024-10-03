@@ -10,3 +10,10 @@
   flex: 0 1 fit-content;
   height: fit-content;
 }
+
+.boostMax small {
+  font-weight: 400;
+  margin-left: 0.25rem;
+  margin-right: 0.25rem;
+  opacity: 0.5;
+}

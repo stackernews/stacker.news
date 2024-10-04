@@ -351,20 +351,58 @@ const resolvers = {
         facts: history
       }
     },
-    walletLogs: async (parent, args, { me, models }) => {
+    walletLogs: async (parent, { type, from, to, cursor }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
-      return await models.walletLog.findMany({
-        where: {
-          userId: me.id
-        },
-        orderBy: [
-          { createdAt: 'desc' },
-          { id: 'desc' }
-        ]
-      })
+      // we cursoring with the wallet logs on the client
+      // if we have from, don't use cursor
+      // regardless, store the state of the cursor for the next call
+
+      const decodedCursor = cursor ? decodeCursor(cursor) : { offset: 0, time: to ?? new Date() }
+
+      let logs = []
+      let nextCursor
+      if (from) {
+        logs = await models.walletLog.findMany({
+          where: {
+            userId: me.id,
+            wallet: type ?? undefined,
+            createdAt: {
+              gte: from ? new Date(Number(from)) : undefined,
+              lte: to ? new Date(Number(to)) : undefined
+            }
+          },
+          orderBy: [
+            { createdAt: 'desc' },
+            { id: 'desc' }
+          ]
+        })
+        nextCursor = nextCursorEncoded(decodedCursor, logs.length)
+      } else {
+        logs = await models.walletLog.findMany({
+          where: {
+            userId: me.id,
+            wallet: type ?? undefined,
+            createdAt: {
+              lte: decodedCursor.time
+            }
+          },
+          orderBy: [
+            { createdAt: 'desc' },
+            { id: 'desc' }
+          ],
+          take: LIMIT,
+          skip: decodedCursor.offset
+        })
+        nextCursor = logs.length === LIMIT ? nextCursorEncoded(decodedCursor, logs.length) : null
+      }
+
+      return {
+        cursor: nextCursor,
+        entries: logs
+      }
     }
   },
   Wallet: {

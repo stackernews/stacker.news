@@ -66,7 +66,7 @@ const typeDefs = `
     wallets: [Wallet!]!
     wallet(id: ID!): Wallet
     walletByType(type: String!): Wallet
-    walletLogs: [WalletLog]!
+    walletLogs(type: String, from: String, to: String, cursor: String): WalletLog!
   }
 
   extend type Mutation {
@@ -154,6 +154,11 @@ const typeDefs = `
   }
 
   type WalletLog {
+    entries: [WalletLogEntry!]!
+    cursor: String
+  }
+
+  type WalletLogEntry {
     id: ID!
     createdAt: Date!
     wallet: ID!

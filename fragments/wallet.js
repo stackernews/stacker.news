@@ -197,13 +197,16 @@ export const WALLETS = gql`
 `
 
 export const WALLET_LOGS = gql`
-  query WalletLogs {
-    walletLogs {
-      id
-      createdAt
-      wallet
-      level
-      message
+  query WalletLogs($type: String, $from: String, $to: String, $cursor: String) {
+    walletLogs(type: $type, from: $from, to: $to, cursor: $cursor) {
+        cursor
+        entries {
+          id
+          createdAt
+          wallet
+          level
+          message
+      }
     }
   }
 `

@@ -1,18 +1,22 @@
 import LogMessage from './log-message'
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import styles from '@/styles/log.module.css'
 import { Button } from 'react-bootstrap'
 import { useToast } from './toast'
 import { useShowModal } from './modal'
 import { WALLET_LOGS } from '@/fragments/wallet'
 import { getWalletByType } from 'wallets'
-import { gql, useMutation, useQuery } from '@apollo/client'
+import { gql, useLazyQuery, useMutation } from '@apollo/client'
 import { useMe } from './me'
+import useIndexedDB from './use-indexeddb'
+import { SSR } from '@/lib/constants'
 
 export function WalletLogs ({ wallet, embedded }) {
-  const logs = useWalletLogs(wallet)
+  const { logs, setLogs, hasMore, loadMore, loadLogs, loading } = useWalletLogs(wallet)
+  useEffect(() => {
+    loadLogs()
+  }, [wallet])
 
-  const tableRef = useRef()
   const showModal = useShowModal()
 
   return (
@@ -21,13 +25,12 @@ export function WalletLogs ({ wallet, embedded }) {
         <span
           style={{ cursor: 'pointer' }}
           className='text-muted fw-bold nav-link ms-auto' onClick={() => {
-            showModal(onClose => <DeleteWalletLogsObstacle wallet={wallet} onClose={onClose} />)
+            showModal(onClose => <DeleteWalletLogsObstacle wallet={wallet} setLogs={setLogs} onClose={onClose} />)
           }}
         >clear logs
         </span>
       </div>
-      <div ref={tableRef} className={`${styles.logTable} ${embedded ? styles.embedded : ''}`}>
-        {logs.length === 0 && <div className='w-100 text-center'>empty</div>}
+      <div className={`${styles.logTable} ${embedded ? styles.embedded : ''}`}>
         <table>
           <tbody>
             {logs.map((log, i) => (
@@ -39,15 +42,20 @@ export function WalletLogs ({ wallet, embedded }) {
             ))}
           </tbody>
         </table>
-        <div className='w-100 text-center'>------ start of logs ------</div>
+        {loading
+          ? <div className='w-100 text-center'>loading...</div>
+          : logs.length === 0 && <div className='w-100 text-center'>empty</div>}
+        {hasMore
+          ? <Button onClick={loadMore} size='sm' className='mt-3'>Load More</Button>
+          : <div className='w-100 text-center'>------ start of logs ------</div>}
       </div>
     </>
   )
 }
 
-function DeleteWalletLogsObstacle ({ wallet, onClose }) {
+function DeleteWalletLogsObstacle ({ wallet, setLogs, onClose }) {
+  const { deleteLogs } = useWalletLogger(wallet, setLogs)
   const toaster = useToast()
-  const { deleteLogs } = useWalletLogger(wallet)
 
   const prompt = `Do you really want to delete all ${wallet ? '' : 'wallet'} logs ${wallet ? 'of this wallet' : ''}?`
   return (
@@ -60,7 +68,7 @@ function DeleteWalletLogsObstacle ({ wallet, onClose }) {
           onClick={
             async () => {
               try {
-                await deleteLogs()
+                await deleteLogs(wallet)
                 onClose()
                 toaster.success('deleted wallet logs')
               } catch (err) {
@@ -76,72 +84,31 @@ function DeleteWalletLogsObstacle ({ wallet, onClose }) {
   )
 }
 
-const WalletLoggerContext = createContext()
-const WalletLogsContext = createContext()
+const INDICES = [
+  { name: 'ts', keyPath: 'ts' },
+  { name: 'wallet_ts', keyPath: ['wallet', 'ts'] }
+]
 
-const initIndexedDB = async (dbName, storeName) => {
-  return new Promise((resolve, reject) => {
-    if (!window.indexedDB) {
-      return reject(new Error('IndexedDB not supported'))
-    }
-
-    // https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB
-    const request = window.indexedDB.open(dbName, 1)
-
-    let db
-    request.onupgradeneeded = () => {
-      // this only runs if version was changed during open
-      db = request.result
-      if (!db.objectStoreNames.contains(storeName)) {
-        const objectStore = db.createObjectStore(storeName, { autoIncrement: true })
-        objectStore.createIndex('ts', 'ts')
-        objectStore.createIndex('wallet_ts', ['wallet', 'ts'])
-      }
-    }
-
-    request.onsuccess = () => {
-      // this gets called after onupgradeneeded finished
-      db = request.result
-      resolve(db)
-    }
-
-    request.onerror = () => {
-      reject(new Error('failed to open IndexedDB'))
-    }
-  })
+function useWalletLogDB () {
+  const { me } = useMe()
+  const dbName = `app:storage${me ? `:${me.id}` : ''}`
+  const idbStoreName = 'wallet_logs'
+  const { add, getPage, clear, error: idbError } = useIndexedDB(dbName, idbStoreName, 1, INDICES)
+  return { add, getPage, clear, error: idbError }
 }
 
-export const WalletLoggerProvider = ({ children }) => {
-  const { me } = useMe()
-  const [logs, setLogs] = useState([])
-  let dbName = 'app:storage'
-  if (me) {
-    dbName = `${dbName}:${me.id}`
-  }
-  const idbStoreName = 'wallet_logs'
-  const idb = useRef()
-  const logQueue = useRef([])
+export function useWalletLogger (wallet, setLogs) {
+  const { add, clear } = useWalletLogDB()
 
-  useQuery(WALLET_LOGS, {
-    fetchPolicy: 'network-only',
-    // required to trigger onCompleted on refetches
-    notifyOnNetworkStatusChange: true,
-    onCompleted: ({ walletLogs }) => {
-      setLogs((prevLogs) => {
-        const existingIds = prevLogs.map(({ id }) => id)
-        const logs = walletLogs
-          .filter(({ id }) => !existingIds.includes(id))
-          .map(({ createdAt, wallet: walletType, ...log }) => {
-            return {
-              ts: +new Date(createdAt),
-              wallet: tag(getWalletByType(walletType)),
-              ...log
-            }
-          })
-        return [...prevLogs, ...logs].sort((a, b) => b.ts - a.ts)
-      })
+  const appendLog = useCallback(async (wallet, level, message) => {
+    const log = { wallet: tag(wallet), level, message, ts: +new Date() }
+    try {
+      await add(log)
+      setLogs?.(prevLogs => [log, ...prevLogs])
+    } catch (error) {
+      console.error('Failed to append log:', error)
     }
-  })
+  }, [add])
 
   const [deleteServerWalletLogs] = useMutation(
     gql`
@@ -151,67 +118,10 @@ export const WalletLoggerProvider = ({ children }) => {
     `,
     {
       onCompleted: (_, { variables: { wallet: walletType } }) => {
-        setLogs((logs) => {
-          return logs.filter(l => walletType ? l.wallet !== getWalletByType(walletType).name : false)
-        })
+        setLogs?.(logs => logs.filter(l => walletType ? l.wallet !== getWalletByType(walletType).name : false))
       }
     }
   )
-
-  const saveLog = useCallback((log) => {
-    if (!idb.current) {
-      // IDB may not be ready yet
-      return logQueue.current.push(log)
-    }
-    try {
-      const tx = idb.current.transaction(idbStoreName, 'readwrite')
-      const request = tx.objectStore(idbStoreName).add(log)
-      request.onerror = () => console.error('failed to save log:', log)
-    } catch (e) {
-      console.error('failed to save log:', log, e)
-    }
-  }, [])
-
-  useEffect(() => {
-    initIndexedDB(dbName, idbStoreName)
-      .then(db => {
-        idb.current = db
-
-        // load all logs from IDB
-        const tx = idb.current.transaction(idbStoreName, 'readonly')
-        const store = tx.objectStore(idbStoreName)
-        const index = store.index('ts')
-        const request = index.getAll()
-        request.onsuccess = () => {
-          let logs = request.result
-          setLogs((prevLogs) => {
-            if (process.env.NODE_ENV !== 'production') {
-              // in dev mode, useEffect runs twice, so we filter out duplicates here
-              const existingIds = prevLogs.map(({ id }) => id)
-              logs = logs.filter(({ id }) => !existingIds.includes(id))
-            }
-            // sort oldest first to keep same order as logs are appended
-            return [...prevLogs, ...logs].sort((a, b) => b.ts - a.ts)
-          })
-        }
-
-        // flush queued logs to IDB
-        logQueue.current.forEach(q => {
-          const isLog = !!q.wallet
-          if (isLog) saveLog(q)
-        })
-
-        logQueue.current = []
-      })
-      .catch(console.error)
-    return () => idb.current?.close()
-  }, [])
-
-  const appendLog = useCallback((wallet, level, message) => {
-    const log = { wallet: tag(wallet), level, message, ts: +new Date() }
-    saveLog(log)
-    setLogs((prevLogs) => [log, ...prevLogs])
-  }, [saveLog])
 
   const deleteLogs = useCallback(async (wallet, options) => {
     if ((!wallet || wallet.walletType) && !options?.clientOnly) {
@@ -219,37 +129,14 @@ export const WalletLoggerProvider = ({ children }) => {
     }
     if (!wallet || wallet.sendPayment) {
       try {
-        const tx = idb.current.transaction(idbStoreName, 'readwrite')
-        const objectStore = tx.objectStore(idbStoreName)
-        const idx = objectStore.index('wallet_ts')
-        const request = wallet ? idx.openCursor(window.IDBKeyRange.bound([tag(wallet), -Infinity], [tag(wallet), Infinity])) : idx.openCursor()
-        request.onsuccess = function (event) {
-          const cursor = event.target.result
-          if (cursor) {
-            cursor.delete()
-            cursor.continue()
-          } else {
-          // finished
-            setLogs((logs) => logs.filter(l => wallet ? l.wallet !== tag(wallet) : false))
-          }
-        }
+        const walletTag = wallet ? tag(wallet) : null
+        await clear('wallet_ts', walletTag ? window.IDBKeyRange.bound([walletTag, 0], [walletTag, Infinity]) : null)
+        setLogs?.(logs => logs.filter(l => wallet ? l.wallet !== tag(wallet) : false))
       } catch (e) {
         console.error('failed to delete logs', e)
       }
     }
-  }, [me, setLogs])
-
-  return (
-    <WalletLogsContext.Provider value={logs}>
-      <WalletLoggerContext.Provider value={{ appendLog, deleteLogs }}>
-        {children}
-      </WalletLoggerContext.Provider>
-    </WalletLogsContext.Provider>
-  )
-}
-
-export function useWalletLogger (wallet) {
-  const { appendLog, deleteLogs: innerDeleteLogs } = useContext(WalletLoggerContext)
+  }, [clear, deleteServerWalletLogs, setLogs])
 
   const log = useCallback(level => message => {
     if (!wallet) {
@@ -257,9 +144,6 @@ export function useWalletLogger (wallet) {
       return
     }
 
-    // TODO:
-    //   also send this to us if diagnostics was enabled,
-    //   very similar to how the service worker logger works.
     appendLog(wallet, level, message)
     console[level !== 'error' ? 'info' : 'error'](`[${tag(wallet)}]`, message)
   }, [appendLog, wallet])
@@ -270,10 +154,6 @@ export function useWalletLogger (wallet) {
     error: (...message) => log('error')(message.join(' '))
   }), [log, wallet?.name])
 
-  const deleteLogs = useCallback((options) => {
-    return innerDeleteLogs(wallet, options)
-  }, [innerDeleteLogs, wallet])
-
   return { logger, deleteLogs }
 }
 
@@ -281,7 +161,79 @@ function tag (wallet) {
   return wallet?.shortName || wallet?.name
 }
 
-export function useWalletLogs (wallet) {
-  const logs = useContext(WalletLogsContext)
-  return logs.filter(l => !wallet || l.wallet === tag(wallet))
+export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
+  const [logs, setLogs] = useState([])
+  const [page, setPage] = useState(initialPage)
+  const [hasMore, setHasMore] = useState(true)
+  const [total, setTotal] = useState(0)
+  const [cursor, setCursor] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const { getPage, error: idbError } = useWalletLogDB()
+  const [getWalletLogs] = useLazyQuery(WALLET_LOGS, SSR ? {} : { fetchPolicy: 'cache-and-network' })
+
+  const loadLogsPage = useCallback(async (page, pageSize, wallet) => {
+    try {
+      let result = { data: [], hasMore: false }
+      const indexName = wallet ? 'wallet_ts' : 'ts'
+      const query = wallet ? window.IDBKeyRange.bound([tag(wallet), -Infinity], [tag(wallet), Infinity]) : null
+      result = await getPage(page, pageSize, indexName, query, 'prev')
+      // no walletType means we're using the local IDB
+      if (wallet && !wallet.walletType) {
+        return result
+      }
+
+      const { data } = await getWalletLogs({
+        variables: {
+          type: wallet?.walletType,
+          // if it client logs has more, page based on it's range
+          from: result?.data[result.data.length - 1]?.ts && result.hasMore ? String(result.data[result.data.length - 1].ts) : null,
+          // if we have a cursor (this isn't the first page), page based on it's range
+          to: result?.data[0]?.ts && cursor ? String(result.data[0].ts) : null,
+          cursor
+        }
+      })
+
+      const newLogs = data.walletLogs.entries.map(({ createdAt, wallet: walletType, ...log }) => ({
+        ts: +new Date(createdAt),
+        wallet: tag(getWalletByType(walletType)),
+        ...log
+      }))
+      const combinedLogs = Array.from(new Set([...result.data, ...newLogs].map(JSON.stringify))).map(JSON.parse).sort((a, b) => b.ts - a.ts)
+
+      setCursor(data.walletLogs.cursor)
+      return { ...result, data: combinedLogs, hasMore: result.hasMore || !!data.walletLogs.cursor }
+    } catch (error) {
+      console.error('Error loading logs from IndexedDB:', error)
+      return { data: [], total: 0, hasMore: false }
+    }
+  }, [getPage, setCursor, cursor])
+
+  if (idbError) {
+    console.error('IndexedDB error:', idbError)
+  }
+
+  const loadMore = useCallback(async () => {
+    if (hasMore) {
+      setLoading(true)
+      const result = await loadLogsPage(page, logsPerPage, wallet)
+      setLogs(prevLogs => [...prevLogs, ...result.data])
+      setHasMore(result.hasMore)
+      setTotal(result.total)
+      setPage(prevPage => prevPage + 1)
+      setLoading(false)
+    }
+  }, [loadLogsPage, page, logsPerPage, wallet, hasMore])
+
+  const loadLogs = useCallback(async () => {
+    setLoading(true)
+    const result = await loadLogsPage(1, logsPerPage, wallet)
+    setLogs(result.data)
+    setHasMore(result.hasMore)
+    setTotal(result.total)
+    setPage(1)
+    setLoading(false)
+  }, [wallet, loadLogsPage])
+
+  return { logs, hasMore, total, loadMore, loadLogs, setLogs, loading }
 }

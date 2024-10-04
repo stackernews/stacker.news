@@ -57,10 +57,6 @@ This acts as an ID for this wallet on the client. It therefore must be unique ac
 
 Since `name` will also be used in [wallet logs](https://stacker.news/wallet/logs), you can specify a shorter name here which will be used in logs instead.
 
-- `perDevice?: boolean`
-
-This is an optional value. Set this to true if your wallet needs to be configured per device and should thus not be synced across devices.
-
 - `fields: WalletField[]`
 
 Wallet fields define what this wallet requires for configuration and thus are used to construct the forms like the one you can see at [/settings/wallets/lnbits](https://stacker.news/settings/walletslnbits).

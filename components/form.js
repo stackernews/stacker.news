@@ -33,12 +33,6 @@ import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
 import { useMe } from './me'
 import classNames from 'classnames'
-import Clipboard from '@/svgs/clipboard-line.svg'
-import QrIcon from '@/svgs/qr-code-line.svg'
-import QrScanIcon from '@/svgs/qr-scan-line.svg'
-import { useShowModal } from './modal'
-import QRCode from 'qrcode.react'
-import { QrScanner } from '@yudiel/react-qr-scanner'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -75,41 +69,31 @@ export function SubmitButton ({
   )
 }
 
-function CopyButton ({ value, icon, ...props }) {
+export function CopyInput (props) {
   const toaster = useToast()
   const [copied, setCopied] = useState(false)
 
-  const handleClick = useCallback(async () => {
+  const handleClick = async () => {
     try {
-      await copy(value)
+      await copy(props.placeholder)
       toaster.success('copied')
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch (err) {
       toaster.danger('failed to copy')
     }
-  }, [toaster, value])
-
-  if (icon) {
-    return (
-      <InputGroup.Text style={{ cursor: 'pointer' }} onClick={handleClick}>
-        <Clipboard height={20} width={20} />
-      </InputGroup.Text>
-    )
   }
 
   return (
-    <Button className={styles.appendButton} {...props} onClick={handleClick}>
-      {copied ? <Thumb width={18} height={18} /> : 'copy'}
-    </Button>
-  )
-}
-
-export function CopyInput (props) {
-  return (
     <Input
+      onClick={handleClick}
       append={
-        <CopyButton value={props.placeholder} size={props.size} />
+        <Button
+          className={styles.appendButton}
+          size={props.size}
+          onClick={handleClick}
+        >{copied ? <Thumb width={18} height={18} /> : 'copy'}
+        </Button>
       }
       {...props}
     />
@@ -727,11 +711,10 @@ export function InputUserSuggest ({
   )
 }
 
-export function Input ({ label, groupClassName, under, ...props }) {
+export function Input ({ label, groupClassName, ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
       <InputInner {...props} />
-      {under}
     </FormGroup>
   )
 }
@@ -1087,121 +1070,24 @@ function PasswordHider ({ onClick, showPass }) {
     >
       {!showPass
         ? <Eye
-            fill='var(--bs-body-color)' height={16} width={16}
+            fill='var(--bs-body-color)' height={20} width={20}
           />
         : <EyeClose
-            fill='var(--bs-body-color)' height={16} width={16}
+            fill='var(--bs-body-color)' height={20} width={20}
           />}
     </InputGroup.Text>
   )
 }
 
-function QrPassword ({ value }) {
-  const showModal = useShowModal()
-  const toaster = useToast()
-
-  const showQr = useCallback(() => {
-    showModal(close => (
-      <div className={styles.qr}>
-        <p>You can import this passphrase into another device by scanning this QR code</p>
-        <QRCode value={value} renderAs='svg' />
-      </div>
-    ))
-  }, [toaster, value, showModal])
-
-  return (
-    <>
-      <InputGroup.Text
-        style={{ cursor: 'pointer' }}
-        onClick={showQr}
-      >
-        <QrIcon height={16} width={16} />
-      </InputGroup.Text>
-    </>
-  )
-}
-
-function PasswordScanner ({ onDecode }) {
-  const showModal = useShowModal()
-  const toaster = useToast()
-  const ref = useRef(false)
-
-  return (
-    <InputGroup.Text
-      style={{ cursor: 'pointer' }}
-      onClick={() => {
-        showModal(onClose => {
-          return (
-            <QrScanner
-              onDecode={(decoded) => {
-                onDecode(decoded)
-
-                // avoid accidentally calling onClose multiple times
-                if (ref?.current) return
-                ref.current = true
-
-                onClose({ back: 1 })
-              }}
-              onError={(error) => {
-                if (error instanceof DOMException) return
-                toaster.danger('qr scan error:', error.message || error.toString?.())
-                onClose({ back: 1 })
-              }}
-            />
-          )
-        })
-      }}
-    >
-      <QrScanIcon
-        height={20} width={20} fill='var(--bs-body-color)'
-      />
-    </InputGroup.Text>
-  )
-}
-
-export function PasswordInput ({ newPass, qr, copy, readOnly, append, ...props }) {
+export function PasswordInput ({ newPass, ...props }) {
   const [showPass, setShowPass] = useState(false)
-  const [field] = useField(props)
-
-  const Append = useMemo(() => {
-    return (
-      <>
-        <PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />
-        {copy && (
-          <CopyButton icon value={field?.value} />
-        )}
-        {qr && (readOnly
-          ? <QrPassword value={field?.value} />
-          : <PasswordScanner
-              onDecode={decoded => {
-                // Formik helpers don't seem to work in another modal.
-                // I assume it's because we unmount the Formik component
-                // when replace it with another modal.
-                window.localStorage.setItem('qr:passphrase', decoded)
-              }}
-            />)}
-        {append}
-      </>
-    )
-  }, [showPass, copy, field?.value, qr, readOnly, append])
-
-  const maskedValue = !showPass && props.as === 'textarea' ? field?.value?.replace(/./g, '•') : field?.value
 
   return (
     <ClientInput
       {...props}
-      className={styles.passwordInput}
       type={showPass ? 'text' : 'password'}
       autoComplete={newPass ? 'new-password' : 'current-password'}
-      readOnly={readOnly}
-      append={props.as === 'textarea' ? undefined : Append}
-      value={maskedValue}
-      under={props.as === 'textarea'
-        ? (
-          <div className='mt-2 d-flex justify-content-end' style={{ gap: '8px' }}>
-            {Append}
-          </div>)
-        : undefined}
+      append={<PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />}
     />
   )
 }

@@ -45,20 +45,13 @@ export default function useModal () {
   }, [getCurrentContent, forceUpdate])
 
   // this is called on every navigation due to below useEffect
-  const onClose = useCallback((options) => {
-    if (options?.back) {
-      for (let i = 0; i < options.back; i++) {
-        onBack()
-      }
-      return
-    }
-
+  const onClose = useCallback(() => {
     while (modalStack.current.length) {
       getCurrentContent()?.options?.onClose?.()
       modalStack.current.pop()
     }
     forceUpdate()
-  }, [onBack])
+  }, [])
 
   const router = useRouter()
   useEffect(() => {
@@ -97,7 +90,7 @@ export default function useModal () {
                 {overflow}
               </ActionDropdown>
             </div>}
-          {modalStack.current.length > 1 ? <div className='modal-btn modal-back' onClick={onBack}><BackArrow width={18} height={18} /></div> : null}
+          {modalStack.current.length > 1 ? <div className='modal-btn modal-back' onClick={onBack}><BackArrow width={18} height={18} className='fill-white' /></div> : null}
           <div className={'modal-btn modal-close ' + className} onClick={onClose}>X</div>
         </div>
         <Modal.Body className={className}>

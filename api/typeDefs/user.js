@@ -182,7 +182,6 @@ export default gql`
     withdrawMaxFeeDefault: Int!
     autoWithdrawThreshold: Int
     autoWithdrawMaxFeePercent: Float
-    vaultKeyHash: String
   }
 
   type UserOptional {

@@ -12,10 +12,10 @@ import useIndexedDB from './use-indexeddb'
 import { SSR } from '@/lib/constants'
 
 export function WalletLogs ({ wallet, embedded }) {
-  const { logs, setLogs, hasMore, loadMore, loadLogs } = useWalletLogs(wallet)
+  const { logs, setLogs, hasMore, loadMore, loadLogs, loading } = useWalletLogs(wallet)
   useEffect(() => {
     loadLogs()
-  }, [loadLogs])
+  }, [wallet])
 
   const showModal = useShowModal()
 
@@ -31,7 +31,6 @@ export function WalletLogs ({ wallet, embedded }) {
         </span>
       </div>
       <div className={`${styles.logTable} ${embedded ? styles.embedded : ''}`}>
-        {logs.length === 0 && <div className='w-100 text-center'>empty</div>}
         <table>
           <tbody>
             {logs.map((log, i) => (
@@ -43,8 +42,11 @@ export function WalletLogs ({ wallet, embedded }) {
             ))}
           </tbody>
         </table>
+        {loading
+          ? <div className='w-100 text-center'>loading...</div>
+          : logs.length === 0 && <div className='w-100 text-center'>empty</div>}
         {hasMore
-          ? <Button onClick={loadMore} className='mt-3'>Load More</Button>
+          ? <Button onClick={loadMore} size='sm' className='mt-3'>Load More</Button>
           : <div className='w-100 text-center'>------ start of logs ------</div>}
       </div>
     </>
@@ -165,28 +167,28 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
   const [hasMore, setHasMore] = useState(true)
   const [total, setTotal] = useState(0)
   const [cursor, setCursor] = useState(null)
-  const [idbHasMore, setIDBHasMore] = useState(true)
+  const [loading, setLoading] = useState(true)
 
   const { getPage, error: idbError } = useWalletLogDB()
-  const [getWalletLogs] = useLazyQuery(WALLET_LOGS, SSR ? {} : { fetchPolicy: 'network-only' })
+  const [getWalletLogs] = useLazyQuery(WALLET_LOGS, SSR ? {} : { fetchPolicy: 'cache-and-network' })
 
   const loadLogsPage = useCallback(async (page, pageSize, wallet) => {
     try {
       let result = { data: [], hasMore: false }
-      if (idbHasMore) {
-        const indexName = wallet ? 'wallet_ts' : 'ts'
-        const query = wallet ? window.IDBKeyRange.bound([tag(wallet), -Infinity], [tag(wallet), Infinity]) : null
-        result = await getPage(page, pageSize, indexName, query, 'prev')
-        // no walletType means we're using the local IDB
-        if (wallet && !wallet.walletType) {
-          return result
-        }
+      const indexName = wallet ? 'wallet_ts' : 'ts'
+      const query = wallet ? window.IDBKeyRange.bound([tag(wallet), -Infinity], [tag(wallet), Infinity]) : null
+      result = await getPage(page, pageSize, indexName, query, 'prev')
+      // no walletType means we're using the local IDB
+      if (wallet && !wallet.walletType) {
+        return result
       }
 
       const { data } = await getWalletLogs({
         variables: {
           type: wallet?.walletType,
-          from: result?.data[result.data.length - 1]?.ts ? String(result.data[result.data.length - 1].ts) : null,
+          // if it client logs has more, page based on it's range
+          from: result?.data[result.data.length - 1]?.ts && result.hasMore ? String(result.data[result.data.length - 1].ts) : null,
+          // if we have a cursor (this isn't the first page), page based on it's range
           to: result?.data[0]?.ts && cursor ? String(result.data[0].ts) : null,
           cursor
         }
@@ -200,13 +202,12 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
       const combinedLogs = Array.from(new Set([...result.data, ...newLogs].map(JSON.stringify))).map(JSON.parse).sort((a, b) => b.ts - a.ts)
 
       setCursor(data.walletLogs.cursor)
-      setIDBHasMore(!!result.hasMore)
       return { ...result, data: combinedLogs, hasMore: result.hasMore || !!data.walletLogs.cursor }
     } catch (error) {
       console.error('Error loading logs from IndexedDB:', error)
       return { data: [], total: 0, hasMore: false }
     }
-  }, [getPage, setCursor, cursor, idbHasMore])
+  }, [getPage, setCursor, cursor])
 
   if (idbError) {
     console.error('IndexedDB error:', idbError)
@@ -214,21 +215,25 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
 
   const loadMore = useCallback(async () => {
     if (hasMore) {
+      setLoading(true)
       const result = await loadLogsPage(page, logsPerPage, wallet)
       setLogs(prevLogs => [...prevLogs, ...result.data])
       setHasMore(result.hasMore)
       setTotal(result.total)
       setPage(prevPage => prevPage + 1)
+      setLoading(false)
     }
   }, [loadLogsPage, page, logsPerPage, wallet, hasMore])
 
   const loadLogs = useCallback(async () => {
+    setLoading(true)
     const result = await loadLogsPage(1, logsPerPage, wallet)
     setLogs(result.data)
     setHasMore(result.hasMore)
     setTotal(result.total)
     setPage(1)
-  }, [wallet])
+    setLoading(false)
+  }, [wallet, loadLogsPage])
 
-  return { logs, hasMore, total, loadMore, loadLogs, setLogs }
+  return { logs, hasMore, total, loadMore, loadLogs, setLogs, loading }
 }

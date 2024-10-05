@@ -1,6 +1,8 @@
 import { InvoiceCanceledError, InvoiceExpiredError } from '@/components/payment'
 import { bolt11Tags } from '@/lib/bolt11'
 import { Mutex } from 'async-mutex'
+import { computePerms } from 'wallets/lnc'
+
 export * from 'wallets/lnc'
 
 async function disconnect (lnc, logger) {
@@ -22,9 +24,8 @@ async function disconnect (lnc, logger) {
           }
           clearInterval(interval)
           resolve()
-        })
-      }, 50)
-      logger.info('disconnected')
+        }, 50)
+      })
     } catch (err) {
       logger.error('failed to disconnect from lnc', err)
     }
@@ -41,7 +42,7 @@ export async function testSendPayment (credentials, { logger }) {
     logger.ok('connected')
 
     logger.info('validating permissions ...')
-    await validateNarrowPerms(lnc)
+    checkPerms(lnc, computePerms({ canSend: true }))
     logger.ok('permissions ok')
 
     return lnc.credentials.credentials
@@ -84,36 +85,24 @@ export async function sendPayment (bolt11, credentials, { logger }) {
 }
 
 async function getLNC (credentials = {}) {
-  const serverHost = 'mailbox.terminal.lightning.today:443'
-  // XXX we MUST reuse the same instance of LNC because it references a global Go object
-  // that holds closures to the first LNC instance it's created with
-  if (window.lnc) {
-    window.lnc.credentials.credentials = {
-      ...window.lnc.credentials.credentials,
-      ...credentials,
-      serverHost
-    }
-    return window.lnc
-  }
   const { default: { default: LNC } } = await import('@lightninglabs/lnc-web')
-  window.lnc = new LNC({
-    credentialStore: new LncCredentialStore({
-      ...credentials,
-      serverHost
-    })
+  return new LNC({
+    credentialStore: new LncCredentialStore({ ...credentials, serverHost: 'mailbox.terminal.lightning.today:443' })
   })
-  return window.lnc
 }
 
-function validateNarrowPerms (lnc) {
-  if (!lnc.hasPerms('lnrpc.Lightning.SendPaymentSync')) {
-    throw new Error('missing permission: lnrpc.Lightning.SendPaymentSync')
+function checkPerms (lnc, { expectedPerms, unexpectedPerms }) {
+  for (const perm of expectedPerms) {
+    if (!lnc.hasPerms(perm)) {
+      throw new Error('missing permission: ' + perm)
+    }
   }
-  if (lnc.hasPerms('lnrpc.Lightning.SendCoins')) {
-    throw new Error('too broad permission: lnrpc.Wallet.SendCoins')
+
+  for (const perm of unexpectedPerms) {
+    if (lnc.hasPerms(perm)) {
+      throw new Error('unexpected permission: ' + perm)
+    }
   }
-  // TODO: need to check for more narrow permissions
-  // blocked by https://github.com/lightninglabs/lnc-web/issues/112
 }
 
 // default credential store can go fuck itself

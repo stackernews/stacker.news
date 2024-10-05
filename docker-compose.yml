@@ -518,8 +518,7 @@ services:
       CONNECT: "localhost:8025"
     cpu_shares: "${CPU_SHARES_LOW}"
   nwc_send:
-    build:
-      context: ./docker/nwc
+    image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master
     container_name: nwc_send
     profiles:
       - wallets
@@ -529,17 +528,18 @@ services:
         condition: service_healthy
         restart: true
     volumes:
-      - ./docker/lnd/stacker:/root/.lnd
+      - ./docker/lnd/stacker:/app/.lnd
+      - nwc_send:/app
     environment:
       - RUST_LOG=info
     entrypoint:
-      - 'nostr-wallet-connect-lnd'
+      - './nostr-wallet-connect-lnd'
       - '--relay'
       - 'wss://relay.primal.net'
-      - '--admin-macaroon-file'
-      - '/root/.lnd/regtest/admin.macaroon'
+      - '--macaroon-file'
+      - '/app/.lnd/regtest/admin.macaroon'
       - '--cert-file'
-      - '/root/.lnd/tls.cert'
+      - '/app/.lnd/tls.cert'
       - '--lnd-host'
       - 'stacker_lnd'
       - '--lnd-port'
@@ -549,11 +549,10 @@ services:
       - '--daily-limit'
       - '0'
       - '--keys-file'
-      - 'admin-keys.json'
+      - 'keys-file.json'
     cpu_shares: "${CPU_SHARES_LOW}"
   nwc_recv:
-    build:
-      context: ./docker/nwc
+    image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master
     container_name: nwc_recv
     profiles:
       - wallets
@@ -563,17 +562,18 @@ services:
         condition: service_healthy
         restart: true
     volumes:
-      - ./docker/lnd/stacker:/root/.lnd
+      - ./docker/lnd/stacker:/app/.lnd
+      - nwc_recv:/app
     environment:
       - RUST_LOG=info
     entrypoint:
-      - 'nostr-wallet-connect-lnd'
+      - './nostr-wallet-connect-lnd'
       - '--relay'
       - 'wss://relay.primal.net'
       - '--invoice-macaroon-file'
-      - '/root/.lnd/regtest/invoice.macaroon'
+      - '/app/.lnd/regtest/invoice.macaroon'
       - '--cert-file'
-      - '/root/.lnd/tls.cert'
+      - '/app/.lnd/tls.cert'
       - '--lnd-host'
       - 'stacker_lnd'
       - '--lnd-port'
@@ -583,7 +583,7 @@ services:
       - '--daily-limit'
       - '0'
       - '--keys-file'
-      - 'invoice-keys.json'
+      - 'keys-file.json'
     cpu_shares: "${CPU_SHARES_LOW}"
   lnbits:
     image: lnbits/lnbits:0.12.5
@@ -614,3 +614,5 @@ volumes:
   stacker_lnd:
   stacker_cln:
   s3:
+  nwc_send:
+  nwc_recv:

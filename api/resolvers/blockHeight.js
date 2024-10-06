@@ -13,7 +13,8 @@ const getBlockHeight = cachedFetcher(async ({ lnd }) => {
 }, {
   maxSize: 1,
   cacheExpiry: 60 * 1000, // 1 minute
-  forceRefreshThreshold: 0
+  forceRefreshThreshold: 0,
+  keyGenerator: () => 'getBlockHeight'
 })
 
 export default {

@@ -13,7 +13,8 @@ const getChainFeeRate = cachedFetcher(async () => {
 }, {
   maxSize: 1,
   cacheExpiry: 60 * 1000, // 1 minute
-  forceRefreshThreshold: 0 // never force refresh
+  forceRefreshThreshold: 0, // never force refresh
+  keyGenerator: () => 'getChainFeeRate'
 })
 
 export default {

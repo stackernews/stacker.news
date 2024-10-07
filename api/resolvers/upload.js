@@ -49,10 +49,7 @@ export default {
       }
 
       const upload = await models.upload.create({ data: { ...fileParams } })
-
-      const extension = type.split('/')[1]
-      const key = `${upload.id}.${extension}`
-      return createPresignedPost({ key, type, size })
+      return createPresignedPost({ key: String(upload.id), type, size })
     }
   }
 }

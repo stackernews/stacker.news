@@ -47,6 +47,7 @@ class MyDocument extends Document {
             }}
           />
           <meta name='apple-mobile-web-app-capable' content='yes' />
+          <meta name='mobile-web-app-capable' content='yes' />
           <meta name='theme-color' content='#121214' />
           <link rel='apple-touch-icon' href='/icons/icon_x192.png' />
           <Script id='dark-mode-js' strategy='beforeInteractive'>

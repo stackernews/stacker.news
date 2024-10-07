@@ -15,7 +15,7 @@ export function WalletLogs ({ wallet, embedded }) {
   const { logs, setLogs, hasMore, loadMore, loadLogs, loading } = useWalletLogs(wallet)
   useEffect(() => {
     loadLogs()
-  }, [wallet])
+  }, [loadLogs])
 
   const showModal = useShowModal()
 
@@ -93,22 +93,26 @@ function useWalletLogDB () {
   const { me } = useMe()
   const dbName = `app:storage${me ? `:${me.id}` : ''}`
   const idbStoreName = 'wallet_logs'
-  const { add, getPage, clear, error: idbError } = useIndexedDB(dbName, idbStoreName, 1, INDICES)
-  return { add, getPage, clear, error: idbError }
+  const { add, getPage, clear, error, notSupported } = useIndexedDB(dbName, idbStoreName, 1, INDICES)
+  return { add, getPage, clear, error, notSupported }
 }
 
 export function useWalletLogger (wallet, setLogs) {
-  const { add, clear } = useWalletLogDB()
+  const { add, clear, notSupported } = useWalletLogDB()
 
   const appendLog = useCallback(async (wallet, level, message) => {
     const log = { wallet: tag(wallet), level, message, ts: +new Date() }
     try {
-      await add(log)
+      if (notSupported) {
+        console.log('cannot persist wallet log: indexeddb not supported')
+      } else {
+        await add(log)
+      }
       setLogs?.(prevLogs => [log, ...prevLogs])
     } catch (error) {
-      console.error('Failed to append log:', error)
+      console.error('Failed to append wallet log:', error)
     }
-  }, [add])
+  }, [add, notSupported])
 
   const [deleteServerWalletLogs] = useMutation(
     gql`
@@ -130,13 +134,17 @@ export function useWalletLogger (wallet, setLogs) {
     if (!wallet || wallet.sendPayment) {
       try {
         const walletTag = wallet ? tag(wallet) : null
-        await clear('wallet_ts', walletTag ? window.IDBKeyRange.bound([walletTag, 0], [walletTag, Infinity]) : null)
+        if (notSupported) {
+          console.log('cannot clear wallet logs: indexeddb not supported')
+        } else {
+          await clear('wallet_ts', walletTag ? window.IDBKeyRange.bound([walletTag, 0], [walletTag, Infinity]) : null)
+        }
         setLogs?.(logs => logs.filter(l => wallet ? l.wallet !== tag(wallet) : false))
       } catch (e) {
         console.error('failed to delete logs', e)
       }
     }
-  }, [clear, deleteServerWalletLogs, setLogs])
+  }, [clear, deleteServerWalletLogs, setLogs, notSupported])
 
   const log = useCallback(level => message => {
     if (!wallet) {
@@ -169,20 +177,24 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
   const [cursor, setCursor] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const { getPage, error: idbError } = useWalletLogDB()
+  const { getPage, error, notSupported } = useWalletLogDB()
   const [getWalletLogs] = useLazyQuery(WALLET_LOGS, SSR ? {} : { fetchPolicy: 'cache-and-network' })
 
   const loadLogsPage = useCallback(async (page, pageSize, wallet) => {
     try {
       let result = { data: [], hasMore: false }
-      const indexName = wallet ? 'wallet_ts' : 'ts'
-      const query = wallet ? window.IDBKeyRange.bound([tag(wallet), -Infinity], [tag(wallet), Infinity]) : null
-      result = await getPage(page, pageSize, indexName, query, 'prev')
-      // no walletType means we're using the local IDB
-      if (wallet && !wallet.walletType) {
-        return result
-      }
+      if (notSupported) {
+        console.log('cannot get client wallet logs: indexeddb not supported')
+      } else {
+        const indexName = wallet ? 'wallet_ts' : 'ts'
+        const query = wallet ? window.IDBKeyRange.bound([tag(wallet), -Infinity], [tag(wallet), Infinity]) : null
 
+        result = await getPage(page, pageSize, indexName, query, 'prev')
+        // no walletType means we're using the local IDB
+        if (wallet && !wallet.walletType) {
+          return result
+        }
+      }
       const { data } = await getWalletLogs({
         variables: {
           type: wallet?.walletType,
@@ -207,10 +219,10 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
       console.error('Error loading logs from IndexedDB:', error)
       return { data: [], total: 0, hasMore: false }
     }
-  }, [getPage, setCursor, cursor])
+  }, [getPage, setCursor, cursor, notSupported])
 
-  if (idbError) {
-    console.error('IndexedDB error:', idbError)
+  if (error) {
+    console.error('IndexedDB error:', error)
   }
 
   const loadMore = useCallback(async () => {

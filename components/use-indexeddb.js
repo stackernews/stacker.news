@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 function useIndexedDB (dbName, storeName, version = 1, indices = []) {
   const [db, setDb] = useState(null)
   const [error, setError] = useState(null)
+  const [notSupported, setNotSupported] = useState(false)
   const operationQueue = useRef([])
 
   const handleError = useCallback((error) => {
@@ -27,36 +28,47 @@ function useIndexedDB (dbName, storeName, version = 1, indices = []) {
 
   useEffect(() => {
     let isMounted = true
-    const request = window.indexedDB.open(dbName, version)
+    let request
+    try {
+      if (!window.indexedDB) {
+        console.log('IndexedDB is not supported')
+        setNotSupported(true)
+        return
+      }
 
-    request.onerror = (event) => {
-      handleError(new Error('Error opening database'))
-    }
+      request = window.indexedDB.open(dbName, version)
 
-    request.onsuccess = (event) => {
-      if (isMounted) {
-        const database = event.target.result
-        database.onversionchange = () => {
-          database.close()
-          setDb(null)
-          handleError(new Error('Database is outdated, please reload the page'))
+      request.onerror = (event) => {
+        handleError(new Error('Error opening database'))
+      }
+
+      request.onsuccess = (event) => {
+        if (isMounted) {
+          const database = event.target.result
+          database.onversionchange = () => {
+            database.close()
+            setDb(null)
+            handleError(new Error('Database is outdated, please reload the page'))
+          }
+          setDb(database)
+          processQueue(database)
         }
-        setDb(database)
-        processQueue(database)
       }
-    }
 
-    request.onupgradeneeded = (event) => {
-      const database = event.target.result
-      try {
-        const store = database.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true })
+      request.onupgradeneeded = (event) => {
+        const database = event.target.result
+        try {
+          const store = database.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true })
 
-        indices.forEach(index => {
-          store.createIndex(index.name, index.keyPath, index.options)
-        })
-      } catch (error) {
-        handleError(new Error('Error upgrading database: ' + error.message))
+          indices.forEach(index => {
+            store.createIndex(index.name, index.keyPath, index.options)
+          })
+        } catch (error) {
+          handleError(new Error('Error upgrading database: ' + error.message))
+        }
       }
+    } catch (error) {
+      handleError(new Error('Error opening database: ' + error.message))
     }
 
     return () => {
@@ -68,6 +80,13 @@ function useIndexedDB (dbName, storeName, version = 1, indices = []) {
   }, [dbName, storeName, version, indices, handleError, processQueue])
 
   const queueOperation = useCallback((operation) => {
+    if (notSupported) {
+      return Promise.reject(new Error('IndexedDB is not supported'))
+    }
+    if (error) {
+      return Promise.reject(new Error('Database error: ' + error.message))
+    }
+
     return new Promise((resolve, reject) => {
       const wrappedOperation = (db) => {
         try {
@@ -81,7 +100,7 @@ function useIndexedDB (dbName, storeName, version = 1, indices = []) {
       operationQueue.current.push(wrappedOperation)
       processQueue(db)
     })
-  }, [processQueue, db])
+  }, [processQueue, db, notSupported, error])
 
   const add = useCallback((value) => {
     return queueOperation((db) => {
@@ -267,7 +286,7 @@ function useIndexedDB (dbName, storeName, version = 1, indices = []) {
     })
   }, [queueOperation, storeName])
 
-  return { add, get, getAll, update, remove, clear, getByIndex, getAllByIndex, getPage, error }
+  return { add, get, getAll, update, remove, clear, getByIndex, getAllByIndex, getPage, error, notSupported }
 }
 
 export default useIndexedDB

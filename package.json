@@ -13,9 +13,9 @@
     "worker:dev": "tsx --tsconfig jsconfig.json --trace-warnings --watch worker/index.js"
   },
   "dependencies": {
-    "@apollo/client": "^3.9.7",
-    "@apollo/server": "^4.9.4",
-    "@as-integrations/next": "^2.0.2",
+    "@apollo/client": "^3.11.8",
+    "@apollo/server": "^4.11.0",
+    "@as-integrations/next": "^3.1.0",
     "@auth/prisma-adapter": "^1.0.3",
     "@graphql-tools/schema": "^10.0.0",
     "@lightninglabs/lnc-web": "^0.3.2-alpha",
@@ -43,7 +43,7 @@
     "formik": "^2.4.5",
     "github-slugger": "^2.0.0",
     "google-protobuf": "^3.21.2",
-    "graphql": "^16.8.1",
+    "graphql": "^16.9.0",
     "graphql-scalar": "^0.1.0",
     "graphql-tag": "^2.12.6",
     "graphql-type-json": "^0.3.2",

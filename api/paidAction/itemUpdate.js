@@ -24,7 +24,7 @@ export async function getCost ({ id, boost = 0, uploadIds, bio }, { me, models }
 
 export async function perform (args, context) {
   const { id, boost = 0, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], ...data } = args
-  const { tx, me, models } = context
+  const { tx, me } = context
   const old = await tx.item.findUnique({
     where: { id: parseInt(id) },
     include: {
@@ -63,12 +63,8 @@ export async function perform (args, context) {
 
   // we put boost in the where clause because we don't want to update the boost
   // if it has changed concurrently
-  const item = await tx.item.update({
+  await tx.item.update({
     where: { id: parseInt(id), boost: old.boost },
-    include: {
-      mentions: true,
-      itemReferrers: { include: { refereeItem: true } }
-    },
     data: {
       ...data,
       boost: {
@@ -151,6 +147,21 @@ export async function perform (args, context) {
 
   await performBotBehavior(args, context)
 
+  // ltree is unsupported in Prisma, so we have to query it manually (FUCK!)
+  return (await tx.$queryRaw`
+    SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
+    FROM "Item" WHERE id = ${parseInt(id)}::INTEGER`
+  )[0]
+}
+
+export async function nonCriticalSideEffects ({ invoice, id }, { models }) {
+  const item = await models.item.findFirst({
+    where: invoice ? { invoiceId: invoice.id } : { id: parseInt(id) },
+    include: {
+      mentions: true,
+      itemReferrers: { include: { refereeItem: true } }
+    }
+  })
   // compare timestamps to only notify if mention or item referral was just created to avoid duplicates on edits
   for (const { userId, createdAt } of item.mentions) {
     if (item.updatedAt.getTime() !== createdAt.getTime()) continue
@@ -160,12 +171,6 @@ export async function perform (args, context) {
     if (item.updatedAt.getTime() !== createdAt.getTime()) continue
     notifyItemMention({ models, referrerItem: item, refereeItem }).catch(console.error)
   }
-
-  // ltree is unsupported in Prisma, so we have to query it manually (FUCK!)
-  return (await tx.$queryRaw`
-    SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
-    FROM "Item" WHERE id = ${parseInt(id)}::INTEGER`
-  )[0]
 }
 
 export async function describe ({ id, parentId }, context) {

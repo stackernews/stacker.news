@@ -56,7 +56,7 @@
     "mdast-util-gfm": "^3.0.0",
     "mdast-util-to-string": "^4.0.0",
     "micromark-extension-gfm": "^3.0.0",
-    "next": "^13.5.4",
+    "next": "^13.5.7",
     "next-auth": "^4.23.2",
     "next-plausible": "^3.11.1",
     "next-seo": "^6.1.0",

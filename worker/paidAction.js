@@ -134,7 +134,7 @@ async function performPessimisticAction ({ lndInvoice, dbInvoice, tx, models, ln
 }
 
 export async function paidActionPaid ({ data: { invoiceId, ...args }, models, lnd, boss }) {
-  return await transitionInvoice('paidActionPaid', {
+  const transitionedInvoice = await transitionInvoice('paidActionPaid', {
     invoiceId,
     fromState: ['HELD', 'PENDING', 'FORWARDED'],
     toState: 'PAID',
@@ -156,6 +156,14 @@ export async function paidActionPaid ({ data: { invoiceId, ...args }, models, ln
     },
     ...args
   }, { models, lnd, boss })
+
+  if (transitionedInvoice) {
+    // run non critical side effects in the background
+    // after the transaction has been committed
+    paidActions[transitionedInvoice.actionType]
+      .nonCriticalSideEffects?.({ invoice: transitionedInvoice }, { models, lnd })
+      .catch(console.error)
+  }
 }
 
 // this performs forward creating the outgoing payment

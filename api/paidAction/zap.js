@@ -64,7 +64,7 @@ export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
   return { id, sats: msatsToSats(cost), act: 'TIP', path }
 }
 
-export async function onPaid ({ invoice, actIds }, { models, tx }) {
+export async function onPaid ({ invoice, actIds }, { tx }) {
   let acts
   if (invoice) {
     await tx.itemAct.updateMany({
@@ -114,7 +114,7 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
 
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
-  const [item] = await tx.$queryRaw`
+  await tx.$queryRaw`
     WITH zapper AS (
       SELECT trust FROM users WHERE id = ${itemAct.userId}::INTEGER
     ), zap AS (
@@ -163,8 +163,14 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
       SET "commentMsats" = "Item"."commentMsats" + ${msats}::BIGINT
       FROM zapped
       WHERE "Item".path @> zapped.path AND "Item".id <> zapped.id`
+}
 
-  notifyZapped({ models, item }).catch(console.error)
+export async function nonCriticalSideEffects ({ invoice, actIds }, { models }) {
+  const itemAct = await models.itemAct.findFirst({
+    where: invoice ? { invoiceId: invoice.id } : { id: { in: actIds } },
+    include: { item: true }
+  })
+  notifyZapped({ models, item: itemAct.item }).catch(console.error)
 }
 
 export async function onFail ({ invoice }, { tx }) {

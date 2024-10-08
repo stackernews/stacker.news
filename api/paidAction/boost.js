@@ -38,7 +38,7 @@ export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
   return { id, sats: msatsToSats(cost), act: 'BOOST', path }
 }
 
-export async function onPaid ({ invoice, actId }, { models, tx }) {
+export async function onPaid ({ invoice, actId }, { tx }) {
   let itemAct
   if (invoice) {
     await tx.itemAct.updateMany({

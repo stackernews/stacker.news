@@ -165,11 +165,12 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
       WHERE "Item".path @> zapped.path AND "Item".id <> zapped.id`
 }
 
-export async function nonCriticalSideEffects ({ invoice, id }, { models }) {
-  const item = await models.item.findFirst({
-    where: invoice ? { invoiceId: invoice.id } : { id: parseInt(id) }
+export async function nonCriticalSideEffects ({ invoice, actIds }, { models }) {
+  const itemAct = await models.itemAct.findFirst({
+    where: invoice ? { invoiceId: invoice.id } : { id: { in: actIds } },
+    include: { item: true }
   })
-  notifyZapped({ models, item }).catch(console.error)
+  notifyZapped({ models, item: itemAct.item }).catch(console.error)
 }
 
 export async function onFail ({ invoice }, { tx }) {

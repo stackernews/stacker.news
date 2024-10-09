@@ -4,8 +4,9 @@ import Plug from '@/svgs/plug.svg'
 import Gear from '@/svgs/settings-5-fill.svg'
 import Link from 'next/link'
 import { Status } from 'wallets'
+import DraggableIcon from '@/svgs/draggable.svg'
 
-export default function WalletCard ({ wallet }) {
+export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnter, onDragEnd, onTouchStart, sourceIndex, targetIndex, index }) {
   const { card: { title, badges } } = wallet
 
   let indicator = styles.disabled
@@ -28,8 +29,21 @@ export default function WalletCard ({ wallet }) {
 
   return (
     <Card className={styles.card}>
-      <div className={`${styles.indicator} ${indicator}`} />
-      <Card.Body>
+      <div className={styles.cardMeta}>
+        {wallet.status === Status.Enabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
+        <div className={`${styles.indicator} ${indicator}`} />
+      </div>
+      <Card.Body
+        draggable={draggable}
+        onDragStart={onDragStart}
+        onDragEnter={onDragEnter}
+        onDragEnd={onDragEnd}
+        onTouchStart={onTouchStart}
+        className={draggable
+          ? (`${sourceIndex === index ? styles.drag : ''} ${draggable && targetIndex === index ? styles.drop : ''}`)
+          : ''}
+        style={{ cursor: draggable ? 'move' : 'default' }}
+      >
         <Card.Title>{title}</Card.Title>
         <Card.Subtitle className='mt-2'>
           {badges?.map(

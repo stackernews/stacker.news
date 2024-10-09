@@ -2,7 +2,7 @@ import { isServiceEnabled } from '@/lib/sndev'
 import { cachedFetcher } from '@/lib/fetch'
 import { getHeight } from 'ln-service'
 
-const getBlockHeight = cachedFetcher(async ({ lnd }) => {
+const getBlockHeight = cachedFetcher(async function fetchBlockHeight ({ lnd }) {
   try {
     const { current_block_height: height } = await getHeight({ lnd })
     return height

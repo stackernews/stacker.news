@@ -108,7 +108,7 @@ export function getPaymentFailureStatus (withdrawal) {
   }
 }
 
-export const getBlockHeight = cachedFetcher(async ({ lnd, ...args }) => {
+export const getBlockHeight = cachedFetcher(async function fetchBlockHeight ({ lnd, ...args }) {
   try {
     const { current_block_height: height } = await getHeight({ lnd, ...args })
     return height
@@ -122,7 +122,7 @@ export const getBlockHeight = cachedFetcher(async ({ lnd, ...args }) => {
   keyGenerator: () => 'getHeight'
 })
 
-export const getOurPubkey = cachedFetcher(async ({ lnd, ...args }) => {
+export const getOurPubkey = cachedFetcher(async function fetchOurPubkey ({ lnd, ...args }) {
   try {
     const { identity } = await getIdentity({ lnd, ...args })
     return identity.public_key
@@ -136,7 +136,7 @@ export const getOurPubkey = cachedFetcher(async ({ lnd, ...args }) => {
   keyGenerator: () => 'getOurPubkey'
 })
 
-export const getNodeSockets = cachedFetcher(async ({ lnd, ...args }) => {
+export const getNodeSockets = cachedFetcher(async function fetchNodeSockets ({ lnd, ...args }) {
   try {
     return (await getNode({ lnd, is_omitting_channels: true, ...args }))?.sockets
   } catch (err) {

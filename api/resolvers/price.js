@@ -1,7 +1,7 @@
 import { SUPPORTED_CURRENCIES } from '@/lib/currency'
 import { cachedFetcher } from '@/lib/fetch'
 
-const getPrice = cachedFetcher(async (fiat = 'USD') => {
+const getPrice = cachedFetcher(async function fetchPrice (fiat = 'USD') {
   const url = `https://api.coinbase.com/v2/prices/BTC-${fiat}/spot`
   try {
     const res = await fetch(url)

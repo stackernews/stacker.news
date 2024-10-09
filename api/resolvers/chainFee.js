@@ -1,6 +1,6 @@
 import { cachedFetcher } from '@/lib/fetch'
 
-const getChainFeeRate = cachedFetcher(async () => {
+const getChainFeeRate = cachedFetcher(async function fetchChainFeeRate () {
   const url = 'https://mempool.space/api/v1/fees/recommended'
   try {
     const res = await fetch(url)

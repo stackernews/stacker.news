@@ -15,31 +15,16 @@ export const ME = gql`
         diagnostics
         noReferralLinks
         fiatCurrency
+        autoWithdrawMaxFeePercent
+        autoWithdrawThreshold
+        withdrawMaxFeeDefault
         satsFilter
-        hideCowboyHat
         hideFromTopUsers
-        hideGithub
-        hideNostr
-        hideTwitter
-        hideInvoiceDesc
-        hideIsContributor
         hideWalletBalance
         hideWelcomeBanner
         imgproxyOnly
         showImagesAndVideos
-        lastCheckedJobs
         nostrCrossposting
-        noteAllDescendants
-        noteCowboyHat
-        noteDeposits
-        noteWithdrawals
-        noteEarning
-        noteForwardedSats
-        noteInvites
-        noteItemSats
-        noteJobIndicator
-        noteMentions
-        noteItemMentions
         sats
         tipDefault
         tipRandom
@@ -50,19 +35,12 @@ export const ME = gql`
         zapUndos
         upvotePopover
         wildWestMode
-        withdrawMaxFeeDefault
-        lnAddr
-        autoWithdrawMaxFeePercent
-        autoWithdrawThreshold
         disableFreebies
       }
       optional {
         isContributor
         stacked
         streak
-        githubId
-        nostrAuthPubkey
-        twitterId
       }
     }
   }`

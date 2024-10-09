@@ -28,16 +28,20 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
   }
 
   return (
-    <Card className={styles.card}>
+    <Card
+      className={styles.card}
+      // we attach the drag listeners to the whole card to have a proper drag image
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnter={onDragEnter}
+      onDragEnd={onDragEnd}
+    >
       <div className={styles.cardMeta}>
         {wallet.status === Status.Enabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
         <div className={`${styles.indicator} ${indicator}`} />
       </div>
       <Card.Body
-        draggable={draggable}
-        onDragStart={onDragStart}
-        onDragEnter={onDragEnter}
-        onDragEnd={onDragEnd}
+        // we attach touch listener only to card body to not interfere with wallet link
         onTouchStart={onTouchStart}
         className={draggable
           ? (`${sourceIndex === index ? styles.drag : ''} ${draggable && targetIndex === index ? styles.drop : ''}`)

@@ -55,6 +55,7 @@ export const ME = gql`
         autoWithdrawMaxFeePercent
         autoWithdrawThreshold
         disableFreebies
+        vaultKeyHash
       }
       optional {
         isContributor
@@ -390,3 +391,9 @@ export const USER_STATS = gql`
         }
       }
     }`
+
+export const SET_VAULT_KEY_HASH = gql`
+  mutation setVaultKeyHash($hash: String!) {
+    setVaultKeyHash(hash: $hash)
+  }
+`

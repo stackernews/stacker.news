@@ -1,8 +1,7 @@
-import { useCallback } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useMe } from '@/components/me'
-import useClientConfig from '@/components/use-local-state'
+import useVault from '@/components/use-vault'
 import { useWalletLogger } from '@/components/wallet-logger'
-import { SSR } from '@/lib/constants'
 import { bolt11Tags } from '@/lib/bolt11'
 
 import walletDefs from 'wallets/client'
@@ -22,28 +21,34 @@ export const Status = {
 }
 
 export function useWallet (name) {
+  if (!name) {
+    name = getDefaultWalletName()
+  }
+
   const { me } = useMe()
   const showModal = useShowModal()
   const toaster = useToast()
   const [disableFreebies] = useMutation(gql`mutation { disableFreebies }`)
 
-  const wallet = name ? getWalletByName(name) : getEnabledWallet(me)
+  const wallet = getWalletByName(name)
   const { logger, deleteLogs } = useWalletLogger(wallet)
 
   const [config, saveConfig, clearConfig] = useConfig(wallet)
   const hasConfig = wallet?.fields.length > 0
   const _isConfigured = isConfigured({ ...wallet, config })
 
-  const enablePayments = useCallback(() => {
-    enableWallet(name, me)
+  const enablePayments = useCallback((updatedConfig) => {
+    // config might have been updated in the same render we call this function
+    // so we allow to pass in the updated config to not overwrite it a stale one
+    saveConfig({ ...(updatedConfig || config), enabled: true }, { skipTests: true })
     logger.ok('payments enabled')
     disableFreebies().catch(console.error)
-  }, [name, me, logger])
+  }, [config, logger])
 
-  const disablePayments = useCallback(() => {
-    disableWallet(name, me)
+  const disablePayments = useCallback((updatedConfig) => {
+    saveConfig({ ...(updatedConfig || config), enabled: false }, { skipTests: true })
     logger.info('payments disabled')
-  }, [name, me, logger])
+  }, [config, logger])
 
   const status = config?.enabled ? Status.Enabled : Status.Initialized
   const enabled = status === Status.Enabled
@@ -65,7 +70,7 @@ export function useWallet (name) {
   const setPriority = useCallback(async (priority) => {
     if (_isConfigured && priority !== config.priority) {
       try {
-        await saveConfig({ ...config, priority }, { logger, priorityOnly: true })
+        await saveConfig({ ...config, priority }, { logger, skipTests: true })
       } catch (err) {
         toaster.danger(`failed to change priority of ${wallet.name} wallet: ${err.message}`)
       }
@@ -85,7 +90,7 @@ export function useWallet (name) {
       logger.error(message)
       throw err
     }
-  }, [clearConfig, logger, disablePayments])
+  }, [clearConfig, logger])
 
   const deleteLogs_ = useCallback(async (options) => {
     // first argument is to override the wallet
@@ -158,8 +163,7 @@ function extractServerConfig (fields, config) {
 function useConfig (wallet) {
   const { me } = useMe()
 
-  const storageKey = getStorageKey(wallet?.name, me)
-  const [clientConfig, setClientConfig, clearClientConfig] = useClientConfig(storageKey, {})
+  const storageKey = `wallet:${wallet.name}`
 
   const [serverConfig, setServerConfig, clearServerConfig] = useServerConfig(wallet)
 
@@ -181,7 +185,7 @@ function useConfig (wallet) {
     config.priority ||= priority
   }
 
-  const saveConfig = useCallback(async (newConfig, { logger, priorityOnly }) => {
+  const saveConfig = useCallback(async (newConfig, { logger, skipTests } = {}) => {
     // NOTE:
     //   verifying the client/server configuration before saving it
     //   prevents unsetting just one configuration if both are set.
@@ -203,7 +207,7 @@ function useConfig (wallet) {
       }
 
       if (valid) {
-        if (priorityOnly) {
+        if (skipTests) {
           setClientConfig(newClientConfig)
         } else {
           try {
@@ -218,9 +222,12 @@ function useConfig (wallet) {
           }
 
           setClientConfig(newClientConfig)
+
           logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
-          if (newConfig.enabled) wallet.enablePayments()
-          else wallet.disablePayments()
+
+          // we only call enable / disable for the side effects
+          if (newConfig.enabled) wallet.enablePayments(newClientConfig)
+          else wallet.disablePayments(newClientConfig)
         }
       }
     }
@@ -238,17 +245,17 @@ function useConfig (wallet) {
         valid = false
       }
 
-      if (valid) await setServerConfig(newServerConfig, { priorityOnly })
+      if (valid) await setServerConfig(newServerConfig, { priorityOnly: skipTests })
     }
   }, [hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, wallet])
 
-  const clearConfig = useCallback(async ({ logger, clientOnly }) => {
+  const clearConfig = useCallback(async ({ logger, clientOnly, ...options }) => {
     if (hasClientConfig) {
-      clearClientConfig()
-      wallet.disablePayments()
+      clearClientConfig(options)
+      wallet.disablePayments({})
       logger.ok('wallet detached for payments')
     }
-    if (hasServerConfig && !clientOnly) await clearServerConfig()
+    if (hasServerConfig && !clientOnly) await clearServerConfig(options)
   }, [hasClientConfig, hasServerConfig, clearClientConfig, clearServerConfig, wallet])
 
   return [config, saveConfig, clearConfig]
@@ -271,67 +278,119 @@ function isConfigured ({ fields, config }) {
   return val
 }
 
-function useServerConfig (wallet) {
+function useWalletConfig (wallet) {
   const client = useApolloClient()
   const { me } = useMe()
 
-  const { data, refetch: refetchConfig } = useQuery(WALLET_BY_TYPE, { variables: { type: wallet?.walletType }, skip: !wallet?.walletType })
+  const hasClientConfig = !!wallet?.sendPayment
+  const hasServerConfig = !!wallet?.createInvoice
 
-  const walletId = data?.walletByType?.id
-  const serverConfig = {
-    id: walletId,
-    priority: data?.walletByType?.priority,
-    enabled: data?.walletByType?.enabled,
-    ...data?.walletByType?.wallet
-  }
-  delete serverConfig.__typename
-
+  const { data: serverConfig, refetch: refreshServerConfig } = useQuery(WALLET_BY_TYPE, { variables: { type: wallet?.walletType }, skip: !wallet?.walletType })
+  const [clientConfig, setClientConfig, clearClientConfig, refreshClientConfig] = useVault(serverConfig?.walletByType?.wallet, wallet.name)
   const autowithdrawSettings = autowithdrawInitial({ me })
-  const config = { ...serverConfig, ...autowithdrawSettings }
 
-  const saveConfig = useCallback(async ({
-    autoWithdrawThreshold,
-    autoWithdrawMaxFeePercent,
-    priority,
-    enabled,
-    ...config
-  }, { priorityOnly }) => {
-    try {
-      const mutation = generateMutation(wallet)
-      return await client.mutate({
-        mutation,
-        variables: {
-          ...config,
-          id: walletId,
-          settings: {
-            autoWithdrawThreshold: Number(autoWithdrawThreshold),
-            autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent),
-            priority,
-            enabled
-          },
-          priorityOnly
+  const [config, innerSetConfig] = useState(null)
+  useEffect(() => {
+    const config = {
+      ...autowithdrawSettings,
+      id: serverConfig?.walletByType?.id,
+      priority: serverConfig?.walletByType?.priority,
+      enabled: serverConfig?.walletByType?.enabled,
+      ...serverConfig?.walletByType?.wallet,
+      ...clientConfig
+    }
+    delete config.__typename
+    innerSetConfig(config)
+  }, [serverConfig, clientConfig])
+
+  const saveConfig = useCallback(async (config, { priorityOnly, logger, skipTests }) => {
+    const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, priority, enabled } = config
+    if (hasClientConfig) {
+      let newClientConfig = extractClientConfig(wallet.fields, config)
+      let valid = true
+      try {
+        const transformedConfig = await walletValidate(wallet, newClientConfig)
+        if (transformedConfig) {
+          newClientConfig = Object.assign(newClientConfig, transformedConfig)
         }
-      })
+      } catch {
+        valid = false
+      }
+      if (valid) {
+        if (skipTests) {
+          setClientConfig(newClientConfig)
+        } else {
+          try {
+            // XXX: testSendPayment can return a new config (e.g. lnc)
+            const newerConfig = await wallet.testSendPayment?.(newClientConfig, { me, logger })
+            if (newerConfig) {
+              newClientConfig = Object.assign(newClientConfig, newerConfig)
+            }
+          } catch (err) {
+            logger.error(err.message)
+            throw err
+          }
+          setClientConfig(newClientConfig)
+          logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
+          // we only call enable / disable for the side effects TODO
+          if (newClientConfig.enabled) wallet.enablePayments(newClientConfig)
+          else wallet.disablePayments(newClientConfig)
+        }
+      }
+    }
+
+    try {
+      if (hasServerConfig) {
+        let newServerConfig = extractServerConfig(wallet.fields, config)
+        let valid = true
+        try {
+          const transformedConfig = await walletValidate(wallet, newServerConfig)
+          if (transformedConfig) {
+            newServerConfig = Object.assign(newServerConfig, transformedConfig)
+          }
+        } catch {
+          valid = false
+        }
+        if (valid) {
+          const mutation = generateMutation(wallet)
+          return await client.mutate({
+            mutation,
+            variables: {
+              ...config,
+              id: config.id,
+              settings: {
+                autoWithdrawThreshold: Number(autoWithdrawThreshold),
+                autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent),
+                priority,
+                enabled
+              },
+              priorityOnly
+            }
+          })
+        }
+      }
     } finally {
       client.refetchQueries({ include: ['WalletLogs'] })
-      refetchConfig()
+      refreshServerConfig()
+      refreshClientConfig()
     }
-  }, [client, walletId])
+  }, [client, wallet])
 
   const clearConfig = useCallback(async () => {
     // only remove wallet if there is a wallet to remove
-    if (!walletId) return
-
+    if (!wallet.id) return
     try {
       await client.mutate({
         mutation: REMOVE_WALLET,
-        variables: { id: walletId }
+        variables: { id: wallet.id }
       })
+      clearClientConfig()
     } finally {
       client.refetchQueries({ include: ['WalletLogs'] })
-      refetchConfig()
+      refreshServerConfig()
+      refreshClientConfig()
     }
-  }, [client, walletId])
+  }, [client, wallet])
 
   return [config, saveConfig, clearConfig]
 }
@@ -370,20 +429,6 @@ export function getWalletByType (type) {
   return walletDefs.find(def => def.walletType === type)
 }
 
-export function getEnabledWallet (me) {
-  return walletDefs
-    .filter(def => !!def.sendPayment)
-    .map(def => {
-      // populate definition with properties from useWallet that are required for sorting
-      const key = getStorageKey(def.name, me)
-      const config = SSR ? null : JSON.parse(window?.localStorage.getItem(key))
-      const priority = config?.priority
-      return { ...def, config, priority }
-    })
-    .filter(({ config }) => config?.enabled)
-    .sort(walletPrioritySort)[0]
-}
-
 export function walletPrioritySort (w1, w2) {
   const delta = w1.priority - w2.priority
   // delta is NaN if either priority is undefined
@@ -409,37 +454,11 @@ export function useWallets () {
   const resetClient = useCallback(async (wallet) => {
     for (const w of wallets) {
       if (w.canSend) {
-        await w.delete({ clientOnly: true })
+        await w.delete({ clientOnly: true, onlyFromLocalStorage: true })
       }
       await w.deleteLogs({ clientOnly: true })
     }
   }, [wallets])
 
   return { wallets, resetClient }
-}
-
-function getStorageKey (name, me) {
-  let storageKey = `wallet:${name}`
-
-  // WebLN has no credentials we need to scope to users
-  // so we can use the same storage key for all users
-  if (me && name !== 'webln') {
-    storageKey = `${storageKey}:${me.id}`
-  }
-
-  return storageKey
-}
-
-function enableWallet (name, me) {
-  const key = getStorageKey(name, me)
-  const config = JSON.parse(window.localStorage.getItem(key)) || {}
-  config.enabled = true
-  window.localStorage.setItem(key, JSON.stringify(config))
-}
-
-function disableWallet (name, me) {
-  const key = getStorageKey(name, me)
-  const config = JSON.parse(window.localStorage.getItem(key)) || {}
-  config.enabled = false
-  window.localStorage.setItem(key, JSON.stringify(config))
 }

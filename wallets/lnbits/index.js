@@ -1,6 +1,10 @@
 import { lnbitsSchema } from '@/lib/validate'
 
 export const name = 'lnbits'
+export const walletType = 'LNBITS'
+export const walletField = 'walletLNbits'
+
+export const fieldValidation = lnbitsSchema
 
 export const fields = [
   {
@@ -31,9 +35,3 @@ export const card = {
   subtitle: 'use [LNbits](https://lnbits.com/) for payments',
   badges: ['send & receive']
 }
-
-export const fieldValidation = lnbitsSchema
-
-export const walletType = 'LNBITS'
-
-export const walletField = 'walletLNbits'

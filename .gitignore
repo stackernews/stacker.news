@@ -56,3 +56,6 @@ docker-compose.*.yml
 
 # nostr wallet connect
 scripts/nwc-keys.json
+
+# lnbits
+docker/lnbits/data

@@ -49,6 +49,8 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
       }
     }
   })
+
+  await client.clearStore()
   return client
 }
 

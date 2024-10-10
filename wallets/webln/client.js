@@ -1,3 +1,6 @@
+import { useEffect } from 'react'
+import { useWallet } from 'wallets'
+import { name } from 'wallets/blink'
 export * from 'wallets/webln'
 
 export const sendPayment = async (bolt11) => {
@@ -18,4 +21,30 @@ export const sendPayment = async (bolt11) => {
   }
 
   return response.preimage
+}
+
+export default function WebLnProvider ({ children }) {
+  const wallet = useWallet(name)
+
+  useEffect(() => {
+    const onEnable = () => {
+      wallet.enablePayments()
+    }
+
+    const onDisable = () => {
+      wallet.disablePayments()
+    }
+
+    if (!window.webln) onDisable()
+
+    window.addEventListener('webln:enabled', onEnable)
+    // event is not fired by Alby browser extension but added here for sake of completeness
+    window.addEventListener('webln:disabled', onDisable)
+    return () => {
+      window.removeEventListener('webln:enabled', onEnable)
+      window.removeEventListener('webln:disabled', onDisable)
+    }
+  }, [])
+
+  return children
 }

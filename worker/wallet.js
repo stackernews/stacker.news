@@ -34,7 +34,10 @@ function subscribeForever (subscribe) {
         }
         if (sub.then) {
           // sub is promise
-          sub.then(sub => sub.on('error', reject))
+          sub.then(resolved => {
+            sub = resolved
+            sub.on('error', reject)
+          })
         } else {
           sub.on('error', reject)
         }

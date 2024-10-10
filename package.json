@@ -6,7 +6,7 @@
     "dev": "NODE_OPTIONS='--trace-warnings' next dev",
     "build": "next build",
     "migrate": "prisma migrate deploy",
-    "start": "NODE_OPTIONS='--trace-warnings --max-old-space-size=4096' next start -p $PORT --keepAliveTimeout 120000",
+    "start": "NODE_OPTIONS='--trace-warnings --max-old-space-size=4096 --max-semi-space-size=128' next start -p $PORT --keepAliveTimeout 120000",
     "lint": "standard",
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
     "worker": "tsx --tsconfig jsconfig.json --trace-warnings worker/index.js",

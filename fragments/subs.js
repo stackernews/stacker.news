@@ -34,6 +34,8 @@ export const SUB_FULL_FIELDS = gql`
       id
       optional {
         streak
+        gunStreak
+        horseStreak
       }
     }
   }`

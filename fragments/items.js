@@ -14,6 +14,8 @@ export const ITEM_FIELDS = gql`
       name
       optional {
         streak
+        gunStreak
+        horseStreak
       }
       meMute
     }
@@ -84,6 +86,8 @@ export const ITEM_FULL_FIELDS = gql`
         name
         optional {
           streak
+          gunStreak
+          horseStreak
         }
       }
       sub {

@@ -41,6 +41,8 @@ export const ME = gql`
         isContributor
         stacked
         streak
+        gunStreak
+        horseStreak
       }
     }
   }`
@@ -165,6 +167,8 @@ gql`
       nposts
 
       optional {
+        gunStreak
+        horseStreak
         streak
         stacked
         spent
@@ -188,6 +192,8 @@ export const USER_FIELDS = gql`
     optional {
       stacked
       streak
+      gunStreak
+      horseStreak
       maxStreak
       isContributor
       githubId
@@ -209,6 +215,8 @@ export const MY_SUBSCRIBED_USERS = gql`
 
         optional {
           streak
+          gunStreak
+          horseStreak
         }
       }
       cursor
@@ -229,6 +237,8 @@ export const MY_MUTED_USERS = gql`
 
         optional {
           streak
+          gunStreak
+          horseStreak
         }
       }
       cursor

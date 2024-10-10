@@ -14,7 +14,7 @@ import DontLikeThisDropdownItem, { OutlawDropdownItem } from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem, CrosspostDropdownItem } from './share'
-import Hat from './hat'
+import Badges from './badge'
 import { USER_ID } from '@/lib/constants'
 import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
@@ -111,12 +111,11 @@ export default function ItemInfo ({
       <span> \ </span>
       <span>
         {showUser &&
-          <UserPopover name={item.user.name}>
-            <Link href={`/${item.user.name}`}>
-              @{item.user.name}<span> </span><Hat className='fill-grey' user={item.user} height={12} width={12} />
-              {embellishUser}
-            </Link>
-          </UserPopover>}
+          <Link href={`/${item.user.name}`}>
+            <UserPopover name={item.user.name}>@{item.user.name}</UserPopover>
+            <Badges badgeClassName='fill-grey' spacingClassName='ms-xs' height={12} width={12} user={item.user} />
+            {embellishUser}
+          </Link>}
         <span> </span>
         <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
           {timeSince(new Date(item.createdAt))}

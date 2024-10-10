@@ -14,7 +14,7 @@ import HiddenWalletSummary from '../hidden-wallet-summary'
 import { abbrNum, msatsToSats } from '../../lib/format'
 import { useServiceWorker } from '../serviceworker'
 import { signOut } from 'next-auth/react'
-import Hat from '../hat'
+import Badges from '../badge'
 import { randInRange } from '../../lib/rand'
 import { useLightning } from '../lightning'
 import LightningIcon from '../../svgs/bolt.svg'
@@ -165,12 +165,21 @@ export function NavWalletSummary ({ className }) {
 export function MeDropdown ({ me, dropNavKey }) {
   if (!me) return null
   return (
-    <div className='position-relative'>
+    <div className=''>
       <Dropdown className={styles.dropdown} align='end'>
         <Dropdown.Toggle className='nav-link nav-item fw-normal' id='profile' variant='custom'>
-          <Nav.Link eventKey={me.name} as='span' className='p-0'>
-            {`@${me.name}`}<Hat user={me} />
-          </Nav.Link>
+          <div className='d-flex align-items-center'>
+            <Nav.Link eventKey={me.name} as='span' className='p-0 position-relative'>
+              {`@${me.name}`}
+              {!me.bioId &&
+                <span className='d-inline-block p-1'>
+                  <span className='position-absolute p-1 bg-secondary' style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}>
+                    <span className='invisible'>{' '}</span>
+                  </span>
+                </span>}
+            </Nav.Link>
+            <Badges user={me} />
+          </div>
         </Dropdown.Toggle>
         <Dropdown.Menu>
           <Link href={'/' + me.name} passHref legacyBehavior>
@@ -205,10 +214,6 @@ export function MeDropdown ({ me, dropNavKey }) {
           <LogoutDropdownItem />
         </Dropdown.Menu>
       </Dropdown>
-      {!me.bioId &&
-        <span className='position-absolute p-1 bg-secondary' style={{ top: '5px', right: '0px' }}>
-          <span className='invisible'>{' '}</span>
-        </span>}
     </div>
   )
 }
@@ -377,7 +382,7 @@ export function AnonDropdown ({ path }) {
       <Dropdown className={styles.dropdown} align='end' autoClose>
         <Dropdown.Toggle className='nav-link nav-item' id='profile' variant='custom'>
           <Nav.Link eventKey='anon' as='span' className='p-0 fw-normal'>
-            @anon<Hat user={{ id: USER_ID.anon }} />
+            @anon<Badges user={{ id: USER_ID.anon }} />
           </Nav.Link>
         </Dropdown.Toggle>
         <Dropdown.Menu className='p-3'>

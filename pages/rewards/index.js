@@ -53,6 +53,8 @@ ${ITEM_FULL_FIELDS}
 
         optional {
           streak
+          gunStreak
+          horseStreak
           stacked
           spent
           referrals

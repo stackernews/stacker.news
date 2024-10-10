@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { timeSince } from '@/lib/time'
 import EmailIcon from '@/svgs/mail-open-line.svg'
 import Share from './share'
-import Hat from './hat'
+import Badges from './badge'
 import { MEDIA_URL } from '@/lib/constants'
 import { abbrNum } from '@/lib/format'
 import { Badge } from 'react-bootstrap'
@@ -54,7 +54,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
             {item.boost > 0 && <span>{abbrNum(item.boost)} boost \ </span>}
             <span>
               <Link href={`/${item.user.name}`} className='d-inline-flex align-items-center'>
-                @{item.user.name}<Hat className='ms-1 fill-grey' user={item.user} height={12} width={12} />
+                @{item.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={item.user} />
               </Link>
               <span> </span>
               <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>

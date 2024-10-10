@@ -79,6 +79,7 @@ export default gql`
     id: ID!
     sortTime: Date!
     days: Int
+    type: String!
   }
 
   type Earn {

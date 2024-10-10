@@ -16,6 +16,8 @@ export const INVITE_FIELDS = gql`
       name
       optional {
         streak
+        gunStreak
+        horseStreak
       }
     }
     poor

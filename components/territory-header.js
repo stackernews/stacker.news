@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Text from './text'
 import { numWithUnits } from '@/lib/format'
 import styles from './item.module.css'
-import Hat from './hat'
+import Badges from './badge'
 import { useMe } from './me'
 import Share from './share'
 import { gql, useMutation } from '@apollo/client'
@@ -41,7 +41,7 @@ export function TerritoryInfo ({ sub }) {
         <div className='text-muted'>
           <span>founded by </span>
           <Link href={`/${sub.user.name}`}>
-            @{sub.user.name}<span> </span><Hat className='fill-grey' user={sub.user} height={12} width={12} />
+            @{sub.user.name}<span> </span><Badges badgeClassName='fill-grey' height={12} width={12} user={sub.user} />
           </Link>
           <span> on </span>
           <span className='fw-bold'>{new Date(sub.createdAt).toDateString()}</span>

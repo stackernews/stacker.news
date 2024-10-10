@@ -7,7 +7,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import MoreFooter from './more-footer'
 import { useData } from './use-data'
-import Hat from './hat'
+import Badges from './badge'
 import { useMe } from './me'
 import { MEDIA_URL } from '@/lib/constants'
 import { NymActionDropdown } from '@/components/user-header'
@@ -57,7 +57,7 @@ export function UserListRow ({ user, stats, className, onNymClick, showHat = tru
           style={{ textUnderlineOffset: '0.25em' }}
           onClick={onNymClick}
         >
-          @{user.name}{showHat && <Hat className='ms-1 fill-grey' height={14} width={14} user={user} />}{selected && <CheckCircle className='ms-3 fill-primary' height={14} width={14} />}
+          @{user.name}{showHat && <Badges badgeClassName='fill-grey' height={14} width={14} user={user} />}{selected && <CheckCircle className='ms-3 fill-primary' height={14} width={14} />}
         </Link>
         {stats && (
           <div className={styles.other}>
@@ -81,7 +81,7 @@ export function UserBase ({ user, className, children, nymActionDropdown }) {
       <div className={styles.hunk}>
         <div className='d-flex'>
           <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
-            @{user.name}<Hat className='ms-1 fill-grey' height={14} width={14} user={user} />
+            @{user.name}<Badges badgeClassName='fill-grey' height={14} width={14} user={user} />
           </Link>
           {nymActionDropdown && <NymActionDropdown user={user} className='' />}
         </div>

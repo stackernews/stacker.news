@@ -13,6 +13,8 @@ export const COMMENT_FIELDS = gql`
       name
       optional {
         streak
+        gunStreak
+        horseStreak
       }
       meMute
     }
@@ -63,6 +65,8 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
         name
         optional {
           streak
+          gunStreak
+          horseStreak
         }
         id
       }

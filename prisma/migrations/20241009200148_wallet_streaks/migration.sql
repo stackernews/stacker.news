@@ -19,3 +19,9 @@ CREATE INDEX "users_gunStreak_idx" ON "users"("gunStreak");
 
 -- CreateIndex
 CREATE INDEX "users_horseStreak_idx" ON "users"("horseStreak");
+
+-- DropIndex
+DROP INDEX "Streak.startedAt_userId_unique";
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Streak_startedAt_userId_type_key" ON "Streak"("startedAt", "userId", "type");

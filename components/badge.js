@@ -71,13 +71,7 @@ function SNBadge ({ user, badge, streakName, badgeClassName, IconForBadge, heigh
         ? `${numWithUnits(streak, { abbreviate: false, unitSingular: 'day', unitPlural: 'days' })}`
         : 'new'}
     >
-      {badge
-        ? (
-          <Badge bg='grey-medium' className='ms-2 d-inline-flex align-items-center'>
-            <IconForBadge className={`${badgeClassName} fill-dark`} height={height + sizeDelta} width={width + sizeDelta} />
-            <span className='ms-1 text-dark'>{streak || 'new'}</span>
-          </Badge>)
-        : <span><IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} /></span>}
+      <span><IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} /></span>
     </BadgeTooltip>
   )
 }

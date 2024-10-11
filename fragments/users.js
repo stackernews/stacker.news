@@ -3,49 +3,58 @@ import { COMMENTS, COMMENTS_ITEM_EXT_FIELDS } from './comments'
 import { ITEM_FIELDS, ITEM_FULL_FIELDS } from './items'
 import { SUB_FULL_FIELDS } from './subs'
 
-export const ME = gql`
-  {
-    me {
-      id
-      name
-      bioId
-      photoId
-      privates {
-        autoDropBolt11s
-        diagnostics
-        noReferralLinks
-        fiatCurrency
-        autoWithdrawMaxFeePercent
-        autoWithdrawThreshold
-        withdrawMaxFeeDefault
-        satsFilter
-        hideFromTopUsers
-        hideWalletBalance
-        hideWelcomeBanner
-        imgproxyOnly
-        showImagesAndVideos
-        nostrCrossposting
-        sats
-        tipDefault
-        tipRandom
-        tipRandomMin
-        tipRandomMax
-        tipPopover
-        turboTipping
-        zapUndos
-        upvotePopover
-        wildWestMode
-        disableFreebies
-      }
-      optional {
-        isContributor
-        stacked
-        streak
-        gunStreak
-        horseStreak
-      }
+export const STREAK_FIELDS = gql`
+  fragment StreakFields on User {
+    optional {
+    streak
+    gunStreak
+      horseStreak
     }
-  }`
+  }
+`
+
+export const ME = gql`
+${STREAK_FIELDS}
+{
+  me {
+    id
+    name
+    bioId
+    photoId
+    privates {
+      autoDropBolt11s
+      diagnostics
+      noReferralLinks
+      fiatCurrency
+      autoWithdrawMaxFeePercent
+      autoWithdrawThreshold
+      withdrawMaxFeeDefault
+      satsFilter
+      hideFromTopUsers
+      hideWalletBalance
+      hideWelcomeBanner
+      imgproxyOnly
+      showImagesAndVideos
+      nostrCrossposting
+      sats
+      tipDefault
+      tipRandom
+      tipRandomMin
+      tipRandomMax
+      tipPopover
+      turboTipping
+      zapUndos
+      upvotePopover
+      wildWestMode
+      disableFreebies
+    }
+    optional {
+      isContributor
+      stacked
+    }
+    ...StreakFields
+  }
+}`
 
 export const SETTINGS_FIELDS = gql`
   fragment SettingsFields on User {
@@ -103,61 +112,52 @@ export const SETTINGS_FIELDS = gql`
   }`
 
 export const SETTINGS = gql`
-${SETTINGS_FIELDS}
-query Settings {
-  settings {
-    ...SettingsFields
-  }
-}`
+  ${SETTINGS_FIELDS}
+  query Settings {
+    settings {
+      ...SettingsFields
+    }
+  }`
 
-export const SET_SETTINGS =
-gql`
-${SETTINGS_FIELDS}
-mutation setSettings($settings: SettingsInput!) {
-  setSettings(settings: $settings) {
-    ...SettingsFields
-  }
-}
-`
+export const SET_SETTINGS = gql`
+  ${SETTINGS_FIELDS}
+  mutation setSettings($settings: SettingsInput!) {
+    setSettings(settings: $settings) {
+      ...SettingsFields
+    }
+  }`
 
-export const DELETE_WALLET =
-gql`
-mutation removeWallet {
-  removeWallet
-}
-`
+export const DELETE_WALLET = gql`
+  mutation removeWallet {
+    removeWallet
+  }`
 
-export const NAME_QUERY =
-gql`
+export const NAME_QUERY = gql`
   query nameAvailable($name: String!) {
     nameAvailable(name: $name)
-  }
-`
+  }`
 
-export const NAME_MUTATION =
-gql`
+export const NAME_MUTATION = gql`
   mutation setName($name: String!) {
     setName(name: $name)
   }
 `
 
-export const WELCOME_BANNER_MUTATION =
-gql`
+export const WELCOME_BANNER_MUTATION = gql`
   mutation hideWelcomeBanner {
     hideWelcomeBanner
   }
 `
 
-export const USER_SUGGESTIONS =
-gql`
+export const USER_SUGGESTIONS = gql`
   query userSuggestions($q: String!, $limit: Limit) {
     userSuggestions(q: $q, limit: $limit) {
       name
     }
   }`
 
-export const USER_SEARCH =
-gql`
+export const USER_SEARCH = gql`
+${STREAK_FIELDS}
   query searchUsers($q: String!, $limit: Limit, $similarity: Float) {
     searchUsers(q: $q, limit: $limit, similarity: $similarity) {
       id
@@ -167,17 +167,16 @@ gql`
       nposts
 
       optional {
-        gunStreak
-        horseStreak
-        streak
         stacked
         spent
         referrals
       }
+      ...StreakFields
     }
   }`
 
 export const USER_FIELDS = gql`
+  ${STREAK_FIELDS}
   fragment UserFields on User {
     id
     name
@@ -191,18 +190,17 @@ export const USER_FIELDS = gql`
 
     optional {
       stacked
-      streak
-      gunStreak
-      horseStreak
       maxStreak
       isContributor
       githubId
       nostrAuthPubkey
       twitterId
     }
+    ...StreakFields
   }`
 
 export const MY_SUBSCRIBED_USERS = gql`
+  ${STREAK_FIELDS}
   query MySubscribedUsers($cursor: String) {
     mySubscribedUsers(cursor: $cursor) {
       users {
@@ -213,11 +211,7 @@ export const MY_SUBSCRIBED_USERS = gql`
         meSubscriptionComments
         meMute
 
-        optional {
-          streak
-          gunStreak
-          horseStreak
-        }
+        ...StreakFields
       }
       cursor
     }
@@ -225,6 +219,7 @@ export const MY_SUBSCRIBED_USERS = gql`
 `
 
 export const MY_MUTED_USERS = gql`
+  ${STREAK_FIELDS}
   query MyMutedUsers($cursor: String) {
     myMutedUsers(cursor: $cursor) {
       users {
@@ -234,12 +229,7 @@ export const MY_MUTED_USERS = gql`
         meSubscriptionPosts
         meSubscriptionComments
         meMute
-
-        optional {
-          streak
-          gunStreak
-          horseStreak
-        }
+      ...StreakFields
       }
       cursor
     }
@@ -247,6 +237,7 @@ export const MY_MUTED_USERS = gql`
 `
 
 export const TOP_USERS = gql`
+  ${STREAK_FIELDS}
   query TopUsers($cursor: String, $when: String, $from: String, $to: String, $by: String, ) {
     topUsers(cursor: $cursor, when: $when, from: $from, to: $to, by: $by) {
       users {
@@ -257,11 +248,11 @@ export const TOP_USERS = gql`
         nposts(when: $when, from: $from, to: $to)
 
         optional {
-          streak
           stacked(when: $when, from: $from, to: $to)
           spent(when: $when, from: $from, to: $to)
           referrals(when: $when, from: $from, to: $to)
         }
+        ...StreakFields
       }
       cursor
     }
@@ -269,6 +260,7 @@ export const TOP_USERS = gql`
 `
 
 export const TOP_COWBOYS = gql`
+  ${STREAK_FIELDS}
   query TopCowboys($cursor: String) {
     topCowboys(cursor: $cursor) {
       users {
@@ -279,11 +271,11 @@ export const TOP_COWBOYS = gql`
         nposts(when: "forever")
 
         optional {
-          streak
           stacked(when: "forever")
           spent(when: "forever")
           referrals(when: "forever")
         }
+        ...StreakFields
       }
       cursor
     }

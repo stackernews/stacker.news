@@ -2,6 +2,17 @@ import { gql } from '@apollo/client'
 import { ITEM_FIELDS, ITEM_FULL_FIELDS } from './items'
 import { COMMENTS_ITEM_EXT_FIELDS } from './comments'
 
+// we can't import from users because of circular dependency
+const STREAK_FIELDS = gql`
+  fragment StreakFields on User {
+    optional {
+    streak
+    gunStreak
+      horseStreak
+    }
+  }
+`
+
 export const SUB_FIELDS = gql`
   fragment SubFields on Sub {
     name
@@ -26,17 +37,13 @@ export const SUB_FIELDS = gql`
 
 export const SUB_FULL_FIELDS = gql`
   ${SUB_FIELDS}
-
+  ${STREAK_FIELDS}
   fragment SubFullFields on Sub {
     ...SubFields
     user {
       name
       id
-      optional {
-        streak
-        gunStreak
-        horseStreak
-      }
+      ...StreakFields
     }
   }`
 

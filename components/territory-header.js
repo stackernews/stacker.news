@@ -41,7 +41,7 @@ export function TerritoryInfo ({ sub }) {
         <div className='text-muted'>
           <span>founded by </span>
           <Link href={`/${sub.user.name}`}>
-            @{sub.user.name}<span> </span><Badges badgeClassName='fill-grey' height={12} width={12} user={sub.user} />
+            @{sub.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={sub.user} />
           </Link>
           <span> on </span>
           <span className='fw-bold'>{new Date(sub.createdAt).toDateString()}</span>

@@ -1,7 +1,19 @@
 import { gql } from '@apollo/client'
 import { COMMENTS } from './comments'
 
+// we can't import from users because of circular dependency
+const STREAK_FIELDS = gql`
+  fragment StreakFields on User {
+    optional {
+    streak
+    gunStreak
+      horseStreak
+    }
+  }
+`
+
 export const ITEM_FIELDS = gql`
+  ${STREAK_FIELDS}
   fragment ItemFields on Item {
     id
     parentId
@@ -12,12 +24,8 @@ export const ITEM_FIELDS = gql`
     user {
       id
       name
-      optional {
-        streak
-        gunStreak
-        horseStreak
-      }
       meMute
+      ...StreakFields
     }
     sub {
       name
@@ -71,6 +79,7 @@ export const ITEM_FIELDS = gql`
 
 export const ITEM_FULL_FIELDS = gql`
   ${ITEM_FIELDS}
+  ${STREAK_FIELDS}
   fragment ItemFullFields on Item {
     ...ItemFields
     text
@@ -84,11 +93,7 @@ export const ITEM_FULL_FIELDS = gql`
       user {
         id
         name
-        optional {
-          streak
-          gunStreak
-          horseStreak
-        }
+        ...StreakFields
       }
       sub {
         name

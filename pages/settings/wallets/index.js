@@ -93,11 +93,6 @@ export default function Wallet ({ ssrData }) {
               return (
                 <div
                   key={w.name}
-                  draggable={draggable}
-                  style={{ cursor: draggable ? 'move' : 'default' }}
-                  onDragStart={draggable ? onDragStart(i) : undefined}
-                  onTouchStart={draggable ? onTouchStart(i) : undefined}
-                  onDragEnter={draggable ? onDragEnter(i) : undefined}
                   className={
                     !draggable
                       ? ''
@@ -105,7 +100,16 @@ export default function Wallet ({ ssrData }) {
                     }
                   suppressHydrationWarning
                 >
-                  <WalletCard wallet={w} />
+                  <WalletCard
+                    wallet={w}
+                    draggable={draggable}
+                    onDragStart={draggable ? onDragStart(i) : undefined}
+                    onTouchStart={draggable ? onTouchStart(i) : undefined}
+                    onDragEnter={draggable ? onDragEnter(i) : undefined}
+                    sourceIndex={sourceIndex}
+                    targetIndex={targetIndex}
+                    index={i}
+                  />
                 </div>
               )
             }

@@ -20,6 +20,17 @@
   height: 180px;
 }
 
+.cardMeta {
+  position: absolute;
+  width: 100%;
+  display: grid;
+  align-items: center;
+  justify-content: end;
+  padding: 10px 10px 0 10px;
+  grid-gap: 0.2rem;
+  grid-auto-flow: column;
+}
+
 .badge {
   color: var(--theme-grey) !important;
   background: var(--theme-clickToContextColor) !important;
@@ -42,11 +53,7 @@
 .indicator {
   width: 10px;
   height: 10px;
-  right: 10px;
-  top: 10px;
   border-radius: 50%;
-  display: inline-block;
-  position: absolute;
 }
 
 .indicator.success {

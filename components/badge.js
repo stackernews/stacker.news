@@ -1,4 +1,3 @@
-import Badge from 'react-bootstrap/Badge'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
@@ -30,12 +29,7 @@ export default function Badges ({ user, badge, className = 'ms-1', badgeClassNam
   if (Number(user.id) === USER_ID.anon) {
     return (
       <BadgeTooltip overlayText='anonymous'>
-        {badge
-          ? (
-            <Badge bg='grey-medium' className='ms-2 d-inline-flex align-items-center'>
-              <AnonIcon className={`${badgeClassName} fill-dark align-middle`} height={height} width={width} />
-            </Badge>)
-          : <span><AnonIcon className={`${badgeClassName} align-middle`} height={height} width={width} /></span>}
+        <span className={className}><AnonIcon className={`${badgeClassName} align-middle`} height={height} width={width} /></span>
       </BadgeTooltip>
     )
   }

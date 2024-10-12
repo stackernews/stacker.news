@@ -22,7 +22,7 @@ import HiddenWalletSummary from '@/components/hidden-wallet-summary'
 import AccordianItem from '@/components/accordian-item'
 import { lnAddrOptions } from '@/lib/lnurl'
 import useDebounceCallback from '@/components/use-debounce-callback'
-import { QrScanner } from '@yudiel/react-qr-scanner'
+import { Scanner } from '@yudiel/react-qr-scanner'
 import CameraIcon from '@/svgs/camera-line.svg'
 import { useShowModal } from '@/components/modal'
 import { useField } from 'formik'
@@ -282,16 +282,23 @@ function InvoiceScanner ({ fieldName }) {
       onClick={() => {
         showModal(onClose => {
           return (
-            <QrScanner
-              onDecode={(result) => {
+            <Scanner
+              formats={['qr_code']}
+              onScan={([{ rawValue: result }]) => {
+                result = result.toLowerCase()
                 if (result.split('lightning=')[1]) {
-                  helpers.setValue(result.split('lightning=')[1].split(/[&?]/)[0].toLowerCase())
+                  helpers.setValue(result.split('lightning=')[1].split(/[&?]/)[0])
                 } else if (decode(result.replace(/^lightning:/, ''))) {
-                  helpers.setValue(result.replace(/^lightning:/, '').toLowerCase())
+                  helpers.setValue(result.replace(/^lightning:/, ''))
                 } else {
                   throw new Error('Not a proper lightning payment request')
                 }
                 onClose()
+              }}
+              styles={{
+                video: {
+                  aspectRatio: '1 / 1'
+                }
               }}
               onError={(error) => {
                 if (error instanceof DOMException) {

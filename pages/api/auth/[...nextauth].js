@@ -13,7 +13,7 @@ import { datePivot } from '@/lib/time'
 import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
-import cookie from 'cookie'
+import * as cookie from 'cookie'
 
 /**
  * Stores userIds in user table

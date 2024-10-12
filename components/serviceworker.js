@@ -151,7 +151,7 @@ export const ServiceWorkerProvider = ({ children }) => {
     const channel = new MessageChannel()
     navigator?.serviceWorker?.controller?.postMessage({ action: ACTION_PORT }, [channel.port2])
     channel.port1.onmessage = (event) => {
-      if (event.data.action === RESUBSCRIBE) {
+      if (event.data.action === RESUBSCRIBE && permission.notification === 'granted') {
         return subscribeToPushNotifications()
       }
     }
@@ -161,7 +161,7 @@ export const ServiceWorkerProvider = ({ children }) => {
     navigator?.serviceWorker?.controller?.postMessage?.({ action: SYNC_SUBSCRIPTION })
     logger.info('sent SYNC_SUBSCRIPTION to service worker')
     navigator?.serviceWorker?.controller?.postMessage?.({ action: STORE_OS, os: detectOS() })
-  }, [registration])
+  }, [registration, permission.notification])
 
   const contextValue = useMemo(() => ({
     registration,

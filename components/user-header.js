@@ -17,7 +17,7 @@ import Avatar from './avatar'
 import { userSchema } from '@/lib/validate'
 import { useShowModal } from './modal'
 import { numWithUnits } from '@/lib/format'
-import Hat from './hat'
+import Badges from './badge'
 import SubscribeUserDropdownItem from './subscribeUser'
 import ActionDropdown from './action-dropdown'
 import CodeIcon from '@/svgs/terminal-box-fill.svg'
@@ -178,7 +178,7 @@ function NymView ({ user, isMe, setEditting }) {
   const { me } = useMe()
   return (
     <div className='d-flex align-items-center mb-2'>
-      <div className={styles.username}>@{user.name}<Hat className='' user={user} badge /></div>
+      <div className={styles.username}>@{user.name}<Badges className='ms-2' user={user} badgeClassName='fill-grey' /></div>
       {isMe &&
         <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
       {!isMe && me && <NymActionDropdown user={user} />}

@@ -324,7 +324,7 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label='I find or lose a cowboy hat'
+            label='I find or lose cowboy essentials (e.g. cowboy hat)'
             name='noteCowboyHat'
           />
           <div className='form-label'>privacy</div>

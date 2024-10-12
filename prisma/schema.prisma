@@ -74,6 +74,8 @@ model User {
   slashtagId                String?              @unique(map: "users.slashtagId_unique")
   noteCowboyHat             Boolean              @default(true)
   streak                    Int?
+  gunStreak                 Int?
+  horseStreak               Int?
   subs                      String[]
   hideCowboyHat             Boolean              @default(false)
   Bookmarks                 Bookmark[]
@@ -138,6 +140,9 @@ model User {
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
+  @@index([streak])
+  @@index([gunStreak])
+  @@index([horseStreak])
   @@map("users")
 }
 
@@ -300,17 +305,25 @@ model Arc {
   @@index([toId, fromId])
 }
 
-model Streak {
-  id        Int       @id @default(autoincrement())
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
-  startedAt DateTime  @db.Date
-  endedAt   DateTime? @db.Date
-  userId    Int
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+enum StreakType {
+  COWBOY_HAT
+  GUN
+  HORSE
+}
 
-  @@unique([startedAt, userId], map: "Streak.startedAt_userId_unique")
+model Streak {
+  id        Int        @id @default(autoincrement())
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at")
+  startedAt DateTime   @db.Date
+  endedAt   DateTime?  @db.Date
+  userId    Int
+  type      StreakType @default(COWBOY_HAT)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([startedAt, userId, type])
   @@index([userId], map: "Streak.userId_index")
+  @@index([type])
 }
 
 model NostrRelay {

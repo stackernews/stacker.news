@@ -465,6 +465,14 @@ export default {
       `
 
       return res.length ? res[0].days : null
+    },
+    type: async (n, args, { models }) => {
+      const res = await models.$queryRaw`
+        SELECT "type"
+        FROM "Streak"
+        WHERE id = ${Number(n.id)}
+      `
+      return res.length ? res[0].type : null
     }
   },
   Earn: {

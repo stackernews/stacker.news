@@ -10,7 +10,7 @@ import { gql, useApolloClient, useMutation } from '@apollo/client'
 import styles from './user-header.module.css'
 import { useMe } from './me'
 import { NAME_MUTATION } from '@/fragments/users'
-import QRCode from 'qrcode.react'
+import { QRCodeSVG } from 'qrcode.react'
 import LightningIcon from '@/svgs/bolt.svg'
 import { encodeLNUrl } from '@/lib/lnurl'
 import Avatar from './avatar'
@@ -268,7 +268,7 @@ function HeaderHeader ({ user }) {
             showModal(({ onClose }) => (
               <>
                 <a className='d-flex m-auto p-3' style={{ background: 'white', maxWidth: 'fit-content' }} href={`lightning:${lnurlp}`}>
-                  <QRCode className='d-flex m-auto' value={lnurlp} renderAs='svg' size={300} />
+                  <QRCodeSVG className='d-flex m-auto' value={lnurlp} size={300} />
                 </a>
                 <div className='text-center fw-bold text-muted mt-3'>click or scan</div>
               </>

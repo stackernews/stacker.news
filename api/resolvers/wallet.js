@@ -22,7 +22,7 @@ import walletDefs from 'wallets/server'
 import { generateResolverName, generateTypeDefName, isConfigured } from '@/lib/wallet'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
-import { getNodeInfo, getOurPubkey } from '../lnd'
+import { getNodeSockets, getOurPubkey } from '../lnd'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
@@ -782,7 +782,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   invoice = invoice.replace(/^lightning:/, '')
 
   // decode invoice to get amount
-  let decoded, node
+  let decoded, sockets
   try {
     decoded = await parsePaymentRequest({ request: invoice })
   } catch (error) {
@@ -791,14 +791,14 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   }
 
   try {
-    node = await getNodeInfo({ public_key: decoded.destination, is_omitting_channels: true })
+    sockets = await getNodeSockets({ lnd, public_key: decoded.destination })
   } catch (error) {
     // likely not found if it's an unannounced channel, e.g. phoenix
     console.log(error)
   }
 
-  if (node) {
-    for (const { socket } of node.sockets) {
+  if (sockets) {
+    for (const { socket } of sockets) {
       const ip = socket.split(':')[0]
       await assertGofacYourself({ models, headers, ip })
     }
@@ -894,7 +894,7 @@ export async function fetchLnAddrInvoice (
   // decode invoice
   try {
     const decoded = await parsePaymentRequest({ request: res.pr })
-    const ourPubkey = await getOurPubkey()
+    const ourPubkey = await getOurPubkey({ lnd })
     if (autoWithdraw && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
       // unset lnaddr so we don't trigger another withdrawal with same destination
       await models.wallet.deleteMany({

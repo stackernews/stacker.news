@@ -40,17 +40,17 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
       watchQuery: {
         fetchPolicy: 'no-cache',
         nextFetchPolicy: 'no-cache',
-        canonizeResults: true,
         ssr: true
       },
       query: {
         fetchPolicy: 'no-cache',
         nextFetchPolicy: 'no-cache',
-        canonizeResults: true,
         ssr: true
       }
     }
   })
+
+  await client.clearStore()
   return client
 }
 

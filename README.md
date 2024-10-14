@@ -429,7 +429,7 @@ GITHUB_SECRET=<Client secret>
 
 ## Enabling web push notifications
 
-To enable Web Push locally, you will need to set the `VAPID_*` env vars. `VAPID_MAILTO` needs to be an email address using the `mailto:` scheme. For `NEXT_PUBLIC_VAPID_KEY` and `VAPID_PRIVKEY`, you can run `npx web-push generate-vapid-keys`.
+To enable Web Push locally, you will need to set the `VAPID_*` env vars. `VAPID_MAILTO` needs to be an email address using the `mailto:` scheme. For `NEXT_PUBLIC_VAPID_PUBKEY` and `VAPID_PRIVKEY`, you can run `npx web-push generate-vapid-keys`.
 
 <br>
 

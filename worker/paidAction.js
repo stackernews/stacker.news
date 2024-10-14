@@ -134,7 +134,7 @@ async function performPessimisticAction ({ lndInvoice, dbInvoice, tx, models, ln
 }
 
 export async function paidActionPaid ({ data: { invoiceId, ...args }, models, lnd, boss }) {
-  return await transitionInvoice('paidActionPaid', {
+  const transitionedInvoice = await transitionInvoice('paidActionPaid', {
     invoiceId,
     fromState: ['HELD', 'PENDING', 'FORWARDED'],
     toState: 'PAID',
@@ -144,9 +144,19 @@ export async function paidActionPaid ({ data: { invoiceId, ...args }, models, ln
       }
 
       await paidActions[dbInvoice.actionType].onPaid?.({ invoice: dbInvoice }, { models, tx, lnd })
+
+      // any paid action is eligible for a cowboy hat streak
       await tx.$executeRaw`
         INSERT INTO pgboss.job (name, data)
-        VALUES ('checkStreak', jsonb_build_object('id', ${dbInvoice.userId}))`
+        VALUES ('checkStreak', jsonb_build_object('id', ${dbInvoice.userId}, 'type', 'COWBOY_HAT'))`
+      if (dbInvoice.invoiceForward) {
+        // only paid forwards are eligible for a gun streak
+        await tx.$executeRaw`
+          INSERT INTO pgboss.job (name, data)
+          VALUES
+            ('checkStreak', jsonb_build_object('id', ${dbInvoice.userId}, 'type', 'GUN')),
+            ('checkStreak', jsonb_build_object('id', ${dbInvoice.invoiceForward.withdrawl.userId}, 'type', 'HORSE'))`
+      }
 
       return {
         confirmedAt: new Date(lndInvoice.confirmed_at),
@@ -156,6 +166,14 @@ export async function paidActionPaid ({ data: { invoiceId, ...args }, models, ln
     },
     ...args
   }, { models, lnd, boss })
+
+  if (transitionedInvoice) {
+    // run non critical side effects in the background
+    // after the transaction has been committed
+    paidActions[transitionedInvoice.actionType]
+      .nonCriticalSideEffects?.({ invoice: transitionedInvoice }, { models, lnd })
+      .catch(console.error)
+  }
 }
 
 // this performs forward creating the outgoing payment

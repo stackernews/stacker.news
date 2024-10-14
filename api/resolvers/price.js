@@ -1,8 +1,7 @@
 import { SUPPORTED_CURRENCIES } from '@/lib/currency'
 import { cachedFetcher } from '@/lib/fetch'
 
-const getPrice = cachedFetcher(async (fiat) => {
-  fiat ??= 'USD'
+const getPrice = cachedFetcher(async function fetchPrice (fiat = 'USD') {
   const url = `https://api.coinbase.com/v2/prices/BTC-${fiat}/spot`
   try {
     const res = await fetch(url)
@@ -15,7 +14,8 @@ const getPrice = cachedFetcher(async (fiat) => {
 }, {
   maxSize: SUPPORTED_CURRENCIES.length,
   cacheExpiry: 60 * 1000, // 1 minute
-  forceRefreshThreshold: 0 // never force refresh
+  forceRefreshThreshold: 0, // never force refresh
+  keyGenerator: (fiat = 'USD') => fiat
 })
 
 export default {

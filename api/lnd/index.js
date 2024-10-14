@@ -108,9 +108,9 @@ export function getPaymentFailureStatus (withdrawal) {
   }
 }
 
-export const getBlockHeight = cachedFetcher(async () => {
+export const getBlockHeight = cachedFetcher(async function fetchBlockHeight ({ lnd, ...args }) {
   try {
-    const { current_block_height: height } = await getHeight({ lnd })
+    const { current_block_height: height } = await getHeight({ lnd, ...args })
     return height
   } catch (err) {
     throw new Error(`Unable to fetch block height: ${err.message}`)
@@ -118,12 +118,13 @@ export const getBlockHeight = cachedFetcher(async () => {
 }, {
   maxSize: 1,
   cacheExpiry: 60 * 1000, // 1 minute
-  forceRefreshThreshold: 5 * 60 * 1000 // 5 minutes
+  forceRefreshThreshold: 5 * 60 * 1000, // 5 minutes
+  keyGenerator: () => 'getHeight'
 })
 
-export const getOurPubkey = cachedFetcher(async () => {
+export const getOurPubkey = cachedFetcher(async function fetchOurPubkey ({ lnd, ...args }) {
   try {
-    const { identity } = await getIdentity({ lnd })
+    const { identity } = await getIdentity({ lnd, ...args })
     return identity.public_key
   } catch (err) {
     throw new Error(`Unable to fetch identity: ${err.message}`)
@@ -131,19 +132,24 @@ export const getOurPubkey = cachedFetcher(async () => {
 }, {
   maxSize: 1,
   cacheExpiry: 0, // never expire
-  forceRefreshThreshold: 0 // never force refresh
+  forceRefreshThreshold: 0, // never force refresh
+  keyGenerator: () => 'getOurPubkey'
 })
 
-export const getNodeInfo = cachedFetcher(async (args) => {
+export const getNodeSockets = cachedFetcher(async function fetchNodeSockets ({ lnd, ...args }) {
   try {
-    return await getNode({ lnd, ...args })
+    return (await getNode({ lnd, is_omitting_channels: true, ...args }))?.sockets
   } catch (err) {
     throw new Error(`Unable to fetch node info: ${err.message}`)
   }
 }, {
-  maxSize: 1000,
+  maxSize: 100,
   cacheExpiry: 1000 * 60 * 60 * 24, // 1 day
-  forceRefreshThreshold: 1000 * 60 * 60 * 24 * 7 // 1 week
+  forceRefreshThreshold: 1000 * 60 * 60 * 24 * 7, // 1 week
+  keyGenerator: (args) => {
+    const { public_key: publicKey } = args
+    return publicKey
+  }
 })
 
 export default lnd

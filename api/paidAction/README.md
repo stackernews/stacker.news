@@ -154,7 +154,11 @@ All functions have the following signature: `function(args: Object, context: Obj
        - it can optionally store in the invoice with the `invoiceId` the `actionId` to be able to link the action with the invoice regardless of retries
 - `onPaid`: called when the action is paid
     - if the action does not support optimism, this function is optional
-    - this function should be used to mark the rows created in `perform` as `PAID` and perform any other side effects of the action (like notifications or denormalizations)
+    - this function should be used to mark the rows created in `perform` as `PAID` and perform critical side effects of the action (like denormalizations)
+- `nonCriticalSideEffects`: called after the action is paid to run any side effects whose failure does not affect the action's execution
+    - this function is always optional
+    - it's passed the result of the action (or the action's paid invoice) and the current context
+    - this is where things like push notifications should be handled
 - `onFail`: called when the action fails
     - if the action does not support optimism, this function is optional
     - this function should be used to mark the rows created in `perform` as `FAILED`

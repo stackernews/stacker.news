@@ -154,15 +154,13 @@ export async function retry ({ invoiceId, newInvoiceId }, { tx }) {
 }
 
 export async function onPaid ({ invoice, id }, context) {
-  const { models, tx } = context
+  const { tx } = context
   let item
 
   if (invoice) {
     item = await tx.item.findFirst({
       where: { invoiceId: invoice.id },
       include: {
-        mentions: true,
-        itemReferrers: { include: { refereeItem: true } },
         user: true
       }
     })
@@ -173,8 +171,6 @@ export async function onPaid ({ invoice, id }, context) {
     item = await tx.item.findUnique({
       where: { id },
       include: {
-        mentions: true,
-        itemReferrers: { include: { refereeItem: true } },
         user: true,
         itemUploads: { include: { upload: true } }
       }
@@ -224,17 +220,30 @@ export async function onPaid ({ invoice, id }, context) {
         SELECT comment.created_at, comment.updated_at, ancestors.id, ancestors."userId",
           comment.id, comment."userId", nlevel(comment.path) - nlevel(ancestors.path)
         FROM ancestors, comment`
+  }
+}
 
+export async function nonCriticalSideEffects ({ invoice, id }, { models }) {
+  const item = await models.item.findFirst({
+    where: invoice ? { invoiceId: invoice.id } : { id: parseInt(id) },
+    include: {
+      mentions: true,
+      itemReferrers: { include: { refereeItem: true } },
+      user: true
+    }
+  })
+
+  if (item.parentId) {
     notifyItemParents({ item, models }).catch(console.error)
   }
-
   for (const { userId } of item.mentions) {
     notifyMention({ models, item, userId }).catch(console.error)
   }
   for (const { refereeItem } of item.itemReferrers) {
     notifyItemMention({ models, referrerItem: item, refereeItem }).catch(console.error)
   }
-  notifyUserSubscribers({ models: tx, item }).catch(console.error)
+
+  notifyUserSubscribers({ models, item }).catch(console.error)
   notifyTerritorySubscribers({ models, item }).catch(console.error)
 }
 

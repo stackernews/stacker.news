@@ -131,7 +131,7 @@ export default async function wrapInvoice (bolt11, { msats, description, descrip
         timeout: FEE_ESTIMATE_TIMEOUT_SECS
       })
 
-    const blockHeight = await getBlockHeight()
+    const blockHeight = await getBlockHeight({ lnd })
     /*
       we want the incoming invoice to have MIN_SETTLEMENT_CLTV_DELTA higher final cltv delta than
       the expected ctlv_delta of the outgoing invoice's entire route

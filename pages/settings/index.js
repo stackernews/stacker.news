@@ -325,7 +325,7 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label='I find or lose a cowboy hat'
+            label='I find or lose cowboy essentials (e.g. cowboy hat)'
             name='noteCowboyHat'
           />
           <div className='form-label'>privacy</div>
@@ -386,14 +386,14 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            disabled={me.optional.githubId === null}
+            disabled={!settings?.authMethods?.github}
             label={
               <div className='d-flex align-items-center'>hide my linked github profile
                 <Info>
                   <ul>
                     <li>Linked accounts are hidden from your profile by default</li>
                     <li>uncheck this to display your github on your profile</li>
-                    {me.optional.githubId === null &&
+                    {!settings?.authMethods?.github &&
                       <div className='my-2'>
                         <li><i>You don't seem to have a linked github account</i></li>
                         <ul><li>If this is wrong, try unlinking/relinking</li></ul>
@@ -406,14 +406,14 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            disabled={me.optional.nostrAuthPubkey === null}
+            disabled={!settings?.authMethods?.nostr}
             label={
               <div className='d-flex align-items-center'>hide my linked nostr profile
                 <Info>
                   <ul>
                     <li>Linked accounts are hidden from your profile by default</li>
                     <li>Uncheck this to display your npub on your profile</li>
-                    {me.optional.nostrAuthPubkey === null &&
+                    {!settings?.authMethods?.nostr &&
                       <div className='my-2'>
                         <li>You don't seem to have a linked nostr account</li>
                         <ul><li>If this is wrong, try unlinking/relinking</li></ul>
@@ -426,14 +426,14 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            disabled={me.optional.twitterId === null}
+            disabled={!settings?.authMethods?.twitter}
             label={
               <div className='d-flex align-items-center'>hide my linked twitter profile
                 <Info>
                   <ul>
                     <li>Linked accounts are hidden from your profile by default</li>
                     <li>Uncheck this to display your twitter on your profile</li>
-                    {me.optional.twitterId === null &&
+                    {!settings?.authMethods?.twitter &&
                       <div className='my-2'>
                         <i>You don't seem to have a linked twitter account</i>
                         <ul><li>If this is wrong, try unlinking/relinking</li></ul>

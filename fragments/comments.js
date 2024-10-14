@@ -1,6 +1,18 @@
 import { gql } from '@apollo/client'
 
+// we can't import from users because of circular dependency
+const STREAK_FIELDS = gql`
+  fragment StreakFields on User {
+    optional {
+    streak
+    gunStreak
+      horseStreak
+    }
+  }
+`
+
 export const COMMENT_FIELDS = gql`
+  ${STREAK_FIELDS}
   fragment CommentFields on Item {
     id
     position
@@ -11,10 +23,8 @@ export const COMMENT_FIELDS = gql`
     user {
       id
       name
-      optional {
-        streak
-      }
       meMute
+      ...StreakFields
     }
     sats
     meAnonSats @client
@@ -45,6 +55,7 @@ export const COMMENT_FIELDS = gql`
 `
 
 export const COMMENTS_ITEM_EXT_FIELDS = gql`
+  ${STREAK_FIELDS}
   fragment CommentItemExtFields on Item {
     text
     root {
@@ -61,10 +72,8 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
       }
       user {
         name
-        optional {
-          streak
-        }
         id
+        ...StreakFields
       }
     }
   }`

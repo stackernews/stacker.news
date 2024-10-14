@@ -99,7 +99,7 @@ async function performFeeCreditAction (actionType, args, context) {
   const { me, models, cost } = context
   const action = paidActions[actionType]
 
-  return await models.$transaction(async tx => {
+  const result = await models.$transaction(async tx => {
     context.tx = tx
 
     await tx.user.update({
@@ -121,6 +121,11 @@ async function performFeeCreditAction (actionType, args, context) {
       paymentMethod: 'FEE_CREDIT'
     }
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
+
+  // run non critical side effects in the background
+  // after the transaction has been committed
+  action.nonCriticalSideEffects?.(result.result, context).catch(console.error)
+  return result
 }
 
 async function performOptimisticAction (actionType, args, context) {

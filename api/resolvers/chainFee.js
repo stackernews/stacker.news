@@ -1,6 +1,6 @@
 import { cachedFetcher } from '@/lib/fetch'
 
-const getChainFeeRate = cachedFetcher(async () => {
+const getChainFeeRate = cachedFetcher(async function fetchChainFeeRate () {
   const url = 'https://mempool.space/api/v1/fees/recommended'
   try {
     const res = await fetch(url)
@@ -13,7 +13,8 @@ const getChainFeeRate = cachedFetcher(async () => {
 }, {
   maxSize: 1,
   cacheExpiry: 60 * 1000, // 1 minute
-  forceRefreshThreshold: 0 // never force refresh
+  forceRefreshThreshold: 0, // never force refresh
+  keyGenerator: () => 'getChainFeeRate'
 })
 
 export default {

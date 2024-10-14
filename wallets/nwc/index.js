@@ -4,6 +4,9 @@ import { nwcSchema } from '@/lib/validate'
 import { finalizeEvent, nip04, verifyEvent } from 'nostr-tools'
 
 export const name = 'nwc'
+export const walletType = 'NWC'
+export const walletField = 'walletNWC'
+export const fieldValidation = nwcSchema
 
 export const fields = [
   {
@@ -29,12 +32,6 @@ export const card = {
   subtitle: 'use Nostr Wallet Connect for payments',
   badges: ['send & receive', 'budgetable']
 }
-
-export const fieldValidation = nwcSchema
-
-export const walletType = 'NWC'
-
-export const walletField = 'walletNWC'
 
 export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } = {}) {
   const { relayUrl, walletPubkey, secret } = parseNwcUrl(nwcUrl)

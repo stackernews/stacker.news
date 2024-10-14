@@ -134,6 +134,8 @@ model User {
   ItemUserAgg               ItemUserAgg[]
   oneDayReferrals           OneDayReferral[]     @relation("OneDayReferral_referrer")
   oneDayReferrees           OneDayReferral[]     @relation("OneDayReferral_referrees")
+  vaultKeyHash              String               @default("")
+  vaultEntries              Vault[]              @relation("VaultEntries")
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -173,6 +175,9 @@ enum WalletType {
   LNBITS
   NWC
   PHOENIXD
+  BLINK
+  LNC
+  WEBLN
 }
 
 model Wallet {
@@ -184,6 +189,8 @@ model Wallet {
   enabled   Boolean  @default(true)
   priority  Int      @default(0)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  canReceive Boolean  @default(false)
+  canSend    Boolean  @default(true)
 
   // NOTE: this denormalized json field exists to make polymorphic joins efficient
   // when reading wallets ... it is populated by a trigger when wallet descendants update
@@ -1097,6 +1104,22 @@ model Reminder {
   item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([userId, remindAt], map: "Reminder.userId_reminderAt_index")
+}
+
+model Vault {
+  id        Int      @id @default(autoincrement())
+  key       String   @db.VarChar(64)
+  value     String   @db.Text
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, name: "VaultEntries")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  ownerId   Int
+  ownerType String
+
+  @@unique([userId, key, ownerId, ownerType])
+  @@index([userId], map: "Vault.userId_index")
+  @@index([ownerId, ownerType], map: "Vault.ownerId_ownerType_index")
 }
 
 enum EarnType {

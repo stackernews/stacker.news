@@ -1,6 +1,10 @@
 import { lncSchema } from '@/lib/validate'
 
 export const name = 'lnc'
+export const walletType = 'LNC'
+export const walletField = 'walletLNC'
+export const clientOnly = true
+export const fieldValidation = lncSchema
 
 export const fields = [
   {
@@ -35,5 +39,3 @@ export const card = {
   subtitle: 'use Lightning Node Connect for LND payments',
   badges: ['send only', 'budgetable']
 }
-
-export const fieldValidation = lncSchema

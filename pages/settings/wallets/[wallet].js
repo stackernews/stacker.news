@@ -22,7 +22,7 @@ export default function WalletSettings () {
   const { wallet: name } = router.query
   const wallet = useWallet(name)
 
-  const initial = wallet.fields.reduce((acc, field) => {
+  const initial = wallet?.fields.reduce((acc, field) => {
     // We still need to run over all wallet fields via reduce
     // even though we use wallet.config as the initial value
     // since wallet.config is empty when wallet is not configured.
@@ -30,27 +30,27 @@ export default function WalletSettings () {
     // 'enabled' and 'priority' which are not defined in wallet.fields.
     return {
       ...acc,
-      [field.name]: wallet.config?.[field.name] || ''
+      [field.name]: wallet?.config?.[field.name] || ''
     }
-  }, wallet.config)
+  }, wallet?.config)
 
   // check if wallet uses the form-level validation built into Formik or a Yup schema
-  const validateProps = typeof wallet.fieldValidation === 'function'
-    ? { validate: wallet.fieldValidation }
-    : { schema: wallet.fieldValidation }
+  const validateProps = typeof wallet?.fieldValidation === 'function'
+    ? { validate: wallet?.fieldValidation }
+    : { schema: wallet?.fieldValidation }
 
   return (
     <CenterLayout>
-      <h2 className='pb-2'>{wallet.card.title}</h2>
-      <h6 className='text-muted text-center pb-3'><Text>{wallet.card.subtitle}</Text></h6>
-      {wallet.canSend && wallet.hasConfig > 0 && <WalletSecurityBanner />}
+      <h2 className='pb-2'>{wallet?.card?.title}</h2>
+      <h6 className='text-muted text-center pb-3'><Text>{wallet?.card?.subtitle}</Text></h6>
+      {wallet?.canSend && wallet?.hasConfig > 0 && <WalletSecurityBanner />}
       <Form
         initial={initial}
         enableReinitialize
         {...validateProps}
         onSubmit={async ({ amount, ...values }) => {
           try {
-            const newConfig = !wallet.isConfigured
+            const newConfig = !wallet?.isConfigured
 
             // enable wallet if wallet was just configured
             if (newConfig) {
@@ -67,13 +67,13 @@ export default function WalletSettings () {
           }
         }}
       >
-        <WalletFields wallet={wallet} />
-        {wallet.walletType
+        {wallet && <WalletFields wallet={wallet} />}
+        {wallet?.walletType
           ? <AutowithdrawSettings wallet={wallet} />
           : (
             <CheckboxGroup name='enabled'>
               <Checkbox
-                disabled={!wallet.isConfigured}
+                disabled={!wallet?.isConfigured}
                 label='enabled'
                 name='enabled'
                 groupClassName='mb-0'
@@ -83,7 +83,7 @@ export default function WalletSettings () {
         <WalletButtonBar
           wallet={wallet} onDelete={async () => {
             try {
-              await wallet.delete()
+              await wallet?.delete()
               toaster.success('saved settings')
               router.push('/settings/wallets')
             } catch (err) {
@@ -95,7 +95,7 @@ export default function WalletSettings () {
         />
       </Form>
       <div className='mt-3 w-100'>
-        <WalletLogs wallet={wallet} embedded />
+        {wallet && <WalletLogs wallet={wallet} embedded />}
       </div>
     </CenterLayout>
   )

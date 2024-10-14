@@ -92,7 +92,7 @@ export default function Wallet ({ ssrData }) {
 
               return (
                 <div
-                  key={w.name}
+                  key={w?.name}
                   draggable={draggable}
                   style={{ cursor: draggable ? 'move' : 'default' }}
                   onDragStart={draggable ? onDragStart(i) : undefined}

@@ -46,7 +46,7 @@ export default gql`
     disableFreebies: Boolean
   }
 
-  type User {
+  type User implements VaultOwner {
     id: ID!
     createdAt: Date!
     name: String
@@ -182,6 +182,7 @@ export default gql`
     withdrawMaxFeeDefault: Int!
     autoWithdrawThreshold: Int
     autoWithdrawMaxFeePercent: Float
+    vaultKeyHash: String
   }
 
   type UserOptional {

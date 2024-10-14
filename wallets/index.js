@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef, useMemo } from 'react'
+import { useContext, createContext, useCallback, useState, useEffect, useRef, useMemo } from 'react'
 import { useMe } from '@/components/me'
 import { openVault } from '@/components/use-vault'
 import { useWalletLogger } from '@/components/wallet-logger'
@@ -136,12 +136,6 @@ export function useWallet (name) {
     wallet.def = walletDef
     return wallet
   }, [walletDef, config, status, enabled, priority, logger, enablePayments, disablePayments, save, delete_, deleteLogs_, setPriority, hasConfig])
-
-  useEffect(() => {
-    if (wallet.enabled && wallet.canSend) {
-      disableFreebies().catch(console.error)
-    }
-  }, [wallet])
 
   return wallet
 }
@@ -441,9 +435,12 @@ export function walletPrioritySort (w1, w2) {
   return w1.card.title < w2.card.title ? -1 : 1
 }
 
-export function useWallets () {
-  const wallets = walletDefs.map(def => useWallet(def.name))
+const WalletContext = createContext({
+  wallets: []
+})
 
+export function useWallets () {
+  const { wallets } = useContext(WalletContext)
   const resetClient = useCallback(async (wallet) => {
     for (const w of wallets) {
       if (w.canSend) {
@@ -452,31 +449,35 @@ export function useWallets () {
       await w.deleteLogs({ clientOnly: true })
     }
   }, wallets)
+  return { wallets, resetClient }
+}
+
+export function WalletProvider ({ children }) {
+  if (SSR) return children
+
+  const { me } = useMe()
+  const migrationRan = useRef(false)
+  const migratableKeys = !migrationRan.current && !SSR ? Object.keys(window.localStorage).filter(k => k.startsWith('wallet:')) : undefined
+
+  const wallets = walletDefs.map(def => useWallet(def.name))
 
   const [walletsReady, setWalletsReady] = useState([])
   useEffect(() => {
     setWalletsReady(wallets.filter(w => w))
   }, wallets)
 
-  return { wallets: walletsReady, resetClient }
-}
-
-export function WalletsMigrator ({ children }) {
-  const { me } = useMe()
-  const { wallets } = useWallets()
-  const keys = !SSR ? Object.keys(window.localStorage).filter(k => k.startsWith('wallet:')) : []
-  const ran = useRef(false)
+  // migration
   useEffect(() => {
     if (SSR || !me?.id || !wallets.length) return
-    if (ran.current) return
-    ran.current = true
-    if (!keys?.length) {
-      console.log('wallet migrator: nothing to migrate', keys)
+    if (migrationRan.current) return
+    migrationRan.current = true
+    if (!migratableKeys?.length) {
+      console.log('wallet migrator: nothing to migrate', migratableKeys)
       return
     }
     const userId = me.id
     // List all local storage keys related to wallet settings
-    const userKeys = keys.filter(k => k.endsWith(`:${userId}`))
+    const userKeys = migratableKeys.filter(k => k.endsWith(`:${userId}`))
     ;(async () => {
       for (const key of userKeys) {
         const walletType = key.substring('wallet:'.length, key.length - userId.length - 1)
@@ -492,5 +493,9 @@ export function WalletsMigrator ({ children }) {
       }
     })()
   }, [me, wallets])
-  return children
+  return (
+    <WalletContext.Provider value={{ wallets: walletsReady }}>
+      {children}
+    </WalletContext.Provider>
+  )
 }

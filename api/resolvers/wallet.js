@@ -676,7 +676,7 @@ async function upsertWallet (
 
   return await models.$transaction(async (tx) => {
     if (canReceive) {
-      tx.user.update({
+      await tx.user.update({
         where: { id: me.id },
         data: {
           autoWithdrawMaxFeePercent,
@@ -693,7 +693,7 @@ async function upsertWallet (
         })
         : undefined
 
-      updatedWallet = tx.wallet.update({
+      updatedWallet = await tx.wallet.update({
         where: { id: Number(id), userId: me.id },
         data: {
           enabled,
@@ -714,7 +714,7 @@ async function upsertWallet (
         }
       })
     } else {
-      updatedWallet = tx.wallet.create({
+      updatedWallet = await tx.wallet.create({
         data: {
           enabled,
           priority,
@@ -765,7 +765,7 @@ async function upsertWallet (
       })
     }
 
-    tx.walletLog.createMany({
+    await tx.walletLog.createMany({
       data: logs
     })
 

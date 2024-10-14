@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
+import { SSR } from '@/lib/constants'
 export * from 'wallets/webln'
-
 export const sendPayment = async (bolt11) => {
   if (typeof window.webln === 'undefined') {
     throw new Error('WebLN provider not found')
@@ -22,7 +22,7 @@ export const sendPayment = async (bolt11) => {
 }
 
 export function isAvailable () {
-  return typeof window !== 'undefined' && window?.weblnEnabled
+  return !SSR && window?.weblnEnabled
 }
 
 export function WebLnProvider ({ children }) {

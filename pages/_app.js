@@ -22,7 +22,7 @@ import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
 import { WebLnProvider } from '@/wallets/webln/client'
 import { AccountProvider } from '@/components/account'
-import { WalletsMigrator } from '@/wallets/index'
+import { WalletProvider } from '@/wallets/index'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
@@ -111,7 +111,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                     <ServiceWorkerProvider>
                       <AccountProvider>
                         <PriceProvider price={price}>
-                          <WalletsMigrator>
+                          <WalletProvider>
                             <LightningProvider>
                               <ToastProvider>
                                 <ShowModalProvider>
@@ -126,7 +126,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                                 </ShowModalProvider>
                               </ToastProvider>
                             </LightningProvider>
-                          </WalletsMigrator>
+                          </WalletProvider>
                         </PriceProvider>
                       </AccountProvider>
                     </ServiceWorkerProvider>

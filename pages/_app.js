@@ -20,7 +20,7 @@ import { LoggerProvider } from '@/components/logger'
 import { ChainFeeProvider } from '@/components/chain-fee.js'
 import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
-import WebLnProvider from '@/wallets/webln'
+import { WebLnProvider } from '@/wallets/webln/client'
 import { AccountProvider } from '@/components/account'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })

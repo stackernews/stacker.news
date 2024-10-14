@@ -2,6 +2,9 @@ import { lnAddrAutowithdrawSchema } from '@/lib/validate'
 
 export const name = 'lightning-address'
 export const shortName = 'lnAddr'
+export const walletType = 'LIGHTNING_ADDRESS'
+export const walletField = 'walletLightningAddress'
+export const fieldValidation = lnAddrAutowithdrawSchema
 
 export const fields = [
   {
@@ -17,9 +20,3 @@ export const card = {
   subtitle: 'autowithdraw to a lightning address',
   badges: ['receive only']
 }
-
-export const fieldValidation = lnAddrAutowithdrawSchema
-
-export const walletType = 'LIGHTNING_ADDRESS'
-
-export const walletField = 'walletLightningAddress'

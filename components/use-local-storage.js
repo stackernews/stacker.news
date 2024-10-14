@@ -70,13 +70,13 @@ export async function listLocalStorages ({ userId, database }) {
  */
 function createMemBackend (userId, namespace) {
   const joinedNamespace = userId + ':' + namespace.join(':')
-  let memory = typeof window !== 'undefined' ? window?.snMemStorage?.[joinedNamespace] : null
-  if (!memory) {
+  let memory
+  if (SSR) {
     memory = {}
-    if (typeof window !== 'undefined') {
-      if (!window.snMemStorage) window.snMemStorage = {}
-      window.snMemStorage[joinedNamespace] = memory
-    }
+  } else {
+    if (!window.snMemStorage) window.snMemStorage = {}
+    memory = window.snMemStorage[joinedNamespace]
+    if (!memory) window.snMemStorage[joinedNamespace] = memory = {}
   }
   return {
     set: (key, value) => { memory[key] = value },

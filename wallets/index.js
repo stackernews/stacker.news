@@ -12,7 +12,7 @@ import { useShowModal } from '@/components/modal'
 import { useToast } from '../components/toast'
 import { generateResolverName, isConfigured, isClientField, isServerField } from '@/lib/wallet'
 import { walletValidate } from '@/lib/validate'
-
+import { SSR } from '@/lib/constants'
 export const Status = {
   Initialized: 'Initialized',
   Enabled: 'Enabled',
@@ -88,6 +88,10 @@ export function useWallet (name) {
 
   const save = useCallback(async (newConfig) => {
     await saveConfig(newConfig, { logger })
+    const available = (!walletDef.isAvailable || walletDef.isAvailable())
+    logger.ok(_isConfigured() ? 'payment details updated' : 'wallet attached for payments')
+    if (newConfig.enabled && available) logger.ok('payments enabled')
+    else logger.ok('payments disabled')
   }, [saveConfig, me])
 
   // delete is a reserved keyword
@@ -130,14 +134,12 @@ export function useWallet (name) {
     wallet.logger = logger
     wallet.sendPayment = sendPayment
     wallet.def = walletDef
-    logger.ok(walletDef.isConfigured ? 'payment details updated' : 'wallet attached for payments')
     return wallet
   }, [walletDef, config, status, enabled, priority, logger, enablePayments, disablePayments, save, delete_, deleteLogs_, setPriority, hasConfig])
 
   useEffect(() => {
     if (wallet.enabled && wallet.canSend) {
       disableFreebies().catch(console.error)
-      logger.ok('payments enabled')
     }
   }, [wallet])
 
@@ -311,8 +313,8 @@ function useConfig (walletDef) {
         ...newServerConfig,
         id: currentWallet?.id,
         settings: {
-          autoWithdrawThreshold: Number(autoWithdrawThreshold),
-          autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent),
+          autoWithdrawThreshold: Number(autoWithdrawThreshold == null ? autowithdrawSettings.autoWithdrawThreshold : autoWithdrawThreshold),
+          autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent == null ? autowithdrawSettings.autoWithdrawMaxFeePercent : autoWithdrawMaxFeePercent),
           priority,
           enabled: enabled && (isReadyToSend || isReadyToReceive)
         },
@@ -457,4 +459,38 @@ export function useWallets () {
   }, wallets)
 
   return { wallets: walletsReady, resetClient }
+}
+
+export function WalletsMigrator ({ children }) {
+  const { me } = useMe()
+  const { wallets } = useWallets()
+  const keys = !SSR ? Object.keys(window.localStorage).filter(k => k.startsWith('wallet:')) : []
+  const ran = useRef(false)
+  useEffect(() => {
+    if (SSR || !me?.id || !wallets.length) return
+    if (ran.current) return
+    ran.current = true
+    if (!keys?.length) {
+      console.log('wallet migrator: nothing to migrate', keys)
+      return
+    }
+    const userId = me.id
+    // List all local storage keys related to wallet settings
+    const userKeys = keys.filter(k => k.endsWith(`:${userId}`))
+    ;(async () => {
+      for (const key of userKeys) {
+        const walletType = key.substring('wallet:'.length, key.length - userId.length - 1)
+        const walletConfig = JSON.parse(window.localStorage.getItem(key))
+        const wallet = wallets.find(w => w.def.name === walletType)
+        if (wallet) {
+          console.log('Migrating', walletType, walletConfig)
+          await wallet.save(walletConfig)
+          window.localStorage.removeItem(key)
+        } else {
+          console.warn('No wallet found for', walletType, wallets)
+        }
+      }
+    })()
+  }, [me, wallets])
+  return children
 }

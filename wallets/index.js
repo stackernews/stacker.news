@@ -1,4 +1,4 @@
-import { useContext, createContext, useCallback, useState, useEffect, useRef, useMemo } from 'react'
+import { useCallback, useState, useEffect, useRef, useMemo } from 'react'
 import { useMe } from '@/components/me'
 import { openVault } from '@/components/use-vault'
 import { useWalletLogger } from '@/components/wallet-logger'
@@ -42,8 +42,9 @@ export function useWallet (name) {
 
   const { logger, deleteLogs } = useWalletLogger(walletDef)
   const [config, saveConfig, clearConfig] = useConfig(walletDef)
+  const available = (!walletDef?.isAvailable || walletDef?.isAvailable())
 
-  const status = config?.enabled ? Status.Enabled : Status.Initialized
+  const status = config?.enabled && available ? Status.Enabled : Status.Initialized
   const enabled = status === Status.Enabled
   const priority = config?.priority
   const hasConfig = walletDef?.fields?.length > 0
@@ -113,7 +114,6 @@ export function useWallet (name) {
 
   const wallet = useMemo(() => {
     if (!walletDef) return {}
-    const available = (!walletDef.isAvailable || walletDef.isAvailable())
     const wallet = {
       ...walletDef
     }
@@ -129,7 +129,8 @@ export function useWallet (name) {
     wallet.setPriority = setPriority
     wallet.hasConfig = hasConfig
     wallet.status = status
-    wallet.enabled = enabled && available
+    wallet.enabled = enabled
+    wallet.available = available
     wallet.priority = priority
     wallet.logger = logger
     wallet.sendPayment = sendPayment
@@ -436,12 +437,14 @@ export function walletPrioritySort (w1, w2) {
   return w1.card.title < w2.card.title ? -1 : 1
 }
 
-const WalletContext = createContext({
-  wallets: []
-})
-
 export function useWallets () {
-  const { wallets } = useContext(WalletContext)
+  const wallets = walletDefs.map(def => useWallet(def.name))
+
+  const [walletsReady, setWalletsReady] = useState([])
+  useEffect(() => {
+    setWalletsReady(wallets.filter(w => w))
+  }, wallets)
+
   const resetClient = useCallback(async (wallet) => {
     for (const w of wallets) {
       if (w.canSend) {
@@ -450,7 +453,7 @@ export function useWallets () {
       await w.deleteLogs({ clientOnly: true })
     }
   }, wallets)
-  return { wallets, resetClient }
+  return { wallets: walletsReady, resetClient }
 }
 
 export function WalletProvider ({ children }) {
@@ -459,13 +462,7 @@ export function WalletProvider ({ children }) {
   const { me } = useMe()
   const migrationRan = useRef(false)
   const migratableKeys = !migrationRan.current && !SSR ? Object.keys(window.localStorage).filter(k => k.startsWith('wallet:')) : undefined
-
-  const wallets = walletDefs.map(def => useWallet(def.name))
-
-  const [walletsReady, setWalletsReady] = useState([])
-  useEffect(() => {
-    setWalletsReady(wallets.filter(w => w))
-  }, wallets)
+  const { wallets } = useWallets()
 
   // migration
   useEffect(() => {
@@ -494,9 +491,6 @@ export function WalletProvider ({ children }) {
       }
     })()
   }, [me, wallets])
-  return (
-    <WalletContext.Provider value={{ wallets: walletsReady }}>
-      {children}
-    </WalletContext.Provider>
-  )
+
+  return children
 }

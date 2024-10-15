@@ -51,7 +51,7 @@ function useWalletInner (name) {
   const [config, saveConfig, clearConfig] = useConfig(walletDef)
   const available = (!walletDef?.isAvailable || walletDef?.isAvailable())
 
-  const status = config?.enabled && available ? Status.Enabled : Status.Initialized
+  const status = config?.enabled && available && (config.canSend || config.canReceive) ? Status.Enabled : Status.Initialized
   const enabled = status === Status.Enabled
   const priority = config?.priority
   const hasConfig = walletDef?.fields?.length > 0

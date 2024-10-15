@@ -30,12 +30,15 @@ export function useWallet (name) {
 
   if (!name) {
     // find best wallet in list
-    const bestWalletDef = bestSendWalletList?.wallets
+    const highestWalletDef = bestSendWalletList?.wallets
       // .filter(w => w.enabled && w.canSend)// filtered by the server
       // .sort((a, b) => b.priority - a.priority) // already priority sorted by the server
       .map(w => getWalletByType(w.type))
-      .filter(w => !w.isAvailable || w.isAvailable())
-    name = bestWalletDef?.[0]?.name
+
+    const highestAvailableWalletDef = highestWalletDef?.filter(w => !w.isAvailable || w.isAvailable())
+    // console.log('Wallets priority', bestAvailableWallet.map(w => w.name))
+    // console.log('Available wallets priority', bestAvailableWallet.map(w => w.name))
+    name = highestAvailableWalletDef?.[0]?.name
   }
 
   const walletDef = getWalletByName(name)
@@ -114,8 +117,7 @@ export function useWallet (name) {
 
   const wallet = useMemo(() => {
     if (!walletDef) {
-      console.log(name)
-      return {}
+      return undefined
     }
     const wallet = {
       ...walletDef

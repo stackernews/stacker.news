@@ -81,6 +81,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
       if (pendingWithdrawals + pendingForwards >= MAX_PENDING_INVOICES_PER_WALLET) {
         throw new Error('wallet has too many pending invoices')
       }
+      console.log('use wallet', walletType)
 
       const invoice = await withTimeout(
         createInvoice({

@@ -204,6 +204,7 @@ export const BEST_SEND_WALLETS = gql`
       id
       priority
       type
+      updatedAt
     }
   }
 `

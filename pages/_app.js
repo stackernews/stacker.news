@@ -105,13 +105,13 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
         <PlausibleProvider domain='stacker.news' trackOutboundLinks>
           <ApolloProvider client={client}>
             <MeProvider me={me}>
-              <HasNewNotesProvider>
-                <LoggerProvider>
-                  <WebLnProvider>
-                    <ServiceWorkerProvider>
-                      <AccountProvider>
-                        <PriceProvider price={price}>
-                          <WalletProvider>
+              <WalletProvider>
+                <HasNewNotesProvider>
+                  <LoggerProvider>
+                    <WebLnProvider>
+                      <ServiceWorkerProvider>
+                        <AccountProvider>
+                          <PriceProvider price={price}>
                             <LightningProvider>
                               <ToastProvider>
                                 <ShowModalProvider>
@@ -126,13 +126,13 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                                 </ShowModalProvider>
                               </ToastProvider>
                             </LightningProvider>
-                          </WalletProvider>
-                        </PriceProvider>
-                      </AccountProvider>
-                    </ServiceWorkerProvider>
-                  </WebLnProvider>
-                </LoggerProvider>
-              </HasNewNotesProvider>
+                          </PriceProvider>
+                        </AccountProvider>
+                      </ServiceWorkerProvider>
+                    </WebLnProvider>
+                  </LoggerProvider>
+                </HasNewNotesProvider>
+              </WalletProvider>
             </MeProvider>
           </ApolloProvider>
         </PlausibleProvider>

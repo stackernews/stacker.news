@@ -195,13 +195,17 @@ const resolvers = {
       } else if (includeSenders) {
         filter.canSend = true
       }
+      if (onlyEnabled) {
+        filter.enabled = true
+      }
 
-      return await models.wallet.findMany({
+      const out = await models.wallet.findMany({
         where: filter,
         orderBy: {
           priority: 'asc'
         }
       })
+      return out
     },
     withdrawl: getWithdrawl,
     numBolt11s: async (parent, args, { me, models, lnd }) => {

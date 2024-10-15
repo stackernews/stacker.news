@@ -244,7 +244,6 @@ export function openVault (apollo, user, owner) {
           nextFetchPolicy: 'no-cache',
           fetchPolicy: 'no-cache'
         })
-        console.log(queriedData)
         if (queriedError) throw queriedError
         const encryptedVaultValue = queriedData?.getVaultEntry?.value
         if (encryptedVaultValue) {

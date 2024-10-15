@@ -181,13 +181,23 @@ const resolvers = {
         throw new GqlAuthenticationError()
       }
 
+      const filter = {
+        userId: me.id
+      }
+
+      if (includeReceivers && includeSenders) {
+        filter.OR = [
+          { canReceive: true },
+          { canSend: true }
+        ]
+      } else if (includeReceivers) {
+        filter.canReceive = true
+      } else if (includeSenders) {
+        filter.canSend = true
+      }
+
       return await models.wallet.findMany({
-        where: {
-          userId: me.id,
-          canReceive: includeReceivers,
-          canSend: includeSenders,
-          enabled: onlyEnabled !== undefined ? onlyEnabled : undefined
-        },
+        where: filter,
         orderBy: {
           priority: 'desc'
         }

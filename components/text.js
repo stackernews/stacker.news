@@ -33,7 +33,7 @@ const rehypeSNStyled = () => rehypeSN({
   }]
 })
 
-const remarkPlugins = [gfm, remarkMath]
+const remarkPlugins = [gfm, [remarkMath, { singleDollarTextMath: false }]]
 const rehypePlugins = [rehypeSNStyled, rehypeMathjax]
 
 export function SearchText ({ text }) {

@@ -5,16 +5,22 @@
     -webkit-touch-callout: none;
 }
 
+.boost {
+    fill: var(--theme-clickToContextColor);
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
 .upvoteWrapper {
     position: relative;
-    margin-right: .2rem;
+    padding-right: .2rem;
     padding-left: .2rem;
     margin-left: -.4rem;
 }
 
 .noSelfTips {
-    fill: transparent !important;
-    filter: none !important;
+    transform: scaleX(-1);
 }
 
 .upvoteWrapper:not(.noSelfTips):hover {
@@ -34,4 +40,18 @@
     position: absolute;
     left: 4px;
     width: 17px;
+}
+
+.pending {
+    animation-name: pulse;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    animation-duration: 0.25s;
+    animation-direction: alternate;
+}
+
+@keyframes pulse {
+	0% {
+		fill: #a5a5a5;
+	}
 }

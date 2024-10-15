@@ -1,66 +1,78 @@
-import { Form, MarkdownInput, SubmitButton } from '../components/form'
-import { gql, useMutation } from '@apollo/client'
+import { Form, MarkdownInput } from '@/components/form'
 import styles from './reply.module.css'
-import { COMMENTS } from '../fragments/comments'
+import { COMMENTS } from '@/fragments/comments'
 import { useMe } from './me'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { forwardRef, useCallback, useEffect, useState, useRef, useMemo } from 'react'
 import Link from 'next/link'
-import FeeButton from './fee-button'
-import { commentsViewedAfterComment } from '../lib/new-comments'
-import { commentSchema } from '../lib/validate'
-import Info from './info'
-import { useInvoiceable } from './invoice'
+import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
+import { commentsViewedAfterComment } from '@/lib/new-comments'
+import { commentSchema } from '@/lib/validate'
+import { ItemButtonBar } from './post'
+import { useShowModal } from './modal'
+import { Button } from 'react-bootstrap'
+import { useRoot } from './root'
+import { commentSubTreeRootId } from '@/lib/item'
+import { CREATE_COMMENT } from '@/fragments/paidAction'
+import useItemSubmit from './use-item-submit'
+import gql from 'graphql-tag'
 
-export function ReplyOnAnotherPage ({ parentId }) {
+export function ReplyOnAnotherPage ({ item }) {
+  const rootId = commentSubTreeRootId(item)
+
+  let text = 'reply on another page'
+  if (item.ncomments > 0) {
+    text = 'view replies'
+  }
+
   return (
-    <Link href={`/items/${parentId}`} className={`${styles.replyButtons} text-muted`}>
-      reply on another page
+    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='d-block py-3 fw-bold text-muted'>
+      {text}
     </Link>
   )
 }
 
-function FreebieDialog () {
-  return (
-    <div className='text-muted'>
-      you have no sats, so this one is on us
-      <Info>
-        <ul className='fw-bold'>
-          <li>Free comments have limited visibility and are listed at the bottom of the comment section until other stackers zap them.</li>
-          <li>Free comments will not cover comments that cost more than 1 sat.</li>
-          <li>To get fully visibile and unrestricted comments right away, fund your account with a few sats or earn some on Stacker News.</li>
-        </ul>
-      </Info>
-    </div>
-  )
-}
-
-export default function Reply ({ item, onSuccess, replyOpen, children, placeholder }) {
-  const [reply, setReply] = useState(replyOpen)
-  const me = useMe()
+export default forwardRef(function Reply ({
+  item,
+  replyOpen,
+  children,
+  onQuoteReply,
+  onCancelQuote,
+  quote
+}, ref) {
+  const [reply, setReply] = useState(replyOpen || quote)
+  const { me } = useMe()
   const parentId = item.id
+  const replyInput = useRef(null)
+  const showModal = useShowModal()
+  const root = useRoot()
+  const sub = item?.sub || root?.sub
 
   useEffect(() => {
-    setReply(replyOpen || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text'))
-  }, [])
+    if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
+      setReply(true)
+    }
+  }, [replyOpen, quote, parentId])
 
-  const [upsertComment] = useMutation(
-    gql`
-      ${COMMENTS}
-      mutation upsertComment($text: String!, $parentId: ID!, $invoiceHash: String, $invoiceHmac: String) {
-        upsertComment(text: $text, parentId: $parentId, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
-          ...CommentFields
-          comments {
-            ...CommentsRecursive
-          }
-        }
-      }`, {
-      update (cache, { data: { upsertComment } }) {
+  const placeholder = useMemo(() => {
+    return [
+      'comment for currency?',
+      'fractions of a penny for your thoughts?',
+      'put your money where your mouth is?'
+    ][parentId % 3]
+  }, [parentId])
+
+  const onSubmit = useItemSubmit(CREATE_COMMENT, {
+    extraValues: { parentId },
+    paidMutationOptions: {
+      update (cache, { data: { upsertComment: { result, invoice } } }) {
+        if (!result) return
+
         cache.modify({
           id: `Item:${parentId}`,
           fields: {
             comments (existingCommentRefs = []) {
               const newCommentRef = cache.writeFragment({
-                data: upsertComment,
+                data: result,
                 fragment: COMMENTS,
                 fragmentName: 'CommentsRecursive'
               })
@@ -68,6 +80,17 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
             }
           }
         })
+
+        // no lag for itemRepetition
+        if (!item.mine && me) {
+          cache.updateQuery({
+            query: gql`{ itemRepetition(parentId: "${parentId}") }`
+          }, data => {
+            return {
+              itemRepetition: (data?.itemRepetition || 0) + 1
+            }
+          })
+        }
 
         const ancestors = item.path.split('.')
 
@@ -86,36 +109,61 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
         // so that we don't see indicator for our own comments, we record this comments as the latest time
         // but we also have record num comments, in case someone else commented when we did
         const root = ancestors[0]
-        commentsViewedAfterComment(root, upsertComment.createdAt)
+        commentsViewedAfterComment(root, result.createdAt)
       }
-    }
-  )
-
-  const submitComment = useCallback(
-    async (_, values, parentId, resetForm, invoiceHash, invoiceHmac) => {
-      const { error } = await upsertComment({ variables: { ...values, parentId, invoiceHash, invoiceHmac } })
-      if (error) {
-        throw new Error({ message: error.toString() })
-      }
+    },
+    onSuccessfulSubmit: (data, { resetForm }) => {
       resetForm({ text: '' })
       setReply(replyOpen || false)
-    }, [upsertComment, setReply])
+    },
+    navigateOnSubmit: false
+  })
 
-  const invoiceableCreateComment = useInvoiceable(submitComment)
-
-  const replyInput = useRef(null)
   useEffect(() => {
     if (replyInput.current && reply && !replyOpen) replyInput.current.focus()
   }, [reply])
 
+  const onCancel = useCallback(() => {
+    window.localStorage.removeItem('reply-' + parentId + '-' + 'text')
+    setReply(false)
+    onCancelQuote?.()
+  }, [setReply, parentId, onCancelQuote])
+
   return (
     <div>
       {replyOpen
-        ? <div className={styles.replyButtons} />
+        ? <div className='p-3' />
         : (
           <div className={styles.replyButtons}>
             <div
-              onClick={() => setReply(!reply)}
+              className='pe-3'
+              onClick={e => {
+                if (reply) {
+                  const text = window.localStorage.getItem('reply-' + parentId + '-' + 'text')
+                  if (text?.trim()) {
+                    showModal(onClose => (
+                      <>
+                        <p className='fw-bolder'>Are you sure? You will lose your work</p>
+                        <div className='d-flex justify-content-end'>
+                          <Button
+                            variant='info' onClick={() => {
+                              onCancel()
+                              onClose()
+                            }}
+                          >yep
+                          </Button>
+                        </div>
+                      </>
+                    ))
+                  } else {
+                    onCancel()
+                  }
+                } else {
+                  e.preventDefault()
+                  onQuoteReply?.({ selectionOnly: true })
+                  setReply(true)
+                }
+              }}
             >
               {reply ? 'cancel' : 'reply'}
             </div>
@@ -124,37 +172,34 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
           </div>)}
       {reply &&
         <div className={styles.reply}>
-          <Form
-            initial={{
-              text: ''
-            }}
-            schema={commentSchema}
-            onSubmit={async ({ cost, ...values }, { resetForm }) => {
-              return invoiceableCreateComment(cost, values, parentId, resetForm)
-            }}
-            storageKeyPrefix={'reply-' + parentId}
+          <FeeButtonProvider
+            baseLineItems={postCommentBaseLineItems({ baseCost: 1, comment: true, me: !!me })}
+            useRemoteLineItems={postCommentUseRemoteLineItems({ parentId: item.id, me: !!me })}
           >
-            <MarkdownInput
-              name='text'
-              minRows={6}
-              autoFocus={!replyOpen}
-              required
-              placeholder={placeholder}
-              hint={me?.sats < 1 && <FreebieDialog />}
-              innerRef={replyInput}
-            />
-            {reply &&
-              <div className='mt-1'>
-                <FeeButton
-                  baseFee={1} parentId={parentId} text='reply'
-                  ChildButton={SubmitButton} variant='secondary' alwaysShow
-                />
-              </div>}
-          </Form>
+            <Form
+              initial={{
+                text: ''
+              }}
+              schema={commentSchema}
+              onSubmit={onSubmit}
+              storageKeyPrefix={`reply-${parentId}`}
+            >
+              <MarkdownInput
+                name='text'
+                minRows={6}
+                autoFocus={!replyOpen}
+                required
+                appendValue={quote}
+                placeholder={placeholder}
+                hint={sub?.moderated && 'this territory is moderated'}
+              />
+              <ItemButtonBar createText='reply' hasCancel={false} />
+            </Form>
+          </FeeButtonProvider>
         </div>}
     </div>
   )
-}
+})
 
 export function ReplySkeleton () {
   return (

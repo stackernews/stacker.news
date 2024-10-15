@@ -1,0 +1,17 @@
+.subSelect {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis !important;
+}
+
+.subSelectSmall {
+  width: 90px !important;
+}
+
+.subSelectLarge {
+  width: 300px !important;
+}
+
+.subSelectMedium {
+  width: 200px !important;
+}

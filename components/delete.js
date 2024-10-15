@@ -45,7 +45,7 @@ export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
               onConfirm={async () => {
                 const { error } = await deleteItem({ variables: { id: itemId } })
                 if (error) {
-                  throw new Error({ message: error.toString() })
+                  throw error
                 }
                 if (onDelete) {
                   onDelete()
@@ -61,7 +61,7 @@ export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
   )
 }
 
-function DeleteConfirm ({ onConfirm, type }) {
+export function DeleteConfirm ({ onConfirm, type }) {
   const [error, setError] = useState()
   const toaster = useToast()
 

@@ -3,8 +3,8 @@
     display: flex;
     flex-flow: column;
     height: 100%;
-    min-height: 100vh;
     align-items: center;
+    margin: auto;
 }
 
 .content {
@@ -16,8 +16,15 @@
     width: 100%;
     padding-right: 15px;
     padding-left: 15px;
-    margin-top: 1.5rem;
+    margin: 1.5rem 0;
     flex-direction: column;
+}
+
+.contain {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 2rem;
 }
 
 .content form {

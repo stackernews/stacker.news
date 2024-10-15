@@ -1,8 +1,9 @@
 const { withPlausibleProxy } = require('next-plausible')
 const { InjectManifest } = require('workbox-webpack-plugin')
-const { generatePrecacheManifest } = require('./sw/build')
+const { generatePrecacheManifest } = require('./sw/build.js')
+const webpack = require('webpack')
 
-const isProd = process.env.NODE_ENV === 'production'
+let isProd = process.env.NODE_ENV === 'production'
 const corsHeaders = [
   {
     key: 'Access-Control-Allow-Origin',
@@ -13,18 +14,36 @@ const corsHeaders = [
     value: 'GET, HEAD, OPTIONS'
   }
 ]
+const noCacheHeader = {
+  key: 'Cache-Control',
+  value: 'no-cache, max-age=0, must-revalidate'
+}
+
+const getGitCommit = (env) => {
+  return env === 'aws'
+    // XXX this fragile ... eb could change the version label location ... it also require we set the label on deploy
+    // eslint-disable-next-line
+    ? Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].slice(0, 6)
+    : require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 6)
+}
 
 let commitHash
-if (isProd) {
-  // XXX this fragile ... eb could change the version label ... but it works for now
-  commitHash = Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].match(/^app-(.+)-/)[1] // eslint-disable-line
-} else {
-  try {
-    commitHash = require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 4)
-  } catch (e) {
-    console.log('could not get commit hash with `git rev-parse HEAD` ... using 0000')
-    commitHash = '0000'
+try {
+  if (isProd) {
+    try {
+      commitHash = getGitCommit('aws')
+    } catch (e) {
+      // maybe we're running prod build locally
+      commitHash = getGitCommit()
+      // if above line worked, we're running locally and should not use prod config which configurates CDN
+      isProd = false
+    }
+  } else {
+    commitHash = getGitCommit()
   }
+} catch (e) {
+  console.log('could not get commit hash with `git rev-parse HEAD` ... using 0000')
+  commitHash = '0000'
 }
 
 module.exports = withPlausibleProxy()({
@@ -38,7 +57,8 @@ module.exports = withPlausibleProxy()({
     scrollRestoration: true
   },
   reactStrictMode: true,
-  generateBuildId: isProd ? async () => commitHash : undefined,
+  productionBrowserSourceMaps: true,
+  generateBuildId: commitHash ? async () => commitHash : undefined,
   // Use the CDN in production and localhost for development.
   assetPrefix: isProd ? 'https://a.stacker.news' : undefined,
   crossOrigin: isProd ? 'anonymous' : undefined,
@@ -62,17 +82,15 @@ module.exports = withPlausibleProxy()({
       {
         source: '/.well-known/:slug*',
         headers: [
-          ...corsHeaders
+          ...corsHeaders,
+          noCacheHeader
         ]
       },
       // never cache service worker
       // https://stackoverflow.com/questions/38843970/service-worker-javascript-update-frequency-every-24-hours/38854905#38854905
       {
         source: '/sw.js',
-        headers: [{
-          key: 'Cache-Control',
-          value: 'no-cache'
-        }]
+        headers: [noCacheHeader]
       },
       {
         source: '/api/lnauth',
@@ -83,7 +101,8 @@ module.exports = withPlausibleProxy()({
       {
         source: '/api/lnurlp/:slug*',
         headers: [
-          ...corsHeaders
+          ...corsHeaders,
+          noCacheHeader
         ]
       },
       {
@@ -92,7 +111,7 @@ module.exports = withPlausibleProxy()({
           ...corsHeaders
         ]
       },
-      ...['tff', 'woff', 'woff2'].map(ext => ({
+      ...['ttf', 'woff', 'woff2'].map(ext => ({
         source: `/Lightningvolt-xoqm.${ext}`,
         headers: [
           ...corsHeaders,
@@ -116,7 +135,15 @@ module.exports = withPlausibleProxy()({
       },
       {
         source: '/privacy',
-        destination: '/items/76894'
+        destination: '/items/338369'
+      },
+      {
+        source: '/copyright',
+        destination: '/items/338453'
+      },
+      {
+        source: '/tos',
+        destination: '/items/338393'
       },
       {
         source: '/changes',
@@ -150,7 +177,7 @@ module.exports = withPlausibleProxy()({
         source: '/~:sub/:slug*',
         destination: '/~/:slug*?sub=:sub'
       },
-      ...['/', '/post', '/search', '/rss', '/recent/:slug*', '/top/:slug*'].map(source => ({ source, destination: '/~' + source }))
+      ...['/', '/post', '/rss', '/random', '/recent/:slug*', '/top/:slug*'].map(source => ({ source, destination: '/~' + source }))
     ]
   },
   async redirects () {
@@ -162,7 +189,7 @@ module.exports = withPlausibleProxy()({
       }
     ]
   },
-  webpack: (config, { isServer, dev }) => {
+  webpack: (config, { isServer, dev, defaultLoaders }) => {
     if (isServer) {
       generatePrecacheManifest()
       const workboxPlugin = new InjectManifest({
@@ -171,7 +198,23 @@ module.exports = withPlausibleProxy()({
         exclude: [/.*/],
         // by default, webpack saves service worker at .next/server/
         swDest: '../../public/sw.js',
-        swSrc: './sw/index.js'
+        swSrc: './sw/index.js',
+        webpackCompilationPlugins: [
+          // this is need to allow the service worker to access these environment variables
+          // from lib/constants.js
+          new webpack.DefinePlugin({
+            'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+            'process.env.MEDIA_URL_DOCKER': JSON.stringify(process.env.MEDIA_URL_DOCKER),
+            'process.env.NEXT_PUBLIC_MEDIA_URL': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_URL),
+            'process.env.NEXT_PUBLIC_MEDIA_DOMAIN': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_DOMAIN),
+            'process.env.NEXT_PUBLIC_URL': JSON.stringify(process.env.NEXT_PUBLIC_URL),
+            'process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL),
+            'process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL),
+            'process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL),
+            'process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL),
+            'process.env.NEXT_IS_EXPORT_WORKER': 'true'
+          })
+        ]
       })
       if (dev) {
         // Suppress the "InjectManifest has been called multiple times" warning by reaching into
@@ -191,6 +234,32 @@ module.exports = withPlausibleProxy()({
 
       config.plugins.push(workboxPlugin)
     }
+
+    config.module.rules.push(
+      {
+        test: /\.svg$/,
+        use: [
+          defaultLoaders.babel,
+          {
+            loader: '@svgr/webpack',
+            options: {
+              babel: false,
+              svgoConfig: {
+                plugins: [{
+                  name: 'preset-default',
+                  params: {
+                    overrides: {
+                      removeViewBox: false
+                    }
+                  }
+                }]
+              }
+            }
+          }
+        ]
+      }
+    )
+
     return config
   }
 })

@@ -1,157 +1,258 @@
 import { gql } from '@apollo/client'
 import { COMMENTS, COMMENTS_ITEM_EXT_FIELDS } from './comments'
 import { ITEM_FIELDS, ITEM_FULL_FIELDS } from './items'
+import { SUB_FULL_FIELDS } from './subs'
+
+export const STREAK_FIELDS = gql`
+  fragment StreakFields on User {
+    optional {
+    streak
+    gunStreak
+      horseStreak
+    }
+  }
+`
 
 export const ME = gql`
-  {
-    me {
-      id
-      name
-      streak
-      sats
-      stacked
-      freePosts
-      freeComments
-      tipDefault
-      turboTipping
+${STREAK_FIELDS}
+{
+  me {
+    id
+    name
+    bioId
+    photoId
+    privates {
+      autoDropBolt11s
+      diagnostics
+      noReferralLinks
       fiatCurrency
-      bioId
-      upvotePopover
+      autoWithdrawMaxFeePercent
+      autoWithdrawThreshold
+      withdrawMaxFeeDefault
+      satsFilter
+      hideFromTopUsers
+      hideWalletBalance
+      hideWelcomeBanner
+      imgproxyOnly
+      showImagesAndVideos
+      nostrCrossposting
+      sats
+      tipDefault
+      tipRandom
+      tipRandomMin
+      tipRandomMax
       tipPopover
+      turboTipping
+      zapUndos
+      upvotePopover
+      wildWestMode
+      disableFreebies
+    }
+    optional {
+      isContributor
+      stacked
+    }
+    ...StreakFields
+  }
+}`
+
+export const SETTINGS_FIELDS = gql`
+  fragment SettingsFields on User {
+    privates {
+      tipDefault
+      tipRandom
+      tipRandomMin
+      tipRandomMax
+      turboTipping
+      zapUndos
+      fiatCurrency
+      withdrawMaxFeeDefault
       noteItemSats
       noteEarning
       noteAllDescendants
       noteMentions
+      noteItemMentions
       noteDeposits
+      noteWithdrawals
       noteInvites
       noteJobIndicator
       noteCowboyHat
+      noteForwardedSats
       hideInvoiceDesc
+      autoDropBolt11s
       hideFromTopUsers
       hideCowboyHat
-      clickToLoadImg
+      hideBookmarks
+      hideGithub
+      hideNostr
+      hideTwitter
+      hideIsContributor
+      imgproxyOnly
+      showImagesAndVideos
+      hideWalletBalance
+      diagnostics
+      noReferralLinks
+      nostrPubkey
+      nostrCrossposting
+      nostrRelays
       wildWestMode
-      greeterMode
-      lastCheckedJobs
-    }
-  }`
-
-export const SETTINGS_FIELDS = gql`
-  fragment SettingsFields on User {
-    tipDefault
-    turboTipping
-    fiatCurrency
-    noteItemSats
-    noteEarning
-    noteAllDescendants
-    noteMentions
-    noteDeposits
-    noteInvites
-    noteJobIndicator
-    noteCowboyHat
-    hideInvoiceDesc
-    hideFromTopUsers
-    hideCowboyHat
-    hideBookmarks
-    clickToLoadImg
-    nostrPubkey
-    nostrRelays
-    wildWestMode
-    greeterMode
-    authMethods {
-      lightning
-      nostr
-      github
-      twitter
-      email
+      satsFilter
+      disableFreebies
+      nsfwMode
+      authMethods {
+        lightning
+        nostr
+        github
+        twitter
+        email
+        apiKey
+      }
+      apiKeyEnabled
     }
   }`
 
 export const SETTINGS = gql`
-${SETTINGS_FIELDS}
-{
-  settings {
-    ...SettingsFields
-  }
-}`
-
-export const SET_SETTINGS =
-gql`
-${SETTINGS_FIELDS}
-mutation setSettings($tipDefault: Int!, $turboTipping: Boolean!, $fiatCurrency: String!, $noteItemSats: Boolean!,
-  $noteEarning: Boolean!, $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
-  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $noteCowboyHat: Boolean!, $hideInvoiceDesc: Boolean!,
-  $hideFromTopUsers: Boolean!, $hideCowboyHat: Boolean!, $clickToLoadImg: Boolean!,
-  $wildWestMode: Boolean!, $greeterMode: Boolean!, $nostrPubkey: String, $nostrRelays: [String!], $hideBookmarks: Boolean!) {
-  setSettings(tipDefault: $tipDefault, turboTipping: $turboTipping,  fiatCurrency: $fiatCurrency,
-    noteItemSats: $noteItemSats, noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
-    noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
-    noteJobIndicator: $noteJobIndicator, noteCowboyHat: $noteCowboyHat, hideInvoiceDesc: $hideInvoiceDesc,
-    hideFromTopUsers: $hideFromTopUsers, hideCowboyHat: $hideCowboyHat, clickToLoadImg: $clickToLoadImg,
-    wildWestMode: $wildWestMode, greeterMode: $greeterMode, nostrPubkey: $nostrPubkey, nostrRelays: $nostrRelays, hideBookmarks: $hideBookmarks) {
+  ${SETTINGS_FIELDS}
+  query Settings {
+    settings {
       ...SettingsFields
     }
-  }
-`
+  }`
 
-export const NAME_QUERY =
-gql`
+export const SET_SETTINGS = gql`
+  ${SETTINGS_FIELDS}
+  mutation setSettings($settings: SettingsInput!) {
+    setSettings(settings: $settings) {
+      ...SettingsFields
+    }
+  }`
+
+export const DELETE_WALLET = gql`
+  mutation removeWallet {
+    removeWallet
+  }`
+
+export const NAME_QUERY = gql`
   query nameAvailable($name: String!) {
     nameAvailable(name: $name)
-  }
-`
+  }`
 
-export const NAME_MUTATION =
-gql`
+export const NAME_MUTATION = gql`
   mutation setName($name: String!) {
     setName(name: $name)
   }
 `
 
-export const USER_SEARCH =
-gql`
-  query searchUsers($q: String!, $limit: Int, $similarity: Float) {
+export const WELCOME_BANNER_MUTATION = gql`
+  mutation hideWelcomeBanner {
+    hideWelcomeBanner
+  }
+`
+
+export const USER_SUGGESTIONS = gql`
+  query userSuggestions($q: String!, $limit: Limit) {
+    userSuggestions(q: $q, limit: $limit) {
+      name
+    }
+  }`
+
+export const USER_SEARCH = gql`
+${STREAK_FIELDS}
+  query searchUsers($q: String!, $limit: Limit, $similarity: Float) {
     searchUsers(q: $q, limit: $limit, similarity: $similarity) {
       id
       name
-      streak
-      hideCowboyHat
       photoId
-      stacked
-      spent
       ncomments
       nposts
-      referrals
+
+      optional {
+        stacked
+        spent
+        referrals
+      }
+      ...StreakFields
     }
   }`
 
 export const USER_FIELDS = gql`
+  ${STREAK_FIELDS}
   fragment UserFields on User {
     id
     name
-    streak
-    maxStreak
-    hideCowboyHat
-    nitems
-    stacked
     since
     photoId
+    nitems
+    nterritories
+    meSubscriptionPosts
+    meSubscriptionComments
+    meMute
+
+    optional {
+      stacked
+      maxStreak
+      isContributor
+      githubId
+      nostrAuthPubkey
+      twitterId
+    }
+    ...StreakFields
   }`
 
-export const TOP_USERS = gql`
-  query TopUsers($cursor: String, $when: String, $by: String) {
-    topUsers(cursor: $cursor, when: $when, by: $by) {
+export const MY_SUBSCRIBED_USERS = gql`
+  ${STREAK_FIELDS}
+  query MySubscribedUsers($cursor: String) {
+    mySubscribedUsers(cursor: $cursor) {
       users {
         id
         name
-        streak
-        hideCowboyHat
         photoId
-        stacked(when: $when)
-        spent(when: $when)
-        ncomments(when: $when)
-        nposts(when: $when)
-        referrals(when: $when)
+        meSubscriptionPosts
+        meSubscriptionComments
+        meMute
+
+        ...StreakFields
+      }
+      cursor
+    }
+  }
+`
+
+export const MY_MUTED_USERS = gql`
+  ${STREAK_FIELDS}
+  query MyMutedUsers($cursor: String) {
+    myMutedUsers(cursor: $cursor) {
+      users {
+        id
+        name
+        photoId
+        meSubscriptionPosts
+        meSubscriptionComments
+        meMute
+      ...StreakFields
+      }
+      cursor
+    }
+  }
+`
+
+export const TOP_USERS = gql`
+  ${STREAK_FIELDS}
+  query TopUsers($cursor: String, $when: String, $from: String, $to: String, $by: String, ) {
+    topUsers(cursor: $cursor, when: $when, from: $from, to: $to, by: $by) {
+      users {
+        id
+        name
+        photoId
+        ncomments(when: $when, from: $from, to: $to)
+        nposts(when: $when, from: $from, to: $to)
+
+        optional {
+          stacked(when: $when, from: $from, to: $to)
+          spent(when: $when, from: $from, to: $to)
+          referrals(when: $when, from: $from, to: $to)
+        }
+        ...StreakFields
       }
       cursor
     }
@@ -159,19 +260,22 @@ export const TOP_USERS = gql`
 `
 
 export const TOP_COWBOYS = gql`
+  ${STREAK_FIELDS}
   query TopCowboys($cursor: String) {
     topCowboys(cursor: $cursor) {
       users {
         id
         name
-        streak
-        hideCowboyHat
         photoId
-        stacked(when: "forever")
-        spent(when: "forever")
         ncomments(when: "forever")
         nposts(when: "forever")
-        referrals(when: "forever")
+
+        optional {
+          stacked(when: "forever")
+          spent(when: "forever")
+          referrals(when: "forever")
+        }
+        ...StreakFields
       }
       cursor
     }
@@ -194,15 +298,23 @@ export const USER_FULL = gql`
   }
 }`
 
+export const USER = gql`
+  ${USER_FIELDS}
+  query User($id: ID, $name: String) {
+    user(id: $id, name: $name) {
+      ...UserFields
+    }
+  }`
+
 export const USER_WITH_ITEMS = gql`
   ${USER_FIELDS}
   ${ITEM_FIELDS}
   ${COMMENTS_ITEM_EXT_FIELDS}
-  query UserWithItems($name: String!, $sub: String, $cursor: String, $type: String, $when: String, $by: String, $limit: Int, $includeComments: Boolean = false) {
+  query UserWithItems($name: String!, $sub: String, $cursor: String, $type: String, $when: String, $from: String, $to: String, $by: String, $limit: Limit, $includeComments: Boolean = false) {
     user(name: $name) {
       ...UserFields
     }
-    items(sub: $sub, sort: "user", cursor: $cursor, type: $type, name: $name, when: $when, by: $by, limit: $limit) {
+    items(sub: $sub, sort: "user", cursor: $cursor, type: $type, name: $name, when: $when, from: $from, to: $to, by: $by, limit: $limit) {
       cursor
       items {
         ...ItemFields
@@ -210,3 +322,51 @@ export const USER_WITH_ITEMS = gql`
       }
     }
   }`
+
+export const USER_WITH_SUBS = gql`
+    ${USER_FIELDS}
+    ${SUB_FULL_FIELDS}
+    query UserWithSubs($name: String!, $cursor: String, $type: String, $when: String, $from: String, $to: String, $by: String) {
+      user(name: $name) {
+        ...UserFields
+      }
+      userSubs(name: $name, cursor: $cursor) {
+        cursor
+        subs {
+          ...SubFullFields
+          ncomments(when: "forever")
+          nposts(when: "forever")
+
+          optional {
+            stacked(when: "forever")
+            spent(when: "forever")
+            revenue(when: "forever")
+          }
+        }
+      }
+    }`
+
+export const USER_STATS = gql`
+    query UserStats($when: String, $from: String, $to: String) {
+      userStatsActions(when: $when, from: $from, to: $to) {
+        time
+        data {
+          name
+          value
+        }
+      }
+      userStatsIncomingSats(when: $when, from: $from, to: $to) {
+        time
+        data {
+          name
+          value
+        }
+      }
+      userStatsOutgoingSats(when: $when, from: $from, to: $to) {
+        time
+        data {
+          name
+          value
+        }
+      }
+    }`

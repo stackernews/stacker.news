@@ -1,14 +1,47 @@
 .fresh {
-    background-color: rgba(128, 128, 128, 0.1);
     border-radius: 0;
+    border: solid 1px var(--theme-note-fresh);
+    border-bottom: 0;
+    border-top: 0;
+    margin-left: -0.5rem;
+    padding-left: 0.5rem;
+    margin-right: -0.5rem;
+    padding-right: 0.5rem;
 }
 
 .fresh:not(.fresh ~ .fresh) {
     border-top-left-radius: .4rem;
     border-top-right-radius: .4rem;
+    border-top: solid 1px var(--theme-note-fresh);
+}
+
+.fresh:has(+ :not(.fresh)):has(+ :not(.reply)),
+.fresh:not(.reply):has(+ :not(.fresh)) {
+    border-bottom-left-radius: .4rem;
+    border-bottom-right-radius: .4rem;
 }
 
 .fresh:has(+ :not(.fresh)) {
+    border-bottom: solid 1px var(--theme-note-fresh);
+}
+
+.reply {
+    border-radius: 0;
+    background-color: var(--theme-note-reply);
+    border-bottom: 0;
+    border-top: 0;
+}
+
+.reply:hover {
+    background-color: var(--theme-clickToContextColor);
+}
+
+.reply:not(.fresh):not(.reply + .reply) {
+    border-top-left-radius: .4rem;
+    border-top-right-radius: .4rem;
+}
+
+.reply:not(.fresh):has(+ :not(.reply)) {
     border-bottom-left-radius: .4rem;
     border-bottom-right-radius: .4rem;
 }
@@ -26,4 +59,18 @@
 
 .subFormGroup > div {
     margin-right: 0 !important;
+}
+
+.badge {
+    color: var(--theme-grey) !important;
+    background: var(--theme-clickToContextColor) !important;
+    vertical-align: middle;
+    margin-left: 0.5rem;
+}
+
+.noteHeader {
+    display: inline-block;
+    font-weight: 800;
+    line-height: 1.25;
+    vertical-align: middle;
 }

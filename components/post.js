@@ -9,27 +9,15 @@ import { DiscussionForm } from './discussion-form'
 import { LinkForm } from './link-form'
 import { PollForm } from './poll-form'
 import { BountyForm } from './bounty-form'
-import SubSelect from './sub-select-form'
-import Info from './info'
+import SubSelect from './sub-select'
 import { useCallback, useState } from 'react'
-
-function FreebieDialog () {
-  return (
-    <div className='text-center mb-4 text-muted'>
-      you have no sats, so this one is on us
-      <Info>
-        <ul className='fw-bold'>
-          <li>Free posts have limited visibility and are hidden on the recent tab until other stackers zap them.</li>
-          <li>Free posts will not cover posts that cost more than 1 sat.</li>
-          <li>To get fully visibile and unrestricted posts right away, fund your account with a few sats or earn some on Stacker News.</li>
-        </ul>
-      </Info>
-    </div>
-  )
-}
+import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
+import Delete from './delete'
+import CancelButton from './cancel-button'
+import { TerritoryInfo } from './territory-header'
 
 export function PostForm ({ type, sub, children }) {
-  const me = useMe()
+  const { me } = useMe()
   const [errorMessage, setErrorMessage] = useState()
 
   const prefix = sub?.name ? `/~${sub.name}` : ''
@@ -42,34 +30,99 @@ export function PostForm ({ type, sub, children }) {
   }, [me, setErrorMessage])
 
   if (!type) {
+    let postButtons = []
+    let morePostButtons = []
+
+    if (sub) {
+      if (sub?.postTypes?.includes('LINK')) {
+        postButtons.push(
+          <Link key='LINK' href={prefix + '/post?type=link'}>
+            <Button variant='secondary'>link</Button>
+          </Link>
+        )
+      }
+
+      if (sub?.postTypes?.includes('DISCUSSION')) {
+        postButtons.push(
+          <Link key='DISCUSSION' href={prefix + '/post?type=discussion'}>
+            <Button variant='secondary'>discussion</Button>
+          </Link>
+        )
+      }
+
+      if (sub?.postTypes?.includes('POLL')) {
+        const array = postButtons.length < 2 ? postButtons : morePostButtons
+        array.push(
+          <Link key='POLL' href={prefix + '/post?type=poll'}>
+            <Button variant={postButtons.length < 2 ? 'secondary' : 'info'}>poll</Button>
+          </Link>
+        )
+      }
+
+      if (sub?.postTypes?.includes('BOUNTY')) {
+        const array = postButtons.length < 2 ? postButtons : morePostButtons
+        array.push(
+          <Link key='BOUNTY' href={prefix + '/post?type=bounty'}>
+            <Button onClick={checkSession} variant={postButtons.length < 2 ? 'secondary' : 'info'}>bounty</Button>
+          </Link>
+        )
+      }
+    } else {
+      postButtons = [
+        <Link key='LINK' href={prefix + '/post?type=link'}>
+          <Button variant='secondary'>link</Button>
+        </Link>,
+        <Link key='DISCUSSION' href={prefix + '/post?type=discussion'}>
+          <Button variant='secondary'>discussion</Button>
+        </Link>
+      ]
+      morePostButtons = [
+        <Link key='POLL' href={prefix + '/post?type=poll'}>
+          <Button variant='info'>poll</Button>
+        </Link>,
+        <Link key='BOUNTY' href={prefix + '/post?type=bounty'}>
+          <Button onClick={checkSession} variant='info'>bounty</Button>
+        </Link>
+      ]
+    }
+
+    postButtons = postButtons.reduce((acc, cur) => {
+      if (acc.length) acc.push(<span key='OR-post-buttons' className='mx-3 fw-bold text-muted'>or</span>)
+      acc.push(cur)
+      return acc
+    }, [])
+
+    morePostButtons = morePostButtons.reduce((acc, cur) => {
+      if (acc.length) acc.push(<span key='OR-more-post-buttons' className='mx-3 fw-bold text-muted'>or</span>)
+      acc.push(cur)
+      return acc
+    }, [])
+
     return (
-      <div className='position-relative align-items-center'>
+      <div className='position-relative d-flex flex-column align-items-start'>
         {errorMessage &&
           <Alert className='position-absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
             {errorMessage}
           </Alert>}
-        {me?.sats < 1 && <FreebieDialog />}
-        <SubSelect noForm sub={sub?.name} />
-        <Link href={prefix + '/post?type=link'}>
-          <Button variant='secondary'>link</Button>
-        </Link>
-        <span className='mx-3 fw-bold text-muted'>or</span>
-        <Link href={prefix + '/post?type=discussion'}>
-          <Button variant='secondary'>discussion</Button>
-        </Link>
+        <SubSelect
+          prependSubs={['pick territory']}
+          className='d-flex'
+          noForm
+          size='medium'
+          sub={sub?.name}
+          info={sub && <TerritoryInfo sub={sub} />}
+          hint={sub?.moderated && 'this territory is moderated'}
+        />
+        <div>
+          {postButtons}
+        </div>
         <div className='d-flex mt-4'>
           <AccordianItem
             headerColor='#6c757d'
             header={<div className='fw-bold text-muted'>more types</div>}
             body={
               <div className='align-items-center'>
-                <Link href={prefix + '/post?type=poll'}>
-                  <Button variant='info'>poll</Button>
-                </Link>
-                <span className='mx-3 fw-bold text-muted'>or</span>
-                <Link href={prefix + '/post?type=bounty'}>
-                  <Button onClick={checkSession} variant='info'>bounty</Button>
-                </Link>
+                {morePostButtons}
                 <div className='mt-3 d-flex justify-content-center'>
                   <Link href='/~jobs/post'>
                     <Button onClick={checkSession} variant='info'>job</Button>
@@ -94,7 +147,14 @@ export function PostForm ({ type, sub, children }) {
     FormType = BountyForm
   }
 
-  return <FormType sub={sub}>{children}</FormType>
+  return (
+    <FeeButtonProvider
+      baseLineItems={sub ? postCommentBaseLineItems({ baseCost: sub.baseCost, me: !!me }) : undefined}
+      useRemoteLineItems={postCommentUseRemoteLineItems()}
+    >
+      <FormType sub={sub}>{children}</FormType>
+    </FeeButtonProvider>
+  )
 }
 
 export default function Post ({ sub }) {
@@ -108,8 +168,49 @@ export default function Post ({ sub }) {
   return (
     <>
       <PostForm type={type} sub={sub}>
-        {sub?.name !== 'jobs' && <SubSelect label='sub' />}
+        {sub?.name !== 'jobs' &&
+          <SubSelect
+            sub={sub?.name}
+            prependSubs={sub?.name ? undefined : ['pick territory']}
+            filterSubs={s => s.postTypes?.includes(type.toUpperCase())}
+            className='d-flex'
+            size='medium'
+            label='territory'
+            info={sub && <TerritoryInfo sub={sub} />}
+            hint={sub?.moderated && 'this territory is moderated'}
+          />}
       </PostForm>
     </>
+  )
+}
+
+export function ItemButtonBar ({
+  itemId, canDelete = true, disable,
+  className, children, onDelete, onCancel, hasCancel = true,
+  createText = 'post', editText = 'save', deleteText = 'delete'
+}) {
+  const router = useRouter()
+
+  return (
+    <div className={`mt-3 ${className}`}>
+      <div className='d-flex justify-content-between'>
+        {itemId && canDelete &&
+          <Delete
+            itemId={itemId}
+            onDelete={onDelete || (() => router.push(`/items/${itemId}`))}
+          >
+            <Button variant='grey-medium'>{deleteText}</Button>
+          </Delete>}
+        {children}
+        <div className='d-flex align-items-center ms-auto'>
+          {hasCancel && <CancelButton onClick={onCancel} />}
+          <FeeButton
+            text={itemId ? editText : createText}
+            variant='secondary'
+            disabled={disable}
+          />
+        </div>
+      </div>
+    </div>
   )
 }

@@ -1,34 +1,99 @@
 import Link from 'next/link'
 import styles from './item.module.css'
 import UpVote from './upvote'
-import { useRef, useState } from 'react'
-import { AD_USER_ID, NOFOLLOW_LIMIT } from '../lib/constants'
-import Pin from '../svgs/pushpin-fill.svg'
+import { useRef } from 'react'
+import { USER_ID, UNKNOWN_LINK_REL } from '@/lib/constants'
+import Pin from '@/svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
-import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
-import BountyIcon from '../svgs/bounty-bag.svg'
+import PollIcon from '@/svgs/bar-chart-horizontal-fill.svg'
+import BountyIcon from '@/svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
-import Flag from '../svgs/flag-fill.svg'
-import ImageIcon from '../svgs/image-fill.svg'
-import { numWithUnits } from '../lib/format'
+import ImageIcon from '@/svgs/image-fill.svg'
+import VideoIcon from '@/svgs/video-on-fill.svg'
+import { numWithUnits } from '@/lib/format'
 import ItemInfo from './item-info'
-import { commentsViewedAt } from '../lib/new-comments'
+import Prism from '@/svgs/prism.svg'
+import { commentsViewedAt } from '@/lib/new-comments'
 import { useRouter } from 'next/router'
 import { Badge } from 'react-bootstrap'
-import AdIcon from '../svgs/advertisement-fill.svg'
+import AdIcon from '@/svgs/advertisement-fill.svg'
+import { DownZap } from './dont-link-this'
+import { timeLeft } from '@/lib/time'
+import classNames from 'classnames'
+import removeMd from 'remove-markdown'
+import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
+import ItemPopover from './item-popover'
+import { useMe } from './me'
+import Boost from './boost-button'
+
+function onItemClick (e, router, item) {
+  const viewedAt = commentsViewedAt(item)
+  if (viewedAt) {
+    e.preventDefault()
+    if (e.ctrlKey || e.metaKey) {
+      window.open(
+        `/items/${item.id}`,
+        '_blank',
+        'noopener,noreferrer'
+      )
+    } else {
+      router.push(
+        `/items/${item.id}?commentsViewedAt=${viewedAt}`,
+        `/items/${item.id}`)
+    }
+  }
+}
 
 export function SearchTitle ({ title }) {
-  return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
-    return <mark key={`mark-${match}`}>{match}</mark>
+  return reactStringReplace(title, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
+    return <mark key={`strong-${match}-${i}`}>{match}</mark>
   })
 }
 
-export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments }) {
+function mediaType ({ url, imgproxyUrls }) {
+  const { me } = useMe()
+  const src = IMGPROXY_URL_REGEXP.test(url) ? decodeProxyUrl(url) : url
+  if (!imgproxyUrls?.[src] ||
+    me?.privates?.showImagesAndVideos === false ||
+    // we don't proxy videos even if we have thumbnails
+    (me?.privates?.imgproxyOnly && imgproxyUrls?.[src]?.video)) return
+  return imgproxyUrls?.[src]?.video ? 'video' : 'image'
+}
+
+function ItemLink ({ url, rel }) {
+  try {
+    const { linkText } = parseInternalLinks(url)
+    if (linkText) {
+      return (
+        <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
+          <Link href={url} className={styles.link}>{linkText}</Link>
+        </ItemPopover>
+      )
+    }
+
+    return (
+      // eslint-disable-next-line
+      <a
+        className={styles.link} target='_blank' href={url}
+        rel={rel ?? UNKNOWN_LINK_REL}
+      >
+        {url.replace(/(^https?:|^)\/\//, '')}
+      </a>
+    )
+  } catch {
+    return null
+  }
+}
+
+export default function Item ({
+  item, rank, belowTitle, right, full, children, itemClassName,
+  onQuoteReply, pinnable, setDisableRetry, disableRetry
+}) {
   const titleRef = useRef()
   const router = useRouter()
-  const [pendingSats, setPendingSats] = useState(0)
 
-  const image = item.url && item.url.startsWith(process.env.NEXT_PUBLIC_IMGPROXY_URL)
+  const media = mediaType({ url: item.url, imgproxyUrls: item.imgproxyUrls })
+  const MediaIcon = media === 'video' ? VideoIcon : ImageIcon
 
   return (
     <>
@@ -38,52 +103,44 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
             {rank}
           </div>)
         : <div />}
-      <div className={`${styles.item} ${siblingComments ? 'pt-2' : ''}`}>
-        {item.position
+      <div className={classNames(styles.item, itemClassName)}>
+        {item.position && (pinnable || !item.subName)
           ? <Pin width={24} height={24} className={styles.pin} />
-          : item.meDontLike
-            ? <Flag width={24} height={24} className={styles.dontLike} />
-            : Number(item.user?.id) === AD_USER_ID
-              ? <AdIcon width={24} height={24} className={styles.ad} />
-              : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
+          : item.mine || item.meForward
+            ? <Boost item={item} className={classNames(styles.upvote, item.bio && 'invisible')} />
+            : item.meDontLikeSats > item.meSats
+              ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
+              : Number(item.user?.id) === USER_ID.ad
+                ? <AdIcon width={24} height={24} className={styles.ad} />
+                : <UpVote item={item} className={styles.upvote} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
             <Link
               href={`/items/${item.id}`}
-              onClick={(e) => {
-                const viewedAt = commentsViewedAt(item)
-                if (viewedAt) {
-                  e.preventDefault()
-                  router.push(
-                    `/items/${item.id}?commentsViewedAt=${viewedAt}`,
-                    `/items/${item.id}`)
-                }
-              }} ref={titleRef} className={`${styles.title} text-reset me-2`}
+              onClick={(e) => onItemClick(e, router, item)}
+              ref={titleRef}
+              className={`${styles.title} text-reset me-2`}
             >
               {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
-              {item.pollCost && <span className={styles.icon}> <PollIcon className='fill-grey ms-1' height={14} width={14} /></span>}
+              {item.pollCost && <PollIndicator item={item} />}
               {item.bounty > 0 &&
                 <span className={styles.icon}>
                   <ActionTooltip notForm overlayText={`${numWithUnits(item.bounty)} ${item.bountyPaidTo?.length ? ' paid' : ' bounty'}`}>
                     <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success' : 'fill-grey'}`} height={16} width={16} />
                   </ActionTooltip>
                 </span>}
-              {image && <span className={styles.icon}><ImageIcon className='fill-grey ms-2' height={16} width={16} /></span>}
+              {item.forwards?.length > 0 && <span className={styles.icon}><Prism className='fill-grey ms-1' height={14} width={14} /></span>}
+              {media && <span className={styles.icon}><MediaIcon className='fill-grey ms-2' height={16} width={16} /></span>}
             </Link>
-            {item.url && !image &&
-              <>
-                {/*  eslint-disable-next-line */}
-                <a
-                  className={styles.link} target='_blank' href={item.url}
-                  rel={item.sats + item.boost >= NOFOLLOW_LIMIT ? null : 'nofollow'}
-                >
-                  {item.url.replace(/(^https?:|^)\/\//, '')}
-                </a>
-              </>}
+            {item.url && !media && <ItemLink url={item.url} rel={UNKNOWN_LINK_REL} />}
           </div>
           <ItemInfo
-            full={full} item={item} pendingSats={pendingSats}
-            embellishUser={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
+            full={full} item={item}
+            onQuoteReply={onQuoteReply}
+            pinnable={pinnable}
+            extraBadges={Number(item?.user?.id) === USER_ID.ad && <Badge className={styles.newComment} bg={null}>AD</Badge>}
+            setDisableRetry={setDisableRetry}
+            disableRetry={disableRetry}
           />
           {belowTitle}
         </div>
@@ -98,7 +155,48 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
   )
 }
 
-export function ItemSkeleton ({ rank, children }) {
+export function ItemSummary ({ item }) {
+  const router = useRouter()
+  const link = (
+    <Link
+      href={`/items/${item.id}`}
+      onClick={(e) => onItemClick(e, router, item)}
+      className={`${item.title && styles.title} ${styles.summaryText} text-reset me-2`}
+    >
+      {item.title ?? removeMd(item.text)}
+    </Link>
+  )
+  const info = (
+    <ItemInfo
+      item={item}
+      showUser={false}
+      showActionDropdown={false}
+      extraBadges={item.title && Number(item?.user?.id) === USER_ID.ad && <Badge className={styles.newComment} bg={null}>AD</Badge>}
+    />
+  )
+
+  return (
+    <div className={classNames(styles.item, 'mb-0 pb-0')}>
+      <div className={styles.hunk}>
+        {item.title
+          ? (
+            <>
+              {link}
+              {info}
+            </>
+            )
+          : (
+            <>
+              {info}
+              {link}
+            </>
+            )}
+      </div>
+    </div>
+  )
+}
+
+export function ItemSkeleton ({ rank, children, showUpvote = true }) {
   return (
     <>
       {rank
@@ -108,7 +206,7 @@ export function ItemSkeleton ({ rank, children }) {
           </div>)
         : <div />}
       <div className={`${styles.item} ${styles.skeleton}`}>
-        <UpVote className={styles.upvote} />
+        {showUpvote && <UpVote className={styles.upvote} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap flex-md-nowrap`}>
             <span className={`${styles.title} clouds text-reset flex-md-fill flex-md-shrink-0 me-2`} />
@@ -128,5 +226,22 @@ export function ItemSkeleton ({ rank, children }) {
         </div>
       )}
     </>
+  )
+}
+
+function PollIndicator ({ item }) {
+  const hasExpiration = !!item.pollExpiresAt
+  const timeRemaining = timeLeft(new Date(item.pollExpiresAt))
+  const isActive = !hasExpiration || !!timeRemaining
+
+  return (
+    <span className={styles.icon} title={isActive ? 'active' : 'results in'}>
+      <PollIcon
+        className={`${isActive
+          ? 'fill-success'
+          : 'fill-grey'
+          } ms-1`} height={14} width={14}
+      />
+    </span>
   )
 }

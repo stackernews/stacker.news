@@ -1,0 +1,36 @@
+.linkBox {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+.linkBox ~ * {
+    position: relative;
+}
+
+.linkBoxParent {
+    position: relative;
+    margin-left: -0.5rem;
+    padding-left: 0.5rem;
+    margin-right: -0.5rem;
+    padding-right: 0.5rem;
+}
+
+.linkBoxParent > * {
+    pointer-events: none;
+}
+
+.linkBoxParent :global(.upvoteParent),
+.linkBoxParent :global(.pointer),
+.linkBoxParent a,
+.linkBoxParent form,
+.linkBoxParent textarea,
+.linkBoxParent button,
+.linkBoxParent input,
+.linkBoxParent iframe,
+.linkBoxParent video,
+.linkBoxParent img {
+    pointer-events: auto !important;
+}

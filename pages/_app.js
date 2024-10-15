@@ -1,21 +1,29 @@
-import '../styles/globals.scss'
+import '@/styles/globals.scss'
 import { ApolloProvider, gql } from '@apollo/client'
-import { MeProvider } from '../components/me'
+import { MeProvider } from '@/components/me'
 import PlausibleProvider from 'next-plausible'
-import getApolloClient from '../lib/apollo'
-import { PriceProvider } from '../components/price'
+import getApolloClient from '@/lib/apollo.js'
+import { PriceProvider } from '@/components/price'
+import { BlockHeightProvider } from '@/components/block-height'
 import Head from 'next/head'
 import { useRouter } from 'next/dist/client/router'
 import { useEffect } from 'react'
-import { ShowModalProvider } from '../components/modal'
-import ErrorBoundary from '../components/error-boundary'
-import { LightningProvider } from '../components/lightning'
-import { ToastProvider } from '../components/toast'
-import { ServiceWorkerProvider } from '../components/serviceworker'
-import { SSR } from '../lib/constants'
+import { ShowModalProvider } from '@/components/modal'
+import ErrorBoundary from '@/components/error-boundary'
+import { LightningProvider } from '@/components/lightning'
+import { ToastProvider } from '@/components/toast'
+import { ServiceWorkerProvider } from '@/components/serviceworker'
+import { SSR } from '@/lib/constants'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
-import { PaymentTokenProvider } from '../components/payment-tokens'
+import { LoggerProvider } from '@/components/logger'
+import { ChainFeeProvider } from '@/components/chain-fee.js'
+import dynamic from 'next/dynamic'
+import { HasNewNotesProvider } from '@/components/use-has-new-notes'
+import WebLnProvider from '@/wallets/webln'
+import { AccountProvider } from '@/components/account'
+
+const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
 NProgress.configure({
   showSpinner: false
@@ -33,7 +41,7 @@ function writeQuery (client, apollo, data) {
   }
 }
 
-function MyApp ({ Component, pageProps: { ...props } }) {
+export default function MyApp ({ Component, pageProps: { ...props } }) {
   const client = getApolloClient()
   const router = useRouter()
 
@@ -70,11 +78,19 @@ function MyApp ({ Component, pageProps: { ...props } }) {
     }
   }, [router.asPath, props?.apollo])
 
+  useEffect(() => {
+    // hack to disable ios pwa prompt for https://github.com/stackernews/stacker.news/issues/953
+    // see https://github.com/chrisdancee/react-ios-pwa-prompt/blob/66e91c4f033b740cff42c3220cf13ebdf39e3078/src/index.js#L30
+    if (router?.query?.disablePrompt) {
+      window.localStorage.setItem('iosPwaPrompt', JSON.stringify({ isiOS: false, visits: 0 }))
+    }
+  }, [router?.query?.disablePrompt])
+
   /*
     If we are on the client, we populate the apollo cache with the
     ssr data
   */
-  const { apollo, ssrData, me, price, ...otherProps } = props
+  const { apollo, ssrData, me, price, blockHeight, chainFee, ...otherProps } = props
   useEffect(() => {
     writeQuery(client, apollo, ssrData)
   }, [client, apollo, ssrData])
@@ -82,25 +98,38 @@ function MyApp ({ Component, pageProps: { ...props } }) {
   return (
     <>
       <Head>
-        <meta name='viewport' content='initial-scale=1.0, width=device-width' />
+        <meta name='viewport' content='initial-scale=1.0, width=device-width, viewport-fit=cover' />
       </Head>
       <ErrorBoundary>
         <PlausibleProvider domain='stacker.news' trackOutboundLinks>
           <ApolloProvider client={client}>
             <MeProvider me={me}>
-              <ServiceWorkerProvider>
-                <PriceProvider price={price}>
-                  <LightningProvider>
-                    <ToastProvider>
-                      <PaymentTokenProvider>
-                        <ShowModalProvider>
-                          <Component ssrData={ssrData} {...otherProps} />
-                        </ShowModalProvider>
-                      </PaymentTokenProvider>
-                    </ToastProvider>
-                  </LightningProvider>
-                </PriceProvider>
-              </ServiceWorkerProvider>
+              <HasNewNotesProvider>
+                <LoggerProvider>
+                  <WebLnProvider>
+                    <ServiceWorkerProvider>
+                      <AccountProvider>
+                        <PriceProvider price={price}>
+                          <LightningProvider>
+                            <ToastProvider>
+                              <ShowModalProvider>
+                                <BlockHeightProvider blockHeight={blockHeight}>
+                                  <ChainFeeProvider chainFee={chainFee}>
+                                    <ErrorBoundary>
+                                      <Component ssrData={ssrData} {...otherProps} />
+                                      {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
+                                    </ErrorBoundary>
+                                  </ChainFeeProvider>
+                                </BlockHeightProvider>
+                              </ShowModalProvider>
+                            </ToastProvider>
+                          </LightningProvider>
+                        </PriceProvider>
+                      </AccountProvider>
+                    </ServiceWorkerProvider>
+                  </WebLnProvider>
+                </LoggerProvider>
+              </HasNewNotesProvider>
             </MeProvider>
           </ApolloProvider>
         </PlausibleProvider>
@@ -108,5 +137,3 @@ function MyApp ({ Component, pageProps: { ...props } }) {
     </>
   )
 }
-
-export default MyApp

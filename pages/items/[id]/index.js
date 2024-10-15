@@ -1,10 +1,10 @@
-import Layout from '../../../components/layout'
-import { ITEM_FULL } from '../../../fragments/items'
-import ItemFull from '../../../components/item-full'
-import { getGetServerSideProps } from '../../../api/ssrApollo'
+import Layout from '@/components/layout'
+import { ITEM_FULL } from '@/fragments/items'
+import ItemFull from '@/components/item-full'
+import { getGetServerSideProps } from '@/api/ssrApollo'
 import { useQuery } from '@apollo/client'
 import { useRouter } from 'next/router'
-import PageLoading from '../../../components/page-loading'
+import PageLoading from '@/components/page-loading'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM_FULL,

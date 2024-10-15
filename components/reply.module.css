@@ -5,15 +5,19 @@
 }
 
 .replyButtons {
-    font-size: 70%;
+    font-size: 80%;
     color: var(--theme-grey);
     font-weight: bold;
     display: flex;
     align-items: center;
-    cursor: pointer;
-    padding: .25rem 0 .5rem 0;
     line-height: 1rem;
     vertical-align: middle;
+}
+
+.replyButtons > * {
+    padding-top: .4rem;
+    padding-bottom: .8rem;
+    cursor: pointer;
 }
 
 .skeleton .input {

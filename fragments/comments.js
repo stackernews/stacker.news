@@ -1,25 +1,38 @@
 import { gql } from '@apollo/client'
 
+// we can't import from users because of circular dependency
+const STREAK_FIELDS = gql`
+  fragment StreakFields on User {
+    optional {
+    streak
+    gunStreak
+      horseStreak
+    }
+  }
+`
+
 export const COMMENT_FIELDS = gql`
+  ${STREAK_FIELDS}
   fragment CommentFields on Item {
     id
+    position
     parentId
     createdAt
     deletedAt
     text
     user {
-      name
-      streak
-      hideCowboyHat
       id
+      name
+      meMute
+      ...StreakFields
     }
     sats
     meAnonSats @client
     upvotes
-    wvotes
+    freedFreebie
     boost
     meSats
-    meDontLike
+    meDontLikeSats
     meBookmark
     meSubscription
     outlawed
@@ -29,10 +42,20 @@ export const COMMENT_FIELDS = gql`
     mine
     otsHash
     ncomments
+    imgproxyUrls
+    rel
+    apiKey
+    invoice {
+      id
+      actionState
+      confirmedAt
+    }
+    cost
   }
 `
 
 export const COMMENTS_ITEM_EXT_FIELDS = gql`
+  ${STREAK_FIELDS}
   fragment CommentItemExtFields on Item {
     text
     root {
@@ -41,11 +64,16 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
       bounty
       bountyPaidTo
       subName
+      sub {
+        name
+        userId
+        moderated
+        meMuteSub
+      }
       user {
         name
-        streak
-        hideCowboyHat
         id
+        ...StreakFields
       }
     }
   }`
@@ -70,12 +98,6 @@ export const COMMENTS = gql`
                 ...CommentFields
                 comments {
                   ...CommentFields
-                  comments {
-                    ...CommentFields
-                    comments {
-                      ...CommentFields
-                    }
-                  }
                 }
               }
             }

@@ -1,65 +1,27 @@
-import { Form, Input, MarkdownInput, SubmitButton, VariableInput } from '../components/form'
-import { useRouter } from 'next/router'
-import { gql, useApolloClient, useMutation } from '@apollo/client'
+import { DateTimeInput, Form, Input, MarkdownInput, VariableInput } from '@/components/form'
+import { useApolloClient } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
-import { MAX_POLL_NUM_CHOICES } from '../lib/constants'
-import FeeButton, { EditFeeButton } from './fee-button'
-import Delete from './delete'
-import Button from 'react-bootstrap/Button'
-import { pollSchema } from '../lib/validate'
-import { SubSelectInitial } from './sub-select-form'
-import CancelButton from './cancel-button'
-import { useCallback } from 'react'
-import { useInvoiceable } from './invoice'
-import { normalizeForwards } from '../lib/form'
+import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '@/lib/constants'
+import { datePivot } from '@/lib/time'
+import { pollSchema } from '@/lib/validate'
+import { SubSelectInitial } from './sub-select'
+import { normalizeForwards } from '@/lib/form'
+import { useMe } from './me'
+import { ItemButtonBar } from './post'
+import { UPSERT_POLL } from '@/fragments/paidAction'
+import useItemSubmit from './use-item-submit'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
-  const router = useRouter()
   const client = useApolloClient()
-  const schema = pollSchema(client)
+  const { me } = useMe()
+  const schema = pollSchema({ client, me, existingBoost: item?.boost })
 
-  const [upsertPoll] = useMutation(
-    gql`
-      mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
-        $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $invoiceHash: String, $invoiceHmac: String) {
-        upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
-          options: $options, boost: $boost, forward: $forward, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
-          id
-        }
-      }`
-  )
-
-  const submitUpsertPoll = useCallback(
-    async (_, boost, title, options, values, invoiceHash, invoiceHmac) => {
-      const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
-      const { error } = await upsertPoll({
-        variables: {
-          id: item?.id,
-          sub: item?.subName || sub?.name,
-          boost: boost ? Number(boost) : undefined,
-          title: title.trim(),
-          options: optionsFiltered,
-          ...values,
-          forward: normalizeForwards(values.forward),
-          invoiceHash,
-          invoiceHmac
-        }
-      })
-      if (error) {
-        throw new Error({ message: error.toString() })
-      }
-      if (item) {
-        await router.push(`/items/${item.id}`)
-      } else {
-        const prefix = sub?.name ? `/~${sub.name}` : ''
-        await router.push(prefix + '/recent')
-      }
-    }, [upsertPoll, router])
-
-  const invoiceableUpsertPoll = useInvoiceable(submitUpsertPoll)
+  const onSubmit = useItemSubmit(UPSERT_POLL, { item, sub })
 
   const initialOptions = item?.poll?.options.map(i => i.option)
+
+  const storageKeyPrefix = item ? undefined : 'poll'
 
   return (
     <Form
@@ -67,20 +29,21 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         title: item?.title || '',
         text: item?.text || '',
         options: initialOptions || ['', ''],
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards) }),
+        crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
+        pollExpiresAt: item ? item.pollExpiresAt : datePivot(new Date(), { hours: 25 }),
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      onSubmit={async ({ boost, title, options, cost, ...values }) => {
-        return invoiceableUpsertPoll(cost, boost, title, options, values)
-      }}
-      storageKeyPrefix={item ? undefined : 'poll'}
+      onSubmit={onSubmit}
+      storageKeyPrefix={storageKeyPrefix}
     >
       {children}
       <Input
         label='title'
         name='title'
         required
+        maxLength={MAX_TITLE_LENGTH}
       />
       <MarkdownInput
         topLevel
@@ -97,28 +60,17 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         hint={editThreshold
           ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
           : null}
+        maxLength={MAX_POLL_CHOICE_LENGTH}
       />
-      <AdvPostForm edit={!!item} />
-      <div className='mt-3'>
-        {item
-          ? (
-            <div className='d-flex justify-content-between'>
-              <Delete itemId={item.id} onDelete={() => router.push(`/items/${item.id}`)}>
-                <Button variant='grey-medium'>delete</Button>
-              </Delete>
-              <div className='d-flex'>
-                <CancelButton />
-                <EditFeeButton
-                  paidSats={item.meSats}
-                  parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
-                />
-              </div>
-            </div>)
-          : <FeeButton
-              baseFee={1} parentId={null} text='post'
-              ChildButton={SubmitButton} variant='secondary'
-            />}
-      </div>
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub}>
+        <DateTimeInput
+          isClearable
+          label='poll expiration'
+          name='pollExpiresAt'
+          className='pr-4'
+        />
+      </AdvPostForm>
+      <ItemButtonBar itemId={item?.id} />
     </Form>
   )
 }

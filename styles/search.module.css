@@ -1,0 +1,31 @@
+.content {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+.box {
+  border: 1px solid var(--theme-borderColor);
+  border-radius: 10px;
+  min-width: 50%;
+  display: flex;
+  flex-direction: column;
+}
+.header {
+  border-bottom: 1px solid var(--theme-borderColor);
+}
+.body {
+  display: flex;
+  align-self: center;
+}
+.inner {
+  padding-right: 2rem;
+  padding-bottom: 1rem;
+  padding-top: 1rem;
+  padding-inline-start: 3rem;
+  display: flex;
+  flex-direction: column;
+}
+.inner > li {
+  padding: 0.25rem 0;
+}

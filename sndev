@@ -1,0 +1,616 @@
+#!/bin/sh
+
+set -e
+set -a # automatically export all variables
+. ./.env.development
+if [ -f .env.local ]; then
+  . ./.env.local
+fi
+
+docker__compose() {
+  if [ ! -x "$(command -v docker)" ]; then
+    echo "docker compose is not installed"
+    echo "installation instructions are here: https://docs.docker.com/desktop/"
+    exit 0
+  fi
+
+  ENV_LOCAL=
+  if [ -f .env.local ]; then
+    ENV_LOCAL='--env-file .env.local'
+  fi
+
+  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) command docker compose --env-file .env.development $ENV_LOCAL "$@"
+}
+
+docker__exec() {
+  if [ ! -x "$(command -v docker)" ]; then
+    echo "docker is not installed"
+    echo "installation instructions are here: https://docs.docker.com/desktop/"
+    exit 0
+  fi
+
+  DOCKER_CLI_HINTS=false command docker exec -i "$@"
+}
+
+docker__sn_lnd() {
+  t=$1
+  if [ "$t" = "-t" ]; then
+    shift
+  else
+    t=""
+  fi
+
+  docker__exec $t -u lnd sn_lnd lncli "$@"
+}
+
+docker__stacker_lnd() {
+  t=$1
+  if [ "$t" = "-t" ]; then
+    shift
+  else
+    t=""
+  fi
+
+  docker__exec $t -u lnd stacker_lnd lncli "$@"
+}
+
+docker__stacker_cln() {
+  t=$1
+  if [ "$t" = "-t" ]; then
+    shift
+  else
+    t=""
+  fi
+
+  docker__exec $t -u clightning stacker_cln lightning-cli --regtest "$@"
+}
+
+sndev__start() {
+  shift
+
+  if [ $# -eq 0 ]; then
+    docker__compose up --build
+    exit 0
+  fi
+
+  docker__compose up "$@"
+}
+
+sndev__help_start() {
+help="
+start the sndev env
+
+USAGE
+  $ sndev start [OPTIONS] [SERVICE...]
+
+OPTIONS"
+
+  echo "$help"
+  docker__compose up --help | awk '/Options:/{y=1;next}y'
+}
+
+sndev__stop() {
+  shift
+  docker__compose down "$@"
+}
+
+sndev__help_stop() {
+help="
+stop the sndev env
+
+USAGE
+  $ sndev stop [OPTIONS] [SERVICE...]
+
+OPTIONS"
+
+  echo "$help"
+  docker__compose down --help | awk '/Options:/{y=1;next}y'
+}
+
+sndev__open() {
+  shift
+  service=$(docker__compose ps $1 --format '{{.Label "CONNECT"}}')
+  if [ -z "$service" ]; then
+    echo "no url found for $1"
+    exit 1
+  fi
+  service="http://$service"
+
+  echo "opening $1 ... $service"
+  if [ "$(uname)" = "Darwin" ]; then
+    open $service
+  elif [ "$(uname)" = "Linux" ]; then
+    xdg-open $service
+  elif [ "$(uname)" = "Windows_NT" ]; then
+    start $service
+  fi
+}
+
+sndev__help_open() {
+help="
+open a container's url if it has one
+
+USAGE
+  $ sndev open SERVICE
+
+OPTIONS
+  no options currently exist
+"
+
+  echo "$help"
+}
+
+sndev__restart() {
+  shift
+  docker__compose restart "$@"
+}
+
+sndev__help_restart() {
+help="
+restart the sndev env
+
+USAGE
+  $ sndev restart [OPTIONS] [SERVICE...]
+
+OPTIONS"
+
+  echo "$help"
+  docker__compose restart --help | awk '/Options:/{y=1;next}y'
+}
+
+sndev__logs() {
+  shift
+  if [ $# -eq 1 ]; then
+    docker__compose logs -t --tail=1000 -f "$@"
+    exit 0
+  fi
+
+  docker__compose logs "$@"
+}
+
+sndev__help_logs() {
+help="
+get logs from sndev env
+
+USAGE
+  $ sndev logs [OPTIONS] [SERVICE...]
+
+OPTIONS"
+
+  echo "$help"
+  docker__compose logs --help | awk '/Options:/{y=1;next}y'
+}
+
+sndev__status() {
+  shift
+  if [ $# -eq 0 ]; then
+    docker__compose ps -a --format 'table {{.Service}}\t{{.State}}\t{{.Status}}\t{{.Label "CONNECT"}}'
+    exit 0
+  fi
+  docker__compose ps "$@"
+}
+
+sndev__help_status() {
+help="
+show container status of sndev env
+
+USAGE
+  $ sndev status [OPTIONS] [SERVICE...]
+
+OPTIONS"
+
+  echo "$help"
+  docker__compose ps --help | awk '/Options:/{y=1;next}y'
+}
+
+sndev__delete() {
+  printf "this deletes containers, volumes, and orphans - are you sure? [y/N] "
+  read -r answer
+  if [ "$answer" = "y" ]; then
+    docker__compose down --volumes --remove-orphans
+  else
+    echo "delete cancelled"
+  fi
+}
+
+sndev__help_delete() {
+help="
+remove orphans and volumes from sndev env
+equivalent to sndev stop --volumes --remove-orphans
+
+USAGE
+  $ sndev delete
+"
+
+  echo "$help"
+}
+
+sndev__fund_user() {
+  shift
+  if [ -z "$1" ]; then
+    echo "<nym> argument required"
+    sndev__help_fund_user
+    exit 1
+  fi
+  if [ -z "$2" ]; then
+    echo "<msats> argument required"
+    sndev__help_fund_user
+    exit 2
+  fi
+  re='^[0-9]+$'
+  if ! [[ $2 =~ $re ]]; then
+   echo "<msats> is not a positive integer"
+   sndev__help_fund_user
+   exit 3
+  fi
+  docker__exec db psql -U sn -d stackernews -q <<EOF
+    UPDATE users set msats = $2 where name = '$1';
+EOF
+}
+
+sndev__help_fund_user() {
+  help="
+fund a nym without using an LN invoice (local only)
+
+USAGE
+  $ sndev fund_user <nym> <msats>
+
+  <nym> - the name of the user you want to fund
+  <msats> - the amount of millisatoshis to set the account to. Must be >= 0
+"
+
+  echo "$help"
+}
+
+sndev__fund() {
+  shift
+  docker__stacker_lnd -t payinvoice "$@"
+}
+
+sndev__help_fund() {
+help="
+pay a bolt11 for funding
+
+USAGE
+  $ sndev fund <bolt11> [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__stacker_lnd payinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+--pay_req value/'
+}
+
+sndev__cln_fund() {
+  shift
+  docker__stacker_cln -t pay "$@"
+}
+
+sndev__help_cln_fund() {
+help="
+pay a bolt11 for funding with CLN
+
+USAGE
+  $ sndev cln_fund <bolt11>"
+  echo "$help"
+}
+
+sndev__cln_withdraw() {
+  shift
+  label=$(date +%s)
+  docker__stacker_cln -t invoice "$1" "$label" sndev | jq -r '.bolt11'
+}
+
+sndev__help_cln_withdraw() {
+help="
+create a bolt11 for withdrawal with CLN
+
+USAGE
+  $ sndev cln_withdraw <amount msats>"
+  echo "$help"
+}
+
+sndev__withdraw() {
+  shift
+  docker__stacker_lnd addinvoice --amt "$@" | jq -r '.payment_request'
+}
+
+sndev__help_withdraw() {
+  help="
+create a bolt11 for withdrawal
+
+USAGE
+  $ sndev withdraw <amount sats> [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__stacker_lnd addinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+(--amt|--amt_msat) value/'
+}
+
+sndev__psql() {
+  shift
+  docker__exec -t db psql "$@" -U sn -d stackernews
+}
+
+sndev__help_psql() {
+  help="
+open psql on db
+
+USAGE
+  $ sndev psql [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__exec db psql --help | awk '/General options:/{y=1;next}y' | sed -n '/Connection options:/q;p' |
+    awk '!/^([\t ]+-l, --list)|([\t ]+-d, --dbname)|([\t ]+-\?, --help)|([\t ]--help=)/'
+}
+
+sndev__prisma() {
+  shift
+  docker__exec -t -u apprunner app npx prisma "$@"
+}
+
+sndev__help_prisma() {
+  help="
+run prisma commands
+
+USAGE
+  $ sndev prisma [COMMAND]
+
+COMMANDS"
+
+  echo "$help"
+  sndev__prisma --help | awk '/Commands/{y=1;next}y' | awk '!/^([\t ]+init)|([\t ]+studio)/' | sed -n '/Flags/q;p'
+}
+
+sndev__lint() {
+  shift
+  docker__exec -t -u apprunner app npm run lint
+}
+
+sndev__help_lint() {
+  help="
+run linters
+
+USAGE
+  $ sndev lint
+"
+
+  echo "$help"
+}
+
+sndev__compose() {
+  shift
+  docker__compose "$@"
+}
+
+sndev__help_compose() {
+  docker__compose --help
+}
+
+sndev__sn_lndcli() {
+  shift
+  docker__sn_lnd -t "$@"
+}
+
+sndev__help_sn_lndcli() {
+  docker__sn_lnd --help
+}
+
+sndev__stacker_lndcli() {
+  shift
+  docker__stacker_lnd -t "$@"
+}
+
+sndev__help_stacker_lndcli() {
+  docker__stacker_lnd --help
+}
+
+sndev__stacker_clncli() {
+  shift
+  docker__stacker_cln -t "$@"
+}
+
+sndev__help_stacker_clncli() {
+  docker__stacker_cln help
+}
+
+sndev__stacker_litcli() {
+  shift
+  docker__exec -t litd litcli -n regtest --rpcserver localhost:8444 "$@"
+}
+
+sndev__help_stacker_litcli() {
+  docker__exec -t litd litcli -h
+}
+
+__sndev__pr_track() {
+  json=$(curl -fsSH "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/stackernews/stacker.news/pulls/$1")
+  case $(git config --get remote.origin.url) in
+    "http"*) url=$(echo "$json" | grep -e '"clone_url"' | head -n1 | sed -e 's/^.*"clone_url":[[:space:]]*"//; s/",[[:space:]]*$//') ;;
+    *)       url=$(echo "$json" | grep -e '"ssh_url"' | head -n1 | sed -e 's/^.*"ssh_url":[[:space:]]*"//; s/",[[:space:]]*$//') ;;
+  esac
+
+  push=$(git remote -v | grep -e "$url .*push" | head -n1) || true
+  if [ -n "$push" ]; then
+    remote=$(echo "$push" | cut -f 1)
+  else
+    remote=$(echo "$json" | grep -e '"login"' | head -n1 | sed -e 's/^.*"login":[[:space:]]*"//; s/",[[:space:]]*$//')
+    git remote remove "$remote" 1>/dev/null 2>&1 || true
+    git remote add "$remote" "$url"
+  fi
+
+  ref=$(echo "$json" | grep -e '"ref"' | head -n1 | sed -e 's/^.*"ref":[[:space:]]*"//; s/",[[:space:]]*$//')
+  git fetch "$remote" "$ref"
+  git checkout -t -b "pr/$1" "$remote/$ref"
+  git config --local "remote.$remote.push" pr/$1:$ref
+  exit 0
+}
+
+__sndev__pr_detach() {
+  refspec="+refs/pull/$1/head:refs/remotes/pr/$1"
+  case $(git config --get remote.origin.url) in
+      "http"*) git fetch https://github.com/stackernews/stacker.news.git "$refspec" ;;
+    *)       git fetch git@github.com:stackernews/stacker.news.git "$refspec" ;;
+  esac
+  git checkout "pr/$1"
+  exit 0
+}
+
+sndev__pr() {
+  shift
+
+  case $1 in
+    -t|--track)
+      call "__sndev__pr_track" "$2" ;;
+    *)
+      call "__sndev__pr_detach" "$1" ;;
+  esac
+}
+
+sndev__help_pr() {
+  help="
+fetch and checkout a pr
+
+USAGE
+  $ sndev pr [OPTIONS] <pr number>
+
+OPTIONS
+  -t, --track   track the pr in a new branch, creating a remote if necessary
+                defaults to checking out the pr in a detached state
+"
+
+  echo "$help"
+}
+
+sndev__login() {
+  shift
+  if [ -z "$1" ]; then
+    echo "<nym> argument required"
+    sndev__help_login
+    exit 1
+  fi
+  # hardcode token for which is the hex digest of the sha256 of
+  # "SNDEV-TOKEN3_0W_PhDRZVanbeJsZZGIEljexkKoGbL6qGIqSwTjjI"
+  # next-auth concats the token with the secret from env and then sha256's it
+  token="d5fce54babffcb070c39f78d947761fd9ec37647fafcecb9734a3085a78e5c5e"
+  salt="202c90943c313b829e65e3f29164fb5dd7ea3370d7262c4159691c2f6493bb8b"
+  # upsert user with nym and nym@sndev.team
+  email="$1@sndev.team"
+  docker__exec db psql -U sn -d stackernews -q <<EOF
+    INSERT INTO users (name) VALUES ('$1') ON CONFLICT DO NOTHING;
+    UPDATE users SET email = '$email', "emailHash" = encode(digest(LOWER('$email')||'$salt', 'sha256'), 'hex') WHERE name = '$1';
+    INSERT INTO verification_requests (identifier, token, expires)
+      VALUES ('$email', '$token', NOW() + INTERVAL '1 day')
+      ON CONFLICT (token) DO UPDATE
+      SET identifier = '$email', expires = NOW() + INTERVAL '1 day';
+EOF
+
+  echo
+  echo "open url in browser"
+  echo "http://localhost:3000/api/auth/callback/email?token=SNDEV-TOKEN&email=$1%40sndev.team"
+  echo
+}
+
+sndev__help_login() {
+  help="
+login as a nym
+
+USAGE
+  $ sndev login <nym>
+"
+
+  echo "$help"
+}
+
+sndev__help() {
+    if [ $# -eq 2 ]; then
+      call "sndev__$1_$2" "$@"
+      exit 0
+    fi
+
+help="
+                            888
+                            888
+                            888
+      .d8888b  88888b.  .d88888  .d88b.  888  888
+     88K      888 '88b d88' 888 d8P  Y8b 888  888
+     'Y8888b. 888  888 888  888 88888888 Y88  88P
+          X88 888  888 Y88b 888 Y8b.      Y8bd8P
+      88888P' 888  888  'Y88888  'Y8888    Y88P
+
+manages a docker based stacker news development environment
+
+USAGE
+  $ sndev [COMMAND]
+  $ sndev help [COMMAND]
+
+COMMANDS
+  help            show help
+
+  env:
+    start         start env
+    stop          stop env
+    restart       restart env
+    status        status of env
+    logs          logs from env
+    delete        delete env
+
+  sn:
+    login         login as a nym
+    fund_user     fund a nym without using an LN invoice
+
+  lnd:
+    fund          pay a bolt11 for funding
+    withdraw      create a bolt11 for withdrawal
+
+  cln:
+    cln_fund      pay a bolt11 for funding with CLN
+    cln_withdraw  create a bolt11 for withdrawal with CLN
+
+  db:
+    psql          open psql on db
+    prisma        run prisma commands
+
+  dev:
+    pr            fetch and checkout a pr
+    lint          run linters
+    open          open container url in browser
+
+  other:
+    compose         docker compose passthrough
+    sn_lndcli       lncli passthrough on sn_lnd
+    stacker_lndcli  lncli passthrough on stacker_lnd
+    stacker_clncli  lightning-cli passthrough on stacker_cln
+    stacker_litcli  litcli passthrough on litd
+"
+  echo "$help"
+}
+
+call() {
+    func=$1
+    if type "$func" 1>/dev/null 2>&1; then
+        # if it's sndev COMMAND help, then call help for that command
+        case $3 in
+          -h|--help|help)
+          call "sndev__help_$2"
+          exit 0
+          ;;
+        esac
+        shift # remove func from args
+        "$func" "$@"  # invoke our named function w/ all remaining arguments
+    else
+        # if it's sndev -h COMMAND, then call help for that command
+        case $2 in
+          -h|--help)
+          call "sndev__help_$3"
+          exit 0
+          ;;
+        esac
+        sndev__help
+        exit 1
+    fi
+}
+
+call "sndev__$1" "$@"

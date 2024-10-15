@@ -17,6 +17,19 @@ export default gql`
     sortTime: Date!
   }
 
+  type ForwardedVotification {
+    id: ID!
+    earnedSats: Int!
+    item: Item!
+    sortTime: Date!
+  }
+
+  type FollowActivity {
+    id: ID!
+    item: Item!
+    sortTime: Date!
+  }
+
   type Reply {
     id: ID!
     item: Item!
@@ -30,9 +43,21 @@ export default gql`
     sortTime: Date!
   }
 
+  type ItemMention {
+    id: ID!
+    item: Item!
+    sortTime: Date!
+  }
+
   type Invitification {
     id: ID!
     invite: Invite!
+    sortTime: Date!
+  }
+
+  type Invoicification {
+    id: ID!
+    invoice: Invoice!
     sortTime: Date!
   }
 
@@ -54,13 +79,35 @@ export default gql`
     id: ID!
     sortTime: Date!
     days: Int
+    type: String!
   }
 
   type Earn {
     id: ID!
     earnedSats: Int!
+    minSortTime: Date!
     sortTime: Date!
     sources: EarnSources
+  }
+
+  type ReferralSources {
+    id: ID!
+    forever: Int!
+    oneDay: Int!
+  }
+
+  type ReferralReward {
+    id: ID!
+    earnedSats: Int!
+    sortTime: Date!
+    sources: ReferralSources
+  }
+
+  type Revenue {
+    id: ID!
+    earnedSats: Int!
+    sortTime: Date!
+    subName: String!
   }
 
   type InvoicePaid {
@@ -70,14 +117,47 @@ export default gql`
     sortTime: Date!
   }
 
+  type WithdrawlPaid {
+    id: ID!
+    earnedSats: Int!
+    sortTime: Date!
+    withdrawl: Withdrawl!
+  }
+
   type Referral {
     id: ID!
     sortTime: Date!
   }
 
+  type SubStatus {
+    id: ID!
+    sub: Sub!
+    sortTime: Date!
+  }
+
+  type TerritoryPost {
+    id: ID!
+    item: Item!
+    sortTime: Date!
+  }
+
+  type TerritoryTransfer {
+    id: ID!
+    sub: Sub!
+    sortTime: Date!
+  }
+
+  type Reminder {
+    id: ID!
+    item: Item!
+    sortTime: Date!
+  }
+
   union Notification = Reply | Votification | Mention
-    | Invitification | Earn | JobChanged | InvoicePaid | Referral
-    | Streak
+    | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
+    | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus
+    | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | Invoicification
+    | ReferralReward
 
   type Notifications {
     lastChecked: Date

@@ -1,43 +1,26 @@
-const serialize = require('../api/resolvers/serial')
-const { ANON_USER_ID } = require('../lib/constants')
+import { notifyEarner } from '@/lib/webPush.js'
+import createPrisma from '@/lib/create-prisma.js'
+import { proportions } from '@/lib/madness.js'
+import { SN_NO_REWARDS_IDS } from '@/lib/constants.js'
 
-// const ITEM_EACH_REWARD = 3.0
-// const UPVOTE_EACH_REWARD = 6.0
-const TOP_PERCENTILE = 21
-const TOTAL_UPPER_BOUND_MSATS = 1000000000
-const REDUCE_REWARDS = [616, 6030, 946, 4502]
+const TOTAL_UPPER_BOUND_MSATS = 1_000_000_000
 
-function earn ({ models }) {
-  return async function ({ name }) {
-    console.log('running', name)
+export async function earn ({ name }) {
+  // grab a greedy connection
+  const models = createPrisma({ connectionParams: { connection_limit: 1 } })
 
-    // compute how much sn earned today
+  try {
+    // compute how much sn earned yesterday
     const [{ sum: sumDecimal }] = await models.$queryRaw`
-      SELECT coalesce(sum(msats), 0) as sum
-      FROM (
-        (SELECT ("ItemAct".msats - COALESCE("ReferralAct".msats, 0)) as msats
-          FROM "ItemAct"
-          LEFT JOIN "ReferralAct" ON "ReferralAct"."itemActId" = "ItemAct".id
-          WHERE date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago') AND "ItemAct".act <> 'TIP')
-          UNION ALL
-        (SELECT sats * 1000 as msats
-          FROM "Donation"
-          WHERE date_trunc('day', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago'))
-          UNION ALL
-        -- any earnings from anon's stack that are not forwarded to other users
-        (SELECT "ItemAct".msats
-          FROM "Item"
-          JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
-          LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id
-          WHERE "Item"."userId" = ${ANON_USER_ID} AND "ItemAct".act = 'TIP'
-          AND date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago')
-          GROUP BY "ItemAct".id, "ItemAct".msats
-          HAVING COUNT("ItemForward".id) = 0)
-      ) subquery`
+      SELECT sum(total) as sum
+      FROM rewards(
+        date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'),
+        date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'), '1 day'::INTERVAL, 'day')`
 
     // XXX primsa will return a Decimal (https://mikemcl.github.io/decimal.js)
     // because sum of a BIGINT returns a NUMERIC type (https://www.postgresql.org/docs/13/functions-aggregate.html)
-    // and Decimal is what prisma maps it to https://www.prisma.io/docs/concepts/components/prisma-client/raw-database-access#raw-query-type-mapping
+    // and Decimal is what prisma maps it to
+    // https://www.prisma.io/docs/concepts/components/prisma-client/raw-database-access#raw-query-type-mapping
     // so check it before coercing to Number
     if (!sumDecimal || sumDecimal.lessThanOrEqualTo(0)) {
       console.log('done', name, 'no sats to award today')
@@ -53,7 +36,7 @@ function earn ({ models }) {
 
     const sum = Number(sumDecimal)
 
-    console.log(name, 'giving away', sum, 'msats')
+    console.log(name, 'giving away', sum, 'msats', 'rewarding all')
 
     /*
       How earnings (used to) work:
@@ -65,94 +48,142 @@ function earn ({ models }) {
         - how early they upvoted it
         - how the post/comment scored
 
-      Now: 100% of earnings go to zappers of the top 21% of posts/comments
+      Now: 80% of earnings go to top 100 stackers by value, and 10% each to their forever and one day referrers
     */
 
-    // get earners { userId, id, type, rank, proportion }
+    // get earners { userId, id, type, rank, proportion, foreverReferrerId, oneDayReferrerId }
     const earners = await models.$queryRaw`
-      -- get top 21% of posts and comments
-      WITH item_ratios AS (
-          SELECT *,
-              CASE WHEN "parentId" IS NULL THEN 'POST' ELSE 'COMMENT' END as type,
-              CASE WHEN "weightedVotes" > 0 THEN "weightedVotes"/(sum("weightedVotes") OVER (PARTITION BY "parentId" IS NULL)) ELSE 0 END AS ratio
-          FROM (
-              SELECT *,
-                  NTILE(100)  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS percentile,
-                  ROW_NUMBER()  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS rank
-              FROM
-                  "Item"
-              WHERE created_at >= now_utc() - interval '36 hours'
-              AND "weightedVotes" > 0 AND "deletedAt" IS NULL AND NOT bio
-          ) x
-          WHERE x.percentile <= ${TOP_PERCENTILE}
-      ),
-      -- get top upvoters of top posts and comments
-      upvoter_islands AS (
-            SELECT "ItemAct"."userId", item_ratios.id, item_ratios.ratio, item_ratios."parentId",
-                "ItemAct".msats as tipped, "ItemAct".created_at as acted_at,
-                ROW_NUMBER() OVER (partition by item_ratios.id order by "ItemAct".created_at asc)
-                - ROW_NUMBER() OVER (partition by item_ratios.id, "ItemAct"."userId" order by "ItemAct".created_at asc) AS island
-            FROM item_ratios
-            JOIN "ItemAct" on "ItemAct"."itemId" = item_ratios.id
-            WHERE act = 'TIP'
-      ),
-      -- isolate contiguous upzaps from the same user on the same item so that when we take the log
-      -- of the upzaps it accounts for successive zaps and does not disproporionately reward them
-      upvoters AS (
-        SELECT "userId", id, ratio, "parentId", GREATEST(log(sum(tipped) / 1000), 0) as tipped, min(acted_at) as acted_at
-        FROM upvoter_islands
-        GROUP BY "userId", id, ratio, "parentId", island
-      ),
-      -- the relative contribution of each upvoter to the post/comment
-      -- early multiplier: 10/ln(early_rank + e)
-      -- we also weight by trust in a step wise fashion
-      upvoter_ratios AS (
-          SELECT "userId", sum(early_multiplier*tipped_ratio*ratio*CASE WHEN users.id = ANY (${REDUCE_REWARDS}) THEN 0.2 ELSE CEIL(users.trust*2)+1 END) as upvoter_ratio,
-              "parentId" IS NULL as "isPost", CASE WHEN "parentId" IS NULL THEN 'TIP_POST' ELSE 'TIP_COMMENT' END as type
-          FROM (
-              SELECT *,
-                  10.0/LN(ROW_NUMBER() OVER (partition by id order by acted_at asc) + EXP(1.0)) AS early_multiplier,
-                  tipped::float/(sum(tipped) OVER (partition by id)) tipped_ratio
-              FROM upvoters
-          ) u
-          JOIN users on "userId" = users.id
-          GROUP BY "userId", "parentId" IS NULL
+      WITH earners AS (
+        SELECT users.id AS "userId", users."referrerId" AS "foreverReferrerId",
+          proportion, (ROW_NUMBER() OVER (ORDER BY proportion DESC))::INTEGER AS rank
+        FROM user_values(
+          date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'),
+          date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'),
+          '1 day'::INTERVAL,
+          'day') uv
+        JOIN users ON users.id = uv.id
+        WHERE NOT (users.id = ANY (${SN_NO_REWARDS_IDS}))
+        ORDER BY proportion DESC
+        LIMIT 100
       )
-      SELECT "userId", NULL as id, type, ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY upvoter_ratio DESC) as rank,
-          upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/2 as proportion
-      FROM upvoter_ratios
-      WHERE upvoter_ratio > 0
-      ORDER BY "isPost", rank ASC`
+      SELECT earners.*,
+        COALESCE(
+          mode() WITHIN GROUP (ORDER BY "OneDayReferral"."referrerId"),
+          earners."foreverReferrerId") AS "oneDayReferrerId"
+      FROM earners
+      LEFT JOIN "OneDayReferral" ON "OneDayReferral"."refereeId" = earners."userId"
+      WHERE "OneDayReferral".created_at >= date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day')
+      GROUP BY earners."userId", earners."foreverReferrerId", earners.proportion, earners.rank
+      ORDER BY rank ASC`
 
     // in order to group earnings for users we use the same createdAt time for
     // all earnings
-    const now = new Date(new Date().getTime())
+    const createdAt = new Date(new Date().getTime())
+    // stmts is an array of prisma promises we'll call after the loop
+    const stmts = []
 
     // this is just a sanity check because it seems like a good idea
     let total = 0
 
-    // for each earner, serialize earnings
-    // we do this for each earner because we don't need to serialize
-    // all earner updates together
-    earners.forEach(async earner => {
-      const earnings = Math.floor(parseFloat(earner.proportion) * sum)
-      total += earnings
+    const notifications = {}
+    for (const [i, earner] of earners.entries()) {
+      const foreverReferrerEarnings = Math.floor(parseFloat(earner.proportion * sum * 0.1)) // 10% of earnings
+      let oneDayReferrerEarnings = Math.floor(parseFloat(earner.proportion * sum * 0.1)) // 10% of earnings
+      const earnerEarnings = Math.floor(parseFloat(proportions[i] * sum)) - foreverReferrerEarnings - oneDayReferrerEarnings
+
+      total += earnerEarnings + foreverReferrerEarnings + oneDayReferrerEarnings
       if (total > sum) {
         console.log(name, 'total exceeds sum', total, '>', sum)
         return
       }
 
-      console.log('stacker', earner.userId, 'earned', earnings, 'proportion', earner.proportion, 'rank', earner.rank, 'type', earner.type)
+      console.log(
+        'stacker', earner.userId,
+        'earned', earnerEarnings,
+        'proportion', earner.proportion,
+        'rank', earner.rank,
+        'type', earner.type,
+        'foreverReferrer', earner.foreverReferrerId,
+        'foreverReferrerEarnings', foreverReferrerEarnings,
+        'oneDayReferrer', earner.oneDayReferrerId,
+        'oneDayReferrerEarnings', oneDayReferrerEarnings)
 
-      if (earnings > 0) {
-        await serialize(models,
-          models.$executeRaw`SELECT earn(${earner.userId}::INTEGER, ${earnings},
-          ${now}::timestamp without time zone, ${earner.type}::"EarnType", ${earner.id}::INTEGER, ${earner.rank}::INTEGER)`)
+      if (earnerEarnings > 0) {
+        stmts.push(...earnStmts({
+          msats: earnerEarnings,
+          userId: earner.userId,
+          createdAt,
+          type: earner.type,
+          rank: earner.rank
+        }, { models }))
+
+        const userN = notifications[earner.userId] || {}
+
+        // sum total
+        const prevMsats = userN.msats || 0
+        const msats = earnerEarnings + prevMsats
+
+        // sum total per earn type (POST, COMMENT, TIP_COMMENT, TIP_POST)
+        const prevEarnTypeMsats = userN[earner.type]?.msats || 0
+        const earnTypeMsats = earnerEarnings + prevEarnTypeMsats
+
+        // best (=lowest) rank per earn type
+        const prevEarnTypeBestRank = userN[earner.type]?.bestRank
+        const earnTypeBestRank = prevEarnTypeBestRank
+          ? Math.min(prevEarnTypeBestRank, Number(earner.rank))
+          : Number(earner.rank)
+
+        notifications[earner.userId] = {
+          ...userN,
+          msats,
+          [earner.type]: { msats: earnTypeMsats, bestRank: earnTypeBestRank }
+        }
       }
-    })
 
-    console.log('done', name)
+      if (earner.foreverReferrerId && foreverReferrerEarnings > 0) {
+        stmts.push(...earnStmts({
+          msats: foreverReferrerEarnings,
+          userId: earner.foreverReferrerId,
+          createdAt,
+          type: 'FOREVER_REFERRAL',
+          rank: earner.rank
+        }, { models }))
+      } else if (earner.oneDayReferrerId) {
+        // if the person doesn't have a forever referrer yet, they give double to their one day referrer
+        oneDayReferrerEarnings += foreverReferrerEarnings
+      }
+
+      if (earner.oneDayReferrerId && oneDayReferrerEarnings > 0) {
+        stmts.push(...earnStmts({
+          msats: oneDayReferrerEarnings,
+          userId: earner.oneDayReferrerId,
+          createdAt,
+          type: 'ONE_DAY_REFERRAL',
+          rank: earner.rank
+        }, { models }))
+      }
+    }
+
+    // execute all the transactions
+    await models.$transaction(stmts)
+
+    Promise.allSettled(
+      Object.entries(notifications).map(([userId, earnings]) => notifyEarner(parseInt(userId, 10), earnings))
+    ).catch(console.error)
+  } finally {
+    models.$disconnect().catch(console.error)
   }
 }
 
-module.exports = { earn }
+function earnStmts (data, { models }) {
+  const { msats, userId } = data
+  return [
+    models.earn.create({ data }),
+    models.user.update({
+      where: { id: userId },
+      data: {
+        msats: { increment: msats },
+        stackedMsats: { increment: msats }
+      }
+    })]
+}

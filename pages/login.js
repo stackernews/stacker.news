@@ -2,12 +2,19 @@ import { getProviders } from 'next-auth/react'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './api/auth/[...nextauth]'
 import Link from 'next/link'
-import { StaticLayout } from '../components/layout'
-import Login from '../components/login'
-import { isExternal } from '../lib/url'
+import { StaticLayout } from '@/components/layout'
+import Login from '@/components/login'
+import { isExternal } from '@/lib/url'
 
-export async function getServerSideProps ({ req, res, query: { callbackUrl, error = null } }) {
-  const session = await getServerSession(req, res, getAuthOptions(req))
+export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, error = null } }) {
+  let session = await getServerSession(req, res, getAuthOptions(req))
+
+  // required to prevent infinite redirect loops if we switch to anon
+  // but are on a page that would redirect us to /signup.
+  // without this code, /signup would redirect us back to the callbackUrl.
+  if (req.cookies['multi_auth.user-id'] === 'anonymous') {
+    session = null
+  }
 
   // prevent open redirects. See https://github.com/stackernews/stacker.news/issues/264
   // let undefined urls through without redirect ... otherwise this interferes with multiple auth linking
@@ -22,11 +29,11 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, erro
     callbackUrl = '/'
   }
 
-  if (session && callbackUrl) {
-    // in the cause of auth linking we want to pass the error back to
-    // settings
+  if (session && callbackUrl && !multiAuth) {
+    // in the case of auth linking we want to pass the error back to settings
+    // in the case of multi auth, don't redirect if there is already a session
     if (error) {
-      const url = new URL(callbackUrl, process.env.PUBLIC_URL)
+      const url = new URL(callbackUrl, process.env.NEXT_PUBLIC_URL)
       url.searchParams.set('error', error)
       callbackUrl = url.pathname + url.search
     }
@@ -39,18 +46,32 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, erro
     }
   }
 
+  const providers = await getProviders()
+
   return {
     props: {
-      providers: await getProviders(),
+      providers,
       callbackUrl,
-      error
+      error,
+      multiAuth
     }
   }
 }
 
 function LoginFooter ({ callbackUrl }) {
   return (
-    <small className='fw-bold text-muted pt-4'>Don't have an account? <Link href={{ pathname: '/signup', query: { callbackUrl } }}>sign up</Link></small>
+    <small className='fw-bold text-muted pt-4'>New to town? <Link href={{ pathname: '/signup', query: { callbackUrl } }}>sign up</Link></small>
+  )
+}
+
+function LoginHeader () {
+  return (
+    <>
+      <h3 className='w-100 pb-2'>
+        Login
+      </h3>
+      <div className='fw-bold text-muted w-100 text-start pb-4'>Ain't you a sight for sore eyes.</div>
+    </>
   )
 }
 
@@ -59,6 +80,7 @@ export default function LoginPage (props) {
     <StaticLayout footerLinks={false}>
       <Login
         Footer={() => <LoginFooter callbackUrl={props.callbackUrl} />}
+        Header={() => <LoginHeader />}
         {...props}
       />
     </StaticLayout>

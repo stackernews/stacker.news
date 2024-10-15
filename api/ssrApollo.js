@@ -7,10 +7,12 @@ import models from './models'
 import { print } from 'graphql'
 import lnd from './lnd'
 import search from './search'
-import { ME } from '../fragments/users'
-import { PRICE } from '../fragments/price'
+import { ME } from '@/fragments/users'
+import { PRICE } from '@/fragments/price'
+import { BLOCK_HEIGHT } from '@/fragments/blockHeight'
+import { CHAIN_FEE } from '@/fragments/chainFee'
 import { getServerSession } from 'next-auth/next'
-import { getAuthOptions } from '../pages/api/auth/[...nextauth]'
+import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
   const session = req && await getServerSession(req, res, getAuthOptions(req))
@@ -38,18 +40,81 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
       watchQuery: {
         fetchPolicy: 'no-cache',
         nextFetchPolicy: 'no-cache',
-        canonizeResults: true,
         ssr: true
       },
       query: {
         fetchPolicy: 'no-cache',
         nextFetchPolicy: 'no-cache',
-        canonizeResults: true,
         ssr: true
       }
     }
   })
+
+  await client.clearStore()
   return client
+}
+
+function oneDayReferral (request, { me }) {
+  if (!me) return
+  const refHeader = request.headers['x-stacker-news-referrer']
+  if (!refHeader) return
+
+  const referrers = refHeader.split('; ').filter(Boolean)
+  for (const referrer of referrers) {
+    let prismaPromise, getData
+
+    if (referrer.startsWith('item-')) {
+      prismaPromise = models.item.findUnique({ where: { id: parseInt(referrer.slice(5)) } })
+      getData = item => ({
+        referrerId: item.userId,
+        refereeId: parseInt(me.id),
+        type: item.parentId ? 'COMMENT' : 'POST',
+        typeId: String(item.id)
+      })
+    } else if (referrer.startsWith('profile-')) {
+      const name = referrer.slice(8)
+      // exclude all pages that are not user profiles
+      if (['api', 'auth', 'day', 'invites', 'invoices', 'referrals', 'rewards',
+        'satistics', 'settings', 'stackers', 'wallet', 'withdrawals', '404', '500',
+        'email', 'live', 'login', 'notifications', 'offline', 'search', 'share',
+        'signup', 'territory', 'recent', 'top', 'edit', 'post', 'rss', 'saloon',
+        'faq', 'story', 'privacy', 'copyright', 'tos', 'changes', 'guide', 'daily',
+        'anon', 'ad'].includes(name)) continue
+
+      prismaPromise = models.user.findUnique({ where: { name } })
+      getData = user => ({
+        referrerId: user.id,
+        refereeId: parseInt(me.id),
+        type: 'PROFILE',
+        typeId: String(user.id)
+      })
+    } else if (referrer.startsWith('territory-')) {
+      prismaPromise = models.sub.findUnique({ where: { name: referrer.slice(10) } })
+      getData = sub => ({
+        referrerId: sub.userId,
+        refereeId: parseInt(me.id),
+        type: 'TERRITORY',
+        typeId: sub.name
+      })
+    } else {
+      prismaPromise = models.user.findUnique({ where: { name: referrer } })
+      getData = user => ({
+        referrerId: user.id,
+        refereeId: parseInt(me.id),
+        type: 'REFERRAL',
+        typeId: String(user.id)
+      })
+    }
+
+    prismaPromise?.then(ref => {
+      if (ref && getData) {
+        const data = getData(ref)
+        // can't refer yourself
+        if (data.refereeId === data.referrerId) return
+        models.oneDayReferral.create({ data }).catch(console.error)
+      }
+    }).catch(console.error)
+  }
 }
 
 /**
@@ -61,47 +126,67 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
  * @param opts.notFound function that tests data to determine if 404
  * @param opts.authRequired boolean that determines if auth is required
  */
-export function getGetServerSideProps ({ query, variables, notFound, authRequired }) {
+export function getGetServerSideProps (
+  { query: queryOrFunc, variables: varsOrFunc, notFound, authRequired }) {
   return async function ({ req, res, query: params }) {
     const { nodata, ...realParams } = params
     // we want to use client-side cache
     if (nodata) return { props: { } }
 
-    variables = typeof variables === 'function' ? variables(realParams) : variables
+    const variables = typeof varsOrFunc === 'function' ? varsOrFunc(realParams) : varsOrFunc
     const vars = { ...realParams, ...variables }
-    query = typeof query === 'function' ? query(vars) : query
+    const query = typeof queryOrFunc === 'function' ? queryOrFunc(vars) : queryOrFunc
 
     const client = await getSSRApolloClient({ req, res })
 
-    const { data: { me } } = await client.query({
-      query: ME,
-      variables: { skipUpdate: true }
-    })
+    let { data: { me } } = await client.query({ query: ME })
+
+    // required to redirect to /signup on page reload
+    // if we switched to anon and authentication is required
+    if (req.cookies['multi_auth.user-id'] === 'anonymous') {
+      me = null
+    }
 
     if (authRequired && !me) {
-      const callback = process.env.PUBLIC_URL + req.url
+      let callback = process.env.NEXT_PUBLIC_URL + req.url
+      // On client-side routing, the callback is a NextJS URL
+      // so we need to remove the NextJS stuff.
+      // Example: /_next/data/development/territory.json
+      callback = callback.replace(/\/_next\/data\/\w+\//, '/').replace(/\.json$/, '')
       return {
         redirect: {
-          destination: `/login?callbackUrl=${encodeURIComponent(callback)}`
+          destination: `/signup?callbackUrl=${encodeURIComponent(callback)}`
         }
       }
     }
 
     const { data: { price } } = await client.query({
-      query: PRICE, variables: { fiatCurrency: me?.fiatCurrency }
+      query: PRICE, variables: { fiatCurrency: me?.privates?.fiatCurrency }
+    })
+
+    const { data: { blockHeight } } = await client.query({
+      query: BLOCK_HEIGHT, variables: {}
+    })
+
+    const { data: { chainFee } } = await client.query({
+      query: CHAIN_FEE, variables: {}
     })
 
     let error = null; let data = null; let props = {}
     if (query) {
-      ({ error, data } = await client.query({
-        query,
-        variables: vars
-      }))
+      try {
+        ({ error, data } = await client.query({
+          query,
+          variables: vars
+        }))
+      } catch (e) {
+        console.error(e)
+      }
 
-      if (error || !data || (notFound && notFound(data, vars))) {
-        return {
-          notFound: true
-        }
+      if (error || !data || (notFound && notFound(data, vars, me))) {
+        res.writeHead(302, {
+          Location: '/404'
+        }).end()
       }
 
       props = {
@@ -112,11 +197,15 @@ export function getGetServerSideProps ({ query, variables, notFound, authRequire
       }
     }
 
+    oneDayReferral(req, { me })
+
     return {
       props: {
         ...props,
         me,
         price,
+        blockHeight,
+        chainFee,
         ssrData: data
       }
     }

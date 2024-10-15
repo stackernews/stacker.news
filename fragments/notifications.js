@@ -1,12 +1,39 @@
 import { gql } from '@apollo/client'
-import { ITEM_FULL_FIELDS } from './items'
+import { ITEM_FULL_FIELDS, POLL_FIELDS } from './items'
 import { INVITE_FIELDS } from './invites'
+import { SUB_FIELDS } from './subs'
+import { INVOICE_FIELDS } from './wallet'
 
 export const HAS_NOTIFICATIONS = gql`{ hasNewNotes }`
 
-export const NOTIFICATIONS = gql`
+export const INVOICIFICATION = gql`
   ${ITEM_FULL_FIELDS}
+  ${POLL_FIELDS}
+  ${INVOICE_FIELDS}
+  fragment InvoicificationFields on Invoicification {
+    id
+    sortTime
+    invoice {
+      ...InvoiceFields
+      item {
+        ...ItemFullFields
+        ...PollFields
+      }
+      itemAct {
+        id
+        act
+        invoice {
+          id
+          actionState
+        }
+      }
+    }
+  }`
+
+export const NOTIFICATIONS = gql`
+  ${INVOICIFICATION}
   ${INVITE_FIELDS}
+  ${SUB_FIELDS}
 
   query Notifications($cursor: String, $inc: String) {
     notifications(cursor: $cursor, inc: $inc) {
@@ -23,7 +50,30 @@ export const NOTIFICATIONS = gql`
             text
           }
         }
+        ... on ItemMention {
+          id
+          sortTime
+          item {
+            ...ItemFullFields
+            text
+          }
+        }
         ... on Votification {
+          id
+          sortTime
+          earnedSats
+          item {
+            ...ItemFullFields
+            text
+          }
+        }
+        ... on Revenue {
+          id
+          sortTime
+          earnedSats
+          subName
+        }
+        ... on ForwardedVotification {
           id
           sortTime
           earnedSats
@@ -36,16 +86,27 @@ export const NOTIFICATIONS = gql`
           id
           sortTime
           days
+          type
         }
         ... on Earn {
           id
           sortTime
+          minSortTime
           earnedSats
           sources {
             posts
             comments
             tipPosts
             tipComments
+          }
+        }
+        ... on ReferralReward {
+          id
+          sortTime
+          earnedSats
+          sources {
+            forever
+            oneDay
           }
         }
         ... on Referral {
@@ -58,6 +119,29 @@ export const NOTIFICATIONS = gql`
           item {
             ...ItemFullFields
             text
+          }
+        }
+        ... on FollowActivity {
+          id
+          sortTime
+          item {
+            ...ItemFullFields
+            text
+          }
+        }
+        ... on TerritoryPost {
+          id
+          sortTime
+          item {
+            ...ItemFullFields
+            text
+          }
+        }
+        ... on TerritoryTransfer {
+          id
+          sortTime
+          sub {
+            ...SubFields
           }
         }
         ... on Invitification {
@@ -74,6 +158,13 @@ export const NOTIFICATIONS = gql`
             ...ItemFields
           }
         }
+        ... on SubStatus {
+          id
+          sortTime
+          sub {
+            ...SubFields
+          }
+        }
         ... on InvoicePaid {
           id
           sortTime
@@ -81,6 +172,28 @@ export const NOTIFICATIONS = gql`
           invoice {
             id
             nostr
+            comment
+            lud18Data
+          }
+        }
+        ... on Invoicification {
+          ...InvoicificationFields
+        }
+        ... on WithdrawlPaid {
+          id
+          sortTime
+          earnedSats
+          withdrawl {
+            autoWithdraw
+            p2p
+            satsFeePaid
+          }
+        }
+        ... on Reminder {
+          id
+          sortTime
+          item {
+            ...ItemFullFields
           }
         }
       }

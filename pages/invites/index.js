@@ -1,13 +1,17 @@
-import Layout from '../../components/layout'
-import { Form, Input, SubmitButton } from '../../components/form'
+import Layout from '@/components/layout'
+import { Form, Input, SubmitButton } from '@/components/form'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { gql, useMutation, useQuery } from '@apollo/client'
-import { INVITE_FIELDS } from '../../fragments/invites'
-import AccordianItem from '../../components/accordian-item'
-import styles from '../../styles/invites.module.css'
-import Invite from '../../components/invite'
-import { inviteSchema } from '../../lib/validate'
-import { SSR } from '../../lib/constants'
+import { INVITE_FIELDS } from '@/fragments/invites'
+import AccordianItem from '@/components/accordian-item'
+import styles from '@/styles/invites.module.css'
+import Invite from '@/components/invite'
+import { inviteSchema } from '@/lib/validate'
+import { SSR } from '@/lib/constants'
+import { getGetServerSideProps } from '@/api/ssrApollo'
+
+// force SSR to include CSP nonces
+export const getServerSideProps = getGetServerSideProps({ query: null })
 
 function InviteForm () {
   const [createInvite] = useMutation(
@@ -38,7 +42,7 @@ function InviteForm () {
     <Form
       initial={{
         gift: 100,
-        limit: undefined
+        limit: 1
       }}
       schema={inviteSchema}
       onSubmit={async ({ limit, gift }) => {
@@ -47,9 +51,7 @@ function InviteForm () {
             gift: Number(gift), limit: limit ? Number(limit) : limit
           }
         })
-        if (error) {
-          throw new Error({ message: error.String() })
-        }
+        if (error) throw error
       }}
     >
       <Input

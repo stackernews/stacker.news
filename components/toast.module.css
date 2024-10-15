@@ -1,11 +1,43 @@
+.toastContainer {
+  transform: translate3d(0, 0, 0);
+  display: grid;
+}
+
 .toast {
-  width: auto;
-  border: 1px solid var(--bs-success-border-subtle);
+  font-size: small;
+  width: fit-content;
+  justify-self: right;
   color: #fff;
+  bottom: -100%;
+  border-width: 1px;
+  border-style: solid;
+  text-overflow: ellipsis;
+  animation: slide ease-out 0.2s;
+}
+
+@keyframes slide {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0%)
+  }
+}
+
+.success {
+  border-color: var(--bs-success-border-subtle);
+}
+
+.danger {
+  border-color: var(--bs-danger-border-subtle);
+}
+
+.warning {
+  border-color: var(--bs-warning-border-subtle);
 }
 
 .toastClose {
-color: #fff;
+  color: #fff;
   font-family: "lightning";
   font-size: 150%;
   line-height: 1rem;
@@ -15,12 +47,40 @@ color: #fff;
   align-items: center;
 }
 
-.toastClose:hover {
-  opacity: 0.7;
+.progressBar {
+  width: 0;
+  height: 5px;
+  filter: brightness(66%);
+  animation-name: progressBar;
+  animation-iteration-count: 1;
+  animation-timing-function: linear;
+  /* animation-duration set via JS */
 }
 
-@media screen and (min-width: 400px) {
-  .toast {
-    width: var(--bs-toast-max-width);
+.progressBar.success {
+  background-color: var(--bs-success);
+}
+
+.progressBar.danger {
+  background-color: var(--bs-danger);
+}
+
+.progressBar.warning {
+  background-color: var(--bs-warning);
+}
+
+
+
+@keyframes progressBar {
+  0% {
+    width: 0;
   }
+
+  100% {
+    width: 100%;
+  }
+}
+
+.toastClose:hover {
+  opacity: 0.7;
 }

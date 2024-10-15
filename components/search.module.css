@@ -1,28 +1,11 @@
 .searchSection {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    background-color: var(--bs-body-bg);
+    z-index: 1;
 }
 
 .searchContainer {
-    height: 88px;
     position: relative;
-}
-
-.leaveRoom {
-    height: 130px !important;
-}
-
-.searchSection.solid {
-    pointer-events: auto;
-    background: var(--bs-body-bg);
-    box-shadow: 0 -4px 12px hsl(0deg 0% 59% / 10%);
-}
-
-.searchSection.hidden {
-    pointer-events: none;
-    background: transparent;
+    padding-bottom: 0.5rem;
 }
 
 .search {
@@ -36,21 +19,13 @@
     left: auto !important;
 }
 
-.formActive {
-    pointer-events: auto;
-    bottom: 18px;
-    right: 18px;
-    left: 18px;
-    position: absolute;
-}
-
 form>.active {
     display: flex;
     pointer-events: auto;
-    flex-flow: row wrap;
+    flex-flow: row nowrap;
     align-items: center;
 }
 
-.searchPadding {
-    padding-bottom: 88px;
+form>.active :global(.input-group) {
+    flex-flow: nowrap;
 }

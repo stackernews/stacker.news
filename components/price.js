@@ -1,10 +1,13 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
-import { fixedDecimal } from '../lib/format'
+import { fixedDecimal } from '@/lib/format'
 import { useMe } from './me'
-import { PRICE } from '../fragments/price'
-import { CURRENCY_SYMBOLS } from '../lib/currency'
-import { SSR } from '../lib/constants'
+import { PRICE } from '@/fragments/price'
+import { CURRENCY_SYMBOLS } from '@/lib/currency'
+import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { useBlockHeight } from './block-height'
+import { useChainFee } from './chain-fee'
+import { CompactLongCountdown } from './countdown'
 
 export const PriceContext = React.createContext({
   price: null,
@@ -16,22 +19,22 @@ export function usePrice () {
 }
 
 export function PriceProvider ({ price, children }) {
-  const me = useMe()
-  const fiatCurrency = me?.fiatCurrency
+  const { me } = useMe()
+  const fiatCurrency = me?.privates?.fiatCurrency
   const { data } = useQuery(PRICE, {
     variables: { fiatCurrency },
     ...(SSR
       ? {}
       : {
-          pollInterval: 30000,
+          pollInterval: NORMAL_POLL_INTERVAL,
           nextFetchPolicy: 'cache-and-network'
         })
   })
 
-  const contextValue = {
+  const contextValue = useMemo(() => ({
     price: data?.price || price,
     fiatSymbol: CURRENCY_SYMBOLS[fiatCurrency] || '$'
-  }
+  }), [data?.price, price, me?.privates?.fiatCurrency])
 
   return (
     <PriceContext.Provider value={contextValue}>
@@ -40,31 +43,44 @@ export function PriceProvider ({ price, children }) {
   )
 }
 
+const STORAGE_KEY = 'asSats'
+const DEFAULT_SELECTION = 'fiat'
+
+const carousel = [
+  'fiat',
+  'yep',
+  '1btc',
+  'blockHeight',
+  'chainFee',
+  'halving'
+]
+
 export default function Price ({ className }) {
   const [asSats, setAsSats] = useState(undefined)
-  useEffect(() => {
-    setAsSats(window.localStorage.getItem('asSats'))
-  }, [])
-  const { price, fiatSymbol } = usePrice()
+  const [pos, setPos] = useState(0)
 
-  if (!price || price < 0) return null
+  useEffect(() => {
+    const selection = window.localStorage.getItem(STORAGE_KEY) ?? DEFAULT_SELECTION
+    setAsSats(selection)
+    setPos(carousel.findIndex((item) => item === selection))
+  }, [])
+
+  const { price, fiatSymbol } = usePrice()
+  const { height: blockHeight, halving } = useBlockHeight()
+  const { fee: chainFee } = useChainFee()
 
   const handleClick = () => {
-    if (asSats === 'yep') {
-      window.localStorage.setItem('asSats', '1btc')
-      setAsSats('1btc')
-    } else if (asSats === '1btc') {
-      window.localStorage.removeItem('asSats')
-      setAsSats(undefined)
-    } else {
-      window.localStorage.setItem('asSats', 'yep')
-      setAsSats('yep')
-    }
+    const nextPos = (pos + 1) % carousel.length
+
+    window.localStorage.setItem(STORAGE_KEY, carousel[nextPos])
+    setAsSats(carousel[nextPos])
+    setPos(nextPos)
   }
 
   const compClassName = (className || '') + ' text-reset pointer'
 
   if (asSats === 'yep') {
+    if (!price || price < 0) return null
     return (
       <div className={compClassName} onClick={handleClick} variant='link'>
         {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
@@ -80,9 +96,39 @@ export default function Price ({ className }) {
     )
   }
 
-  return (
-    <div className={compClassName} onClick={handleClick} variant='link'>
-      {fiatSymbol + fixedDecimal(price, 0)}
-    </div>
-  )
+  if (asSats === 'blockHeight') {
+    if (blockHeight <= 0) return null
+    return (
+      <div className={compClassName} onClick={handleClick} variant='link'>
+        {blockHeight}
+      </div>
+    )
+  }
+
+  if (asSats === 'halving') {
+    if (!halving) return null
+    return (
+      <div className={compClassName} onClick={handleClick} variant='link'>
+        <CompactLongCountdown date={halving} />
+      </div>
+    )
+  }
+
+  if (asSats === 'chainFee') {
+    if (chainFee <= 0) return null
+    return (
+      <div className={compClassName} onClick={handleClick} variant='link'>
+        {chainFee} sat/vB
+      </div>
+    )
+  }
+
+  if (asSats === 'fiat') {
+    if (!price || price < 0) return null
+    return (
+      <div className={compClassName} onClick={handleClick} variant='link'>
+        {fiatSymbol + fixedDecimal(price, 0)}
+      </div>
+    )
+  }
 }

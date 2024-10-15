@@ -2,84 +2,70 @@ import React from 'react'
 import Button from 'react-bootstrap/Button'
 import styles from './pay-bounty.module.css'
 import ActionTooltip from './action-tooltip'
-import { useMutation, gql } from '@apollo/client'
 import { useMe } from './me'
-import { numWithUnits } from '../lib/format'
+import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
-import FundError from './fund-error'
 import { useRoot } from './root'
+import { ActCanceledError, useAct } from './item-act'
+import { useLightning } from './lightning'
+import { useToast } from './toast'
+
+export const payBountyCacheMods = {
+  onPaid: (cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.result) return
+    const { id, path } = response.result
+    const root = path.split('.')[0]
+    cache.modify({
+      id: `Item:${root}`,
+      fields: {
+        bountyPaidTo (existingPaidTo = []) {
+          return [...(existingPaidTo || []), Number(id)]
+        }
+      }
+    })
+  },
+  onPayError: (e, cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.result) return
+    const { id, path } = response.result
+    const root = path.split('.')[0]
+    cache.modify({
+      id: `Item:${root}`,
+      fields: {
+        bountyPaidTo (existingPaidTo = []) {
+          return (existingPaidTo || []).filter(i => i !== Number(id))
+        }
+      }
+    })
+  }
+}
 
 export default function PayBounty ({ children, item }) {
-  const me = useMe()
+  const { me } = useMe()
   const showModal = useShowModal()
   const root = useRoot()
+  const strike = useLightning()
+  const toaster = useToast()
+  const variables = { id: item.id, sats: root.bounty, act: 'TIP' }
+  const act = useAct({
+    variables,
+    optimisticResponse: { act: { __typename: 'ItemActPaidAction', result: { ...variables, path: item.path } } },
+    ...payBountyCacheMods
+  })
 
-  const [act] = useMutation(
-    gql`
-      mutation act($id: ID!, $sats: Int!) {
-        act(id: $id, sats: $sats) {
-          sats
-        }
-      }`, {
-      update (cache, { data: { act: { sats } } }) {
-        cache.modify({
-          id: `Item:${item.id}`,
-          fields: {
-            sats (existingSats = 0) {
-              return existingSats + sats
-            },
-            meSats (existingSats = 0) {
-              return existingSats + sats
-            }
-          }
-        })
-
-        // update all ancestor comment sats
-        item.path.split('.').forEach(id => {
-          if (Number(id) === Number(item.id)) return
-          cache.modify({
-            id: `Item:${id}`,
-            fields: {
-              commentSats (existingCommentSats = 0) {
-                return existingCommentSats + sats
-              }
-            }
-          })
-        })
-
-        // update root bounty status
-        cache.modify({
-          id: `Item:${root.id}`,
-          fields: {
-            bountyPaidTo (existingPaidTo = []) {
-              return [...(existingPaidTo || []), Number(item.id)]
-            }
-          }
-        })
-      }
-    }
-  )
-
-  const handlePayBounty = async onComplete => {
+  const handlePayBounty = async onCompleted => {
     try {
-      await act({
-        variables: { id: item.id, sats: root.bounty },
-        optimisticResponse: {
-          act: {
-            id: `Item:${item.id}`,
-            sats: root.bounty
-          }
-        }
-      })
-      onComplete()
+      strike()
+      const { error } = await act({ onCompleted })
+      if (error) throw error
     } catch (error) {
-      if (error.toString().includes('insufficient funds')) {
-        showModal(onClose => {
-          return <FundError onClose={onClose} />
-        })
+      if (error instanceof ActCanceledError) {
         return
       }
-      throw new Error({ message: error.toString() })
+
+      const reason = error?.message || error?.toString?.()
+      toaster.danger(reason)
     }
   }
 

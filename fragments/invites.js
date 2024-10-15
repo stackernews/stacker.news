@@ -1,21 +1,22 @@
 import { gql } from '@apollo/client'
+import { STREAK_FIELDS } from './users'
 
 export const INVITE_FIELDS = gql`
+  ${STREAK_FIELDS}
   fragment InviteFields on Invite {
     id
     createdAt
     invitees {
-      name
       id
+      name
     }
     gift
     limit
     revoked
     user {
-      name
-      streak
-      hideCowboyHat
       id
+      name
+      ...StreakFields
     }
     poor
   }

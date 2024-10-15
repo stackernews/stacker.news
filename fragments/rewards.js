@@ -1,4 +1,5 @@
 import gql from 'graphql-tag'
+import { ITEM_FULL_FIELDS } from './items'
 
 export const REWARDS = gql`
   query rewards($when: String) {
@@ -13,7 +14,8 @@ export const REWARDS = gql`
   }`
 
 export const ME_REWARDS = gql`
-  query meRewards($when: String) {
+  ${ITEM_FULL_FIELDS}
+  query meRewards($when: [String!]) {
     rewards(when: $when) {
       total
       time
@@ -28,6 +30,10 @@ export const ME_REWARDS = gql`
         type
         rank
         sats
+        item {
+          ...ItemFullFields
+          text
+        }
       }
     }
   }`

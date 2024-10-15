@@ -1,4 +1,4 @@
-import models from '../../../../api/models'
+import models from '@/api/models'
 
 export default async function handler (req, res) {
   const item = await models.item.findUnique({ where: { id: Number(req.query.id) } })

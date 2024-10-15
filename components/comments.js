@@ -1,9 +1,10 @@
+import { Fragment } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
 import Nav from 'react-bootstrap/Nav'
 import Navbar from 'react-bootstrap/Navbar'
-import { numWithUnits } from '../lib/format'
-import { defaultCommentSort } from '../lib/item'
+import { numWithUnits } from '@/lib/format'
+import { defaultCommentSort } from '@/lib/item'
 import { useRouter } from 'next/router'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
@@ -62,22 +63,32 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 export default function Comments ({ parentId, pinned, bio, parentCreatedAt, commentSats, comments, ...props }) {
   const router = useRouter()
 
+  const pins = comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position)
+
   return (
     <>
       {comments?.length > 0
         ? <CommentsHeader
             commentSats={commentSats} parentCreatedAt={parentCreatedAt}
             pinned={pinned} bio={bio} handleSort={sort => {
-              const query = router.query
+              const { commentsViewedAt, commentId, ...query } = router.query
               delete query.nodata
               router.push({
                 pathname: router.pathname,
-                query: { ...router.query, sort }
-              }, undefined, { scroll: false })
+                query: { ...query, commentsViewedAt, sort }
+              }, {
+                pathname: `/items/${parentId}`,
+                query: sort === defaultCommentSort(pinned, bio, parentCreatedAt) ? undefined : { sort }
+              }, { scroll: false })
             }}
           />
         : null}
-      {comments.map(item => (
+      {pins.map(item => (
+        <Fragment key={item.id}>
+          <Comment depth={1} item={item} {...props} pin />
+        </Fragment>
+      ))}
+      {comments.filter(({ position }) => !position).map(item => (
         <Comment depth={1} key={item.id} item={item} {...props} />
       ))}
     </>

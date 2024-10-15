@@ -1,5 +1,27 @@
 const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
+
+function selectRandomly (items) {
+  return items[Math.floor(Math.random() * items.length)]
+}
+
+async function addComments (parentIds, nComments, userIds, commentText) {
+  const clonedParentIds = [...parentIds]
+  const clonedUserIds = [...userIds]
+  for (let i = 0; i < nComments; i++) {
+    const selectedParent = selectRandomly(clonedParentIds)
+    const selectedUserId = selectRandomly(clonedUserIds)
+    const newComment = await prisma.item.create({
+      data: {
+        parentId: selectedParent,
+        userId: selectedUserId,
+        text: commentText
+      }
+    })
+    clonedParentIds.push(newComment.id)
+  }
+}
+
 async function main () {
   const k00b = await prisma.user.upsert({
     where: { name: 'k00b' },
@@ -31,6 +53,10 @@ async function main () {
   })
   const anon = await prisma.user.findUnique({
     where: { name: 'anon' }
+  })
+
+  const ad = await prisma.user.findUnique({
+    where: { name: 'ad' }
   })
 
   await prisma.item.create({
@@ -155,6 +181,32 @@ async function main () {
       }
     }
   })
+
+  await prisma.item.create({
+    data: {
+      title: 'An ad post',
+      url: 'https://www.google.com',
+      userId: ad.id,
+      subName: 'bitcoin',
+      children: {
+        create: {
+          userId: anon.id,
+          text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.'
+        }
+      }
+    }
+  })
+
+  const bigCommentPost = await prisma.item.create({
+    data: {
+      title: 'a discussion post with a lot of comments',
+      text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+      userId: k00b.id,
+      subName: 'bitcoin'
+    }
+  })
+
+  addComments([bigCommentPost.id], 200, [k00b.id, anon.id, satoshi.id, greg.id, stan.id], 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.')
 }
 main()
   .catch(e => {

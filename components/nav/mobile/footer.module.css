@@ -1,0 +1,21 @@
+
+.footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background-color: var(--bs-body-bg);
+    border-top: 1px solid var(--theme-toolbarActive);
+    z-index: 1000;
+}
+
+.footerPadding {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.footerNav {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    justify-items: center;
+    align-items: center;
+    width: 100%;
+}

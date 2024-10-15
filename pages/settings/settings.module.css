@@ -1,0 +1,19 @@
+.nav {
+    margin: 1rem 0;
+    justify-content: start;
+    font-size: 110%;
+    gap: 0 0.5rem;
+}
+
+.nav :global .nav-link {
+    padding-left: 0;
+}
+
+.nav :global .active {
+    border-bottom: 2px solid var(--bs-primary);
+}
+
+.alert {
+    color: var(--bs-danger);
+    margin-bottom: 10px;
+}

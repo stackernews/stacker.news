@@ -1,4 +1,4 @@
-import models from '../../../api/models'
+import models from '@/api/models'
 
 export default async function Nip05 ({ query: { name } }, res) {
   const names = {}

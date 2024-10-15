@@ -1,21 +1,28 @@
 .item {
     align-items: flex-start;
     margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
+    padding-top: 0 !important;
 }
 
 .upvote {
     margin-top: 9px;
-    margin-left: .25rem;
-    margin-right: 0rem;
+    padding-right: 0.2rem;
+}
+
+.pin {
+    fill: #a5a5a5;
+    margin-left: .2rem;
+    margin-right: .3rem;
+    flex-shrink: 0;
 }
 
 .dontLike {
     fill: #a5a5a5;
-    margin-right: .2rem;
+    margin-right: .35rem;
     padding: 2px;
     margin-left: 1px;
     margin-top: 9px;
+    cursor: pointer;
 }
 
 .text {
@@ -42,7 +49,7 @@
     display: none;
 }
 
-.collapsed .upvote {
+.collapsed .upvote, .collapsed .dontLike {
     visibility: hidden;
     height: 0;
 }
@@ -57,7 +64,7 @@
 
 .children {
     margin-top: 0;
-    margin-left: 30px;
+    margin-left: 27px;
 }
 
 .comments {
@@ -101,14 +108,13 @@
 .comment {
     border-radius: .4rem;
     padding-top: .5rem;
-    padding-left: .2rem;
+    padding-left: .7rem;
     background-color: var(--theme-commentBg);
 }
 
 .bountyIcon {
     margin-left: 5px;
     margin-right: 5px;
-    margin-top: -4px;
 }
 
 .hunk {
@@ -122,7 +128,11 @@
 }
 
 .comment:not(:first-of-type) {
-    padding-top: .25rem;
+    padding-top: 0;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
+}
+
+.comment:has(.comment) + .comment{
+    padding-top: .5rem;
 }

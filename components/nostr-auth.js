@@ -6,8 +6,9 @@ import Col from 'react-bootstrap/Col'
 import Row from 'react-bootstrap/Row'
 import { useRouter } from 'next/router'
 import AccordianItem from './accordian-item'
-import BackIcon from '../svgs/arrow-left-line.svg'
+import BackIcon from '@/svgs/arrow-left-line.svg'
 import styles from './lightning-auth.module.css'
+import { callWithTimeout } from '@/lib/time'
 
 function ExtensionError ({ message, details }) {
   return (
@@ -63,68 +64,63 @@ function NostrExplainer ({ text }) {
   )
 }
 
-export function NostrAuth ({ text, callbackUrl }) {
+export function NostrAuth ({ text, callbackUrl, multiAuth }) {
   const [createAuth, { data, error }] = useMutation(gql`
     mutation createAuth {
       createAuth {
         k1
       }
-    }`)
+    }`, {
+    // don't cache this mutation
+    fetchPolicy: 'no-cache'
+  })
   const [hasExtension, setHasExtension] = useState(undefined)
   const [extensionError, setExtensionError] = useState(null)
 
   useEffect(() => {
     createAuth()
+    setHasExtension(!!window.nostr)
   }, [])
 
   const k1 = data?.createAuth.k1
 
   useEffect(() => {
-    if (!k1) return
-    setHasExtension(!!window.nostr)
-    if (!window.nostr) {
-      const err = { message: 'nostr extension not found' }
-      console.error(err.message)
-      return
-    }
+    if (!k1 || !hasExtension) return
+
     console.info('nostr extension detected')
+
     let mounted = true;
     (async function () {
       try {
         // have them sign a message with the challenge
         let event
         try {
-          event = await window.nostr.signEvent({
+          event = await callWithTimeout(() => window.nostr.signEvent({
             kind: 22242,
             created_at: Math.floor(Date.now() / 1000),
             tags: [['challenge', k1]],
             content: 'Stacker News Authentication'
-          })
+          }), 5000)
           if (!event) throw new Error('extension returned empty event')
         } catch (e) {
-          if (e.message === 'window.nostr call already executing') return
+          if (e.message === 'window.nostr call already executing' || !mounted) return
           setExtensionError({ message: 'nostr extension failed to sign event', details: e.message })
           return
         }
 
         // sign them in
         try {
-          const { error, ok } = await signIn('nostr', {
+          await signIn('nostr', {
             event: JSON.stringify(event),
-            callbackUrl
+            callbackUrl,
+            multiAuth
           })
-
-          if (error) {
-            throw new Error(error)
-          }
-          if (!ok) {
-            throw new Error('auth failed')
-          }
         } catch (e) {
           throw new Error('authorization failed', e)
         }
       } catch (e) {
         if (!mounted) return
+        console.log('nostr auth error', e)
         setExtensionError({ message: `${text} failed`, details: e.message })
       }
     })()
@@ -146,14 +142,14 @@ export function NostrAuth ({ text, callbackUrl }) {
   )
 }
 
-export default function NostrAuthWithExplainer ({ text, callbackUrl }) {
+export function NostrAuthWithExplainer ({ text, callbackUrl, multiAuth }) {
   const router = useRouter()
   return (
     <Container>
       <div className={styles.login}>
         <div className='w-100 mb-3 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>
         <h3 className='w-100 pb-2'>{text || 'Login'} with Nostr</h3>
-        <NostrAuth text={text} callbackUrl={callbackUrl} />
+        <NostrAuth text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
       </div>
     </Container>
   )

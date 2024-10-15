@@ -7,11 +7,11 @@ import Row from 'react-bootstrap/Row'
 import AccordianItem from './accordian-item'
 import Qr, { QrSkeleton } from './qr'
 import styles from './lightning-auth.module.css'
-import BackIcon from '../svgs/arrow-left-line.svg'
+import BackIcon from '@/svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
-import { SSR } from '../lib/constants'
+import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
 
-function QrAuth ({ k1, encodedUrl, callbackUrl }) {
+function QrAuth ({ k1, encodedUrl, callbackUrl, multiAuth }) {
   const query = gql`
   {
     lnAuth(k1: "${k1}") {
@@ -19,13 +19,25 @@ function QrAuth ({ k1, encodedUrl, callbackUrl }) {
       k1
     }
   }`
-  const { data } = useQuery(query, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
+  const { data } = useQuery(query, SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
 
   useEffect(() => {
     if (data?.lnAuth?.pubkey) {
-      signIn('lightning', { ...data.lnAuth, callbackUrl })
+      signIn('lightning', { ...data.lnAuth, callbackUrl, multiAuth })
     }
   }, [data?.lnAuth])
+
+  useEffect(() => {
+    if (typeof window.webln === 'undefined') return
+
+    // optimistically use WebLN for authentication
+    async function effect () {
+      // this will also enable our WebLN wallet
+      await window.webln.enable()
+      await window.webln.lnurl(encodedUrl)
+    }
+    effect()
+  }, [encodedUrl])
 
   // output pubkey and k1
   return (
@@ -89,15 +101,15 @@ function LightningExplainer ({ text, children }) {
   )
 }
 
-export function LightningAuthWithExplainer ({ text, callbackUrl }) {
+export function LightningAuthWithExplainer ({ text, callbackUrl, multiAuth }) {
   return (
     <LightningExplainer text={text}>
-      <LightningAuth callbackUrl={callbackUrl} />
+      <LightningAuth callbackUrl={callbackUrl} multiAuth={multiAuth} />
     </LightningExplainer>
   )
 }
 
-export function LightningAuth ({ callbackUrl }) {
+export function LightningAuth ({ callbackUrl, multiAuth }) {
   // query for challenge
   const [createAuth, { data, error }] = useMutation(gql`
     mutation createAuth {
@@ -113,5 +125,5 @@ export function LightningAuth ({ callbackUrl }) {
 
   if (error) return <div>error</div>
 
-  return data ? <QrAuth {...data.createAuth} callbackUrl={callbackUrl} /> : <QrSkeleton status='generating' />
+  return data ? <QrAuth {...data.createAuth} callbackUrl={callbackUrl} multiAuth={multiAuth} /> : <QrSkeleton status='generating' />
 }

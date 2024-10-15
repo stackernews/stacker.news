@@ -3,17 +3,19 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Popover from 'react-bootstrap/Popover'
 import { CopyInput } from './form'
 import styles from './footer.module.css'
-import Texas from '../svgs/texas.svg'
-import Github from '../svgs/github-fill.svg'
+import Texas from '@/svgs/texas.svg'
+import Github from '@/svgs/github-fill.svg'
 import Link from 'next/link'
-import Sun from '../svgs/sun-fill.svg'
-import Moon from '../svgs/moon-fill.svg'
-import No from '../svgs/no.svg'
-import Bolt from '../svgs/bolt.svg'
-import Amboss from '../svgs/amboss.svg'
+import Sun from '@/svgs/sun-fill.svg'
+import Moon from '@/svgs/moon-fill.svg'
+import No from '@/svgs/no.svg'
+import Bolt from '@/svgs/bolt.svg'
+import Amboss from '@/svgs/amboss.svg'
+import Mempool from '@/svgs/bimi.svg'
 import { useEffect, useState } from 'react'
 import Rewards from './footer-rewards'
 import useDarkMode from './dark-mode'
+import ActionTooltip from './action-tooltip'
 
 const RssPopover = (
   <Popover>
@@ -52,7 +54,7 @@ const SocialsPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
       <a
-        href='https://snort.social/p/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className='nav-link p-0 d-inline-flex'
+        href='https://njump.me/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
       >
         nostr
@@ -85,15 +87,15 @@ const SocialsPopover = (
 const ChatPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
-      <a
+      {/* <a
         href='https://tribes.sphinx.chat/t/stackerzchat' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
       >
         sphinx
       </a>
-      <span className='mx-2 text-muted'> \ </span>
+      <span className='mx-2 text-muted'> \ </span> */}
       <a
-        href='https://t.me/stackernews' className='nav-link p-0 d-inline-flex'
+        href='https://t.me/k00bideh' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
       >
         telegram
@@ -109,19 +111,23 @@ const ChatPopover = (
   </Popover>
 )
 
-const AnalyticsPopover = (
+const LegalPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
-      <a
-        href='https://plausible.io/stacker.news' className='nav-link p-0 d-inline-flex'
-        target='_blank' rel='noreferrer'
-      >
-        visitors
-      </a>
-      <span className='mx-2 text-muted'> \ </span>
-      <Link href='/stackers/day' className='nav-link p-0 d-inline-flex'>
-        stackers
-      </Link>
+      <div className='d-flex justify-content-center'>
+        <Link href='/tos' className='nav-link p-0 d-inline-flex'>
+          terms of service
+        </Link>
+        <span className='mx-2 text-muted'> \ </span>
+        <Link href='/privacy' className='nav-link p-0 d-inline-flex'>
+          privacy policy
+        </Link>
+      </div>
+      <div className='d-flex justify-content-center'>
+        <Link href='/copyright' className='nav-link p-0 d-inline-flex'>
+          copyright policy
+        </Link>
+      </div>
     </Popover.Body>
   </Popover>
 )
@@ -152,22 +158,24 @@ export default function Footer ({ links = true }) {
 
   return (
     <footer>
-      <Container className='mb-3 mt-4'>
+      <Container className='mb-3'>
         {links &&
           <>
             <div className='mb-1'>
-              <DarkModeIcon onClick={darkModeToggle} width={20} height={20} className='fill-grey theme' suppressHydrationWarning />
-              <LnIcon onClick={toggleLightning} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
+              <ActionTooltip notForm overlayText={`${darkMode ? 'disable' : 'enable'} dark mode`}>
+                <DarkModeIcon onClick={darkModeToggle} width={20} height={20} className='fill-grey theme' suppressHydrationWarning />
+              </ActionTooltip>
+              <ActionTooltip notForm overlayText={`${lightning === 'yes' ? 'disable' : 'enable'} lightning animations`}>
+                <LnIcon onClick={toggleLightning} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
+              </ActionTooltip>
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
               <Rewards />
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
-              <OverlayTrigger trigger='click' placement='top' overlay={AnalyticsPopover} rootClose>
-                <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
-                  analytics
-                </div>
-              </OverlayTrigger>
+              <Link href='/stackers/day' className='nav-link p-0 p-0 d-inline-flex'>
+                analytics
+              </Link>
               <span className='mx-2 text-muted'> \ </span>
               <OverlayTrigger trigger='click' placement='top' overlay={ChatPopover} rootClose>
                 <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
@@ -204,16 +212,18 @@ export default function Footer ({ links = true }) {
                 changes
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <Link href='/privacy' className='nav-link p-0 p-0 d-inline-flex'>
-                privacy
-              </Link>
+              <OverlayTrigger trigger='click' placement='top' overlay={LegalPopover} rootClose>
+                <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                  legal
+                </div>
+              </OverlayTrigger>
             </div>
           </>}
         {process.env.NEXT_PUBLIC_LND_CONNECT_ADDRESS &&
           <div
             className={`text-small mx-auto mb-2 ${styles.connect}`}
           >
-            <span className='nav-item text-muted me-2'>connect:</span>
+            <small className='nav-item text-muted me-2'>connect:</small>
             <CopyInput
               size='sm'
               groupClassName='mb-0 w-100'
@@ -227,6 +237,12 @@ export default function Footer ({ links = true }) {
             >
               <Amboss className='ms-2 theme' width={20} height={20} />
             </a>
+            <a
+              href='https://mempool.space/lightning/node/03cc1d0932bb99b0697f5b5e5961b83ab7fd66f1efc4c9f5c7bad66c1bcbe78f02'
+              target='_blank' rel='noreferrer'
+            >
+              <Mempool className='ms-2' width={20} height={20} />
+            </a>
           </div>}
         <small className='d-flex justify-content-center align-items-center text-muted flex-wrap'>
           <a className={`${styles.contrastLink} d-flex align-items-center`} href='https://github.com/stackernews/stacker.news' target='_blank' rel='noreferrer'>
@@ -238,11 +254,8 @@ export default function Footer ({ links = true }) {
             <Link href='/k00b' className='ms-1'>
               @k00b
             </Link>
-            <Link href='/kr' className='ms-1'>
-              @kr
-            </Link>
-            <Link href='/ekzyis' className='ms-1'>
-              @ekzyis
+            <Link href='/ek' className='ms-1'>
+              @ek
             </Link>
             <span className='ms-1'>&</span>
             <Link href='https://github.com/stackernews/stacker.news/graphs/contributors' className='ms-1' target='_blank' rel='noreferrer'>
@@ -252,7 +265,7 @@ export default function Footer ({ links = true }) {
         </small>
         {version &&
           <div className={styles.version}>
-            running <a className='text-reset' href={`https://github.com/stackernews/stacker.news/commit/${version}`}>{version}</a>
+            running <a className='text-reset' href={`https://github.com/stackernews/stacker.news/commit/${version}`} target='_blank' rel='noreferrer'>{version}</a>
           </div>}
       </Container>
     </footer>

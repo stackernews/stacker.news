@@ -14,7 +14,11 @@ import referrals from './referrals'
 import price from './price'
 import { GraphQLJSONObject as JSONObject } from 'graphql-type-json'
 import admin from './admin'
+import blockHeight from './blockHeight'
+import chainFee from './chainFee'
 import { GraphQLScalarType, Kind } from 'graphql'
+import { createIntScalar } from 'graphql-scalar'
+import paidAction from './paidAction'
 
 const date = new GraphQLScalarType({
   name: 'Date',
@@ -43,5 +47,12 @@ const date = new GraphQLScalarType({
   }
 })
 
+const limit = createIntScalar({
+  name: 'Limit',
+  description: 'Limit custom scalar type',
+  maximum: 1000
+})
+
 export default [user, item, message, wallet, lnurl, notifications, invite, sub,
-  upload, search, growth, rewards, referrals, price, admin, { JSONObject }, { Date: date }]
+  upload, search, growth, rewards, referrals, price, admin, blockHeight, chainFee,
+  { JSONObject }, { Date: date }, { Limit: limit }, paidAction]

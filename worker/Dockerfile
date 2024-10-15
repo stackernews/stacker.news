@@ -1,9 +1,13 @@
 # syntax=docker/dockerfile:1
 
-FROM node:18.17.0-bullseye
+FROM node:18.20.4-bullseye
 
 ENV NODE_ENV=development
 
-WORKDIR /app
+ARG UID
+ARG GID
+RUN groupadd -fg "$GID" apprunner
+RUN useradd -om -u "$UID" -g "$GID" apprunner
+USER apprunner
 
-EXPOSE 8080
+WORKDIR /app

@@ -21,6 +21,13 @@
   font-family: monospace;
 }
 
+.badge {
+  color: var(--theme-grey) !important;
+  background: var(--theme-clickToContextColor) !important;
+  vertical-align: middle;
+  margin-left: 0.5rem;
+}
+
 .detail {
   border-bottom: 2px solid var(--theme-clickToContextColor);
   padding: .5rem;

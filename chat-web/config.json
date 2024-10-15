@@ -1,0 +1,41 @@
+{
+  "default_server_name": "https://sndev.team",
+  "default_server_config": {
+      "m.homeserver": {
+          "base_url": "https://sndev.team"
+      },
+      "m.identity_server": {
+          "base_url": "https://sndev.team"
+      }
+  },
+  "brand": "chat.sndev.team",
+  "permalink_prefix": "https://chat.sndev.team",
+  "show_labs_settings": false,
+  "mobile_guide_toast": false,
+  "default_country_code": "US",
+  "disable_3pid_login": true,
+  "disable_custom_urls": true,
+  "disable_guests": true,
+  "disable_login_language_selector": true,
+  "room_directory": {
+      "servers": ["sndev.team"]
+  },
+  "enable_presence_by_hs_url": {
+      "https://matrix.org": false,
+      "https://matrix-client.matrix.org": false
+  },
+  "terms_and_conditions_links": [
+      {
+          "url": "https://element.io/privacy",
+          "text": "Privacy Policy"
+      },
+      {
+          "url": "https://element.io/cookie-policy",
+          "text": "Cookie Policy"
+      }
+  ],
+  "privacy_policy_url": "https://element.io/cookie-policy",
+  "setting_defaults": {
+      "RustCrypto.staged_rollout_percent": 10
+  }
+}

@@ -1,90 +1,59 @@
-import { GraphQLError } from 'graphql'
-import { ensureProtocol, removeTracking } from '../../lib/url'
-import serialize from './serial'
-import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
+import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
+import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
+import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
 import domino from 'domino'
 import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
-  DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
-  ANON_COMMENT_FEE, ANON_USER_ID, ANON_POST_FEE, ANON_ITEM_SPAM_INTERVAL, POLL_COST
-} from '../../lib/constants'
-import { msatsToSats, numWithUnits } from '../../lib/format'
+  COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
+  USER_ID, POLL_COST, ADMIN_ITEMS, GLOBAL_SEED,
+  NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS,
+  BOOST_MULT
+} from '@/lib/constants'
+import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
-import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
-import { sendUserNotification } from '../webPush'
-import { proxyImages } from './imgproxy'
-import { defaultCommentSort } from '../../lib/item'
-import { createHmac } from './wallet'
+import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '@/lib/validate'
+import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
+import { datePivot, whenRange } from '@/lib/time'
+import { uploadIdsFromText } from './upload'
+import assertGofacYourself from './ofac'
+import assertApiKeyNotPermitted from './apiKey'
+import performPaidAction from '../paidAction'
+import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { verifyHmac } from './wallet'
 
-export async function commentFilterClause (me, models) {
-  let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
-  if (me) {
-    const user = await models.user.findUnique({ where: { id: me.id } })
-    // wild west mode has everything
-    if (user.wildWestMode) {
-      return ''
+function commentsOrderByClause (me, models, sort) {
+  if (sort === 'recent') {
+    return 'ORDER BY ("Item"."deletedAt" IS NULL) DESC, ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC, "Item".created_at DESC, "Item".id DESC'
+  }
+
+  if (me && sort === 'hot') {
+    return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, COALESCE(
+        personal_hot_score,
+        ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
+        "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+  } else {
+    if (sort === 'top') {
+      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator({ models, commentScaler: 0 })} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
+    } else {
+      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
     }
-
-    // always include if it's mine
-    clause += ` OR "Item"."userId" = ${me.id}`
   }
-
-  // close the clause
-  clause += ')'
-
-  return clause
-}
-
-async function checkInvoice (models, hash, hmac, fee) {
-  if (!hmac) {
-    throw new GraphQLError('hmac required', { extensions: { code: 'BAD_INPUT' } })
-  }
-  const hmac2 = createHmac(hash)
-  if (hmac !== hmac2) {
-    throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
-  }
-
-  const invoice = await models.invoice.findUnique({
-    where: { hash },
-    include: {
-      user: true
-    }
-  })
-  if (!invoice) {
-    throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
-  }
-  if (!invoice.msatsReceived) {
-    throw new GraphQLError('invoice was not paid', { extensions: { code: 'BAD_INPUT' } })
-  }
-  if (msatsToSats(invoice.msatsReceived) < fee) {
-    throw new GraphQLError('invoice amount too low', { extensions: { code: 'BAD_INPUT' } })
-  }
-  return invoice
 }
 
 async function comments (me, models, id, sort) {
-  let orderBy
-  switch (sort) {
-    case 'top':
-      orderBy = `ORDER BY ${await orderByNumerator(me, models)} DESC, "Item".msats DESC, ("Item".freebie IS FALSE) DESC,  "Item".id DESC`
-      break
-    case 'recent':
-      orderBy = 'ORDER BY "Item".created_at DESC, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC'
-      break
-    default:
-      orderBy = `ORDER BY ${await orderByNumerator(me, models)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
-      break
-  }
+  const orderBy = commentsOrderByClause(me, models, sort)
 
-  const filter = await commentFilterClause(me, models)
   if (me) {
-    const [{ item_comments_with_me: comments }] = await models.$queryRawUnsafe(
-      'SELECT item_comments_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4, $5)', Number(id), Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) `
+    const [{ item_comments_zaprank_with_me: comments }] = await models.$queryRawUnsafe(
+      'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)',
+      Number(id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
     return comments
   }
 
+  const filter = ' AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = \'PAID\') '
   const [{ item_comments: comments }] = await models.$queryRawUnsafe(
     'SELECT item_comments($1::INTEGER, $2::INTEGER, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, filter, orderBy)
   return comments
@@ -97,170 +66,109 @@ export async function getItem (parent, { id }, { me, models }) {
     query: `
       ${SELECT}
       FROM "Item"
-      WHERE id = $1`
+      ${whereClause(
+        '"Item".id = $1',
+        activeOrMine(me)
+      )}`
   }, Number(id))
   return item
 }
 
-function whenClause (when, type) {
-  let interval = ` AND "${type === 'bookmarks' ? 'Bookmark' : 'Item'}".created_at >= $1 - INTERVAL `
-  switch (when) {
-    case 'forever':
-      interval = ''
-      break
-    case 'week':
-      interval += "'7 days'"
-      break
-    case 'month':
-      interval += "'1 month'"
-      break
-    case 'year':
-      interval += "'1 year'"
-      break
-    default:
-      interval += "'1 day'"
-      break
-  }
-  return interval
+export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { me, models }) {
+  return (await itemQueryWithMeta({
+    me,
+    models,
+    query: `
+      ${SELECT}
+      FROM "Item"
+      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+      ${whereClause(
+        '"parentId" IS NULL',
+        '"Item"."pinId" IS NULL',
+        '"Item"."deletedAt" IS NULL',
+        '"Item"."parentId" IS NULL',
+        '"Item".bio = false',
+        '"Item".boost > 0',
+        activeOrMine(),
+        subClause(sub, 1, 'Item', me, showNsfw),
+        muteClause(me))}
+      ORDER BY boost desc, "Item".created_at ASC
+      LIMIT 1`
+  }, ...subArr))?.[0] || null
 }
 
-const orderByClause = async (by, me, models, type) => {
+const orderByClause = (by, me, models, type) => {
   switch (by) {
     case 'comments':
       return 'ORDER BY "Item".ncomments DESC'
     case 'sats':
       return 'ORDER BY "Item".msats DESC'
-    case 'votes':
-      return await topOrderByWeightedSats(me, models)
+    case 'zaprank':
+      return topOrderByWeightedSats(me, models)
+    case 'boost':
+      return 'ORDER BY "Item".boost DESC'
+    case 'random':
+      return 'ORDER BY RANDOM()'
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
   }
 }
 
-export async function orderByNumerator (me, models) {
-  if (me) {
-    const user = await models.user.findUnique({ where: { id: me.id } })
-    if (user.wildWestMode) {
-      return '(GREATEST("Item"."weightedVotes", POWER("Item"."weightedVotes", 1.2)) + "Item"."weightedComments"/2)'
-    }
-  }
-
-  return `(CASE WHEN "Item"."weightedVotes" > "Item"."weightedDownVotes"
-                THEN 1
-                ELSE -1 END
-          * GREATEST(ABS("Item"."weightedVotes" - "Item"."weightedDownVotes"), POWER(ABS("Item"."weightedVotes" - "Item"."weightedDownVotes"), 1.2))
-          + "Item"."weightedComments"/2)`
+export function orderByNumerator ({ models, commentScaler = 0.5, considerBoost = false }) {
+  return `(CASE WHEN "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0 THEN
+              GREATEST("Item"."weightedVotes" - "Item"."weightedDownVotes", POWER("Item"."weightedVotes" - "Item"."weightedDownVotes", 1.2))
+            ELSE
+              "Item"."weightedVotes" - "Item"."weightedDownVotes"
+            END + "Item"."weightedComments"*${commentScaler}) + ${considerBoost ? `("Item".boost / ${BOOST_MULT})` : 0}`
 }
 
-export async function joinSatRankView (me, models) {
+export function joinZapRankPersonalView (me, models) {
+  let join = ` JOIN zap_rank_personal_view g ON g.id = "Item".id AND g."viewerId" = ${GLOBAL_SEED} `
+
   if (me) {
-    const user = await models.user.findUnique({ where: { id: me.id } })
-    if (user.wildWestMode) {
-      return 'JOIN zap_rank_wwm_view ON "Item".id = zap_rank_wwm_view.id'
-    }
+    join += ` LEFT JOIN zap_rank_personal_view l ON l.id = g.id AND l."viewerId" = ${me.id} `
   }
 
-  return 'JOIN zap_rank_tender_view ON "Item".id = zap_rank_tender_view.id'
-}
-
-export async function filterClause (me, models, type) {
-  // if you are explicitly asking for marginal content, don't filter them
-  if (['outlawed', 'borderland', 'freebies'].includes(type)) {
-    if (me && ['outlawed', 'borderland'].includes(type)) {
-      // unless the item is mine
-      return ` AND "Item"."userId" <> ${me.id} `
-    }
-
-    return ''
-  }
-
-  // by default don't include freebies unless they have upvotes
-  let clause = ' AND (NOT "Item".freebie OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0'
-  if (me) {
-    const user = await models.user.findUnique({ where: { id: me.id } })
-    // wild west mode has everything
-    if (user.wildWestMode) {
-      return ''
-    }
-    // greeter mode includes freebies if feebies haven't been flagged
-    if (user.greeterMode) {
-      clause = ' AND (NOT "Item".freebie OR ("Item"."weightedVotes" - "Item"."weightedDownVotes" >= 0 AND "Item".freebie)'
-    }
-
-    // always include if it's mine
-    clause += ` OR "Item"."userId" = ${me.id})`
-  } else {
-    // close default freebie clause
-    clause += ')'
-  }
-
-  // if the item is above the threshold or is mine
-  clause += ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
-  if (me) {
-    clause += ` OR "Item"."userId" = ${me.id}`
-  }
-  clause += ')'
-
-  return clause
-}
-
-function typeClause (type) {
-  switch (type) {
-    case 'links':
-      return ' AND "Item".url IS NOT NULL AND "Item"."parentId" IS NULL'
-    case 'discussions':
-      return ' AND "Item".url IS NULL AND "Item".bio = false AND "Item"."pollCost"  IS NULL AND "Item"."parentId" IS NULL'
-    case 'polls':
-      return ' AND "Item"."pollCost" IS NOT NULL AND "Item"."parentId" IS NULL'
-    case 'bios':
-      return ' AND "Item".bio = true AND "Item"."parentId" IS NULL'
-    case 'bounties':
-      return ' AND "Item".bounty IS NOT NULL AND "Item"."parentId" IS NULL'
-    case 'comments':
-      return ' AND "Item"."parentId" IS NOT NULL'
-    case 'freebies':
-      return ' AND "Item".freebie'
-    case 'outlawed':
-      return ` AND "Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD}`
-    case 'borderland':
-      return ' AND "Item"."weightedVotes" - "Item"."weightedDownVotes" < 0 '
-    case 'all':
-    case 'bookmarks':
-      return ''
-    case 'jobs':
-      return ' AND "Item"."subName" = \'jobs\''
-    default:
-      return ' AND "Item"."parentId" IS NULL'
-  }
+  return join
 }
 
 // this grabs all the stuff we need to display the item list and only
 // hits the db once ... orderBy needs to be duplicated on the outer query because
 // joining does not preserve the order of the inner query
-async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) {
+export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) {
   if (!me) {
     return await models.$queryRawUnsafe(`
-      SELECT "Item".*, to_json(users.*) as user
+      SELECT "Item".*, to_json(users.*) as user, to_jsonb("Sub".*) as sub
       FROM (
         ${query}
       ) "Item"
       JOIN users ON "Item"."userId" = users.id
+      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
       ${orderBy}`, ...args)
   } else {
     return await models.$queryRawUnsafe(`
-      SELECT "Item".*, to_json(users.*) as user, COALESCE("ItemAct"."meMsats", 0) as "meMsats",
-        COALESCE("ItemAct"."meDontLike", false) as "meDontLike", b."itemId" IS NOT NULL AS "meBookmark",
-        "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward"
+      SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
+        COALESCE("ItemAct"."meMsats", 0) as "meMsats", COALESCE("ItemAct"."mePendingMsats", 0) as "mePendingMsats",
+        COALESCE("ItemAct"."meDontLikeMsats", 0) as "meDontLikeMsats", b."itemId" IS NOT NULL AS "meBookmark",
+        "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward",
+        to_jsonb("Sub".*) || jsonb_build_object('meMuteSub', "MuteSub"."userId" IS NOT NULL)
+        || jsonb_build_object('meSubscription', "SubSubscription"."userId" IS NOT NULL) as sub
       FROM (
         ${query}
       ) "Item"
       JOIN users ON "Item"."userId" = users.id
+      LEFT JOIN "Mute" ON "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId"
       LEFT JOIN "Bookmark" b ON b."itemId" = "Item".id AND b."userId" = ${me.id}
       LEFT JOIN "ThreadSubscription" ON "ThreadSubscription"."itemId" = "Item".id AND "ThreadSubscription"."userId" = ${me.id}
       LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = ${me.id}
+      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+      LEFT JOIN "MuteSub" ON "Sub"."name" = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}
+      LEFT JOIN "SubSubscription" ON "Sub"."name" = "SubSubscription"."subName" AND "SubSubscription"."userId" = ${me.id}
       LEFT JOIN LATERAL (
-        SELECT "itemId", sum("ItemAct".msats) FILTER (WHERE act = 'FEE' OR act = 'TIP') AS "meMsats",
-               bool_or(act = 'DONT_LIKE_THIS') AS "meDontLike"
+        SELECT "itemId",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND (act = 'FEE' OR act = 'TIP')) AS "meMsats",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS NOT DISTINCT FROM 'PENDING' AND (act = 'FEE' OR act = 'TIP') AND "Item"."userId" <> ${me.id}) AS "mePendingMsats",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND act = 'DONT_LIKE_THIS') AS "meDontLikeMsats"
         FROM "ItemAct"
         WHERE "ItemAct"."userId" = ${me.id}
         AND "ItemAct"."itemId" = "Item".id
@@ -270,24 +178,26 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
   }
 }
 
-const subClause = (sub, num, table, solo) => {
-  return sub ? ` ${solo ? 'WHERE' : 'AND'} ${table ? `"${table}".` : ''}"subName" = $${num} ` : ''
-}
-
 const relationClause = (type) => {
+  let clause = ''
   switch (type) {
     case 'comments':
-      return ' FROM "Item" JOIN "Item" root ON "Item"."rootId" = root.id '
+      clause += ' FROM "Item" JOIN "Item" root ON "Item"."rootId" = root.id LEFT JOIN "Sub" ON "Sub"."name" = root."subName" '
+      break
     case 'bookmarks':
-      return ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" '
+      clause += ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" LEFT JOIN "Item" root ON "Item"."rootId" = root.id LEFT JOIN "Sub" ON "Sub"."name" = COALESCE(root."subName", "Item"."subName") '
+      break
     case 'outlawed':
     case 'borderland':
     case 'freebies':
     case 'all':
-      return ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
+      clause += ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id LEFT JOIN "Sub" ON "Sub"."name" = COALESCE(root."subName", "Item"."subName") '
+      break
     default:
-      return ' FROM "Item" '
+      clause += ' FROM "Item" LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName" '
   }
+
+  return clause
 }
 
 const selectClause = (type) => type === 'bookmarks'
@@ -296,8 +206,116 @@ const selectClause = (type) => type === 'bookmarks'
 
 const subClauseTable = (type) => COMMENT_TYPE_QUERY.includes(type) ? 'root' : 'Item'
 
-const activeOrMine = (me) => {
-  return me ? ` AND ("Item".status <> 'STOPPED' OR "Item"."userId" = ${me.id}) ` : ' AND "Item".status <> \'STOPPED\' '
+export const whereClause = (...clauses) => {
+  const clause = clauses.flat(Infinity).filter(c => c).join(' AND ')
+  return clause ? ` WHERE ${clause} ` : ''
+}
+
+function whenClause (when, table) {
+  return `"${table}".created_at <= $2 and "${table}".created_at >= $1`
+}
+
+export const activeOrMine = (me) => {
+  return me
+    ? [`("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id})`,
+    `("Item".status <> 'STOPPED' OR "Item"."userId" = ${me.id})`]
+    : ['("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = \'PAID\')', '"Item".status <> \'STOPPED\'']
+}
+
+export const muteClause = me =>
+  me ? `NOT EXISTS (SELECT 1 FROM "Mute" WHERE "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId")` : ''
+
+const HIDE_NSFW_CLAUSE = '("Sub"."nsfw" = FALSE OR "Sub"."nsfw" IS NULL)'
+
+export const nsfwClause = showNsfw => showNsfw ? '' : HIDE_NSFW_CLAUSE
+
+const subClause = (sub, num, table = 'Item', me, showNsfw) => {
+  // Intentionally show nsfw posts (i.e. no nsfw clause) when viewing a specific nsfw sub
+  if (sub) {
+    const tables = [...new Set(['Item', table])].map(t => `"${t}".`)
+    return `(${tables.map(t => `${t}"subName" = $${num}::CITEXT`).join(' OR ')})`
+  }
+
+  if (!me) { return HIDE_NSFW_CLAUSE }
+
+  const excludeMuted = `NOT EXISTS (SELECT 1 FROM "MuteSub" WHERE "MuteSub"."userId" = ${me.id} AND "MuteSub"."subName" = ${table ? `"${table}".` : ''}"subName")`
+  if (showNsfw) return excludeMuted
+
+  return excludeMuted + ' AND ' + HIDE_NSFW_CLAUSE
+}
+
+function investmentClause (sats) {
+  return `(
+    CASE WHEN "Item"."parentId" IS NULL
+      THEN ("Item".cost + "Item".boost + ("Item".msats / 1000)) >= ${sats}
+      ELSE ("Item".cost + "Item".boost + ("Item".msats / 1000)) >= ${Math.min(sats, 1)}
+    END
+  )`
+}
+
+export async function filterClause (me, models, type) {
+  // if you are explicitly asking for marginal content, don't filter them
+  if (['outlawed', 'borderland', 'freebies'].includes(type)) {
+    if (me && ['outlawed', 'borderland'].includes(type)) {
+      // unless the item is mine
+      return `"Item"."userId" <> ${me.id}`
+    }
+
+    return ''
+  }
+
+  // handle freebies
+  // by default don't include freebies unless they have upvotes
+  let satsFilter = investmentClause(10)
+  if (me) {
+    const user = await models.user.findUnique({ where: { id: me.id } })
+
+    satsFilter = `(${investmentClause(user.satsFilter)} OR "Item"."userId" = ${me.id})`
+
+    if (user.wildWestMode) {
+      return satsFilter
+    }
+  }
+
+  // handle outlawed
+  // if the item is above the threshold or is mine
+  const outlawClauses = [`"Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD} AND NOT "Item".outlawed`]
+  if (me) {
+    outlawClauses.push(`"Item"."userId" = ${me.id}`)
+  }
+  const outlawClause = '(' + outlawClauses.join(' OR ') + ')'
+
+  return [satsFilter, outlawClause]
+}
+
+function typeClause (type) {
+  switch (type) {
+    case 'links':
+      return ['"Item".url IS NOT NULL', '"Item"."parentId" IS NULL']
+    case 'discussions':
+      return ['"Item".url IS NULL', '"Item".bio = false', '"Item"."pollCost" IS NULL', '"Item"."parentId" IS NULL']
+    case 'polls':
+      return ['"Item"."pollCost" IS NOT NULL', '"Item"."parentId" IS NULL']
+    case 'bios':
+      return ['"Item".bio = true', '"Item"."parentId" IS NULL']
+    case 'bounties':
+      return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL']
+    case 'comments':
+      return '"Item"."parentId" IS NOT NULL'
+    case 'freebies':
+      return '"Item".cost = 0'
+    case 'outlawed':
+      return `"Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD} OR "Item".outlawed`
+    case 'borderland':
+      return '"Item"."weightedVotes" - "Item"."weightedDownVotes" < 0'
+    case 'all':
+    case 'bookmarks':
+      return ''
+    case 'jobs':
+      return '"Item"."subName" = \'jobs\''
+    default:
+      return '"Item"."parentId" IS NULL'
+  }
 }
 
 export default {
@@ -310,16 +328,19 @@ export default {
 
       return count
     },
-    items: async (parent, { sub, sort, type, cursor, name, when, by, limit = LIMIT }, { me, models }) => {
+    items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit = LIMIT }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      let items, user, pins, subFull, table
+      let items, user, pins, subFull, table, ad
 
       // special authorization for bookmarks depending on owning users' privacy settings
       if (type === 'bookmarks' && name && me?.name !== name) {
         // the calling user is either not logged in, or not the user upon which the query is made,
         // so we need to check authz
         user = await models.user.findUnique({ where: { name } })
-        if (user?.hideBookmarks) {
+        // additionally check if the user ids are not the same since if the nym changed
+        // since the last session update we would hide bookmarks from their owners
+        // see https://github.com/stackernews/stacker.news/issues/586
+        if (user?.hideBookmarks && user.id !== me.id) {
           // early return with no results if bookmarks are hidden
           return {
             cursor: null,
@@ -333,15 +354,18 @@ export default {
       // but the query planner doesn't like unused parameters
       const subArr = sub ? [sub] : []
 
+      const currentUser = me ? await models.user.findUnique({ where: { id: me.id } }) : null
+      const showNsfw = currentUser ? currentUser.nsfwMode : false
+
       switch (sort) {
         case 'user':
           if (!name) {
-            throw new GraphQLError('must supply name', { extensions: { code: 'BAD_INPUT' } })
+            throw new GqlInputError('must supply name')
           }
 
           user ??= await models.user.findUnique({ where: { name } })
           if (!user) {
-            throw new GraphQLError('no user has that name', { extensions: { code: 'BAD_INPUT' } })
+            throw new GqlInputError('no user has that name')
           }
 
           table = type === 'bookmarks' ? 'Bookmark' : 'Item'
@@ -351,17 +375,18 @@ export default {
             query: `
               ${selectClause(type)}
               ${relationClause(type)}
-              WHERE "${table}"."userId" = $2 AND "${table}".created_at <= $1
-              ${subClause(sub, 5, subClauseTable(type))}
-              ${activeOrMine(me)}
-              ${await filterClause(me, models, type)}
-              ${typeClause(type)}
-              ${whenClause(when || 'forever', type)}
-              ${await orderByClause(by, me, models, type)}
-              OFFSET $3
-              LIMIT $4`,
-            orderBy: await orderByClause(by, me, models, type)
-          }, decodedCursor.time, user.id, decodedCursor.offset, limit, ...subArr)
+              ${whereClause(
+                `"${table}"."userId" = $3`,
+                activeOrMine(me),
+                nsfwClause(showNsfw),
+                typeClause(type),
+                by === 'boost' && '"Item".boost > 0',
+                whenClause(when || 'forever', table))}
+              ${orderByClause(by, me, models, type)}
+              OFFSET $4
+              LIMIT $5`,
+            orderBy: orderByClause(by, me, models, type)
+          }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
           break
         case 'recent':
           items = await itemQueryWithMeta({
@@ -370,11 +395,15 @@ export default {
             query: `
               ${SELECT}
               ${relationClause(type)}
-              WHERE "Item".created_at <= $1
-              ${subClause(sub, 4, subClauseTable(type))}
-              ${activeOrMine(me)}
-              ${await filterClause(me, models, type)}
-              ${typeClause(type)}
+              ${whereClause(
+                '"Item".created_at <= $1',
+                '"Item"."deletedAt" IS NULL',
+                subClause(sub, 4, subClauseTable(type), me, showNsfw),
+                activeOrMine(me),
+                await filterClause(me, models, type),
+                typeClause(type),
+                muteClause(me)
+              )}
               ORDER BY "Item".created_at DESC
               OFFSET $2
               LIMIT $3`,
@@ -388,17 +417,45 @@ export default {
             query: `
               ${selectClause(type)}
               ${relationClause(type)}
-              WHERE "Item".created_at <= $1
-              AND "Item"."pinId" IS NULL AND "Item"."deletedAt" IS NULL
-              ${subClause(sub, 4, subClauseTable(type))}
-              ${typeClause(type)}
-              ${whenClause(when, type)}
-              ${await filterClause(me, models, type)}
-              ${await orderByClause(by || 'votes', me, models, type)}
-              OFFSET $2
-              LIMIT $3`,
-            orderBy: await orderByClause(by || 'votes', me, models, type)
-          }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
+              ${whereClause(
+                '"Item"."deletedAt" IS NULL',
+                type === 'posts' && '"Item"."subName" IS NOT NULL',
+                subClause(sub, 5, subClauseTable(type), me, showNsfw),
+                typeClause(type),
+                whenClause(when, 'Item'),
+                await filterClause(me, models, type),
+                by === 'boost' && '"Item".boost > 0',
+                muteClause(me))}
+              ${orderByClause(by || 'zaprank', me, models, type)}
+              OFFSET $3
+              LIMIT $4`,
+            orderBy: orderByClause(by || 'zaprank', me, models, type)
+          }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
+          break
+        case 'random':
+          items = await itemQueryWithMeta({
+            me,
+            models,
+            query: `
+              ${selectClause(type)}
+              ${relationClause(type)}
+              ${whereClause(
+                '"Item"."deletedAt" IS NULL',
+                '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 2',
+                '"Item"."ncomments" > 0',
+                '"Item"."parentId" IS NULL',
+                '"Item".bio = false',
+                type === 'posts' && '"Item"."subName" IS NOT NULL',
+                subClause(sub, 3, subClauseTable(type), me, showNsfw),
+                typeClause(type),
+                await filterClause(me, models, type),
+                activeOrMine(me),
+                muteClause(me))}
+              ${orderByClause('random', me, models, type)}
+              OFFSET $1
+              LIMIT $2`,
+            orderBy: orderByClause('random', me, models, type)
+          }, decodedCursor.offset, limit, ...subArr)
           break
         default:
           // sub so we know the default ranking
@@ -413,55 +470,106 @@ export default {
                 models,
                 query: `
                   ${SELECT},
-                    CASE WHEN status = 'ACTIVE' AND "maxBid" > 0
-                         THEN 0 ELSE 1 END AS group_rank,
-                    CASE WHEN status = 'ACTIVE' AND "maxBid" > 0
-                         THEN rank() OVER (ORDER BY "maxBid" DESC, created_at ASC)
+                    (boost IS NOT NULL AND boost > 0)::INT AS group_rank,
+                    CASE WHEN boost IS NOT NULL AND boost > 0
+                         THEN rank() OVER (ORDER BY boost DESC, created_at ASC)
                          ELSE rank() OVER (ORDER BY created_at DESC) END AS rank
                     FROM "Item"
-                    WHERE "parentId" IS NULL AND created_at <= $1
-                    AND "pinId" IS NULL
-                    ${subClause(sub, 4)}
-                    AND status IN ('ACTIVE', 'NOSATS')
-                    ORDER BY group_rank, rank
+                    ${whereClause(
+                      '"parentId" IS NULL',
+                      '"Item"."deletedAt" IS NULL',
+                      '"Item"."status" = \'ACTIVE\'',
+                      'created_at <= $1',
+                      '"pinId" IS NULL',
+                      subClause(sub, 4)
+                    )}
+                    ORDER BY group_rank DESC, rank
                   OFFSET $2
                   LIMIT $3`,
-                orderBy: 'ORDER BY group_rank, rank'
+                orderBy: 'ORDER BY group_rank DESC, rank'
               }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
               break
             default:
-              items = await itemQueryWithMeta({
-                me,
-                models,
-                query: `
-                    ${SELECT}, rank
-                    FROM "Item"
-                    ${await joinSatRankView(me, models)}
-                    ${subClause(sub, 3, 'Item', true)}
-                    ORDER BY rank ASC
-                    OFFSET $1
-                    LIMIT $2`,
-                orderBy: 'ORDER BY rank ASC'
-              }, decodedCursor.offset, limit, ...subArr)
-
               if (decodedCursor.offset === 0) {
-                // get pins for the page and return those separately
+              // get pins for the page and return those separately
                 pins = await itemQueryWithMeta({
                   me,
                   models,
                   query: `
-                    SELECT rank_filter.*
-                      FROM (
-                        ${SELECT},
-                        rank() OVER (
-                            PARTITION BY "pinId"
-                            ORDER BY created_at DESC
-                        )
-                        FROM "Item"
-                        WHERE "pinId" IS NOT NULL
-                        ${subClause(sub, 1)}
-                    ) rank_filter WHERE RANK = 1`
+                  SELECT rank_filter.*
+                    FROM (
+                      ${SELECT}, position,
+                      rank() OVER (
+                          PARTITION BY "pinId"
+                          ORDER BY "Item".created_at DESC
+                      )
+                      FROM "Item"
+                      JOIN "Pin" ON "Item"."pinId" = "Pin".id
+                      ${whereClause(
+                        '"pinId" IS NOT NULL',
+                        '"parentId" IS NULL',
+                        sub ? '"subName" = $1' : '"subName" IS NULL',
+                        muteClause(me))}
+                  ) rank_filter WHERE RANK = 1
+                  ORDER BY position ASC`,
+                  orderBy: 'ORDER BY position ASC'
                 }, ...subArr)
+
+                ad = await getAd(parent, { sub, subArr, showNsfw }, { me, models })
+              }
+
+              items = await itemQueryWithMeta({
+                me,
+                models,
+                query: `
+                    ${SELECT}, ${me ? 'GREATEST(g.tf_hot_score, l.tf_hot_score)' : 'g.tf_hot_score'} AS rank
+                    FROM "Item"
+                    LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+                    ${joinZapRankPersonalView(me, models)}
+                    ${whereClause(
+                      // in "home" (sub undefined), we want to show pinned items (but without the pin icon)
+                      sub ? '"Item"."pinId" IS NULL' : '',
+                      '"Item"."deletedAt" IS NULL',
+                      '"Item"."parentId" IS NULL',
+                      '"Item".outlawed = false',
+                      '"Item".bio = false',
+                      ad ? `"Item".id <> ${ad.id}` : '',
+                      activeOrMine(me),
+                      subClause(sub, 3, 'Item', me, showNsfw),
+                      muteClause(me))}
+                    ORDER BY rank DESC
+                    OFFSET $1
+                    LIMIT $2`,
+                orderBy: 'ORDER BY rank DESC'
+              }, decodedCursor.offset, limit, ...subArr)
+
+              // XXX this is mostly for subs that are really empty
+              if (items.length < limit) {
+                items = await itemQueryWithMeta({
+                  me,
+                  models,
+                  query: `
+                      ${SELECT}
+                      FROM "Item"
+                      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+                      ${whereClause(
+                        subClause(sub, 3, 'Item', me, showNsfw),
+                        muteClause(me),
+                        // in "home" (sub undefined), we want to show pinned items (but without the pin icon)
+                        sub ? '"Item"."pinId" IS NULL' : '',
+                        '"Item"."deletedAt" IS NULL',
+                        '"Item"."parentId" IS NULL',
+                        '"Item".bio = false',
+                        ad ? `"Item".id <> ${ad.id}` : '',
+                        activeOrMine(me),
+                        await filterClause(me, models, type))}
+                        ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
+                          "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC
+                      OFFSET $1
+                      LIMIT $2`,
+                  orderBy: `ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
+                    "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+                }, decodedCursor.offset, limit, ...subArr)
               }
               break
           }
@@ -470,7 +578,8 @@ export default {
       return {
         cursor: items.length === limit ? nextCursorEncoded(decodedCursor) : null,
         items,
-        pins
+        pins,
+        ad
       }
     },
     item: getItem,
@@ -480,8 +589,12 @@ export default {
         const response = await fetch(ensureProtocol(url), { redirect: 'follow' })
         const html = await response.text()
         const doc = domino.createWindow(html).document
-        const metadata = getMetadata(doc, url, { title: metadataRuleSets.title })
+        const metadata = getMetadata(doc, url, { title: metadataRuleSets.title, publicationDate: publicationDateRuleSet })
+        const dateHint = ` (${metadata.publicationDate?.getFullYear()})`
+        const moreThanOneYearAgo = metadata.publicationDate && metadata.publicationDate < datePivot(new Date(), { years: -1 })
+
         res.title = metadata?.title
+        if (moreThanOneYearAgo) res.title += dateHint
       } catch { }
 
       try {
@@ -495,28 +608,34 @@ export default {
     },
     dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))
-      let uri = urlObj.hostname + '(:[0-9]+)?' + urlObj.pathname
-      uri = uri.endsWith('/') ? uri.slice(0, -1) : uri
+      let { hostname, pathname } = urlObj
 
+      // remove subdomain from hostname
       const parseResult = parse(urlObj.hostname)
-      if (parseResult?.subdomain?.length) {
-        const { subdomain } = parseResult
-        uri = uri.replace(subdomain, '(%)?')
-      } else {
-        uri = `(%.)?${uri}`
+      if (parseResult?.subdomain?.length > 0) {
+        hostname = hostname.replace(`${parseResult.subdomain}.`, '')
       }
+      // hostname with optional protocol, subdomain, and port
+      const hostnameRegex = `^(http(s)?:\\/\\/)?(\\w+\\.)?${(hostname + '(:[0-9]+)?').replace(/\./g, '\\.')}`
+      // pathname with trailing slash and escaped special characters
+      const pathnameRegex = stripTrailingSlash(pathname).replace(/(\+|\.|\/)/g, '\\$1') + '\\/?'
+      // url with optional trailing slash
+      let similar = hostnameRegex + pathnameRegex
 
-      let similar = `(http(s)?://)?${uri}/?`
       const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php']
       const youtube = ['www.youtube.com', 'youtube.com', 'm.youtube.com', 'youtu.be']
-      if (whitelist.includes(uri)) {
+
+      const hostAndPath = stripTrailingSlash(urlObj.hostname + urlObj.pathname)
+      if (whitelist.includes(hostAndPath)) {
+        // make query string match for whitelist domains
         similar += `\\${urlObj.search}`
       } else if (youtube.includes(urlObj.hostname)) {
         // extract id and create both links
         const matches = url.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)/i)
-        similar = `(http(s)?://)?((www.|m.)?youtube.com/(watch\\?v=|v/|live/)${matches?.groups?.id}|youtu.be/${matches?.groups?.id})((\\?|&|#)%)?`
-      } else {
-        similar += '((\\?|#)%)?'
+        similar = `^(http(s)?:\\/\\/)?((www\\.|m\\.)?youtube.com\\/(watch\\?v\\=|v\\/|live\\/)${matches?.groups?.id}|youtu\\.be\\/${matches?.groups?.id})&?`
+      } else if (urlObj.hostname === 'yewtu.be') {
+        const matches = url.match(/(https?:\/\/)?yewtu\.be.*(v=|embed\/)(?<id>[_0-9a-z-]+)/i)
+        similar = `^(http(s)?:\\/\\/)?yewtu\\.be\\/(watch\\?v\\=|embed\\/)${matches?.groups?.id}&?`
       }
 
       return await itemQueryWithMeta({
@@ -525,23 +644,22 @@ export default {
         query: `
           ${SELECT}
           FROM "Item"
-          WHERE LOWER(url) SIMILAR TO LOWER($1)
+          WHERE url ~* $1
           ORDER BY created_at DESC
           LIMIT 3`
       }, similar)
     },
-    auctionPosition: async (parent, { id, sub, bid }, { models, me }) => {
+    auctionPosition: async (parent, { id, sub, boost }, { models, me }) => {
       const createdAt = id ? (await getItem(parent, { id }, { models, me })).createdAt : new Date()
       let where
-      if (bid > 0) {
-        // if there's a bid
-        // it's ACTIVE and has a larger bid than ours, or has an equal bid and is older
-        // count items: (bid > ours.bid OR (bid = ours.bid AND create_at < ours.created_at)) AND status = 'ACTIVE'
+      if (boost > 0) {
+        // if there's boost
+        // has a larger boost than ours, or has an equal boost and is older
+        // count items: (boost > ours.boost OR (boost = ours.boost AND create_at < ours.created_at))
         where = {
-          status: 'ACTIVE',
           OR: [
-            { maxBid: { gt: bid } },
-            { maxBid: bid, createdAt: { lt: createdAt } }
+            { boost: { gt: boost } },
+            { boost, createdAt: { lt: createdAt } }
           ]
         }
       } else {
@@ -550,18 +668,59 @@ export default {
         // count items: ((bid > ours.bid AND status = 'ACTIVE') OR (created_at > ours.created_at AND status <> 'STOPPED'))
         where = {
           OR: [
-            { maxBid: { gt: 0 }, status: 'ACTIVE' },
-            { createdAt: { gt: createdAt }, status: { not: 'STOPPED' } }
+            { boost: { gt: 0 } },
+            { createdAt: { gt: createdAt } }
           ]
         }
       }
 
-      where.subName = sub
+      where.AND = {
+        subName: sub,
+        status: 'ACTIVE',
+        deletedAt: null
+      }
+      if (id) {
+        where.AND.id = { not: Number(id) }
+      }
+
+      return await models.item.count({ where }) + 1
+    },
+    boostPosition: async (parent, { id, sub, boost = 0 }, { models, me }) => {
+      const where = {
+        boost: { gte: boost },
+        status: 'ACTIVE',
+        deletedAt: null,
+        outlawed: false,
+        parentId: null
+      }
       if (id) {
         where.id = { not: Number(id) }
       }
 
-      return await models.item.count({ where }) + 1
+      const homeAgg = await models.item.aggregate({
+        _count: { id: true },
+        _max: { boost: true },
+        where
+      })
+
+      let subAgg
+      if (sub) {
+        subAgg = await models.item.aggregate({
+          _count: { id: true },
+          _max: { boost: true },
+          where: {
+            ...where,
+            subName: sub
+          }
+        })
+      }
+
+      return {
+        home: homeAgg._count.id === 0 && boost >= BOOST_MULT,
+        sub: subAgg?._count.id === 0 && boost >= BOOST_MULT,
+        homeMaxBoost: homeAgg._max.boost || 0,
+        subMaxBoost: subAgg?._max.boost || 0
+      }
     }
   },
 
@@ -574,6 +733,97 @@ export default {
       } else await models.bookmark.create({ data })
       return { id }
     },
+    pinItem: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const [item] = await models.$queryRawUnsafe(
+        `${SELECT}, p.position
+        FROM "Item" LEFT JOIN "Pin" p ON p.id = "Item"."pinId"
+        WHERE "Item".id = $1`, Number(id))
+
+      const args = []
+      if (item.parentId) {
+        args.push(item.parentId)
+
+        // OPs can only pin top level replies
+        if (item.path.split('.').length > 2) {
+          throw new GqlInputError('can only pin root replies')
+        }
+
+        const root = await models.item.findUnique({
+          where: {
+            id: Number(item.parentId)
+          },
+          include: { pin: true }
+        })
+
+        if (root.userId !== Number(me.id)) {
+          throw new GqlInputError('not your post')
+        }
+      } else if (item.subName) {
+        args.push(item.subName)
+
+        // only territory founder can pin posts
+        const sub = await models.sub.findUnique({ where: { name: item.subName } })
+        if (Number(me.id) !== sub.userId) {
+          throw new GqlInputError('not your sub')
+        }
+      } else {
+        throw new GqlInputError('item must have subName or parentId')
+      }
+
+      let pinId
+      if (item.pinId) {
+        // item is already pinned. remove pin
+        await models.$transaction([
+          models.item.update({ where: { id: item.id }, data: { pinId: null } }),
+          models.pin.delete({ where: { id: item.pinId } }),
+          // make sure that pins have no gaps
+          models.$queryRawUnsafe(`
+            UPDATE "Pin"
+            SET position = position - 1
+            WHERE position > $2 AND id IN (
+              SELECT "pinId" FROM "Item" i
+              ${whereClause('"pinId" IS NOT NULL', item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
+            )`, ...args, item.position)
+        ])
+
+        pinId = null
+      } else {
+        // only max 3 pins allowed per territory and post
+        const [{ count: npins }] = await models.$queryRawUnsafe(`
+          SELECT COUNT(p.id) FROM "Pin" p
+          JOIN "Item" i ON i."pinId" = p.id
+          ${
+            whereClause(item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')
+          }`, ...args)
+
+        if (npins >= 3) {
+          throw new GqlInputError('max 3 pins allowed')
+        }
+
+        const [{ pinId: newPinId }] = await models.$queryRawUnsafe(`
+          WITH pin AS (
+            INSERT INTO "Pin" (position)
+            SELECT COALESCE(MAX(p.position), 0) + 1 AS position
+            FROM "Pin" p
+            JOIN "Item" i ON i."pinId" = p.id
+            ${whereClause(item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
+            RETURNING id
+          )
+          UPDATE "Item"
+          SET "pinId" = pin.id
+          FROM pin
+          WHERE "Item".id = $2
+          RETURNING "pinId"`, ...args, item.id)
+
+        pinId = newPinId
+      }
+
+      return { id, pinId }
+    },
     subscribeItem: async (parent, { id }, { me, models }) => {
       const data = { itemId: Number(id), userId: me.id }
       const old = await models.threadSubscription.findUnique({ where: { userId_itemId: data } })
@@ -585,54 +835,43 @@ export default {
     deleteItem: async (parent, { id }, { me, models }) => {
       const old = await models.item.findUnique({ where: { id: Number(id) } })
       if (Number(old.userId) !== Number(me?.id)) {
-        throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlInputError('item does not belong to you')
+      }
+      if (old.bio) {
+        throw new GqlInputError('cannot delete bio')
       }
 
-      const data = { deletedAt: new Date() }
-      if (old.text) {
-        data.text = '*deleted by author*'
-      }
-      if (old.title) {
-        data.title = 'deleted by author'
-      }
-      if (old.url) {
-        data.url = null
-      }
-      if (old.pollCost) {
-        data.pollCost = null
-      }
-
-      return await models.item.update({ where: { id: Number(id) }, data })
+      return await deleteItemByAuthor({ models, id, item: old })
     },
-    upsertLink: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
-      await ssValidate(linkSchema, item, models)
+    upsertLink: async (parent, { id, ...item }, { me, models, lnd }) => {
+      await ssValidate(linkSchema, item, { models, me })
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
-        return await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
+        return await createItem(parent, item, { me, models, lnd })
       }
     },
-    upsertDiscussion: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
-      await ssValidate(discussionSchema, item, models)
+    upsertDiscussion: async (parent, { id, ...item }, { me, models, lnd }) => {
+      await ssValidate(discussionSchema, item, { models, me })
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
-        return await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
+        return await createItem(parent, item, { me, models, lnd })
       }
     },
-    upsertBounty: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
-      await ssValidate(bountySchema, item, models)
+    upsertBounty: async (parent, { id, ...item }, { me, models, lnd }) => {
+      await ssValidate(bountySchema, item, { models, me })
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
-        return await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
+        return await createItem(parent, item, { me, models, lnd })
       }
     },
-    upsertPoll: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
-      const optionCount = id
+    upsertPoll: async (parent, { id, ...item }, { me, models, lnd }) => {
+      const numExistingChoices = id
         ? await models.pollOption.count({
           where: {
             itemId: Number(id)
@@ -640,183 +879,171 @@ export default {
         })
         : 0
 
-      await ssValidate(pollSchema, item, models, optionCount)
+      await ssValidate(pollSchema, item, { models, me, numExistingChoices })
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
         item.pollCost = item.pollCost || POLL_COST
-        return await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
+        return await createItem(parent, item, { me, models, lnd })
       }
     },
-    upsertJob: async (parent, { id, ...item }, { me, models }) => {
+    upsertJob: async (parent, { id, ...item }, { me, models, lnd }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in to create job', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
       item.location = item.location?.toLowerCase() === 'remote' ? undefined : item.location
-      await ssValidate(jobSchema, item, models)
-      if (item.logo) {
+      await ssValidate(jobSchema, item, { models })
+      if (item.logo !== undefined) {
         item.uploadId = item.logo
         delete item.logo
       }
-      item.maxBid ??= 0
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
-        return await createItem(parent, item, { me, models })
+        return await createItem(parent, item, { me, models, lnd })
       }
     },
-    upsertComment: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
+    upsertComment: async (parent, { id, ...item }, { me, models, lnd }) => {
       await ssValidate(commentSchema, item)
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
-        const rItem = await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
-
-        const notify = async () => {
-          const user = await models.user.findUnique({ where: { id: me?.id || ANON_USER_ID } })
-          const parents = await models.$queryRawUnsafe(
-            'SELECT DISTINCT p."userId" FROM "Item" i JOIN "Item" p ON p.path @> i.path WHERE i.id = $1 and p."userId" <> $2',
-            Number(item.parentId), Number(user.id))
-          Promise.allSettled(
-            parents.map(({ userId }) => sendUserNotification(userId, {
-              title: `@${user.name} replied to you`,
-              body: item.text,
-              item: rItem,
-              tag: 'REPLY'
-            }))
-          )
-        }
-        notify().catch(e => console.error(e))
-
-        return rItem
+        item = await createItem(parent, item, { me, models, lnd })
+        return item
       }
     },
-    pollVote: async (parent, { id }, { me, models }) => {
+    updateNoteId: async (parent, { id, noteId }, { me, models }) => {
+      if (!id) {
+        throw new GqlInputError('id required')
+      }
+
+      await models.item.update({
+        where: { id: Number(id), userId: Number(me.id) },
+        data: { noteId }
+      })
+
+      return { id, noteId }
+    },
+    pollVote: async (parent, { id }, { me, models, lnd }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
-      await serialize(models,
-        models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1::INTEGER, $2::INTEGER) AS "Item"`,
-          Number(id), Number(me.id)))
-
-      return id
+      return await performPaidAction('POLL_VOTE', { id }, { me, models, lnd })
     },
-    act: async (parent, { id, sats, invoiceHash, invoiceHmac }, { me, models }) => {
-      // need to make sure we are logged in
-      if (!me && !invoiceHash) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+    act: async (parent, { id, sats, act = 'TIP' }, { me, models, lnd, headers }) => {
+      assertApiKeyNotPermitted({ me })
+      await ssValidate(actSchema, { sats, act })
+      await assertGofacYourself({ models, headers })
+
+      const [item] = await models.$queryRawUnsafe(`
+        ${SELECT}
+        FROM "Item"
+        WHERE id = $1`, Number(id))
+
+      if (item.deletedAt) {
+        throw new GqlInputError('item is deleted')
       }
 
-      await ssValidate(amountSchema, { amount: sats })
-
-      let user = me
-      let invoice
-      if (!me && invoiceHash) {
-        invoice = await checkInvoice(models, invoiceHash, invoiceHmac, sats)
-        user = invoice.user
+      if (item.invoiceActionState && item.invoiceActionState !== 'PAID') {
+        throw new GqlInputError('cannot act on unpaid item')
       }
 
       // disallow self tips except anons
-      if (user.id !== ANON_USER_ID) {
-        const [item] = await models.$queryRawUnsafe(`
-        ${SELECT}
-        FROM "Item"
-        WHERE id = $1 AND "userId" = $2`, Number(id), user.id)
-        if (item) {
-          throw new GraphQLError('cannot zap your self', { extensions: { code: 'BAD_INPUT' } })
+      if (me && ['TIP', 'DONT_LIKE_THIS'].includes(act)) {
+        if (Number(item.userId) === Number(me.id)) {
+          throw new GqlInputError('cannot zap yourself')
+        }
+
+        // Disallow tips if me is one of the forward user recipients
+        if (act === 'TIP') {
+          const existingForwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
+          if (existingForwards.some(fwd => Number(fwd.userId) === Number(me.id))) {
+            throw new GqlInputError('cannot zap a post for which you are forwarded zaps')
+          }
         }
       }
 
-      // Disallow tips if me is one of the forward user recipients
-      const existingForwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
-      if (existingForwards.some(fwd => Number(fwd.userId) === Number(user.id))) {
-        throw new GraphQLError('cannot zap a post for which you are forwarded zaps', { extensions: { code: 'BAD_INPUT' } })
-      }
-
-      const calls = [
-        models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${user.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`
-      ]
-      if (invoice) {
-        calls.push(models.invoice.delete({ where: { hash: invoice.hash } }))
-      }
-
-      const [{ item_act: vote }] = await serialize(models, ...calls)
-
-      const notify = async () => {
-        try {
-          const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
-          const forwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
-          const userPromises = forwards.map(fwd => models.user.findUnique({ where: { id: fwd.userId } }))
-          const userResults = await Promise.allSettled(userPromises)
-          const mappedForwards = forwards.map((fwd, index) => ({ ...fwd, user: userResults[index].value ?? null }))
-          let forwardedSats = 0
-          let forwardedUsers = ''
-          if (mappedForwards.length) {
-            forwardedSats = Math.floor(msatsToSats(updatedItem.msats) * mappedForwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
-            forwardedUsers = mappedForwards.map(fwd => `@${fwd.user.name}`).join(', ')
-          }
-          let notificationTitle
-          if (updatedItem.title) {
-            if (forwards.length > 0) {
-              notificationTitle = `your post forwarded ${numWithUnits(forwardedSats)} to ${forwardedUsers}`
-            } else {
-              notificationTitle = `your post stacked ${numWithUnits(msatsToSats(updatedItem.msats))}`
-            }
-          } else {
-            if (forwards.length > 0) {
-              // I don't think this case is possible
-              notificationTitle = `your reply forwarded ${numWithUnits(forwardedSats)} to ${forwardedUsers}`
-            } else {
-              notificationTitle = `your reply stacked ${numWithUnits(msatsToSats(updatedItem.msats))}`
-            }
-          }
-          await sendUserNotification(updatedItem.userId, {
-            title: notificationTitle,
-            body: updatedItem.title ? updatedItem.title : updatedItem.text,
-            item: updatedItem,
-            tag: `TIP-${updatedItem.id}`
-          })
-        } catch (err) {
-          console.error(err)
-        }
-      }
-
-      notify()
-
-      return {
-        vote,
-        sats
+      if (act === 'TIP') {
+        return await performPaidAction('ZAP', { id, sats }, { me, models, lnd })
+      } else if (act === 'DONT_LIKE_THIS') {
+        return await performPaidAction('DOWN_ZAP', { id, sats }, { me, models, lnd })
+      } else if (act === 'BOOST') {
+        return await performPaidAction('BOOST', { id, sats }, { me, models, lnd })
+      } else {
+        throw new GqlInputError('unknown act')
       }
     },
-    dontLikeThis: async (parent, { id }, { me, models }) => {
-      // need to make sure we are logged in
+    toggleOutlaw: async (parent, { id }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthenticationError()
       }
 
-      // disallow self down votes
-      const [item] = await models.$queryRawUnsafe(`
-            ${SELECT}
-            FROM "Item"
-            WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
-      if (item) {
-        throw new GraphQLError('cannot downvote your self', { extensions: { code: 'BAD_INPUT' } })
+      const item = await models.item.findUnique({
+        where: { id: Number(id) },
+        include: {
+          sub: true,
+          root: {
+            include: {
+              sub: true
+            }
+          }
+        }
+      })
+
+      const sub = item.sub || item.root?.sub
+
+      if (Number(sub.userId) !== Number(me.id)) {
+        throw new GqlInputError('you cant do this broh')
       }
 
-      await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER,
-        ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST}::INTEGER)`)
+      if (item.outlawed) {
+        return item
+      }
 
-      return true
+      const [result] = await models.$transaction(
+        [
+          models.item.update({
+            where: {
+              id: Number(id)
+            },
+            data: {
+              outlawed: true
+            }
+          }),
+          models.sub.update({
+            where: {
+              name: sub.name
+            },
+            data: {
+              moderatedCount: {
+                increment: 1
+              }
+            }
+          })
+        ])
+
+      return result
+    }
+  },
+  ItemAct: {
+    invoice: async (itemAct, args, { models }) => {
+      if (itemAct.invoiceId) {
+        return {
+          id: itemAct.invoiceId,
+          actionState: itemAct.invoiceActionState
+        }
+      }
+      return null
     }
   },
   Item: {
     sats: async (item, args, { models }) => {
-      return msatsToSats(item.msats)
+      return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0))
     },
     commentSats: async (item, args, { models }) => {
       return msatsToSats(item.commentMsats)
@@ -827,6 +1054,10 @@ export default {
     sub: async (item, args, { models }) => {
       if (!item.subName && !item.root) {
         return null
+      }
+
+      if (item.sub) {
+        return item.sub
       }
 
       return await models.sub.findUnique({ where: { name: item.subName || item.root?.subName } })
@@ -872,8 +1103,10 @@ export default {
       }
 
       const options = await models.$queryRaw`
-        SELECT "PollOption".id, option, count("PollVote"."userId")::INTEGER as count,
-          coalesce(bool_or("PollVote"."userId" = ${me?.id}), 'f') as "meVoted"
+        SELECT "PollOption".id, option,
+          (count("PollVote".id)
+            FILTER(WHERE "PollVote"."invoiceActionState" IS NULL
+              OR "PollVote"."invoiceActionState" = 'PAID'))::INTEGER as count
         FROM "PollOption"
         LEFT JOIN "PollVote" on "PollVote"."pollOptionId" = "PollOption".id
         WHERE "PollOption"."itemId" = ${item.id}
@@ -882,8 +1115,21 @@ export default {
       `
 
       const poll = {}
+      if (me) {
+        const meVoted = await models.pollBlindVote.findFirst({
+          where: {
+            userId: me.id,
+            itemId: item.id
+          }
+        })
+        poll.meVoted = !!meVoted
+        poll.meInvoiceId = meVoted?.invoiceId
+        poll.meInvoiceActionState = meVoted?.invoiceActionState
+      } else {
+        poll.meVoted = false
+      }
+
       poll.options = options
-      poll.meVoted = options.some(o => o.meVoted)
       poll.count = options.reduce((t, o) => t + o.count, 0)
 
       return poll
@@ -910,8 +1156,11 @@ export default {
 
       return comments(me, models, item.id, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt))
     },
-    wvotes: async (item) => {
-      return item.weightedVotes - item.weightedDownVotes
+    freedFreebie: async (item) => {
+      return item.weightedVotes - item.weightedDownVotes > 0
+    },
+    freebie: async (item) => {
+      return item.cost === 0 && item.boost === 0
     },
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
@@ -926,6 +1175,9 @@ export default {
         where: {
           itemId: Number(item.id),
           userId: me.id,
+          invoiceActionState: {
+            not: 'FAILED'
+          },
           OR: [
             {
               act: 'TIP'
@@ -939,19 +1191,27 @@ export default {
 
       return (msats && msatsToSats(msats)) || 0
     },
-    meDontLike: async (item, args, { me, models }) => {
-      if (!me) return false
-      if (typeof item.meDontLike !== 'undefined') return item.meDontLike
+    meDontLikeSats: async (item, args, { me, models }) => {
+      if (!me) return 0
+      if (typeof item.meDontLikeMsats !== 'undefined') {
+        return msatsToSats(item.meDontLikeMsats)
+      }
 
-      const dontLike = await models.itemAct.findFirst({
+      const { _sum: { msats } } = await models.itemAct.aggregate({
+        _sum: {
+          msats: true
+        },
         where: {
           itemId: Number(item.id),
           userId: me.id,
-          act: 'DONT_LIKE_THIS'
+          act: 'DONT_LIKE_THIS',
+          invoiceActionState: {
+            not: 'FAILED'
+          }
         }
       })
 
-      return !!dontLike
+      return (msats && msatsToSats(msats)) || 0
     },
     meBookmark: async (item, args, { me, models }) => {
       if (!me) return false
@@ -987,19 +1247,49 @@ export default {
       if (me && Number(item.userId) === Number(me.id)) {
         return false
       }
-      return item.weightedVotes - item.weightedDownVotes <= -ITEM_FILTER_THRESHOLD
+      return item.outlawed || item.weightedVotes - item.weightedDownVotes <= -ITEM_FILTER_THRESHOLD
+    },
+    rel: async (item, args, { me, models }) => {
+      const sats = item.msats ? msatsToSats(item.msats) : 0
+      const boost = item.boost ?? 0
+      return (sats + boost < NOFOLLOW_LIMIT) ? UNKNOWN_LINK_REL : 'noopener noreferrer'
     },
     mine: async (item, args, { me, models }) => {
       return me?.id === item.userId
     },
-    root: async (item, args, { models }) => {
+    root: async (item, args, { models, me }) => {
       if (!item.rootId) {
         return null
       }
       if (item.root) {
         return item.root
       }
-      return await models.item.findUnique({ where: { id: item.rootId } })
+
+      // we can't use getItem because activeOrMine will prevent root from being fetched
+      const [root] = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}
+          FROM "Item"
+          ${whereClause(
+            '"Item".id = $1',
+            `("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID'${me ? ` OR "Item"."userId" = ${me.id}` : ''})`
+          )}`
+      }, Number(item.rootId))
+
+      return root
+    },
+    invoice: async (item, args, { models }) => {
+      if (item.invoiceId) {
+        return {
+          id: item.invoiceId,
+          actionState: item.invoiceActionState,
+          confirmedAt: item.invoicePaidAtUTC ?? item.invoicePaidAt
+        }
+      }
+
+      return null
     },
     parent: async (item, args, { models }) => {
       if (!item.parentId) {
@@ -1013,135 +1303,143 @@ export default {
       }
       const parent = await models.item.findUnique({ where: { id: item.parentId } })
       return parent.otsHash
+    },
+    deleteScheduledAt: async (item, args, { me, models }) => {
+      const meId = me?.id ?? USER_ID.anon
+      if (meId !== item.userId) {
+        // Only query for deleteScheduledAt for your own items to keep DB queries minimized
+        return null
+      }
+      const deleteJobs = await models.$queryRaw`
+        SELECT startafter
+        FROM pgboss.job
+        WHERE name = 'deleteItem' AND data->>'id' = ${item.id}::TEXT
+        AND state = 'created'`
+      return deleteJobs[0]?.startafter ?? null
+    },
+    reminderScheduledAt: async (item, args, { me, models }) => {
+      const meId = me?.id ?? USER_ID.anon
+      if (meId !== item.userId || meId === USER_ID.anon) {
+        // don't show reminders on an item if it isn't yours
+        // don't support reminders for ANON
+        return null
+      }
+      const reminderJobs = await models.$queryRaw`
+        SELECT startafter
+        FROM pgboss.job
+        WHERE name = 'reminder'
+        AND data->>'itemId' = ${item.id}::TEXT
+        AND data->>'userId' = ${meId}::TEXT
+        AND state = 'created'`
+      return reminderJobs[0]?.startafter ?? null
     }
   }
 }
 
-const namePattern = /\B@[\w_]+/gi
-
-export const createMentions = async (item, models) => {
-  // if we miss a mention, in the rare circumstance there's some kind of
-  // failure, it's not a big deal so we don't do it transactionally
-  // ideally, we probably would
-  if (!item.text) {
-    return
-  }
-
-  try {
-    const mentions = item.text.match(namePattern)?.map(m => m.slice(1))
-    if (mentions?.length > 0) {
-      const users = await models.user.findMany({
-        where: {
-          name: { in: mentions }
-        }
-      })
-
-      users.forEach(async user => {
-        const data = {
-          itemId: item.id,
-          userId: user.id
-        }
-
-        await models.mention.upsert({
-          where: {
-            itemId_userId: data
-          },
-          update: data,
-          create: data
-        })
-        sendUserNotification(user.id, {
-          title: 'you were mentioned',
-          body: item.text,
-          item,
-          tag: 'MENTION'
-        }).catch(console.error)
-      })
-    }
-  } catch (e) {
-    console.log('mention failure', e)
-  }
-}
-
-export const updateItem = async (parent, { sub: subName, forward, options, ...item }, { me, models }) => {
+export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ...item }, { me, models, lnd }) => {
   // update iff this item belongs to me
-  const old = await models.item.findUnique({ where: { id: Number(item.id) } })
-  if (Number(old.userId) !== Number(me?.id)) {
-    throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
+  const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { invoice: true, sub: true } })
+
+  if (old.deletedAt) {
+    throw new GqlInputError('item is deleted')
   }
 
-  // if it's not the FAQ, not their bio, and older than 10 minutes
-  const user = await models.user.findUnique({ where: { id: me.id } })
-  if (![349, 76894, 78763, 81862].includes(old.id) && user.bioId !== old.id &&
-    typeof item.maxBid === 'undefined' && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
-    throw new GraphQLError('item can no longer be editted', { extensions: { code: 'BAD_INPUT' } })
+  // author can edit their own item (except anon)
+  const meId = Number(me?.id ?? USER_ID.anon)
+  const authorEdit = !!me && Number(old.userId) === meId
+  // admins can edit special items
+  const adminEdit = ADMIN_ITEMS.includes(old.id) && SN_ADMIN_IDS.includes(meId)
+  // anybody can edit with valid hash+hmac
+  let hmacEdit = false
+  if (old.invoice?.hash && hash && hmac) {
+    hmacEdit = old.invoice.hash === hash && verifyHmac(hash, hmac)
   }
 
-  if (item.text) {
-    item.text = await proxyImages(item.text)
+  // ownership permission check
+  if (!authorEdit && !adminEdit && !hmacEdit) {
+    throw new GqlInputError('item does not belong to you')
   }
-  if (item.url && typeof item.maxBid === 'undefined') {
+
+  const differentSub = subName && old.subName !== subName
+  if (differentSub) {
+    const sub = await models.sub.findUnique({ where: { name: subName } })
+    if (sub.baseCost > old.sub.baseCost) {
+      throw new GqlInputError('cannot change to a more expensive sub')
+    }
+  }
+
+  // in case they lied about their existing boost
+  await ssValidate(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
+
+  const user = await models.user.findUnique({ where: { id: meId } })
+
+  // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
+  const myBio = user.bioId === old.id
+  const timer = Date.now() < new Date(old.invoicePaidAt ?? old.createdAt).getTime() + 10 * 60_000
+
+  // timer permission check
+  if (!adminEdit && !myBio && !timer && !isJob(item)) {
+    throw new GqlInputError('item can no longer be edited')
+  }
+
+  if (item.url && !isJob(item)) {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
-    item.url = await proxyImages(item.url)
   }
 
-  item = { subName, userId: me.id, ...item }
-  const fwdUsers = await getForwardUsers(models, forward)
+  if (old.bio) {
+    // prevent editing a bio like a regular item
+    item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio` }
+  } else if (old.parentId) {
+    // prevent editing a comment like a post
+    item = { id: Number(item.id), text: item.text, boost: item.boost }
+  } else {
+    item = { subName, ...item }
+    item.forwardUsers = await getForwardUsers(models, forward)
+  }
+  item.uploadIds = uploadIdsFromText(item.text, { models })
 
-  const [rItem] = await serialize(models,
-    models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options)))
+  // never change author of item
+  item.userId = old.userId
 
-  await createMentions(rItem, models)
+  const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd })
 
-  item.comments = []
-  return item
+  resultItem.comments = []
+  return resultItem
 }
 
-export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, invoiceHash, invoiceHmac }) => {
-  let spamInterval = ITEM_SPAM_INTERVAL
-  const trx = []
-
+export const createItem = async (parent, { forward, ...item }, { me, models, lnd }) => {
   // rename to match column name
   item.subName = item.sub
   delete item.sub
 
-  if (me) {
-    item.userId = Number(me.id)
-  } else {
-    if (!invoiceHash) {
-      throw new GraphQLError('you must be logged in or pay', { extensions: { code: 'FORBIDDEN' } })
-    }
-    const invoice = await checkInvoice(models, invoiceHash, invoiceHmac, item.parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
-    item.userId = invoice.user.id
-    spamInterval = ANON_ITEM_SPAM_INTERVAL
-    trx.push(models.invoice.delete({ where: { hash: invoiceHash } }))
-  }
+  item.userId = me ? Number(me.id) : USER_ID.anon
 
-  const fwdUsers = await getForwardUsers(models, forward)
-  if (item.text) {
-    item.text = await proxyImages(item.text)
-  }
-  if (item.url && typeof item.maxBid === 'undefined') {
+  item.forwardUsers = await getForwardUsers(models, forward)
+  item.uploadIds = uploadIdsFromText(item.text, { models })
+
+  if (item.url && !isJob(item)) {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
-    item.url = await proxyImages(item.url)
   }
 
-  const [result] = await serialize(
-    models,
-    models.$queryRawUnsafe(`${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options)),
-    ...trx)
-  item = Array.isArray(result) ? result[0] : result
+  if (item.parentId) {
+    const parent = await models.item.findUnique({ where: { id: parseInt(item.parentId) } })
+    if (parent.invoiceActionState && parent.invoiceActionState !== 'PAID') {
+      throw new GqlInputError('cannot comment on unpaid item')
+    }
+  }
 
-  await createMentions(item, models)
+  // mark item as created with API key
+  item.apiKey = me?.apiKey
 
-  item.comments = []
-  return item
+  const resultItem = await performPaidAction('ITEM_CREATE', item, { models, me, lnd })
+
+  resultItem.comments = []
+  return resultItem
 }
 
-const getForwardUsers = async (models, forward) => {
+export const getForwardUsers = async (models, forward) => {
   const fwdUsers = []
   if (forward) {
     // find all users in one db query
@@ -1159,15 +1457,9 @@ const getForwardUsers = async (models, forward) => {
 
 // we have to do our own query because ltree is unsupported
 export const SELECT =
-  `SELECT "Item".id, "Item".created_at, "Item".created_at as "createdAt", "Item".updated_at,
-  "Item".updated_at as "updatedAt", "Item".title, "Item".text, "Item".url, "Item"."bounty",
-  "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
-  "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
-  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
-  "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
-  "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo",
-  ltree2text("Item"."path") AS "path", "Item"."weightedComments"`
+  `SELECT "Item".*, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt",
+    ltree2text("Item"."path") AS "path"`
 
-async function topOrderByWeightedSats (me, models) {
-  return `ORDER BY ${await orderByNumerator(me, models)} DESC NULLS LAST, "Item".id DESC`
+function topOrderByWeightedSats (me, models) {
+  return `ORDER BY ${orderByNumerator({ models })} DESC NULLS LAST, "Item".id DESC`
 }

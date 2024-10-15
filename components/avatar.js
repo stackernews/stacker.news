@@ -2,10 +2,10 @@ import { useRef, useState } from 'react'
 import AvatarEditor from 'react-avatar-editor'
 import Button from 'react-bootstrap/Button'
 import BootstrapForm from 'react-bootstrap/Form'
-import Upload from './upload'
-import EditImage from '../svgs/image-edit-fill.svg'
-import Moon from '../svgs/moon-fill.svg'
+import EditImage from '@/svgs/image-edit-fill.svg'
+import Moon from '@/svgs/moon-fill.svg'
 import { useShowModal } from './modal'
+import { FileUpload } from './file-upload'
 
 export default function Avatar ({ onSuccess }) {
   const [uploading, setUploading] = useState()
@@ -49,27 +49,42 @@ export default function Avatar ({ onSuccess }) {
   }
 
   return (
-    <Upload
-      as={({ onClick }) =>
-        <div className='position-absolute p-1 bg-dark pointer' onClick={onClick} style={{ bottom: '0', right: '0' }}>
-          {uploading
-            ? <Moon className='fill-white spin' />
-            : <EditImage className='fill-white' />}
-        </div>}
+    <FileUpload
+      allow='image/*'
+      avatar
       onError={e => {
         console.log(e)
         setUploading(false)
       }}
       onSelect={(file, upload) => {
-        showModal(onClose => <Body onClose={onClose} file={file} upload={upload} />)
+        return new Promise((resolve, reject) =>
+          showModal(onClose => (
+            <Body
+              onClose={() => {
+                onClose()
+                resolve()
+              }}
+              file={file}
+              upload={async (blob) => {
+                await upload(blob)
+                resolve(blob)
+              }}
+            />
+          )))
       }}
-      onSuccess={async key => {
-        onSuccess && onSuccess(key)
+      onSuccess={({ id }) => {
+        onSuccess?.(id)
         setUploading(false)
       }}
-      onStarted={() => {
+      onUpload={() => {
         setUploading(true)
       }}
-    />
+    >
+      <div className='position-absolute p-1 bg-dark pointer' style={{ bottom: '0', right: '0' }}>
+        {uploading
+          ? <Moon className='fill-white spin' />
+          : <EditImage className='fill-white' />}
+      </div>
+    </FileUpload>
   )
 }

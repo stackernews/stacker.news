@@ -91,7 +91,6 @@ const defaultManifest = {
     }
   ],
   display: 'standalone',
-  orientation: 'any',
   theme_color: black,
   background_color: yellow,
   id: '/',

@@ -2,15 +2,26 @@ import { gql } from 'graphql-tag'
 
 export default gql`
   extend type Query {
-    me(skipUpdate: Boolean): User
+    me: User
     settings: User
-    user(name: String!): User
+    user(id: ID, name: String): User
     users: [User!]
     nameAvailable(name: String!): Boolean!
-    topUsers(cursor: String, when: String, by: String): Users
-    topCowboys(cursor: String): Users
-    searchUsers(q: String!, limit: Int, similarity: Float): [User!]!
+    topUsers(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): UsersNullable!
+    topCowboys(cursor: String): UsersNullable!
+    searchUsers(q: String!, limit: Limit, similarity: Float): [User!]!
+    userSuggestions(q: String, limit: Limit): [User!]!
     hasNewNotes: Boolean!
+    mySubscribedUsers(cursor: String): Users!
+    myMutedUsers(cursor: String): Users!
+    userStatsActions(when: String, from: String, to: String): [TimeData!]!
+    userStatsIncomingSats(when: String, from: String, to: String): [TimeData!]!
+    userStatsOutgoingSats(when: String, from: String, to: String): [TimeData!]!
+  }
+
+  type UsersNullable {
+    cursor: String
+    users: [User]!
   }
 
   type Users {
@@ -20,16 +31,82 @@ export default gql`
 
   extend type Mutation {
     setName(name: String!): String
-    setSettings(tipDefault: Int!, turboTipping: Boolean!, fiatCurrency: String!, noteItemSats: Boolean!,
-      noteEarning: Boolean!, noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
-      noteInvites: Boolean!, noteJobIndicator: Boolean!, noteCowboyHat: Boolean!, hideInvoiceDesc: Boolean!,
-      hideFromTopUsers: Boolean!, hideCowboyHat: Boolean!, clickToLoadImg: Boolean!,
-      wildWestMode: Boolean!, greeterMode: Boolean!, nostrPubkey: String, nostrRelays: [String!], hideBookmarks: Boolean!): User
+    setSettings(settings: SettingsInput!): User
     setPhoto(photoId: ID!): Int!
-    upsertBio(bio: String!): User!
+    upsertBio(text: String!): ItemPaidAction!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
     unlinkAuth(authType: String!): AuthMethods!
     linkUnverifiedEmail(email: String!): Boolean
+    hideWelcomeBanner: Boolean
+    subscribeUserPosts(id: ID): User
+    subscribeUserComments(id: ID): User
+    toggleMute(id: ID): User
+    generateApiKey(id: ID!): String
+    deleteApiKey(id: ID!): User
+    disableFreebies: Boolean
+  }
+
+  type User {
+    id: ID!
+    createdAt: Date!
+    name: String
+    nitems(when: String, from: String, to: String): Int!
+    nposts(when: String, from: String, to: String): Int!
+    nterritories(when: String, from: String, to: String): Int!
+    ncomments(when: String, from: String, to: String): Int!
+    bio: Item
+    bioId: Int
+    photoId: Int
+    since: Int
+
+    optional: UserOptional!
+    privates: UserPrivates
+
+    meMute: Boolean!
+    meSubscriptionPosts: Boolean!
+    meSubscriptionComments: Boolean!
+  }
+
+  input SettingsInput {
+    autoDropBolt11s: Boolean!
+    diagnostics: Boolean!
+    noReferralLinks: Boolean!
+    fiatCurrency: String!
+    satsFilter: Int!
+    disableFreebies: Boolean
+    hideBookmarks: Boolean!
+    hideCowboyHat: Boolean!
+    hideGithub: Boolean!
+    hideNostr: Boolean!
+    hideTwitter: Boolean!
+    hideFromTopUsers: Boolean!
+    hideInvoiceDesc: Boolean!
+    hideIsContributor: Boolean!
+    hideWalletBalance: Boolean!
+    imgproxyOnly: Boolean!
+    showImagesAndVideos: Boolean!
+    nostrCrossposting: Boolean!
+    nostrPubkey: String
+    nostrRelays: [String!]
+    noteAllDescendants: Boolean!
+    noteCowboyHat: Boolean!
+    noteDeposits: Boolean!,
+    noteWithdrawals: Boolean!,
+    noteEarning: Boolean!
+    noteForwardedSats: Boolean!
+    noteInvites: Boolean!
+    noteItemSats: Boolean!
+    noteJobIndicator: Boolean!
+    noteMentions: Boolean!
+    noteItemMentions: Boolean!
+    nsfwMode: Boolean!
+    tipDefault: Int!
+    tipRandomMin: Int
+    tipRandomMax: Int
+    turboTipping: Boolean!
+    zapUndos: Int
+    wildWestMode: Boolean!
+    withdrawMaxFeeDefault: Int!
   }
 
   type AuthMethods {
@@ -37,53 +114,100 @@ export default gql`
     nostr: Boolean!
     github: Boolean!
     twitter: Boolean!
-    email: String
+    email: Boolean!
+    apiKey: Boolean
   }
 
-  type User {
-    id: ID!
-    createdAt: Date!
-    name: String
-    nitems(when: String): Int!
-    nposts(when: String): Int!
-    ncomments(when: String): Int!
-    nbookmarks(when: String): Int!
-    stacked(when: String): Int!
-    spent(when: String): Int!
-    referrals(when: String): Int!
-    freePosts: Int!
-    freeComments: Int!
+  type UserPrivates {
+    """
+    extremely sensitive
+    """
+    sats: Int!
+    authMethods: AuthMethods!
+    lnAddr: String
+
+    """
+    only relevant to user
+    """
+    lastCheckedJobs: String
+    hideWelcomeBanner: Boolean!
+    tipPopover: Boolean!
+    upvotePopover: Boolean!
     hasInvites: Boolean!
-    tipDefault: Int!
-    turboTipping: Boolean!
+    apiKeyEnabled: Boolean!
+
+    """
+    mirrors SettingsInput
+    """
+    autoDropBolt11s: Boolean!
+    diagnostics: Boolean!
+    noReferralLinks: Boolean!
     fiatCurrency: String!
+    satsFilter: Int!
+    disableFreebies: Boolean
+    greeterMode: Boolean!
+    hideBookmarks: Boolean!
+    hideCowboyHat: Boolean!
+    hideGithub: Boolean!
+    hideNostr: Boolean!
+    hideTwitter: Boolean!
+    hideFromTopUsers: Boolean!
+    hideInvoiceDesc: Boolean!
+    hideIsContributor: Boolean!
+    hideWalletBalance: Boolean!
+    imgproxyOnly: Boolean!
+    showImagesAndVideos: Boolean!
+    nostrCrossposting: Boolean!
     nostrPubkey: String
     nostrRelays: [String!]
-    bio: Item
-    bioId: Int
-    photoId: Int
-    streak: Int
-    maxStreak: Int
-    sats: Int!
-    since: Int
-    upvotePopover: Boolean!
-    tipPopover: Boolean!
-    noteItemSats: Boolean!
-    noteEarning: Boolean!
     noteAllDescendants: Boolean!
-    noteMentions: Boolean!
-    noteDeposits: Boolean!
-    noteInvites: Boolean!
-    noteJobIndicator: Boolean!
     noteCowboyHat: Boolean!
-    hideInvoiceDesc: Boolean!
-    hideFromTopUsers: Boolean!
-    hideCowboyHat: Boolean!
-    hideBookmarks: Boolean!
-    clickToLoadImg: Boolean!
+    noteDeposits: Boolean!
+    noteWithdrawals: Boolean!
+    noteEarning: Boolean!
+    noteForwardedSats: Boolean!
+    noteInvites: Boolean!
+    noteItemSats: Boolean!
+    noteJobIndicator: Boolean!
+    noteMentions: Boolean!
+    noteItemMentions: Boolean!
+    nsfwMode: Boolean!
+    tipDefault: Int!
+    tipRandom: Boolean!
+    tipRandomMin: Int
+    tipRandomMax: Int
+    turboTipping: Boolean!
+    zapUndos: Int
     wildWestMode: Boolean!
-    greeterMode: Boolean!
-    lastCheckedJobs: String
-    authMethods: AuthMethods!
+    withdrawMaxFeeDefault: Int!
+    autoWithdrawThreshold: Int
+    autoWithdrawMaxFeePercent: Float
+  }
+
+  type UserOptional {
+    """
+    conditionally private
+    """
+    stacked(when: String, from: String, to: String): Int
+    spent(when: String, from: String, to: String): Int
+    referrals(when: String, from: String, to: String): Int
+    streak: Int
+    gunStreak: Int
+    horseStreak: Int
+    maxStreak: Int
+    isContributor: Boolean
+    githubId: String
+    twitterId: String
+    nostrAuthPubkey: String
+  }
+
+  type NameValue {
+    name: String!
+    value: Float!
+  }
+
+  type TimeData {
+    time: Date!
+    data: [NameValue!]!
   }
 `

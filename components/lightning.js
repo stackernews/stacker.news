@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useContext } from 'react'
-import { randInRange } from '../lib/rand'
+import { randInRange } from '@/lib/rand'
 
 export const LightningContext = React.createContext(() => {})
 
@@ -8,6 +8,10 @@ export class LightningProvider extends React.Component {
     bolts: []
   }
 
+  /**
+   * Strike lightning on the screen, if the user has the setting enabled
+   * @returns boolean indicating whether the strike actually happened, based on user preferences
+   */
   strike = () => {
     const should = window.localStorage.getItem('lnAnimate') || 'yes'
     if (should === 'yes') {
@@ -16,7 +20,9 @@ export class LightningProvider extends React.Component {
           bolts: [...state.bolts, <Lightning key={state.bolts.length} onDone={() => this.unstrike(state.bolts.length)} />]
         }
       })
+      return true
     }
+    return false
   }
 
   unstrike = (index) => {

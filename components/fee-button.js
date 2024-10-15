@@ -1,44 +1,192 @@
-import { useEffect } from 'react'
+import { useEffect, useContext, createContext, useState, useCallback, useMemo } from 'react'
 import Table from 'react-bootstrap/Table'
 import ActionTooltip from './action-tooltip'
 import Info from './info'
 import styles from './fee-button.module.css'
 import { gql, useQuery } from '@apollo/client'
-import { useFormikContext } from 'formik'
-import { SSR, ANON_COMMENT_FEE, ANON_POST_FEE } from '../lib/constants'
-import { numWithUnits } from '../lib/format'
+import { ANON_FEE_MULTIPLIER, FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { numWithUnits } from '@/lib/format'
 import { useMe } from './me'
-import AnonIcon from '../svgs/spy-fill.svg'
+import AnonIcon from '@/svgs/spy-fill.svg'
 import { useShowModal } from './modal'
 import Link from 'next/link'
+import { SubmitButton } from './form'
 
-function Receipt ({ cost, repetition, hasImgLink, baseFee, parentId, boost }) {
+const FeeButtonContext = createContext()
+
+export function postCommentBaseLineItems ({ baseCost = 1, comment = false, me }) {
+  const anonCharge = me
+    ? {}
+    : {
+        anonCharge: {
+          term: `x ${ANON_FEE_MULTIPLIER}`,
+          label: 'anon mult',
+          op: '*',
+          modifier: (cost) => cost * ANON_FEE_MULTIPLIER
+        }
+      }
+  return {
+    baseCost: {
+      term: baseCost,
+      label: `${comment ? 'comment' : 'post'} cost`,
+      op: '_',
+      modifier: (cost) => cost + baseCost,
+      allowFreebies: comment
+    },
+    ...anonCharge
+  }
+}
+
+export function postCommentUseRemoteLineItems ({ parentId } = {}) {
+  const query = parentId
+    ? gql`{ itemRepetition(parentId: "${parentId}") }`
+    : gql`{ itemRepetition }`
+
+  return function useRemoteLineItems () {
+    const [line, setLine] = useState({})
+
+    const { data } = useQuery(query, SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
+
+    useEffect(() => {
+      const repetition = data?.itemRepetition
+      if (!repetition) return setLine({})
+      setLine({
+        itemRepetition: {
+          term: <>x 10<sup>{repetition}</sup></>,
+          label: <>{repetition} {parentId ? 'repeat or self replies' : 'posts'} in 10m</>,
+          op: '*',
+          modifier: (cost) => cost * Math.pow(10, repetition)
+        }
+      })
+    }, [data?.itemRepetition])
+
+    return line
+  }
+}
+
+function sortHelper (a, b) {
+  if (a.op === '_') {
+    return -1
+  } else if (b.op === '_') {
+    return 1
+  } else if (a.op === '*' || a.op === '/') {
+    if (b.op === '*' || b.op === '/') {
+      return 0
+    }
+    // a is higher precedence
+    return -1
+  } else {
+    if (b.op === '*' || b.op === '/') {
+      // b is higher precedence
+      return 1
+    }
+
+    // postive first
+    if (a.op === '+' && b.op === '-') {
+      return -1
+    }
+    if (a.op === '-' && b.op === '+') {
+      return 1
+    }
+    // both are + or -
+    return 0
+  }
+}
+
+export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = () => null, children }) {
+  const [lineItems, setLineItems] = useState({})
+  const [disabled, setDisabled] = useState(false)
+  const { me } = useMe()
+
+  const remoteLineItems = useRemoteLineItems()
+
+  const mergeLineItems = useCallback((newLineItems) => {
+    setLineItems(lineItems => ({
+      ...lineItems,
+      ...newLineItems
+    }))
+  }, [setLineItems])
+
+  const value = useMemo(() => {
+    const lines = { ...baseLineItems, ...lineItems, ...remoteLineItems }
+    const total = Object.values(lines).sort(sortHelper).reduce((acc, { modifier }) => modifier(acc), 0)
+    // freebies: there's only a base cost and we don't have enough sats
+    const free = total === lines.baseCost?.modifier(0) && lines.baseCost?.allowFreebies && me?.privates?.sats < total && !me?.privates?.disableFreebies
+    return {
+      lines,
+      merge: mergeLineItems,
+      total,
+      disabled,
+      setDisabled,
+      free
+    }
+  }, [me?.privates?.sats, me?.privates?.disableFreebies, baseLineItems, lineItems, remoteLineItems, mergeLineItems, disabled, setDisabled])
+
+  return (
+    <FeeButtonContext.Provider value={value}>
+      {children}
+    </FeeButtonContext.Provider>
+  )
+}
+
+export function useFeeButton () {
+  const context = useContext(FeeButtonContext)
+  return context
+}
+
+function FreebieDialog () {
+  return (
+    <>
+      <div className='fw-bold'>you don't have enough sats, so this one is on us</div>
+      <ul className='mt-2'>
+        <li>Free items have limited visibility until other stackers zap them.</li>
+        <li>To get fully visible right away, fund your account with a few sats or earn some on Stacker News.</li>
+      </ul>
+    </>
+  )
+}
+
+export default function FeeButton ({ ChildButton = SubmitButton, variant, text, disabled }) {
+  const { me } = useMe()
+  const { lines, total, disabled: ctxDisabled, free } = useFeeButton()
+  const feeText = free
+    ? 'free'
+    : total > 1
+      ? numWithUnits(total, { abbreviate: false, format: true })
+      : undefined
+  disabled ||= ctxDisabled
+
+  return (
+    <div className={styles.feeButton}>
+      <ActionTooltip overlayText={!free && total === 1 ? '1 sat' : feeText}>
+        <ChildButton
+          variant={variant} disabled={disabled}
+          appendText={feeText}
+          submittingText={free || !feeText ? undefined : 'paying...'}
+        >{text}
+        </ChildButton>
+      </ActionTooltip>
+      {!me && <AnonInfo />}
+      {(free && <Info><FreebieDialog /></Info>) ||
+       (total > 1 && <Info><Receipt lines={lines} total={total} /></Info>)}
+    </div>
+  )
+}
+
+function Receipt ({ lines, total }) {
   return (
     <Table className={styles.receipt} borderless size='sm'>
       <tbody>
-        <tr>
-          <td>{numWithUnits(baseFee, { abbreviate: false })}</td>
-          <td align='right' className='font-weight-light'>{parentId ? 'reply' : 'post'} fee</td>
-        </tr>
-        {hasImgLink &&
-          <tr>
-            <td>x 10</td>
-            <td align='right' className='font-weight-light'>image/link fee</td>
-          </tr>}
-        {repetition > 0 &&
-          <tr>
-            <td>x 10<sup>{repetition}</sup></td>
-            <td className='font-weight-light' align='right'>{repetition} {parentId ? 'repeat or self replies' : 'posts'} in 10m</td>
-          </tr>}
-        {boost > 0 &&
-          <tr>
-            <td>+ {numWithUnits(boost, { abbreviate: false })}</td>
-            <td className='font-weight-light' align='right'>boost</td>
-          </tr>}
+        {Object.entries(lines).sort(([, a], [, b]) => sortHelper(a, b)).map(([key, { term, label, omit }]) => (
+          !omit &&
+            <tr key={key}>
+              <td>{term}</td>
+              <td align='right' className='font-weight-light'>{label}</td>
+            </tr>))}
       </tbody>
       <tfoot>
         <tr>
-          <td className='fw-bold'>{numWithUnits(cost, { abbreviate: false })}</td>
+          <td className='fw-bold'>{numWithUnits(total, { abbreviate: false, format: true })}</td>
           <td align='right' className='font-weight-light'>total fee</td>
         </tr>
       </tfoot>
@@ -51,7 +199,7 @@ function AnonInfo () {
 
   return (
     <AnonIcon
-      className='fill-muted ms-2 theme' height={22} width={22}
+      className='ms-2 fill-theme-color pointer' height={22} width={22}
       onClick={
         (e) =>
           showModal(onClose =>
@@ -66,95 +214,5 @@ function AnonInfo () {
             </div>)
       }
     />
-  )
-}
-
-export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton, variant, text, alwaysShow, disabled }) {
-  const me = useMe()
-  baseFee = me ? baseFee : (parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
-  const query = parentId
-    ? gql`{ itemRepetition(parentId: "${parentId}") }`
-    : gql`{ itemRepetition }`
-  const { data } = useQuery(query, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
-  const repetition = me ? data?.itemRepetition || 0 : 0
-  const formik = useFormikContext()
-  const boost = Number(formik?.values?.boost) || 0
-  const cost = baseFee * (hasImgLink ? 10 : 1) * Math.pow(10, repetition) + Number(boost)
-
-  useEffect(() => {
-    formik?.setFieldValue('cost', cost)
-  }, [formik?.getFieldProps('cost').value, cost])
-
-  const show = alwaysShow || !formik?.isSubmitting
-  return (
-    <div className={styles.feeButton}>
-      <ActionTooltip overlayText={numWithUnits(cost, { abbreviate: false })}>
-        <ChildButton variant={variant} disabled={disabled}>{text}{cost > 1 && show && <small> {numWithUnits(cost, { abbreviate: false })}</small>}</ChildButton>
-      </ActionTooltip>
-      {!me && <AnonInfo />}
-      {cost > baseFee && show &&
-        <Info>
-          <Receipt baseFee={baseFee} hasImgLink={hasImgLink} repetition={repetition} cost={cost} parentId={parentId} boost={boost} />
-        </Info>}
-    </div>
-  )
-}
-
-function EditReceipt ({ cost, paidSats, addImgLink, boost, parentId }) {
-  return (
-    <Table className={styles.receipt} borderless size='sm'>
-      <tbody>
-        {addImgLink &&
-          <>
-            <tr>
-              <td>{numWithUnits(paidSats, { abbreviate: false })}</td>
-              <td align='right' className='font-weight-light'>{parentId ? 'reply' : 'post'} fee</td>
-            </tr>
-            <tr>
-              <td>x 10</td>
-              <td align='right' className='font-weight-light'>image/link fee</td>
-            </tr>
-            <tr>
-              <td>- {numWithUnits(paidSats, { abbreviate: false })}</td>
-              <td align='right' className='font-weight-light'>already paid</td>
-            </tr>
-          </>}
-        {boost > 0 &&
-          <tr>
-            <td>+ {numWithUnits(boost, { abbreviate: false })}</td>
-            <td className='font-weight-light' align='right'>boost</td>
-          </tr>}
-      </tbody>
-      <tfoot>
-        <tr>
-          <td className='fw-bold'>{numWithUnits(cost)}</td>
-          <td align='right' className='font-weight-light'>total fee</td>
-        </tr>
-      </tfoot>
-    </Table>
-  )
-}
-
-export function EditFeeButton ({ paidSats, hadImgLink, hasImgLink, ChildButton, variant, text, alwaysShow, parentId }) {
-  const formik = useFormikContext()
-  const boost = formik?.values?.boost || 0
-  const addImgLink = hasImgLink && !hadImgLink
-  const cost = (addImgLink ? paidSats * 9 : 0) + Number(boost)
-
-  useEffect(() => {
-    formik?.setFieldValue('cost', cost)
-  }, [formik?.getFieldProps('cost').value, cost])
-
-  const show = alwaysShow || !formik?.isSubmitting
-  return (
-    <div className='d-flex align-items-center'>
-      <ActionTooltip overlayText={numWithUnits(cost, { abbreviate: false })}>
-        <ChildButton variant={variant}>{text}{cost > 0 && show && <small> {numWithUnits(cost, { abbreviate: false })}</small>}</ChildButton>
-      </ActionTooltip>
-      {cost > 0 && show &&
-        <Info>
-          <EditReceipt paidSats={paidSats} addImgLink={addImgLink} cost={cost} parentId={parentId} boost={boost} />
-        </Info>}
-    </div>
   )
 }

@@ -1,29 +1,41 @@
+import createPrisma from '@/lib/create-prisma.js'
+
+const viewPrefixes = ['reg_growth', 'spender_growth', 'item_growth', 'spending_growth',
+  'stackers_growth', 'stacking_growth', 'user_stats', 'sub_stats']
+
 // this is intended to be run everyday after midnight CT
-function views ({ models }) {
-  return async function () {
-    console.log('refreshing stats views')
+export async function views ({ data: { period } = { period: 'days' } }) {
+  // grab a greedy connection
+  const models = createPrisma({ connectionParams: { connection_limit: 1 } })
 
-    for (const view of ['reg_growth_days', 'spender_growth_days', 'item_growth_days',
-      'spending_growth_days', 'stackers_growth_days', 'stacking_growth_days',
-      'user_stats_days']) {
-      await models.$queryRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`)
+  try {
+    // these views are bespoke so we can't use the loop
+    if (period === 'days') {
+      await models.$queryRawUnsafe('REFRESH MATERIALIZED VIEW CONCURRENTLY user_values_days')
+      await models.$queryRawUnsafe('REFRESH MATERIALIZED VIEW CONCURRENTLY rewards_days')
     }
-
-    console.log('done refreshing stats views')
+    if (period === 'hours') {
+      await models.$queryRawUnsafe('REFRESH MATERIALIZED VIEW CONCURRENTLY user_values_today')
+      await models.$queryRawUnsafe('REFRESH MATERIALIZED VIEW CONCURRENTLY rewards_today')
+    }
+    for (const view of viewPrefixes) {
+      await models.$queryRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}_${period}`)
+    }
+  } finally {
+    await models.$disconnect()
   }
 }
 
-// this should be run regularly ... like, every 1-5 minutes
-function rankViews ({ models }) {
-  return async function () {
-    console.log('refreshing rank views')
+// this should be run regularly ... like, every 5 minutes
+export async function rankViews () {
+  // grab a greedy connection
+  const models = createPrisma({ connectionParams: { connection_limit: 1 } })
 
-    for (const view of ['zap_rank_wwm_view', 'zap_rank_tender_view']) {
+  try {
+    for (const view of ['zap_rank_personal_view']) {
       await models.$queryRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`)
     }
-
-    console.log('done refreshing rank views')
+  } finally {
+    await models.$disconnect()
   }
 }
-
-module.exports = { views, rankViews }

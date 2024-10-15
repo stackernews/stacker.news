@@ -19,6 +19,10 @@
     height: auto;
 }
 
+.dragOver {
+    box-shadow: 0 0 10px var(--bs-info);
+}
+
 .appendButton {
     border-left: 0 !important;
     border-top-left-radius: 0;
@@ -29,6 +33,8 @@
     background-color: var(--theme-inputBg);
     border: 1px solid var(--theme-borderColor);
     padding: 0rem 0.5rem;
+    display: flex;
+    align-items: center;
 }
 
 .clearButton:hover, .clearButton:active {
@@ -44,4 +50,23 @@
 .suggestionsMenu {
     opacity: 1 !important;
     pointer-events: unset !important;
+}
+
+.previewTab {
+    padding-top: .2rem;
+    padding-bottom: .3rem;
+}
+
+.pending {
+    animation-name: pulse;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    animation-duration: 0.66s;
+    animation-direction: alternate;
+}
+
+@keyframes pulse {
+	0% {
+		opacity: 42%;
+	}
 }

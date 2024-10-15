@@ -2,15 +2,39 @@ import Document, { Html, Head, Main, NextScript } from 'next/document'
 import Script from 'next/script'
 
 class MyDocument extends Document {
+  // https://nextjs.org/docs/pages/building-your-application/routing/custom-document#customizing-renderpage
+  static async getInitialProps (ctx) {
+    const originalRenderPage = ctx.renderPage
+
+    // Run the React rendering logic synchronously
+    ctx.renderPage = () =>
+      originalRenderPage({
+        // Useful for wrapping the whole react tree
+        enhanceApp: (App) => App,
+        // Useful for wrapping in a per-page basis
+        enhanceComponent: (Component) => Component
+      })
+
+    // response is not available on offline page for example
+    const csp = ctx.res?.getHeaders()['content-security-policy']
+    const nonce = csp ? /nonce-([a-zA-Z0-9]{48})/.exec(csp)?.[1] : undefined
+
+    const initialProps = await Document.getInitialProps(ctx)
+
+    return { ...initialProps, nonce }
+  }
+
   render () {
+    const { nonce } = this.props
     return (
       <Html lang='en'>
-        <Head>
+        <Head nonce={nonce}>
           <link rel='manifest' href='/api/site.webmanifest' />
-          <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff2`} as='font' type='font/woff2' crossOrigin='' />
-          <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff`} as='font' type='font/woff' crossOrigin='' />
-          <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.ttf`} as='font' type='font/ttf' crossOrigin='' />
+          <link href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff2`} as='font' type='font/woff2' crossOrigin='' />
+          <link href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff`} as='font' type='font/woff' crossOrigin='' />
+          <link href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.ttf`} as='font' type='font/ttf' crossOrigin='' />
           <style
+            nonce={nonce}
             dangerouslySetInnerHTML={{
               __html:
             ` @font-face {
@@ -23,6 +47,7 @@ class MyDocument extends Document {
             }}
           />
           <meta name='apple-mobile-web-app-capable' content='yes' />
+          <meta name='mobile-web-app-capable' content='yes' />
           <meta name='theme-color' content='#121214' />
           <link rel='apple-touch-icon' href='/icons/icon_x192.png' />
           <Script id='dark-mode-js' strategy='beforeInteractive'>
@@ -133,7 +158,7 @@ class MyDocument extends Document {
         </Head>
         <body>
           <Main />
-          <NextScript />
+          <NextScript nonce={nonce} />
         </body>
       </Html>
     )

@@ -1,77 +1,169 @@
-import { ITEM_FILTER_THRESHOLD } from '../../lib/constants'
-import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
-import { getItem } from './item'
+import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
+import { whenToFrom } from '@/lib/time'
+import { getItem, itemQueryWithMeta, SELECT } from './item'
 
-const STOP_WORDS = ['a', 'an', 'and', 'are', 'as', 'at', 'be', 'but',
-  'by', 'for', 'if', 'in', 'into', 'is', 'it', 'no', 'not',
-  'of', 'on', 'or', 'such', 'that', 'the', 'their', 'then',
-  'there', 'these', 'they', 'this', 'to', 'was', 'will',
-  'with', 'bitcoin', 'page', 'adds', 'how', 'why', 'what',
-  'works', 'now', 'available', 'breaking', 'app', 'powered',
-  'just', 'dev', 'using', 'crypto', 'has', 'my', 'i', 'apps',
-  'really', 'new', 'era', 'application', 'best', 'year',
-  'latest', 'still', 'few', 'crypto', 'keep', 'public', 'current',
-  'levels', 'from', 'cryptocurrencies', 'confirmed', 'news', 'network',
-  'about', 'sources', 'vote', 'considerations', 'hope',
-  'keep', 'keeps', 'including', 'we', 'brings', "don't", 'do',
-  'interesting', 'us', 'welcome']
+function queryParts (q) {
+  const regex = /"([^"]*)"/gm
+
+  const queryArr = q.replace(regex, '').trim().split(/\s+/)
+  const url = queryArr.find(word => word.startsWith('url:'))
+  const nym = queryArr.find(word => word.startsWith('@'))
+  const territory = queryArr.find(word => word.startsWith('~'))
+  const exclude = [url, nym, territory]
+  const query = queryArr.filter(word => !exclude.includes(word)).join(' ')
+
+  return {
+    quotes: [...q.matchAll(regex)].map(m => m[1]),
+    nym,
+    url,
+    territory,
+    query
+  }
+}
 
 export default {
   Query: {
-    related: async (parent, { title, id, cursor, limit, minMatch }, { me, models, search }) => {
+    related: async (parent, { title, id, cursor, limit = LIMIT, minMatch }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
-      if (!title || title.trim().split(/\s+/).length < 1) {
-        if (id) {
-          const item = await getItem(parent, { id }, { me, models })
-          title = item?.title
-        }
-        if (!title) {
-          return {
-            items: [],
-            cursor: null
-          }
+
+      if (!id && (!title || title.trim().split(/\s+/).length < 1)) {
+        return {
+          items: [],
+          cursor: null
         }
       }
 
-      const mustNot = []
+      const like = []
+      if (id) {
+        like.push({
+          _index: process.env.OPENSEARCH_INDEX,
+          _id: id
+        })
+      }
+
+      if (title) {
+        like.push(title)
+      }
+
+      const mustNot = [{ exists: { field: 'parentId' } }]
       if (id) {
         mustNot.push({ term: { id } })
       }
 
-      let items = await search.search({
-        index: 'item',
-        size: limit || LIMIT,
-        from: decodedCursor.offset,
-        body: {
-          query: {
-            bool: {
-              must: [
-                {
-                  more_like_this: {
-                    fields: ['title'],
-                    like: title,
-                    min_term_freq: 1,
-                    min_doc_freq: 1,
-                    min_word_length: 2,
-                    max_query_terms: 25,
-                    minimum_should_match: minMatch || '20%',
-                    stop_words: STOP_WORDS
-                  }
-                }
-              ],
-              must_not: [{ exists: { field: 'parentId' } }, ...mustNot],
-              filter: {
-                range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
+      let should = [
+        {
+          more_like_this: {
+            fields: ['title', 'text'],
+            like,
+            min_term_freq: 1,
+            min_doc_freq: 1,
+            max_doc_freq: 5,
+            min_word_length: 2,
+            max_query_terms: 25,
+            minimum_should_match: minMatch || '10%',
+            boost_terms: 100
+          }
+        }
+      ]
+
+      if (process.env.OPENSEARCH_MODEL_ID) {
+        let qtitle = title
+        let qtext = title
+        if (id) {
+          const item = await getItem(parent, { id }, { me, models })
+          qtitle = item.title || item.text
+          qtext = item.text || item.title
+        }
+
+        should = [
+          {
+            neural: {
+              title_embedding: {
+                query_text: qtext,
+                model_id: process.env.OPENSEARCH_MODEL_ID,
+                k: decodedCursor.offset + LIMIT
               }
             }
           },
-          sort: ['_score', { wvotes: 'desc' }, { sats: 'desc' }]
+          {
+            neural: {
+              text_embedding: {
+                query_text: qtitle,
+                model_id: process.env.OPENSEARCH_MODEL_ID,
+                k: decodedCursor.offset + LIMIT
+              }
+            }
+          }
+        ]
+      }
+
+      const results = await search.search({
+        index: process.env.OPENSEARCH_INDEX,
+        size: limit,
+        from: decodedCursor.offset,
+        _source: {
+          excludes: [
+            'text',
+            'text_embedding',
+            'title_embedding'
+          ]
+        },
+        body: {
+          query: {
+            function_score: {
+              query: {
+                bool: {
+                  should,
+                  filter: [
+                    {
+                      bool: {
+                        should: [
+                          { match: { status: 'ACTIVE' } },
+                          { match: { status: 'NOSATS' } }
+                        ],
+                        must_not: mustNot
+                      }
+                    },
+                    {
+                      range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
+                    }
+                  ]
+                }
+              },
+              functions: [{
+                field_value_factor: {
+                  field: 'wvotes',
+                  modifier: 'none',
+                  factor: 1,
+                  missing: 0
+                }
+              }],
+              boost_mode: 'multiply'
+            }
+          }
         }
       })
 
-      items = items.body.hits.hits.map(async e => {
-        // this is super inefficient but will suffice until we do something more generic
-        return await getItem(parent, { id: e._source.id }, { me, models })
+      const values = results.body.hits.hits.map((e, i) => {
+        return `(${e._source.id}, ${i})`
+      }).join(',')
+
+      if (values.length === 0) {
+        return {
+          cursor: null,
+          items: []
+        }
+      }
+
+      const items = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          WITH r(id, rank) AS (VALUES ${values})
+          ${SELECT}, rank
+          FROM "Item"
+          JOIN r ON "Item".id = r.id`,
+        orderBy: 'ORDER BY rank ASC'
       })
 
       return {
@@ -79,11 +171,15 @@ export default {
         items
       }
     },
-    search: async (parent, { q: query, sub, cursor, sort, what, when }, { me, models, search }) => {
+    search: async (parent, { q, cursor, sort, what, when, from: whenFrom, to: whenTo }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
-      let sitems
+      let sitems = null
+      let termQueries = []
 
-      if (!query) {
+      // short circuit: return empty result if either:
+      // 1. no query provided, or
+      // 2. searching bookmarks without being authed
+      if (!q || (what === 'bookmarks' && !me)) {
         return {
           items: [],
           cursor: null
@@ -98,155 +194,239 @@ export default {
         case 'comments':
           whatArr.push({ bool: { must: { exists: { field: 'parentId' } } } })
           break
+        case 'bookmarks':
+          if (me?.id) {
+            whatArr.push({ match: { bookmarkedBy: me?.id } })
+          }
+          break
         default:
           break
       }
 
-      const queryArr = query.trim().split(/\s+/)
-      const url = queryArr.find(word => word.startsWith('url:'))
-      const nym = queryArr.find(word => word.startsWith('nym:'))
-      const exclude = [url, nym]
-      query = queryArr.filter(word => !exclude.includes(word)).join(' ')
+      const { query: _query, quotes, nym, url, territory } = queryParts(q)
+      let query = _query
+
+      const isUrlSearch = url && query.length === 0 // exclusively searching for an url
 
       if (url) {
-        whatArr.push({ wildcard: { url: `*${url.slice(4).toLowerCase()}*` } })
+        const isFQDN = url.startsWith('url:www.')
+        const domain = isFQDN ? url.slice(8) : url.slice(4)
+        const fqdn = `www.${domain}`
+        query = (isUrlSearch) ? `${domain} ${fqdn}` : `${query.trim()} ${domain}`
       }
 
       if (nym) {
-        whatArr.push({ wildcard: { 'user.name': `*${nym.slice(4).toLowerCase()}*` } })
+        whatArr.push({ wildcard: { 'user.name': `*${nym.slice(1).toLowerCase()}*` } })
       }
 
-      if (sub) {
-        whatArr.push({ match: { 'sub.name': sub } })
+      if (territory) {
+        whatArr.push({ match: { 'sub.name': territory.slice(1) } })
       }
 
-      const sortArr = []
-      switch (sort) {
-        case 'recent':
-          sortArr.push({ createdAt: 'desc' })
-          break
-        case 'comments':
-          sortArr.push({ ncomments: 'desc' })
-          break
-        case 'sats':
-          sortArr.push({ sats: 'desc' })
-          break
-        case 'votes':
-          sortArr.push({ wvotes: 'desc' })
-          break
-        default:
-          break
-      }
-      sortArr.push('_score')
+      termQueries.push({
+        // all terms are matched in fields
+        multi_match: {
+          query,
+          type: 'best_fields',
+          fields: ['title^100', 'text'],
+          minimum_should_match: (isUrlSearch) ? 1 : '100%',
+          boost: 1000
+        }
+      })
 
-      if (query.length) {
+      for (const quote of quotes) {
         whatArr.push({
-          bool: {
-            should: [
-              {
-              // all terms are matched in fields
-                multi_match: {
-                  query,
-                  type: 'most_fields',
-                  fields: ['title^100', 'text'],
-                  minimum_should_match: '100%',
-                  boost: 400
-                }
-              },
-              {
-                // all terms are matched in fields
-                multi_match: {
-                  query,
-                  type: 'most_fields',
-                  fields: ['title^100', 'text'],
-                  fuzziness: 'AUTO',
-                  prefix_length: 3,
-                  minimum_should_match: '100%',
-                  boost: 20
-                }
-              },
-              {
-                // only some terms must match unless we're sorting
-                multi_match: {
-                  query,
-                  type: 'most_fields',
-                  fields: ['title^100', 'text'],
-                  fuzziness: 'AUTO',
-                  prefix_length: 3,
-                  minimum_should_match: sortArr.length > 1 ? '100%' : '60%'
-                }
-              }
-            ]
+          multi_match: {
+            query: quote,
+            type: 'phrase',
+            fields: ['title', 'text']
           }
         })
       }
 
-      let whenGte
-      switch (when) {
-        case 'day':
-          whenGte = 'now-1d'
+      // if we search for an exact string only, everything must match
+      // so score purely on sort field
+      let boostMode = query ? 'multiply' : 'replace'
+      let sortField
+      let sortMod = 'log1p'
+      switch (sort) {
+        case 'comments':
+          sortField = 'ncomments'
+          sortMod = 'square'
           break
-        case 'week':
-          whenGte = 'now-7d'
+        case 'sats':
+          sortField = 'sats'
           break
-        case 'month':
-          whenGte = 'now-30d'
-          break
-        case 'year':
-          whenGte = 'now-365d'
+        case 'recent':
+          sortField = 'createdAt'
+          sortMod = 'square'
+          boostMode = 'replace'
           break
         default:
+          sortField = 'wvotes'
+          sortMod = 'none'
           break
       }
 
+      const functions = [
+        {
+          field_value_factor: {
+            field: sortField,
+            modifier: sortMod,
+            factor: 1.2
+          }
+        }
+      ]
+
+      if (sort === 'recent' && !isUrlSearch) {
+        // prioritize exact matches
+        termQueries.push({
+          multi_match: {
+            query,
+            type: 'phrase',
+            fields: ['title^100', 'text'],
+            boost: 1000
+          }
+        })
+      } else {
+        // allow fuzzy matching with partial matches
+        termQueries.push({
+          multi_match: {
+            query,
+            type: 'most_fields',
+            fields: ['title^100', 'text'],
+            fuzziness: 'AUTO',
+            prefix_length: 3,
+            minimum_should_match: (isUrlSearch) ? 1 : '60%'
+          }
+        })
+        functions.push({
+          // small bias toward posts with comments
+          field_value_factor: {
+            field: 'ncomments',
+            modifier: 'ln1p',
+            factor: 1
+          }
+        },
+        {
+          // small bias toward recent posts
+          field_value_factor: {
+            field: 'createdAt',
+            modifier: 'log1p',
+            factor: 1
+          }
+        })
+      }
+
+      if (query.length) {
+        // if we have a model id and we aren't sort by recent, use neural search
+        if (process.env.OPENSEARCH_MODEL_ID && sort !== 'recent') {
+          termQueries = {
+            hybrid: {
+              queries: [
+                {
+                  bool: {
+                    should: [
+                      {
+                        neural: {
+                          title_embedding: {
+                            query_text: query,
+                            model_id: process.env.OPENSEARCH_MODEL_ID,
+                            k: decodedCursor.offset + LIMIT
+                          }
+                        }
+                      },
+                      {
+                        neural: {
+                          text_embedding: {
+                            query_text: query,
+                            model_id: process.env.OPENSEARCH_MODEL_ID,
+                            k: decodedCursor.offset + LIMIT
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  bool: {
+                    should: termQueries
+                  }
+                }
+              ]
+            }
+          }
+        }
+      } else {
+        termQueries = []
+      }
+
+      const whenRange = when === 'custom'
+        ? {
+            gte: whenFrom,
+            lte: new Date(Math.min(new Date(Number(whenTo)), decodedCursor.time))
+          }
+        : {
+            lte: decodedCursor.time,
+            gte: whenToFrom(when)
+          }
+
       try {
         sitems = await search.search({
-          index: 'item',
+          index: process.env.OPENSEARCH_INDEX,
           size: LIMIT,
+          _source: {
+            excludes: [
+              'text',
+              'text_embedding',
+              'title_embedding'
+            ]
+          },
           from: decodedCursor.offset,
           body: {
             query: {
-              bool: {
-                must: [
-                  ...whatArr,
-                  me
-                    ? {
-                        bool: {
-                          should: [
-                            { match: { status: 'ACTIVE' } },
-                            { match: { status: 'NOSATS' } },
-                            { match: { userId: me.id } }
-                          ]
+              function_score: {
+                query: {
+                  bool: {
+                    must: termQueries,
+                    filter: [
+                      ...whatArr,
+                      me
+                        ? {
+                            bool: {
+                              should: [
+                                { match: { status: 'ACTIVE' } },
+                                { match: { status: 'NOSATS' } },
+                                { match: { userId: me.id } }
+                              ]
+                            }
+                          }
+                        : {
+                            bool: {
+                              should: [
+                                { match: { status: 'ACTIVE' } },
+                                { match: { status: 'NOSATS' } }
+                              ]
+                            }
+                          },
+                      {
+                        range:
+                        {
+                          createdAt: whenRange
                         }
-                      }
-                    : {
-                        bool: {
-                          should: [
-                            { match: { status: 'ACTIVE' } },
-                            { match: { status: 'NOSATS' } }
-                          ]
-                        }
-                      }
-                ],
-                filter: [
-                  {
-                    range:
-                    {
-                      createdAt: {
-                        lte: decodedCursor.time,
-                        gte: whenGte
-                      }
-                    }
-                  },
-                  { range: { wvotes: { gt: -1 * ITEM_FILTER_THRESHOLD } } }
-                ]
+                      },
+                      { range: { wvotes: { gte: 0 } } }
+                    ]
+                  }
+                },
+                functions,
+                boost_mode: boostMode
               }
             },
-            sort: sortArr,
             highlight: {
               fields: {
-                title: { number_of_fragments: 0, pre_tags: [':high['], post_tags: [']'] },
-                text: { number_of_fragments: 5, order: 'score', pre_tags: [':high['], post_tags: [']'] }
+                title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
+                text: { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] }
               }
             }
           }
@@ -259,14 +439,30 @@ export default {
         }
       }
 
-      // return highlights
-      const items = sitems.body.hits.hits.map(async e => {
-        // this is super inefficient but will suffice until we do something more generic
-        const item = await getItem(parent, { id: e._source.id }, { me, models })
+      const values = sitems.body.hits.hits.map((e, i) => {
+        return `(${e._source.id}, ${i})`
+      }).join(',')
 
+      if (values.length === 0) {
+        return {
+          cursor: null,
+          items: []
+        }
+      }
+
+      const items = (await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          WITH r(id, rank) AS (VALUES ${values})
+          ${SELECT}, rank
+          FROM "Item"
+          JOIN r ON "Item".id = r.id`,
+        orderBy: 'ORDER BY rank ASC'
+      })).map((item, i) => {
+        const e = sitems.body.hits.hits[i]
         item.searchTitle = (e.highlight?.title && e.highlight.title[0]) || item.title
-        item.searchText = (e.highlight?.text && e.highlight.text.join(' `...` ')) || undefined
-
+        item.searchText = (e.highlight?.text && e.highlight.text.join(' ... ')) || undefined
         return item
       })
 

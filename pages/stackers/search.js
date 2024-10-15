@@ -1,7 +1,7 @@
-import { SearchLayout } from '../../components/layout'
-import { getGetServerSideProps } from '../../api/ssrApollo'
-import { USER_SEARCH } from '../../fragments/users'
-import UserList from '../../components/user-list'
+import { SearchLayout } from '@/components/layout'
+import { getGetServerSideProps } from '@/api/ssrApollo'
+import { USER_SEARCH } from '@/fragments/users'
+import UserList from '@/components/user-list'
 import { useRouter } from 'next/router'
 
 const staticVariables = { limit: 21, similarity: 0.2 }

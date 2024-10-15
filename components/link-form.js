@@ -1,29 +1,33 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Form, Input, SubmitButton } from '../components/form'
+import { useState, useEffect } from 'react'
+import { Form, Input, MarkdownInput } from '@/components/form'
 import { useRouter } from 'next/router'
-import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
+import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
-import { ITEM_FIELDS } from '../fragments/items'
+import { ITEM_FIELDS } from '@/fragments/items'
 import Item from './item'
 import AccordianItem from './accordian-item'
-import FeeButton, { EditFeeButton } from './fee-button'
-import Delete from './delete'
-import Button from 'react-bootstrap/Button'
-import { linkSchema } from '../lib/validate'
-import Moon from '../svgs/moon-fill.svg'
-import { SubSelectInitial } from './sub-select-form'
-import CancelButton from './cancel-button'
-import { useInvoiceable } from './invoice'
-import { normalizeForwards } from '../lib/form'
+import { linkSchema } from '@/lib/validate'
+import Moon from '@/svgs/moon-fill.svg'
+import { normalizeForwards } from '@/lib/form'
+import { SubSelectInitial } from './sub-select'
+import { MAX_TITLE_LENGTH } from '@/lib/constants'
+import { useMe } from './me'
+import { ItemButtonBar } from './post'
+import { UPSERT_LINK } from '@/fragments/paidAction'
+import useItemSubmit from './use-item-submit'
+import useDebounceCallback from './use-debounce-callback'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
-  const schema = linkSchema(client)
+  const { me } = useMe()
+  const schema = linkSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareUrl = router.query.url
   const shareTitle = router.query.title
+  // allows finer control over dupe accordian layout shift
+  const [dupes, setDupes] = useState()
 
   const [getPageTitleAndUnshorted, { data }] = useLazyQuery(gql`
     query PageTitleAndUnshorted($url: String!) {
@@ -38,9 +42,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       dupes(url: $url) {
         ...ItemFields
       }
-    }`, {
-    onCompleted: () => setPostDisabled(false)
-  })
+    }`)
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`
     ${ITEM_FIELDS}
     query related($title: String!) {
@@ -66,41 +68,9 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
     }
   }
 
-  const [upsertLink] = useMutation(
-    gql`
-      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $boost: Int, $forward: [ItemForwardInput], $invoiceHash: String, $invoiceHmac: String) {
-        upsertLink(sub: $sub, id: $id, title: $title, url: $url, boost: $boost, forward: $forward, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
-          id
-        }
-      }`
-  )
+  const onSubmit = useItemSubmit(UPSERT_LINK, { item, sub })
 
-  const submitUpsertLink = useCallback(
-    async (_, boost, title, values, invoiceHash, invoiceHmac) => {
-      const { error } = await upsertLink({
-        variables: {
-          sub: item?.subName || sub?.name,
-          id: item?.id,
-          boost: boost ? Number(boost) : undefined,
-          title: title.trim(),
-          invoiceHash,
-          invoiceHmac,
-          ...values,
-          forward: normalizeForwards(values.forward)
-        }
-      })
-      if (error) {
-        throw new Error({ message: error.toString() })
-      }
-      if (item) {
-        await router.push(`/items/${item.id}`)
-      } else {
-        const prefix = sub?.name ? `/~${sub.name}` : ''
-        await router.push(prefix + '/recent')
-      }
-    }, [upsertLink, router])
-
-  const invoiceableUpsertLink = useInvoiceable(submitUpsertLink)
+  const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args), 1000, [getDupes])
 
   useEffect(() => {
     if (data?.pageTitleAndUnshorted?.title) {
@@ -109,29 +79,37 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   }, [data?.pageTitleAndUnshorted?.title])
 
   useEffect(() => {
+    if (!dupesLoading) {
+      setDupes(dupesData?.dupes)
+    }
+  }, [dupesLoading, dupesData, setDupes])
+
+  useEffect(() => {
     if (data?.pageTitleAndUnshorted?.unshorted) {
-      getDupes({
+      getDupesDebounce({
         variables: { url: data?.pageTitleAndUnshorted?.unshorted }
       })
     }
-  }, [data?.pageTitleAndUnshorted?.unshorted])
+  }, [data?.pageTitleAndUnshorted?.unshorted, getDupesDebounce])
 
   const [postDisabled, setPostDisabled] = useState(false)
   const [titleOverride, setTitleOverride] = useState()
+
+  const storageKeyPrefix = item ? undefined : 'link'
 
   return (
     <Form
       initial={{
         title: item?.title || shareTitle || '',
         url: item?.url || shareUrl || '',
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards) }),
+        text: item?.text || '',
+        crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      onSubmit={async ({ boost, title, cost, ...values }) => {
-        return invoiceableUpsertLink(cost, boost, title, values)
-      }}
-      storageKeyPrefix={item ? undefined : 'link'}
+      onSubmit={onSubmit}
+      storageKeyPrefix={storageKeyPrefix}
     >
       {children}
       <Input
@@ -146,11 +124,8 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
               variables: { title: e.target.value }
             })
           }
-          if (e.target.value === e.target.value.toUpperCase()) {
-            setTitleOverride(e.target.value.replace(/\w\S*/g, txt =>
-              txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()))
-          }
         }}
+        maxLength={MAX_TITLE_LENGTH}
       />
       <Input
         label='url'
@@ -164,7 +139,9 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
           : null}
         onChange={async (formik, e) => {
-          if ((/^ *$/).test(formik?.values.title)) {
+          const hasTitle = !!(formik?.values.title.trim().length > 0)
+          const hasDraftTitle = !!(window.localStorage.getItem('link-title')?.trim()?.length > 0)
+          if (!hasTitle && !hasDraftTitle) {
             getPageTitleAndUnshorted({
               variables: { url: e.target.value }
             })
@@ -179,46 +156,32 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           }
           if (e.target.value) {
             setPostDisabled(true)
-            setTimeout(() => setPostDisabled(false), 3000)
-            getDupes({
+            setTimeout(() => setPostDisabled(false), 2000)
+            getDupesDebounce({
               variables: { url: e.target.value }
             })
           }
         }}
       />
-      <AdvPostForm edit={!!item} />
-      <div className='mt-3'>
-        {item
-          ? (
-            <div className='d-flex justify-content-between'>
-              <Delete itemId={item.id} onDelete={() => router.push(`/items/${item.id}`)}>
-                <Button variant='grey-medium'>delete</Button>
-              </Delete>
-              <div className='d-flex'>
-                <CancelButton />
-                <EditFeeButton
-                  paidSats={item.meSats}
-                  parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
-                />
-              </div>
-            </div>)
-          : (
-            <div className='d-flex align-items-center'>
-              <FeeButton
-                baseFee={1} parentId={null} text='post' disabled={postDisabled}
-                ChildButton={SubmitButton} variant='secondary'
-              />
-              {dupesLoading &&
-                <div className='d-flex ms-3 justify-content-center'>
-                  <Moon className='spin fill-grey' />
-                  <div className='ms-2 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
-                </div>}
-            </div>
-            )}
-      </div>
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub}>
+        <MarkdownInput
+          label='context'
+          name='text'
+          minRows={2}
+          // https://github.com/Andarist/react-textarea-autosize/pull/371
+          style={{ width: 'auto' }}
+        />
+      </AdvPostForm>
+      <ItemButtonBar itemId={item?.id} disable={postDisabled}>
+        {!item && postDisabled &&
+          <div className='d-flex align-items-center small'>
+            <Moon className='spin fill-grey' height={16} width={16} />
+            <div className='ms-2 text-muted'>searching for dupes</div>
+          </div>}
+      </ItemButtonBar>
       {!item &&
         <>
-          {dupesData?.dupes?.length > 0 &&
+          {dupes?.length > 0 &&
             <div className='mt-3'>
               <AccordianItem
                 show
@@ -226,7 +189,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
                 header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>dupes</div>}
                 body={
                   <div>
-                    {dupesData.dupes.map((item, i) => (
+                    {dupes.map((item, i) => (
                       <Item item={item} key={item.id} />
                     ))}
                   </div>

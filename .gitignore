@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.js
 .cache
@@ -27,12 +27,12 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-.env
-envbak
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env*
+!.env.development
+!.env.production
+
+# local settings
+.vscode/settings.json
 
 # vercel
 .vercel
@@ -42,12 +42,17 @@ envbak
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 
-# copilot
-copilot/
-
 # service worker
 public/sw.js*
 sw/precache-manifest.json
 public/workbox-*.js*
 public/*-development.js
 
+.cache_ggshield
+docker-compose.*.yml
+*.sql
+!/prisma/migrations/*/*.sql
+!/docker/db/seed.sql
+
+# nostr wallet connect
+scripts/nwc-keys.json

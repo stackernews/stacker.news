@@ -1,13 +1,23 @@
 import Accordion from 'react-bootstrap/Accordion'
 import AccordionContext from 'react-bootstrap/AccordionContext'
 import { useAccordionButton } from 'react-bootstrap/AccordionButton'
-import ArrowRight from '../svgs/arrow-right-s-fill.svg'
-import ArrowDown from '../svgs/arrow-down-s-fill.svg'
-import { useContext } from 'react'
+import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
+import ArrowDown from '@/svgs/arrow-down-s-fill.svg'
+import { useContext, useEffect, useState } from 'react'
+import classNames from 'classnames'
 
-function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', eventKey }) {
+const KEY_ID = '0'
+
+function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', eventKey, show }) {
   const { activeEventKey } = useContext(AccordionContext)
   const decoratedOnClick = useAccordionButton(eventKey)
+
+  useEffect(() => {
+    // if we want to show the accordian and it's not open, open it
+    if (show && activeEventKey !== eventKey) {
+      decoratedOnClick()
+    }
+  }, [show])
 
   const isCurrentEventKey = activeEventKey === eventKey
 
@@ -21,13 +31,36 @@ function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', even
   )
 }
 
-export default function AccordianItem ({ header, body, headerColor = 'var(--theme-grey)', show }) {
+export default function AccordianItem ({ header, body, className, headerColor = 'var(--theme-grey)', show }) {
+  const [activeKey, setActiveKey] = useState()
+
+  useEffect(() => {
+    setActiveKey(show ? KEY_ID : null)
+  }, [show])
+
+  const handleOnSelect = () => {
+    setActiveKey(activeKey === KEY_ID ? null : KEY_ID)
+  }
+
   return (
-    <Accordion defaultActiveKey={show ? '0' : undefined}>
-      <ContextAwareToggle eventKey='0'><div style={{ color: headerColor }}>{header}</div></ContextAwareToggle>
-      <Accordion.Collapse eventKey='0' className='mt-2'>
+    <Accordion defaultActiveKey={activeKey} activeKey={activeKey} onSelect={handleOnSelect}>
+      <ContextAwareToggle show={show} eventKey={KEY_ID} headerColor={headerColor}><div style={{ color: headerColor }}>{header}</div></ContextAwareToggle>
+      <Accordion.Collapse eventKey={KEY_ID} className={classNames('mt-2', className)}>
         <div>{body}</div>
       </Accordion.Collapse>
+    </Accordion>
+  )
+}
+
+export function AccordianCard ({ header, children, show }) {
+  return (
+    <Accordion defaultActiveKey={show ? '0' : undefined}>
+      <Accordion.Item eventKey='0'>
+        <Accordion.Header>{header}</Accordion.Header>
+        <Accordion.Body>
+          {children}
+        </Accordion.Body>
+      </Accordion.Item>
     </Accordion>
   )
 }

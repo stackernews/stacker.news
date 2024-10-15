@@ -1,7 +1,19 @@
 import { gql } from '@apollo/client'
 import { COMMENTS } from './comments'
 
+// we can't import from users because of circular dependency
+const STREAK_FIELDS = gql`
+  fragment StreakFields on User {
+    optional {
+    streak
+    gunStreak
+      horseStreak
+    }
+  }
+`
+
 export const ITEM_FIELDS = gql`
+  ${STREAK_FIELDS}
   fragment ItemFields on Item {
     id
     parentId
@@ -10,10 +22,18 @@ export const ITEM_FIELDS = gql`
     title
     url
     user {
-      name
-      streak
-      hideCowboyHat
       id
+      name
+      meMute
+      ...StreakFields
+    }
+    sub {
+      name
+      userId
+      moderated
+      meMuteSub
+      meSubscription
+      nsfw
     }
     otsHash
     position
@@ -22,32 +42,44 @@ export const ITEM_FIELDS = gql`
     boost
     bounty
     bountyPaidTo
+    noteId
     path
     upvotes
     meSats
-    meDontLike
+    meDontLikeSats
     meBookmark
     meSubscription
     meForward
     outlawed
     freebie
+    bio
     ncomments
     commentSats
     lastCommentAt
-    maxBid
     isJob
+    status
     company
     location
     remote
     subName
     pollCost
-    status
+    pollExpiresAt
     uploadId
     mine
+    imgproxyUrls
+    rel
+    apiKey
+    invoice {
+      id
+      actionState
+      confirmedAt
+    }
+    cost
   }`
 
 export const ITEM_FULL_FIELDS = gql`
   ${ITEM_FIELDS}
+  ${STREAK_FIELDS}
   fragment ItemFullFields on Item {
     ...ItemFields
     text
@@ -57,11 +89,18 @@ export const ITEM_FULL_FIELDS = gql`
       bounty
       bountyPaidTo
       subName
+      mine
       user {
-        name
-        streak
-        hideCowboyHat
         id
+        name
+        ...StreakFields
+      }
+      sub {
+        name
+        userId
+        moderated
+        meMuteSub
+        meSubscription
       }
     }
     forwards {
@@ -97,12 +136,13 @@ export const POLL_FIELDS = gql`
   fragment PollFields on Item {
     poll {
       meVoted
+      meInvoiceId
+      meInvoiceActionState
       count
       options {
         id
         option
         count
-        meVoted
       }
     }
   }`
@@ -135,7 +175,7 @@ export const ITEM_FULL = gql`
 
 export const RELATED_ITEMS = gql`
   ${ITEM_FIELDS}
-  query Related($title: String, $id: ID, $cursor: String, $limit: Int) {
+  query Related($title: String, $id: ID, $cursor: String, $limit: Limit) {
     related(title: $title, id: $id, cursor: $cursor, limit: $limit) {
       cursor
       items {
@@ -147,7 +187,7 @@ export const RELATED_ITEMS = gql`
 
 export const RELATED_ITEMS_WITH_ITEM = gql`
   ${ITEM_FIELDS}
-  query Related($title: String, $id: ID, $cursor: String, $limit: Int) {
+  query Related($title: String, $id: ID!, $cursor: String, $limit: Limit) {
     item(id: $id) {
       ...ItemFields
     }

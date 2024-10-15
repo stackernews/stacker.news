@@ -1,6 +1,6 @@
 import Image from 'react-bootstrap/Image'
-import { StaticLayout } from '../components/layout'
-import styles from '../styles/error.module.css'
+import { StaticLayout } from '@/components/layout'
+import styles from '@/styles/error.module.css'
 
 export default function offline () {
   return (

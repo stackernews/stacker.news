@@ -1,0 +1,64 @@
+# The manifest for the "imgproxy" service.
+# Read the full specification for the "Load Balanced Web Service" type at:
+#  https://aws.github.io/copilot-cli/docs/manifest/lb-web-service/
+
+# Your service name will be used in naming your resources like log groups, ECS services, etc.
+name: imgproxy
+type: Load Balanced Web Service
+
+# Distribute traffic to your service.
+http:
+  # Requests to this path will be forwarded to your service.
+  # To match all requests you can use the "/" path.
+  path: '/'
+  # You can specify a custom health check path. The default is "/".
+  healthcheck: '/health'
+
+# Configuration for your containers and service.
+image:
+  location: ${PRIVATE_REPO}/imgproxy:latest
+  # Port exposed through your container to route traffic to it.
+  port: 8080
+
+cpu: 2048       # 2 vCPUs see https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html
+memory: 4096
+count:
+  range:
+    min: 1    # Minimum number of tasks to run for the service.
+    max: 4   # Maximum number of tasks to run for the service.
+  cooldown:
+    in: 60s  # Number of seconds to wait before scaling up.
+    out: 60s # Number of seconds to wait before scaling down.
+  cpu_percentage: 50 # Percentage of CPU to target for autoscaling.
+  memory_percentage: 60 # Percentage of memory to target for autoscaling.
+exec: true     # Enable running commands in your container.
+network:
+  connect: true # Enable Service Connect for intra-environment traffic between services.
+
+# storage:
+  # readonly_fs: true       # Limit to read-only access to mounted root filesystems.
+
+# Optional fields for more advanced use-cases.
+variables: # Pass environment variables as key value pairs.
+  IMGPROXY_ENABLE_WEBP_DETECTION: 1
+  IMGPROXY_ENABLE_AVIF_DETECTION: 1
+  IMGPROXY_MAX_ANIMATION_FRAMES: 2000
+  IMGPROXY_MAX_SRC_RESOLUTION: 50
+  IMGPROXY_MAX_ANIMATION_FRAME_RESOLUTION: 200
+  IMGPROXY_READ_TIMEOUT: 10
+  IMGPROXY_WRITE_TIMEOUT: 10
+  IMGPROXY_DOWNLOAD_TIMEOUT: 9
+  IMGPROXY_WORKERS: 4
+  IMGPROXY_ENABLE_VIDEO_THUMBNAILS: 1
+
+secrets:                      # Pass secrets from AWS Systems Manager (SSM) Parameter Store.
+  IMGPROXY_KEY: /copilot/${COPILOT_APPLICATION_NAME}/${COPILOT_ENVIRONMENT_NAME}/secrets/imgproxy_key
+  IMGPROXY_SALT: /copilot/${COPILOT_APPLICATION_NAME}/${COPILOT_ENVIRONMENT_NAME}/secrets/imgproxy_salt
+  IMGPROXY_LICENSE_KEY: /copilot/${COPILOT_APPLICATION_NAME}/${COPILOT_ENVIRONMENT_NAME}/secrets/imgproxy_license_key
+
+# You can override any of the values defined above by environment.
+#environments:
+#  test:
+#    count: 2               # Number of tasks to run for the "test" environment.
+#    deployment:            # The deployment strategy for the "test" environment.
+#       rolling: 'recreate' # Stops existing tasks before new ones are started for faster deployments.

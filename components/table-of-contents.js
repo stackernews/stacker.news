@@ -1,13 +1,15 @@
 import React, { useMemo, useState } from 'react'
 import Dropdown from 'react-bootstrap/Dropdown'
 import FormControl from 'react-bootstrap/FormControl'
-import TocIcon from '../svgs/list-unordered.svg'
+import TocIcon from '@/svgs/list-unordered.svg'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { visit } from 'unist-util-visit'
 import { toString } from 'mdast-util-to-string'
-import GithubSlugger from 'github-slugger'
+import { slug } from 'github-slugger'
+import { useRouter } from 'next/router'
 
 export default function Toc ({ text }) {
+  const router = useRouter()
   if (!text || text.length === 0) {
     return null
   }
@@ -15,11 +17,11 @@ export default function Toc ({ text }) {
   const toc = useMemo(() => {
     const tree = fromMarkdown(text)
     const toc = []
-    const slugger = new GithubSlugger()
     visit(tree, 'heading', (node, position, parent) => {
       const str = toString(node)
-      toc.push({ heading: str, slug: slugger.slug(str.replace(/[^\w\-\s]+/gi, '')), depth: node.depth })
+      toc.push({ heading: str, slug: slug(str.replace(/[^\w\-\s]+/gi, '')), depth: node.depth })
     })
+
     return toc
   }, [text])
 
@@ -42,6 +44,8 @@ export default function Toc ({ text }) {
                 marginLeft: `${(v.depth - 1) * 5}px`
               }}
               href={`#${v.slug}`} key={v.slug}
+              // nextjs router doesn't emit hashChangeStart events
+              onClick={() => router.events.emit('hashChangeStart', `#${v.slug}`, { shallow: true })}
             >{v.heading}
             </Dropdown.Item>
           )

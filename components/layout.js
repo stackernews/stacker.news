@@ -1,4 +1,6 @@
-import Header, { HeaderStatic } from './header'
+import Navigation from './nav'
+import NavFooter from './nav/mobile/footer'
+import NavStatic from './nav/static'
 import Container from 'react-bootstrap/Container'
 import Footer from './footer'
 import Seo, { SeoSearch } from './seo'
@@ -12,15 +14,16 @@ export default function Layout ({
   return (
     <>
       {seo && <Seo sub={sub} item={item} user={user} />}
-      <Header sub={sub} />
+      <Navigation sub={sub} />
       {contain
         ? (
-          <Container as='main' className={`px-sm-0 ${containClassName}`}>
+          <Container as='main' className={`px-sm-0 ${styles.contain}`}>
             {children}
           </Container>
           )
         : children}
       {footer && <Footer links={footerLinks} />}
+      <NavFooter sub={sub} />
     </>
   )
 }
@@ -29,32 +32,35 @@ export function SearchLayout ({ sub, children, ...props }) {
   return (
     <Layout sub={sub} seo={false} footer={false} {...props}>
       <SeoSearch sub={sub} />
+      <Search sub={sub} />
       {children}
-      <Search />
     </Layout>
   )
 }
 
-export function StaticLayout ({ children, footer = true, footerLinks, ...props }) {
+export function StaticLayout ({ children, footer = true, footerLinks = false, ...props }) {
   return (
-    <div className={styles.page}>
-      <HeaderStatic />
-      <main className={`${styles.content} pt-5`}>
-        {children}
-      </main>
+    <>
+      <NavStatic />
+      <div className={styles.page}>
+        <main className={`${styles.content} ${styles.contain} py-3`}>
+          {children}
+        </main>
+      </div>
       {footer && <Footer links={footerLinks} />}
-    </div>
+      <NavFooter />
+    </>
   )
 }
 
 export function CenterLayout ({ children, ...props }) {
   return (
-    <div className={styles.page}>
-      <Layout contain={false} {...props}>
+    <Layout contain={false} footer={false} {...props}>
+      <div className={styles.page}>
         <main className={styles.content}>
           {children}
         </main>
-      </Layout>
-    </div>
+      </div>
+    </Layout>
   )
 }

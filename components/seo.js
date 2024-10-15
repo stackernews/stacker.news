@@ -1,7 +1,7 @@
 import { NextSeo } from 'next-seo'
 import { useRouter } from 'next/router'
 import removeMd from 'remove-markdown'
-import { numWithUnits } from '../lib/format'
+import { numWithUnits } from '@/lib/format'
 
 export function SeoSearch ({ sub }) {
   const router = useRouter()
@@ -18,7 +18,7 @@ export function SeoSearch ({ sub }) {
         description: desc,
         images: [
           {
-            url: 'https://stacker.news/api/capture' + router.asPath
+            url: 'https://capture.stacker.news' + router.asPath
           }
         ],
         site_name: 'Stacker News'
@@ -69,7 +69,7 @@ export default function Seo ({ sub, item, user }) {
     }
   }
   if (user) {
-    desc = `@${user.name} has [${user.stacked} stacked, ${numWithUnits(user.nitems, { unitSingular: 'item', unitPlural: 'items' })}]`
+    desc = `@${user.name} has [${user.optional.stacked ? `${user.optional.stacked} stacked,` : ''}${numWithUnits(user.nitems, { unitSingular: 'item', unitPlural: 'items' })}]`
   }
 
   return (
@@ -81,7 +81,7 @@ export default function Seo ({ sub, item, user }) {
         description: desc,
         images: [
           {
-            url: 'https://stacker.news/api/capture' + pathNoQuery
+            url: 'https://capture.stacker.news' + pathNoQuery
           }
         ],
         site_name: 'Stacker News'

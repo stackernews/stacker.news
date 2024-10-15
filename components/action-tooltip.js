@@ -8,19 +8,26 @@ export default function ActionTooltip ({ children, notForm, disable, overlayText
   if (!notForm) {
     formik = useFormikContext()
   }
-  if (disable) {
+  if (disable || !overlayText) {
     return children
   }
   return (
     <OverlayTrigger
       placement={placement || 'bottom'}
       overlay={
-        <Tooltip>
-          {overlayText || '1 sat'}
+        <Tooltip style={{ position: 'fixed' }}>
+          {overlayText}
         </Tooltip>
       }
       trigger={['hover', 'focus']}
       show={formik?.isSubmitting ? false : undefined}
+      popperConfig={{
+        modifiers: {
+          preventOverflow: {
+            enabled: false
+          }
+        }
+      }}
     >
       <span>
         {children}

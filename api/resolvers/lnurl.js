@@ -1,6 +1,8 @@
 import { randomBytes } from 'crypto'
 import { bech32 } from 'bech32'
-import { GraphQLError } from 'graphql'
+import assertGofacYourself from './ofac'
+import assertApiKeyNotPermitted from './apiKey'
+import { GqlAuthenticationError } from '@/lib/error'
 
 function encodedUrl (iurl, tag, k1) {
   const url = new URL(iurl)
@@ -25,13 +27,18 @@ export default {
     }
   },
   Mutation: {
-    createAuth: async (parent, args, { models }) => {
+    createAuth: async (parent, args, { models, me }) => {
+      assertApiKeyNotPermitted({ me })
       return await models.lnAuth.create({ data: { k1: k1() } })
     },
-    createWith: async (parent, args, { me, models }) => {
+    createWith: async (parent, args, { me, models, headers }) => {
+      await assertGofacYourself({ models, headers })
+
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
+
+      assertApiKeyNotPermitted({ me })
 
       return await models.lnWith.create({ data: { k1: k1(), userId: me.id } })
     }

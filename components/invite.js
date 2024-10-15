@@ -1,7 +1,7 @@
 import { CopyInput } from './form'
 import { gql, useMutation } from '@apollo/client'
-import { INVITE_FIELDS } from '../fragments/invites'
-import styles from '../styles/invites.module.css'
+import { INVITE_FIELDS } from '@/fragments/invites'
+import styles from '@/styles/invites.module.css'
 
 export default function Invite ({ invite, active }) {
   const [revokeInvite] = useMutation(
@@ -21,7 +21,7 @@ export default function Invite ({ invite, active }) {
       <CopyInput
         groupClassName='mb-1'
         size='sm' type='text'
-        placeholder={`https://stacker.news/invites/${invite.id}`} readOnly noForm
+        placeholder={`${process.env.NEXT_PUBLIC_URL}/invites/${invite.id}`} readOnly noForm
       />
       <div className={styles.other}>
         <span>{invite.gift} sat gift</span>

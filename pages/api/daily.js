@@ -1,4 +1,4 @@
-import models from '../../api/models'
+import models from '@/api/models'
 
 export default async (_, res) => {
   // get the latest daily discussion thread
@@ -9,7 +9,7 @@ export default async (_, res) => {
     SELECT id
     FROM "Item"
     WHERE "pinId" IS NOT NULL
-    AND title = 'Daily discussion thread'
+    AND title = 'Stacker Saloon'
     ORDER BY created_at DESC
     LIMIT 1`)
 

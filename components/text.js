@@ -3,267 +3,246 @@ import ReactMarkdown from 'react-markdown'
 import gfm from 'remark-gfm'
 import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
-import mention from '../lib/remark-mention'
-import sub from '../lib/remark-sub'
-import remarkDirective from 'remark-directive'
-import { visit } from 'unist-util-visit'
+import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
+import MediaOrLink from './media-or-link'
+import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
-import React, { useRef, useEffect, useState, memo } from 'react'
-import GithubSlugger from 'github-slugger'
-import LinkIcon from '../svgs/link.svg'
-import Thumb from '../svgs/thumb-up-fill.svg'
-import { toString } from 'mdast-util-to-string'
-import copy from 'clipboard-copy'
-import { IMGPROXY_URL_REGEXP, IMG_URL_REGEXP } from '../lib/url'
-import { extractUrls } from '../lib/md'
-import FileMissing from '../svgs/file-warning-line.svg'
-import { useMe } from './me'
+import { Button } from 'react-bootstrap'
+import { useRouter } from 'next/router'
+import Link from 'next/link'
+import { UNKNOWN_LINK_REL } from '@/lib/constants'
+import isEqual from 'lodash/isEqual'
+import UserPopover from './user-popover'
+import ItemPopover from './item-popover'
+import classNames from 'classnames'
+import { CarouselProvider, useCarousel } from './carousel'
+import rehypeSN from '@/lib/rehype-sn'
+import Embed from './embed'
+import remarkMath from 'remark-math'
+import rehypeMathjax from 'rehype-mathjax'
 
-function searchHighlighter () {
-  return (tree) => {
-    visit(tree, (node) => {
-      if (
-        node.type === 'textDirective' ||
-        node.type === 'leafDirective'
-      ) {
-        if (node.name !== 'high') return
+const rehypeSNStyled = () => rehypeSN({
+  stylers: [{
+    startTag: '<sup>',
+    endTag: '</sup>',
+    className: styles.superscript
+  }, {
+    startTag: '<sub>',
+    endTag: '</sub>',
+    className: styles.subscript
+  }]
+})
 
-        const data = node.data || (node.data = {})
-        data.hName = 'mark'
-        data.hProperties = {}
+const remarkPlugins = [gfm, [remarkMath, { singleDollarTextMath: false }]]
+const rehypePlugins = [rehypeSNStyled, rehypeMathjax]
+
+export function SearchText ({ text }) {
+  return (
+    <div className={styles.text}>
+      <p className={styles.p}>
+        {reactStringReplace(text, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
+          return <mark key={`strong-${match}-${i}`}>{match}</mark>
+        })}
+      </p>
+    </div>
+  )
+}
+
+// this is one of the slowest components to render
+export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
+  const [overflowing, setOverflowing] = useState(false)
+  const router = useRouter()
+  const [show, setShow] = useState(false)
+  const containerRef = useRef(null)
+
+  // if we are navigating to a hash, show the full text
+  useEffect(() => {
+    setShow(router.asPath.includes('#') && !router.asPath.includes('#itemfn-'))
+    const handleRouteChange = (url, { shallow }) => {
+      setShow(url.includes('#') && !url.includes('#itemfn-'))
+    }
+
+    router.events.on('hashChangeStart', handleRouteChange)
+
+    return () => {
+      router.events.off('hashChangeStart', handleRouteChange)
+    }
+  }, [router.asPath, router.events])
+
+  // clip item and give it a`show full text` button if we are overflowing
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || overflowing) return
+
+    function checkOverflow () {
+      setOverflowing(container.scrollHeight > window.innerHeight * 2)
+    }
+
+    let resizeObserver
+    if (!overflowing && 'ResizeObserver' in window) {
+      resizeObserver = new window.ResizeObserver(checkOverflow).observe(container)
+    }
+
+    window.addEventListener('resize', checkOverflow)
+    checkOverflow()
+
+    return () => {
+      window.removeEventListener('resize', checkOverflow)
+      resizeObserver?.disconnect()
+    }
+  }, [containerRef.current, setOverflowing])
+
+  const TextMediaOrLink = useCallback(props => {
+    return <MediaLink {...props} outlawed={outlawed} imgproxyUrls={imgproxyUrls} topLevel={topLevel} rel={rel} />
+  },
+  [outlawed, imgproxyUrls, topLevel, rel])
+
+  const components = useMemo(() => ({
+    h1: ({ node, id, ...props }) => <h1 id={topLevel ? id : undefined} {...props} />,
+    h2: ({ node, id, ...props }) => <h2 id={topLevel ? id : undefined} {...props} />,
+    h3: ({ node, id, ...props }) => <h3 id={topLevel ? id : undefined} {...props} />,
+    h4: ({ node, id, ...props }) => <h4 id={topLevel ? id : undefined} {...props} />,
+    h5: ({ node, id, ...props }) => <h5 id={topLevel ? id : undefined} {...props} />,
+    h6: ({ node, id, ...props }) => <h6 id={topLevel ? id : undefined} {...props} />,
+    table: Table,
+    p: P,
+    code: Code,
+    mention: Mention,
+    sub: Sub,
+    item: Item,
+    footnote: Footnote,
+    headlink: ({ node, href, ...props }) => <Link href={href} {...props} />,
+    autolink: ({ href, ...props }) => <TextMediaOrLink src={href} {...props} />,
+    a: ({ node, href, children, ...props }) => {
+      // if outlawed, render the link as text
+      if (outlawed) {
+        return href
       }
-    })
-  }
-}
 
-function decodeOriginalUrl (imgProxyUrl) {
-  const parts = imgProxyUrl.split('/')
-  // base64url is not a known encoding in browsers
-  // so we need to replace the invalid chars
-  const b64Url = parts[parts.length - 1].replace(/-/g, '+').replace(/_/, '/')
-  const originalUrl = Buffer.from(b64Url, 'base64').toString('utf-8')
-  return originalUrl
-}
+      // eslint-disable-next-line
+      return <Link id={props.id} target='_blank' rel={rel} href={href}>{children}</Link>
+    },
+    img: TextMediaOrLink,
+    embed: Embed
+  }), [outlawed, rel, TextMediaOrLink, topLevel])
 
-function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props }) {
-  const [copied, setCopied] = useState(false)
-  const [id] = useState(noFragments ? undefined : slugger.slug(toString(node).replace(/[^\w\-\s]+/gi, '')))
+  const carousel = useCarousel()
 
-  const Icon = copied ? Thumb : LinkIcon
+  const markdownContent = useMemo(() => (
+    <ReactMarkdown
+      components={components}
+      remarkPlugins={remarkPlugins}
+      rehypePlugins={rehypePlugins}
+      remarkRehypeOptions={{ clobberPrefix: `itemfn-${itemId}-` }}
+    >
+      {children}
+    </ReactMarkdown>
+  ), [components, remarkPlugins, rehypePlugins, children, itemId])
+
+  const showOverflow = useCallback(() => setShow(true), [setShow])
 
   return (
-    <span className={styles.heading}>
-      {React.createElement(h, { id, ...props }, children)}
-      {!noFragments && topLevel &&
-        <a className={`${styles.headingLink} ${copied ? styles.copied : ''}`} href={`#${id}`}>
-          <Icon
-            onClick={() => {
-              const location = new URL(window.location)
-              location.hash = `${id}`
-              copy(location.href)
-              setTimeout(() => setCopied(false), 1500)
-              setCopied(true)
-            }}
-            width={18}
-            height={18}
-            className='fill-grey'
-          />
-        </a>}
+    <div
+      className={classNames(
+        styles.text,
+        topLevel && styles.topLevel,
+        show ? styles.textUncontained : overflowing && styles.textContained
+      )}
+      ref={containerRef}
+    >
+      {
+        carousel && tab !== 'preview'
+          ? markdownContent
+          : <CarouselProvider>{markdownContent}</CarouselProvider>
+      }
+      {overflowing && !show && (
+        <Button
+          size='lg'
+          variant='info'
+          className={styles.textShowFull}
+          onClick={showOverflow}
+        >
+          show full text
+        </Button>
+      )}
+    </div>
+  )
+}, isEqual)
+
+function Mention ({ children, node, href, name, id }) {
+  return (
+    <UserPopover name={name}>
+      <Link
+        id={id}
+        href={href}
+      >
+        {children}
+      </Link>
+    </UserPopover>
+  )
+}
+
+function Sub ({ children, node, href, ...props }) {
+  return <Link href={href}>{children}</Link>
+}
+
+function Item ({ children, node, href, id }) {
+  return (
+    <ItemPopover id={id}>
+      <Link href={href}>{children}</Link>
+    </ItemPopover>
+  )
+}
+
+function Footnote ({ children, node, ...props }) {
+  return (
+    <Link {...props}>{children}</Link>
+  )
+}
+
+function MediaLink ({
+  node, src, outlawed, imgproxyUrls, rel = UNKNOWN_LINK_REL, ...props
+}) {
+  const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
+  // if outlawed, render the media link as text
+  if (outlawed) {
+    return url
+  }
+
+  const srcSet = imgproxyUrls?.[url]
+
+  return <MediaOrLink srcSet={srcSet} src={src} rel={rel} {...props} />
+}
+
+function Table ({ node, ...props }) {
+  return (
+    <span className='table-responsive'>
+      <table className='table table-bordered table-sm' {...props} />
     </span>
   )
 }
 
-const CACHE_STATES = {
-  IS_LOADING: 'IS_LOADING',
-  IS_LOADED: 'IS_LOADED',
-  IS_ERROR: 'IS_ERROR'
-}
-
-// this is one of the slowest components to render
-export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyImgProxy, children }) {
-  // all the reactStringReplace calls are to facilitate search highlighting
-  const slugger = new GithubSlugger()
-  fetchOnlyImgProxy ??= true
-
-  const HeadingWrapper = (props) => Heading({ topLevel, slugger, noFragments, ...props })
-
-  const imgCache = useRef({})
-  const [urlCache, setUrlCache] = useState({})
-
-  useEffect(() => {
-    const imgRegexp = fetchOnlyImgProxy ? IMGPROXY_URL_REGEXP : IMG_URL_REGEXP
-    const urls = extractUrls(children)
-
-    urls.forEach((url) => {
-      if (imgRegexp.test(url)) {
-        setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADED }))
-      } else if (!fetchOnlyImgProxy) {
-        const img = new window.Image()
-        imgCache.current[url] = img
-
-        setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADING }))
-
-        const callback = (state) => {
-          setUrlCache((prev) => ({ ...prev, [url]: state }))
-          delete imgCache.current[url]
-        }
-        img.onload = () => callback(CACHE_STATES.IS_LOADED)
-        img.onerror = () => callback(CACHE_STATES.IS_ERROR)
-        img.src = url
-      }
-    })
-
-    return () => {
-      Object.values(imgCache.current).forEach((img) => {
-        img.onload = null
-        img.onerror = null
-        img.src = ''
-      })
-    }
-  }, [children])
-
-  return (
-    <div className={styles.text}>
-      <ReactMarkdown
-        components={{
-          h1: (props) => HeadingWrapper({ h: topLevel ? 'h1' : 'h3', ...props }),
-          h2: (props) => HeadingWrapper({ h: topLevel ? 'h2' : 'h4', ...props }),
-          h3: (props) => HeadingWrapper({ h: topLevel ? 'h3' : 'h5', ...props }),
-          h4: (props) => HeadingWrapper({ h: topLevel ? 'h4' : 'h6', ...props }),
-          h5: (props) => HeadingWrapper({ h: topLevel ? 'h5' : 'h6', ...props }),
-          h6: (props) => HeadingWrapper({ h: 'h6', ...props }),
-          table: ({ node, ...props }) =>
-            <span className='table-responsive'>
-              <table className='table table-bordered table-sm' {...props} />
-            </span>,
-          p: ({ children, ...props }) => <div className={styles.p} {...props}>{children}</div>,
-          code ({ node, inline, className, children, style, ...props }) {
-            return !inline
-              ? (
-                <SyntaxHighlighter showLineNumbers style={atomDark} PreTag='div' {...props}>
-                  {reactStringReplace(String(children).replace(/\n$/, ''), /:high\[([^\]]+)\]/g, (match, i) => {
-                    return match
-                  }).join('')}
-                </SyntaxHighlighter>
-                )
-              : (
-                <code className={className} style={atomDark} {...props}>
-                  {reactStringReplace(String(children), /:high\[([^\]]+)\]/g, (match, i) => {
-                    return <mark key={`mark-${match}`}>{match}</mark>
-                  })}
-                </code>
-                )
-          },
-          a: ({ node, href, children, ...props }) => {
-            if (children?.some(e => e?.props?.node?.tagName === 'img')) {
-              return <>{children}</>
-            }
-
-            if (urlCache[href] === CACHE_STATES.IS_LOADED) {
-              return <ZoomableImage topLevel={topLevel} useClickToLoad={fetchOnlyImgProxy} {...props} src={href} />
-            }
-
-            // map: fix any highlighted links
-            children = children?.map(e =>
-              typeof e === 'string'
-                ? reactStringReplace(e, /:high\[([^\]]+)\]/g, (match, i) => {
-                  return <mark key={`mark-${match}-${i}`}>{match}</mark>
-                })
-                : e)
-
-            return (
-              /*  eslint-disable-next-line */
-              <a
-                target='_blank' rel={nofollow ? 'nofollow' : 'noreferrer'}
-                href={reactStringReplace(href, /:high%5B([^%5D]+)%5D/g, (match, i) => {
-                  return match
-                }).join('')} {...props}
-              >
-                {children}
-              </a>
-            )
-          },
-          img: ({ node, ...props }) => {
-            return <ZoomableImage topLevel={topLevel} useClickToLoad={fetchOnlyImgProxy} {...props} />
-          }
-        }}
-        remarkPlugins={[gfm, mention, sub, remarkDirective, searchHighlighter]}
-      >
+function Code ({ node, inline, className, children, style, ...props }) {
+  return inline
+    ? (
+      <code className={className} {...props}>
         {children}
-      </ReactMarkdown>
-    </div>
-  )
-})
-
-function ClickToLoad ({ children }) {
-  const [clicked, setClicked] = useState(false)
-  return clicked ? children : <div className='m-1 fst-italic pointer text-muted' onClick={() => setClicked(true)}>click to load image</div>
+      </code>
+      )
+    : (
+      <SyntaxHighlighter style={atomDark} language='text' PreTag='div' {...props}>
+        {children}
+      </SyntaxHighlighter>
+      )
 }
 
-export function ZoomableImage ({ src, topLevel, useClickToLoad, ...props }) {
-  const me = useMe()
-  const [err, setErr] = useState()
-  const [imgSrc, setImgSrc] = useState(src)
-  const [isImgProxy, setIsImgProxy] = useState(IMGPROXY_URL_REGEXP.test(src))
-  const defaultMediaStyle = {
-    maxHeight: topLevel ? '75vh' : '25vh',
-    cursor: 'zoom-in'
-  }
-  useClickToLoad ??= true
-
-  // if image changes we need to update state
-  const [mediaStyle, setMediaStyle] = useState(defaultMediaStyle)
-  useEffect(() => {
-    setMediaStyle(defaultMediaStyle)
-    setErr(null)
-  }, [src])
-
-  if (!src) return null
-  if (err) {
-    if (!isImgProxy) {
-      return (
-        <span className='d-flex align-items-baseline text-warning-emphasis fw-bold pb-1'>
-          <FileMissing width={18} height={18} className='fill-warning me-1 align-self-center' />
-          image error
-        </span>
-      )
-    }
-    try {
-      const originalUrl = decodeOriginalUrl(src)
-      setImgSrc(originalUrl)
-      setErr(null)
-    } catch (err) {
-      console.error(err)
-      setErr(err)
-    }
-    // always set to false since imgproxy returned error
-    setIsImgProxy(false)
-  }
-
-  const img = (
-    <img
-      className={topLevel ? styles.topLevel : undefined}
-      style={mediaStyle}
-      src={imgSrc}
-      onClick={() => {
-        if (mediaStyle.cursor === 'zoom-in') {
-          setMediaStyle({
-            width: '100%',
-            cursor: 'zoom-out'
-          })
-        } else {
-          setMediaStyle(defaultMediaStyle)
-        }
-      }}
-      onError={() => setErr(true)}
-      {...props}
-    />
-  )
-
+function P ({ children, node, onlyImages, somethingBefore, somethingAfter, ...props }) {
   return (
-    (!me || !me.clickToLoadImg || isImgProxy || !useClickToLoad)
-      ? img
-      : <ClickToLoad>{img}</ClickToLoad>
-
+    <div
+      className={classNames(styles.p, onlyImages && styles.onlyImages,
+        somethingBefore && styles.somethingBefore, somethingAfter && styles.somethingAfter)} {...props}
+    >
+      {children}
+    </div>
   )
 }

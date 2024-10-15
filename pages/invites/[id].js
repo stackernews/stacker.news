@@ -1,14 +1,15 @@
-import Login from '../../components/login'
+import Login from '@/components/login'
 import { getProviders } from 'next-auth/react'
 import { getServerSession } from 'next-auth/next'
-import models from '../../api/models'
-import serialize from '../../api/resolvers/serial'
+import models from '@/api/models'
+import serialize from '@/api/resolvers/serial'
 import { gql } from '@apollo/client'
-import { INVITE_FIELDS } from '../../fragments/invites'
-import getSSRApolloClient from '../../api/ssrApollo'
+import { INVITE_FIELDS } from '@/fragments/invites'
+import getSSRApolloClient from '@/api/ssrApollo'
 import Link from 'next/link'
-import { CenterLayout } from '../../components/layout'
-import { getAuthOptions } from '../api/auth/[...nextauth]'
+import { CenterLayout } from '@/components/layout'
+import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
+import { notifyInvite } from '@/lib/webPush'
 
 export async function getServerSideProps ({ req, res, query: { id, error = null } }) {
   const session = await getServerSession(req, res, getAuthOptions(req))
@@ -25,33 +26,36 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
   })
 
   if (!data?.invite) {
-    return {
-      notFound: true
-    }
+    res.writeHead(302, {
+      Location: '/404'
+    }).end()
+    return { props: {} }
   }
 
   if (session && res) {
     try {
       // attempt to send gift
       // catch any errors and just ignore them for now
-      await serialize(models,
-        models.$queryRawUnsafe('SELECT invite_drain($1::INTEGER, $2::INTEGER)', session.user.id, id))
+      await serialize(
+        models.$queryRawUnsafe('SELECT invite_drain($1::INTEGER, $2::TEXT)', session.user.id, id),
+        { models }
+      )
+      const invite = await models.invite.findUnique({ where: { id } })
+      notifyInvite(invite.userId)
     } catch (e) {
       console.log(e)
     }
 
-    return {
-      redirect: {
-        destination: '/',
-        permanent: false
-      }
-    }
+    res.writeHead(302, {
+      Location: '/'
+    }).end()
+    return { props: {} }
   }
 
   return {
     props: {
       providers: await getProviders(),
-      callbackUrl: process.env.PUBLIC_URL + req.url,
+      callbackUrl: process.env.NEXT_PUBLIC_URL + req.url,
       invite: data.invite,
       error
     }

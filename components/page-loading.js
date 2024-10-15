@@ -1,4 +1,4 @@
-import Moon from '../svgs/moon-fill.svg'
+import Moon from '@/svgs/moon-fill.svg'
 
 export default function PageLoading () {
   return (

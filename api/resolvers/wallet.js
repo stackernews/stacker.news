@@ -199,7 +199,7 @@ const resolvers = {
       return await models.wallet.findMany({
         where: filter,
         orderBy: {
-          priority: 'desc'
+          priority: 'asc'
         }
       })
     },

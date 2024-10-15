@@ -1024,6 +1024,20 @@ export default {
 
       return user.streak
     },
+    gunStreak: async (user, args, { models }) => {
+      if (user.hideCowboyHat) {
+        return null
+      }
+
+      return user.gunStreak
+    },
+    horseStreak: async (user, args, { models }) => {
+      if (user.hideCowboyHat) {
+        return null
+      }
+
+      return user.horseStreak
+    },
     maxStreak: async (user, args, { models }) => {
       if (user.hideCowboyHat) {
         return null

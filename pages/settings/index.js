@@ -371,7 +371,7 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label={<>hide my cowboy hat</>}
+            label={<>hide my cowboy essentials (e.g. cowboy hat)</>}
             name='hideCowboyHat'
             groupClassName='mb-0'
           />

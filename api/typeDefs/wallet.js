@@ -86,6 +86,7 @@ const typeDefs = `
   type Wallet implements VaultOwner {
     id: ID!
     createdAt: Date!
+    updatedAt: Date!
     type: String!
     enabled: Boolean!
     priority: Int!

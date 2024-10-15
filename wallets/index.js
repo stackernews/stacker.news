@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef, useMemo } from 'react'
+import { createContext, useContext, useCallback, useState, useEffect, useRef } from 'react'
 import { useMe } from '@/components/me'
 import { openVault } from '@/components/use-vault'
 import { useWalletLogger } from '@/components/wallet-logger'
@@ -12,7 +12,8 @@ import { useShowModal } from '@/components/modal'
 import { useToast } from '../components/toast'
 import { generateResolverName, isConfigured, isClientField, isServerField } from '@/lib/wallet'
 import { walletValidate } from '@/lib/validate'
-import { SSR } from '@/lib/constants'
+import { SSR, FAST_POLL_INTERVAL as POLL_INTERVAL } from '@/lib/constants'
+
 export const Status = {
   Initialized: 'Initialized',
   Enabled: 'Enabled',
@@ -20,26 +21,29 @@ export const Status = {
   Error: 'Error'
 }
 
+const WalletContext = createContext({
+  wallets: [],
+  sendWallets: []
+})
+
 export function useWallet (name) {
+  const context = useContext(WalletContext)
+  const bestSendWalletList = context.sendWallets
+  if (!name) {
+    // find best wallet in list
+    const highestWalletDef = bestSendWalletList?.map(w => getWalletByType(w.type))
+      .filter(w => !w.isAvailable || w.isAvailable())
+    name = highestWalletDef?.[0]?.name
+  }
+  const wallet = context.wallets.find(w => w.def.name === name)
+  return wallet
+}
+
+function useWalletInner (name) {
   const { me } = useMe()
   const showModal = useShowModal()
   const toaster = useToast()
   const [disableFreebies] = useMutation(gql`mutation { disableFreebies }`)
-
-  const { data: bestSendWalletList } = useQuery(BEST_SEND_WALLETS)
-
-  if (!name) {
-    // find best wallet in list
-    const highestWalletDef = bestSendWalletList?.wallets
-      // .filter(w => w.enabled && w.canSend)// filtered by the server
-      // .sort((a, b) => b.priority - a.priority) // already priority sorted by the server
-      .map(w => getWalletByType(w.type))
-
-    const highestAvailableWalletDef = highestWalletDef?.filter(w => !w.isAvailable || w.isAvailable())
-    // console.log('Wallets priority', bestAvailableWallet.map(w => w.name))
-    // console.log('Available wallets priority', bestAvailableWallet.map(w => w.name))
-    name = highestAvailableWalletDef?.[0]?.name
-  }
 
   const walletDef = getWalletByName(name)
 
@@ -51,7 +55,6 @@ export function useWallet (name) {
   const enabled = status === Status.Enabled
   const priority = config?.priority
   const hasConfig = walletDef?.fields?.length > 0
-
   const _isConfigured = useCallback(() => {
     return isConfigured({ ...walletDef, config })
   }, [walletDef, config])
@@ -78,7 +81,7 @@ export function useWallet (name) {
       logger.error('payment failed:', `payment_hash=${hash}`, message)
       throw err
     }
-  }, [me, walletDef, config, status])
+  }, [me, walletDef, config])
 
   const setPriority = useCallback(async (priority) => {
     if (_isConfigured() && priority !== config.priority) {
@@ -115,33 +118,28 @@ export function useWallet (name) {
     return await deleteLogs(options)
   }, [deleteLogs])
 
-  const wallet = useMemo(() => {
-    if (!walletDef) {
-      return undefined
-    }
-    const wallet = {
-      ...walletDef
-    }
-    wallet.isConfigured = _isConfigured()
-    wallet.enablePayments = enablePayments
-    wallet.disablePayments = disablePayments
-    wallet.canSend = config.canSend && available
-    wallet.canReceive = config.canReceive
-    wallet.config = config
-    wallet.save = save
-    wallet.delete = delete_
-    wallet.deleteLogs = deleteLogs_
-    wallet.setPriority = setPriority
-    wallet.hasConfig = hasConfig
-    wallet.status = status
-    wallet.enabled = enabled
-    wallet.available = available
-    wallet.priority = priority
-    wallet.logger = logger
-    wallet.sendPayment = sendPayment
-    wallet.def = walletDef
-    return wallet
-  }, [walletDef, config, status, enabled, priority, logger, enablePayments, disablePayments, save, delete_, deleteLogs_, setPriority, hasConfig])
+  if (!walletDef) return null
+
+  const wallet = { ...walletDef }
+
+  wallet.isConfigured = _isConfigured()
+  wallet.enablePayments = enablePayments
+  wallet.disablePayments = disablePayments
+  wallet.canSend = config.canSend && available
+  wallet.canReceive = config.canReceive
+  wallet.config = config
+  wallet.save = save
+  wallet.delete = delete_
+  wallet.deleteLogs = deleteLogs_
+  wallet.setPriority = setPriority
+  wallet.hasConfig = hasConfig
+  wallet.status = status
+  wallet.enabled = enabled
+  wallet.available = available
+  wallet.priority = priority
+  wallet.logger = logger
+  wallet.sendPayment = sendPayment
+  wallet.def = walletDef
 
   return wallet
 }
@@ -218,9 +216,7 @@ function useConfig (walletDef) {
       // fetch client config
       let clientConfig = {}
       if (serverConfig?.data?.walletByType) {
-        if (clientVault.current) {
-          clientVault.current.close()
-        }
+        if (clientVault.current) clientVault.current.close()
         const newClientVault = openVault(client, me, serverConfig.data.walletByType)
         clientVault.current = newClientVault
         clientConfig = await newClientVault.get(walletDef.name, {})
@@ -442,13 +438,7 @@ export function walletPrioritySort (w1, w2) {
 }
 
 export function useWallets () {
-  const wallets = walletDefs.map(def => useWallet(def.name))
-
-  const [walletsReady, setWalletsReady] = useState([])
-  useEffect(() => {
-    setWalletsReady(wallets.filter(w => w))
-  }, wallets)
-
+  const { wallets } = useContext(WalletContext)
   const resetClient = useCallback(async (wallet) => {
     for (const w of wallets) {
       if (w.canSend) {
@@ -456,17 +446,28 @@ export function useWallets () {
       }
       await w.deleteLogs({ clientOnly: true })
     }
-  }, wallets)
-  return { wallets: walletsReady, resetClient }
+  }, [wallets])
+  return { wallets, resetClient }
 }
 
 export function WalletProvider ({ children }) {
-  if (SSR) return children
-
   const { me } = useMe()
+  const wallets = walletDefs.map(def => useWalletInner(def.name)).filter(w => w)
+
   const migrationRan = useRef(false)
   const migratableKeys = !migrationRan.current && !SSR ? Object.keys(window.localStorage).filter(k => k.startsWith('wallet:')) : undefined
-  const { wallets } = useWallets()
+
+  const { data: bestSendWalletListData } = useQuery(BEST_SEND_WALLETS, {
+    pollInterval: POLL_INTERVAL,
+    nextFetchPolicy: 'network-only',
+    fetchPolicy: 'network-only'
+  })
+
+  const [bestSendWalletList, setBestSendWalletList] = useState(bestSendWalletListData?.wallets ?? [])
+
+  useEffect(() => {
+    setBestSendWalletList(bestSendWalletListData?.wallets)
+  }, [bestSendWalletListData])
 
   // migration
   useEffect(() => {
@@ -494,7 +495,11 @@ export function WalletProvider ({ children }) {
         }
       }
     })()
-  }, [me, wallets])
+  }, [])
 
-  return children
+  return (
+    <WalletContext.Provider value={{ wallets, sendWallets: bestSendWalletList }}>
+      {children}
+    </WalletContext.Provider>
+  )
 }

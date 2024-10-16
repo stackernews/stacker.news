@@ -2,11 +2,13 @@ import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/validate'
 import { authenticatedLndGrpc, getIdentity, getHeight, getWalletInfo, getNode } from 'ln-service'
 
-const { lnd } = authenticatedLndGrpc({
+const lnd = global.lnd || authenticatedLndGrpc({
   cert: process.env.LND_CERT,
   macaroon: process.env.LND_MACAROON,
   socket: process.env.LND_SOCKET
-})
+}).lnd
+
+if (process.env.NODE_ENV === 'development') global.lnd = lnd
 
 // Check LND GRPC connection
 getWalletInfo({ lnd }, (err, result) => {

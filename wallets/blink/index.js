@@ -1,17 +1,20 @@
 import { blinkSchema } from '@/lib/validate'
-
-export const galoyBlinkUrl = 'https://api.blink.sv/graphql'
-export const galoyBlinkDashboardUrl = 'https://dashboard.blink.sv/'
+import { galoyBlinkDashboardUrl } from 'wallets/blink/common'
 
 export const name = 'blink'
+export const walletType = 'BLINK'
+export const walletField = 'walletBlink'
+export const fieldValidation = blinkSchema
 
 export const fields = [
   {
     name: 'apiKey',
     label: 'api key',
     type: 'password',
-    help: `you can get an API key from [Blink Dashboard](${galoyBlinkDashboardUrl})`,
-    placeholder: 'blink_...'
+    help: `you can get an API key from [Blink Dashboard](${galoyBlinkDashboardUrl}).\nPlease make sure to select ONLY the 'Read' and 'Write' scopes when generating this API key.`,
+    placeholder: 'blink_...',
+    optional: 'for sending',
+    clientOnly: true
   },
   {
     name: 'currency',
@@ -19,16 +22,38 @@ export const fields = [
     type: 'text',
     help: 'the blink wallet to use (BTC or USD for stablesats)',
     placeholder: 'BTC',
-    optional: true,
     clear: true,
-    autoComplete: 'off'
+    autoComplete: 'off',
+    optional: 'for sending',
+    clientOnly: true
+
+  },
+  {
+    name: 'apiKeyRecv',
+    label: 'api key',
+    type: 'password',
+    help: `you can get an API key from [Blink Dashboard](${galoyBlinkDashboardUrl}).\nPlease make sure to select ONLY the 'Read' and 'Receive' scopes when generating this API key.`,
+    placeholder: 'blink_...',
+    optional: 'for receiving',
+    serverOnly: true
+  },
+  {
+    name: 'currencyRecv',
+    label: 'wallet type',
+    type: 'text',
+    help: 'the blink wallet to use (BTC or USD for stablesats)',
+    value: 'BTC',
+    clear: true,
+    autoComplete: 'off',
+    optional: 'for receiving',
+    serverOnly: true,
+    editable: false
+
   }
 ]
 
 export const card = {
   title: 'Blink',
   subtitle: 'use [Blink](https://blink.sv/) for payments',
-  badges: ['send only']
+  badges: ['send & receive']
 }
-
-export const fieldValidation = blinkSchema

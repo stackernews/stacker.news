@@ -185,6 +185,15 @@ function useConfig (walletDef) {
   const canSend = !!walletDef?.sendPayment
   const canReceive = !walletDef?.clientOnly
 
+  const queryServerWallet = useCallback(async () => {
+    const wallet = await client.query({
+      query: WALLET_BY_TYPE,
+      variables: { type: walletDef.walletType },
+      fetchPolicy: 'network-only'
+    })
+    return wallet?.data?.walletByType
+  }, [walletDef, client])
+
   const refreshConfig = useCallback(async () => {
     if (walletDef) {
       let newConfig = {}
@@ -193,32 +202,28 @@ function useConfig (walletDef) {
       }
 
       // fetch server config
-      const serverConfig = await client.query({
-        query: WALLET_BY_TYPE,
-        variables: { type: walletDef.walletType },
-        fetchPolicy: 'network-only'
-      })
+      const serverConfig = await queryServerWallet()
 
-      if (serverConfig?.data?.walletByType) {
+      if (serverConfig) {
         newConfig = {
           ...newConfig,
-          id: serverConfig.data.walletByType.id,
-          priority: serverConfig.data.walletByType.priority,
-          enabled: serverConfig.data.walletByType.enabled
+          id: serverConfig.id,
+          priority: serverConfig.priority,
+          enabled: serverConfig.enabled
         }
-        if (serverConfig.data.walletByType.wallet) {
+        if (serverConfig.wallet) {
           newConfig = {
             ...newConfig,
-            ...serverConfig.data.walletByType.wallet
+            ...serverConfig.wallet
           }
         }
       }
 
       // fetch client config
       let clientConfig = {}
-      if (serverConfig?.data?.walletByType) {
+      if (serverConfig) {
         if (clientVault.current) clientVault.current.close()
-        const newClientVault = openVault(client, me, serverConfig.data.walletByType)
+        const newClientVault = openVault(client, me, serverConfig)
         clientVault.current = newClientVault
         clientConfig = await newClientVault.get(walletDef.name, {})
         if (clientConfig) {
@@ -248,7 +253,7 @@ function useConfig (walletDef) {
       innerSetConfig(newConfig)
 
       // set wallet ref
-      innerSetCurrentWallet(serverConfig.data.walletByType)
+      innerSetCurrentWallet(serverConfig)
     }
   }, [walletDef, me])
 
@@ -257,6 +262,7 @@ function useConfig (walletDef) {
   }, [walletDef, me])
 
   const saveConfig = useCallback(async (newConfig, { logger, skipTests }) => {
+    const serverConfig = await queryServerWallet()
     const priorityOnly = skipTests
     try {
       // gather configs
@@ -308,7 +314,7 @@ function useConfig (walletDef) {
       const mutation = generateMutation(walletDef)
       const variables = {
         ...newServerConfig,
-        id: currentWallet?.id,
+        id: serverConfig?.id,
         settings: {
           autoWithdrawThreshold: Number(autoWithdrawThreshold == null ? autowithdrawSettings.autoWithdrawThreshold : autoWithdrawThreshold),
           autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent == null ? autowithdrawSettings.autoWithdrawMaxFeePercent : autoWithdrawMaxFeePercent),

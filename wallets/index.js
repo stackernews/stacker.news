@@ -6,7 +6,7 @@ import { bolt11Tags } from '@/lib/bolt11'
 
 import walletDefs from 'wallets/client'
 import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
-import { REMOVE_WALLET, WALLET_BY_TYPE, BEST_SEND_WALLETS } from '@/fragments/wallet'
+import { REMOVE_WALLET, WALLET_BY_TYPE, BEST_WALLETS } from '@/fragments/wallet'
 import { autowithdrawInitial } from '@/components/autowithdraw-shared'
 import { useShowModal } from '@/components/modal'
 import { useToast } from '../components/toast'
@@ -48,7 +48,7 @@ function useWalletInner (name) {
   const walletDef = getWalletByName(name)
 
   const { logger, deleteLogs } = useWalletLogger(walletDef)
-  const [config, saveConfig, clearConfig] = useConfig(walletDef)
+  const [config, saveConfig, clearConfig, refreshConfig] = useConfig(walletDef)
   const available = (!walletDef?.isAvailable || walletDef?.isAvailable())
 
   const status = config?.enabled && available && (config.canSend || config.canReceive) ? Status.Enabled : Status.Initialized
@@ -140,7 +140,9 @@ function useWalletInner (name) {
   wallet.logger = logger
   wallet.sendPayment = sendPayment
   wallet.def = walletDef
-
+  wallet.refresh = () => {
+    return refreshConfig()
+  }
   return wallet
 }
 
@@ -379,7 +381,7 @@ function useConfig (walletDef) {
     }
   }, [config, currentWallet])
 
-  return [config, saveConfig, clearConfig]
+  return [config, saveConfig, clearConfig, refreshConfig]
 }
 
 function generateMutation (wallet) {
@@ -462,7 +464,7 @@ export function WalletProvider ({ children }) {
   const migratableKeys = !migrationRan.current && !SSR ? Object.keys(window.localStorage).filter(k => k.startsWith('wallet:')) : undefined
 
   const walletList = walletDefs.map(def => useWalletInner(def.name)).filter(w => w)
-  const { data: bestSendWalletList } = useQuery(BEST_SEND_WALLETS, SSR
+  const { data: bestWalletList } = useQuery(BEST_WALLETS, SSR
     ? {}
     : {
         pollInterval: POLL_INTERVAL,
@@ -477,11 +479,14 @@ export function WalletProvider ({ children }) {
   }
 
   const wallets = walletList.sort(walletPrioritySort)
-  const [bestSendWallets, innerSetBestSendWallets] = useState(() => processSendWallets(bestSendWalletList))
+  const [bestSendWallets, innerSetBestSendWallets] = useState(() => processSendWallets(bestWalletList))
 
   useEffect(() => {
-    innerSetBestSendWallets(processSendWallets(bestSendWalletList))
-  }, [bestSendWalletList])
+    innerSetBestSendWallets(processSendWallets(bestWalletList))
+    for (const wallet of wallets) {
+      wallet.refresh()
+    }
+  }, [bestWalletList])
 
   // migration
   useEffect(() => {

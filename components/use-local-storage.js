@@ -1,6 +1,6 @@
 import { SSR } from '@/lib/constants'
 import { useMe } from './me'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import createTaskQueue from '@/lib/task-queue'
 
 const VERSION = 1
@@ -18,24 +18,24 @@ export default function useLocalStorage ({ database = 'default', namespace = ['d
   const { me } = useMe()
   if (!Array.isArray(namespace)) namespace = [namespace]
   const joinedNamespace = namespace.join(':')
-  const [storage, setStorage] = useState(openLocalStorage({ database, userId: me?.id, namespace }))
+  const storage = useRef(openLocalStorage({ database, userId: me?.id, namespace }))
 
   useEffect(() => {
-    const currentStorage = storage
+    const currentStorage = storage.current
     const newStorage = openLocalStorage({ database, userId: me?.id, namespace })
-    setStorage(newStorage)
-    if (currentStorage) currentStorage.close()
+    storage.current = newStorage
+    if (currentStorage)currentStorage.close()
     return () => {
       newStorage.close()
     }
   }, [me, database, joinedNamespace])
 
   return [{
-    set: storage.set,
-    get: storage.get,
-    unset: storage.unset,
-    clear: storage.clear,
-    list: storage.list
+    set: (key, value) => storage.current.set(key, value),
+    get: (key) => storage.current.get(key),
+    unset: (key) => storage.current.unset(key),
+    clear: () => storage.current.clear(),
+    list: () => storage.current.list()
   }]
 }
 

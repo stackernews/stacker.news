@@ -48,6 +48,7 @@ function injectResolvers (resolvers) {
         }
       }
 
+      if (!canReceive && !canSend) throw new GqlInputError('wallet must be able to send or receive')
       return await upsertWallet({
         wallet: {
           field:

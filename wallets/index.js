@@ -313,6 +313,8 @@ function useConfig (walletDef) {
       }
 
       // set server config (will create wallet if it doesn't exist) (it is also testing receive config)
+      if (!isReadyToSend && !isReadyToReceive) throw new Error('wallet should be configured to send or receive payments')
+
       const mutation = generateMutation(walletDef)
       const variables = {
         ...newServerConfig,
@@ -321,7 +323,7 @@ function useConfig (walletDef) {
           autoWithdrawThreshold: Number(autoWithdrawThreshold == null ? autowithdrawSettings.autoWithdrawThreshold : autoWithdrawThreshold),
           autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent == null ? autowithdrawSettings.autoWithdrawMaxFeePercent : autoWithdrawMaxFeePercent),
           priority,
-          enabled: enabled && (isReadyToSend || isReadyToReceive)
+          enabled
         },
         canSend: isReadyToSend,
         canReceive: isReadyToReceive,
@@ -503,15 +505,20 @@ export function WalletProvider ({ children }) {
     const userKeys = migratableKeys.filter(k => k.endsWith(`:${userId}`))
     ;(async () => {
       for (const key of userKeys) {
-        const walletType = key.substring('wallet:'.length, key.length - userId.length - 1)
-        const walletConfig = JSON.parse(window.localStorage.getItem(key))
-        const wallet = wallets.find(w => w.def.name === walletType)
-        if (wallet) {
-          console.log('Migrating', walletType, walletConfig)
-          await wallet.save(walletConfig)
+        try {
+          const walletType = key.substring('wallet:'.length, key.length - userId.length - 1)
+          const walletConfig = JSON.parse(window.localStorage.getItem(key))
+          const wallet = wallets.find(w => w.def.name === walletType)
+          if (wallet) {
+            console.log('Migrating', walletType, walletConfig)
+            await wallet.save(walletConfig)
+            window.localStorage.removeItem(key)
+          } else {
+            console.warn('No wallet found for', walletType, wallets)
+          }
+        } catch (e) {
           window.localStorage.removeItem(key)
-        } else {
-          console.warn('No wallet found for', walletType, wallets)
+          console.error('Failed to migrate wallet', key, e)
         }
       }
     })()

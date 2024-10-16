@@ -197,6 +197,7 @@ function useConfig (walletDef) {
   }, [walletDef, client])
 
   const refreshConfig = useCallback(async () => {
+    if (!me?.id) return
     if (walletDef) {
       let newConfig = {}
       newConfig = {
@@ -467,12 +468,11 @@ export function WalletProvider ({ children }) {
   const migratableKeys = !migrationRan.current && !SSR ? Object.keys(window.localStorage).filter(k => k.startsWith('wallet:')) : undefined
 
   const walletList = walletDefs.map(def => useWalletInner(def.name)).filter(w => w)
-  const { data: bestWalletList } = useQuery(BEST_WALLETS, SSR
-    ? {}
-    : {
-        pollInterval: POLL_INTERVAL,
-        nextFetchPolicy: 'cache-and-network'
-      })
+  const { data: bestWalletList } = useQuery(BEST_WALLETS, {
+    pollInterval: POLL_INTERVAL,
+    nextFetchPolicy: 'cache-and-network',
+    skip: !me?.id
+  })
 
   const processSendWallets = (bestWalletData) => {
     const clientSideSorting = false // sorting is now done on the server

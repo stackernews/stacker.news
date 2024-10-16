@@ -1,4 +1,4 @@
-import cookie from 'cookie'
+import * as cookie from 'cookie'
 import { datePivot } from '../../lib/time'
 
 /**

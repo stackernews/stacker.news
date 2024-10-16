@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
-import cookie from 'cookie'
+import * as cookie from 'cookie'
 import { useMe } from '@/components/me'
 import { USER_ID, SSR } from '@/lib/constants'
 import { USER } from '@/fragments/users'

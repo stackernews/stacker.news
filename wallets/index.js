@@ -196,7 +196,7 @@ function useConfig (walletDef) {
       const serverConfig = await client.query({
         query: WALLET_BY_TYPE,
         variables: { type: walletDef.walletType },
-        fetchPolicy: 'no-cache'
+        fetchPolicy: 'network-only'
       })
 
       if (serverConfig?.data?.walletByType) {
@@ -284,7 +284,7 @@ function useConfig (walletDef) {
       // check if it misses send or receive configs
       const isReadyToSend = canSend && isConfigured({ fields: walletDef.fields, config: newConfig, clientOnly: true })
       const isReadyToReceive = canReceive && isConfigured({ fields: walletDef.fields, config: newConfig, serverOnly: true })
-      const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, priority, enabled } = newServerConfig
+      const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, priority, enabled } = newConfig
 
       // console.log('New client config', newClientConfig)
       // console.log('New server config', newServerConfig)
@@ -453,22 +453,30 @@ export function useWallets () {
 
 export function WalletProvider ({ children }) {
   const { me } = useMe()
-  const wallets = walletDefs.map(def => useWalletInner(def.name)).filter(w => w)
-
   const migrationRan = useRef(false)
   const migratableKeys = !migrationRan.current && !SSR ? Object.keys(window.localStorage).filter(k => k.startsWith('wallet:')) : undefined
 
-  const { data: bestSendWalletListData } = useQuery(BEST_SEND_WALLETS, {
-    pollInterval: POLL_INTERVAL,
-    nextFetchPolicy: 'network-only',
-    fetchPolicy: 'network-only'
-  })
+  const walletList = walletDefs.map(def => useWalletInner(def.name)).filter(w => w)
+  const { data: bestSendWalletList } = useQuery(BEST_SEND_WALLETS, SSR
+    ? {}
+    : {
+        pollInterval: POLL_INTERVAL,
+        nextFetchPolicy: 'cache-and-network'
+      })
 
-  const [bestSendWalletList, setBestSendWalletList] = useState(bestSendWalletListData?.wallets ?? [])
+  const processSendWallets = (bestWalletData) => {
+    const clientSideSorting = false // sorting is now done on the server
+    let wallets = (bestWalletData?.wallets ?? []).filter(w => w.canSend)
+    if (clientSideSorting) wallets = wallets.sort(walletPrioritySort)
+    return wallets
+  }
+
+  const wallets = walletList.sort(walletPrioritySort)
+  const [bestSendWallets, innerSetBestSendWallets] = useState(() => processSendWallets(bestSendWalletList))
 
   useEffect(() => {
-    setBestSendWalletList(bestSendWalletListData?.wallets)
-  }, [bestSendWalletListData])
+    innerSetBestSendWallets(processSendWallets(bestSendWalletList))
+  }, [bestSendWalletList])
 
   // migration
   useEffect(() => {
@@ -499,7 +507,7 @@ export function WalletProvider ({ children }) {
   }, [])
 
   return (
-    <WalletContext.Provider value={{ wallets, sendWallets: bestSendWalletList }}>
+    <WalletContext.Provider value={{ wallets, sendWallets: bestSendWallets }}>
       {children}
     </WalletContext.Provider>
   )

@@ -30,7 +30,13 @@ export default function useLocalStorage ({ database = 'default', namespace = ['d
     }
   }, [me, database, joinedNamespace])
 
-  return [storage]
+  return [{
+    set: storage.set,
+    get: storage.get,
+    unset: storage.unset,
+    clear: storage.clear,
+    list: storage.list
+  }]
 }
 
 /**
@@ -167,7 +173,7 @@ function newIdxDBBackend (userId, database, namespace) {
   const queue = createTaskQueue()
 
   let openConnection = null
-
+  let closed = false
   const initialize = async () => {
     if (!openConnection) {
       openConnection = await openIdxDB(userId, database, (db) => {
@@ -249,6 +255,8 @@ function newIdxDBBackend (userId, database, namespace) {
       })
     },
     close: async () => {
+      if (closed) return
+      closed = true
       queue.enqueue(async () => {
         if (openConnection) await openConnection.close()
       })

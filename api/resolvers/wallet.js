@@ -672,7 +672,10 @@ async function upsertWallet (
   if (!me) throw new GqlAuthenticationError()
   assertApiKeyNotPermitted({ me })
 
-  if (testCreateInvoice && !priorityOnly && canReceive) {
+  const { id, ...walletData } = data
+  const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, enabled, priority } = settings
+
+  if (testCreateInvoice && !priorityOnly && canReceive && enabled) {
     try {
       await testCreateInvoice(data)
     } catch (err) {
@@ -684,9 +687,6 @@ async function upsertWallet (
       throw new GqlInputError(message)
     }
   }
-
-  const { id, ...walletData } = data
-  const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, enabled, priority } = settings
 
   return await models.$transaction(async (tx) => {
     if (canReceive) {

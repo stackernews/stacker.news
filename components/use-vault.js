@@ -18,6 +18,7 @@ export function useVaultConfigurator () {
 
   const [vaultKey, innerSetVaultKey] = useState(null)
   const [config, configError] = useConfig()
+  const [vaultKeyHash, setVaultKeyHashLocal] = useState(null)
 
   useEffect(() => {
     if (!me) return
@@ -27,11 +28,12 @@ export function useVaultConfigurator () {
     }
     (async () => {
       let localVaultKey = await config.get('key')
-      if (localVaultKey && (!me.privates.vaultKeyHash || localVaultKey?.hash !== me.privates.vaultKeyHash)) {
+      const keyHash = me?.privates?.vaultKeyHash || vaultKeyHash
+      if ((!keyHash && localVaultKey?.hash) || (localVaultKey?.hash !== keyHash)) {
         // If the hash stored in the server does not match the hash of the local key,
         // we can tell that the key is outdated (reset by another device or other reasons)
         // in this case we clear the local key and let the user re-enter the passphrase
-        console.log('vault key hash mismatch, clearing local key', localVaultKey, me.privates.vaultKeyHash)
+        console.log('vault key hash mismatch, clearing local key', localVaultKey?.hash, '!=', keyHash)
         localVaultKey = null
         await config.unset('key')
       }
@@ -61,6 +63,7 @@ export function useVaultConfigurator () {
       }
     })
     innerSetVaultKey(vaultKey)
+    setVaultKeyHashLocal(vaultKey.hash)
     await config.set('key', vaultKey)
   }, [setVaultKeyHash])
 
@@ -237,7 +240,7 @@ export function openVault (apollo, user, owner) {
       if ((!user.privates.vaultKeyHash && localVaultKey?.hash) || (localVaultKey?.hash !== user.privates.vaultKeyHash)) {
       // no or different vault setup on server: use unencrypted local storage
       // and clear local key if it exists
-        console.log('Vault key hash mismatch, clearing local key', localVaultKey, user.privates.vaultKeyHash)
+        console.log('Vault key hash mismatch, clearing local key', localVaultKey?.hash, user.privates.vaultKeyHash)
         await config.unset('key')
         return ((await localStore.get(key)) || defaultValue)
       }

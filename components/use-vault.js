@@ -131,6 +131,12 @@ export function useVaultMigration () {
   return migrate
 }
 
+export async function unsetLocalKey (userId) {
+  const config = await openConfig(userId)
+  await config.unset('key')
+  await config.close()
+}
+
 /**
  * A react hook to use the vault for a specific owner entity and key
  * It will automatically handle the vault lifecycle and value updates

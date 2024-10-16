@@ -117,7 +117,7 @@ export function useVaultMigration () {
             migratedCount++
             console.log('migrated to vault:', entryName)
           } else {
-            throw new Error('could not set vault entry')
+            console.log('could not set vault entry:', entryName)
           }
         } catch (e) {
           console.error('failed migrate to vault:', entryName, e)

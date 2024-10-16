@@ -176,7 +176,7 @@ const resolvers = {
       })
       return wallet
     },
-    wallets: async (parent, { includeReceivers = true, includeSenders = true, onlyEnabled = false }, { me, models }) => {
+    wallets: async (parent, { includeReceivers = true, includeSenders = true, onlyEnabled = false, prioritySort = undefined }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
@@ -202,7 +202,7 @@ const resolvers = {
       const out = await models.wallet.findMany({
         where: filter,
         orderBy: {
-          priority: 'asc'
+          priority: prioritySort
         }
       })
       return out

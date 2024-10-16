@@ -4,7 +4,7 @@ import { useMutation, useApolloClient } from '@apollo/client'
 import { SET_ENTRY, UNSET_ENTRY, GET_ENTRY, CLEAR_VAULT, SET_VAULT_KEY_HASH } from '@/fragments/vault'
 import { E_VAULT_KEY_EXISTS } from '@/lib/error'
 import { useToast } from '@/components/toast'
-import useLocalStorage, { openLocalStorage, listLocalStorages } from '@/components/use-local-storage'
+import { openLocalStorage, listLocalStorages } from '@/components/use-local-storage'
 import { toHex, fromHex } from '@/lib/hex'
 import createTaskQueue from '@/lib/task-queue'
 
@@ -17,61 +17,84 @@ export function useVaultConfigurator () {
   const [setVaultKeyHash] = useMutation(SET_VAULT_KEY_HASH)
 
   const [vaultKey, innerSetVaultKey] = useState(null)
-  const [config, configError] = useConfig()
   const [vaultKeyHash, setVaultKeyHashLocal] = useState(null)
 
   useEffect(() => {
     if (!me) return
-    if (configError) {
-      toaster.danger('error loading vault configuration ' + configError.message)
-      return
-    }
     (async () => {
-      let localVaultKey = await config.get('key')
-      const keyHash = me?.privates?.vaultKeyHash || vaultKeyHash
-      if ((!keyHash && localVaultKey?.hash) || (localVaultKey?.hash !== keyHash)) {
-        // If the hash stored in the server does not match the hash of the local key,
-        // we can tell that the key is outdated (reset by another device or other reasons)
-        // in this case we clear the local key and let the user re-enter the passphrase
-        console.log('vault key hash mismatch, clearing local key', localVaultKey?.hash, '!=', keyHash)
-        localVaultKey = null
-        await config.unset('key')
+      const config = await openConfig(me.id)
+      try {
+        let localVaultKey = await config.get('key')
+        const keyHash = me?.privates?.vaultKeyHash || vaultKeyHash
+        if ((!keyHash && localVaultKey?.hash) || (localVaultKey?.hash && keyHash && localVaultKey?.hash !== keyHash)) {
+          // If the hash stored in the server does not match the hash of the local key,
+          // we can tell that the key is outdated (reset by another device or other reasons)
+          // in this case we clear the local key and let the user re-enter the passphrase
+          console.log('vault key hash mismatch, clearing local key', localVaultKey?.hash, '!=', keyHash)
+          localVaultKey = null
+          await config.unset('key')
+        }
+        innerSetVaultKey(localVaultKey)
+      } catch (e) {
+        toaster.danger('error loading vault configuration ' + e.message)
+      } finally {
+        await config.close()
       }
-      innerSetVaultKey(localVaultKey)
     })()
-  }, [me?.privates?.vaultKeyHash, config, configError])
+  }, [me?.privates?.vaultKeyHash])
 
   // clear vault: remove everything and reset the key
   const [clearVault] = useMutation(CLEAR_VAULT, {
     onCompleted: async () => {
-      await config.unset('key')
-      innerSetVaultKey(null)
+      const config = await openConfig(me.id)
+      try {
+        await config.unset('key')
+        innerSetVaultKey(null)
+      } catch (e) {
+        toaster.danger('error clearing vault ' + e.message)
+      } finally {
+        await config.close()
+      }
     }
   })
 
   // initialize the vault and set a vault key
   const setVaultKey = useCallback(async (passphrase) => {
-    const vaultKey = await deriveKey(me.id, passphrase)
-    await setVaultKeyHash({
-      variables: { hash: vaultKey.hash },
-      onError: (error) => {
-        const errorCode = error.graphQLErrors[0]?.extensions?.code
-        if (errorCode === E_VAULT_KEY_EXISTS) {
-          throw new Error('wrong passphrase')
+    const config = await openConfig(me.id)
+    try {
+      const vaultKey = await deriveKey(me.id, passphrase)
+      await setVaultKeyHash({
+        variables: { hash: vaultKey.hash },
+        onError: (error) => {
+          const errorCode = error.graphQLErrors[0]?.extensions?.code
+          if (errorCode === E_VAULT_KEY_EXISTS) {
+            throw new Error('wrong passphrase')
+          }
+          toaster.danger(error.graphQLErrors[0].message)
         }
-        toaster.danger(error.graphQLErrors[0].message)
-      }
-    })
-    innerSetVaultKey(vaultKey)
-    setVaultKeyHashLocal(vaultKey.hash)
-    await config.set('key', vaultKey)
+      })
+      innerSetVaultKey(vaultKey)
+      setVaultKeyHashLocal(vaultKey.hash)
+      await config.set('key', vaultKey)
+    } catch (e) {
+      toaster.danger('error setting vault key ' + e.message)
+    } finally {
+      await config.close()
+    }
   }, [setVaultKeyHash])
 
   // disconnect the user from the vault (will not clear or reset the passphrase, use clearVault for that)
   const disconnectVault = useCallback(async () => {
-    await config.unset('key')
-    innerSetVaultKey(null)
-  }, [innerSetVaultKey, config])
+    const config = await openConfig(me.id)
+    try {
+      await config.unset('key')
+      innerSetVaultKey(null)
+    } catch (e) {
+      toaster.danger('error disconnecting vault ' + e.message)
+    } finally {
+      await config.close()
+    }
+  }, [innerSetVaultKey])
 
   return [vaultKey, setVaultKey, clearVault, disconnectVault]
 }
@@ -330,10 +353,6 @@ export function openVault (apollo, user, owner) {
   }
 
   return { get: getValue, set: setValue, clear: clearValue, close }
-}
-
-function useConfig () {
-  return useLocalStorage({ database: 'vault-config', namespace: ['settings'], supportLegacy: false })
 }
 
 async function openConfig (userId) {

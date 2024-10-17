@@ -43,7 +43,7 @@ export function WalletLogs ({ wallet, embedded }) {
           ? <div className='w-100 text-center'>loading...</div>
           : logs.length === 0 && <div className='w-100 text-center'>empty</div>}
         {hasMore
-          ? <Button onClick={loadMore} size='sm' className='mt-3'>Load More</Button>
+          ? <div className='w-100 text-center'><Button onClick={loadMore} size='sm' className='mt-3'>more</Button></div>
           : <div className='w-100 text-center'>------ start of logs ------</div>}
       </div>
     </>

@@ -21,19 +21,24 @@ getWalletInfo({ lnd }, (err, result) => {
 
 export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, request, timeout }) {
   return await new Promise((resolve, reject) => {
+    const params = {}
+    if (request) {
+      params.payment_request = request
+    } else {
+      params.dest = Buffer.from(destination, 'hex')
+      params.amt_sat = tokens ? toPositiveNumber(tokens) : toPositiveNumber(BigInt(mtokens) / BigInt(1e3))
+    }
+
     lnd.router.estimateRouteFee({
-      dest: Buffer.from(destination, 'hex'),
-      amt_sat: tokens ? toPositiveNumber(tokens) : toPositiveNumber(BigInt(mtokens) / BigInt(1e3)),
-      payment_request: request,
+      ...params,
       timeout
     }, (err, res) => {
       if (err) {
-        reject(err)
-        return
-      }
-
-      if (res?.failure_reason) {
-        reject(new Error(`Unable to estimate route: ${res.failure_reason}`))
+        if (res?.failure_reason) {
+          reject(new Error(`Unable to estimate route: ${res.failure_reason}`))
+        } else {
+          reject(err)
+        }
         return
       }
 

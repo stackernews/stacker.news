@@ -36,7 +36,7 @@ export default async function wrapInvoice (bolt11, { msats, description, descrip
       throw new Error('Unable to decode invoice')
     }
 
-    console.log('invoice', inv.mtokens, inv.expires_at, inv.cltv_delta)
+    console.log('invoice', inv.id, inv.mtokens, inv.expires_at, inv.cltv_delta, inv.destination)
 
     // validate outgoing amount
     if (inv.mtokens) {

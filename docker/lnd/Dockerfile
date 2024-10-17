@@ -1,4 +1,4 @@
-FROM polarlightning/lnd:0.17.5-beta
+FROM polarlightning/lnd:0.18.0-beta
 
 ARG LN_NODE_FOR
 ENV LN_NODE_FOR=$LN_NODE_FOR

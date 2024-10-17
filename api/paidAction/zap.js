@@ -1,10 +1,16 @@
-import { USER_ID } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyZapped } from '@/lib/webPush'
 
 export const anonable = true
-export const supportsPessimism = true
-export const supportsOptimism = true
+
+export const paymentMethods = [
+  PAID_ACTION_PAYMENT_METHODS.P2P,
+  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.REWARD_SATS,
+  PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC,
+  PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
+]
 
 export async function getCost ({ sats }) {
   return satsToMsats(sats)
@@ -95,19 +101,19 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
       SELECT COALESCE(SUM(msats), 0) as msats
       FROM forwardees
     ), recipients AS (
-      SELECT "userId", msats, msats AS "stackedMsats" FROM forwardees
+      SELECT "userId", msats AS mcredits, msats AS "stackedMsats" FROM forwardees
       UNION
       SELECT ${itemAct.item.userId}::INTEGER as "userId",
         CASE WHEN ${!!invoice?.invoiceForward}::BOOLEAN
           THEN 0::BIGINT
           ELSE ${itemAct.msats}::BIGINT - (SELECT msats FROM total_forwarded)::BIGINT
-        END as msats,
+        END as mcredits,
         ${itemAct.msats}::BIGINT - (SELECT msats FROM total_forwarded)::BIGINT as "stackedMsats"
       ORDER BY "userId" ASC -- order to prevent deadlocks
     )
     UPDATE users
     SET
-      msats = users.msats + recipients.msats,
+      mcredits = users.mcredits + recipients.mcredits,
       "stackedMsats" = users."stackedMsats" + recipients."stackedMsats"
     FROM recipients
     WHERE users.id = recipients."userId"`

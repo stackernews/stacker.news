@@ -188,10 +188,33 @@ export const WALLET_BY_TYPE = gql`
 
 export const WALLETS = gql`
   query Wallets {
-    wallets {
+    wallets{
+      id
+      priority
+      type,
+      canSend,
+      canReceive
+    }
+  }
+`
+
+export const BEST_WALLETS = gql`
+  query BestWallets {
+    wallets (includeSenders: true, includeReceivers: true, onlyEnabled: true, prioritySort: "asc") {
       id
       priority
       type
+      updatedAt
+    }
+  }
+`
+export const BEST_SEND_WALLETS = gql`
+  query BestWallets {
+    wallets (includeSenders: true, includeReceivers: false, onlyEnabled: true, prioritySort: "asc") {
+      id
+      priority
+      type
+      updatedAt
     }
   }
 `

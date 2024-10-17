@@ -1,18 +1,18 @@
-import { useCallback } from 'react'
+import { createContext, useContext, useCallback, useState, useEffect, useRef } from 'react'
 import { useMe } from '@/components/me'
-import useClientConfig from '@/components/use-local-state'
+import { openVault } from '@/components/use-vault'
 import { useWalletLogger } from '@/components/wallet-logger'
-import { SSR } from '@/lib/constants'
 import { bolt11Tags } from '@/lib/bolt11'
 
 import walletDefs from 'wallets/client'
 import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
-import { REMOVE_WALLET, WALLET_BY_TYPE } from '@/fragments/wallet'
+import { REMOVE_WALLET, WALLET_BY_TYPE, BEST_WALLETS } from '@/fragments/wallet'
 import { autowithdrawInitial } from '@/components/autowithdraw-shared'
 import { useShowModal } from '@/components/modal'
 import { useToast } from '../components/toast'
-import { generateResolverName } from '@/lib/wallet'
+import { generateResolverName, isConfigured, isClientField, isServerField } from '@/lib/wallet'
 import { walletValidate } from '@/lib/validate'
+import { SSR, FAST_POLL_INTERVAL as POLL_INTERVAL } from '@/lib/constants'
 
 export const Status = {
   Initialized: 'Initialized',
@@ -21,89 +21,112 @@ export const Status = {
   Error: 'Error'
 }
 
+const WalletContext = createContext({
+  wallets: [],
+  sendWallets: []
+})
+
 export function useWallet (name) {
+  const context = useContext(WalletContext)
+  const bestSendWalletList = context.sendWallets
+  if (!name) {
+    // find best wallet in list
+    const highestWalletDef = bestSendWalletList?.map(w => getWalletByType(w.type))
+      .filter(w => !w.isAvailable || w.isAvailable())
+    name = highestWalletDef?.[0]?.name
+  }
+  const wallet = context.wallets.find(w => w.def.name === name)
+  return wallet
+}
+
+function useWalletInner (name) {
   const { me } = useMe()
   const showModal = useShowModal()
   const toaster = useToast()
   const [disableFreebies] = useMutation(gql`mutation { disableFreebies }`)
 
-  const wallet = name ? getWalletByName(name) : getEnabledWallet(me)
-  const { logger, deleteLogs } = useWalletLogger(wallet)
+  const walletDef = getWalletByName(name)
 
-  const [config, saveConfig, clearConfig] = useConfig(wallet)
-  const hasConfig = wallet?.fields.length > 0
-  const _isConfigured = isConfigured({ ...wallet, config })
+  const { logger, deleteLogs } = useWalletLogger(walletDef)
+  const [config, saveConfig, clearConfig, refreshConfig] = useConfig(walletDef)
+  const available = (!walletDef?.isAvailable || walletDef?.isAvailable())
 
-  const enablePayments = useCallback(() => {
-    enableWallet(name, me)
-    logger.ok('payments enabled')
-    disableFreebies().catch(console.error)
-  }, [name, me, logger])
-
-  const disablePayments = useCallback(() => {
-    disableWallet(name, me)
-    logger.info('payments disabled')
-  }, [name, me, logger])
-
-  const status = config?.enabled ? Status.Enabled : Status.Initialized
+  const status = config?.enabled && available && (config.canSend || config.canReceive) ? Status.Enabled : Status.Initialized
   const enabled = status === Status.Enabled
   const priority = config?.priority
+  const hasConfig = walletDef?.fields?.length > 0
+  const _isConfigured = useCallback(() => {
+    return isConfigured({ ...walletDef, config })
+  }, [walletDef, config])
+
+  const enablePayments = useCallback((updatedConfig) => {
+    saveConfig({ ...(updatedConfig || config), enabled: true }, { skipTests: true })
+    logger.ok('payments enabled')
+    disableFreebies().catch(console.error)
+  }, [config])
+
+  const disablePayments = useCallback((updatedConfig) => {
+    saveConfig({ ...(updatedConfig || config), enabled: false }, { skipTests: true })
+    logger.info('payments disabled')
+  }, [config])
 
   const sendPayment = useCallback(async (bolt11) => {
     const hash = bolt11Tags(bolt11).payment_hash
     logger.info('sending payment:', `payment_hash=${hash}`)
     try {
-      const preimage = await wallet.sendPayment(bolt11, config, { me, logger, status, showModal })
+      const preimage = await walletDef.sendPayment(bolt11, config, { me, logger, status, showModal })
       logger.ok('payment successful:', `payment_hash=${hash}`, `preimage=${preimage}`)
     } catch (err) {
       const message = err.message || err.toString?.()
       logger.error('payment failed:', `payment_hash=${hash}`, message)
       throw err
     }
-  }, [me, wallet, config, logger, status])
+  }, [me, walletDef, config])
 
   const setPriority = useCallback(async (priority) => {
-    if (_isConfigured && priority !== config.priority) {
+    if (_isConfigured() && priority !== config.priority) {
       try {
-        await saveConfig({ ...config, priority }, { logger, priorityOnly: true })
+        await saveConfig({ ...config, priority }, { logger, skipTests: true })
       } catch (err) {
-        toaster.danger(`failed to change priority of ${wallet.name} wallet: ${err.message}`)
+        toaster.danger(`failed to change priority of ${walletDef.name} wallet: ${err.message}`)
       }
     }
-  }, [wallet, config, toaster])
+  }, [walletDef, config])
 
   const save = useCallback(async (newConfig) => {
     await saveConfig(newConfig, { logger })
-  }, [saveConfig, me, logger])
+    const available = (!walletDef.isAvailable || walletDef.isAvailable())
+    logger.ok(_isConfigured() ? 'payment details updated' : 'wallet attached for payments')
+    if (newConfig.enabled && available) logger.ok('payments enabled')
+    else logger.ok('payments disabled')
+  }, [saveConfig, me])
 
   // delete is a reserved keyword
   const delete_ = useCallback(async (options) => {
     try {
+      logger.ok('wallet detached for payments')
       await clearConfig({ logger, ...options })
     } catch (err) {
       const message = err.message || err.toString?.()
       logger.error(message)
       throw err
     }
-  }, [clearConfig, logger, disablePayments])
+  }, [clearConfig])
 
   const deleteLogs_ = useCallback(async (options) => {
     // first argument is to override the wallet
     return await deleteLogs(options)
   }, [deleteLogs])
 
-  if (!wallet) return null
+  if (!walletDef) return null
 
-  // Assign everything to wallet object so every function that is passed this wallet object in this
-  // `useWallet` hook has access to all others via the reference to it.
-  // Essentially, you can now use functions like `enablePayments` _inside_ of functions that are
-  // called by `useWallet` even before enablePayments is defined and not only in functions
-  // that use the return value of `useWallet`.
-  wallet.isConfigured = _isConfigured
+  const wallet = { ...walletDef }
+
+  wallet.isConfigured = _isConfigured()
   wallet.enablePayments = enablePayments
   wallet.disablePayments = disablePayments
-  wallet.canSend = !!wallet.sendPayment
-  wallet.canReceive = !!wallet.createInvoice
+  wallet.canSend = config.canSend && available
+  wallet.canReceive = config.canReceive
   wallet.config = config
   wallet.save = save
   wallet.delete = delete_
@@ -112,15 +135,18 @@ export function useWallet (name) {
   wallet.hasConfig = hasConfig
   wallet.status = status
   wallet.enabled = enabled
+  wallet.available = available
   wallet.priority = priority
   wallet.logger = logger
-
-  // can't assign sendPayment to wallet object because it already exists
-  // as an imported function and thus can't be overwritten
-  return { ...wallet, sendPayment }
+  wallet.sendPayment = sendPayment
+  wallet.def = walletDef
+  wallet.refresh = () => {
+    return refreshConfig()
+  }
+  return wallet
 }
 
-function extractConfig (fields, config, client) {
+function extractConfig (fields, config, client, includeMeta = true) {
   return Object.entries(config).reduce((acc, [key, value]) => {
     const field = fields.find(({ name }) => name === key)
 
@@ -128,7 +154,7 @@ function extractConfig (fields, config, client) {
     if (client && (key.startsWith('autoWithdraw') || key === 'id')) return acc
 
     // field might not exist because config.enabled doesn't map to a wallet field
-    if (!field || (client ? isClientField(field) : isServerField(field))) {
+    if ((!field && includeMeta) || (field && (client ? isClientField(field) : isServerField(field)))) {
       return {
         ...acc,
         [key]: value
@@ -139,201 +165,226 @@ function extractConfig (fields, config, client) {
   }, {})
 }
 
-export function isServerField (f) {
-  return f.serverOnly || !f.clientOnly
-}
-
-export function isClientField (f) {
-  return f.clientOnly || !f.serverOnly
-}
-
 function extractClientConfig (fields, config) {
-  return extractConfig(fields, config, true)
+  return extractConfig(fields, config, true, false)
 }
 
 function extractServerConfig (fields, config) {
-  return extractConfig(fields, config, false)
+  return extractConfig(fields, config, false, true)
 }
 
-function useConfig (wallet) {
+function useConfig (walletDef) {
+  const client = useApolloClient()
   const { me } = useMe()
+  const toaster = useToast()
+  const autowithdrawSettings = autowithdrawInitial({ me })
+  const clientVault = useRef(null)
 
-  const storageKey = getStorageKey(wallet?.name, me)
-  const [clientConfig, setClientConfig, clearClientConfig] = useClientConfig(storageKey, {})
+  const [config, innerSetConfig] = useState({})
+  const [currentWallet, innerSetCurrentWallet] = useState(null)
 
-  const [serverConfig, setServerConfig, clearServerConfig] = useServerConfig(wallet)
+  const canSend = !!walletDef?.sendPayment
+  const canReceive = !walletDef?.clientOnly
 
-  const hasClientConfig = !!wallet?.sendPayment
-  const hasServerConfig = !!wallet?.walletType
+  const queryServerWallet = useCallback(async () => {
+    const wallet = await client.query({
+      query: WALLET_BY_TYPE,
+      variables: { type: walletDef.walletType },
+      fetchPolicy: 'network-only'
+    })
+    return wallet?.data?.walletByType
+  }, [walletDef, client])
 
-  let config = {}
-  if (hasClientConfig) config = clientConfig
-  if (hasServerConfig) {
-    const { enabled, priority } = config || {}
-    config = {
-      ...config,
-      ...serverConfig
+  const refreshConfig = useCallback(async () => {
+    if (!me?.id) return
+    if (walletDef) {
+      let newConfig = {}
+      newConfig = {
+        ...autowithdrawSettings
+      }
+
+      // fetch server config
+      const serverConfig = await queryServerWallet()
+
+      if (serverConfig) {
+        newConfig = {
+          ...newConfig,
+          id: serverConfig.id,
+          priority: serverConfig.priority,
+          enabled: serverConfig.enabled
+        }
+        if (serverConfig.wallet) {
+          newConfig = {
+            ...newConfig,
+            ...serverConfig.wallet
+          }
+        }
+      }
+
+      // fetch client config
+      let clientConfig = {}
+      if (serverConfig) {
+        if (clientVault.current) clientVault.current.close()
+        const newClientVault = openVault(client, me, serverConfig)
+        clientVault.current = newClientVault
+        clientConfig = await newClientVault.get(walletDef.name, {})
+        if (clientConfig) {
+          for (const [key, value] of Object.entries(clientConfig)) {
+            if (newConfig[key] === undefined) {
+              newConfig[key] = value
+            } else {
+              console.warn('Client config key', key, 'already exists in server config')
+            }
+          }
+        }
+      }
+
+      if (newConfig.canSend == null) {
+        newConfig.canSend = canSend && isConfigured({ fields: walletDef.fields, config: newConfig, clientOnly: true })
+      }
+
+      if (newConfig.canReceive == null) {
+        newConfig.canReceive = canReceive && isConfigured({ fields: walletDef.fields, config: newConfig, serverOnly: true })
+      }
+
+      // console.log('Client config', clientConfig)
+      // console.log('Server config', serverConfig)
+      // console.log('Merged config', newConfig)
+
+      // set merged config
+      innerSetConfig(newConfig)
+
+      // set wallet ref
+      innerSetCurrentWallet(serverConfig)
     }
-    // wallet is enabled if enabled is set in client or server config
-    config.enabled ||= enabled
-    // priority might only be set on client or server
-    // ie. if send+recv is available but only one is configured
-    config.priority ||= priority
-  }
+  }, [walletDef, me])
 
-  const saveConfig = useCallback(async (newConfig, { logger, priorityOnly }) => {
-    // NOTE:
-    //   verifying the client/server configuration before saving it
-    //   prevents unsetting just one configuration if both are set.
-    //   This means there is no way of unsetting just one configuration
-    //   since 'detach' detaches both.
-    //   Not optimal UX but the trade-off is saving invalid configurations
-    //   and maybe it's not that big of an issue.
-    if (hasClientConfig) {
-      let newClientConfig = extractClientConfig(wallet.fields, newConfig)
+  useEffect(() => {
+    refreshConfig()
+  }, [walletDef, me])
 
-      let valid = true
+  const saveConfig = useCallback(async (newConfig, { logger, skipTests }) => {
+    const serverConfig = await queryServerWallet()
+    const priorityOnly = skipTests
+    try {
+      // gather configs
+
+      let newClientConfig = extractClientConfig(walletDef.fields, newConfig)
       try {
-        const transformedConfig = await walletValidate(wallet, newClientConfig)
+        const transformedConfig = await walletValidate(walletDef, newClientConfig)
         if (transformedConfig) {
           newClientConfig = Object.assign(newClientConfig, transformedConfig)
         }
-      } catch {
-        valid = false
+      } catch (e) {
+        newClientConfig = {}
       }
 
-      if (valid) {
-        if (priorityOnly) {
-          setClientConfig(newClientConfig)
-        } else {
-          try {
-            // XXX: testSendPayment can return a new config (e.g. lnc)
-            const newerConfig = await wallet.testSendPayment?.(newConfig, { me, logger })
-            if (newerConfig) {
-              newClientConfig = Object.assign(newClientConfig, newerConfig)
-            }
-          } catch (err) {
-            logger.error(err.message)
-            throw err
-          }
-
-          setClientConfig(newClientConfig)
-          logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
-          if (newConfig.enabled) wallet.enablePayments()
-          else wallet.disablePayments()
-        }
-      }
-    }
-
-    if (hasServerConfig) {
-      let newServerConfig = extractServerConfig(wallet.fields, newConfig)
-
-      let valid = true
+      let newServerConfig = extractServerConfig(walletDef.fields, newConfig)
       try {
-        const transformedConfig = await walletValidate(wallet, newServerConfig)
+        const transformedConfig = await walletValidate(walletDef, newServerConfig)
         if (transformedConfig) {
           newServerConfig = Object.assign(newServerConfig, transformedConfig)
         }
-      } catch {
-        valid = false
+      } catch (e) {
+        newServerConfig = {}
       }
 
-      if (valid) await setServerConfig(newServerConfig, { priorityOnly })
-    }
-  }, [hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, wallet])
+      // check if it misses send or receive configs
+      const isReadyToSend = canSend && isConfigured({ fields: walletDef.fields, config: newConfig, clientOnly: true })
+      const isReadyToReceive = canReceive && isConfigured({ fields: walletDef.fields, config: newConfig, serverOnly: true })
+      const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, priority, enabled } = newConfig
 
-  const clearConfig = useCallback(async ({ logger, clientOnly }) => {
-    if (hasClientConfig) {
-      clearClientConfig()
-      wallet.disablePayments()
-      logger.ok('wallet detached for payments')
-    }
-    if (hasServerConfig && !clientOnly) await clearServerConfig()
-  }, [hasClientConfig, hasServerConfig, clearClientConfig, clearServerConfig, wallet])
+      // console.log('New client config', newClientConfig)
+      // console.log('New server config', newServerConfig)
+      // console.log('Sender', isReadyToSend, 'Receiver', isReadyToReceive, 'enabled', enabled, autoWithdrawThreshold, autoWithdrawMaxFeePercent, priority)
 
-  return [config, saveConfig, clearConfig]
-}
-
-function isConfigured ({ fields, config }) {
-  if (!config || !fields) return false
-
-  // a wallet is configured if all of its required fields are set
-  let val = fields.every(f => {
-    return f.optional ? true : !!config?.[f.name]
-  })
-
-  // however, a wallet is not configured if all fields are optional and none are set
-  // since that usually means that one of them is required
-  if (val && fields.length > 0) {
-    val = !(fields.every(f => f.optional) && fields.every(f => !config?.[f.name]))
-  }
-
-  return val
-}
-
-function useServerConfig (wallet) {
-  const client = useApolloClient()
-  const { me } = useMe()
-
-  const { data, refetch: refetchConfig } = useQuery(WALLET_BY_TYPE, { variables: { type: wallet?.walletType }, skip: !wallet?.walletType })
-
-  const walletId = data?.walletByType?.id
-  const serverConfig = {
-    id: walletId,
-    priority: data?.walletByType?.priority,
-    enabled: data?.walletByType?.enabled,
-    ...data?.walletByType?.wallet
-  }
-  delete serverConfig.__typename
-
-  const autowithdrawSettings = autowithdrawInitial({ me })
-  const config = { ...serverConfig, ...autowithdrawSettings }
-
-  const saveConfig = useCallback(async ({
-    autoWithdrawThreshold,
-    autoWithdrawMaxFeePercent,
-    priority,
-    enabled,
-    ...config
-  }, { priorityOnly }) => {
-    try {
-      const mutation = generateMutation(wallet)
-      return await client.mutate({
-        mutation,
-        variables: {
-          ...config,
-          id: walletId,
-          settings: {
-            autoWithdrawThreshold: Number(autoWithdrawThreshold),
-            autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent),
-            priority,
-            enabled
-          },
-          priorityOnly
+      // client test
+      if (!skipTests && isReadyToSend) {
+        try {
+        // XXX: testSendPayment can return a new config (e.g. lnc)
+          const newerConfig = await walletDef.testSendPayment?.(newClientConfig, { me, logger })
+          if (newerConfig) {
+            newClientConfig = Object.assign(newClientConfig, newerConfig)
+          }
+        } catch (err) {
+          logger.error(err.message)
+          throw err
         }
+      }
+
+      // set server config (will create wallet if it doesn't exist) (it is also testing receive config)
+      if (!isReadyToSend && !isReadyToReceive) throw new Error('wallet should be configured to send or receive payments')
+
+      const mutation = generateMutation(walletDef)
+      const variables = {
+        ...newServerConfig,
+        id: serverConfig?.id,
+        settings: {
+          autoWithdrawThreshold: Number(autoWithdrawThreshold == null ? autowithdrawSettings.autoWithdrawThreshold : autoWithdrawThreshold),
+          autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent == null ? autowithdrawSettings.autoWithdrawMaxFeePercent : autoWithdrawMaxFeePercent),
+          priority,
+          enabled
+        },
+        canSend: isReadyToSend,
+        canReceive: isReadyToReceive,
+        priorityOnly
+      }
+      const { data: mutationResult, errors: mutationErrors } = await client.mutate({
+        mutation,
+        variables
       })
+
+      if (mutationErrors) {
+        throw new Error(mutationErrors[0].message)
+      }
+
+      // grab and update wallet ref
+      const newWallet = mutationResult[generateResolverName(walletDef.walletField)]
+      innerSetCurrentWallet(newWallet)
+
+      // set client config
+      const writeVault = openVault(client, me, newWallet, {})
+      try {
+        await writeVault.set(walletDef.name, newClientConfig)
+      } finally {
+        await writeVault.close()
+      }
     } finally {
       client.refetchQueries({ include: ['WalletLogs'] })
-      refetchConfig()
+      await refreshConfig()
     }
-  }, [client, walletId])
+  }, [config, currentWallet, canSend, canReceive])
 
-  const clearConfig = useCallback(async () => {
+  const clearConfig = useCallback(async ({ logger, clientOnly, ...options }) => {
     // only remove wallet if there is a wallet to remove
-    if (!walletId) return
-
+    if (!currentWallet?.id) return
     try {
-      await client.mutate({
-        mutation: REMOVE_WALLET,
-        variables: { id: walletId }
-      })
+      const clearVault = openVault(client, me, currentWallet, {})
+      try {
+        await clearVault.clear(walletDef?.name, { onlyFromLocalStorage: clientOnly })
+      } catch (e) {
+        toaster.danger(`failed to clear client config for ${walletDef.name}: ${e.message}`)
+      } finally {
+        await clearVault.close()
+      }
+
+      if (!clientOnly) {
+        try {
+          await client.mutate({
+            mutation: REMOVE_WALLET,
+            variables: { id: currentWallet.id }
+          })
+        } catch (e) {
+          toaster.danger(`failed to remove wallet ${currentWallet.id}: ${e.message}`)
+        }
+      }
     } finally {
       client.refetchQueries({ include: ['WalletLogs'] })
-      refetchConfig()
+      await refreshConfig()
     }
-  }, [client, walletId])
+  }, [config, currentWallet])
 
-  return [config, saveConfig, clearConfig]
+  return [config, saveConfig, clearConfig, refreshConfig]
 }
 
 function generateMutation (wallet) {
@@ -343,22 +394,30 @@ function generateMutation (wallet) {
   headerArgs += wallet.fields
     .filter(isServerField)
     .map(f => {
-      let arg = `$${f.name}: String`
-      if (!f.optional) {
-        arg += '!'
-      }
+      const arg = `$${f.name}: String`
+      // required fields are checked server-side
+      // if (!f.optional) {
+      //   arg += '!'
+      // }
       return arg
     }).join(', ')
-  headerArgs += ', $settings: AutowithdrawSettings!, $priorityOnly: Boolean'
+  headerArgs += ', $settings: AutowithdrawSettings!, $priorityOnly: Boolean, $canSend: Boolean!, $canReceive: Boolean!'
 
   let inputArgs = 'id: $id, '
   inputArgs += wallet.fields
     .filter(isServerField)
     .map(f => `${f.name}: $${f.name}`).join(', ')
-  inputArgs += ', settings: $settings, priorityOnly: $priorityOnly'
+  inputArgs += ', settings: $settings, priorityOnly: $priorityOnly, canSend: $canSend, canReceive: $canReceive,'
 
   return gql`mutation ${resolverName}(${headerArgs}) {
-    ${resolverName}(${inputArgs})
+    ${resolverName}(${inputArgs}) {
+      id,
+      type,
+      enabled,
+      priority,
+      canReceive,
+      canSend
+    }
   }`
 }
 
@@ -368,20 +427,6 @@ export function getWalletByName (name) {
 
 export function getWalletByType (type) {
   return walletDefs.find(def => def.walletType === type)
-}
-
-export function getEnabledWallet (me) {
-  return walletDefs
-    .filter(def => !!def.sendPayment)
-    .map(def => {
-      // populate definition with properties from useWallet that are required for sorting
-      const key = getStorageKey(def.name, me)
-      const config = SSR ? null : JSON.parse(window?.localStorage.getItem(key))
-      const priority = config?.priority
-      return { ...def, config, priority }
-    })
-    .filter(({ config }) => config?.enabled)
-    .sort(walletPrioritySort)[0]
 }
 
 export function walletPrioritySort (w1, w2) {
@@ -404,42 +449,83 @@ export function walletPrioritySort (w1, w2) {
 }
 
 export function useWallets () {
-  const wallets = walletDefs.map(def => useWallet(def.name))
-
+  const { wallets } = useContext(WalletContext)
   const resetClient = useCallback(async (wallet) => {
     for (const w of wallets) {
       if (w.canSend) {
-        await w.delete({ clientOnly: true })
+        await w.delete({ clientOnly: true, onlyFromLocalStorage: true })
       }
       await w.deleteLogs({ clientOnly: true })
     }
   }, [wallets])
-
   return { wallets, resetClient }
 }
 
-function getStorageKey (name, me) {
-  let storageKey = `wallet:${name}`
+export function WalletProvider ({ children }) {
+  const { me } = useMe()
+  const migrationRan = useRef(false)
+  const migratableKeys = !migrationRan.current && !SSR ? Object.keys(window.localStorage).filter(k => k.startsWith('wallet:')) : undefined
 
-  // WebLN has no credentials we need to scope to users
-  // so we can use the same storage key for all users
-  if (me && name !== 'webln') {
-    storageKey = `${storageKey}:${me.id}`
+  const walletList = walletDefs.map(def => useWalletInner(def.name)).filter(w => w)
+  const { data: bestWalletList } = useQuery(BEST_WALLETS, {
+    pollInterval: POLL_INTERVAL,
+    nextFetchPolicy: 'cache-and-network',
+    skip: !me?.id
+  })
+
+  const processSendWallets = (bestWalletData) => {
+    const clientSideSorting = false // sorting is now done on the server
+    let wallets = (bestWalletData?.wallets ?? []).filter(w => w.canSend)
+    if (clientSideSorting) wallets = wallets.sort(walletPrioritySort)
+    return wallets
   }
 
-  return storageKey
-}
+  const wallets = walletList.sort(walletPrioritySort)
+  const [bestSendWallets, innerSetBestSendWallets] = useState(() => processSendWallets(bestWalletList))
 
-function enableWallet (name, me) {
-  const key = getStorageKey(name, me)
-  const config = JSON.parse(window.localStorage.getItem(key)) || {}
-  config.enabled = true
-  window.localStorage.setItem(key, JSON.stringify(config))
-}
+  useEffect(() => {
+    innerSetBestSendWallets(processSendWallets(bestWalletList))
+    for (const wallet of wallets) {
+      wallet.refresh()
+    }
+  }, [bestWalletList])
 
-function disableWallet (name, me) {
-  const key = getStorageKey(name, me)
-  const config = JSON.parse(window.localStorage.getItem(key)) || {}
-  config.enabled = false
-  window.localStorage.setItem(key, JSON.stringify(config))
+  // migration
+  useEffect(() => {
+    if (SSR || !me?.id || !wallets.length) return
+    if (migrationRan.current) return
+    migrationRan.current = true
+    if (!migratableKeys?.length) {
+      console.log('wallet migrator: nothing to migrate', migratableKeys)
+      return
+    }
+    const userId = me.id
+    // List all local storage keys related to wallet settings
+    const userKeys = migratableKeys.filter(k => k.endsWith(`:${userId}`))
+    ;(async () => {
+      for (const key of userKeys) {
+        try {
+          const walletType = key.substring('wallet:'.length, key.length - userId.length - 1)
+          const walletConfig = JSON.parse(window.localStorage.getItem(key))
+          const wallet = wallets.find(w => w.def.name === walletType)
+          if (wallet) {
+            console.log('Migrating', walletType, walletConfig)
+            await wallet.save(walletConfig)
+            window.localStorage.removeItem(key)
+          } else {
+            console.warn('No wallet found for', walletType, wallets)
+          }
+        } catch (e) {
+          window.localStorage.removeItem(key)
+          console.error('Failed to migrate wallet', key, e)
+        }
+      }
+    })()
+  }, [])
+
+  return (
+    <WalletContext.Provider value={{ wallets, sendWallets: bestSendWallets }}>
+      {children}
+    </WalletContext.Provider>
+  )
 }

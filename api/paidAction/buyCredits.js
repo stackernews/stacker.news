@@ -1,13 +1,12 @@
-// XXX we don't use this yet ...
-// it's just showing that even buying credits
-// can eventually be a paid action
-
-import { USER_ID } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 
 export const anonable = false
-export const supportsPessimism = false
-export const supportsOptimism = true
+
+export const paymentMethods = [
+  PAID_ACTION_PAYMENT_METHODS.REWARD_SATS,
+  PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
+]
 
 export async function getCost ({ amount }) {
   return satsToMsats(amount)

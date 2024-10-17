@@ -1,11 +1,16 @@
-import { ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, USER_ID } from '@/lib/constants'
+import { ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers } from '@/lib/webPush'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 
 export const anonable = true
-export const supportsPessimism = true
-export const supportsOptimism = true
+
+export const paymentMethods = [
+  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.REWARD_SATS,
+  PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC,
+  PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
+]
 
 export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio }, { models, me }) {
   const sub = (parentId || bio) ? null : await models.sub.findUnique({ where: { name: subName } })

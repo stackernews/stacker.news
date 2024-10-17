@@ -77,6 +77,8 @@ export default async function wrapInvoice (bolt11, { msats, description, descrip
           case 49:
           case 149: // trampoline routing
           case 151: // electrum trampoline routing
+          case 262:
+          case 263: // blinded paths
             break
           default:
             throw new Error(`Unsupported feature bit: ${f.bit}`)

@@ -12,10 +12,7 @@ import useIndexedDB from './use-indexeddb'
 import { SSR } from '@/lib/constants'
 
 export function WalletLogs ({ wallet, embedded }) {
-  const { logs, setLogs, hasMore, loadMore, loadLogs, loading } = useWalletLogs(wallet)
-  useEffect(() => {
-    loadLogs()
-  }, [loadLogs])
+  const { logs, setLogs, hasMore, loadMore, loading } = useWalletLogs(wallet)
 
   const showModal = useShowModal()
 
@@ -246,6 +243,10 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     setPage(1)
     setLoading(false)
   }, [wallet, loadLogsPage])
+
+  useEffect(() => {
+    loadLogs()
+  }, [wallet])
 
   return { logs, hasMore, total, loadMore, loadLogs, setLogs, loading }
 }

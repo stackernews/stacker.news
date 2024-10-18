@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { useMe } from './me'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
-import { useWallet } from 'wallets'
+import { usePayer } from 'wallets'
 import { FAST_POLL_INTERVAL, JIT_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { INVOICE } from '@/fragments/wallet'
 import Invoice from '@/components/invoice'
@@ -134,17 +134,17 @@ export const useInvoice = () => {
 
 export const useWalletPayment = () => {
   const invoice = useInvoice()
-  const wallet = useWallet()
+  const payer = usePayer()
 
   const waitForWalletPayment = useCallback(async ({ id, bolt11 }, waitFor) => {
-    if (!wallet) {
+    if (!payer) {
       throw new NoAttachedWalletError()
     }
     try {
       return await new Promise((resolve, reject) => {
         // can't use await here since we might pay JIT invoices and sendPaymentAsync is not supported yet.
         // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
-        wallet.sendPayment(bolt11).catch(reject)
+        payer.pay(bolt11).catch(reject)
         invoice.waitUntilPaid({ id }, waitFor)
           .then(resolve)
           .catch(reject)
@@ -155,7 +155,7 @@ export const useWalletPayment = () => {
     } finally {
       invoice.stopWaiting()
     }
-  }, [wallet, invoice])
+  }, [payer, invoice])
 
   return waitForWalletPayment
 }

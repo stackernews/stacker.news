@@ -516,7 +516,6 @@ export function WalletProvider ({ children }) {
             console.warn('No wallet found for', walletType, wallets)
           }
         } catch (e) {
-          window.localStorage.removeItem(key)
           console.error('Failed to migrate wallet', key, e)
         }
       }

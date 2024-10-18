@@ -225,7 +225,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
   const loadMore = useCallback(async () => {
     if (hasMore) {
       setLoading(true)
-      const result = await loadLogsPage(page, logsPerPage, wallet)
+      const result = await loadLogsPage(page + 1, logsPerPage, wallet)
       setLogs(prevLogs => [...prevLogs, ...result.data])
       setHasMore(result.hasMore)
       setTotal(result.total)

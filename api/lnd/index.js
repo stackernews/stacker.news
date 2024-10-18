@@ -131,7 +131,7 @@ export const getBlockHeight = cachedFetcher(async function fetchBlockHeight ({ l
 
 export const getOurPubkey = cachedFetcher(async function fetchOurPubkey ({ lnd, ...args }) {
   try {
-    const { identity } = await getIdentity({ lnd, ...args })
+    const identity = await getIdentity({ lnd, ...args })
     return identity.public_key
   } catch (err) {
     throw new Error(`Unable to fetch identity: ${err.message}`)

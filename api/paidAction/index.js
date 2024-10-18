@@ -14,8 +14,7 @@ import * as TERRITORY_BILLING from './territoryBilling'
 import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
 import * as BOOST from './boost'
-import wrapInvoice from 'wallets/wrap'
-import { createInvoice as createUserInvoice } from 'wallets/server'
+import { createWrappedInvoice as createUserWrappedInvoice } from 'wallets/server'
 
 export const paidActions = {
   ITEM_CREATE,
@@ -251,16 +250,13 @@ export async function createLightningInvoice (actionType, args, context) {
   if (userId) {
     try {
       const description = await paidActions[actionType].describe(args, context)
-      const { invoice: bolt11, wallet } = await createUserInvoice(userId, {
+      const { invoice: bolt11, wallet, wrappedInvoice, maxFee } = await createUserWrappedInvoice(userId, {
         // this is the amount the stacker will receive, the other 3/10ths is the sybil fee
         msats: cost * BigInt(7) / BigInt(10),
         description,
-        expiry: INVOICE_EXPIRE_SECS
-      }, { models })
-
-      const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(
-        bolt11, { msats: cost, description }, { lnd })
-
+        expiry: INVOICE_EXPIRE_SECS,
+        wrappedMsats: cost
+      }, { models, lnd })
       return {
         bolt11,
         wrappedBolt11: wrappedInvoice.request,

@@ -132,7 +132,7 @@ async function performOptimisticAction (actionType, args, context) {
   const action = paidActions[actionType]
 
   context.optimistic = true
-  const invoiceArgs = await createLightningInvoice(actionType, args, context)
+  const invoiceArgs = await createLightningInvoice(actionType, args, context, 0, true)
 
   return await models.$transaction(async tx => {
     context.tx = tx
@@ -155,7 +155,7 @@ async function performPessimisticAction (actionType, args, context) {
   }
 
   // just create the invoice and complete action when it's paid
-  const invoiceArgs = await createLightningInvoice(actionType, args, context)
+  const invoiceArgs = await createLightningInvoice(actionType, args, context, 0, true)
   return {
     invoice: await createDbInvoice(actionType, args, context, invoiceArgs),
     paymentMethod: 'PESSIMISTIC'
@@ -196,10 +196,10 @@ export async function retryPaidAction (actionType, args, context) {
   context.cost = BigInt(msatsRequested)
   context.actionId = actionId
 
-  // we cycle through the wallets to have a better chance of success
+  // we cycle through the wallets to have a better chance of success (nb. last wallet is always sn CC if withFallbackToCC=true)
   const walletOffset = (failedInvoice.walletOffset ?? 0) + 1
 
-  const invoiceArgs = await createLightningInvoice(actionType, args, context, walletOffset)
+  const invoiceArgs = await createLightningInvoice(actionType, args, context, walletOffset, true)
 
   return await models.$transaction(async tx => {
     context.tx = tx
@@ -230,7 +230,7 @@ export async function retryPaidAction (actionType, args, context) {
 const INVOICE_EXPIRE_SECS = 600
 const MAX_PENDING_PAID_ACTIONS_PER_USER = 100
 
-export async function createLightningInvoice (actionType, args, context, walletOffset = 0) {
+export async function createLightningInvoice (actionType, args, context, walletOffset = 0, withFallbackToCC = true) {
   // if the action has an invoiceable peer, we'll create a peer invoice
   // wrap it, and return the wrapped invoice
   const { cost, models, lnd, me } = context
@@ -253,26 +253,31 @@ export async function createLightningInvoice (actionType, args, context, walletO
   }
 
   if (userId) {
-    try {
-      const description = await paidActions[actionType].describe(args, context)
-      const { invoice: bolt11, wallet, wrappedInvoice, maxFee } = await createUserWrappedInvoice(userId, {
-        // this is the amount the stacker will receive, the other 3/10ths is the sybil fee
-        msats: cost * BigInt(7) / BigInt(10),
-        description,
-        expiry: INVOICE_EXPIRE_SECS,
-        wrappedMsats: cost
-      }, { models, lnd, walletOffset })
-      return {
-        bolt11,
-        wrappedBolt11: wrappedInvoice.request,
-        wallet,
-        maxFee
-      }
-    } catch (e) {
-      console.error('failed to create stacker invoice, falling back to SN invoice', e)
+    const description = await paidActions[actionType].describe(args, context)
+    const { invoice: bolt11, wallet, wrappedInvoice, maxFee } = await createUserWrappedInvoice(userId, {
+      // this is the amount the stacker will receive, the other 3/10ths is the sybil fee
+      msats: cost * BigInt(7) / BigInt(10),
+      description,
+      expiry: INVOICE_EXPIRE_SECS,
+      wrappedMsats: cost
+    }, {
+      models,
+      lnd,
+      walletOffset,
+      fallback: withFallbackToCC
+        ? async () => {
+          console.error('failed to create stacker invoice, falling back to SN invoice')
+          return await createSNInvoice(actionType, args, context)
+        }
+        : undefined
+    })
+    return {
+      bolt11,
+      wrappedBolt11: wrappedInvoice.request,
+      wallet,
+      maxFee
     }
   }
-
   return await createSNInvoice(actionType, args, context)
 }
 

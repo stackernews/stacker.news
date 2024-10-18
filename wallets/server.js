@@ -97,66 +97,55 @@ async function checkInvoice (models, wallet, invoice, msats) {
   }
 }
 
-export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { models, walletOffset = 0 }) {
-  // get the wallets in order of priority
-  const wallets = await listWallets(models, userId)
-
-  msats = toPositiveNumber(msats)
-
-  for (let i = 0; i < wallets.length; i++) {
-    const j = (walletOffset + i) % wallets.length
-    const wallet = wallets[j]
-    try {
-      const { walletFull, walletField, createInvoice } = await getWallet(models, userId, wallet)
-      const invoice = await withTimeout(
-        createInvoice({
-          msats,
-          description: wallet.user.hideInvoiceDesc ? undefined : description,
-          descriptionHash,
-          expiry
-        }, walletFull[walletField]), 10_000)
-      await checkInvoice(models, wallet, invoice, msats)
-      return { invoice, wallet }
-    } catch (error) {
-      console.error(error)
-      await addWalletLog({
-        wallet,
-        level: 'ERROR',
-        message: `creating invoice for ${description ?? ''} failed: ` + error
-      }, { models })
-    }
-  }
-
-  throw new Error('no wallet available')
+export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { models, fallback, walletOffset = 0 }) {
+  // proxy to createWrappedInvoice but without wrappedMsats to create a regular invoice
+  return await createWrappedInvoice(userId, { msats, description, descriptionHash, expiry }, { models, walletOffset, fallback })
 }
 
-export async function createWrappedInvoice (userId, { msats, wrappedMsats, description, descriptionHash, expiry = 360 }, { models, lnd, walletOffset = 0 }) {
+export async function createWrappedInvoice (userId, { msats, wrappedMsats, description, descriptionHash, expiry = 360 }, { models, lnd, fallback, walletOffset = 0 }) {
   // get the wallets in order of priority
   const wallets = await listWallets(models, userId)
   msats = toPositiveNumber(msats)
-  wrappedMsats = toPositiveNumber(wrappedMsats)
-  for (let i = 0; i < wallets.length; i++) {
+  wrappedMsats = wrappedMsats ? toPositiveNumber(wrappedMsats) : null
+  for (let i = 0; i < wallets.length + (fallback ? 1 : 0); i++) {
     const j = (walletOffset + i) % wallets.length
-    const wallet = wallets[j]
     try {
-      const { walletFull, walletField, createInvoice } = await getWallet(models, userId, wallet)
-      const invoice = await withTimeout(
-        createInvoice({
-          msats,
-          description: wallet.user.hideInvoiceDesc ? undefined : description,
-          descriptionHash,
-          expiry
-        }, walletFull[walletField]), 10_000)
-      await checkInvoice(models, wallet, invoice, msats)
-      const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(invoice, { msats: wrappedMsats, description }, { lnd })
-      return { invoice, wallet, wrappedInvoice, maxFee }
-    } catch (error) {
-      console.error(error)
-      await addWalletLog({
-        wallet,
-        level: 'ERROR',
-        message: `creating invoice for ${description ?? ''} failed: ` + error
-      }, { models })
+      // if there is a fallback function, the last wallet is the fallback
+      if (fallback && i === wallets.length) return await fallback()
+
+      const wallet = wallets[j]
+      try {
+        const { walletFull, walletField, createInvoice } = await getWallet(models, userId, wallet)
+        const invoice = await withTimeout(
+          createInvoice({
+            msats,
+            description: wallet.user.hideInvoiceDesc ? undefined : description,
+            descriptionHash,
+            expiry
+          }, walletFull[walletField]), 10_000)
+        await checkInvoice(models, wallet, invoice, msats)
+
+        // wrap the invoice (if wrappedMsat is provided)
+        let wrappedInvoice
+        let maxFee
+        if (wrappedMsats) {
+          if (!lnd) throw new Error('no lnd provided for wrapping')
+          const wrap = await wrapInvoice(invoice, { msats: wrappedMsats, description }, { lnd })
+          wrappedInvoice = wrap.invoice
+          maxFee = wrap.maxFee
+        }
+
+        return { invoice, wallet, wrappedInvoice, maxFee }
+      } catch (error) {
+        console.error(error)
+        await addWalletLog({
+          wallet,
+          level: 'ERROR',
+          message: `creating invoice for ${description ?? ''} failed: ` + error
+        }, { models })
+      }
+    } catch (e) {
+      console.error(e)
     }
   }
   throw new Error('no wallet available')

@@ -205,16 +205,9 @@ export const BEST_WALLETS = gql`
       priority
       type
       updatedAt
-    }
-  }
-`
-export const BEST_SEND_WALLETS = gql`
-  query BestSendWallets {
-    wallets (includeSenders: true, includeReceivers: false, onlyEnabled: true, prioritySort: "asc") {
-      id
-      priority
-      type
-      updatedAt
+      canSend
+      canReceive
+      enabled
     }
   }
 `

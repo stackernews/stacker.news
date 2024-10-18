@@ -10,9 +10,11 @@ import CancelButton from './cancel-button'
 import * as yup from 'yup'
 import { deviceSyncSchema } from '@/lib/validate'
 import RefreshIcon from '@/svgs/refresh-line.svg'
+import { useApolloClient } from '@apollo/client'
 
 export default function DeviceSync () {
   const { me } = useMe()
+  const apollo = useApolloClient()
   const [value, setVaultKey, clearVault, disconnectVault] = useVaultConfigurator()
   const showModal = useShowModal()
 
@@ -105,6 +107,9 @@ export default function DeviceSync () {
       try {
         await setVaultKey(values.passphrase)
         await migrate()
+        apollo.cache.evict({ fieldName: 'BestWallets' })
+        apollo.cache.gc()
+        await apollo.refetchQueries({ include: ['BestWallets'] })
       } catch (e) {
         formik?.setErrors({ passphrase: e.message })
         throw e

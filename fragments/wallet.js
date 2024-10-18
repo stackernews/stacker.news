@@ -209,7 +209,7 @@ export const BEST_WALLETS = gql`
   }
 `
 export const BEST_SEND_WALLETS = gql`
-  query BestWallets {
+  query BestSendWallets {
     wallets (includeSenders: true, includeReceivers: false, onlyEnabled: true, prioritySort: "asc") {
       id
       priority

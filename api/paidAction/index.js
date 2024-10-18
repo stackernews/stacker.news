@@ -195,7 +195,11 @@ export async function retryPaidAction (actionType, args, context) {
   const { msatsRequested, actionId } = failedInvoice
   context.cost = BigInt(msatsRequested)
   context.actionId = actionId
-  const invoiceArgs = await createSNInvoice(actionType, args, context)
+
+  // we cycle through the wallets to have a better chance of success
+  const walletOffset = (failedInvoice.walletOffset ?? 0) + 1
+
+  const invoiceArgs = await createLightningInvoice(actionType, args, context, walletOffset)
 
   return await models.$transaction(async tx => {
     context.tx = tx
@@ -207,7 +211,8 @@ export async function retryPaidAction (actionType, args, context) {
         actionState: 'FAILED'
       },
       data: {
-        actionState: 'RETRYING'
+        actionState: 'RETRYING',
+        walletOffset
       }
     })
 
@@ -225,7 +230,7 @@ export async function retryPaidAction (actionType, args, context) {
 const INVOICE_EXPIRE_SECS = 600
 const MAX_PENDING_PAID_ACTIONS_PER_USER = 100
 
-export async function createLightningInvoice (actionType, args, context) {
+export async function createLightningInvoice (actionType, args, context, walletOffset = 0) {
   // if the action has an invoiceable peer, we'll create a peer invoice
   // wrap it, and return the wrapped invoice
   const { cost, models, lnd, me } = context
@@ -256,7 +261,7 @@ export async function createLightningInvoice (actionType, args, context) {
         description,
         expiry: INVOICE_EXPIRE_SECS,
         wrappedMsats: cost
-      }, { models, lnd })
+      }, { models, lnd, walletOffset })
       return {
         bolt11,
         wrappedBolt11: wrappedInvoice.request,

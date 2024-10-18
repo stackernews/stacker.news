@@ -97,13 +97,15 @@ async function checkInvoice (models, wallet, invoice, msats) {
   }
 }
 
-export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { models }) {
+export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { models, walletOffset = 0 }) {
   // get the wallets in order of priority
   const wallets = await listWallets(models, userId)
 
   msats = toPositiveNumber(msats)
 
-  for (const wallet of wallets) {
+  for (let i = 0; i < wallets.length; i++) {
+    const j = (walletOffset + i) % wallets.length
+    const wallet = wallets[j]
     try {
       const { walletFull, walletField, createInvoice } = await getWallet(models, userId, wallet)
       const invoice = await withTimeout(
@@ -128,12 +130,14 @@ export async function createInvoice (userId, { msats, description, descriptionHa
   throw new Error('no wallet available')
 }
 
-export async function createWrappedInvoice (userId, { msats, wrappedMsats, description, descriptionHash, expiry = 360 }, { models, lnd }) {
+export async function createWrappedInvoice (userId, { msats, wrappedMsats, description, descriptionHash, expiry = 360 }, { models, lnd, walletOffset = 0 }) {
   // get the wallets in order of priority
   const wallets = await listWallets(models, userId)
   msats = toPositiveNumber(msats)
   wrappedMsats = toPositiveNumber(wrappedMsats)
-  for (const wallet of wallets) {
+  for (let i = 0; i < wallets.length; i++) {
+    const j = (walletOffset + i) % wallets.length
+    const wallet = wallets[j]
     try {
       const { walletFull, walletField, createInvoice } = await getWallet(models, userId, wallet)
       const invoice = await withTimeout(

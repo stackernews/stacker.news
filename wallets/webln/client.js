@@ -1,5 +1,6 @@
+import { useEffect } from 'react'
+import { SSR } from '@/lib/constants'
 export * from 'wallets/webln'
-
 export const sendPayment = async (bolt11) => {
   if (typeof window.webln === 'undefined') {
     throw new Error('WebLN provider not found')
@@ -18,4 +19,33 @@ export const sendPayment = async (bolt11) => {
   }
 
   return response.preimage
+}
+
+export function isAvailable () {
+  return !SSR && window?.weblnEnabled
+}
+
+export function WebLnProvider ({ children }) {
+  useEffect(() => {
+    const onEnable = () => {
+      window.weblnEnabled = true
+    }
+
+    const onDisable = () => {
+      window.weblnEnabled = false
+    }
+
+    if (!window.webln) onDisable()
+    else onEnable()
+
+    window.addEventListener('webln:enabled', onEnable)
+    // event is not fired by Alby browser extension but added here for sake of completeness
+    window.addEventListener('webln:disabled', onDisable)
+    return () => {
+      window.removeEventListener('webln:enabled', onEnable)
+      window.removeEventListener('webln:disabled', onDisable)
+    }
+  }, [])
+
+  return children
 }

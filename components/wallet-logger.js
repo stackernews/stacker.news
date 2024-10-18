@@ -145,7 +145,7 @@ export function useWalletLogger (wallet, setLogs) {
 
   const log = useCallback(level => message => {
     if (!wallet) {
-      console.error('cannot log: no wallet set')
+      // console.error('cannot log: no wallet set')
       return
     }
 

@@ -4,6 +4,7 @@ import { useMe } from './me'
 import { useEffect, useState } from 'react'
 import { isNumber } from '@/lib/validate'
 import { useIsClient } from './use-client'
+import Link from 'next/link'
 
 function autoWithdrawThreshold ({ me }) {
   return isNumber(me?.privates?.autoWithdrawThreshold) ? me?.privates?.autoWithdrawThreshold : 10000
@@ -12,7 +13,8 @@ function autoWithdrawThreshold ({ me }) {
 export function autowithdrawInitial ({ me }) {
   return {
     autoWithdrawThreshold: autoWithdrawThreshold({ me }),
-    autoWithdrawMaxFeePercent: isNumber(me?.privates?.autoWithdrawMaxFeePercent) ? me?.privates?.autoWithdrawMaxFeePercent : 1
+    autoWithdrawMaxFeePercent: isNumber(me?.privates?.autoWithdrawMaxFeePercent) ? me?.privates?.autoWithdrawMaxFeePercent : 1,
+    autoWithdrawMaxBaseFee: isNumber(me?.privates?.autoWithdrawMaxBaseFee) ? me?.privates?.autoWithdrawMaxBaseFee : 1
   }
 }
 
@@ -51,11 +53,28 @@ export function AutowithdrawSettings ({ wallet }) {
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
             required
           />
+          <h3 className='text-center text-muted pt-3'>network fees</h3>
+          <h6 className='text-center pb-3'>
+            the setting that allows a higher max fee will be used during{' '}
+            <Link
+              target='_blank'
+              href='https://docs.lightning.engineering/the-lightning-network/pathfinding'
+              rel='noreferrer'
+            >pathfinding
+            </Link>
+          </h6>
           <Input
-            label='max fee'
+            label='max fee rate'
             name='autoWithdrawMaxFeePercent'
             hint='max fee as percent of withdrawal amount'
             append={<InputGroup.Text>%</InputGroup.Text>}
+            required
+          />
+          <Input
+            label='max base fee'
+            name='autoWithdrawMaxBaseFee'
+            hint='max fee for any withdrawal amount'
+            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
             required
           />
         </div>

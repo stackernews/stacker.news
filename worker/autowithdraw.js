@@ -4,7 +4,10 @@ import { createInvoice } from 'wallets/server'
 
 export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const user = await models.user.findUnique({ where: { id } })
-  if (user.autoWithdrawThreshold === null || user.autoWithdrawMaxFeePercent === null) return
+  if (
+    user.autoWithdrawThreshold === null ||
+    user.autoWithdrawMaxFeePercent === null ||
+    user.autoWithdrawMaxBaseFee === null) return
 
   const threshold = satsToMsats(user.autoWithdrawThreshold)
   const excess = Number(user.msats - threshold)
@@ -13,7 +16,10 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   if (excess < Number(threshold) * 0.1) return
 
   // floor fee to nearest sat but still denominated in msats
-  const maxFeeMsats = msatsSatsFloor(Math.ceil(excess * (user.autoWithdrawMaxFeePercent / 100.0)))
+  const maxFeeMsats = msatsSatsFloor(Math.max(
+    Math.ceil(excess * (user.autoWithdrawMaxFeePercent / 100.0)),
+    Number(satsToMsats(user.autoWithdrawMaxBaseFee))
+  ))
   // msats will be floored by createInvoice if it needs to be
   const msats = BigInt(excess) - maxFeeMsats
 

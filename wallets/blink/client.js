@@ -3,7 +3,6 @@ export * from 'wallets/blink'
 
 export async function testSendPayment ({ apiKey, currency }, { logger }) {
   logger.info('trying to fetch ' + currency + ' wallet')
-  const strict = false
   const scopes = await getScopes(apiKey)
   if (!scopes.includes(SCOPE_READ)) {
     throw new Error('missing READ scope')
@@ -11,7 +10,7 @@ export async function testSendPayment ({ apiKey, currency }, { logger }) {
   if (!scopes.includes(SCOPE_WRITE)) {
     throw new Error('missing WRITE scope')
   }
-  if (strict && scopes.includes(SCOPE_RECEIVE)) {
+  if (scopes.includes(SCOPE_RECEIVE)) {
     throw new Error('RECEIVE scope must not be present')
   }
 

@@ -4,12 +4,11 @@ import { msatsToSats } from '@/lib/format'
 export * from 'wallets/blink'
 
 export async function testCreateInvoice ({ apiKeyRecv, currencyRecv }) {
-  const strict = true
   const scopes = await getScopes(apiKeyRecv)
   if (!scopes.includes(SCOPE_READ)) {
     throw new Error('missing READ scope')
   }
-  if (strict && scopes.includes(SCOPE_WRITE)) {
+  if (scopes.includes(SCOPE_WRITE)) {
     throw new Error('WRITE scope must not be present')
   }
   if (!scopes.includes(SCOPE_RECEIVE)) {

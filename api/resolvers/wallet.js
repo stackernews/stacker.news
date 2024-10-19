@@ -482,7 +482,7 @@ const resolvers = {
         FROM "Withdrawl"
         WHERE "userId" = ${me.id}
         AND id = ${Number(id)}
-        AND now() > created_at + interval '${retention}'
+        AND now() > created_at + ${retention}::INTERVAL
         AND hash IS NOT NULL
         AND status IS NOT NULL
       ), updated_rows AS (

@@ -346,7 +346,7 @@ export async function autoDropBolt11s ({ models, lnd }) {
       SELECT id, hash, bolt11
       FROM "Withdrawl"
       WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
-      AND now() > created_at + interval '${retention}'
+      AND now() > created_at + ${retention}::INTERVAL
       AND hash IS NOT NULL
       AND status IS NOT NULL
     ), updated_rows AS (

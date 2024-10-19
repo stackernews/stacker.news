@@ -27,7 +27,7 @@ ${STREAK_FIELDS}
       noReferralLinks
       fiatCurrency
       autoWithdrawMaxFeePercent
-      autoWithdrawMaxBaseFee
+      autoWithdrawMaxFeeTotal
       autoWithdrawThreshold
       withdrawMaxFeeDefault
       satsFilter

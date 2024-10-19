@@ -296,7 +296,7 @@ function useServerConfig (wallet) {
   const saveConfig = useCallback(async ({
     autoWithdrawThreshold,
     autoWithdrawMaxFeePercent,
-    autoWithdrawMaxBaseFee,
+    autoWithdrawMaxFeeTotal,
     priority,
     enabled,
     ...config
@@ -311,7 +311,7 @@ function useServerConfig (wallet) {
           settings: {
             autoWithdrawThreshold: Number(autoWithdrawThreshold),
             autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent),
-            autoWithdrawMaxBaseFee: Number(autoWithdrawMaxBaseFee),
+            autoWithdrawMaxFeeTotal: Number(autoWithdrawMaxFeeTotal),
             priority,
             enabled
           },

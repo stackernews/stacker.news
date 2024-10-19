@@ -14,7 +14,7 @@ export function autowithdrawInitial ({ me }) {
   return {
     autoWithdrawThreshold: autoWithdrawThreshold({ me }),
     autoWithdrawMaxFeePercent: isNumber(me?.privates?.autoWithdrawMaxFeePercent) ? me?.privates?.autoWithdrawMaxFeePercent : 1,
-    autoWithdrawMaxBaseFee: isNumber(me?.privates?.autoWithdrawMaxBaseFee) ? me?.privates?.autoWithdrawMaxBaseFee : 1
+    autoWithdrawMaxFeeTotal: isNumber(me?.privates?.autoWithdrawMaxFeeTotal) ? me?.privates?.autoWithdrawMaxFeeTotal : 1
   }
 }
 
@@ -72,7 +72,7 @@ export function AutowithdrawSettings ({ wallet }) {
           />
           <Input
             label='max fee total'
-            name='autoWithdrawMaxBaseFee'
+            name='autoWithdrawMaxFeeTotal'
             hint='max fee for any withdrawal amount'
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
             required

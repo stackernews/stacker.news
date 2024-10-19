@@ -7,7 +7,7 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   if (
     user.autoWithdrawThreshold === null ||
     user.autoWithdrawMaxFeePercent === null ||
-    user.autoWithdrawMaxBaseFee === null) return
+    user.autoWithdrawMaxFeeTotal === null) return
 
   const threshold = satsToMsats(user.autoWithdrawThreshold)
   const excess = Number(user.msats - threshold)
@@ -18,7 +18,7 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   // floor fee to nearest sat but still denominated in msats
   const maxFeeMsats = msatsSatsFloor(Math.max(
     Math.ceil(excess * (user.autoWithdrawMaxFeePercent / 100.0)),
-    Number(satsToMsats(user.autoWithdrawMaxBaseFee))
+    Number(satsToMsats(user.autoWithdrawMaxFeeTotal))
   ))
   // msats will be floored by createInvoice if it needs to be
   const msats = BigInt(excess) - maxFeeMsats

@@ -650,7 +650,7 @@ async function upsertWallet (
   const {
     autoWithdrawThreshold,
     autoWithdrawMaxFeePercent,
-    autoWithdrawMaxBaseFee,
+    autoWithdrawMaxFeeTotal,
     enabled,
     priority
   } = settings
@@ -661,7 +661,7 @@ async function upsertWallet (
       data: {
         autoWithdrawMaxFeePercent,
         autoWithdrawThreshold,
-        autoWithdrawMaxBaseFee
+        autoWithdrawMaxFeeTotal
       }
     })
   ]

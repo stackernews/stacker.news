@@ -55,7 +55,7 @@ export function AutowithdrawSettings ({ wallet }) {
           />
           <h3 className='text-center text-muted pt-3'>network fees</h3>
           <h6 className='text-center pb-3'>
-            the setting that allows a higher max fee will be used during{' '}
+            we'll use whichever setting is higher during{' '}
             <Link
               target='_blank'
               href='https://docs.lightning.engineering/the-lightning-network/pathfinding'
@@ -71,7 +71,7 @@ export function AutowithdrawSettings ({ wallet }) {
             required
           />
           <Input
-            label='max base fee'
+            label='max fee total'
             name='autoWithdrawMaxBaseFee'
             hint='max fee for any withdrawal amount'
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}

@@ -351,7 +351,7 @@ export async function autoDropBolt11s ({ models, lnd }) {
       AND status IS NOT NULL
     ), updated_rows AS (
       UPDATE "Withdrawl"
-      SET hash = NULL, bolt11 = NULL
+      SET hash = NULL, bolt11 = NULL, preimage = NULL
       FROM to_be_updated
       WHERE "Withdrawl".id = to_be_updated.id)
     SELECT * FROM to_be_updated;`
@@ -364,7 +364,7 @@ export async function autoDropBolt11s ({ models, lnd }) {
         console.error(`Error removing invoice with hash ${invoice.hash}:`, error)
         await models.withdrawl.update({
           where: { id: invoice.id },
-          data: { hash: invoice.hash, bolt11: invoice.bolt11 }
+          data: { hash: invoice.hash, bolt11: invoice.bolt11, preimage: invoice.preimage }
         })
       }
     }

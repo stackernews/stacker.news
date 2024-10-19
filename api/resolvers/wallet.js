@@ -487,7 +487,7 @@ const resolvers = {
         AND status IS NOT NULL
       ), updated_rows AS (
         UPDATE "Withdrawl"
-        SET hash = NULL, bolt11 = NULL
+        SET hash = NULL, bolt11 = NULL, preimage = NULL
         FROM to_be_updated
         WHERE "Withdrawl".id = to_be_updated.id)
       SELECT * FROM to_be_updated;`
@@ -499,7 +499,7 @@ const resolvers = {
           console.error(error)
           await models.withdrawl.update({
             where: { id: invoice.id },
-            data: { hash: invoice.hash, bolt11: invoice.bolt11 }
+            data: { hash: invoice.hash, bolt11: invoice.bolt11, preimage: invoice.preimage }
           })
           throw new GqlInputError('failed to drop bolt11 from lnd')
         }

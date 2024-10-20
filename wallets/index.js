@@ -201,6 +201,7 @@ function useConfig (wallet) {
         }
         // these are stored on the server
         delete newClientConfig.autoWithdrawMaxFeePercent
+        delete newClientConfig.autoWithdrawThreshold
         delete newClientConfig.autoWithdrawMaxFeeTotal
       } catch {
         valid = false

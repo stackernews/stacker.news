@@ -11,8 +11,8 @@ ALTER TYPE "WalletType" ADD VALUE 'LNC';
 ALTER TYPE "WalletType" ADD VALUE 'WEBLN';
 
 -- AlterTable
-ALTER TABLE "Wallet" ADD COLUMN     "canReceive" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "canSend" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Wallet" ADD COLUMN     "canReceive" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "canSend" BOOLEAN NOT NULL DEFAULT false;
 
 -- CreateTable
 CREATE TABLE "WalletWebLn" (

@@ -194,8 +194,8 @@ model Wallet {
   enabled   Boolean  @default(true)
   priority  Int      @default(0)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  canReceive Boolean  @default(false)
-  canSend    Boolean  @default(true)
+  canReceive Boolean  @default(true)
+  canSend    Boolean  @default(false)
 
   // NOTE: this denormalized json field exists to make polymorphic joins efficient
   // when reading wallets ... it is populated by a trigger when wallet descendants update

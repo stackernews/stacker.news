@@ -647,14 +647,21 @@ async function upsertWallet (
   }
 
   const { id, ...walletData } = data
-  const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, enabled, priority } = settings
+  const {
+    autoWithdrawThreshold,
+    autoWithdrawMaxFeePercent,
+    autoWithdrawMaxFeeTotal,
+    enabled,
+    priority
+  } = settings
 
   const txs = [
     models.user.update({
       where: { id: me.id },
       data: {
         autoWithdrawMaxFeePercent,
-        autoWithdrawThreshold
+        autoWithdrawThreshold,
+        autoWithdrawMaxFeeTotal
       }
     })
   ]

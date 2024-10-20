@@ -182,6 +182,7 @@ export default gql`
     withdrawMaxFeeDefault: Int!
     autoWithdrawThreshold: Int
     autoWithdrawMaxFeePercent: Float
+    autoWithdrawMaxFeeTotal: Int
   }
 
   type UserOptional {

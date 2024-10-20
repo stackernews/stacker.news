@@ -201,6 +201,7 @@ function useConfig (wallet) {
         }
         // these are stored on the server
         delete newClientConfig.autoWithdrawMaxFeePercent
+        delete newClientConfig.autoWithdrawThreshold
         delete newClientConfig.autoWithdrawMaxFeeTotal
       } catch {
         valid = false
@@ -296,6 +297,7 @@ function useServerConfig (wallet) {
   const saveConfig = useCallback(async ({
     autoWithdrawThreshold,
     autoWithdrawMaxFeePercent,
+    autoWithdrawMaxFeeTotal,
     priority,
     enabled,
     ...config
@@ -310,6 +312,7 @@ function useServerConfig (wallet) {
           settings: {
             autoWithdrawThreshold: Number(autoWithdrawThreshold),
             autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent),
+            autoWithdrawMaxFeeTotal: Number(autoWithdrawMaxFeeTotal),
             priority,
             enabled
           },

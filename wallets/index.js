@@ -302,7 +302,7 @@ function useConfig (walletDef) {
       // console.log('Sender', isReadyToSend, 'Receiver', isReadyToReceive, 'enabled', enabled, autoWithdrawThreshold, autoWithdrawMaxFeePercent, priority)
 
       // client test
-      if (!skipTests && isReadyToSend) {
+      if (!skipTests && isReadyToSend && enabled) {
         try {
         // XXX: testSendPayment can return a new config (e.g. lnc)
           const newerConfig = await walletDef.testSendPayment?.(newClientConfig, { me, logger })

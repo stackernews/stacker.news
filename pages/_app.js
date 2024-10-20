@@ -46,8 +46,8 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
   const router = useRouter()
 
   useEffect(() => {
-    const nprogressStart = (_, { shallow }) => !shallow && NProgress.start()
-    const nprogressDone = (_, { shallow }) => !shallow && NProgress.done()
+    const nprogressStart = (_, { shallow }) => NProgress.start()
+    const nprogressDone = (_, { shallow }) => NProgress.done()
 
     router.events.on('routeChangeStart', nprogressStart)
     router.events.on('routeChangeComplete', nprogressDone)
@@ -58,15 +58,14 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
     // So every page load, we modify the route in browser history
     // to point to the same page but without SSR, ie ?nodata=true
     // this nodata var will get passed to the server on back/foward and
-    // 1. prevent data from reloading and 2. perserve scroll
+    // 1. prevent data from reloading and 2. preserve scroll
     // (2) is not possible while intercepting nav with beforePopState
     router.replace({
       pathname: router.pathname,
       query: { ...router.query, nodata: true }
-    }, router.asPath, { ...router.options, shallow: true }).catch((e) => {
+    }, router.asPath, { ...router.options, shallow: false }).catch((e) => {
       // workaround for https://github.com/vercel/next.js/issues/37362
       if (!e.cancelled) {
-        console.log(e)
         throw e
       }
     })

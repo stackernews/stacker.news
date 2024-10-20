@@ -141,7 +141,7 @@ export default {
  */
 function checkOwner (info, ownerType) {
   const gqltypeDef = info.schema.getType(ownerType)
-  const ownerInterfaces = gqltypeDef?.getInterfaces ? gqltypeDef.getInterfaces() : null
+  const ownerInterfaces = gqltypeDef?.getInterfaces?.()
   if (!ownerInterfaces?.some((iface) => iface.name === 'VaultOwner')) {
     throw new GqlInputError('owner must implement VaultOwner interface but ' + ownerType + ' does not')
   }

@@ -46,8 +46,8 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
   const router = useRouter()
 
   useEffect(() => {
-    const nprogressStart = (_, { shallow }) => NProgress.start()
-    const nprogressDone = (_, { shallow }) => NProgress.done()
+    const nprogressStart = (_, { shallow }) => !shallow && NProgress.start()
+    const nprogressDone = (_, { shallow }) => !shallow && NProgress.done()
 
     router.events.on('routeChangeStart', nprogressStart)
     router.events.on('routeChangeComplete', nprogressDone)

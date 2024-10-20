@@ -260,7 +260,7 @@ export default {
 
       const { name } = data
 
-      await ssValidate(territorySchema, data, { models, me, sub: { name } })
+      await ssValidate(territorySchema, data, { models, me })
 
       const oldSub = await models.sub.findUnique({ where: { name } })
       if (!oldSub) {

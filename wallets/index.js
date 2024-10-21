@@ -295,7 +295,7 @@ function useConfig (walletDef) {
       // check if it misses send or receive configs
       const isReadyToSend = canSend && isConfigured({ fields: walletDef.fields, config: newConfig, clientOnly: true })
       const isReadyToReceive = canReceive && isConfigured({ fields: walletDef.fields, config: newConfig, serverOnly: true })
-      const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, priority, enabled } = newConfig
+      const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, autoWithdrawMaxFeeTotal, priority, enabled } = newConfig
 
       // console.log('New client config', newClientConfig)
       // console.log('New server config', newServerConfig)
@@ -325,6 +325,7 @@ function useConfig (walletDef) {
         settings: {
           autoWithdrawThreshold: Number(autoWithdrawThreshold == null ? autowithdrawSettings.autoWithdrawThreshold : autoWithdrawThreshold),
           autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent == null ? autowithdrawSettings.autoWithdrawMaxFeePercent : autoWithdrawMaxFeePercent),
+          autoWithdrawMaxFeeTotal: Number(autoWithdrawMaxFeeTotal == null ? autowithdrawSettings.autoWithdrawMaxFeeTotal : autoWithdrawMaxFeeTotal),
           priority,
           enabled
         },

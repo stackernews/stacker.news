@@ -674,7 +674,7 @@ async function upsertWallet (
   assertApiKeyNotPermitted({ me })
 
   const { id, ...walletData } = data
-  const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, enabled, priority } = settings
+  const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, autoWithdrawMaxFeeTotal, enabled, priority } = settings
 
   if (testCreateInvoice && !priorityOnly && canReceive && enabled) {
     try {
@@ -695,7 +695,8 @@ async function upsertWallet (
         where: { id: me.id },
         data: {
           autoWithdrawMaxFeePercent,
-          autoWithdrawThreshold
+          autoWithdrawThreshold,
+          autoWithdrawMaxFeeTotal
         }
       })
     }

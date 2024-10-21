@@ -68,9 +68,8 @@ export default function WalletSettings () {
         }}
       >
         {wallet && <WalletFields wallet={wallet} />}
-        {wallet?.walletType
-          ? <AutowithdrawSettings wallet={wallet} />
-          : (
+        {wallet?.clientOnly
+          ? (
             <CheckboxGroup name='enabled'>
               <Checkbox
                 disabled={!wallet?.isConfigured}
@@ -79,7 +78,8 @@ export default function WalletSettings () {
                 groupClassName='mb-0'
               />
             </CheckboxGroup>
-            )}
+            )
+          : <AutowithdrawSettings wallet={wallet} />}
         <WalletButtonBar
           wallet={wallet} onDelete={async () => {
             try {

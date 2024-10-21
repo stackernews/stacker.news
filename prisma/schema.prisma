@@ -21,6 +21,7 @@ model User {
   emailVerified             DateTime?            @map("email_verified")
   emailHash                 String?              @unique(map: "users.email_hash_unique")
   image                     String?
+  mcredits                  BigInt               @default(0)
   msats                     BigInt               @default(0)
   freeComments              Int                  @default(5)
   freePosts                 Int                  @default(2)

@@ -55,15 +55,7 @@ export function Back () {
   if (!back) return null
 
   return (
-    <a
-      role='button' tabIndex='0' className='nav-link p-0 me-2' onClick={() => {
-        if (back) {
-          router.back()
-        } else {
-          router.push('/')
-        }
-      }}
-    >
+    <a role='button' tabIndex='0' className='nav-link p-0 me-2' onClick={() => router.back()}>
       <BackArrow className='theme me-1 me-md-2' width={24} height={24} />
     </a>
   )

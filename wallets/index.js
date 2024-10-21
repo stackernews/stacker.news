@@ -220,6 +220,7 @@ function useConfig (walletDef) {
             ...serverConfig.wallet
           }
         }
+      }
 
       // fetch client config
       let clientConfig = {}

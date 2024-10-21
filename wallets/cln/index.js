@@ -1,6 +1,9 @@
 import { CLNAutowithdrawSchema } from '@/lib/validate'
 
 export const name = 'cln'
+export const walletType = 'CLN'
+export const walletField = 'walletCLN'
+export const fieldValidation = CLNAutowithdrawSchema
 
 export const fields = [
   {
@@ -38,9 +41,3 @@ export const card = {
   subtitle: 'autowithdraw to your Core Lightning node via [CLNRest](https://docs.corelightning.org/docs/rest)',
   badges: ['receive only']
 }
-
-export const fieldValidation = CLNAutowithdrawSchema
-
-export const walletType = 'CLN'
-
-export const walletField = 'walletCLN'

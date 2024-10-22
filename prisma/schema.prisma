@@ -118,6 +118,7 @@ model User {
   lnAddr                    String?
   autoWithdrawMaxFeePercent Float?
   autoWithdrawThreshold     Int?
+  autoWithdrawMaxFeeTotal   Int?
   muters                    Mute[]               @relation("muter")
   muteds                    Mute[]               @relation("muted")
   ArcOut                    Arc[]                @relation("fromUser")

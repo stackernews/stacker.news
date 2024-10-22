@@ -91,6 +91,7 @@ const typeDefs = `
   input AutowithdrawSettings {
     autoWithdrawThreshold: Int!
     autoWithdrawMaxFeePercent: Float!
+    autoWithdrawMaxFeeTotal: Int!
     priority: Int
     enabled: Boolean
   }

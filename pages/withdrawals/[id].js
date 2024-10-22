@@ -16,6 +16,7 @@ import { gql } from 'graphql-tag'
 import { useShowModal } from '@/components/modal'
 import { DeleteConfirm } from '@/components/delete'
 import { getGetServerSideProps } from '@/api/ssrApollo'
+import { LinkToWallet } from '../wallet'
 
 // force SSR to include CSP nonces
 export const getServerSideProps = getGetServerSideProps({ query: null })
@@ -24,6 +25,7 @@ export default function Withdrawl () {
   return (
     <CenterLayout>
       <LoadWithdrawl />
+      <LinkToWallet />
     </CenterLayout>
   )
 }

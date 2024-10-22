@@ -36,7 +36,7 @@ export const fields = [
 export const card = {
   title: 'CLN',
   subtitle: 'autowithdraw to your Core Lightning node via [CLNRest](https://docs.corelightning.org/docs/rest)',
-  badges: ['receive only']
+  badges: ['receive']
 }
 
 export const fieldValidation = CLNAutowithdrawSchema

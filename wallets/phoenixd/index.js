@@ -33,7 +33,7 @@ export const fields = [
 export const card = {
   title: 'phoenixd',
   subtitle: 'use [phoenixd](https://phoenix.acinq.co/server) for payments',
-  badges: ['send & receive']
+  badges: ['send', 'receive']
 }
 
 // phoenixd::TODO

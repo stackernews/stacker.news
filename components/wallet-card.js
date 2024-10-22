@@ -51,10 +51,18 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
         <Card.Title>{title}</Card.Title>
         <Card.Subtitle className='mt-2'>
           {badges?.map(
-            badge =>
-              <Badge className={styles.badge} key={badge} bg={null}>
-                {badge}
-              </Badge>)}
+            badge => {
+              let style = ''
+              switch (badge) {
+                case 'receive': style = styles.receive; break
+                case 'send': style = styles.send; break
+              }
+              return (
+                <Badge className={`${styles.badge} ${style}`} key={badge} bg={null}>
+                  {badge}
+                </Badge>
+              )
+            })}
         </Card.Subtitle>
       </Card.Body>
       <Link href={`/settings/wallets/${wallet.name}`}>

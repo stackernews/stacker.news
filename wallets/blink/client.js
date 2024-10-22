@@ -1,4 +1,4 @@
-import { getScopes, SCOPE_READ, SCOPE_RECEIVE, SCOPE_WRITE, getWallet, request } from 'wallets/blink/common'
+import { getScopes, SCOPE_READ, SCOPE_WRITE, getWallet, request } from 'wallets/blink/common'
 export * from 'wallets/blink'
 
 export async function testSendPayment ({ apiKey, currency }, { logger }) {
@@ -9,9 +9,6 @@ export async function testSendPayment ({ apiKey, currency }, { logger }) {
   }
   if (!scopes.includes(SCOPE_WRITE)) {
     throw new Error('missing WRITE scope')
-  }
-  if (scopes.includes(SCOPE_RECEIVE)) {
-    throw new Error('RECEIVE scope must not be present')
   }
 
   currency = currency ? currency.toUpperCase() : 'BTC'

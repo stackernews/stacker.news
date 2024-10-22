@@ -14,7 +14,8 @@ export const fields = [
     help: `you can get an API key from [Blink Dashboard](${galoyBlinkDashboardUrl}).\nPlease make sure to select ONLY the 'Read' and 'Write' scopes when generating this API key.`,
     placeholder: 'blink_...',
     optional: 'for sending',
-    clientOnly: true
+    clientOnly: true,
+    editable: false
   },
   {
     name: 'currency',
@@ -25,8 +26,8 @@ export const fields = [
     clear: true,
     autoComplete: 'off',
     optional: 'for sending',
-    clientOnly: true
-
+    clientOnly: true,
+    editable: false
   },
   {
     name: 'apiKeyRecv',
@@ -35,7 +36,8 @@ export const fields = [
     help: `you can get an API key from [Blink Dashboard](${galoyBlinkDashboardUrl}).\nPlease make sure to select ONLY the 'Read' and 'Receive' scopes when generating this API key.`,
     placeholder: 'blink_...',
     optional: 'for receiving',
-    serverOnly: true
+    serverOnly: true,
+    editable: false
   },
   {
     name: 'currencyRecv',

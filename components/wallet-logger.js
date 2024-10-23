@@ -254,5 +254,10 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     loadLogs()
   }, [wallet?.def])
 
+  useEffect(() => {
+    // make sure 'more' button is removed if logs are deleted
+    if (logs.length === 0) setHasMore(false)
+  }, [logs?.length])
+
   return { logs, hasMore, total, loadMore, loadLogs, setLogs, loading }
 }

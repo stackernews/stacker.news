@@ -1,6 +1,6 @@
 import { useMe } from '@/components/me'
 import { WALLETS } from '@/fragments/wallet'
-import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { LONG_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend } from './common'
@@ -21,44 +21,34 @@ function useLocalWallets () {
     // form wallets into a list of { config, def }
     const wallets = walletDefs.map(w => {
       try {
-        const config = window.localStorage.getItem(getStorageKey(w.name, me))
+        const config = window.localStorage.getItem(getStorageKey(w.name, me?.id))
         return { def: w, config: JSON.parse(config) }
       } catch (e) {
         return null
       }
     }).filter(Boolean)
     setWallets(wallets)
-  }, [me, setWallets])
+  }, [me?.id, setWallets])
 
-  // watch for changes to local storage
   useEffect(() => {
     loadWallets()
-    // reload wallets if local storage to wallet changes
-    const handler = (event) => {
-      if (event.key.startsWith('wallet:')) {
-        loadWallets()
-      }
-    }
-    window.addEventListener('storage', handler)
-    return () => window.removeEventListener('storage', handler)
   }, [loadWallets])
 
-  return wallets
+  return { wallets, reloadLocalWallets: loadWallets }
 }
 
 const walletDefsOnly = walletDefs.map(w => ({ def: w, config: {} }))
 
 export function WalletsProvider ({ children }) {
-  const { me } = useMe()
   const { decrypt } = useVault()
-  const localWallets = useLocalWallets()
+  const { wallets: localWallets, reloadLocalWallets } = useLocalWallets()
 
   // TODO: instead of polling, this should only be called when the vault key is updated
   // or a denormalized field on the user 'vaultUpdatedAt' is changed
   const { data } = useQuery(WALLETS, {
-    pollInterval: NORMAL_POLL_INTERVAL,
+    pollInterval: LONG_POLL_INTERVAL,
     nextFetchPolicy: 'cache-and-network',
-    skip: !me?.id || SSR
+    skip: SSR
   })
 
   const wallets = useMemo(() => {
@@ -85,7 +75,7 @@ export function WalletsProvider ({ children }) {
 
   // provides priority sorted wallets to children
   return (
-    <WalletsContext.Provider value={wallets}>
+    <WalletsContext.Provider value={{ wallets, reloadLocalWallets }}>
       {children}
     </WalletsContext.Provider>
   )
@@ -96,7 +86,7 @@ export function useWallets () {
 }
 
 export function useWallet (name) {
-  const wallets = useWallets()
+  const { wallets } = useWallets()
 
   const wallet = useMemo(() => {
     if (name) {

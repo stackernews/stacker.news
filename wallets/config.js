@@ -1,15 +1,17 @@
 import { useMe } from '@/components/me'
 import useVault from '@/components/vault/use-vault'
 import { useCallback } from 'react'
-import { getStorageKey, isClientField, isServerField } from './common'
+import { canReceive, canSend, getStorageKey, isClientField, isServerField } from './common'
 import { useMutation } from '@apollo/client'
 import { generateMutation } from './graphql'
 import { REMOVE_WALLET } from '@/fragments/wallet'
 import { walletValidate } from '@/lib/validate'
 import { useWalletLogger } from '@/components/wallet-logger'
+import { useWallets } from '.'
 
 export function useWalletConfigurator (wallet) {
   const { me } = useMe()
+  const { reloadLocalWallets } = useWallets()
   const { encrypt, isActive } = useVault()
   const { logger } = useWalletLogger(wallet?.def)
   const [upsertWallet] = useMutation(generateMutation(wallet?.def))
@@ -26,26 +28,29 @@ export function useWalletConfigurator (wallet) {
   }, [encrypt, isActive])
 
   const _saveToLocal = useCallback(async (newConfig) => {
-    window.localStorage.setItem(getStorageKey(wallet.name, me), JSON.stringify(newConfig))
-  }, [me, wallet.name])
+    window.localStorage.setItem(getStorageKey(wallet.def.name, me?.id), JSON.stringify(newConfig))
+    reloadLocalWallets()
+  }, [me?.id, wallet.def.name, reloadLocalWallets])
 
   const save = useCallback(async (newConfig, validate = true) => {
     let clientConfig = extractClientConfig(wallet.def.fields, newConfig)
     let serverConfig = extractServerConfig(wallet.def.fields, newConfig)
 
     if (validate) {
-      if (clientConfig) {
+      if (canSend(wallet)) {
         let transformedConfig = await walletValidate(wallet, clientConfig)
         if (transformedConfig) {
           clientConfig = Object.assign(clientConfig, transformedConfig)
         }
-        transformedConfig = await wallet.def.testSendPayment(clientConfig, { me, logger })
-        if (transformedConfig) {
-          clientConfig = Object.assign(clientConfig, transformedConfig)
+        if (wallet.def.testSendPayment) {
+          transformedConfig = await wallet.def.testSendPayment(clientConfig, { me, logger })
+          if (transformedConfig) {
+            clientConfig = Object.assign(clientConfig, transformedConfig)
+          }
         }
       }
 
-      if (serverConfig) {
+      if (canReceive(wallet)) {
         const transformedConfig = await walletValidate(wallet, serverConfig)
         if (transformedConfig) {
           serverConfig = Object.assign(serverConfig, transformedConfig)
@@ -57,14 +62,14 @@ export function useWalletConfigurator (wallet) {
     if (isActive) {
       await _saveToServer(serverConfig, clientConfig)
     } else {
-      if (clientConfig) {
+      if (canSend(wallet)) {
         await _saveToLocal(clientConfig)
       }
-      if (serverConfig) {
+      if (canReceive(wallet)) {
         await _saveToServer(serverConfig)
       }
     }
-  }, [wallet.def, encrypt, isActive])
+  }, [wallet, encrypt, isActive])
 
   const _detachFromServer = useCallback(async () => {
     await removeWallet({ variables: { id: wallet.config.id } })
@@ -72,8 +77,8 @@ export function useWalletConfigurator (wallet) {
 
   const _detachFromLocal = useCallback(async () => {
     // if vault is not active and has a client config, delete from local storage
-    window.localStorage.removeItem(getStorageKey(wallet.name, me))
-  }, [me, wallet.name])
+    window.localStorage.removeItem(getStorageKey(wallet.def.name, me?.id))
+  }, [me?.id, wallet.def.name])
 
   const detach = useCallback(async () => {
     if (isActive) {
@@ -87,7 +92,7 @@ export function useWalletConfigurator (wallet) {
     }
   }, [isActive, _detachFromServer, _detachFromLocal])
 
-  return [save, detach]
+  return { save, detach }
 }
 
 function extractConfig (fields, config, client, includeMeta = true) {
@@ -111,7 +116,7 @@ function extractConfig (fields, config, client, includeMeta = true) {
 }
 
 function extractClientConfig (fields, config) {
-  return extractConfig(fields, config, true, false)
+  return extractConfig(fields, config, true, true)
 }
 
 function extractServerConfig (fields, config) {

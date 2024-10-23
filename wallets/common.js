@@ -13,13 +13,13 @@ export function getWalletByType (type) {
   return walletDefs.find(def => def.walletType === type)
 }
 
-export function getStorageKey (name, me) {
+export function getStorageKey (name, userId) {
   let storageKey = `wallet:${name}`
 
   // WebLN has no credentials we need to scope to users
   // so we can use the same storage key for all users
-  if (me && name !== 'webln') {
-    storageKey = `${storageKey}:${me.id}`
+  if (userId && name !== 'webln') {
+    storageKey = `${storageKey}:${userId}`
   }
 
   return storageKey

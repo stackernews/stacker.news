@@ -9,9 +9,10 @@ import { useWallet } from '@/wallets/index'
 import Info from '@/components/info'
 import Text from '@/components/text'
 import { AutowithdrawSettings } from '@/components/autowithdraw-shared'
-import { isConfigured } from '@/wallets/common'
+import { canSend, isConfigured } from '@/wallets/common'
 import { SSR } from '@/lib/constants'
 import WalletButtonBar from '@/components/wallet-buttonbar'
+import { useWalletConfigurator } from '@/wallets/config'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -20,6 +21,7 @@ export default function WalletSettings () {
   const router = useRouter()
   const { wallet: name } = router.query
   const wallet = useWallet(name)
+  const { save, detach } = useWalletConfigurator(wallet)
 
   const initial = wallet?.def.fields.reduce((acc, field) => {
     // We still need to run over all wallet fields via reduce
@@ -42,7 +44,7 @@ export default function WalletSettings () {
     <CenterLayout>
       <h2 className='pb-2'>{wallet?.def.card.title}</h2>
       <h6 className='text-muted text-center pb-3'><Text>{wallet?.def.card.subtitle}</Text></h6>
-      {wallet?.canSend && wallet?.hasConfig > 0 && <WalletSecurityBanner />}
+      {canSend(wallet) && <WalletSecurityBanner />}
       <Form
         initial={initial}
         enableReinitialize
@@ -56,7 +58,7 @@ export default function WalletSettings () {
               values.enabled = true
             }
 
-            await wallet.save(values)
+            await save(values, true)
 
             toaster.success('saved settings')
             router.push('/settings/wallets')
@@ -82,7 +84,7 @@ export default function WalletSettings () {
         <WalletButtonBar
           wallet={wallet} onDelete={async () => {
             try {
-              await wallet?.delete()
+              await detach()
               toaster.success('saved settings')
               router.push('/settings/wallets')
             } catch (err) {
@@ -101,8 +103,6 @@ export default function WalletSettings () {
 }
 
 function WalletFields ({ wallet }) {
-  console.log('wallet', wallet)
-
   return wallet.def.fields
     .map(({ name, label = '', type, help, optional, editable, clientOnly, serverOnly, ...props }, i) => {
       const rawProps = {

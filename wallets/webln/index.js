@@ -35,6 +35,11 @@ export default function WebLnProvider ({ children }) {
       wallet.disablePayments()
     }
 
+    if (wallet.enabled && typeof window.webln === 'undefined') {
+      // automatically disable WebLN if extension no longer found
+      onDisable()
+    }
+
     window.addEventListener('webln:enabled', onEnable)
     // event is not fired by Alby browser extension but added here for sake of completeness
     window.addEventListener('webln:disabled', onDisable)

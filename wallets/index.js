@@ -182,6 +182,9 @@ function useConfig (wallet) {
   }
 
   const saveConfig = useCallback(async (newConfig, { logger, skipValidation }) => {
+    // always skip validation if wallet was disabled
+    skipValidation ||= (newConfig.enabled === false)
+
     // NOTE:
     //   verifying the client/server configuration before saving it
     //   prevents unsetting just one configuration if both are set.

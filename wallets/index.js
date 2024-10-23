@@ -207,7 +207,7 @@ function useConfig (wallet) {
         valid = false
       }
 
-      if (valid) {
+      if (valid || priorityOnly) {
         if (priorityOnly) {
           setClientConfig(newClientConfig)
         } else {

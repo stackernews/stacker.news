@@ -35,15 +35,13 @@ export function useWallet (name) {
   const _isConfigured = isConfigured({ ...wallet, config })
 
   const enablePayments = useCallback(() => {
-    enableWallet(name, me)
-    logger.ok('payments enabled')
+    saveConfig({ ...config, enabled: true }, { logger, skipValidation: true })
     disableFreebies().catch(console.error)
-  }, [name, me, logger])
+  }, [config, name, me, logger])
 
   const disablePayments = useCallback(() => {
-    disableWallet(name, me)
-    logger.info('payments disabled')
-  }, [name, me, logger])
+    saveConfig({ ...config, enabled: false }, { logger, skipValidation: true })
+  }, [config, name, me, logger])
 
   const status = config?.enabled ? Status.Enabled : Status.Initialized
   const enabled = status === Status.Enabled
@@ -65,7 +63,8 @@ export function useWallet (name) {
   const setPriority = useCallback(async (priority) => {
     if (_isConfigured && priority !== config.priority) {
       try {
-        await saveConfig({ ...config, priority }, { logger, priorityOnly: true })
+        // don't pass logger to prevent logs
+        await saveConfig({ ...config, priority }, { skipValidation: true })
       } catch (err) {
         toaster.danger(`failed to change priority of ${wallet.name} wallet: ${err.message}`)
       }
@@ -182,7 +181,7 @@ function useConfig (wallet) {
     config.priority ||= priority
   }
 
-  const saveConfig = useCallback(async (newConfig, { logger, priorityOnly }) => {
+  const saveConfig = useCallback(async (newConfig, { logger, skipValidation }) => {
     // NOTE:
     //   verifying the client/server configuration before saving it
     //   prevents unsetting just one configuration if both are set.
@@ -207,10 +206,8 @@ function useConfig (wallet) {
         valid = false
       }
 
-      if (valid || priorityOnly) {
-        if (priorityOnly) {
-          setClientConfig(newClientConfig)
-        } else {
+      if (valid || skipValidation) {
+        if (!skipValidation) {
           try {
             // XXX: testSendPayment can return a new config (e.g. lnc)
             const newerConfig = await wallet.testSendPayment?.(newConfig, { me, logger })
@@ -221,12 +218,13 @@ function useConfig (wallet) {
             logger.error(err.message)
             throw err
           }
-
-          setClientConfig(newClientConfig)
-          logger.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
-          if (newConfig.enabled) wallet.enablePayments()
-          else wallet.disablePayments()
         }
+
+        setClientConfig(newClientConfig)
+        logger?.ok(wallet.isConfigured ? 'payment details updated' : 'wallet attached for payments')
+
+        if (newConfig.enabled) logger?.ok('payments enabled')
+        else logger?.info('payments disabled')
       }
     }
 
@@ -243,15 +241,15 @@ function useConfig (wallet) {
         valid = false
       }
 
-      if (valid) await setServerConfig(newServerConfig, { priorityOnly })
+      if (valid) await setServerConfig(newServerConfig, { skipValidation })
     }
   }, [hasClientConfig, hasServerConfig, setClientConfig, setServerConfig, wallet])
 
   const clearConfig = useCallback(async ({ logger, clientOnly }) => {
     if (hasClientConfig) {
       clearClientConfig()
-      wallet.disablePayments()
       logger.ok('wallet detached for payments')
+      logger.info('payments disabled')
     }
     if (hasServerConfig && !clientOnly) await clearServerConfig()
   }, [hasClientConfig, hasServerConfig, clearClientConfig, clearServerConfig, wallet])
@@ -301,7 +299,7 @@ function useServerConfig (wallet) {
     priority,
     enabled,
     ...config
-  }, { priorityOnly }) => {
+  }, { skipValidation }) => {
     try {
       const mutation = generateMutation(wallet)
       return await client.mutate({
@@ -316,7 +314,7 @@ function useServerConfig (wallet) {
             priority,
             enabled
           },
-          priorityOnly
+          skipValidation
         }
       })
     } finally {
@@ -356,13 +354,13 @@ function generateMutation (wallet) {
       }
       return arg
     }).join(', ')
-  headerArgs += ', $settings: AutowithdrawSettings!, $priorityOnly: Boolean'
+  headerArgs += ', $settings: AutowithdrawSettings!, $skipValidation: Boolean'
 
   let inputArgs = 'id: $id, '
   inputArgs += wallet.fields
     .filter(isServerField)
     .map(f => `${f.name}: $${f.name}`).join(', ')
-  inputArgs += ', settings: $settings, priorityOnly: $priorityOnly'
+  inputArgs += ', settings: $settings, skipValidation: $skipValidation'
 
   return gql`mutation ${resolverName}(${headerArgs}) {
     ${resolverName}(${inputArgs})
@@ -435,18 +433,4 @@ function getStorageKey (name, me) {
   }
 
   return storageKey
-}
-
-function enableWallet (name, me) {
-  const key = getStorageKey(name, me)
-  const config = JSON.parse(window.localStorage.getItem(key)) || {}
-  config.enabled = true
-  window.localStorage.setItem(key, JSON.stringify(config))
-}
-
-function disableWallet (name, me) {
-  const key = getStorageKey(name, me)
-  const config = JSON.parse(window.localStorage.getItem(key)) || {}
-  config.enabled = false
-  window.localStorage.setItem(key, JSON.stringify(config))
 }

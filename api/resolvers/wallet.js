@@ -30,9 +30,9 @@ function injectResolvers (resolvers) {
     const resolverName = generateResolverName(w.walletField)
     console.log(resolverName)
 
-    resolvers.Mutation[resolverName] = async (parent, { settings, priorityOnly, ...data }, { me, models }) => {
+    resolvers.Mutation[resolverName] = async (parent, { settings, skipValidation, ...data }, { me, models }) => {
       // allow transformation of the data on validation (this is optional ... won't do anything if not implemented)
-      if (!priorityOnly) {
+      if (!skipValidation) {
         const validData = await walletValidate(w, { ...data, ...settings })
         if (validData) {
           Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
@@ -43,7 +43,7 @@ function injectResolvers (resolvers) {
       return await upsertWallet({
         wallet: { field: w.walletField, type: w.walletType },
         testCreateInvoice: (data) => w.testCreateInvoice(data, { me, models })
-      }, { settings, data, priorityOnly }, { me, models })
+      }, { settings, data, skipValidation }, { me, models })
     }
   }
   console.groupEnd()
@@ -627,13 +627,13 @@ export const addWalletLog = async ({ wallet, level, message }, { models }) => {
 }
 
 async function upsertWallet (
-  { wallet, testCreateInvoice }, { settings, data, priorityOnly }, { me, models }) {
+  { wallet, testCreateInvoice }, { settings, data, skipValidation }, { me, models }) {
   if (!me) {
     throw new GqlAuthenticationError()
   }
   assertApiKeyNotPermitted({ me })
 
-  if (testCreateInvoice && !priorityOnly) {
+  if (testCreateInvoice && !skipValidation) {
     try {
       await testCreateInvoice(data)
     } catch (err) {

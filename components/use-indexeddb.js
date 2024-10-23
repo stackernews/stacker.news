@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
-function useIndexedDB (dbName, storeName, version = 1, indices = []) {
+export function getDbName (userId) {
+  return `app:storage${userId ? `:${userId}` : ''}`
+}
+
+function useIndexedDB ({ dbName, storeName, options = { keyPath: 'id', autoIncrement: true }, indices = [], version = 1 }) {
   const [db, setDb] = useState(null)
   const [error, setError] = useState(null)
   const [notSupported, setNotSupported] = useState(false)
@@ -58,7 +62,7 @@ function useIndexedDB (dbName, storeName, version = 1, indices = []) {
       request.onupgradeneeded = (event) => {
         const database = event.target.result
         try {
-          const store = database.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true })
+          const store = database.createObjectStore(storeName, options)
 
           indices.forEach(index => {
             store.createIndex(index.name, index.keyPath, index.options)
@@ -141,20 +145,15 @@ function useIndexedDB (dbName, storeName, version = 1, indices = []) {
     })
   }, [queueOperation, storeName])
 
-  const update = useCallback((key, value) => {
+  const set = useCallback((key, value) => {
     return queueOperation((db) => {
       return new Promise((resolve, reject) => {
         const transaction = db.transaction(storeName, 'readwrite')
         const store = transaction.objectStore(storeName)
-        const request = store.get(key)
+        const request = store.put(value, key)
 
-        request.onerror = () => reject(new Error('Error updating data'))
-        request.onsuccess = () => {
-          const updatedValue = { ...request.result, ...value }
-          const updateRequest = store.put(updatedValue)
-          updateRequest.onerror = () => reject(new Error('Error updating data'))
-          updateRequest.onsuccess = () => resolve(updateRequest.result)
-        }
+        request.onerror = () => reject(new Error('Error setting data'))
+        request.onsuccess = () => resolve(request.result)
       })
     })
   }, [queueOperation, storeName])
@@ -286,7 +285,7 @@ function useIndexedDB (dbName, storeName, version = 1, indices = []) {
     })
   }, [queueOperation, storeName])
 
-  return { add, get, getAll, update, remove, clear, getByIndex, getAllByIndex, getPage, error, notSupported }
+  return { add, get, getAll, set, remove, clear, getByIndex, getAllByIndex, getPage, error, notSupported }
 }
 
 export default useIndexedDB

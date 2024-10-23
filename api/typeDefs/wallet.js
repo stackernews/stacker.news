@@ -83,7 +83,7 @@ const typeDefs = `
     deleteWalletLogs(wallet: String): Boolean
   }
 
-  type Wallet implements VaultOwner {
+  type Wallet {
     id: ID!
     createdAt: Date!
     updatedAt: Date!
@@ -93,6 +93,7 @@ const typeDefs = `
     wallet: WalletDetails!
     canReceive: Boolean!
     canSend: Boolean!
+    vaultEntries: [VaultEntry!]!
   }
 
   input AutowithdrawSettings {

@@ -1,11 +1,7 @@
 import { gql } from 'graphql-tag'
 
 export default gql`
-  interface VaultOwner {
-    id: ID!
-  }
-    
-  type Vault {
+  type VaultEntry {
     id: ID!
     key: String!
     value: String!
@@ -13,16 +9,19 @@ export default gql`
     updatedAt: Date!
   }
 
+  input VaultEntryInput {
+    key: String!
+    value: String!
+    walletId: ID
+  }
+
   extend type Query {
-    getVaultEntry(ownerId:ID!, ownerType:String!, key: String!): Vault
-    getVaultEntries(ownerId:ID!, ownerType:String!, keysFilter: [String]): [Vault!]!
+    getVaultEntry(key: String!): VaultEntry
+    getVaultEntries(keysFilter: [String!]): [VaultEntry!]!
   }
 
   extend type Mutation {
-    setVaultEntry(ownerId:ID!, ownerType:String!, key: String!, value: String!, skipIfSet: Boolean): Boolean
-    unsetVaultEntry(ownerId:ID!, ownerType:String!, key: String!): Boolean
-
     clearVault: Boolean
-    setVaultKeyHash(hash: String!): String
+    updateVaultKey(entries: [VaultEntryInput!]!, hash: String!): Boolean
   }
 `

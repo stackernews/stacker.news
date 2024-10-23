@@ -188,19 +188,7 @@ export const WALLET_BY_TYPE = gql`
 
 export const WALLETS = gql`
   query Wallets {
-    wallets{
-      id
-      priority
-      type,
-      canSend,
-      canReceive
-    }
-  }
-`
-
-export const BEST_WALLETS = gql`
-  query BestWallets {
-    wallets (includeSenders: true, includeReceivers: true, onlyEnabled: true, prioritySort: "asc") {
+    wallets {
       id
       priority
       type
@@ -208,6 +196,10 @@ export const BEST_WALLETS = gql`
       canSend
       canReceive
       enabled
+      vaultEntries {
+        key
+        value
+      }
     }
   }
 `
@@ -222,7 +214,7 @@ export const WALLET_LOGS = gql`
           wallet
           level
           message
+        }
       }
-    }
   }
 `

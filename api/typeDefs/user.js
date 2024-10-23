@@ -46,7 +46,7 @@ export default gql`
     disableFreebies: Boolean
   }
 
-  type User implements VaultOwner {
+  type User {
     id: ID!
     createdAt: Date!
     name: String

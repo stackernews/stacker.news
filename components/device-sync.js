@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useMe } from './me'
 import { useShowModal } from './modal'
-import useVault, { useVaultConfigurator, useVaultMigration } from './use-vault'
+import useVault, { useVaultConfigurator, useVaultMigration } from './vault/use-vault'
 import { Button, InputGroup } from 'react-bootstrap'
 import { Form, Input, PasswordInput, SubmitButton } from './form'
 import bip39Words from '@/lib/bip39-words'

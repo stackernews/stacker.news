@@ -5,10 +5,10 @@ import { Button } from 'react-bootstrap'
 import { useToast } from './toast'
 import { useShowModal } from './modal'
 import { WALLET_LOGS } from '@/fragments/wallet'
-import { getWalletByType } from 'wallets'
+import { getWalletByType } from '@/wallets/common'
 import { gql, useLazyQuery, useMutation } from '@apollo/client'
 import { useMe } from './me'
-import useIndexedDB from './use-indexeddb'
+import useIndexedDB, { getDbName } from './use-indexeddb'
 import { SSR } from '@/lib/constants'
 
 export function WalletLogs ({ wallet, embedded }) {
@@ -88,9 +88,11 @@ const INDICES = [
 
 function useWalletLogDB () {
   const { me } = useMe()
-  const dbName = `app:storage${me ? `:${me.id}` : ''}`
-  const idbStoreName = 'wallet_logs'
-  const { add, getPage, clear, error, notSupported } = useIndexedDB(dbName, idbStoreName, 1, INDICES)
+  const { add, getPage, clear, error, notSupported } = useIndexedDB({
+    dbName: getDbName(me?.id),
+    storeName: 'wallet_logs',
+    indices: INDICES
+  })
   return { add, getPage, clear, error, notSupported }
 }
 

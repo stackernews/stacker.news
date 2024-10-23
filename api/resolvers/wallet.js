@@ -161,6 +161,9 @@ const resolvers = {
         where: {
           userId: me.id,
           id: Number(id)
+        },
+        include: {
+          vaultEntries: true
         }
       })
     },
@@ -173,40 +176,29 @@ const resolvers = {
         where: {
           userId: me.id,
           type
+        },
+        include: {
+          vaultEntries: true
         }
       })
       return wallet
     },
-    wallets: async (parent, { includeReceivers = true, includeSenders = true, onlyEnabled = false, prioritySort = undefined }, { me, models }) => {
+    wallets: async (parent, args, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
-      const filter = {
-        userId: me.id
-      }
-
-      if (includeReceivers && includeSenders) {
-        filter.OR = [
-          { canReceive: true },
-          { canSend: true }
-        ]
-      } else if (includeReceivers) {
-        filter.canReceive = true
-      } else if (includeSenders) {
-        filter.canSend = true
-      }
-      if (onlyEnabled) {
-        filter.enabled = true
-      }
-
-      const out = await models.wallet.findMany({
-        where: filter,
+      return await models.wallet.findMany({
+        include: {
+          vaultEntries: true
+        },
+        where: {
+          userId: me.id
+        },
         orderBy: {
-          priority: prioritySort
+          priority: 'asc'
         }
       })
-      return out
     },
     withdrawl: getWithdrawl,
     numBolt11s: async (parent, args, { me, models, lnd }) => {

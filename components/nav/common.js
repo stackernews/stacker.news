@@ -263,7 +263,7 @@ export default function LoginButton () {
 
 function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
-  const wallets = useWallets()
+  const { wallets } = useWallets()
   const { multiAuthSignout } = useAccounts()
 
   return (

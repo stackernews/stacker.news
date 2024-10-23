@@ -26,7 +26,7 @@ async function reorder (wallets, sourceIndex, targetIndex) {
 }
 
 export default function Wallet ({ ssrData }) {
-  const wallets = useWallets()
+  const { wallets } = useWallets()
 
   const isClient = useIsClient()
   const [sourceIndex, setSourceIndex] = useState(null)

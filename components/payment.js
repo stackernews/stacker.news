@@ -1,35 +1,13 @@
 import { useCallback, useMemo } from 'react'
 import { useMe } from './me'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
-import { useWallet } from '@/wallets/common'
+import { useWallet } from '@/wallets/index'
 import { FAST_POLL_INTERVAL, JIT_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { INVOICE } from '@/fragments/wallet'
 import Invoice from '@/components/invoice'
 import { useFeeButton } from './fee-button'
 import { useShowModal } from './modal'
-
-export class InvoiceCanceledError extends Error {
-  constructor (hash, actionError) {
-    super(actionError ?? `invoice canceled: ${hash}`)
-    this.name = 'InvoiceCanceledError'
-    this.hash = hash
-    this.actionError = actionError
-  }
-}
-
-export class NoAttachedWalletError extends Error {
-  constructor () {
-    super('no attached wallet found')
-    this.name = 'NoAttachedWalletError'
-  }
-}
-
-export class InvoiceExpiredError extends Error {
-  constructor (hash) {
-    super(`invoice expired: ${hash}`)
-    this.name = 'InvoiceExpiredError'
-  }
-}
+import { InvoiceCanceledError, NoAttachedWalletError, InvoiceExpiredError } from '@/wallets/errors'
 
 export const useInvoice = () => {
   const client = useApolloClient()

@@ -2,7 +2,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { CopyInput, InputSkeleton } from './form'
 import InvoiceStatus from './invoice-status'
 import { useEffect } from 'react'
-import { useWallet } from '@/wallets/common'
+import { useWallet } from '@/wallets/index'
 import Bolt11Info from './bolt11-info'
 
 export default function Qr ({ asIs, value, useWallet: automated, statusVariant, description, status }) {

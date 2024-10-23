@@ -22,10 +22,9 @@ import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
-import { useWallets } from '@/wallets/common'
+import { useWallets } from '@/wallets/index'
 import SwitchAccountList, { useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
-import { unsetLocalKey as resetVaultKey } from '@/components/use-vault'
 
 export function Brand ({ className }) {
   return (
@@ -266,7 +265,6 @@ function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const wallets = useWallets()
   const { multiAuthSignout } = useAccounts()
-  const { me } = useMe()
 
   return (
     <div className='d-flex m-auto flex-column w-fit-content'>
@@ -295,7 +293,6 @@ function LogoutObstacle ({ onClose }) {
             }
 
             await wallets.resetClient().catch(console.error)
-            await resetVaultKey(me?.id)
 
             await signOut({ callbackUrl: '/' })
           }}

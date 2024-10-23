@@ -54,10 +54,9 @@ export default {
       }
 
       for (const entry of entries) {
-        txs.push(models.vaultEntry.upsert({
-          where: { userId: me.id, key: entry.key },
-          update: { key: entry.key, value: entry.value },
-          create: { key: entry.key, value: entry.value, userId: me.id, walletId: entry.walletId }
+        txs.push(models.vaultEntry.update({
+          where: { id: entry.id },
+          data: { key: entry.key, value: entry.value }
         }))
       }
       await models.prisma.$transaction(txs)

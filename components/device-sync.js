@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useMe } from './me'
 import { useShowModal } from './modal'
-import useVault, { useVaultConfigurator, useVaultMigration } from './vault/use-vault'
+import { useVaultConfigurator } from './vault/use-vault-configurator'
 import { Button, InputGroup } from 'react-bootstrap'
 import { Form, Input, PasswordInput, SubmitButton } from './form'
 import bip39Words from '@/lib/bip39-words'
@@ -20,9 +20,6 @@ export default function DeviceSync () {
 
   const enabled = !!me?.privates?.vaultKeyHash
   const connected = !!value?.key
-
-  const migrate = useVaultMigration()
-  const [debugValue, setDebugValue, clearValue] = useVault(me, 'debug')
 
   const manage = useCallback(async () => {
     if (enabled && connected) {
@@ -55,7 +52,7 @@ export default function DeviceSync () {
         <ConnectForm onClose={onClose} onConnect={onConnect} enabled={enabled} />
       ))
     }
-  }, [migrate, enabled, connected, value])
+  }, [enabled, connected, value])
 
   const reset = useCallback(async () => {
     const schema = yup.object().shape({
@@ -106,7 +103,6 @@ export default function DeviceSync () {
     if (values.passphrase) {
       try {
         await setVaultKey(values.passphrase)
-        await migrate()
         apollo.cache.evict({ fieldName: 'BestWallets' })
         apollo.cache.gc()
         await apollo.refetchQueries({ include: ['BestWallets'] })
@@ -115,7 +111,7 @@ export default function DeviceSync () {
         throw e
       }
     }
-  }, [setVaultKey, migrate])
+  }, [setVaultKey])
 
   return (
     <>
@@ -139,33 +135,6 @@ export default function DeviceSync () {
           </p>
         </Info>
       </div>
-      <Button
-        onClick={async () => {
-          try {
-            const v = window.prompt('Enter debug value', debugValue)
-
-            await setDebugValue(v)
-          } catch (e) {
-            console.error(e)
-          }
-        }}
-      >
-        Set value
-      </Button>
-      <Button
-        onClick={() => {
-          clearValue()
-        }}
-      >
-        Clear value
-      </Button>
-      <Button
-        onClick={() => {
-          window.alert(debugValue)
-        }}
-      >
-        Show value
-      </Button>
       {enabled && !connected && (
         <div className='mt-2 d-flex align-items-center'>
           <div>

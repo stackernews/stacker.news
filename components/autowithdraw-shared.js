@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { isNumber } from '@/lib/validate'
 import { useIsClient } from './use-client'
 import Link from 'next/link'
+import { isConfigured } from '@/wallets/common'
 
 function autoWithdrawThreshold ({ me }) {
   return isNumber(me?.privates?.autoWithdrawThreshold) ? me?.privates?.autoWithdrawThreshold : 10000
@@ -33,7 +34,7 @@ export function AutowithdrawSettings ({ wallet }) {
   return (
     <>
       <Checkbox
-        disabled={isClient && !wallet.isConfigured}
+        disabled={isClient && !isConfigured(wallet)}
         label='enabled'
         id='enabled'
         name='enabled'

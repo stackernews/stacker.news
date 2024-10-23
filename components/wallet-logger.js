@@ -86,10 +86,14 @@ const INDICES = [
   { name: 'wallet_ts', keyPath: ['wallet', 'ts'] }
 ]
 
+function getWalletLogDbName (userId) {
+  return getDbName(userId)
+}
+
 function useWalletLogDB () {
   const { me } = useMe()
   const { add, getPage, clear, error, notSupported } = useIndexedDB({
-    dbName: getDbName(me?.id),
+    dbName: getWalletLogDbName(me?.id),
     storeName: 'wallet_logs',
     indices: INDICES
   })
@@ -127,7 +131,7 @@ export function useWalletLogger (wallet, setLogs) {
   )
 
   const deleteLogs = useCallback(async (wallet, options) => {
-    if ((!wallet || wallet.walletType) && !options?.clientOnly) {
+    if ((!wallet || wallet.def.walletType) && !options?.clientOnly) {
       await deleteServerWalletLogs({ variables: { wallet: wallet?.walletType } })
     }
     if (!wallet || wallet.sendPayment) {
@@ -190,7 +194,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
 
         result = await getPage(page, pageSize, indexName, query, 'prev')
         // no walletType means we're using the local IDB
-        if (wallet && !wallet.walletType) {
+        if (wallet && !wallet.def.walletType) {
           return result
         }
       }

@@ -3,12 +3,11 @@ import { WALLETS } from '@/fragments/wallet'
 import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { getStorageKey, getWalletByType } from './common'
-import useVault from '@/components/use-vault'
+import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend } from './common'
+import useVault from '@/components/vault/use-vault'
 import { useWalletLogger } from '@/components/wallet-logger'
 import { bolt11Tags } from '@/lib/bolt11'
 import walletDefs from 'wallets/client'
-import { canSend } from './config'
 
 const WalletsContext = createContext({
   wallets: []
@@ -47,6 +46,8 @@ function useLocalWallets () {
   return wallets
 }
 
+const walletDefsOnly = walletDefs.map(w => ({ def: w, config: {} }))
+
 export function WalletsProvider ({ children }) {
   const { me } = useMe()
   const { decrypt } = useVault()
@@ -70,16 +71,19 @@ export function WalletsProvider ({ children }) {
       }
 
       return { config, def }
-    })
+    }) ?? []
 
     // merge wallets on name
     const merged = {}
-    for (const wallet of [...localWallets, ...wallets]) {
+    for (const wallet of [...walletDefsOnly, ...localWallets, ...wallets]) {
       merged[wallet.def.name] = { ...merged[wallet.def.name], ...wallet }
     }
     return Object.values(merged)
+      .sort(walletPrioritySort)
+      .map(w => ({ ...w, status: w.config?.enabled ? Status.Enabled : Status.Disabled }))
   }, [data?.wallets, localWallets])
 
+  // provides priority sorted wallets to children
   return (
     <WalletsContext.Provider value={wallets}>
       {children}
@@ -101,10 +105,10 @@ export function useWallet (name) {
 
     return wallets
       .filter(w => !w.def.isAvailable || w.def.isAvailable())
-      .filter(w => w.config.enabled && canSend(w))[0]
+      .filter(w => w.config?.enabled && canSend(w))[0]
   }, [wallets, name])
 
-  const { logger } = useWalletLogger(wallet.def)
+  const { logger } = useWalletLogger(wallet?.def)
 
   const sendPayment = useCallback(async (bolt11) => {
     const hash = bolt11Tags(bolt11).payment_hash

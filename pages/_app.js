@@ -22,7 +22,7 @@ import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
 import { WebLnProvider } from '@/wallets/webln/client'
 import { AccountProvider } from '@/components/account'
-import { WalletProvider } from '@/wallets/common'
+import { WalletsProvider } from '@/wallets/index'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
@@ -105,7 +105,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
         <PlausibleProvider domain='stacker.news' trackOutboundLinks>
           <ApolloProvider client={client}>
             <MeProvider me={me}>
-              <WalletProvider>
+              <WalletsProvider>
                 <HasNewNotesProvider>
                   <LoggerProvider>
                     <WebLnProvider>
@@ -132,7 +132,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                     </WebLnProvider>
                   </LoggerProvider>
                 </HasNewNotesProvider>
-              </WalletProvider>
+              </WalletsProvider>
             </MeProvider>
           </ApolloProvider>
         </PlausibleProvider>

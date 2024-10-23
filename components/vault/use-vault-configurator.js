@@ -1,11 +1,10 @@
-import { UPDATE_VAULT_KEY } from '@/fragments/users'
 import { useMutation, useQuery } from '@apollo/client'
 import { useMe } from '../me'
 import { useToast } from '../toast'
 import useIndexedDB, { getDbName } from '../use-indexeddb'
 import { useCallback, useEffect, useState } from 'react'
 import { E_VAULT_KEY_EXISTS } from '@/lib/error'
-import { CLEAR_VAULT, GET_VAULT_ENTRIES } from '@/fragments/vault'
+import { CLEAR_VAULT, GET_VAULT_ENTRIES, UPDATE_VAULT_KEY } from '@/fragments/vault'
 import { toHex } from '@/lib/hex'
 import { decryptData, encryptData } from './use-vault'
 
@@ -22,7 +21,7 @@ const useImperativeQuery = (query) => {
 export function useVaultConfigurator () {
   const { me } = useMe()
   const toaster = useToast()
-  const { set, get, remove } = useIndexedDB({ dbName: getDbName(me?.id), storeName: 'vault' })
+  const { set, get, remove } = useIndexedDB({ dbName: getDbName(me?.id, 'vault'), storeName: 'vault' })
   const [updateVaultKey] = useMutation(UPDATE_VAULT_KEY)
   const getVaultEntries = useImperativeQuery(GET_VAULT_ENTRIES)
   const [key, setKey] = useState(null)
@@ -44,10 +43,10 @@ export function useVaultConfigurator () {
         }
         setKey(localVaultKey)
       } catch (e) {
-        toaster.danger('error loading vault configuration ' + e.message)
+        // toaster?.danger('error loading vault configuration ' + e.message)
       }
     })()
-  }, [me?.privates?.vaultKeyHash, keyHash, get, remove])
+  }, [me?.privates?.vaultKeyHash, keyHash, get, remove, toaster])
 
   // clear vault: remove everything and reset the key
   const [clearVault] = useMutation(CLEAR_VAULT, {

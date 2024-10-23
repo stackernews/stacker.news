@@ -1,5 +1,5 @@
 import gql from 'graphql-tag'
-import { isServerField } from './config'
+import { isServerField } from './common'
 
 export function fieldToGqlArg (field) {
   let arg = `${field.name}: String`

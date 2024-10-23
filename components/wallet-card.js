@@ -3,26 +3,18 @@ import styles from '@/styles/wallet.module.css'
 import Plug from '@/svgs/plug.svg'
 import Gear from '@/svgs/settings-5-fill.svg'
 import Link from 'next/link'
-import { Status } from '@/wallets/common'
+import { Status, isConfigured } from '@/wallets/common'
 import DraggableIcon from '@/svgs/draggable.svg'
 
 export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnter, onDragEnd, onTouchStart, sourceIndex, targetIndex, index }) {
-  const { card: { title, badges } } = wallet
+  const { card: { title, badges } } = wallet.def
 
   let indicator = styles.disabled
   switch (wallet.status) {
     case Status.Enabled:
-    case true:
       indicator = styles.success
       break
-    case Status.Locked:
-      indicator = styles.warning
-      break
-    case Status.Error:
-      indicator = styles.error
-      break
-    case Status.Initialized:
-    case false:
+    default:
       indicator = styles.disabled
       break
   }
@@ -57,9 +49,9 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
               </Badge>)}
         </Card.Subtitle>
       </Card.Body>
-      <Link href={`/settings/wallets/${wallet.name}`}>
+      <Link href={`/settings/wallets/${wallet.def.name}`}>
         <Card.Footer className={styles.attach}>
-          {wallet.isConfigured
+          {isConfigured(wallet)
             ? <>configure<Gear width={14} height={14} /></>
             : <>attach<Plug width={14} height={14} /></>}
         </Card.Footer>

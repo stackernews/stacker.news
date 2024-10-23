@@ -2,12 +2,10 @@ import { getGetServerSideProps } from '@/api/ssrApollo'
 import Layout from '@/components/layout'
 import styles from '@/styles/wallet.module.css'
 import Link from 'next/link'
-import { useWallets, walletPrioritySort } from '@/wallets/common'
+import { useWallets } from '@/wallets/index'
 import { useState } from 'react'
-import dynamic from 'next/dynamic'
 import { useIsClient } from '@/components/use-client'
-
-const WalletCard = dynamic(() => import('@/components/wallet-card'), { ssr: false })
+import WalletCard from '@/components/wallet-card'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -28,7 +26,7 @@ async function reorder (wallets, sourceIndex, targetIndex) {
 }
 
 export default function Wallet ({ ssrData }) {
-  const { wallets } = useWallets()
+  const wallets = useWallets()
 
   const isClient = useIsClient()
   const [sourceIndex, setSourceIndex] = useState(null)
@@ -76,49 +74,33 @@ export default function Wallet ({ ssrData }) {
           </Link>
         </div>
         <div className={styles.walletGrid} onDragEnd={onDragEnd}>
-          {wallets
-            .sort((w1, w2) => {
-              // enabled/configured wallets always come before disabled/unconfigured wallets
-              if ((w1.enabled && !w2.enabled) || (w1.isConfigured && !w2.isConfigured)) {
-                return -1
-              } else if ((w2.enabled && !w1.enabled) || (w2.isConfigured && !w1.isConfigured)) {
-                return 1
-              }
+          {wallets.map((w, i) => {
+            const draggable = isClient && w.config?.enabled
 
-              return walletPrioritySort(w1, w2)
-            })
-            .map((w, i) => {
-              const draggable = isClient && w.enabled
-
-              return (
-                <div
-                  key={w?.name}
-                  draggable={draggable}
-                  style={{ cursor: draggable ? 'move' : 'default' }}
-                  onDragStart={draggable ? onDragStart(i) : undefined}
-                  onTouchStart={draggable ? onTouchStart(i) : undefined}
-                  onDragEnter={draggable ? onDragEnter(i) : undefined}
-                  className={
+            return (
+              <div
+                key={w.def.name}
+                className={
                     !draggable
                       ? ''
                       : (`${sourceIndex === i ? styles.drag : ''} ${draggable && targetIndex === i ? styles.drop : ''}`)
                     }
-                  suppressHydrationWarning
-                >
-                  <WalletCard
-                    wallet={w}
-                    draggable={draggable}
-                    onDragStart={draggable ? onDragStart(i) : undefined}
-                    onTouchStart={draggable ? onTouchStart(i) : undefined}
-                    onDragEnter={draggable ? onDragEnter(i) : undefined}
-                    sourceIndex={sourceIndex}
-                    targetIndex={targetIndex}
-                    index={i}
-                  />
-                </div>
-              )
-            }
-            )}
+                suppressHydrationWarning
+              >
+                <WalletCard
+                  wallet={w}
+                  draggable={draggable}
+                  onDragStart={draggable ? onDragStart(i) : undefined}
+                  onTouchStart={draggable ? onTouchStart(i) : undefined}
+                  onDragEnter={draggable ? onDragEnter(i) : undefined}
+                  sourceIndex={sourceIndex}
+                  targetIndex={targetIndex}
+                  index={i}
+                />
+              </div>
+            )
+          }
+          )}
 
         </div>
       </div>

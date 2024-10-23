@@ -1,7 +1,7 @@
 import { useMe } from '@/components/me'
-import useVault from '@/components/use-vault'
+import useVault from '@/components/vault/use-vault'
 import { useCallback } from 'react'
-import { getStorageKey } from './common'
+import { getStorageKey, isClientField, isServerField } from './common'
 import { useMutation } from '@apollo/client'
 import { generateMutation } from './graphql'
 import { REMOVE_WALLET } from '@/fragments/wallet'
@@ -11,8 +11,8 @@ import { useWalletLogger } from '@/components/wallet-logger'
 export function useWalletConfigurator (wallet) {
   const { me } = useMe()
   const { encrypt, isActive } = useVault()
-  const { logger } = useWalletLogger(wallet.def)
-  const [upsertWallet] = useMutation(generateMutation(wallet.def))
+  const { logger } = useWalletLogger(wallet?.def)
+  const [upsertWallet] = useMutation(generateMutation(wallet?.def))
   const [removeWallet] = useMutation(REMOVE_WALLET)
 
   const _saveToServer = useCallback(async (serverConfig, clientConfig) => {
@@ -116,49 +116,4 @@ function extractClientConfig (fields, config) {
 
 function extractServerConfig (fields, config) {
   return extractConfig(fields, config, false, true)
-}
-
-export function isServerField (f) {
-  return f.serverOnly || !f.clientOnly
-}
-
-export function isClientField (f) {
-  return f.clientOnly || !f.serverOnly
-}
-
-function checkFields ({ fields, config }) {
-  // a wallet is configured if all of its required fields are set
-  let val = fields.every(f => {
-    return f.optional ? true : !!config?.[f.name]
-  })
-
-  // however, a wallet is not configured if all fields are optional and none are set
-  // since that usually means that one of them is required
-  if (val && fields.length > 0) {
-    val = !(fields.every(f => f.optional) && fields.every(f => !config?.[f.name]))
-  }
-
-  return val
-}
-
-export function isConfigured (wallet) {
-  return isSendConfigured(wallet) || isReceiveConfigured(wallet)
-}
-
-function isSendConfigured (wallet) {
-  const fields = wallet.def.fields.filter(isClientField)
-  return checkFields({ fields, config: wallet.config })
-}
-
-function isReceiveConfigured (wallet) {
-  const fields = wallet.def.fields.filter(isServerField)
-  return checkFields({ fields, config: wallet.config })
-}
-
-export function canSend (wallet) {
-  return !!wallet.def.sendPayment && isSendConfigured(wallet)
-}
-
-export function canReceive (wallet) {
-  return !wallet.def.clientOnly && isReceiveConfigured(wallet)
 }

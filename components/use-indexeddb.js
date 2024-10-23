@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
-export function getDbName (userId) {
-  return `app:storage${userId ? `:${userId}` : ''}`
+export function getDbName (userId, name) {
+  return `app:storage:${userId ?? ''}${name ? `:${name}` : ''}`
 }
 
 function useIndexedDB ({ dbName, storeName, options = { keyPath: 'id', autoIncrement: true }, indices = [], version = 1 }) {

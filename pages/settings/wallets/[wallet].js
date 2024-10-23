@@ -5,14 +5,13 @@ import { WalletSecurityBanner } from '@/components/banners'
 import { WalletLogs } from '@/components/wallet-logger'
 import { useToast } from '@/components/toast'
 import { useRouter } from 'next/router'
-import { useWallet } from '@/wallets/common'
+import { useWallet } from '@/wallets/index'
 import Info from '@/components/info'
 import Text from '@/components/text'
 import { AutowithdrawSettings } from '@/components/autowithdraw-shared'
-import dynamic from 'next/dynamic'
-import { useIsClient } from '@/components/use-client'
-
-const WalletButtonBar = dynamic(() => import('@/components/wallet-buttonbar.js'), { ssr: false })
+import { isConfigured } from '@/wallets/common'
+import { SSR } from '@/lib/constants'
+import WalletButtonBar from '@/components/wallet-buttonbar'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -22,7 +21,7 @@ export default function WalletSettings () {
   const { wallet: name } = router.query
   const wallet = useWallet(name)
 
-  const initial = wallet?.fields.reduce((acc, field) => {
+  const initial = wallet?.def.fields.reduce((acc, field) => {
     // We still need to run over all wallet fields via reduce
     // even though we use wallet.config as the initial value
     // since wallet.config is empty when wallet is not configured.
@@ -41,8 +40,8 @@ export default function WalletSettings () {
 
   return (
     <CenterLayout>
-      <h2 className='pb-2'>{wallet?.card?.title}</h2>
-      <h6 className='text-muted text-center pb-3'><Text>{wallet?.card?.subtitle}</Text></h6>
+      <h2 className='pb-2'>{wallet?.def.card.title}</h2>
+      <h6 className='text-muted text-center pb-3'><Text>{wallet?.def.card.subtitle}</Text></h6>
       {wallet?.canSend && wallet?.hasConfig > 0 && <WalletSecurityBanner />}
       <Form
         initial={initial}
@@ -50,7 +49,7 @@ export default function WalletSettings () {
         {...validateProps}
         onSubmit={async ({ amount, ...values }) => {
           try {
-            const newConfig = !wallet?.isConfigured
+            const newConfig = !isConfigured(wallet)
 
             // enable wallet if wallet was just configured
             if (newConfig) {
@@ -68,11 +67,11 @@ export default function WalletSettings () {
         }}
       >
         {wallet && <WalletFields wallet={wallet} />}
-        {wallet?.clientOnly
+        {wallet?.def.clientOnly
           ? (
             <CheckboxGroup name='enabled'>
               <Checkbox
-                disabled={!wallet?.isConfigured}
+                disabled={!isConfigured(wallet)}
                 label='enabled'
                 name='enabled'
                 groupClassName='mb-0'
@@ -101,16 +100,16 @@ export default function WalletSettings () {
   )
 }
 
-function WalletFields ({ wallet: { config, fields, isConfigured } }) {
-  const isClient = useIsClient()
+function WalletFields ({ wallet }) {
+  console.log('wallet', wallet)
 
-  return fields
+  return wallet.def.fields
     .map(({ name, label = '', type, help, optional, editable, clientOnly, serverOnly, ...props }, i) => {
       const rawProps = {
         ...props,
         name,
-        initialValue: config?.[name],
-        readOnly: isClient && isConfigured && editable === false && !!config?.[name],
+        initialValue: wallet.config?.[name],
+        readOnly: !SSR && isConfigured(wallet) && editable === false && !!wallet.config?.[name],
         groupClassName: props.hidden ? 'd-none' : undefined,
         label: label
           ? (

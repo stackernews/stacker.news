@@ -40,9 +40,18 @@ function injectResolvers (resolvers) {
         }
       }
 
+      // wallet in shape of db row
+      const wallet = {
+        field: w.walletField,
+        type: w.walletType,
+        userId: me?.id
+      }
+      const logger = walletLogger({ wallet, models })
+
       return await upsertWallet({
-        wallet: { field: w.walletField, type: w.walletType },
-        testCreateInvoice: (data) => w.testCreateInvoice(data, { me, models })
+        wallet,
+        testCreateInvoice: (data) =>
+          w.testCreateInvoice(data, { logger, me, models })
       }, { settings, data, priorityOnly }, { me, models })
     }
   }
@@ -618,16 +627,32 @@ const resolvers = {
 
 export default injectResolvers(resolvers)
 
-export const addWalletLog = async ({ wallet, level, message }, { models }) => {
-  try {
-    await models.walletLog.create({ data: { userId: wallet.userId, wallet: wallet.type, level, message } })
-  } catch (err) {
-    console.error('error creating wallet log:', err)
+export const walletLogger = ({ wallet, models }) => {
+  // server implementation of wallet logger interface on client
+  const log = (level) => async message => {
+    try {
+      await models.walletLog.create({
+        data: {
+          userId: wallet.userId,
+          wallet: wallet.type,
+          level,
+          message
+        }
+      })
+    } catch (err) {
+      console.error('error creating wallet log:', err)
+    }
+  }
+
+  return {
+    ok: (...message) => log('SUCCESS')(message.join(' ')),
+    info: (...message) => log('INFO')(message.join(' ')),
+    error: (...message) => log('ERROR')(message.join(' '))
   }
 }
 
 async function upsertWallet (
-  { wallet, testCreateInvoice }, { settings, data, priorityOnly }, { me, models }) {
+  { wallet, testCreateInvoice }, { settings, data, priorityOnly }, { logger, me, models }) {
   if (!me) {
     throw new GqlAuthenticationError()
   }
@@ -639,9 +664,8 @@ async function upsertWallet (
     } catch (err) {
       console.error(err)
       const message = 'failed to create test invoice: ' + (err.message || err.toString?.())
-      wallet = { ...wallet, userId: me.id }
-      await addWalletLog({ wallet, level: 'ERROR', message }, { models })
-      await addWalletLog({ wallet, level: 'INFO', message: 'receives disabled' }, { models })
+      await logger.error(message)
+      await logger.info('receives disabled')
       throw new GqlInputError(message)
     }
   }

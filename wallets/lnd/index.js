@@ -1,6 +1,9 @@
 import { LNDAutowithdrawSchema } from '@/lib/validate'
 
 export const name = 'lnd'
+export const walletType = 'LND'
+export const walletField = 'walletLND'
+export const fieldValidation = LNDAutowithdrawSchema
 
 export const fields = [
   {
@@ -39,9 +42,3 @@ export const card = {
   subtitle: 'autowithdraw to your Lightning Labs node',
   badges: ['receive only']
 }
-
-export const fieldValidation = LNDAutowithdrawSchema
-
-export const walletType = 'LND'
-
-export const walletField = 'walletLND'

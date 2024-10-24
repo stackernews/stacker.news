@@ -1,6 +1,9 @@
 import { phoenixdSchema } from '@/lib/validate'
 
 export const name = 'phoenixd'
+export const walletType = 'PHOENIXD'
+export const walletField = 'walletPhoenixd'
+export const fieldValidation = phoenixdSchema
 
 // configure wallet fields
 export const fields = [
@@ -38,8 +41,3 @@ export const card = {
 
 // phoenixd::TODO
 // set validation schema
-export const fieldValidation = phoenixdSchema
-
-export const walletType = 'PHOENIXD'
-
-export const walletField = 'walletPhoenixd'

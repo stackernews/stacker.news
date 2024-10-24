@@ -92,7 +92,7 @@ export default function Wallet ({ ssrData }) {
 
               return (
                 <div
-                  key={w.name}
+                  key={w?.name}
                   className={
                     !draggable
                       ? ''

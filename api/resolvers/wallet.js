@@ -19,7 +19,7 @@ import assertApiKeyNotPermitted from './apiKey'
 import { bolt11Tags } from '@/lib/bolt11'
 import { finalizeHodlInvoice } from 'worker/wallet'
 import walletDefs from 'wallets/server'
-import { generateResolverName, generateTypeDefName } from '@/lib/wallet'
+import { generateResolverName, generateTypeDefName, isConfigured } from '@/lib/wallet'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets, getOurPubkey } from '../lnd'
@@ -29,10 +29,18 @@ function injectResolvers (resolvers) {
   for (const w of walletDefs) {
     const resolverName = generateResolverName(w.walletField)
     console.log(resolverName)
+    resolvers.Mutation[resolverName] = async (parent, { settings, priorityOnly, canSend, canReceive, ...data }, { me, models }) => {
+      if (canReceive && !w.createInvoice) {
+        console.warn('Requested to upsert wallet as a receiver, but wallet does not support createInvoice. disabling')
+        canReceive = false
+      }
 
-    resolvers.Mutation[resolverName] = async (parent, { settings, priorityOnly, ...data }, { me, models }) => {
-      // allow transformation of the data on validation (this is optional ... won't do anything if not implemented)
-      if (!priorityOnly) {
+      if (!priorityOnly && canReceive) {
+        // check if the required fields are set
+        if (!isConfigured({ fields: w.fields, config: data, serverOnly: true })) {
+          throw new GqlInputError('missing required fields')
+        }
+        // allow transformation of the data on validation (this is optional ... won't do anything if not implemented)
         const validData = await walletValidate(w, { ...data, ...settings })
         if (validData) {
           Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
@@ -40,10 +48,21 @@ function injectResolvers (resolvers) {
         }
       }
 
+      if (!canReceive && !canSend) throw new GqlInputError('wallet must be able to send or receive')
       return await upsertWallet({
-        wallet: { field: w.walletField, type: w.walletType },
-        testCreateInvoice: (data) => w.testCreateInvoice(data, { me, models })
-      }, { settings, data, priorityOnly }, { me, models })
+        wallet: {
+          field:
+          w.walletField,
+          type: w.walletType
+        },
+        testCreateInvoice: w.testCreateInvoice ? (data) => w.testCreateInvoice(data, { me, models }) : null
+      }, {
+        settings,
+        data,
+        priorityOnly,
+        canSend,
+        canReceive
+      }, { me, models })
     }
   }
   console.groupEnd()
@@ -158,16 +177,36 @@ const resolvers = {
       })
       return wallet
     },
-    wallets: async (parent, args, { me, models }) => {
+    wallets: async (parent, { includeReceivers = true, includeSenders = true, onlyEnabled = false, prioritySort = undefined }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
-      return await models.wallet.findMany({
-        where: {
-          userId: me.id
+      const filter = {
+        userId: me.id
+      }
+
+      if (includeReceivers && includeSenders) {
+        filter.OR = [
+          { canReceive: true },
+          { canSend: true }
+        ]
+      } else if (includeReceivers) {
+        filter.canReceive = true
+      } else if (includeSenders) {
+        filter.canSend = true
+      }
+      if (onlyEnabled) {
+        filter.enabled = true
+      }
+
+      const out = await models.wallet.findMany({
+        where: filter,
+        orderBy: {
+          priority: prioritySort
         }
       })
+      return out
     },
     withdrawl: getWithdrawl,
     numBolt11s: async (parent, args, { me, models, lnd }) => {
@@ -627,13 +666,17 @@ export const addWalletLog = async ({ wallet, level, message }, { models }) => {
 }
 
 async function upsertWallet (
-  { wallet, testCreateInvoice }, { settings, data, priorityOnly }, { me, models }) {
-  if (!me) {
-    throw new GqlAuthenticationError()
-  }
+  { wallet, testCreateInvoice },
+  { settings, data, priorityOnly, canSend, canReceive },
+  { me, models }
+) {
+  if (!me) throw new GqlAuthenticationError()
   assertApiKeyNotPermitted({ me })
 
-  if (testCreateInvoice && !priorityOnly) {
+  const { id, ...walletData } = data
+  const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, autoWithdrawMaxFeeTotal, enabled, priority } = settings
+
+  if (testCreateInvoice && !priorityOnly && canReceive && enabled) {
     try {
       await testCreateInvoice(data)
     } catch (err) {
@@ -646,79 +689,104 @@ async function upsertWallet (
     }
   }
 
-  const { id, ...walletData } = data
-  const {
-    autoWithdrawThreshold,
-    autoWithdrawMaxFeePercent,
-    autoWithdrawMaxFeeTotal,
-    enabled,
-    priority
-  } = settings
+  return await models.$transaction(async (tx) => {
+    if (canReceive) {
+      await tx.user.update({
+        where: { id: me.id },
+        data: {
+          autoWithdrawMaxFeePercent,
+          autoWithdrawThreshold,
+          autoWithdrawMaxFeeTotal
+        }
+      })
+    }
 
-  const txs = [
-    models.user.update({
-      where: { id: me.id },
-      data: {
-        autoWithdrawMaxFeePercent,
-        autoWithdrawThreshold,
-        autoWithdrawMaxFeeTotal
-      }
-    })
-  ]
+    let updatedWallet
+    if (id) {
+      const existingWalletTypeRecord = canReceive
+        ? await tx[wallet.field].findUnique({
+          where: { walletId: Number(id) }
+        })
+        : undefined
 
-  if (id) {
-    txs.push(
-      models.wallet.update({
+      updatedWallet = await tx.wallet.update({
         where: { id: Number(id), userId: me.id },
         data: {
           enabled,
           priority,
-          [wallet.field]: {
-            update: {
-              where: { walletId: Number(id) },
-              data: walletData
-            }
-          }
+          canSend,
+          canReceive,
+          // if send-only config or priority only, don't update the wallet type record
+          ...(canReceive && !priorityOnly
+            ? {
+                [wallet.field]: existingWalletTypeRecord
+                  ? { update: walletData }
+                  : { create: walletData }
+              }
+            : {})
+        },
+        include: {
+          ...(canReceive && !priorityOnly ? { [wallet.field]: true } : {})
         }
       })
-    )
-  } else {
-    txs.push(
-      models.wallet.create({
+    } else {
+      updatedWallet = await tx.wallet.create({
         data: {
           enabled,
           priority,
+          canSend,
+          canReceive,
           userId: me.id,
           type: wallet.type,
-          [wallet.field]: {
-            create: walletData
-          }
+          // if send-only config or priority only, don't update the wallet type record
+          ...(canReceive && !priorityOnly
+            ? {
+                [wallet.field]: {
+                  create: walletData
+                }
+              }
+            : {})
         }
       })
-    )
-  }
+    }
 
-  txs.push(
-    models.walletLog.createMany({
-      data: {
+    const logs = []
+    if (canReceive) {
+      logs.push({
         userId: me.id,
         wallet: wallet.type,
-        level: 'SUCCESS',
+        level: enabled ? 'SUCCESS' : 'INFO',
         message: id ? 'receive details updated' : 'wallet attached for receives'
-      }
-    }),
-    models.walletLog.create({
-      data: {
+      })
+      logs.push({
         userId: me.id,
         wallet: wallet.type,
         level: enabled ? 'SUCCESS' : 'INFO',
         message: enabled ? 'receives enabled' : 'receives disabled'
-      }
-    })
-  )
+      })
+    }
 
-  await models.$transaction(txs)
-  return true
+    if (canSend) {
+      logs.push({
+        userId: me.id,
+        wallet: wallet.type,
+        level: enabled ? 'SUCCESS' : 'INFO',
+        message: id ? 'send details updated' : 'wallet attached for sends'
+      })
+      logs.push({
+        userId: me.id,
+        wallet: wallet.type,
+        level: enabled ? 'SUCCESS' : 'INFO',
+        message: enabled ? 'sends enabled' : 'sends disabled'
+      })
+    }
+
+    await tx.walletLog.createMany({
+      data: logs
+    })
+
+    return updatedWallet
+  })
 }
 
 export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, walletId = null }) {

@@ -8,11 +8,13 @@ import { useRouter } from 'next/router'
 import { useWallet } from '@/wallets/index'
 import Info from '@/components/info'
 import Text from '@/components/text'
-import { AutowithdrawSettings } from '@/components/autowithdraw-shared'
+import { autowithdrawInitial, AutowithdrawSettings } from '@/components/autowithdraw-shared'
 import { canSend, isConfigured } from '@/wallets/common'
 import { SSR } from '@/lib/constants'
 import WalletButtonBar from '@/components/wallet-buttonbar'
 import { useWalletConfigurator } from '@/wallets/config'
+import { useMemo } from 'react'
+import { useMe } from '@/components/me'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -21,19 +23,29 @@ export default function WalletSettings () {
   const router = useRouter()
   const { wallet: name } = router.query
   const wallet = useWallet(name)
+  const { me } = useMe()
   const { save, detach } = useWalletConfigurator(wallet)
 
-  const initial = wallet?.def.fields.reduce((acc, field) => {
-    // We still need to run over all wallet fields via reduce
-    // even though we use wallet.config as the initial value
-    // since wallet.config is empty when wallet is not configured.
-    // Also, wallet.config includes general fields like
-    // 'enabled' and 'priority' which are not defined in wallet.fields.
-    return {
-      ...acc,
-      [field.name]: wallet?.config?.[field.name] || ''
+  const initial = useMemo(() => {
+    const initial = wallet?.def.fields.reduce((acc, field) => {
+      // We still need to run over all wallet fields via reduce
+      // even though we use wallet.config as the initial value
+      // since wallet.config is empty when wallet is not configured.
+      // Also, wallet.config includes general fields like
+      // 'enabled' and 'priority' which are not defined in wallet.fields.
+      return {
+        ...acc,
+        [field.name]: wallet?.config?.[field.name] || ''
+      }
+    }, wallet?.config)
+    if (wallet?.def.clientOnly) {
+      return initial
     }
-  }, wallet?.config)
+    return {
+      ...initial,
+      ...autowithdrawInitial({ me })
+    }
+  }, [wallet, me])
 
   // check if wallet uses the form-level validation built into Formik or a Yup schema
   const validateProps = typeof wallet?.fieldValidation === 'function'

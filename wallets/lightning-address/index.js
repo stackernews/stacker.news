@@ -11,7 +11,8 @@ export const fields = [
     name: 'address',
     label: 'lightning address',
     type: 'text',
-    autoComplete: 'off'
+    autoComplete: 'off',
+    serverOnly: true
   }
 ]
 

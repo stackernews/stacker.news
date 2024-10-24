@@ -20,7 +20,6 @@ import { bolt11Tags } from '@/lib/bolt11'
 import { finalizeHodlInvoice } from 'worker/wallet'
 import walletDefs from 'wallets/server'
 import { generateResolverName, generateTypeDefName } from '@/wallets/graphql'
-import { isConfigured } from '@/wallets/common'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets, getOurPubkey } from '../lnd'
@@ -30,39 +29,24 @@ function injectResolvers (resolvers) {
   for (const w of walletDefs) {
     const resolverName = generateResolverName(w.walletField)
     console.log(resolverName)
-    resolvers.Mutation[resolverName] = async (parent, { settings, priorityOnly, canSend, canReceive, ...data }, { me, models }) => {
-      if (canReceive && !w.createInvoice) {
-        console.warn('Requested to upsert wallet as a receiver, but wallet does not support createInvoice. disabling')
-        canReceive = false
+    resolvers.Mutation[resolverName] = async (parent, { settings, validateLightning, vaultEntries, ...data }, { me, models }) => {
+      // allow transformation of the data on validation (this is optional ... won't do anything if not implemented)
+      const validData = await walletValidate(w, { ...data, ...settings, vaultEntries })
+      if (validData) {
+        Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
+        Object.keys(validData).filter(key => key in settings).forEach(key => { settings[key] = validData[key] })
       }
 
-      if (!priorityOnly && canReceive) {
-        // check if the required fields are set
-        if (!isConfigured({ fields: w.fields, config: data, serverOnly: true })) {
-          throw new GqlInputError('missing required fields')
-        }
-        // allow transformation of the data on validation (this is optional ... won't do anything if not implemented)
-        const validData = await walletValidate(w, { ...data, ...settings })
-        if (validData) {
-          Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
-          Object.keys(validData).filter(key => key in settings).forEach(key => { settings[key] = validData[key] })
-        }
-      }
-
-      if (!canReceive && !canSend) throw new GqlInputError('wallet must be able to send or receive')
       return await upsertWallet({
         wallet: {
-          field:
-          w.walletField,
+          field: w.walletField,
           type: w.walletType
         },
-        testCreateInvoice: w.testCreateInvoice ? (data) => w.testCreateInvoice(data, { me, models }) : null
+        testCreateInvoice: w.testCreateInvoice && validateLightning ? (data) => w.testCreateInvoice(data, { me, models }) : null
       }, {
         settings,
         data,
-        priorityOnly,
-        canSend,
-        canReceive
+        vaultEntries
       }, { me, models })
     }
   }

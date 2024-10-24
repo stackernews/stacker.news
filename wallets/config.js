@@ -1,7 +1,7 @@
 import { useMe } from '@/components/me'
 import useVault from '@/components/vault/use-vault'
 import { useCallback } from 'react'
-import { canReceive, canSend, getStorageKey, isClientField, isServerField } from './common'
+import { canReceive, canSend, getStorageKey } from './common'
 import { useMutation } from '@apollo/client'
 import { generateMutation } from './graphql'
 import { REMOVE_WALLET } from '@/fragments/wallet'
@@ -17,63 +17,71 @@ export function useWalletConfigurator (wallet) {
   const [upsertWallet] = useMutation(generateMutation(wallet?.def))
   const [removeWallet] = useMutation(REMOVE_WALLET)
 
-  const _saveToServer = useCallback(async (serverConfig, clientConfig) => {
+  const _saveToServer = useCallback(async (serverConfig, clientConfig, validateLightning) => {
+    const { serverWithShared, settings, clientOnly } = siftConfig(wallet.def.fields, { ...serverConfig, ...clientConfig })
     const vaultEntries = []
-    if (clientConfig) {
-      for (const [key, value] of Object.entries(clientConfig)) {
+    if (clientOnly) {
+      for (const [key, value] of Object.entries(clientOnly)) {
         vaultEntries.push({ key, value: encrypt(value) })
       }
     }
-    await upsertWallet({ variables: { ...serverConfig, vaultEntries } })
-  }, [encrypt, isActive])
+    await upsertWallet({ variables: { ...serverWithShared, settings, validateLightning, vaultEntries } })
+  }, [encrypt, isActive, wallet.def.fields])
 
   const _saveToLocal = useCallback(async (newConfig) => {
     window.localStorage.setItem(getStorageKey(wallet.def.name, me?.id), JSON.stringify(newConfig))
     reloadLocalWallets()
   }, [me?.id, wallet.def.name, reloadLocalWallets])
 
-  const save = useCallback(async (newConfig, validate = true) => {
-    let clientConfig = extractClientConfig(wallet.def.fields, newConfig)
-    let serverConfig = extractServerConfig(wallet.def.fields, newConfig)
+  const _validate = useCallback(async (config, validateLightning = true) => {
+    const { serverWithShared, clientWithShared } = siftConfig(wallet.def.fields, config)
+    console.log('sifted', siftConfig(wallet.def.fields, config))
 
-    if (validate) {
-      if (canSend(wallet)) {
-        let transformedConfig = await walletValidate(wallet, clientConfig)
+    let clientConfig = clientWithShared
+    let serverConfig = serverWithShared
+
+    if (canSend(wallet)) {
+      let transformedConfig = await walletValidate(wallet, clientWithShared)
+      if (transformedConfig) {
+        clientConfig = Object.assign(clientConfig, transformedConfig)
+      }
+      if (wallet.def.testSendPayment && validateLightning) {
+        transformedConfig = await wallet.def.testSendPayment(clientConfig, { me, logger })
         if (transformedConfig) {
           clientConfig = Object.assign(clientConfig, transformedConfig)
-        }
-        if (wallet.def.testSendPayment) {
-          transformedConfig = await wallet.def.testSendPayment(clientConfig, { me, logger })
-          if (transformedConfig) {
-            clientConfig = Object.assign(clientConfig, transformedConfig)
-          }
-        }
-      }
-
-      if (canReceive(wallet)) {
-        const transformedConfig = await walletValidate(wallet, serverConfig)
-        if (transformedConfig) {
-          serverConfig = Object.assign(serverConfig, transformedConfig)
         }
       }
     }
 
+    if (canReceive(wallet)) {
+      const transformedConfig = await walletValidate(wallet, serverConfig)
+      if (transformedConfig) {
+        serverConfig = Object.assign(serverConfig, transformedConfig)
+      }
+    }
+
+    return { clientConfig, serverConfig }
+  }, [wallet])
+
+  const save = useCallback(async (newConfig, validateLightning = true) => {
+    const { clientConfig, serverConfig } = _validate(newConfig, validateLightning)
+
     // if vault is active, encrypt and send to server regardless of wallet type
     if (isActive) {
-      await _saveToServer(serverConfig, clientConfig)
+      await _saveToServer(serverConfig, clientConfig, validateLightning)
     } else {
       if (canSend(wallet)) {
         await _saveToLocal(clientConfig)
       }
       if (canReceive(wallet)) {
-        await _saveToServer(serverConfig)
+        await _saveToServer(serverConfig, clientConfig, validateLightning)
       }
     }
-  }, [wallet, encrypt, isActive])
+  }, [isActive, _saveToServer, _saveToLocal, _validate])
 
   const _detachFromServer = useCallback(async () => {
     await removeWallet({ variables: { id: wallet.config.id } })
-  }, [wallet.config.id])
+  }, [wallet.config?.id])
 
   const _detachFromLocal = useCallback(async () => {
     // if vault is not active and has a client config, delete from local storage
@@ -95,30 +103,45 @@ export function useWalletConfigurator (wallet) {
   return { save, detach }
 }
 
-function extractConfig (fields, config, client, includeMeta = true) {
-  return Object.entries(config).reduce((acc, [key, value]) => {
+function siftConfig (fields, config) {
+  const sifted = {
+    clientOnly: {},
+    serverOnly: {},
+    shared: {},
+    serverWithShared: {},
+    clientWithShared: {},
+    settings: {}
+  }
+
+  for (const [key, value] of Object.entries(config)) {
+    if (['id'].includes(key)) {
+      sifted.serverOnly[key] = value
+      continue
+    }
+
+    if (['autoWithdrawMaxFeePercent', 'autoWithdrawThreshold', 'autoWithdrawMaxFeeTotal'].includes(key)) {
+      sifted.serverOnly[key] = value
+      sifted.settings[key] = value
+      continue
+    }
+
     const field = fields.find(({ name }) => name === key)
 
-    // filter server config which isn't specified as wallet fields
-    // (we allow autowithdraw members to pass validation)
-    if (client && key === 'id') return acc
-
-    // field might not exist because config.enabled doesn't map to a wallet field
-    if ((!field && includeMeta) || (field && (client ? isClientField(field) : isServerField(field)))) {
-      return {
-        ...acc,
-        [key]: value
+    if (field) {
+      if (field.serverOnly) {
+        sifted.serverOnly[key] = value
+      } else if (field.clientOnly) {
+        sifted.clientOnly[key] = value
+      } else {
+        sifted.shared[key] = value
       }
     } else {
-      return acc
+      sifted.shared[key] = value
     }
-  }, {})
-}
+  }
 
-function extractClientConfig (fields, config) {
-  return extractConfig(fields, config, true, true)
-}
+  sifted.serverWithShared = { ...sifted.shared, ...sifted.serverOnly }
+  sifted.clientWithShared = { ...sifted.shared, ...sifted.clientOnly }
 
-function extractServerConfig (fields, config) {
-  return extractConfig(fields, config, false, true)
+  return sifted
 }

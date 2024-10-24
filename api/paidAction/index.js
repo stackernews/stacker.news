@@ -78,8 +78,7 @@ export default async function performPaidAction (actionType, args, context) {
         canPerformOptimistically = false
       }
     }
-    console.log(forceFeeCredits)
-    if (forceFeeCredits) return performFeeCreditAction(actionType, paidAction, args, context)
+    if (forceFeeCredits || cost === 0n) return await performFeeCreditAction(actionType, paidAction, args, context)
 
     const receiverUserId = await paidAction.invoiceablePeer?.(args, context) // falsy if SN itself
     const description = await paidAction.describe(args, context)
@@ -370,7 +369,7 @@ async function createDbInvoice (actionType, args, context,
   const { me, models, tx, cost, optimistic, actionId, walletOffset } = context
   const db = tx ?? models
 
-  if (cost < 1000n) {
+  if (cost < 1000n && actionState !== 'PAID') {
     // sanity check
     throw new Error('The cost of the action must be at least 1 sat')
   }

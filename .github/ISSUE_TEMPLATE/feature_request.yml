@@ -1,6 +1,6 @@
 name: ✨ Feature request
 description: Request a feature you'd like to see in SN!
-title: ""
+title: "feature request"
 labels: [feature]
 body:
   - type: markdown

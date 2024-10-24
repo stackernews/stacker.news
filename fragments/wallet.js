@@ -190,3 +190,9 @@ export const WALLET_LOGS = gql`
       }
   }
 `
+
+export const SET_WALLET_PRIORITY = gql`
+  mutation SetWalletPriority($id: ID!, $priority: Int!) {
+    setWalletPriority(id: $id, priority: $priority)
+  }
+`

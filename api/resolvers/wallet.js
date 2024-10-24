@@ -525,6 +525,15 @@ const resolvers = {
       }
       return { id }
     },
+    setWalletPriority: async (parent, { id, priority }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      await models.wallet.update({ where: { userId: me.id, id: Number(id) }, data: { priority } })
+
+      return true
+    },
     removeWallet: async (parent, { id }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()

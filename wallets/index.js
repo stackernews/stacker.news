@@ -1,9 +1,9 @@
 import { useMe } from '@/components/me'
-import { WALLETS } from '@/fragments/wallet'
+import { SET_WALLET_PRIORITY, WALLETS } from '@/fragments/wallet'
 import { SSR } from '@/lib/constants'
-import { useQuery } from '@apollo/client'
+import { useMutation, useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend } from './common'
+import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend, isConfigured } from './common'
 import useVault from '@/components/vault/use-vault'
 import { useWalletLogger } from '@/components/wallet-logger'
 import { bolt11Tags } from '@/lib/bolt11'
@@ -21,7 +21,8 @@ function useLocalWallets () {
     // form wallets into a list of { config, def }
     const wallets = walletDefs.map(w => {
       try {
-        const config = window.localStorage.getItem(getStorageKey(w.name, me?.id))
+        const storageKey = getStorageKey(w.name, me?.id)
+        const config = window.localStorage.getItem(storageKey)
         return { def: w, config: JSON.parse(config) }
       } catch (e) {
         return null
@@ -43,10 +44,12 @@ export function WalletsProvider ({ children }) {
   const { decrypt } = useVault()
   const { me } = useMe()
   const { wallets: localWallets, reloadLocalWallets } = useLocalWallets()
+  const [setWalletPriority] = useMutation(SET_WALLET_PRIORITY)
 
   const { data, refetch } = useQuery(WALLETS,
     SSR ? {} : { nextFetchPolicy: 'cache-and-network' })
 
+  // refetch wallets when the vault key hash changes or wallets are updated
   useEffect(() => {
     if (me?.privates?.walletsUpdatedAt) {
       refetch()
@@ -77,9 +80,26 @@ export function WalletsProvider ({ children }) {
       .map(w => ({ ...w, status: w.config?.enabled ? Status.Enabled : Status.Disabled }))
   }, [data?.wallets, localWallets])
 
+  const setPriorities = useCallback(async (priorities) => {
+    for (const { wallet, priority } of priorities) {
+      if (!isConfigured(wallet)) {
+        throw new Error(`cannot set priority for unconfigured wallet: ${wallet.def.name}`)
+      }
+
+      if (wallet.config?.id) {
+        await setWalletPriority({ variables: { id: wallet.config.id, priority } })
+      } else {
+        const storageKey = getStorageKey(wallet.def.name, me?.id)
+        const config = window.localStorage.getItem(storageKey)
+        const newConfig = { ...JSON.parse(config), priority }
+        window.localStorage.setItem(storageKey, JSON.stringify(newConfig))
+      }
+    }
+  }, [setWalletPriority, me?.id])
+
   // provides priority sorted wallets to children
   return (
-    <WalletsContext.Provider value={{ wallets, reloadLocalWallets }}>
+    <WalletsContext.Provider value={{ wallets, reloadLocalWallets, setPriorities }}>
       {children}
     </WalletsContext.Provider>
   )

@@ -81,6 +81,7 @@ const typeDefs = `
     dropBolt11(id: ID): Withdrawl
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(wallet: String): Boolean
+    setWalletPriority(id: ID!, priority: Int!): Boolean
   }
 
   type Wallet {

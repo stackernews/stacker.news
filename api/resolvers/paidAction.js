@@ -46,28 +46,32 @@ export default {
     }
   },
   Mutation: {
-    retryPaidAction: async (parent, { invoiceId }, { models, me, lnd }) => {
-      if (!me) {
-        throw new Error('You must be logged in')
-      }
 
-      const invoice = await models.invoice.findUnique({ where: { id: invoiceId, userId: me.id } })
-      if (!invoice) {
-        throw new Error('Invoice not found')
-      }
-
-      if (invoice.actionState !== 'FAILED') {
-        if (invoice.actionState === 'PAID') {
-          throw new Error('Invoice is already paid')
+    retryPaidAction: async (parent, { invoiceId, forceFeeCredits }, { models, me, lnd }) => {
+      try {
+        if (!me) {
+          throw new Error('You must be logged in')
         }
-        throw new Error(`Invoice is not in failed state: ${invoice.actionState}`)
-      }
 
-      const result = await retryPaidAction(invoice.actionType, { invoice }, { models, me, lnd })
+        const invoice = await models.invoice.findUnique({ where: { id: invoiceId, userId: me.id } })
+        if (!invoice) {
+          throw new Error('Invoice not found')
+        }
 
-      return {
-        ...result,
-        type: paidActionType(invoice.actionType)
+        if (invoice.actionState !== 'FAILED') {
+          if (invoice.actionState === 'PAID') {
+            throw new Error('Invoice is already paid')
+          }
+          throw new Error(`Invoice is not in failed state: ${invoice.actionState}`)
+        }
+
+        return {
+          type: paidActionType(invoice.actionType),
+          ...await retryPaidAction(invoice.actionType, { invoice, forceFeeCredits }, { models, me, lnd })
+        }
+      } catch (error) {
+        console.log('Error in retryPaidAction: ', error)
+        throw error
       }
     }
   },

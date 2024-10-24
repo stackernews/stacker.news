@@ -7,7 +7,7 @@ extend type Query {
 }
 
 extend type Mutation {
-  retryPaidAction(invoiceId: Int!): PaidAction!
+  retryPaidAction(invoiceId: Int!,forceFeeCredits: Boolean): PaidAction
 }
 
 enum PaymentMethod {
@@ -18,37 +18,43 @@ enum PaymentMethod {
 
 interface PaidAction {
   invoice: Invoice
-  paymentMethod: PaymentMethod!
+  paymentMethod: PaymentMethod!,
+  canRetry: Boolean
 }
 
 type ItemPaidAction implements PaidAction {
   result: Item
   invoice: Invoice
-  paymentMethod: PaymentMethod!
+  paymentMethod: PaymentMethod!,
+  canRetry: Boolean
 }
 
 type ItemActPaidAction implements PaidAction {
   result: ItemActResult
   invoice: Invoice
-  paymentMethod: PaymentMethod!
+  paymentMethod: PaymentMethod!,
+  canRetry: Boolean
 }
 
 type PollVotePaidAction implements PaidAction {
   result: PollVoteResult
   invoice: Invoice
-  paymentMethod: PaymentMethod!
+  paymentMethod: PaymentMethod!,
+  canRetry: Boolean
 }
 
 type SubPaidAction implements PaidAction {
   result: Sub
   invoice: Invoice
-  paymentMethod: PaymentMethod!
+  paymentMethod: PaymentMethod!,
+  canRetry: Boolean
 }
 
 type DonatePaidAction implements PaidAction {
   result: DonateResult
   invoice: Invoice
-  paymentMethod: PaymentMethod!
+  paymentMethod: PaymentMethod!,
+  canRetry: Boolean
 }
 
 `

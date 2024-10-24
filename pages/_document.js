@@ -1,6 +1,17 @@
 import Document, { Html, Head, Main, NextScript } from 'next/document'
 import Script from 'next/script'
 
+process.stdout.write = new Proxy(process.stdout.write, {
+  apply (target, thisArg, argumentsList) {
+    for (const arg of argumentsList) {
+      if (typeof arg === 'string' && (arg.includes('POST /api/graphql') || arg.includes(' GET /'))) {
+        return
+      }
+    }
+    return Reflect.apply(target, thisArg, argumentsList)
+  }
+})
+
 class MyDocument extends Document {
   // https://nextjs.org/docs/pages/building-your-application/routing/custom-document#customizing-renderpage
   static async getInitialProps (ctx) {

@@ -2,25 +2,25 @@ import { QRCodeSVG } from 'qrcode.react'
 import { CopyInput, InputSkeleton } from './form'
 import InvoiceStatus from './invoice-status'
 import { useEffect } from 'react'
-import { useWallet } from 'wallets'
+import { usePayer } from 'wallets'
 import Bolt11Info from './bolt11-info'
 
 export default function Qr ({ asIs, value, useWallet: automated, statusVariant, description, status }) {
   const qrValue = asIs ? value : 'lightning:' + value.toUpperCase()
-  const wallet = useWallet()
+  const payer = usePayer()
 
   useEffect(() => {
     async function effect () {
-      if (automated && wallet) {
+      if (automated && payer) {
         try {
-          await wallet.sendPayment(value)
+          await payer.pay(value)
         } catch (e) {
           console.log(e?.message)
         }
       }
     }
     effect()
-  }, [wallet])
+  }, [payer])
 
   return (
     <>

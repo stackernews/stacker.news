@@ -889,6 +889,7 @@ model Invoice {
   Upload           Upload[]
   PollVote         PollVote[]
   PollBlindVote    PollBlindVote[]
+  walletOffset     Int?               @default(0)
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")

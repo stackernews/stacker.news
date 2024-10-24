@@ -21,6 +21,24 @@ export const Status = {
   Error: 'Error'
 }
 
+export function usePayer () {
+  const { wallets } = useWallets()
+  const bestWallets = wallets.filter(w => w.enabled).sort(walletPrioritySort)
+  const pay = useCallback(async (bolt11) => {
+    for (const wallet of bestWallets) {
+      try {
+        const res = await wallet.sendPayment(bolt11)
+        console.log('paid with wallet', wallet.name)
+        return res
+      } catch (err) {
+        console.log("Can't pay with wallet", wallet.name, 'trying next wallet...')
+      }
+    }
+    throw new Error('No wallet could pay the invoice')
+  }, [bestWallets])
+  return { pay }
+}
+
 export function useWallet (name) {
   const { me } = useMe()
   const showModal = useShowModal()

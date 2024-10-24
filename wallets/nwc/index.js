@@ -38,7 +38,7 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } =
   const { relayUrl, walletPubkey, secret } = parseNwcUrl(nwcUrl)
 
   const relay = await Relay.connect(relayUrl, { timeout })
-  logger?.ok(`connected to ${relayUrl}`)
+  await logger?.ok(`connected to ${relayUrl}`)
 
   try {
     const payload = { method, params }
@@ -61,9 +61,9 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } =
 
     await relay.publish(request, { timeout })
 
-    logger?.info(`published ${method} request`)
+    await logger?.info(`published ${method} request`)
 
-    logger?.info('waiting for response ...')
+    await logger?.info('waiting for response ...')
 
     const [response] = await subscription
 
@@ -71,7 +71,7 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } =
       throw new Error('no response')
     }
 
-    logger?.ok('response received')
+    await logger?.ok('response received')
 
     if (!verifyEvent(response)) throw new Error('invalid response: failed to verify')
 
@@ -84,7 +84,7 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } =
     throw new Error('invalid response: missing error or result')
   } finally {
     relay?.close()
-    logger?.info(`closed connection to ${relayUrl}`)
+    await logger?.info(`closed connection to ${relayUrl}`)
   }
 }
 

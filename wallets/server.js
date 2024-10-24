@@ -11,7 +11,7 @@ import * as blink from 'wallets/blink/server'
 import * as lnc from 'wallets/lnc'
 import * as webln from 'wallets/webln'
 
-import { addWalletLog } from '@/api/resolvers/wallet'
+import { walletLogger } from '@/api/resolvers/wallet'
 import walletDefs from 'wallets/server'
 import { parsePaymentRequest } from 'ln-service'
 import { toPositiveNumber } from '@/lib/validate'
@@ -40,6 +40,8 @@ export async function createInvoice (userId, { msats, description, descriptionHa
   msats = toPositiveNumber(msats)
 
   for (const wallet of wallets) {
+    const logger = walletLogger({ wallet, models })
+
     const w = walletDefs.find(w => w.walletType === wallet.type)
     try {
       if (!canReceive({ def: w, config: wallet.wallet })) {
@@ -108,21 +110,13 @@ export async function createInvoice (userId, { msats, description, descriptionHa
           throw new Error(`invoice has a different satoshi amount ${bolt11.mtokens} !== ${msats}`)
         }
 
-        await addWalletLog({
-          wallet,
-          level: 'INFO',
-          message: `wallet does not support msats so we floored ${msats} msats to nearest sat ${BigInt(bolt11.mtokens)} msats`
-        }, { models })
+        await logger.info(`wallet does not support msats so we floored ${msats} msats to nearest sat ${BigInt(bolt11.mtokens)} msats`)
       }
 
       return { invoice, wallet }
     } catch (error) {
       console.error(error)
-      await addWalletLog({
-        wallet,
-        level: 'ERROR',
-        message: `creating invoice for ${description ?? ''} failed: ` + error
-      }, { models })
+      await logger.error(`creating invoice for ${description ?? ''} failed: ` + error)
     }
   }
 

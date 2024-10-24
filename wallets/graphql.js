@@ -1,5 +1,6 @@
 import gql from 'graphql-tag'
 import { isServerField } from './common'
+import { WALLET_FIELDS } from '@/fragments/wallet'
 
 export function fieldToGqlArg (field) {
   let arg = `${field.name}: String`
@@ -30,30 +31,20 @@ export function generateMutation (wallet) {
   let headerArgs = '$id: ID, '
   headerArgs += wallet.fields
     .filter(isServerField)
-    .map(f => {
-      const arg = `$${f.name}: String`
-      // required fields are checked server-side
-      // if (!f.optional) {
-      //   arg += '!'
-      // }
-      return arg
-    }).join(', ')
-  headerArgs += ', $settings: AutowithdrawSettings!, $priorityOnly: Boolean, $canSend: Boolean!, $canReceive: Boolean!'
+    .map(f => `$${f.name}: String`)
+    .join(', ')
+  headerArgs += ', $settings: AutowithdrawSettings!, $validateLightning: Boolean'
 
   let inputArgs = 'id: $id, '
   inputArgs += wallet.fields
     .filter(isServerField)
     .map(f => `${f.name}: $${f.name}`).join(', ')
-  inputArgs += ', settings: $settings, priorityOnly: $priorityOnly, canSend: $canSend, canReceive: $canReceive,'
+  inputArgs += ', settings: $settings, validateLightning: $validateLightning,'
 
   return gql`mutation ${resolverName}(${headerArgs}) {
+    ${WALLET_FIELDS}
     ${resolverName}(${inputArgs}) {
-      id,
-      type,
-      enabled,
-      priority,
-      canReceive,
-      canSend
+      ...WalletFields
     }
   }`
 }

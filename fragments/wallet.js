@@ -186,20 +186,26 @@ export const WALLET_BY_TYPE = gql`
   }
 `
 
+export const WALLET_FIELDS = gql`
+  fragment WalletFields on Wallet {
+    id
+    priority
+    type
+    updatedAt
+    enabled
+    vaultEntries {
+      key
+      value
+    }
+  }
+`
+
 export const WALLETS = gql`
+  ${WALLET_FIELDS}
+
   query Wallets {
     wallets {
-      id
-      priority
-      type
-      updatedAt
-      canSend
-      canReceive
-      enabled
-      vaultEntries {
-        key
-        value
-      }
+      ...WalletFields
     }
   }
 `

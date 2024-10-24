@@ -12,25 +12,29 @@ export const fields = [
     label: 'pairing phrase',
     type: 'password',
     help: 'We only need permissions for the uri `/lnrpc.Lightning/SendPaymentSync`\n\nCreate a budgeted account with narrow permissions:\n\n```$ litcli accounts create --balance <budget>```\n\n```$ litcli sessions add --type custom --label <your label> --account_id <account_id> --uri /lnrpc.Lightning/SendPaymentSync```\n\nGrab the `pairing_secret_mnemonic` from the output and paste it here.',
-    editable: false
+    editable: false,
+    clientOnly: true
   },
   {
     name: 'localKey',
     type: 'text',
     optional: true,
-    hidden: true
+    hidden: true,
+    clientOnly: true
   },
   {
     name: 'remoteKey',
     type: 'text',
     optional: true,
-    hidden: true
+    hidden: true,
+    clientOnly: true
   },
   {
     name: 'serverHost',
     type: 'text',
     optional: true,
-    hidden: true
+    hidden: true,
+    clientOnly: true
   }
 ]
 

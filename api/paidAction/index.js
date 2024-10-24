@@ -258,8 +258,10 @@ export async function createLightningInvoice (actionType, args, context) {
         expiry: INVOICE_EXPIRE_SECS
       }, { models })
 
+      // the sender (me) decides if the wrapped invoice has a description
+      // whereas the recipient decides if their invoice has a description
       const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(
-        bolt11, { msats: cost, description }, { lnd })
+        bolt11, { msats: cost, description }, { me, lnd })
 
       return {
         bolt11,

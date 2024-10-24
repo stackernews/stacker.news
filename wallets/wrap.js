@@ -22,7 +22,7 @@ const ZAP_SYBIL_FEE_MULT = 10 / 7 // the fee for the zap sybil service
     maxFee: number
   }
 */
-export default async function wrapInvoice (bolt11, { msats, description, descriptionHash }, { lnd }) {
+export default async function wrapInvoice (bolt11, { msats, description, descriptionHash }, { me, lnd }) {
   try {
     console.group('wrapInvoice', description)
 
@@ -110,6 +110,11 @@ export default async function wrapInvoice (bolt11, { msats, description, descrip
     } else {
       // use the invoice description
       wrapped.description = inv.description
+    }
+
+    if (me?.hideInvoiceDesc) {
+      wrapped.description = undefined
+      wrapped.description_hash = undefined
     }
 
     // validate the expiration

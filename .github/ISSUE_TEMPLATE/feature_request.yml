@@ -9,7 +9,7 @@ body:
         We're always looking for suggestions on how we could improve SN!
   - type: textarea
     attributes:
-      label: 'Describe the problem you're trying to solve'
+      label: Describe the problem you're trying to solve
       description: |
         Is your feature request related to a problem? Add a clear and concise description of what the problem is.
     validations:

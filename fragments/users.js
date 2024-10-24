@@ -48,6 +48,8 @@ ${STREAK_FIELDS}
       upvotePopover
       wildWestMode
       disableFreebies
+      vaultKeyHash
+      walletsUpdatedAt
     }
     optional {
       isContributor

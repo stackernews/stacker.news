@@ -1,16 +1,25 @@
+// import server side wallets
 import * as lnd from 'wallets/lnd/server'
 import * as cln from 'wallets/cln/server'
 import * as lnAddr from 'wallets/lightning-address/server'
 import * as lnbits from 'wallets/lnbits/server'
 import * as nwc from 'wallets/nwc/server'
 import * as phoenixd from 'wallets/phoenixd/server'
+
+// we import only the metadata of client side wallets
+import * as blink from 'wallets/blink'
+import * as lnc from 'wallets/lnc'
+import * as webln from 'wallets/webln'
+
 import { addWalletLog } from '@/api/resolvers/wallet'
 import walletDefs from 'wallets/server'
 import { parsePaymentRequest } from 'ln-service'
 import { toPositiveNumber } from '@/lib/validate'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { withTimeout } from '@/lib/time'
-export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd]
+import { canReceive } from './common'
+
+export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 
@@ -31,9 +40,12 @@ export async function createInvoice (userId, { msats, description, descriptionHa
   msats = toPositiveNumber(msats)
 
   for (const wallet of wallets) {
-    const w = walletDefs.find(w => w.walletType === wallet.type)
+    const w = walletDefs.find(w => w.walletType === wallet.def.walletType)
     try {
       const { walletType, walletField, createInvoice } = w
+      if (!canReceive({ def: w, config: wallet })) {
+        continue
+      }
 
       const walletFull = await models.wallet.findFirst({
         where: {
@@ -73,6 +85,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
       if (pendingWithdrawals + pendingForwards >= MAX_PENDING_INVOICES_PER_WALLET) {
         throw new Error('wallet has too many pending invoices')
       }
+      console.log('use wallet', walletType)
 
       const invoice = await withTimeout(
         createInvoice({

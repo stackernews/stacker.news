@@ -195,6 +195,7 @@ async function performFeeCreditAction (actionType, paidAction, args, context) {
   // run non critical side effects in the background
   // after the transaction has been committed
   paidAction.nonCriticalSideEffects?.(result.result, context).catch(console.error)
+  return result
 }
 
 export async function retryPaidAction (actionType, { invoice, forceFeeCredits }, context) {

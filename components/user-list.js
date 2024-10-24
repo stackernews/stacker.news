@@ -140,7 +140,9 @@ function UserHidden ({ rank, Embellish }) {
   )
 }
 
-export function ListUsers ({ users, rank, statComps = seperate(STAT_COMPONENTS, Seperator), Embellish, nymActionDropdown }) {
+const DEFAULT_STAT_COMPONENTS = seperate(STAT_COMPONENTS, Seperator)
+
+export function ListUsers ({ users, rank, statComps = DEFAULT_STAT_COMPONENTS, Embellish, nymActionDropdown }) {
   return (
     <div className={styles.grid}>
       {users.map((user, i) => (
@@ -155,7 +157,7 @@ export function ListUsers ({ users, rank, statComps = seperate(STAT_COMPONENTS, 
 export default function UserList ({ ssrData, query, variables, destructureData, rank, footer = true, nymActionDropdown, statCompsProp }) {
   const { data, fetchMore } = useQuery(query, { variables })
   const dat = useData(data, ssrData)
-  const [statComps, setStatComps] = useState(seperate(STAT_COMPONENTS, Seperator))
+  const [statComps, setStatComps] = useState(DEFAULT_STAT_COMPONENTS)
 
   useEffect(() => {
     // shift the stat we are sorting by to the front

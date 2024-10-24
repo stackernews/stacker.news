@@ -26,12 +26,13 @@ import { getNodeSockets, getOurPubkey } from '../lnd'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
-  for (const w of walletDefs) {
-    const resolverName = generateResolverName(w.walletField)
+  for (const walletDef of walletDefs) {
+    const resolverName = generateResolverName(walletDef.walletField)
     console.log(resolverName)
     resolvers.Mutation[resolverName] = async (parent, { settings, validateLightning, vaultEntries, ...data }, { me, models }) => {
       // allow transformation of the data on validation (this is optional ... won't do anything if not implemented)
-      const validData = await walletValidate(w, { ...data, ...settings, vaultEntries })
+      // TODO: our validation should be improved
+      const validData = await walletValidate(walletDef, { ...data, ...settings, vaultEntries })
       if (validData) {
         Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
         Object.keys(validData).filter(key => key in settings).forEach(key => { settings[key] = validData[key] })
@@ -39,10 +40,12 @@ function injectResolvers (resolvers) {
 
       return await upsertWallet({
         wallet: {
-          field: w.walletField,
-          type: w.walletType
+          field: walletDef.walletField,
+          type: walletDef.walletType
         },
-        testCreateInvoice: w.testCreateInvoice && validateLightning ? (data) => w.testCreateInvoice(data, { me, models }) : null
+        testCreateInvoice: walletDef.testCreateInvoice && validateLightning
+          ? (data) => walletDef.testCreateInvoice(data, { me, models })
+          : null
       }, {
         settings,
         data,
@@ -643,17 +646,13 @@ export const addWalletLog = async ({ wallet, level, message }, { models }) => {
 }
 
 async function upsertWallet (
-  { wallet, testCreateInvoice },
-  { settings, data, priorityOnly, canSend, canReceive },
-  { me, models }
-) {
-  if (!me) throw new GqlAuthenticationError()
+  { wallet, testCreateInvoice }, { settings, data, vaultEntries = [] }, { me, models }) {
+  if (!me) {
+    throw new GqlAuthenticationError()
+  }
   assertApiKeyNotPermitted({ me })
 
-  const { id, ...walletData } = data
-  const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, enabled, priority } = settings
-
-  if (testCreateInvoice && !priorityOnly && canReceive && enabled) {
+  if (testCreateInvoice) {
     try {
       await testCreateInvoice(data)
     } catch (err) {
@@ -666,103 +665,111 @@ async function upsertWallet (
     }
   }
 
-  return await models.$transaction(async (tx) => {
-    if (canReceive) {
-      await tx.user.update({
-        where: { id: me.id },
-        data: {
-          autoWithdrawMaxFeePercent,
-          autoWithdrawThreshold
-        }
-      })
-    }
+  const { id, enabled, priority, ...walletData } = data
+  const {
+    autoWithdrawThreshold,
+    autoWithdrawMaxFeePercent,
+    autoWithdrawMaxFeeTotal
+  } = settings
 
-    let updatedWallet
-    if (id) {
-      const existingWalletTypeRecord = canReceive
-        ? await tx[wallet.field].findUnique({
-          where: { walletId: Number(id) }
-        })
-        : undefined
+  const txs = []
 
-      updatedWallet = await tx.wallet.update({
+  if (id) {
+    const oldVaultEntries = await models.vaultEntry.findMany({ where: { userId: me.id, walletId: Number(id) } })
+
+    // createMany is the set difference of the new - old
+    // deleteMany is the set difference of the old - new
+    // updateMany is the intersection of the old and new
+    const difference = (a = [], b = [], key = 'key') => a.filter(x => !b.find(y => y[key] === x[key]))
+    const intersectionMerge = (a = [], b = [], key = 'key') => a.filter(x => b.find(y => y[key] === x[key]))
+      .map(x => ({ [key]: x[key], ...b.find(y => y[key] === x[key]) }))
+
+    txs.push(
+      models.wallet.update({
         where: { id: Number(id), userId: me.id },
         data: {
           enabled,
           priority,
-          canSend,
-          canReceive,
-          // if send-only config or priority only, don't update the wallet type record
-          ...(canReceive && !priorityOnly
-            ? {
-                [wallet.field]: existingWalletTypeRecord
-                  ? { update: walletData }
-                  : { create: walletData }
-              }
-            : {})
+          [wallet.field]: {
+            update: {
+              where: { walletId: Number(id) },
+              data: walletData
+            }
+          },
+          vaultEntries: {
+            deleteMany: difference(oldVaultEntries, vaultEntries, 'key').map(({ key }) => ({
+              userId: me.id, key
+            })),
+            create: difference(vaultEntries, oldVaultEntries, 'key').map(({ key, value }) => ({
+              key, value, userId: me.id
+            })),
+            update: intersectionMerge(oldVaultEntries, vaultEntries, 'key').map(({ key, value }) => ({
+              where: { userId_key: { userId: me.id, key } },
+              data: { value }
+            }))
+          }
         },
         include: {
-          ...(canReceive && !priorityOnly ? { [wallet.field]: true } : {})
+          vaultEntries: true
         }
       })
-    } else {
-      updatedWallet = await tx.wallet.create({
+    )
+  } else {
+    txs.push(
+      models.wallet.create({
+        include: {
+          vaultEntries: true
+        },
         data: {
           enabled,
           priority,
-          canSend,
-          canReceive,
           userId: me.id,
           type: wallet.type,
-          // if send-only config or priority only, don't update the wallet type record
-          ...(canReceive && !priorityOnly
-            ? {
-                [wallet.field]: {
-                  create: walletData
-                }
-              }
-            : {})
+          [wallet.field]: {
+            create: walletData
+          },
+          vaultEntries: {
+            createMany: {
+              data: vaultEntries.map(({ key, value }) => ({ key, value, userId: me.id }))
+            }
+          }
         }
       })
-    }
+    )
+  }
 
-    const logs = []
-    if (canReceive) {
-      logs.push({
-        userId: me.id,
-        wallet: wallet.type,
-        level: enabled ? 'SUCCESS' : 'INFO',
-        message: id ? 'receive details updated' : 'wallet attached for receives'
-      })
-      logs.push({
-        userId: me.id,
-        wallet: wallet.type,
-        level: enabled ? 'SUCCESS' : 'INFO',
-        message: enabled ? 'receives enabled' : 'receives disabled'
-      })
-    }
-
-    if (canSend) {
-      logs.push({
-        userId: me.id,
-        wallet: wallet.type,
-        level: enabled ? 'SUCCESS' : 'INFO',
-        message: id ? 'send details updated' : 'wallet attached for sends'
-      })
-      logs.push({
-        userId: me.id,
-        wallet: wallet.type,
-        level: enabled ? 'SUCCESS' : 'INFO',
-        message: enabled ? 'sends enabled' : 'sends disabled'
-      })
-    }
-
-    await tx.walletLog.createMany({
-      data: logs
+  txs.push(
+    models.user.update({
+      where: { id: me.id },
+      data: {
+        autoWithdrawMaxFeePercent,
+        autoWithdrawThreshold,
+        autoWithdrawMaxFeeTotal
+      }
     })
+  )
 
-    return updatedWallet
-  })
+  txs.push(
+    models.walletLog.createMany({
+      data: {
+        userId: me.id,
+        wallet: wallet.type,
+        level: 'SUCCESS',
+        message: id ? 'wallet details updated' : 'wallet attached'
+      }
+    }),
+    models.walletLog.create({
+      data: {
+        userId: me.id,
+        wallet: wallet.type,
+        level: enabled ? 'SUCCESS' : 'INFO',
+        message: enabled ? 'wallet enabled' : 'wallet disabled'
+      }
+    })
+  )
+
+  const [upsertedWallet] = await models.$transaction(txs)
+  return upsertedWallet
 }
 
 export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, walletId = null }) {

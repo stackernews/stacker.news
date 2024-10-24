@@ -3,68 +3,12 @@ import { COMMENTS, COMMENTS_ITEM_EXT_FIELDS } from './comments'
 import { ITEM_FIELDS, ITEM_FULL_FIELDS } from './items'
 import { SUB_FULL_FIELDS } from './subs'
 
-export const ME = gql`
-  {
-    me {
-      id
-      name
-      bioId
-      photoId
-      privates {
-        autoDropBolt11s
-        diagnostics
-        noReferralLinks
-        fiatCurrency
-        satsFilter
-        hideCowboyHat
-        hideFromTopUsers
-        hideGithub
-        hideNostr
-        hideTwitter
-        hideInvoiceDesc
-        hideIsContributor
-        hideWalletBalance
-        hideWelcomeBanner
-        imgproxyOnly
-        showImagesAndVideos
-        lastCheckedJobs
-        nostrCrossposting
-        noteAllDescendants
-        noteCowboyHat
-        noteDeposits
-        noteWithdrawals
-        noteEarning
-        noteForwardedSats
-        noteInvites
-        noteItemSats
-        noteJobIndicator
-        noteMentions
-        noteItemMentions
-        sats
-        tipDefault
-        tipRandom
-        tipRandomMin
-        tipRandomMax
-        tipPopover
-        turboTipping
-        zapUndos
-        upvotePopover
-        wildWestMode
-        withdrawMaxFeeDefault
-        lnAddr
-        autoWithdrawMaxFeePercent
-        autoWithdrawThreshold
-        disableFreebies
-        vaultKeyHash
-      }
-      optional {
-        isContributor
-        stacked
-        streak
-        githubId
-        nostrAuthPubkey
-        twitterId
-      }
+const STREAK_FIELDS = gql`
+  fragment StreakFields on User {
+    optional {
+    streak
+    gunStreak
+      horseStreak
     }
   }
 `
@@ -104,6 +48,8 @@ ${STREAK_FIELDS}
       upvotePopover
       wildWestMode
       disableFreebies
+      vaultKeyHash
+      walletsUpdatedAt
     }
     optional {
       isContributor

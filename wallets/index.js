@@ -1,6 +1,6 @@
 import { useMe } from '@/components/me'
 import { WALLETS } from '@/fragments/wallet'
-import { LONG_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { SSR } from '@/lib/constants'
 import { useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend } from './common'
@@ -41,15 +41,17 @@ const walletDefsOnly = walletDefs.map(w => ({ def: w, config: {} }))
 
 export function WalletsProvider ({ children }) {
   const { decrypt } = useVault()
+  const { me } = useMe()
   const { wallets: localWallets, reloadLocalWallets } = useLocalWallets()
 
-  // TODO: instead of polling, this should only be called when the vault key is updated
-  // or a denormalized field on the user 'vaultUpdatedAt' is changed
-  const { data } = useQuery(WALLETS, {
-    pollInterval: LONG_POLL_INTERVAL,
-    nextFetchPolicy: 'cache-and-network',
-    skip: SSR
-  })
+  const { data, refetch } = useQuery(WALLETS,
+    SSR ? {} : { nextFetchPolicy: 'cache-and-network' })
+
+  useEffect(() => {
+    if (me?.privates?.walletsUpdatedAt) {
+      refetch()
+    }
+  }, [me?.privates?.walletsUpdatedAt, me?.privates?.vaultKeyHash, refetch])
 
   const wallets = useMemo(() => {
     // form wallets into a list of { config, def }
@@ -60,7 +62,9 @@ export function WalletsProvider ({ children }) {
         config[key] = decrypt(value)
       }
 
-      return { config, def }
+      // the specific wallet config on the server is stored in wallet.wallet
+      // on the client, it's stored in unnested
+      return { config: { ...config, ...w.wallet }, def }
     }) ?? []
 
     // merge wallets on name

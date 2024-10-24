@@ -17,7 +17,7 @@ function mutationTypeDefs () {
       .filter(isServerField)
       .map(fieldToGqlArgOptional)
     if (serverFields.length > 0) args += serverFields.join(', ') + ','
-    args += 'settings: AutowithdrawSettings!, priorityOnly: Boolean, canSend: Boolean!, canReceive: Boolean!'
+    args += 'enabled: Boolean, priority: Int, vaultEntries: [VaultEntryInput!], settings: AutowithdrawSettings!, validateLightning: Boolean'
     const resolverName = generateResolverName(w.walletField)
     const typeDef = `${resolverName}(${args}): Wallet`
     console.log(typeDef)
@@ -91,8 +91,6 @@ const typeDefs = `
     enabled: Boolean!
     priority: Int!
     wallet: WalletDetails!
-    canReceive: Boolean!
-    canSend: Boolean!
     vaultEntries: [VaultEntry!]!
   }
 
@@ -100,8 +98,6 @@ const typeDefs = `
     autoWithdrawThreshold: Int!
     autoWithdrawMaxFeePercent: Float!
     autoWithdrawMaxFeeTotal: Int!
-    priority: Int
-    enabled: Boolean
   }
 
   type Invoice {

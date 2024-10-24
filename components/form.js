@@ -524,6 +524,11 @@ function InputInner ({
 
   const remaining = maxLength && maxLength - (field.value || '').length
 
+  const [showClearButton, setShowClearButton] = useState(clear)
+  useEffect(() => {
+    setShowClearButton(clear && field.value)
+  }, [field.value])
+
   return (
     <>
       <InputGroup hasValidation className={inputGroupClassName}>
@@ -538,7 +543,7 @@ function InputInner ({
           isInvalid={invalid}
           isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
         />
-        {(clear && field.value) &&
+        {showClearButton &&
           <Button
             variant={null}
             onClick={(e) => {

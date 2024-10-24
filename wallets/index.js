@@ -294,6 +294,16 @@ function useServerConfig (wallet) {
   const autowithdrawSettings = autowithdrawInitial({ me })
   const config = { ...serverConfig, ...autowithdrawSettings }
 
+  const refetchLogs = () => {
+    // make sure to only refetch wallet logs if it's an active query
+    return client.refetchQueries({
+      include: 'active',
+      onQueryUpdated: (query) => {
+        return query.queryName === 'WalletLogs'
+      }
+    })
+  }
+
   const saveConfig = useCallback(async ({
     autoWithdrawThreshold,
     autoWithdrawMaxFeePercent,
@@ -320,7 +330,7 @@ function useServerConfig (wallet) {
         }
       })
     } finally {
-      client.refetchQueries({ include: ['WalletLogs'] })
+      refetchLogs()
       refetchConfig()
     }
   }, [client, walletId])
@@ -335,7 +345,7 @@ function useServerConfig (wallet) {
         variables: { id: walletId }
       })
     } finally {
-      client.refetchQueries({ include: ['WalletLogs'] })
+      refetchLogs()
       refetchConfig()
     }
   }, [client, walletId])

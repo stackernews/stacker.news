@@ -526,8 +526,8 @@ function InputInner ({
 
   const [showClearButton, setShowClearButton] = useState(clear)
   useEffect(() => {
-    setShowClearButton(clear && field.value)
-  }, [field.value])
+    setShowClearButton(clear && field.value && !props.readOnly)
+  }, [field.value, props.readOnly])
 
   return (
     <>

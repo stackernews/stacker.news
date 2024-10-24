@@ -10,7 +10,10 @@ import { LIMIT } from '@/lib/cursor'
 import ItemFull from './item-full'
 import { useData } from './use-data'
 
-export default function Items ({ ssrData, variables = {}, query, destructureData, rank, noMoreText, Footer, filter = () => true }) {
+const DEFAULT_FILTER = () => true
+const DEFAULT_VARIABLES = {}
+
+export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, destructureData, rank, noMoreText, Footer, filter = DEFAULT_FILTER }) {
   const { data, fetchMore } = useQuery(query || SUB_ITEMS, { variables })
   const Foooter = Footer || MoreFooter
   const dat = useData(data, ssrData)

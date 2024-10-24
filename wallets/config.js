@@ -35,13 +35,12 @@ export function useWalletConfigurator (wallet) {
 
   const _validate = useCallback(async (config, validateLightning = true) => {
     const { serverWithShared, clientWithShared } = siftConfig(wallet.def.fields, config)
-    console.log('sifted', siftConfig(wallet.def.fields, config))
 
     let clientConfig = clientWithShared
     let serverConfig = serverWithShared
 
-    if (canSend(wallet)) {
-      let transformedConfig = await walletValidate(wallet, clientWithShared)
+    if (canSend({ def: wallet.def, config: clientConfig })) {
+      let transformedConfig = await walletValidate(wallet.def, clientWithShared)
       if (transformedConfig) {
         clientConfig = Object.assign(clientConfig, transformedConfig)
       }
@@ -51,29 +50,29 @@ export function useWalletConfigurator (wallet) {
           clientConfig = Object.assign(clientConfig, transformedConfig)
         }
       }
-    }
-
-    if (canReceive(wallet)) {
-      const transformedConfig = await walletValidate(wallet, serverConfig)
+    } else if (canReceive({ def: wallet.def, config: serverConfig })) {
+      const transformedConfig = await walletValidate(wallet.def, serverConfig)
       if (transformedConfig) {
         serverConfig = Object.assign(serverConfig, transformedConfig)
       }
+    } else {
+      throw new Error('configuration must be able to send or receive')
     }
 
     return { clientConfig, serverConfig }
   }, [wallet])
 
   const save = useCallback(async (newConfig, validateLightning = true) => {
-    const { clientConfig, serverConfig } = _validate(newConfig, validateLightning)
+    const { clientConfig, serverConfig } = await _validate(newConfig, validateLightning)
 
     // if vault is active, encrypt and send to server regardless of wallet type
     if (isActive) {
       await _saveToServer(serverConfig, clientConfig, validateLightning)
     } else {
-      if (canSend(wallet)) {
+      if (canSend({ def: wallet.def, config: clientConfig })) {
         await _saveToLocal(clientConfig)
       }
-      if (canReceive(wallet)) {
+      if (canReceive({ def: wallet.def, config: serverConfig })) {
         await _saveToServer(serverConfig, clientConfig, validateLightning)
       }
     }
@@ -84,18 +83,19 @@ export function useWalletConfigurator (wallet) {
   }, [wallet.config?.id])
 
   const _detachFromLocal = useCallback(async () => {
-    // if vault is not active and has a client config, delete from local storage
     window.localStorage.removeItem(getStorageKey(wallet.def.name, me?.id))
   }, [me?.id, wallet.def.name])
 
   const detach = useCallback(async () => {
     if (isActive) {
+      // if vault is active, detach all wallets from server
       await _detachFromServer()
     } else {
       if (wallet.config.id) {
         await _detachFromServer()
       }
 
+      // if vault is not active and has a client config, delete from local storage
       await _detachFromLocal()
     }
   }, [isActive, _detachFromServer, _detachFromLocal])

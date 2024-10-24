@@ -17,6 +17,7 @@ import { parsePaymentRequest } from 'ln-service'
 import { toPositiveNumber } from '@/lib/validate'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { withTimeout } from '@/lib/time'
+import { canReceive } from './common'
 
 export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
 
@@ -25,7 +26,7 @@ const MAX_PENDING_INVOICES_PER_WALLET = 25
 export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { models }) {
   // get the wallets in order of priority
   const wallets = await models.wallet.findMany({
-    where: { userId, enabled: true, canReceive: true },
+    where: { userId, enabled: true },
     include: {
       user: true
     },
@@ -42,11 +43,14 @@ export async function createInvoice (userId, { msats, description, descriptionHa
     const w = walletDefs.find(w => w.walletType === wallet.def.walletType)
     try {
       const { walletType, walletField, createInvoice } = w
+      if (!canReceive({ def: w, config: wallet })) {
+        continue
+      }
 
       const walletFull = await models.wallet.findFirst({
         where: {
           userId,
-          type: wallet.def.walletType
+          type: walletType
         },
         include: {
           [walletField]: true

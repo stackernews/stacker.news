@@ -106,86 +106,7 @@ mutation removeWallet($id: ID!) {
   removeWallet(id: $id)
 }
 `
-
 // XXX [WALLET] this needs to be updated if another server wallet is added
-export const WALLET = gql`
-  query Wallet($id: ID!) {
-    wallet(id: $id) {
-      id
-      createdAt
-      priority
-      type
-      wallet {
-        __typename
-        ... on WalletLightningAddress {
-          address
-        }
-        ... on WalletLnd {
-          socket
-          macaroon
-          cert
-        }
-        ... on WalletCln {
-          socket
-          rune
-          cert
-        }
-        ... on WalletLnbits {
-          url
-          invoiceKey
-        }
-        ... on WalletNwc {
-          nwcUrlRecv
-        }
-        ... on WalletPhoenixd {
-          url
-          secondaryPassword
-        }
-      }
-    }
-  }
-`
-
-// XXX [WALLET] this needs to be updated if another server wallet is added
-export const WALLET_BY_TYPE = gql`
-  query WalletByType($type: String!) {
-    walletByType(type: $type) {
-      id
-      createdAt
-      enabled
-      priority
-      type
-      wallet {
-        __typename
-        ... on WalletLightningAddress {
-          address
-        }
-        ... on WalletLnd {
-          socket
-          macaroon
-          cert
-        }
-        ... on WalletCln {
-          socket
-          rune
-          cert
-        }
-        ... on WalletLnbits {
-          url
-          invoiceKey
-        }
-        ... on WalletNwc {
-          nwcUrlRecv
-        }
-        ... on WalletPhoenixd {
-          url
-          secondaryPassword
-        }
-      }
-    }
-  }
-`
-
 export const WALLET_FIELDS = gql`
   fragment WalletFields on Wallet {
     id
@@ -197,12 +118,57 @@ export const WALLET_FIELDS = gql`
       key
       value
     }
+    wallet {
+      __typename
+      ... on WalletLightningAddress {
+        address
+      }
+      ... on WalletLnd {
+        socket
+        macaroon
+        cert
+      }
+      ... on WalletCln {
+        socket
+        rune
+        cert
+      }
+      ... on WalletLnbits {
+        url
+        invoiceKey
+      }
+      ... on WalletNwc {
+        nwcUrlRecv
+      }
+      ... on WalletPhoenixd {
+        url
+        secondaryPassword
+      }
+    }
+  }
+`
+
+export const WALLET = gql`
+  ${WALLET_FIELDS}
+  query Wallet($id: ID!) {
+    wallet(id: $id) {
+      ...WalletFields
+    }
+  }
+`
+
+// XXX [WALLET] this needs to be updated if another server wallet is added
+export const WALLET_BY_TYPE = gql`
+  ${WALLET_FIELDS}
+  query WalletByType($type: String!) {
+    walletByType(type: $type) {
+      ...WalletFields
+    }
   }
 `
 
 export const WALLETS = gql`
   ${WALLET_FIELDS}
-
   query Wallets {
     wallets {
       ...WalletFields

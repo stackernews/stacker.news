@@ -55,8 +55,8 @@ export default {
 
       for (const entry of entries) {
         txs.push(models.vaultEntry.update({
-          where: { id: entry.id },
-          data: { key: entry.key, value: entry.value }
+          where: { userId_key: { userId: me.id, key: entry.key } },
+          data: { value: entry.value }
         }))
       }
       await models.prisma.$transaction(txs)

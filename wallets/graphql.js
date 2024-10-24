@@ -33,17 +33,18 @@ export function generateMutation (wallet) {
     .filter(isServerField)
     .map(f => `$${f.name}: String`)
     .join(', ')
-  headerArgs += ', $settings: AutowithdrawSettings!, $validateLightning: Boolean'
+  headerArgs += ', $enabled: Boolean, $priority: Int, $vaultEntries: [VaultEntryInput!], $settings: AutowithdrawSettings!, $validateLightning: Boolean'
 
   let inputArgs = 'id: $id, '
   inputArgs += wallet.fields
     .filter(isServerField)
     .map(f => `${f.name}: $${f.name}`).join(', ')
-  inputArgs += ', settings: $settings, validateLightning: $validateLightning,'
+  inputArgs += ', enabled: $enabled, priority: $priority, vaultEntries: $vaultEntries, settings: $settings, validateLightning: $validateLightning'
 
-  return gql`mutation ${resolverName}(${headerArgs}) {
+  return gql`
     ${WALLET_FIELDS}
-    ${resolverName}(${inputArgs}) {
+    mutation ${resolverName}(${headerArgs}) {
+      ${resolverName}(${inputArgs}) {
       ...WalletFields
     }
   }`

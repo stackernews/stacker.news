@@ -92,11 +92,11 @@ function getWalletLogDbName (userId) {
 
 function useWalletLogDB () {
   const { me } = useMe()
-  const { add, getPage, clear, error, notSupported } = useIndexedDB({
-    dbName: getWalletLogDbName(me?.id),
-    storeName: 'wallet_logs',
-    indices: INDICES
-  })
+  // memoize the idb config to avoid re-creating it on every render
+  const idbConfig = useMemo(() =>
+    ({ dbName: getWalletLogDbName(me?.id), storeName: 'wallet_logs', indices: INDICES }), [me?.id])
+  const { add, getPage, clear, error, notSupported } = useIndexedDB(idbConfig)
+
   return { add, getPage, clear, error, notSupported }
 }
 

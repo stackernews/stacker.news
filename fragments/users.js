@@ -49,6 +49,7 @@ ${STREAK_FIELDS}
       wildWestMode
       disableFreebies
       vaultKeyHash
+      walletsUpdatedAt
     }
     optional {
       isContributor

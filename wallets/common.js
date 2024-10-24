@@ -74,24 +74,24 @@ function checkFields ({ fields, config }) {
   return val
 }
 
-export function isConfigured (wallet) {
-  return isSendConfigured(wallet) || isReceiveConfigured(wallet)
+export function isConfigured ({ def, config }) {
+  return isSendConfigured({ def, config }) || isReceiveConfigured({ def, config })
 }
 
-function isSendConfigured (wallet) {
-  const fields = wallet.def.fields.filter(isClientField)
-  return checkFields({ fields, config: wallet.config })
+function isSendConfigured ({ def, config }) {
+  const fields = def.fields.filter(isClientField)
+  return checkFields({ fields, config })
 }
 
-function isReceiveConfigured (wallet) {
-  const fields = wallet.def.fields.filter(isServerField)
-  return checkFields({ fields, config: wallet.config })
+function isReceiveConfigured ({ def, config }) {
+  const fields = def.fields.filter(isServerField)
+  return checkFields({ fields, config })
 }
 
-export function canSend (wallet) {
-  return !!wallet.def.sendPayment && isSendConfigured(wallet)
+export function canSend ({ def, config }) {
+  return !!def.sendPayment && isSendConfigured({ def, config })
 }
 
-export function canReceive (wallet) {
-  return !wallet.def.clientOnly && isReceiveConfigured(wallet)
+export function canReceive ({ def, config }) {
+  return !def.clientOnly && isReceiveConfigured({ def, config })
 }

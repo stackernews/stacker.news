@@ -15,7 +15,11 @@ export function SubSelectInitial ({ sub }) {
   }
 }
 
-export function useSubs ({ prependSubs = [], sub, filterSubs = () => true, appendSubs = [] }) {
+const DEFAULT_PREPEND_SUBS = []
+const DEFAULT_APPEND_SUBS = []
+const DEFAULT_FILTER_SUBS = () => true
+
+export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs = DEFAULT_FILTER_SUBS, appendSubs = DEFAULT_APPEND_SUBS }) {
   const { data } = useQuery(SUBS, SSR
     ? {}
     : {

@@ -4,7 +4,11 @@ export function getDbName (userId, name) {
   return `app:storage:${userId ?? ''}${name ? `:${name}` : ''}`
 }
 
-function useIndexedDB ({ dbName, storeName, options = { keyPath: 'id', autoIncrement: true }, indices = [], version = 1 }) {
+const DEFAULT_OPTIONS = { keyPath: 'id', autoIncrement: true }
+const DEFAULT_INDICES = []
+const DEFAULT_VERSION = 1
+
+function useIndexedDB ({ dbName, storeName, options = DEFAULT_OPTIONS, indices = DEFAULT_INDICES, version = DEFAULT_VERSION }) {
   const [db, setDb] = useState(null)
   const [error, setError] = useState(null)
   const [notSupported, setNotSupported] = useState(false)
@@ -28,7 +32,7 @@ function useIndexedDB ({ dbName, storeName, options = { keyPath: 'id', autoIncre
     } catch (error) {
       handleError(error)
     }
-  }, [storeName, handleError])
+  }, [storeName, handleError, operationQueue])
 
   useEffect(() => {
     let isMounted = true
@@ -81,7 +85,7 @@ function useIndexedDB ({ dbName, storeName, options = { keyPath: 'id', autoIncre
         db.close()
       }
     }
-  }, [dbName, storeName, version, indices, handleError, processQueue])
+  }, [dbName, storeName, version, indices, options, handleError, processQueue])
 
   const queueOperation = useCallback((operation) => {
     if (notSupported) {

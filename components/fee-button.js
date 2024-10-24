@@ -93,7 +93,10 @@ function sortHelper (a, b) {
   }
 }
 
-export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = () => null, children }) {
+const DEFAULT_BASE_LINE_ITEMS = {}
+const DEFAULT_USE_REMOTE_LINE_ITEMS = () => null
+
+export function FeeButtonProvider ({ baseLineItems = DEFAULT_BASE_LINE_ITEMS, useRemoteLineItems = DEFAULT_USE_REMOTE_LINE_ITEMS, children }) {
   const [lineItems, setLineItems] = useState({})
   const [disabled, setDisabled] = useState(false)
   const { me } = useMe()

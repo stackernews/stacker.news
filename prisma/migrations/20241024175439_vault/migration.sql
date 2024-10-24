@@ -11,16 +11,14 @@ ALTER TYPE "WalletType" ADD VALUE 'LNC';
 ALTER TYPE "WalletType" ADD VALUE 'WEBLN';
 
 -- AlterTable
-ALTER TABLE "Wallet" ADD COLUMN     "canReceive" BOOLEAN NOT NULL DEFAULT true,
-ADD COLUMN     "canSend" BOOLEAN NOT NULL DEFAULT false;
-
--- AlterTable
-ALTER TABLE "users" ADD COLUMN     "vaultKeyHash" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "users" ADD COLUMN     "vaultKeyHash" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "walletsUpdatedAt" TIMESTAMP(3);
 
 -- CreateTable
 CREATE TABLE "VaultEntry" (
     "id" SERIAL NOT NULL,
-    "key" VARCHAR(64) NOT NULL,
+    "key" TEXT NOT NULL,
+    "iv" TEXT NOT NULL,
     "value" TEXT NOT NULL,
     "userId" INTEGER NOT NULL,
     "walletId" INTEGER,
@@ -31,16 +29,31 @@ CREATE TABLE "VaultEntry" (
 );
 
 -- CreateIndex
-CREATE INDEX "VaultEntry_userId_idx" ON "VaultEntry"("userId");
-
--- CreateIndex
 CREATE INDEX "VaultEntry_walletId_idx" ON "VaultEntry"("walletId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "VaultEntry_userId_key_walletId_key" ON "VaultEntry"("userId", "key", "walletId");
+CREATE UNIQUE INDEX "VaultEntry_userId_key_key" ON "VaultEntry"("userId", "key");
+
+-- CreateIndex
+CREATE INDEX "Wallet_priority_idx" ON "Wallet"("priority");
 
 -- AddForeignKey
 ALTER TABLE "VaultEntry" ADD CONSTRAINT "VaultEntry_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "VaultEntry" ADD CONSTRAINT "VaultEntry_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+CREATE FUNCTION wallet_updated_at_trigger() RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE "users" SET "walletsUpdatedAt" = NOW() WHERE "id" = NEW."userId";
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER wallet_updated_at_trigger
+AFTER INSERT OR UPDATE ON "Wallet"
+FOR EACH ROW EXECUTE PROCEDURE wallet_updated_at_trigger();
+
+CREATE TRIGGER vault_entry_updated_at_trigger
+AFTER INSERT OR UPDATE ON "VaultEntry"
+FOR EACH ROW EXECUTE PROCEDURE wallet_updated_at_trigger();

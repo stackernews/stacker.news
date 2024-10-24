@@ -3,65 +3,69 @@ import Layout from '@/components/layout'
 import styles from '@/styles/wallet.module.css'
 import Link from 'next/link'
 import { useWallets } from '@/wallets/index'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useIsClient } from '@/components/use-client'
 import WalletCard from '@/components/wallet-card'
+import { useToast } from '@/components/toast'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
-async function reorder (wallets, sourceIndex, targetIndex) {
-  const newOrder = [...wallets]
-
-  const [source] = newOrder.splice(sourceIndex, 1)
-  const newTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
-  const append = sourceIndex < targetIndex
-
-  newOrder.splice(newTargetIndex + (append ? 1 : 0), 0, source)
-
-  await Promise.all(
-    newOrder.map((w, i) =>
-      w.setPriority(i).catch(console.error)
-    )
-  )
-}
-
 export default function Wallet ({ ssrData }) {
-  const { wallets } = useWallets()
-
+  const { wallets, setPriorities, reloadLocalWallets } = useWallets()
+  const toast = useToast()
   const isClient = useIsClient()
   const [sourceIndex, setSourceIndex] = useState(null)
   const [targetIndex, setTargetIndex] = useState(null)
 
-  const onDragStart = (i) => (e) => {
+  const reorder = useCallback(async (sourceIndex, targetIndex) => {
+    const newOrder = [...wallets.filter(w => w.config?.enabled)]
+    const [source] = newOrder.splice(sourceIndex, 1)
+    const newTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
+
+    const priorities = newOrder.slice(0, newTargetIndex)
+      .concat(source)
+      .concat(newOrder.slice(newTargetIndex))
+      .map((w, i) => ({ wallet: w, priority: i }))
+
+    await setPriorities(priorities)
+    reloadLocalWallets()
+  }, [setPriorities, reloadLocalWallets, wallets])
+
+  const onDragStart = useCallback((i) => (e) => {
     // e.dataTransfer.dropEffect = 'move'
     // We can only use the DataTransfer API inside the drop event
     // see https://html.spec.whatwg.org/multipage/dnd.html#security-risks-in-the-drag-and-drop-model
     // e.dataTransfer.setData('text/plain', name)
     // That's why we use React state instead
     setSourceIndex(i)
-  }
+  }, [setSourceIndex])
 
-  const onDragEnter = (i) => (e) => {
+  const onDragEnter = useCallback((i) => (e) => {
     setTargetIndex(i)
-  }
+  }, [setTargetIndex])
 
-  const onDragEnd = async (e) => {
+  const onReorderError = useCallback((err) => {
+    console.error(err)
+    toast.danger('failed to reorder wallets')
+  }, [toast])
+
+  const onDragEnd = useCallback((e) => {
     setSourceIndex(null)
     setTargetIndex(null)
 
     if (sourceIndex === targetIndex) return
 
-    await reorder(wallets, sourceIndex, targetIndex)
-  }
+    reorder(sourceIndex, targetIndex).catch(onReorderError)
+  }, [sourceIndex, targetIndex, reorder, onReorderError])
 
-  const onTouchStart = (i) => async (e) => {
+  const onTouchStart = useCallback((i) => (e) => {
     if (sourceIndex !== null) {
-      await reorder(wallets, sourceIndex, i)
+      reorder(sourceIndex, i).catch(onReorderError)
       setSourceIndex(null)
     } else {
       setSourceIndex(i)
     }
-  }
+  }, [sourceIndex, reorder, onReorderError])
 
   return (
     <Layout>

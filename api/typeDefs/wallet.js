@@ -17,7 +17,7 @@ function mutationTypeDefs () {
     args += w.fields
       .filter(isServerField)
       .map(fieldToGqlArg).join(', ')
-    args += ', settings: AutowithdrawSettings!, priorityOnly: Boolean'
+    args += ', settings: AutowithdrawSettings!, skipValidation: Boolean'
     const resolverName = generateResolverName(w.walletField)
     const typeDef = `${resolverName}(${args}): Boolean`
     console.log(typeDef)

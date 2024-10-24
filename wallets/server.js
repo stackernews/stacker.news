@@ -4,12 +4,12 @@ import * as lnAddr from 'wallets/lightning-address/server'
 import * as lnbits from 'wallets/lnbits/server'
 import * as nwc from 'wallets/nwc/server'
 import * as phoenixd from 'wallets/phoenixd/server'
-import { addWalletLog } from '@/api/resolvers/wallet'
 import walletDefs from 'wallets/server'
 import { parsePaymentRequest } from 'ln-service'
 import { toPositiveNumber } from '@/lib/validate'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { withTimeout } from '@/lib/time'
+import { walletLogger } from '@/api/resolvers/wallet'
 export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd]
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
@@ -31,6 +31,8 @@ export async function createInvoice (userId, { msats, description, descriptionHa
   msats = toPositiveNumber(msats)
 
   for (const wallet of wallets) {
+    const logger = walletLogger({ wallet, models })
+
     const w = walletDefs.find(w => w.walletType === wallet.type)
     try {
       const { walletType, walletField, createInvoice } = w
@@ -94,21 +96,15 @@ export async function createInvoice (userId, { msats, description, descriptionHa
           throw new Error(`invoice has a different satoshi amount ${bolt11.mtokens} !== ${msats}`)
         }
 
-        await addWalletLog({
-          wallet,
-          level: 'INFO',
-          message: `wallet does not support msats so we floored ${msats} msats to nearest sat ${BigInt(bolt11.mtokens)} msats`
-        }, { models })
+        await logger.info(
+          `wallet does not support msats so we floored ${msats} msats to nearest sat ${BigInt(bolt11.mtokens)} msats`
+        )
       }
 
       return { invoice, wallet }
     } catch (error) {
       console.error(error)
-      await addWalletLog({
-        wallet,
-        level: 'ERROR',
-        message: `creating invoice for ${description ?? ''} failed: ` + error
-      }, { models })
+      await logger.error(`creating invoice for ${description ?? ''} failed: ` + error)
     }
   }
 

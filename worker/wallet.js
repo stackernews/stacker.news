@@ -7,7 +7,6 @@ import { notifyDeposit, notifyWithdrawal } from '@/lib/webPush'
 import { INVOICE_RETENTION_DAYS, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
-import { addWalletLog } from '@/api/resolvers/wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
 import {
   paidActionPaid, paidActionForwarded,
@@ -16,6 +15,7 @@ import {
   paidActionCanceling
 } from './paidAction.js'
 import { getPaymentFailureStatus } from '@/api/lnd/index.js'
+import { walletLogger } from '@/api/resolvers/wallet.js'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -287,6 +287,8 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
     }
   }
 
+  const logger = walletLogger({ models, wallet: dbWdrwl.wallet })
+
   if (wdrwl?.is_confirmed) {
     if (dbWdrwl.invoiceForward.length > 0) {
       return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
@@ -310,7 +312,7 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
         const message = `autowithdrawal of ${
           numWithUnits(msatsToSats(paid), { abbreviate: false })} with ${
           numWithUnits(msatsToSats(fee), { abbreviate: false })} as fee`
-        await addWalletLog({ wallet: dbWdrwl.wallet, level: 'SUCCESS', message }, { models })
+        await logger.ok(message)
       }
     }
   } else if (wdrwl?.is_failed || notSent) {
@@ -328,11 +330,7 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
 
     if (code === 0 && dbWdrwl.wallet) {
       // add error into log for autowithdrawal
-      await addWalletLog({
-        wallet: dbWdrwl.wallet,
-        level: 'ERROR',
-        message: 'autowithdrawal failed: ' + message
-      }, { models })
+      await logger.error('autowithdrawal failed: ' + message)
     }
   }
 }

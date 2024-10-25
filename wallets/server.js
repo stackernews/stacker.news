@@ -18,6 +18,7 @@ import { toPositiveNumber } from '@/lib/validate'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { withTimeout } from '@/lib/time'
 import { canReceive } from './common'
+import { formatMsats } from '@/lib/format'
 
 export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
 
@@ -40,85 +41,120 @@ export async function createInvoice (userId, { msats, description, descriptionHa
   msats = toPositiveNumber(msats)
 
   for (const wallet of wallets) {
+    const w = walletDefs.find(w => w.walletType === wallet.type)
+
+    const config = wallet.wallet
+    if (!canReceive({ def: w, config })) {
+      continue
+    }
+
     const logger = walletLogger({ wallet, models })
 
-    const w = walletDefs.find(w => w.walletType === wallet.type)
     try {
-      if (!canReceive({ def: w, config: wallet.wallet })) {
-        continue
+      await logger.info(`↙ incoming payment: ${formatMsats(msats)}`)
+
+      let invoice
+      try {
+        invoice = await walletCreateInvoice(
+          { msats, description, descriptionHash, expiry },
+          { ...w, userId, createInvoice: w.createInvoice },
+          { logger, models })
+      } catch (err) {
+        throw new Error('failed to create invoice: ' + err.message)
       }
-
-      const { walletType, walletField, createInvoice } = w
-
-      const walletFull = await models.wallet.findFirst({
-        where: {
-          userId,
-          type: walletType
-        },
-        include: {
-          [walletField]: true
-        }
-      })
-
-      if (!walletFull || !walletFull[walletField]) {
-        throw new Error(`no ${walletType} wallet found`)
-      }
-
-      // check for pending withdrawals
-      const pendingWithdrawals = await models.withdrawl.count({
-        where: {
-          walletId: walletFull.id,
-          status: null
-        }
-      })
-
-      // and pending forwards
-      const pendingForwards = await models.invoiceForward.count({
-        where: {
-          walletId: walletFull.id,
-          invoice: {
-            actionState: {
-              notIn: PAID_ACTION_TERMINAL_STATES
-            }
-          }
-        }
-      })
-
-      console.log('pending invoices', pendingWithdrawals + pendingForwards)
-      if (pendingWithdrawals + pendingForwards >= MAX_PENDING_INVOICES_PER_WALLET) {
-        throw new Error('wallet has too many pending invoices')
-      }
-      console.log('use wallet', walletType)
-
-      const invoice = await withTimeout(
-        createInvoice({
-          msats,
-          description: wallet.user.hideInvoiceDesc ? undefined : description,
-          descriptionHash,
-          expiry
-        }, walletFull[walletField]), 10_000)
 
       const bolt11 = await parsePaymentRequest({ request: invoice })
+
+      await logger.info(`created invoice for ${formatMsats(bolt11.mtokens)}`)
+
       if (BigInt(bolt11.mtokens) !== BigInt(msats)) {
         if (BigInt(bolt11.mtokens) > BigInt(msats)) {
-          throw new Error(`invoice is for an amount greater than requested ${bolt11.mtokens} > ${msats}`)
+          throw new Error('invoice invalid: amount too big')
         }
         if (BigInt(bolt11.mtokens) === 0n) {
-          throw new Error('invoice is for 0 msats')
+          throw new Error('invoice invalid: amount is 0 msats')
         }
         if (BigInt(msats) - BigInt(bolt11.mtokens) >= 1000n) {
-          throw new Error(`invoice has a different satoshi amount ${bolt11.mtokens} !== ${msats}`)
+          throw new Error('invoice invalid: amount too small')
         }
 
-        await logger.info(`wallet does not support msats so we floored ${msats} msats to nearest sat ${BigInt(bolt11.mtokens)} msats`)
+        await logger.warn('wallet does not support msats')
       }
 
-      return { invoice, wallet }
-    } catch (error) {
-      console.error(error)
-      await logger.error(`creating invoice for ${description ?? ''} failed: ` + error)
+      return { invoice, wallet, logger }
+    } catch (err) {
+      await logger.error(err.message)
     }
   }
 
-  throw new Error('no wallet available')
+  throw new Error('no wallet to receive available')
+}
+
+async function walletCreateInvoice (
+  {
+    msats,
+    description,
+    descriptionHash,
+    expiry = 360
+  },
+  {
+    userId,
+    walletType,
+    walletField,
+    createInvoice
+  },
+  { logger, models }) {
+  const wallet = await models.wallet.findFirst({
+    where: {
+      userId,
+      type: walletType
+    },
+    include: {
+      [walletField]: true,
+      user: true
+    }
+  })
+
+  const config = wallet[walletField]
+
+  if (!wallet || !config) {
+    throw new Error('wallet not found')
+  }
+
+  // check for pending withdrawals
+  const pendingWithdrawals = await models.withdrawl.count({
+    where: {
+      walletId: wallet.id,
+      status: null
+    }
+  })
+
+  // and pending forwards
+  const pendingForwards = await models.invoiceForward.count({
+    where: {
+      walletId: wallet.id,
+      invoice: {
+        actionState: {
+          notIn: PAID_ACTION_TERMINAL_STATES
+        }
+      }
+    }
+  })
+
+  const pending = pendingWithdrawals + pendingForwards
+  if (pendingWithdrawals + pendingForwards >= MAX_PENDING_INVOICES_PER_WALLET) {
+    throw new Error(`too many pending invoices: has ${pending}, max ${MAX_PENDING_INVOICES_PER_WALLET}`)
+  }
+
+  return await withTimeout(
+    createInvoice(
+      {
+        msats,
+        description: wallet.user.hideInvoiceDesc ? undefined : description,
+        descriptionHash,
+        expiry
+      },
+      config,
+      { logger }
+    ), 10_000)
 }

@@ -20,12 +20,12 @@ export async function testCreateInvoice ({ nwcUrlRecv }, { logger }) {
     }
   }
 
-  return await withTimeout(createInvoice({ msats: 1000, expiry: 1 }, { logger, nwcUrlRecv }), timeout)
+  return await withTimeout(createInvoice({ msats: 1000, expiry: 1 }, { nwcUrlRecv }, { logger }), timeout)
 }
 
 export async function createInvoice (
   { msats, description, expiry },
-  { logger, nwcUrlRecv }) {
+  { nwcUrlRecv }, { logger }) {
   const result = await nwcCall({
     nwcUrl: nwcUrlRecv,
     method: 'make_invoice',

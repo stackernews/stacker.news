@@ -7,7 +7,7 @@ import crypto, { timingSafeEqual } from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
-import { msatsToSats, msatsToSatsDecimal } from '@/lib/format'
+import { formatMsats, msatsToSats, msatsToSatsDecimal } from '@/lib/format'
 import {
   ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS,
   INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, LND_PATHFINDING_TIMEOUT_MS
@@ -689,7 +689,8 @@ export const walletLogger = ({ wallet, models }) => {
   return {
     ok: (...message) => log('SUCCESS')(message.join(' ')),
     info: (...message) => log('INFO')(message.join(' ')),
-    error: (...message) => log('ERROR')(message.join(' '))
+    error: (...message) => log('ERROR')(message.join(' ')),
+    warn: (...message) => log('WARN')(message.join(' '))
   }
 }
 
@@ -825,7 +826,7 @@ async function upsertWallet (
   return upsertedWallet
 }
 
-export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, walletId = null }) {
+export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, wallet, logger }) {
   assertApiKeyNotPermitted({ me })
   await validateSchema(withdrawlSchema, { invoice, maxFee })
   await assertGofacYourself({ models, headers })
@@ -857,22 +858,22 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   }
 
   if (!decoded.mtokens || BigInt(decoded.mtokens) <= 0) {
-    throw new GqlInputError('your invoice must specify an amount')
+    throw new GqlInputError('invoice must specify an amount')
   }
 
   if (decoded.mtokens > Number.MAX_SAFE_INTEGER) {
-    throw new GqlInputError('your invoice amount is too large')
+    throw new GqlInputError('invoice amount is too large')
   }
 
   const msatsFee = Number(maxFee) * 1000
 
   const user = await models.user.findUnique({ where: { id: me.id } })
 
-  const autoWithdraw = !!walletId
+  const autoWithdraw = !!wallet?.id
   // create withdrawl transactionally (id, bolt11, amount, fee)
   const [withdrawl] = await serialize(
     models.$queryRaw`SELECT * FROM create_withdrawl(${decoded.id}, ${invoice},
-      ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name}, ${autoWithdraw}, ${walletId}::INTEGER)`,
+      ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name}, ${autoWithdraw}, ${wallet?.id}::INTEGER)`,
     { models }
   )
 
@@ -882,7 +883,11 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     // can't use max_fee_mtokens https://github.com/alexbosworth/ln-service/issues/141
     max_fee: Number(maxFee),
     pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS
-  }).catch(console.error)
+  }).then(() => {
+    return logger?.ok(`↙ payment received: ${formatMsats(decoded.mtokens)}`)
+  }).catch(err => {
+    return logger?.error('withdrawal failed:', err.message)
+  })
 
   return withdrawl
 }

@@ -411,7 +411,7 @@ const resolvers = {
             userId: me.id,
             wallet: type ?? undefined,
             createdAt: {
-              gte: from ? new Date(Number(from)) : undefined,
+              gt: from ? new Date(Number(from)) : undefined,
               lte: to ? new Date(Number(to)) : undefined
             }
           },

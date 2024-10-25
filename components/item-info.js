@@ -30,7 +30,7 @@ import classNames from 'classnames'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
-  commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
+  commentTextSingular = 'comment', className, embellishUser, extraInfo, edit, onEdit, editText,
   onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true,
   setDisableRetry, disableRetry
 }) {
@@ -151,7 +151,7 @@ export default function ItemInfo ({
         showActionDropdown &&
           <>
             <EditInfo
-              item={item} canEdit={canEdit}
+              item={item} edit={edit} canEdit={canEdit}
               setCanEdit={setCanEdit} onEdit={onEdit} editText={editText} editThreshold={editThreshold}
             />
             <PaymentInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
@@ -311,7 +311,7 @@ function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
   )
 }
 
-function EditInfo ({ item, canEdit, setCanEdit, onEdit, editText, editThreshold }) {
+function EditInfo ({ item, edit, canEdit, setCanEdit, onEdit, editText, editThreshold }) {
   const router = useRouter()
 
   if (canEdit) {
@@ -329,6 +329,22 @@ function EditInfo ({ item, canEdit, setCanEdit, onEdit, editText, editThreshold 
                 onComplete={() => { setCanEdit(false) }}
               />
             : <span>10:00</span>}
+        </span>
+      </>
+    )
+  }
+
+  if (edit && !canEdit) {
+    // if we're still editing after timer ran out
+    return (
+      <>
+        <span> \ </span>
+        <span
+          className='text-reset pointer fw-bold'
+          onClick={() => setEdit(false)}
+        >
+          <span>cancel </span>
+          <span>00:00</span>
         </span>
       </>
     )

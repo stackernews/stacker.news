@@ -180,6 +180,7 @@ export default function Comment ({
                         </ActionTooltip>}
                     </>
                   }
+                  edit={edit}
                   onEdit={e => { setEdit(!edit) }}
                   editText={edit ? 'cancel' : 'edit'}
                 />}

@@ -225,7 +225,12 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
       const combinedLogs = Array.from(new Set([...result.data, ...newLogs].map(JSON.stringify))).map(JSON.parse).sort((a, b) => b.ts - a.ts)
 
       setCursor(data.walletLogs.cursor)
-      return { ...result, data: combinedLogs, hasMore: result.hasMore || !!data.walletLogs.cursor }
+      return {
+        ...result,
+        data: combinedLogs,
+        total: combinedLogs.length,
+        hasMore: result.hasMore || !!data.walletLogs.cursor
+      }
     } catch (error) {
       console.error('Error loading logs from IndexedDB:', error)
       return { data: [], total: 0, hasMore: false }

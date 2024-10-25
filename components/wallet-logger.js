@@ -1,5 +1,5 @@
 import LogMessage from './log-message'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import styles from '@/styles/log.module.css'
 import { Button } from 'react-bootstrap'
 import { useToast } from './toast'
@@ -10,6 +10,7 @@ import { gql, useLazyQuery, useMutation } from '@apollo/client'
 import { useMe } from './me'
 import useIndexedDB, { getDbName } from './use-indexeddb'
 import { SSR } from '@/lib/constants'
+import useInterval from './use-interval'
 
 export function WalletLogs ({ wallet, embedded }) {
   const { logs, setLogs, hasMore, loadMore, loading } = useWalletLogs(wallet)
@@ -191,7 +192,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     if (newLogs.length === 0) setHasMore(false)
   }, [logs, _setLogs, setHasMore])
 
-  const loadLogsPage = useCallback(async (page, pageSize, walletDef) => {
+  const loadLogsPage = useCallback(async (page, pageSize, walletDef, variables = {}) => {
     try {
       let result = { data: [], hasMore: false }
       if (notSupported) {
@@ -206,14 +207,38 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
           return result
         }
       }
+
+      const oldestTs = result?.data[result.data.length - 1]?.ts // start of local logs
+      const newestTs = result?.data[0]?.ts // end of local logs
+
+      let from
+      if (variables?.from !== undefined) {
+        from = variables.from
+      } else if (oldestTs && result.hasMore) {
+        // fetch all missing, interwined server logs since start of local logs
+        from = String(oldestTs)
+      } else {
+        from = null
+      }
+
+      let to
+      if (variables?.to !== undefined) {
+        to = variables.to
+      } else if (newestTs && cursor) {
+        // fetch next old page of server logs
+        // ( if cursor is available, we will use decoded time of cursor )
+        to = String(newestTs)
+      } else {
+        to = null
+      }
+
       const { data } = await getWalletLogs({
         variables: {
           type: walletDef?.walletType,
-          // if it client logs has more, page based on it's range
-          from: result?.data[result.data.length - 1]?.ts && result.hasMore ? String(result.data[result.data.length - 1].ts) : null,
-          // if we have a cursor (this isn't the first page), page based on it's range
-          to: result?.data[0]?.ts && cursor ? String(result.data[0].ts) : null,
-          cursor
+          from,
+          to,
+          cursor,
+          ...variables
         }
       })
 
@@ -222,7 +247,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
         wallet: tag(getWalletByType(walletType)),
         ...log
       }))
-      const combinedLogs = Array.from(new Set([...result.data, ...newLogs].map(JSON.stringify))).map(JSON.parse).sort((a, b) => b.ts - a.ts)
+      const combinedLogs = uniqueSort([...result.data, ...newLogs])
 
       setCursor(data.walletLogs.cursor)
       return {
@@ -253,19 +278,27 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     }
   }, [loadLogsPage, page, logsPerPage, wallet?.def, hasMore])
 
-  const loadLogs = useCallback(async () => {
-    setLoading(true)
-    const result = await loadLogsPage(1, logsPerPage, wallet?.def)
-    setLogs(result.data)
-    setHasMore(result.hasMore)
-    setTotal(result.total)
-    setPage(1)
+  const loadNew = useCallback(async () => {
+    const newestTs = logs[0]?.ts
+    const variables = { from: newestTs?.toString(), to: null }
+    const result = await loadLogsPage(1, logsPerPage, wallet?.def, variables)
     setLoading(false)
-  }, [wallet?.def, loadLogsPage])
+    setLogs(prevLogs => uniqueSort([...result.data, ...prevLogs]))
+    setTotal(result.total)
+    if (!newestTs) {
+      // we only want to update the more button if we didn't fetch new logs since it is about old logs.
+      // we didn't fetch new logs if this is our first fetch (no newest timestamp available)
+      setHasMore(result.hasMore)
+    }
+  }, [logs, wallet?.def, loadLogsPage])
 
-  useEffect(() => {
-    loadLogs()
-  }, [wallet?.def])
+  useInterval(() => {
+    loadNew().catch(console.error)
+  }, 1_000, [loadNew])
 
-  return { logs, hasMore, total, loadMore, loadLogs, setLogs, loading }
+  return { logs, hasMore: !loading && hasMore, total, loadMore, setLogs, loading }
+}
+
+function uniqueSort (logs) {
+  return Array.from(new Set(logs.map(JSON.stringify))).map(JSON.parse).sort((a, b) => b.ts - a.ts)
 }

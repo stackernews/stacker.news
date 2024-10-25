@@ -181,7 +181,7 @@ export default function Comment ({
                     </>
                   }
                   edit={edit}
-                  onEdit={e => { setEdit(!edit) }}
+                  toggleEdit={e => { setEdit(!edit) }}
                   editText={edit ? 'cancel' : 'edit'}
                 />}
 

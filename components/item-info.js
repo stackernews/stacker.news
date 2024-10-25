@@ -30,7 +30,7 @@ import classNames from 'classnames'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
-  commentTextSingular = 'comment', className, embellishUser, extraInfo, edit, onEdit, editText,
+  commentTextSingular = 'comment', className, embellishUser, extraInfo, edit, toggleEdit, editText,
   onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true,
   setDisableRetry, disableRetry
 }) {
@@ -152,7 +152,7 @@ export default function ItemInfo ({
           <>
             <EditInfo
               item={item} edit={edit} canEdit={canEdit}
-              setCanEdit={setCanEdit} onEdit={onEdit} editText={editText} editThreshold={editThreshold}
+              setCanEdit={setCanEdit} toggleEdit={toggleEdit} editText={editText} editThreshold={editThreshold}
             />
             <PaymentInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
             <ActionDropdown>
@@ -311,7 +311,7 @@ function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
   )
 }
 
-function EditInfo ({ item, edit, canEdit, setCanEdit, onEdit, editText, editThreshold }) {
+function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, editThreshold }) {
   const router = useRouter()
 
   if (canEdit) {
@@ -320,7 +320,7 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, onEdit, editText, editThre
         <span> \ </span>
         <span
           className='text-reset pointer fw-bold'
-          onClick={() => onEdit ? onEdit() : router.push(`/items/${item.id}/edit`)}
+          onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}/edit`)}
         >
           <span>{editText || 'edit'} </span>
           {(!item.invoice?.actionState || item.invoice?.actionState === 'PAID')
@@ -341,7 +341,7 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, onEdit, editText, editThre
         <span> \ </span>
         <span
           className='text-reset pointer fw-bold'
-          onClick={() => setEdit(false)}
+          onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}`)}
         >
           <span>cancel </span>
           <span>00:00</span>

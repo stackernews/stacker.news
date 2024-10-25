@@ -177,7 +177,6 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
   const [logs, _setLogs] = useState([])
   const [page, setPage] = useState(initialPage)
   const [hasMore, setHasMore] = useState(true)
-  const [total, setTotal] = useState(0)
   const [cursor, setCursor] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -253,12 +252,11 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
       return {
         ...result,
         data: combinedLogs,
-        total: combinedLogs.length,
         hasMore: result.hasMore || !!data.walletLogs.cursor
       }
     } catch (error) {
       console.error('Error loading logs from IndexedDB:', error)
-      return { data: [], total: 0, hasMore: false }
+      return { data: [], hasMore: false }
     }
   }, [getPage, setCursor, cursor, notSupported])
 
@@ -272,7 +270,6 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
       const result = await loadLogsPage(page + 1, logsPerPage, wallet?.def)
       setLogs(prevLogs => [...prevLogs, ...result.data])
       setHasMore(result.hasMore)
-      setTotal(result.total)
       setPage(prevPage => prevPage + 1)
       setLoading(false)
     }
@@ -284,7 +281,6 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     const result = await loadLogsPage(1, logsPerPage, wallet?.def, variables)
     setLoading(false)
     setLogs(prevLogs => uniqueSort([...result.data, ...prevLogs]))
-    setTotal(result.total)
     if (!newestTs) {
       // we only want to update the more button if we didn't fetch new logs since it is about old logs.
       // we didn't fetch new logs if this is our first fetch (no newest timestamp available)
@@ -296,7 +292,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     loadNew().catch(console.error)
   }, 1_000, [loadNew])
 
-  return { logs, hasMore: !loading && hasMore, total, loadMore, setLogs, loading }
+  return { logs, hasMore: !loading && hasMore, loadMore, setLogs, loading }
 }
 
 function uniqueSort (logs) {

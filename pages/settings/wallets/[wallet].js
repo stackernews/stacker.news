@@ -18,6 +18,7 @@ import { useMe } from '@/components/me'
 import validateWallet from '@/wallets/validate'
 import { ValidationError } from 'yup'
 import { useFormikContext } from 'formik'
+import useVault from '@/components/vault/use-vault'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -68,7 +69,6 @@ export default function WalletSettings () {
     <CenterLayout>
       <h2 className='pb-2'>{wallet?.def.card.title}</h2>
       <h6 className='text-muted text-center pb-3'><Text>{wallet?.def.card.subtitle}</Text></h6>
-      {canSend(wallet) && <WalletSecurityBanner />}
       <Form
         initial={initial}
         enableReinitialize
@@ -92,6 +92,7 @@ export default function WalletSettings () {
           }
         }}
       >
+        <SendWarningBanner walletDef={wallet.def} />
         {wallet && <WalletFields wallet={wallet} />}
         <CheckboxGroup name='enabled'>
           <Checkbox
@@ -121,6 +122,13 @@ export default function WalletSettings () {
       </div>
     </CenterLayout>
   )
+}
+
+function SendWarningBanner ({ walletDef }) {
+  const { values } = useFormikContext()
+  if (!canSend({ def: walletDef, config: values })) return null
+
+  return <WalletSecurityBanner />
 }
 
 function ReceiveSettings ({ walletDef }) {

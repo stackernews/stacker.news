@@ -18,7 +18,6 @@ import { useMe } from '@/components/me'
 import validateWallet from '@/wallets/validate'
 import { ValidationError } from 'yup'
 import { useFormikContext } from 'formik'
-import useVault from '@/components/vault/use-vault'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 

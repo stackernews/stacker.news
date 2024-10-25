@@ -11,7 +11,7 @@ import { useToast } from '@/components/toast'
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function Wallet ({ ssrData }) {
-  const { wallets, setPriorities, reloadLocalWallets } = useWallets()
+  const { wallets, setPriorities } = useWallets()
   const toast = useToast()
   const isClient = useIsClient()
   const [sourceIndex, setSourceIndex] = useState(null)
@@ -28,8 +28,7 @@ export default function Wallet ({ ssrData }) {
       .map((w, i) => ({ wallet: w, priority: i }))
 
     await setPriorities(priorities)
-    reloadLocalWallets()
-  }, [setPriorities, reloadLocalWallets, wallets])
+  }, [setPriorities, wallets])
 
   const onDragStart = useCallback((i) => (e) => {
     // e.dataTransfer.dropEffect = 'move'

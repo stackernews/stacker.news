@@ -12,7 +12,7 @@ import {
   ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS,
   INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, LND_PATHFINDING_TIMEOUT_MS
 } from '@/lib/constants'
-import { amountSchema, ssValidate, withdrawlSchema, lnAddrSchema, walletValidate } from '@/lib/validate'
+import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
@@ -23,6 +23,7 @@ import { generateResolverName, generateTypeDefName } from '@/wallets/graphql'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets, getOurPubkey } from '../lnd'
+import validateWallet from '@/wallets/validate'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
@@ -32,7 +33,7 @@ function injectResolvers (resolvers) {
     resolvers.Mutation[resolverName] = async (parent, { settings, validateLightning, vaultEntries, ...data }, { me, models }) => {
       // allow transformation of the data on validation (this is optional ... won't do anything if not implemented)
       // TODO: our validation should be improved
-      const validData = await walletValidate(walletDef, { ...data, ...settings, vaultEntries })
+      const validData = await validateWallet(walletDef, { ...data, ...settings, vaultEntries })
       if (validData) {
         Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
         Object.keys(validData).filter(key => key in settings).forEach(key => { settings[key] = validData[key] })
@@ -437,7 +438,7 @@ const resolvers = {
   },
   Mutation: {
     createInvoice: async (parent, { amount, hodlInvoice = false, expireSecs = 3600 }, { me, models, lnd, headers }) => {
-      await ssValidate(amountSchema, { amount })
+      await validateSchema(amountSchema, { amount })
       await assertGofacYourself({ models, headers })
 
       let expirePivot = { seconds: expireSecs }
@@ -783,7 +784,7 @@ async function upsertWallet (
 
 export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, walletId = null }) {
   assertApiKeyNotPermitted({ me })
-  await ssValidate(withdrawlSchema, { invoice, maxFee })
+  await validateSchema(withdrawlSchema, { invoice, maxFee })
   await assertGofacYourself({ models, headers })
 
   // remove 'lightning:' prefix if present
@@ -867,7 +868,7 @@ export async function fetchLnAddrInvoice (
     me, models, lnd, autoWithdraw = false
   }) {
   const options = await lnAddrOptions(addr)
-  await ssValidate(lnAddrSchema, { addr, amount, maxFee, comment, ...payer }, options)
+  await validateSchema(lnAddrSchema, { addr, amount, maxFee, comment, ...payer }, options)
 
   if (payer) {
     payer = {

@@ -1,12 +1,11 @@
 import { Relay } from '@/lib/nostr'
 import { parseNwcUrl } from '@/lib/url'
-import { nwcSchema } from '@/lib/validate'
+import { string } from '@/lib/yup'
 import { finalizeEvent, nip04, verifyEvent } from 'nostr-tools'
 
 export const name = 'nwc'
 export const walletType = 'NWC'
 export const walletField = 'walletNWC'
-export const fieldValidation = nwcSchema
 
 export const fields = [
   {
@@ -15,7 +14,8 @@ export const fields = [
     type: 'password',
     optional: 'for sending',
     clientOnly: true,
-    editable: false
+    requiredWithout: 'nwcUrlRecv',
+    validate: string().nwcUrl()
   },
   {
     name: 'nwcUrlRecv',
@@ -23,7 +23,8 @@ export const fields = [
     type: 'password',
     optional: 'for receiving',
     serverOnly: true,
-    editable: false
+    requiredWithout: 'nwcUrl',
+    validate: string().nwcUrl()
   }
 ]
 

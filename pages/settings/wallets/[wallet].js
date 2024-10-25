@@ -9,12 +9,15 @@ import { useWallet } from '@/wallets/index'
 import Info from '@/components/info'
 import Text from '@/components/text'
 import { autowithdrawInitial, AutowithdrawSettings } from '@/components/autowithdraw-shared'
-import { canSend, isConfigured } from '@/wallets/common'
+import { canReceive, canSend, isConfigured } from '@/wallets/common'
 import { SSR } from '@/lib/constants'
 import WalletButtonBar from '@/components/wallet-buttonbar'
 import { useWalletConfigurator } from '@/wallets/config'
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useMe } from '@/components/me'
+import validateWallet from '@/wallets/validate'
+import { ValidationError } from 'yup'
+import { useFormikContext } from 'formik'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -47,10 +50,19 @@ export default function WalletSettings () {
     }
   }, [wallet, me])
 
-  // check if wallet uses the form-level validation built into Formik or a Yup schema
-  const validateProps = typeof wallet?.fieldValidation === 'function'
-    ? { validate: wallet?.fieldValidation }
-    : { schema: wallet?.fieldValidation }
+  const validate = useCallback(async (data) => {
+    try {
+      await validateWallet(wallet.def, data, { abortEarly: false, topLevel: false })
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return error.inner.reduce((acc, error) => {
+          acc[error.path] = error.message
+          return acc
+        }, {})
+      }
+      throw error
+    }
+  }, [wallet.def])
 
   return (
     <CenterLayout>
@@ -60,7 +72,7 @@ export default function WalletSettings () {
       <Form
         initial={initial}
         enableReinitialize
-        {...validateProps}
+        validate={validate}
         onSubmit={async ({ amount, ...values }) => {
           try {
             const newConfig = !isConfigured(wallet)
@@ -81,18 +93,15 @@ export default function WalletSettings () {
         }}
       >
         {wallet && <WalletFields wallet={wallet} />}
-        {wallet?.def.clientOnly
-          ? (
-            <CheckboxGroup name='enabled'>
-              <Checkbox
-                disabled={!isConfigured(wallet)}
-                label='enabled'
-                name='enabled'
-                groupClassName='mb-0'
-              />
-            </CheckboxGroup>
-            )
-          : <AutowithdrawSettings wallet={wallet} />}
+        <CheckboxGroup name='enabled'>
+          <Checkbox
+            disabled={!isConfigured(wallet)}
+            label='enabled'
+            name='enabled'
+            groupClassName='mb-0'
+          />
+        </CheckboxGroup>
+        <ReceiveSettings walletDef={wallet.def} />
         <WalletButtonBar
           wallet={wallet} onDelete={async () => {
             try {
@@ -114,9 +123,14 @@ export default function WalletSettings () {
   )
 }
 
+function ReceiveSettings ({ walletDef }) {
+  const { values } = useFormikContext()
+  return canReceive({ def: walletDef, config: values }) && <AutowithdrawSettings />
+}
+
 function WalletFields ({ wallet }) {
   return wallet.def.fields
-    .map(({ name, label = '', type, help, optional, editable, clientOnly, serverOnly, ...props }, i) => {
+    .map(({ name, label = '', type, help, optional, editable, requiredWithout, validate, clientOnly, serverOnly, ...props }, i) => {
       const rawProps = {
         ...props,
         name,

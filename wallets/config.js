@@ -5,9 +5,9 @@ import { canReceive, canSend, getStorageKey } from './common'
 import { useMutation } from '@apollo/client'
 import { generateMutation } from './graphql'
 import { REMOVE_WALLET } from '@/fragments/wallet'
-import { walletValidate } from '@/lib/validate'
 import { useWalletLogger } from '@/components/wallet-logger'
 import { useWallets } from '.'
+import validateWallet from './validate'
 
 export function useWalletConfigurator (wallet) {
   const { me } = useMe()
@@ -20,11 +20,14 @@ export function useWalletConfigurator (wallet) {
   const _saveToServer = useCallback(async (serverConfig, clientConfig, validateLightning) => {
     const { serverWithShared, settings, clientOnly } = siftConfig(wallet.def.fields, { ...serverConfig, ...clientConfig })
     const vaultEntries = []
-    if (clientOnly) {
+    if (clientOnly && isActive) {
       for (const [key, value] of Object.entries(clientOnly)) {
-        vaultEntries.push({ key, value: encrypt(value) })
+        if (value) {
+          vaultEntries.push({ key, value: encrypt(value) })
+        }
       }
     }
+
     await upsertWallet({ variables: { ...serverWithShared, settings, validateLightning, vaultEntries } })
   }, [encrypt, isActive, wallet.def.fields])
 
@@ -40,7 +43,7 @@ export function useWalletConfigurator (wallet) {
     let serverConfig = serverWithShared
 
     if (canSend({ def: wallet.def, config: clientConfig })) {
-      let transformedConfig = await walletValidate(wallet.def, clientWithShared)
+      let transformedConfig = await validateWallet(wallet.def, clientWithShared)
       if (transformedConfig) {
         clientConfig = Object.assign(clientConfig, transformedConfig)
       }
@@ -51,7 +54,7 @@ export function useWalletConfigurator (wallet) {
         }
       }
     } else if (canReceive({ def: wallet.def, config: serverConfig })) {
-      const transformedConfig = await walletValidate(wallet.def, serverConfig)
+      const transformedConfig = await validateWallet(wallet.def, serverConfig)
       if (transformedConfig) {
         serverConfig = Object.assign(serverConfig, transformedConfig)
       }
@@ -62,6 +65,15 @@ export function useWalletConfigurator (wallet) {
     return { clientConfig, serverConfig }
   }, [wallet])
 
+  const _detachFromServer = useCallback(async () => {
+    await removeWallet({ variables: { id: wallet.config.id } })
+  }, [wallet.config?.id])
+
+  const _detachFromLocal = useCallback(async () => {
+    window.localStorage.removeItem(getStorageKey(wallet.def.name, me?.id))
+    reloadLocalWallets()
+  }, [me?.id, wallet.def.name, reloadLocalWallets])
+
   const save = useCallback(async (newConfig, validateLightning = true) => {
     const { clientConfig, serverConfig } = await _validate(newConfig, validateLightning)
 
@@ -71,20 +83,18 @@ export function useWalletConfigurator (wallet) {
     } else {
       if (canSend({ def: wallet.def, config: clientConfig })) {
         await _saveToLocal(clientConfig)
+      } else {
+        // if it previously had a client config, remove it
+        await _detachFromLocal()
       }
       if (canReceive({ def: wallet.def, config: serverConfig })) {
         await _saveToServer(serverConfig, clientConfig, validateLightning)
+      } else {
+        // if it previously had a server config, remove it
+        await _detachFromServer()
       }
     }
-  }, [isActive, _saveToServer, _saveToLocal, _validate])
-
-  const _detachFromServer = useCallback(async () => {
-    await removeWallet({ variables: { id: wallet.config.id } })
-  }, [wallet.config?.id])
-
-  const _detachFromLocal = useCallback(async () => {
-    window.localStorage.removeItem(getStorageKey(wallet.def.name, me?.id))
-  }, [me?.id, wallet.def.name])
+  }, [isActive, _saveToServer, _saveToLocal, _validate, _detachFromLocal, _detachFromServer])
 
   const detach = useCallback(async () => {
     if (isActive) {

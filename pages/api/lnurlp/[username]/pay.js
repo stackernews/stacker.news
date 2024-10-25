@@ -7,7 +7,7 @@ import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
 import { datePivot } from '@/lib/time'
 import { BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, LNURLP_COMMENT_MAX_LENGTH, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
-import { ssValidate, lud18PayerDataSchema } from '@/lib/validate'
+import { validateSchema, lud18PayerDataSchema } from '@/lib/validate'
 import assertGofacYourself from '@/api/resolvers/ofac'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
@@ -59,7 +59,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       }
 
       try {
-        await ssValidate(lud18PayerDataSchema, parsedPayerData)
+        await validateSchema(lud18PayerDataSchema, parsedPayerData)
       } catch (err) {
         console.error('error validating payer data', err)
         return res.status(400).json({ status: 'ERROR', reason: err.toString() })

@@ -1,4 +1,7 @@
+import { decodeRune } from '@/lib/cln'
+import { B64_URL_REGEX } from '@/lib/format'
 import { CLNAutowithdrawSchema } from '@/lib/validate'
+import { string } from '@/lib/yup'
 
 export const name = 'cln'
 export const walletType = 'CLN'
@@ -13,7 +16,8 @@ export const fields = [
     placeholder: '55.5.555.55:3010',
     hint: 'tor or clearnet',
     clear: true,
-    serverOnly: true
+    serverOnly: true,
+    validate: string().socket()
   },
   {
     name: 'rune',
@@ -25,7 +29,25 @@ export const fields = [
     placeholder: 'S34KtUW-6gqS_hD_9cc_PNhfF-NinZyBOCgr1aIrark9NCZtZXRob2Q9aW52b2ljZQ==',
     hint: 'must be restricted to method=invoice',
     clear: true,
-    serverOnly: true
+    serverOnly: true,
+    validate: string().matches(B64_URL_REGEX, { message: 'invalid rune' })
+      .test({
+        name: 'rune',
+        test: (v, context) => {
+          const decoded = decodeRune(v)
+          if (!decoded) return context.createError({ message: 'invalid rune' })
+          if (decoded.restrictions.length === 0) {
+            return context.createError({ message: 'rune must be restricted to method=invoice' })
+          }
+          if (decoded.restrictions.length !== 1 || decoded.restrictions[0].alternatives.length !== 1) {
+            return context.createError({ message: 'rune must be restricted to method=invoice only' })
+          }
+          if (decoded.restrictions[0].alternatives[0] !== 'method=invoice') {
+            return context.createError({ message: 'rune must be restricted to method=invoice only' })
+          }
+          return true
+        }
+      })
   },
   {
     name: 'cert',
@@ -35,7 +57,8 @@ export const fields = [
     optional: 'optional if from [CA](https://en.wikipedia.org/wiki/Certificate_authority) (e.g. voltage)',
     hint: 'hex or base64 encoded',
     clear: true,
-    serverOnly: true
+    serverOnly: true,
+    validate: string().hexOrBase64()
   }
 ]
 

@@ -1,21 +1,14 @@
 export const name = 'webln'
 export const walletType = 'WEBLN'
 export const walletField = 'walletWebLN'
-export const clientOnly = true
+
+export const validate = ({ enabled }) => {
+  if (enabled && typeof window?.webln === 'undefined') {
+    throw new Error('no WebLN provider found')
+  }
+}
 
 export const fields = []
-
-export const fieldValidation = ({ enabled }) => {
-  if (typeof window?.webln === 'undefined') {
-    // don't prevent disabling WebLN if no WebLN provider found
-    if (enabled) {
-      return {
-        enabled: 'no WebLN provider found'
-      }
-    }
-  }
-  return {}
-}
 
 export const card = {
   title: 'WebLN',

@@ -1,9 +1,9 @@
-import { LNDAutowithdrawSchema } from '@/lib/validate'
+import { isInvoicableMacaroon, isInvoiceMacaroon } from '@/lib/macaroon'
+import { string } from '@/lib/yup'
 
 export const name = 'lnd'
 export const walletType = 'LND'
 export const walletField = 'walletLND'
-export const fieldValidation = LNDAutowithdrawSchema
 
 export const fields = [
   {
@@ -13,7 +13,8 @@ export const fields = [
     placeholder: '55.5.555.55:10001',
     hint: 'tor or clearnet',
     clear: true,
-    serverOnly: true
+    serverOnly: true,
+    validate: string().socket()
   },
   {
     name: 'macaroon',
@@ -26,7 +27,12 @@ export const fields = [
     placeholder: 'AgEDbG5kAlgDChCn7YgfWX7uTkQQgXZ2uahNEgEwGhYKB2FkZHJlc3MSBHJlYWQSBXdyaXRlGhcKCGludm9pY2VzEgRyZWFkEgV3cml0ZRoPCgdvbmNoYWluEgRyZWFkAAAGIJkMBrrDV0npU90JV0TGNJPrqUD8m2QYoTDjolaL6eBs',
     hint: 'hex or base64 encoded',
     clear: true,
-    serverOnly: true
+    serverOnly: true,
+    validate: string().hexOrBase64().test({
+      name: 'macaroon',
+      test: v => isInvoiceMacaroon(v) || isInvoicableMacaroon(v),
+      message: 'not an invoice macaroon or an invoicable macaroon'
+    })
   },
   {
     name: 'cert',
@@ -36,7 +42,8 @@ export const fields = [
     optional: 'optional if from [CA](https://en.wikipedia.org/wiki/Certificate_authority) (e.g. voltage)',
     hint: 'hex or base64 encoded',
     clear: true,
-    serverOnly: true
+    serverOnly: true,
+    validate: string().hexOrBase64()
   }
 ]
 

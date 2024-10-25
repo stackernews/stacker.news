@@ -1,4 +1,5 @@
 import { blinkSchema } from '@/lib/validate'
+import { string } from '@/lib/yup'
 
 export const galoyBlinkUrl = 'https://api.blink.sv/graphql'
 export const galoyBlinkDashboardUrl = 'https://dashboard.blink.sv/'
@@ -7,7 +8,6 @@ export const name = 'blink'
 export const walletType = 'BLINK'
 export const walletField = 'walletBlink'
 export const fieldValidation = blinkSchema
-export const clientOnly = true
 
 export const fields = [
   {
@@ -15,7 +15,10 @@ export const fields = [
     label: 'api key',
     type: 'password',
     help: `you can get an API key from [Blink Dashboard](${galoyBlinkDashboardUrl})`,
-    placeholder: 'blink_...'
+    placeholder: 'blink_...',
+    clientOnly: true,
+    validate: string()
+      .matches(/^blink_[A-Za-z0-9]+$/, { message: 'must match pattern blink_A-Za-z0-9' })
   },
   {
     name: 'currency',
@@ -25,7 +28,11 @@ export const fields = [
     placeholder: 'BTC',
     optional: true,
     clear: true,
-    autoComplete: 'off'
+    autoComplete: 'off',
+    clientOnly: true,
+    validate: string()
+      .transform(value => value ? value.toUpperCase() : 'BTC')
+      .oneOf(['USD', 'BTC'], 'must be BTC or USD')
   }
 ]
 

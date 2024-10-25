@@ -1,7 +1,7 @@
 import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
 import { getItem, filterClause, whereClause, muteClause, activeOrMine } from './item'
 import { getInvoice, getWithdrawl } from './wallet'
-import { pushSubscriptionSchema, ssValidate } from '@/lib/validate'
+import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
 import { replyToSubscription } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
@@ -375,7 +375,7 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      await ssValidate(pushSubscriptionSchema, { endpoint, p256dh, auth })
+      await validateSchema(pushSubscriptionSchema, { endpoint, p256dh, auth })
 
       let dbPushSubscription
       if (oldEndpoint) {

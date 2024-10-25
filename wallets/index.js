@@ -18,7 +18,7 @@ function useLocalWallets () {
   const [wallets, setWallets] = useState([])
 
   const loadWallets = useCallback(() => {
-    // form wallets into a list of { config, def }
+    // form wallets from local storage into a list of { config, def }
     const wallets = walletDefs.map(w => {
       try {
         const storageKey = getStorageKey(w.name, me?.id)
@@ -66,15 +66,28 @@ export function WalletsProvider ({ children }) {
       }
 
       // the specific wallet config on the server is stored in wallet.wallet
-      // on the client, it's stored in unnested
+      // on the client, it's stored unnested
       return { config: { ...config, ...w.wallet }, def }
     }) ?? []
 
-    // merge wallets on name
+    // merge wallets on name like: { ...unconfigured, ...localConfig, ...serverConfig }
     const merged = {}
     for (const wallet of [...walletDefsOnly, ...localWallets, ...wallets]) {
-      merged[wallet.def.name] = { ...merged[wallet.def.name], ...wallet }
+      merged[wallet.def.name] = {
+        def: wallet.def,
+        config: {
+          ...merged[wallet.def.name]?.config,
+          ...Object.fromEntries(
+            Object.entries(wallet.config ?? {}).map(([key, value]) => [
+              key,
+              value ?? merged[wallet.def.name]?.config?.[key]
+            ])
+          )
+        }
+      }
     }
+
+    // sort by priority, then add status field
     return Object.values(merged)
       .sort(walletPrioritySort)
       .map(w => ({ ...w, status: w.config?.enabled ? Status.Enabled : Status.Disabled }))
@@ -87,6 +100,7 @@ export function WalletsProvider ({ children }) {
       }
 
       if (wallet.config?.id) {
+        // set priority on server if it has an id
         await setWalletPriority({ variables: { id: wallet.config.id, priority } })
       } else {
         const storageKey = getStorageKey(wallet.def.name, me?.id)
@@ -95,9 +109,14 @@ export function WalletsProvider ({ children }) {
         window.localStorage.setItem(storageKey, JSON.stringify(newConfig))
       }
     }
-  }, [setWalletPriority, me?.id])
+    // reload local wallets if any priorities were set
+    if (priorities.length > 0) {
+      reloadLocalWallets()
+    }
+  }, [setWalletPriority, me?.id, reloadLocalWallets])
 
-  // provides priority sorted wallets to children
+  // provides priority sorted wallets to children, a function to reload local wallets,
+  // and a function to set priorities
   return (
     <WalletsContext.Provider value={{ wallets, reloadLocalWallets, setPriorities }}>
       {children}
@@ -117,6 +136,7 @@ export function useWallet (name) {
       return wallets.find(w => w.def.name === name)
     }
 
+    // return the first enabled wallet that is available and can send
     return wallets
       .filter(w => !w.def.isAvailable || w.def.isAvailable())
       .filter(w => w.config?.enabled && canSend(w))[0]

@@ -40,6 +40,18 @@ services:
     labels:
       CONNECT: "localhost:5431"
     cpu_shares: "${CPU_SHARES_IMPORTANT}"
+  tor:
+    build:
+      context: ./docker/tor
+    container_name: tor
+    restart: unless-stopped
+    volumes:
+      - tordata:/tordata/
+    cpu_shares: "${CPU_SHARES_LOW}"
+    env_file: *env_file
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD-SHELL", "bash /tor.sh check"]
   app:
     container_name: app
     stdin_open: true
@@ -359,8 +371,13 @@ services:
     healthcheck:
       <<: *healthcheck
       test: ["CMD-SHELL", "lncli", "getinfo"]
-    depends_on: *depends_on_bitcoin
+    depends_on: 
+      tor:
+        condition: service_healthy
+        restart: true
+      <<: *depends_on_bitcoin     
     env_file: *env_file
+    entrypoint: /tor-entrypoint
     command:
       - 'lnd'
       - '--noseedbackup'
@@ -369,6 +386,7 @@ services:
       - '--externalip=stacker_lnd'
       - '--tlsextradomain=stacker_lnd'
       - '--tlsextradomain=host.docker.internal'
+      - '--tlsextradomain=$${ONION_DOMAIN}'
       - '--listen=0.0.0.0:9735'
       - '--rpclisten=0.0.0.0:10009'
       - '--rpcmiddleware.enable'
@@ -394,6 +412,7 @@ services:
       - "${STACKER_LND_GRPC_PORT}:10009"
     volumes:
       - stacker_lnd:/home/lnd/.lnd
+      - tordata:/home/lnd/.tor
     labels:
       ofelia.enabled: "true"
       ofelia.job-exec.stacker_lnd_channel_cron.schedule: "@every 1m"
@@ -618,3 +637,4 @@ volumes:
   s3:
   nwc_send:
   nwc_recv:
+  tordata:

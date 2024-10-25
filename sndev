@@ -524,6 +524,57 @@ USAGE
   echo "$help"
 }
 
+sndev__help_stacker_lnd() {
+  help="
+
+USAGE
+  $ sndev stacker_lnd get_cert         get the tls cert
+  $ sndev stacker_lnd get_onion        get the onion address
+"
+
+  echo "$help"
+}
+
+sndev__stacker_lnd() {  
+  shift
+  if [ -z "$1" ]; then
+    echo "no command provided"
+    sndev__help_stacker_lnd
+    exit 1
+  fi
+  if [ "$1" = "get_cert" ]; then
+    echo $(docker__exec -t stacker_lnd openssl base64 -A -in /home/lnd/.lnd/tls.cert)
+  elif [ "$1" = "get_onion" ];
+  then
+    onion="$(docker__exec -t stacker_lnd cat /home/lnd/.tor/hidden_service/hostname | tr -d '[:space:]')"
+    echo "$onion:10009"
+  fi  
+}
+
+sndev__help_tor() {
+  help="
+
+USAGE
+  $ sndev tor get_onion         get the onion address
+"
+  
+  echo "$help"
+}
+
+sndev__tor() {  
+  shift
+  if [ -z "$1" ]; then
+    echo "no command provided"
+    sndev__help_tor
+    exit 1
+  fi
+  if [ "$1" = "get_onion" ];
+  then
+    onion="$(docker__exec -t stacker_lnd cat /home/lnd/.tor/hidden_service/hostname | tr -d '[:space:]')"
+    echo "$onion"
+  fi  
+}
+
 sndev__help() {
     if [ $# -eq 2 ]; then
       call "sndev__$1_$2" "$@"
@@ -547,43 +598,45 @@ USAGE
   $ sndev help [COMMAND]
 
 COMMANDS
-  help            show help
+  help                    show help
 
   env:
-    start         start env
-    stop          stop env
-    restart       restart env
-    status        status of env
-    logs          logs from env
-    delete        delete env
+    start                 start env
+    stop                  stop env
+    restart               restart env
+    status                status of env
+    logs                  logs from env
+    delete                delete env
 
   sn:
-    login         login as a nym
-    fund_user     fund a nym without using an LN invoice
+    login                 login as a nym
+    fund_user             fund a nym without using an LN invoice
 
   lnd:
-    fund          pay a bolt11 for funding
-    withdraw      create a bolt11 for withdrawal
+    fund                   pay a bolt11 for funding
+    withdraw               create a bolt11 for withdrawal
 
   cln:
-    cln_fund      pay a bolt11 for funding with CLN
-    cln_withdraw  create a bolt11 for withdrawal with CLN
+    cln_fund               pay a bolt11 for funding with CLN
+    cln_withdraw           create a bolt11 for withdrawal with CLN
 
   db:
-    psql          open psql on db
-    prisma        run prisma commands
+    psql                   open psql on db
+    prisma                 run prisma commands
 
   dev:
-    pr            fetch and checkout a pr
-    lint          run linters
-    open          open container url in browser
+    pr                     fetch and checkout a pr
+    lint                   run linters
+    open                   open container url in browser
 
   other:
-    compose         docker compose passthrough
-    sn_lndcli       lncli passthrough on sn_lnd
-    stacker_lndcli  lncli passthrough on stacker_lnd
-    stacker_clncli  lightning-cli passthrough on stacker_cln
-    stacker_litcli  litcli passthrough on litd
+    compose                docker compose passthrough
+    sn_lndcli              lncli passthrough on sn_lnd
+    stacker_lndcli         lncli passthrough on stacker_lnd
+    stacker_clncli         lightning-cli passthrough on stacker_cln
+    stacker_litcli         litcli passthrough on litd
+    tor get_onion          get the onion address
+    stacker_lnd get_cert   get the tls cert
 "
   echo "$help"
 }

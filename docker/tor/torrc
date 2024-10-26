@@ -17,7 +17,7 @@
 ## as a relay, and not make any local application connections yourself.
 SOCKSPort 0.0.0.0:9050 # Default: Bind to localhost:9050 for local connections.
 #SOCKSPort 192.168.0.1:9100 # Bind to this address:port too.
-#HTTPTunnelPort 127.0.0.1:7051
+HTTPTunnelPort 0.0.0.0:7050
 ## Entry policies to allow/deny SOCKS requests based on IP address.
 ## First entry that matches wins. If no SOCKSPolicy is set, we accept
 ## all (and only) requests that reach a SOCKSPort. Untrusted users who

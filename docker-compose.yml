@@ -471,7 +471,11 @@ services:
     healthcheck:
       <<: *healthcheck
       test: ["CMD-SHELL", "su clightning -c 'lightning-cli --network=regtest getinfo'"]
-    depends_on: *depends_on_bitcoin
+    depends_on: 
+      tor:
+        condition: service_healthy
+        restart: true
+      <<: *depends_on_bitcoin
     env_file: *env_file
     command:
       - 'lightningd'
@@ -490,6 +494,7 @@ services:
       - "${STACKER_CLN_REST_PORT}:3010"
     volumes:
       - stacker_cln:/home/clightning/.lightning
+      - tordata:/home/clightning/.tor
     labels:
       ofelia.enabled: "true"
       ofelia.job-exec.stacker_cln_channel_cron.schedule: "@every 1m"
@@ -614,7 +619,12 @@ services:
     ports:
       - "${LNBITS_WEB_PORT}:5000"
     depends_on:
-      - stacker_lnd
+      tor:
+        condition: service_healthy
+        restart: true
+      stacker_lnd:
+        condition: service_healthy
+        restart: true
     environment:
       - LNBITS_ADMIN_UI=true
       - LNBITS_BACKEND_WALLET_CLASS=LndWallet
@@ -624,6 +634,7 @@ services:
       - LND_GRPC_MACAROON=/app/.lnd/regtest/admin.macaroon
     volumes:
       - ./docker/lnd/stacker:/app/.lnd
+      - tordata:/app/.tor
     labels:
       CONNECT: "localhost:${LNBITS_WEB_PORT}"
     cpu_shares: "${CPU_SHARES_LOW}"

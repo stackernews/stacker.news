@@ -56,10 +56,17 @@ docker__stacker_lnd() {
 
 docker__stacker_cln() {
   t=$1
+  
   if [ "$t" = "-t" ]; then
     shift
   else
     t=""
+  fi
+
+  if [ "$1" = "get_onion" ]; then
+    onion="$(docker__exec -t stacker_cln cat /home/clightning/.tor/hidden_service/hostname | tr -d '[:space:]')"
+    echo "$onion:3010"
+    exit 0
   fi
 
   docker__exec $t -u clightning stacker_cln lightning-cli --regtest "$@"
@@ -414,6 +421,9 @@ sndev__stacker_clncli() {
 
 sndev__help_stacker_clncli() {
   docker__stacker_cln help
+  echo
+  echo "EXTRA:"
+  echo "  get_onion          get the onion address"
 }
 
 sndev__stacker_litcli() {
@@ -551,6 +561,29 @@ sndev__stacker_lnd() {
   fi  
 }
 
+sndev__help_lnbits() {
+  help="
+
+USAGE
+  $ sndev stacker_lnbits get_onion        get the onion address
+"
+}
+
+sndev__lnbits() {  
+  shift
+  if [ -z "$1" ]; then
+    echo "no command provided"
+    sndev__help_lnbits
+    exit 1
+  fi
+  if [ "$1" = "get_onion" ];
+  then
+    onion="$(docker__exec -t lnbits cat /app/.tor/hidden_service/hostname | tr -d '[:space:]')"
+    echo "$onion:5000"
+  fi
+}
+
+
 sndev__help_tor() {
   help="
 
@@ -637,6 +670,9 @@ COMMANDS
     stacker_litcli         litcli passthrough on litd
     tor get_onion          get the onion address
     stacker_lnd get_cert   get the tls cert
+    stacker_lnd get_onion  get the onion address
+    stacker_cln get_onion  get the onion address
+    lndbits get_onion      get the onion address
 "
   echo "$help"
 }

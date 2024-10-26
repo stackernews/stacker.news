@@ -143,7 +143,8 @@ function extractConfig (fields, config, client) {
     const field = fields.find(({ name }) => name === key)
 
     // filter server config which isn't specified as wallet fields
-    if (client && (key.startsWith('autoWithdraw') || key === 'id')) return acc
+    // (we allow autowithdraw members to pass validation)
+    if (client && key === 'id') return acc
 
     // field might not exist because config.enabled doesn't map to a wallet field
     if (!field || (client ? isClientField(field) : isServerField(field))) {
@@ -216,6 +217,10 @@ function useConfig (wallet) {
         if (transformedConfig) {
           newClientConfig = Object.assign(newClientConfig, transformedConfig)
         }
+        // these are stored on the server
+        delete newClientConfig.autoWithdrawMaxFeePercent
+        delete newClientConfig.autoWithdrawThreshold
+        delete newClientConfig.autoWithdrawMaxFeeTotal
       } catch {
         valid = false
       }
@@ -310,6 +315,7 @@ function useServerConfig (wallet) {
   const saveConfig = useCallback(async ({
     autoWithdrawThreshold,
     autoWithdrawMaxFeePercent,
+    autoWithdrawMaxFeeTotal,
     priority,
     enabled,
     ...config
@@ -324,6 +330,7 @@ function useServerConfig (wallet) {
           settings: {
             autoWithdrawThreshold: Number(autoWithdrawThreshold),
             autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent),
+            autoWithdrawMaxFeeTotal: Number(autoWithdrawMaxFeeTotal),
             priority,
             enabled
           },

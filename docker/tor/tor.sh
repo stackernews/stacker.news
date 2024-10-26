@@ -64,6 +64,5 @@ else
     initialize
     mergeServices
     date +%s > /tordata/start.timestamp
-    privoxy --no-daemon /etc/privoxy/config&
     tor -f /tordata/torrc
 fi

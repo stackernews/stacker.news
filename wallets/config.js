@@ -23,7 +23,7 @@ export function useWalletConfigurator (wallet) {
     if (clientOnly && isActive) {
       for (const [key, value] of Object.entries(clientOnly)) {
         if (value) {
-          vaultEntries.push({ key, value: encrypt(value) })
+          vaultEntries.push({ key, ...await encrypt(value) })
         }
       }
     }

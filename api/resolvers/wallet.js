@@ -31,9 +31,7 @@ function injectResolvers (resolvers) {
     const resolverName = generateResolverName(walletDef.walletField)
     console.log(resolverName)
     resolvers.Mutation[resolverName] = async (parent, { settings, validateLightning, vaultEntries, ...data }, { me, models }) => {
-      // allow transformation of the data on validation (this is optional ... won't do anything if not implemented)
-      // TODO: our validation should be improved
-      const validData = await validateWallet(walletDef, { ...data, ...settings, vaultEntries })
+      const validData = await validateWallet(walletDef, { ...data, ...settings, vaultEntries }, { serverSide: true })
       if (validData) {
         Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
         Object.keys(validData).filter(key => key in settings).forEach(key => { settings[key] = validData[key] })
@@ -700,22 +698,27 @@ async function upsertWallet (
         data: {
           enabled,
           priority,
-          [wallet.field]: {
-            update: {
-              where: { walletId: Number(id) },
-              data: walletData
-            }
-          },
+          // client only wallets has no walletData
+          ...(Object.keys(walletData).length > 0
+            ? {
+                [wallet.field]: {
+                  update: {
+                    where: { walletId: Number(id) },
+                    data: walletData
+                  }
+                }
+              }
+            : {}),
           vaultEntries: {
             deleteMany: difference(oldVaultEntries, vaultEntries, 'key').map(({ key }) => ({
               userId: me.id, key
             })),
-            create: difference(vaultEntries, oldVaultEntries, 'key').map(({ key, value }) => ({
-              key, value, userId: me.id
+            create: difference(vaultEntries, oldVaultEntries, 'key').map(({ key, iv, value }) => ({
+              key, iv, value, userId: me.id
             })),
-            update: intersectionMerge(oldVaultEntries, vaultEntries, 'key').map(({ key, value }) => ({
+            update: intersectionMerge(oldVaultEntries, vaultEntries, 'key').map(({ key, iv, value }) => ({
               where: { userId_key: { userId: me.id, key } },
-              data: { value }
+              data: { value, iv }
             }))
           }
         },
@@ -735,9 +738,8 @@ async function upsertWallet (
           priority,
           userId: me.id,
           type: wallet.type,
-          [wallet.field]: {
-            create: walletData
-          },
+          // client only wallets has no walletData
+          ...(Object.keys(walletData).length > 0 ? { [wallet.field]: { create: walletData } } : {}),
           vaultEntries: {
             createMany: {
               data: vaultEntries.map(({ key, value }) => ({ key, value, userId: me.id }))

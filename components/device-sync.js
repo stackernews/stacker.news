@@ -15,11 +15,11 @@ import { useApolloClient } from '@apollo/client'
 export default function DeviceSync () {
   const { me } = useMe()
   const apollo = useApolloClient()
-  const [value, setVaultKey, clearVault, disconnectVault] = useVaultConfigurator()
+  const { key, setVaultKey, clearVault } = useVaultConfigurator()
   const showModal = useShowModal()
 
   const enabled = !!me?.privates?.vaultKeyHash
-  const connected = !!value?.key
+  const connected = !!key
 
   const manage = useCallback(async () => {
     if (enabled && connected) {
@@ -27,7 +27,7 @@ export default function DeviceSync () {
         <div>
           <h2>Device sync is enabled!</h2>
           <p>
-            Sensitive data (like wallet credentials) is now securely synced between all connected devices.
+            Sensitive data (like wallet credentials) are now securely synced between all connected devices.
           </p>
           <p className='text-muted text-sm'>
             Disconnect to prevent this device from syncing data or to reset your passphrase.
@@ -38,7 +38,7 @@ export default function DeviceSync () {
               <Button
                 variant='primary'
                 onClick={() => {
-                  disconnectVault()
+                  clearVault()
                   onClose()
                 }}
               >disconnect
@@ -52,7 +52,7 @@ export default function DeviceSync () {
         <ConnectForm onClose={onClose} onConnect={onConnect} enabled={enabled} />
       ))
     }
-  }, [enabled, connected, value])
+  }, [enabled, connected, key])
 
   const reset = useCallback(async () => {
     const schema = yup.object().shape({

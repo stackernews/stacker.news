@@ -7,21 +7,22 @@
    - a regular expression that must match
 */
 
-import { autowithdrawSchemaMembers } from '@/lib/validate'
+import { autowithdrawSchemaMembers, vaultEntrySchema } from '@/lib/validate'
 import * as Yup from '@/lib/yup'
 import { canReceive } from './common'
 
-export default async function validateWallet (walletDef, data, options = { abortEarly: true, topLevel: true }) {
-  let schema = composeWalletSchema(walletDef)
+export default async function validateWallet (walletDef, data,
+  { yupOptions = { abortEarly: true }, topLevel = true, serverSide = false } = {}) {
+  let schema = composeWalletSchema(walletDef, serverSide)
 
   if (canReceive({ def: walletDef, config: data })) {
     schema = schema.concat(autowithdrawSchemaMembers)
   }
 
-  await schema.validate(data, options)
+  await schema.validate(data, yupOptions)
 
   const casted = schema.cast(data, { assert: false })
-  if (options.topLevel && walletDef.validate) {
+  if (topLevel && walletDef.validate) {
     await walletDef.validate(casted)
   }
 
@@ -57,28 +58,39 @@ function createFieldSchema (name, validate) {
   }
 }
 
-function composeWalletSchema (walletDef) {
+function composeWalletSchema (walletDef, serverSide) {
   const { fields } = walletDef
 
+  const vaultEntrySchemas = []
   const schemaShape = fields.reduce((acc, field) => {
-    const { name, validate, optional, requiredWithout } = field
+    const { name, validate, optional, clientOnly, requiredWithout } = field
 
-    acc[name] = createFieldSchema(name, validate)
+    if (clientOnly && serverSide) {
+      // For server-side validation, accumulate clientOnly fields as vaultEntries
+      vaultEntrySchemas.push(vaultEntrySchema(name))
+    } else {
+      acc[name] = createFieldSchema(name, validate)
 
-    if (!optional) {
-      acc[name] = acc[name].required('Required')
-    } else if (requiredWithout) {
-      acc[name] = acc[name].when([requiredWithout], ([pairSetting], schema) => {
-        if (!pairSetting) return schema.required(`required if ${requiredWithout} not set`)
-        return Yup.mixed().or([schema.test({
-          test: value => value !== pairSetting,
-          message: `${name} cannot be the same as ${requiredWithout}`
-        }), Yup.mixed().notRequired()])
-      })
+      if (!optional) {
+        acc[name] = acc[name].required('Required')
+      } else if (requiredWithout) {
+        acc[name] = acc[name].when([requiredWithout], ([pairSetting], schema) => {
+          if (!pairSetting) return schema.required(`required if ${requiredWithout} not set`)
+          return Yup.mixed().or([schema.test({
+            test: value => value !== pairSetting,
+            message: `${name} cannot be the same as ${requiredWithout}`
+          }), Yup.mixed().notRequired()])
+        })
+      }
     }
 
     return acc
   }, {})
+
+  // Finalize the vaultEntries schema if it exists
+  if (vaultEntrySchemas.length > 0) {
+    schemaShape.vaultEntries = Yup.array().equalto(vaultEntrySchemas)
+  }
 
   // we use Object.keys(schemaShape).reverse() to avoid cyclic dependencies in Yup schema
   // see https://github.com/jquense/yup/issues/176#issuecomment-367352042

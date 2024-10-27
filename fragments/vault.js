@@ -1,9 +1,10 @@
 import { gql } from '@apollo/client'
 
-export const VAULT_FIELDS = gql`
-  fragment VaultFields on Vault {
+export const VAULT_ENTRY_FIELDS = gql`
+  fragment VaultEntryFields on VaultEntry {
     id
     key
+    iv
     value
     createdAt
     updatedAt
@@ -11,21 +12,21 @@ export const VAULT_FIELDS = gql`
 `
 
 export const GET_VAULT_ENTRY = gql`
-  ${VAULT_FIELDS}
+  ${VAULT_ENTRY_FIELDS}
   query GetVaultEntry(
     $key: String!
   ) {
     getVaultEntry(key: $key) {
-      ...VaultFields
+      ...VaultEntryFields
     }
   }
 `
 
 export const GET_VAULT_ENTRIES = gql`
-  ${VAULT_FIELDS}
+  ${VAULT_ENTRY_FIELDS}
   query GetVaultEntries {
     getVaultEntries {
-      ...VaultFields
+      ...VaultEntryFields
     }
   }
 `

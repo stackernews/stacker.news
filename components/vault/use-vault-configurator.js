@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { E_VAULT_KEY_EXISTS } from '@/lib/error'
 import { CLEAR_VAULT, GET_VAULT_ENTRIES, UPDATE_VAULT_KEY } from '@/fragments/vault'
 import { toHex } from '@/lib/hex'
-import { decryptData, encryptData } from './use-vault'
+import { decryptValue, encryptValue } from './use-vault'
 
 const useImperativeQuery = (query) => {
   const { refetch } = useQuery(query, { skip: true })
@@ -21,7 +21,7 @@ const useImperativeQuery = (query) => {
 export function useVaultConfigurator () {
   const { me } = useMe()
   const toaster = useToast()
-  const idbConfig = useMemo(() => ({ dbName: getDbName(me?.id, 'vault'), storeName: 'vault' }), [me?.id])
+  const idbConfig = useMemo(() => ({ dbName: getDbName(me?.id, 'vault'), storeName: 'vault', options: {} }), [me?.id])
   const { set, get, remove } = useIndexedDB(idbConfig)
   const [updateVaultKey] = useMutation(UPDATE_VAULT_KEY)
   const getVaultEntries = useImperativeQuery(GET_VAULT_ENTRIES)
@@ -47,7 +47,7 @@ export function useVaultConfigurator () {
         // toaster?.danger('error loading vault configuration ' + e.message)
       }
     })()
-  }, [me?.privates?.vaultKeyHash, keyHash, get, remove])
+  }, [me?.privates?.vaultKeyHash, keyHash, get, remove, setKey])
 
   // clear vault: remove everything and reset the key
   const [clearVault] = useMutation(CLEAR_VAULT, {
@@ -62,6 +62,12 @@ export function useVaultConfigurator () {
     }
   })
 
+  const disconnectVault = useCallback(async () => {
+    await remove('key')
+    setKey(null)
+    setKeyHash(null)
+  }, [remove, setKey, setKeyHash])
+
   // initialize the vault and set a vault key
   const setVaultKey = useCallback(async (passphrase) => {
     try {
@@ -69,10 +75,12 @@ export function useVaultConfigurator () {
       const vaultKey = await deriveKey(me.id, passphrase)
       const { data } = await getVaultEntries()
 
+      // TODO: push any local configurations to the server so long as they don't conflict
+      // delete any locally stored configurations after vault key is set
       const entries = []
-      for (const entry of data.getVaultEntries) {
-        entry.value = await decryptData(oldKeyValue.key, entry.value)
-        entries.push({ key: entry.key, value: await encryptData(vaultKey.key, entry.value) })
+      for (const { key, iv, value } of data.getVaultEntries) {
+        const plainValue = await decryptValue(oldKeyValue.key, { iv, value })
+        entries.push({ key, ...await encryptValue(vaultKey.key, plainValue) })
       }
 
       await updateVaultKey({
@@ -89,11 +97,11 @@ export function useVaultConfigurator () {
       setKeyHash(vaultKey.hash)
       await set('key', vaultKey)
     } catch (e) {
-      toaster.danger('error setting vault key ' + e.message)
+      toaster.danger(e.message)
     }
   }, [getVaultEntries, updateVaultKey, set, get, remove])
 
-  return [key, setVaultKey, clearVault]
+  return { key, setVaultKey, clearVault, disconnectVault }
 }
 
 /**

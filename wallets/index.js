@@ -41,10 +41,11 @@ function useLocalWallets () {
 const walletDefsOnly = walletDefs.map(w => ({ def: w, config: {} }))
 
 export function WalletsProvider ({ children }) {
-  const { decrypt } = useVault()
+  const { isActive, decrypt } = useVault()
   const { me } = useMe()
   const { wallets: localWallets, reloadLocalWallets } = useLocalWallets()
   const [setWalletPriority] = useMutation(SET_WALLET_PRIORITY)
+  const [serverWallets, setServerWallets] = useState([])
 
   const { data, refetch } = useQuery(WALLETS,
     SSR ? {} : { nextFetchPolicy: 'cache-and-network' })
@@ -56,23 +57,37 @@ export function WalletsProvider ({ children }) {
     }
   }, [me?.privates?.walletsUpdatedAt, me?.privates?.vaultKeyHash, refetch])
 
-  const wallets = useMemo(() => {
-    // form wallets into a list of { config, def }
-    const wallets = data?.wallets?.map(w => {
-      const def = getWalletByType(w.type)
-      const { vaultEntries, ...config } = w
-      for (const { key, value } of vaultEntries) {
-        config[key] = decrypt(value)
+  useEffect(() => {
+    async function loadWallets () {
+      if (!data?.wallets) return
+      // form wallets into a list of { config, def }
+      const wallets = []
+      for (const w of data.wallets) {
+        const def = getWalletByType(w.type)
+        const { vaultEntries, ...config } = w
+        if (isActive) {
+          for (const { key, iv, value } of vaultEntries) {
+            try {
+              config[key] = await decrypt({ iv, value })
+            } catch (e) {
+              console.error('error decrypting vault entry', e)
+            }
+          }
+        }
+
+        // the specific wallet config on the server is stored in wallet.wallet
+        // on the client, it's stored unnested
+        wallets.push({ config: { ...config, ...w.wallet }, def })
       }
+      setServerWallets(wallets)
+    }
+    loadWallets()
+  }, [data?.wallets, decrypt, isActive])
 
-      // the specific wallet config on the server is stored in wallet.wallet
-      // on the client, it's stored unnested
-      return { config: { ...config, ...w.wallet }, def }
-    }) ?? []
-
-    // merge wallets on name like: { ...unconfigured, ...localConfig, ...serverConfig }
+  // merge wallets on name like: { ...unconfigured, ...localConfig, ...serverConfig }
+  const wallets = useMemo(() => {
     const merged = {}
-    for (const wallet of [...walletDefsOnly, ...localWallets, ...wallets]) {
+    for (const wallet of [...walletDefsOnly, ...localWallets, ...serverWallets]) {
       merged[wallet.def.name] = {
         def: wallet.def,
         config: {
@@ -91,7 +106,7 @@ export function WalletsProvider ({ children }) {
     return Object.values(merged)
       .sort(walletPrioritySort)
       .map(w => ({ ...w, status: w.config?.enabled ? Status.Enabled : Status.Disabled }))
-  }, [data?.wallets, localWallets])
+  }, [serverWallets, localWallets])
 
   const setPriorities = useCallback(async (priorities) => {
     for (const { wallet, priority } of priorities) {

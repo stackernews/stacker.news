@@ -3,7 +3,7 @@ export const walletType = 'WEBLN'
 export const walletField = 'walletWebLN'
 
 export const validate = ({ enabled }) => {
-  if (enabled && typeof window?.webln === 'undefined') {
+  if (enabled && typeof window !== 'undefined' && !window?.webln) {
     throw new Error('no WebLN provider found')
   }
 }

@@ -1,5 +1,6 @@
 import { gql } from '@apollo/client'
 import { ITEM_FULL_FIELDS } from './items'
+import { VAULT_ENTRY_FIELDS } from './vault'
 
 export const INVOICE_FIELDS = gql`
   fragment InvoiceFields on Invoice {
@@ -108,6 +109,7 @@ mutation removeWallet($id: ID!) {
 `
 // XXX [WALLET] this needs to be updated if another server wallet is added
 export const WALLET_FIELDS = gql`
+  ${VAULT_ENTRY_FIELDS}
   fragment WalletFields on Wallet {
     id
     priority
@@ -115,8 +117,7 @@ export const WALLET_FIELDS = gql`
     updatedAt
     enabled
     vaultEntries {
-      key
-      value
+      ...VaultEntryFields
     }
     wallet {
       __typename

@@ -52,7 +52,7 @@ export default function WalletSettings () {
 
   const validate = useCallback(async (data) => {
     try {
-      await validateWallet(wallet.def, data, { abortEarly: false, topLevel: false })
+      await validateWallet(wallet.def, data, { yupOptions: { abortEarly: false }, topLevel: false })
     } catch (error) {
       if (error instanceof ValidationError) {
         return error.inner.reduce((acc, error) => {

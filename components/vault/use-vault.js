@@ -7,12 +7,12 @@ export default function useVault () {
 
   const encrypt = useCallback(async (value) => {
     if (!key) throw new Error('no vault key set')
-    return await encryptData(key.key, value)
+    return await encryptValue(key.key, value)
   }, [key])
 
-  const decrypt = useCallback(async (value) => {
+  const decrypt = useCallback(async ({ iv, value }) => {
     if (!key) throw new Error('no vault key set')
-    return await decryptData(key.key, value)
+    return await decryptValue(key.key, { iv, value })
   }, [key])
 
   return { encrypt, decrypt, isActive: !!key }
@@ -21,14 +21,15 @@ export default function useVault () {
 /**
  * Encrypt data using AES-GCM
  * @param {CryptoKey} sharedKey - the key to use for encryption
- * @param {Object} data - the data to encrypt
- * @returns {Promise<string>} a string representing the encrypted data, can be passed to decryptData to get the original data back
+ * @param {Object} value - the value to encrypt
+ * @returns {Promise<Object>} an object with iv and value properties, can be passed to decryptValue to get the original data back
  */
-export async function encryptData (sharedKey, data) {
+export async function encryptValue (sharedKey, value) {
   // random IVs are _really_ important in GCM: reusing the IV once can lead to catastrophic failure
   // see https://crypto.stackexchange.com/questions/26790/how-bad-it-is-using-the-same-iv-twice-with-aes-gcm
+  // 12 bytes (96 bits) is the recommended IV size for AES-GCM
   const iv = window.crypto.getRandomValues(new Uint8Array(12))
-  const encoded = new TextEncoder().encode(JSON.stringify(data))
+  const encoded = new TextEncoder().encode(JSON.stringify(value))
   const encrypted = await window.crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
@@ -37,27 +38,26 @@ export async function encryptData (sharedKey, data) {
     sharedKey,
     encoded
   )
-  return JSON.stringify({
+  return {
     iv: toHex(iv.buffer),
-    data: toHex(encrypted)
-  })
+    value: toHex(encrypted)
+  }
 }
 
 /**
  * Decrypt data using AES-GCM
  * @param {CryptoKey} sharedKey - the key to use for decryption
- * @param {string} encryptedData - the encrypted data as returned by encryptData
+ * @param {Object} encryptedValue - the encrypted value as returned by encryptValue
  * @returns {Promise<Object>} the original unencrypted data
  */
-export async function decryptData (sharedKey, encryptedData) {
-  const { iv, data } = JSON.parse(encryptedData)
+export async function decryptValue (sharedKey, { iv, value }) {
   const decrypted = await window.crypto.subtle.decrypt(
     {
       name: 'AES-GCM',
       iv: fromHex(iv)
     },
     sharedKey,
-    fromHex(data)
+    fromHex(value)
   )
   const decoded = new TextDecoder().decode(decrypted)
   return JSON.parse(decoded)

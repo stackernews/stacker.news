@@ -4,6 +4,7 @@ export default gql`
   type VaultEntry {
     id: ID!
     key: String!
+    iv: String!
     value: String!
     createdAt: Date!
     updatedAt: Date!
@@ -11,6 +12,7 @@ export default gql`
 
   input VaultEntryInput {
     key: String!
+    iv: String!
     value: String!
     walletId: ID
   }

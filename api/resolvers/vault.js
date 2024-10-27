@@ -8,10 +8,8 @@ export default {
 
       const k = await models.vault.findUnique({
         where: {
-          userId_key_ownerId_ownerType: {
-            key,
-            userId: me.id
-          }
+          key,
+          userId: me.id
         }
       })
       return k
@@ -19,7 +17,7 @@ export default {
     getVaultEntries: async (parent, { keysFilter }, { me, models }, info) => {
       if (!me) throw new GqlAuthenticationError()
 
-      const entries = await models.vault.findMany({
+      const entries = await models.vaultEntry.findMany({
         where: {
           userId: me.id,
           key: keysFilter?.length
@@ -54,12 +52,13 @@ export default {
       }
 
       for (const entry of entries) {
+        console.log(entry)
         txs.push(models.vaultEntry.update({
           where: { userId_key: { userId: me.id, key: entry.key } },
-          data: { value: entry.value }
+          data: { value: entry.value, iv: entry.iv }
         }))
       }
-      await models.prisma.$transaction(txs)
+      await models.$transaction(txs)
       return true
     },
     clearVault: async (parent, args, { me, models }) => {
@@ -70,7 +69,7 @@ export default {
         data: { vaultKeyHash: '' }
       }))
       txs.push(models.vaultEntry.deleteMany({ where: { userId: me.id } }))
-      await models.prisma.$transaction(txs)
+      await models.$transaction(txs)
       return true
     }
   }

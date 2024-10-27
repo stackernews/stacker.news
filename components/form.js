@@ -37,8 +37,9 @@ import Clipboard from '@/svgs/clipboard-line.svg'
 import QrIcon from '@/svgs/qr-code-line.svg'
 import QrScanIcon from '@/svgs/qr-scan-line.svg'
 import { useShowModal } from './modal'
-import QRCode from 'qrcode.react'
-import { QrScanner } from '@yudiel/react-qr-scanner'
+import { QRCodeSVG } from 'qrcode.react'
+import { Scanner } from '@yudiel/react-qr-scanner'
+import { qrImageSettings } from './qr'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -1069,7 +1070,7 @@ function Client (Component) {
     // where the initial value is not available on first render.
     // Example: value is stored in localStorage which is fetched
     // after first render using an useEffect hook.
-    const [,, helpers] = useField(props)
+    const [,, helpers] = props.noForm ? [{}, {}, {}] : useField(props)
 
     useEffect(() => {
       initialValue && helpers.setValue(initialValue)
@@ -1102,9 +1103,11 @@ function QrPassword ({ value }) {
 
   const showQr = useCallback(() => {
     showModal(close => (
-      <div className={styles.qr}>
-        <p>You can import this passphrase into another device by scanning this QR code</p>
-        <QRCode value={value} renderAs='svg' />
+      <div>
+        <p className='line-height-md text-muted'>Import this passphrase into another device by navigating to device sync settings and scanning this QR code</p>
+        <div className='d-block p-3 mx-auto' style={{ background: 'white', maxWidth: '300px' }}>
+          <QRCodeSVG className='h-auto mw-100' value={value} size={300} imageSettings={qrImageSettings} />
+        </div>
       </div>
     ))
   }, [toaster, value, showModal])
@@ -1121,10 +1124,9 @@ function QrPassword ({ value }) {
   )
 }
 
-function PasswordScanner ({ onDecode }) {
+function PasswordScanner ({ onScan }) {
   const showModal = useShowModal()
   const toaster = useToast()
-  const ref = useRef(false)
 
   return (
     <InputGroup.Text
@@ -1132,20 +1134,24 @@ function PasswordScanner ({ onDecode }) {
       onClick={() => {
         showModal(onClose => {
           return (
-            <QrScanner
-              onDecode={(decoded) => {
-                onDecode(decoded)
-
-                // avoid accidentally calling onClose multiple times
-                if (ref?.current) return
-                ref.current = true
-
-                onClose({ back: 1 })
+            <Scanner
+              formats={['qr_code']}
+              onScan={([{ rawValue: result }]) => {
+                onScan(result)
+                onClose()
+              }}
+              styles={{
+                video: {
+                  aspectRatio: '1 / 1'
+                }
               }}
               onError={(error) => {
-                if (error instanceof DOMException) return
-                toaster.danger('qr scan error:', error.message || error.toString?.())
-                onClose({ back: 1 })
+                if (error instanceof DOMException) {
+                  console.log(error)
+                } else {
+                  toaster.danger('qr scan: ' + error?.message || error?.toString?.())
+                }
+                onClose()
               }}
             />
           )
@@ -1159,9 +1165,9 @@ function PasswordScanner ({ onDecode }) {
   )
 }
 
-export function PasswordInput ({ newPass, qr, copy, readOnly, append, ...props }) {
+export function PasswordInput ({ newPass, qr, copy, readOnly, append, value, ...props }) {
   const [showPass, setShowPass] = useState(false)
-  const [field] = useField(props)
+  const [field, helpers] = props.noForm ? [{ value }, {}, {}] : useField(props)
 
   const Append = useMemo(() => {
     return (
@@ -1173,12 +1179,7 @@ export function PasswordInput ({ newPass, qr, copy, readOnly, append, ...props }
         {qr && (readOnly
           ? <QrPassword value={field?.value} />
           : <PasswordScanner
-              onDecode={decoded => {
-                // Formik helpers don't seem to work in another modal.
-                // I assume it's because we unmount the Formik component
-                // when replace it with another modal.
-                window.localStorage.setItem('qr:passphrase', decoded)
-              }}
+              onScan={v => helpers.setValue(v)}
             />)}
         {append}
       </>

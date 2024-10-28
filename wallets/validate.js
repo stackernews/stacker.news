@@ -61,13 +61,13 @@ function createFieldSchema (name, validate) {
 function composeWalletSchema (walletDef, serverSide) {
   const { fields } = walletDef
 
-  const vaultEntrySchemas = []
+  const vaultEntrySchemas = { required: [], optional: [] }
   const schemaShape = fields.reduce((acc, field) => {
     const { name, validate, optional, clientOnly, requiredWithout } = field
 
     if (clientOnly && serverSide) {
       // For server-side validation, accumulate clientOnly fields as vaultEntries
-      vaultEntrySchemas.push(vaultEntrySchema(name))
+      vaultEntrySchemas[optional ? 'optional' : 'required'].push(vaultEntrySchema(name))
     } else {
       acc[name] = createFieldSchema(name, validate)
 
@@ -88,7 +88,7 @@ function composeWalletSchema (walletDef, serverSide) {
   }, {})
 
   // Finalize the vaultEntries schema if it exists
-  if (vaultEntrySchemas.length > 0) {
+  if (vaultEntrySchemas.required.length > 0 || vaultEntrySchemas.optional.length > 0) {
     schemaShape.vaultEntries = Yup.array().equalto(vaultEntrySchemas)
   }
 

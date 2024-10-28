@@ -15,7 +15,7 @@ export default function useVault () {
     return await decryptValue(key.key, { iv, value })
   }, [key])
 
-  return { encrypt, decrypt, isActive: !!key }
+  return { encrypt, decrypt, isActive: !!key?.key }
 }
 
 /**

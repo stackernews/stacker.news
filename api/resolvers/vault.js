@@ -52,7 +52,6 @@ export default {
       }
 
       for (const entry of entries) {
-        console.log(entry)
         txs.push(models.vaultEntry.update({
           where: { userId_key: { userId: me.id, key: entry.key } },
           data: { value: entry.value, iv: entry.iv }

@@ -1,13 +1,14 @@
 import { useMe } from '@/components/me'
 import { SET_WALLET_PRIORITY, WALLETS } from '@/fragments/wallet'
 import { SSR } from '@/lib/constants'
-import { useMutation, useQuery } from '@apollo/client'
+import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend, isConfigured } from './common'
+import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally } from './common'
 import useVault from '@/components/vault/use-vault'
 import { useWalletLogger } from '@/components/wallet-logger'
 import { bolt11Tags } from '@/lib/bolt11'
 import walletDefs from 'wallets/client'
+import { generateMutation } from './graphql'
 
 const WalletsContext = createContext({
   wallets: []
@@ -31,11 +32,19 @@ function useLocalWallets () {
     setWallets(wallets)
   }, [me?.id, setWallets])
 
+  const removeWallets = useCallback(() => {
+    for (const wallet of wallets) {
+      const storageKey = getStorageKey(wallet.def.name, me?.id)
+      window.localStorage.removeItem(storageKey)
+    }
+    setWallets([])
+  }, [wallets, setWallets, me?.id])
+
   useEffect(() => {
     loadWallets()
   }, [loadWallets])
 
-  return { wallets, reloadLocalWallets: loadWallets }
+  return { wallets, reloadLocalWallets: loadWallets, removeLocalWallets: removeWallets }
 }
 
 const walletDefsOnly = walletDefs.map(w => ({ def: w, config: {} }))
@@ -43,9 +52,10 @@ const walletDefsOnly = walletDefs.map(w => ({ def: w, config: {} }))
 export function WalletsProvider ({ children }) {
   const { isActive, decrypt } = useVault()
   const { me } = useMe()
-  const { wallets: localWallets, reloadLocalWallets } = useLocalWallets()
+  const { wallets: localWallets, reloadLocalWallets, removeLocalWallets } = useLocalWallets()
   const [setWalletPriority] = useMutation(SET_WALLET_PRIORITY)
   const [serverWallets, setServerWallets] = useState([])
+  const client = useApolloClient()
 
   const { data, refetch } = useQuery(WALLETS,
     SSR ? {} : { nextFetchPolicy: 'cache-and-network' })
@@ -58,7 +68,7 @@ export function WalletsProvider ({ children }) {
   }, [me?.privates?.walletsUpdatedAt, me?.privates?.vaultKeyHash, refetch])
 
   useEffect(() => {
-    async function loadWallets () {
+    const loadWallets = async () => {
       if (!data?.wallets) return
       // form wallets into a list of { config, def }
       const wallets = []
@@ -79,6 +89,7 @@ export function WalletsProvider ({ children }) {
         // on the client, it's stored unnested
         wallets.push({ config: { ...config, ...w.wallet }, def })
       }
+
       setServerWallets(wallets)
     }
     loadWallets()
@@ -108,6 +119,46 @@ export function WalletsProvider ({ children }) {
       .map(w => ({ ...w, status: w.config?.enabled ? Status.Enabled : Status.Disabled }))
   }, [serverWallets, localWallets])
 
+  const settings = useMemo(() => {
+    return {
+      autoWithdrawMaxFeePercent: me?.privates?.autoWithdrawMaxFeePercent,
+      autoWithdrawThreshold: me?.privates?.autoWithdrawThreshold,
+      autoWithdrawMaxFeeTotal: me?.privates?.autoWithdrawMaxFeeTotal
+    }
+  }, [me?.privates?.autoWithdrawMaxFeePercent, me?.privates?.autoWithdrawThreshold, me?.privates?.autoWithdrawMaxFeeTotal])
+
+  // if the vault key is set, and we have local wallets,
+  // we'll send any merged local wallets to the server, and delete them from local storage
+  const syncLocalWallets = useCallback(async encrypt => {
+    const walletsToSync = wallets.filter(w =>
+      // only sync wallets that have a local config
+      localWallets.some(localWallet => localWallet.def.name === w.def.name && !!localWallet.config)
+    )
+    if (encrypt && walletsToSync.length > 0) {
+      for (const wallet of walletsToSync) {
+        const mutation = generateMutation(wallet.def)
+        const append = {}
+        // if the wallet has server-only fields set, add the settings to the mutation variables
+        if (wallet.def.fields.some(f => f.serverOnly && wallet.config[f.name])) {
+          append.settings = settings
+        }
+        const variables = await upsertWalletVariables(wallet, encrypt, append)
+        await client.mutate({ mutation, variables })
+      }
+      removeLocalWallets()
+    }
+  }, [wallets, localWallets, removeLocalWallets, settings])
+
+  const unsyncLocalWallets = useCallback(() => {
+    for (const wallet of wallets) {
+      const { clientWithShared } = siftConfig(wallet.def.fields, wallet.config)
+      if (canSend({ def: wallet.def, config: clientWithShared })) {
+        saveWalletLocally(wallet.def.name, clientWithShared, me?.id)
+      }
+    }
+    reloadLocalWallets()
+  }, [wallets, me?.id, reloadLocalWallets])
+
   const setPriorities = useCallback(async (priorities) => {
     for (const { wallet, priority } of priorities) {
       if (!isConfigured(wallet)) {
@@ -133,7 +184,15 @@ export function WalletsProvider ({ children }) {
   // provides priority sorted wallets to children, a function to reload local wallets,
   // and a function to set priorities
   return (
-    <WalletsContext.Provider value={{ wallets, reloadLocalWallets, setPriorities }}>
+    <WalletsContext.Provider
+      value={{
+        wallets,
+        reloadLocalWallets,
+        setPriorities,
+        onVaultKeySet: syncLocalWallets,
+        beforeDisconnectVault: unsyncLocalWallets
+      }}
+    >
       {children}
     </WalletsContext.Provider>
   )
@@ -171,6 +230,8 @@ export function useWallet (name) {
       throw err
     }
   }, [wallet, logger])
+
+  if (!wallet) return null
 
   return { ...wallet, sendPayment }
 }

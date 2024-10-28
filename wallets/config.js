@@ -1,7 +1,7 @@
 import { useMe } from '@/components/me'
 import useVault from '@/components/vault/use-vault'
 import { useCallback } from 'react'
-import { canReceive, canSend, getStorageKey } from './common'
+import { canReceive, canSend, getStorageKey, saveWalletLocally, siftConfig, upsertWalletVariables } from './common'
 import { useMutation } from '@apollo/client'
 import { generateMutation } from './graphql'
 import { REMOVE_WALLET } from '@/fragments/wallet'
@@ -18,21 +18,15 @@ export function useWalletConfigurator (wallet) {
   const [removeWallet] = useMutation(REMOVE_WALLET)
 
   const _saveToServer = useCallback(async (serverConfig, clientConfig, validateLightning) => {
-    const { serverWithShared, settings, clientOnly } = siftConfig(wallet.def.fields, { ...serverConfig, ...clientConfig })
-    const vaultEntries = []
-    if (clientOnly && isActive) {
-      for (const [key, value] of Object.entries(clientOnly)) {
-        if (value) {
-          vaultEntries.push({ key, ...await encrypt(value) })
-        }
-      }
-    }
-
-    await upsertWallet({ variables: { ...serverWithShared, settings, validateLightning, vaultEntries } })
-  }, [encrypt, isActive, wallet.def.fields])
+    const variables = await upsertWalletVariables(
+      { def: wallet.def, config: { ...serverConfig, ...clientConfig } },
+      isActive && encrypt,
+      { validateLightning })
+    await upsertWallet({ variables })
+  }, [encrypt, isActive, wallet.def])
 
   const _saveToLocal = useCallback(async (newConfig) => {
-    window.localStorage.setItem(getStorageKey(wallet.def.name, me?.id), JSON.stringify(newConfig))
+    saveWalletLocally(wallet.def.name, newConfig, me?.id)
     reloadLocalWallets()
   }, [me?.id, wallet.def.name, reloadLocalWallets])
 
@@ -89,12 +83,13 @@ export function useWalletConfigurator (wallet) {
       }
       if (canReceive({ def: wallet.def, config: serverConfig })) {
         await _saveToServer(serverConfig, clientConfig, validateLightning)
-      } else {
+      } else if (wallet.config.id) {
         // if it previously had a server config, remove it
         await _detachFromServer()
       }
     }
-  }, [isActive, _saveToServer, _saveToLocal, _validate, _detachFromLocal, _detachFromServer])
+  }, [isActive, wallet.def, _saveToServer, _saveToLocal, _validate,
+    _detachFromLocal, _detachFromServer])
 
   const detach = useCallback(async () => {
     if (isActive) {
@@ -111,47 +106,4 @@ export function useWalletConfigurator (wallet) {
   }, [isActive, _detachFromServer, _detachFromLocal])
 
   return { save, detach }
-}
-
-function siftConfig (fields, config) {
-  const sifted = {
-    clientOnly: {},
-    serverOnly: {},
-    shared: {},
-    serverWithShared: {},
-    clientWithShared: {},
-    settings: {}
-  }
-
-  for (const [key, value] of Object.entries(config)) {
-    if (['id'].includes(key)) {
-      sifted.serverOnly[key] = value
-      continue
-    }
-
-    if (['autoWithdrawMaxFeePercent', 'autoWithdrawThreshold', 'autoWithdrawMaxFeeTotal'].includes(key)) {
-      sifted.serverOnly[key] = value
-      sifted.settings[key] = value
-      continue
-    }
-
-    const field = fields.find(({ name }) => name === key)
-
-    if (field) {
-      if (field.serverOnly) {
-        sifted.serverOnly[key] = value
-      } else if (field.clientOnly) {
-        sifted.clientOnly[key] = value
-      } else {
-        sifted.shared[key] = value
-      }
-    } else {
-      sifted.shared[key] = value
-    }
-  }
-
-  sifted.serverWithShared = { ...sifted.shared, ...sifted.serverOnly }
-  sifted.clientWithShared = { ...sifted.shared, ...sifted.clientOnly }
-
-  return sifted
 }

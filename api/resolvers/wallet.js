@@ -31,10 +31,11 @@ function injectResolvers (resolvers) {
     const resolverName = generateResolverName(walletDef.walletField)
     console.log(resolverName)
     resolvers.Mutation[resolverName] = async (parent, { settings, validateLightning, vaultEntries, ...data }, { me, models }) => {
+      console.log('resolving', resolverName, { settings, validateLightning, vaultEntries, ...data })
       const validData = await validateWallet(walletDef, { ...data, ...settings, vaultEntries }, { serverSide: true })
       if (validData) {
-        Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
-        Object.keys(validData).filter(key => key in settings).forEach(key => { settings[key] = validData[key] })
+        data && Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
+        settings && Object.keys(validData).filter(key => key in settings).forEach(key => { settings[key] = validData[key] })
       }
 
       return await upsertWallet({
@@ -654,7 +655,7 @@ export const addWalletLog = async ({ wallet, level, message }, { models }) => {
 }
 
 async function upsertWallet (
-  { wallet, testCreateInvoice }, { settings, data, vaultEntries = [] }, { me, models }) {
+  { wallet, testCreateInvoice }, { settings, data, vaultEntries }, { me, models }) {
   if (!me) {
     throw new GqlAuthenticationError()
   }
@@ -674,11 +675,6 @@ async function upsertWallet (
   }
 
   const { id, enabled, priority, ...walletData } = data
-  const {
-    autoWithdrawThreshold,
-    autoWithdrawMaxFeePercent,
-    autoWithdrawMaxFeeTotal
-  } = settings
 
   const txs = []
 
@@ -709,18 +705,23 @@ async function upsertWallet (
                 }
               }
             : {}),
-          vaultEntries: {
-            deleteMany: difference(oldVaultEntries, vaultEntries, 'key').map(({ key }) => ({
-              userId: me.id, key
-            })),
-            create: difference(vaultEntries, oldVaultEntries, 'key').map(({ key, iv, value }) => ({
-              key, iv, value, userId: me.id
-            })),
-            update: intersectionMerge(oldVaultEntries, vaultEntries, 'key').map(({ key, iv, value }) => ({
-              where: { userId_key: { userId: me.id, key } },
-              data: { value, iv }
-            }))
-          }
+          ...(vaultEntries
+            ? {
+                vaultEntries: {
+                  deleteMany: difference(oldVaultEntries, vaultEntries, 'key').map(({ key }) => ({
+                    userId: me.id, key
+                  })),
+                  create: difference(vaultEntries, oldVaultEntries, 'key').map(({ key, iv, value }) => ({
+                    key, iv, value, userId: me.id
+                  })),
+                  update: intersectionMerge(oldVaultEntries, vaultEntries, 'key').map(({ key, iv, value }) => ({
+                    where: { userId_key: { userId: me.id, key } },
+                    data: { value, iv }
+                  }))
+                }
+              }
+            : {})
+
         },
         include: {
           vaultEntries: true
@@ -742,7 +743,7 @@ async function upsertWallet (
           ...(Object.keys(walletData).length > 0 ? { [wallet.field]: { create: walletData } } : {}),
           vaultEntries: {
             createMany: {
-              data: vaultEntries.map(({ key, value }) => ({ key, value, userId: me.id }))
+              data: vaultEntries?.map(({ key, iv, value }) => ({ key, iv, value, userId: me.id }))
             }
           }
         }
@@ -750,16 +751,14 @@ async function upsertWallet (
     )
   }
 
-  txs.push(
-    models.user.update({
-      where: { id: me.id },
-      data: {
-        autoWithdrawMaxFeePercent,
-        autoWithdrawThreshold,
-        autoWithdrawMaxFeeTotal
-      }
-    })
-  )
+  if (settings) {
+    txs.push(
+      models.user.update({
+        where: { id: me.id },
+        data: settings
+      })
+    )
+  }
 
   txs.push(
     models.walletLog.createMany({

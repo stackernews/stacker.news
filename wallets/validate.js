@@ -74,8 +74,11 @@ function composeWalletSchema (walletDef, serverSide) {
       if (!optional) {
         acc[name] = acc[name].required('Required')
       } else if (requiredWithout) {
-        acc[name] = acc[name].when([requiredWithout], ([pairSetting], schema) => {
-          if (!pairSetting) return schema.required(`required if ${requiredWithout} not set`)
+        // if we are the server, the pairSetting will be in the vaultEntries array
+        acc[name] = acc[name].when([serverSide ? 'vaultEntries' : requiredWithout], ([pairSetting], schema) => {
+          if (!pairSetting || (serverSide && !pairSetting.some(v => v.key === requiredWithout))) {
+            return schema.required(`required if ${requiredWithout} not set`)
+          }
           return Yup.mixed().or([schema.test({
             test: value => value !== pairSetting,
             message: `${name} cannot be the same as ${requiredWithout}`

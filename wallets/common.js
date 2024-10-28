@@ -96,3 +96,68 @@ export function canSend ({ def, config }) {
 export function canReceive ({ def, config }) {
   return def.fields.some(f => f.serverOnly) && isReceiveConfigured({ def, config })
 }
+
+export function siftConfig (fields, config) {
+  const sifted = {
+    clientOnly: {},
+    serverOnly: {},
+    shared: {},
+    serverWithShared: {},
+    clientWithShared: {},
+    settings: null
+  }
+
+  for (const [key, value] of Object.entries(config)) {
+    if (['id'].includes(key)) {
+      sifted.serverOnly[key] = value
+      continue
+    }
+
+    if (['autoWithdrawMaxFeePercent', 'autoWithdrawThreshold', 'autoWithdrawMaxFeeTotal'].includes(key)) {
+      sifted.serverOnly[key] = value
+      sifted.settings = { ...sifted.settings, [key]: value }
+      continue
+    }
+
+    const field = fields.find(({ name }) => name === key)
+
+    if (field) {
+      if (field.serverOnly) {
+        sifted.serverOnly[key] = value
+      } else if (field.clientOnly) {
+        sifted.clientOnly[key] = value
+      } else {
+        sifted.shared[key] = value
+      }
+    } else if (['enabled', 'priority'].includes(key)) {
+      sifted.shared[key] = value
+    }
+  }
+
+  sifted.serverWithShared = { ...sifted.shared, ...sifted.serverOnly }
+  sifted.clientWithShared = { ...sifted.shared, ...sifted.clientOnly }
+
+  return sifted
+}
+
+export async function upsertWalletVariables ({ def, config }, encrypt, append = {}) {
+  const { serverWithShared, settings, clientOnly } = siftConfig(def.fields, config)
+  // if we are disconnected from the vault, we leave vaultEntries undefined so we don't
+  // delete entries from connected devices
+  let vaultEntries
+  if (clientOnly && encrypt) {
+    vaultEntries = []
+    for (const [key, value] of Object.entries(clientOnly)) {
+      if (value) {
+        vaultEntries.push({ key, ...await encrypt(value) })
+      }
+    }
+  }
+
+  return { ...serverWithShared, settings, vaultEntries, ...append }
+}
+
+export async function saveWalletLocally (name, config, userId) {
+  const storageKey = getStorageKey(name, userId)
+  window.localStorage.setItem(storageKey, JSON.stringify(config))
+}

@@ -18,7 +18,7 @@ const useImperativeQuery = (query) => {
   return imperativelyCallQuery
 }
 
-export function useVaultConfigurator () {
+export function useVaultConfigurator ({ onVaultKeySet, beforeDisconnectVault } = {}) {
   const { me } = useMe()
   const toaster = useToast()
   const idbConfig = useMemo(() => ({ dbName: getDbName(me?.id, 'vault'), storeName: 'vault', options: {} }), [me?.id])
@@ -63,6 +63,7 @@ export function useVaultConfigurator () {
   })
 
   const disconnectVault = useCallback(async () => {
+    beforeDisconnectVault?.()
     await remove('key')
     setKey(null)
     setKeyHash(null)
@@ -75,12 +76,16 @@ export function useVaultConfigurator () {
       const vaultKey = await deriveKey(me.id, passphrase)
       const { data } = await getVaultEntries()
 
-      // TODO: push any local configurations to the server so long as they don't conflict
-      // delete any locally stored configurations after vault key is set
+      const encrypt = async value => {
+        return await encryptValue(vaultKey.key, value)
+      }
+
       const entries = []
-      for (const { key, iv, value } of data.getVaultEntries) {
-        const plainValue = await decryptValue(oldKeyValue.key, { iv, value })
-        entries.push({ key, ...await encryptValue(vaultKey.key, plainValue) })
+      if (oldKeyValue?.key) {
+        for (const { key, iv, value } of data.getVaultEntries) {
+          const plainValue = await decryptValue(oldKeyValue.key, { iv, value })
+          entries.push({ key, ...await encrypt(plainValue) })
+        }
       }
 
       await updateVaultKey({
@@ -93,13 +98,15 @@ export function useVaultConfigurator () {
           toaster.danger(error.graphQLErrors[0].message)
         }
       })
+
       setKey(vaultKey)
       setKeyHash(vaultKey.hash)
       await set('key', vaultKey)
+      onVaultKeySet?.(encrypt).catch(console.error)
     } catch (e) {
       toaster.danger(e.message)
     }
-  }, [getVaultEntries, updateVaultKey, set, get, remove])
+  }, [getVaultEntries, updateVaultKey, set, get, remove, onVaultKeySet])
 
   return { key, setVaultKey, clearVault, disconnectVault }
 }

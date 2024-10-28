@@ -17,7 +17,7 @@ function mutationTypeDefs () {
       .filter(isServerField)
       .map(fieldToGqlArgOptional)
     if (serverFields.length > 0) args += serverFields.join(', ') + ','
-    args += 'enabled: Boolean, priority: Int, vaultEntries: [VaultEntryInput!], settings: AutowithdrawSettings!, validateLightning: Boolean'
+    args += 'enabled: Boolean, priority: Int, vaultEntries: [VaultEntryInput!], settings: AutowithdrawSettings, validateLightning: Boolean'
     const resolverName = generateResolverName(w.walletField)
     const typeDef = `${resolverName}(${args}): Wallet`
     console.log(typeDef)

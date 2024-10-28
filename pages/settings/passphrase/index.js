@@ -10,12 +10,14 @@ import { deviceSyncSchema } from '@/lib/validate'
 import RefreshIcon from '@/svgs/refresh-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/components/toast'
+import { useWallets } from '@/wallets/index'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function DeviceSync ({ ssrData }) {
   const { me } = useMe()
-  const { key, setVaultKey, clearVault, disconnectVault } = useVaultConfigurator()
+  const { onVaultKeySet, beforeDisconnectVault } = useWallets()
+  const { key, setVaultKey, clearVault, disconnectVault } = useVaultConfigurator({ onVaultKeySet, beforeDisconnectVault })
   const [passphrase, setPassphrase] = useState()
 
   const setSeedPassphrase = useCallback(async (passphrase) => {
@@ -51,7 +53,7 @@ function Connect ({ passphrase }) {
         On your other devices, navigate to device sync settings and enter this exact passphrase.
       </p>
       <p className='line-height-md'>
-        Once you leave this page, this passphrase cannot be shown again. Connect all the devices you plan to use or write this passphrase down somewhere safe.
+        <strong>Once you leave this page, this passphrase cannot be shown again.</strong> Connect all the devices you plan to use or write this passphrase down somewhere safe.
       </p>
       <PasswordInput
         label='passphrase'

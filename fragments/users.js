@@ -3,7 +3,7 @@ import { COMMENTS, COMMENTS_ITEM_EXT_FIELDS } from './comments'
 import { ITEM_FIELDS, ITEM_FULL_FIELDS } from './items'
 import { SUB_FULL_FIELDS } from './subs'
 
-const STREAK_FIELDS = gql`
+export const STREAK_FIELDS = gql`
   fragment StreakFields on User {
     optional {
     streak

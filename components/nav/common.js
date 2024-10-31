@@ -263,7 +263,7 @@ export default function LoginButton () {
 
 function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
-  const { wallets } = useWallets()
+  const { removeLocalWallets } = useWallets()
   const { multiAuthSignout } = useAccounts()
 
   return (
@@ -292,7 +292,7 @@ function LogoutObstacle ({ onClose }) {
               await togglePushSubscription().catch(console.error)
             }
 
-            await wallets.resetClient().catch(console.error)
+            removeLocalWallets().catch(console.error)
 
             await signOut({ callbackUrl: '/' })
           }}

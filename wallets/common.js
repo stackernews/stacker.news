@@ -114,8 +114,8 @@ export function siftConfig (fields, config) {
     }
 
     if (['autoWithdrawMaxFeePercent', 'autoWithdrawThreshold', 'autoWithdrawMaxFeeTotal'].includes(key)) {
-      sifted.serverOnly[key] = value
-      sifted.settings = { ...sifted.settings, [key]: value }
+      sifted.serverOnly[key] = Number(value)
+      sifted.settings = { ...sifted.settings, [key]: Number(value) }
       continue
     }
 

@@ -743,11 +743,15 @@ async function upsertWallet (
           type: wallet.type,
           // client only wallets has no walletData
           ...(Object.keys(walletData).length > 0 ? { [wallet.field]: { create: walletData } } : {}),
-          vaultEntries: {
-            createMany: {
-              data: vaultEntries?.map(({ key, iv, value }) => ({ key, iv, value, userId: me.id }))
-            }
-          }
+          ...(vaultEntries
+            ? {
+                vaultEntries: {
+                  createMany: {
+                    data: vaultEntries?.map(({ key, iv, value }) => ({ key, iv, value, userId: me.id }))
+                  }
+                }
+              }
+            : {})
         }
       })
     )

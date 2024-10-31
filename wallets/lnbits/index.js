@@ -10,7 +10,6 @@ export const fields = [
     name: 'url',
     label: 'lnbits url',
     type: 'text',
-    required: true,
     validate: process.env.NODE_ENV === 'development'
       ? string()
         .or([string().matches(/^(http:\/\/)?localhost:\d+$/), string().url()], 'invalid url')

@@ -127,7 +127,7 @@ export function WalletsProvider ({ children }) {
     }
   }, [me?.privates?.autoWithdrawMaxFeePercent, me?.privates?.autoWithdrawThreshold, me?.privates?.autoWithdrawMaxFeeTotal])
 
-  // if the vault key is set, and we have local wallets,
+  // whenever the vault key is set, and we have local wallets,
   // we'll send any merged local wallets to the server, and delete them from local storage
   const syncLocalWallets = useCallback(async encrypt => {
     const walletsToSync = wallets.filter(w =>

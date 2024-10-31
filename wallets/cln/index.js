@@ -1,12 +1,10 @@
 import { decodeRune } from '@/lib/cln'
 import { B64_URL_REGEX } from '@/lib/format'
-import { CLNAutowithdrawSchema } from '@/lib/validate'
 import { string } from '@/lib/yup'
 
 export const name = 'cln'
 export const walletType = 'CLN'
 export const walletField = 'walletCLN'
-export const fieldValidation = CLNAutowithdrawSchema
 
 export const fields = [
   {

@@ -31,7 +31,6 @@ import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { useField } from 'formik'
 import styles from './settings.module.css'
 import { AuthBanner } from '@/components/banners'
-import DeviceSync from '@/components/device-sync'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -612,7 +611,6 @@ export default function Settings ({ ssrData }) {
           <div className='form-label'>saturday newsletter</div>
           <Button href='https://mail.stacker.news/subscription/form' target='_blank'>(re)subscribe</Button>
           {settings?.authMethods && <AuthMethods methods={settings.authMethods} apiKeyEnabled={settings.apiKeyEnabled} />}
-          <DeviceSync />
         </div>
       </div>
     </Layout>

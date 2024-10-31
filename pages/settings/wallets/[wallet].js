@@ -41,9 +41,11 @@ export default function WalletSettings () {
         [field.name]: wallet?.config?.[field.name] || ''
       }
     }, wallet?.config)
-    if (wallet?.def.clientOnly) {
+
+    if (wallet?.def.fields.every(f => f.clientOnly)) {
       return initial
     }
+
     return {
       ...initial,
       ...autowithdrawInitial({ me })

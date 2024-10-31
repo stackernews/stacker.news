@@ -76,7 +76,7 @@ function composeWalletSchema (walletDef, serverSide, skipGenerated) {
       acc[name] = createFieldSchema(name, validate)
 
       if (!optional) {
-        acc[name] = acc[name].required('Required')
+        acc[name] = acc[name].required('required')
       } else if (requiredWithout) {
         // if we are the server, the pairSetting will be in the vaultEntries array
         acc[name] = acc[name].when([serverSide ? 'vaultEntries' : requiredWithout], ([pairSetting], schema) => {

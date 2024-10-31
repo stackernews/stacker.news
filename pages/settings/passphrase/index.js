@@ -33,7 +33,14 @@ export default function DeviceSync ({ ssrData }) {
     <Layout>
       <div className='pb-3 w-100 mt-2'>
         <SettingsHeader />
-        <div className='mt-3' style={{ maxWidth: '600px' }}>
+        <small className='line-height-md d-block mt-3' style={{ maxWidth: '600px' }}>
+          <p>
+            Device sync uses end-to-end encryption to securely synchronize your data across devices.
+
+            Your sensitive data remains private and inaccessible to our servers while being synced across all your connected devices using only a passphrase.
+          </p>
+        </small>
+        <div className='mt-4' style={{ maxWidth: '600px' }}>
           {
             (connected && passphrase && <Connect passphrase={passphrase} />) ||
             (connected && <Connected disconnectVault={disconnectVault} />) ||

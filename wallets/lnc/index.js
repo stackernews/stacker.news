@@ -4,7 +4,6 @@ import { string } from '@/lib/yup'
 export const name = 'lnc'
 export const walletType = 'LNC'
 export const walletField = 'walletLNC'
-export const clientOnly = true
 
 export const fields = [
   {

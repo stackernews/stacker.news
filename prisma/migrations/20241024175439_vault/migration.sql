@@ -43,17 +43,23 @@ ALTER TABLE "VaultEntry" ADD CONSTRAINT "VaultEntry_userId_fkey" FOREIGN KEY ("u
 -- AddForeignKey
 ALTER TABLE "VaultEntry" ADD CONSTRAINT "VaultEntry_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
-CREATE FUNCTION wallet_updated_at_trigger() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION wallet_updated_at_trigger() RETURNS TRIGGER AS $$
 BEGIN
-    UPDATE "users" SET "walletsUpdatedAt" = NOW() WHERE "id" = NEW."userId";
-    RETURN NEW;
+    UPDATE "users"
+    SET "walletsUpdatedAt" = NOW()
+    WHERE "id" = CASE
+        WHEN TG_OP = 'DELETE'
+        THEN OLD."userId"
+        ELSE NEW."userId"
+    END;
+    RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER wallet_updated_at_trigger
-AFTER INSERT OR UPDATE ON "Wallet"
+CREATE OR REPLACE TRIGGER wallet_updated_at_trigger
+AFTER INSERT OR UPDATE OR DELETE ON "Wallet"
 FOR EACH ROW EXECUTE PROCEDURE wallet_updated_at_trigger();
 
-CREATE TRIGGER vault_entry_updated_at_trigger
-AFTER INSERT OR UPDATE ON "VaultEntry"
+CREATE OR REPLACE TRIGGER vault_entry_updated_at_trigger
+AFTER INSERT OR UPDATE OR DELETE ON "VaultEntry"
 FOR EACH ROW EXECUTE PROCEDURE wallet_updated_at_trigger();

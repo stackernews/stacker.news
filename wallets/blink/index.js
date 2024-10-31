@@ -1,4 +1,3 @@
-import { blinkSchema } from '@/lib/validate'
 import { string } from '@/lib/yup'
 
 export const galoyBlinkUrl = 'https://api.blink.sv/graphql'
@@ -7,7 +6,6 @@ export const galoyBlinkDashboardUrl = 'https://dashboard.blink.sv/'
 export const name = 'blink'
 export const walletType = 'BLINK'
 export const walletField = 'walletBlink'
-export const fieldValidation = blinkSchema
 
 export const fields = [
   {

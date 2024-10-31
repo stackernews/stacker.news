@@ -7,6 +7,7 @@ import { WELCOME_BANNER_MUTATION } from '@/fragments/users'
 import { useToast } from '@/components/toast'
 import { BALANCE_LIMIT_MSATS } from '@/lib/constants'
 import { msatsToSats, numWithUnits } from '@/lib/format'
+import Link from 'next/link'
 
 export function WelcomeBanner ({ Banner }) {
   const { me } = useMe()
@@ -132,7 +133,7 @@ export function WalletSecurityBanner ({ isActive }) {
         Listen up, pardner! Put a limit on yer spendin' wallet or hook up a wallet that's only for Stacker News. It'll keep them varmints from cleanin' out yer whole goldmine if they rustle up yer wallet.
       </p>
       <p className='line-height-md'>
-        Your spending wallet's credentials are never sent to our servers in plain text. To sync across devices, enable device sync in your settings.
+        Your spending wallet's credentials are never sent to our servers in plain text. To sync across devices, <Alert.Link as={Link} href='/settings/passphrase'>enable device sync in your settings</Alert.Link>.
       </p>
     </Alert>
   )

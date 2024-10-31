@@ -24,6 +24,7 @@ import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets, getOurPubkey } from '../lnd'
 import validateWallet from '@/wallets/validate'
+import { canReceive } from '@/wallets/common'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
@@ -43,9 +44,10 @@ function injectResolvers (resolvers) {
           field: walletDef.walletField,
           type: walletDef.walletType
         },
-        testCreateInvoice: walletDef.testCreateInvoice && validateLightning
-          ? (data) => walletDef.testCreateInvoice(data, { me, models })
-          : null
+        testCreateInvoice:
+          walletDef.testCreateInvoice && validateLightning && canReceive({ def: walletDef, config: data })
+            ? (data) => walletDef.testCreateInvoice(data, { me, models })
+            : null
       }, {
         settings,
         data,

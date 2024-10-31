@@ -52,7 +52,8 @@ export default function WalletSettings () {
 
   const validate = useCallback(async (data) => {
     try {
-      await validateWallet(wallet.def, data, { yupOptions: { abortEarly: false }, topLevel: false })
+      await validateWallet(wallet.def, data,
+        { yupOptions: { abortEarly: false }, topLevel: false, skipGenerated: true })
     } catch (error) {
       if (error instanceof ValidationError) {
         return error.inner.reduce((acc, error) => {
@@ -81,7 +82,7 @@ export default function WalletSettings () {
               values.enabled = true
             }
 
-            await save(values, true)
+            await save(values, values.enabled)
 
             toaster.success('saved settings')
             router.push('/settings/wallets')
@@ -137,7 +138,10 @@ function ReceiveSettings ({ walletDef }) {
 
 function WalletFields ({ wallet }) {
   return wallet.def.fields
-    .map(({ name, label = '', type, help, optional, editable, requiredWithout, validate, clientOnly, serverOnly, ...props }, i) => {
+    .map(({
+      name, label = '', type, help, optional, editable, requiredWithout,
+      validate, clientOnly, serverOnly, generated, ...props
+    }, i) => {
       const rawProps = {
         ...props,
         name,

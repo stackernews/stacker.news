@@ -12,8 +12,8 @@ import * as Yup from '@/lib/yup'
 import { canReceive } from './common'
 
 export default async function validateWallet (walletDef, data,
-  { yupOptions = { abortEarly: true }, topLevel = true, serverSide = false } = {}) {
-  let schema = composeWalletSchema(walletDef, serverSide)
+  { yupOptions = { abortEarly: true }, topLevel = true, serverSide = false, skipGenerated = false } = {}) {
+  let schema = composeWalletSchema(walletDef, serverSide, skipGenerated)
 
   if (canReceive({ def: walletDef, config: data })) {
     schema = schema.concat(autowithdrawSchemaMembers)
@@ -58,12 +58,16 @@ function createFieldSchema (name, validate) {
   }
 }
 
-function composeWalletSchema (walletDef, serverSide) {
+function composeWalletSchema (walletDef, serverSide, skipGenerated) {
   const { fields } = walletDef
 
   const vaultEntrySchemas = { required: [], optional: [] }
   const schemaShape = fields.reduce((acc, field) => {
-    const { name, validate, optional, clientOnly, requiredWithout } = field
+    const { name, validate, optional, generated, clientOnly, requiredWithout } = field
+
+    if (generated && skipGenerated) {
+      return acc
+    }
 
     if (clientOnly && serverSide) {
       // For server-side validation, accumulate clientOnly fields as vaultEntries

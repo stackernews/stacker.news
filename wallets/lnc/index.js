@@ -36,23 +36,26 @@ export const fields = [
   {
     name: 'localKey',
     type: 'text',
-    optional: true,
     hidden: true,
-    clientOnly: true
+    clientOnly: true,
+    generated: true,
+    validate: string()
   },
   {
     name: 'remoteKey',
     type: 'text',
-    optional: true,
     hidden: true,
-    clientOnly: true
+    clientOnly: true,
+    generated: true,
+    validate: string()
   },
   {
     name: 'serverHost',
     type: 'text',
-    optional: true,
     hidden: true,
-    clientOnly: true
+    clientOnly: true,
+    generated: true,
+    validate: string()
   }
 ]
 

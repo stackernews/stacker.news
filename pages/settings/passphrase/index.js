@@ -17,7 +17,8 @@ export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 export default function DeviceSync ({ ssrData }) {
   const { me } = useMe()
   const { onVaultKeySet, beforeDisconnectVault } = useWallets()
-  const { key, setVaultKey, clearVault, disconnectVault } = useVaultConfigurator({ onVaultKeySet, beforeDisconnectVault })
+  const { key, setVaultKey, clearVault, disconnectVault } =
+    useVaultConfigurator({ onVaultKeySet, beforeDisconnectVault })
   const [passphrase, setPassphrase] = useState()
 
   const setSeedPassphrase = useCallback(async (passphrase) => {

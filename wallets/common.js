@@ -62,14 +62,14 @@ export function isClientField (f) {
 function checkFields ({ fields, config }) {
   // a wallet is configured if all of its required fields are set
   let val = fields.every(f => {
-    if (f.optional && !f.requiredWithout) return true
+    if ((f.optional || f.generated) && !f.requiredWithout) return true
     return !!config?.[f.name]
   })
 
   // however, a wallet is not configured if all fields are optional and none are set
   // since that usually means that one of them is required
   if (val && fields.length > 0) {
-    val = !(fields.every(f => f.optional) && fields.every(f => !config?.[f.name]))
+    val = !(fields.every(f => f.optional || f.generated) && fields.every(f => !config?.[f.name]))
   }
 
   return val
@@ -81,12 +81,12 @@ export function isConfigured ({ def, config }) {
 
 function isSendConfigured ({ def, config }) {
   const fields = def.fields.filter(isClientField)
-  return checkFields({ fields, config })
+  return (fields.length > 0 || def.isAvailable?.()) && checkFields({ fields, config })
 }
 
 function isReceiveConfigured ({ def, config }) {
   const fields = def.fields.filter(isServerField)
-  return checkFields({ fields, config })
+  return fields.length > 0 && checkFields({ fields, config })
 }
 
 export function canSend ({ def, config }) {

@@ -37,7 +37,7 @@ export function useWalletConfigurator (wallet) {
     let serverConfig = serverWithShared
 
     if (canSend({ def: wallet.def, config: clientConfig })) {
-      let transformedConfig = await validateWallet(wallet.def, clientWithShared)
+      let transformedConfig = await validateWallet(wallet.def, clientWithShared, { skipGenerated: true })
       if (transformedConfig) {
         clientConfig = Object.assign(clientConfig, transformedConfig)
       }
@@ -46,6 +46,8 @@ export function useWalletConfigurator (wallet) {
         if (transformedConfig) {
           clientConfig = Object.assign(clientConfig, transformedConfig)
         }
+        // validate again to ensure generated fields are valid
+        await validateWallet(wallet.def, clientConfig)
       }
     } else if (canReceive({ def: wallet.def, config: serverConfig })) {
       const transformedConfig = await validateWallet(wallet.def, serverConfig)
@@ -74,6 +76,7 @@ export function useWalletConfigurator (wallet) {
     // if vault is active, encrypt and send to server regardless of wallet type
     if (isActive) {
       await _saveToServer(serverConfig, clientConfig, validateLightning)
+      await _detachFromLocal()
     } else {
       if (canSend({ def: wallet.def, config: clientConfig })) {
         await _saveToLocal(clientConfig)

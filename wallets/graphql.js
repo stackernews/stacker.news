@@ -1,6 +1,8 @@
 import gql from 'graphql-tag'
 import { isServerField } from './common'
-import { WALLET_FIELDS } from '@/fragments/wallet'
+// for some reason, this is needed to make the import work from worker
+import * as walletFragments from '@/fragments/wallet'
+const { WALLET_FIELDS } = walletFragments
 
 export function fieldToGqlArg (field) {
   let arg = `${field.name}: String`

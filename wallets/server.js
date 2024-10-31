@@ -40,9 +40,9 @@ export async function createInvoice (userId, { msats, description, descriptionHa
   msats = toPositiveNumber(msats)
 
   for (const wallet of wallets) {
-    const w = walletDefs.find(w => w.walletType === wallet.def.walletType)
+    const w = walletDefs.find(w => w.walletType === wallet.type)
     try {
-      if (!canReceive({ def: w, config: wallet })) {
+      if (!canReceive({ def: w, config: wallet.wallet })) {
         continue
       }
 

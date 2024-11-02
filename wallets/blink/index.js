@@ -28,7 +28,7 @@ export const fields = [
 export const card = {
   title: 'Blink',
   subtitle: 'use [Blink](https://blink.sv/) for payments',
-  badges: ['send only']
+  badges: ['send']
 }
 
 export const fieldValidation = blinkSchema

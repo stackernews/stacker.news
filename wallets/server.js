@@ -5,9 +5,9 @@ import * as lnAddr from 'wallets/lightning-address/server'
 import * as lnbits from 'wallets/lnbits/server'
 import * as nwc from 'wallets/nwc/server'
 import * as phoenixd from 'wallets/phoenixd/server'
+import * as blink from 'wallets/blink/server'
 
 // we import only the metadata of client side wallets
-import * as blink from 'wallets/blink'
 import * as lnc from 'wallets/lnc'
 import * as webln from 'wallets/webln'
 

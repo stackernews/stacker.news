@@ -40,6 +40,7 @@ import { useShowModal } from './modal'
 import { QRCodeSVG } from 'qrcode.react'
 import { Scanner } from '@yudiel/react-qr-scanner'
 import { qrImageSettings } from './qr'
+import { useIsClient } from './use-client'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -472,6 +473,7 @@ function InputInner ({
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
   const storageKeyPrefix = useContext(StorageKeyPrefixContext)
+  const isClient = useIsClient()
 
   const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + props.name : undefined
 
@@ -555,7 +557,7 @@ function InputInner ({
           isInvalid={invalid}
           isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
         />
-        {(clear && field.value) &&
+        {(isClient && clear && field.value && !props.readOnly) &&
           <Button
             variant={null}
             onClick={(e) => {

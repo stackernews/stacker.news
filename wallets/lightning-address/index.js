@@ -23,5 +23,5 @@ export const fields = [
 export const card = {
   title: 'lightning address',
   subtitle: 'autowithdraw to a lightning address',
-  badges: ['receive only']
+  badges: ['receive']
 }

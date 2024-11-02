@@ -31,7 +31,7 @@ export const fields = [
 export const card = {
   title: 'NWC',
   subtitle: 'use Nostr Wallet Connect for payments',
-  badges: ['send & receive', 'budgetable']
+  badges: ['send', 'receive', 'budgetable']
 }
 
 export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } = {}) {

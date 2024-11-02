@@ -6,7 +6,6 @@
 -- the enum.
 
 
-ALTER TYPE "WalletType" ADD VALUE 'BLINK';
 ALTER TYPE "WalletType" ADD VALUE 'LNC';
 ALTER TYPE "WalletType" ADD VALUE 'WEBLN';
 

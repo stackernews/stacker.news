@@ -145,6 +145,10 @@ export const WALLET_FIELDS = gql`
         url
         secondaryPassword
       }
+      ... on WalletBlink {
+        apiKeyRecv
+        currencyRecv
+      }
     }
   }
 `

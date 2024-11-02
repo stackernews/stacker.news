@@ -141,6 +141,10 @@ export const WALLET = gql`
           url
           secondaryPassword
         }
+        ... on WalletBlink {
+          apiKeyRecv
+          currencyRecv
+        }
       }
     }
   }
@@ -180,6 +184,10 @@ export const WALLET_BY_TYPE = gql`
         ... on WalletPhoenixd {
           url
           secondaryPassword
+        }
+        ... on WalletBlink {
+          apiKeyRecv
+          currencyRecv
         }
       }
     }

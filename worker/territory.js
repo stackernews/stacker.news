@@ -72,10 +72,17 @@ export async function territoryRevenue ({ models }) {
         FROM revenue
         WHERE revenue > 1000
         RETURNING *
+      ),
+      "SubActResultTotal" AS (
+        SELECT coalesce(sum(msats), 0) as total_msats, "userId"
+        FROM "SubActResult"
+        GROUP BY "userId"
       )
-      UPDATE users SET msats = users.msats + "SubActResult".msats
-      FROM "SubActResult"
-      WHERE users.id = "SubActResult"."userId"`,
+      UPDATE users
+      SET msats = users.msats + "SubActResultTotal".total_msats,
+        "stackedMsats" = users."stackedMsats" + "SubActResultTotal".total_msats
+      FROM "SubActResultTotal"
+      WHERE users.id = "SubActResultTotal"."userId"`,
     { models }
   )
 }

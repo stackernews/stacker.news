@@ -1,16 +1,15 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Form, ClientInput, PasswordInput, CheckboxGroup, Checkbox } from '@/components/form'
+import { Form, CheckboxGroup, Checkbox } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
 import { WalletSecurityBanner } from '@/components/banners'
 import { WalletLogs } from '@/components/wallet-logger'
 import { useToast } from '@/components/toast'
 import { useRouter } from 'next/router'
 import { useWallet } from 'wallets'
-import Info from '@/components/info'
 import Text from '@/components/text'
 import { AutowithdrawSettings } from '@/components/autowithdraw-shared'
 import dynamic from 'next/dynamic'
-import { useIsClient } from '@/components/use-client'
+import WalletFields from '@/components/wallet-fields'
 
 const WalletButtonBar = dynamic(() => import('@/components/wallet-buttonbar.js'), { ssr: false })
 
@@ -99,46 +98,4 @@ export default function WalletSettings () {
       </div>
     </CenterLayout>
   )
-}
-
-function WalletFields ({ wallet: { config, fields, isConfigured } }) {
-  const isClient = useIsClient()
-
-  return fields
-    .map(({ name, label = '', type, help, optional, editable, clientOnly, serverOnly, ...props }, i) => {
-      const rawProps = {
-        ...props,
-        name,
-        initialValue: config?.[name],
-        readOnly: isClient && isConfigured && editable === false && !!config?.[name],
-        groupClassName: props.hidden ? 'd-none' : undefined,
-        label: label
-          ? (
-            <div className='d-flex align-items-center'>
-              {label}
-              {/* help can be a string or object to customize the label */}
-              {help && (
-                <Info label={help.label}>
-                  <Text>{help.text || help}</Text>
-                </Info>
-              )}
-              {optional && (
-                <small className='text-muted ms-2'>
-                  {typeof optional === 'boolean' ? 'optional' : <Text>{optional}</Text>}
-                </small>
-              )}
-            </div>
-            )
-          : undefined,
-        required: !optional,
-        autoFocus: i === 0
-      }
-      if (type === 'text') {
-        return <ClientInput key={i} {...rawProps} />
-      }
-      if (type === 'password') {
-        return <PasswordInput key={i} {...rawProps} newPass />
-      }
-      return null
-    })
 }

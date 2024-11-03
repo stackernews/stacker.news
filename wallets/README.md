@@ -55,7 +55,7 @@ This acts as an ID for this wallet on the client. It therefore must be unique ac
 
 - `shortName?: string`
 
-Since `name` will also be used in [wallet logs](https://stacker.news/wallet/logs), you can specify a shorter name here which will be used in logs instead.
+This is an optional value. Set this to true if your wallet needs to be configured per device and should thus not be synced across devices.
 
 - `fields: WalletField[]`
 
@@ -65,17 +65,11 @@ Wallet fields define what this wallet requires for configuration and thus are us
 
 Wallet cards are the components you can see at [/settings/wallets](https://stacker.news/settings/wallets). This property customizes this card for this wallet.
 
-- `fieldValidation: (config) => { [key: string]: string } | Yup.ObjectSchema`
+- `validate: (config) => void`
 
-This property defines how Formik should perform form-level validation. As mentioned in the [documentation](https://formik.org/docs/guides/validation#form-level-validation), Formik supports two ways to perform such validation.
+This is an optional function that's passed the final config after it has been validated. Validation is otherwise done on each individual field in `fields. This function can be used to implement additional validation logic. If the validation fails, the function should throw an error with a descriptive message for the user.
 
-If a function is used for `fieldValidation`, the built-in form-level validation is used via the [`validate`](https://formik.org/docs/guides/validation#validate) property of the Formik form component.
-
-If a [Yup object schema](https://github.com/jquense/yup?tab=readme-ov-file#object) is set, [`validationSchema`](https://formik.org/docs/guides/validation#validationschema) will be used instead.
-
-This validation is triggered on every submit and on every change after the first submit attempt.
-
-Refer to the [Formik documentation](https://formik.org/docs/guides/validation) for more details.
+This validation is triggered on save.
 
 - `walletType?: string`
 
@@ -104,6 +98,12 @@ The label of the configuration key. Will be shown to the user in the form.
 
 The input type that should be used for this value. For example, if the type is `password`, the input value will be hidden by default using a component for passwords.
 
+- `validate: Yup.Schema | ((value) => void) | RegExp`
+
+This property defines how the value for this field should be validated. If a [Yup schema](https://github.com/jquense/yup?tab=readme-ov-file#object) is set, it will be used. Otherwise, the value will be validated by the function or the RegExp. When using a function, it is expected to throw an error with a descriptive message if the value is invalid.
+
+The validate field is required.
+
 - `optional?: boolean | string = false`
 
 This property can be used to mark a wallet field as optional. If it is not set, we will assume this field is required else 'optional' will be shown to the user next to the label. You can use Markdown to customize this text.
@@ -131,6 +131,16 @@ If a button to clear the input after it has been set should be shown, set this p
 - `autoComplete?: HTMLAttribute<'autocomplete'>`
 
 This property controls the HTML `autocomplete` attribute. See [the documentation](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete) for possible values. Not setting it usually means that the user agent can use autocompletion. This property has no effect for passwords. Autocompletion is always turned off for passwords to prevent passwords getting saved for security reasons.
+
+- `clientOnly?: boolean = false`
+
+If this property is set to `true`, this field is only available on the client. If the stacker has device sync enabled, this field will be encrypted before being synced across devices. Otherwise, the field will be stored only on the current device.
+
+- `serverOnly?: boolean = false`
+
+If this property is set to `true`, this field is only meant to be used on the server and is safe to sync across devices in plain text.
+
+If neither `clientOnly` nor `serverOnly` is set, the field is assumed to be used on both the client and the server and safe to sync across devices in plain text.
 
 #### WalletCard
 

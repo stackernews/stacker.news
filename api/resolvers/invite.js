@@ -1,4 +1,4 @@
-import { inviteSchema, ssValidate } from '@/lib/validate'
+import { inviteSchema, validateSchema } from '@/lib/validate'
 import { msatsToSats } from '@/lib/format'
 import assertApiKeyNotPermitted from './apiKey'
 import { GqlAuthenticationError } from '@/lib/error'
@@ -35,7 +35,7 @@ export default {
       }
       assertApiKeyNotPermitted({ me })
 
-      await ssValidate(inviteSchema, { gift, limit })
+      await validateSchema(inviteSchema, { gift, limit })
 
       return await models.invite.create({
         data: { gift, limit, userId: me.id }

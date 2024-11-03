@@ -191,7 +191,8 @@ export function WalletsProvider ({ children }) {
         reloadLocalWallets,
         setPriorities,
         onVaultKeySet: syncLocalWallets,
-        beforeDisconnectVault: unsyncLocalWallets
+        beforeDisconnectVault: unsyncLocalWallets,
+        removeLocalWallets
       }}
     >
       {children}

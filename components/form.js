@@ -33,6 +33,13 @@ import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
 import { useMe } from './me'
 import classNames from 'classnames'
+import Clipboard from '@/svgs/clipboard-line.svg'
+import QrIcon from '@/svgs/qr-code-line.svg'
+import QrScanIcon from '@/svgs/qr-scan-line.svg'
+import { useShowModal } from './modal'
+import { QRCodeSVG } from 'qrcode.react'
+import { Scanner } from '@yudiel/react-qr-scanner'
+import { qrImageSettings } from './qr'
 import { useIsClient } from './use-client'
 
 export class SessionRequiredError extends Error {
@@ -70,31 +77,41 @@ export function SubmitButton ({
   )
 }
 
-export function CopyInput (props) {
+function CopyButton ({ value, icon, ...props }) {
   const toaster = useToast()
   const [copied, setCopied] = useState(false)
 
-  const handleClick = async () => {
+  const handleClick = useCallback(async () => {
     try {
-      await copy(props.placeholder)
+      await copy(value)
       toaster.success('copied')
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch (err) {
       toaster.danger('failed to copy')
     }
+  }, [toaster, value])
+
+  if (icon) {
+    return (
+      <InputGroup.Text style={{ cursor: 'pointer' }} onClick={handleClick}>
+        <Clipboard height={20} width={20} />
+      </InputGroup.Text>
+    )
   }
 
   return (
+    <Button className={styles.appendButton} {...props} onClick={handleClick}>
+      {copied ? <Thumb width={18} height={18} /> : 'copy'}
+    </Button>
+  )
+}
+
+export function CopyInput (props) {
+  return (
     <Input
-      onClick={handleClick}
       append={
-        <Button
-          className={styles.appendButton}
-          size={props.size}
-          onClick={handleClick}
-        >{copied ? <Thumb width={18} height={18} /> : 'copy'}
-        </Button>
+        <CopyButton value={props.placeholder} size={props.size} />
       }
       {...props}
     />
@@ -713,10 +730,11 @@ export function InputUserSuggest ({
   )
 }
 
-export function Input ({ label, groupClassName, ...props }) {
+export function Input ({ label, groupClassName, under, ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
       <InputInner {...props} />
+      {under}
     </FormGroup>
   )
 }
@@ -1054,7 +1072,7 @@ function Client (Component) {
     // where the initial value is not available on first render.
     // Example: value is stored in localStorage which is fetched
     // after first render using an useEffect hook.
-    const [,, helpers] = useField(props)
+    const [,, helpers] = props.noForm ? [{}, {}, {}] : useField(props)
 
     useEffect(() => {
       initialValue && helpers.setValue(initialValue)
@@ -1072,24 +1090,121 @@ function PasswordHider ({ onClick, showPass }) {
     >
       {!showPass
         ? <Eye
-            fill='var(--bs-body-color)' height={20} width={20}
+            fill='var(--bs-body-color)' height={16} width={16}
           />
         : <EyeClose
-            fill='var(--bs-body-color)' height={20} width={20}
+            fill='var(--bs-body-color)' height={16} width={16}
           />}
     </InputGroup.Text>
   )
 }
 
-export function PasswordInput ({ newPass, ...props }) {
+function QrPassword ({ value }) {
+  const showModal = useShowModal()
+  const toaster = useToast()
+
+  const showQr = useCallback(() => {
+    showModal(close => (
+      <div>
+        <p className='line-height-md text-muted'>Import this passphrase into another device by navigating to device sync settings and scanning this QR code</p>
+        <div className='d-block p-3 mx-auto' style={{ background: 'white', maxWidth: '300px' }}>
+          <QRCodeSVG className='h-auto mw-100' value={value} size={300} imageSettings={qrImageSettings} />
+        </div>
+      </div>
+    ))
+  }, [toaster, value, showModal])
+
+  return (
+    <>
+      <InputGroup.Text
+        style={{ cursor: 'pointer' }}
+        onClick={showQr}
+      >
+        <QrIcon height={16} width={16} />
+      </InputGroup.Text>
+    </>
+  )
+}
+
+function PasswordScanner ({ onScan }) {
+  const showModal = useShowModal()
+  const toaster = useToast()
+
+  return (
+    <InputGroup.Text
+      style={{ cursor: 'pointer' }}
+      onClick={() => {
+        showModal(onClose => {
+          return (
+            <Scanner
+              formats={['qr_code']}
+              onScan={([{ rawValue: result }]) => {
+                onScan(result)
+                onClose()
+              }}
+              styles={{
+                video: {
+                  aspectRatio: '1 / 1'
+                }
+              }}
+              onError={(error) => {
+                if (error instanceof DOMException) {
+                  console.log(error)
+                } else {
+                  toaster.danger('qr scan: ' + error?.message || error?.toString?.())
+                }
+                onClose()
+              }}
+            />
+          )
+        })
+      }}
+    >
+      <QrScanIcon
+        height={20} width={20} fill='var(--bs-body-color)'
+      />
+    </InputGroup.Text>
+  )
+}
+
+export function PasswordInput ({ newPass, qr, copy, readOnly, append, value, ...props }) {
   const [showPass, setShowPass] = useState(false)
+  const [field, helpers] = props.noForm ? [{ value }, {}, {}] : useField(props)
+
+  const Append = useMemo(() => {
+    return (
+      <>
+        <PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />
+        {copy && (
+          <CopyButton icon value={field?.value} />
+        )}
+        {qr && (readOnly
+          ? <QrPassword value={field?.value} />
+          : <PasswordScanner
+              onScan={v => helpers.setValue(v)}
+            />)}
+        {append}
+      </>
+    )
+  }, [showPass, copy, field?.value, qr, readOnly, append])
+
+  const maskedValue = !showPass && props.as === 'textarea' ? field?.value?.replace(/./g, '•') : field?.value
 
   return (
     <ClientInput
       {...props}
+      className={styles.passwordInput}
       type={showPass ? 'text' : 'password'}
       autoComplete={newPass ? 'new-password' : 'current-password'}
-      append={<PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />}
+      readOnly={readOnly}
+      append={props.as === 'textarea' ? undefined : Append}
+      value={maskedValue}
+      under={props.as === 'textarea'
+        ? (
+          <div className='mt-2 d-flex justify-content-end' style={{ gap: '8px' }}>
+            {Append}
+          </div>)
+        : undefined}
     />
   )
 }

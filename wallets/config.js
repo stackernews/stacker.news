@@ -87,8 +87,14 @@ export function useWalletConfigurator (wallet) {
       if (canReceive({ def: wallet.def, config: serverConfig })) {
         await _saveToServer(serverConfig, clientConfig, validateLightning)
       } else if (wallet.config.id) {
-        // if it previously had a server config, remove it
-        await _detachFromServer()
+        // we previously had a server config
+        if (wallet.vaultEntries.length > 0) {
+          // we previously had a server config with vault entries, save it
+          await _saveToServer(serverConfig, clientConfig, validateLightning)
+        } else {
+          // we previously had a server config without vault entries, remove it
+          await _detachFromServer()
+        }
       }
     }
   }, [isActive, wallet.def, _saveToServer, _saveToLocal, _validate,

@@ -87,7 +87,7 @@ export function WalletsProvider ({ children }) {
 
         // the specific wallet config on the server is stored in wallet.wallet
         // on the client, it's stored unnested
-        wallets.push({ config: { ...config, ...w.wallet }, def })
+        wallets.push({ config: { ...config, ...w.wallet }, def, vaultEntries })
       }
 
       setServerWallets(wallets)
@@ -109,7 +109,8 @@ export function WalletsProvider ({ children }) {
               value ?? merged[wallet.def.name]?.config?.[key]
             ])
           )
-        }
+        },
+        vaultEntries: wallet.vaultEntries
       }
     }
 

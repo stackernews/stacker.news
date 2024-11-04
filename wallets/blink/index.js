@@ -16,7 +16,7 @@ export const fields = [
       .matches(/^blink_[A-Za-z0-9]+$/, { message: 'must match pattern blink_A-Za-z0-9' }),
     help: `you can get an API key from [Blink Dashboard](${galoyBlinkDashboardUrl}).\nPlease make sure to select ONLY the 'Read' and 'Write' scopes when generating this API key.`,
     optional: 'for sending',
-    requiredWithout: ['apiKeyRecv']
+    requiredWithout: 'apiKeyRecv'
   },
   {
     name: 'currency',
@@ -40,7 +40,7 @@ export const fields = [
     placeholder: 'blink_...',
     optional: 'for receiving',
     serverOnly: true,
-    requiredWithout: ['apiKey'],
+    requiredWithout: 'apiKey',
     validate: string()
       .matches(/^blink_[A-Za-z0-9]+$/, { message: 'must match pattern blink_A-Za-z0-9' })
   },

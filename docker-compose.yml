@@ -552,8 +552,8 @@ services:
         condition: service_healthy
         restart: true
     volumes:
-      - ./docker/lnd/stacker:/app/.lnd
       - nwc_send:/app
+      - stacker_lnd:/app/.lnd
     environment:
       - RUST_LOG=info
     entrypoint:
@@ -561,7 +561,7 @@ services:
       - '--relay'
       - 'wss://relay.primal.net'
       - '--macaroon-file'
-      - '/app/.lnd/regtest/admin.macaroon'
+      - '/app/.lnd/data/chain/bitcoin/regtest/admin.macaroon'
       - '--cert-file'
       - '/app/.lnd/tls.cert'
       - '--lnd-host'
@@ -586,8 +586,8 @@ services:
         condition: service_healthy
         restart: true
     volumes:
-      - ./docker/lnd/stacker:/app/.lnd
       - nwc_recv:/app
+      - stacker_lnd:/app/.lnd
     environment:
       - RUST_LOG=info
     entrypoint:
@@ -595,7 +595,7 @@ services:
       - '--relay'
       - 'wss://relay.primal.net'
       - '--invoice-macaroon-file'
-      - '/app/.lnd/regtest/invoice.macaroon'
+      - '/app/.lnd/data/chain/bitcoin/regtest/invoice.macaroon'
       - '--cert-file'
       - '/app/.lnd/tls.cert'
       - '--lnd-host'
@@ -631,9 +631,9 @@ services:
       - LND_GRPC_ENDPOINT=stacker_lnd
       - LND_GRPC_PORT=10009
       - LND_GRPC_CERT=/app/.lnd/tls.cert
-      - LND_GRPC_MACAROON=/app/.lnd/regtest/admin.macaroon
+      - LND_GRPC_MACAROON=/app/.lnd/data/chain/bitcoin/regtest/admin.macaroon
     volumes:
-      - ./docker/lnd/stacker:/app/.lnd
+      - stacker_lnd:/app/.lnd
       - tordata:/app/.tor
     labels:
       CONNECT: "localhost:${LNBITS_WEB_PORT}"

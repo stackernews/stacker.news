@@ -64,7 +64,7 @@ docker__stacker_cln() {
   fi
 
   if [ "$1" = "get_onion" ]; then
-    onion="$(docker__exec -t stacker_cln cat /home/clightning/.tor/hidden_service/hostname | tr -d '[:space:]')"
+    onion="$(docker__exec $t stacker_cln cat /home/clightning/.tor/hidden_service/hostname | tr -d '[:space:]')"
     echo "$onion:3010"
     exit 0
   fi
@@ -671,7 +671,7 @@ COMMANDS
     tor get_onion          get the onion address
     stacker_lnd get_cert   get the tls cert
     stacker_lnd get_onion  get the onion address
-    stacker_cln get_onion  get the onion address
+    stacker_clncli get_onion  get the onion address
     lndbits get_onion      get the onion address
 "
   echo "$help"

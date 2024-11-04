@@ -268,7 +268,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     if (hasMore) {
       setLoading(true)
       const result = await loadLogsPage(page + 1, logsPerPage, wallet?.def)
-      setLogs(prevLogs => [...prevLogs, ...result.data])
+      _setLogs(prevLogs => [...prevLogs, ...result.data])
       setHasMore(result.hasMore)
       setPage(prevPage => prevPage + 1)
       setLoading(false)
@@ -280,7 +280,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     const variables = { from: newestTs?.toString(), to: null }
     const result = await loadLogsPage(1, logsPerPage, wallet?.def, variables)
     setLoading(false)
-    setLogs(prevLogs => uniqueSort([...result.data, ...prevLogs]))
+    _setLogs(prevLogs => uniqueSort([...result.data, ...prevLogs]))
     if (!newestTs) {
       // we only want to update the more button if we didn't fetch new logs since it is about old logs.
       // we didn't fetch new logs if this is our first fetch (no newest timestamp available)

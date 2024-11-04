@@ -173,7 +173,7 @@ function tag (walletDef) {
 }
 
 export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
-  const [logs, setLogs] = useState([])
+  const [logs, _setLogs] = useState([])
   const [page, setPage] = useState(initialPage)
   const [hasMore, setHasMore] = useState(true)
   const [total, setTotal] = useState(0)
@@ -182,6 +182,14 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
 
   const { getPage, error, notSupported } = useWalletLogDB()
   const [getWalletLogs] = useLazyQuery(WALLET_LOGS, SSR ? {} : { fetchPolicy: 'cache-and-network' })
+
+  const setLogs = useCallback((action) => {
+    _setLogs(action)
+    // action can be a React state dispatch function
+    const newLogs = typeof action === 'function' ? action(logs) : action
+    // make sure 'more' button is removed if logs were deleted
+    if (newLogs.length === 0) setHasMore(false)
+  }, [logs, _setLogs, setHasMore])
 
   const loadLogsPage = useCallback(async (page, pageSize, walletDef) => {
     try {
@@ -253,11 +261,6 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
   useEffect(() => {
     loadLogs()
   }, [wallet?.def])
-
-  useEffect(() => {
-    // make sure 'more' button is removed if logs are deleted
-    if (logs.length === 0) setHasMore(false)
-  }, [logs?.length])
 
   return { logs, hasMore, total, loadMore, loadLogs, setLogs, loading }
 }

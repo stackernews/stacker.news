@@ -20,11 +20,10 @@ export default function Wallet ({ ssrData }) {
   const reorder = useCallback(async (sourceIndex, targetIndex) => {
     const newOrder = [...wallets.filter(w => w.config?.enabled)]
     const [source] = newOrder.splice(sourceIndex, 1)
-    const newTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
 
-    const priorities = newOrder.slice(0, newTargetIndex)
+    const priorities = newOrder.slice(0, targetIndex)
       .concat(source)
-      .concat(newOrder.slice(newTargetIndex))
+      .concat(newOrder.slice(targetIndex))
       .map((w, i) => ({ wallet: w, priority: i }))
 
     await setPriorities(priorities)

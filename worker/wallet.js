@@ -296,7 +296,7 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
 
     const fee = Number(wdrwl.payment.fee_mtokens)
     const paid = Number(wdrwl.payment.mtokens) - fee
-    const [{ confirm_withdrawl: code }] = await serialize([
+    const [[{ confirm_withdrawl: code }]] = await serialize([
       models.$queryRaw`SELECT confirm_withdrawl(${dbWdrwl.id}::INTEGER, ${paid}, ${fee})`,
       models.withdrawl.update({
         where: { id: dbWdrwl.id },

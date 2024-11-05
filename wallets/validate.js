@@ -62,6 +62,7 @@ function composeWalletSchema (walletDef, serverSide, skipGenerated) {
   const { fields } = walletDef
 
   const vaultEntrySchemas = { required: [], optional: [] }
+  const cycleBreaker = []
   const schemaShape = fields.reduce((acc, field) => {
     const { name, validate, optional, generated, clientOnly, requiredWithout } = field
 
@@ -78,8 +79,14 @@ function composeWalletSchema (walletDef, serverSide, skipGenerated) {
       if (!optional) {
         acc[name] = acc[name].required('required')
       } else if (requiredWithout) {
+        const myName = serverSide ? 'vaultEntries' : name
+        const partnerName = serverSide ? 'vaultEntries' : requiredWithout
+        // if a cycle breaker between this pair hasn't been added yet, add it
+        if (!cycleBreaker.some(pair => pair[1] === myName)) {
+          cycleBreaker.push([myName, partnerName])
+        }
         // if we are the server, the pairSetting will be in the vaultEntries array
-        acc[name] = acc[name].when([serverSide ? 'vaultEntries' : requiredWithout], ([pairSetting], schema) => {
+        acc[name] = acc[name].when([partnerName], ([pairSetting], schema) => {
           if (!pairSetting || (serverSide && !pairSetting.some(v => v.key === requiredWithout))) {
             return schema.required(`required if ${requiredWithout} not set`)
           }
@@ -99,9 +106,9 @@ function composeWalletSchema (walletDef, serverSide, skipGenerated) {
     schemaShape.vaultEntries = Yup.array().equalto(vaultEntrySchemas)
   }
 
-  // we use Object.keys(schemaShape).reverse() to avoid cyclic dependencies in Yup schema
+  // we use cycleBreaker to avoid cyclic dependencies in Yup schema
   // see https://github.com/jquense/yup/issues/176#issuecomment-367352042
-  const composedSchema = Yup.object().shape(schemaShape, Object.keys(schemaShape).reverse()).concat(Yup.object({
+  const composedSchema = Yup.object().shape(schemaShape, cycleBreaker).concat(Yup.object({
     enabled: Yup.boolean(),
     priority: Yup.number().min(0, 'must be at least 0').max(100, 'must be at most 100')
   }))

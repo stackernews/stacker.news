@@ -5,7 +5,6 @@
 
 .timestamp {
     vertical-align: top;
-    text-align: end;
     text-wrap: nowrap;
     justify-self: first baseline;
 }

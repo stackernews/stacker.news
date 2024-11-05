@@ -30,6 +30,13 @@ export function WalletLogs ({ wallet, embedded }) {
       </div>
       <div className={`${styles.logTable} ${embedded ? styles.embedded : ''}`}>
         <table>
+          <colgroup>
+            <col span='1' style={{ width: '1rem' }} />
+            <col span='1' style={{ width: '1rem' }} />
+            <col span='1' style={{ width: '1rem' }} />
+            <col span='1' style={{ width: '100%' }} />
+            <col span='1' style={{ width: '1rem' }} />
+          </colgroup>
           <tbody>
             {logs.map((log, i) => (
               <LogMessage

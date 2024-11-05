@@ -34,14 +34,18 @@ export default function LogMessage ({ showWallet, wallet, level, message, contex
         <td className={styles.timestamp}>{timeSince(new Date(ts))}</td>
         {showWallet ? <td className={styles.wallet}>[{wallet}]</td> : <td className='mx-1' />}
         <td className={`${styles.level} ${className}`}>{level}</td>
-        <td>{indicator} {message}</td>
+        <td>{message}</td>
+        <td>{indicator}</td>
       </tr>
-      {show && hasContext && Object.entries(context).map(([key, value], i) => (
-        <tr className={styles.line} key={i}>
-          <td colspan='3'>{key}</td>
-          <td className='text-break'>{value}</td>
-        </tr>
-      ))}
+      {show && hasContext && Object.entries(context).map(([key, value], i) => {
+        const last = i === Object.keys(context).length - 1
+        return (
+          <tr className={styles.line} key={i}>
+            <td className={last ? 'pb-2' : ''} colspan='3'>{key}</td>
+            <td className={last ? 'text-break pb-2' : 'text-break'}>{value}</td>
+          </tr>
+        )
+      })}
     </>
   )
 }

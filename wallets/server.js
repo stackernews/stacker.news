@@ -18,7 +18,7 @@ import { toPositiveNumber } from '@/lib/validate'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { withTimeout } from '@/lib/time'
 import { canReceive } from './common'
-import { formatMsats } from '@/lib/format'
+import { formatMsats, formatSats, msatsToSats } from '@/lib/format'
 
 export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
 
@@ -51,7 +51,11 @@ export async function createInvoice (userId, { msats, description, descriptionHa
     const logger = walletLogger({ wallet, models })
 
     try {
-      await logger.info(`↙ incoming payment: ${formatMsats(msats)}`)
+      await logger.info(
+        `↙ incoming payment: ${formatSats(msatsToSats(msats))}`,
+        {
+          amount: formatMsats(msats)
+        })
 
       let invoice
       try {
@@ -65,8 +69,9 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 
       const bolt11 = await parsePaymentRequest({ request: invoice })
 
-      await logger.info(`created invoice for ${formatMsats(bolt11.mtokens)}`, {
+      await logger.info(`created invoice for ${formatSats(msatsToSats(bolt11.mtokens))}`, {
         bolt11: invoice,
+        amount: formatMsats(bolt11.mtokens),
         payment_hash: bolt11.id,
         description: bolt11.description,
         created_at: bolt11.created_at,

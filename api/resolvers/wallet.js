@@ -7,7 +7,7 @@ import crypto, { timingSafeEqual } from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
-import { formatMsats, msatsToSats, msatsToSatsDecimal } from '@/lib/format'
+import { formatMsats, formatSats, msatsToSats, msatsToSatsDecimal } from '@/lib/format'
 import {
   ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS,
   INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, LND_PATHFINDING_TIMEOUT_MS
@@ -880,9 +880,25 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     max_fee: Number(maxFee),
     pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS
   }).then((result) => {
-    return logger?.ok(`↙ payment received: ${formatMsats(decoded.mtokens)} with ${formatMsats(Number(result.fee_mtokens))} as fee`)
+    return logger?.ok(
+      `↙ payment received: ${formatSats(msatsToSats(decoded.mtokens))}`,
+      {
+        bolt11: invoice,
+        msats: formatMsats(decoded.mtokens),
+        payment_hash: result.id,
+        preimage: result.secret,
+        fee: formatMsats(Number(result.fee_mtokens))
+      })
   }).catch(err => {
-    return logger?.error('withdrawal failed:', err.message)
+    // TODO: LND error might be in different shape
+    return logger?.error(
+      `withdrawal failed: ${err.message}`,
+      {
+        bolt11: invoice,
+        amount: formatMsats(decoded.mtokens),
+        payment_hash: decoded.id,
+        max_fee: formatMsats(msatsFee)
+      })
   })
 
   return withdrawl

@@ -28,7 +28,7 @@ export function WalletLogs ({ wallet, embedded }) {
         >clear logs
         </span>
       </div>
-      <div className={`${styles.logTable} ${embedded ? styles.embedded : ''}`}>
+      <div className={`${styles.tableContainer} ${embedded ? styles.embedded : ''}`}>
         <table>
           <colgroup>
             <col span='1' style={{ width: '1rem' }} />

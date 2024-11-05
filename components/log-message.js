@@ -1,5 +1,5 @@
 import { timeSince } from '@/lib/time'
-import styles from './log-message.module.css'
+import styles from '@/styles/log.module.css'
 import { Fragment, useState } from 'react'
 
 export default function LogMessage ({ showWallet, wallet, level, message, context, ts }) {
@@ -30,7 +30,7 @@ export default function LogMessage ({ showWallet, wallet, level, message, contex
 
   return (
     <>
-      <tr className={styles.line} onClick={handleClick} style={style}>
+      <tr className={styles.tableRow} onClick={handleClick} style={style}>
         <td className={styles.timestamp}>{timeSince(new Date(ts))}</td>
         {showWallet ? <td className={styles.wallet}>[{wallet}]</td> : <td className='mx-1' />}
         <td className={`${styles.level} ${className}`}>{level}</td>

@@ -41,7 +41,8 @@ export default function LogMessage ({ showWallet, wallet, level, message, contex
         const last = i === Object.keys(context).length - 1
         return (
           <tr className={styles.line} key={i}>
-            <td className={last ? 'pb-2' : ''} colspan='3'>{key}</td>
+            <td />
+            <td className={last ? 'pb-2' : ''} colspan='2'>{key}</td>
             <td className={last ? 'text-break pb-2' : 'text-break'}>{value}</td>
           </tr>
         )

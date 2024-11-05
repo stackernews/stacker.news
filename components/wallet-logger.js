@@ -173,7 +173,7 @@ function tag (walletDef) {
 }
 
 export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
-  const [logs, setLogs] = useState([])
+  const [logs, _setLogs] = useState([])
   const [page, setPage] = useState(initialPage)
   const [hasMore, setHasMore] = useState(true)
   const [total, setTotal] = useState(0)
@@ -182,6 +182,14 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
 
   const { getPage, error, notSupported } = useWalletLogDB()
   const [getWalletLogs] = useLazyQuery(WALLET_LOGS, SSR ? {} : { fetchPolicy: 'cache-and-network' })
+
+  const setLogs = useCallback((action) => {
+    _setLogs(action)
+    // action can be a React state dispatch function
+    const newLogs = typeof action === 'function' ? action(logs) : action
+    // make sure 'more' button is removed if logs were deleted
+    if (newLogs.length === 0) setHasMore(false)
+  }, [logs, _setLogs, setHasMore])
 
   const loadLogsPage = useCallback(async (page, pageSize, walletDef) => {
     try {
@@ -193,14 +201,14 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
         const query = walletDef ? window.IDBKeyRange.bound([tag(walletDef), -Infinity], [tag(walletDef), Infinity]) : null
 
         result = await getPage(page, pageSize, indexName, query, 'prev')
-        // no walletType means we're using the local IDB
-        if (!walletDef?.walletType) {
+        // if given wallet has no walletType it means logs are only stored in local IDB
+        if (walletDef && !walletDef.walletType) {
           return result
         }
       }
       const { data } = await getWalletLogs({
         variables: {
-          type: walletDef.walletType,
+          type: walletDef?.walletType,
           // if it client logs has more, page based on it's range
           from: result?.data[result.data.length - 1]?.ts && result.hasMore ? String(result.data[result.data.length - 1].ts) : null,
           // if we have a cursor (this isn't the first page), page based on it's range

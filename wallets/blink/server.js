@@ -54,7 +54,7 @@ export async function createInvoice (
   const res = out.data.lnInvoiceCreate
   const errors = res.errors
   if (errors && errors.length > 0) {
-    throw new Error('failed to create invoice ' + errors.map(e => e.code + ' ' + e.message).join(', '))
+    throw new Error(errors.map(e => e.code + ' ' + e.message).join(', '))
   }
   const invoice = res.invoice.paymentRequest
   return invoice

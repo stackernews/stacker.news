@@ -1,8 +1,8 @@
-import { useMutation, useQuery } from '@apollo/client'
+import { useMutation, useQuery, makeVar, useReactiveVar } from '@apollo/client'
 import { useMe } from '../me'
 import { useToast } from '../toast'
 import useIndexedDB, { getDbName } from '../use-indexeddb'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { E_VAULT_KEY_EXISTS } from '@/lib/error'
 import { CLEAR_VAULT, GET_VAULT_ENTRIES, UPDATE_VAULT_KEY } from '@/fragments/vault'
 import { toHex } from '@/lib/hex'
@@ -18,6 +18,11 @@ const useImperativeQuery = (query) => {
   return imperativelyCallQuery
 }
 
+// reactive variable to store the vault key shared by all vaults
+// so all vaults can react to changes in the vault key
+// an alternative is to create a vault context which may be more idiomatic(?)
+const keyReactiveVar = makeVar(null)
+
 export function useVaultConfigurator ({ onVaultKeySet, beforeDisconnectVault } = {}) {
   const { me } = useMe()
   const toaster = useToast()
@@ -25,49 +30,48 @@ export function useVaultConfigurator ({ onVaultKeySet, beforeDisconnectVault } =
   const { set, get, remove } = useIndexedDB(idbConfig)
   const [updateVaultKey] = useMutation(UPDATE_VAULT_KEY)
   const getVaultEntries = useImperativeQuery(GET_VAULT_ENTRIES)
-  const [key, setKey] = useState(null)
-  const [keyHash, setKeyHash] = useState(null)
+  const key = useReactiveVar(keyReactiveVar)
+
+  const disconnectVault = useCallback(async () => {
+    console.log('disconnecting vault')
+    beforeDisconnectVault?.()
+    await remove('key')
+    keyReactiveVar(null)
+  }, [remove, keyReactiveVar])
 
   useEffect(() => {
     if (!me) return
+
     (async () => {
       try {
-        let localVaultKey = await get('key')
-        const localKeyHash = me?.privates?.vaultKeyHash || keyHash
-        if (localVaultKey?.hash && localVaultKey?.hash !== localKeyHash) {
-          // If the hash stored in the server does not match the hash of the local key,
-          // we can tell that the key is outdated (reset by another device or other reasons)
-          // in this case we clear the local key and let the user re-enter the passphrase
-          console.log('vault key hash mismatch, clearing local key', localVaultKey?.hash, '!=', localKeyHash)
-          localVaultKey = null
-          await remove('key')
+        const localVaultKey = await get('key')
+        if (localVaultKey?.hash && localVaultKey?.hash !== me?.privates?.vaultKeyHash) {
+        // If the hash stored in the server does not match the hash of the local key,
+        // we can tell that the key is outdated (reset by another device or other reasons)
+        // in this case we clear the local key and let the user re-enter the passphrase
+          console.log('vault key hash mismatch, clearing local key', localVaultKey?.hash, '!=', me?.privates?.vaultKeyHash)
+          await disconnectVault()
+          return
         }
-        setKey(localVaultKey)
+        keyReactiveVar(localVaultKey)
       } catch (e) {
+        console.error('error loading vault configuration', e)
         // toaster?.danger('error loading vault configuration ' + e.message)
       }
     })()
-  }, [me?.privates?.vaultKeyHash, keyHash, get, remove, setKey])
+  }, [me?.privates?.vaultKeyHash, get, remove, keyReactiveVar, disconnectVault])
 
   // clear vault: remove everything and reset the key
   const [clearVault] = useMutation(CLEAR_VAULT, {
     onCompleted: async () => {
       try {
         await remove('key')
-        setKey(null)
-        setKeyHash(null)
+        keyReactiveVar(null)
       } catch (e) {
         toaster.danger('error clearing vault ' + e.message)
       }
     }
   })
-
-  const disconnectVault = useCallback(async () => {
-    beforeDisconnectVault?.()
-    await remove('key')
-    setKey(null)
-    setKeyHash(null)
-  }, [remove, setKey, setKeyHash])
 
   // initialize the vault and set a vault key
   const setVaultKey = useCallback(async (passphrase) => {
@@ -99,14 +103,14 @@ export function useVaultConfigurator ({ onVaultKeySet, beforeDisconnectVault } =
         }
       })
 
-      setKey(vaultKey)
-      setKeyHash(vaultKey.hash)
       await set('key', vaultKey)
       onVaultKeySet?.(encrypt).catch(console.error)
+      keyReactiveVar(vaultKey)
     } catch (e) {
+      console.error('error setting vault key', e)
       toaster.danger(e.message)
     }
-  }, [getVaultEntries, updateVaultKey, set, get, remove, onVaultKeySet])
+  }, [getVaultEntries, updateVaultKey, set, get, remove, onVaultKeySet, keyReactiveVar])
 
   return { key, setVaultKey, clearVault, disconnectVault }
 }

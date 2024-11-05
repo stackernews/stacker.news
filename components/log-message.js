@@ -19,7 +19,7 @@ export default function LogMessage ({ showWallet, wallet, level, message, contex
       className = 'text-info'
   }
 
-  const hasContext = Object.keys(context).length > 0
+  const hasContext = context && Object.keys(context).length > 0
 
   const handleClick = () => {
     if (hasContext) { setShow(show => !show) }

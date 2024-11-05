@@ -1188,12 +1188,18 @@ export function PasswordInput ({ newPass, qr, copy, readOnly, append, value, ...
     )
   }, [showPass, copy, field?.value, qr, readOnly, append])
 
+  const style = props.style ? { ...props.style } : {}
+  if (props.as === 'textarea') {
+    if (!showPass) {
+      style.WebkitTextSecurity = 'disc'
+    } else {
+      if (style.WebkitTextSecurity) delete style.WebkitTextSecurity
+    }
+  }
   return (
     <ClientInput
       {...props}
-      {
-        ...(!showPass && props.as === 'textarea') ? { style: { '-webkit-text-security': 'disc' } } : {}
-      }
+      style={style}
       className={styles.passwordInput}
       type={showPass ? 'text' : 'password'}
       autoComplete={newPass ? 'new-password' : 'current-password'}

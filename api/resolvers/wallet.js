@@ -566,11 +566,7 @@ const resolvers = {
         throw new GqlInputError('wallet not found')
       }
 
-      await models.$transaction([
-        models.wallet.delete({ where: { userId: me.id, id: Number(id) } }),
-        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'INFO', message: 'receives disabled' } }),
-        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet detached for receives' } })
-      ])
+      await models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
 
       return true
     },
@@ -706,9 +702,7 @@ async function upsertWallet (
       await testCreateInvoice(data)
     } catch (err) {
       const message = 'failed to create test invoice: ' + (err.message || err.toString?.())
-      wallet = { ...wallet, userId: me.id }
       await logger.error(message)
-      await logger.info('receives disabled')
       throw new GqlInputError(message)
     }
   }

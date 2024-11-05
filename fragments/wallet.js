@@ -191,6 +191,7 @@ export const WALLET_LOGS = gql`
           wallet
           level
           message
+          context
         }
       }
   }

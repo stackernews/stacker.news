@@ -104,8 +104,8 @@ function useWalletLogDB () {
 export function useWalletLogger (wallet, setLogs) {
   const { add, clear, notSupported } = useWalletLogDB()
 
-  const appendLog = useCallback(async (wallet, level, message) => {
-    const log = { wallet: tag(wallet), level, message, ts: +new Date() }
+  const appendLog = useCallback(async (wallet, level, message, context) => {
+    const log = { wallet: tag(wallet), level, message, ts: +new Date(), context }
     try {
       if (notSupported) {
         console.log('cannot persist wallet log: indexeddb not supported')
@@ -150,20 +150,20 @@ export function useWalletLogger (wallet, setLogs) {
     }
   }, [clear, deleteServerWalletLogs, setLogs, notSupported])
 
-  const log = useCallback(level => message => {
+  const log = useCallback(level => (message, context) => {
     if (!wallet) {
       // console.error('cannot log: no wallet set')
       return
     }
 
-    appendLog(wallet, level, message)
+    appendLog(wallet, level, message, context)
     console[level !== 'error' ? 'info' : 'error'](`[${tag(wallet)}]`, message)
   }, [appendLog, wallet])
 
   const logger = useMemo(() => ({
-    ok: (...message) => log('ok')(message.join(' ')),
-    info: (...message) => log('info')(message.join(' ')),
-    error: (...message) => log('error')(message.join(' '))
+    ok: (message, context) => log('ok')(message, context),
+    info: (message, context) => log('info')(message, context),
+    error: (message, context) => log('error')(message, context)
   }), [log])
 
   return { logger, deleteLogs }

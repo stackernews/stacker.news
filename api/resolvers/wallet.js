@@ -668,14 +668,15 @@ export default injectResolvers(resolvers)
 
 export const walletLogger = ({ wallet, models }) => {
   // server implementation of wallet logger interface on client
-  const log = (level) => async message => {
+  const log = (level) => async (message, context = {}) => {
     try {
       await models.walletLog.create({
         data: {
           userId: wallet.userId,
           wallet: wallet.type,
           level,
-          message
+          message,
+          context
         }
       })
     } catch (err) {
@@ -684,10 +685,10 @@ export const walletLogger = ({ wallet, models }) => {
   }
 
   return {
-    ok: (...message) => log('SUCCESS')(message.join(' ')),
-    info: (...message) => log('INFO')(message.join(' ')),
-    error: (...message) => log('ERROR')(message.join(' ')),
-    warn: (...message) => log('WARN')(message.join(' '))
+    ok: (message, context) => log('SUCCESS')(message, context),
+    info: (message, context) => log('INFO')(message, context),
+    error: (message, context) => log('ERROR')(message, context),
+    warn: (message, context) => log('WARN')(message, context)
   }
 }
 

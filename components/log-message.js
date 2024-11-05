@@ -1,7 +1,10 @@
 import { timeSince } from '@/lib/time'
 import styles from './log-message.module.css'
+import { Fragment, useState } from 'react'
 
-export default function LogMessage ({ showWallet, wallet, level, message, ts }) {
+export default function LogMessage ({ showWallet, wallet, level, message, context, ts }) {
+  const [show, setShow] = useState(false)
+
   let className
   switch (level.toLowerCase()) {
     case 'ok':
@@ -15,12 +18,30 @@ export default function LogMessage ({ showWallet, wallet, level, message, ts }) 
     default:
       className = 'text-info'
   }
+
+  const hasContext = Object.keys(context).length > 0
+
+  const handleClick = () => {
+    if (hasContext) { setShow(show => !show) }
+  }
+
+  const style = hasContext ? { cursor: 'pointer' } : { cursor: 'inherit' }
+  const indicator = hasContext ? (show ? '-' : '+') : <></>
+
   return (
-    <tr className={styles.line}>
-      <td className={styles.timestamp}>{timeSince(new Date(ts))}</td>
-      {showWallet ? <td className={styles.wallet}>[{wallet}]</td> : <td className='mx-1' />}
-      <td className={`${styles.level} ${className}`}>{level}</td>
-      <td>{message}</td>
-    </tr>
+    <>
+      <tr className={styles.line} onClick={handleClick} style={style}>
+        <td className={styles.timestamp}>{timeSince(new Date(ts))}</td>
+        {showWallet ? <td className={styles.wallet}>[{wallet}]</td> : <td className='mx-1' />}
+        <td className={`${styles.level} ${className}`}>{level}</td>
+        <td>{indicator} {message}</td>
+      </tr>
+      {show && hasContext && Object.entries(context).map(([key, value], i) => (
+        <tr className={styles.line} key={i}>
+          <td colspan='3'>{key}</td>
+          <td className='text-break'>{value}</td>
+        </tr>
+      ))}
+    </>
   )
 }

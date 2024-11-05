@@ -232,13 +232,13 @@ export function useWallet (name) {
 
   const sendPayment = useCallback(async (bolt11) => {
     const hash = bolt11Tags(bolt11).payment_hash
-    logger.info('sending payment:', `payment_hash=${hash}`)
+    logger.info(`sending payment: payment_hash=${hash}`)
     try {
       const preimage = await wallet.def.sendPayment(bolt11, wallet.config, { logger })
-      logger.ok('payment successful:', `payment_hash=${hash}`, `preimage=${preimage}`)
+      logger.ok(`payment successful: payment_hash=${hash} preimage=${preimage}`)
     } catch (err) {
       const message = err.message || err.toString?.()
-      logger.error('payment failed:', `payment_hash=${hash}`, message)
+      logger.error(`payment failed: payment_hash=${hash} ${message}`)
       throw err
     }
   }, [wallet, logger])

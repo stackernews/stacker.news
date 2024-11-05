@@ -65,7 +65,13 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 
       const bolt11 = await parsePaymentRequest({ request: invoice })
 
-      await logger.info(`created invoice for ${formatMsats(bolt11.mtokens)}`)
+      await logger.info(`created invoice for ${formatMsats(bolt11.mtokens)}`, {
+        bolt11: invoice,
+        payment_hash: bolt11.id,
+        description: bolt11.description,
+        created_at: bolt11.created_at,
+        expires_at: bolt11.expires_at
+      })
 
       if (BigInt(bolt11.mtokens) !== BigInt(msats)) {
         if (BigInt(bolt11.mtokens) > BigInt(msats)) {

@@ -1188,17 +1188,18 @@ export function PasswordInput ({ newPass, qr, copy, readOnly, append, value, ...
     )
   }, [showPass, copy, field?.value, qr, readOnly, append])
 
-  const maskedValue = !showPass && props.as === 'textarea' ? field?.value?.replace(/./g, '•') : field?.value
-
   return (
     <ClientInput
       {...props}
+      {
+        ...(!showPass && props.as === 'textarea') ? { style: { '-webkit-text-security': 'disc' } } : {}
+      }
       className={styles.passwordInput}
       type={showPass ? 'text' : 'password'}
       autoComplete={newPass ? 'new-password' : 'current-password'}
       readOnly={readOnly}
       append={props.as === 'textarea' ? undefined : Append}
-      value={maskedValue}
+      value={field?.value}
       under={props.as === 'textarea'
         ? (
           <div className='mt-2 d-flex justify-content-end' style={{ gap: '8px' }}>

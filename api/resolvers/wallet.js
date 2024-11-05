@@ -668,7 +668,6 @@ export const walletLogger = ({ wallet, models }) => {
   // server implementation of wallet logger interface on client
   const log = (level) => async message => {
     try {
-      console.log(message)
       await models.walletLog.create({
         data: {
           userId: wallet.userId,

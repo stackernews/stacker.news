@@ -38,7 +38,7 @@ export default function WalletSettings () {
       // 'enabled' and 'priority' which are not defined in wallet.fields.
       return {
         ...acc,
-        [field.name]: wallet?.config?.[field.name] || ''
+        [field.name]: wallet?.config?.[field.name] || field.defaultValue || ''
       }
     }, wallet?.config)
 

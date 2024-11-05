@@ -566,7 +566,9 @@ const resolvers = {
         throw new GqlInputError('wallet not found')
       }
 
+      const logger = walletLogger({ wallet, models })
       await models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
+      await logger.info('wallet detached')
 
       return true
     },

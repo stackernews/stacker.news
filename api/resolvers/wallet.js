@@ -890,9 +890,10 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
         fee: formatMsats(Number(result.fee_mtokens))
       })
   }).catch(err => {
-    // TODO: LND error might be in different shape
+    // LND errors can be in this shape: [code, type, { err: { code, details, metadata } }]
+    const details = err[2]?.err?.details || err.message || err.toString?.()
     return logger?.error(
-      `withdrawal failed: ${err.message}`,
+      `withdrawal failed: ${details}`,
       {
         bolt11: invoice,
         amount: formatMsats(decoded.mtokens),

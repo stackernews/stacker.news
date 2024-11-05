@@ -8,7 +8,6 @@ import { INVOICE_RETENTION_DAYS, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/consta
 import { datePivot, sleep } from '@/lib/time'
 import retry from 'async-retry'
 import { walletLogger } from '@/api/resolvers/wallet'
-import { msatsToSats, numWithUnits } from '@/lib/format'
 import {
   paidActionPaid, paidActionForwarded,
   paidActionFailedForward, paidActionHeld, paidActionFailed,
@@ -307,13 +306,6 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
     ], { models })
     if (code === 0) {
       notifyWithdrawal(dbWdrwl.userId, wdrwl)
-      if (dbWdrwl.wallet) {
-        // this was an autowithdrawal
-        const message = `autowithdrawal of ${
-          numWithUnits(msatsToSats(paid), { abbreviate: false })} with ${
-          numWithUnits(msatsToSats(fee), { abbreviate: false })} as fee`
-        await logger.ok(message)
-      }
     }
   } else if (wdrwl?.is_failed || notSent) {
     if (dbWdrwl.invoiceForward.length > 0) {

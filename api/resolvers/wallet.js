@@ -878,8 +878,8 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     // can't use max_fee_mtokens https://github.com/alexbosworth/ln-service/issues/141
     max_fee: Number(maxFee),
     pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS
-  }).then(() => {
-    return logger?.ok(`↙ payment received: ${formatMsats(decoded.mtokens)}`)
+  }).then((result) => {
+    return logger?.ok(`↙ payment received: ${formatMsats(decoded.mtokens)} with ${formatMsats(Number(result.fee_mtokens))} as fee`)
   }).catch(err => {
     return logger?.error('withdrawal failed:', err.message)
   })

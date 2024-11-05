@@ -201,14 +201,14 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
         const query = walletDef ? window.IDBKeyRange.bound([tag(walletDef), -Infinity], [tag(walletDef), Infinity]) : null
 
         result = await getPage(page, pageSize, indexName, query, 'prev')
-        // no walletType means we're using the local IDB
-        if (!walletDef?.walletType) {
+        // if given wallet has no walletType it means logs are only stored in local IDB
+        if (walletDef && !walletDef.walletType) {
           return result
         }
       }
       const { data } = await getWalletLogs({
         variables: {
-          type: walletDef.walletType,
+          type: walletDef?.walletType,
           // if it client logs has more, page based on it's range
           from: result?.data[result.data.length - 1]?.ts && result.hasMore ? String(result.data[result.data.length - 1].ts) : null,
           // if we have a cursor (this isn't the first page), page based on it's range

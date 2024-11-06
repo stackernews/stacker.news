@@ -6,9 +6,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally } from './common'
 import useVault from '@/components/vault/use-vault'
 import { useWalletLogger } from '@/components/wallet-logger'
-import { bolt11Tags } from '@/lib/bolt11'
+import { decode as bolt11Decode } from 'bolt11'
 import walletDefs from 'wallets/client'
 import { generateMutation } from './graphql'
+import { formatMsats, formatSats } from '@/lib/format'
 
 const WalletsContext = createContext({
   wallets: []
@@ -231,14 +232,23 @@ export function useWallet (name) {
   const { logger } = useWalletLogger(wallet?.def)
 
   const sendPayment = useCallback(async (bolt11) => {
-    const hash = bolt11Tags(bolt11).payment_hash
-    logger.info(`sending payment: payment_hash=${hash}`)
+    const decoded = bolt11Decode(bolt11)
+    const context = {
+      bolt11,
+      amount: formatMsats(Number(decoded.millisatoshis)),
+      payment_hash: decoded.tagsObject.payment_hash,
+      description: decoded.tagsObject.description,
+      created_at: new Date(decoded.timestamp * 1000).toISOString(),
+      expires_at: new Date(decoded.timeExpireDate * 1000).toISOString()
+    }
+
+    logger.info(`↗ sending payment: ${formatSats(decoded.satoshis)}`, context)
     try {
       const preimage = await wallet.def.sendPayment(bolt11, wallet.config, { logger })
-      logger.ok(`payment successful: payment_hash=${hash} preimage=${preimage}`)
+      logger.ok(`↗ payment sent: ${formatSats(decoded.satoshis)}`, { ...context, preimage })
     } catch (err) {
       const message = err.message || err.toString?.()
-      logger.error(`payment failed: payment_hash=${hash} ${message}`)
+      logger.error(`payment failed: ${message}`, context)
       throw err
     }
   }, [wallet, logger])

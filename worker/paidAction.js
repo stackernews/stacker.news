@@ -1,6 +1,8 @@
 import { getPaymentFailureStatus, hodlInvoiceCltvDetails } from '@/api/lnd'
 import { paidActions } from '@/api/paidAction'
+import { walletLogger } from '@/api/resolvers/wallet'
 import { LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
+import { formatMsats, formatSats, msatsToSats } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { toPositiveNumber } from '@/lib/validate'
 import { Prisma } from '@prisma/client'
@@ -239,7 +241,8 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
   // only pay if we successfully transitioned which can only happen once
   // we can't do this inside the transaction because it isn't necessarily idempotent
   if (transitionedInvoice?.invoiceForward) {
-    const { bolt11, maxFeeMsats, expiryHeight, acceptHeight } = transitionedInvoice.invoiceForward
+    const { bolt11, maxFeeMsats, expiryHeight, acceptHeight, wallet } = transitionedInvoice.invoiceForward
+    const { createdAt, expiresAt, desc, hash, msatsRequested } = transitionedInvoice
 
     // give ourselves at least MIN_SETTLEMENT_CLTV_DELTA blocks to settle the incoming payment
     const maxTimeoutHeight = toPositiveNumber(toPositiveNumber(expiryHeight) - MIN_SETTLEMENT_CLTV_DELTA)
@@ -247,13 +250,42 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
     console.log('forwarding with max fee', maxFeeMsats, 'max_timeout_height', maxTimeoutHeight,
       'accept_height', acceptHeight, 'expiry_height', expiryHeight)
 
+    const logger = walletLogger({ wallet, models })
+
+    const context = {
+      bolt11,
+      amount: formatMsats(Number(msatsRequested)),
+      payment_hash: hash,
+      created_at: createdAt,
+      expires_at: expiresAt,
+      description: desc
+    }
+
     payViaPaymentRequest({
       lnd,
       request: bolt11,
       max_fee_mtokens: String(maxFeeMsats),
       pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
       max_timeout_height: maxTimeoutHeight
-    }).catch(console.error)
+    }).then((result) => {
+      return logger?.ok(
+        `↙ payment received: ${formatSats(msatsToSats(result.mtokens))}`,
+        {
+          ...context,
+          preimage: result.secret,
+          // TODO: should we show the fee _we_ paid to users for p2p zaps?
+          // it might be confusing since it might look like _they_ are paying the fee
+          // but that's not the case for p2p zaps.
+          fee: formatMsats(Number(result.fee_mtokens))
+        })
+    }).catch(err => {
+      // LND errors can be in this shape: [code, type, { err: { code, details, metadata } }]
+      const details = err[2]?.err?.details || err.message || err.toString?.()
+      return logger?.error(`incoming payment failed: ${details}`, {
+        ...context,
+        max_fee: formatMsats(maxFeeMsats)
+      })
+    })
   }
 }
 

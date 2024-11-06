@@ -873,6 +873,15 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     { models }
   )
 
+  const context = {
+    bolt11: invoice,
+    amount: formatMsats(decoded.mtokens),
+    payment_hash: decoded.id,
+    created_at: decoded.created_at,
+    expires_at: decoded.expires_at,
+    description: decoded.description
+  }
+
   payViaPaymentRequest({
     lnd,
     request: invoice,
@@ -883,9 +892,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     return logger?.ok(
       `↙ payment received: ${formatSats(msatsToSats(decoded.mtokens))}`,
       {
-        bolt11: invoice,
-        msats: formatMsats(decoded.mtokens),
-        payment_hash: result.id,
+        ...context,
         preimage: result.secret,
         fee: formatMsats(Number(result.fee_mtokens))
       })
@@ -895,9 +902,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     return logger?.error(
       `withdrawal failed: ${details}`,
       {
-        bolt11: invoice,
-        amount: formatMsats(decoded.mtokens),
-        payment_hash: decoded.id,
+        ...context,
         max_fee: formatMsats(msatsFee)
       })
   })

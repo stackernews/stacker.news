@@ -1,7 +1,7 @@
 import serialize from '@/api/resolvers/serial'
 import {
   getInvoice, getPayment, cancelHodlInvoice, deletePayment,
-  subscribeToInvoices, subscribeToPayments, subscribeToInvoice
+  subscribeToInvoices, subscribeToPayments, subscribeToInvoice, parsePaymentRequest
 } from 'ln-service'
 import { notifyDeposit, notifyWithdrawal } from '@/lib/webPush'
 import { INVOICE_RETENTION_DAYS, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
@@ -13,7 +13,9 @@ import {
   paidActionForwarding,
   paidActionCanceling
 } from './paidAction'
-import { getPaymentFailureStatus } from '@/api/lnd/index'
+import { getPaymentFailureStatus } from '@/api/lnd/index.js'
+import { walletLogger } from '@/api/resolvers/wallet.js'
+import { formatMsats, formatSats, msatsToSats } from '@/lib/format.js'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -365,7 +367,8 @@ export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, 
     include: {
       invoiceForward: {
         include: {
-          withdrawl: true
+          withdrawl: true,
+          wallet: true
         }
       }
     }
@@ -384,6 +387,20 @@ export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, 
 
   // sync LND invoice status with invoice status in database
   await checkInvoice({ data: { hash }, models, lnd, ...args })
+
+  // show receiver that sender canceled the invoice
+  const { wallet, bolt11 } = dbInv.invoiceForward
+  const logger = walletLogger({ wallet, models })
+  const decoded = await parsePaymentRequest({ request: bolt11 })
+  const context = {
+    bolt11,
+    amount: formatMsats(decoded.mtokens),
+    payment_hash: decoded.id,
+    created_at: decoded.created_at,
+    expires_at: decoded.expires_at,
+    description: decoded.description
+  }
+  await logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, context)
 }
 
 export async function checkPendingDeposits (args) {

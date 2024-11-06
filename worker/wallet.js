@@ -15,7 +15,7 @@ import {
 } from './paidAction'
 import { getPaymentFailureStatus } from '@/api/lnd/index.js'
 import { walletLogger } from '@/api/resolvers/wallet.js'
-import { formatMsats, formatSats, msatsToSats } from '@/lib/format.js'
+import { formatSats, msatsToSats } from '@/lib/format.js'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -392,15 +392,7 @@ export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, 
   const { wallet, bolt11 } = dbInv.invoiceForward
   const logger = walletLogger({ wallet, models })
   const decoded = await parsePaymentRequest({ request: bolt11 })
-  const context = {
-    bolt11,
-    amount: formatMsats(decoded.mtokens),
-    payment_hash: decoded.id,
-    created_at: decoded.created_at,
-    expires_at: decoded.expires_at,
-    description: decoded.description
-  }
-  await logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, context)
+  await logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, { bolt11 })
 }
 
 export async function checkPendingDeposits (args) {

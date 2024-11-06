@@ -669,6 +669,19 @@ export default injectResolvers(resolvers)
 export const walletLogger = ({ wallet, models }) => {
   // server implementation of wallet logger interface on client
   const log = (level) => async (message, context = {}) => {
+    if (context?.bolt11) {
+      // automaticaly populate context from bolt11 to avoid duplicating this code
+      const decoded = await parsePaymentRequest({ request: context.bolt11 })
+      context = {
+        ...context,
+        amount: formatMsats(decoded.mtokens),
+        payment_hash: decoded.id,
+        created_at: decoded.created_at,
+        expires_at: decoded.expires_at,
+        description: decoded.description
+      }
+    }
+
     try {
       await models.walletLog.create({
         data: {
@@ -873,15 +886,6 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     { models }
   )
 
-  const context = {
-    bolt11: invoice,
-    amount: formatMsats(decoded.mtokens),
-    payment_hash: decoded.id,
-    created_at: decoded.created_at,
-    expires_at: decoded.expires_at,
-    description: decoded.description
-  }
-
   payViaPaymentRequest({
     lnd,
     request: invoice,
@@ -892,7 +896,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     return logger?.ok(
       `↙ payment received: ${formatSats(msatsToSats(decoded.mtokens))}`,
       {
-        ...context,
+        bolt11: invoice,
         preimage: result.secret,
         fee: formatMsats(Number(result.fee_mtokens))
       })
@@ -902,7 +906,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     return logger?.error(
       `withdrawal failed: ${details}`,
       {
-        ...context,
+        bolt11: invoice,
         max_fee: formatMsats(msatsFee)
       })
   })

@@ -242,7 +242,6 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
   // we can't do this inside the transaction because it isn't necessarily idempotent
   if (transitionedInvoice?.invoiceForward) {
     const { bolt11, maxFeeMsats, expiryHeight, acceptHeight, wallet } = transitionedInvoice.invoiceForward
-    const { createdAt, expiresAt, desc, hash, msatsRequested } = transitionedInvoice
 
     // give ourselves at least MIN_SETTLEMENT_CLTV_DELTA blocks to settle the incoming payment
     const maxTimeoutHeight = toPositiveNumber(toPositiveNumber(expiryHeight) - MIN_SETTLEMENT_CLTV_DELTA)
@@ -251,15 +250,6 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
       'accept_height', acceptHeight, 'expiry_height', expiryHeight)
 
     const logger = walletLogger({ wallet, models })
-
-    const context = {
-      bolt11,
-      amount: formatMsats(Number(msatsRequested)),
-      payment_hash: hash,
-      created_at: createdAt,
-      expires_at: expiresAt,
-      description: desc
-    }
 
     payViaPaymentRequest({
       lnd,
@@ -271,7 +261,7 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
       return logger?.ok(
         `↙ payment received: ${formatSats(msatsToSats(result.mtokens))}`,
         {
-          ...context,
+          bolt11,
           preimage: result.secret
           // we could show the outgoing fee that we paid from the incoming amount to the receiver
           // but we don't since it might look like the receiver paid the fee but that's not the case.
@@ -281,7 +271,7 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
       // LND errors can be in this shape: [code, type, { err: { code, details, metadata } }]
       const details = err[2]?.err?.details || err.message || err.toString?.()
       return logger?.error(`incoming payment failed: ${details}`, {
-        ...context,
+        bolt11,
         max_fee: formatMsats(maxFeeMsats)
       })
     })

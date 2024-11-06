@@ -11,6 +11,8 @@ import { useMe } from './me'
 import useIndexedDB, { getDbName } from './use-indexeddb'
 import { SSR } from '@/lib/constants'
 import useInterval from './use-interval'
+import { decode as bolt11Decode } from 'bolt11'
+import { formatMsats } from '@/lib/format'
 
 export function WalletLogs ({ wallet, embedded }) {
   const { logs, setLogs, hasMore, loadMore, loading } = useWalletLogs(wallet)
@@ -157,10 +159,23 @@ export function useWalletLogger (wallet, setLogs) {
     }
   }, [clear, deleteServerWalletLogs, setLogs, notSupported])
 
-  const log = useCallback(level => (message, context) => {
+  const log = useCallback(level => (message, context = {}) => {
     if (!wallet) {
       // console.error('cannot log: no wallet set')
       return
+    }
+
+    if (context?.bolt11) {
+      // automaticaly populate context from bolt11 to avoid duplicating this code
+      const decoded = bolt11Decode(context.bolt11)
+      context = {
+        ...context,
+        amount: formatMsats(Number(decoded.millisatoshis)),
+        payment_hash: decoded.tagsObject.payment_hash,
+        description: decoded.tagsObject.description,
+        created_at: new Date(decoded.timestamp * 1000).toISOString(),
+        expires_at: new Date(decoded.timeExpireDate * 1000).toISOString()
+      }
     }
 
     appendLog(wallet, level, message, context)

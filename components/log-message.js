@@ -42,7 +42,7 @@ export default function LogMessage ({ showWallet, wallet, level, message, contex
         return (
           <tr className={styles.line} key={i}>
             <td />
-            <td className={last ? 'pb-2' : ''} colspan='2'>{key}</td>
+            <td className={last ? 'pb-2' : ''} colSpan='2'>{key}</td>
             <td className={last ? 'text-break pb-2' : 'text-break'}>{value}</td>
           </tr>
         )

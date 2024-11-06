@@ -221,7 +221,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
       if (variables?.from !== undefined) {
         from = variables.from
       } else if (oldestTs && result.hasMore) {
-        // fetch all missing, interwined server logs since start of local logs
+        // fetch all missing, intertwined server logs since start of local logs
         from = String(oldestTs)
       } else {
         from = null

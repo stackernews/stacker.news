@@ -272,11 +272,10 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
         `↙ payment received: ${formatSats(msatsToSats(result.mtokens))}`,
         {
           ...context,
-          preimage: result.secret,
-          // TODO: should we show the fee _we_ paid to users for p2p zaps?
-          // it might be confusing since it might look like _they_ are paying the fee
-          // but that's not the case for p2p zaps.
-          fee: formatMsats(Number(result.fee_mtokens))
+          preimage: result.secret
+          // we could show the outgoing fee that we paid from the incoming amount to the receiver
+          // but we don't since it might look like the receiver paid the fee but that's not the case.
+          // fee: formatMsats(Number(result.fee_mtokens))
         })
     }).catch(err => {
       // LND errors can be in this shape: [code, type, { err: { code, details, metadata } }]

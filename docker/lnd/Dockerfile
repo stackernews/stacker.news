@@ -10,6 +10,3 @@ RUN apt-get update -y \
 
 COPY ["./$LN_NODE_FOR/regtest/*", "/home/lnd/.lnd/data/chain/bitcoin/regtest/"]
 COPY ["./$LN_NODE_FOR/tls.*", "/home/lnd/.lnd/"]
-
-ADD tor-entrypoint.sh /tor-entrypoint
-RUN chmod +x /tor-entrypoint

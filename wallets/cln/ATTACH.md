@@ -4,14 +4,6 @@ For testing cln as an attached receiving wallet, you'll need a rune and the cert
 
 `stacker_cln:3010`
 
-# host and port (onion)
-
-Run:
-
-```bash
-sndev stacker_clncli get_onion
-```
-
 # create rune
 
 ```bash

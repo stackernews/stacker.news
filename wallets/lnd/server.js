@@ -1,7 +1,5 @@
 import { datePivot } from '@/lib/time'
-import { authenticatedLndGrpc } from '@/lib/lnd'
-import { createInvoice as lndCreateInvoice } from 'ln-service'
-import { TOR_REGEXP } from '@/lib/url'
+import { authenticatedLndGrpc, createInvoice as lndCreateInvoice } from 'ln-service'
 
 export * from 'wallets/lnd'
 
@@ -14,13 +12,11 @@ export const createInvoice = async (
   { cert, macaroon, socket }
 ) => {
   try {
-    const isOnion = TOR_REGEXP.test(socket)
-
     const { lnd } = await authenticatedLndGrpc({
       cert,
       macaroon,
       socket
-    }, isOnion)
+    })
 
     const invoice = await lndCreateInvoice({
       lnd,

@@ -7,7 +7,6 @@ import { notifyDeposit, notifyWithdrawal } from '@/lib/webPush'
 import { INVOICE_RETENTION_DAYS, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { datePivot, sleep } from '@/lib/time'
 import retry from 'async-retry'
-import { walletLogger } from '@/api/resolvers/wallet'
 import {
   paidActionPaid, paidActionForwarded,
   paidActionFailedForward, paidActionHeld, paidActionFailed,
@@ -286,8 +285,6 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
     }
   }
 
-  const logger = walletLogger({ wallet: dbWdrwl.wallet, models })
-
   if (wdrwl?.is_confirmed) {
     if (dbWdrwl.invoiceForward.length > 0) {
       return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
@@ -312,18 +309,12 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
       return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
     }
 
-    const { status, message } = getPaymentFailureStatus(wdrwl)
-
-    const [{ reverse_withdrawl: code }] = await serialize(
+    const { status } = getPaymentFailureStatus(wdrwl)
+    await serialize(
       models.$queryRaw`
         SELECT reverse_withdrawl(${dbWdrwl.id}::INTEGER, ${status}::"WithdrawlStatus")`,
       { models }
     )
-
-    if (code === 0 && dbWdrwl.wallet) {
-      // add error into log for autowithdrawal
-      await logger.error('autowithdrawal failed: ' + message)
-    }
   }
 }
 

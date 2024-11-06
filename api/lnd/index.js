@@ -1,6 +1,6 @@
 import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/validate'
-import { authenticatedLndGrpc } from '@/lib/lnd'
+import { authenticatedLndGrpc } from 'proxied-lnd-service'
 import { getIdentity, getHeight, getWalletInfo, getNode } from 'ln-service'
 
 const lnd = global.lnd || authenticatedLndGrpc({

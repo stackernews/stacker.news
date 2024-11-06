@@ -1,5 +1,5 @@
 import { datePivot } from '@/lib/time'
-import { authenticatedLndGrpc } from '@/lib/lnd'
+import { authenticatedLndGrpc } from 'proxied-lnd-service'
 import { createInvoice as lndCreateInvoice } from 'ln-service'
 import { TOR_REGEXP } from '@/lib/url'
 

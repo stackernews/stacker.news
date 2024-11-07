@@ -507,7 +507,15 @@ const resolvers = {
     sendToLnAddr,
     cancelInvoice: async (parent, { hash, hmac }, { models, lnd, boss }) => {
       verifyHmac(hash, hmac)
-      await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
+      const dbInv = await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
+
+      if (dbInv.invoiceForward) {
+        const { wallet, bolt11 } = dbInv.invoiceForward
+        const logger = walletLogger({ wallet, models })
+        const decoded = await parsePaymentRequest({ request: bolt11 })
+        await logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, { bolt11 })
+      }
+
       return await models.invoice.findFirst({ where: { hash } })
     },
     dropBolt11: async (parent, { id }, { me, models, lnd }) => {

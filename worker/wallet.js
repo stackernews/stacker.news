@@ -388,11 +388,7 @@ export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, 
   // sync LND invoice status with invoice status in database
   await checkInvoice({ data: { hash }, models, lnd, ...args })
 
-  // show receiver that sender canceled the invoice
-  const { wallet, bolt11 } = dbInv.invoiceForward
-  const logger = walletLogger({ wallet, models })
-  const decoded = await parsePaymentRequest({ request: bolt11 })
-  await logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, { bolt11 })
+  return dbInv
 }
 
 export async function checkPendingDeposits (args) {

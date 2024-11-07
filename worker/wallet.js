@@ -404,7 +404,7 @@ export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, 
   }
 
   // sync LND invoice status with invoice status in database
-  await checkInvoice({ data: { hash }, models, lnd, ...args })
+  await checkInvoice({ data: { hash }, models, lnd, boss })
 
   return dbInv
 }

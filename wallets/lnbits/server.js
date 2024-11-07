@@ -1,5 +1,6 @@
 import { msatsToSats } from '@/lib/format'
 import { getAgent } from '@/lib/proxy'
+import fetch from 'cross-fetch'
 
 export * from 'wallets/lnbits'
 

@@ -184,6 +184,7 @@ export function getGetServerSideProps (
       }
 
       if (error || !data || (notFound && notFound(data, vars, me))) {
+        error && console.error(error)
         res.writeHead(302, {
           Location: '/404'
         }).end()

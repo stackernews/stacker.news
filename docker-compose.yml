@@ -44,6 +44,8 @@ services:
     build:
       context: ./docker/tor
     container_name: tor
+    profiles:
+      - payments
     restart: unless-stopped
     volumes:
       - tordata:/tordata/
@@ -371,11 +373,11 @@ services:
     healthcheck:
       <<: *healthcheck
       test: ["CMD-SHELL", "lncli", "getinfo"]
-    depends_on: 
+    depends_on:
       tor:
         condition: service_healthy
         restart: true
-      <<: *depends_on_bitcoin     
+      <<: *depends_on_bitcoin
     env_file: *env_file
     entrypoint: /tor-entrypoint
     command:
@@ -471,7 +473,7 @@ services:
     healthcheck:
       <<: *healthcheck
       test: ["CMD-SHELL", "su clightning -c 'lightning-cli --network=regtest getinfo'"]
-    depends_on: 
+    depends_on:
       tor:
         condition: service_healthy
         restart: true

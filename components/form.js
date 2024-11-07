@@ -1126,7 +1126,7 @@ function QrPassword ({ value }) {
   )
 }
 
-function PasswordScanner ({ onScan }) {
+function PasswordScanner ({ onScan, text }) {
   const showModal = useShowModal()
   const toaster = useToast()
 
@@ -1136,26 +1136,29 @@ function PasswordScanner ({ onScan }) {
       onClick={() => {
         showModal(onClose => {
           return (
-            <Scanner
-              formats={['qr_code']}
-              onScan={([{ rawValue: result }]) => {
-                onScan(result)
-                onClose()
-              }}
-              styles={{
-                video: {
-                  aspectRatio: '1 / 1'
-                }
-              }}
-              onError={(error) => {
-                if (error instanceof DOMException) {
-                  console.log(error)
-                } else {
-                  toaster.danger('qr scan: ' + error?.message || error?.toString?.())
-                }
-                onClose()
-              }}
-            />
+            <div>
+              {text && <h5 className='line-height-md mb-4 text-center'>{text}</h5>}
+              <Scanner
+                formats={['qr_code']}
+                onScan={([{ rawValue: result }]) => {
+                  onScan(result)
+                  onClose()
+                }}
+                styles={{
+                  video: {
+                    aspectRatio: '1 / 1'
+                  }
+                }}
+                onError={(error) => {
+                  if (error instanceof DOMException) {
+                    console.log(error)
+                  } else {
+                    toaster.danger('qr scan: ' + error?.message || error?.toString?.())
+                  }
+                  onClose()
+                }}
+              />
+            </div>
           )
         })
       }}
@@ -1167,9 +1170,10 @@ function PasswordScanner ({ onScan }) {
   )
 }
 
-export function PasswordInput ({ newPass, qr, copy, readOnly, append, value, ...props }) {
+export function PasswordInput ({ newPass, qr, copy, readOnly, append, value: initialValue, ...props }) {
   const [showPass, setShowPass] = useState(false)
-  const [field, helpers] = props.noForm ? [{ value }, {}, {}] : useField(props)
+  const [value, setValue] = useState(initialValue)
+  const [field,, helpers] = props.noForm ? [{ value }, {}, { setValue }] : useField(props)
 
   const Append = useMemo(() => {
     return (
@@ -1181,12 +1185,13 @@ export function PasswordInput ({ newPass, qr, copy, readOnly, append, value, ...
         {qr && (readOnly
           ? <QrPassword value={field?.value} />
           : <PasswordScanner
+              text="Where'd you learn to square dance?"
               onScan={v => helpers.setValue(v)}
             />)}
         {append}
       </>
     )
-  }, [showPass, copy, field?.value, qr, readOnly, append])
+  }, [showPass, copy, field?.value, helpers.setValue, qr, readOnly, append])
 
   const style = props.style ? { ...props.style } : {}
   if (props.as === 'textarea') {

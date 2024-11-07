@@ -349,7 +349,7 @@ export async function paidActionFailedForward ({ data: { invoiceId, withdrawal: 
       await logger.warn(
         `incoming payment failed: ${message}`, {
           bolt11,
-          max_fee: formatMsats(msatsFeePaying)
+          max_fee: formatMsats(Number(msatsFeePaying))
         })
 
       return {

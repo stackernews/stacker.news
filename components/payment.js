@@ -82,7 +82,8 @@ export const useInvoice = () => {
           }
         }, FAST_POLL_INTERVAL)
 
-        const abort = () => {
+        const abort = (invoiceId) => {
+          if (id !== invoiceId) return
           console.info(`invoice #${id}: stopped waiting`)
           resolve()
           clearInterval(interval)
@@ -92,7 +93,7 @@ export const useInvoice = () => {
       })
     }
 
-    controller.stop = () => controller.abort()
+    controller.stop = (id) => controller.abort(id)
 
     return controller
   }, [isInvoice])
@@ -131,7 +132,7 @@ export const useWalletPayment = () => {
       console.error('payment failed:', err)
       throw err
     } finally {
-      invoice.stopWaiting()
+      invoice.stopWaiting(id)
     }
   }, [wallet, invoice])
 

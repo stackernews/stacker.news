@@ -1,11 +1,11 @@
-import serialize from '@/api/resolvers/serial.js'
+import serialize from '@/api/resolvers/serial'
 import {
   getInvoice, getPayment, cancelHodlInvoice, deletePayment,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
 import { notifyDeposit, notifyWithdrawal } from '@/lib/webPush'
 import { INVOICE_RETENTION_DAYS, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
-import { datePivot, sleep } from '@/lib/time.js'
+import { datePivot, sleep } from '@/lib/time'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
@@ -14,8 +14,8 @@ import {
   paidActionFailedForward, paidActionHeld, paidActionFailed,
   paidActionForwarding,
   paidActionCanceling
-} from './paidAction.js'
-import { getPaymentFailureStatus } from '@/api/lnd/index.js'
+} from './paidAction'
+import { getPaymentFailureStatus } from '@/api/lnd/index'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)

@@ -14,6 +14,8 @@ import {
   paidActionCanceling
 } from './paidAction'
 import { getPaymentFailureStatus } from '@/api/lnd/index.js'
+import { walletLogger } from '@/api/resolvers/wallet.js'
+import { formatMsats, formatSats, msatsToSats } from '@/lib/format.js'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -285,6 +287,8 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
     }
   }
 
+  const logger = walletLogger({ models, wallet: dbWdrwl.wallet })
+
   if (wdrwl?.is_confirmed) {
     if (dbWdrwl.invoiceForward.length > 0) {
       return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
@@ -303,18 +307,34 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
     ], { models })
     if (code === 0) {
       notifyWithdrawal(dbWdrwl.userId, wdrwl)
+
+      const { request: bolt11, secret: preimage } = wdrwl.payment
+      await logger?.ok(
+        `↙ payment received: ${formatSats(msatsToSats(Number(wdrwl.payment.mtokens)))}`,
+        {
+          bolt11,
+          preimage,
+          fee: formatMsats(fee)
+        })
     }
   } else if (wdrwl?.is_failed || notSent) {
     if (dbWdrwl.invoiceForward.length > 0) {
       return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
     }
 
-    const { status } = getPaymentFailureStatus(wdrwl)
+    const { message, status } = getPaymentFailureStatus(wdrwl)
     await serialize(
       models.$queryRaw`
         SELECT reverse_withdrawl(${dbWdrwl.id}::INTEGER, ${status}::"WithdrawlStatus")`,
       { models }
     )
+
+    await logger?.error(
+      `withdrawal failed: ${message}`,
+      {
+        bolt11: wdrwl.payment.request,
+        max_fee: formatMsats(dbWdrwl.msatsFeePaying)
+      })
   }
 }
 

@@ -241,7 +241,7 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
   // only pay if we successfully transitioned which can only happen once
   // we can't do this inside the transaction because it isn't necessarily idempotent
   if (transitionedInvoice?.invoiceForward) {
-    const { bolt11, maxFeeMsats, expiryHeight, acceptHeight, wallet } = transitionedInvoice.invoiceForward
+    const { bolt11, maxFeeMsats, expiryHeight, acceptHeight } = transitionedInvoice.invoiceForward
 
     // give ourselves at least MIN_SETTLEMENT_CLTV_DELTA blocks to settle the incoming payment
     const maxTimeoutHeight = toPositiveNumber(toPositiveNumber(expiryHeight) - MIN_SETTLEMENT_CLTV_DELTA)
@@ -249,32 +249,13 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
     console.log('forwarding with max fee', maxFeeMsats, 'max_timeout_height', maxTimeoutHeight,
       'accept_height', acceptHeight, 'expiry_height', expiryHeight)
 
-    const logger = walletLogger({ wallet, models })
-
     payViaPaymentRequest({
       lnd,
       request: bolt11,
       max_fee_mtokens: String(maxFeeMsats),
       pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
       max_timeout_height: maxTimeoutHeight
-    }).then((result) => {
-      return logger?.ok(
-        `↙ payment received: ${formatSats(msatsToSats(result.mtokens))}`,
-        {
-          bolt11,
-          preimage: result.secret
-          // we could show the outgoing fee that we paid from the incoming amount to the receiver
-          // but we don't since it might look like the receiver paid the fee but that's not the case.
-          // fee: formatMsats(Number(result.fee_mtokens))
-        })
-    }).catch(err => {
-      // LND errors can be in this shape: [code, type, { err: { code, details, metadata } }]
-      const details = err[2]?.err?.details || err.message || err.toString?.()
-      return logger?.error(`incoming payment failed: ${details}`, {
-        bolt11,
-        max_fee: formatMsats(maxFeeMsats)
-      })
-    })
+    }).catch(console.error)
   }
 }
 
@@ -289,7 +270,7 @@ export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...a
         throw new Error('invoice is not held')
       }
 
-      const { hash, msatsPaying } = dbInvoice.invoiceForward.withdrawl
+      const { bolt11, hash, msatsPaying } = dbInvoice.invoiceForward.withdrawl
       const { payment, is_confirmed: isConfirmed } = withdrawal ?? await getPayment({ id: hash, lnd })
       if (!isConfirmed) {
         throw new Error('payment is not confirmed')
@@ -297,6 +278,17 @@ export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...a
 
       // settle the invoice, allowing us to transition to PAID
       await settleHodlInvoice({ secret: payment.secret, lnd })
+
+      const logger = walletLogger({ wallet: dbInvoice.invoiceForward.wallet, models })
+      await logger.ok(
+        `↙ payment received: ${formatSats(msatsToSats(payment.mtokens))}`,
+        {
+          bolt11,
+          preimage: payment.secret
+          // we could show the outgoing fee that we paid from the incoming amount to the receiver
+          // but we don't since it might look like the receiver paid the fee but that's not the case.
+          // fee: formatMsats(Number(payment.fee_mtokens))
+        })
 
       return {
         preimage: payment.secret,
@@ -351,12 +343,21 @@ export async function paidActionFailedForward ({ data: { invoiceId, withdrawal: 
       // which once it does succeed will ensure we will try to cancel the held invoice until it actually cancels
       await boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash }, FINALIZE_OPTIONS)
 
+      const { status, message } = getPaymentFailureStatus(withdrawal)
+      const { bolt11, msatsFeePaying } = dbInvoice.invoiceForward.withdrawl
+      const logger = walletLogger({ wallet: dbInvoice.invoiceForward.wallet, models })
+      await logger.warn(
+        `incoming payment failed: ${message}`, {
+          bolt11,
+          max_fee: formatMsats(msatsFeePaying)
+        })
+
       return {
         invoiceForward: {
           update: {
             withdrawl: {
               update: {
-                status: getPaymentFailureStatus(withdrawal).status
+                status
               }
             }
           }

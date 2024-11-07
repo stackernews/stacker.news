@@ -41,7 +41,17 @@ function useLocalWallets () {
   }, [wallets, setWallets, me?.id])
 
   useEffect(() => {
+    // listen for changes to any wallet config in local storage
+    // from any window with the same origin
+    const handleStorage = (event) => {
+      if (event.key.startsWith(getStorageKey(''))) {
+        loadWallets()
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+
     loadWallets()
+    return () => window.removeEventListener('storage', handleStorage)
   }, [loadWallets])
 
   return { wallets, reloadLocalWallets: loadWallets, removeLocalWallets: removeWallets }

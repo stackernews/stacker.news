@@ -5,17 +5,14 @@ import { Button } from 'react-bootstrap'
 import { useToast } from './toast'
 import { useShowModal } from './modal'
 import { WALLET_LOGS } from '@/fragments/wallet'
-import { getWalletByType } from 'wallets'
+import { getWalletByType } from '@/wallets/common'
 import { gql, useLazyQuery, useMutation } from '@apollo/client'
 import { useMe } from './me'
-import useIndexedDB from './use-indexeddb'
+import useIndexedDB, { getDbName } from './use-indexeddb'
 import { SSR } from '@/lib/constants'
 
 export function WalletLogs ({ wallet, embedded }) {
-  const { logs, setLogs, hasMore, loadMore, loadLogs, loading } = useWalletLogs(wallet)
-  useEffect(() => {
-    loadLogs()
-  }, [loadLogs])
+  const { logs, setLogs, hasMore, loadMore, loading } = useWalletLogs(wallet)
 
   const showModal = useShowModal()
 
@@ -46,7 +43,7 @@ export function WalletLogs ({ wallet, embedded }) {
           ? <div className='w-100 text-center'>loading...</div>
           : logs.length === 0 && <div className='w-100 text-center'>empty</div>}
         {hasMore
-          ? <Button onClick={loadMore} size='sm' className='mt-3'>Load More</Button>
+          ? <div className='w-100 text-center'><Button onClick={loadMore} size='sm' className='mt-3'>more</Button></div>
           : <div className='w-100 text-center'>------ start of logs ------</div>}
       </div>
     </>
@@ -89,11 +86,17 @@ const INDICES = [
   { name: 'wallet_ts', keyPath: ['wallet', 'ts'] }
 ]
 
+function getWalletLogDbName (userId) {
+  return getDbName(userId)
+}
+
 function useWalletLogDB () {
   const { me } = useMe()
-  const dbName = `app:storage${me ? `:${me.id}` : ''}`
-  const idbStoreName = 'wallet_logs'
-  const { add, getPage, clear, error, notSupported } = useIndexedDB(dbName, idbStoreName, 1, INDICES)
+  // memoize the idb config to avoid re-creating it on every render
+  const idbConfig = useMemo(() =>
+    ({ dbName: getWalletLogDbName(me?.id), storeName: 'wallet_logs', indices: INDICES }), [me?.id])
+  const { add, getPage, clear, error, notSupported } = useIndexedDB(idbConfig)
+
   return { add, getPage, clear, error, notSupported }
 }
 
@@ -128,8 +131,8 @@ export function useWalletLogger (wallet, setLogs) {
   )
 
   const deleteLogs = useCallback(async (wallet, options) => {
-    if ((!wallet || wallet.walletType) && !options?.clientOnly) {
-      await deleteServerWalletLogs({ variables: { wallet: wallet?.walletType } })
+    if ((!wallet || wallet.def.walletType) && !options?.clientOnly) {
+      await deleteServerWalletLogs({ variables: { wallet: wallet?.def.walletType } })
     }
     if (!wallet || wallet.sendPayment) {
       try {
@@ -148,7 +151,7 @@ export function useWalletLogger (wallet, setLogs) {
 
   const log = useCallback(level => message => {
     if (!wallet) {
-      console.error('cannot log: no wallet set')
+      // console.error('cannot log: no wallet set')
       return
     }
 
@@ -160,17 +163,17 @@ export function useWalletLogger (wallet, setLogs) {
     ok: (...message) => log('ok')(message.join(' ')),
     info: (...message) => log('info')(message.join(' ')),
     error: (...message) => log('error')(message.join(' '))
-  }), [log, wallet?.name])
+  }), [log])
 
   return { logger, deleteLogs }
 }
 
-function tag (wallet) {
-  return wallet?.shortName || wallet?.name
+function tag (walletDef) {
+  return walletDef.shortName || walletDef.name
 }
 
 export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
-  const [logs, setLogs] = useState([])
+  const [logs, _setLogs] = useState([])
   const [page, setPage] = useState(initialPage)
   const [hasMore, setHasMore] = useState(true)
   const [total, setTotal] = useState(0)
@@ -180,24 +183,32 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
   const { getPage, error, notSupported } = useWalletLogDB()
   const [getWalletLogs] = useLazyQuery(WALLET_LOGS, SSR ? {} : { fetchPolicy: 'cache-and-network' })
 
-  const loadLogsPage = useCallback(async (page, pageSize, wallet) => {
+  const setLogs = useCallback((action) => {
+    _setLogs(action)
+    // action can be a React state dispatch function
+    const newLogs = typeof action === 'function' ? action(logs) : action
+    // make sure 'more' button is removed if logs were deleted
+    if (newLogs.length === 0) setHasMore(false)
+  }, [logs, _setLogs, setHasMore])
+
+  const loadLogsPage = useCallback(async (page, pageSize, walletDef) => {
     try {
       let result = { data: [], hasMore: false }
       if (notSupported) {
         console.log('cannot get client wallet logs: indexeddb not supported')
       } else {
-        const indexName = wallet ? 'wallet_ts' : 'ts'
-        const query = wallet ? window.IDBKeyRange.bound([tag(wallet), -Infinity], [tag(wallet), Infinity]) : null
+        const indexName = walletDef ? 'wallet_ts' : 'ts'
+        const query = walletDef ? window.IDBKeyRange.bound([tag(walletDef), -Infinity], [tag(walletDef), Infinity]) : null
 
         result = await getPage(page, pageSize, indexName, query, 'prev')
-        // no walletType means we're using the local IDB
-        if (wallet && !wallet.walletType) {
+        // if given wallet has no walletType it means logs are only stored in local IDB
+        if (walletDef && !walletDef.walletType) {
           return result
         }
       }
       const { data } = await getWalletLogs({
         variables: {
-          type: wallet?.walletType,
+          type: walletDef?.walletType,
           // if it client logs has more, page based on it's range
           from: result?.data[result.data.length - 1]?.ts && result.hasMore ? String(result.data[result.data.length - 1].ts) : null,
           // if we have a cursor (this isn't the first page), page based on it's range
@@ -228,24 +239,28 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
   const loadMore = useCallback(async () => {
     if (hasMore) {
       setLoading(true)
-      const result = await loadLogsPage(page, logsPerPage, wallet)
+      const result = await loadLogsPage(page + 1, logsPerPage, wallet?.def)
       setLogs(prevLogs => [...prevLogs, ...result.data])
       setHasMore(result.hasMore)
       setTotal(result.total)
       setPage(prevPage => prevPage + 1)
       setLoading(false)
     }
-  }, [loadLogsPage, page, logsPerPage, wallet, hasMore])
+  }, [loadLogsPage, page, logsPerPage, wallet?.def, hasMore])
 
   const loadLogs = useCallback(async () => {
     setLoading(true)
-    const result = await loadLogsPage(1, logsPerPage, wallet)
+    const result = await loadLogsPage(1, logsPerPage, wallet?.def)
     setLogs(result.data)
     setHasMore(result.hasMore)
     setTotal(result.total)
     setPage(1)
     setLoading(false)
-  }, [wallet, loadLogsPage])
+  }, [wallet?.def, loadLogsPage])
+
+  useEffect(() => {
+    loadLogs()
+  }, [wallet?.def])
 
   return { logs, hasMore, total, loadMore, loadLogs, setLogs, loading }
 }

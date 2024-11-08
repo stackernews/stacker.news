@@ -1,5 +1,6 @@
 import { gql } from '@apollo/client'
 import { ITEM_FULL_FIELDS } from './items'
+import { VAULT_ENTRY_FIELDS } from './vault'
 
 export const INVOICE_FIELDS = gql`
   fragment InvoiceFields on Invoice {
@@ -106,92 +107,76 @@ mutation removeWallet($id: ID!) {
   removeWallet(id: $id)
 }
 `
-
 // XXX [WALLET] this needs to be updated if another server wallet is added
+export const WALLET_FIELDS = gql`
+  ${VAULT_ENTRY_FIELDS}
+  fragment WalletFields on Wallet {
+    id
+    priority
+    type
+    updatedAt
+    enabled
+    vaultEntries {
+      ...VaultEntryFields
+    }
+    wallet {
+      __typename
+      ... on WalletLightningAddress {
+        address
+      }
+      ... on WalletLnd {
+        socket
+        macaroon
+        cert
+      }
+      ... on WalletCln {
+        socket
+        rune
+        cert
+      }
+      ... on WalletLnbits {
+        url
+        invoiceKey
+      }
+      ... on WalletNwc {
+        nwcUrlRecv
+      }
+      ... on WalletPhoenixd {
+        url
+        secondaryPassword
+      }
+      ... on WalletBlink {
+        apiKeyRecv
+        currencyRecv
+      }
+    }
+  }
+`
+
 export const WALLET = gql`
+  ${WALLET_FIELDS}
   query Wallet($id: ID!) {
     wallet(id: $id) {
-      id
-      createdAt
-      priority
-      type
-      wallet {
-        __typename
-        ... on WalletLightningAddress {
-          address
-        }
-        ... on WalletLnd {
-          socket
-          macaroon
-          cert
-        }
-        ... on WalletCln {
-          socket
-          rune
-          cert
-        }
-        ... on WalletLnbits {
-          url
-          invoiceKey
-        }
-        ... on WalletNwc {
-          nwcUrlRecv
-        }
-        ... on WalletPhoenixd {
-          url
-          secondaryPassword
-        }
-      }
+      ...WalletFields
     }
   }
 `
 
 // XXX [WALLET] this needs to be updated if another server wallet is added
 export const WALLET_BY_TYPE = gql`
+  ${WALLET_FIELDS}
   query WalletByType($type: String!) {
     walletByType(type: $type) {
-      id
-      createdAt
-      enabled
-      priority
-      type
-      wallet {
-        __typename
-        ... on WalletLightningAddress {
-          address
-        }
-        ... on WalletLnd {
-          socket
-          macaroon
-          cert
-        }
-        ... on WalletCln {
-          socket
-          rune
-          cert
-        }
-        ... on WalletLnbits {
-          url
-          invoiceKey
-        }
-        ... on WalletNwc {
-          nwcUrlRecv
-        }
-        ... on WalletPhoenixd {
-          url
-          secondaryPassword
-        }
-      }
+      ...WalletFields
     }
   }
 `
 
 export const WALLETS = gql`
+  ${WALLET_FIELDS}
   query Wallets {
     wallets {
-      id
-      priority
-      type
+      ...WalletFields
     }
   }
 `
@@ -206,7 +191,13 @@ export const WALLET_LOGS = gql`
           wallet
           level
           message
+        }
       }
-    }
+  }
+`
+
+export const SET_WALLET_PRIORITY = gql`
+  mutation SetWalletPriority($id: ID!, $priority: Int!) {
+    setWalletPriority(id: $id, priority: $priority)
   }
 `

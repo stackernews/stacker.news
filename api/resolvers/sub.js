@@ -1,5 +1,5 @@
 import { whenRange } from '@/lib/time'
-import { ssValidate, territorySchema } from '@/lib/validate'
+import { validateSchema, territorySchema } from '@/lib/validate'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { viewGroup } from './growth'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
@@ -157,7 +157,7 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      await ssValidate(territorySchema, data, { models, me, sub: { name: data.oldName } })
+      await validateSchema(territorySchema, data, { models, me, sub: { name: data.oldName } })
 
       if (data.oldName) {
         return await updateSub(parent, data, { me, models, lnd })
@@ -260,7 +260,7 @@ export default {
 
       const { name } = data
 
-      await ssValidate(territorySchema, data, { models, me, sub: { name } })
+      await validateSchema(territorySchema, data, { models, me })
 
       const oldSub = await models.sub.findUnique({ where: { name } })
       if (!oldSub) {

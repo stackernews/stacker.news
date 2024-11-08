@@ -1,8 +1,7 @@
 import { gql } from 'graphql-tag'
-import { fieldToGqlArg, generateResolverName, generateTypeDefName } from '@/lib/wallet'
-
+import { fieldToGqlArg, fieldToGqlArgOptional, generateResolverName, generateTypeDefName } from '@/wallets/graphql'
+import { isServerField } from '@/wallets/common'
 import walletDefs from 'wallets/server'
-import { isServerField } from 'wallets'
 
 function injectTypeDefs (typeDefs) {
   const injected = [rawTypeDefs(), mutationTypeDefs()]
@@ -14,12 +13,13 @@ function mutationTypeDefs () {
 
   const typeDefs = walletDefs.map((w) => {
     let args = 'id: ID, '
-    args += w.fields
+    const serverFields = w.fields
       .filter(isServerField)
-      .map(fieldToGqlArg).join(', ')
-    args += ', settings: AutowithdrawSettings!, priorityOnly: Boolean'
+      .map(fieldToGqlArgOptional)
+    if (serverFields.length > 0) args += serverFields.join(', ') + ','
+    args += 'enabled: Boolean, priority: Int, vaultEntries: [VaultEntryInput!], settings: AutowithdrawSettings, validateLightning: Boolean'
     const resolverName = generateResolverName(w.walletField)
-    const typeDef = `${resolverName}(${args}): Boolean`
+    const typeDef = `${resolverName}(${args}): Wallet`
     console.log(typeDef)
     return typeDef
   })
@@ -33,11 +33,15 @@ function rawTypeDefs () {
   console.group('injected GraphQL type defs:')
 
   const typeDefs = walletDefs.map((w) => {
-    const args = w.fields
+    let args = w.fields
       .filter(isServerField)
       .map(fieldToGqlArg)
       .map(s => '  ' + s)
       .join('\n')
+    if (!args) {
+      // add a placeholder arg so the type is not empty
+      args = '  _empty: Boolean'
+    }
     const typeDefName = generateTypeDefName(w.walletType)
     const typeDef = `type ${typeDefName} {\n${args}\n}`
     console.log(typeDef)
@@ -63,7 +67,7 @@ const typeDefs = `
     numBolt11s: Int!
     connectAddress: String!
     walletHistory(cursor: String, inc: String): History
-    wallets: [Wallet!]!
+    wallets(includeReceivers: Boolean, includeSenders: Boolean, onlyEnabled: Boolean, prioritySort: String): [Wallet!]!
     wallet(id: ID!): Wallet
     walletByType(type: String!): Wallet
     walletLogs(type: String, from: String, to: String, cursor: String): WalletLog!
@@ -77,22 +81,24 @@ const typeDefs = `
     dropBolt11(id: ID): Withdrawl
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(wallet: String): Boolean
+    setWalletPriority(id: ID!, priority: Int!): Boolean
   }
 
   type Wallet {
     id: ID!
     createdAt: Date!
+    updatedAt: Date!
     type: String!
     enabled: Boolean!
     priority: Int!
     wallet: WalletDetails!
+    vaultEntries: [VaultEntry!]!
   }
 
   input AutowithdrawSettings {
     autoWithdrawThreshold: Int!
     autoWithdrawMaxFeePercent: Float!
-    priority: Int
-    enabled: Boolean
+    autoWithdrawMaxFeeTotal: Int!
   }
 
   type Invoice {

@@ -2,7 +2,7 @@ import { readFile } from 'fs/promises'
 import { join, resolve } from 'path'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
-import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '@/lib/validate'
+import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
 import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES } from '@/lib/constants'
 import { viewGroup } from './growth'
@@ -632,7 +632,7 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      await ssValidate(userSchema, data, { models })
+      await validateSchema(userSchema, data, { models })
 
       try {
         await models.user.update({ where: { id: me.id }, data })
@@ -649,7 +649,7 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      await ssValidate(settingsSchema, { nostrRelays, ...data })
+      await validateSchema(settingsSchema, { nostrRelays, ...data })
 
       if (nostrRelays?.length) {
         const connectOrCreate = []
@@ -696,7 +696,7 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      await ssValidate(bioSchema, { text })
+      await validateSchema(bioSchema, { text })
 
       const user = await models.user.findUnique({ where: { id: me.id } })
 
@@ -770,7 +770,7 @@ export default {
       }
       assertApiKeyNotPermitted({ me })
 
-      await ssValidate(emailSchema, { email })
+      await validateSchema(emailSchema, { email })
 
       try {
         await models.user.update({

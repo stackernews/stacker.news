@@ -1,6 +1,7 @@
 import { useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import { useCallback, useState } from 'react'
-import { InvoiceCanceledError, InvoiceExpiredError, useInvoice, useQrPayment, useWalletPayment } from './payment'
+import { useInvoice, useQrPayment, useWalletPayment } from './payment'
+import { InvoiceCanceledError, InvoiceExpiredError } from '@/wallets/errors'
 import { GET_PAID_ACTION } from '@/fragments/paidAction'
 
 /*

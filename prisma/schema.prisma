@@ -119,6 +119,7 @@ model User {
   lnAddr                    String?
   autoWithdrawMaxFeePercent Float?
   autoWithdrawThreshold     Int?
+  autoWithdrawMaxFeeTotal   Int?
   muters                    Mute[]               @relation("muter")
   muteds                    Mute[]               @relation("muted")
   ArcOut                    Arc[]                @relation("fromUser")
@@ -137,6 +138,9 @@ model User {
   ItemUserAgg               ItemUserAgg[]
   oneDayReferrals           OneDayReferral[]     @relation("OneDayReferral_referrer")
   oneDayReferrees           OneDayReferral[]     @relation("OneDayReferral_referrees")
+  vaultKeyHash              String               @default("")
+  walletsUpdatedAt          DateTime?
+  vaultEntries              VaultEntry[]         @relation("VaultEntries")
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -179,6 +183,9 @@ enum WalletType {
   LNBITS
   NWC
   PHOENIXD
+  BLINK
+  LNC
+  WEBLN
 }
 
 model Wallet {
@@ -205,10 +212,30 @@ model Wallet {
   walletLNbits           WalletLNbits?
   walletNWC              WalletNWC?
   walletPhoenixd         WalletPhoenixd?
-  withdrawals            Withdrawl[]
-  InvoiceForward         InvoiceForward[]
+  walletBlink            WalletBlink?
+
+  vaultEntries   VaultEntry[]     @relation("VaultEntries")
+  withdrawals    Withdrawl[]
+  InvoiceForward InvoiceForward[]
 
   @@index([userId])
+  @@index([priority])
+}
+
+model VaultEntry {
+  id        Int      @id @default(autoincrement())
+  key       String   @db.Text
+  iv        String   @db.Text
+  value     String   @db.Text
+  userId    Int
+  walletId  Int?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, name: "VaultEntries")
+  wallet    Wallet?  @relation(fields: [walletId], references: [id], onDelete: Cascade, name: "VaultEntries")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([userId, key])
+  @@index([walletId])
 }
 
 model WalletLog {
@@ -271,6 +298,16 @@ model WalletNWC {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
   nwcUrlRecv String
+}
+
+model WalletBlink {
+  id           Int      @id @default(autoincrement())
+  walletId     Int      @unique
+  wallet       Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  apiKeyRecv   String
+  currencyRecv String?
 }
 
 model WalletPhoenixd {

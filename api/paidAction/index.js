@@ -271,6 +271,7 @@ export class NonInvoiceablePeerError extends Error {
   }
 }
 
+
 export async function createWrappedInvoice (actionType, args, context) {
   // if the action has an invoiceable peer, we'll create a peer invoice
   // wrap it, and return the wrapped invoice
@@ -291,7 +292,7 @@ export async function createWrappedInvoice (actionType, args, context) {
   }, { models })
 
   const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(
-    bolt11, { msats: cost, description }, { lnd })
+    bolt11, { msats: cost, description }, { me, lnd })
 
   return {
     bolt11,

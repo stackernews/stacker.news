@@ -2,6 +2,10 @@
     border-top-left-radius: 0;
 }
 
+textarea.passwordInput {
+    resize: none;
+}
+
 .markdownInput textarea {
     margin-top: -1px;
     font-size: 94%;
@@ -69,4 +73,16 @@
 	0% {
 		opacity: 42%;
 	}
+}
+
+div.qr {
+    display: grid;
+}
+
+div.qr>svg {
+    justify-self: center;
+    width: 100%;
+    height: auto;
+    padding: 1rem;
+    background-color: white;
 }

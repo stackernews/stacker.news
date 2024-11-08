@@ -27,6 +27,7 @@ ${STREAK_FIELDS}
       noReferralLinks
       fiatCurrency
       autoWithdrawMaxFeePercent
+      autoWithdrawMaxFeeTotal
       autoWithdrawThreshold
       withdrawMaxFeeDefault
       satsFilter
@@ -47,6 +48,8 @@ ${STREAK_FIELDS}
       upvotePopover
       wildWestMode
       disableFreebies
+      vaultKeyHash
+      walletsUpdatedAt
     }
     optional {
       isContributor

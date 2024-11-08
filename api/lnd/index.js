@@ -1,6 +1,7 @@
 import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/validate'
-import { authenticatedLndGrpc, getIdentity, getHeight, getWalletInfo, getNode } from 'ln-service'
+import { authenticatedLndGrpc } from '@/lib/lnd'
+import { getIdentity, getHeight, getWalletInfo, getNode } from 'ln-service'
 
 const lnd = global.lnd || authenticatedLndGrpc({
   cert: process.env.LND_CERT,
@@ -131,7 +132,7 @@ export const getBlockHeight = cachedFetcher(async function fetchBlockHeight ({ l
 
 export const getOurPubkey = cachedFetcher(async function fetchOurPubkey ({ lnd, ...args }) {
   try {
-    const { identity } = await getIdentity({ lnd, ...args })
+    const identity = await getIdentity({ lnd, ...args })
     return identity.public_key
   } catch (err) {
     throw new Error(`Unable to fetch identity: ${err.message}`)

@@ -40,6 +40,20 @@ services:
     labels:
       CONNECT: "localhost:5431"
     cpu_shares: "${CPU_SHARES_IMPORTANT}"
+  tor:
+    build:
+      context: ./docker/tor
+    container_name: tor
+    profiles:
+      - payments
+    restart: unless-stopped
+    volumes:
+      - tordata:/tordata/
+    cpu_shares: "${CPU_SHARES_LOW}"
+    env_file: *env_file
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD-SHELL", "bash /tor.sh check"]
   app:
     container_name: app
     stdin_open: true
@@ -359,8 +373,13 @@ services:
     healthcheck:
       <<: *healthcheck
       test: ["CMD-SHELL", "lncli", "getinfo"]
-    depends_on: *depends_on_bitcoin
+    depends_on:
+      tor:
+        condition: service_healthy
+        restart: true
+      <<: *depends_on_bitcoin
     env_file: *env_file
+    entrypoint: /tor-entrypoint
     command:
       - 'lnd'
       - '--noseedbackup'
@@ -369,6 +388,7 @@ services:
       - '--externalip=stacker_lnd'
       - '--tlsextradomain=stacker_lnd'
       - '--tlsextradomain=host.docker.internal'
+      - '--tlsextradomain=$${ONION_DOMAIN}'
       - '--listen=0.0.0.0:9735'
       - '--rpclisten=0.0.0.0:10009'
       - '--rpcmiddleware.enable'
@@ -394,6 +414,7 @@ services:
       - "${STACKER_LND_GRPC_PORT}:10009"
     volumes:
       - stacker_lnd:/home/lnd/.lnd
+      - tordata:/home/lnd/.tor
     labels:
       ofelia.enabled: "true"
       ofelia.job-exec.stacker_lnd_channel_cron.schedule: "@every 1m"
@@ -452,7 +473,11 @@ services:
     healthcheck:
       <<: *healthcheck
       test: ["CMD-SHELL", "su clightning -c 'lightning-cli --network=regtest getinfo'"]
-    depends_on: *depends_on_bitcoin
+    depends_on:
+      tor:
+        condition: service_healthy
+        restart: true
+      <<: *depends_on_bitcoin
     env_file: *env_file
     command:
       - 'lightningd'
@@ -471,6 +496,7 @@ services:
       - "${STACKER_CLN_REST_PORT}:3010"
     volumes:
       - stacker_cln:/home/clightning/.lightning
+      - tordata:/home/clightning/.tor
     labels:
       ofelia.enabled: "true"
       ofelia.job-exec.stacker_cln_channel_cron.schedule: "@every 1m"
@@ -528,8 +554,8 @@ services:
         condition: service_healthy
         restart: true
     volumes:
-      - ./docker/lnd/stacker:/app/.lnd
       - nwc_send:/app
+      - stacker_lnd:/app/.lnd
     environment:
       - RUST_LOG=info
     entrypoint:
@@ -537,7 +563,7 @@ services:
       - '--relay'
       - 'wss://relay.primal.net'
       - '--macaroon-file'
-      - '/app/.lnd/regtest/admin.macaroon'
+      - '/app/.lnd/data/chain/bitcoin/regtest/admin.macaroon'
       - '--cert-file'
       - '/app/.lnd/tls.cert'
       - '--lnd-host'
@@ -562,8 +588,8 @@ services:
         condition: service_healthy
         restart: true
     volumes:
-      - ./docker/lnd/stacker:/app/.lnd
       - nwc_recv:/app
+      - stacker_lnd:/app/.lnd
     environment:
       - RUST_LOG=info
     entrypoint:
@@ -571,7 +597,7 @@ services:
       - '--relay'
       - 'wss://relay.primal.net'
       - '--invoice-macaroon-file'
-      - '/app/.lnd/regtest/invoice.macaroon'
+      - '/app/.lnd/data/chain/bitcoin/regtest/invoice.macaroon'
       - '--cert-file'
       - '/app/.lnd/tls.cert'
       - '--lnd-host'
@@ -586,7 +612,8 @@ services:
       - 'keys-file.json'
     cpu_shares: "${CPU_SHARES_LOW}"
   lnbits:
-    image: lnbits/lnbits:0.12.5
+    build:
+      context: ./docker/lnbits
     container_name: lnbits
     profiles:
       - wallets
@@ -594,15 +621,22 @@ services:
     ports:
       - "${LNBITS_WEB_PORT}:5000"
     depends_on:
-      - stacker_lnd
+      tor:
+        condition: service_healthy
+        restart: true
+      stacker_lnd:
+        condition: service_healthy
+        restart: true
     environment:
+      - LNBITS_ADMIN_UI=true
       - LNBITS_BACKEND_WALLET_CLASS=LndWallet
       - LND_GRPC_ENDPOINT=stacker_lnd
       - LND_GRPC_PORT=10009
       - LND_GRPC_CERT=/app/.lnd/tls.cert
-      - LND_GRPC_MACAROON=/app/.lnd/regtest/admin.macaroon
+      - LND_GRPC_MACAROON=/app/.lnd/data/chain/bitcoin/regtest/admin.macaroon
     volumes:
-      - ./docker/lnd/stacker:/app/.lnd
+      - stacker_lnd:/app/.lnd
+      - tordata:/app/.tor
     labels:
       CONNECT: "localhost:${LNBITS_WEB_PORT}"
     cpu_shares: "${CPU_SHARES_LOW}"
@@ -616,3 +650,4 @@ volumes:
   s3:
   nwc_send:
   nwc_recv:
+  tordata:

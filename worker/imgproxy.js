@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto'
-import { extractUrls } from '@/lib/md.js'
-import { isJob } from '@/lib/item.js'
+import { extractUrls } from '@/lib/md'
+import { isJob } from '@/lib/item'
 import path from 'node:path'
 import { decodeProxyUrl } from '@/lib/url'
 import { fetchWithTimeout } from '@/lib/fetch'

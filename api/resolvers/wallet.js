@@ -7,7 +7,7 @@ import crypto, { timingSafeEqual } from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
-import { msatsToSats, msatsToSatsDecimal } from '@/lib/format'
+import { formatMsats, formatSats, msatsToSats, msatsToSatsDecimal } from '@/lib/format'
 import {
   ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS,
   INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, LND_PATHFINDING_TIMEOUT_MS
@@ -54,20 +54,25 @@ function injectResolvers (resolvers) {
         settings && Object.keys(validData).filter(key => key in settings).forEach(key => { settings[key] = validData[key] })
       }
 
+      // wallet in shape of db row
+      const wallet = {
+        field: walletDef.walletField,
+        type: walletDef.walletType,
+        userId: me?.id
+      }
+      const logger = walletLogger({ wallet, models })
+
       return await upsertWallet({
-        wallet: {
-          field: walletDef.walletField,
-          type: walletDef.walletType
-        },
+        wallet,
         testCreateInvoice:
           walletDef.testCreateInvoice && validateLightning && canReceive({ def: walletDef, config: data })
-            ? (data) => walletDef.testCreateInvoice(data, { me, models })
+            ? (data) => walletDef.testCreateInvoice(data, { logger, me, models })
             : null
       }, {
         settings,
         data,
         vaultEntries
-      }, { me, models })
+      }, { logger, me, models })
     }
   }
   console.groupEnd()
@@ -406,7 +411,7 @@ const resolvers = {
             userId: me.id,
             wallet: type ?? undefined,
             createdAt: {
-              gte: from ? new Date(Number(from)) : undefined,
+              gt: from ? new Date(Number(from)) : undefined,
               lte: to ? new Date(Number(to)) : undefined
             }
           },
@@ -502,7 +507,15 @@ const resolvers = {
     sendToLnAddr,
     cancelInvoice: async (parent, { hash, hmac }, { models, lnd, boss }) => {
       verifyHmac(hash, hmac)
-      await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
+      const dbInv = await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
+
+      if (dbInv.invoiceForward) {
+        const { wallet, bolt11 } = dbInv.invoiceForward
+        const logger = walletLogger({ wallet, models })
+        const decoded = await parsePaymentRequest({ request: bolt11 })
+        logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, { bolt11 })
+      }
+
       return await models.invoice.findFirst({ where: { hash } })
     },
     dropBolt11: async (parent, { id }, { me, models, lnd }) => {
@@ -561,11 +574,9 @@ const resolvers = {
         throw new GqlInputError('wallet not found')
       }
 
-      await models.$transaction([
-        models.wallet.delete({ where: { userId: me.id, id: Number(id) } }),
-        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'INFO', message: 'receives disabled' } }),
-        models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet detached for receives' } })
-      ])
+      const logger = walletLogger({ wallet, models })
+      await models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
+      logger.info('wallet detached')
 
       return true
     },
@@ -663,16 +674,47 @@ const resolvers = {
 
 export default injectResolvers(resolvers)
 
-export const addWalletLog = async ({ wallet, level, message }, { models }) => {
-  try {
-    await models.walletLog.create({ data: { userId: wallet.userId, wallet: wallet.type, level, message } })
-  } catch (err) {
-    console.error('error creating wallet log:', err)
+export const walletLogger = ({ wallet, models }) => {
+  // server implementation of wallet logger interface on client
+  const log = (level) => async (message, context = {}) => {
+    try {
+      if (context?.bolt11) {
+        // automatically populate context from bolt11 to avoid duplicating this code
+        const decoded = await parsePaymentRequest({ request: context.bolt11 })
+        context = {
+          ...context,
+          amount: formatMsats(decoded.mtokens),
+          payment_hash: decoded.id,
+          created_at: decoded.created_at,
+          expires_at: decoded.expires_at,
+          description: decoded.description
+        }
+      }
+
+      await models.walletLog.create({
+        data: {
+          userId: wallet.userId,
+          wallet: wallet.type,
+          level,
+          message,
+          context
+        }
+      })
+    } catch (err) {
+      console.error('error creating wallet log:', err)
+    }
+  }
+
+  return {
+    ok: (message, context) => log('SUCCESS')(message, context),
+    info: (message, context) => log('INFO')(message, context),
+    error: (message, context) => log('ERROR')(message, context),
+    warn: (message, context) => log('WARN')(message, context)
   }
 }
 
 async function upsertWallet (
-  { wallet, testCreateInvoice }, { settings, data, vaultEntries }, { me, models }) {
+  { wallet, testCreateInvoice }, { settings, data, vaultEntries }, { logger, me, models }) {
   if (!me) {
     throw new GqlAuthenticationError()
   }
@@ -682,11 +724,8 @@ async function upsertWallet (
     try {
       await testCreateInvoice(data)
     } catch (err) {
-      console.error(err)
       const message = 'failed to create test invoice: ' + (err.message || err.toString?.())
-      wallet = { ...wallet, userId: me.id }
-      await addWalletLog({ wallet, level: 'ERROR', message }, { models })
-      await addWalletLog({ wallet, level: 'INFO', message: 'receives disabled' }, { models })
+      logger.error(message)
       throw new GqlInputError(message)
     }
   }
@@ -804,7 +843,7 @@ async function upsertWallet (
   return upsertedWallet
 }
 
-export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, walletId = null }) {
+export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, wallet, logger }) {
   assertApiKeyNotPermitted({ me })
   await validateSchema(withdrawlSchema, { invoice, maxFee })
   await assertGofacYourself({ models, headers })
@@ -836,22 +875,22 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   }
 
   if (!decoded.mtokens || BigInt(decoded.mtokens) <= 0) {
-    throw new GqlInputError('your invoice must specify an amount')
+    throw new GqlInputError('invoice must specify an amount')
   }
 
   if (decoded.mtokens > Number.MAX_SAFE_INTEGER) {
-    throw new GqlInputError('your invoice amount is too large')
+    throw new GqlInputError('invoice amount is too large')
   }
 
   const msatsFee = Number(maxFee) * 1000
 
   const user = await models.user.findUnique({ where: { id: me.id } })
 
-  const autoWithdraw = !!walletId
+  const autoWithdraw = !!wallet?.id
   // create withdrawl transactionally (id, bolt11, amount, fee)
   const [withdrawl] = await serialize(
     models.$queryRaw`SELECT * FROM create_withdrawl(${decoded.id}, ${invoice},
-      ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name}, ${autoWithdraw}, ${walletId}::INTEGER)`,
+      ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name}, ${autoWithdraw}, ${wallet?.id}::INTEGER)`,
     { models }
   )
 

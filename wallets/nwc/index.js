@@ -63,17 +63,17 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } =
 
     logger?.info(`published ${method} request`)
 
-    logger?.info('waiting for response ...')
+    logger?.info(`waiting for ${method} response ...`)
 
     const [response] = await subscription
 
     if (!response) {
-      throw new Error('no response')
+      throw new Error(`no ${method} response`)
     }
 
-    logger?.ok('response received')
+    logger?.ok(`${method} response received`)
 
-    if (!verifyEvent(response)) throw new Error('invalid response: failed to verify')
+    if (!verifyEvent(response)) throw new Error(`invalid ${method} response: failed to verify`)
 
     const decrypted = await nip04.decrypt(secret, walletPubkey, response.content)
     const content = JSON.parse(decrypted)
@@ -81,7 +81,7 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } =
     if (content.error) throw new Error(content.error.message)
     if (content.result) return content.result
 
-    throw new Error('invalid response: missing error or result')
+    throw new Error(`invalid ${method} response: missing error or result`)
   } finally {
     relay?.close()
     logger?.info(`closed connection to ${relayUrl}`)

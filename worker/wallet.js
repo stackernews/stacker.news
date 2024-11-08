@@ -330,7 +330,7 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
     )
 
     logger?.error(
-      `withdrawal failed: ${message}`,
+      `incoming payment failed: ${message}`,
       {
         bolt11: wdrwl.payment.request,
         max_fee: formatMsats(dbWdrwl.msatsFeePaying)

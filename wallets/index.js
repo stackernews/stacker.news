@@ -5,7 +5,7 @@ import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally } from './common'
 import useVault from '@/components/vault/use-vault'
-import { useWalletLogger } from '@/components/wallet-logger'
+import { useWalletLogger, useWalletLogs } from '@/components/wallet-logger'
 import { decode as bolt11Decode } from 'bolt11'
 import walletDefs from '@/wallets/client'
 import { generateMutation } from './graphql'
@@ -67,6 +67,7 @@ export function WalletsProvider ({ children }) {
   const [setWalletPriority] = useMutation(SET_WALLET_PRIORITY)
   const [serverWallets, setServerWallets] = useState([])
   const client = useApolloClient()
+  const { logs } = useWalletLogs(null, { poll: false })
 
   const { data, refetch } = useQuery(WALLETS,
     SSR ? {} : { nextFetchPolicy: 'cache-and-network' })
@@ -192,6 +193,31 @@ export function WalletsProvider ({ children }) {
       reloadLocalWallets()
     }
   }, [setWalletPriority, me?.id, reloadLocalWallets])
+
+  // override status depending on if there have been warnings or errors in the logs recently
+  for (const wallet of wallets) {
+    let status = wallet.status
+
+    // find first log from which we can derive status (logs are sorted by recent first)
+    const walletLogs = logs.filter(l => l.wallet === wallet.def.name)
+    const level = walletLogs.find(l => l.level.toLowerCase() !== 'info')?.level
+    if (!level) break
+
+    switch (level.toLowerCase()) {
+      case 'ok':
+      case 'success':
+        status = Status.Enabled
+        break
+      case 'error':
+        status = Status.Error
+        break
+      case 'warn':
+        status = Status.Warning
+        break
+    }
+
+    wallet.status = status
+  }
 
   // provides priority sorted wallets to children, a function to reload local wallets,
   // and a function to set priorities

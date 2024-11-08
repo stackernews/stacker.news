@@ -195,7 +195,7 @@ function tag (walletDef) {
   return walletDef.shortName || walletDef.name
 }
 
-export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
+export function useWalletLogs (wallet, { initialPage = 1, logsPerPage = 10, poll = true } = {}) {
   const [logs, _setLogs] = useState([])
   const [page, setPage] = useState(initialPage)
   const [hasMore, setHasMore] = useState(true)
@@ -312,7 +312,8 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
 
   useInterval(() => {
     loadNew().catch(console.error)
-  }, 1_000, [loadNew])
+    return poll
+  }, 1_000, poll ? [loadNew] : [])
 
   return { logs, hasMore: !loading && hasMore, loadMore, setLogs, loading }
 }

@@ -2,7 +2,9 @@ import walletDefs from '@/wallets/client'
 
 export const Status = {
   Enabled: 'Enabled',
-  Disabled: 'Disabled'
+  Disabled: 'Disabled',
+  Error: 'Error',
+  Warning: 'Warning'
 }
 
 export function getWalletByName (name) {

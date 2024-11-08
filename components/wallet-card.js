@@ -14,6 +14,12 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
     case Status.Enabled:
       indicator = styles.success
       break
+    case Status.Error:
+      indicator = styles.error
+      break
+    case Status.Warning:
+      indicator = styles.warning
+      break
     default:
       indicator = styles.disabled
       break

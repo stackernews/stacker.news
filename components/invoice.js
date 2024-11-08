@@ -55,11 +55,15 @@ export default function Invoice ({
   let variant = 'default'
   let status = 'waiting for you'
 
-  if (invoice.cancelled) {
+  if (invoice.confirmedAt) {
+    variant = 'confirmed'
+    status = `${numWithUnits(invoice.satsReceived, { abbreviate: false })} ${successVerb}`
+    useWallet = false
+  } else if (invoice.cancelled) {
     variant = 'failed'
     status = 'cancelled'
     useWallet = false
-  } else if (invoice.isHeld && invoice.satsReceived && !expired) {
+  } else if (invoice.isHeld) {
     variant = 'pending'
     status = (
       <div className='d-flex justify-content-center'>
@@ -67,15 +71,11 @@ export default function Invoice ({
       </div>
     )
     useWallet = false
-  } else if (invoice.confirmedAt) {
-    variant = 'confirmed'
-    status = `${numWithUnits(invoice.satsReceived, { abbreviate: false })} ${successVerb}`
-    useWallet = false
   } else if (expired) {
     variant = 'failed'
     status = 'expired'
     useWallet = false
-  } else if (invoice.expiresAt) {
+  } else {
     variant = 'pending'
     status = (
       <CompactLongCountdown

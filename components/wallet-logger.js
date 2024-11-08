@@ -166,7 +166,7 @@ export function useWalletLogger (wallet, setLogs) {
     }
 
     if (context?.bolt11) {
-      // automaticaly populate context from bolt11 to avoid duplicating this code
+      // automatically populate context from bolt11 to avoid duplicating this code
       const decoded = bolt11Decode(context.bolt11)
       context = {
         ...context,

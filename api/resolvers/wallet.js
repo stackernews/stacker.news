@@ -679,7 +679,7 @@ export const walletLogger = ({ wallet, models }) => {
   const log = (level) => async (message, context = {}) => {
     try {
       if (context?.bolt11) {
-        // automaticaly populate context from bolt11 to avoid duplicating this code
+        // automatically populate context from bolt11 to avoid duplicating this code
         const decoded = await parsePaymentRequest({ request: context.bolt11 })
         context = {
           ...context,

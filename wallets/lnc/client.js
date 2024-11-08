@@ -1,4 +1,4 @@
-import { InvoiceCanceledError, InvoiceExpiredError } from '@/components/payment'
+import { InvoiceCanceledError, InvoiceExpiredError } from '@/wallets/errors'
 import { bolt11Tags } from '@/lib/bolt11'
 import { Mutex } from 'async-mutex'
 export * from 'wallets/lnc'
@@ -26,7 +26,7 @@ async function disconnect (lnc, logger) {
       }, 50)
       logger.info('disconnected')
     } catch (err) {
-      logger.error('failed to disconnect from lnc', err)
+      logger.error('failed to disconnect from lnc: ' + err)
     }
   }
 }

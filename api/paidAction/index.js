@@ -1,7 +1,7 @@
 import { createHodlInvoice, createInvoice, parsePaymentRequest } from 'ln-service'
 import { datePivot } from '@/lib/time'
 import { PAID_ACTION_TERMINAL_STATES, USER_ID } from '@/lib/constants'
-import { createHmac } from '../resolvers/wallet'
+import { createHmac, walletLogger } from '@/api/resolvers/wallet'
 import { Prisma } from '@prisma/client'
 import * as ITEM_CREATE from './itemCreate'
 import * as ITEM_UPDATE from './itemUpdate'
@@ -249,17 +249,23 @@ export async function createLightningInvoice (actionType, args, context) {
   }
 
   if (userId) {
+    let logger, bolt11
     try {
       const description = await paidActions[actionType].describe(args, context)
-      const { invoice: bolt11, wallet } = await createUserInvoice(userId, {
+      const { invoice, wallet } = await createUserInvoice(userId, {
         // this is the amount the stacker will receive, the other 3/10ths is the sybil fee
         msats: cost * BigInt(7) / BigInt(10),
         description,
         expiry: INVOICE_EXPIRE_SECS
       }, { models })
 
+      logger = walletLogger({ wallet, models })
+      bolt11 = invoice
+
+      // the sender (me) decides if the wrapped invoice has a description
+      // whereas the recipient decides if their invoice has a description
       const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(
-        bolt11, { msats: cost, description }, { lnd })
+        bolt11, { msats: cost, description }, { me, lnd })
 
       return {
         bolt11,
@@ -268,6 +274,7 @@ export async function createLightningInvoice (actionType, args, context) {
         maxFee
       }
     } catch (e) {
+      logger?.error('invalid invoice: ' + e.message, { bolt11 })
       console.error('failed to create stacker invoice, falling back to SN invoice', e)
     }
   }

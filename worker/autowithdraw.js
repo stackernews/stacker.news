@@ -4,7 +4,10 @@ import { createInvoice } from 'wallets/server'
 
 export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const user = await models.user.findUnique({ where: { id } })
-  if (user.autoWithdrawThreshold === null || user.autoWithdrawMaxFeePercent === null) return
+  if (
+    user.autoWithdrawThreshold === null ||
+    user.autoWithdrawMaxFeePercent === null ||
+    user.autoWithdrawMaxFeeTotal === null) return
 
   const threshold = satsToMsats(user.autoWithdrawThreshold)
   const excess = Number(user.msats - threshold)
@@ -13,7 +16,10 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   if (excess < Number(threshold) * 0.1) return
 
   // floor fee to nearest sat but still denominated in msats
-  const maxFeeMsats = msatsSatsFloor(Math.ceil(excess * (user.autoWithdrawMaxFeePercent / 100.0)))
+  const maxFeeMsats = msatsSatsFloor(Math.max(
+    Math.ceil(excess * (user.autoWithdrawMaxFeePercent / 100.0)),
+    Number(satsToMsats(user.autoWithdrawMaxFeeTotal))
+  ))
   // msats will be floored by createInvoice if it needs to be
   const msats = BigInt(excess) - maxFeeMsats
 
@@ -36,8 +42,14 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
 
   if (pendingOrFailed.exists) return
 
-  const { invoice, wallet } = await createInvoice(id, { msats, description: 'SN: autowithdrawal', expiry: 360 }, { models })
-  return await createWithdrawal(null,
-    { invoice, maxFee: msatsToSats(maxFeeMsats) },
-    { me: { id }, models, lnd, walletId: wallet.id })
+  const { invoice, wallet, logger } = await createInvoice(id, { msats, description: 'SN: autowithdrawal', expiry: 360 }, { models })
+
+  try {
+    return await createWithdrawal(null,
+      { invoice, maxFee: msatsToSats(maxFeeMsats) },
+      { me: { id }, models, lnd, wallet, logger })
+  } catch (err) {
+    logger.error(`incoming payment failed: ${err}`, { bolt11: invoice })
+    throw err
+  }
 }

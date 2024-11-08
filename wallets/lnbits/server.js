@@ -1,5 +1,7 @@
 import { msatsToSats } from '@/lib/format'
 import { getAgent } from '@/lib/proxy'
+import { assertContentTypeJson } from '@/lib/url'
+import fetch from 'cross-fetch'
 
 export * from 'wallets/lnbits'
 
@@ -28,8 +30,13 @@ export async function createInvoice (
     out: false
   })
 
-  const hostname = url.replace(/^https?:\/\//, '')
+  let hostname = url.replace(/^https?:\/\//, '')
   const agent = getAgent({ hostname })
+
+  if (process.env.NODE_ENV !== 'production' && hostname.startsWith('localhost:')) {
+    // to make it possible to attach LNbits for receives during local dev
+    hostname = 'lnbits:5000'
+  }
 
   const res = await fetch(`${agent.protocol}//${hostname}${path}`, {
     method: 'POST',
@@ -38,6 +45,7 @@ export async function createInvoice (
     body
   })
   if (!res.ok) {
+    assertContentTypeJson(res)
     const errBody = await res.json()
     throw new Error(errBody.detail)
   }

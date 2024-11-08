@@ -1,9 +1,11 @@
 import { Relay } from '@/lib/nostr'
 import { parseNwcUrl } from '@/lib/url'
-import { nwcSchema } from '@/lib/validate'
+import { string } from '@/lib/yup'
 import { finalizeEvent, nip04, verifyEvent } from 'nostr-tools'
 
 export const name = 'nwc'
+export const walletType = 'NWC'
+export const walletField = 'walletNWC'
 
 export const fields = [
   {
@@ -12,7 +14,8 @@ export const fields = [
     type: 'password',
     optional: 'for sending',
     clientOnly: true,
-    editable: false
+    requiredWithout: 'nwcUrlRecv',
+    validate: string().nwcUrl()
   },
   {
     name: 'nwcUrlRecv',
@@ -20,21 +23,16 @@ export const fields = [
     type: 'password',
     optional: 'for receiving',
     serverOnly: true,
-    editable: false
+    requiredWithout: 'nwcUrl',
+    validate: string().nwcUrl()
   }
 ]
 
 export const card = {
   title: 'NWC',
   subtitle: 'use Nostr Wallet Connect for payments',
-  badges: ['send & receive', 'budgetable']
+  badges: ['send', 'receive', 'budgetable']
 }
-
-export const fieldValidation = nwcSchema
-
-export const walletType = 'NWC'
-
-export const walletField = 'walletNWC'
 
 export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } = {}) {
   const { relayUrl, walletPubkey, secret } = parseNwcUrl(nwcUrl)
@@ -65,17 +63,17 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } =
 
     logger?.info(`published ${method} request`)
 
-    logger?.info('waiting for response ...')
+    logger?.info(`waiting for ${method} response ...`)
 
     const [response] = await subscription
 
     if (!response) {
-      throw new Error('no response')
+      throw new Error(`no ${method} response`)
     }
 
-    logger?.ok('response received')
+    logger?.ok(`${method} response received`)
 
-    if (!verifyEvent(response)) throw new Error('invalid response: failed to verify')
+    if (!verifyEvent(response)) throw new Error(`invalid ${method} response: failed to verify`)
 
     const decrypted = await nip04.decrypt(secret, walletPubkey, response.content)
     const content = JSON.parse(decrypted)
@@ -83,7 +81,7 @@ export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } =
     if (content.error) throw new Error(content.error.message)
     if (content.result) return content.result
 
-    throw new Error('invalid response: missing error or result')
+    throw new Error(`invalid ${method} response: missing error or result`)
   } finally {
     relay?.close()
     logger?.info(`closed connection to ${relayUrl}`)

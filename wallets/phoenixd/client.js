@@ -25,8 +25,7 @@ export async function sendPayment (bolt11, { url, primaryPassword }) {
     body
   })
   if (!res.ok) {
-    const error = await res.text()
-    throw new Error(error)
+    throw new Error(`POST ${res.url}: ${res.status} ${res.statusText}`)
   }
 
   const payment = await res.json()

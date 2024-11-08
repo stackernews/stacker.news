@@ -1,21 +1,21 @@
-import serialize from '@/api/resolvers/serial.js'
+import serialize from '@/api/resolvers/serial'
 import {
   getInvoice, getPayment, cancelHodlInvoice, deletePayment,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
 import { notifyDeposit, notifyWithdrawal } from '@/lib/webPush'
 import { INVOICE_RETENTION_DAYS, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
-import { datePivot, sleep } from '@/lib/time.js'
+import { datePivot, sleep } from '@/lib/time'
 import retry from 'async-retry'
-import { addWalletLog } from '@/api/resolvers/wallet'
-import { msatsToSats, numWithUnits } from '@/lib/format'
 import {
   paidActionPaid, paidActionForwarded,
   paidActionFailedForward, paidActionHeld, paidActionFailed,
   paidActionForwarding,
   paidActionCanceling
-} from './paidAction.js'
+} from './paidAction'
 import { getPaymentFailureStatus } from '@/api/lnd/index.js'
+import { walletLogger } from '@/api/resolvers/wallet.js'
+import { formatMsats, formatSats, msatsToSats } from '@/lib/format.js'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -287,6 +287,8 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
     }
   }
 
+  const logger = walletLogger({ models, wallet: dbWdrwl.wallet })
+
   if (wdrwl?.is_confirmed) {
     if (dbWdrwl.invoiceForward.length > 0) {
       return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
@@ -294,7 +296,7 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
 
     const fee = Number(wdrwl.payment.fee_mtokens)
     const paid = Number(wdrwl.payment.mtokens) - fee
-    const [{ confirm_withdrawl: code }] = await serialize([
+    const [[{ confirm_withdrawl: code }]] = await serialize([
       models.$queryRaw`SELECT confirm_withdrawl(${dbWdrwl.id}::INTEGER, ${paid}, ${fee})`,
       models.withdrawl.update({
         where: { id: dbWdrwl.id },
@@ -305,35 +307,34 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
     ], { models })
     if (code === 0) {
       notifyWithdrawal(dbWdrwl.userId, wdrwl)
-      if (dbWdrwl.wallet) {
-        // this was an autowithdrawal
-        const message = `autowithdrawal of ${
-          numWithUnits(msatsToSats(paid), { abbreviate: false })} with ${
-          numWithUnits(msatsToSats(fee), { abbreviate: false })} as fee`
-        await addWalletLog({ wallet: dbWdrwl.wallet, level: 'SUCCESS', message }, { models })
-      }
+
+      const { request: bolt11, secret: preimage } = wdrwl.payment
+      logger?.ok(
+        `↙ payment received: ${formatSats(msatsToSats(Number(wdrwl.payment.mtokens)))}`,
+        {
+          bolt11,
+          preimage,
+          fee: formatMsats(fee)
+        })
     }
   } else if (wdrwl?.is_failed || notSent) {
     if (dbWdrwl.invoiceForward.length > 0) {
       return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
     }
 
-    const { status, message } = getPaymentFailureStatus(wdrwl)
-
-    const [{ reverse_withdrawl: code }] = await serialize(
+    const { message, status } = getPaymentFailureStatus(wdrwl)
+    await serialize(
       models.$queryRaw`
         SELECT reverse_withdrawl(${dbWdrwl.id}::INTEGER, ${status}::"WithdrawlStatus")`,
       { models }
     )
 
-    if (code === 0 && dbWdrwl.wallet) {
-      // add error into log for autowithdrawal
-      await addWalletLog({
-        wallet: dbWdrwl.wallet,
-        level: 'ERROR',
-        message: 'autowithdrawal failed: ' + message
-      }, { models })
-    }
+    logger?.error(
+      `incoming payment failed: ${message}`,
+      {
+        bolt11: wdrwl.payment.request,
+        max_fee: formatMsats(dbWdrwl.msatsFeePaying)
+      })
   }
 }
 
@@ -346,12 +347,12 @@ export async function autoDropBolt11s ({ models, lnd }) {
       SELECT id, hash, bolt11
       FROM "Withdrawl"
       WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
-      AND now() > created_at + interval '${retention}'
+      AND now() > created_at + ${retention}::INTERVAL
       AND hash IS NOT NULL
       AND status IS NOT NULL
     ), updated_rows AS (
       UPDATE "Withdrawl"
-      SET hash = NULL, bolt11 = NULL
+      SET hash = NULL, bolt11 = NULL, preimage = NULL
       FROM to_be_updated
       WHERE "Withdrawl".id = to_be_updated.id)
     SELECT * FROM to_be_updated;`
@@ -364,7 +365,7 @@ export async function autoDropBolt11s ({ models, lnd }) {
         console.error(`Error removing invoice with hash ${invoice.hash}:`, error)
         await models.withdrawl.update({
           where: { id: invoice.id },
-          data: { hash: invoice.hash, bolt11: invoice.bolt11 }
+          data: { hash: invoice.hash, bolt11: invoice.bolt11, preimage: invoice.preimage }
         })
       }
     }
@@ -384,7 +385,8 @@ export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, 
     include: {
       invoiceForward: {
         include: {
-          withdrawl: true
+          withdrawl: true,
+          wallet: true
         }
       }
     }
@@ -402,7 +404,9 @@ export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, 
   }
 
   // sync LND invoice status with invoice status in database
-  await checkInvoice({ data: { hash }, models, lnd, ...args })
+  await checkInvoice({ data: { hash }, models, lnd, boss })
+
+  return dbInv
 }
 
 export async function checkPendingDeposits (args) {

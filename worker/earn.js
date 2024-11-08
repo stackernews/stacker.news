@@ -1,7 +1,7 @@
-import { notifyEarner } from '@/lib/webPush.js'
-import createPrisma from '@/lib/create-prisma.js'
-import { proportions } from '@/lib/madness.js'
-import { SN_NO_REWARDS_IDS } from '@/lib/constants.js'
+import { notifyEarner } from '@/lib/webPush'
+import createPrisma from '@/lib/create-prisma'
+import { proportions } from '@/lib/madness'
+import { SN_NO_REWARDS_IDS } from '@/lib/constants'
 
 const TOTAL_UPPER_BOUND_MSATS = 1_000_000_000
 

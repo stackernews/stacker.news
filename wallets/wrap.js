@@ -22,7 +22,7 @@ const ZAP_SYBIL_FEE_MULT = 10 / 7 // the fee for the zap sybil service
     maxFee: number
   }
 */
-export default async function wrapInvoice (bolt11, { msats, description, descriptionHash }, { lnd }) {
+export default async function wrapInvoice (bolt11, { msats, description, descriptionHash }, { me, lnd }) {
   try {
     console.group('wrapInvoice', description)
 
@@ -36,7 +36,7 @@ export default async function wrapInvoice (bolt11, { msats, description, descrip
       throw new Error('Unable to decode invoice')
     }
 
-    console.log('invoice', inv.mtokens, inv.expires_at, inv.cltv_delta)
+    console.log('invoice', inv.id, inv.mtokens, inv.expires_at, inv.cltv_delta, inv.destination)
 
     // validate outgoing amount
     if (inv.mtokens) {
@@ -77,6 +77,8 @@ export default async function wrapInvoice (bolt11, { msats, description, descrip
           case 49:
           case 149: // trampoline routing
           case 151: // electrum trampoline routing
+          case 262:
+          case 263: // blinded paths
             break
           default:
             throw new Error(`Unsupported feature bit: ${f.bit}`)
@@ -108,6 +110,11 @@ export default async function wrapInvoice (bolt11, { msats, description, descrip
     } else {
       // use the invoice description
       wrapped.description = inv.description
+    }
+
+    if (me?.hideInvoiceDesc) {
+      wrapped.description = undefined
+      wrapped.description_hash = undefined
     }
 
     // validate the expiration

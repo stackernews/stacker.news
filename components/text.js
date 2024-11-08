@@ -17,6 +17,7 @@ import ItemPopover from './item-popover'
 import classNames from 'classnames'
 import { CarouselProvider, useCarousel } from './carousel'
 import rehypeSN from '@/lib/rehype-sn'
+import remarkUnicode from '@/lib/remark-unicode'
 import Embed from './embed'
 import remarkMath from 'remark-math'
 import rehypeMathjax from 'rehype-mathjax'
@@ -33,7 +34,7 @@ const rehypeSNStyled = () => rehypeSN({
   }]
 })
 
-const remarkPlugins = [gfm, [remarkMath, { singleDollarTextMath: false }]]
+const remarkPlugins = [gfm, remarkUnicode, [remarkMath, { singleDollarTextMath: false }]]
 const rehypePlugins = [rehypeSNStyled, rehypeMathjax]
 
 export function SearchText ({ text }) {

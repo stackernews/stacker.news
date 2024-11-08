@@ -1,27 +1,33 @@
-For testing LNbits, you need to create a LNbits account first via the web interface.
+LNbits' database is seeded with a superuser (see https://docs.lnbits.org/guide/admin_ui.html).
 
-By default, you can access it at `localhost:5001` (see `LNBITS_WEB_PORT` in .env.development).
+The following credentials were used:
 
-After you created a wallet, you should find the invoice and admin key under `Node URL, API keys and API docs`.
+- username: `stackernews`
+- password: `stackernews`
 
-> [!IMPORTANT]
->
-> Since your browser is running on your host machine but the server is running inside a docker container, the server will not be able to reach LNbits with `localhost:5001` to create invoices. This makes it hard to test send+receive at the same time.
->
-> For now, you need to patch the `_createInvoice` function in wallets/lnbits/server.js to always use `lnbits:5000` as the URL:
->
-> ```diff
-> diff --git a/wallets/lnbits/server.js b/wallets/lnbits/server.js
-> index 39949775..e3605c45 100644
-> --- a/wallets/lnbits/server.js
-> +++ b/wallets/lnbits/server.js
-> @@ -11,6 +11,7 @@ async function _createInvoice ({ url, invoiceKey, amount, expiry }, { me }) {
->    const memo = me.hideInvoiceDesc ? undefined : 'autowithdraw to LNbits from SN'
->    const body = JSON.stringify({ amount, unit: 'sat', expiry, memo, out: false })
->
-> +  url = 'http://lnbits:5000'
->    const res = await fetch(url + path, { method: 'POST', headers, body })
->    if (!res.ok) {
->      const errBody = await res.json()
-> ```
->
+To get access to the superuser, you need to visit the admin UI:
+
+http://localhost:5001/wallet?usr=e46288268b67457399a5fca81809573e
+
+After that, the cookies will be set to access this wallet:
+
+http://localhost:5001/wallet?&wal=15ffe06c74cc4082a91f528d016d9028
+
+Or simply copy the keys from here:
+
+* admin key: `640cc7b031eb427c891eeaa4d9c34180`
+
+* invoice key: `5deed7cd634e4306bb5e696f4a03cdac`
+
+( These keys can be found under `Node URL, API keys and API docs`. )
+
+To use the same URL to connect to LNbits in the browser and server during local development, `localhost:<port>` is mapped to `lnbits:5000` on the server.
+
+
+# tor onion url
+
+Run the following command to get the onion url:
+
+```bash
+sndev lnbits get_onion
+```

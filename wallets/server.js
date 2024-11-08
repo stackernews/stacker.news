@@ -51,7 +51,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
     const logger = walletLogger({ wallet, models })
 
     try {
-      await logger.info(
+      logger.info(
         `↙ incoming payment: ${formatSats(msatsToSats(msats))}`,
         {
           amount: formatMsats(msats)
@@ -69,7 +69,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 
       const bolt11 = await parsePaymentRequest({ request: invoice })
 
-      await logger.info(`created invoice for ${formatSats(msatsToSats(bolt11.mtokens))}`, {
+      logger.info(`created invoice for ${formatSats(msatsToSats(bolt11.mtokens))}`, {
         bolt11: invoice
       })
 
@@ -84,12 +84,12 @@ export async function createInvoice (userId, { msats, description, descriptionHa
           throw new Error('invoice invalid: amount too small')
         }
 
-        await logger.warn('wallet does not support msats')
+        logger.warn('wallet does not support msats')
       }
 
       return { invoice, wallet, logger }
     } catch (err) {
-      await logger.error(err.message)
+      logger.error(err.message)
     }
   }
 

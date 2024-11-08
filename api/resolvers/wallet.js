@@ -513,7 +513,7 @@ const resolvers = {
         const { wallet, bolt11 } = dbInv.invoiceForward
         const logger = walletLogger({ wallet, models })
         const decoded = await parsePaymentRequest({ request: bolt11 })
-        await logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, { bolt11 })
+        logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, { bolt11 })
       }
 
       return await models.invoice.findFirst({ where: { hash } })
@@ -576,7 +576,7 @@ const resolvers = {
 
       const logger = walletLogger({ wallet, models })
       await models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
-      await logger.info('wallet detached')
+      logger.info('wallet detached')
 
       return true
     },
@@ -677,20 +677,20 @@ export default injectResolvers(resolvers)
 export const walletLogger = ({ wallet, models }) => {
   // server implementation of wallet logger interface on client
   const log = (level) => async (message, context = {}) => {
-    if (context?.bolt11) {
-      // automaticaly populate context from bolt11 to avoid duplicating this code
-      const decoded = await parsePaymentRequest({ request: context.bolt11 })
-      context = {
-        ...context,
-        amount: formatMsats(decoded.mtokens),
-        payment_hash: decoded.id,
-        created_at: decoded.created_at,
-        expires_at: decoded.expires_at,
-        description: decoded.description
-      }
-    }
-
     try {
+      if (context?.bolt11) {
+        // automaticaly populate context from bolt11 to avoid duplicating this code
+        const decoded = await parsePaymentRequest({ request: context.bolt11 })
+        context = {
+          ...context,
+          amount: formatMsats(decoded.mtokens),
+          payment_hash: decoded.id,
+          created_at: decoded.created_at,
+          expires_at: decoded.expires_at,
+          description: decoded.description
+        }
+      }
+
       await models.walletLog.create({
         data: {
           userId: wallet.userId,
@@ -725,7 +725,7 @@ async function upsertWallet (
       await testCreateInvoice(data)
     } catch (err) {
       const message = 'failed to create test invoice: ' + (err.message || err.toString?.())
-      await logger.error(message)
+      logger.error(message)
       throw new GqlInputError(message)
     }
   }

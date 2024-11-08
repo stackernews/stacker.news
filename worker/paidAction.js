@@ -280,7 +280,7 @@ export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...a
       await settleHodlInvoice({ secret: payment.secret, lnd })
 
       const logger = walletLogger({ wallet: dbInvoice.invoiceForward.wallet, models })
-      await logger.ok(
+      logger.ok(
         `↙ payment received: ${formatSats(msatsToSats(payment.mtokens))}`,
         {
           bolt11,
@@ -346,7 +346,7 @@ export async function paidActionFailedForward ({ data: { invoiceId, withdrawal: 
       const { status, message } = getPaymentFailureStatus(withdrawal)
       const { bolt11, msatsFeePaying } = dbInvoice.invoiceForward.withdrawl
       const logger = walletLogger({ wallet: dbInvoice.invoiceForward.wallet, models })
-      await logger.warn(
+      logger.warn(
         `incoming payment failed: ${message}`, {
           bolt11,
           max_fee: formatMsats(Number(msatsFeePaying))

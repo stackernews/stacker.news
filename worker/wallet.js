@@ -309,7 +309,7 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
       notifyWithdrawal(dbWdrwl.userId, wdrwl)
 
       const { request: bolt11, secret: preimage } = wdrwl.payment
-      await logger?.ok(
+      logger?.ok(
         `↙ payment received: ${formatSats(msatsToSats(Number(wdrwl.payment.mtokens)))}`,
         {
           bolt11,
@@ -329,7 +329,7 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
       { models }
     )
 
-    await logger?.error(
+    logger?.error(
       `withdrawal failed: ${message}`,
       {
         bolt11: wdrwl.payment.request,

@@ -49,7 +49,7 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
       { invoice, maxFee: msatsToSats(maxFeeMsats) },
       { me: { id }, models, lnd, wallet, logger })
   } catch (err) {
-    await logger.error(`incoming payment failed: ${err}`, { bolt11: invoice })
+    logger.error(`incoming payment failed: ${err}`, { bolt11: invoice })
     throw err
   }
 }

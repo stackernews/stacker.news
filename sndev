@@ -194,22 +194,25 @@ USAGE
 
 sndev__set_balance() {
   shift
+
   if [ -z "$1" ]; then
     echo "NYM argument required"
     sndev__help_set_balance
     exit 1
   fi
+
   if [ -z "$2" ]; then
     echo "MSATS argument required"
     sndev__help_set_balance
     exit 2
   fi
-  re='^[0-9]+$'
-  if ! [[ $2 =~ $re ]]; then
+
+  if ! echo "$2" | grep -qE "^[0-9]+$"; then
    echo "MSATS argument is not a positive integer"
    sndev__help_set_balance
    exit 3
   fi
+
   docker__exec db psql -U sn -d stackernews -q <<EOF
     UPDATE users set msats = $2 where name = '$1';
 EOF

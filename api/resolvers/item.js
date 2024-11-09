@@ -535,6 +535,7 @@ export default {
                       '"Item".bio = false',
                       ad ? `"Item".id <> ${ad.id}` : '',
                       activeOrMine(me),
+                      await filterClause(me, models, type),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
                     ORDER BY rank DESC

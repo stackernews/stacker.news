@@ -1,4 +1,4 @@
-Using webln will require installing the alby browser extension and connecting it to an alby hub connected to `stacker_lnd`.
+Using webln will require installing the alby browser extension and connecting it to an alby hub connected to `lnd`.
 
 1. Install the [Alby browser extensions](https://chromewebstore.google.com/detail/alby-bitcoin-wallet-for-l/iokeahhehimjnekafflcihljlcjccdbe?pli=1)
 2. Create an Alby account

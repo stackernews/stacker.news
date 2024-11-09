@@ -317,6 +317,7 @@ export function LogoutDropdownItem ({ handleClose }) {
       </Dropdown.Item>
       <Dropdown.Item
         onClick={async () => {
+          handleClose?.()
           showModal(onClose => (<LogoutObstacle onClose={onClose} />))
         }}
       >logout

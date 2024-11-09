@@ -56,7 +56,7 @@ docker__stacker_lnd() {
 
 docker__stacker_cln() {
   t=$1
-  
+
   if [ "$t" = "-t" ]; then
     shift
   else
@@ -232,22 +232,22 @@ USAGE
   echo "$help"
 }
 
-sndev__fund_user() {
+sndev__set_balance() {
   shift
   if [ -z "$1" ]; then
     echo "<nym> argument required"
-    sndev__help_fund_user
+    sndev__help_set_balance
     exit 1
   fi
   if [ -z "$2" ]; then
     echo "<msats> argument required"
-    sndev__help_fund_user
+    sndev__help_set_balance
     exit 2
   fi
   re='^[0-9]+$'
   if ! [[ $2 =~ $re ]]; then
    echo "<msats> is not a positive integer"
-   sndev__help_fund_user
+   sndev__help_set_balance
    exit 3
   fi
   docker__exec db psql -U sn -d stackernews -q <<EOF
@@ -255,14 +255,14 @@ sndev__fund_user() {
 EOF
 }
 
-sndev__help_fund_user() {
+sndev__help_set_balance() {
   help="
-fund a nym without using an LN invoice (local only)
+set the balance of a nym
 
 USAGE
-  $ sndev fund_user <nym> <msats>
+  $ sndev set_balance <nym> <msats>
 
-  <nym> - the name of the user you want to fund
+  <nym> - the name of the user you want to set the balance of
   <msats> - the amount of millisatoshis to set the account to. Must be >= 0
 "
 
@@ -271,7 +271,12 @@ USAGE
 
 sndev__fund() {
   shift
-  docker__stacker_lnd -t payinvoice "$@"
+  if [ "$1" = "--cln" ]; then
+    shift
+    docker__stacker_cln -t pay "$@"
+  else
+    docker__stacker_lnd -t payinvoice "$@"
+  fi
 }
 
 sndev__help_fund() {
@@ -280,6 +285,7 @@ pay a bolt11 for funding
 
 USAGE
   $ sndev fund <bolt11> [OPTIONS]
+  $ sndev fund --cln <bolt11>
 
 OPTIONS"
 
@@ -287,38 +293,15 @@ OPTIONS"
   docker__stacker_lnd payinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+--pay_req value/'
 }
 
-sndev__cln_fund() {
-  shift
-  docker__stacker_cln -t pay "$@"
-}
-
-sndev__help_cln_fund() {
-help="
-pay a bolt11 for funding with CLN
-
-USAGE
-  $ sndev cln_fund <bolt11>"
-  echo "$help"
-}
-
-sndev__cln_withdraw() {
-  shift
-  label=$(date +%s)
-  docker__stacker_cln -t invoice "$1" "$label" sndev | jq -r '.bolt11'
-}
-
-sndev__help_cln_withdraw() {
-help="
-create a bolt11 for withdrawal with CLN
-
-USAGE
-  $ sndev cln_withdraw <amount msats>"
-  echo "$help"
-}
-
 sndev__withdraw() {
   shift
-  docker__stacker_lnd addinvoice --amt "$@" | jq -r '.payment_request'
+  if [ "$1" = "--cln" ]; then
+    shift
+    label=$(date +%s)
+    docker__stacker_cln -t invoice "$1" "$label" sndev | jq -r '.bolt11'
+  else
+    docker__stacker_lnd addinvoice --amt "$@" | jq -r '.payment_request'
+  fi
 }
 
 sndev__help_withdraw() {
@@ -327,6 +310,7 @@ create a bolt11 for withdrawal
 
 USAGE
   $ sndev withdraw <amount sats> [OPTIONS]
+  $ sndev withdraw --cln <amount msats>
 
 OPTIONS"
 
@@ -545,7 +529,7 @@ USAGE
   echo "$help"
 }
 
-sndev__stacker_lnd() {  
+sndev__stacker_lnd() {
   shift
   if [ -z "$1" ]; then
     echo "no command provided"
@@ -558,7 +542,7 @@ sndev__stacker_lnd() {
   then
     onion="$(docker__exec -t stacker_lnd cat /home/lnd/.tor/hidden_service/hostname | tr -d '[:space:]')"
     echo "$onion:10009"
-  fi  
+  fi
 }
 
 sndev__help_lnbits() {
@@ -569,7 +553,7 @@ USAGE
 "
 }
 
-sndev__lnbits() {  
+sndev__lnbits() {
   shift
   if [ -z "$1" ]; then
     echo "no command provided"
@@ -590,11 +574,11 @@ sndev__help_tor() {
 USAGE
   $ sndev tor get_onion         get the onion address
 "
-  
+
   echo "$help"
 }
 
-sndev__tor() {  
+sndev__tor() {
   shift
   if [ -z "$1" ]; then
     echo "no command provided"
@@ -605,7 +589,7 @@ sndev__tor() {
   then
     onion="$(docker__exec -t stacker_lnd cat /home/lnd/.tor/hidden_service/hostname | tr -d '[:space:]')"
     echo "$onion"
-  fi  
+  fi
 }
 
 sndev__help() {
@@ -643,15 +627,11 @@ COMMANDS
 
   sn:
     login                 login as a nym
-    fund_user             fund a nym without using an LN invoice
+    set_balance           set the balance of a nym
 
-  lnd:
+  lightning:
     fund                   pay a bolt11 for funding
     withdraw               create a bolt11 for withdrawal
-
-  cln:
-    cln_fund               pay a bolt11 for funding with CLN
-    cln_withdraw           create a bolt11 for withdrawal with CLN
 
   db:
     psql                   open psql on db

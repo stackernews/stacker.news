@@ -32,46 +32,6 @@ docker__exec() {
   DOCKER_CLI_HINTS=false command docker exec -i "$@"
 }
 
-docker__sn_lnd() {
-  t=$1
-  if [ "$t" = "-t" ]; then
-    shift
-  else
-    t=""
-  fi
-
-  docker__exec $t -u lnd sn_lnd lncli "$@"
-}
-
-docker__stacker_lnd() {
-  t=$1
-  if [ "$t" = "-t" ]; then
-    shift
-  else
-    t=""
-  fi
-
-  docker__exec $t -u lnd stacker_lnd lncli "$@"
-}
-
-docker__stacker_cln() {
-  t=$1
-
-  if [ "$t" = "-t" ]; then
-    shift
-  else
-    t=""
-  fi
-
-  if [ "$1" = "get_onion" ]; then
-    onion="$(docker__exec $t stacker_cln cat /home/clightning/.tor/hidden_service/hostname | tr -d '[:space:]')"
-    echo "$onion:3010"
-    exit 0
-  fi
-
-  docker__exec $t -u clightning stacker_cln lightning-cli --regtest "$@"
-}
-
 sndev__start() {
   shift
 
@@ -235,18 +195,18 @@ USAGE
 sndev__set_balance() {
   shift
   if [ -z "$1" ]; then
-    echo "<nym> argument required"
+    echo "NYM argument required"
     sndev__help_set_balance
     exit 1
   fi
   if [ -z "$2" ]; then
-    echo "<msats> argument required"
+    echo "MSATS argument required"
     sndev__help_set_balance
     exit 2
   fi
   re='^[0-9]+$'
   if ! [[ $2 =~ $re ]]; then
-   echo "<msats> is not a positive integer"
+   echo "MSATS argument is not a positive integer"
    sndev__help_set_balance
    exit 3
   fi
@@ -260,10 +220,10 @@ sndev__help_set_balance() {
 set the balance of a nym
 
 USAGE
-  $ sndev set_balance <nym> <msats>
+  $ sndev set_balance NYM MSATS
 
-  <nym> - the name of the user you want to set the balance of
-  <msats> - the amount of millisatoshis to set the account to. Must be >= 0
+  NYM - the name of the user you want to set the balance of
+  MSATS - the amount of millisatoshis to set the account to. Must be >= 0
 "
 
   echo "$help"
@@ -273,9 +233,9 @@ sndev__fund() {
   shift
   if [ "$1" = "--cln" ]; then
     shift
-    docker__stacker_cln -t pay "$@"
+    sndev__cli -t cln pay "$@"
   else
-    docker__stacker_lnd -t payinvoice "$@"
+    sndev__cli -t lnd payinvoice "$@"
   fi
 }
 
@@ -284,13 +244,13 @@ help="
 pay a bolt11 for funding
 
 USAGE
-  $ sndev fund <bolt11> [OPTIONS]
-  $ sndev fund --cln <bolt11>
+  $ sndev fund BOLT11 [OPTIONS]
+  $ sndev fund --cln BOLT11
 
 OPTIONS"
 
   echo "$help"
-  docker__stacker_lnd payinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+--pay_req value/'
+  sndev__cli lnd payinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+--pay_req value/'
 }
 
 sndev__withdraw() {
@@ -298,9 +258,9 @@ sndev__withdraw() {
   if [ "$1" = "--cln" ]; then
     shift
     label=$(date +%s)
-    docker__stacker_cln -t invoice "$1" "$label" sndev | jq -r '.bolt11'
+    sndev__cli -t cln invoice "$1" "$label" sndev | jq -j '.bolt11'; echo
   else
-    docker__stacker_lnd addinvoice --amt "$@" | jq -r '.payment_request'
+    sndev__cli lnd addinvoice --amt "$@" | jq -j '.payment_request'; echo
   fi
 }
 
@@ -309,13 +269,13 @@ sndev__help_withdraw() {
 create a bolt11 for withdrawal
 
 USAGE
-  $ sndev withdraw <amount sats> [OPTIONS]
-  $ sndev withdraw --cln <amount msats>
+  $ sndev withdraw SATS [OPTIONS]
+  $ sndev withdraw --cln SATS
 
 OPTIONS"
 
   echo "$help"
-  docker__stacker_lnd addinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+(--amt|--amt_msat) value/'
+  sndev__cli lnd addinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+(--amt|--amt_msat) value/'
 }
 
 sndev__psql() {
@@ -380,45 +340,6 @@ sndev__help_compose() {
   docker__compose --help
 }
 
-sndev__sn_lndcli() {
-  shift
-  docker__sn_lnd -t "$@"
-}
-
-sndev__help_sn_lndcli() {
-  docker__sn_lnd --help
-}
-
-sndev__stacker_lndcli() {
-  shift
-  docker__stacker_lnd -t "$@"
-}
-
-sndev__help_stacker_lndcli() {
-  docker__stacker_lnd --help
-}
-
-sndev__stacker_clncli() {
-  shift
-  docker__stacker_cln -t "$@"
-}
-
-sndev__help_stacker_clncli() {
-  docker__stacker_cln help
-  echo
-  echo "EXTRA:"
-  echo "  get_onion          get the onion address"
-}
-
-sndev__stacker_litcli() {
-  shift
-  docker__exec -t litd litcli -n regtest --rpcserver localhost:8444 "$@"
-}
-
-sndev__help_stacker_litcli() {
-  docker__exec -t litd litcli -h
-}
-
 __sndev__pr_track() {
   json=$(curl -fsSH "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/stackernews/stacker.news/pulls/$1")
   case $(git config --get remote.origin.url) in
@@ -468,7 +389,7 @@ sndev__help_pr() {
 fetch and checkout a pr
 
 USAGE
-  $ sndev pr [OPTIONS] <pr number>
+  $ sndev pr [OPTIONS] PR_NUMBER
 
 OPTIONS
   -t, --track   track the pr in a new branch, creating a remote if necessary
@@ -481,7 +402,7 @@ OPTIONS
 sndev__login() {
   shift
   if [ -z "$1" ]; then
-    echo "<nym> argument required"
+    echo "NYM argument required"
     sndev__help_login
     exit 1
   fi
@@ -512,84 +433,102 @@ sndev__help_login() {
 login as a nym
 
 USAGE
-  $ sndev login <nym>
+  $ sndev login NYM
 "
 
   echo "$help"
 }
 
-sndev__help_stacker_lnd() {
+sndev__onion() {
+  shift
+  tordir=$(docker__compose ps $1 --format '{{.Label "TORDIR"}}')
+  if [ -z "$tordir" ]; then
+    echo "no TORDIR label found for $1"
+    exit 1
+  fi
+  onion=$(docker__exec $1 cat $tordir/hidden_service/hostname | tr -d '[:space:]')
+  echo "$onion"
+}
+
+sndev__help_onion() {
   help="
+get the onion address of a service
 
 USAGE
-  $ sndev stacker_lnd get_cert         get the tls cert
-  $ sndev stacker_lnd get_onion        get the onion address
+  $ sndev onion SERVICE
 "
 
   echo "$help"
 }
 
-sndev__stacker_lnd() {
+sndev__cert() {
   shift
-  if [ -z "$1" ]; then
-    echo "no command provided"
-    sndev__help_stacker_lnd
+  certdir=$(docker__compose ps $1 --format '{{.Label "CERTDIR"}}')
+  if [ -z "$certdir" ]; then
+    echo "no CERTDIR label found for $1"
     exit 1
   fi
-  if [ "$1" = "get_cert" ]; then
-    echo $(docker__exec -t stacker_lnd openssl base64 -A -in /home/lnd/.lnd/tls.cert)
-  elif [ "$1" = "get_onion" ];
-  then
-    onion="$(docker__exec -t stacker_lnd cat /home/lnd/.tor/hidden_service/hostname | tr -d '[:space:]')"
-    echo "$onion:10009"
-  fi
+  docker__exec $1 cat $certdir/tls.cert | base64
 }
 
-sndev__help_lnbits() {
+sndev__help_cert() {
   help="
+get the tls cert of a service
 
 USAGE
-  $ sndev stacker_lnbits get_onion        get the onion address
-"
-}
-
-sndev__lnbits() {
-  shift
-  if [ -z "$1" ]; then
-    echo "no command provided"
-    sndev__help_lnbits
-    exit 1
-  fi
-  if [ "$1" = "get_onion" ];
-  then
-    onion="$(docker__exec -t lnbits cat /app/.tor/hidden_service/hostname | tr -d '[:space:]')"
-    echo "$onion:5000"
-  fi
-}
-
-
-sndev__help_tor() {
-  help="
-
-USAGE
-  $ sndev tor get_onion         get the onion address
+  $ sndev cert SERVICE
 "
 
   echo "$help"
 }
 
-sndev__tor() {
-  shift
+sndev__cli() {
+  t=$1
+
+  if [ "$t" = "-t" ]; then
+    shift
+  else
+    t=""
+  fi
+
+  if [ "$1" = "cli" ]; then
+    shift
+  fi
+
   if [ -z "$1" ]; then
-    echo "no command provided"
-    sndev__help_tor
+    echo "SERVICE required"
+    sndev__help_cli
     exit 1
   fi
-  if [ "$1" = "get_onion" ];
-  then
-    onion="$(docker__exec -t stacker_lnd cat /home/lnd/.tor/hidden_service/hostname | tr -d '[:space:]')"
-    echo "$onion"
+
+  service=$1
+  cli=$(docker__compose ps $service --format '{{.Label "CLI"}}')
+  cli_user=$(docker__compose ps $service --format '{{.Label "CLI_USER"}}')
+  cli_args=$(docker__compose ps $service --format '{{.Label "CLI_ARGS"}}')
+
+  if [ -z "$cli" ]; then
+    echo "no CLI label found for $service"
+    exit 1
   fi
+
+  shift
+
+  if [ -n "$cli_user" ]; then
+    cli_user="-u $cli_user"
+  fi
+
+  docker__exec $t $cli_user $service $cli $cli_args "$@"
+}
+
+sndev__help_cli() {
+  help="
+run a cli command on a service
+
+USAGE
+  $ sndev cli SERVICE [COMMAND [ARGS]]
+"
+
+  echo "$help"
 }
 
 sndev__help() {
@@ -640,19 +579,13 @@ COMMANDS
   dev:
     pr                     fetch and checkout a pr
     lint                   run linters
-    open                   open container url in browser
 
   other:
+    cli                    service cli passthrough
+    open                   open service GUI in browser
+    onion                  service onion address
+    cert                   service tls cert
     compose                docker compose passthrough
-    sn_lndcli              lncli passthrough on sn_lnd
-    stacker_lndcli         lncli passthrough on stacker_lnd
-    stacker_clncli         lightning-cli passthrough on stacker_cln
-    stacker_litcli         litcli passthrough on litd
-    tor get_onion          get the onion address
-    stacker_lnd get_cert   get the tls cert
-    stacker_lnd get_onion  get the onion address
-    stacker_clncli get_onion  get the onion address
-    lndbits get_onion      get the onion address
 "
   echo "$help"
 }

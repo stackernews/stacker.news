@@ -334,6 +334,30 @@ USAGE
   echo "$help"
 }
 
+sndev__test() {
+  shift
+
+  args=""
+  if [ $# -gt 0 ]; then
+    args="-- $@"
+  fi
+
+  docker__exec -t -u apprunner app npm run test $args
+}
+
+sndev__help_test() {
+  help="
+run tests
+
+USAGE
+  $ sndev test [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__exec -u apprunner app npm run test -- --help | awk '/Options:/{y=1;next}y'
+}
+
 sndev__compose() {
   shift
   docker__compose "$@"
@@ -582,6 +606,7 @@ COMMANDS
   dev:
     pr                     fetch and checkout a pr
     lint                   run linters
+    test                   run tests
 
   other:
     cli                    service cli passthrough

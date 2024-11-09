@@ -89,6 +89,7 @@ COMMANDS
   dev:
     pr                     fetch and checkout a pr
     lint                   run linters
+    test                   run tests
 
   other:
     cli                    service cli passthrough

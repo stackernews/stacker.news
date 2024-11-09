@@ -77,8 +77,8 @@ function getCallbacks (req, res) {
         if (req.cookies.sn_referrer && user?.id) {
           const referrerId = await getReferrerId(req.cookies.sn_referrer)
           if (referrerId && referrerId !== parseInt(user?.id)) {
-            await prisma.user.updateMany({ where: { id: user.id, referrerId: null }, data: { referrerId } })
-            notifyReferral(referrerId)
+            const { count } = await prisma.user.updateMany({ where: { id: user.id, referrerId: null }, data: { referrerId } })
+            if (count > 0) notifyReferral(referrerId)
           }
         }
       }

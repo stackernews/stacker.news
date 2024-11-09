@@ -115,11 +115,11 @@ const orderByClause = (by, me, models, type) => {
 }
 
 export function orderByNumerator ({ models, commentScaler = 0.5, considerBoost = false }) {
-  return `(CASE WHEN "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0 THEN
+  return `((CASE WHEN "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0 THEN
               GREATEST("Item"."weightedVotes" - "Item"."weightedDownVotes", POWER("Item"."weightedVotes" - "Item"."weightedDownVotes", 1.2))
             ELSE
               "Item"."weightedVotes" - "Item"."weightedDownVotes"
-            END + "Item"."weightedComments"*${commentScaler}) + ${considerBoost ? `("Item".boost / ${BOOST_MULT})` : 0}`
+            END + "Item"."weightedComments"*${commentScaler}) + ${considerBoost ? `("Item".boost / ${BOOST_MULT})` : 0})`
 }
 
 export function joinZapRankPersonalView (me, models) {

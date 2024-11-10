@@ -39,7 +39,7 @@ export default function ItemInfo ({
   const router = useRouter()
 
   // bios are always editable, we don't want to show the countdown for them
-  const [canEdit, setCanEdit] = useState(item.mine && !item.bio && (Date.now() < editThreshold))
+  const [canEdit, setCanEdit] = useState(item.mine && !item.bio && !item.deletedAt && (Date.now() < editThreshold))
 
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
@@ -54,11 +54,11 @@ export default function ItemInfo ({
   // allow anon edits if they have the correct hmac for the item invoice
   // (the server will verify the hmac)
   useEffect(() => {
-    const authorEdit = item.mine && !item.bio
+    const authorEdit = item.mine && !item.bio && !item.deletedAt
     const invParams = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
     const hmacEdit = !!invParams && !me && Number(item.user.id) === USER_ID.anon
     setCanEdit((authorEdit || hmacEdit) && (Date.now() < editThreshold))
-  }, [me, item.id, item.mine, editThreshold])
+  }, [me, item.id, item.mine, editThreshold, item.deletedAt])
 
   // territory founders can pin any post in their territory
   // and OPs can pin any root reply in their post

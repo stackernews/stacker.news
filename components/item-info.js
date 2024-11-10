@@ -6,7 +6,7 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import Countdown from './countdown'
 import { abbrNum, numWithUnits } from '@/lib/format'
 import { newComments, commentsViewedAt } from '@/lib/new-comments'
-import { timeSince } from '@/lib/time'
+import { datePivot, timeSince } from '@/lib/time'
 import { DeleteDropdownItem } from './delete'
 import styles from './item.module.css'
 import { useMe } from './me'
@@ -34,7 +34,7 @@ export default function ItemInfo ({
   onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true,
   setDisableRetry, disableRetry
 }) {
-  const editThreshold = new Date(item.invoice?.confirmedAt ?? item.createdAt).getTime() + 10 * 60000
+  const editThreshold = datePivot(new Date(item.invoice?.confirmedAt ?? item.createdAt), { minutes: 10 })
   const { me } = useMe()
   const router = useRouter()
   const [hasNewComments, setHasNewComments] = useState(false)

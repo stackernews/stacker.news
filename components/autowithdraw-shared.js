@@ -1,9 +1,8 @@
 import { InputGroup } from 'react-bootstrap'
-import { Checkbox, Input } from './form'
+import { Input } from './form'
 import { useMe } from './me'
 import { useEffect, useState } from 'react'
 import { isNumber } from '@/lib/validate'
-import { useIsClient } from './use-client'
 import Link from 'next/link'
 
 function autoWithdrawThreshold ({ me }) {
@@ -18,7 +17,7 @@ export function autowithdrawInitial ({ me }) {
   }
 }
 
-export function AutowithdrawSettings ({ wallet }) {
+export function AutowithdrawSettings () {
   const { me } = useMe()
   const threshold = autoWithdrawThreshold({ me })
 
@@ -28,16 +27,8 @@ export function AutowithdrawSettings ({ wallet }) {
     setSendThreshold(Math.max(Math.floor(threshold / 10), 1))
   }, [autoWithdrawThreshold])
 
-  const isClient = useIsClient()
-
   return (
     <>
-      <Checkbox
-        disabled={isClient && !wallet.isConfigured}
-        label='enabled'
-        id='enabled'
-        name='enabled'
-      />
       <div className='my-4 border border-3 rounded'>
         <div className='p-3'>
           <h3 className='text-center text-muted'>desired balance</h3>

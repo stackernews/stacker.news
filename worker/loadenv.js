@@ -1,3 +1,2 @@
-import nextEnv from '@next/env'
-const { loadEnvConfig } = nextEnv
+import { loadEnvConfig } from '@next/env'
 loadEnvConfig('.', process.env.NODE_ENV === 'development')

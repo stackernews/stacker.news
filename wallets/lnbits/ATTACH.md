@@ -21,4 +21,13 @@ Or simply copy the keys from here:
 
 ( These keys can be found under `Node URL, API keys and API docs`. )
 
-To use the same URL to connect to LNbits in the browser and server during local development, `localhost:<port>` is mapped to `lnbits:5000` on the server.
+To use the same URL to connect to LNbits in the browser and server during local development, `http://localhost:<port>` is mapped to `http://lnbits:5000` on the server.
+
+
+# tor onion url
+
+Run the following command to get the onion url:
+
+```bash
+sndev onion lnbits
+```

@@ -13,7 +13,7 @@ import {
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
-import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '@/lib/validate'
+import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
 import { uploadIdsFromText } from './upload'
@@ -115,11 +115,11 @@ const orderByClause = (by, me, models, type) => {
 }
 
 export function orderByNumerator ({ models, commentScaler = 0.5, considerBoost = false }) {
-  return `(CASE WHEN "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0 THEN
+  return `((CASE WHEN "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0 THEN
               GREATEST("Item"."weightedVotes" - "Item"."weightedDownVotes", POWER("Item"."weightedVotes" - "Item"."weightedDownVotes", 1.2))
             ELSE
               "Item"."weightedVotes" - "Item"."weightedDownVotes"
-            END + "Item"."weightedComments"*${commentScaler}) + ${considerBoost ? `("Item".boost / ${BOOST_MULT})` : 0}`
+            END + "Item"."weightedComments"*${commentScaler}) + ${considerBoost ? `("Item".boost / ${BOOST_MULT})` : 0})`
 }
 
 export function joinZapRankPersonalView (me, models) {
@@ -844,7 +844,7 @@ export default {
       return await deleteItemByAuthor({ models, id, item: old })
     },
     upsertLink: async (parent, { id, ...item }, { me, models, lnd }) => {
-      await ssValidate(linkSchema, item, { models, me })
+      await validateSchema(linkSchema, item, { models, me })
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -853,7 +853,7 @@ export default {
       }
     },
     upsertDiscussion: async (parent, { id, ...item }, { me, models, lnd }) => {
-      await ssValidate(discussionSchema, item, { models, me })
+      await validateSchema(discussionSchema, item, { models, me })
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -862,7 +862,7 @@ export default {
       }
     },
     upsertBounty: async (parent, { id, ...item }, { me, models, lnd }) => {
-      await ssValidate(bountySchema, item, { models, me })
+      await validateSchema(bountySchema, item, { models, me })
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -879,7 +879,7 @@ export default {
         })
         : 0
 
-      await ssValidate(pollSchema, item, { models, me, numExistingChoices })
+      await validateSchema(pollSchema, item, { models, me, numExistingChoices })
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -894,7 +894,7 @@ export default {
       }
 
       item.location = item.location?.toLowerCase() === 'remote' ? undefined : item.location
-      await ssValidate(jobSchema, item, { models })
+      await validateSchema(jobSchema, item, { models })
       if (item.logo !== undefined) {
         item.uploadId = item.logo
         delete item.logo
@@ -907,7 +907,7 @@ export default {
       }
     },
     upsertComment: async (parent, { id, ...item }, { me, models, lnd }) => {
-      await ssValidate(commentSchema, item)
+      await validateSchema(commentSchema, item)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -937,7 +937,7 @@ export default {
     },
     act: async (parent, { id, sats, act = 'TIP' }, { me, models, lnd, headers }) => {
       assertApiKeyNotPermitted({ me })
-      await ssValidate(actSchema, { sats, act })
+      await validateSchema(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
 
       const [item] = await models.$queryRawUnsafe(`
@@ -1369,7 +1369,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   }
 
   // in case they lied about their existing boost
-  await ssValidate(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
+  await validateSchema(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
 
   const user = await models.user.findUnique({ where: { id: meId } })
 

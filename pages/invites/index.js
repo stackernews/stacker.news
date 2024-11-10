@@ -27,6 +27,7 @@ function InviteForm () {
           fields: {
             invites (existingInviteRefs = []) {
               const newInviteRef = cache.writeFragment({
+                fragmentName: 'InviteFields',
                 data: createInvite,
                 fragment: INVITE_FIELDS
               })

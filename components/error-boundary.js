@@ -6,7 +6,7 @@ import copy from 'clipboard-copy'
 import { LoggerContext } from './logger'
 import Button from 'react-bootstrap/Button'
 import { useToast } from './toast'
-
+import { decodeMinifiedStackTrace } from '@/lib/stacktrace'
 class ErrorBoundary extends Component {
   constructor (props) {
     super(props)
@@ -27,7 +27,7 @@ class ErrorBoundary extends Component {
   getErrorDetails () {
     let details = this.state.error.stack
     if (this.state.errorInfo?.componentStack) {
-      details += `\n\nComponent stack:${this.state.errorInfo.componentStack}`
+      details += `\n\nComponent stack:\n    ${this.state.errorInfo.componentStack}`
     }
     return details
   }
@@ -69,7 +69,8 @@ const CopyErrorButton = ({ errorDetails }) => {
   const toaster = useToast()
   const onClick = async () => {
     try {
-      await copy(errorDetails)
+      const decodedDetails = await decodeMinifiedStackTrace(errorDetails)
+      await copy(decodedDetails)
       toaster?.success?.('copied')
     } catch (err) {
       console.error(err)

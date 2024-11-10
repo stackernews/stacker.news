@@ -1,35 +1,13 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import { useMe } from './me'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
-import { useWallet } from 'wallets'
+import { useWallet } from '@/wallets/index'
 import { FAST_POLL_INTERVAL, JIT_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { INVOICE } from '@/fragments/wallet'
 import Invoice from '@/components/invoice'
 import { useFeeButton } from './fee-button'
 import { useShowModal } from './modal'
-
-export class InvoiceCanceledError extends Error {
-  constructor (hash, actionError) {
-    super(actionError ?? `invoice canceled: ${hash}`)
-    this.name = 'InvoiceCanceledError'
-    this.hash = hash
-    this.actionError = actionError
-  }
-}
-
-export class NoAttachedWalletError extends Error {
-  constructor () {
-    super('no attached wallet found')
-    this.name = 'NoAttachedWalletError'
-  }
-}
-
-export class InvoiceExpiredError extends Error {
-  constructor (hash) {
-    super(`invoice expired: ${hash}`)
-    this.name = 'InvoiceExpiredError'
-  }
-}
+import { InvoiceCanceledError, NoAttachedWalletError, InvoiceExpiredError } from '@/wallets/errors'
 
 export const useInvoice = () => {
   const client = useApolloClient()
@@ -82,43 +60,6 @@ export const useInvoice = () => {
     return that(data.invoice)
   }, [client])
 
-  const waitController = useMemo(() => {
-    const controller = new AbortController()
-    const signal = controller.signal
-    controller.wait = async ({ id }, waitFor = inv => inv?.actionState === 'PAID') => {
-      return await new Promise((resolve, reject) => {
-        const interval = setInterval(async () => {
-          try {
-            const paid = await isInvoice({ id }, waitFor)
-            if (paid) {
-              resolve()
-              clearInterval(interval)
-              signal.removeEventListener('abort', abort)
-            } else {
-              console.info(`invoice #${id}: waiting for payment ...`)
-            }
-          } catch (err) {
-            reject(err)
-            clearInterval(interval)
-            signal.removeEventListener('abort', abort)
-          }
-        }, FAST_POLL_INTERVAL)
-
-        const abort = () => {
-          console.info(`invoice #${id}: stopped waiting`)
-          resolve()
-          clearInterval(interval)
-          signal.removeEventListener('abort', abort)
-        }
-        signal.addEventListener('abort', abort)
-      })
-    }
-
-    controller.stop = () => controller.abort()
-
-    return controller
-  }, [isInvoice])
-
   const cancel = useCallback(async ({ hash, hmac }) => {
     if (!hash || !hmac) {
       throw new Error('missing hash or hmac')
@@ -129,7 +70,44 @@ export const useInvoice = () => {
     return inv
   }, [cancelInvoice])
 
-  return { create, waitUntilPaid: waitController.wait, stopWaiting: waitController.stop, cancel }
+  return { create, cancel, isInvoice }
+}
+
+const invoiceController = (id, isInvoice) => {
+  const controller = new AbortController()
+  const signal = controller.signal
+  controller.wait = async (waitFor = inv => inv?.actionState === 'PAID') => {
+    return await new Promise((resolve, reject) => {
+      const interval = setInterval(async () => {
+        try {
+          const paid = await isInvoice({ id }, waitFor)
+          if (paid) {
+            resolve()
+            clearInterval(interval)
+            signal.removeEventListener('abort', abort)
+          } else {
+            console.info(`invoice #${id}: waiting for payment ...`)
+          }
+        } catch (err) {
+          reject(err)
+          clearInterval(interval)
+          signal.removeEventListener('abort', abort)
+        }
+      }, FAST_POLL_INTERVAL)
+
+      const abort = () => {
+        console.info(`invoice #${id}: stopped waiting`)
+        resolve()
+        clearInterval(interval)
+        signal.removeEventListener('abort', abort)
+      }
+      signal.addEventListener('abort', abort)
+    })
+  }
+
+  controller.stop = () => controller.abort()
+
+  return controller
 }
 
 export const useWalletPayment = () => {
@@ -140,12 +118,13 @@ export const useWalletPayment = () => {
     if (!wallet) {
       throw new NoAttachedWalletError()
     }
+    const controller = invoiceController(id, invoice.isInvoice)
     try {
       return await new Promise((resolve, reject) => {
         // can't use await here since we might pay JIT invoices and sendPaymentAsync is not supported yet.
         // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
         wallet.sendPayment(bolt11).catch(reject)
-        invoice.waitUntilPaid({ id }, waitFor)
+        controller.wait(waitFor)
           .then(resolve)
           .catch(reject)
       })
@@ -153,7 +132,7 @@ export const useWalletPayment = () => {
       console.error('payment failed:', err)
       throw err
     } finally {
-      invoice.stopWaiting()
+      controller.stop()
     }
   }, [wallet, invoice])
 

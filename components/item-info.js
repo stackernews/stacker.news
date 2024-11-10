@@ -37,7 +37,10 @@ export default function ItemInfo ({
   const editThreshold = new Date(item.invoice?.confirmedAt ?? item.createdAt).getTime() + 10 * 60000
   const { me } = useMe()
   const router = useRouter()
+
+  // bios are always editable, we don't want to show the countdown for them
   const [canEdit, setCanEdit] = useState(item.mine && !item.bio && (Date.now() < editThreshold))
+
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
   const sub = item?.sub || root?.sub
@@ -48,6 +51,8 @@ export default function ItemInfo ({
     }
   }, [item])
 
+  // allow anon edits if they have the correct hmac for the item invoice
+  // (the server will verify the hmac)
   useEffect(() => {
     const authorEdit = item.mine && !item.bio
     const invParams = window.localStorage.getItem(`item:${item.id}:hash:hmac`)

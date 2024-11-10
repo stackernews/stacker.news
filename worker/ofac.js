@@ -2,7 +2,7 @@ import { createReadStream, createWriteStream, unlinkSync } from 'fs'
 import unzipper from 'unzipper'
 import csvParser from 'csv-parser'
 import stream from 'stream'
-import { SANCTIONED_COUNTRY_CODES } from '@/lib/constants.js'
+import { SANCTIONED_COUNTRY_CODES } from '@/lib/constants'
 
 const IPV4_URL = 'https://ipapi.is/data/geolocationDatabaseIPv4.csv.zip'
 const IPV6_URL = 'https://ipapi.is/data/geolocationDatabaseIPv6.csv.zip'

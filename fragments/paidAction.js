@@ -29,6 +29,18 @@ const ITEM_PAID_ACTION_FIELDS = gql`
     }
   }`
 
+const ITEM_PAID_ACTION_FIELDS_NO_CHILD_COMMENTS = gql`
+  ${COMMENTS}
+  fragment ItemPaidActionFieldsNoChildComments on ItemPaidAction {
+    result {
+      id
+      deleteScheduledAt
+      reminderScheduledAt
+      ...CommentFields
+    }
+  }
+`
+
 const ITEM_ACT_PAID_ACTION_FIELDS = gql`
   fragment ItemActPaidActionFields on ItemActPaidAction {
     result {
@@ -226,11 +238,11 @@ export const CREATE_COMMENT = gql`
   }`
 
 export const UPDATE_COMMENT = gql`
-  ${ITEM_PAID_ACTION_FIELDS}
+  ${ITEM_PAID_ACTION_FIELDS_NO_CHILD_COMMENTS}
   ${PAID_ACTION}
   mutation upsertComment($id: ID!, $text: String!, $boost: Int, ${HASH_HMAC_INPUT_1}) {
     upsertComment(id: $id, text: $text, boost: $boost, ${HASH_HMAC_INPUT_2}) {
-      ...ItemPaidActionFields
+      ...ItemPaidActionFieldsNoChildComments
       ...PaidActionFields
     }
   }`

@@ -40,6 +40,14 @@
   margin-right: 0.2rem;
 }
 
+.receive {
+  color: #20c997 !important;
+}
+
+.send {
+  color: var(--bs-primary) !important;
+}
+
 .attach {
   color: var(--bs-body-color) !important;
   text-align: center;

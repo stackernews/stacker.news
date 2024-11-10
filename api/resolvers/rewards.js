@@ -1,4 +1,4 @@
-import { amountSchema, ssValidate } from '@/lib/validate'
+import { amountSchema, validateSchema } from '@/lib/validate'
 import { getAd, getItem } from './item'
 import { topUsers } from './user'
 import performPaidAction from '../paidAction'
@@ -171,7 +171,7 @@ export default {
   },
   Mutation: {
     donateToRewards: async (parent, { sats }, { me, models, lnd }) => {
-      await ssValidate(amountSchema, { amount: sats })
+      await validateSchema(amountSchema, { amount: sats })
 
       return await performPaidAction('DONATE', { sats }, { me, models, lnd })
     }

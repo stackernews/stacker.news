@@ -1,10 +1,19 @@
-import { galoyBlinkUrl } from 'wallets/blink'
+import { getScopes, SCOPE_READ, SCOPE_WRITE, getWallet, request } from 'wallets/blink/common'
 export * from 'wallets/blink'
 
 export async function testSendPayment ({ apiKey, currency }, { logger }) {
-  currency = currency ? currency.toUpperCase() : 'BTC'
   logger.info('trying to fetch ' + currency + ' wallet')
+  const scopes = await getScopes(apiKey)
+  if (!scopes.includes(SCOPE_READ)) {
+    throw new Error('missing READ scope')
+  }
+  if (!scopes.includes(SCOPE_WRITE)) {
+    throw new Error('missing WRITE scope')
+  }
+
+  currency = currency ? currency.toUpperCase() : 'BTC'
   await getWallet(apiKey, currency)
+
   logger.ok(currency + ' wallet found')
 }
 
@@ -142,46 +151,4 @@ async function getTxInfo (authToken, wallet, invoice) {
     preImage,
     error: ''
   }
-}
-
-async function getWallet (authToken, currency) {
-  const out = await request(authToken, `
-    query me {
-        me {
-            defaultAccount {
-                wallets {
-                    id
-                    walletCurrency
-                }
-            }
-        }
-    }
-  `, {})
-  const wallets = out.data.me.defaultAccount.wallets
-  for (const wallet of wallets) {
-    if (wallet.walletCurrency === currency) {
-      return wallet
-    }
-  }
-  throw new Error(`wallet ${currency} not found`)
-}
-
-async function request (authToken, query, variables = {}) {
-  const options = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': authToken
-    },
-    body: JSON.stringify({ query, variables })
-  }
-  const res = await fetch(galoyBlinkUrl, options)
-  if (res.status >= 400 && res.status <= 599) {
-    if (res.status === 401) {
-      throw new Error('unauthorized')
-    } else {
-      throw new Error('API responded with HTTP ' + res.status)
-    }
-  }
-  return res.json()
 }

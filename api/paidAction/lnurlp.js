@@ -10,7 +10,7 @@ export async function getCost ({ sats }) {
   return satsToMsats(sats)
 }
 
-export async function invoiceablePeer ({ targetUserId }, { models }) {
+export async function getInvoiceablePeer ({ targetUserId }, { models }) {
   const user = await models.user.findUnique({
     where: { id: targetUserId }
   })

@@ -45,7 +45,7 @@ export default async function performPaidAction (actionType, args, context) {
     context.me = me ? await models.user.findUnique({ where: { id: me.id } }) : undefined
     context.cost = await paidAction.getCost(args, context)
 
-    context.sybilFeePercent = paidAction.getSybilFeePercent ? await paidAction.getSybilFeePercent(args, context) : undefined
+    context.sybilFeePercent = await paidAction.getSybilFeePercent?.(args, context)
     if (context.sybilFeePercent != null && context.sybilFeePercent < 0n) throw new Error('sybil fee percent cannot be negative')
 
     if (!me) {

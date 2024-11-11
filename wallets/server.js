@@ -14,11 +14,12 @@ import * as webln from 'wallets/webln'
 import { walletLogger } from '@/api/resolvers/wallet'
 import walletDefs from 'wallets/server'
 import { parsePaymentRequest } from 'ln-service'
-import { toPositiveNumber } from '@/lib/validate'
+import { toPositiveBigInt, toPositiveNumber } from '@/lib/validate'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { withTimeout } from '@/lib/time'
 import { canReceive } from './common'
 import { formatMsats, formatSats, msatsToSats } from '@/lib/format'
+import wrapInvoice from './wrap'
 
 export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
 
@@ -94,6 +95,37 @@ export async function createInvoice (userId, { msats, description, descriptionHa
   }
 
   throw new Error('no wallet to receive available')
+}
+
+export async function createWrappedInvoice (userId,
+  { msats, feePercent, description, descriptionHash, expiry = 360 },
+  { models, me, lnd }) {
+  let logger, bolt11
+  try {
+    const { invoice, wallet } = await createInvoice(userId, {
+      // this is the amount the stacker will receive, the other (feePercent)% is our fee
+      msats: toPositiveBigInt(msats) * (100n - feePercent) / 100n,
+      description,
+      descriptionHash,
+      expiry
+    }, { models })
+
+    logger = walletLogger({ wallet, models })
+    bolt11 = invoice
+
+    const { invoice: wrappedInvoice, maxFee } =
+      await wrapInvoice({ bolt11, feePercent }, { msats, description, descriptionHash }, { me, lnd })
+
+    return {
+      invoice,
+      wrappedInvoice: wrappedInvoice.request,
+      wallet,
+      maxFee
+    }
+  } catch (e) {
+    logger?.error('invalid invoice: ' + e.message, { bolt11 })
+    throw e
+  }
 }
 
 async function walletCreateInvoice (

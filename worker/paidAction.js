@@ -112,8 +112,10 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
 async function performPessimisticAction ({ lndInvoice, dbInvoice, tx, models, lnd, boss }) {
   try {
     const args = { ...dbInvoice.actionArgs, invoiceId: dbInvoice.id }
-    const result = await paidActions[dbInvoice.actionType].perform(args,
-      { models, tx, lnd, cost: BigInt(lndInvoice.received_mtokens), me: dbInvoice.user })
+    const context = { tx, cost: BigInt(lndInvoice.received_mtokens) }
+    context.sybilFeePercent = await paidActions[dbInvoice.actionType].getSybilFeePercent?.(args, context)
+
+    const result = await paidActions[dbInvoice.actionType].perform(args, context)
     await tx.invoice.update({
       where: { id: dbInvoice.id },
       data: {

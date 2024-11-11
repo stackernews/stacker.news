@@ -1,7 +1,7 @@
 import { createHodlInvoice, createInvoice, parsePaymentRequest } from 'ln-service'
 import { datePivot } from '@/lib/time'
 import { PAID_ACTION_TERMINAL_STATES, USER_ID } from '@/lib/constants'
-import { createHmac, walletLogger } from '@/api/resolvers/wallet'
+import { createHmac } from '@/api/resolvers/wallet'
 import { Prisma } from '@prisma/client'
 import * as ITEM_CREATE from './itemCreate'
 import * as ITEM_UPDATE from './itemUpdate'
@@ -14,8 +14,7 @@ import * as TERRITORY_BILLING from './territoryBilling'
 import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
 import * as BOOST from './boost'
-import wrapInvoice from 'wallets/wrap'
-import { createInvoice as createUserInvoice } from 'wallets/server'
+import { createWrappedInvoice } from 'wallets/server'
 
 export const paidActions = {
   ITEM_CREATE,
@@ -44,6 +43,7 @@ export default async function performPaidAction (actionType, args, context) {
 
     context.me = me ? await models.user.findUnique({ where: { id: me.id } }) : undefined
     context.cost = await paidAction.getCost(args, context)
+    context.sybilFeePercent = await paidAction.getSybilFeePercent?.(args, context)
 
     if (!me) {
       if (!paidAction.anonable) {
@@ -229,8 +229,7 @@ const MAX_PENDING_PAID_ACTIONS_PER_USER = 100
 export async function createLightningInvoice (actionType, args, context) {
   // if the action has an invoiceable peer, we'll create a peer invoice
   // wrap it, and return the wrapped invoice
-  const { cost, models, lnd, me } = context
-  const userId = await paidActions[actionType]?.invoiceablePeer?.(args, context)
+  const { cost, models, lnd, sybilFeePercent, me } = context
 
   // count pending invoices and bail if we're over the limit
   const pendingInvoices = await models.invoice.count({
@@ -248,33 +247,29 @@ export async function createLightningInvoice (actionType, args, context) {
     throw new Error('You have too many pending paid actions, cancel some or wait for them to expire')
   }
 
+  const userId = await paidActions[actionType]?.getInvoiceablePeer?.(args, context)
   if (userId) {
-    let logger, bolt11
     try {
+      if (!sybilFeePercent) {
+        throw new Error('sybil fee percent is not set for an invoiceable peer action')
+      }
+
       const description = await paidActions[actionType].describe(args, context)
-      const { invoice, wallet } = await createUserInvoice(userId, {
-        // this is the amount the stacker will receive, the other 3/10ths is the sybil fee
-        msats: cost * BigInt(7) / BigInt(10),
+
+      const { invoice, wrappedInvoice, wallet, maxFee } = await createWrappedInvoice(userId, {
+        msats: cost,
+        feePercent: sybilFeePercent,
         description,
         expiry: INVOICE_EXPIRE_SECS
-      }, { models })
-
-      logger = walletLogger({ wallet, models })
-      bolt11 = invoice
-
-      // the sender (me) decides if the wrapped invoice has a description
-      // whereas the recipient decides if their invoice has a description
-      const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(
-        bolt11, { msats: cost, description }, { me, lnd })
+      }, { models, me, lnd })
 
       return {
-        bolt11,
-        wrappedBolt11: wrappedInvoice.request,
+        bolt11: invoice,
+        wrappedBolt11: wrappedInvoice,
         wallet,
         maxFee
       }
     } catch (e) {
-      logger?.error('invalid invoice: ' + e.message, { bolt11 })
       console.error('failed to create stacker invoice, falling back to SN invoice', e)
     }
   }

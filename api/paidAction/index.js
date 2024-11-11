@@ -46,7 +46,7 @@ export default async function performPaidAction (actionType, args, context) {
     context.cost = await paidAction.getCost(args, context)
 
     context.sybilFeePercent = await paidAction.getSybilFeePercent?.(args, context)
-    if (context.sybilFeePercent != null && context.sybilFeePercent < 0n) throw new Error('sybil fee percent cannot be negative')
+    if (context.sybilFeePercent < 0n) throw new Error('sybil fee percent cannot be negative')
 
     if (!me) {
       if (!paidAction.anonable) {

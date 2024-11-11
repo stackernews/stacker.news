@@ -1375,7 +1375,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
 
   // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
   const myBio = user.bioId === old.id
-  const timer = Date.now() < new Date(old.invoicePaidAt ?? old.createdAt).getTime() + 10 * 60_000
+  const timer = Date.now() < datePivot(new Date(old.invoicePaidAt ?? old.createdAt), { minutes: 10 })
 
   // timer permission check
   if (!adminEdit && !myBio && !timer && !isJob(item)) {

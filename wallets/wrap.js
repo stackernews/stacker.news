@@ -1,7 +1,6 @@
 import { createHodlInvoice, parsePaymentRequest } from 'ln-service'
 import { estimateRouteFee, getBlockHeight } from '../api/lnd'
-import { toPositiveBigInt, toPositiveNumber } from '@/lib/validate'
-import { ZAP_SYBIL_FEE_PERCENT, MAX_FEE_ESTIMATE_PERMILE } from '@/lib/constants'
+import { toBigInt, toPositiveBigInt, toPositiveNumber } from '@/lib/validate'
 
 const MIN_OUTGOING_MSATS = BigInt(900) // the minimum msats we'll allow for the outgoing invoice
 const MAX_OUTGOING_MSATS = BigInt(900_000_000) // the maximum msats we'll allow for the outgoing invoice
@@ -10,21 +9,28 @@ const INCOMING_EXPIRATION_BUFFER_MSECS = 300_000 // the buffer enforce for the i
 const MAX_OUTGOING_CLTV_DELTA = 500 // the maximum cltv delta we'll allow for the outgoing invoice
 export const MIN_SETTLEMENT_CLTV_DELTA = 80 // the minimum blocks we'll leave for settling the incoming invoice
 const FEE_ESTIMATE_TIMEOUT_SECS = 5 // the timeout for the fee estimate request
+const MAX_FEE_ESTIMATE_PERCENT = 3n // the maximum fee relative to outgoing we'll allow for the fee estimate
 
 /*
   The wrapInvoice function is used to wrap an outgoing invoice with the necessary parameters for an incoming hold invoice.
 
-  @param bolt11 {string} the bolt11 invoice to wrap
-  @param options {object}
+  @param args {object} {
+    bolt11: {string} the bolt11 invoice to wrap
+    feePercent: {bigint} the fee percent to use for the incoming invoice
+  }
+  @param options {object} {
+    msats: {bigint} the amount in msats to use for the incoming invoice
+    description: {string} the description to use for the incoming invoice
+    descriptionHash: {string} the description hash to use for the incoming invoice
+  }
   @returns {
     invoice: the wrapped incoming invoice,
     maxFee: number
   }
 */
-export default async function wrapInvoice (bolt11, { msats, description, descriptionHash }, { me, lnd }, sybilFeePercent) {
+export default async function wrapInvoice ({ bolt11, feePercent }, { msats, description, descriptionHash }, { me, lnd }) {
   try {
     console.group('wrapInvoice', description)
-    sybilFeePercent = toPositiveBigInt(sybilFeePercent ?? ZAP_SYBIL_FEE_PERCENT)
 
     // create a new object to hold the wrapped invoice values
     const wrapped = {}
@@ -37,6 +43,14 @@ export default async function wrapInvoice (bolt11, { msats, description, descrip
     }
 
     console.log('invoice', inv.id, inv.mtokens, inv.expires_at, inv.cltv_delta, inv.destination)
+
+    // validate fee percent
+    if (feePercent) {
+      // assert the fee percent is in the range 0-100
+      feePercent = toBigInt(feePercent, 0n, 100n)
+    } else {
+      throw new Error('Fee percent is missing')
+    }
 
     // validate outgoing amount
     if (inv.mtokens) {
@@ -54,8 +68,10 @@ export default async function wrapInvoice (bolt11, { msats, description, descrip
     // validate incoming amount
     if (msats) {
       msats = toPositiveBigInt(msats)
-      const msatsCheck = outgoingMsat * 100n / (100n - sybilFeePercent)
-      if (msatsCheck > msats) {
+      // outgoing amount should be smaller than the incoming amount
+      // by a factor of exactly 100n / (100n - feePercent)
+      const incomingMsats = outgoingMsat * 100n / (100n - feePercent)
+      if (incomingMsats > msats) {
         throw new Error('Sybil fee is too low')
       }
     } else {
@@ -163,7 +179,7 @@ export default async function wrapInvoice (bolt11, { msats, description, descrip
 
     // validate the fee budget
     const minEstFees = toPositiveNumber(routingFeeMsat)
-    const outgoingMaxFeeMsat = Math.ceil(toPositiveNumber(msats * MAX_FEE_ESTIMATE_PERMILE) / 1000)
+    const outgoingMaxFeeMsat = Math.ceil(toPositiveNumber(msats * MAX_FEE_ESTIMATE_PERCENT) / 100)
     if (minEstFees > outgoingMaxFeeMsat) {
       throw new Error('Estimated fees are too high')
     }

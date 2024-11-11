@@ -17,6 +17,10 @@ export async function invoiceablePeer ({ targetUserId }, { models }) {
   return user?.lnurlpP2P ? targetUserId : null
 }
 
+export async function getSybilFeePercent () {
+  return 10n
+}
+
 export async function perform ({ invoiceId, sats, description, descriptionHash, comment, targetUserId }, { me, tx }) {
   await tx.invoice.update({
     where: { id: invoiceId },

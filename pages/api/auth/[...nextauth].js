@@ -97,6 +97,8 @@ function getCallbacks (req, res) {
         const secret = process.env.NEXTAUTH_SECRET
         const jwt = await encodeJWT({ token, secret })
         const me = await prisma.user.findUnique({ where: { id: token.id } })
+        // we set multi_auth cookies on login/signup with only one user so the rest of the code doesn't
+        // have to consider the case where they aren't set yet because account switching wasn't used yet
         setMultiAuthCookies(req, res, { ...me, jwt })
       }
 

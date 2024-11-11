@@ -45,6 +45,9 @@ export default async function performPaidAction (actionType, args, context) {
     context.me = me ? await models.user.findUnique({ where: { id: me.id } }) : undefined
     context.cost = await paidAction.getCost(args, context)
 
+    context.sybilFeePercent = paidAction.getSybilFeePercent ? await paidAction.getSybilFeePercent(args, context) : undefined
+    if (context.sybilFeePercent != null && context.sybilFeePercent < 0n) throw new Error('sybil fee percent cannot be negative')
+
     if (!me) {
       if (!paidAction.anonable) {
         throw new Error('You must be logged in to perform this action')
@@ -265,7 +268,7 @@ export async function createLightningInvoice (actionType, args, context) {
       // the sender (me) decides if the wrapped invoice has a description
       // whereas the recipient decides if their invoice has a description
       const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(
-        bolt11, { msats: cost, description }, { me, lnd })
+        bolt11, { msats: cost, description }, { me, lnd }, context.sybilFeePercent)
 
       return {
         bolt11,

@@ -158,7 +158,8 @@ export default function Settings ({ ssrData }) {
             hideWalletBalance: settings?.hideWalletBalance,
             diagnostics: settings?.diagnostics,
             hideIsContributor: settings?.hideIsContributor,
-            noReferralLinks: settings?.noReferralLinks
+            noReferralLinks: settings?.noReferralLinks,
+            lnurlpP2P: settings?.lnurlpP2P
           }}
           schema={settingsSchema}
           onSubmit={async ({
@@ -331,6 +332,22 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label='I find or lose cowboy essentials (e.g. cowboy hat)'
             name='noteCowboyHat'
+          />
+          <div className='form-label'>lightning address</div>
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>forward lnurl payments to attached wallets
+                <Info>
+                  <ul>
+                    <li>Use this if you want to forward the sats you receive through your @stacker.news lightning address to your attached wallets</li>
+                    <li>Payments will be wrapped by the SN node to preserve your node privacy</li>
+                    <li>This will incur in a 30% fee</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='lnurlpP2P'
+            groupClassName='mb-0'
           />
           <div className='form-label'>privacy</div>
           <Checkbox

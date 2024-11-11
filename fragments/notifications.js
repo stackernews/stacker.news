@@ -186,8 +186,16 @@ export const NOTIFICATIONS = gql`
           withdrawl {
             autoWithdraw
             p2p
-            satsFeePaid
-          }
+            satsFeePaid           
+            invoiceForward {
+              invoice {
+                id
+                nostr
+                comment
+                lud18Data
+              }
+            }
+          }           
         }
         ... on Reminder {
           id

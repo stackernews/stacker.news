@@ -140,6 +140,7 @@ model User {
   vaultKeyHash              String               @default("")
   walletsUpdatedAt          DateTime?
   vaultEntries              VaultEntry[]         @relation("VaultEntries")
+  lnurlpP2P                 Boolean              @default(false)
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -864,6 +865,7 @@ enum InvoiceActionType {
   TERRITORY_UPDATE
   TERRITORY_BILLING
   TERRITORY_UNARCHIVE
+  LNURLP
 }
 
 enum InvoiceActionState {

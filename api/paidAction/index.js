@@ -16,6 +16,7 @@ import * as DONATE from './donate'
 import * as BOOST from './boost'
 import wrapInvoice from 'wallets/wrap'
 import { createInvoice as createUserInvoice } from 'wallets/server'
+import * as LNURLP from './lnurlp'
 
 export const paidActions = {
   ITEM_CREATE,
@@ -28,7 +29,8 @@ export const paidActions = {
   TERRITORY_UPDATE,
   TERRITORY_BILLING,
   TERRITORY_UNARCHIVE,
-  DONATE
+  DONATE,
+  LNURLP
 }
 
 export default async function performPaidAction (actionType, args, context) {
@@ -56,8 +58,9 @@ export default async function performPaidAction (actionType, args, context) {
       }
     }
 
+    const supportsFeeCredits = paidAction.supportsFeeCredits ?? true
     const isRich = context.cost <= (context.me?.msats ?? 0)
-    if (isRich) {
+    if (isRich && supportsFeeCredits) {
       try {
         console.log('enough fee credits available, performing fee credit action')
         return await performFeeCreditAction(actionType, args, context)
@@ -76,7 +79,7 @@ export default async function performPaidAction (actionType, args, context) {
     // since there is no client to which we could send an invoice.
     // example: automated territory billing
     if (forceFeeCredits) {
-      throw new Error('forceFeeCredits is set, but user does not have enough fee credits')
+      throw new Error('forceFeeCredits is set, but user does not have enough fee credits or action does not support fee credits')
     }
 
     // if we fail to do the action with fee credits, we should fall back to optimistic

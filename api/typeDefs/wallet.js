@@ -124,6 +124,11 @@ const typeDefs = `
     itemAct: ItemAct
   }
 
+  type InvoiceForward {
+    invoice: Invoice
+  }
+
+
   type Withdrawl {
     id: ID!
     createdAt: Date!
@@ -137,6 +142,7 @@ const typeDefs = `
     autoWithdraw: Boolean!
     p2p: Boolean!
     preimage: String
+    invoiceForward: [InvoiceForward]
   }
 
   type Fact {

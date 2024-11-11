@@ -141,6 +141,7 @@ Each paid action is implemented in its own file in the `paidAction` directory. E
 - `anonable`: can be performed anonymously
 - `supportsPessimism`: supports a pessimistic payment flow
 - `supportsOptimism`: supports an optimistic payment flow
+- `supportsFeeCredits`: supports fee credits payment flow (defaults to true)
 
 ### Functions
 

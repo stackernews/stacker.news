@@ -228,6 +228,23 @@ export default {
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
+        queries.push(
+          `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime", FLOOR("msatsReceived" / 1000) as "earnedSats",
+            'InvoicePaid' AS type
+            FROM "Invoice"
+            WHERE "Invoice"."userId" = $1
+            AND "confirmedAt" IS NOT NULL
+            AND "actionState" = 'PAID'
+            AND "actionType" = 'LNURLP'
+            AND created_at < $2
+            AND NOT EXISTS (
+              SELECT 1
+              FROM "InvoiceForward"
+              WHERE "InvoiceForward"."invoiceId" = "Invoice".id
+            )              
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+        )
       }
 
       if (meFull.noteWithdrawals) {

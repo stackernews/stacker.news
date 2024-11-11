@@ -131,7 +131,11 @@ export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
     },
     include: {
       user: true,
-      invoiceForward: true
+      invoiceForward: {
+        include: {
+          invoice: true
+        }
+      }
     }
   })
 

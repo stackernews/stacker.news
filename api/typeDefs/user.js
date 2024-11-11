@@ -107,6 +107,7 @@ export default gql`
     zapUndos: Int
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
+    lnurlpP2P: Boolean
   }
 
   type AuthMethods {
@@ -185,6 +186,7 @@ export default gql`
     autoWithdrawMaxFeeTotal: Int
     vaultKeyHash: String
     walletsUpdatedAt: Date
+    lnurlpP2P: Boolean
   }
 
   type UserOptional {

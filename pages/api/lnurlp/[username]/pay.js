@@ -1,14 +1,13 @@
 import models from '@/api/models'
 import lnd from '@/api/lnd'
-import { createInvoice } from 'ln-service'
 import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString, lnurlPayDescriptionHash } from '@/lib/lnurl'
-import serialize from '@/api/resolvers/serial'
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
-import { datePivot } from '@/lib/time'
-import { BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, LNURLP_COMMENT_MAX_LENGTH, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
-import { validateSchema, lud18PayerDataSchema } from '@/lib/validate'
+import { LNURLP_COMMENT_MAX_LENGTH } from '@/lib/constants'
+import { validateSchema, lud18PayerDataSchema, toPositiveNumber } from '@/lib/validate'
 import assertGofacYourself from '@/api/resolvers/ofac'
+import performPaidAction from '@/api/paidAction'
+import { msatsToSats } from '@/lib/format'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -30,14 +29,15 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       // If there is an amount tag, it MUST be equal to the amount query parameter
       const eventAmount = note.tags?.find(t => t[0] === 'amount')?.[1]
       if (schnorr.verify(note.sig, note.id, note.pubkey) && hasPTag && hasETag && (!eventAmount || Number(eventAmount) === Number(amount))) {
-        description = user.hideInvoiceDesc ? undefined : 'zap'
+        description = 'zap'
         descriptionHash = createHash('sha256').update(noteStr).digest('hex')
       } else {
         res.status(400).json({ status: 'ERROR', reason: 'invalid NIP-57 note' })
         return
       }
     } else {
-      description = user.hideInvoiceDesc ? undefined : `Funding @${username} on stacker.news`
+      description = `Funding @${username} on stacker.news`
+      description += comment ? `: ${comment}` : '.'
       descriptionHash = lnurlPayDescriptionHashForUser(username)
     }
 
@@ -45,7 +45,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
     }
 
-    if (comment && comment.length > LNURLP_COMMENT_MAX_LENGTH) {
+    if ((comment && comment.length > LNURLP_COMMENT_MAX_LENGTH) || (description && description.length > LNURLP_COMMENT_MAX_LENGTH)) {
       return res.status(400).json({ status: 'ERROR', reason: `comment cannot exceed ${LNURLP_COMMENT_MAX_LENGTH} characters in length` })
     }
 
@@ -71,27 +71,20 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     }
 
     // generate invoice
-    const expiresAt = datePivot(new Date(), { minutes: 5 })
-    const invoice = await createInvoice({
+    const actionResponse = await performPaidAction('LNURLP', {
+      sats: toPositiveNumber(msatsToSats(BigInt(amount))),
       description,
-      description_hash: descriptionHash,
-      lnd,
-      mtokens: amount,
-      expires_at: expiresAt
-    })
+      descriptionHash,
+      comment: comment || '',
+      targetUserId: user.id
+    }, { models, lnd, me: user })
 
-    await serialize(
-      models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.secret}::TEXT, ${invoice.request},
-        ${expiresAt}::timestamp, ${Number(amount)}, ${user.id}::INTEGER, ${noteStr || description},
-        ${comment || null}, ${parsedPayerData || null}::JSONB, ${INV_PENDING_LIMIT}::INTEGER,
-        ${USER_IDS_BALANCE_NO_LIMIT.includes(Number(user.id)) ? 0 : BALANCE_LIMIT_MSATS})`,
-      { models }
-    )
+    if (!actionResponse.invoice?.bolt11) throw new Error('could not generate invoice')
 
     return res.status(200).json({
-      pr: invoice.request,
+      pr: actionResponse.invoice.bolt11,
       routes: [],
-      verify: `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${invoice.id}`
+      verify: `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${actionResponse.invoice.hash}`
     })
   } catch (error) {
     console.log(error)

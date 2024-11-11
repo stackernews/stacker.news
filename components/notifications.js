@@ -326,10 +326,10 @@ function NostrZap ({ n }) {
   )
 }
 
-function InvoicePaid ({ n }) {
+function getPayerSig (lud18Data) {
   let payerSig
-  if (n.invoice.lud18Data) {
-    const { name, identifier, email, pubkey } = n.invoice.lud18Data
+  if (lud18Data) {
+    const { name, identifier, email, pubkey } = lud18Data
     const id = identifier || email || pubkey
     payerSig = '- '
     if (name) {
@@ -339,6 +339,11 @@ function InvoicePaid ({ n }) {
 
     if (id) payerSig += id
   }
+  return payerSig
+}
+
+function InvoicePaid ({ n }) {
+  const payerSig = getPayerSig(n.invoice.lud18Data)
   return (
     <div className='fw-bold text-info'>
       <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} deposited in your account
@@ -484,6 +489,7 @@ function Invoicification ({ n: { invoice, sortTime } }) {
 }
 
 function WithdrawlPaid ({ n }) {
+  const payerSig = getPayerSig(n.withdrawl.invoiceForward?.[0]?.invoice?.lud18Data)
   return (
     <div className='fw-bold text-info'>
       <Check className='fill-info me-1' />{numWithUnits(n.earnedSats + n.withdrawl.satsFeePaid, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
@@ -491,6 +497,11 @@ function WithdrawlPaid ({ n }) {
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       {(n.withdrawl.p2p && <Badge className={styles.badge} bg={null}>p2p</Badge>) ||
       (n.withdrawl.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>)}
+      {n.withdrawl.invoiceForward?.[0]?.invoice?.comment &&
+        <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'>
+          <Text>{n.withdrawl.invoiceForward[0].invoice.comment}</Text>
+          {payerSig}
+        </small>}
     </div>
   )
 }

@@ -265,6 +265,7 @@ function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const { removeLocalWallets } = useWallets()
   const { multiAuthSignout } = useAccounts()
+  const router = useRouter()
 
   return (
     <div className='d-flex m-auto flex-column w-fit-content'>
@@ -283,6 +284,8 @@ function LogoutObstacle ({ onClose }) {
             // only signout if multiAuth did not find a next available account
             if (switchSuccess) {
               onClose()
+              // reload whatever page we're on to avoid any bugs
+              router.reload()
               return
             }
 

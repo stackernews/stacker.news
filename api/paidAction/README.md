@@ -171,6 +171,7 @@ All functions have the following signature: `function(args: Object, context: Obj
     - this is only used for p2p wrapped zaps currently
 - `describe`: returns a description as a string of the action
     - for actions that require generating an invoice, and for stackers that don't hide invoice descriptions, this is used in the invoice description
+- `getSybilFeePercent` (optional): returns the action sybil fee as a `BigInt` (eg. 30n for 30%). If unspecified, the default will be used
 
 #### Function arguments
 

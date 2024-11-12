@@ -76,7 +76,8 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       description,
       descriptionHash,
       comment: comment || '',
-      targetUserId: user.id
+      targetUserId: user.id,
+      lud18Data: parsedPayerData
     }, { models, lnd, me: user })
 
     if (!invoice?.bolt11) throw new Error('could not generate invoice')

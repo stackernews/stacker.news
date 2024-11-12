@@ -21,11 +21,12 @@ export async function getSybilFeePercent () {
   return 10n
 }
 
-export async function perform ({ invoiceId, sats, description, descriptionHash, comment, targetUserId }, { me, tx }) {
+export async function perform ({ invoiceId, sats, description, descriptionHash, comment, targetUserId, lud18Data }, { me, tx }) {
   await tx.invoice.update({
     where: { id: invoiceId },
     data: {
-      comment
+      comment,
+      lud18Data
     }
   })
   return { sats, targetUserId }

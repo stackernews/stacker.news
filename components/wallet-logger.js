@@ -177,6 +177,7 @@ export function useWalletLogger (wallet, setLogs) {
         expires_at: new Date(decoded.timeExpireDate * 1000).toISOString()
       }
     }
+    context.send = true
 
     appendLog(wallet, level, message, context)
     console[level !== 'error' ? 'info' : 'error'](`[${tag(wallet)}]`, message)

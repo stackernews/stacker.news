@@ -681,6 +681,7 @@ export const walletLogger = ({ wallet, models }) => {
           description: decoded.description
         }
       }
+      context.recv = true
 
       await models.walletLog.create({
         data: {

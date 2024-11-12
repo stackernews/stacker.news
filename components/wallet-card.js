@@ -3,23 +3,22 @@ import styles from '@/styles/wallet.module.css'
 import Plug from '@/svgs/plug.svg'
 import Gear from '@/svgs/settings-5-fill.svg'
 import Link from 'next/link'
-import { Status, isConfigured, supportsReceive, supportsSend, canReceive, canSend } from '@/wallets/common'
+import { Status } from '@/wallets/common'
 import DraggableIcon from '@/svgs/draggable.svg'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
 
+const statusToClass = status => {
+  switch (status) {
+    case Status.Enabled: return styles.success
+    case Status.Disabled: return styles.disabled
+    case Status.Error: return styles.error
+    case Status.Warning: return styles.warning
+  }
+}
+
 export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnter, onDragEnd, onTouchStart, sourceIndex, targetIndex, index }) {
   const { card: { title, badges } } = wallet.def
-
-  const support = {
-    recv: supportsReceive(wallet),
-    send: supportsSend(wallet)
-  }
-  // TODO: implement warning and error status for send and recv
-  const status = {
-    recv: canReceive(wallet) ? styles.success : styles.disabled,
-    send: canSend(wallet) ? styles.success : styles.disabled
-  }
 
   return (
     <Card
@@ -32,9 +31,9 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
     >
       <div className={styles.cardMeta}>
         <div className={styles.indicators}>
-          {wallet.status === Status.Enabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
-          {support.recv && <RecvIcon className={`${styles.indicator} ${status.recv}`} />}
-          {support.send && <SendIcon className={`${styles.indicator} ${status.send}`} />}
+          {wallet.status.any && <DraggableIcon className={styles.drag} width={16} height={16} />}
+          {wallet.support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(wallet.status.recv)}`} />}
+          {wallet.support.send && <SendIcon className={`${styles.indicator} ${statusToClass(wallet.status.send)}`} />}
         </div>
       </div>
       <Card.Body
@@ -64,7 +63,7 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       </Card.Body>
       <Link href={`/settings/wallets/${wallet.def.name}`}>
         <Card.Footer className={styles.attach}>
-          {isConfigured(wallet)
+          {wallet.status.any
             ? <>configure<Gear width={14} height={14} /></>
             : <>attach<Plug width={14} height={14} /></>}
         </Card.Footer>

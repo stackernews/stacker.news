@@ -27,6 +27,14 @@ export default function LogMessage ({ showWallet, wallet, level, message, contex
 
   const style = hasContext ? { cursor: 'pointer' } : { cursor: 'inherit' }
   const indicator = hasContext ? (show ? '-' : '+') : <></>
+  const filteredCtx = context
+    ? Object.keys(context)
+      .filter(key => !['send', 'recv'].includes(key))
+      .reduce((obj, key) => {
+        obj[key] = context[key]
+        return obj
+      }, {})
+    : {}
 
   return (
     <>
@@ -37,16 +45,17 @@ export default function LogMessage ({ showWallet, wallet, level, message, contex
         <td>{message}</td>
         <td>{indicator}</td>
       </tr>
-      {show && hasContext && Object.entries(context).map(([key, value], i) => {
-        const last = i === Object.keys(context).length - 1
-        return (
-          <tr className={styles.line} key={i}>
-            <td />
-            <td className={last ? 'pb-2 pe-1' : 'pe-1'} colSpan='2'>{key}</td>
-            <td className={last ? 'text-break pb-2' : 'text-break'}>{value}</td>
-          </tr>
-        )
-      })}
+      {show && hasContext && Object.entries(filteredCtx)
+        .map(([key, value], i) => {
+          const last = i === Object.keys(filteredCtx).length - 1
+          return (
+            <tr className={styles.line} key={i}>
+              <td />
+              <td className={last ? 'pb-2 pe-1' : 'pe-1'} colSpan='2'>{key}</td>
+              <td className={last ? 'text-break pb-2' : 'text-break'}>{value}</td>
+            </tr>
+          )
+        })}
     </>
   )
 }

@@ -3,7 +3,7 @@ import { SET_WALLET_PRIORITY, WALLETS } from '@/fragments/wallet'
 import { SSR } from '@/lib/constants'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally } from './common'
+import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally, canReceive, supportsReceive, supportsSend } from './common'
 import useVault from '@/components/vault/use-vault'
 import { useWalletLogger, useWalletLogs } from '@/components/wallet-logger'
 import { decode as bolt11Decode } from 'bolt11'
@@ -129,7 +129,20 @@ export function WalletsProvider ({ children }) {
     // sort by priority, then add status field
     return Object.values(merged)
       .sort(walletPrioritySort)
-      .map(w => ({ ...w, status: w.config?.enabled ? Status.Enabled : Status.Disabled }))
+      .map(w => {
+        return {
+          ...w,
+          support: {
+            recv: supportsReceive(w),
+            send: supportsSend(w)
+          },
+          status: {
+            any: isConfigured(w),
+            send: canSend(w) ? Status.Enabled : Status.Disabled,
+            recv: canReceive(w) ? Status.Enabled : Status.Disabled
+          }
+        }
+      })
   }, [serverWallets, localWallets])
 
   const settings = useMemo(() => {
@@ -196,27 +209,25 @@ export function WalletsProvider ({ children }) {
 
   // override status depending on if there have been warnings or errors in the logs recently
   for (const wallet of wallets) {
-    let status = wallet.status
-
     // find first log from which we can derive status (logs are sorted by recent first)
     const walletLogs = logs.filter(l => l.wallet === wallet.def.name)
-    const level = walletLogs.find(l => l.level.toLowerCase() !== 'info')?.level
-    if (!level) break
+    const sendLevel = walletLogs.find(l => l.level.toLowerCase() !== 'info' && l.context?.send)?.level
+    const recvLevel = walletLogs.find(l => l.level.toLowerCase() !== 'info' && l.context?.recv)?.level
 
-    switch (level.toLowerCase()) {
-      case 'ok':
-      case 'success':
-        status = Status.Enabled
-        break
-      case 'error':
-        status = Status.Error
-        break
-      case 'warn':
-        status = Status.Warning
-        break
+    const levelToStatus = (level) => {
+      switch (level?.toLowerCase()) {
+        case 'ok':
+        case 'success': return Status.Enabled
+        case 'error': return Status.Error
+        case 'warn': return Status.Warning
+      }
     }
 
-    wallet.status = status
+    wallet.status = {
+      ...wallet.status,
+      send: levelToStatus(sendLevel) || wallet.status.send,
+      recv: levelToStatus(recvLevel) || wallet.status.recv
+    }
   }
 
   // provides priority sorted wallets to children, a function to reload local wallets,

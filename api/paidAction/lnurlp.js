@@ -40,7 +40,6 @@ export async function onPaid ({ invoice }, { tx }) {
   if (isP2P) return
   const targetUserId = invoice.actionArgs?.targetUserId
   if (!targetUserId) throw new Error('No targetUserId')
-  await notifyDeposit(targetUserId, invoice)
   await tx.user.update({
     where: { id: targetUserId },
     data: {
@@ -49,4 +48,9 @@ export async function onPaid ({ invoice }, { tx }) {
       }
     }
   })
+}
+
+export async function nonCriticalSideEffects ({ invoice }) {
+  const targetUserId = invoice.actionArgs?.targetUserId
+  await notifyDeposit(targetUserId, invoice)
 }

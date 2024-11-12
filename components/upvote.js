@@ -237,8 +237,29 @@ export default function UpVote ({ item, className, rendered }) {
       : undefined
   }, [hover, pending, nextColor, color, meSats])
 
+  const upBoltIcon = (
+    <UpBolt
+      onPointerEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onTouchEnd={() => setHover(false)}
+      width={26}
+      height={26}
+      className={classNames(styles.upvote,
+        className,
+        (!rendered) && styles.collapsed,
+        disabled && styles.noSelfTips,
+        meSats && styles.voted,
+        pending && styles.pending)}
+      style={style}
+    />
+  )
+
   if (!rendered) {
-    return (null)
+    return (
+      <div>
+        {upBoltIcon}
+      </div>
+    )
   }
 
   return (
@@ -248,22 +269,8 @@ export default function UpVote ({ item, className, rendered }) {
         onShortPress={handleShortPress}
       >
         <ActionTooltip notForm disable={disabled} overlayText={overlayText}>
-          <div
-            className={classNames(disabled && styles.noSelfTips, styles.upvoteWrapper)}
-          >
-            <UpBolt
-              onPointerEnter={() => setHover(true)}
-              onMouseLeave={() => setHover(false)}
-              onTouchEnd={() => setHover(false)}
-              width={26}
-              height={26}
-              className={classNames(styles.upvote,
-                className,
-                disabled && styles.noSelfTips,
-                meSats && styles.voted,
-                pending && styles.pending)}
-              style={style}
-            />
+          <div className={classNames(disabled && styles.noSelfTips, styles.upvoteWrapper)}>
+            {upBoltIcon}
           </div>
         </ActionTooltip>
       </LongPressable>

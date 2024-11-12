@@ -341,7 +341,7 @@ export default function Settings ({ ssrData }) {
                   <ul>
                     <li>Use this if you want to forward the sats you receive through your @stacker.news lightning address to your attached wallets</li>
                     <li>Payments will be wrapped by the SN node to preserve your node privacy</li>
-                    <li>This will incur in a 30% fee</li>
+                    <li>This will incur in a 10% fee</li>
                   </ul>
                 </Info>
               </div>

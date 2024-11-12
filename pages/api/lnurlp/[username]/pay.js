@@ -71,7 +71,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     }
 
     // generate invoice
-    const actionResponse = await performPaidAction('LNURLP', {
+    const { invoice } = await performPaidAction('LNURLP', {
       sats: toPositiveNumber(msatsToSats(BigInt(amount))),
       description,
       descriptionHash,
@@ -79,12 +79,12 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       targetUserId: user.id
     }, { models, lnd, me: user })
 
-    if (!actionResponse.invoice?.bolt11) throw new Error('could not generate invoice')
+    if (!invoice?.bolt11) throw new Error('could not generate invoice')
 
     return res.status(200).json({
-      pr: actionResponse.invoice.bolt11,
+      pr: invoice.bolt11,
       routes: [],
-      verify: `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${actionResponse.invoice.hash}`
+      verify: `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${invoice.hash}`
     })
   } catch (error) {
     console.log(error)

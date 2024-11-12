@@ -281,9 +281,12 @@ export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...a
       // settle the invoice, allowing us to transition to PAID
       await settleHodlInvoice({ secret: payment.secret, lnd })
 
+      // the amount we paid includes the fee so we need to subtract it to get the amount received
+      const received = Number(payment.mtokens) - Number(payment.fee_mtokens)
+
       const logger = walletLogger({ wallet: dbInvoice.invoiceForward.wallet, models })
       logger.ok(
-        `↙ payment received: ${formatSats(msatsToSats(payment.mtokens))}`,
+        `↙ payment received: ${formatSats(msatsToSats(received))}`,
         {
           bolt11,
           preimage: payment.secret

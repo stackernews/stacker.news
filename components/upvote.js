@@ -200,6 +200,8 @@ export default function UpVote ({ item, className, rendered }) {
 
   const handleShortPress = async () => {
     if (me) {
+      if (!item) return
+
       // we can't tip ourselves
       if (disabled) {
         return

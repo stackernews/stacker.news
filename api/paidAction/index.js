@@ -1,7 +1,7 @@
 import { createHodlInvoice, createInvoice, parsePaymentRequest } from 'ln-service'
 import { datePivot } from '@/lib/time'
 import { PAID_ACTION_PAYMENT_METHODS, PAID_ACTION_TERMINAL_STATES, USER_ID } from '@/lib/constants'
-import { createHmac } from '../resolvers/wallet'
+import { createHmac } from '@/api/resolvers/wallet'
 import { Prisma } from '@prisma/client'
 import * as ITEM_CREATE from './itemCreate'
 import * as ITEM_UPDATE from './itemUpdate'
@@ -15,8 +15,7 @@ import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
 import * as BOOST from './boost'
 import * as BUY_CREDITS from './buyCredits'
-import wrapInvoice from 'wallets/wrap'
-import { createInvoice as createUserInvoice } from 'wallets/server'
+import { createWrappedInvoice } from 'wallets/server'
 
 export const paidActions = {
   ITEM_CREATE,
@@ -50,6 +49,7 @@ export default async function performPaidAction (actionType, args, context) {
 
     context.me = me ? await models.user.findUnique({ where: { id: me.id } }) : undefined
     context.cost = await paidAction.getCost(args, context)
+    context.sybilFeePercent = await paidAction.getSybilFeePercent?.(args, context)
 
     // special case for zero cost actions
     if (context.cost === 0n) {
@@ -176,9 +176,34 @@ async function performPessimisticAction (actionType, args, context) {
 }
 
 async function performP2PAction (actionType, args, context) {
-  const { me } = context
-  const invoiceArgs = await createWrappedInvoice(actionType, args, context)
-  context.invoiceArgs = invoiceArgs
+  // if the action has an invoiceable peer, we'll create a peer invoice
+  // wrap it, and return the wrapped invoice
+  const { cost, models, lnd, sybilFeePercent, me } = context
+  if (!sybilFeePercent) {
+    throw new Error('sybil fee percent is not set for an invoiceable peer action')
+  }
+
+  const userId = await paidActions[actionType]?.invoiceablePeer?.(args, context)
+  if (!userId) {
+    throw new NonInvoiceablePeerError()
+  }
+
+  await assertBelowMaxPendingInvoices(context)
+
+  const description = await paidActions[actionType].describe(args, context)
+  const { invoice, wrappedInvoice, wallet, maxFee } = await createWrappedInvoice(userId, {
+    msats: cost,
+    feePercent: sybilFeePercent,
+    description,
+    expiry: INVOICE_EXPIRE_SECS
+  }, { models, me, lnd })
+
+  context.invoiceArgs = {
+    bolt11: invoice,
+    wrappedBolt11: wrappedInvoice,
+    wallet,
+    maxFee
+  }
 
   return me
     ? await performOptimisticAction(actionType, args, context)
@@ -268,36 +293,6 @@ export class NonInvoiceablePeerError extends Error {
   constructor () {
     super('non invoiceable peer')
     this.name = 'NonInvoiceablePeerError'
-  }
-}
-
-export async function createWrappedInvoice (actionType, args, context) {
-  // if the action has an invoiceable peer, we'll create a peer invoice
-  // wrap it, and return the wrapped invoice
-  const { cost, models, lnd, me } = context
-  const userId = await paidActions[actionType]?.invoiceablePeer?.(args, context)
-  if (!userId) {
-    throw new NonInvoiceablePeerError()
-  }
-
-  await assertBelowMaxPendingInvoices(context)
-
-  const description = await paidActions[actionType].describe(args, context)
-  const { invoice: bolt11, wallet } = await createUserInvoice(userId, {
-    // this is the amount the stacker will receive, the other 3/10ths is the sybil fee
-    msats: cost * BigInt(7) / BigInt(10),
-    description,
-    expiry: INVOICE_EXPIRE_SECS
-  }, { models })
-
-  const { invoice: wrappedInvoice, maxFee } = await wrapInvoice(
-    bolt11, { msats: cost, description }, { me, lnd })
-
-  return {
-    bolt11,
-    wrappedBolt11: wrappedInvoice.request,
-    wallet,
-    maxFee
   }
 }
 

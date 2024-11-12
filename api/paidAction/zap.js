@@ -16,7 +16,7 @@ export async function getCost ({ sats }) {
   return satsToMsats(sats)
 }
 
-export async function invoiceablePeer ({ id }, { models }) {
+export async function getInvoiceablePeer ({ id }, { models }) {
   const item = await models.item.findUnique({
     where: { id: parseInt(id) },
     include: {
@@ -33,8 +33,12 @@ export async function invoiceablePeer ({ id }, { models }) {
   return item.user.wallets.length > 0 && item.itemForwards.length === 0 ? item.userId : null
 }
 
-export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, cost, tx }) {
-  const feeMsats = 3n * (cost / BigInt(10)) // 30% fee
+export async function getSybilFeePercent () {
+  return 30n
+}
+
+export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, cost, sybilFeePercent, tx }) {
+  const feeMsats = cost * sybilFeePercent / 100n
   const zapMsats = cost - feeMsats
   itemId = parseInt(itemId)
 

@@ -2,20 +2,20 @@ For testing cln as an attached receiving wallet, you'll need a rune and the cert
 
 # host and port
 
-`stacker_cln:3010`
+`cln:3010`
 
 # host and port (onion)
 
 Run:
 
 ```bash
-sndev stacker_clncli get_onion
+sndev onion cln
 ```
 
 # create rune
 
 ```bash
-sndev stacker_clncli --regtest createrune restrictions='["method=invoice"]'
+sndev cli cln --regtest createrune restrictions='["method=invoice"]'
 ```
 
 # get cert

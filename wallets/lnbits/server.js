@@ -1,5 +1,6 @@
 import { msatsToSats } from '@/lib/format'
 import { getAgent } from '@/lib/proxy'
+import { assertContentTypeJson } from '@/lib/url'
 import fetch from 'cross-fetch'
 
 export * from 'wallets/lnbits'
@@ -44,6 +45,7 @@ export async function createInvoice (
     body
   })
   if (!res.ok) {
+    assertContentTypeJson(res)
     const errBody = await res.json()
     throw new Error(errBody.detail)
   }

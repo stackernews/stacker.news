@@ -246,6 +246,7 @@ model WalletLog {
   wallet    WalletType
   level     LogLevel
   message   String
+  context   Json?      @db.JsonB
 
   @@index([userId, createdAt])
 }

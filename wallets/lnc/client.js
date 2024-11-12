@@ -26,7 +26,7 @@ async function disconnect (lnc, logger) {
       }, 50)
       logger.info('disconnected')
     } catch (err) {
-      logger.error('failed to disconnect from lnc', err)
+      logger.error('failed to disconnect from lnc: ' + err)
     }
   }
 }

@@ -79,6 +79,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
           case 'Email':
             return (
               <OverlayTrigger
+                key={provider.id}
                 placement='bottom'
                 overlay={multiAuth ? <Tooltip>not available for account switching yet</Tooltip> : <></>}
                 trigger={['hover', 'focus']}

@@ -14,7 +14,6 @@ import * as TERRITORY_BILLING from './territoryBilling'
 import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
 import * as BOOST from './boost'
-import * as BUY_CREDITS from './buyCredits'
 import { createWrappedInvoice } from 'wallets/server'
 
 export const paidActions = {
@@ -28,13 +27,12 @@ export const paidActions = {
   TERRITORY_UPDATE,
   TERRITORY_BILLING,
   TERRITORY_UNARCHIVE,
-  DONATE,
-  BUY_CREDITS
+  DONATE
 }
 
 export default async function performPaidAction (actionType, args, context) {
   try {
-    const { me, models, forceFeeCredits } = context
+    const { me, models, forcePaymentMethod } = context
     const paidAction = paidActions[actionType]
 
     console.group('performPaidAction', actionType, args)
@@ -60,10 +58,9 @@ export default async function performPaidAction (actionType, args, context) {
     for (const paymentMethod of paidAction.paymentMethods) {
       console.log(`performing payment method ${paymentMethod}`)
 
-      if (forceFeeCredits &&
-        paymentMethod !== PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT &&
-        paymentMethod !== PAID_ACTION_PAYMENT_METHODS.REWARD_SATS) {
-        throw new Error('forceFeeCredits is set, but user does not have enough fee credits or reward sats')
+      if (forcePaymentMethod &&
+        paymentMethod !== forcePaymentMethod) {
+        continue
       }
 
       // payment methods that anonymous users can use
@@ -82,8 +79,7 @@ export default async function performPaidAction (actionType, args, context) {
 
       // additionalpayment methods that logged in users can use
       if (me) {
-        if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT ||
-          paymentMethod === PAID_ACTION_PAYMENT_METHODS.REWARD_SATS) {
+        if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT) {
           try {
             return await performNoInvoiceAction(actionType, args, context, paymentMethod)
           } catch (e) {
@@ -99,6 +95,8 @@ export default async function performPaidAction (actionType, args, context) {
         }
       }
     }
+
+    throw new Error('No working payment method found')
   } catch (e) {
     console.error('performPaidAction failed', e)
     throw e
@@ -114,14 +112,12 @@ async function performNoInvoiceAction (actionType, args, context, paymentMethod)
   const result = await models.$transaction(async tx => {
     context.tx = tx
 
-    if (paymentMethod === 'REWARD_SATS' || paymentMethod === 'FEE_CREDIT') {
+    if (paymentMethod === 'FEE_CREDIT') {
       await tx.user.update({
         where: {
           id: me?.id ?? USER_ID.anon
         },
-        data: paymentMethod === 'REWARD_SATS'
-          ? { msats: { decrement: cost } }
-          : { mcredits: { decrement: cost } }
+        data: { msats: { decrement: cost } }
       })
     }
 

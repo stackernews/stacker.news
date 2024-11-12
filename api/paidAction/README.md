@@ -145,7 +145,6 @@ Each paid action is implemented in its own file in the `paidAction` directory. E
     - P2P: a p2p payment made directly from the client to the recipient
         - after wrapping the invoice, anonymous users will follow a PESSIMISTIC flow to pay the invoice and logged in users will follow an OPTIMISTIC flow
     - FEE_CREDIT: a payment made from the user's fee credit balance
-    - REWARD_SATS: a payment made from the user's reward sats balance
     - OPTIMISTIC: an optimistic payment flow
     - PESSIMISTIC: a pessimistic payment flow
 

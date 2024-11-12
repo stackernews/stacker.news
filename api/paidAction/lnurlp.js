@@ -1,4 +1,4 @@
-import { satsToMsats } from '@/lib/format'
+import { toPositiveBigInt } from '@/lib/validate'
 import { notifyDeposit } from '@/lib/webPush'
 
 export const anonable = true
@@ -6,8 +6,8 @@ export const supportsPessimism = true
 export const supportsOptimism = false
 export const supportsFeeCredits = false
 
-export async function getCost ({ sats }) {
-  return satsToMsats(sats)
+export async function getCost ({ msats }) {
+  return toPositiveBigInt(msats)
 }
 
 export async function getInvoiceablePeer ({ targetUserId }, { models }) {
@@ -21,7 +21,13 @@ export async function getSybilFeePercent () {
   return 10n
 }
 
-export async function perform ({ invoiceId, sats, description, descriptionHash, comment, targetUserId, lud18Data }, { me, tx }) {
+export async function perform ({
+  invoiceId,
+  msats,
+  comment,
+  targetUserId,
+  lud18Data
+}, { me, tx }) {
   await tx.invoice.update({
     where: { id: invoiceId },
     data: {
@@ -29,18 +35,21 @@ export async function perform ({ invoiceId, sats, description, descriptionHash, 
       lud18Data
     }
   })
-  return { sats, targetUserId }
+  return { msats, targetUserId }
 }
 
-export async function describe ({ sats, description, descriptionHash }, context) {
+export async function describe ({ description }, context) {
   return `SN: ${description ?? ''}`
 }
 
-export async function onPaid ({ invoice }, { tx }) {
-  const isP2P = !!invoice.invoiceForward
-  if (isP2P) return
-  const targetUserId = invoice.actionArgs?.targetUserId
-  if (!targetUserId) throw new Error('No targetUserId')
+export async function onPaid ({ invoice, targetUserId }, { tx }) {
+  // P2P lnurlp does not need to update the user's balance
+  if (invoice?.invoiceForward) return
+
+  if (!targetUserId) {
+    throw new Error('No targetUserId')
+  }
+
   await tx.user.update({
     where: { id: targetUserId },
     data: {
@@ -51,7 +60,6 @@ export async function onPaid ({ invoice }, { tx }) {
   })
 }
 
-export async function nonCriticalSideEffects ({ invoice }) {
-  const targetUserId = invoice.actionArgs?.targetUserId
+export async function nonCriticalSideEffects ({ invoice, targetUserId }) {
   await notifyDeposit(targetUserId, invoice)
 }

@@ -4,10 +4,9 @@ import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString, lnurlPayDescrip
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
 import { LNURLP_COMMENT_MAX_LENGTH } from '@/lib/constants'
-import { validateSchema, lud18PayerDataSchema, toPositiveNumber } from '@/lib/validate'
+import { validateSchema, lud18PayerDataSchema, toPositiveBigInt } from '@/lib/validate'
 import assertGofacYourself from '@/api/resolvers/ofac'
 import performPaidAction from '@/api/paidAction'
-import { msatsToSats } from '@/lib/format'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -45,8 +44,12 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
     }
 
-    if ((comment && comment.length > LNURLP_COMMENT_MAX_LENGTH) || (description && description.length > LNURLP_COMMENT_MAX_LENGTH)) {
-      return res.status(400).json({ status: 'ERROR', reason: `comment cannot exceed ${LNURLP_COMMENT_MAX_LENGTH} characters in length` })
+    if ((comment?.length > LNURLP_COMMENT_MAX_LENGTH) ||
+        (description?.length > LNURLP_COMMENT_MAX_LENGTH)) {
+      return res.status(400).json({
+        status: 'ERROR',
+        reason: `comment cannot exceed ${LNURLP_COMMENT_MAX_LENGTH} characters in length`
+      })
     }
 
     let parsedPayerData
@@ -55,7 +58,10 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
         parsedPayerData = JSON.parse(payerData)
       } catch (err) {
         console.error('failed to parse payerdata', err)
-        return res.status(400).json({ status: 'ERROR', reason: 'Invalid JSON supplied for payerdata parameter' })
+        return res.status(400).json({
+          status: 'ERROR',
+          reason: 'Invalid JSON supplied for payerdata parameter'
+        })
       }
 
       try {
@@ -72,7 +78,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
 
     // generate invoice
     const { invoice } = await performPaidAction('LNURLP', {
-      sats: toPositiveNumber(msatsToSats(BigInt(amount))),
+      msats: toPositiveBigInt(amount),
       description,
       descriptionHash,
       comment: comment || '',

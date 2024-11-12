@@ -147,7 +147,7 @@ export async function paidActionPaid ({ data: { invoiceId, ...args }, models, ln
         throw new Error('invoice is not confirmed')
       }
 
-      await paidActions[dbInvoice.actionType].onPaid?.({ invoice: dbInvoice }, { models, tx, lnd })
+      await paidActions[dbInvoice.actionType].onPaid?.({ ...dbInvoice.actionArgs, invoice: dbInvoice }, { models, tx, lnd })
 
       // any paid action is eligible for a cowboy hat streak
       await tx.$executeRaw`

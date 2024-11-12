@@ -91,12 +91,20 @@ function isReceiveConfigured ({ def, config }) {
   return fields.length > 0 && checkFields({ fields, config })
 }
 
+export function supportsSend ({ def, config }) {
+  return !!def.sendPayment
+}
+
+export function supportsReceive ({ def, config }) {
+  return def.fields.some(f => f.serverOnly)
+}
+
 export function canSend ({ def, config }) {
-  return !!def.sendPayment && isSendConfigured({ def, config })
+  return supportsSend({ def, config }) && isSendConfigured({ def, config })
 }
 
 export function canReceive ({ def, config }) {
-  return def.fields.some(f => f.serverOnly) && isReceiveConfigured({ def, config })
+  return supportsReceive({ def, config }) && isReceiveConfigured({ def, config })
 }
 
 export function siftConfig (fields, config) {

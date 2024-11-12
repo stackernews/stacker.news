@@ -3,26 +3,22 @@ import styles from '@/styles/wallet.module.css'
 import Plug from '@/svgs/plug.svg'
 import Gear from '@/svgs/settings-5-fill.svg'
 import Link from 'next/link'
-import { Status, isConfigured } from '@/wallets/common'
+import { Status, isConfigured, supportsReceive, supportsSend, canReceive, canSend } from '@/wallets/common'
 import DraggableIcon from '@/svgs/draggable.svg'
+import RecvIcon from '@/svgs/arrow-left-down-line.svg'
+import SendIcon from '@/svgs/arrow-right-up-line.svg'
 
 export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnter, onDragEnd, onTouchStart, sourceIndex, targetIndex, index }) {
   const { card: { title, badges } } = wallet.def
 
-  let indicator = styles.disabled
-  switch (wallet.status) {
-    case Status.Enabled:
-      indicator = styles.success
-      break
-    case Status.Error:
-      indicator = styles.error
-      break
-    case Status.Warning:
-      indicator = styles.warning
-      break
-    default:
-      indicator = styles.disabled
-      break
+  const support = {
+    recv: supportsReceive(wallet),
+    send: supportsSend(wallet)
+  }
+  // TODO: implement warning and error status for send and recv
+  const status = {
+    recv: canReceive(wallet) ? styles.success : styles.disabled,
+    send: canSend(wallet) ? styles.success : styles.disabled
   }
 
   return (
@@ -35,8 +31,11 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       onDragEnd={onDragEnd}
     >
       <div className={styles.cardMeta}>
-        {wallet.status === Status.Enabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
-        <div className={`${styles.indicator} ${indicator}`} />
+        <div className={styles.indicators}>
+          {wallet.status === Status.Enabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
+          {support.recv && <RecvIcon className={`${styles.indicator} ${status.recv}`} />}
+          {support.send && <SendIcon className={`${styles.indicator} ${status.send}`} />}
+        </div>
       </div>
       <Card.Body
         // we attach touch listener only to card body to not interfere with wallet link

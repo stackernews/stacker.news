@@ -675,6 +675,16 @@ const resolvers = {
 export default injectResolvers(resolvers)
 
 export const walletLogger = ({ wallet, models }) => {
+  // no-op logger if wallet is not provided
+  if (!wallet) {
+    return {
+      ok: () => {},
+      info: () => {},
+      error: () => {},
+      warn: () => {}
+    }
+  }
+
   // server implementation of wallet logger interface on client
   const log = (level) => async (message, context = {}) => {
     try {

@@ -60,6 +60,7 @@ export default async function performPaidAction (actionType, args, context) {
 
       if (forcePaymentMethod &&
         paymentMethod !== forcePaymentMethod) {
+        console.log('skipping payment method', paymentMethod, 'because forcePaymentMethod is set to', forcePaymentMethod)
         continue
       }
 

@@ -103,7 +103,7 @@ export const nextTip = (meSats, { tipDefault, turboTipping, tipRandom, tipRandom
   return defaultTipIncludingRandom({ tipDefault, tipRandom, tipRandomMin, tipRandomMax })
 }
 
-export default function UpVote ({ item, className }) {
+export default function UpVote ({ item, className, rendered }) {
   const showModal = useShowModal()
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
@@ -200,8 +200,6 @@ export default function UpVote ({ item, className }) {
 
   const handleShortPress = async () => {
     if (me) {
-      if (!item) return
-
       // we can't tip ourselves
       if (disabled) {
         return
@@ -236,6 +234,10 @@ export default function UpVote ({ item, className }) {
         }
       : undefined
   }, [hover, pending, nextColor, color, meSats])
+
+  if (!rendered) {
+    return (null)
+  }
 
   return (
     <div ref={ref} className='upvoteParent'>

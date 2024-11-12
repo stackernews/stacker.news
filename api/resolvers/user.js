@@ -989,6 +989,12 @@ export default {
       }
       return msatsToSats(user.msats)
     },
+    credits: async (user, args, { models, me }) => {
+      if (!me || me.id !== user.id) {
+        return 0
+      }
+      return msatsToSats(user.mcredits)
+    },
     authMethods,
     hasInvites: async (user, args, { models }) => {
       const invites = await models.user.findUnique({

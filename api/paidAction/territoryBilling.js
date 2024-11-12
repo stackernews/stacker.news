@@ -1,10 +1,14 @@
-import { TERRITORY_PERIOD_COST } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 import { nextBilling } from '@/lib/territory'
 
 export const anonable = false
-export const supportsPessimism = true
-export const supportsOptimism = false
+
+export const paymentMethods = [
+  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.REWARD_SATS,
+  PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
+]
 
 export async function getCost ({ name }, { models }) {
   const sub = await models.sub.findUnique({

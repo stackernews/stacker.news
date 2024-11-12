@@ -86,8 +86,7 @@ export default async function performPaidAction (actionType, args, context) {
           } catch (e) {
             // if we fail with fee credits or reward sats, but not because of insufficient funds, bail
             console.error(`${paymentMethod} action failed`, e)
-            if (!e.message.includes('\\"users\\" violates check constraint \\"mcredits_positive\\"') &&
-              !e.message.includes('\\"users\\" violates check constraint \\"msats_positive\\"')) {
+            if (!e.message.includes('\\"users\\" violates check constraint \\"msats_positive\\"')) {
               throw e
             }
           }

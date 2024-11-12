@@ -123,7 +123,6 @@ export default gql`
     extremely sensitive
     """
     sats: Int!
-    credits: Int!
     authMethods: AuthMethods!
     lnAddr: String
 

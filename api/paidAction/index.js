@@ -30,9 +30,9 @@ export const paidActions = {
   DONATE
 }
 
-export default async function performPaidAction (actionType, args, context) {
+export default async function performPaidAction (actionType, args, incomingContext) {
   try {
-    const { me, models, forcePaymentMethod } = context
+    const { me, models, forcePaymentMethod } = incomingContext
     const paidAction = paidActions[actionType]
 
     console.group('performPaidAction', actionType, args)
@@ -45,9 +45,16 @@ export default async function performPaidAction (actionType, args, context) {
       throw new Error('You must be logged in to perform this action')
     }
 
-    context.me = me ? await models.user.findUnique({ where: { id: me.id } }) : undefined
-    context.cost = await paidAction.getCost(args, context)
-    context.sybilFeePercent = await paidAction.getSybilFeePercent?.(args, context)
+    // treat context as immutable
+    const contextWithMe = {
+      ...incomingContext,
+      me: me ? await models.user.findUnique({ where: { id: me.id } }) : undefined
+    }
+    const context = {
+      ...contextWithMe,
+      cost: await paidAction.getCost(args, contextWithMe),
+      sybilFeePercent: await paidAction.getSybilFeePercent?.(args, contextWithMe)
+    }
 
     // special case for zero cost actions
     if (context.cost === 0n) {
@@ -56,7 +63,7 @@ export default async function performPaidAction (actionType, args, context) {
     }
 
     for (const paymentMethod of paidAction.paymentMethods) {
-      console.log(`performing payment method ${paymentMethod}`)
+      console.log(`considering payment method ${paymentMethod}`)
 
       if (forcePaymentMethod &&
         paymentMethod !== forcePaymentMethod) {
@@ -69,10 +76,12 @@ export default async function performPaidAction (actionType, args, context) {
         try {
           return await performP2PAction(actionType, args, context)
         } catch (e) {
-          if (!(e instanceof NonInvoiceablePeerError)) {
-            console.error(`${paymentMethod} action failed`, e)
-            throw e
+          if (e instanceof NonInvoiceablePeerError) {
+            console.log('peer cannot be invoiced, skipping')
+            continue
           }
+          console.error(`${paymentMethod} action failed`, e)
+          throw e
         }
       } else if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC) {
         return await performPessimisticAction(actionType, args, context)
@@ -82,7 +91,7 @@ export default async function performPaidAction (actionType, args, context) {
       if (me) {
         if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT) {
           try {
-            return await performNoInvoiceAction(actionType, args, context, paymentMethod)
+            return await performNoInvoiceAction(actionType, args, { ...context, paymentMethod })
           } catch (e) {
             // if we fail with fee credits or reward sats, but not because of insufficient funds, bail
             console.error(`${paymentMethod} action failed`, e)
@@ -105,12 +114,12 @@ export default async function performPaidAction (actionType, args, context) {
   }
 }
 
-async function performNoInvoiceAction (actionType, args, context, paymentMethod) {
-  const { me, models, cost } = context
+async function performNoInvoiceAction (actionType, args, incomingContext) {
+  const { me, models, cost, paymentMethod } = incomingContext
   const action = paidActions[actionType]
 
   const result = await models.$transaction(async tx => {
-    context.tx = tx
+    const context = { ...incomingContext, tx }
 
     if (paymentMethod === 'FEE_CREDIT') {
       await tx.user.update({
@@ -132,21 +141,20 @@ async function performNoInvoiceAction (actionType, args, context, paymentMethod)
 
   // run non critical side effects in the background
   // after the transaction has been committed
-  action.nonCriticalSideEffects?.(result.result, context).catch(console.error)
+  action.nonCriticalSideEffects?.(result.result, incomingContext).catch(console.error)
   return result
 }
 
-async function performOptimisticAction (actionType, args, context) {
-  const { models } = context
+async function performOptimisticAction (actionType, args, incomingContext) {
+  const { models, invoiceArgs: incomingInvoiceArgs } = incomingContext
   const action = paidActions[actionType]
 
-  context.optimistic = true
-  const invoiceArgs = context.invoiceArgs ?? await createSNInvoice(actionType, args, context)
+  const invoiceArgs = incomingInvoiceArgs ?? await createSNInvoice(actionType, args, { ...incomingContext, optimistic: true })
 
   return await models.$transaction(async tx => {
-    context.tx = tx
+    const context = { ...incomingContext, tx, invoiceArgs }
 
-    const invoice = await createDbInvoice(actionType, args, context, invoiceArgs)
+    const invoice = await createDbInvoice(actionType, args, context)
 
     return {
       invoice,
@@ -166,27 +174,27 @@ async function performPessimisticAction (actionType, args, context) {
   // just create the invoice and complete action when it's paid
   const invoiceArgs = context.invoiceArgs ?? await createSNInvoice(actionType, args, context)
   return {
-    invoice: await createDbInvoice(actionType, args, context, invoiceArgs),
+    invoice: await createDbInvoice(actionType, args, { ...context, invoiceArgs }),
     paymentMethod: 'PESSIMISTIC'
   }
 }
 
-async function performP2PAction (actionType, args, context) {
+async function performP2PAction (actionType, args, incomingContext) {
   // if the action has an invoiceable peer, we'll create a peer invoice
   // wrap it, and return the wrapped invoice
-  const { cost, models, lnd, sybilFeePercent, me } = context
+  const { cost, models, lnd, sybilFeePercent, me } = incomingContext
   if (!sybilFeePercent) {
     throw new Error('sybil fee percent is not set for an invoiceable peer action')
   }
 
-  const userId = await paidActions[actionType]?.invoiceablePeer?.(args, context)
+  const userId = await paidActions[actionType]?.invoiceablePeer?.(args, incomingContext)
   if (!userId) {
     throw new NonInvoiceablePeerError()
   }
 
-  await assertBelowMaxPendingInvoices(context)
+  await assertBelowMaxPendingInvoices(incomingContext)
 
-  const description = await paidActions[actionType].describe(args, context)
+  const description = await paidActions[actionType].describe(args, incomingContext)
   const { invoice, wrappedInvoice, wallet, maxFee } = await createWrappedInvoice(userId, {
     msats: cost,
     feePercent: sybilFeePercent,
@@ -194,11 +202,14 @@ async function performP2PAction (actionType, args, context) {
     expiry: INVOICE_EXPIRE_SECS
   }, { models, me, lnd })
 
-  context.invoiceArgs = {
-    bolt11: invoice,
-    wrappedBolt11: wrappedInvoice,
-    wallet,
-    maxFee
+  const context = {
+    ...incomingContext,
+    invoiceArgs: {
+      bolt11: invoice,
+      wrappedBolt11: wrappedInvoice,
+      wallet,
+      maxFee
+    }
   }
 
   return me
@@ -206,8 +217,8 @@ async function performP2PAction (actionType, args, context) {
     : await performPessimisticAction(actionType, args, context)
 }
 
-export async function retryPaidAction (actionType, args, context) {
-  const { models, me } = context
+export async function retryPaidAction (actionType, args, incomingContext) {
+  const { models, me } = incomingContext
   const { invoice: failedInvoice } = args
 
   console.log('retryPaidAction', actionType, args)
@@ -233,16 +244,18 @@ export async function retryPaidAction (actionType, args, context) {
     throw new Error(`retryPaidAction - missing invoice ${actionType}`)
   }
 
-  context.optimistic = true
-  context.me = await models.user.findUnique({ where: { id: me.id } })
-
   const { msatsRequested, actionId } = failedInvoice
-  context.cost = BigInt(msatsRequested)
-  context.actionId = actionId
-  const invoiceArgs = await createSNInvoice(actionType, args, context)
+  const context = {
+    ...incomingContext,
+    optimistic: true,
+    me: await models.user.findUnique({ where: { id: me.id } }),
+    cost: BigInt(msatsRequested),
+    actionId,
+    invoiceArgs: await createSNInvoice(actionType, args, incomingContext)
+  }
 
   return await models.$transaction(async tx => {
-    context.tx = tx
+    const txContext = { ...context, tx }
 
     // update the old invoice to RETRYING, so that it's not confused with FAILED
     await tx.invoice.update({
@@ -256,10 +269,10 @@ export async function retryPaidAction (actionType, args, context) {
     })
 
     // create a new invoice
-    const invoice = await createDbInvoice(actionType, args, context, invoiceArgs)
+    const invoice = await createDbInvoice(actionType, args, txContext)
 
     return {
-      result: await action.retry({ invoiceId: failedInvoice.id, newInvoiceId: invoice.id }, context),
+      result: await action.retry({ invoiceId: failedInvoice.id, newInvoiceId: invoice.id }, txContext),
       invoice,
       paymentMethod: 'OPTIMISTIC'
     }
@@ -314,9 +327,10 @@ async function createSNInvoice (actionType, args, context) {
   return { bolt11: invoice.request, preimage: invoice.secret }
 }
 
-async function createDbInvoice (actionType, args, context,
-  { bolt11, wrappedBolt11, preimage, wallet, maxFee }) {
-  const { me, models, tx, cost, optimistic, actionId } = context
+async function createDbInvoice (actionType, args, context) {
+  const { me, models, tx, cost, optimistic, actionId, invoiceArgs } = context
+  const { bolt11, wrappedBolt11, preimage, wallet, maxFee } = invoiceArgs
+
   const db = tx ?? models
 
   if (cost < 1000n) {

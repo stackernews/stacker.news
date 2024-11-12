@@ -103,7 +103,7 @@ export const nextTip = (meSats, { tipDefault, turboTipping, tipRandom, tipRandom
   return defaultTipIncludingRandom({ tipDefault, tipRandom, tipRandomMin, tipRandomMax })
 }
 
-export default function UpVote ({ item, className, rendered }) {
+export default function UpVote ({ item, className, visible }) {
   const showModal = useShowModal()
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
@@ -246,7 +246,7 @@ export default function UpVote ({ item, className, rendered }) {
       height={26}
       className={classNames(styles.upvote,
         className,
-        (!rendered) && styles.collapsed,
+        (!visible) && styles.collapsed,
         disabled && styles.noSelfTips,
         meSats && styles.voted,
         pending && styles.pending)}
@@ -254,7 +254,7 @@ export default function UpVote ({ item, className, rendered }) {
     />
   )
 
-  if (!rendered) {
+  if (!visible) {
     return (
       <div>
         {upBoltIcon}

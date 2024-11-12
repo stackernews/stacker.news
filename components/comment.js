@@ -149,7 +149,7 @@ export default function Comment ({
             ? <Boost item={item} className={styles.upvote} />
             : item.meDontLikeSats > item.meSats
               ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
-              : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} rendered={collapse === 'nope'} />}
+              : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} visible={collapse === 'nope'} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             {item.user?.meMute && !includeParent && collapse === 'yep'

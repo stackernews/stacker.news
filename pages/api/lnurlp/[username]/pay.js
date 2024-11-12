@@ -3,7 +3,7 @@ import lnd from '@/api/lnd'
 import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString, lnurlPayDescriptionHash } from '@/lib/lnurl'
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
-import { LNURLP_COMMENT_MAX_LENGTH } from '@/lib/constants'
+import { LNURLP_COMMENT_MAX_LENGTH, MAX_INVOICE_DESCRIPTION_LENGTH } from '@/lib/constants'
 import { validateSchema, lud18PayerDataSchema, toPositiveBigInt } from '@/lib/validate'
 import assertGofacYourself from '@/api/resolvers/ofac'
 import performPaidAction from '@/api/paidAction'
@@ -35,8 +35,9 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
         return
       }
     } else {
-      description = `Funding @${username} on stacker.news`
+      description = `Paying @${username} on stacker.news`
       description += comment ? `: ${comment}` : '.'
+      description = description.slice(0, MAX_INVOICE_DESCRIPTION_LENGTH)
       descriptionHash = lnurlPayDescriptionHashForUser(username)
     }
 
@@ -44,8 +45,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
     }
 
-    if ((comment?.length > LNURLP_COMMENT_MAX_LENGTH) ||
-        (description?.length > LNURLP_COMMENT_MAX_LENGTH)) {
+    if (comment?.length > LNURLP_COMMENT_MAX_LENGTH) {
       return res.status(400).json({
         status: 'ERROR',
         reason: `comment cannot exceed ${LNURLP_COMMENT_MAX_LENGTH} characters in length`

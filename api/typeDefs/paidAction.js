@@ -12,6 +12,7 @@ extend type Mutation {
 
 enum PaymentMethod {
   FEE_CREDIT
+  ZERO_COST
   OPTIMISTIC
   PESSIMISTIC
 }

@@ -139,9 +139,14 @@ Each paid action is implemented in its own file in the `paidAction` directory. E
 
 ### Boolean flags
 - `anonable`: can be performed anonymously
-- `supportsPessimism`: supports a pessimistic payment flow
-- `supportsOptimism`: supports an optimistic payment flow
-- `supportsFeeCredits`: supports fee credits payment flow (defaults to true)
+
+### Payment methods
+- `paymentMethods`: an array of payment methods that the action supports ordered from most preferred to least preferred
+    - P2P: a p2p payment made directly from the client to the recipient
+        - after wrapping the invoice, anonymous users will follow a PESSIMISTIC flow to pay the invoice and logged in users will follow an OPTIMISTIC flow
+    - FEE_CREDIT: a payment made from the user's fee credit balance
+    - OPTIMISTIC: an optimistic payment flow
+    - PESSIMISTIC: a pessimistic payment flow
 
 ### Functions
 

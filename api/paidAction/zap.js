@@ -1,10 +1,15 @@
-import { USER_ID } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyZapped } from '@/lib/webPush'
 
 export const anonable = true
-export const supportsPessimism = true
-export const supportsOptimism = true
+
+export const paymentMethods = [
+  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.P2P,
+  PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC,
+  PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
+]
 
 export async function getCost ({ sats }) {
   return satsToMsats(sats)

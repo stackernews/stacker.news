@@ -1,8 +1,12 @@
+import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 
 export const anonable = false
-export const supportsPessimism = false
-export const supportsOptimism = true
+
+export const paymentMethods = [
+  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
+]
 
 export async function getCost ({ sats }) {
   return satsToMsats(sats)

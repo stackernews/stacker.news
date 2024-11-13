@@ -38,5 +38,5 @@ export const fields = [
 export const card = {
   title: 'phoenixd',
   subtitle: 'use [phoenixd](https://phoenix.acinq.co/server) for payments',
-  image: { src: '/wallets/phoenixd.svg', height: '100%' }
+  image: '/wallets/phoenixd.png'
 }

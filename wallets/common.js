@@ -171,3 +171,29 @@ export async function saveWalletLocally (name, config, userId) {
   const storageKey = getStorageKey(name, userId)
   window.localStorage.setItem(storageKey, JSON.stringify(config))
 }
+
+export const statusFromLog = (wallet, logs) => {
+  // override status depending on if there have been warnings or errors in the logs recently
+  // find first log from which we can derive status (logs are sorted by recent first)
+  const walletLogs = logs.filter(l => l.wallet === wallet.def.name)
+  const sendLevel = walletLogs.find(l => l.level.toLowerCase() !== 'info' && l.context?.send)?.level
+  const recvLevel = walletLogs.find(l => l.level.toLowerCase() !== 'info' && l.context?.recv)?.level
+
+  const levelToStatus = (level) => {
+    switch (level?.toLowerCase()) {
+      case 'ok':
+      case 'success': return Status.Enabled
+      case 'error': return Status.Error
+      case 'warn': return Status.Warning
+    }
+  }
+
+  return {
+    ...wallet,
+    status: {
+      ...wallet.status,
+      send: levelToStatus(sendLevel) || wallet.status.send,
+      recv: levelToStatus(recvLevel) || wallet.status.recv
+    }
+  }
+}

@@ -100,7 +100,11 @@ export function supportsReceive ({ def, config }) {
 }
 
 export function canSend ({ def, config }) {
-  return supportsSend({ def, config }) && isSendConfigured({ def, config })
+  return (
+    supportsSend({ def, config }) &&
+    isSendConfigured({ def, config }) &&
+    (def.requiresConfig || config?.enabled)
+  )
 }
 
 export function canReceive ({ def, config }) {

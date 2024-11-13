@@ -122,6 +122,7 @@ export function WalletsProvider ({ children }) {
             ])
           )
         },
+        requiresConfig: wallet.def.fields.length > 0,
         vaultEntries: wallet.vaultEntries
       }
     }

@@ -128,7 +128,7 @@ export default function WalletSettings () {
 
 function SendWarningBanner ({ walletDef }) {
   const { values } = useFormikContext()
-  if (!canSend({ def: walletDef, config: values })) return null
+  if (!canSend({ def: walletDef, config: values }) && walletDef.requiresConfig) return null
 
   return <WalletSecurityBanner />
 }

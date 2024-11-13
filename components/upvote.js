@@ -150,8 +150,8 @@ export default function UpVote ({ item, className, visible }) {
 
   const zap = useZap()
 
-  const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
-    [item?.mine, item?.meForward, item?.deletedAt])
+  const disabled = useMemo(() => !visible || item?.mine || item?.meForward || item?.deletedAt,
+    [visible, item?.mine, item?.meForward, item?.deletedAt])
 
   const [meSats, overlayText, color, nextColor] = useMemo(() => {
     const meSats = (me ? item?.meSats : item?.meAnonSats) || 0
@@ -246,7 +246,7 @@ export default function UpVote ({ item, className, visible }) {
       height={26}
       className={classNames(styles.upvote,
         className,
-        (!visible) && styles.collapsed,
+        disabled && styles.collapsed,
         disabled && styles.noSelfTips,
         meSats && styles.voted,
         pending && styles.pending)}
@@ -254,7 +254,7 @@ export default function UpVote ({ item, className, visible }) {
     />
   )
 
-  if (!visible) {
+  if (disabled) {
     return (
       <div>
         {upBoltIcon}

@@ -137,7 +137,7 @@ export function WalletsProvider ({ children }) {
             send: supportsSend(w)
           },
           status: {
-            any: isConfigured(w),
+            any: isConfigured(w) ? Status.Enabled : Status.Disabled,
             send: canSend(w) ? Status.Enabled : Status.Disabled,
             recv: canReceive(w) ? Status.Enabled : Status.Disabled
           }

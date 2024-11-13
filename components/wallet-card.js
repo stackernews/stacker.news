@@ -31,7 +31,7 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
     >
       <div className={styles.cardMeta}>
         <div className={styles.indicators}>
-          {wallet.status.any && <DraggableIcon className={styles.drag} width={16} height={16} />}
+          {wallet.status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
           {wallet.support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(wallet.status.recv)}`} />}
           {wallet.support.send && <SendIcon className={`${styles.indicator} ${statusToClass(wallet.status.send)}`} />}
         </div>

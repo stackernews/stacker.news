@@ -1,5 +1,5 @@
 import {
-  createHodlInvoice, createInvoice, payViaPaymentRequest,
+  payViaPaymentRequest,
   getInvoice as getInvoiceFromLnd, deletePayment, getPayment,
   parsePaymentRequest
 } from 'ln-service'
@@ -7,13 +7,11 @@ import crypto, { timingSafeEqual } from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
-import { formatMsats, formatSats, msatsToSats, msatsToSatsDecimal } from '@/lib/format'
+import { formatMsats, formatSats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
 import {
-  ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS,
-  INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, LND_PATHFINDING_TIMEOUT_MS
+  USER_ID, INVOICE_RETENTION_DAYS, LND_PATHFINDING_TIMEOUT_MS
 } from '@/lib/constants'
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
-import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { bolt11Tags } from '@/lib/bolt11'
@@ -25,6 +23,7 @@ import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/
 import { getNodeSockets, getOurPubkey } from '../lnd'
 import validateWallet from '@/wallets/validate'
 import { canReceive } from '@/wallets/common'
+import performPaidAction from '../paidAction'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
@@ -462,50 +461,15 @@ const resolvers = {
     __resolveType: wallet => wallet.__resolveType
   },
   Mutation: {
-    createInvoice: async (parent, { amount, hodlInvoice = false, expireSecs = 3600 }, { me, models, lnd, headers }) => {
+    createInvoice: async (parent, { amount }, { me, models, lnd, headers }) => {
       await validateSchema(amountSchema, { amount })
       await assertGofacYourself({ models, headers })
 
-      let expirePivot = { seconds: expireSecs }
-      let invLimit = INV_PENDING_LIMIT
-      let balanceLimit = (hodlInvoice || USER_IDS_BALANCE_NO_LIMIT.includes(Number(me?.id))) ? 0 : BALANCE_LIMIT_MSATS
-      let id = me?.id
-      if (!me) {
-        expirePivot = { seconds: Math.min(expireSecs, 180) }
-        invLimit = ANON_INV_PENDING_LIMIT
-        balanceLimit = ANON_BALANCE_LIMIT_MSATS
-        id = USER_ID.anon
-      }
+      const { invoice } = await performPaidAction('RECEIVE', {
+        msats: satsToMsats(amount)
+      }, { models, lnd, me })
 
-      const user = await models.user.findUnique({ where: { id } })
-
-      const expiresAt = datePivot(new Date(), expirePivot)
-      const description = `Funding @${user.name} on stacker.news`
-      try {
-        const invoice = await (hodlInvoice ? createHodlInvoice : createInvoice)({
-          description: user.hideInvoiceDesc ? undefined : description,
-          lnd,
-          tokens: amount,
-          expires_at: expiresAt
-        })
-
-        const [inv] = await serialize(
-          models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.secret}::TEXT, ${invoice.request},
-            ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description}, NULL, NULL,
-            ${invLimit}::INTEGER, ${balanceLimit})`,
-          { models }
-        )
-
-        // the HMAC is only returned during invoice creation
-        // this makes sure that only the person who created this invoice
-        // has access to the HMAC
-        const hmac = createHmac(inv.hash)
-
-        return { ...inv, hmac }
-      } catch (error) {
-        console.log(error)
-        throw error
-      }
+      return invoice
     },
     createWithdrawl: createWithdrawal,
     sendToLnAddr,

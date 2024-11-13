@@ -151,9 +151,17 @@ export async function paidActionPaid ({ data: { invoiceId, ...args }, models, ln
         throw new Error('invoice is not confirmed')
       }
 
-      await paidActions[dbInvoice.actionType].onPaid?.({ ...dbInvoice.actionArgs, invoice: dbInvoice }, { models, tx, lnd })
+      const updateFields = {
+        confirmedAt: new Date(lndInvoice.confirmed_at),
+        confirmedIndex: lndInvoice.confirmed_index,
+        msatsReceived: BigInt(lndInvoice.received_mtokens)
+      }
 
-      // any paid action is eligible for a cowboy hat streak
+      await paidActions[dbInvoice.actionType].onPaid?.({
+        invoice: { ...dbInvoice, ...updateFields }
+      }, { models, tx, lnd })
+
+      // most paid actions are eligible for a cowboy hat streak
       await tx.$executeRaw`
         INSERT INTO pgboss.job (name, data)
         VALUES ('checkStreak', jsonb_build_object('id', ${dbInvoice.userId}, 'type', 'COWBOY_HAT'))`
@@ -166,11 +174,7 @@ export async function paidActionPaid ({ data: { invoiceId, ...args }, models, ln
             ('checkStreak', jsonb_build_object('id', ${dbInvoice.invoiceForward.withdrawl.userId}, 'type', 'HORSE'))`
       }
 
-      return {
-        confirmedAt: new Date(lndInvoice.confirmed_at),
-        confirmedIndex: lndInvoice.confirmed_index,
-        msatsReceived: BigInt(lndInvoice.received_mtokens)
-      }
+      return updateFields
     },
     ...args
   }, { models, lnd, boss })

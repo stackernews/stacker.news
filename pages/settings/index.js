@@ -159,7 +159,7 @@ export default function Settings ({ ssrData }) {
             diagnostics: settings?.diagnostics,
             hideIsContributor: settings?.hideIsContributor,
             noReferralLinks: settings?.noReferralLinks,
-            lnurlpP2P: settings?.lnurlpP2P
+            proxyReceive: settings?.proxyReceive
           }}
           schema={settingsSchema}
           onSubmit={async ({
@@ -333,23 +333,22 @@ export default function Settings ({ ssrData }) {
             label='I find or lose cowboy essentials (e.g. cowboy hat)'
             name='noteCowboyHat'
           />
-          <div className='form-label'>lightning address</div>
+          <div className='form-label'>wallet</div>
           <Checkbox
             label={
-              <div className='d-flex align-items-center'>forward lnurl payments to attached wallets
+              <div className='d-flex align-items-center'>proxy deposits to attached wallets
                 <Info>
                   <ul>
-                    <li>Use this if you want to forward the sats you receive through your @stacker.news lightning address to your attached wallets</li>
-                    <li>Payments will be wrapped by the SN node to preserve your node privacy</li>
+                    <li>Use this if you want the sats you receive to your Stacker News account to be forwarded directly to your attached wallets</li>
+                    <li>Payments will be wrapped by the SN node to preserve your wallet's privacy</li>
                     <li>This will incur in a 10% fee</li>
                   </ul>
                 </Info>
               </div>
             }
-            name='lnurlpP2P'
+            name='proxyReceive'
             groupClassName='mb-0'
           />
-          <div className='form-label'>privacy</div>
           <Checkbox
             label={
               <div className='d-flex align-items-center'>hide invoice descriptions
@@ -384,8 +383,8 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='autoDropBolt11s'
-            groupClassName='mb-0'
           />
+          <div className='form-label'>privacy</div>
           <Checkbox
             label={<>hide me from  <Link href='/top/stackers/day'>top stackers</Link></>}
             name='hideFromTopUsers'

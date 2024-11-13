@@ -235,13 +235,13 @@ export default {
             WHERE "Invoice"."userId" = $1
             AND "confirmedAt" IS NOT NULL
             AND "actionState" = 'PAID'
-            AND "actionType" = 'LNURLP'
+            AND "actionType" = 'RECEIVE'
             AND created_at < $2
             AND NOT EXISTS (
               SELECT 1
               FROM "InvoiceForward"
               WHERE "InvoiceForward"."invoiceId" = "Invoice".id
-            )              
+            )
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )

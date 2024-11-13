@@ -1,10 +1,14 @@
+import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { toPositiveBigInt } from '@/lib/validate'
 import { notifyDeposit } from '@/lib/webPush'
+import { numWithUnits, msatsToSats } from '@/lib/format'
 
 export const anonable = false
-export const supportsPessimism = true
-export const supportsOptimism = false
-export const supportsFeeCredits = false
+
+export const paymentMethods = [
+  PAID_ACTION_PAYMENT_METHODS.P2P,
+  PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
+]
 
 export async function getCost ({ msats }) {
   return toPositiveBigInt(msats)
@@ -15,7 +19,7 @@ export async function getInvoiceablePeer (_, { models, me }) {
     where: { id: me.id }
   })
 
-  return user?.lnurlpP2P ? me.id : null
+  return user?.proxyReceive ? me.id : null
 }
 
 export async function getSybilFeePercent () {
@@ -24,7 +28,6 @@ export async function getSybilFeePercent () {
 
 export async function perform ({
   invoiceId,
-  msats,
   comment,
   lud18Data
 }, { me, tx }) {
@@ -37,8 +40,8 @@ export async function perform ({
   })
 }
 
-export async function describe ({ description }) {
-  return description ?? 'SN: lnurlp'
+export async function describe ({ description }, { me, cost }) {
+  return description ?? `SN: ${me?.name ?? ''} receives ${numWithUnits(msatsToSats(cost))}`
 }
 
 export async function onPaid ({ invoice }, { tx }) {
@@ -59,6 +62,9 @@ export async function onPaid ({ invoice }, { tx }) {
   })
 }
 
-export async function nonCriticalSideEffects ({ invoice }) {
+export async function nonCriticalSideEffects ({ invoice }, { models }) {
   await notifyDeposit(invoice.userId, invoice)
+  await models.$executeRaw`
+    INSERT INTO pgboss.job (name, data)
+    VALUES ('nip57', jsonb_build_object('hash', ${invoice.hash}))`
 }

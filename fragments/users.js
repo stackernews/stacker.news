@@ -50,7 +50,7 @@ ${STREAK_FIELDS}
       disableFreebies
       vaultKeyHash
       walletsUpdatedAt
-      lnurlpP2P
+      proxyReceive
     }
     optional {
       isContributor
@@ -112,7 +112,7 @@ export const SETTINGS_FIELDS = gql`
         apiKey
       }
       apiKeyEnabled
-      lnurlpP2P
+      proxyReceive
     }
   }`
 

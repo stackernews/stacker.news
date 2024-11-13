@@ -19,8 +19,8 @@ function paidActionType (actionType) {
       return 'DonatePaidAction'
     case 'POLL_VOTE':
       return 'PollVotePaidAction'
-    case 'LNURLP':
-      return 'LnurlpPaidAction'
+    case 'RECEIVE':
+      return 'ReceivePaidAction'
     default:
       throw new Error('Unknown action type')
   }

@@ -77,7 +77,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     }
 
     // generate invoice
-    const { invoice } = await performPaidAction('LNURLP', {
+    const { invoice } = await performPaidAction('RECEIVE', {
       msats: toPositiveBigInt(amount),
       description,
       descriptionHash,

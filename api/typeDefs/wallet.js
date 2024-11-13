@@ -74,7 +74,7 @@ const typeDefs = `
   }
 
   extend type Mutation {
-    createInvoice(amount: Int!, expireSecs: Int, hodlInvoice: Boolean): Invoice!
+    createInvoice(amount: Int!): Invoice!
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
     cancelInvoice(hash: String!, hmac: String!): Invoice!

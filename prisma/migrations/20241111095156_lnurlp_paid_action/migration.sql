@@ -1,5 +1,5 @@
 -- AlterEnum
-ALTER TYPE "InvoiceActionType" ADD VALUE 'LNURLP';
+ALTER TYPE "InvoiceActionType" ADD VALUE 'RECEIVE';
 
 -- AlterTable
-ALTER TABLE "users" ADD COLUMN     "lnurlpP2P" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "users" ADD COLUMN     "proxyReceive" BOOLEAN NOT NULL DEFAULT false;

@@ -14,7 +14,7 @@ import * as TERRITORY_BILLING from './territoryBilling'
 import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
 import * as BOOST from './boost'
-import * as LNURLP from './lnurlp'
+import * as RECEIVE from './receive'
 
 import { createWrappedInvoice } from 'wallets/server'
 
@@ -30,7 +30,7 @@ export const paidActions = {
   TERRITORY_BILLING,
   TERRITORY_UNARCHIVE,
   DONATE,
-  LNURLP
+  RECEIVE
 }
 
 export default async function performPaidAction (actionType, args, incomingContext) {

@@ -9,7 +9,7 @@ const DEFAULT_INDICES = []
 const DEFAULT_VERSION = 1
 
 function useIndexedDB ({ dbName, storeName, options = DEFAULT_OPTIONS, indices = DEFAULT_INDICES, version = DEFAULT_VERSION }) {
-  const [db, setDb] = useState(null)
+  const db = useRef(null)
   const [error, setError] = useState(null)
   const [notSupported, setNotSupported] = useState(false)
   const operationQueue = useRef([])
@@ -19,15 +19,15 @@ function useIndexedDB ({ dbName, storeName, options = DEFAULT_OPTIONS, indices =
     setError(error)
   }, [])
 
-  const processQueue = useCallback((db) => {
-    if (!db) return
+  const processQueue = useCallback(() => {
+    if (!db.current) return
 
     try {
       // try to run a noop to see if the db is ready
-      db.transaction(storeName)
+      db.current.transaction(storeName)
       while (operationQueue.current.length > 0) {
         const operation = operationQueue.current.shift()
-        operation(db)
+        operation(db.current)
       }
     } catch (error) {
       handleError(error)
@@ -55,11 +55,11 @@ function useIndexedDB ({ dbName, storeName, options = DEFAULT_OPTIONS, indices =
           const database = event.target.result
           database.onversionchange = () => {
             database.close()
-            setDb(null)
+            db.current = null
             handleError(new Error('Database is outdated, please reload the page'))
           }
-          setDb(database)
-          processQueue(database)
+          db.current = database
+          processQueue()
         }
       }
 
@@ -81,9 +81,7 @@ function useIndexedDB ({ dbName, storeName, options = DEFAULT_OPTIONS, indices =
 
     return () => {
       isMounted = false
-      if (db) {
-        db.close()
-      }
+      db.current?.close()
     }
   }, [dbName, storeName, version, indices, options, handleError, processQueue])
 
@@ -106,7 +104,7 @@ function useIndexedDB ({ dbName, storeName, options = DEFAULT_OPTIONS, indices =
       }
 
       operationQueue.current.push(wrappedOperation)
-      processQueue(db)
+      processQueue()
     })
   }, [processQueue, db, notSupported, error])
 

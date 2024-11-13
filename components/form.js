@@ -131,6 +131,18 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
+function setNativeValue (element, value) {
+  const valueSetter = Object.getOwnPropertyDescriptor(element, 'value').set
+  const prototype = Object.getPrototypeOf(element)
+  const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value').set
+
+  if (valueSetter && valueSetter !== prototypeValueSetter) {
+    prototypeValueSetter.call(element, value)
+  } else {
+    valueSetter.call(element, value)
+  }
+}
+
 export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta, helpers] = useField(props)
@@ -366,10 +378,11 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
               onSuccess={({ url, name }) => {
                 let text = innerRef.current.value
                 text = text.replace(`![Uploading ${name}…]()`, `![](${url})`)
-                helpers.setValue(text)
+                setNativeValue(innerRef.current, text)
                 const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
                 updateUploadFees({ variables: { s3Keys } })
                 setSubmitDisabled?.(false)
+                innerRef.current.dispatchEvent(new Event('change', { bubbles: true, value: text }))
               }}
               onError={({ name }) => {
                 let text = innerRef.current.value

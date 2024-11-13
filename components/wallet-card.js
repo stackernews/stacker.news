@@ -1,4 +1,4 @@
-import { Badge, Card } from 'react-bootstrap'
+import { Card } from 'react-bootstrap'
 import styles from '@/styles/wallet.module.css'
 import Plug from '@/svgs/plug.svg'
 import Gear from '@/svgs/settings-5-fill.svg'
@@ -18,7 +18,7 @@ const statusToClass = status => {
 }
 
 export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnter, onDragEnd, onTouchStart, sourceIndex, targetIndex, index }) {
-  const { card: { title, badges } } = wallet.def
+  const { card: { title, image } } = wallet.def
 
   return (
     <Card
@@ -44,22 +44,11 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
           : ''}
         style={{ cursor: draggable ? 'move' : 'default' }}
       >
-        <Card.Title>{title}</Card.Title>
-        <Card.Subtitle className='mt-2'>
-          {badges?.map(
-            badge => {
-              let style = ''
-              switch (badge) {
-                case 'receive': style = styles.receive; break
-                case 'send': style = styles.send; break
-              }
-              return (
-                <Badge className={`${styles.badge} ${style}`} key={badge} bg={null}>
-                  {badge}
-                </Badge>
-              )
-            })}
-        </Card.Subtitle>
+        <div className='d-flex text-center align-items-center h-100'>
+          {image
+            ? typeof image === 'object' ? <img {...image} alt={title} /> : <img src={image} width='100%' alt={title} />
+            : <Card.Title className='w-100 justify-content-center align-items-center'>{title}</Card.Title>}
+        </div>
       </Card.Body>
       <Link href={`/settings/wallets/${wallet.def.name}`}>
         <Card.Footer className={styles.attach}>

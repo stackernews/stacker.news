@@ -140,9 +140,6 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const previousTab = useRef(tab)
   const { merge, setDisabled: setSubmitDisabled } = useFeeButton()
 
-  const storageKeyPrefix = useContext(StorageKeyPrefixContext)
-  const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + props.name : undefined
-
   const [updateUploadFees] = useLazyQuery(gql`
     query uploadFees($s3Keys: [Int]!) {
       uploadFees(s3Keys: $s3Keys) {
@@ -373,7 +370,6 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
                 const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
                 updateUploadFees({ variables: { s3Keys } })
                 setSubmitDisabled?.(false)
-                window.localStorage.setItem(storageKey, text)
               }}
               onError={({ name }) => {
                 let text = innerRef.current.value

@@ -14,12 +14,8 @@ export async function getCost ({ msats }) {
   return toPositiveBigInt(msats)
 }
 
-export async function getInvoiceablePeer (_, { models, me }) {
-  const user = await models.user.findUnique({
-    where: { id: me.id }
-  })
-
-  return user?.proxyReceive ? me.id : null
+export async function getInvoiceablePeer (_, { me }) {
+  return me?.proxyReceive ? me.id : null
 }
 
 export async function getSybilFeePercent () {

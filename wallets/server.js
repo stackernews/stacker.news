@@ -14,7 +14,7 @@ import * as webln from 'wallets/webln'
 import { walletLogger } from '@/api/resolvers/wallet'
 import walletDefs from 'wallets/server'
 import { parsePaymentRequest } from 'ln-service'
-import { toPositiveBigInt, toPositiveNumber } from '@/lib/validate'
+import { toNumber, toPositiveBigInt, toPositiveNumber } from '@/lib/validate'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { withTimeout } from '@/lib/time'
 import { canReceive } from './common'
@@ -25,7 +25,7 @@ export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 
-export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { models }) {
+export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360, wrap = false, feePercent, skipWallets = 0 }, { models, me, lnd }) {
   // get the wallets in order of priority
   const wallets = await models.wallet.findMany({
     where: { userId, enabled: true },
@@ -39,9 +39,15 @@ export async function createInvoice (userId, { msats, description, descriptionHa
     ]
   })
 
-  msats = toPositiveNumber(msats)
+  msats = toPositiveBigInt(msats)
+  let innerMsats = msats
+  if (wrap) {
+    if (!feePercent) throw new Error('feePercent is required for wrapped invoices')
+    innerMsats = msats * (100n - feePercent) / 100n
+  }
 
-  for (const wallet of wallets) {
+  for (let i = toNumber(Math.min(skipWallets, wallets.length), 0, wallets.length); i < wallets.length; i++) {
+    const wallet = wallets[i]
     const w = walletDefs.find(w => w.walletType === wallet.type)
 
     const config = wallet.wallet
@@ -55,13 +61,13 @@ export async function createInvoice (userId, { msats, description, descriptionHa
       logger.info(
         `↙ incoming payment: ${formatSats(msatsToSats(msats))}`,
         {
-          amount: formatMsats(msats)
-        })
+          amount: formatMsats(toNumber(msats))
+        }) // TODO add fee info?
 
       let invoice
       try {
         invoice = await walletCreateInvoice(
-          { msats, description, descriptionHash, expiry },
+          { msats: innerMsats, description, descriptionHash, expiry },
           { ...w, userId, createInvoice: w.createInvoice },
           { logger, models })
       } catch (err) {
@@ -74,21 +80,35 @@ export async function createInvoice (userId, { msats, description, descriptionHa
         bolt11: invoice
       })
 
-      if (BigInt(bolt11.mtokens) !== BigInt(msats)) {
-        if (BigInt(bolt11.mtokens) > BigInt(msats)) {
+      if (BigInt(bolt11.mtokens) !== msats) {
+        if (BigInt(bolt11.mtokens) > msats) {
           throw new Error('invoice invalid: amount too big')
         }
         if (BigInt(bolt11.mtokens) === 0n) {
           throw new Error('invoice invalid: amount is 0 msats')
         }
-        if (BigInt(msats) - BigInt(bolt11.mtokens) >= 1000n) {
+        if (innerMsats - BigInt(bolt11.mtokens) >= 1000n) {
           throw new Error('invoice invalid: amount too small')
         }
 
         logger.warn('wallet does not support msats')
       }
 
-      return { invoice, wallet, logger }
+      let wrappedInvoice
+      let maxFee
+
+      if (wrap) {
+        const wrappedInvoiceData =
+          await wrapInvoice(
+            { bolt11: invoice, feePercent },
+            { msats, description, descriptionHash },
+            { me, lnd }
+          )
+        wrappedInvoice = wrappedInvoiceData.invoice.request
+        maxFee = wrappedInvoiceData.maxFee
+      }
+
+      return { invoice, wallet, logger, wrappedInvoice, maxFee, retriable: i < wallets.length - 1 }
     } catch (err) {
       logger.error(err.message)
     }
@@ -98,34 +118,18 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 }
 
 export async function createWrappedInvoice (userId,
-  { msats, feePercent, description, descriptionHash, expiry = 360 },
+  { msats, feePercent, description, descriptionHash, expiry = 360, skipWallets = 0 },
   { models, me, lnd }) {
-  let logger, bolt11
-  try {
-    const { invoice, wallet } = await createInvoice(userId, {
-      // this is the amount the stacker will receive, the other (feePercent)% is our fee
-      msats: toPositiveBigInt(msats) * (100n - feePercent) / 100n,
-      description,
-      descriptionHash,
-      expiry
-    }, { models })
-
-    logger = walletLogger({ wallet, models })
-    bolt11 = invoice
-
-    const { invoice: wrappedInvoice, maxFee } =
-      await wrapInvoice({ bolt11, feePercent }, { msats, description, descriptionHash }, { me, lnd })
-
-    return {
-      invoice,
-      wrappedInvoice: wrappedInvoice.request,
-      wallet,
-      maxFee
-    }
-  } catch (e) {
-    logger?.error('invalid invoice: ' + e.message, { bolt11 })
-    throw e
-  }
+  return await createInvoice(userId, {
+    // this is the amount the stacker will receive, the other (feePercent)% is our fee
+    msats,
+    feePercent,
+    wrap: true,
+    description,
+    descriptionHash,
+    expiry,
+    skipWallets
+  }, { models, me, lnd })
 }
 
 async function walletCreateInvoice (
@@ -142,6 +146,7 @@ async function walletCreateInvoice (
     createInvoice
   },
   { logger, models }) {
+  msats = toPositiveNumber(msats)
   const wallet = await models.wallet.findFirst({
     where: {
       userId,

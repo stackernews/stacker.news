@@ -272,7 +272,7 @@ export function useZap () {
     const sats = nextTip(meSats, { ...me?.privates })
 
     const variables = { id: item.id, sats, act: 'TIP' }
-    const optimisticResponse = { act: { __typename: 'ItemActPaidAction', result: { path: item.path, ...variables } } }
+    const optimisticResponse = { act: { __typename: 'ItemActPaidAction', result: { path: item.path, ...variables }, retriable: true } }
 
     try {
       await abortSignal.pause({ me, amount: sats })

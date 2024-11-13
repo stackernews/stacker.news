@@ -148,13 +148,15 @@ export async function perform (args, context) {
 }
 
 export async function retry ({ invoiceId, newInvoiceId }, { tx }) {
+  const res = (await tx.$queryRaw`
+    SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
+    FROM "Item" WHERE "invoiceId" = ${invoiceId}::INTEGER`
+  )[0]
+  res.invoiceId = newInvoiceId
   await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
   await tx.item.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
   await tx.upload.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
-  return (await tx.$queryRaw`
-    SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
-    FROM "Item" WHERE "invoiceId" = ${newInvoiceId}::INTEGER`
-  )[0]
+  return res
 }
 
 export async function onPaid ({ invoice, id }, context) {

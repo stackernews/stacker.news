@@ -23,7 +23,7 @@ export default function Poll ({ item }) {
           onClick={me
             ? async () => {
               const variables = { id: v.id }
-              const optimisticResponse = { pollVote: { __typename: 'PollVotePaidAction', result: { id: v.id } } }
+              const optimisticResponse = { pollVote: { __typename: 'PollVotePaidAction', result: { id: v.id }, retriable: true } }
               try {
                 const { error } = await pollVote({
                   variables,
@@ -103,7 +103,7 @@ function PollResult ({ v, progress }) {
   )
 }
 
-export function usePollVote ({ query = POLL_VOTE, itemId }) {
+export function usePollVote ({ query = POLL_VOTE, itemId, ...options }) {
   const update = (cache, { data }) => {
     // the mutation name varies for optimistic retries
     const response = Object.values(data)[0]
@@ -185,6 +185,6 @@ export function usePollVote ({ query = POLL_VOTE, itemId }) {
     })
   }
 
-  const [pollVote] = usePaidMutation(query, { update, onPayError, onPaid })
+  const [pollVote] = usePaidMutation(query, { update, onPayError, onPaid, ...options })
   return pollVote
 }

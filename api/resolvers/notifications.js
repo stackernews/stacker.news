@@ -346,6 +346,11 @@ export default {
           "Invoice"."actionType" = 'POLL_VOTE' OR
           "Invoice"."actionType" = 'BOOST'
         )
+        AND EXISTS (
+          SELECT 1
+          FROM "ItemAct"
+          WHERE "ItemAct"."invoiceId" = "Invoice".id
+        )
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT})`
       )

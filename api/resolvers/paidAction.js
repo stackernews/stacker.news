@@ -31,6 +31,13 @@ export default {
         where: {
           id: invoiceId,
           userId: me?.id ?? USER_ID.anon
+        },
+        include: {
+          invoiceForward: {
+            include: {
+              withdrawl: true
+            }
+          }
         }
       })
       if (!invoice) {
@@ -46,28 +53,11 @@ export default {
     }
   },
   Mutation: {
-    retryPaidAction: async (parent, { invoiceId }, { models, me, lnd }) => {
-      if (!me) {
-        throw new Error('You must be logged in')
-      }
-
-      const invoice = await models.invoice.findUnique({ where: { id: invoiceId, userId: me.id } })
-      if (!invoice) {
-        throw new Error('Invoice not found')
-      }
-
-      if (invoice.actionState !== 'FAILED') {
-        if (invoice.actionState === 'PAID') {
-          throw new Error('Invoice is already paid')
-        }
-        throw new Error(`Invoice is not in failed state: ${invoice.actionState}`)
-      }
-
-      const result = await retryPaidAction(invoice.actionType, { invoice }, { models, me, lnd })
-
+    retryPaidAction: async (parent, { invoiceId, forceInternal, prioritizeInternal, attempt }, { models, me, lnd }) => {
+      const result = await retryPaidAction({ invoiceId, forceInternal, prioritizeInternal, attempt }, { models, me, lnd })
       return {
         ...result,
-        type: paidActionType(invoice.actionType)
+        type: paidActionType(result.invoice.actionType)
       }
     }
   },

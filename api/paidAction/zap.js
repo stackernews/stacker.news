@@ -64,12 +64,12 @@ export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, c
 }
 
 export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
-  await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
   const [{ id, path }] = await tx.$queryRaw`
     SELECT "Item".id, ltree2text(path) as path
     FROM "Item"
     JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId"
-    WHERE "ItemAct"."invoiceId" = ${newInvoiceId}::INTEGER`
+    WHERE "ItemAct"."invoiceId" = ${invoiceId}::INTEGER`
+  await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
   return { id, sats: msatsToSats(cost), act: 'TIP', path }
 }
 

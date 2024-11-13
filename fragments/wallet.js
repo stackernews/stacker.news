@@ -3,6 +3,7 @@ import { ITEM_FULL_FIELDS } from './items'
 import { VAULT_ENTRY_FIELDS } from './vault'
 
 export const INVOICE_FIELDS = gql`
+
   fragment InvoiceFields on Invoice {
     id
     hash
@@ -21,6 +22,11 @@ export const INVOICE_FIELDS = gql`
     actionType
     actionError
     confirmedPreimage
+    invoiceForward {
+      withdrawl {
+        status
+      }
+    }
   }`
 
 export const INVOICE_FULL = gql`

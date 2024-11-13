@@ -13,6 +13,7 @@ export const PAID_ACTION = gql`
       ...InvoiceFields
     }
     paymentMethod
+    retriable
   }`
 
 const ITEM_PAID_ACTION_FIELDS = gql`
@@ -88,8 +89,10 @@ export const RETRY_PAID_ACTION = gql`
   ${PAID_ACTION}
   ${ITEM_PAID_ACTION_FIELDS}
   ${ITEM_ACT_PAID_ACTION_FIELDS}
-  mutation retryPaidAction($invoiceId: Int!) {
-    retryPaidAction(invoiceId: $invoiceId) {
+  ${SUB_FULL_FIELDS}
+
+  mutation retryPaidAction($invoiceId: Int!, $forceInternal: Boolean, $attempt: Int, $prioritizeInternal: Boolean) {
+    retryPaidAction(invoiceId: $invoiceId, forceInternal: $forceInternal, attempt: $attempt, prioritizeInternal: $prioritizeInternal) {
       __typename
       ...PaidActionFields
       ... on ItemPaidAction {
@@ -101,6 +104,16 @@ export const RETRY_PAID_ACTION = gql`
       ... on PollVotePaidAction {
         result {
           id
+        }
+      }
+      ... on SubPaidAction {
+        result {
+          ...SubFullFields
+        }
+      }
+      ... on DonatePaidAction {
+        result {
+          sats
         }
       }
     }

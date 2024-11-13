@@ -112,9 +112,10 @@ const invoiceController = (id, isInvoice) => {
 
 export const useWalletPayment = () => {
   const invoice = useInvoice()
-  const wallet = useWallet()
+  const defaultWallet = useWallet()
 
-  const waitForWalletPayment = useCallback(async ({ id, bolt11 }, waitFor) => {
+  const waitForWalletPayment = useCallback(async ({ id, bolt11 }, waitFor, wallet) => {
+    wallet = wallet ?? defaultWallet
     if (!wallet) {
       throw new NoAttachedWalletError()
     }
@@ -134,7 +135,7 @@ export const useWalletPayment = () => {
     } finally {
       controller.stop()
     }
-  }, [wallet, invoice])
+  }, [defaultWallet, invoice])
 
   return waitForWalletPayment
 }

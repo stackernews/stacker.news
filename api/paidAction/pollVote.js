@@ -41,11 +41,10 @@ export async function perform ({ invoiceId, id }, { me, cost, tx }) {
 }
 
 export async function retry ({ invoiceId, newInvoiceId }, { tx }) {
+  const { pollOptionId } = await tx.pollVote.findFirst({ where: { invoiceId } })
   await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
   await tx.pollBlindVote.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
   await tx.pollVote.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
-
-  const { pollOptionId } = await tx.pollVote.findFirst({ where: { invoiceId: newInvoiceId } })
   return { id: pollOptionId }
 }
 

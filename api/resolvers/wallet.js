@@ -509,7 +509,7 @@ const resolvers = {
       verifyHmac(hash, hmac)
       const dbInv = await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
 
-      if (dbInv.invoiceForward) {
+      if (dbInv?.invoiceForward) {
         const { wallet, bolt11 } = dbInv.invoiceForward
         const logger = walletLogger({ wallet, models })
         const decoded = await parsePaymentRequest({ request: bolt11 })

@@ -59,7 +59,7 @@ export default async function performPaidAction (actionType, args, incomingConte
     // special case for zero cost actions
     if (context.cost === 0n) {
       console.log('performing zero cost action')
-      return await performNoInvoiceAction(actionType, args, context, 'ZERO_COST')
+      return await performNoInvoiceAction(actionType, args, { ...context, paymentMethod: 'ZERO_COST' })
     }
 
     for (const paymentMethod of paidAction.paymentMethods) {
@@ -84,7 +84,7 @@ export default async function performPaidAction (actionType, args, incomingConte
           throw e
         }
       } else if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC) {
-        return await performPessimisticAction(actionType, args, context)
+        return await beginPessimisticAction(actionType, args, context)
       }
 
       // additionalpayment methods that logged in users can use
@@ -149,10 +149,11 @@ async function performOptimisticAction (actionType, args, incomingContext) {
   const { models, invoiceArgs: incomingInvoiceArgs } = incomingContext
   const action = paidActions[actionType]
 
-  const invoiceArgs = incomingInvoiceArgs ?? await createSNInvoice(actionType, args, { ...incomingContext, optimistic: true })
+  const optimisticContext = { ...incomingContext, optimistic: true }
+  const invoiceArgs = incomingInvoiceArgs ?? await createSNInvoice(actionType, args, optimisticContext)
 
   return await models.$transaction(async tx => {
-    const context = { ...incomingContext, tx, invoiceArgs }
+    const context = { ...optimisticContext, tx, invoiceArgs }
 
     const invoice = await createDbInvoice(actionType, args, context)
 
@@ -164,7 +165,7 @@ async function performOptimisticAction (actionType, args, incomingContext) {
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 }
 
-async function performPessimisticAction (actionType, args, context) {
+async function beginPessimisticAction (actionType, args, context) {
   const action = paidActions[actionType]
 
   if (!action.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC)) {
@@ -187,7 +188,7 @@ async function performP2PAction (actionType, args, incomingContext) {
     throw new Error('sybil fee percent is not set for an invoiceable peer action')
   }
 
-  const userId = await paidActions[actionType]?.invoiceablePeer?.(args, incomingContext)
+  const userId = await paidActions[actionType]?.getInvoiceablePeer?.(args, incomingContext)
   if (!userId) {
     throw new NonInvoiceablePeerError()
   }
@@ -214,7 +215,7 @@ async function performP2PAction (actionType, args, incomingContext) {
 
   return me
     ? await performOptimisticAction(actionType, args, context)
-    : await performPessimisticAction(actionType, args, context)
+    : await beginPessimisticAction(actionType, args, context)
 }
 
 export async function retryPaidAction (actionType, args, incomingContext) {
@@ -245,17 +246,18 @@ export async function retryPaidAction (actionType, args, incomingContext) {
   }
 
   const { msatsRequested, actionId } = failedInvoice
-  const context = {
+  const retryContext = {
     ...incomingContext,
     optimistic: true,
     me: await models.user.findUnique({ where: { id: me.id } }),
     cost: BigInt(msatsRequested),
-    actionId,
-    invoiceArgs: await createSNInvoice(actionType, args, incomingContext)
+    actionId
   }
 
+  const invoiceArgs = await createSNInvoice(actionType, args, retryContext)
+
   return await models.$transaction(async tx => {
-    const txContext = { ...context, tx }
+    const context = { ...retryContext, tx, invoiceArgs }
 
     // update the old invoice to RETRYING, so that it's not confused with FAILED
     await tx.invoice.update({
@@ -269,10 +271,10 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     })
 
     // create a new invoice
-    const invoice = await createDbInvoice(actionType, args, txContext)
+    const invoice = await createDbInvoice(actionType, args, context)
 
     return {
-      result: await action.retry({ invoiceId: failedInvoice.id, newInvoiceId: invoice.id }, txContext),
+      result: await action.retry({ invoiceId: failedInvoice.id, newInvoiceId: invoice.id }, context),
       invoice,
       paymentMethod: 'OPTIMISTIC'
     }

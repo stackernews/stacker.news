@@ -509,6 +509,7 @@ function InputInner ({
       if (storageKey) {
         window.localStorage.setItem(storageKey, overrideValue)
       }
+      onChange && onChange(formik, { target: { value: overrideValue } })
     } else if (storageKey) {
       const draft = window.localStorage.getItem(storageKey)
       if (draft) {

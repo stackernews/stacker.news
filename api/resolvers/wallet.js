@@ -864,6 +864,17 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
 
   const user = await models.user.findUnique({ where: { id: me.id } })
 
+  // check if there's an invoice with same hash that has an invoiceForward
+  // we can't allow this because it creates two outgoing payments from our node
+  // with the same hash
+  const selfPayment = await models.invoice.findUnique({
+    where: { hash: decoded.id },
+    include: { invoiceForward: true }
+  })
+  if (selfPayment?.invoiceForward) {
+    throw new GqlInputError('SN cannot pay an invoice that SN is proxying')
+  }
+
   const autoWithdraw = !!wallet?.id
   // create withdrawl transactionally (id, bolt11, amount, fee)
   const [withdrawl] = await serialize(

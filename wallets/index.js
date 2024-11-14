@@ -67,7 +67,7 @@ export function WalletsProvider ({ children }) {
   const [setWalletPriority] = useMutation(SET_WALLET_PRIORITY)
   const [serverWallets, setServerWallets] = useState([])
   const client = useApolloClient()
-  const { logs } = useWalletLogs(null, { poll: false })
+  const { logs } = useWalletLogs()
 
   const { data, refetch } = useQuery(WALLETS,
     SSR ? {} : { nextFetchPolicy: 'cache-and-network' })

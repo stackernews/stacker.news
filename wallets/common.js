@@ -177,6 +177,8 @@ export async function saveWalletLocally (name, config, userId) {
 }
 
 export const statusFromLog = (wallet, logs) => {
+  if (wallet.status.any === Status.Disabled) return wallet
+
   // override status depending on if there have been warnings or errors in the logs recently
   // find first log from which we can derive status (logs are sorted by recent first)
   const walletLogs = logs.filter(l => l.wallet === wallet.def.name)

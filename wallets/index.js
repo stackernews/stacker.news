@@ -138,9 +138,9 @@ export function WalletsProvider ({ children }) {
             send: supportsSend(w)
           },
           status: {
-            any: isConfigured(w) ? Status.Enabled : Status.Disabled,
-            send: canSend(w) ? Status.Enabled : Status.Disabled,
-            recv: canReceive(w) ? Status.Enabled : Status.Disabled
+            any: w.config?.enabled && isConfigured(w) ? Status.Enabled : Status.Disabled,
+            send: w.config?.enabled && canSend(w) ? Status.Enabled : Status.Disabled,
+            recv: w.config?.enabled && canReceive(w) ? Status.Enabled : Status.Disabled
           }
         }
       }).map(w => statusFromLog(w, logs))

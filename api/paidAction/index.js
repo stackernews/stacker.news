@@ -98,7 +98,7 @@ export default async function performPaidAction (actionType, args, { ...context 
     for (const paymentMethod of supportedPaymentMethods) {
       console.log(`trying payment method ${paymentMethod}`)
 
-      if (paymentMethod === PAID_ACTION_PAYMENT_METHODS) {
+      if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.P2P) {
         try {
           return await performP2PAction(actionType, args, context, paymentMethod)
         } catch (e) {
@@ -124,7 +124,7 @@ export default async function performPaidAction (actionType, args, { ...context 
         }
       } catch (e) {
         console.error('performPaidAction failed with internal payment method', e)
-        // if we fail for reasons unrelated to balance, we should throw to fail the mutation
+        // if we fail for reasons unrelated to balance, we should throw to fail the action
         if (!e.message.includes('\\"users\\" violates check constraint \\"msats_positive\\"')) {
           throw e
         }

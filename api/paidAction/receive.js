@@ -2,6 +2,7 @@ import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { toPositiveBigInt } from '@/lib/validate'
 import { notifyDeposit } from '@/lib/webPush'
 import { numWithUnits, msatsToSats } from '@/lib/format'
+import { getInvoiceableWallets } from '@/wallets/server'
 
 export const anonable = false
 
@@ -14,8 +15,10 @@ export async function getCost ({ msats }) {
   return toPositiveBigInt(msats)
 }
 
-export async function getInvoiceablePeer (_, { me }) {
-  return me?.proxyReceive ? me.id : null
+export async function getInvoiceablePeer (_, { me, models }) {
+  if (!me?.proxyReceive) return null
+  const wallets = await getInvoiceableWallets(me.id, { models })
+  return wallets.length > 0 ? me.id : null
 }
 
 export async function getSybilFeePercent () {

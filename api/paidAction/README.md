@@ -103,6 +103,7 @@ stateDiagram-v2
 | donations         | x           |            | x           | x        | x          |             |              |
 | update posts      | x           |            | x           |          | x          |             | x            |
 | update comments   | x           |            | x           |          | x          |             | x            |
+| receive           |             | x          |             | x        | x          | x           | x            |
 
 ## Not-custodial zaps (ie p2p wrapped payments)
 Zaps, and possibly other future actions, can be performed peer to peer and non-custodially. This means that the payment is made directly from the client to the recipient, without the server taking custody of the funds. Currently, in order to trigger this behavior, the recipient must have a receiving wallet attached and the sender must have insufficient funds in their custodial wallet to perform the requested zap.

@@ -16,7 +16,7 @@ import * as DONATE from './donate'
 import * as BOOST from './boost'
 import * as RECEIVE from './receive'
 
-import { createWrappedInvoice } from 'wallets/server'
+import { createWrappedInvoice } from '@/wallets/server'
 
 export const paidActions = {
   ITEM_CREATE,

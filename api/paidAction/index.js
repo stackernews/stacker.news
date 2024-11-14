@@ -98,28 +98,21 @@ export default async function performPaidAction (actionType, args, { ...context 
     for (const paymentMethod of supportedPaymentMethods) {
       console.log(`trying payment method ${paymentMethod}`)
 
-      // internal actions with constraint checks
+      if (paymentMethod === PAID_ACTION_PAYMENT_METHODS) {
+        try {
+          return await performP2PAction(actionType, args, context, paymentMethod)
+        } catch (e) {
+          // p2p can fail for various reasons, if it does, we should try another payment method
+          console.error('paid action failed with P2P payment method, try another one', e)
+          continue
+        }
+      }
+
       try {
         switch (paymentMethod) {
           case PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT: {
             if (!me || (me.msats ?? 0n) < cost) break // if anon or low balance skip
             return await performNoInvoiceAction(actionType, args, { ...context, paymentMethod })
-          }
-          // more internal payment methods here -> fee credit
-        }
-      } catch (e) {
-        console.error('performPaidAction failed with internal payment method', e)
-        // if we fail for reasons unrelated to balance, we should throw to fail the mutation
-        if (!e.message.includes('\\"users\\" violates check constraint \\"msats_positive\\"')) {
-          throw e
-        }
-      }
-
-      // other actions
-      try {
-        switch (paymentMethod) {
-          case PAID_ACTION_PAYMENT_METHODS.P2P: {
-            return await performP2PAction(actionType, args, context, paymentMethod)
           }
           case PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC: {
             if (!me) break // anons are not optimistic
@@ -130,10 +123,15 @@ export default async function performPaidAction (actionType, args, { ...context 
           }
         }
       } catch (e) {
-        console.error('performPaidAction failed', e)
+        console.error('performPaidAction failed with internal payment method', e)
+        // if we fail for reasons unrelated to balance, we should throw to fail the mutation
+        if (!e.message.includes('\\"users\\" violates check constraint \\"msats_positive\\"')) {
+          throw e
+        }
       }
     }
 
+    // if we reach this point, no payment method succeeded
     throw new Error('no payment method succeeded')
   } finally {
     console.groupEnd()
@@ -198,12 +196,6 @@ async function performOptimisticAction (actionType, args, { ...context }) {
 }
 
 async function beginPessimisticAction (actionType, args, { ...context }) {
-  const action = paidActions[actionType]
-
-  if (!action.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC)) {
-    throw new Error(`This action ${actionType} does not support pessimistic invoicing`)
-  }
-
   // just create the invoice and complete action when it's paid
   const invoiceArgs = context.invoiceArgs ?? await createSNInvoice(context)
   return {

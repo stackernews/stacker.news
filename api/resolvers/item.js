@@ -300,7 +300,7 @@ function typeClause (type) {
       return ['"Item".bio = true', '"Item"."parentId" IS NULL']
     case 'bounties':
       return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL']
-    case 'unpaid bounties':
+    case 'bounties_active':
       return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL', '"Item"."bountyPaidTo" IS NULL']
     case 'comments':
       return '"Item"."parentId" IS NOT NULL'

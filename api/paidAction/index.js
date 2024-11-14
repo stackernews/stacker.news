@@ -68,22 +68,26 @@ export default async function performPaidAction (actionType, args, { ...context 
       return await performNoInvoiceAction(actionType, args, { ...context, paymentMethod: PAID_ACTION_PAYMENT_METHODS.ZERO_COST })
     }
 
-    // ort supported payment methods
+    // sort and filter supported payment methods
     if (forceInternal) {
-      // forced internal payments, so we keep only the payment methods that qualify as such
+      //  we keep only the payment methods that qualify as internal payments
       if (!me) {
         throw new Error('user must be logged in to use internal payments')
       }
       const forcedPaymentMethods = []
+      // reset the supported payment methods to only include internal methods
+      // that are supported by the action
       if (context.supportedPaymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT)) {
         forcedPaymentMethods.push(PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT)
       }
+      // TODO: add reward sats
+      // ...
       if (forcedPaymentMethods.length === 0) {
         throw new Error('action does not support internal payments')
       }
       context.supportedPaymentMethods = forcedPaymentMethods
     } else if (prioritizeInternal) {
-      // prefer internal payment methods
+      // prefer internal payment methods over the others (if they are supported)
       const priority = {
         [PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT]: -2
         // add other internal methods here
@@ -114,6 +118,8 @@ export default async function performPaidAction (actionType, args, { ...context 
             if (!me || (me.msats ?? 0n) < cost) break // if anon or low balance skip
             return await performNoInvoiceAction(actionType, args, { ...context, paymentMethod })
           }
+          // TODO: add reward sats
+          // ...
           case PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC: {
             if (!me) break // anons are not optimistic
             return await performOptimisticAction(actionType, args, context)
@@ -176,6 +182,7 @@ async function performOptimisticAction (actionType, args, { ...context }) {
   const action = paidActions[actionType]
 
   context.optimistic = true
+  // create the invoice and perform the action immediately( invoiceArgs could be passed in by the p2p method)
   const invoiceArgs = context.invoiceArgs ?? await createSNInvoice(context)
 
   const run = async tx => {
@@ -196,7 +203,7 @@ async function performOptimisticAction (actionType, args, { ...context }) {
 }
 
 async function beginPessimisticAction (actionType, args, { ...context }) {
-  // just create the invoice and complete action when it's paid
+  // just create the invoice and complete action when it's paid (invoiceArgs could be passed in by the p2p method)
   const invoiceArgs = context.invoiceArgs ?? await createSNInvoice(context)
   return {
     invoice: await createDbInvoice(actionType, args, { ...context, invoiceArgs }),

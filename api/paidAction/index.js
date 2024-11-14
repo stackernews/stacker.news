@@ -1,8 +1,11 @@
 import { createHodlInvoice, createInvoice, parsePaymentRequest } from 'ln-service'
 import { datePivot } from '@/lib/time'
-import { PAID_ACTION_PAYMENT_METHODS, PAID_ACTION_TERMINAL_STATES, USER_ID } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { createHmac } from '@/api/resolvers/wallet'
 import { Prisma } from '@prisma/client'
+import { createWrappedInvoice } from '@/wallets/server'
+import { assertBelowMaxPendingInvoices } from './lib/assert'
+
 import * as ITEM_CREATE from './itemCreate'
 import * as ITEM_UPDATE from './itemUpdate'
 import * as ZAP from './zap'
@@ -15,8 +18,6 @@ import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
 import * as BOOST from './boost'
 import * as RECEIVE from './receive'
-
-import { createWrappedInvoice } from '@/wallets/server'
 
 export const paidActions = {
   ITEM_CREATE,
@@ -285,23 +286,6 @@ export async function retryPaidAction (actionType, args, incomingContext) {
 }
 
 const INVOICE_EXPIRE_SECS = 600
-const MAX_PENDING_PAID_ACTIONS_PER_USER = 100
-
-export async function assertBelowMaxPendingInvoices (context) {
-  const { models, me } = context
-  const pendingInvoices = await models.invoice.count({
-    where: {
-      userId: me?.id ?? USER_ID.anon,
-      actionState: {
-        notIn: PAID_ACTION_TERMINAL_STATES
-      }
-    }
-  })
-
-  if (pendingInvoices >= MAX_PENDING_PAID_ACTIONS_PER_USER) {
-    throw new Error('You have too many pending paid actions, cancel some or wait for them to expire')
-  }
-}
 
 export class NonInvoiceablePeerError extends Error {
   constructor () {
@@ -316,6 +300,8 @@ async function createSNInvoice (actionType, args, context) {
   const { me, lnd, cost, optimistic } = context
   const action = paidActions[actionType]
   const createLNDInvoice = optimistic ? createInvoice : createHodlInvoice
+
+  await assertBelowMaxPendingInvoices(context)
 
   if (cost < 1000n) {
     // sanity check

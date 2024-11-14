@@ -3,6 +3,7 @@ import { toPositiveBigInt } from '@/lib/validate'
 import { notifyDeposit } from '@/lib/webPush'
 import { numWithUnits, msatsToSats } from '@/lib/format'
 import { getInvoiceableWallets } from '@/wallets/server'
+import { assertBelowBalanceLimit } from './lib/assert'
 
 export const anonable = false
 
@@ -30,13 +31,19 @@ export async function perform ({
   comment,
   lud18Data
 }, { me, tx }) {
-  await tx.invoice.update({
+  const invoice = await tx.invoice.update({
     where: { id: invoiceId },
     data: {
       comment,
       lud18Data
-    }
+    },
+    include: { invoiceForward: true }
   })
+
+  if (!invoice.invoiceForward) {
+    // if the invoice is not p2p, assert that the user's balance limit is not exceeded
+    await assertBelowBalanceLimit({ me, tx })
+  }
 }
 
 export async function describe ({ description }, { me, cost }) {

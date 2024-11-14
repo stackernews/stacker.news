@@ -38,11 +38,11 @@ export async function testSendPayment (credentials, { logger }) {
 
     logger.info('connecting ...')
     await lnc.connect()
-    logger.ok('connected')
+    logger.info('connected')
 
     logger.info('validating permissions ...')
     await validateNarrowPerms(lnc)
-    logger.ok('permissions ok')
+    logger.info('permissions ok')
 
     return lnc.credentials.credentials
   } finally {

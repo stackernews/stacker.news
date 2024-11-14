@@ -14,7 +14,7 @@ export async function testSendPayment ({ apiKey, currency }, { logger }) {
   currency = currency ? currency.toUpperCase() : 'BTC'
   await getWallet(apiKey, currency)
 
-  logger.info(currency + ' wallet found')
+  logger.ok(currency + ' wallet found')
 }
 
 export async function sendPayment (bolt11, { apiKey, currency }) {

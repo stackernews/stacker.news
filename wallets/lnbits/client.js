@@ -8,7 +8,7 @@ export async function testSendPayment ({ url, adminKey, invoiceKey }, { logger }
   url = url.replace(/\/+$/, '')
   await getWallet({ url, adminKey, invoiceKey })
 
-  logger.info('wallet found')
+  logger.ok('wallet found')
 }
 
 export async function sendPayment (bolt11, { url, adminKey }) {

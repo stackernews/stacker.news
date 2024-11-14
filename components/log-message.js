@@ -29,7 +29,7 @@ export default function LogMessage ({ showWallet, wallet, level, message, contex
   const indicator = hasContext ? (show ? '-' : '+') : <></>
   const filteredCtx = context
     ? Object.keys(context)
-      .filter(key => !['send', 'recv'].includes(key))
+      .filter(key => !['send', 'recv', 'status'].includes(key))
       .reduce((obj, key) => {
         obj[key] = context[key]
         return obj

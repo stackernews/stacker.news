@@ -678,7 +678,9 @@ export const walletLogger = ({ wallet, models }) => {
           payment_hash: decoded.id,
           created_at: decoded.created_at,
           expires_at: decoded.expires_at,
-          description: decoded.description
+          description: decoded.description,
+          // payments should affect wallet status
+          status: true
         }
       }
       context.recv = true

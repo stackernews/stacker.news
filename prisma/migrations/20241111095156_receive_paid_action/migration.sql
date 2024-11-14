@@ -10,4 +10,4 @@ DROP FUNCTION IF EXISTS create_invoice;
 -- to prevent multiple pending withdrawls with the same hash
 CREATE UNIQUE INDEX "Withdrawl_hash_key_null_status"
 ON "Withdrawl" (hash)
-WHERE status IS NULL;
+WHERE status IS NULL OR status = 'CONFIRMED';

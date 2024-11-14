@@ -1,6 +1,6 @@
 import { createInvoice as clnCreateInvoice } from '@/lib/cln'
 
-export * from 'wallets/cln'
+export * from '@/wallets/cln'
 
 export const testCreateInvoice = async ({ socket, rune, cert }) => {
   return await createInvoice({ msats: 1000, expiry: 1, description: '' }, { socket, rune, cert })

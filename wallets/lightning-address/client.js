@@ -1,1 +1,1 @@
-export * from 'wallets/lightning-address'
+export * from '@/wallets/lightning-address'

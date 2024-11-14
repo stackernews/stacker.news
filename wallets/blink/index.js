@@ -1,5 +1,5 @@
 import { string } from '@/lib/yup'
-import { galoyBlinkDashboardUrl } from 'wallets/blink/common'
+import { galoyBlinkDashboardUrl } from '@/wallets/blink/common'
 
 export const name = 'blink'
 export const walletType = 'BLINK'

@@ -1,7 +1,7 @@
 import { gql } from 'graphql-tag'
 import { fieldToGqlArg, fieldToGqlArgOptional, generateResolverName, generateTypeDefName } from '@/wallets/graphql'
 import { isServerField } from '@/wallets/common'
-import walletDefs from 'wallets/server'
+import walletDefs from '@/wallets/server'
 
 function injectTypeDefs (typeDefs) {
   const injected = [rawTypeDefs(), mutationTypeDefs()]

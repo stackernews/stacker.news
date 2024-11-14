@@ -2,7 +2,6 @@ import { useCallback } from 'react'
 import { useToast } from './toast'
 import { Button } from 'react-bootstrap'
 import Nostr, { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
-import { callWithTimeout } from '@/lib/time'
 import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
@@ -239,13 +238,6 @@ export default function useCrossposter () {
   }
 
   const handleCrosspost = useCallback(async (itemId) => {
-    try {
-      const pubkey = await callWithTimeout(() => window.nostr.getPublicKey(), 10000)
-      if (!pubkey) throw new Error('failed to get pubkey')
-    } catch (e) {
-      throw new Error(`Nostr extension error: ${e.message}`)
-    }
-
     let noteId
 
     try {

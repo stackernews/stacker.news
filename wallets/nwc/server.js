@@ -27,7 +27,7 @@ export async function testCreateInvoice ({ nwcUrlRecv }, { logger }) {
 export async function createInvoice (
   { msats, description, expiry },
   { nwcUrlRecv }, { logger }) {
-  const nwc = await Nostr.nwc(nwcUrlRecv, { logger })
+  const nwc = await Nostr.nwc(nwcUrlRecv)
   const { error, result } = await nwc.sendReq('make_invoice', { amount: msats, description, expiry })
   if (error) throw new Error(error.code + ' ' + error.message)
   return result.invoice

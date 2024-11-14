@@ -33,7 +33,7 @@ export const card = {
 }
 
 export async function supportedMethods (nwcUrl, { logger, timeout } = {}) {
-  const nwc = await Nostr.nwc(nwcUrl, { logger })
+  const nwc = await Nostr.nwc(nwcUrl)
   const { error, result } = await nwc.getInfo()
   if (error) throw new Error(error.code + ' ' + error.message)
   return result.methods

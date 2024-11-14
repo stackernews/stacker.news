@@ -12,7 +12,7 @@ export async function testSendPayment ({ nwcUrl }, { logger }) {
 }
 
 export async function sendPayment (bolt11, { nwcUrl }, { logger }) {
-  const nwc = await Nostr.nwc(nwcUrl, { logger })
+  const nwc = await Nostr.nwc(nwcUrl)
   const { error, result } = await nwc.payInvoice(bolt11)
   if (error) throw new Error(error.code + ' ' + error.message)
   return result.preimage

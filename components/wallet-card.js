@@ -52,7 +52,7 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       </Card.Body>
       <Link href={`/settings/wallets/${wallet.def.name}`}>
         <Card.Footer className={styles.attach}>
-          {wallet.status.any
+          {wallet.status.any !== Status.Disabled
             ? <>configure<Gear width={14} height={14} /></>
             : <>attach<Plug width={14} height={14} /></>}
         </Card.Footer>

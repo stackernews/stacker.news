@@ -19,15 +19,7 @@ export default function LogMessage ({ showWallet, wallet, level, message, contex
       className = 'text-info'
   }
 
-  const hasContext = context && Object.keys(context).length > 0
-
-  const handleClick = () => {
-    if (hasContext) { setShow(show => !show) }
-  }
-
-  const style = hasContext ? { cursor: 'pointer' } : { cursor: 'inherit' }
-  const indicator = hasContext ? (show ? '-' : '+') : <></>
-  const filteredCtx = context
+  const filtered = context
     ? Object.keys(context)
       .filter(key => !['send', 'recv', 'status'].includes(key))
       .reduce((obj, key) => {
@@ -35,6 +27,15 @@ export default function LogMessage ({ showWallet, wallet, level, message, contex
         return obj
       }, {})
     : {}
+
+  const hasContext = context && Object.keys(filtered).length > 0
+
+  const handleClick = () => {
+    if (hasContext) { setShow(show => !show) }
+  }
+
+  const style = hasContext ? { cursor: 'pointer' } : { cursor: 'inherit' }
+  const indicator = hasContext ? (show ? '-' : '+') : <></>
 
   return (
     <>
@@ -45,9 +46,9 @@ export default function LogMessage ({ showWallet, wallet, level, message, contex
         <td>{message}</td>
         <td>{indicator}</td>
       </tr>
-      {show && hasContext && Object.entries(filteredCtx)
+      {show && hasContext && Object.entries(filtered)
         .map(([key, value], i) => {
-          const last = i === Object.keys(filteredCtx).length - 1
+          const last = i === Object.keys(filtered).length - 1
           return (
             <tr className={styles.line} key={i}>
               <td />

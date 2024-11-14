@@ -184,7 +184,6 @@
 .p:has(> .mediaContainer) .mediaContainer
 {
     display: flex;
-    width: min-content;
     max-width: 100%;
 }
 

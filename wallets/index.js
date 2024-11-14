@@ -112,7 +112,10 @@ export function WalletsProvider ({ children }) {
     const merged = {}
     for (const wallet of [...walletDefsOnly, ...localWallets, ...serverWallets]) {
       merged[wallet.def.name] = {
-        def: wallet.def,
+        def: {
+          ...wallet.def,
+          requiresConfig: wallet.def.fields.length > 0
+        },
         config: {
           ...merged[wallet.def.name]?.config,
           ...Object.fromEntries(
@@ -122,7 +125,6 @@ export function WalletsProvider ({ children }) {
             ])
           )
         },
-        requiresConfig: wallet.def.fields.length > 0,
         vaultEntries: wallet.vaultEntries
       }
     }

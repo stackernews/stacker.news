@@ -3,7 +3,7 @@ import BootstrapForm from 'react-bootstrap/Form'
 import { Select } from './form'
 import { useRouter } from 'next/router'
 
-function mapTypeToRoute (type) {
+function mapTypeToSelectOption (type) {
   switch (type) {
     case 'bounties_active': return 'bounties'
   }
@@ -40,7 +40,7 @@ export default function RecentHeader ({ type, sub }) {
     : ITEM_TYPES
 
   type ||= router.query.type || type || 'posts'
-  type = mapTypeToRoute(type)
+  type = mapTypeToSelectOption(type)
 
   return (
     <div className='flex-wrap'>

@@ -3,7 +3,7 @@ import styles from '@/styles/wallet.module.css'
 import Plug from '@/svgs/plug.svg'
 import Gear from '@/svgs/settings-5-fill.svg'
 import Link from 'next/link'
-import { Status } from '@/wallets/common'
+import { Status, isConfigured } from '@/wallets/common'
 import DraggableIcon from '@/svgs/draggable.svg'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
@@ -52,7 +52,7 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       </Card.Body>
       <Link href={`/settings/wallets/${wallet.def.name}`}>
         <Card.Footer className={styles.attach}>
-          {wallet.status.any !== Status.Disabled
+          {isConfigured(wallet)
             ? <>configure<Gear width={14} height={14} /></>
             : <>attach<Plug width={14} height={14} /></>}
         </Card.Footer>

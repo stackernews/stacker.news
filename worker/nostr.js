@@ -45,7 +45,7 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
     }
 
     console.log('zap note', e, relays)
-    const { event: publishedEvent } = await Nostr.publish({
+    await Nostr.publish({
       kind: 9735,
       created_at: Math.floor(new Date(inv.confirmedAt).getTime() / 1000),
       content: '',
@@ -55,8 +55,6 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
       privKey: process.env.NOSTR_PRIVATE_KEY,
       timeout: 1000
     })
-
-    console.log('zap note published', publishedEvent)
   } catch (e) {
     console.log(e)
   }

@@ -945,7 +945,7 @@ export default {
         }
       })
     },
-    ncomments: async (user, { when, from, to }, { models }) => {
+    ncomments: async (user, { when, from, to }, { me, models }) => {
       if (typeof user.ncomments !== 'undefined') {
         return user.ncomments
       }
@@ -958,7 +958,8 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          ...(me?.id === user.id ? {} : { OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }] })
         }
       })
     },

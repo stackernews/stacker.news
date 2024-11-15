@@ -83,9 +83,6 @@ export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
     where: {
       id: Number(id)
-    },
-    include: {
-      user: true
     }
   })
 
@@ -93,27 +90,14 @@ export async function getInvoice (parent, { id }, { me, models, lnd }) {
     throw new GqlInputError('invoice not found')
   }
 
-  if (inv.user.id === USER_ID.anon) {
+  if (inv.userId === USER_ID.anon) {
     return inv
   }
   if (!me) {
     throw new GqlAuthenticationError()
   }
-  if (inv.user.id !== me.id) {
+  if (inv.userId !== me.id) {
     throw new GqlInputError('not ur invoice')
-  }
-
-  try {
-    inv.nostr = JSON.parse(inv.desc)
-  } catch (err) {
-  }
-
-  try {
-    if (inv.confirmedAt) {
-      inv.confirmedPreimage = inv.preimage ?? (await getInvoiceFromLnd({ id: inv.hash, lnd })).secret
-    }
-  } catch (err) {
-    console.error('error fetching invoice from LND', err)
   }
 
   return inv
@@ -127,14 +111,6 @@ export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
   const wdrwl = await models.withdrawl.findUnique({
     where: {
       id: Number(id)
-    },
-    include: {
-      user: true,
-      invoiceForward: {
-        include: {
-          invoice: true
-        }
-      }
     }
   })
 
@@ -142,7 +118,7 @@ export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
     throw new GqlInputError('withdrawal not found')
   }
 
-  if (wdrwl.user.id !== me.id) {
+  if (wdrwl.userId !== me.id) {
     throw new GqlInputError('not ur withdrawal')
   }
 
@@ -564,7 +540,15 @@ const resolvers = {
     satsPaid: w => msatsToSats(w.msatsPaid),
     satsFeePaying: w => w.invoiceForward?.length > 0 ? 0 : msatsToSats(w.msatsFeePaying),
     satsFeePaid: w => w.invoiceForward?.length > 0 ? 0 : msatsToSats(w.msatsFeePaid),
-    p2p: w => !!w.invoiceForward?.length,
+    // we never want to fetch the sensitive data full monty in nested resolvers
+    forwardedActionType: async (withdrawl, args, { models }) => {
+      return (await models.invoiceForward.findFirst({
+        where: { withdrawlId: Number(withdrawl.id) },
+        include: {
+          invoice: true
+        }
+      }))?.invoice?.actionType
+    },
     preimage: async (withdrawl, args, { lnd }) => {
       try {
         if (withdrawl.status === 'CONFIRMED') {
@@ -579,6 +563,35 @@ const resolvers = {
   Invoice: {
     satsReceived: i => msatsToSats(i.msatsReceived),
     satsRequested: i => msatsToSats(i.msatsRequested),
+    // we never want to fetch the sensitive data full monty in nested resolvers
+    forwardedSats: async (invoice, args, { models }) => {
+      const msats = (await models.invoiceForward.findUnique({
+        where: { invoiceId: Number(invoice.id) },
+        include: {
+          withdrawl: true
+        }
+      }))?.withdrawl?.msatsPaid
+      return msats ? msatsToSats(msats) : null
+    },
+    nostr: async (invoice, args, { models }) => {
+      try {
+        return JSON.parse(invoice.desc)
+      } catch (err) {
+      }
+
+      return null
+    },
+    confirmedPreimage: async (invoice, args, { lnd }) => {
+      try {
+        if (invoice.confirmedAt) {
+          return invoice.preimage ?? (await getInvoiceFromLnd({ id: invoice.hash, lnd })).secret
+        }
+      } catch (err) {
+        console.error('error fetching invoice from LND', err)
+      }
+
+      return null
+    },
     item: async (invoice, args, { models, me }) => {
       if (!invoice.actionId) return null
       switch (invoice.actionType) {

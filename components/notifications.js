@@ -344,10 +344,18 @@ function getPayerSig (lud18Data) {
 
 function InvoicePaid ({ n }) {
   const payerSig = getPayerSig(n.invoice.lud18Data)
+  let actionString = 'desposited to your account'
+  let sats = n.earnedSats
+  if (n.invoice.forwardedSats) {
+    actionString = 'sent directly to your attached wallet'
+    sats = n.invoice.forwardedSats
+  }
+
   return (
     <div className='fw-bold text-info'>
-      <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} deposited in your account
+      <Check className='fill-info me-1' />{numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      {n.invoice.forwardedSats && <Badge className={styles.badge} bg={null}>p2p</Badge>}
       {n.invoice.comment &&
         <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'>
           <Text>{n.invoice.comment}</Text>
@@ -489,19 +497,17 @@ function Invoicification ({ n: { invoice, sortTime } }) {
 }
 
 function WithdrawlPaid ({ n }) {
-  const payerSig = getPayerSig(n.withdrawl.invoiceForward?.[0]?.invoice?.lud18Data)
+  let actionString = n.withdrawl.autoWithdraw ? 'sent to your attached wallet' : 'withdrawn from your account'
+  if (n.withdrawl.forwardedActionType === 'ZAP') {
+    actionString = 'zapped directly to your attached wallet'
+  }
   return (
     <div className='fw-bold text-info'>
       <Check className='fill-info me-1' />{numWithUnits(n.earnedSats + n.withdrawl.satsFeePaid, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
-      {n.withdrawl.p2p || n.withdrawl.autoWithdraw ? 'sent to your attached wallet' : 'withdrawn from your account'}
+      {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      {(n.withdrawl.p2p && <Badge className={styles.badge} bg={null}>p2p</Badge>) ||
-      (n.withdrawl.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>)}
-      {n.withdrawl.invoiceForward?.[0]?.invoice?.comment &&
-        <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'>
-          <Text>{n.withdrawl.invoiceForward[0].invoice.comment}</Text>
-          {payerSig}
-        </small>}
+      {(n.withdrawl.forwardedActionType === 'ZAP' && <Badge className={styles.badge} bg={null}>p2p</Badge>) ||
+        (n.withdrawl.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>)}
     </div>
   )
 }

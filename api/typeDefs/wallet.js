@@ -122,12 +122,8 @@ const typeDefs = `
     actionError: String
     item: Item
     itemAct: ItemAct
+    forwardedSats: Int
   }
-
-  type InvoiceForward {
-    invoice: Invoice
-  }
-
 
   type Withdrawl {
     id: ID!
@@ -140,9 +136,8 @@ const typeDefs = `
     satsFeePaid: Int
     status: String
     autoWithdraw: Boolean!
-    p2p: Boolean!
     preimage: String
-    invoiceForward: [InvoiceForward]
+    forwardedActionType: String
   }
 
   type Fact {

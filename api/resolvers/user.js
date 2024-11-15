@@ -910,7 +910,7 @@ export default {
       })
       return item?.id
     },
-    nitems: async (user, { when, from, to }, { models }) => {
+    nitems: async (user, { when, from, to }, { me, models }) => {
       if (typeof user.nitems !== 'undefined') {
         return user.nitems
       }
@@ -922,11 +922,12 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          ...(me?.id === user.id ? {} : { OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }] })
         }
       })
     },
-    nposts: async (user, { when, from, to }, { models }) => {
+    nposts: async (user, { when, from, to }, { me, models }) => {
       if (typeof user.nposts !== 'undefined') {
         return user.nposts
       }
@@ -939,7 +940,8 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          ...(me?.id === user.id ? {} : { OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }] })
         }
       })
     },

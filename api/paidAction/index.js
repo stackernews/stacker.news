@@ -255,7 +255,10 @@ async function performP2PAction (actionType, args, { ...context }) {
 export async function retryPaidAction ({ invoiceId, forceInternal, attempt, prioritizeInternal }, { ...context }) {
   const { models, me } = context
 
-  if (!me) throw new Error('user must be logged in to retry paid actions')
+  if (!me) {
+    // otherwise every anon could retry retry other anons' actions
+    throw new Error('user must be logged in to retry paid actions')
+  }
 
   const failedInvoice = await models.invoice.findUnique({ where: { id: invoiceId, userId: me?.id } })
 

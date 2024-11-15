@@ -260,7 +260,7 @@ export async function retryPaidAction ({ invoiceId, forceInternal, attempt, prio
     throw new Error('user must be logged in to retry paid actions')
   }
 
-  const failedInvoice = await models.invoice.findUnique({ where: { id: invoiceId, userId: me?.id } })
+  const failedInvoice = await models.invoice.findUnique({ where: { id: invoiceId, userId: me.id } })
 
   if (!failedInvoice) {
     throw new Error('invoice not found')
@@ -275,7 +275,7 @@ export async function retryPaidAction ({ invoiceId, forceInternal, attempt, prio
 
   const paidAction = paidActions[actionType]
   if (!paidAction) {
-    throw new Error(`retryPaidAction - invalid action type ${actionType}`)
+    throw new Error(`invalid action type ${actionType}`)
   }
 
   const { msatsRequested, actionId, actionArgs } = failedInvoice

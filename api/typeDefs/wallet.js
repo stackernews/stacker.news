@@ -122,11 +122,15 @@ const typeDefs = `
     actionError: String
     item: Item
     itemAct: ItemAct
-    invoiceForward: InvoiceForward
+    invoiceForward: InvoiceForwardStatus
   }
 
-  type InvoiceForward {
-    withdrawl: Withdrawl
+  type InvoiceForwardStatus {
+    withdrawl: WithdrawlStatus
+  }
+
+  type WithdrawlStatus {
+    status: String
   }
 
   type Withdrawl {

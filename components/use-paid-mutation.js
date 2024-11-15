@@ -1,7 +1,7 @@
 import { useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import { useCallback, useState } from 'react'
 import { useInvoice, useQrPayment, useWalletPayment } from './payment'
-import { InvoiceCanceledError } from '@/wallets/errors'
+import { InvoiceCanceledError, InvoiceExpiredError } from '@/wallets/errors'
 import { GET_PAID_ACTION, RETRY_PAID_ACTION } from '@/fragments/paidAction'
 import { useWallets, useWallet } from '@/wallets/index'
 import { canSend } from '@/wallets/common'
@@ -106,6 +106,10 @@ export function usePaidMutation (mutation,
         console.log('paid with wallet', senderWallet.def.name)
         return { invoice, response }
       } catch (err) {
+        if (err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError) {
+          // bail early if the invoice was canceled or expired
+          throw err
+        }
         walletErrors.push(err)
         // get action data
         const { data: paidActionData } = await getPaidAction({ variables: { invoiceId: parseInt(invoice.id) } })

@@ -45,7 +45,7 @@ function useLocalWallets () {
     // listen for changes to any wallet config in local storage
     // from any window with the same origin
     const handleStorage = (event) => {
-      if (event.key.startsWith(getStorageKey(''))) {
+      if (event.key?.startsWith(getStorageKey(''))) {
         loadWallets()
       }
     }

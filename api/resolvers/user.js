@@ -910,7 +910,7 @@ export default {
       })
       return item?.id
     },
-    nitems: async (user, { when, from, to }, { me, models }) => {
+    nitems: async (user, { when, from, to }, { models }) => {
       if (typeof user.nitems !== 'undefined') {
         return user.nitems
       }
@@ -923,11 +923,11 @@ export default {
             gte,
             lte
           },
-          ...(me?.id === user.id ? {} : { OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }] })
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },
-    nposts: async (user, { when, from, to }, { me, models }) => {
+    nposts: async (user, { when, from, to }, { models }) => {
       if (typeof user.nposts !== 'undefined') {
         return user.nposts
       }
@@ -941,11 +941,11 @@ export default {
             gte,
             lte
           },
-          ...(me?.id === user.id ? {} : { OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }] })
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },
-    ncomments: async (user, { when, from, to }, { me, models }) => {
+    ncomments: async (user, { when, from, to }, { models }) => {
       if (typeof user.ncomments !== 'undefined') {
         return user.ncomments
       }
@@ -959,7 +959,7 @@ export default {
             gte,
             lte
           },
-          ...(me?.id === user.id ? {} : { OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }] })
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },

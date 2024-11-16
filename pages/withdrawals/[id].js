@@ -16,7 +16,8 @@ import { gql } from 'graphql-tag'
 import { useShowModal } from '@/components/modal'
 import { DeleteConfirm } from '@/components/delete'
 import { getGetServerSideProps } from '@/api/ssrApollo'
-
+import { Badge } from 'react-bootstrap'
+import styles from '@/components/invoice.module.css'
 // force SSR to include CSP nonces
 export const getServerSideProps = getGetServerSideProps({ query: null })
 
@@ -68,7 +69,11 @@ function LoadWithdrawl () {
   let variant = 'default'
   switch (data.withdrawl.status) {
     case 'CONFIRMED':
-      status = `sent ${numWithUnits(data.withdrawl.satsPaid, { abbreviate: false })} with ${numWithUnits(data.withdrawl.satsFeePaid, { abbreviate: false })} in routing fees`
+      if (data.withdrawl.forwardedActionType) {
+        status = <>{`forwarded ${numWithUnits(data.withdrawl.satsPaid, { abbreviate: false })}`} <Badge className={styles.badge} bg={null}>p2p</Badge></>
+      } else {
+        status = `sent ${numWithUnits(data.withdrawl.satsPaid, { abbreviate: false })} with ${numWithUnits(data.withdrawl.satsFeePaid, { abbreviate: false })} in routing fees`
+      }
       variant = 'confirmed'
       break
     case 'INSUFFICIENT_BALANCE':

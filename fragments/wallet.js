@@ -27,6 +27,7 @@ export const INVOICE_FIELDS = gql`
         status
       }
     }
+    forwardedSats
   }`
 
 export const INVOICE_FULL = gql`
@@ -63,6 +64,7 @@ export const WITHDRAWL = gql`
       status
       autoWithdraw
       preimage
+      forwardedActionType
     }
   }`
 

@@ -1,4 +1,4 @@
-import walletDefs from 'wallets/client'
+import walletDefs from '@/wallets/client'
 
 export const Status = {
   Enabled: 'Enabled',

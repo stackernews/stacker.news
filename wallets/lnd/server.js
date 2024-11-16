@@ -3,7 +3,7 @@ import { authenticatedLndGrpc } from '@/lib/lnd'
 import { createInvoice as lndCreateInvoice } from 'ln-service'
 import { TOR_REGEXP } from '@/lib/url'
 
-export * from 'wallets/lnd'
+export * from '@/wallets/lnd'
 
 export const testCreateInvoice = async ({ cert, macaroon, socket }) => {
   return await createInvoice({ msats: 1000, expiry: 1 }, { cert, macaroon, socket })

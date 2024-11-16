@@ -1,7 +1,7 @@
 import { msatsSatsFloor } from '@/lib/format'
 import { lnAddrOptions } from '@/lib/lnurl'
 
-export * from 'wallets/lightning-address'
+export * from '@/wallets/lightning-address'
 
 export const testCreateInvoice = async ({ address }) => {
   return await createInvoice({ msats: 1000 }, { address })

@@ -1,6 +1,6 @@
 import { msatsToSats } from '@/lib/format'
 
-export * from 'wallets/phoenixd'
+export * from '@/wallets/phoenixd'
 
 export async function testCreateInvoice ({ url, secondaryPassword }) {
   return await createInvoice(

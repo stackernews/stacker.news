@@ -1,18 +1,18 @@
 // import server side wallets
-import * as lnd from 'wallets/lnd/server'
-import * as cln from 'wallets/cln/server'
-import * as lnAddr from 'wallets/lightning-address/server'
+import * as lnd from '@wallets/lnd/server'
+import * as cln from '@wallets/cln/server'
+import * as lnAddr from '@wallets/lightning-address/server'
 import * as lnbits from 'wallets/lnbits/server'
-import * as nwc from 'wallets/nwc/server'
-import * as phoenixd from 'wallets/phoenixd/server'
-import * as blink from 'wallets/blink/server'
+import * as nwc from '@wallets/nwc/server'
+import * as phoenixd from '@wallets/phoenixd/server'
+import * as blink from '@wallets/blink/server'
 
 // we import only the metadata of client side wallets
-import * as lnc from 'wallets/lnc'
-import * as webln from 'wallets/webln'
+import * as lnc from '@wallets/lnc'
+import * as webln from '@wallets/webln'
 
 import { walletLogger } from '@/api/resolvers/wallet'
-import walletDefs from 'wallets/server'
+import walletDefs from '@wallets/server'
 import { parsePaymentRequest } from 'ln-service'
 import { toNumber, toPositiveBigInt, toPositiveNumber } from '@/lib/validate'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
@@ -27,19 +27,10 @@ const MAX_PENDING_INVOICES_PER_WALLET = 25
 
 export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360, wrap = false, feePercent, skipWallets = 0 }, { models, me, lnd }) {
   // get the wallets in order of priority
-  const wallets = await models.wallet.findMany({
-    where: { userId, enabled: true },
-    include: {
-      user: true
-    },
-    orderBy: [
-      { priority: 'asc' },
-      // use id as tie breaker (older wallet first)
-      { id: 'asc' }
-    ]
-  })
+  const wallets = await getInvoiceableWallets(userId, { models })
 
   msats = toPositiveBigInt(msats)
+
   let innerMsats = msats
   if (wrap) {
     if (!feePercent) throw new Error('feePercent is required for wrapped invoices')
@@ -47,11 +38,10 @@ export async function createInvoice (userId, { msats, description, descriptionHa
   }
 
   for (let i = toNumber(Math.min(skipWallets, wallets.length), 0, wallets.length); i < wallets.length; i++) {
-    const wallet = wallets[i]
-    const w = walletDefs.find(w => w.walletType === wallet.type)
+    const { def, wallet } = wallets[i]
 
     const config = wallet.wallet
-    if (!canReceive({ def: w, config })) {
+    if (!canReceive({ def, config })) {
       continue
     }
 
@@ -67,8 +57,8 @@ export async function createInvoice (userId, { msats, description, descriptionHa
       let invoice
       try {
         invoice = await walletCreateInvoice(
+          { wallet, def },
           { msats: innerMsats, description, descriptionHash, expiry },
-          { ...w, userId, createInvoice: w.createInvoice },
           { logger, models })
       } catch (err) {
         throw new Error('failed to create invoice: ' + err.message)
@@ -132,38 +122,36 @@ export async function createWrappedInvoice (userId,
   }, { models, me, lnd })
 }
 
+export async function getInvoiceableWallets (userId, { models }) {
+  const wallets = await models.wallet.findMany({
+    where: { userId, enabled: true },
+    include: {
+      user: true
+    },
+    orderBy: [
+      { priority: 'asc' },
+      // use id as tie breaker (older wallet first)
+      { id: 'asc' }
+    ]
+  })
+
+  const walletsWithDefs = wallets.map(wallet => {
+    const w = walletDefs.find(w => w.walletType === wallet.type)
+    return { wallet, def: w }
+  })
+
+  return walletsWithDefs.filter(({ def, wallet }) => canReceive({ def, config: wallet.wallet }))
+}
+
 async function walletCreateInvoice (
+  { wallet, def },
   {
     msats,
     description,
     descriptionHash,
     expiry = 360
   },
-  {
-    userId,
-    walletType,
-    walletField,
-    createInvoice
-  },
   { logger, models }) {
-  msats = toPositiveNumber(msats)
-  const wallet = await models.wallet.findFirst({
-    where: {
-      userId,
-      type: walletType
-    },
-    include: {
-      [walletField]: true,
-      user: true
-    }
-  })
-
-  const config = wallet[walletField]
-
-  if (!wallet || !config) {
-    throw new Error('wallet not found')
-  }
-
   // check for pending withdrawals
   const pendingWithdrawals = await models.withdrawl.count({
     where: {
@@ -190,14 +178,14 @@ async function walletCreateInvoice (
   }
 
   return await withTimeout(
-    createInvoice(
+    def.createInvoice(
       {
         msats,
         description: wallet.user.hideInvoiceDesc ? undefined : description,
         descriptionHash,
         expiry
       },
-      config,
+      wallet.wallet,
       { logger }
     ), 10_000)
 }

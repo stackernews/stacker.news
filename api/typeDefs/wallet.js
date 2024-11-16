@@ -1,7 +1,7 @@
 import { gql } from 'graphql-tag'
 import { fieldToGqlArg, fieldToGqlArgOptional, generateResolverName, generateTypeDefName } from '@/wallets/graphql'
 import { isServerField } from '@/wallets/common'
-import walletDefs from 'wallets/server'
+import walletDefs from '@/wallets/server'
 
 function injectTypeDefs (typeDefs) {
   const injected = [rawTypeDefs(), mutationTypeDefs()]
@@ -74,7 +74,7 @@ const typeDefs = `
   }
 
   extend type Mutation {
-    createInvoice(amount: Int!, expireSecs: Int, hodlInvoice: Boolean): Invoice!
+    createInvoice(amount: Int!): Invoice!
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
     cancelInvoice(hash: String!, hmac: String!): Invoice!
@@ -122,6 +122,7 @@ const typeDefs = `
     actionError: String
     item: Item
     itemAct: ItemAct
+    forwardedSats: Int
     invoiceForward: InvoiceForwardStatus
   }
 
@@ -144,8 +145,8 @@ const typeDefs = `
     satsFeePaid: Int
     status: String
     autoWithdraw: Boolean!
-    p2p: Boolean!
     preimage: String
+    forwardedActionType: String
   }
 
   type Fact {

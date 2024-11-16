@@ -50,10 +50,6 @@
     animation-direction: alternate;
 }
 
-.upvote.collapsed {
-    visibility: hidden;
-}
-
 @keyframes pulse {
 	0% {
 		fill: #a5a5a5;

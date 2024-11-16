@@ -103,7 +103,7 @@ export const nextTip = (meSats, { tipDefault, turboTipping, tipRandom, tipRandom
   return defaultTipIncludingRandom({ tipDefault, tipRandom, tipRandomMin, tipRandomMax })
 }
 
-export default function UpVote ({ item, className, visible }) {
+export default function UpVote ({ item, className, collapsed }) {
   const showModal = useShowModal()
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
@@ -150,8 +150,8 @@ export default function UpVote ({ item, className, visible }) {
 
   const zap = useZap()
 
-  const disabled = useMemo(() => !visible || item?.mine || item?.meForward || item?.deletedAt,
-    [visible, item?.mine, item?.meForward, item?.deletedAt])
+  const disabled = useMemo(() => collapsed || item?.mine || item?.meForward || item?.deletedAt,
+    [collapsed, item?.mine, item?.meForward, item?.deletedAt])
 
   const [meSats, overlayText, color, nextColor] = useMemo(() => {
     const meSats = (me ? item?.meSats : item?.meAnonSats) || 0
@@ -237,31 +237,6 @@ export default function UpVote ({ item, className, visible }) {
       : undefined
   }, [hover, pending, nextColor, color, meSats])
 
-  const upBoltIcon = (
-    <UpBolt
-      onPointerEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onTouchEnd={() => setHover(false)}
-      width={26}
-      height={26}
-      className={classNames(styles.upvote,
-        className,
-        disabled && styles.collapsed,
-        disabled && styles.noSelfTips,
-        meSats && styles.voted,
-        pending && styles.pending)}
-      style={style}
-    />
-  )
-
-  if (disabled) {
-    return (
-      <div>
-        {upBoltIcon}
-      </div>
-    )
-  }
-
   return (
     <div ref={ref} className='upvoteParent'>
       <LongPressable
@@ -270,7 +245,19 @@ export default function UpVote ({ item, className, visible }) {
       >
         <ActionTooltip notForm disable={disabled} overlayText={overlayText}>
           <div className={classNames(disabled && styles.noSelfTips, styles.upvoteWrapper)}>
-            {upBoltIcon}
+            <UpBolt
+              onPointerEnter={() => setHover(true)}
+              onMouseLeave={() => setHover(false)}
+              onTouchEnd={() => setHover(false)}
+              width={26}
+              height={26}
+              className={classNames(styles.upvote,
+                className,
+                disabled && styles.noSelfTips,
+                meSats && styles.voted,
+                pending && styles.pending)}
+              style={style}
+            />
           </div>
         </ActionTooltip>
       </LongPressable>

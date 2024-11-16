@@ -23,9 +23,16 @@ const Media = memo(function Media ({
   src, bestResSrc, srcSet, sizes, width,
   height, onClick, onError, style, className, video
 }) {
+  const [loaded, setLoaded] = useState(false)
+
+  const handleLoadedMedia = () => {
+    setLoaded(true)
+  }
+
   return (
     <div
-      className={classNames(className, styles.mediaContainer)}
+      // will set min-content ONLY after the media is loaded
+      className={classNames(className, styles.mediaContainer, { [styles.loaded]: loaded })}
       style={style}
     >
       {video
@@ -37,6 +44,7 @@ const Media = memo(function Media ({
             width={width}
             height={height}
             onError={onError}
+            onLoadedMetadata={handleLoadedMedia}
           />
         : <img
             src={src}
@@ -46,6 +54,7 @@ const Media = memo(function Media ({
             height={height}
             onClick={onClick}
             onError={onError}
+            onLoad={handleLoadedMedia}
           />}
     </div>
   )
@@ -101,21 +110,28 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
   useEffect(() => {
     // don't load the video at all if user doesn't want these
     if (!showMedia || isVideo || isImage) return
-    // make sure it's not a false negative by trying to load URL as <img>
-    const img = new window.Image()
-    img.onload = () => setIsImage(true)
-    img.src = src
+
+    // check if it's a video by trying to load it
     const video = document.createElement('video')
-    video.onloadeddata = () => setIsVideo(true)
+    video.onloadedmetadata = () => {
+      setIsVideo(true)
+      setIsImage(false)
+    }
+    video.onerror = () => {
+      // hack
+      // if it's not a video it will throw an error, so we can assume it's an image
+      const img = new window.Image()
+      img.onload = () => setIsImage(true)
+      img.src = src
+    }
     video.src = src
 
     return () => {
-      img.onload = null
-      img.src = ''
-      video.onloadeddata = null
+      video.onloadedmetadata = null
+      video.onerror = null
       video.src = ''
     }
-  }, [src, setIsImage, setIsVideo, showMedia, isVideo])
+  }, [src, setIsImage, setIsVideo, showMedia, isImage])
 
   const srcSet = useMemo(() => {
     if (Object.keys(srcSetObj).length === 0) return undefined

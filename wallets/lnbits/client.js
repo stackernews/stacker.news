@@ -1,6 +1,6 @@
 import { assertContentTypeJson } from '@/lib/url'
 
-export * from 'wallets/lnbits'
+export * from '@/wallets/lnbits'
 
 export async function testSendPayment ({ url, adminKey, invoiceKey }, { logger }) {
   logger.info('trying to fetch wallet')

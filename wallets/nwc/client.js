@@ -1,5 +1,5 @@
-import { nwcCall, supportedMethods } from 'wallets/nwc'
-export * from 'wallets/nwc'
+import { nwcCall, supportedMethods } from '@/wallets/nwc'
+export * from '@/wallets/nwc'
 
 export async function testSendPayment ({ nwcUrl }, { logger }) {
   const timeout = 15_000

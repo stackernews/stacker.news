@@ -19,6 +19,8 @@ function paidActionType (actionType) {
       return 'DonatePaidAction'
     case 'POLL_VOTE':
       return 'PollVotePaidAction'
+    case 'RECEIVE':
+      return 'ReceivePaidAction'
     default:
       throw new Error('Unknown action type')
   }

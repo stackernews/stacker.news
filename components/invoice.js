@@ -14,6 +14,8 @@ import Item from './item'
 import { CommentFlat } from './comment'
 import classNames from 'classnames'
 import Moon from '@/svgs/moon-fill.svg'
+import { Badge } from 'react-bootstrap'
+import styles from './invoice.module.css'
 
 export default function Invoice ({
   id, query = INVOICE, modal, onPayment, onCanceled, info, successVerb = 'deposited',
@@ -54,10 +56,27 @@ export default function Invoice ({
 
   let variant = 'default'
   let status = 'waiting for you'
+  let sats = invoice.satsRequested
+  if (invoice.forwardedSats) {
+    if (invoice.actionType === 'RECEIVE') {
+      successVerb = 'forwarded'
+      sats = invoice.forwardedSats
+    } else {
+      successVerb = 'zapped'
+    }
+  }
 
   if (invoice.confirmedAt) {
     variant = 'confirmed'
-    status = `${numWithUnits(invoice.satsReceived, { abbreviate: false })} ${successVerb}`
+    status = (
+      <>
+        {numWithUnits(sats, { abbreviate: false })}
+        {' '}
+        {successVerb}
+        {' '}
+        {invoice.forwardedSats && <Badge className={styles.badge} bg={null}>p2p</Badge>}
+      </>
+    )
     useWallet = false
   } else if (invoice.cancelled) {
     variant = 'failed'

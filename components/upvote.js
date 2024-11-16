@@ -103,7 +103,7 @@ export const nextTip = (meSats, { tipDefault, turboTipping, tipRandom, tipRandom
   return defaultTipIncludingRandom({ tipDefault, tipRandom, tipRandomMin, tipRandomMax })
 }
 
-export default function UpVote ({ item, className }) {
+export default function UpVote ({ item, className, collapsed }) {
   const showModal = useShowModal()
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
@@ -150,8 +150,8 @@ export default function UpVote ({ item, className }) {
 
   const zap = useZap()
 
-  const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
-    [item?.mine, item?.meForward, item?.deletedAt])
+  const disabled = useMemo(() => collapsed || item?.mine || item?.meForward || item?.deletedAt,
+    [collapsed, item?.mine, item?.meForward, item?.deletedAt])
 
   const [meSats, overlayText, color, nextColor] = useMemo(() => {
     const meSats = (me ? item?.meSats : item?.meAnonSats) || 0
@@ -244,9 +244,7 @@ export default function UpVote ({ item, className }) {
         onShortPress={handleShortPress}
       >
         <ActionTooltip notForm disable={disabled} overlayText={overlayText}>
-          <div
-            className={classNames(disabled && styles.noSelfTips, styles.upvoteWrapper)}
-          >
+          <div className={classNames(disabled && styles.noSelfTips, styles.upvoteWrapper)}>
             <UpBolt
               onPointerEnter={() => setHover(true)}
               onMouseLeave={() => setHover(false)}

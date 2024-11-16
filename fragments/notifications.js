@@ -174,6 +174,8 @@ export const NOTIFICATIONS = gql`
             nostr
             comment
             lud18Data
+            actionType
+            forwardedSats
           }
         }
         ... on Invoicification {
@@ -185,8 +187,8 @@ export const NOTIFICATIONS = gql`
           earnedSats
           withdrawl {
             autoWithdraw
-            p2p
             satsFeePaid
+            forwardedActionType
           }
         }
         ... on Reminder {

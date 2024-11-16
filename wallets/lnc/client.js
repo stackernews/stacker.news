@@ -1,7 +1,7 @@
 import { InvoiceCanceledError, InvoiceExpiredError } from '@/wallets/errors'
 import { bolt11Tags } from '@/lib/bolt11'
 import { Mutex } from 'async-mutex'
-export * from 'wallets/lnc'
+export * from '@/wallets/lnc'
 
 async function disconnect (lnc, logger) {
   if (lnc) {

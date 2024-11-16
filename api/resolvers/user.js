@@ -421,8 +421,16 @@ export default {
             confirmedAt: {
               gt: lastChecked
             },
-            isHeld: null,
-            actionType: null
+            OR: [
+              {
+                isHeld: null,
+                actionType: null
+              },
+              {
+                actionType: 'RECEIVE',
+                actionState: 'PAID'
+              }
+            ]
           }
         })
         if (invoice) {
@@ -438,7 +446,23 @@ export default {
             status: 'CONFIRMED',
             updatedAt: {
               gt: lastChecked
-            }
+            },
+            OR: [
+              {
+                invoiceForward: {
+                  none: {}
+                }
+              },
+              {
+                invoiceForward: {
+                  some: {
+                    invoice: {
+                      actionType: 'ZAP'
+                    }
+                  }
+                }
+              }
+            ]
           }
         })
         if (wdrwl) {

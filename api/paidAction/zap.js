@@ -1,6 +1,7 @@
 import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyZapped } from '@/lib/webPush'
+import { getInvoiceableWallets } from '@/wallets/server'
 
 export const anonable = true
 
@@ -18,18 +19,13 @@ export async function getCost ({ sats }) {
 export async function getInvoiceablePeer ({ id }, { models }) {
   const item = await models.item.findUnique({
     where: { id: parseInt(id) },
-    include: {
-      itemForwards: true,
-      user: {
-        include: {
-          wallets: true
-        }
-      }
-    }
+    include: { itemForwards: true }
   })
 
+  const wallets = await getInvoiceableWallets(item.userId, { models })
+
   // request peer invoice if they have an attached wallet and have not forwarded the item
-  return item.user.wallets.length > 0 && item.itemForwards.length === 0 ? item.userId : null
+  return wallets.length > 0 && item.itemForwards.length === 0 ? item.userId : null
 }
 
 export async function getSybilFeePercent () {

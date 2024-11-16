@@ -7,7 +7,7 @@ import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend, is
 import useVault from '@/components/vault/use-vault'
 import { useWalletLogger } from '@/components/wallet-logger'
 import { decode as bolt11Decode } from 'bolt11'
-import walletDefs from 'wallets/client'
+import walletDefs from '@/wallets/client'
 import { generateMutation } from './graphql'
 import { formatSats } from '@/lib/format'
 

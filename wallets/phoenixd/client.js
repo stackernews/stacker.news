@@ -1,4 +1,4 @@
-export * from 'wallets/phoenixd'
+export * from '@/wallets/phoenixd'
 
 export async function testSendPayment (config, { logger }) {
   // TODO:

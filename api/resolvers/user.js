@@ -946,7 +946,8 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },
@@ -963,7 +964,8 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },
@@ -980,7 +982,8 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },

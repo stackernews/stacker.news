@@ -56,8 +56,7 @@ export default async function performPaidAction (actionType, args, incomingConte
     }
     const context = {
       ...contextWithMe,
-      cost: await paidAction.getCost(args, contextWithMe),
-      sybilFeePercent: await paidAction.getSybilFeePercent?.(args, contextWithMe)
+      cost: await paidAction.getCost(args, contextWithMe)
     }
 
     // special case for zero cost actions
@@ -187,19 +186,25 @@ async function beginPessimisticAction (actionType, args, context) {
 async function performP2PAction (actionType, args, incomingContext) {
   // if the action has an invoiceable peer, we'll create a peer invoice
   // wrap it, and return the wrapped invoice
-  const { cost, models, lnd, sybilFeePercent, me } = incomingContext
+  const { cost, models, lnd, me } = incomingContext
+  const sybilFeePercent = await paidActions[actionType].getSybilFeePercent?.(args, incomingContext)
   if (!sybilFeePercent) {
     throw new Error('sybil fee percent is not set for an invoiceable peer action')
   }
 
-  const userId = await paidActions[actionType]?.getInvoiceablePeer?.(args, incomingContext)
+  const contextWithSybilFeePercent = {
+    ...incomingContext,
+    sybilFeePercent
+  }
+
+  const userId = await paidActions[actionType]?.getInvoiceablePeer?.(args, contextWithSybilFeePercent)
   if (!userId) {
     throw new NonInvoiceablePeerError()
   }
 
-  await assertBelowMaxPendingInvoices(incomingContext)
+  await assertBelowMaxPendingInvoices(contextWithSybilFeePercent)
 
-  const description = await paidActions[actionType].describe(args, incomingContext)
+  const description = await paidActions[actionType].describe(args, contextWithSybilFeePercent)
   const { invoice, wrappedInvoice, wallet, maxFee } = await createWrappedInvoice(userId, {
     msats: cost,
     feePercent: sybilFeePercent,
@@ -208,7 +213,7 @@ async function performP2PAction (actionType, args, incomingContext) {
   }, { models, me, lnd })
 
   const context = {
-    ...incomingContext,
+    ...contextWithSybilFeePercent,
     invoiceArgs: {
       bolt11: invoice,
       wrappedBolt11: wrappedInvoice,

@@ -339,7 +339,7 @@ export default function Settings ({ ssrData }) {
               <div className='d-flex align-items-center'>proxy deposits to attached wallets
                 <Info>
                   <ul>
-                    <li>Use this if you want the sats you receive to your Stacker News account to be forwarded directly to your attached wallets</li>
+                    <li>Forward deposits directly to your attached wallets if they will cause your balance to exceed your auto-withdraw threshold</li>
                     <li>Payments will be wrapped by the SN node to preserve your wallet's privacy</li>
                     <li>This will incur in a 10% fee</li>
                   </ul>
@@ -369,6 +369,7 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <DropBolt11sCheckbox
+            groupClassName='mb-0'
             ssrData={ssrData}
             label={
               <div className='d-flex align-items-center'>autodelete withdrawal invoices
@@ -384,6 +385,10 @@ export default function Settings ({ ssrData }) {
             }
             name='autoDropBolt11s'
           />
+          <Checkbox
+            label={<>hide my wallet balance</>}
+            name='hideWalletBalance'
+          />
           <div className='form-label'>privacy</div>
           <Checkbox
             label={<>hide me from  <Link href='/top/stackers/day'>top stackers</Link></>}
@@ -393,11 +398,6 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label={<>hide my cowboy essentials (e.g. cowboy hat)</>}
             name='hideCowboyHat'
-            groupClassName='mb-0'
-          />
-          <Checkbox
-            label={<>hide my wallet balance</>}
-            name='hideWalletBalance'
             groupClassName='mb-0'
           />
           <Checkbox

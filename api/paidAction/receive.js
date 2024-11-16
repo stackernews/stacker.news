@@ -1,7 +1,7 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { toPositiveBigInt } from '@/lib/validate'
 import { notifyDeposit } from '@/lib/webPush'
-import { numWithUnits, msatsToSats } from '@/lib/format'
+import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { getInvoiceableWallets } from '@/wallets/server'
 import { assertBelowBalanceLimit } from './lib/assert'
 
@@ -16,10 +16,17 @@ export async function getCost ({ msats }) {
   return toPositiveBigInt(msats)
 }
 
-export async function getInvoiceablePeer (_, { me, models }) {
+export async function getInvoiceablePeer (_, { me, models, cost }) {
   if (!me?.proxyReceive) return null
   const wallets = await getInvoiceableWallets(me.id, { models })
-  return wallets.length > 0 ? me.id : null
+
+  // if the user has any invoiceable wallets and this action will result in their balance
+  // being greater than their desired threshold
+  if (wallets.length > 0 && (cost + me.msats) > satsToMsats(me.autoWithdrawThreshold)) {
+    return me.id
+  }
+
+  return null
 }
 
 export async function getSybilFeePercent () {
@@ -46,8 +53,9 @@ export async function perform ({
   }
 }
 
-export async function describe ({ description }, { me, cost }) {
-  return description ?? `SN: ${me?.name ?? ''} receives ${numWithUnits(msatsToSats(cost))}`
+export async function describe ({ description }, { me, cost, sybilFeePercent }) {
+  const fee = sybilFeePercent ? cost * BigInt(sybilFeePercent) / 100n : 0n
+  return description ?? `SN: ${me?.name ?? ''} receives ${numWithUnits(msatsToSats(cost - fee))}`
 }
 
 export async function onPaid ({ invoice }, { tx }) {

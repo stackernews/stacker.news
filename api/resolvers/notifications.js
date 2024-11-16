@@ -221,13 +221,11 @@ export default {
               FLOOR("Invoice"."msatsReceived" / 1000) as "earnedSats",
             'InvoicePaid' AS type
             FROM "Invoice"
-            LEFT JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Invoice".id
-            LEFT JOIN "Withdrawl" ON "InvoiceForward"."withdrawlId" = "Withdrawl".id
             WHERE "Invoice"."userId" = $1
             AND "Invoice"."confirmedAt" IS NOT NULL
             AND "Invoice"."created_at" < $2
             AND (
-              ("Invoice"."isHeld" IS NULL AND "Invoice"."actionState" IS NULL)
+              ("Invoice"."isHeld" IS NULL AND "Invoice"."actionType" IS NULL)
               OR (
                 "Invoice"."actionType" = 'RECEIVE'
                 AND "Invoice"."actionState" = 'PAID'
@@ -249,7 +247,7 @@ export default {
             WHERE "Withdrawl"."userId" = $1
             AND "Withdrawl".status = 'CONFIRMED'
             AND "Withdrawl".created_at < $2
-            AND ("Invoice"."actionType" IS NULL OR "Invoice"."actionType" = 'ZAP')
+            AND ("InvoiceForward"."id" IS NULL OR "Invoice"."actionType" = 'ZAP')
             GROUP BY "Withdrawl".id
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`

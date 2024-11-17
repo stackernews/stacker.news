@@ -6,6 +6,7 @@ import Footer from './footer'
 import Seo, { SeoSearch } from './seo'
 import Search from './search'
 import styles from './layout.module.css'
+import PullToRefresh from './pull-to-refresh'
 
 export default function Layout ({
   sub, contain = true, footer = true, footerLinks = true,
@@ -14,16 +15,18 @@ export default function Layout ({
   return (
     <>
       {seo && <Seo sub={sub} item={item} user={user} />}
-      <Navigation sub={sub} />
-      {contain
-        ? (
-          <Container as='main' className={`px-sm-0 ${styles.contain}`}>
-            {children}
-          </Container>
-          )
-        : children}
-      {footer && <Footer links={footerLinks} />}
-      <NavFooter sub={sub} />
+      <PullToRefresh>
+        <Navigation sub={sub} />
+        {contain
+          ? (
+            <Container as='main' className={`px-sm-0 ${styles.contain}`}>
+              {children}
+            </Container>
+            )
+          : children}
+        {footer && <Footer links={footerLinks} />}
+        <NavFooter sub={sub} />
+      </PullToRefresh>
     </>
   )
 }

@@ -15,7 +15,7 @@ export default function Layout ({
   return (
     <>
       {seo && <Seo sub={sub} item={item} user={user} />}
-      <PullToRefresh>
+      <PullToRefresh android> {/* android prop if true disables its native PTR */}
         <Navigation sub={sub} />
         {contain
           ? (

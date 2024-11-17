@@ -1,3 +1,7 @@
+.pullToRefreshContainer {
+    overscroll-behavior: contain;
+}
+
 .pullMessage {
     position: fixed;
     left: 50%;

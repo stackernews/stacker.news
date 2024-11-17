@@ -124,7 +124,9 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
       return <Link id={props.id} target='_blank' rel={rel} href={href}>{children}</Link>
     },
     img: TextMediaOrLink,
-    embed: Embed
+    embed: Embed,
+    details: Details,
+    summary: Summary
   }), [outlawed, rel, TextMediaOrLink, topLevel])
 
   const carousel = useCarousel()
@@ -245,5 +247,21 @@ function P ({ children, node, onlyImages, somethingBefore, somethingAfter, ...pr
     >
       {children}
     </div>
+  )
+}
+
+function Summary ({ children }) {
+  return (
+    <summary className={styles.summary}>
+      {children}
+    </summary>
+  )
+}
+
+function Details ({ children }) {
+  return (
+    <details className={styles.details}>
+      {children}
+    </details>
   )
 }

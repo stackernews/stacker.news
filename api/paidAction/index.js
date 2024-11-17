@@ -53,7 +53,6 @@ export default async function performPaidAction (actionType, args, { ...context 
     context.forceInternal ??= false // use only internal payment methods
     context.prioritizeInternal ??= false // prefer internal payment methods
     context.description = context.me?.hideInvoiceDesc ? undefined : await paidAction.describe?.(args, context)
-    context.descriptionHash = await paidAction.describeHash?.(args, context)
     context.supportedPaymentMethods = paidAction.paymentMethods ?? await paidAction.getPaymentMethods?.(args, context) ?? []
 
     const {
@@ -217,7 +216,7 @@ async function beginPessimisticAction (actionType, args, { ...context }) {
 }
 
 async function performP2PAction (actionType, args, { ...context }) {
-  const { cost, models, lnd, sybilFeePercent, me, supportedPaymentMethods, description, descriptionHash, attempt } = context
+  const { cost, models, lnd, sybilFeePercent, me, supportedPaymentMethods, description, attempt } = context
   if (!sybilFeePercent) {
     throw new Error('sybil fee percent is not set for an invoiceable peer action')
   }
@@ -236,7 +235,6 @@ async function performP2PAction (actionType, args, { ...context }) {
     msats: cost,
     feePercent: sybilFeePercent,
     description,
-    descriptionHash,
     expiry: INVOICE_EXPIRE_SECS,
     walletOffset: attempt
   }, { models, me, lnd })
@@ -321,7 +319,7 @@ export class NonInvoiceablePeerError extends Error {
 // we seperate the invoice creation into two functions because
 // because if lnd is slow, it'll timeout the interactive tx
 async function createSNInvoice (context) {
-  const { lnd, cost, optimistic, description, descriptionHash } = context
+  const { lnd, cost, optimistic, description } = context
 
   const createLNDInvoice = optimistic ? createInvoice : createHodlInvoice
 
@@ -335,7 +333,6 @@ async function createSNInvoice (context) {
   const expiresAt = datePivot(new Date(), { seconds: INVOICE_EXPIRE_SECS })
   const invoice = await createLNDInvoice({
     description,
-    descriptionHash,
     lnd,
     mtokens: String(cost),
     expires_at: expiresAt

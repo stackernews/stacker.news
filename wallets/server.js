@@ -1,18 +1,18 @@
 // import server side wallets
-import * as lnd from '@wallets/lnd/server'
-import * as cln from '@wallets/cln/server'
-import * as lnAddr from '@wallets/lightning-address/server'
-import * as lnbits from 'wallets/lnbits/server'
-import * as nwc from '@wallets/nwc/server'
-import * as phoenixd from '@wallets/phoenixd/server'
-import * as blink from '@wallets/blink/server'
+import * as lnd from '@/wallets/lnd/server'
+import * as cln from '@/wallets/cln/server'
+import * as lnAddr from '@/wallets/lightning-address/server'
+import * as lnbits from '@/wallets/lnbits/server'
+import * as nwc from '@/wallets/nwc/server'
+import * as phoenixd from '@/wallets/phoenixd/server'
+import * as blink from '@/wallets/blink/server'
 
 // we import only the metadata of client side wallets
-import * as lnc from '@wallets/lnc'
-import * as webln from '@wallets/webln'
+import * as lnc from '@/wallets/lnc'
+import * as webln from '@/wallets/webln'
 
 import { walletLogger } from '@/api/resolvers/wallet'
-import walletDefs from '@wallets/server'
+import walletDefs from '@/wallets/server'
 import { parsePaymentRequest } from 'ln-service'
 import { toNumber, toPositiveBigInt } from '@/lib/validate'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
@@ -25,7 +25,7 @@ export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 
-export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360, wrap = false, feePercent, skipWallets = 0 }, { models, me, lnd }) {
+export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360, wrap = false, feePercent, walletOffset = 0 }, { models, me, lnd }) {
   // get the wallets in order of priority
   const wallets = await getInvoiceableWallets(userId, { models })
 
@@ -37,7 +37,8 @@ export async function createInvoice (userId, { msats, description, descriptionHa
     innerMsats = msats * (100n - feePercent) / 100n
   }
 
-  for (let i = toNumber(Math.min(skipWallets, wallets.length), 0, wallets.length); i < wallets.length; i++) {
+  const offset = toNumber(Math.min(walletOffset, wallets.length), 0, wallets.length)
+  for (let i = offset; i < wallets.length; i++) {
     const { def, wallet } = wallets[i]
 
     const config = wallet.wallet
@@ -108,7 +109,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 }
 
 export async function createWrappedInvoice (userId,
-  { msats, feePercent, description, descriptionHash, expiry = 360, skipWallets = 0 },
+  { msats, feePercent, description, descriptionHash, expiry = 360, walletOffset = 0 },
   { models, me, lnd }) {
   return await createInvoice(userId, {
     // this is the amount the stacker will receive, the other (feePercent)% is our fee
@@ -118,7 +119,7 @@ export async function createWrappedInvoice (userId,
     description,
     descriptionHash,
     expiry,
-    skipWallets
+    walletOffset
   }, { models, me, lnd })
 }
 

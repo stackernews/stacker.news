@@ -21,10 +21,8 @@ export default function Qr ({ asIs, value, useWallet: automated, statusVariant, 
 
   useEffect(() => {
     async function effect () {
-      const usableWallets = wallets.filter(w => !w.def.isAvailable || w.def.isAvailable())
-        .filter(w => w.config?.enabled && canSend(w))[0]
-      if (automated && usableWallets.length > 0) {
-        for (const wallet of usableWallets) {
+      if (automated && wallets.length > 0) {
+        for (const wallet of wallets) {
           try {
             await wallet.sendPayment(value)
             break

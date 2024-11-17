@@ -49,9 +49,9 @@ export default async function performPaidAction (actionType, args, { ...context 
     context.me = context.me ? await models.user.findUnique({ where: { id: context.me.id } }) : undefined
     context.cost = await paidAction.getCost(args, context)
     context.sybilFeePercent = await paidAction.getSybilFeePercent?.(args, context)
-    context.attempt = context.attempt ?? 0 // how many times the client thinks it has tried
-    context.forceInternal = context.forceInternal ?? false // use only internal payment methods
-    context.prioritizeInternal = context.prioritizeInternal ?? false // prefer internal payment methods
+    context.attempt ??= 0 // how many times the client thinks it has tried
+    context.forceInternal ??= false // use only internal payment methods
+    context.prioritizeInternal ??= false // prefer internal payment methods
     context.description = context.me?.hideInvoiceDesc ? undefined : await paidAction.describe?.(args, context)
     context.descriptionHash = await paidAction.describeHash?.(args, context)
     context.supportedPaymentMethods = paidAction.paymentMethods ?? await paidAction.getPaymentMethods?.(args, context) ?? []
@@ -108,7 +108,7 @@ export default async function performPaidAction (actionType, args, { ...context 
 
       if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.P2P) {
         try {
-          return await performP2PAction(actionType, args, context, paymentMethod)
+          return await performP2PAction(actionType, args, context)
         } catch (e) {
           // p2p can fail for various reasons, if it does, we should try another payment method
           console.error('paid action failed with P2P payment method, try another one', e)
@@ -238,7 +238,7 @@ async function performP2PAction (actionType, args, { ...context }) {
     description,
     descriptionHash,
     expiry: INVOICE_EXPIRE_SECS,
-    skipWallets: attempt
+    walletOffset: attempt
   }, { models, me, lnd })
 
   context.invoiceArgs = {
@@ -291,6 +291,7 @@ export async function retryPaidAction ({ invoiceId, forceInternal, attempt, prio
   context.prioritizeInternal = prioritizeInternal
 
   return await models.$transaction(async tx => {
+    context.tx = tx
     const supportRetrying = paidAction.retry
     if (supportRetrying) {
       // update the old invoice to RETRYING, so that it's not confused with FAILED

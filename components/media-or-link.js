@@ -1,5 +1,5 @@
 import styles from './text.module.css'
-import { useState, useEffect, useMemo, useCallback, memo } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
 import { useMe } from './me'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
@@ -23,20 +23,31 @@ const Media = memo(function Media ({
   src, bestResSrc, srcSet, sizes, width,
   height, onClick, onError, style, className, video
 }) {
-  const [loaded, setLoaded] = useState(false)
+  const [loaded, setLoaded] = useState(!video)
+  const ref = useRef(null)
 
   const handleLoadedMedia = () => {
     setLoaded(true)
   }
 
+  // events are not fired on elements during hydration
+  // https://github.com/facebook/react/issues/15446
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.src = src
+    }
+  }, [ref.current, src])
+
   return (
     <div
       // will set min-content ONLY after the media is loaded
+      // due to safari video bug
       className={classNames(className, styles.mediaContainer, { [styles.loaded]: loaded })}
       style={style}
     >
       {video
         ? <video
+            ref={ref}
             src={src}
             preload={bestResSrc !== src ? 'metadata' : undefined}
             controls
@@ -47,6 +58,7 @@ const Media = memo(function Media ({
             onLoadedMetadata={handleLoadedMedia}
           />
         : <img
+            ref={ref}
             src={src}
             srcSet={srcSet}
             sizes={sizes}

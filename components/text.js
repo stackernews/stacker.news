@@ -1,8 +1,7 @@
 import styles from './text.module.css'
 import ReactMarkdown from 'react-markdown'
 import gfm from 'remark-gfm'
-import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
-import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
+import CodeBlock from './codeblock'
 import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
 import MediaOrLink from './media-or-link'
 import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
@@ -224,17 +223,15 @@ function Table ({ node, ...props }) {
 }
 
 function Code ({ node, inline, className, children, style, ...props }) {
+  const lang = className?.replace('language-', '') || 'text'
+
   return inline
     ? (
       <code className={className} {...props}>
         {children}
       </code>
       )
-    : (
-      <SyntaxHighlighter style={atomDark} language='text' PreTag='div' {...props}>
-        {children}
-      </SyntaxHighlighter>
-      )
+    : <CodeBlock code={children} language={lang} />
 }
 
 function P ({ children, node, onlyImages, somethingBefore, somethingAfter, ...props }) {

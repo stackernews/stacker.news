@@ -91,6 +91,7 @@
     "remove-markdown": "^0.5.5",
     "sass": "^1.79.5",
     "serviceworker-storage": "^0.1.0",
+    "shiki": "^1.23.1",
     "source-map": "^0.8.0-beta.0",
     "textarea-caret": "^3.1.0",
     "tldts": "^6.1.51",

@@ -103,7 +103,7 @@ function PollResult ({ v, progress }) {
   )
 }
 
-export function usePollVote ({ query = POLL_VOTE, itemId, ...options }) {
+export function usePollVote ({ query = POLL_VOTE, itemId }) {
   const update = (cache, { data }) => {
     // the mutation name varies for optimistic retries
     const response = Object.values(data)[0]
@@ -185,6 +185,6 @@ export function usePollVote ({ query = POLL_VOTE, itemId, ...options }) {
     })
   }
 
-  const [pollVote] = usePaidMutation(query, { update, onPayError, onPaid, ...options })
+  const [pollVote] = usePaidMutation(query, { update, onPayError, onPaid })
   return pollVote
 }

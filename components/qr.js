@@ -2,7 +2,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { CopyInput, InputSkeleton } from './form'
 import InvoiceStatus from './invoice-status'
 import { useEffect } from 'react'
-import { useWallets } from '@/wallets/index'
+import { useEnabledWallets } from '@/wallets/index'
 import Bolt11Info from './bolt11-info'
 
 export const qrImageSettings = {
@@ -16,12 +16,12 @@ export const qrImageSettings = {
 
 export default function Qr ({ asIs, value, useWallet: automated, statusVariant, description, status }) {
   const qrValue = asIs ? value : 'lightning:' + value.toUpperCase()
-  const { wallets } = useWallets()
+  const senderWallets = useEnabledWallets()
 
   useEffect(() => {
     async function effect () {
-      if (automated && wallets.length > 0) {
-        for (const wallet of wallets) {
+      if (automated && senderWallets.length > 0) {
+        for (const wallet of senderWallets) {
           try {
             await wallet.sendPayment(value)
             break
@@ -32,7 +32,7 @@ export default function Qr ({ asIs, value, useWallet: automated, statusVariant, 
       }
     }
     effect()
-  }, [wallets])
+  }, [senderWallets])
 
   return (
     <>

@@ -215,6 +215,17 @@ export function useWallets () {
   return useContext(WalletsContext)
 }
 
+export function useEnabledWallets () {
+  const { wallets } = useContext(WalletsContext)
+  // walletDefs shouldn't change on rerender, so it should be safe
+  return wallets
+    .map(w => useWallet(w.def.name))
+    .filter(w => !w.def.isAvailable || w.def.isAvailable())
+    .filter(w => w.config?.enabled && canSend(w)).map(w => {
+      return { ...w, failed: false }
+    })
+}
+
 export function useWallet (name) {
   const { wallets } = useWallets()
 

@@ -3,8 +3,8 @@ import { useCallback, useState } from 'react'
 import { useInvoice, useQrPayment, useWalletPayment } from './payment'
 import { InvoiceCanceledError, InvoiceExpiredError } from '@/wallets/errors'
 import { GET_PAID_ACTION, RETRY_PAID_ACTION } from '@/fragments/paidAction'
-import { useWallets, useWallet } from '@/wallets/index'
-import { canSend } from '@/wallets/common'
+import { useEnabledWallets } from '@/wallets/index'
+
 import { useMe } from './me'
 /*
 this is just like useMutation with a few changes:
@@ -32,7 +32,7 @@ export function usePaidMutation (mutation,
   const client = useApolloClient()
   // innerResult is used to store/control the result of the mutation when innerMutate runs
   const [innerResult, setInnerResult] = useState(result)
-  const { wallets: walletDefs } = useWallets()
+  const senderWallets = useEnabledWallets()
   const { me } = useMe()
 
   const addPayError = (e, rest) => ({
@@ -40,14 +40,6 @@ export function usePaidMutation (mutation,
     payError: e,
     error: e instanceof InvoiceCanceledError && e.actionError ? e : undefined
   })
-
-  // walletDefs shouldn't change on rerender, so it should be safe
-  const senderWallets = walletDefs
-    .map(w => useWallet(w.def.name))
-    .filter(w => !w.def.isAvailable || w.def.isAvailable())
-    .filter(w => w.config?.enabled && canSend(w)).map(w => {
-      return { ...w, failed: false }
-    })
 
   const waitForActionPayment = useCallback(async (invoice, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor }, originalResponse, action) => {
     const walletErrors = []
@@ -78,10 +70,6 @@ export function usePaidMutation (mutation,
     // if anon we go straight to qr code
     if (!me) {
       await refreshInvoice()
-      if (!invoice) {
-        setInnerResult(r => addPayError(new Error('You must be logged in'), r))
-        throw new Error('You must be logged in')
-      }
       await waitForQrPayment(invoice, null, { persistOnNavigate, waitFor })
       return { invoice, response }
     }

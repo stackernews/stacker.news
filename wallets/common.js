@@ -2,7 +2,9 @@ import walletDefs from '@/wallets/client'
 
 export const Status = {
   Enabled: 'Enabled',
-  Disabled: 'Disabled'
+  Disabled: 'Disabled',
+  Error: 'Error',
+  Warning: 'Warning'
 }
 
 export function getWalletByName (name) {
@@ -89,12 +91,24 @@ function isReceiveConfigured ({ def, config }) {
   return fields.length > 0 && checkFields({ fields, config })
 }
 
+export function supportsSend ({ def, config }) {
+  return !!def.sendPayment
+}
+
+export function supportsReceive ({ def, config }) {
+  return def.fields.some(f => f.serverOnly)
+}
+
 export function canSend ({ def, config }) {
-  return !!def.sendPayment && isSendConfigured({ def, config })
+  return (
+    supportsSend({ def, config }) &&
+    isSendConfigured({ def, config }) &&
+    (def.requiresConfig || config?.enabled)
+  )
 }
 
 export function canReceive ({ def, config }) {
-  return def.fields.some(f => f.serverOnly) && isReceiveConfigured({ def, config })
+  return supportsReceive({ def, config }) && isReceiveConfigured({ def, config })
 }
 
 export function siftConfig (fields, config) {
@@ -160,4 +174,32 @@ export async function upsertWalletVariables ({ def, config }, encrypt, append = 
 export async function saveWalletLocally (name, config, userId) {
   const storageKey = getStorageKey(name, userId)
   window.localStorage.setItem(storageKey, JSON.stringify(config))
+}
+
+export const statusFromLog = (wallet, logs) => {
+  if (wallet.status.any === Status.Disabled) return wallet
+
+  // override status depending on if there have been warnings or errors in the logs recently
+  // find first log from which we can derive status (logs are sorted by recent first)
+  const walletLogs = logs.filter(l => l.wallet === wallet.def.name)
+  const sendLevel = walletLogs.find(l => l.context?.status && l.context?.send)?.level
+  const recvLevel = walletLogs.find(l => l.context?.status && l.context?.recv)?.level
+
+  const levelToStatus = (level) => {
+    switch (level?.toLowerCase()) {
+      case 'ok':
+      case 'success': return Status.Enabled
+      case 'error': return Status.Error
+      case 'warn': return Status.Warning
+    }
+  }
+
+  return {
+    ...wallet,
+    status: {
+      ...wallet.status,
+      send: levelToStatus(sendLevel) || wallet.status.send,
+      recv: levelToStatus(recvLevel) || wallet.status.recv
+    }
+  }
 }

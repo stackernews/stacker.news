@@ -152,9 +152,9 @@ The card title.
 
 The subtitle that is shown below the title if you enter the configuration form of a wallet.
 
-- `badges: string[]`
+- `image: { src: string, ... }`
 
-The badges that are shown inside the card.
+The image props that will be used to show an image inside the card. Should contain at least the `src` property.
 
 ### client.js
 

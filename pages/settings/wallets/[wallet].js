@@ -67,10 +67,16 @@ export default function WalletSettings () {
     }
   }, [wallet.def])
 
+  const { card: { image, title, subtitle } } = wallet?.def || { card: {} }
+
   return (
     <CenterLayout>
-      <h2 className='pb-2'>{wallet?.def.card.title}</h2>
-      <h6 className='text-muted text-center pb-3'><Text>{wallet?.def.card.subtitle}</Text></h6>
+      {image
+        ? typeof image === 'object'
+          ? <img {...image} alt={title} className='pb-2' />
+          : <img src={image} width='33%' alt={title} className='pb-2' />
+        : <h2 className='pb-2'>{title}</h2>}
+      <h6 className='text-muted text-center pb-3'><Text>{subtitle}</Text></h6>
       <Form
         initial={initial}
         enableReinitialize
@@ -128,7 +134,7 @@ export default function WalletSettings () {
 
 function SendWarningBanner ({ walletDef }) {
   const { values } = useFormikContext()
-  if (!canSend({ def: walletDef, config: values })) return null
+  if (!canSend({ def: walletDef, config: values }) || !walletDef.requiresConfig) return null
 
   return <WalletSecurityBanner />
 }

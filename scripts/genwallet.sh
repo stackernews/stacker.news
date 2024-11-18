@@ -58,7 +58,6 @@ $(todo)
 export const card = {
     title: '$wallet',
     subtitle: '',
-    badges: []
 }
 
 $(todo)

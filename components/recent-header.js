@@ -19,7 +19,7 @@ function ActiveBountiesCheckbox ({ router, prefix }) {
   }
 
   return (
-    <div className='mx-2 my-1'>
+    <div className='mx-2 mb-2'>
       <BootstrapForm.Check
         inline
         label='active only'

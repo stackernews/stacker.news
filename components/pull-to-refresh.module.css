@@ -1,13 +1,9 @@
-.pullToRefreshContainer {
-    overscroll-behavior: contain;
-}
-
 .pullMessage {
     position: fixed;
     left: 50%;
     top: -50px;
     transform: translateX(-50%);
-    font-size: 18px;
+    font-size: small;
     color: #a5a5a5;
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
@@ -17,9 +13,4 @@
 .fadeIn {
     opacity: 1;
     top: 0;
-}
-
-.spacer {
-    position: relative;
-    margin-bottom: 32px;
 }

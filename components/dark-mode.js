@@ -48,6 +48,15 @@ const listenForThemeChange = (onChange) => {
       onChange({ user: true, dark })
     }
   }
+
+  const root = window.document.documentElement
+  const observer = new window.MutationObserver(() => {
+    const theme = root.getAttribute('data-bs-theme')
+    onChange(dark => ({ ...dark, dark: theme === 'dark' }))
+  })
+  observer.observe(root, { attributes: true, attributeFilter: ['data-bs-theme'] })
+
+  return () => observer.disconnect()
 }
 
 export default function useDarkMode () {

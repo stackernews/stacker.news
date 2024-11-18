@@ -78,6 +78,6 @@ export async function onFail ({ invoice }, { tx }) {
   await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
 }
 
-export async function describe ({ itemId, sats }, { cost, actionId }) {
+export async function describe ({ id: itemId, sats }, { cost, actionId }) {
   return `SN: downzap of ${sats ?? msatsToSats(cost)} sats to #${itemId ?? actionId}`
 }

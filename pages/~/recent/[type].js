@@ -11,11 +11,17 @@ import PageLoading from '@/components/page-loading'
 const staticVariables = { sort: 'recent' }
 
 function variablesFunc (vars) {
+  let type = vars?.type || ''
+
+  if (type === 'bounties' && vars?.active) {
+    type = 'bounties_active'
+  }
+
   return ({
     includeComments: COMMENT_TYPE_QUERY.includes(vars.type),
     ...staticVariables,
     ...vars,
-    type: vars?.type === 'bounties' && vars?.active ? 'bounties_active' : (vars?.type || '')
+    type
   })
 }
 

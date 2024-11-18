@@ -13,9 +13,12 @@ function mapTypeToSelectOption (type) {
 
 function ActiveBountiesCheckbox ({ router, prefix }) {
   const onChange = (e) => {
-    const route = e.target.checked ? 'bounties_active' : 'bounties'
+    const url = new URL(prefix + '/recent/bounties', window.location.origin)
+    if (e.target.checked) {
+      url.searchParams.set('active', true)
+    }
 
-    router.push(prefix + `/recent/${route}`)
+    router.push(url)
   }
 
   return (

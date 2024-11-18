@@ -9,60 +9,64 @@ import styles from './upvote.module.css'
 import { BoostHelp } from './adv-post-form'
 import { BOOST_MULT } from '@/lib/constants'
 import classNames from 'classnames'
+import LongPressable from './long-pressable'
+import ActionTooltip from './action-tooltip'
 
 export default function Boost ({ item, className, ...props }) {
   const { boost } = item
   const [hover, setHover] = useState(false)
+  const toaster = useToast()
+  const showModal = useShowModal()
 
-  const [color, nextColor] = useMemo(() => [getColor(boost), getColor(boost + BOOST_MULT)], [boost])
+  const [color, nextColor] = useMemo(
+    () => [getColor(boost), getColor(boost + BOOST_MULT)],
+    [boost]
+  )
 
-  const style = useMemo(() => (hover || boost
-    ? {
-        fill: hover ? nextColor : color,
-        filter: `drop-shadow(0 0 6px ${hover ? nextColor : color}90)`
-      }
-    : undefined), [boost, hover])
+  const style = useMemo(() => {
+    const fillColor = hover ? nextColor : color
+    return boost || hover
+      ? {
+          fill: fillColor,
+          filter: `drop-shadow(0 0 6px ${fillColor}90)`
+        }
+      : undefined
+  }, [hover, color, nextColor, boost])
+
+  const handleClick = async () => {
+    try {
+      showModal((onClose) => (
+        <ItemAct onClose={onClose} item={item} act='BOOST' step={BOOST_MULT}>
+          <AccordianItem header='what is boost?' body={<BoostHelp />} />
+        </ItemAct>
+      ))
+    } catch (error) {
+      toaster.danger('failed to boost item')
+    }
+  }
 
   return (
-    <Booster
-      item={item} As={({ ...oprops }) =>
-        <div className='upvoteParent'>
-          <div
-            className={styles.upvoteWrapper}
-          >
+    <div className='upvoteParent'>
+      <LongPressable onShortPress={handleClick}>
+        <ActionTooltip disable notForm>
+          <div className={styles.upvoteWrapper}>
             <BoostIcon
-              {...props} {...oprops} style={style}
+              {...props}
+              style={style}
               width={26}
               height={26}
               onPointerEnter={() => setHover(true)}
               onMouseLeave={() => setHover(false)}
               onTouchEnd={() => setHover(false)}
-              className={classNames(styles.boost, className, boost && styles.voted)}
+              className={classNames(
+                styles.boost,
+                className,
+                boost && styles.voted
+              )}
             />
           </div>
-        </div>}
-    />
-  )
-}
-
-function Booster ({ item, As, children }) {
-  const toaster = useToast()
-  const showModal = useShowModal()
-
-  return (
-    <As
-      onClick={async () => {
-        try {
-          showModal(onClose =>
-            <ItemAct onClose={onClose} item={item} act='BOOST' step={BOOST_MULT}>
-              <AccordianItem header='what is boost?' body={<BoostHelp />} />
-            </ItemAct>)
-        } catch (error) {
-          toaster.danger('failed to boost item')
-        }
-      }}
-    >
-      {children}
-    </As>
+        </ActionTooltip>
+      </LongPressable>
+    </div>
   )
 }

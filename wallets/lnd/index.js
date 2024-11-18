@@ -50,5 +50,5 @@ export const fields = [
 export const card = {
   title: 'LND',
   subtitle: 'autowithdraw to your Lightning Labs node',
-  image: '/wallets/lnd.png'
+  image: { src: '/wallets/lnd.png' }
 }

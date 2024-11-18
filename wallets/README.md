@@ -152,9 +152,9 @@ The card title.
 
 The subtitle that is shown below the title if you enter the configuration form of a wallet.
 
-- `image: string | object`
+- `image: { src: string, ... }`
 
-The link to the image that should be shown inside the card. If it's an object, it will be used as the image props.
+The image props that will be used to show an image inside the card. Should contain at least the `src` property.
 
 ### client.js
 

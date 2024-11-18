@@ -55,5 +55,5 @@ export const fields = [
 export const card = {
   title: 'LNbits',
   subtitle: 'use [LNbits](https://lnbits.com/) for payments',
-  image: '/wallets/lnbits.svg'
+  image: { src: '/wallets/lnbits.svg' }
 }

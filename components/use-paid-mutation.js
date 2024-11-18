@@ -32,8 +32,11 @@ export function usePaidMutation (mutation,
   const client = useApolloClient()
   // innerResult is used to store/control the result of the mutation when innerMutate runs
   const [innerResult, setInnerResult] = useState(result)
-  const senderWallets = useEnabledWallets()
   const { me } = useMe()
+
+  const senderWallets = useEnabledWallets().map(w => {
+    return { ...w, failed: false }
+  })
 
   const addPayError = (e, rest) => ({
     ...rest,

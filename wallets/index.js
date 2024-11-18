@@ -221,9 +221,7 @@ export function useEnabledWallets () {
   return wallets
     .map(w => useWallet(w.def.name))
     .filter(w => !w.def.isAvailable || w.def.isAvailable())
-    .filter(w => w.config?.enabled && canSend(w)).map(w => {
-      return { ...w, failed: false }
-    })
+    .filter(w => w.config?.enabled && canSend(w))
 }
 
 export function useWallet (name) {

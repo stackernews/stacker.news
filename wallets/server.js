@@ -14,7 +14,7 @@ import * as webln from '@/wallets/webln'
 import { walletLogger } from '@/api/resolvers/wallet'
 import walletDefs from '@/wallets/server'
 import { parsePaymentRequest } from 'ln-service'
-import { toNumber, toPositiveBigInt } from '@/lib/validate'
+import { toNumber, toPositiveBigInt, toPositiveNumber } from '@/lib/validate'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { withTimeout } from '@/lib/time'
 import { canReceive } from './common'
@@ -181,7 +181,7 @@ async function walletCreateInvoice (
   return await withTimeout(
     def.createInvoice(
       {
-        msats,
+        msats: toPositiveNumber(msats), // TODO: should probably make the wallet interface work with bigints
         description: wallet.user.hideInvoiceDesc ? undefined : description,
         descriptionHash,
         expiry

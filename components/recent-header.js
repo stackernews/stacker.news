@@ -3,14 +3,6 @@ import BootstrapForm from 'react-bootstrap/Form'
 import { Select } from './form'
 import { useRouter } from 'next/router'
 
-function mapTypeToSelectOption (type) {
-  switch (type) {
-    case 'bounties_active': return 'bounties'
-  }
-
-  return type
-}
-
 function ActiveBountiesCheckbox ({ router, prefix }) {
   const onChange = (e) => {
     const url = new URL(prefix + '/recent/bounties', window.location.origin)
@@ -43,7 +35,6 @@ export default function RecentHeader ({ type, sub }) {
     : ITEM_TYPES
 
   type ||= router.query.type || type || 'posts'
-  type = mapTypeToSelectOption(type)
 
   return (
     <div className='flex-wrap'>

@@ -1,16 +1,13 @@
 .pullMessage {
-    position: fixed;
+    position: absolute;
     left: 50%;
-    top: -50px;
+    top: -20px;
+    height: 15px;
     transform: translateX(-50%);
     font-size: small;
     color: #a5a5a5;
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
     text-align: center;
-}
-
-.fadeIn {
-    opacity: 1;
-    top: 0;
+    opacity: 0.75;
 }

@@ -1,8 +1,8 @@
 import { useRouter } from 'next/router'
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import styles from './pull-to-refresh.module.css'
 
-const REFRESH_THRESHOLD = 300
+const REFRESH_THRESHOLD = 50
 
 export default function PullToRefresh ({ children, android }) {
   const router = useRouter()
@@ -28,41 +28,44 @@ export default function PullToRefresh ({ children, android }) {
   }, [isPWA, isAndroid, android])
 
   const handleTouchMove = useCallback((e) => {
-    if (touchStartY.current === 0) return // prevent unintended refresh by checking if the user has actually started touching
+    if (touchStartY.current === 0) return
+    if (!isPWA || (isAndroid && !android)) return
     touchEndY.current = e.touches[0].clientY
-    setPullDistance(touchEndY.current - touchStartY.current)
-  }, [])
+    const distance = touchEndY.current - touchStartY.current
+    setPullDistance(distance)
+    document.body.style.marginTop = `${Math.max(0, Math.min(distance / 2, 25))}px`
+  }, [isPWA, isAndroid, android])
 
   const handleTouchEnd = useCallback(() => {
-    if (touchStartY.current === 0 || touchEndY.current === 0) return // if the user has started touch or is actually 'pulling'
+    if (touchStartY.current === 0 || touchEndY.current === 0) return
     if (touchEndY.current - touchStartY.current > REFRESH_THRESHOLD) {
-      router.push(router.asPath) // reload the same path
+      router.push(router.asPath)
     }
-    setPullDistance(0) // using this to reset the message behavior
-    touchStartY.current = 0 // avoid random refreshes by resetting touch
+    setPullDistance(0)
+    document.body.style.marginTop = '0px'
+    touchStartY.current = 0
     touchEndY.current = 0
   }, [router])
 
   useEffect(() => {
-    // don't handle if the user is not on a PWA or if we want Android's native PTR
     if (!isPWA || (isAndroid && !android)) return
-    document.body.style.overscrollBehaviorY = 'contain' // disable Android's native PTR
+    document.body.style.overscrollBehaviorY = 'contain'
     document.addEventListener('touchstart', handleTouchStart)
     document.addEventListener('touchmove', handleTouchMove)
     document.addEventListener('touchend', handleTouchEnd)
     return () => {
-      document.body.style.overscrollBehaviorY = '' // if unmounted reset the overscroll behavior
+      document.body.style.overscrollBehaviorY = ''
+      document.body.style.marginTop = '0px'
       document.removeEventListener('touchstart', handleTouchStart)
       document.removeEventListener('touchmove', handleTouchMove)
       document.removeEventListener('touchend', handleTouchEnd)
     }
   }, [isPWA, isAndroid, android, handleTouchStart, handleTouchMove, handleTouchEnd])
 
-  const getPullMessage = () => {
+  const pullMessage = useMemo(() => {
     if (pullDistance > REFRESH_THRESHOLD) return 'release to refresh'
-    if (pullDistance > 0) return 'pull down to refresh'
-    return ''
-  }
+    return 'pull down to refresh'
+  }, [pullDistance])
 
   return (
     <div>
@@ -71,8 +74,8 @@ export default function PullToRefresh ({ children, android }) {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <p className={`${styles.pullMessage} ${pullDistance > 50 && styles.fadeIn}`}>
-          {getPullMessage()}
+        <p className={`${styles.pullMessage}`} style={{ top: `${Math.max(-20, Math.min(-20 + pullDistance / 2, 5))}px` }}>
+          {pullMessage}
         </p>
         {children}
       </div>

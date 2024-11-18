@@ -4,7 +4,7 @@ import styles from './pull-to-refresh.module.css'
 
 const REFRESH_THRESHOLD = 50
 
-export default function PullToRefresh ({ children, android }) {
+export default function PullToRefresh ({ children, android, className }) {
   const router = useRouter()
   const [pullDistance, setPullDistance] = useState(0)
   const [isPWA, setIsPWA] = useState(false)
@@ -68,17 +68,16 @@ export default function PullToRefresh ({ children, android }) {
   }, [pullDistance])
 
   return (
-    <div>
-      <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <p className={`${styles.pullMessage}`} style={{ top: `${Math.max(-20, Math.min(-20 + pullDistance / 2, 5))}px` }}>
-          {pullMessage}
-        </p>
-        {children}
-      </div>
-    </div>
+    <main
+      className={className}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <p className={`${styles.pullMessage}`} style={{ top: `${Math.max(-20, Math.min(-20 + pullDistance / 2, 5))}px` }}>
+        {pullMessage}
+      </p>
+      {children}
+    </main>
   )
 }

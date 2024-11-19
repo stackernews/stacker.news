@@ -56,7 +56,8 @@ export default async function performPaidAction (actionType, args, incomingConte
     }
     const context = {
       ...contextWithMe,
-      cost: await paidAction.getCost(args, contextWithMe)
+      cost: await paidAction.getCost(args, contextWithMe),
+      sybilFeePercent: await paidAction.getSybilFeePercent?.(args, contextWithMe)
     }
 
     // special case for zero cost actions
@@ -186,8 +187,7 @@ async function beginPessimisticAction (actionType, args, context) {
 async function performP2PAction (actionType, args, incomingContext) {
   // if the action has an invoiceable peer, we'll create a peer invoice
   // wrap it, and return the wrapped invoice
-  const { cost, models, lnd, me } = incomingContext
-  const sybilFeePercent = await paidActions[actionType].getSybilFeePercent?.(args, incomingContext)
+  const { cost, sybilFeePercent, models, lnd, me } = incomingContext
   if (!sybilFeePercent) {
     throw new Error('sybil fee percent is not set for an invoiceable peer action')
   }

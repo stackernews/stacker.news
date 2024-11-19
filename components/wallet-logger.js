@@ -174,9 +174,12 @@ export function useWalletLogger (wallet, setLogs) {
         payment_hash: decoded.tagsObject.payment_hash,
         description: decoded.tagsObject.description,
         created_at: new Date(decoded.timestamp * 1000).toISOString(),
-        expires_at: new Date(decoded.timeExpireDate * 1000).toISOString()
+        expires_at: new Date(decoded.timeExpireDate * 1000).toISOString(),
+        // payments should affect wallet status
+        status: true
       }
     }
+    context.send = true
 
     appendLog(wallet, level, message, context)
     console[level !== 'error' ? 'info' : 'error'](`[${tag(wallet)}]`, message)

@@ -4,18 +4,16 @@ import styles from './pull-to-refresh.module.css'
 
 const REFRESH_THRESHOLD = 50
 
-export default function PullToRefresh ({ children, android }) {
+export default function PullToRefresh ({ children, className }) {
   const router = useRouter()
   const [pullDistance, setPullDistance] = useState(0)
   const [isPWA, setIsPWA] = useState(false)
-  const [isAndroid, setIsAndroid] = useState(false)
   const touchStartY = useRef(0)
   const touchEndY = useRef(0)
 
   const checkPWA = () => {
     const androidPWA = window.matchMedia('(display-mode: standalone)').matches
     const iosPWA = window.navigator.standalone === true
-    setIsAndroid(androidPWA) // we need to know if the user is on Android to enable toggling its native PTR
     setIsPWA(androidPWA || iosPWA)
   }
 
@@ -23,18 +21,18 @@ export default function PullToRefresh ({ children, android }) {
 
   const handleTouchStart = useCallback((e) => {
     // don't handle if the user is not scrolling from the top of the page, is not on a PWA or if we want Android's native PTR
-    if (!isPWA || (isAndroid && !android) || window.scrollY > 0) return
+    if (!isPWA || window.scrollY > 0) return
     touchStartY.current = e.touches[0].clientY
-  }, [isPWA, isAndroid, android])
+  }, [isPWA])
 
   const handleTouchMove = useCallback((e) => {
     if (touchStartY.current === 0) return
-    if (!isPWA || (isAndroid && !android)) return
+    if (!isPWA) return
     touchEndY.current = e.touches[0].clientY
     const distance = touchEndY.current - touchStartY.current
     setPullDistance(distance)
     document.body.style.marginTop = `${Math.max(0, Math.min(distance / 2, 25))}px`
-  }, [isPWA, isAndroid, android])
+  }, [isPWA])
 
   const handleTouchEnd = useCallback(() => {
     if (touchStartY.current === 0 || touchEndY.current === 0) return
@@ -48,7 +46,7 @@ export default function PullToRefresh ({ children, android }) {
   }, [router])
 
   useEffect(() => {
-    if (!isPWA || (isAndroid && !android)) return
+    if (!isPWA) return
     document.body.style.overscrollBehaviorY = 'contain'
     document.addEventListener('touchstart', handleTouchStart)
     document.addEventListener('touchmove', handleTouchMove)
@@ -60,7 +58,7 @@ export default function PullToRefresh ({ children, android }) {
       document.removeEventListener('touchmove', handleTouchMove)
       document.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [isPWA, isAndroid, android, handleTouchStart, handleTouchMove, handleTouchEnd])
+  }, [isPWA, handleTouchStart, handleTouchMove, handleTouchEnd])
 
   const pullMessage = useMemo(() => {
     if (pullDistance > REFRESH_THRESHOLD) return 'release to refresh'
@@ -68,17 +66,16 @@ export default function PullToRefresh ({ children, android }) {
   }, [pullDistance])
 
   return (
-    <div>
-      <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <p className={`${styles.pullMessage}`} style={{ top: `${Math.max(-20, Math.min(-20 + pullDistance / 2, 5))}px` }}>
-          {pullMessage}
-        </p>
-        {children}
-      </div>
-    </div>
+    <main
+      className={className}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <p className={`${styles.pullMessage}`} style={{ top: `${Math.max(-20, Math.min(-20 + pullDistance / 2, 5))}px` }}>
+        {pullMessage}
+      </p>
+      {children}
+    </main>
   )
 }

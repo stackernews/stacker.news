@@ -15,18 +15,16 @@ export default function Layout ({
   return (
     <>
       {seo && <Seo sub={sub} item={item} user={user} />}
-      <PullToRefresh android> {/* android prop if true disables its native PTR */}
-        <Navigation sub={sub} />
-        {contain
-          ? (
-            <Container as='main' className={`px-sm-0 ${styles.contain}`}>
-              {children}
-            </Container>
-            )
-          : children}
-        {footer && <Footer links={footerLinks} />}
-        <NavFooter sub={sub} />
-      </PullToRefresh>
+      <Navigation sub={sub} />
+      {contain
+        ? (
+          <Container as={PullToRefresh} className={`px-sm-0 ${styles.contain}`}>
+            {children}
+          </Container>
+          )
+        : children}
+      {footer && <Footer links={footerLinks} />}
+      <NavFooter sub={sub} />
     </>
   )
 }

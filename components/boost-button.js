@@ -10,7 +10,6 @@ import { BoostHelp } from './adv-post-form'
 import { BOOST_MULT } from '@/lib/constants'
 import classNames from 'classnames'
 import LongPressable from './long-pressable'
-import ActionTooltip from './action-tooltip'
 
 export default function Boost ({ item, className, ...props }) {
   const { boost } = item
@@ -23,15 +22,16 @@ export default function Boost ({ item, className, ...props }) {
     [boost]
   )
 
-  const style = useMemo(() => {
-    const fillColor = hover ? nextColor : color
-    return boost || hover
-      ? {
-          fill: fillColor,
-          filter: `drop-shadow(0 0 6px ${fillColor}90)`
-        }
-      : undefined
-  }, [hover, color, nextColor, boost])
+  const style = useMemo(
+    () =>
+      hover || boost
+        ? {
+            fill: hover ? nextColor : color,
+            filter: `drop-shadow(0 0 6px ${hover ? nextColor : color}90)`
+          }
+        : undefined,
+    [boost, hover]
+  )
 
   const handleClick = async () => {
     try {
@@ -47,25 +47,23 @@ export default function Boost ({ item, className, ...props }) {
 
   return (
     <div className='upvoteParent'>
-      <LongPressable onShortPress={handleClick}>
-        <ActionTooltip disable notForm>
-          <div className={styles.upvoteWrapper}>
-            <BoostIcon
-              {...props}
-              style={style}
-              width={26}
-              height={26}
-              onPointerEnter={() => setHover(true)}
-              onMouseLeave={() => setHover(false)}
-              onTouchEnd={() => setHover(false)}
-              className={classNames(
-                styles.boost,
-                className,
-                boost && styles.voted
-              )}
-            />
-          </div>
-        </ActionTooltip>
+      <LongPressable onShortPress={handleClick} onLongPress={() => {}}>
+        <div className={styles.upvoteWrapper}>
+          <BoostIcon
+            {...props}
+            style={style}
+            width={26}
+            height={26}
+            onPointerEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+            onTouchEnd={() => setHover(false)}
+            className={classNames(
+              styles.boost,
+              className,
+              boost && styles.voted
+            )}
+          />
+        </div>
       </LongPressable>
     </div>
   )

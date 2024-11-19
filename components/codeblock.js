@@ -2,14 +2,14 @@ import { useMemo, useEffect, useState, Fragment } from 'react'
 import { createHighlighter, makeSingletonHighlighter } from 'shiki'
 import { toJsxRuntime } from 'hast-util-to-jsx-runtime'
 import { jsx, jsxs } from 'react/jsx-runtime'
-import './codeblock.module.css'
+import useDarkMode from './dark-mode'
 
 const SHIKI_LIGHT_THEME = 'github-light'
 const SHIKI_DARK_THEME = 'github-dark'
 
 const getHighlighter = makeSingletonHighlighter(createHighlighter)
 
-export const codeToHast = async ({ code, language }) => {
+const codeToHast = async ({ code, language, dark }) => {
   const highlighter = await getHighlighter({
     themes: [SHIKI_LIGHT_THEME, SHIKI_DARK_THEME],
     langs: [language]
@@ -17,28 +17,27 @@ export const codeToHast = async ({ code, language }) => {
 
   return highlighter.codeToHast(code, {
     lang: language,
-    themes: {
-      light: SHIKI_LIGHT_THEME,
-      dark: SHIKI_DARK_THEME
-    }
+    theme: dark ? SHIKI_DARK_THEME : SHIKI_LIGHT_THEME
   })
 }
 
 export default function CodeBlock ({ code, language }) {
   const [hast, setHast] = useState(undefined)
+  const [darkMode] = useDarkMode()
 
   useEffect(() => {
     async function processCode () {
       const hast = await codeToHast({
         code,
-        language
+        language,
+        dark: darkMode
       })
 
       setHast(hast)
     }
 
     processCode()
-  }, [])
+  }, [darkMode])
 
   const element = useMemo(() => {
     if (!hast) {

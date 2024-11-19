@@ -33,6 +33,7 @@ export async function getSybilFeePercent () {
 }
 
 export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, cost, sybilFeePercent, tx }) {
+  sybilFeePercent ??= await getSybilFeePercent()
   const feeMsats = cost * sybilFeePercent / 100n
   const zapMsats = cost - feeMsats
   itemId = parseInt(itemId)

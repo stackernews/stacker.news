@@ -47,6 +47,7 @@
     "graphql-scalar": "^0.1.0",
     "graphql-tag": "^2.12.6",
     "graphql-type-json": "^0.3.2",
+    "hast-util-to-jsx-runtime": "^2.3.2",
     "isomorphic-ws": "^5.0.0",
     "ln-service": "^57.22.0",
     "macaroon": "^3.0.4",

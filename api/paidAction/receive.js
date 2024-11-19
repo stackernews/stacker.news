@@ -53,8 +53,10 @@ export async function perform ({
   }
 }
 
-export async function describe ({ description }, { me, cost, sybilFeePercent }) {
-  const fee = sybilFeePercent ? cost * BigInt(sybilFeePercent) / 100n : 0n
+export async function describe ({ description }, { me, cost, paymentMethod, sybilFeePercent }) {
+  const fee = paymentMethod === PAID_ACTION_PAYMENT_METHODS.P2P
+    ? cost * BigInt(sybilFeePercent) / 100n
+    : 0n
   return description ?? `SN: ${me?.name ?? ''} receives ${numWithUnits(msatsToSats(cost - fee))}`
 }
 

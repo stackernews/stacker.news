@@ -53,9 +53,8 @@ export function usePaidMutation (mutation,
       try {
         invoiceUsed = true
         await invoiceHelper.cancel(invoice)
-        console.log('old invoice canceled')
-      } catch (err) {
-        console.error('could not cancel old invoice', err)
+      } catch (e) {
+        throw new InvoiceCancellationFailure(e.message)
       }
     }
 
@@ -136,6 +135,9 @@ export function usePaidMutation (mutation,
         invoiceUsed = false
       }
     } catch (err) {
+      if (err instanceof InvoiceCancellationFailure) {
+        throw new Error('could not cancel the invoice')
+      }
       console.log('could not pay with internal payment... will fallback to another method')
       walletErrors.push(err)
     }
@@ -280,5 +282,12 @@ export const paidActionCacheMods = {
         satsReceived: () => invoice.satsRequested
       }
     })
+  }
+}
+
+class InvoiceCancellationFailure extends Error {
+  constructor (message) {
+    super(message)
+    this.name = 'InvoiceCancellationFailure'
   }
 }

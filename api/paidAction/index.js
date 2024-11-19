@@ -153,6 +153,18 @@ async function performNoInvoiceAction (actionType, args, { ...context }) {
 
   const run = async tx => {
     context.tx = tx
+    const failedInvoice = context.retryForInvoice
+    if (failedInvoice) {
+      await tx.invoice.update({
+        where: {
+          id: failedInvoice.id,
+          actionState: 'FAILED'
+        },
+        data: {
+          actionState: 'RETRYING'
+        }
+      })
+    }
 
     if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT) {
       await tx.user.update({
@@ -190,6 +202,18 @@ async function performOptimisticAction (actionType, args, { ...context }) {
 
   const run = async tx => {
     context.tx = tx
+    const failedInvoice = context.retryForInvoice
+    if (failedInvoice) {
+      await tx.invoice.update({
+        where: {
+          id: failedInvoice.id,
+          actionState: 'FAILED'
+        },
+        data: {
+          actionState: 'RETRYING'
+        }
+      })
+    }
 
     const invoice = await createDbInvoice(actionType, args, { ...context, invoiceArgs })
     const result = await performAction(invoice, action, args, context)
@@ -208,11 +232,28 @@ async function performOptimisticAction (actionType, args, { ...context }) {
 async function beginPessimisticAction (actionType, args, { ...context }) {
   // just create the invoice and complete action when it's paid (invoiceArgs could be passed in by the p2p method)
   const invoiceArgs = context.invoiceArgs ?? await createSNInvoice(context)
-  return {
-    invoice: await createDbInvoice(actionType, args, { ...context, invoiceArgs }),
-    paymentMethod: 'PESSIMISTIC',
-    retriable: false
+  const run = async tx => {
+    context.tx = tx
+    const failedInvoice = context.retryForInvoice
+    if (failedInvoice) {
+      await tx.invoice.update({
+        where: {
+          id: failedInvoice.id,
+          actionState: 'FAILED'
+        },
+        data: {
+          actionState: 'RETRYING'
+        }
+      })
+    }
+    return {
+      invoice: await createDbInvoice(actionType, args, { ...context, invoiceArgs }),
+      paymentMethod: 'PESSIMISTIC',
+      retriable: false
+    }
   }
+  // if this is nested into another transaction (eg for retryPaidAction), use the parent transaction
+  return context.tx ? await run(context.tx) : await context.models.$transaction(run, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 }
 
 async function performP2PAction (actionType, args, { ...context }) {
@@ -288,23 +329,7 @@ export async function retryPaidAction ({ invoiceId, forceInternal, attempt, prio
   context.attempt = attempt
   context.prioritizeInternal = prioritizeInternal
 
-  return await models.$transaction(async tx => {
-    context.tx = tx
-    const supportRetrying = paidAction.retry
-    if (supportRetrying) {
-      // update the old invoice to RETRYING, so that it's not confused with FAILED
-      await tx.invoice.update({
-        where: {
-          id: failedInvoice.id,
-          actionState: 'FAILED'
-        },
-        data: {
-          actionState: 'RETRYING'
-        }
-      })
-    }
-    return await performPaidAction(actionType, actionArgs, context)
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
+  return await performPaidAction(actionType, actionArgs, context)
 }
 
 const INVOICE_EXPIRE_SECS = 600

@@ -1,4 +1,5 @@
 const { ApolloClient, InMemoryCache, HttpLink, gql } = require('@apollo/client')
+const { quote } = require('../lib/md.js')
 
 const ITEMS = gql`
   query items ($sort: String, $when: String, $sub: String, $by: String) {
@@ -143,8 +144,6 @@ async function getTopUsers ({ by, cowboys = false, includeHidden = false, count 
 }
 
 async function main () {
-  const { quote } = await import('../lib/md.js')
-
   const top = await client.query({
     query: ITEMS,
     variables: { sort: 'top', when: 'week' }

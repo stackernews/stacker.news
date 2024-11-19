@@ -1,0 +1,13 @@
+.pullMessage {
+    position: absolute;
+    left: 50%;
+    top: -20px;
+    height: 15px;
+    transform: translateX(-50%);
+    font-size: small;
+    color: #a5a5a5;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    text-align: center;
+    opacity: 0.75;
+}

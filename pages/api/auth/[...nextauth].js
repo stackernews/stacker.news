@@ -132,6 +132,9 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
   // add JWT to **httpOnly** cookie
   res.appendHeader('Set-Cookie', cookie.serialize(`multi_auth.${id}`, jwt, cookieOptions))
 
+  // switch to user we just added
+  res.appendHeader('Set-Cookie', cookie.serialize('multi_auth.user-id', id, { ...cookieOptions, httpOnly: false }))
+
   let newMultiAuth = [{ id, name, photoId }]
   if (req.cookies.multi_auth) {
     const oldMultiAuth = b64Decode(req.cookies.multi_auth)
@@ -140,9 +143,6 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
     newMultiAuth = [...oldMultiAuth, ...newMultiAuth]
   }
   res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', b64Encode(newMultiAuth), { ...cookieOptions, httpOnly: false }))
-
-  // switch to user we just added
-  res.appendHeader('Set-Cookie', cookie.serialize('multi_auth.user-id', id, { ...cookieOptions, httpOnly: false }))
 }
 
 async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {

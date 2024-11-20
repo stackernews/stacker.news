@@ -14,6 +14,7 @@ import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
 import * as cookie from 'cookie'
+import { multiAuthMiddleware } from '@/pages/api/graphql'
 
 /**
  * Stores userIds in user table
@@ -165,6 +166,7 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
       let user = await prisma.user.findUnique({ where: { [pubkeyColumnName]: pubkey } })
 
       // get token if it exists
+      req = multiAuthMiddleware(req)
       const token = await getToken({ req })
       if (!user) {
         // we have not seen this pubkey before

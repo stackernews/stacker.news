@@ -122,7 +122,5 @@ function composeWalletSchema (walletDef, serverSide, skipGenerated) {
     priority: Yup.number().min(0, 'must be at least 0').max(100, 'must be at most 100')
   }))
 
-  console.log(JSON.stringify(schemaShape.vaultEntries))
-
   return composedSchema
 }

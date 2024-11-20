@@ -154,7 +154,9 @@ export function WalletSummary () {
   let numNonZeroBalances = custodialSats > 0 ? 1 : 0
   let highestBalance = custodialSats
   const walletSummary = [`custodial: ${abbrNum(custodialSats)}`]
-  for (const [walletName, { msats, error }] of Object.entries(displayBalances).sort((a, b) => Number(b[1].msats - a[1].msats))) {
+
+  const sortedDisplayBalanceEntries = Object.entries(displayBalances).sort((a, b) => Number(b[1].msats - a[1].msats))
+  for (const [walletName, { msats, error }] of sortedDisplayBalanceEntries) {
     if (error) {
       // if there is an error, we don't know how much is in the wallet, so we assume it has a non-zero balance
       numNonZeroBalances++

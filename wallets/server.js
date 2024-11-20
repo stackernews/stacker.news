@@ -73,7 +73,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 
       return { invoice, wallet, logger }
     } catch (err) {
-      logger.error(err.message)
+      logger.error(err.message, { status: true })
     }
   }
 

@@ -5,6 +5,7 @@ import { EXTRA_LONG_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { SUBS } from '@/fragments/subs'
 import { useQuery } from '@apollo/client'
 import styles from './sub-select.module.css'
+import { useMe } from './me'
 
 export function SubSelectInitial ({ sub }) {
   const router = useRouter()
@@ -27,6 +28,12 @@ export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs =
         nextFetchPolicy: 'cache-and-network'
       })
 
+  const { me } = useMe()
+
+  useEffect(() => {
+    refetch()
+  }, [me.privates?.nsfwMode])
+
   const [subs, setSubs] = useState([
     ...prependSubs.filter(s => s !== sub),
     ...(sub ? [sub] : []),
@@ -45,12 +52,12 @@ export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs =
       ...appendSubs])
   }, [data])
 
-  return [subs, refetch]
+  return subs
 }
 
 export default function SubSelect ({ prependSubs, sub, onChange, size, appendSubs, filterSubs, className, ...props }) {
   const router = useRouter()
-  const [subs, refetchSubs] = useSubs({ prependSubs, sub, filterSubs, appendSubs })
+  const subs = useSubs({ prependSubs, sub, filterSubs, appendSubs })
   const valueProps = props.noForm
     ? {
         value: sub
@@ -62,10 +69,6 @@ export default function SubSelect ({ prependSubs, sub, onChange, size, appendSub
   // If logged out user directly visits a nsfw sub, subs will not contain `sub`, so manually add it
   // to display the correct sub name in the sub selector
   const subItems = !sub || subs.find((s) => s === sub) ? subs : [sub].concat(subs)
-
-  useEffect(() => {
-    refetchSubs()
-  }, [])
 
   return (
     <Select

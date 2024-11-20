@@ -32,7 +32,7 @@ export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs =
 
   useEffect(() => {
     refetch()
-  }, [me.privates?.nsfwMode])
+  }, [me?.privates?.nsfwMode])
 
   const [subs, setSubs] = useState([
     ...prependSubs.filter(s => s !== sub),

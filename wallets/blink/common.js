@@ -1,4 +1,4 @@
-import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
+import { assertContentTypeJson } from '@/lib/url'
 
 export const galoyBlinkUrl = 'https://api.blink.sv/graphql'
 export const galoyBlinkDashboardUrl = 'https://dashboard.blink.sv/'
@@ -40,11 +40,12 @@ export async function request (authToken, query, variables = {}) {
   }
   const res = await fetch(galoyBlinkUrl, options)
 
-  // consume response body to avoid memory leaks
-  // see https://github.com/nodejs/node/issues/51162
-  res.text().catch(() => {})
-
-  assertResponseOk(res)
+  if (!res.ok) {
+    // consume response body to avoid memory leaks
+    // see https://github.com/nodejs/node/issues/51162
+    res.text().catch(() => {})
+    throw new Error(`POST ${res.url}: ${res.status} ${res.statusText}`)
+  }
   assertContentTypeJson(res)
 
   return res.json()

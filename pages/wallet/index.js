@@ -16,9 +16,8 @@ import { getGetServerSideProps } from '@/api/ssrApollo'
 import { amountSchema, lnAddrSchema, withdrawlSchema } from '@/lib/validate'
 import Nav from 'react-bootstrap/Nav'
 import { BALANCE_LIMIT_MSATS, FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
-import { msatsToSats, numWithUnits } from '@/lib/format'
+import { msatsToSats } from '@/lib/format'
 import styles from '@/components/user-header.module.css'
-import HiddenWalletSummary from '@/components/hidden-wallet-summary'
 import AccordianItem from '@/components/accordian-item'
 import { lnAddrOptions } from '@/lib/lnurl'
 import useDebounceCallback from '@/components/use-debounce-callback'
@@ -30,11 +29,13 @@ import { useToast } from '@/components/toast'
 import { WalletLimitBanner } from '@/components/banners'
 import Plug from '@/svgs/plug.svg'
 import { decode } from 'bolt11'
+import { WalletAttachmentBalances, WalletSummary } from '@/components/nav/common'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function Wallet () {
   const router = useRouter()
+  const { me } = useMe()
 
   if (router.query.type === 'fund') {
     return (
@@ -51,11 +52,27 @@ export default function Wallet () {
   } else {
     return (
       <CenterLayout>
-        <YouHaveSats />
+        <div>
+          <YouHaveSats />
+          {me && !me.privates?.hideWalletBalance &&
+            <div className='w-100 text-end'>
+              <AccordianItem
+                togglerClassName='justify-content-end'
+                header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>wallets balance</div>}
+                body={
+                  <>
+                    <WalletAttachmentBalances className='text-muted small' />
+                  </>
+              }
+              />
+            </div>}
+        </div>
         <WalletLimitBanner />
         <WalletForm />
         <WalletHistory />
+
       </CenterLayout>
+
     )
   }
 }
@@ -66,11 +83,8 @@ function YouHaveSats () {
   return (
     <h2 className={`${me ? 'visible' : 'invisible'} ${limitReached ? 'text-warning' : 'text-success'}`}>
       you have{' '}
-      <span className='text-monospace'>{me && (
-        me.privates?.hideWalletBalance
-          ? <HiddenWalletSummary />
-          : numWithUnits(me.privates?.sats, { abbreviate: false, format: true })
-      )}
+      <span className='text-monospace'>
+        <WalletSummary abbreviate={false} withUnit format fixedWidth={false} />
       </span>
     </h2>
   )

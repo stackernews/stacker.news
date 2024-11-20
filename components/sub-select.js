@@ -27,11 +27,6 @@ export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs =
         nextFetchPolicy: 'cache-and-network'
       })
 
-  const refetchCallback = () => {
-    console.log('Refetch data')
-    refetch()
-  }
-
   const [subs, setSubs] = useState([
     ...prependSubs.filter(s => s !== sub),
     ...(sub ? [sub] : []),
@@ -50,7 +45,7 @@ export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs =
       ...appendSubs])
   }, [data])
 
-  return [subs, refetchCallback]
+  return [subs, refetch]
 }
 
 export default function SubSelect ({ prependSubs, sub, onChange, size, appendSubs, filterSubs, className, ...props }) {

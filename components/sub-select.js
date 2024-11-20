@@ -1,9 +1,9 @@
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { Select } from './form'
 import { EXTRA_LONG_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { SUBS } from '@/fragments/subs'
 import { useQuery } from '@apollo/client'
-import { useEffect, useState } from 'react'
 import styles from './sub-select.module.css'
 
 export function SubSelectInitial ({ sub }) {
@@ -20,19 +20,26 @@ const DEFAULT_APPEND_SUBS = []
 const DEFAULT_FILTER_SUBS = () => true
 
 export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs = DEFAULT_FILTER_SUBS, appendSubs = DEFAULT_APPEND_SUBS }) {
-  const { data } = useQuery(SUBS, SSR
+  const { data, refetch } = useQuery(SUBS, SSR
     ? {}
     : {
         pollInterval: EXTRA_LONG_POLL_INTERVAL,
         nextFetchPolicy: 'cache-and-network'
       })
 
+  const refetchCallback = () => {
+    console.log('Refetch data')
+    refetch()
+  }
+
   const [subs, setSubs] = useState([
     ...prependSubs.filter(s => s !== sub),
     ...(sub ? [sub] : []),
     ...appendSubs.filter(s => s !== sub)])
+
   useEffect(() => {
     if (!data) return
+
     const joined = data.subs.filter(filterSubs).filter(s => !s.meMuteSub).map(s => s.name)
     const muted = data.subs.filter(filterSubs).filter(s => s.meMuteSub).map(s => s.name)
     const mutedSection = muted.length ? [{ label: 'muted', items: muted }] : []
@@ -43,12 +50,12 @@ export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs =
       ...appendSubs])
   }, [data])
 
-  return subs
+  return [subs, refetchCallback]
 }
 
 export default function SubSelect ({ prependSubs, sub, onChange, size, appendSubs, filterSubs, className, ...props }) {
   const router = useRouter()
-  const subs = useSubs({ prependSubs, sub, filterSubs, appendSubs })
+  const [subs, refetchSubs] = useSubs({ prependSubs, sub, filterSubs, appendSubs })
   const valueProps = props.noForm
     ? {
         value: sub
@@ -60,6 +67,10 @@ export default function SubSelect ({ prependSubs, sub, onChange, size, appendSub
   // If logged out user directly visits a nsfw sub, subs will not contain `sub`, so manually add it
   // to display the correct sub name in the sub selector
   const subItems = !sub || subs.find((s) => s === sub) ? subs : [sub].concat(subs)
+
+  useEffect(() => {
+    refetchSubs()
+  }, [])
 
   return (
     <Select

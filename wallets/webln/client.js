@@ -22,6 +22,25 @@ export const sendPayment = async (bolt11) => {
   return response.preimage
 }
 
+export async function getBalance () {
+  if (typeof window.webln === 'undefined') {
+    throw new Error('WebLN provider not found')
+  }
+
+  // this will prompt the user to unlock the wallet if it's locked
+  await window.webln.enable()
+
+  if (typeof window.webln.getBalance === 'undefined') {
+    throw new Error('getBalance not supported')
+  }
+
+  const balance = await window.webln.getBalance()
+  if (balance.currency !== 'sats') {
+    throw new Error('getBalance returned unsupported currency')
+  }
+  return BigInt(balance.balance * 1000)
+}
+
 export function isAvailable () {
   return !SSR && window?.weblnEnabled
 }

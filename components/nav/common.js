@@ -1,12 +1,14 @@
 import Link from 'next/link'
 import { Button, Dropdown, Nav, Navbar } from 'react-bootstrap'
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
+import Tooltip from 'react-bootstrap/Tooltip'
 import styles from '../header.module.css'
 import { useRouter } from 'next/router'
 import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
-import { USER_ID, BALANCE_LIMIT_MSATS } from '../../lib/constants'
+import { USER_ID, BALANCE_LIMIT_MSATS } from '@/lib/constants'
 import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
@@ -25,7 +27,7 @@ import { useHasNewNotes } from '../use-has-new-notes'
 import { useWallets } from '@/wallets/index'
 import SwitchAccountList, { useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
-
+import { toPositiveNumber } from '@/lib/validate'
 export function Brand ({ className }) {
   return (
     <Link href='/' passHref legacyBehavior>
@@ -144,7 +146,55 @@ export function WalletSummary () {
   if (me.privates?.hideWalletBalance) {
     return <HiddenWalletSummary abbreviate fixedWidth />
   }
-  return `${abbrNum(me.privates?.sats)}`
+
+  const { displayBalances } = useWallets()
+
+  const custodialSats = toPositiveNumber(me.privates?.sats)
+
+  let numNonZeroBalances = custodialSats > 0 ? 1 : 0
+  let highestBalance = custodialSats
+  const walletSummary = [`custodial: ${abbrNum(custodialSats)}`]
+  for (const [walletName, { msats, error }] of Object.entries(displayBalances).sort((a, b) => Number(b[1].msats - a[1].msats))) {
+    if (error) {
+      // if there is an error, we don't know how much is in the wallet, so we assume it has a non-zero balance
+      numNonZeroBalances++
+      walletSummary.push(`${walletName}: ?`)
+    } else {
+      if (msats > 0)numNonZeroBalances++
+      const balance = msatsToSats(msats)
+      walletSummary.push(`${walletName}: ${abbrNum(balance)}`)
+      if (balance > highestBalance) highestBalance = balance
+    }
+  }
+
+  return (
+    <OverlayTrigger
+      placement='bottom'
+      overlay={
+        <Tooltip>
+          {
+            walletSummary.map((w, i) => {
+              return (
+                <div key={i}>{w}</div>
+              )
+            })
+          }
+        </Tooltip>
+      }
+      trigger={['hover', 'focus']}
+      popperConfig={{
+        modifiers: {
+          preventOverflow: {
+            enabled: false
+          }
+        }
+      }}
+    >
+      <span>
+        {abbrNum(highestBalance)}{numNonZeroBalances > 1 && '+'}
+      </span>
+    </OverlayTrigger>
+  )
 }
 
 export function NavWalletSummary ({ className }) {

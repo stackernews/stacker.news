@@ -113,6 +113,11 @@ export function siftConfig (fields, config) {
       continue
     }
 
+    if (['showBalance'].includes(key)) {
+      sifted.clientOnly[key] = Boolean(value)
+      continue
+    }
+
     if (['autoWithdrawMaxFeePercent', 'autoWithdrawThreshold', 'autoWithdrawMaxFeeTotal'].includes(key)) {
       sifted.serverOnly[key] = Number(value)
       sifted.settings = { ...sifted.settings, [key]: Number(value) }

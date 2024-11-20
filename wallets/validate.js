@@ -63,6 +63,11 @@ function composeWalletSchema (walletDef, serverSide, skipGenerated) {
 
   const vaultEntrySchemas = { required: [], optional: [] }
   const cycleBreaker = []
+
+  if (serverSide) {
+    vaultEntrySchemas.optional.push(vaultEntrySchema('showBalance'))
+  }
+
   const schemaShape = fields.reduce((acc, field) => {
     const { name, validate, optional, generated, clientOnly, requiredWithout } = field
 
@@ -101,6 +106,10 @@ function composeWalletSchema (walletDef, serverSide, skipGenerated) {
     return acc
   }, {})
 
+  if (!serverSide) {
+    schemaShape.showBalance = Yup.boolean()
+  }
+
   // Finalize the vaultEntries schema if it exists
   if (vaultEntrySchemas.required.length > 0 || vaultEntrySchemas.optional.length > 0) {
     schemaShape.vaultEntries = Yup.array().equalto(vaultEntrySchemas)
@@ -112,6 +121,8 @@ function composeWalletSchema (walletDef, serverSide, skipGenerated) {
     enabled: Yup.boolean(),
     priority: Yup.number().min(0, 'must be at least 0').max(100, 'must be at most 100')
   }))
+
+  console.log(JSON.stringify(schemaShape.vaultEntries))
 
   return composedSchema
 }

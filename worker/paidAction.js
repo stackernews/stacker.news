@@ -119,12 +119,12 @@ async function performPessimisticAction ({ lndInvoice, dbInvoice, tx, models, ln
   const context = {
     tx,
     cost: BigInt(lndInvoice.received_mtokens),
-    me: dbInvoice.user,
-    sybilFeePercent: await paidActions[dbInvoice.actionType].getSybilFeePercent?.(),
-    models
+    me: dbInvoice.user
   }
 
-  const result = await paidActions[dbInvoice.actionType].perform(args, context)
+  const sybilFeePercent = await paidActions[dbInvoice.actionType].getSybilFeePercent?.(args, context)
+
+  const result = await paidActions[dbInvoice.actionType].perform(args, { ...context, sybilFeePercent })
   await tx.invoice.update({
     where: { id: dbInvoice.id },
     data: {

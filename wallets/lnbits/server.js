@@ -44,8 +44,9 @@ export async function createInvoice (
     agent,
     body
   })
+
+  assertContentTypeJson(res)
   if (!res.ok) {
-    assertContentTypeJson(res)
     const errBody = await res.json()
     throw new Error(errBody.detail)
   }

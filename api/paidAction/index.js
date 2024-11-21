@@ -198,24 +198,30 @@ async function performP2PAction (actionType, args, incomingContext) {
     throw new NonInvoiceablePeerError()
   }
 
-  await assertBelowMaxPendingInvoices(incomingContext)
+  let context
+  try {
+    await assertBelowMaxPendingInvoices(incomingContext)
 
-  const description = await paidActions[actionType].describe(args, incomingContext)
-  const { invoice, wrappedInvoice, wallet, maxFee } = await createWrappedInvoice(userId, {
-    msats: cost,
-    feePercent: sybilFeePercent,
-    description,
-    expiry: INVOICE_EXPIRE_SECS
-  }, { models, me, lnd })
+    const description = await paidActions[actionType].describe(args, incomingContext)
+    const { invoice, wrappedInvoice, wallet, maxFee } = await createWrappedInvoice(userId, {
+      msats: cost,
+      feePercent: sybilFeePercent,
+      description,
+      expiry: INVOICE_EXPIRE_SECS
+    }, { models, me, lnd })
 
-  const context = {
-    ...incomingContext,
-    invoiceArgs: {
-      bolt11: invoice,
-      wrappedBolt11: wrappedInvoice,
-      wallet,
-      maxFee
+    context = {
+      ...incomingContext,
+      invoiceArgs: {
+        bolt11: invoice,
+        wrappedBolt11: wrappedInvoice,
+        wallet,
+        maxFee
+      }
     }
+  } catch (e) {
+    console.error('failed to create wrapped invoice', e)
+    throw new NonInvoiceablePeerError()
   }
 
   return me

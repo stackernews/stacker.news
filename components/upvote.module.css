@@ -5,11 +5,6 @@
     -webkit-touch-callout: none;
 }
 
-.upvote:hover {
-    fill: var(--hover-fill) !important;
-    filter: var(--hover-filter) !important;
-}
-
 .boost {
     fill: var(--theme-clickToContextColor);
     user-select: none;
@@ -17,9 +12,16 @@
     -webkit-touch-callout: none;
 }
 
-.boost:hover {
-    fill: var(--hover-fill) !important;
-    filter: var(--hover-filter) !important;
+@media (hover: hover) {
+    .upvote:hover {
+        fill: var(--hover-fill) !important;
+        filter: var(--hover-filter) !important;
+    }
+
+    .boost:hover {
+        fill: var(--hover-fill) !important;
+        filter: var(--hover-filter) !important;
+    }
 }
 
 .boost.boosted {

@@ -7,6 +7,9 @@ import { useCallback, useState } from 'react'
 import { useIsClient } from '@/components/use-client'
 import WalletCard from '@/components/wallet-card'
 import { useToast } from '@/components/toast'
+import BootstrapForm from 'react-bootstrap/Form'
+import RecvIcon from '@/svgs/arrow-left-down-line.svg'
+import SendIcon from '@/svgs/arrow-right-up-line.svg'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -16,6 +19,7 @@ export default function Wallet ({ ssrData }) {
   const isClient = useIsClient()
   const [sourceIndex, setSourceIndex] = useState(null)
   const [targetIndex, setTargetIndex] = useState(null)
+  const [filter, setFilter] = useState({ send: false, receive: false })
 
   const reorder = useCallback(async (sourceIndex, targetIndex) => {
     const newOrder = [...wallets.filter(w => w.config?.enabled)]
@@ -75,34 +79,53 @@ export default function Wallet ({ ssrData }) {
             wallet logs
           </Link>
         </div>
+        <div className={styles.walletFilters}>
+          <BootstrapForm.Check
+            inline
+            label={<span><SendIcon width={16} height={16} /> send</span>}
+            onChange={e => setFilter({ ...filter, send: e.target.checked })}
+            checked={filter.send}
+          />
+          <BootstrapForm.Check
+            inline
+            label={<span><RecvIcon width={16} height={16} /> receive</span>}
+            onChange={e => setFilter({ ...filter, receive: e.target.checked })}
+            checked={filter.receive}
+          />
+        </div>
         <div className={styles.walletGrid} onDragEnd={onDragEnd}>
-          {wallets.map((w, i) => {
-            const draggable = isClient && w.config?.enabled
+          {wallets
+            .filter(w => {
+              return (!filter.send || (filter.send && w.support.send)) &&
+              (!filter.receive || (filter.receive && w.support.recv))
+            })
+            .map((w, i) => {
+              const draggable = isClient && w.config?.enabled
 
-            return (
-              <div
-                key={w.def.name}
-                className={
+              return (
+                <div
+                  key={w.def.name}
+                  className={
                     !draggable
                       ? ''
                       : (`${sourceIndex === i ? styles.drag : ''} ${draggable && targetIndex === i ? styles.drop : ''}`)
                     }
-                suppressHydrationWarning
-              >
-                <WalletCard
-                  wallet={w}
-                  draggable={draggable}
-                  onDragStart={draggable ? onDragStart(i) : undefined}
-                  onTouchStart={draggable ? onTouchStart(i) : undefined}
-                  onDragEnter={draggable ? onDragEnter(i) : undefined}
-                  sourceIndex={sourceIndex}
-                  targetIndex={targetIndex}
-                  index={i}
-                />
-              </div>
-            )
-          }
-          )}
+                  suppressHydrationWarning
+                >
+                  <WalletCard
+                    wallet={w}
+                    draggable={draggable}
+                    onDragStart={draggable ? onDragStart(i) : undefined}
+                    onTouchStart={draggable ? onTouchStart(i) : undefined}
+                    onDragEnter={draggable ? onDragEnter(i) : undefined}
+                    sourceIndex={sourceIndex}
+                    targetIndex={targetIndex}
+                    index={i}
+                  />
+                </div>
+              )
+            }
+            )}
 
         </div>
       </div>

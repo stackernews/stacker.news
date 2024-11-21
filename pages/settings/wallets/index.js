@@ -10,6 +10,7 @@ import { useToast } from '@/components/toast'
 import BootstrapForm from 'react-bootstrap/Form'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
+import { useRouter } from 'next/router'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -19,7 +20,12 @@ export default function Wallet ({ ssrData }) {
   const isClient = useIsClient()
   const [sourceIndex, setSourceIndex] = useState(null)
   const [targetIndex, setTargetIndex] = useState(null)
-  const [filter, setFilter] = useState({ send: false, receive: false })
+
+  const router = useRouter()
+  const [filter, setFilter] = useState({
+    send: router.query.send === 'true' || false,
+    receive: router.query.receive === 'true' || false
+  })
 
   const reorder = useCallback(async (sourceIndex, targetIndex) => {
     const newOrder = [...wallets.filter(w => w.config?.enabled)]
@@ -69,6 +75,13 @@ export default function Wallet ({ ssrData }) {
     }
   }, [sourceIndex, reorder, onReorderError])
 
+  const onFilterChange = useCallback((key) => {
+    return e => {
+      setFilter({ ...filter, [key]: e.target.checked })
+      router.replace({ query: { ...router.query, [key]: e.target.checked } }, undefined, { shallow: true })
+    }
+  }, [router])
+
   return (
     <Layout>
       <div className='py-5 w-100'>
@@ -83,13 +96,13 @@ export default function Wallet ({ ssrData }) {
           <BootstrapForm.Check
             inline
             label={<span><SendIcon width={16} height={16} /> send</span>}
-            onChange={e => setFilter({ ...filter, send: e.target.checked })}
+            onChange={onFilterChange('send')}
             checked={filter.send}
           />
           <BootstrapForm.Check
             inline
             label={<span><RecvIcon width={16} height={16} /> receive</span>}
-            onChange={e => setFilter({ ...filter, receive: e.target.checked })}
+            onChange={onFilterChange('receive')}
             checked={filter.receive}
           />
         </div>

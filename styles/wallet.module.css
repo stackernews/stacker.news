@@ -1,9 +1,7 @@
 .walletGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, 160px);
   grid-gap: 20px;
-  justify-items: center;
-  align-items: center;
 }
 
 .walletFilters {

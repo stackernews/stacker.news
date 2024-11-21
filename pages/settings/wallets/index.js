@@ -95,15 +95,15 @@ export default function Wallet ({ ssrData }) {
         <div className={styles.walletFilters}>
           <BootstrapForm.Check
             inline
-            label={<span><SendIcon width={16} height={16} /> send</span>}
-            onChange={onFilterChange('send')}
-            checked={filter.send}
-          />
-          <BootstrapForm.Check
-            inline
             label={<span><RecvIcon width={16} height={16} /> receive</span>}
             onChange={onFilterChange('receive')}
             checked={filter.receive}
+          />
+          <BootstrapForm.Check
+            inline
+            label={<span><SendIcon width={16} height={16} /> send</span>}
+            onChange={onFilterChange('send')}
+            checked={filter.send}
           />
         </div>
         <div className={styles.walletGrid} onDragEnd={onDragEnd}>

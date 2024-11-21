@@ -36,13 +36,15 @@ export async function getSybilFeePercent () {
 export async function perform ({
   invoiceId,
   comment,
-  lud18Data
+  lud18Data,
+  noteStr
 }, { me, tx }) {
   const invoice = await tx.invoice.update({
     where: { id: invoiceId },
     data: {
       comment,
-      lud18Data
+      lud18Data,
+      desc: noteStr
     },
     include: { invoiceForward: true }
   })

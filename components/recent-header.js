@@ -19,6 +19,7 @@ function ActiveBountiesCheckbox ({ prefix }) {
     <div className='mx-2 mb-2'>
       <BootstrapForm.Check
         inline
+        checked={router.query.active === 'true'}
         label='active only'
         onChange={onChange}
       />

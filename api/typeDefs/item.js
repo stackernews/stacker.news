@@ -2,7 +2,7 @@ import { gql } from 'graphql-tag'
 
 export default gql`
   extend type Query {
-    items(sub: String, sort: String, type: String, cursor: String, name: String, when: String, from: String, to: String, by: String, limit: Limit): Items
+    items(sub: String, sort: String, type: String, subType: String, cursor: String, name: String, when: String, from: String, to: String, by: String, limit: Limit): Items
     item(id: ID!): Item
     pageTitleAndUnshorted(url: String!): TitleUnshorted
     dupes(url: String!): [Item!]

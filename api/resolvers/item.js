@@ -288,7 +288,7 @@ export async function filterClause (me, models, type) {
   return [satsFilter, outlawClause]
 }
 
-function typeClause (type) {
+function typeClause (type, subType) {
   switch (type) {
     case 'links':
       return ['"Item".url IS NOT NULL', '"Item"."parentId" IS NULL']
@@ -299,6 +299,12 @@ function typeClause (type) {
     case 'bios':
       return ['"Item".bio = true', '"Item"."parentId" IS NULL']
     case 'bounties':
+      // if (subType === 'paid') {
+      //   return ['"Item".bounty IS NOT NULL', '"Item".bountyPaidTo IS NOT NULL', '"Item"."parentId" IS NULL']
+      // } else if (subType === 'unpaid') {
+      //   return ['"Item".bounty IS NOT NULL', '"Item".bountyPaidTo IS NULL', '"Item"."parentId" IS NULL']
+      // }
+      
       return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL']
     case 'comments':
       return '"Item"."parentId" IS NOT NULL'
@@ -328,7 +334,7 @@ export default {
 
       return count
     },
-    items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit = LIMIT }, { me, models }) => {
+    items: async (parent, { sub, sort, type, subType, cursor, name, when, from, to, by, limit = LIMIT }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       let items, user, pins, subFull, table, ad
 
@@ -401,7 +407,7 @@ export default {
                 subClause(sub, 4, subClauseTable(type), me, showNsfw),
                 activeOrMine(me),
                 await filterClause(me, models, type),
-                typeClause(type),
+                typeClause(type, subType),
                 muteClause(me)
               )}
               ORDER BY "Item".created_at DESC

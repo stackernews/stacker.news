@@ -14,10 +14,12 @@ export default function RecentHeader ({ type, sub }) {
     : ITEM_TYPES
 
   type ||= router.query.type || type || 'posts'
+  const subType = router.query.subType || 'all'
+
   return (
     <div className='text-muted fw-bold my-1 d-flex justify-content-start align-items-center'>
       <Select
-        groupClassName='mb-2'
+        groupClassName='me-2 mb-0'
         className='w-auto'
         name='type'
         size='sm'
@@ -26,6 +28,19 @@ export default function RecentHeader ({ type, sub }) {
         noForm
         onChange={(_, e) => router.push(prefix + (e.target.value === 'posts' ? '/recent' : `/recent/${e.target.value}`))}
       />
+      
+      {type === 'bounties' && (        
+        <Select
+          groupClassName='mx-2 mb-0'
+          className='w-auto'
+          name='subType'
+          size='sm'
+          value={subType}
+          items={['all', 'paid', 'unpaid']}
+          noForm
+          onChange={(_,e) => router.push({ pathname: "/recent/bounties", query: e.target.value === 'all' ? undefined : { subType: e.target.value }})}
+        />
+      )}
     </div>
   )
 }

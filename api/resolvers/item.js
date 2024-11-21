@@ -537,6 +537,7 @@ export default {
                       '"Item".bio = false',
                       ad ? `"Item".id <> ${ad.id}` : '',
                       activeOrMine(me),
+                      await filterClause(me, models, type),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
                     ORDER BY rank DESC
@@ -1034,6 +1035,7 @@ export default {
   },
   ItemAct: {
     invoice: async (itemAct, args, { models }) => {
+      // we never want to fetch the sensitive data full monty in nested resolvers
       if (itemAct.invoiceId) {
         return {
           id: itemAct.invoiceId,
@@ -1283,6 +1285,7 @@ export default {
       return root
     },
     invoice: async (item, args, { models }) => {
+      // we never want to fetch the sensitive data full monty in nested resolvers
       if (item.invoiceId) {
         return {
           id: item.invoiceId,

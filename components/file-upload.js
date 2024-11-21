@@ -78,6 +78,11 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
 
       element.onerror = reject
       element.src = window.URL.createObjectURL(file)
+
+      // iOS Force the video to load metadata
+      if (element.tagName === 'VIDEO') {
+        element.load()
+      }
     })
   }, [toaster, getSignedPOST])
 

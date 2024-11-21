@@ -32,8 +32,8 @@ export const createInvoice = async (
 
   const body = await res.json()
   if (body.status === 'ERROR') {
-    throw new Error(res.reason)
+    throw new Error(body.reason)
   }
 
-  return res.pr
+  return body.pr
 }

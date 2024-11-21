@@ -28,8 +28,8 @@ export default function RecentHeader ({ type, sub }) {
         noForm
         onChange={(_, e) => router.push(prefix + (e.target.value === 'posts' ? '/recent' : `/recent/${e.target.value}`))}
       />
-      
-      {type === 'bounties' && (        
+
+      {type === 'bounties' && (
         <Select
           groupClassName='mx-2 mb-0'
           className='w-auto'
@@ -38,7 +38,7 @@ export default function RecentHeader ({ type, sub }) {
           value={subType}
           items={['all', 'paid', 'unpaid']}
           noForm
-          onChange={(_,e) => router.push({ pathname: "/recent/bounties", query: e.target.value === 'all' ? undefined : { subType: e.target.value }})}
+          onChange={(_, e) => router.push({ pathname: '/recent/bounties', query: e.target.value === 'all' ? undefined : { subType: e.target.value } })}
         />
       )}
     </div>

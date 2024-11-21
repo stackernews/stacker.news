@@ -304,7 +304,6 @@ function typeClause (type, subType) {
       // } else if (subType === 'unpaid') {
       //   return ['"Item".bounty IS NOT NULL', '"Item".bountyPaidTo IS NULL', '"Item"."parentId" IS NULL']
       // }
-      
       return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL']
     case 'comments':
       return '"Item"."parentId" IS NOT NULL'

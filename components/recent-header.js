@@ -3,7 +3,9 @@ import BootstrapForm from 'react-bootstrap/Form'
 import { Select } from './form'
 import { useRouter } from 'next/router'
 
-function ActiveBountiesCheckbox ({ router, prefix }) {
+function ActiveBountiesCheckbox ({ prefix }) {
+  const router = useRouter()
+
   const onChange = (e) => {
     const url = new URL(prefix + '/recent/bounties', window.location.origin)
     if (e.target.checked) {
@@ -49,7 +51,7 @@ export default function RecentHeader ({ type, sub }) {
           noForm
           onChange={(_, e) => router.push(prefix + (e.target.value === 'posts' ? '/recent' : `/recent/${e.target.value}`))}
         />
-        {type === 'bounties' ? <ActiveBountiesCheckbox router={router} prefix={prefix} /> : (null)}
+        {type === 'bounties' ? <ActiveBountiesCheckbox prefix={prefix} /> : (null)}
       </div>
     </div>
   )

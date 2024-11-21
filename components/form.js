@@ -131,6 +131,14 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
+// fix https://github.com/stackernews/stacker.news/issues/1522
+// see https://github.com/facebook/react/issues/11488#issuecomment-558874287
+function setNativeValue (textarea, value) {
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set
+  setter?.call(textarea, value)
+  textarea.dispatchEvent(new Event('input', { bubbles: true, value }))
+}
+
 export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta, helpers] = useField(props)
@@ -367,6 +375,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
                 let text = innerRef.current.value
                 text = text.replace(`![Uploading ${name}…]()`, `![](${url})`)
                 helpers.setValue(text)
+                setNativeValue(innerRef.current, text)
                 const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
                 updateUploadFees({ variables: { s3Keys } })
                 setSubmitDisabled?.(false)
@@ -509,6 +518,7 @@ function InputInner ({
       if (storageKey) {
         window.localStorage.setItem(storageKey, overrideValue)
       }
+      onChange && onChange(formik, { target: { value: overrideValue } })
     } else if (storageKey) {
       const draft = window.localStorage.getItem(storageKey)
       if (draft) {

@@ -19,7 +19,16 @@ export default function LogMessage ({ showWallet, wallet, level, message, contex
       className = 'text-info'
   }
 
-  const hasContext = context && Object.keys(context).length > 0
+  const filtered = context
+    ? Object.keys(context)
+      .filter(key => !['send', 'recv', 'status'].includes(key))
+      .reduce((obj, key) => {
+        obj[key] = context[key]
+        return obj
+      }, {})
+    : {}
+
+  const hasContext = context && Object.keys(filtered).length > 0
 
   const handleClick = () => {
     if (hasContext) { setShow(show => !show) }
@@ -37,16 +46,17 @@ export default function LogMessage ({ showWallet, wallet, level, message, contex
         <td>{message}</td>
         <td>{indicator}</td>
       </tr>
-      {show && hasContext && Object.entries(context).map(([key, value], i) => {
-        const last = i === Object.keys(context).length - 1
-        return (
-          <tr className={styles.line} key={i}>
-            <td />
-            <td className={last ? 'pb-2 pe-1' : 'pe-1'} colSpan='2'>{key}</td>
-            <td className={last ? 'text-break pb-2' : 'text-break'}>{value}</td>
-          </tr>
-        )
-      })}
+      {show && hasContext && Object.entries(filtered)
+        .map(([key, value], i) => {
+          const last = i === Object.keys(filtered).length - 1
+          return (
+            <tr className={styles.line} key={i}>
+              <td />
+              <td className={last ? 'pb-2 pe-1' : 'pe-1'} colSpan='2'>{key}</td>
+              <td className={last ? 'text-break pb-2' : 'text-break'}>{value}</td>
+            </tr>
+          )
+        })}
     </>
   )
 }

@@ -27,12 +27,17 @@ function useIndexedDB ({ dbName, storeName, options = DEFAULT_OPTIONS, indices =
       db.transaction(storeName)
       while (operationQueue.current.length > 0) {
         const operation = operationQueue.current.shift()
-        operation(db)
+        // if the db is the same as the one we're processing, run the operation
+        // else, we'll just clear the operation queue
+        // XXX this is a consquence of using a ref to store the queue and should be fixed
+        if (dbName === db.name) {
+          operation(db)
+        }
       }
     } catch (error) {
       handleError(error)
     }
-  }, [storeName, handleError, operationQueue])
+  }, [dbName, storeName, handleError, operationQueue])
 
   useEffect(() => {
     let isMounted = true

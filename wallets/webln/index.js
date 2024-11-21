@@ -12,6 +12,5 @@ export const fields = []
 
 export const card = {
   title: 'WebLN',
-  subtitle: 'use a [WebLN provider](https://www.webln.guide/ressources/webln-providers) for payments',
-  badges: ['send']
+  subtitle: 'use a [WebLN provider](https://www.webln.guide/ressources/webln-providers) for payments'
 }

@@ -1,7 +1,7 @@
 import { InvoiceCanceledError, InvoiceExpiredError } from '@/wallets/errors'
 import { bolt11Tags } from '@/lib/bolt11'
 import { Mutex } from 'async-mutex'
-export * from 'wallets/lnc'
+export * from '@/wallets/lnc'
 
 async function disconnect (lnc, logger) {
   if (lnc) {
@@ -38,11 +38,11 @@ export async function testSendPayment (credentials, { logger }) {
 
     logger.info('connecting ...')
     await lnc.connect()
-    logger.ok('connected')
+    logger.info('connected')
 
     logger.info('validating permissions ...')
     await validateNarrowPerms(lnc)
-    logger.ok('permissions ok')
+    logger.info('permissions ok')
 
     return lnc.credentials.credentials
   } finally {

@@ -77,7 +77,7 @@ export default function Wallet ({ ssrData }) {
 
   const onFilterChange = useCallback((key) => {
     return e => {
-      setFilter({ ...filter, [key]: e.target.checked })
+      setFilter(old => ({ ...old, [key]: e.target.checked }))
       router.replace({ query: { ...router.query, [key]: e.target.checked } }, undefined, { shallow: true })
     }
   }, [router])

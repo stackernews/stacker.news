@@ -10,7 +10,7 @@ function ActiveBountiesCheckbox ({ router, prefix }) {
       url.searchParams.set('active', true)
     }
 
-    router.push(url)
+    router.replace(url)
   }
 
   return (

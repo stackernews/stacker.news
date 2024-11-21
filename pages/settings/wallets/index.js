@@ -23,8 +23,8 @@ export default function Wallet ({ ssrData }) {
 
   const router = useRouter()
   const [filter, setFilter] = useState({
-    send: router.query.send === 'true' || false,
-    receive: router.query.receive === 'true' || false
+    send: router.query.send === 'true',
+    receive: router.query.receive === 'true'
   })
 
   const reorder = useCallback(async (sourceIndex, targetIndex) => {

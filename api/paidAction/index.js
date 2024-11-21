@@ -351,7 +351,8 @@ async function createDbInvoice (actionType, args, context) {
     actionOptimistic: optimistic,
     actionArgs: args,
     expiresAt,
-    actionId
+    actionId,
+    desc: context.internalDescription ?? servedInvoice.description
   }
 
   let invoice

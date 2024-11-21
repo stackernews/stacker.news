@@ -44,7 +44,7 @@ export async function perform ({
     data: {
       comment,
       lud18Data,
-      desc: noteStr
+      ...(noteStr ? { desc: noteStr } : {})
     },
     include: { invoiceForward: true }
   })

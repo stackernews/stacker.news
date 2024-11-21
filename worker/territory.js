@@ -1,6 +1,7 @@
 import lnd from '@/api/lnd'
 import performPaidAction from '@/api/paidAction'
 import serialize from '@/api/resolvers/serial'
+import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { datePivot } from '@/lib/time'
 
@@ -36,7 +37,12 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
 
   try {
     const { result } = await performPaidAction('TERRITORY_BILLING',
-      { name: subName }, { models, me: sub.user, lnd, forceFeeCredits: true })
+      { name: subName }, {
+        models,
+        me: sub.user,
+        lnd,
+        forcePaymentMethod: PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT
+      })
     if (!result) {
       throw new Error('not enough fee credits to auto-renew territory')
     }

@@ -1,6 +1,6 @@
 import { assertContentTypeJson } from '@/lib/url'
 
-export * from 'wallets/lnbits'
+export * from '@/wallets/lnbits'
 
 export async function testSendPayment ({ url, adminKey, invoiceKey }, { logger }) {
   logger.info('trying to fetch wallet')
@@ -33,8 +33,9 @@ async function getWallet ({ url, adminKey, invoiceKey }) {
   headers.append('X-Api-Key', adminKey || invoiceKey)
 
   const res = await fetch(url + path, { method: 'GET', headers })
+
+  assertContentTypeJson(res)
   if (!res.ok) {
-    assertContentTypeJson(res)
     const errBody = await res.json()
     throw new Error(errBody.detail)
   }
@@ -54,8 +55,9 @@ async function postPayment (bolt11, { url, adminKey }) {
   const body = JSON.stringify({ bolt11, out: true })
 
   const res = await fetch(url + path, { method: 'POST', headers, body })
+
+  assertContentTypeJson(res)
   if (!res.ok) {
-    assertContentTypeJson(res)
     const errBody = await res.json()
     throw new Error(errBody.detail)
   }
@@ -73,8 +75,9 @@ async function getPayment (paymentHash, { url, adminKey }) {
   headers.append('X-Api-Key', adminKey)
 
   const res = await fetch(url + path, { method: 'GET', headers })
+
+  assertContentTypeJson(res)
   if (!res.ok) {
-    assertContentTypeJson(res)
     const errBody = await res.json()
     throw new Error(errBody.detail)
   }

@@ -3,11 +3,11 @@ import { SET_WALLET_PRIORITY, WALLETS } from '@/fragments/wallet'
 import { SSR } from '@/lib/constants'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally } from './common'
+import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally, canReceive, supportsReceive, supportsSend, statusFromLog } from './common'
 import useVault from '@/components/vault/use-vault'
-import { useWalletLogger } from '@/components/wallet-logger'
+import { useWalletLogger, useWalletLogs } from '@/components/wallet-logger'
 import { decode as bolt11Decode } from 'bolt11'
-import walletDefs from 'wallets/client'
+import walletDefs from '@/wallets/client'
 import { generateMutation } from './graphql'
 import { formatSats } from '@/lib/format'
 
@@ -45,7 +45,7 @@ function useLocalWallets () {
     // listen for changes to any wallet config in local storage
     // from any window with the same origin
     const handleStorage = (event) => {
-      if (event.key.startsWith(getStorageKey(''))) {
+      if (event.key?.startsWith(getStorageKey(''))) {
         loadWallets()
       }
     }
@@ -67,6 +67,7 @@ export function WalletsProvider ({ children }) {
   const [setWalletPriority] = useMutation(SET_WALLET_PRIORITY)
   const [serverWallets, setServerWallets] = useState([])
   const client = useApolloClient()
+  const { logs } = useWalletLogs()
 
   const { data, refetch } = useQuery(WALLETS,
     SSR ? {} : { nextFetchPolicy: 'cache-and-network' })
@@ -111,7 +112,10 @@ export function WalletsProvider ({ children }) {
     const merged = {}
     for (const wallet of [...walletDefsOnly, ...localWallets, ...serverWallets]) {
       merged[wallet.def.name] = {
-        def: wallet.def,
+        def: {
+          ...wallet.def,
+          requiresConfig: wallet.def.fields.length > 0
+        },
         config: {
           ...merged[wallet.def.name]?.config,
           ...Object.fromEntries(
@@ -128,8 +132,21 @@ export function WalletsProvider ({ children }) {
     // sort by priority, then add status field
     return Object.values(merged)
       .sort(walletPrioritySort)
-      .map(w => ({ ...w, status: w.config?.enabled ? Status.Enabled : Status.Disabled }))
-  }, [serverWallets, localWallets])
+      .map(w => {
+        return {
+          ...w,
+          support: {
+            recv: supportsReceive(w),
+            send: supportsSend(w)
+          },
+          status: {
+            any: w.config?.enabled && isConfigured(w) ? Status.Enabled : Status.Disabled,
+            send: w.config?.enabled && canSend(w) ? Status.Enabled : Status.Disabled,
+            recv: w.config?.enabled && canReceive(w) ? Status.Enabled : Status.Disabled
+          }
+        }
+      }).map(w => statusFromLog(w, logs))
+  }, [serverWallets, localWallets, logs])
 
   const settings = useMemo(() => {
     return {

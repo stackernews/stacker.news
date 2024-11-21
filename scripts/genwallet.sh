@@ -58,7 +58,6 @@ $(todo)
 export const card = {
     title: '$wallet',
     subtitle: '',
-    badges: []
 }
 
 $(todo)
@@ -73,7 +72,7 @@ EOF
 
 # create client.js
 cat > wallets/$wallet/client.js <<EOF
-export * from 'wallets/$wallet'
+export * from '@/wallets/$wallet'
 
 export async function testSendPayment (config, { logger }) {
     $(todo)
@@ -87,7 +86,7 @@ EOF
 
 # create server.js
 cat > wallets/$wallet/server.js <<EOF
-export * from 'wallets/$wallet'
+export * from '@/wallets/$wallet'
 
 export async function testCreateInvoice (config) {
     $(todo)

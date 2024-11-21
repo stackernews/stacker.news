@@ -144,10 +144,8 @@ export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd
       return await paidActionPaid({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
     }
 
-    // NOTE: confirm invoice prevents double confirmations (idempotent)
-    // ALSO: is_confirmed and is_held are mutually exclusive
-    // that is, a hold invoice will first be is_held but not is_confirmed
-    // and once it's settled it will be is_confirmed but not is_held
+    // XXX we need to keep this to allow production to migrate to new paidAction flow
+    // once all non-paidAction receive invoices are migrated, we can remove this
     const [[{ confirm_invoice: code }]] = await serialize([
       models.$queryRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`,
       models.invoice.update({ where: { hash }, data: { confirmedIndex: inv.confirmed_index } })
@@ -171,26 +169,6 @@ export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd
       }
       return await paidActionHeld({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
     }
-    // First query makes sure that after payment, JIT invoices are settled
-    // within 60 seconds or they will be canceled to minimize risk of
-    // force closures or wallets banning us.
-    // Second query is basically confirm_invoice without setting confirmed_at
-    // and without setting the user balance
-    // those will be set when the invoice is settled by user action
-    const expiresAt = new Date(Math.min(dbInv.expiresAt, datePivot(new Date(), { seconds: 60 })))
-    return await serialize([
-      models.$queryRaw`
-      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
-      VALUES ('finalizeHodlInvoice', jsonb_build_object('hash', ${hash}), 21, true, ${expiresAt})`,
-      models.invoice.update({
-        where: { hash },
-        data: {
-          msatsReceived: Number(inv.received_mtokens),
-          expiresAt,
-          isHeld: true
-        }
-      })
-    ], { models })
   }
 
   if (inv.is_canceled) {
@@ -309,8 +287,9 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
       notifyWithdrawal(dbWdrwl.userId, wdrwl)
 
       const { request: bolt11, secret: preimage } = wdrwl.payment
+
       logger?.ok(
-        `↙ payment received: ${formatSats(msatsToSats(Number(wdrwl.payment.mtokens)))}`,
+        `↙ payment received: ${formatSats(msatsToSats(paid))}`,
         {
           bolt11,
           preimage,
@@ -414,7 +393,7 @@ export async function checkPendingDeposits (args) {
   const pendingDeposits = await models.invoice.findMany({ where: { confirmedAt: null, cancelled: false } })
   for (const d of pendingDeposits) {
     try {
-      await checkInvoice({ data: { hash: d.hash }, ...args })
+      await checkInvoice({ ...args, data: { hash: d.hash } })
       await sleep(10)
     } catch {
       console.error('error checking invoice', d.hash)
@@ -427,7 +406,7 @@ export async function checkPendingWithdrawals (args) {
   const pendingWithdrawals = await models.withdrawl.findMany({ where: { status: null } })
   for (const w of pendingWithdrawals) {
     try {
-      await checkWithdrawal({ data: { hash: w.hash }, ...args })
+      await checkWithdrawal({ ...args, data: { hash: w.hash } })
       await sleep(10)
     } catch (err) {
       console.error('error checking withdrawal', w.hash, err)

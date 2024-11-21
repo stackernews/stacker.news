@@ -1,1 +1,1 @@
-export * from 'wallets/cln'
+export * from '@/wallets/cln'

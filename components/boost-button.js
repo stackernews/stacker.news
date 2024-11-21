@@ -2,7 +2,7 @@ import { useShowModal } from './modal'
 import { useToast } from './toast'
 import ItemAct from './item-act'
 import AccordianItem from './accordian-item'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import getColor from '@/lib/rainbow'
 import BoostIcon from '@/svgs/arrow-up-double-line.svg'
 import styles from './upvote.module.css'
@@ -12,32 +12,29 @@ import classNames from 'classnames'
 
 export default function Boost ({ item, className, ...props }) {
   const { boost } = item
-  const [hover, setHover] = useState(false)
-
   const [color, nextColor] = useMemo(() => [getColor(boost), getColor(boost + BOOST_MULT)], [boost])
 
-  const style = useMemo(() => (hover || boost
-    ? {
-        fill: hover ? nextColor : color,
-        filter: `drop-shadow(0 0 6px ${hover ? nextColor : color}90)`
-      }
-    : undefined), [boost, hover])
+  const style = useMemo(() => ({
+    '--hover-fill': nextColor,
+    '--hover-filter': `drop-shadow(0 0 6px ${nextColor}90)`,
+    '--fill': color,
+    '--filter': `drop-shadow(0 0 6px ${color}90)`
+  }), [color, nextColor])
 
   return (
     <Booster
-      item={item} As={({ ...oprops }) =>
+      item={item} As={oprops =>
         <div className='upvoteParent'>
           <div
             className={styles.upvoteWrapper}
           >
             <BoostIcon
-              {...props} {...oprops} style={style}
+              {...props}
+              {...oprops}
+              style={style}
               width={26}
               height={26}
-              onPointerEnter={() => setHover(true)}
-              onMouseLeave={() => setHover(false)}
-              onTouchEnd={() => setHover(false)}
-              className={classNames(styles.boost, className, boost && styles.voted)}
+              className={classNames(styles.boost, className, boost && styles.boosted)}
             />
           </div>
         </div>}

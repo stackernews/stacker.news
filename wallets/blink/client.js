@@ -1,5 +1,5 @@
-import { getScopes, SCOPE_READ, SCOPE_WRITE, getWallet, request } from 'wallets/blink/common'
-export * from 'wallets/blink'
+import { getScopes, SCOPE_READ, SCOPE_WRITE, getWallet, request } from '@/wallets/blink/common'
+export * from '@/wallets/blink'
 
 export async function testSendPayment ({ apiKey, currency }, { logger }) {
   logger.info('trying to fetch ' + currency + ' wallet')

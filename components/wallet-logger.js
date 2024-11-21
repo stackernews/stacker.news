@@ -174,9 +174,12 @@ export function useWalletLogger (wallet, setLogs) {
         payment_hash: decoded.tagsObject.payment_hash,
         description: decoded.tagsObject.description,
         created_at: new Date(decoded.timestamp * 1000).toISOString(),
-        expires_at: new Date(decoded.timeExpireDate * 1000).toISOString()
+        expires_at: new Date(decoded.timeExpireDate * 1000).toISOString(),
+        // payments should affect wallet status
+        status: true
       }
     }
+    context.send = true
 
     appendLog(wallet, level, message, context)
     console[level !== 'error' ? 'info' : 'error'](`[${tag(wallet)}]`, message)
@@ -290,7 +293,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     if (hasMore) {
       setLoading(true)
       const result = await loadLogsPage(page + 1, logsPerPage, wallet?.def)
-      _setLogs(prevLogs => [...prevLogs, ...result.data])
+      _setLogs(prevLogs => uniqueSort([...prevLogs, ...result.data]))
       setHasMore(result.hasMore)
       setPage(prevPage => prevPage + 1)
       setLoading(false)

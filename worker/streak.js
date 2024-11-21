@@ -99,7 +99,7 @@ function getStreakQuery (type, userId) {
         FROM "Invoice"
         JOIN "InvoiceForward" ON "Invoice".id = "InvoiceForward"."invoiceId"
         WHERE ("Invoice"."created_at" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= ${dayFragment}
-        AND "Invoice"."actionState" = 'PAID'
+        AND "Invoice"."actionState" = 'PAID' AND "Invoice"."actionType" = 'ZAP'
         ${userId ? Prisma.sql`AND "Invoice"."userId" = ${userId}` : Prisma.empty}
         GROUP BY "Invoice"."userId"
         HAVING sum(floor("Invoice"."msatsReceived"/1000)) >= ${GUN_STREAK_THRESHOLD}`
@@ -112,7 +112,7 @@ function getStreakQuery (type, userId) {
         JOIN "InvoiceForward" ON "Withdrawl".id = "InvoiceForward"."withdrawlId"
         JOIN "Invoice" ON "InvoiceForward"."invoiceId" = "Invoice".id
         WHERE ("Withdrawl"."created_at" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= ${dayFragment}
-        AND "Invoice"."actionState" = 'PAID'
+        AND "Invoice"."actionState" = 'PAID' AND "Invoice"."actionType" = 'ZAP'
         ${userId ? Prisma.sql`AND "Withdrawl"."userId" = ${userId}` : Prisma.empty}
         GROUP BY "Withdrawl"."userId"
         HAVING sum(floor("Invoice"."msatsReceived"/1000)) >= ${HORSE_STREAK_THRESHOLD}`

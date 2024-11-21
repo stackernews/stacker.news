@@ -60,6 +60,5 @@ export const fields = [
 
 export const card = {
   title: 'LNC',
-  subtitle: 'use Lightning Node Connect for LND payments',
-  badges: ['send', 'budgetable']
+  subtitle: 'use Lightning Node Connect for LND payments'
 }

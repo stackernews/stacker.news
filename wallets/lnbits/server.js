@@ -3,7 +3,7 @@ import { getAgent } from '@/lib/proxy'
 import { assertContentTypeJson } from '@/lib/url'
 import fetch from 'cross-fetch'
 
-export * from 'wallets/lnbits'
+export * from '@/wallets/lnbits'
 
 export async function testCreateInvoice ({ url, invoiceKey }) {
   return await createInvoice({ msats: 1000, expiry: 1 }, { url, invoiceKey })
@@ -44,8 +44,9 @@ export async function createInvoice (
     agent,
     body
   })
+
+  assertContentTypeJson(res)
   if (!res.ok) {
-    assertContentTypeJson(res)
     const errBody = await res.json()
     throw new Error(errBody.detail)
   }

@@ -11,14 +11,18 @@ import {
   getInvoice, getPayment, parsePaymentRequest,
   payViaPaymentRequest, settleHodlInvoice
 } from 'ln-service'
-import { MIN_SETTLEMENT_CLTV_DELTA } from 'wallets/wrap'
+import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/wrap'
 
 // aggressive finalization retry options
 const FINALIZE_OPTIONS = { retryLimit: 2 ** 31 - 1, retryBackoff: false, retryDelay: 5, priority: 1000 }
 
-async function transitionInvoice (jobName, { invoiceId, fromState, toState, transition, invoice }, { models, lnd, boss }) {
+async function transitionInvoice (jobName,
+  { invoiceId, fromState, toState, transition, invoice, onUnexpectedError },
+  { models, lnd, boss }
+) {
   console.group(`${jobName}: transitioning invoice ${invoiceId} from ${fromState} to ${toState}`)
 
+  let dbInvoice
   try {
     const currentDbInvoice = await models.invoice.findUnique({ where: { id: invoiceId } })
     console.log('invoice is in state', currentDbInvoice.actionState)
@@ -47,7 +51,7 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
       }
 
       // grab optimistic concurrency lock and the invoice
-      const dbInvoice = await tx.invoice.update({
+      dbInvoice = await tx.invoice.update({
         include,
         where: {
           id: invoiceId,
@@ -100,6 +104,7 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
     }
 
     console.error('unexpected error', e)
+    onUnexpectedError?.({ error: e, dbInvoice, models, boss })
     await boss.send(
       jobName,
       { invoiceId },
@@ -110,31 +115,36 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
 }
 
 async function performPessimisticAction ({ lndInvoice, dbInvoice, tx, models, lnd, boss }) {
-  try {
-    const args = { ...dbInvoice.actionArgs, invoiceId: dbInvoice.id }
-    const context = { tx, cost: BigInt(lndInvoice.received_mtokens) }
-    context.sybilFeePercent = await paidActions[dbInvoice.actionType].getSybilFeePercent?.(args, context)
-
-    const result = await paidActions[dbInvoice.actionType].perform(args, context)
-    await tx.invoice.update({
-      where: { id: dbInvoice.id },
-      data: {
-        actionResult: result,
-        actionError: null
-      }
-    })
-  } catch (e) {
-    // store the error in the invoice, nonblocking and outside of this tx, finalizing immediately
-    models.invoice.update({
-      where: { id: dbInvoice.id },
-      data: {
-        actionError: e.message
-      }
-    }).catch(e => console.error('failed to store action error', e))
-    boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash }, FINALIZE_OPTIONS)
-      .catch(e => console.error('failed to finalize', e))
-    throw e
+  const args = { ...dbInvoice.actionArgs, invoiceId: dbInvoice.id }
+  const context = {
+    tx,
+    cost: BigInt(lndInvoice.received_mtokens),
+    me: dbInvoice.user
   }
+
+  const sybilFeePercent = await paidActions[dbInvoice.actionType].getSybilFeePercent?.(args, context)
+
+  const result = await paidActions[dbInvoice.actionType].perform(args, { ...context, sybilFeePercent })
+  await tx.invoice.update({
+    where: { id: dbInvoice.id },
+    data: {
+      actionResult: result,
+      actionError: null
+    }
+  })
+}
+
+// if we experience an unexpected error when holding an invoice, we need aggressively attempt to cancel it
+// store the error in the invoice, nonblocking and outside of this tx, finalizing immediately
+function onHeldInvoiceError ({ error, dbInvoice, models, boss }) {
+  models.invoice.update({
+    where: { id: dbInvoice.id },
+    data: {
+      actionError: error.message
+    }
+  }).catch(e => console.error('failed to store action error', e))
+  boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash }, FINALIZE_OPTIONS)
+    .catch(e => console.error('failed to finalize', e))
 }
 
 export async function paidActionPaid ({ data: { invoiceId, ...args }, models, lnd, boss }) {
@@ -147,9 +157,17 @@ export async function paidActionPaid ({ data: { invoiceId, ...args }, models, ln
         throw new Error('invoice is not confirmed')
       }
 
-      await paidActions[dbInvoice.actionType].onPaid?.({ invoice: dbInvoice }, { models, tx, lnd })
+      const updateFields = {
+        confirmedAt: new Date(lndInvoice.confirmed_at),
+        confirmedIndex: lndInvoice.confirmed_index,
+        msatsReceived: BigInt(lndInvoice.received_mtokens)
+      }
 
-      // any paid action is eligible for a cowboy hat streak
+      await paidActions[dbInvoice.actionType].onPaid?.({
+        invoice: { ...dbInvoice, ...updateFields }
+      }, { models, tx, lnd })
+
+      // most paid actions are eligible for a cowboy hat streak
       await tx.$executeRaw`
         INSERT INTO pgboss.job (name, data)
         VALUES ('checkStreak', jsonb_build_object('id', ${dbInvoice.userId}, 'type', 'COWBOY_HAT'))`
@@ -162,11 +180,7 @@ export async function paidActionPaid ({ data: { invoiceId, ...args }, models, ln
             ('checkStreak', jsonb_build_object('id', ${dbInvoice.invoiceForward.withdrawl.userId}, 'type', 'HORSE'))`
       }
 
-      return {
-        confirmedAt: new Date(lndInvoice.confirmed_at),
-        confirmedIndex: lndInvoice.confirmed_index,
-        msatsReceived: BigInt(lndInvoice.received_mtokens)
-      }
+      return updateFields
     },
     ...args
   }, { models, lnd, boss })
@@ -237,6 +251,7 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
         }
       }
     },
+    onUnexpectedError: onHeldInvoiceError,
     ...args
   }, { models, lnd, boss })
 
@@ -281,9 +296,12 @@ export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...a
       // settle the invoice, allowing us to transition to PAID
       await settleHodlInvoice({ secret: payment.secret, lnd })
 
+      // the amount we paid includes the fee so we need to subtract it to get the amount received
+      const received = Number(payment.mtokens) - Number(payment.fee_mtokens)
+
       const logger = walletLogger({ wallet: dbInvoice.invoiceForward.wallet, models })
       logger.ok(
-        `↙ payment received: ${formatSats(msatsToSats(payment.mtokens))}`,
+        `↙ payment received: ${formatSats(msatsToSats(received))}`,
         {
           bolt11,
           preimage: payment.secret
@@ -403,6 +421,7 @@ export async function paidActionHeld ({ data: { invoiceId, ...args }, models, ln
         msatsReceived: BigInt(lndInvoice.received_mtokens)
       }
     },
+    onUnexpectedError: onHeldInvoiceError,
     ...args
   }, { models, lnd, boss })
 }

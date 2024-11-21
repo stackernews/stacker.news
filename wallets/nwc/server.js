@@ -1,6 +1,6 @@
 import { withTimeout } from '@/lib/time'
-import { nwcCall, supportedMethods } from 'wallets/nwc'
-export * from 'wallets/nwc'
+import { nwcCall, supportedMethods } from '@/wallets/nwc'
+export * from '@/wallets/nwc'
 
 export async function testCreateInvoice ({ nwcUrlRecv }, { logger }) {
   const timeout = 15_000

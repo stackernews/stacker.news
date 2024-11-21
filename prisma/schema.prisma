@@ -140,6 +140,7 @@ model User {
   vaultKeyHash              String               @default("")
   walletsUpdatedAt          DateTime?
   vaultEntries              VaultEntry[]         @relation("VaultEntries")
+  proxyReceive              Boolean              @default(false)
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -288,7 +289,7 @@ model WalletLNbits {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
   url        String
-  invoiceKey String
+  invoiceKey String?
 }
 
 model WalletNWC {
@@ -297,7 +298,7 @@ model WalletNWC {
   wallet     Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
-  nwcUrlRecv String
+  nwcUrlRecv String?
 }
 
 model WalletBlink {
@@ -306,7 +307,7 @@ model WalletBlink {
   wallet       Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
-  apiKeyRecv   String
+  apiKeyRecv   String?
   currencyRecv String?
 }
 
@@ -317,7 +318,7 @@ model WalletPhoenixd {
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
   url               String
-  secondaryPassword String
+  secondaryPassword String?
 }
 
 model Mute {
@@ -864,6 +865,7 @@ enum InvoiceActionType {
   TERRITORY_UPDATE
   TERRITORY_BILLING
   TERRITORY_UNARCHIVE
+  RECEIVE
 }
 
 enum InvoiceActionState {

@@ -114,7 +114,10 @@ export function CarouselProvider ({ children }) {
     window.history.pushState(null, '', pathname)
 
     showModal((close, setOptions) => {
-      return <Carousel close={close} mediaArr={Array.from(media.current.entries())} src={src} setOptions={setOptions} />
+      const closeAction = () => {
+        window.history.back()
+      }
+      return <Carousel close={closeAction} mediaArr={Array.from(media.current.entries())} src={src} setOptions={setOptions} />
     }, {
       fullScreen: true,
       overflow: <CarouselOverflow {...media.current.get(src)} />

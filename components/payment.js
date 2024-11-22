@@ -46,7 +46,12 @@ export const useInvoice = () => {
       throw error
     }
 
-    const { hash, cancelled, actionError, actionState } = data.invoice
+    const { hash, cancelled, cancelledAt, actionError, actionState, expiresAt } = data.invoice
+
+    const expired = cancelledAt && new Date(expiresAt) < new Date(cancelledAt)
+    if (expired) {
+      throw new InvoiceExpiredError(hash)
+    }
 
     if (cancelled || actionError) {
       throw new InvoiceCanceledError(hash, actionError)
@@ -170,6 +175,7 @@ export const useQrPayment = () => {
           useWallet={false}
           walletError={walletError}
           waitFor={waitFor}
+          onExpired={inv => reject(new InvoiceExpiredError(inv?.hash))}
           onCanceled={inv => { onClose(); reject(new InvoiceCanceledError(inv?.hash, inv?.actionError)) }}
           onPayment={() => { paid = true; onClose(); resolve() }}
           poll

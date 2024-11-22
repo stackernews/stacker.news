@@ -108,6 +108,7 @@ const typeDefs = `
     bolt11: String!
     expiresAt: Date!
     cancelled: Boolean!
+    cancelledAt: Date
     confirmedAt: Date
     satsReceived: Int
     satsRequested: Int!

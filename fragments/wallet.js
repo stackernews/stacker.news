@@ -11,6 +11,7 @@ export const INVOICE_FIELDS = gql`
     satsRequested
     satsReceived
     cancelled
+    cancelledAt
     confirmedAt
     expiresAt
     nostr

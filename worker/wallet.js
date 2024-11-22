@@ -182,7 +182,8 @@ export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd
           hash: inv.id
         },
         data: {
-          cancelled: true
+          cancelled: true,
+          cancelledAt: new Date()
         }
       }), { models }
     )

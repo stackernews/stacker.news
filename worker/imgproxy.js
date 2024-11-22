@@ -123,11 +123,16 @@ const getMetadata = async (url) => {
   const options = '/vm:1/d:1/f:1'
   const imgproxyUrl = new URL(createImgproxyPath({ url, options, pathname: '/info' }), IMGPROXY_URL).toString()
   const res = await fetch(imgproxyUrl)
-  const { width, height, format, video_streams: videoStreams } = await res.json()
-  return { dimensions: { width, height }, format, video: !!videoStreams?.length }
+  const { width, height, format, pages, video_streams: videoStreams } = await res.json()
+  return { dimensions: { width, height }, format, video: !!videoStreams?.length, pdf: format === 'pdf', pages: pages || 1 }
 }
 
 const createImgproxyPath = ({ url, pathname = '/', options }) => {
+  // pdf processing, pg:1 for first page, q:90 for quality, cc:ffffff for white background, dpr:2 for retina
+  if (url.endsWith('.pdf')) {
+    options = `/pg:1${options}/q:90/cc:ffffff/dpr:2`
+  }
+
   const b64Url = Buffer.from(url, 'utf-8').toString('base64url')
   const target = path.join(options, b64Url)
   const signature = sign(target)
@@ -151,7 +156,7 @@ const isMediaURL = async (url, { forceFetch }) => {
     // https://stackoverflow.com/a/68118683
     const res = await fetchWithTimeout(url, { timeout: 1000, method: 'HEAD' })
     const buf = await res.blob()
-    isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
+    isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/' || buf.type === 'application/pdf')
   } catch (err) {
     console.log(url, err)
   }
@@ -167,7 +172,7 @@ const isMediaURL = async (url, { forceFetch }) => {
   try {
     const res = await fetchWithTimeout(url, { timeout: 10000 })
     const buf = await res.blob()
-    isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
+    isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/' || buf.type === 'application/pdf')
   } catch (err) {
     console.log(url, err)
   }

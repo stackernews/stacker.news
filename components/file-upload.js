@@ -21,7 +21,9 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
   const s3Upload = useCallback(async file => {
     const element = file.type.startsWith('image/')
       ? new window.Image()
-      : document.createElement('video')
+      : file.type.startsWith('video/')
+        ? document.createElement('video')
+        : document.createElement('object') // pdf
 
     file = await removeExifData(file)
 
@@ -72,16 +74,20 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         resolve(id)
       }
 
-      // img fire 'load' event while videos fire 'loadeddata'
-      element.onload = onload
-      element.onloadeddata = onload
+      if (file.type === 'application/pdf') {
+        onload() // pdf can be loaded directly
+      } else {
+        // img fire 'load' event while videos fire 'loadeddata'
+        element.onload = onload
+        element.onloadeddata = onload
 
-      element.onerror = reject
-      element.src = window.URL.createObjectURL(file)
+        element.onerror = reject
+        element.src = window.URL.createObjectURL(file)
 
-      // iOS Force the video to load metadata
-      if (element.tagName === 'VIDEO') {
-        element.load()
+        // iOS Force the video to load metadata
+        if (element.tagName === 'VIDEO') {
+          element.load()
+        }
       }
     })
   }, [toaster, getSignedPOST])
@@ -101,7 +107,7 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
           for (const file of Array.from(fileList)) {
             try {
               if (accept.indexOf(file.type) === -1) {
-                throw new Error(`file must be ${accept.map(t => t.replace(/^(image|video)\//, '')).join(', ')}`)
+                throw new Error(`file must be ${accept.map(t => t.replace(/^(image|video|application)\//, '')).join(', ')}`)
               }
               if (onSelect) await onSelect?.(file, s3Upload)
               else await s3Upload(file)

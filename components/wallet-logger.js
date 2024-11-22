@@ -319,10 +319,11 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     // only fetch new logs if we are on a page that uses logs
     const needLogs = router.asPath.startsWith('/settings/wallets') || router.asPath.startsWith('/wallet/logs')
     if (me && needLogs) {
-      const interval = setInterval(() => {
-        loadNew().catch(console.error)
-      }, 1_000)
-      return () => clearInterval(interval)
+      // this will poll the logs _every_ second instead of just once since a poll
+      // changes `loadNew` so we will run the effect again with a new timeout after each poll
+      const poll = async () => { await loadNew().catch(console.error) }
+      const timeout = setTimeout(poll, 1_000)
+      return () => { clearTimeout(timeout) }
     }
   }, [me?.id, router.pathname, loadNew])
 

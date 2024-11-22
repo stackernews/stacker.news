@@ -1,5 +1,5 @@
 import LogMessage from './log-message'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import styles from '@/styles/log.module.css'
 import { Button } from 'react-bootstrap'
 import { useToast } from './toast'
@@ -10,7 +10,6 @@ import { gql, useLazyQuery, useMutation } from '@apollo/client'
 import { useMe } from './me'
 import useIndexedDB, { getDbName } from './use-indexeddb'
 import { SSR } from '@/lib/constants'
-import useInterval from './use-interval'
 import { decode as bolt11Decode } from 'bolt11'
 import { formatMsats } from '@/lib/format'
 
@@ -204,6 +203,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
   const [hasMore, setHasMore] = useState(true)
   const [cursor, setCursor] = useState(null)
   const [loading, setLoading] = useState(true)
+  const { me } = useMe()
 
   const { getPage, error, notSupported } = useWalletLogDB()
   const [getWalletLogs] = useLazyQuery(WALLET_LOGS, SSR ? {} : { fetchPolicy: 'cache-and-network' })
@@ -313,9 +313,14 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     }
   }, [logs, wallet?.def, loadLogsPage])
 
-  useInterval(() => {
-    loadNew().catch(console.error)
-  }, 1_000, [loadNew])
+  useEffect(() => {
+    if (me) {
+      const interval = setInterval(() => {
+        loadNew().catch(console.error)
+      }, 1_000)
+      return () => clearInterval(interval)
+    }
+  }, [me?.id, loadNew])
 
   return { logs, hasMore: !loading && hasMore, loadMore, setLogs, loading }
 }

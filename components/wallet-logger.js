@@ -12,6 +12,7 @@ import useIndexedDB, { getDbName } from './use-indexeddb'
 import { SSR } from '@/lib/constants'
 import { decode as bolt11Decode } from 'bolt11'
 import { formatMsats } from '@/lib/format'
+import { useRouter } from 'next/router'
 
 export function WalletLogs ({ wallet, embedded }) {
   const { logs, setLogs, hasMore, loadMore, loading } = useWalletLogs(wallet)
@@ -204,6 +205,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
   const [cursor, setCursor] = useState(null)
   const [loading, setLoading] = useState(true)
   const { me } = useMe()
+  const router = useRouter()
 
   const { getPage, error, notSupported } = useWalletLogDB()
   const [getWalletLogs] = useLazyQuery(WALLET_LOGS, SSR ? {} : { fetchPolicy: 'cache-and-network' })
@@ -314,13 +316,15 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
   }, [logs, wallet?.def, loadLogsPage])
 
   useEffect(() => {
-    if (me) {
+    // only fetch new logs if we are on a page that uses logs
+    const needLogs = router.asPath.startsWith('/settings/wallets') || router.asPath.startsWith('/wallet/logs')
+    if (me && needLogs) {
       const interval = setInterval(() => {
         loadNew().catch(console.error)
       }, 1_000)
       return () => clearInterval(interval)
     }
-  }, [me?.id, loadNew])
+  }, [me?.id, router.pathname, loadNew])
 
   return { logs, hasMore: !loading && hasMore, loadMore, setLogs, loading }
 }

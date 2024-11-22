@@ -27,9 +27,12 @@ export async function getBalance () {
     throw new Error('WebLN provider not found')
   }
 
-  // this will prompt the user to unlock the wallet if it's locked
-  await window.webln.enable()
+  if (!window.webln.snEnabledOnce) {
+    window.webln.snEnabledOnce = true
+    await window.webln.enable()
+  }
 
+  // this will prompt the user to unlock the wallet if it's locked
   if (typeof window.webln.getBalance === 'undefined') {
     throw new Error('getBalance not supported')
   }

@@ -181,7 +181,7 @@ export default async function wrapInvoice ({ bolt11, feePercent }, { msats, desc
     const minEstFees = toPositiveNumber(routingFeeMsat)
     const outgoingMaxFeeMsat = Math.ceil(toPositiveNumber(msats * MAX_FEE_ESTIMATE_PERCENT) / 100)
     if (minEstFees > outgoingMaxFeeMsat) {
-      throw new Error('Estimated fees are too high')
+      throw new Error('Estimated fees are too high (' + minEstFees + ' > ' + outgoingMaxFeeMsat + ')')
     }
 
     // calculate the incoming invoice amount, without fees

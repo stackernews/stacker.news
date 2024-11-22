@@ -13,12 +13,11 @@ import { canReceive, canSend, isConfigured } from '@/wallets/common'
 import { SSR } from '@/lib/constants'
 import WalletButtonBar from '@/components/wallet-buttonbar'
 import { useWalletConfigurator } from '@/wallets/config'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useMe } from '@/components/me'
 import validateWallet from '@/wallets/validate'
 import { ValidationError } from 'yup'
 import { useFormikContext } from 'formik'
-import useDarkMode from '@/components/dark-mode'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -29,8 +28,6 @@ export default function WalletSettings () {
   const wallet = useWallet(name)
   const { me } = useMe()
   const { save, detach } = useWalletConfigurator(wallet)
-  const [dark] = useDarkMode()
-  const [imgSrc, setImgSrc] = useState(wallet?.def.card?.image?.src)
 
   const initial = useMemo(() => {
     const initial = wallet?.def.fields.reduce((acc, field) => {
@@ -72,16 +69,10 @@ export default function WalletSettings () {
 
   const { card: { image, title, subtitle } } = wallet?.def || { card: {} }
 
-  useEffect(() => {
-    if (!imgSrc) return
-    // wallet.png <-> wallet-dark.png
-    setImgSrc(dark ? image?.src.replace(/\.([a-z]{3})$/, '-dark.$1') : image?.src)
-  }, [dark])
-
   return (
     <CenterLayout>
       {image
-        ? <img alt={title} {...image} src={imgSrc} className='pb-3 px-2 mw-100' />
+        ? <img alt={title} {...image} className='pb-3 px-2 mw-100' />
         : <h2 className='pb-2'>{title}</h2>}
       <h6 className='text-muted text-center pb-3'><Text>{subtitle}</Text></h6>
       <Form

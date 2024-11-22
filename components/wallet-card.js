@@ -7,8 +7,6 @@ import { Status, isConfigured } from '@/wallets/common'
 import DraggableIcon from '@/svgs/draggable.svg'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
-import useDarkMode from './dark-mode'
-import { useEffect, useState } from 'react'
 
 const statusToClass = status => {
   switch (status) {
@@ -20,15 +18,7 @@ const statusToClass = status => {
 }
 
 export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnter, onDragEnd, onTouchStart, sourceIndex, targetIndex, index }) {
-  const [dark] = useDarkMode()
   const { card: { title, image } } = wallet.def
-  const [imgSrc, setImgSrc] = useState(image?.src)
-
-  useEffect(() => {
-    if (!imgSrc) return
-    // wallet.png <-> wallet-dark.png
-    setImgSrc(dark ? image?.src.replace(/\.([a-z]{3})$/, '-dark.$1') : image?.src)
-  }, [dark])
 
   return (
     <Card
@@ -56,7 +46,7 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       >
         <div className='d-flex text-center align-items-center h-100'>
           {image
-            ? <img alt={title} width='100%' {...image} src={imgSrc} />
+            ? <img alt={title} width='100%' {...image} />
             : <Card.Title className='w-100 justify-content-center align-items-center'>{title}</Card.Title>}
         </div>
       </Card.Body>

@@ -456,7 +456,8 @@ export async function paidActionFailed ({ data: { invoiceId, ...args }, models, 
       await paidActions[dbInvoice.actionType].onFail?.({ invoice: dbInvoice }, { models, tx, lnd })
 
       return {
-        cancelled: true
+        cancelled: true,
+        cancelledAt: new Date()
       }
     },
     ...args

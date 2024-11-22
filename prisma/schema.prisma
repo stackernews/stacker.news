@@ -909,6 +909,7 @@ model Invoice {
   confirmedAt    DateTime?
   confirmedIndex BigInt?
   cancelled      Boolean         @default(false)
+  cancelledAt    DateTime?
   msatsRequested BigInt
   msatsReceived  BigInt?
   desc           String?

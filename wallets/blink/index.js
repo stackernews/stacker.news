@@ -67,5 +67,5 @@ export const fields = [
 export const card = {
   title: 'Blink',
   subtitle: 'use [Blink](https://blink.sv/) for payments',
-  badges: ['send', 'receive']
+  image: { src: '/wallets/blink.svg' }
 }

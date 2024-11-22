@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { numWithUnits } from '@/lib/format'
 import AccordianItem from './accordian-item'
 import Qr, { QrSkeleton } from './qr'
@@ -18,10 +18,9 @@ import { Badge } from 'react-bootstrap'
 import styles from './invoice.module.css'
 
 export default function Invoice ({
-  id, query = INVOICE, modal, onPayment, onCanceled, info, successVerb = 'deposited',
+  id, query = INVOICE, modal, onPayment, onExpired, onCanceled, info, successVerb = 'deposited',
   heldVerb = 'settling', useWallet = true, walletError, poll, waitFor, ...props
 }) {
-  const [expired, setExpired] = useState(false)
   const { data, error } = useQuery(query, SSR
     ? {}
     : {
@@ -33,6 +32,8 @@ export default function Invoice ({
 
   const invoice = data?.invoice
 
+  const expired = invoice?.cancelledAt && new Date(invoice.expiresAt) < new Date(invoice.cancelledAt)
+
   useEffect(() => {
     if (!invoice) {
       return
@@ -40,11 +41,12 @@ export default function Invoice ({
     if (waitFor?.(invoice)) {
       onPayment?.(invoice)
     }
-    if (invoice.cancelled || invoice.actionError) {
+    if (expired) {
+      onExpired?.(invoice)
+    } else if (invoice.cancelled || invoice.actionError) {
       onCanceled?.(invoice)
     }
-    setExpired(new Date(invoice.expiredAt) <= new Date())
-  }, [invoice, onPayment, setExpired])
+  }, [invoice, expired, onExpired, onCanceled, onPayment])
 
   if (error) {
     return <div>{error.message}</div>
@@ -78,6 +80,10 @@ export default function Invoice ({
       </>
     )
     useWallet = false
+  } else if (expired) {
+    variant = 'failed'
+    status = 'expired'
+    useWallet = false
   } else if (invoice.cancelled) {
     variant = 'failed'
     status = 'cancelled'
@@ -90,18 +96,10 @@ export default function Invoice ({
       </div>
     )
     useWallet = false
-  } else if (expired) {
-    variant = 'failed'
-    status = 'expired'
-    useWallet = false
   } else {
     variant = 'pending'
     status = (
-      <CompactLongCountdown
-        date={invoice.expiresAt} onComplete={() => {
-          setExpired(true)
-        }}
-      />
+      <CompactLongCountdown date={invoice.expiresAt} />
     )
   }
 

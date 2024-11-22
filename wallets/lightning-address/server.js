@@ -1,5 +1,6 @@
 import { msatsSatsFloor } from '@/lib/format'
 import { lnAddrOptions } from '@/lib/lnurl'
+import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
 export * from '@/wallets/lightning-address'
 
@@ -24,10 +25,15 @@ export const createInvoice = async (
   }
 
   // call callback with amount and conditionally comment
-  const res = await (await fetch(callbackUrl.toString())).json()
-  if (res.status === 'ERROR') {
-    throw new Error(res.reason)
+  const res = await fetch(callbackUrl.toString())
+
+  assertResponseOk(res)
+  assertContentTypeJson(res)
+
+  const body = await res.json()
+  if (body.status === 'ERROR') {
+    throw new Error(body.reason)
   }
 
-  return res.pr
+  return body.pr
 }

@@ -121,6 +121,7 @@ async function performPessimisticAction ({ lndInvoice, dbInvoice, tx, models, ln
     cost: BigInt(lndInvoice.received_mtokens),
     me: dbInvoice.user
   }
+
   const sybilFeePercent = await paidActions[dbInvoice.actionType].getSybilFeePercent?.(args, context)
 
   const result = await paidActions[dbInvoice.actionType].perform(args, { ...context, sybilFeePercent })
@@ -455,7 +456,8 @@ export async function paidActionFailed ({ data: { invoiceId, ...args }, models, 
       await paidActions[dbInvoice.actionType].onFail?.({ invoice: dbInvoice }, { models, tx, lnd })
 
       return {
-        cancelled: true
+        cancelled: true,
+        cancelledAt: new Date()
       }
     },
     ...args

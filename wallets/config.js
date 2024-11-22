@@ -54,7 +54,7 @@ export function useWalletConfigurator (wallet) {
       if (transformedConfig) {
         serverConfig = Object.assign(serverConfig, transformedConfig)
       }
-    } else {
+    } else if (wallet.def.requiresConfig) {
       throw new Error('configuration must be able to send or receive')
     }
 

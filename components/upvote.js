@@ -109,7 +109,6 @@ export default function UpVote ({ item, className, collapsed }) {
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
   const { me } = useMe()
-  const [hover, setHover] = useState(false)
   const [setWalkthrough] = useMutation(
     gql`
       mutation setWalkthrough($upvotePopover: Boolean, $tipPopover: Boolean) {
@@ -172,10 +171,6 @@ export default function UpVote ({ item, className, collapsed }) {
     me, item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault,
     me?.privates?.tipRandom, me?.privates?.tipRandomMin, me?.privates?.tipRandomMax, pending])
 
-  const handleModalClosed = () => {
-    setHover(false)
-  }
-
   const handleLongPress = (e) => {
     if (!item) return
 
@@ -195,7 +190,7 @@ export default function UpVote ({ item, className, collapsed }) {
     setController(c)
 
     showModal(onClose =>
-      <ItemAct onClose={onClose} item={item} abortSignal={c.signal} />, { onClose: handleModalClosed })
+      <ItemAct onClose={onClose} item={item} abortSignal={c.signal} />)
   }
 
   const handleShortPress = async () => {
@@ -223,19 +218,16 @@ export default function UpVote ({ item, className, collapsed }) {
 
       await zap({ item, me, abortSignal: c.signal })
     } else {
-      showModal(onClose => <ItemAct onClose={onClose} item={item} />, { onClose: handleModalClosed })
+      showModal(onClose => <ItemAct onClose={onClose} item={item} />)
     }
   }
 
-  const style = useMemo(() => {
-    const fillColor = pending || hover ? nextColor : color
-    return meSats || hover || pending
-      ? {
-          fill: fillColor,
-          filter: `drop-shadow(0 0 6px ${fillColor}90)`
-        }
-      : undefined
-  }, [hover, pending, nextColor, color, meSats])
+  const style = useMemo(() => ({
+    '--hover-fill': nextColor,
+    '--hover-filter': `drop-shadow(0 0 6px ${nextColor}90)`,
+    '--fill': color,
+    '--filter': `drop-shadow(0 0 6px ${color}90)`
+  }), [color, nextColor])
 
   return (
     <div ref={ref} className='upvoteParent'>
@@ -246,9 +238,6 @@ export default function UpVote ({ item, className, collapsed }) {
         <ActionTooltip notForm disable={disabled} overlayText={overlayText}>
           <div className={classNames(disabled && styles.noSelfTips, styles.upvoteWrapper)}>
             <UpBolt
-              onPointerEnter={() => setHover(true)}
-              onMouseLeave={() => setHover(false)}
-              onTouchEnd={() => setHover(false)}
               width={26}
               height={26}
               className={classNames(styles.upvote,

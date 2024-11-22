@@ -1,3 +1,5 @@
+import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
+
 export const galoyBlinkUrl = 'https://api.blink.sv/graphql'
 export const galoyBlinkDashboardUrl = 'https://dashboard.blink.sv/'
 
@@ -38,15 +40,10 @@ export async function request (authToken, query, variables = {}) {
     body: JSON.stringify({ query, variables })
   }
   const res = await fetch(galoyBlinkUrl, options)
-  if (res.status >= 400 && res.status <= 599) {
-    // consume res
-    res.text().catch(() => {})
-    if (res.status === 401) {
-      throw new Error('unauthorized')
-    } else {
-      throw new Error('API responded with HTTP ' + res.status)
-    }
-  }
+
+  assertResponseOk(res)
+  assertContentTypeJson(res)
+
   return res.json()
 }
 

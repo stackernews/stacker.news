@@ -56,7 +56,8 @@ export default async function performPaidAction (actionType, args, incomingConte
     }
     const context = {
       ...contextWithMe,
-      cost: await paidAction.getCost(args, contextWithMe)
+      cost: await paidAction.getCost(args, contextWithMe),
+      sybilFeePercent: await paidAction.getSybilFeePercent?.(args, contextWithMe)
     }
 
     // special case for zero cost actions
@@ -67,6 +68,7 @@ export default async function performPaidAction (actionType, args, incomingConte
 
     for (const paymentMethod of paidAction.paymentMethods) {
       console.log(`considering payment method ${paymentMethod}`)
+      const contextWithPaymentMethod = { ...context, paymentMethod }
 
       if (forcePaymentMethod &&
         paymentMethod !== forcePaymentMethod) {
@@ -77,7 +79,7 @@ export default async function performPaidAction (actionType, args, incomingConte
       // payment methods that anonymous users can use
       if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.P2P) {
         try {
-          return await performP2PAction(actionType, args, context)
+          return await performP2PAction(actionType, args, contextWithPaymentMethod)
         } catch (e) {
           if (e instanceof NonInvoiceablePeerError) {
             console.log('peer cannot be invoiced, skipping')
@@ -87,14 +89,14 @@ export default async function performPaidAction (actionType, args, incomingConte
           throw e
         }
       } else if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC) {
-        return await beginPessimisticAction(actionType, args, context)
+        return await beginPessimisticAction(actionType, args, contextWithPaymentMethod)
       }
 
-      // additionalpayment methods that logged in users can use
+      // additional payment methods that logged in users can use
       if (me) {
         if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT) {
           try {
-            return await performNoInvoiceAction(actionType, args, { ...context, paymentMethod })
+            return await performNoInvoiceAction(actionType, args, contextWithPaymentMethod)
           } catch (e) {
             // if we fail with fee credits or reward sats, but not because of insufficient funds, bail
             console.error(`${paymentMethod} action failed`, e)
@@ -103,7 +105,7 @@ export default async function performPaidAction (actionType, args, incomingConte
             }
           }
         } else if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC) {
-          return await performOptimisticAction(actionType, args, context)
+          return await performOptimisticAction(actionType, args, contextWithPaymentMethod)
         }
       }
     }
@@ -186,40 +188,40 @@ async function beginPessimisticAction (actionType, args, context) {
 async function performP2PAction (actionType, args, incomingContext) {
   // if the action has an invoiceable peer, we'll create a peer invoice
   // wrap it, and return the wrapped invoice
-  const { cost, models, lnd, me } = incomingContext
-  const sybilFeePercent = await paidActions[actionType].getSybilFeePercent?.(args, incomingContext)
+  const { cost, sybilFeePercent, models, lnd, me } = incomingContext
   if (!sybilFeePercent) {
     throw new Error('sybil fee percent is not set for an invoiceable peer action')
   }
 
-  const contextWithSybilFeePercent = {
-    ...incomingContext,
-    sybilFeePercent
-  }
-
-  const userId = await paidActions[actionType]?.getInvoiceablePeer?.(args, contextWithSybilFeePercent)
+  const userId = await paidActions[actionType]?.getInvoiceablePeer?.(args, incomingContext)
   if (!userId) {
     throw new NonInvoiceablePeerError()
   }
 
-  await assertBelowMaxPendingInvoices(contextWithSybilFeePercent)
+  let context
+  try {
+    await assertBelowMaxPendingInvoices(incomingContext)
 
-  const description = await paidActions[actionType].describe(args, contextWithSybilFeePercent)
-  const { invoice, wrappedInvoice, wallet, maxFee } = await createWrappedInvoice(userId, {
-    msats: cost,
-    feePercent: sybilFeePercent,
-    description,
-    expiry: INVOICE_EXPIRE_SECS
-  }, { models, me, lnd })
+    const description = await paidActions[actionType].describe(args, incomingContext)
+    const { invoice, wrappedInvoice, wallet, maxFee } = await createWrappedInvoice(userId, {
+      msats: cost,
+      feePercent: sybilFeePercent,
+      description,
+      expiry: INVOICE_EXPIRE_SECS
+    }, { models, me, lnd })
 
-  const context = {
-    ...contextWithSybilFeePercent,
-    invoiceArgs: {
-      bolt11: invoice,
-      wrappedBolt11: wrappedInvoice,
-      wallet,
-      maxFee
+    context = {
+      ...incomingContext,
+      invoiceArgs: {
+        bolt11: invoice,
+        wrappedBolt11: wrappedInvoice,
+        wallet,
+        maxFee
+      }
     }
+  } catch (e) {
+    console.error('failed to create wrapped invoice', e)
+    throw new NonInvoiceablePeerError()
   }
 
   return me

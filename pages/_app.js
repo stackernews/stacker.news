@@ -23,6 +23,7 @@ import { HasNewNotesProvider } from '@/components/use-has-new-notes'
 import { WebLnProvider } from '@/wallets/webln/client'
 import { AccountProvider } from '@/components/account'
 import { WalletsProvider } from '@/wallets/index'
+import { usePathname } from 'next/navigation'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
@@ -42,13 +43,22 @@ function writeQuery (client, apollo, data) {
   }
 }
 
+function shouldShowProgressBar (currentPathname, newPathname, shallow) {
+  return !shallow || (currentPathname !== newPathname)
+}
+
 export default function MyApp ({ Component, pageProps: { ...props } }) {
   const client = getApolloClient()
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
-    const nprogressStart = (_, { shallow }) => !shallow && NProgress.start()
-    const nprogressDone = (_, { shallow }) => !shallow && NProgress.done()
+    const nprogressStart = (newPathname, { shallow }) => {
+      shouldShowProgressBar(pathname, newPathname, shallow) && NProgress.start()
+    }
+    const nprogressDone = (newPathname, { shallow }) => {
+      shouldShowProgressBar(pathname, newPathname, shallow) && NProgress.done()
+    }
 
     router.events.on('routeChangeStart', nprogressStart)
     router.events.on('routeChangeComplete', nprogressDone)
@@ -77,7 +87,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
       router.events.off('routeChangeComplete', nprogressDone)
       router.events.off('routeChangeError', nprogressDone)
     }
-  }, [router.asPath, props?.apollo])
+  }, [router.asPath, props?.apollo, pathname])
 
   useEffect(() => {
     // hack to disable ios pwa prompt for https://github.com/stackernews/stacker.news/issues/953

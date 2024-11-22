@@ -210,7 +210,8 @@ export function WalletsProvider ({ children }) {
             const balance = await wallet.def.getBalance(wallet.config)
             newState.msats = balance
           } catch (error) {
-          // we'll handle the error downstream where it makes sense
+            console.warn(error)
+            // we'll handle the error downstream where it makes sense
             newState.error = error
             newState.msats = 0n
           }

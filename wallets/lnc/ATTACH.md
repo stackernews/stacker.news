@@ -7,12 +7,12 @@ This can be done one of two ways:
 We only need permissions for the uri `/lnrpc.Lightning/SendPaymentSync`
 
 ```bash
-$ sndev stacker_litcli accounts create --balance <budget>
+$ sndev cli litd accounts create --balance <budget>
 ```
 
 Grab the `account.id` from the output and use it here:
 ```bash
-$ sndev stacker_litcli sessions add --type custom --label <your label> --account_id <account_id> --uri /lnrpc.Lightning/SendPaymentSync
+$ sndev cli litd sessions add --type custom --label <your label> --account_id <account_id> --uri /lnrpc.Lightning/SendPaymentSync
 ```
 
 Grab the `pairing_secret_mnemonic` from the output and that's your pairing phrase.

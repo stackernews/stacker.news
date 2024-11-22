@@ -38,7 +38,7 @@ export async function getBalance () {
   }
 
   const balance = await window.webln.getBalance()
-  if (balance.currency !== 'sats') {
+  if (balance.currency && balance.currency !== 'sats') {
     throw new Error('getBalance returned unsupported currency')
   }
   return BigInt(balance.balance * 1000)

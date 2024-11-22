@@ -11,5 +11,12 @@
             "port": 9229,
             "outputCapture": "std"
         }
-    ]
+    ],
+    "typescript.preferences.importModuleSpecifier": "relative",
+    "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+    "typescript.tsserver.log": "verbose",
+    "typescript.tsserver.trace": "messages",
+    "typescript.tsserver.useSeparateSyntaxServer": true,
+    "typescript.tsserver.useSyntaxServer": "always",
+    "typescript.tsserver.experimental.enableProjectDiagnostics": true
 }

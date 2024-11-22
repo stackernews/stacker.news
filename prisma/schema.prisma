@@ -185,6 +185,7 @@ enum WalletType {
   BLINK
   LNC
   WEBLN
+  CASHU
 }
 
 model Wallet {

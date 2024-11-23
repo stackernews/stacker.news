@@ -8,18 +8,13 @@ import DraggableIcon from '@/svgs/draggable.svg'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
 import { useWalletImage } from '@/components/wallet-image'
-
-const statusToClass = status => {
-  switch (status) {
-    case Status.Enabled: return styles.success
-    case Status.Disabled: return styles.disabled
-    case Status.Error: return styles.error
-    case Status.Warning: return styles.warning
-  }
-}
+import { useWalletStatus, statusToClass } from '@/components/wallet-status'
+import { useWalletSupport } from '@/components/wallet-support'
 
 export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnter, onDragEnd, onTouchStart, sourceIndex, targetIndex, index }) {
   const image = useWalletImage(wallet)
+  const status = useWalletStatus(wallet)
+  const support = useWalletSupport(wallet)
 
   return (
     <Card
@@ -32,9 +27,9 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
     >
       <div className={styles.cardMeta}>
         <div className={styles.indicators}>
-          {wallet.status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
-          {wallet.support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(wallet.status.recv)}`} />}
-          {wallet.support.send && <SendIcon className={`${styles.indicator} ${statusToClass(wallet.status.send)}`} />}
+          {status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
+          {support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(status.recv)}`} />}
+          {support.send && <SendIcon className={`${styles.indicator} ${statusToClass(status.send)}`} />}
         </div>
       </div>
       <Card.Body

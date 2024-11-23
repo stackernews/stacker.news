@@ -95,7 +95,7 @@ async function getLNC (credentials = {}) {
     }
     return window.lnc
   }
-  const { default: { default: LNC } } = await import('@lightninglabs/lnc-web')
+  const { default: LNC } = await import('@lightninglabs/lnc-web')
   window.lnc = new LNC({
     credentialStore: new LncCredentialStore({
       ...credentials,

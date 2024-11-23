@@ -10,7 +10,6 @@ import { decode as bolt11Decode } from 'bolt11'
 import walletDefs from '@/wallets/client'
 import { generateMutation } from './graphql'
 import { formatSats } from '@/lib/format'
-import useDarkMode from '@/components/dark-mode'
 
 const WalletsContext = createContext({
   wallets: []
@@ -69,7 +68,6 @@ export function WalletsProvider ({ children }) {
   const [serverWallets, setServerWallets] = useState([])
   const client = useApolloClient()
   const { logs } = useWalletLogs()
-  const [darkMode] = useDarkMode()
 
   const { data, refetch } = useQuery(WALLETS,
     SSR ? {} : { nextFetchPolicy: 'cache-and-network' })
@@ -135,12 +133,6 @@ export function WalletsProvider ({ children }) {
     return Object.values(merged)
       .sort(walletPrioritySort)
       .map(w => {
-        const { card: { image } } = w.def
-        let imgSrc = image?.src
-        if (imgSrc && darkMode) {
-          // wallet.png <-> wallet-dark.png
-          imgSrc = image.src.replace(/\.([a-z]{3})$/, '-dark.$1')
-        }
         return {
           ...w,
           support: {
@@ -151,17 +143,10 @@ export function WalletsProvider ({ children }) {
             any: w.config?.enabled && isConfigured(w) ? Status.Enabled : Status.Disabled,
             send: w.config?.enabled && canSend(w) ? Status.Enabled : Status.Disabled,
             recv: w.config?.enabled && canReceive(w) ? Status.Enabled : Status.Disabled
-          },
-          def: {
-            ...w.def,
-            card: {
-              ...w.def.card,
-              image: imgSrc ? { src: imgSrc } : undefined
-            }
           }
         }
       }).map(w => statusFromLog(w, logs))
-  }, [serverWallets, localWallets, logs, darkMode])
+  }, [serverWallets, localWallets, logs])
 
   const settings = useMemo(() => {
     return {

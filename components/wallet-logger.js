@@ -1,5 +1,5 @@
 import LogMessage from './log-message'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from '@/styles/log.module.css'
 import { Button } from 'react-bootstrap'
 import { useToast } from './toast'
@@ -204,6 +204,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
   const [hasMore, setHasMore] = useState(true)
   const [cursor, setCursor] = useState(null)
   const [loading, setLoading] = useState(true)
+  const latestTimestamp = useRef()
   const { me } = useMe()
   const router = useRouter()
 
@@ -216,6 +217,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     const newLogs = typeof action === 'function' ? action(logs) : action
     // make sure 'more' button is removed if logs were deleted
     if (newLogs.length === 0) setHasMore(false)
+    latestTimestamp.current = newLogs[0]?.ts
   }, [logs, _setLogs, setHasMore])
 
   const loadLogsPage = useCallback(async (page, pageSize, walletDef, variables = {}) => {
@@ -303,27 +305,36 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
   }, [loadLogsPage, page, logsPerPage, wallet?.def, hasMore])
 
   const loadNew = useCallback(async () => {
-    const newestTs = logs[0]?.ts
-    const variables = { from: newestTs?.toString(), to: null }
+    const latestTs = latestTimestamp.current
+    const variables = { from: latestTs?.toString(), to: null }
     const result = await loadLogsPage(1, logsPerPage, wallet?.def, variables)
     setLoading(false)
     _setLogs(prevLogs => uniqueSort([...result.data, ...prevLogs]))
-    if (!newestTs) {
+    if (!latestTs) {
       // we only want to update the more button if we didn't fetch new logs since it is about old logs.
       // we didn't fetch new logs if this is our first fetch (no newest timestamp available)
       setHasMore(result.hasMore)
     }
-  }, [logs, wallet?.def, loadLogsPage])
+  }, [wallet?.def, loadLogsPage])
 
   useEffect(() => {
     // only fetch new logs if we are on a page that uses logs
     const needLogs = router.asPath.startsWith('/settings/wallets') || router.asPath.startsWith('/wallet/logs')
-    if (me && needLogs) {
-      // this will poll the logs _every_ second instead of just once since a poll
-      // changes `loadNew` so we will run the effect again with a new timeout after each poll
-      const poll = async () => { await loadNew().catch(console.error) }
-      const timeout = setTimeout(poll, 1_000)
-      return () => { clearTimeout(timeout) }
+    if (!me || !needLogs) return
+
+    let timeout
+    let stop = false
+
+    const poll = async () => {
+      await loadNew().catch(console.error)
+      if (!stop) timeout = setTimeout(poll, 1_000)
+    }
+
+    timeout = setTimeout(poll, 1_000)
+
+    return () => {
+      stop = true
+      clearTimeout(timeout)
     }
   }, [me?.id, router.pathname, loadNew])
 

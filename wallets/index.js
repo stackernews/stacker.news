@@ -15,21 +15,26 @@ const WalletsContext = createContext({
   wallets: []
 })
 
+function loadWallet (walletDef, me) {
+  try {
+    const storageKey = getStorageKey(walletDef.name, me?.id)
+    const config = window.localStorage.getItem(storageKey)
+    return { def: walletDef, config: JSON.parse(config) }
+  } catch (e) {
+    // ignore SSR errors
+    return null
+  }
+}
+
 function useLocalWallets () {
   const { me } = useMe()
   const [wallets, setWallets] = useState([])
 
   const loadWallets = useCallback(() => {
     // form wallets from local storage into a list of { config, def }
-    const wallets = walletDefs.map(w => {
-      try {
-        const storageKey = getStorageKey(w.name, me?.id)
-        const config = window.localStorage.getItem(storageKey)
-        return { def: w, config: JSON.parse(config) }
-      } catch (e) {
-        return null
-      }
-    }).filter(Boolean)
+    const wallets = walletDefs
+      .map(w => loadWallet(w, me))
+      .filter(Boolean)
     setWallets(wallets)
   }, [me?.id, setWallets])
 
@@ -63,9 +68,31 @@ const walletDefsOnly = walletDefs.map(w => ({ def: w, config: {} }))
 export function WalletsProvider ({ children }) {
   const { isActive, decrypt } = useVault()
   const { me } = useMe()
+
   const { wallets: localWallets, reloadLocalWallets, removeLocalWallets } = useLocalWallets()
   const [setWalletPriority] = useMutation(SET_WALLET_PRIORITY)
   const [serverWallets, setServerWallets] = useState([])
+
+  // XXX calling hooks in a loop is against the rules of hooks
+  //
+  // we do this here anyway so we can return all wallets with their loggers included.
+  // we ensure hooks are always called in the same order by sorting the wallets by name.
+  //
+  // we don't use localWallets here because it is empty on first render
+  // so using it would change the order of the hooks between renders.
+  //
+  // see https://react.dev/reference/rules/rules-of-hooks
+  const loggers = walletDefs
+    .map(w => loadWallet(w, me))
+    .filter(Boolean)
+    .sort((w1, w2) => w1.def.name.localeCompare(w2.def.name))
+    .reduce((acc, w) => {
+      return {
+        ...acc,
+        [w.def.name]: useWalletLogger(w.def)?.logger
+      }
+    }, {})
+
   const client = useApolloClient()
   const { logs } = useWalletLogs()
 
@@ -108,6 +135,7 @@ export function WalletsProvider ({ children }) {
   }, [data?.wallets, decrypt, isActive])
 
   // merge wallets on name like: { ...unconfigured, ...localConfig, ...serverConfig }
+  // also include the logger and the sendPayment function
   const wallets = useMemo(() => {
     const merged = {}
     for (const wallet of [...walletDefsOnly, ...localWallets, ...serverWallets]) {
@@ -129,10 +157,11 @@ export function WalletsProvider ({ children }) {
       }
     }
 
-    // sort by priority, then add status field
+    // sort by priority, then add status field, logger and sendPayment function
     return Object.values(merged)
       .sort(walletPrioritySort)
       .map(w => {
+        const logger = loggers[w.def.name]
         return {
           ...w,
           support: {
@@ -143,10 +172,13 @@ export function WalletsProvider ({ children }) {
             any: w.config?.enabled && isConfigured(w) ? Status.Enabled : Status.Disabled,
             send: w.config?.enabled && canSend(w) ? Status.Enabled : Status.Disabled,
             recv: w.config?.enabled && canReceive(w) ? Status.Enabled : Status.Disabled
-          }
+          },
+          logger,
+          sendPayment: sendPaymentWithLogger({ ...w, logger })
         }
-      }).map(w => statusFromLog(w, logs))
-  }, [serverWallets, localWallets, logs])
+      })
+      .map(w => statusFromLog(w, logs))
+  }, [serverWallets, localWallets, logs, loggers])
 
   const settings = useMemo(() => {
     return {
@@ -246,9 +278,12 @@ export function useWallet (name) {
       .filter(w => w.config?.enabled && canSend(w))[0]
   }, [wallets, name])
 
-  const { logger } = useWalletLogger(wallet?.def)
+  return wallet
+}
 
-  const sendPayment = useCallback(async (bolt11) => {
+function sendPaymentWithLogger (wallet) {
+  return async (bolt11) => {
+    const { logger } = wallet
     const decoded = bolt11Decode(bolt11)
     logger.info(`↗ sending payment: ${formatSats(decoded.satoshis)}`, { bolt11 })
     try {
@@ -259,9 +294,5 @@ export function useWallet (name) {
       logger.error(`payment failed: ${message}`, { bolt11 })
       throw err
     }
-  }, [wallet, logger])
-
-  if (!wallet) return null
-
-  return { ...wallet, sendPayment }
+  }
 }

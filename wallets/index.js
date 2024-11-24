@@ -128,7 +128,7 @@ export function WalletsProvider ({ children }) {
       }
     }
 
-    // sort by priority, then add status field
+    // sort by priority
     return Object.values(merged).sort(walletPrioritySort)
   }, [serverWallets, localWallets])
 

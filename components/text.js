@@ -125,8 +125,8 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
     },
     img: TextMediaOrLink,
     embed: Embed,
-    details: ({ node, children, ...props }) => <details {...props}>{children}</details>,
-    summary: ({ node, children, ...props }) => <summary {...props}>{children}</summary>
+    details: Details,
+    summary: Summary,
   }), [outlawed, rel, TextMediaOrLink, topLevel])
 
   const carousel = useCarousel()
@@ -248,5 +248,31 @@ function P ({ children, node, onlyImages, somethingBefore, somethingAfter, ...pr
     >
       {children}
     </div>
+  )
+}
+
+function Details({ children, node, ...props }) {
+  const [isOpen, setIsOpen] = useState(false)
+
+  const handleToggle = (e) => {
+    setIsOpen(e.target.open)
+  }
+
+  return (
+    <details 
+      className={styles.details} 
+      {...props} 
+      onToggle={handleToggle}
+    >
+      {children}
+    </details>
+  )
+}
+
+function Summary({ children, node, ...props }) {
+  return (
+    <summary className={styles.summary} {...props}>
+      {children}
+    </summary>
   )
 }

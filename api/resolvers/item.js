@@ -423,6 +423,7 @@ export default {
                 subClause(sub, 5, subClauseTable(type), me, showNsfw),
                 typeClause(type),
                 whenClause(when, 'Item'),
+                activeOrMine(me),
                 await filterClause(me, models, type),
                 by === 'boost' && '"Item".boost > 0',
                 muteClause(me))}

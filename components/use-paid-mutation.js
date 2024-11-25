@@ -1,8 +1,9 @@
 import { useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import { useCallback, useState } from 'react'
-import { useInvoice, useQrPayment, useWalletPayment } from './payment'
-import { InvoiceCanceledError, InvoiceExpiredError } from '@/wallets/errors'
+import { useInvoice, useQrPayment } from './payment'
+import { InvoiceCanceledError, InvoiceExpiredError, NoWalletAvailableError, WalletAggregateError } from '@/wallets/errors'
 import { GET_PAID_ACTION } from '@/fragments/paidAction'
+import { useWalletPayment } from '@/wallets/payment'
 
 /*
 this is just like useMutation with a few changes:
@@ -36,6 +37,10 @@ export function usePaidMutation (mutation,
     try {
       return await waitForWalletPayment(invoice, waitFor)
     } catch (err) {
+      if (err instanceof WalletAggregateError || err instanceof NoWalletAvailableError) {
+        walletError = err
+      }
+
       if (
         (!alwaysShowQROnFailure && Date.now() - start > 1000) ||
         err instanceof InvoiceCanceledError ||
@@ -46,7 +51,6 @@ export function usePaidMutation (mutation,
         invoiceHelper.cancel(invoice).catch(console.error)
         throw err
       }
-      walletError = err
     }
     return await waitForQrPayment(invoice, walletError, { persistOnNavigate, waitFor })
   }, [waitForWalletPayment, waitForQrPayment, invoiceHelper])

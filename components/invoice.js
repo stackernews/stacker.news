@@ -8,7 +8,7 @@ import Bolt11Info from './bolt11-info'
 import { useQuery } from '@apollo/client'
 import { INVOICE } from '@/fragments/wallet'
 import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
-import { NoAttachedWalletError } from '@/wallets/errors'
+import { NoWalletAvailableError } from '@/wallets/errors'
 import ItemJob from './item-job'
 import Item from './item'
 import { CommentFlat } from './comment'
@@ -103,7 +103,8 @@ export default function Invoice ({
 
   return (
     <>
-      {walletError && !(walletError instanceof NoAttachedWalletError) &&
+      {/* TODO: handle aggregated wallet errors */}
+      {walletError && !(walletError instanceof NoWalletAvailableError) &&
         <div className='text-center fw-bold text-info mb-3' style={{ lineHeight: 1.25 }}>
           Paying from attached wallet failed:
           <code> {walletError.message}</code>

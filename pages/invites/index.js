@@ -51,19 +51,15 @@ function InviteForm () {
       onSubmit={async ({ id, gift, limit, description }) => {
         const { error } = await createInvite({
           variables: {
-            id,
+            id: id || undefined,
             gift: Number(gift),
             limit: limit ? Number(limit) : limit,
-            description
+            description: description || undefined
           }
         })
         if (error) throw error
       }}
     >
-      <Input
-        label={<>invite code <small className='text-muted ms-2'>optional</small></>}
-        name='id'
-      />
       <Input
         label='gift'
         name='gift'
@@ -77,8 +73,22 @@ function InviteForm () {
       <Input
         label={<>note <small className='text-muted ms-2'>optional</small></>}
         name='description'
+        autocomplete='off'
       />
-      <SubmitButton variant='secondary'>create</SubmitButton>
+      <AccordianItem
+        headerColor='#6c757d' header='advanced' body={
+          <Input
+            label={<>invite code <small className='text-muted ms-2'>optional</small></>}
+            name='id'
+            autocomplete='off'
+          />
+      }
+      />
+      <SubmitButton
+        className='mt-4'
+        variant='secondary'
+      >create
+      </SubmitButton>
     </Form>
   )
 }

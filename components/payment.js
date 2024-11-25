@@ -1,14 +1,14 @@
 import { useCallback } from 'react'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
-import { useWallet } from '@/wallets/index'
-import { FAST_POLL_INTERVAL } from '@/lib/constants'
 import { INVOICE } from '@/fragments/wallet'
 import Invoice from '@/components/invoice'
 import { useShowModal } from './modal'
-import { InvoiceCanceledError, NoAttachedWalletError, InvoiceExpiredError } from '@/wallets/errors'
+import { InvoiceCanceledError, InvoiceExpiredError } from '@/wallets/errors'
+import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
 
 export const useInvoice = () => {
   const client = useApolloClient()
+  const [retryPaidAction] = useMutation(RETRY_PAID_ACTION)
 
   const [cancelInvoice] = useMutation(gql`
     mutation cancelInvoice($hash: String!, $hmac: String!) {
@@ -53,73 +53,18 @@ export const useInvoice = () => {
     return inv
   }, [cancelInvoice])
 
-  return { cancel, isInvoice }
-}
+  const retry = useCallback(async ({ id, hash, hmac }) => {
+    // always cancel the previous invoice to make sure we can retry and it cannot be paid later
+    await cancel({ hash, hmac })
 
-const invoiceController = (id, isInvoice) => {
-  const controller = new AbortController()
-  const signal = controller.signal
-  controller.wait = async (waitFor = inv => inv?.actionState === 'PAID') => {
-    return await new Promise((resolve, reject) => {
-      const interval = setInterval(async () => {
-        try {
-          const paid = await isInvoice({ id }, waitFor)
-          if (paid) {
-            resolve()
-            clearInterval(interval)
-            signal.removeEventListener('abort', abort)
-          } else {
-            console.info(`invoice #${id}: waiting for payment ...`)
-          }
-        } catch (err) {
-          reject(err)
-          clearInterval(interval)
-          signal.removeEventListener('abort', abort)
-        }
-      }, FAST_POLL_INTERVAL)
+    console.log('retrying invoice:', hash)
+    const { data, error } = await retryPaidAction({ variables: { invoiceId: Number(id) } })
+    if (error) throw error
 
-      const abort = () => {
-        console.info(`invoice #${id}: stopped waiting`)
-        resolve()
-        clearInterval(interval)
-        signal.removeEventListener('abort', abort)
-      }
-      signal.addEventListener('abort', abort)
-    })
-  }
+    return data?.retryPaidAction?.invoice
+  })
 
-  controller.stop = () => controller.abort()
-
-  return controller
-}
-
-export const useWalletPayment = () => {
-  const invoice = useInvoice()
-  const wallet = useWallet()
-
-  const waitForWalletPayment = useCallback(async ({ id, bolt11 }, waitFor) => {
-    if (!wallet) {
-      throw new NoAttachedWalletError()
-    }
-    const controller = invoiceController(id, invoice.isInvoice)
-    try {
-      return await new Promise((resolve, reject) => {
-        // can't use await here since we might pay JIT invoices and sendPaymentAsync is not supported yet.
-        // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
-        wallet.sendPayment(bolt11).catch(reject)
-        controller.wait(waitFor)
-          .then(resolve)
-          .catch(reject)
-      })
-    } catch (err) {
-      console.error('payment failed:', err)
-      throw err
-    } finally {
-      controller.stop()
-    }
-  }, [wallet, invoice])
-
-  return waitForWalletPayment
+  return { cancel, retry, isInvoice }
 }
 
 export const useQrPayment = () => {

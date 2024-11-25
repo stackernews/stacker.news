@@ -77,6 +77,9 @@ export default {
     poor: async (invite, args, { me, models }) => {
       const user = await models.user.findUnique({ where: { id: invite.userId } })
       return msatsToSats(user.msats) < invite.gift
+    },
+    description: (invite, args, { me }) => {
+      return invite.userId === me?.id ? invite.description : undefined
     }
   }
 }

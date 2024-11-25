@@ -70,18 +70,20 @@ function InviteForm () {
         label={<>invitee limit <small className='text-muted ms-2'>optional</small></>}
         name='limit'
       />
-      <Input
-        label={<>note <small className='text-muted ms-2'>optional</small></>}
-        name='description'
-        autocomplete='off'
-      />
       <AccordianItem
         headerColor='#6c757d' header='advanced' body={
-          <Input
-            label={<>invite code <small className='text-muted ms-2'>optional</small></>}
-            name='id'
-            autocomplete='off'
-          />
+          <>
+            <Input
+              label={<>invite code <small className='text-muted ms-2'>optional</small></>}
+              name='id'
+              autocomplete='off'
+            />
+            <Input
+              label={<>description <small className='text-muted ms-2'>optional</small></>}
+              name='description'
+              autocomplete='off'
+            />
+          </>
       }
       />
       <SubmitButton

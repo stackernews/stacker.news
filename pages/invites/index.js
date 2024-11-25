@@ -17,8 +17,8 @@ function InviteForm () {
   const [createInvite] = useMutation(
     gql`
       ${INVITE_FIELDS}
-      mutation createInvite($gift: Int!, $limit: Int) {
-        createInvite(gift: $gift, limit: $limit) {
+      mutation createInvite($id: String, $gift: Int!, $limit: Int, $description: String) {
+        createInvite(id:$id, gift: $gift, limit: $limit, description: $description) {
           ...InviteFields
         }
       }`, {
@@ -42,19 +42,28 @@ function InviteForm () {
   return (
     <Form
       initial={{
+        id: undefined,
         gift: 100,
-        limit: 1
+        limit: 1,
+        description: undefined
       }}
       schema={inviteSchema}
-      onSubmit={async ({ limit, gift }) => {
+      onSubmit={async ({ id, gift, limit, description }) => {
         const { error } = await createInvite({
           variables: {
-            gift: Number(gift), limit: limit ? Number(limit) : limit
+            id,
+            gift: Number(gift),
+            limit: limit ? Number(limit) : limit,
+            description
           }
         })
         if (error) throw error
       }}
     >
+      <Input
+        label={<>invite code <small className='text-muted ms-2'>optional</small></>}
+        name='id'
+      />
       <Input
         label='gift'
         name='gift'
@@ -65,7 +74,10 @@ function InviteForm () {
         label={<>invitee limit <small className='text-muted ms-2'>optional</small></>}
         name='limit'
       />
-
+      <Input
+        label={<>note <small className='text-muted ms-2'>optional</small></>}
+        name='description'
+      />
       <SubmitButton variant='secondary'>create</SubmitButton>
     </Form>
   )

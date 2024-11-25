@@ -23,6 +23,7 @@ export default function Invite ({ invite, active }) {
         size='sm' type='text'
         placeholder={`${process.env.NEXT_PUBLIC_URL}/invites/${invite.id}`} readOnly noForm
       />
+      {invite.description && <small className='text-muted'>{invite.description}</small>}
       <div className={styles.other}>
         <span>{invite.gift} sat gift</span>
         <span> \ </span>

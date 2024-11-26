@@ -22,16 +22,18 @@ export class WalletNotEnabledError extends Error {
 }
 
 export class SenderError extends Error {
-  constructor (name, hash) {
-    super(`${name} failed to pay invoice: ${hash}`)
+  constructor (name, invoice, message) {
+    super(`${name} failed to pay invoice ${invoice.hash}: ${message}`)
     this.name = 'SenderError'
+    this.invoice = invoice
   }
 }
 
 export class WalletAggregateError extends AggregateError {
-  constructor (errors) {
+  constructor (errors, newInvoice) {
     super(errors)
     this.name = 'WalletAggregateError'
+    this.newInvoice = newInvoice
   }
 }
 

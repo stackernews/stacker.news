@@ -28,9 +28,8 @@
   margin-left:auto;
 }
 
-.cardHeader {
+.cardMeta {
   width: 100%;
-  padding: 0;
   margin: 0;
   display: flex;
   padding: 10px;

@@ -44,8 +44,8 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       >
         <div className='d-flex text-center align-items-center h-100'>
           {image
-            ? <img width='100%' {...image} />
-            : <Card.Title className='w-100 justify-content-center align-items-center'>{wallet.def.card.title}</Card.Title>}
+            ? <img className={styles.walletLogo} {...image} />
+            : <Card.Title className={styles.walletLogo}>{wallet.def.card.title}</Card.Title>}
         </div>
       </Card.Body>
       <Link href={`/settings/wallets/${wallet.def.name}`}>

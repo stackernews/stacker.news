@@ -36,6 +36,18 @@
   padding: 10px;
   line-height: 0;
   align-items: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.walletLogo {
+  max-width: 100%;
+  max-height: 40%;
+  margin:auto;
+  text-align: center;
+  font-size: 1.5rem;
+  line-height: 1;
 }
 
 

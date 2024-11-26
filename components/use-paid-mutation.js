@@ -39,16 +39,23 @@ export function usePaidMutation (mutation,
     try {
       return await waitForWalletPayment(walletInvoice, waitFor)
     } catch (err) {
+      walletError = null
       if (err instanceof WalletError) {
         walletError = err
         // wallet payment error handling always creates a new invoice to retry
         if (err.newInvoice) walletInvoice = err.newInvoice
       }
 
+      const invoiceError = err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError
+      if (!invoiceError && !walletError) {
+        // unexpected error, rethrow
+        throw err
+      }
+
       // bail if the payment took too long to prevent showing a QR code on an unrelated page
       // (if alwaysShowQROnFailure is not set) or user canceled the invoice or it expired
       const tooSlow = Date.now() - start > 1000
-      const skipQr = (tooSlow && !alwaysShowQROnFailure) || err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError
+      const skipQr = (tooSlow && !alwaysShowQROnFailure) || invoiceError
       if (skipQr) {
         throw err
       }

@@ -1,5 +1,4 @@
 import { useCallback, useMemo } from 'react'
-import { decode as bolt11Decode } from 'bolt11'
 import { useWallets } from '@/wallets'
 import walletDefs from '@/wallets/client'
 import { formatSats } from '@/lib/format'
@@ -44,24 +43,29 @@ export function useWalletPayment () {
     let walletError = new WalletAggregateError([])
     let walletInvoice = invoice
 
-    for (const wallet of walletsWithPayments) {
+    for (const [index, wallet] of walletsWithPayments.entries()) {
       const controller = invoiceController(walletInvoice.id, invoiceHelper.isInvoice)
       try {
         return await new Promise((resolve, reject) => {
           // can't await wallet payments since we might pay hold invoices and thus payments might not settle immediately.
           // that's why we separately check if we received the payment with the invoice controller.
-          wallet.sendPayment(walletInvoice.bolt11).catch(reject)
+          wallet.sendPayment(walletInvoice).catch(reject)
           controller.wait(waitFor)
             .then(resolve)
             .catch(reject)
         })
       } catch (err) {
-        // create a new invoice which cancels the previous one
-        // to make sure the old one cannot be paid later and we can retry.
-        // we don't need to do this if payment failed because wallet is not enabled
-        // because we know that it didn't and won't try to pay.
-        if (!(err instanceof WalletNotEnabledError)) {
-          walletInvoice = await invoiceHelper.retry(walletInvoice)
+        // cancel invoice to make sure it cannot be paid later.
+        // we only need to do this if payment was attempted which is not the case if the wallet is not enabled.
+        const paymentAttempt = !(err instanceof WalletNotEnabledError)
+        if (paymentAttempt) {
+          await invoiceHelper.cancel(walletInvoice)
+
+          // only create new invoice via retry if there is another wallet to try
+          const lastWallet = index === walletsWithPayments.length - 1
+          if (!lastWallet) {
+            walletInvoice = await invoiceHelper.retry(walletInvoice)
+          }
         }
 
         // TODO: receiver fallbacks
@@ -72,7 +76,7 @@ export function useWalletPayment () {
         // try next wallet if the payment failed because of the wallet
         // and not because it expired or was canceled
         if (err instanceof WalletNotEnabledError || err instanceof SenderError) {
-          walletError = new WalletAggregateError([...walletError.errors, err])
+          walletError = new WalletAggregateError([...walletError.errors, err], walletInvoice)
           continue
         }
 
@@ -93,7 +97,7 @@ export function useWalletPayment () {
 
     // ignore errors from disabled wallets, only return payment errors
     const paymentErrors = walletError.errors.filter(e => !(e instanceof WalletNotEnabledError))
-    throw new WalletAggregateError(paymentErrors)
+    throw new WalletAggregateError(paymentErrors, walletInvoice)
   }, [walletsWithPayments, invoiceHelper])
 
   return waitForPayment
@@ -137,20 +141,21 @@ const invoiceController = (id, isInvoice) => {
 }
 
 function sendPayment (wallet, logger) {
-  return async (bolt11) => {
+  return async (invoice) => {
     if (!wallet.config.enabled) {
       throw new WalletNotEnabledError(wallet.def.name)
     }
 
-    const decoded = bolt11Decode(bolt11)
-    logger.info(`↗ sending payment: ${formatSats(decoded.satoshis)}`, { bolt11 })
+    const { bolt11, satsRequested } = invoice
+
+    logger.info(`↗ sending payment: ${formatSats(satsRequested)}`, { bolt11 })
     try {
       const preimage = await wallet.def.sendPayment(bolt11, wallet.config, { logger })
-      logger.ok(`↗ payment sent: ${formatSats(decoded.satoshis)}`, { bolt11, preimage })
+      logger.ok(`↗ payment sent: ${formatSats(satsRequested)}`, { bolt11, preimage })
     } catch (err) {
       const message = err.message || err.toString?.()
       logger.error(`payment failed: ${message}`, { bolt11 })
-      throw new SenderError(wallet.def.name, decoded.tagsObject.payment_hash, message)
+      throw new SenderError(wallet.def.name, invoice, message)
     }
   }
 }

@@ -33,26 +33,28 @@ export function usePaidMutation (mutation,
 
   const waitForPayment = useCallback(async (invoice, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor }) => {
     let walletError
+    let walletInvoice = invoice
     const start = Date.now()
+
     try {
-      return await waitForWalletPayment(invoice, waitFor)
+      return await waitForWalletPayment(walletInvoice, waitFor)
     } catch (err) {
       if (err instanceof WalletAggregateError || err instanceof NoWalletAvailableError) {
         walletError = err
+        // wallet payment error handling always creates a new invoice to retry
+        if (err.newInvoice) walletInvoice = err.newInvoice
       }
 
-      if (
-        (!alwaysShowQROnFailure && Date.now() - start > 1000) ||
-        err instanceof InvoiceCanceledError ||
-        err instanceof InvoiceExpiredError) {
-        // bail since qr code payment will also fail
-        // also bail if the payment took more than 1 second
-        // and cancel the invoice if it's not already canceled so it can be retried
-        invoiceHelper.cancel(invoice).catch(console.error)
+      // bail if the payment took too long to prevent showing a QR code on an unrelated page
+      // (if alwaysShowQROnFailure is not set) or user canceled the invoice or it expired
+      const tooSlow = Date.now() - start > 1000
+      const skipQr = (tooSlow && !alwaysShowQROnFailure) || err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError
+      if (skipQr) {
         throw err
       }
     }
-    return await waitForQrPayment(invoice, walletError, { persistOnNavigate, waitFor })
+
+    return await waitForQrPayment(walletInvoice, walletError, { persistOnNavigate, waitFor })
   }, [waitForWalletPayment, waitForQrPayment, invoiceHelper])
 
   const innerMutate = useCallback(async ({

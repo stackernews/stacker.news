@@ -18,6 +18,8 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
   const status = useWalletStatus(wallet)
   const support = useWalletSupport(wallet)
 
+  const { displayBalances } = useWallets()
+
   const walletDisplayBalanceInfo = displayBalances?.[wallet.def.name]
   const walletDisplayBalance = walletDisplayBalanceInfo && !walletDisplayBalanceInfo.error ? abbrNum(msatsToSats(walletDisplayBalanceInfo.msats), { abbreviate: true }) : null
 

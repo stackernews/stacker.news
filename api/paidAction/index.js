@@ -316,7 +316,7 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     throw new Error(`retryPaidAction - missing invoice ${actionType}`)
   }
 
-  const { msatsRequested, actionId } = failedInvoice
+  const { msatsRequested, actionId, actionArgs } = failedInvoice
   const retryContext = {
     ...incomingContext,
     optimistic: true,
@@ -325,7 +325,7 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     actionId
   }
 
-  const invoiceArgs = await createSNInvoice(actionType, args, retryContext)
+  const invoiceArgs = await createSNInvoice(actionType, actionArgs, retryContext)
 
   return await models.$transaction(async tx => {
     const context = { ...retryContext, tx, invoiceArgs }
@@ -342,7 +342,7 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     })
 
     // create a new invoice
-    const invoice = await createDbInvoice(actionType, args, context)
+    const invoice = await createDbInvoice(actionType, actionArgs, context)
 
     return {
       result: await action.retry({ invoiceId: failedInvoice.id, newInvoiceId: invoice.id }, context),

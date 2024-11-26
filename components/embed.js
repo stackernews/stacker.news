@@ -119,23 +119,24 @@ const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
   )
 }
 
-const Embed = memo(function Embed ({ src, provider, id, meta: initialMeta, className, topLevel, onError }) {
+const Embed = memo(function Embed ({ src, provider, id, meta: initialMeta, fetchMeta: fetchMetaArgs, className, topLevel, onError }) {
   const [darkMode] = useDarkMode()
   const [overflowing, setOverflowing] = useState(true)
   const [show, setShow] = useState(false)
   const [meta, setMeta] = useState(initialMeta)
 
   const [fetchMeta] = useLazyQuery(gql`  
-    query FetchEmbedMeta($source: String!) {
-      fetchEmbedMeta(source: $source)
+    query FetchEmbedMeta($provider: String!, $args: JSONObject!) {
+      fetchEmbedMeta(provider: $provider, args: $args)
     }`)
 
   useEffect(() => {
     let abort
-    if (initialMeta.metaSource) {
+    if (fetchMetaArgs) {
       fetchMeta({
         variables: {
-          source: initialMeta.metaSource
+          provider: fetchMetaArgs.provider,
+          args: fetchMetaArgs.args
         }
       }).then(({ data }) => {
         if (abort) return
@@ -144,7 +145,7 @@ const Embed = memo(function Embed ({ src, provider, id, meta: initialMeta, class
       }).catch(onError)
     }
     return () => { abort = true }
-  }, [initialMeta.metaSource])
+  }, [fetchMetaArgs])
 
   // This Twitter embed could use similar logic to the video embeds below
   if (provider === 'twitter') {

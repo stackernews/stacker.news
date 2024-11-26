@@ -5,6 +5,8 @@ import styles from './text.module.css'
 import { Button } from 'react-bootstrap'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
+import { useLazyQuery } from '@apollo/client'
+import gql from 'graphql-tag'
 
 function TweetSkeleton ({ className }) {
   return (
@@ -117,10 +119,32 @@ const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
   )
 }
 
-const Embed = memo(function Embed ({ src, provider, id, meta, className, topLevel, onError }) {
+const Embed = memo(function Embed ({ src, provider, id, meta: initialMeta, className, topLevel, onError }) {
   const [darkMode] = useDarkMode()
   const [overflowing, setOverflowing] = useState(true)
   const [show, setShow] = useState(false)
+  const [meta, setMeta] = useState(initialMeta)
+
+  const [fetchMeta] = useLazyQuery(gql`  
+    query FetchEmbedMeta($source: String!) {
+      fetchEmbedMeta(source: $source)
+    }`)
+
+  useEffect(() => {
+    let abort
+    if (initialMeta.metaSource) {
+      fetchMeta({
+        variables: {
+          source: initialMeta.metaSource
+        }
+      }).then(({ data }) => {
+        if (abort) return
+        const newMeta = data.fetchEmbedMeta
+        setMeta((prev) => ({ ...prev, ...newMeta }))
+      }).catch(onError)
+    }
+    return () => { abort = true }
+  }, [initialMeta.metaSource])
 
   // This Twitter embed could use similar logic to the video embeds below
   if (provider === 'twitter') {
@@ -166,17 +190,37 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
   }
 
   if (provider === 'youtube') {
-    return (
-      <div className={classNames(styles.videoWrapper, className)}>
-        <YouTube
-          videoId={id} className={styles.videoContainer} opts={{
-            playerVars: {
-              start: meta?.start || 0
-            }
-          }}
-        />
-      </div>
-    )
+    const videoId = id ?? meta?.videoId
+    const clipId = meta?.clipId
+    const clipt = meta?.clipt
+    if (clipId) {
+      return (
+        <div className={classNames(styles.videoWrapper, className)}>
+          <div className={styles.videoContainer}>
+            <iframe
+              title='Youtube Video'
+              allowFullScreen
+              src={`https://www.youtube.com/embed/${videoId}?clip=${clipId}&amp;clipt=${clipt}`}
+              sandbox='allow-scripts allow-same-origin'
+              allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
+              referrerPolicy='strict-origin-when-cross-origin'
+            />
+          </div>
+        </div>
+      )
+    } else {
+      return (
+        <div className={classNames(styles.videoWrapper, className)}>
+          <YouTube
+            videoId={videoId} className={styles.videoContainer} opts={{
+              playerVars: {
+                start: meta?.start || 0
+              }
+            }}
+          />
+        </div>
+      )
+    }
   }
 
   if (provider === 'rumble') {

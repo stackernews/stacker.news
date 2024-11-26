@@ -46,7 +46,7 @@ export function useWalletPayment () {
     let walletError = new WalletAggregateError([])
     let walletInvoice = invoice
 
-    for (const [index, wallet] of walletsWithPayments.entries()) {
+    for (const wallet of walletsWithPayments) {
       const controller = invoiceController(walletInvoice.id, invoiceHelper.isInvoice)
       try {
         return await new Promise((resolve, reject) => {
@@ -58,17 +58,12 @@ export function useWalletPayment () {
             .catch(reject)
         })
       } catch (err) {
-        // cancel invoice to make sure it cannot be paid later.
+        // cancel invoice to make sure it cannot be paid later and create new invoice to retry.
         // we only need to do this if payment was attempted which is not the case if the wallet is not enabled.
         const paymentAttempt = err instanceof WalletPaymentError
         if (paymentAttempt) {
           await invoiceHelper.cancel(walletInvoice)
-
-          // only create new invoice via retry if there is another wallet to try
-          const lastWallet = index === walletsWithPayments.length - 1
-          if (!lastWallet) {
-            walletInvoice = await invoiceHelper.retry(walletInvoice)
-          }
+          walletInvoice = await invoiceHelper.retry(walletInvoice)
         }
 
         // TODO: receiver fallbacks

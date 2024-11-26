@@ -86,7 +86,7 @@ export function useWalletPayment () {
     // if we reach this line, no wallet payment succeeded
 
     // if no wallet is enabled, throw a special error that caller can handle separately
-    const noWalletAvailable = walletError.errors.all(e => e instanceof WalletNotEnabledError)
+    const noWalletAvailable = walletError.errors.every(e => e instanceof WalletNotEnabledError)
     if (noWalletAvailable) {
       throw new NoWalletAvailableError()
     }

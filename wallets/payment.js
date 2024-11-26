@@ -47,7 +47,7 @@ export function useWalletPayment () {
     let walletInvoice = invoice
 
     for (const wallet of walletsWithPayments) {
-      const controller = invoiceController(walletInvoice.id, invoiceHelper.isInvoice)
+      const controller = invoiceController(walletInvoice, invoiceHelper.isInvoice)
       try {
         return await new Promise((resolve, reject) => {
           // can't await wallet payments since we might pay hold invoices and thus payments might not settle immediately.
@@ -102,20 +102,20 @@ export function useWalletPayment () {
   return waitForPayment
 }
 
-const invoiceController = (id, isInvoice) => {
+const invoiceController = (inv, isInvoice) => {
   const controller = new AbortController()
   const signal = controller.signal
   controller.wait = async (waitFor = inv => inv?.actionState === 'PAID') => {
     return await new Promise((resolve, reject) => {
       const interval = setInterval(async () => {
         try {
-          const paid = await isInvoice({ id }, waitFor)
+          const paid = await isInvoice(inv, waitFor)
           if (paid) {
-            resolve()
+            resolve(inv)
             clearInterval(interval)
             signal.removeEventListener('abort', abort)
           } else {
-            console.info(`invoice #${id}: waiting for payment ...`)
+            console.info(`invoice #${inv.id}: waiting for payment ...`)
           }
         } catch (err) {
           reject(err)
@@ -125,8 +125,8 @@ const invoiceController = (id, isInvoice) => {
       }, FAST_POLL_INTERVAL)
 
       const abort = () => {
-        console.info(`invoice #${id}: stopped waiting`)
-        resolve()
+        console.info(`invoice #${inv.id}: stopped waiting`)
+        resolve(inv)
         clearInterval(interval)
         signal.removeEventListener('abort', abort)
       }

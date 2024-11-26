@@ -86,7 +86,7 @@ export const useQrPayment = () => {
           await invoice.cancel(inv).catch(console.error)
           reject(new InvoiceCanceledError(inv?.hash))
         }
-        resolve()
+        resolve(inv)
       }
       showModal(onClose =>
         <Invoice
@@ -99,7 +99,7 @@ export const useQrPayment = () => {
           waitFor={waitFor}
           onExpired={inv => reject(new InvoiceExpiredError(inv?.hash))}
           onCanceled={inv => { onClose(); reject(new InvoiceCanceledError(inv?.hash, inv?.actionError)) }}
-          onPayment={() => { paid = true; onClose(); resolve() }}
+          onPayment={() => { paid = true; onClose(); resolve(inv) }}
           poll
         />,
       { keepOpen, persistOnNavigate, onClose: cancelAndReject })

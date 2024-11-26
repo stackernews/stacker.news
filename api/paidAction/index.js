@@ -304,14 +304,6 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     throw new Error(`retryPaidAction - must be logged in ${actionType}`)
   }
 
-  if (!action.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC)) {
-    throw new Error(`retryPaidAction - action does not support optimism ${actionType}`)
-  }
-
-  if (!action.retry) {
-    throw new Error(`retryPaidAction - action does not support retrying ${actionType}`)
-  }
-
   if (!failedInvoice) {
     throw new Error(`retryPaidAction - missing invoice ${actionType}`)
   }
@@ -319,7 +311,7 @@ export async function retryPaidAction (actionType, args, incomingContext) {
   const { msatsRequested, actionId, actionArgs } = failedInvoice
   const retryContext = {
     ...incomingContext,
-    optimistic: true,
+    optimistic: failedInvoice.actionOptimistic,
     me: await models.user.findUnique({ where: { id: me.id } }),
     cost: BigInt(msatsRequested),
     actionId
@@ -345,7 +337,7 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     const invoice = await createDbInvoice(actionType, actionArgs, context)
 
     return {
-      result: await action.retry({ invoiceId: failedInvoice.id, newInvoiceId: invoice.id }, context),
+      result: await action.retry?.({ invoiceId: failedInvoice.id, newInvoiceId: invoice.id }, context),
       invoice,
       paymentMethod: 'OPTIMISTIC'
     }

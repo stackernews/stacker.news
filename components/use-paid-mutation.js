@@ -83,7 +83,7 @@ export function usePaidMutation (mutation,
       throw new Error('usePaidMutation: exactly one mutation at a time is supported')
     }
     const response = Object.values(data)[0]
-    const invoice = response?.invoice
+    let invoice = response?.invoice
 
     // if the mutation returns an invoice, pay it
     if (invoice) {
@@ -113,7 +113,8 @@ export function usePaidMutation (mutation,
         // the action is pessimistic
         try {
           // wait for the invoice to be paid
-          await waitForPayment(invoice, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor })
+          // returns the invoice that was paid since it might have been updated via retries
+          invoice = await waitForPayment(invoice, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor })
           if (!response.result) {
             // if the mutation didn't return any data, ie pessimistic, we need to fetch it
             const { data: { paidAction } } = await getPaidAction({ variables: { invoiceId: parseInt(invoice.id) } })

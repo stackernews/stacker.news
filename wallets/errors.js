@@ -22,6 +22,8 @@ export class WalletNotEnabledError extends WalletConfigurationError {
   constructor (name) {
     super(`wallet is not enabled: ${name}`)
     this.name = 'WalletNotEnabledError'
+    this.wallet = name
+    this.reason = 'wallet is not enabled'
   }
 }
 
@@ -29,6 +31,8 @@ export class WalletSendNotConfiguredError extends WalletConfigurationError {
   constructor (name) {
     super(`wallet send is not configured: ${name}`)
     this.name = 'WalletSendNotConfiguredError'
+    this.wallet = name
+    this.reason = 'wallet send is not configured'
   }
 }
 
@@ -36,7 +40,9 @@ export class WalletSenderError extends WalletPaymentError {
   constructor (name, invoice, message) {
     super(`${name} failed to pay invoice ${invoice.hash}: ${message}`)
     this.name = 'WalletSenderError'
+    this.wallet = name
     this.invoice = invoice
+    this.reason = message
   }
 }
 

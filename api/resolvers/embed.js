@@ -18,8 +18,8 @@ export default {
 
       if (!meta) {
         if (provider === 'youtube-clip') {
-          const { clipId } = args
           await validateSchema(youtubeClipMetaFetchArgsSchema, args)
+          const { clipId } = args
           const fullUrl = `https://www.youtube.com/clip/${clipId}`
           const html = await fetch(fullUrl).then(res => res.text())
           const dom = new jsdom.JSDOM(html)

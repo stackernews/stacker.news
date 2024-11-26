@@ -7,11 +7,15 @@ CREATE TABLE "DirectPayment" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "senderId" INTEGER,
-    "receiverId" INTEGER NOT NULL,
+    "receiverId" INTEGER,
     "preimage" TEXT,
-    "bolt11" TEXT NOT NULL,
+    "bolt11" TEXT,
     "walletId" INTEGER,
-
+    "comment" TEXT,
+    "desc" TEXT,
+    "lud18Data" JSONB,
+    "msats" BIGINT NOT NULL,
+    "hash" TEXT,
     CONSTRAINT "DirectPayment_pkey" PRIMARY KEY ("id")
 );
 
@@ -41,3 +45,9 @@ DROP FUNCTION IF EXISTS confirm_invoice;
 DROP FUNCTION IF EXISTS create_withdrawl;
 DROP FUNCTION IF EXISTS confirm_withdrawl;
 DROP FUNCTION IF EXISTS reverse_withdrawl;
+
+-- CreateIndex
+CREATE UNIQUE INDEX "InvoiceForward_withdrawlId_key" ON "InvoiceForward"("withdrawlId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DirectPayment_hash_key" ON "DirectPayment"("hash");

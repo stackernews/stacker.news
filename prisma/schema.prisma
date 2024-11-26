@@ -949,17 +949,17 @@ model DirectPayment {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
   senderId   Int?
-  receiverId Int
+  receiverId Int?
   preimage   String?  @unique
-  bolt11     String
-  hash       String   @unique
+  bolt11     String?
+  hash       String?  @unique
   desc       String?
   comment    String?
   lud18Data  Json?
   msats      BigInt
   walletId   Int?
   sender     User?    @relation("DirectPaymentSent", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver   User     @relation("DirectPaymentReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+  receiver   User?    @relation("DirectPaymentReceived", fields: [receiverId], references: [id], onDelete: Cascade)
   wallet     Wallet?  @relation(fields: [walletId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])

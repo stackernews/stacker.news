@@ -64,6 +64,7 @@ const typeDefs = `
   extend type Query {
     invoice(id: ID!): Invoice!
     withdrawl(id: ID!): Withdrawl!
+    direct(id: ID!): Direct!
     numBolt11s: Int!
     connectAddress: String!
     walletHistory(cursor: String, inc: String): History
@@ -78,7 +79,7 @@ const typeDefs = `
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
     cancelInvoice(hash: String!, hmac: String!): Invoice!
-    dropBolt11(id: ID): Withdrawl
+    dropBolt11(hash: String!): Boolean
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(wallet: String): Boolean
     setWalletPriority(id: ID!, priority: Int!): Boolean
@@ -139,6 +140,17 @@ const typeDefs = `
     autoWithdraw: Boolean!
     preimage: String
     forwardedActionType: String
+  }
+
+  type Direct {
+    id: ID!
+    createdAt: Date!
+    bolt11: String
+    sats: Int
+    preimage: String
+    nostr: JSONObject
+    comment: String
+    lud18Data: JSONObject
   }
 
   type Fact {

@@ -189,6 +189,18 @@ const resolvers = {
       })
     },
     withdrawl: getWithdrawl,
+    direct: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      return await models.directPayment.findUnique({
+        where: {
+          id: Number(id),
+          receiverId: me.id
+        }
+      })
+    },
     numBolt11s: async (parent, args, { me, models, lnd }) => {
       if (!me) {
         throw new GqlAuthenticationError()
@@ -249,6 +261,17 @@ const resolvers = {
             WHERE "Withdrawl"."userId" = $1
             AND "Withdrawl".created_at <= $2
             GROUP BY "Withdrawl".id)`
+        )
+        queries.push(
+          `(SELECT id, created_at as "createdAt", msats, 'direct' as type,
+              jsonb_build_object(
+                'bolt11', bolt11,
+                'description', "desc",
+                'invoiceComment', comment,
+                'invoicePayerData', "lud18Data") as other
+            FROM "DirectPayment"
+            WHERE "DirectPayment"."receiverId" = $1
+            AND "DirectPayment".created_at <= $2)`
         )
       }
 
@@ -461,7 +484,7 @@ const resolvers = {
 
       return await models.invoice.findFirst({ where: { hash } })
     },
-    dropBolt11: async (parent, { id }, { me, models, lnd }) => {
+    dropBolt11: async (parent, { hash }, { me, models, lnd }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
@@ -469,20 +492,20 @@ const resolvers = {
       const retention = `${INVOICE_RETENTION_DAYS} days`
 
       const [invoice] = await models.$queryRaw`
-      WITH to_be_updated AS (
-        SELECT id, hash, bolt11
-        FROM "Withdrawl"
-        WHERE "userId" = ${me.id}
-        AND id = ${Number(id)}
-        AND now() > created_at + ${retention}::INTERVAL
-        AND hash IS NOT NULL
-        AND status IS NOT NULL
-      ), updated_rows AS (
-        UPDATE "Withdrawl"
-        SET hash = NULL, bolt11 = NULL, preimage = NULL
-        FROM to_be_updated
-        WHERE "Withdrawl".id = to_be_updated.id)
-      SELECT * FROM to_be_updated;`
+        WITH to_be_updated AS (
+          SELECT id, hash, bolt11
+          FROM "Withdrawl"
+          WHERE "userId" = ${me.id}
+          AND hash = ${hash}
+          AND now() > created_at + ${retention}::INTERVAL
+          AND hash IS NOT NULL
+          AND status IS NOT NULL
+        ), updated_rows AS (
+          UPDATE "Withdrawl"
+          SET hash = NULL, bolt11 = NULL, preimage = NULL
+          FROM to_be_updated
+          WHERE "Withdrawl".id = to_be_updated.id)
+        SELECT * FROM to_be_updated;`
 
       if (invoice) {
         try {
@@ -496,7 +519,16 @@ const resolvers = {
           throw new GqlInputError('failed to drop bolt11 from lnd')
         }
       }
-      return { id }
+
+      await models.$queryRaw`
+        UPDATE "DirectPayment"
+        SET hash = NULL, bolt11 = NULL, preimage = NULL
+        WHERE "receiverId" = ${me.id}
+        AND hash = ${hash}
+        AND now() > created_at + ${retention}::INTERVAL
+        AND hash IS NOT NULL`
+
+      return true
     },
     setWalletPriority: async (parent, { id, priority }, { me, models }) => {
       if (!me) {
@@ -557,6 +589,17 @@ const resolvers = {
         console.error('error fetching payment from LND', err)
       }
     }
+  },
+  Direct: {
+    nostr: async (direct, args, { models }) => {
+      try {
+        return JSON.parse(direct.desc)
+      } catch (err) {
+      }
+
+      return null
+    },
+    sats: direct => msatsToSats(direct.msats)
   },
 
   Invoice: {

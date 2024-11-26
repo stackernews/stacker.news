@@ -952,6 +952,11 @@ model DirectPayment {
   receiverId Int
   preimage   String?  @unique
   bolt11     String
+  hash       String   @unique
+  desc       String?
+  comment    String?
+  lud18Data  Json?
+  msats      BigInt
   walletId   Int?
   sender     User?    @relation("DirectPaymentSent", fields: [senderId], references: [id], onDelete: Cascade)
   receiver   User     @relation("DirectPaymentReceived", fields: [receiverId], references: [id], onDelete: Cascade)

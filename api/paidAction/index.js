@@ -244,6 +244,7 @@ async function performP2PAction (actionType, args, incomingContext) {
 // because we can't track the state of outside invoices we aren't paid/paying
 async function performDirectAction (actionType, args, incomingContext) {
   const { models, lnd, cost, me } = incomingContext
+  const { comment, lud18Data, noteStr, description: actionDescription } = args
 
   const userId = await paidActions[actionType]?.getInvoiceablePeer?.(args, incomingContext)
   if (!userId) {
@@ -255,7 +256,7 @@ async function performDirectAction (actionType, args, incomingContext) {
   try {
     await assertBelowMaxPendingDirectPayments(userId, incomingContext)
 
-    const description = await paidActions[actionType].describe(args, incomingContext)
+    const description = actionDescription ?? await paidActions[actionType].describe(args, incomingContext)
     invoiceObject = await createUserInvoice(userId, {
       msats: cost,
       description,
@@ -267,10 +268,16 @@ async function performDirectAction (actionType, args, incomingContext) {
   }
 
   const { invoice, wallet } = invoiceObject
+  const hash = parsePaymentRequest({ request: invoice }).id
 
   const payment = await models.directPayment.create({
     data: {
+      comment,
+      lud18Data,
+      desc: noteStr,
       bolt11: invoice,
+      msats: cost,
+      hash,
       walletId: wallet.id,
       receiverId: userId,
       senderId: me?.id ?? USER_ID.anon

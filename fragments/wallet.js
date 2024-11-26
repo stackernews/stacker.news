@@ -63,6 +63,20 @@ export const WITHDRAWL = gql`
     }
   }`
 
+export const DIRECT = gql`
+  query Direct($id: ID!) {
+    direct(id: $id) {
+      id
+      createdAt
+      bolt11
+      sats
+      preimage
+      comment
+      lud18Data
+      nostr
+    }
+  }`
+
 export const WALLET_HISTORY = gql`
   ${ITEM_FULL_FIELDS}
 

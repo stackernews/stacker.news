@@ -1,5 +1,5 @@
 import {
-  getInvoice, cancelHodlInvoice,
+  getInvoice,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
 import { getPaymentOrNotSent } from '@/api/lnd'
@@ -229,13 +229,13 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
       return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward.invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
     }
 
-    await payingActionConfirmed({ data: { withdrawalId: dbWdrwl.id, withdrawal: wdrwl }, models, lnd, boss })
+    return await payingActionConfirmed({ data: { withdrawalId: dbWdrwl.id, withdrawal: wdrwl }, models, lnd, boss })
   } else if (wdrwl?.is_failed || wdrwl?.notSent) {
     if (dbWdrwl.invoiceForward) {
       return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward.invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
     }
 
-    await payingActionFailed({ data: { withdrawalId: dbWdrwl.id, withdrawal: wdrwl }, models, lnd, boss })
+    return await payingActionFailed({ data: { withdrawalId: dbWdrwl.id, withdrawal: wdrwl }, models, lnd, boss })
   }
 }
 
@@ -247,33 +247,16 @@ export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, 
     return
   }
 
-  const dbInv = await models.invoice.findUnique({
-    where: { hash },
-    include: {
-      invoiceForward: {
-        include: {
-          withdrawl: true,
-          wallet: true
-        }
-      }
-    }
-  })
+  const dbInv = await models.invoice.findUnique({ where: { hash } })
   if (!dbInv) {
     console.log('invoice not found in database', hash)
     return
   }
 
-  // if this is an actionType we need to cancel conditionally
-  if (dbInv.actionType) {
-    await paidActionCanceling({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
-  } else {
-    await cancelHodlInvoice({ id: hash, lnd })
-  }
+  await paidActionCanceling({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
 
   // sync LND invoice status with invoice status in database
   await checkInvoice({ data: { hash }, models, lnd, boss })
-
-  return dbInv
 }
 
 export async function checkPendingDeposits (args) {

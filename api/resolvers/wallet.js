@@ -5,7 +5,7 @@ import {
 import crypto, { timingSafeEqual } from 'crypto'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
-import { formatMsats, formatSats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
+import { formatMsats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
 import {
   USER_ID, INVOICE_RETENTION_DAYS
 } from '@/lib/constants'
@@ -473,15 +473,7 @@ const resolvers = {
     sendToLnAddr,
     cancelInvoice: async (parent, { hash, hmac }, { models, lnd, boss }) => {
       verifyHmac(hash, hmac)
-      const dbInv = await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
-
-      if (dbInv?.invoiceForward) {
-        const { wallet, bolt11 } = dbInv.invoiceForward
-        const logger = walletLogger({ wallet, models })
-        const decoded = await parsePaymentRequest({ request: bolt11 })
-        logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, { bolt11 })
-      }
-
+      await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
       return await models.invoice.findFirst({ where: { hash } })
     },
     dropBolt11: async (parent, { hash }, { me, models, lnd }) => {
@@ -582,7 +574,7 @@ const resolvers = {
     },
     preimage: async (withdrawl, args, { lnd }) => {
       try {
-        if (withdrawl.status === 'CONFIRMED') {
+        if (withdrawl.status === 'CONFIRMED' && withdrawl.hash) {
           return withdrawl.preimage ?? (await getPayment({ id: withdrawl.hash, lnd })).payment.secret
         }
       } catch (err) {

@@ -53,6 +53,7 @@ export const WITHDRAWL = gql`
       id
       createdAt
       bolt11
+      hash
       satsPaid
       satsFeePaying
       satsFeePaid
@@ -69,6 +70,7 @@ export const DIRECT = gql`
       id
       createdAt
       bolt11
+      hash
       sats
       preimage
       comment

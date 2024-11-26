@@ -1,4 +1,4 @@
-import { deletePayment } from '@/api/lnd'
+import { deletePayment } from 'ln-service'
 import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
 
 export async function autoDropBolt11s ({ models, lnd }) {

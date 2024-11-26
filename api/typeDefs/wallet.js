@@ -146,6 +146,7 @@ const typeDefs = `
     id: ID!
     createdAt: Date!
     bolt11: String
+    hash: String
     sats: Int
     preimage: String
     nostr: JSONObject

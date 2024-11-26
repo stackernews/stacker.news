@@ -5,7 +5,10 @@ import { formatSats } from '@/lib/format'
 import { useWalletLogger } from '@/components/wallet-logger'
 import { useInvoice } from '@/components/payment'
 import { FAST_POLL_INTERVAL } from '@/lib/constants'
-import { NoWalletAvailableError, SenderError, WalletAggregateError, WalletNotEnabledError, WalletSendNotConfiguredError } from '@/wallets/errors'
+import {
+  WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletNotEnabledError,
+  WalletSendNotConfiguredError, WalletPaymentError, WalletError, WalletConfigurationError
+} from '@/wallets/errors'
 import { canSend } from './common'
 
 export function useWalletPayment () {
@@ -57,7 +60,7 @@ export function useWalletPayment () {
       } catch (err) {
         // cancel invoice to make sure it cannot be paid later.
         // we only need to do this if payment was attempted which is not the case if the wallet is not enabled.
-        const paymentAttempt = !(err instanceof WalletNotEnabledError || err instanceof WalletSendNotConfiguredError)
+        const paymentAttempt = err instanceof WalletPaymentError
         if (paymentAttempt) {
           await invoiceHelper.cancel(walletInvoice)
 
@@ -75,7 +78,7 @@ export function useWalletPayment () {
 
         // try next wallet if the payment failed because of the wallet
         // and not because it expired or was canceled
-        const isWalletError = err instanceof WalletNotEnabledError || err instanceof WalletSendNotConfiguredError || err instanceof SenderError
+        const isWalletError = err instanceof WalletError
         if (isWalletError) {
           walletError = new WalletAggregateError([...walletError.errors, err], walletInvoice)
           continue
@@ -90,14 +93,14 @@ export function useWalletPayment () {
 
     // if we reach this line, no wallet payment succeeded
 
-    // if no wallet is enabled, throw a special error that caller can handle separately
-    const noWalletAvailable = walletError.errors.every(e => e instanceof WalletNotEnabledError)
+    // throw a special error that caller can handle separately if no payment was attempted
+    const noWalletAvailable = walletError.errors.every(e => e instanceof WalletConfigurationError)
     if (noWalletAvailable) {
-      throw new NoWalletAvailableError()
+      throw new WalletsNotAvailableError()
     }
 
-    // ignore errors from disabled wallets, only return payment errors
-    const paymentErrors = walletError.errors.filter(e => !(e instanceof WalletNotEnabledError))
+    // only return payment errors
+    const paymentErrors = walletError.errors.filter(e => e instanceof WalletPaymentError)
     throw new WalletAggregateError(paymentErrors, walletInvoice)
   }, [walletsWithPayments, invoiceHelper])
 
@@ -160,7 +163,7 @@ function sendPayment (wallet, logger) {
     } catch (err) {
       const message = err.message || err.toString?.()
       logger.error(`payment failed: ${message}`, { bolt11 })
-      throw new SenderError(wallet.def.name, invoice, message)
+      throw new WalletSenderError(wallet.def.name, invoice, message)
     }
   }
 }

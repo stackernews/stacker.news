@@ -14,39 +14,44 @@ export class InvoiceExpiredError extends Error {
   }
 }
 
-export class WalletNotEnabledError extends Error {
+export class WalletError extends Error {}
+export class WalletPaymentError extends WalletError {}
+export class WalletConfigurationError extends WalletError {}
+
+export class WalletNotEnabledError extends WalletConfigurationError {
   constructor (name) {
     super(`wallet is not enabled: ${name}`)
     this.name = 'WalletNotEnabledError'
   }
 }
 
-export class WalletSendNotConfiguredError extends Error {
+export class WalletSendNotConfiguredError extends WalletConfigurationError {
   constructor (name) {
     super(`wallet send is not configured: ${name}`)
     this.name = 'WalletSendNotConfiguredError'
   }
 }
 
-export class SenderError extends Error {
+export class WalletSenderError extends WalletPaymentError {
   constructor (name, invoice, message) {
     super(`${name} failed to pay invoice ${invoice.hash}: ${message}`)
-    this.name = 'SenderError'
+    this.name = 'WalletSenderError'
     this.invoice = invoice
   }
 }
 
-export class WalletAggregateError extends AggregateError {
-  constructor (errors, newInvoice) {
-    super(errors)
-    this.name = 'WalletAggregateError'
-    this.newInvoice = newInvoice
+export class WalletsNotAvailableError extends WalletConfigurationError {
+  constructor () {
+    super('no wallet available')
+    this.name = 'WalletsNotAvailableError'
   }
 }
 
-export class NoWalletAvailableError extends Error {
-  constructor () {
-    super('no wallet for payments available')
-    this.name = 'NoWalletAvailableError'
+export class WalletAggregateError extends WalletError {
+  constructor (errors, newInvoice) {
+    super('WalletAggregateError')
+    this.name = 'WalletAggregateError'
+    this.errors = errors
+    this.newInvoice = newInvoice
   }
 }

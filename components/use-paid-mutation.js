@@ -1,7 +1,7 @@
 import { useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import { useCallback, useState } from 'react'
 import { useInvoice, useQrPayment } from './payment'
-import { InvoiceCanceledError, InvoiceExpiredError, NoWalletAvailableError, WalletAggregateError } from '@/wallets/errors'
+import { InvoiceCanceledError, InvoiceExpiredError, WalletError } from '@/wallets/errors'
 import { GET_PAID_ACTION } from '@/fragments/paidAction'
 import { useWalletPayment } from '@/wallets/payment'
 
@@ -39,7 +39,7 @@ export function usePaidMutation (mutation,
     try {
       return await waitForWalletPayment(walletInvoice, waitFor)
     } catch (err) {
-      if (err instanceof WalletAggregateError || err instanceof NoWalletAvailableError) {
+      if (err instanceof WalletError) {
         walletError = err
         // wallet payment error handling always creates a new invoice to retry
         if (err.newInvoice) walletInvoice = err.newInvoice

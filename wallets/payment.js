@@ -14,14 +14,13 @@ export function useWalletPayment () {
   // XXX calling hooks in a loop is against the rules of hooks
   //
   // we do this here anyway since we need the logger for each wallet.
-  // we ensure hooks are always called in the same order by sorting the wallets by name.
+  // hooks are always called in the same order since walletDefs does not change between renders.
   //
   // we don't use the return value of useWallets here because it is empty on first render
   // so using it would change the order of the hooks between renders.
   //
   // see https://react.dev/reference/rules/rules-of-hooks
   const loggers = walletDefs
-    .sort((def1, def2) => def1.name.localeCompare(def2.name))
     .reduce((acc, def) => {
       return {
         ...acc,

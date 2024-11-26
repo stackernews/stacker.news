@@ -1,4 +1,4 @@
-import { getPaymentFailureStatus, hodlInvoiceCltvDetails } from '@/api/lnd'
+import { getPaymentFailureStatus, hodlInvoiceCltvDetails, getPaymentOrNotSent } from '@/api/lnd'
 import { paidActions } from '@/api/paidAction'
 import { walletLogger } from '@/api/resolvers/wallet'
 import { LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
@@ -8,7 +8,7 @@ import { toPositiveNumber } from '@/lib/validate'
 import { Prisma } from '@prisma/client'
 import {
   cancelHodlInvoice,
-  getInvoice, getPayment, parsePaymentRequest,
+  getInvoice, parsePaymentRequest,
   payViaPaymentRequest, settleHodlInvoice
 } from 'ln-service'
 import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/wrap'
@@ -114,7 +114,7 @@ async function transitionInvoice (jobName,
   }
 }
 
-async function performPessimisticAction ({ lndInvoice, dbInvoice, tx, models, lnd, boss }) {
+async function performPessimisticAction ({ lndInvoice, dbInvoice, tx, lnd, boss }) {
   const args = { ...dbInvoice.actionArgs, invoiceId: dbInvoice.id }
   const context = {
     tx,
@@ -287,8 +287,9 @@ export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...a
         throw new Error('invoice is not held')
       }
 
-      const { bolt11, hash, msatsPaying } = dbInvoice.invoiceForward.withdrawl
-      const { payment, is_confirmed: isConfirmed } = withdrawal ?? await getPayment({ id: hash, lnd })
+      const { bolt11, hash, msatsPaying, createdAt } = dbInvoice.invoiceForward.withdrawl
+      const { payment, is_confirmed: isConfirmed } = withdrawal ??
+        await getPaymentOrNotSent({ id: hash, lnd, createdAt })
       if (!isConfirmed) {
         throw new Error('payment is not confirmed')
       }
@@ -341,21 +342,10 @@ export async function paidActionFailedForward ({ data: { invoiceId, withdrawal: 
         throw new Error('invoice is not held')
       }
 
-      let withdrawal
-      let notSent = false
-      try {
-        withdrawal = pWithdrawal ?? await getPayment({ id: dbInvoice.invoiceForward.withdrawl.hash, lnd })
-      } catch (err) {
-        if (err[1] === 'SentPaymentNotFound' &&
-          dbInvoice.invoiceForward.withdrawl.createdAt < datePivot(new Date(), { milliseconds: -LND_PATHFINDING_TIMEOUT_MS * 2 })) {
-          // if the payment is older than 2x timeout, but not found in LND, we can assume it errored before lnd stored it
-          notSent = true
-        } else {
-          throw err
-        }
-      }
+      const { hash, createdAt } = dbInvoice.invoiceForward.withdrawl
+      const withdrawal = pWithdrawal ?? await getPaymentOrNotSent({ id: hash, lnd, createdAt })
 
-      if (!(withdrawal?.is_failed || notSent)) {
+      if (!(withdrawal?.is_failed || withdrawal?.notSent)) {
         throw new Error('payment has not failed')
       }
 

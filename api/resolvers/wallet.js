@@ -1,15 +1,13 @@
 import {
-  payViaPaymentRequest,
   getInvoice as getInvoiceFromLnd, deletePayment, getPayment,
   parsePaymentRequest
 } from 'ln-service'
 import crypto, { timingSafeEqual } from 'crypto'
-import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
 import { formatMsats, formatSats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
 import {
-  USER_ID, INVOICE_RETENTION_DAYS, LND_PATHFINDING_TIMEOUT_MS
+  USER_ID, INVOICE_RETENTION_DAYS
 } from '@/lib/constants'
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
@@ -24,6 +22,7 @@ import { getNodeSockets, getOurPubkey } from '../lnd'
 import validateWallet from '@/wallets/validate'
 import { canReceive } from '@/wallets/common'
 import performPaidAction from '../paidAction'
+import performPayingAction from '../payingAction'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
@@ -876,10 +875,6 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     throw new GqlInputError('invoice amount is too large')
   }
 
-  const msatsFee = Number(maxFee) * 1000
-
-  const user = await models.user.findUnique({ where: { id: me.id } })
-
   // check if there's an invoice with same hash that has an invoiceForward
   // we can't allow this because it creates two outgoing payments from our node
   // with the same hash
@@ -891,23 +886,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     throw new GqlInputError('SN cannot pay an invoice that SN is proxying')
   }
 
-  const autoWithdraw = !!wallet?.id
-  // create withdrawl transactionally (id, bolt11, amount, fee)
-  const [withdrawl] = await serialize(
-    models.$queryRaw`SELECT * FROM create_withdrawl(${decoded.id}, ${invoice},
-      ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name}, ${autoWithdraw}, ${wallet?.id}::INTEGER)`,
-    { models }
-  )
-
-  payViaPaymentRequest({
-    lnd,
-    request: invoice,
-    // can't use max_fee_mtokens https://github.com/alexbosworth/ln-service/issues/141
-    max_fee: Number(maxFee),
-    pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS
-  }).catch(console.error)
-
-  return withdrawl
+  return await performPayingAction({ bolt11: invoice, maxFee, walletId: wallet?.id }, { me, models, lnd })
 }
 
 export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },

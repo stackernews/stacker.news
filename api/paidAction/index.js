@@ -3,8 +3,8 @@ import { datePivot } from '@/lib/time'
 import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { createHmac } from '@/api/resolvers/wallet'
 import { Prisma } from '@prisma/client'
-import { createWrappedInvoice } from '@/wallets/server'
-import { assertBelowMaxPendingInvoices } from './lib/assert'
+import { createWrappedInvoice, createInvoice as createUserInvoice } from '@/wallets/server'
+import { assertBelowMaxPendingInvoices, assertBelowMaxPendingDirectPayments } from './lib/assert'
 
 import * as ITEM_CREATE from './itemCreate'
 import * as ITEM_UPDATE from './itemUpdate'
@@ -106,6 +106,17 @@ export default async function performPaidAction (actionType, args, incomingConte
           }
         } else if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC) {
           return await performOptimisticAction(actionType, args, contextWithPaymentMethod)
+        } else if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.DIRECT) {
+          try {
+            return await performDirectAction(actionType, args, contextWithPaymentMethod)
+          } catch (e) {
+            if (e instanceof NonInvoiceablePeerError) {
+              console.log('peer cannot be invoiced, skipping')
+              continue
+            }
+            console.error(`${paymentMethod} action failed`, e)
+            throw e
+          }
         }
       }
     }
@@ -227,6 +238,49 @@ async function performP2PAction (actionType, args, incomingContext) {
   return me
     ? await performOptimisticAction(actionType, args, context)
     : await beginPessimisticAction(actionType, args, context)
+}
+
+// we don't need to use the module for perform-ing outside actions
+// because we can't track the state of outside invoices we aren't paid/paying
+async function performDirectAction (actionType, args, incomingContext) {
+  const { models, lnd, cost, me } = incomingContext
+
+  const userId = await paidActions[actionType]?.getInvoiceablePeer?.(args, incomingContext)
+  if (!userId) {
+    throw new NonInvoiceablePeerError()
+  }
+
+  let invoiceObject
+
+  try {
+    await assertBelowMaxPendingDirectPayments(userId, incomingContext)
+
+    const description = await paidActions[actionType].describe(args, incomingContext)
+    invoiceObject = await createUserInvoice(userId, {
+      msats: cost,
+      description,
+      expiry: INVOICE_EXPIRE_SECS
+    }, { models, lnd })
+  } catch (e) {
+    console.error('failed to create outside invoice', e)
+    throw new NonInvoiceablePeerError()
+  }
+
+  const { invoice, wallet } = invoiceObject
+
+  const payment = await models.directPayment.create({
+    data: {
+      bolt11: invoice,
+      walletId: wallet.id,
+      receiverId: userId,
+      senderId: me?.id ?? USER_ID.anon
+    }
+  })
+
+  return {
+    invoice: payment,
+    paymentMethod: 'DIRECT'
+  }
 }
 
 export async function retryPaidAction (actionType, args, incomingContext) {

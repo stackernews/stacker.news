@@ -1,11 +1,10 @@
-import serialize from '@/api/resolvers/serial'
 import {
-  getInvoice, getPayment, cancelHodlInvoice, deletePayment,
+  getInvoice, cancelHodlInvoice, deletePayment,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
-import { notifyDeposit, notifyWithdrawal } from '@/lib/webPush'
-import { INVOICE_RETENTION_DAYS, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
-import { datePivot, sleep } from '@/lib/time'
+import { getPaymentOrNotSent } from '@/api/lnd'
+import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
+import { sleep } from '@/lib/time'
 import retry from 'async-retry'
 import {
   paidActionPaid, paidActionForwarded,
@@ -13,9 +12,7 @@ import {
   paidActionForwarding,
   paidActionCanceling
 } from './paidAction'
-import { getPaymentFailureStatus } from '@/api/lnd/index.js'
-import { walletLogger } from '@/api/resolvers/wallet.js'
-import { formatMsats, formatSats, msatsToSats } from '@/lib/format.js'
+import { payingActionConfirmed, payingActionFailed } from './payingAction'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -143,19 +140,6 @@ export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd
     if (dbInv.actionType) {
       return await paidActionPaid({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
     }
-
-    // XXX we need to keep this to allow production to migrate to new paidAction flow
-    // once all non-paidAction receive invoices are migrated, we can remove this
-    const [[{ confirm_invoice: code }]] = await serialize([
-      models.$queryRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`,
-      models.invoice.update({ where: { hash }, data: { confirmedIndex: inv.confirmed_index } })
-    ], { models })
-
-    if (code === 0) {
-      notifyDeposit(dbInv.userId, { comment: dbInv.comment, ...inv })
-    }
-
-    return await boss.send('nip57', { hash })
   }
 
   if (inv.is_held) {
@@ -175,18 +159,6 @@ export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd
     if (dbInv.actionType) {
       return await paidActionFailed({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
     }
-
-    return await serialize(
-      models.invoice.update({
-        where: {
-          hash: inv.id
-        },
-        data: {
-          cancelled: true,
-          cancelledAt: new Date()
-        }
-      }), { models }
-    )
   }
 }
 
@@ -252,69 +224,20 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
   // nothing to do if the withdrawl is already recorded and it isn't an invoiceForward
   if (!dbWdrwl) return
 
-  let wdrwl
-  let notSent = false
-  try {
-    wdrwl = withdrawal ?? await getPayment({ id: hash, lnd })
-  } catch (err) {
-    if (err[1] === 'SentPaymentNotFound' &&
-      dbWdrwl.createdAt < datePivot(new Date(), { milliseconds: -LND_PATHFINDING_TIMEOUT_MS * 2 })) {
-      // if the payment is older than 2x timeout, but not found in LND, we can assume it errored before lnd stored it
-      notSent = true
-    } else {
-      throw err
-    }
-  }
-
-  const logger = walletLogger({ models, wallet: dbWdrwl.wallet })
+  const wdrwl = withdrawal ?? await getPaymentOrNotSent({ id: hash, lnd, createdAt: dbWdrwl.createdAt })
 
   if (wdrwl?.is_confirmed) {
     if (dbWdrwl.invoiceForward.length > 0) {
       return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
     }
 
-    const fee = Number(wdrwl.payment.fee_mtokens)
-    const paid = Number(wdrwl.payment.mtokens) - fee
-    const [[{ confirm_withdrawl: code }]] = await serialize([
-      models.$queryRaw`SELECT confirm_withdrawl(${dbWdrwl.id}::INTEGER, ${paid}, ${fee})`,
-      models.withdrawl.update({
-        where: { id: dbWdrwl.id },
-        data: {
-          preimage: wdrwl.payment.secret
-        }
-      })
-    ], { models })
-    if (code === 0) {
-      notifyWithdrawal(dbWdrwl.userId, wdrwl)
-
-      const { request: bolt11, secret: preimage } = wdrwl.payment
-
-      logger?.ok(
-        `↙ payment received: ${formatSats(msatsToSats(paid))}`,
-        {
-          bolt11,
-          preimage,
-          fee: formatMsats(fee)
-        })
-    }
-  } else if (wdrwl?.is_failed || notSent) {
+    await payingActionConfirmed({ data: { withdrawalId: dbWdrwl.id, withdrawal: wdrwl }, models, lnd, boss })
+  } else if (wdrwl?.is_failed || wdrwl?.notSent) {
     if (dbWdrwl.invoiceForward.length > 0) {
       return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
     }
 
-    const { message, status } = getPaymentFailureStatus(wdrwl)
-    await serialize(
-      models.$queryRaw`
-        SELECT reverse_withdrawl(${dbWdrwl.id}::INTEGER, ${status}::"WithdrawlStatus")`,
-      { models }
-    )
-
-    logger?.error(
-      `incoming payment failed: ${message}`,
-      {
-        bolt11: wdrwl.payment.request,
-        max_fee: formatMsats(dbWdrwl.msatsFeePaying)
-      })
+    await payingActionFailed({ data: { withdrawalId: dbWdrwl.id, withdrawal: wdrwl }, models, lnd, boss })
   }
 }
 

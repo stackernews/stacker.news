@@ -3,9 +3,9 @@ import { SET_WALLET_PRIORITY, WALLETS } from '@/fragments/wallet'
 import { SSR, LONG_POLL_INTERVAL as WALLETS_DISPLAY_BALANCE_REFRESH_TIME } from '@/lib/constants'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally, canReceive, supportsReceive, supportsSend, statusFromLog } from './common'
+import { getStorageKey, getWalletByType, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally } from './common'
 import useVault from '@/components/vault/use-vault'
-import { useWalletLogger, useWalletLogs } from '@/components/wallet-logger'
+import { useWalletLogger } from '@/components/wallet-logger'
 import { decode as bolt11Decode } from 'bolt11'
 import walletDefs from '@/wallets/client'
 import { generateMutation } from './graphql'
@@ -67,7 +67,6 @@ export function WalletsProvider ({ children }) {
   const [setWalletPriority] = useMutation(SET_WALLET_PRIORITY)
   const [serverWallets, setServerWallets] = useState([])
   const client = useApolloClient()
-  const { logs } = useWalletLogs()
 
   const { data, refetch } = useQuery(WALLETS,
     SSR ? {} : { nextFetchPolicy: 'cache-and-network' })
@@ -130,23 +129,8 @@ export function WalletsProvider ({ children }) {
     }
 
     // sort by priority, then add status field
-    return Object.values(merged)
-      .sort(walletPrioritySort)
-      .map(w => {
-        return {
-          ...w,
-          support: {
-            recv: supportsReceive(w),
-            send: supportsSend(w)
-          },
-          status: {
-            any: w.config?.enabled && isConfigured(w) ? Status.Enabled : Status.Disabled,
-            send: w.config?.enabled && canSend(w) ? Status.Enabled : Status.Disabled,
-            recv: w.config?.enabled && canReceive(w) ? Status.Enabled : Status.Disabled
-          }
-        }
-      }).map(w => statusFromLog(w, logs))
-  }, [serverWallets, localWallets, logs])
+    return Object.values(merged).sort(walletPrioritySort)
+  }, [serverWallets, localWallets])
 
   const settings = useMemo(() => {
     return {

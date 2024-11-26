@@ -7,31 +7,16 @@ import { Status, isConfigured } from '@/wallets/common'
 import DraggableIcon from '@/svgs/draggable.svg'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
-import useDarkMode from './dark-mode'
-import { useEffect, useState } from 'react'
 import { useWallets } from '@/wallets/index'
 import { abbrNum, msatsToSats } from '@/lib/format'
-
-const statusToClass = status => {
-  switch (status) {
-    case Status.Enabled: return styles.success
-    case Status.Disabled: return styles.disabled
-    case Status.Error: return styles.error
-    case Status.Warning: return styles.warning
-  }
-}
+import { useWalletImage } from '@/components/wallet-image'
+import { useWalletStatus, statusToClass } from '@/components/wallet-status'
+import { useWalletSupport } from '@/components/wallet-support'
 
 export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnter, onDragEnd, onTouchStart, sourceIndex, targetIndex, index }) {
-  const [dark] = useDarkMode()
-  const { card: { title, image } } = wallet.def
-  const [imgSrc, setImgSrc] = useState(image?.src)
-  const { displayBalances } = useWallets()
-
-  useEffect(() => {
-    if (!imgSrc) return
-    // wallet.png <-> wallet-dark.png
-    setImgSrc(dark ? image?.src.replace(/\.([a-z]{3})$/, '-dark.$1') : image?.src)
-  }, [dark])
+  const image = useWalletImage(wallet)
+  const status = useWalletStatus(wallet)
+  const support = useWalletSupport(wallet)
 
   const walletDisplayBalanceInfo = displayBalances?.[wallet.def.name]
   const walletDisplayBalance = walletDisplayBalanceInfo && !walletDisplayBalanceInfo.error ? abbrNum(msatsToSats(walletDisplayBalanceInfo.msats), { abbreviate: true }) : null
@@ -48,10 +33,10 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       <div className={styles.cardMeta}>
 
         <div className={styles.indicators}>
-          {wallet.status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
+          {status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
           {walletDisplayBalance !== null && <span className='small text-monospace px-0 text-nowrap text-success me-1'>{walletDisplayBalance}</span>}
-          {wallet.support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(wallet.status.recv)}`} />}
-          {wallet.support.send && <SendIcon className={`${styles.indicator} ${statusToClass(wallet.status.send)}`} />}
+          {support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(status.recv)}`} />}
+          {support.send && <SendIcon className={`${styles.indicator} ${statusToClass(status.send)}`} />}
         </div>
       </div>
       <Card.Body
@@ -64,8 +49,8 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       >
         <div className='d-flex text-center align-items-center h-100'>
           {image
-            ? <img alt={title} width='100%' {...image} src={imgSrc} />
-            : <Card.Title className='w-100 justify-content-center align-items-center'>{title}</Card.Title>}
+            ? <img width='100%' {...image} />
+            : <Card.Title className='w-100 justify-content-center align-items-center'>{wallet.def.card.title}</Card.Title>}
         </div>
       </Card.Body>
       <Link href={`/settings/wallets/${wallet.def.name}`}>

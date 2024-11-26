@@ -21,15 +21,23 @@
 }
 
 .indicators {
-  position: absolute;
-  width: 100%;
-  display: grid;
+  display: flex;
   align-items: center;
-  justify-content: end;
-  padding: 10px 10px 0 10px;
-  grid-gap: 0.2rem;
-  grid-auto-flow: column;
+  justify-content: center;
+  column-gap: 0.2rem;
+  margin-left:auto;
 }
+
+.cardHeader {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  padding: 10px;
+  line-height: 0;
+  align-items: center;
+}
+
 
 .badge {
   color: var(--theme-grey) !important;

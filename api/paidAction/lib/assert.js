@@ -25,18 +25,23 @@ export async function assertBelowMaxPendingInvoices (context) {
 
 export async function assertBelowMaxPendingDirectPayments (userId, context) {
   const { models, me } = context
-  const pendingSenderInvoices = await models.directPayment.count({
-    where: {
-      senderId: me?.id ?? USER_ID.anon,
-      createdAt: {
-        gt: datePivot(new Date(), { minutes: -MAX_PENDING_DIRECT_INVOICES_PER_USER_MINUTES })
-      }
-    }
-  })
 
-  if (pendingSenderInvoices >= MAX_PENDING_DIRECT_INVOICES_PER_USER) {
-    throw new Error('You\'ve sent too many direct payments')
+  if (me?.id !== userId) {
+    const pendingSenderInvoices = await models.directPayment.count({
+      where: {
+        senderId: me?.id ?? USER_ID.anon,
+        createdAt: {
+          gt: datePivot(new Date(), { minutes: -MAX_PENDING_DIRECT_INVOICES_PER_USER_MINUTES })
+        }
+      }
+    })
+
+    if (pendingSenderInvoices >= MAX_PENDING_DIRECT_INVOICES_PER_USER) {
+      throw new Error('You\'ve sent too many direct payments')
+    }
   }
+
+  if (!userId) return
 
   const pendingReceiverInvoices = await models.directPayment.count({
     where: {

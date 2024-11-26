@@ -243,7 +243,7 @@ async function performP2PAction (actionType, args, incomingContext) {
 // we don't need to use the module for perform-ing outside actions
 // because we can't track the state of outside invoices we aren't paid/paying
 async function performDirectAction (actionType, args, incomingContext) {
-  const { models, lnd, cost, me } = incomingContext
+  const { models, lnd, cost } = incomingContext
   const { comment, lud18Data, noteStr, description: actionDescription } = args
 
   const userId = await paidActions[actionType]?.getInvoiceablePeer?.(args, incomingContext)
@@ -279,8 +279,7 @@ async function performDirectAction (actionType, args, incomingContext) {
       msats: cost,
       hash,
       walletId: wallet.id,
-      receiverId: userId,
-      senderId: me?.id ?? USER_ID.anon
+      receiverId: userId
     }
   })
 

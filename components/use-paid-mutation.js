@@ -43,6 +43,7 @@ export function usePaidMutation (mutation,
       if (err instanceof WalletError) {
         walletError = err
         // wallet payment error handling always creates a new invoice to retry
+        // unless no wallet was even able to attempt a payment
         if (err.newInvoice) walletInvoice = err.newInvoice
       }
 

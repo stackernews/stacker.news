@@ -449,16 +449,12 @@ export default {
             },
             OR: [
               {
-                invoiceForward: {
-                  none: {}
-                }
+                invoiceForward: { is: null }
               },
               {
                 invoiceForward: {
-                  some: {
-                    invoice: {
-                      actionType: 'ZAP'
-                    }
+                  invoice: {
+                    actionType: 'ZAP'
                   }
                 }
               }

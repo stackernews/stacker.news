@@ -207,13 +207,12 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
       hash,
       OR: [
         { status: null },
-        { invoiceForward: { some: { } } }
+        { invoiceForward: { isNot: null } }
       ]
     },
     include: {
       wallet: true,
       invoiceForward: {
-        orderBy: { createdAt: 'desc' },
         include: {
           invoice: true
         }
@@ -227,14 +226,14 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
   const wdrwl = withdrawal ?? await getPaymentOrNotSent({ id: hash, lnd, createdAt: dbWdrwl.createdAt })
 
   if (wdrwl?.is_confirmed) {
-    if (dbWdrwl.invoiceForward.length > 0) {
-      return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
+    if (dbWdrwl.invoiceForward) {
+      return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward.invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
     }
 
     await payingActionConfirmed({ data: { withdrawalId: dbWdrwl.id, withdrawal: wdrwl }, models, lnd, boss })
   } else if (wdrwl?.is_failed || wdrwl?.notSent) {
-    if (dbWdrwl.invoiceForward.length > 0) {
-      return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
+    if (dbWdrwl.invoiceForward) {
+      return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward.invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
     }
 
     await payingActionFailed({ data: { withdrawalId: dbWdrwl.id, withdrawal: wdrwl }, models, lnd, boss })

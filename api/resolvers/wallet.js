@@ -537,11 +537,11 @@ const resolvers = {
   Withdrawl: {
     satsPaying: w => msatsToSats(w.msatsPaying),
     satsPaid: w => msatsToSats(w.msatsPaid),
-    satsFeePaying: w => w.invoiceForward?.length > 0 ? 0 : msatsToSats(w.msatsFeePaying),
-    satsFeePaid: w => w.invoiceForward?.length > 0 ? 0 : msatsToSats(w.msatsFeePaid),
+    satsFeePaying: w => w.invoiceForward ? 0 : msatsToSats(w.msatsFeePaying),
+    satsFeePaid: w => w.invoiceForward ? 0 : msatsToSats(w.msatsFeePaid),
     // we never want to fetch the sensitive data full monty in nested resolvers
     forwardedActionType: async (withdrawl, args, { models }) => {
-      return (await models.invoiceForward.findFirst({
+      return (await models.invoiceForward.findUnique({
         where: { withdrawlId: Number(withdrawl.id) },
         include: {
           invoice: true

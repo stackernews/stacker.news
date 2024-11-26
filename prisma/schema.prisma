@@ -976,7 +976,7 @@ model InvoiceForward {
 
   // we get these values when the outgoing invoice is settled
   invoiceId   Int  @unique
-  withdrawlId Int?
+  withdrawlId Int? @unique
 
   invoice   Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   wallet    Wallet     @relation(fields: [walletId], references: [id], onDelete: Cascade)
@@ -1004,7 +1004,7 @@ model Withdrawl {
   walletId       Int?
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   wallet         Wallet?          @relation(fields: [walletId], references: [id], onDelete: SetNull)
-  invoiceForward InvoiceForward[]
+  invoiceForward InvoiceForward?
 
   @@index([createdAt], map: "Withdrawl.created_at_index")
   @@index([userId], map: "Withdrawl.userId_index")

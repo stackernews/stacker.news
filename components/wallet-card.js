@@ -9,6 +9,8 @@ import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
 import useDarkMode from './dark-mode'
 import { useEffect, useState } from 'react'
+import { useWallets } from '@/wallets/index'
+import { abbrNum, msatsToSats } from '@/lib/format'
 
 const statusToClass = status => {
   switch (status) {
@@ -23,12 +25,16 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
   const [dark] = useDarkMode()
   const { card: { title, image } } = wallet.def
   const [imgSrc, setImgSrc] = useState(image?.src)
+  const { displayBalances } = useWallets()
 
   useEffect(() => {
     if (!imgSrc) return
     // wallet.png <-> wallet-dark.png
     setImgSrc(dark ? image?.src.replace(/\.([a-z]{3})$/, '-dark.$1') : image?.src)
   }, [dark])
+
+  const walletDisplayBalanceInfo = displayBalances?.[wallet.def.name]
+  const walletDisplayBalance = walletDisplayBalanceInfo && !walletDisplayBalanceInfo.error ? abbrNum(msatsToSats(walletDisplayBalanceInfo.msats), { abbreviate: true }) : null
 
   return (
     <Card
@@ -40,8 +46,10 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       onDragEnd={onDragEnd}
     >
       <div className={styles.cardMeta}>
+
         <div className={styles.indicators}>
           {wallet.status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
+          {walletDisplayBalance !== null && <span className='small text-monospace px-0 text-nowrap text-success me-1'>{walletDisplayBalance}</span>}
           {wallet.support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(wallet.status.recv)}`} />}
           {wallet.support.send && <SendIcon className={`${styles.indicator} ${statusToClass(wallet.status.send)}`} />}
         </div>

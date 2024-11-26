@@ -19,3 +19,11 @@ export async function sendPayment (bolt11, { nwcUrl }, { logger }) {
   { logger })
   return result.preimage
 }
+
+export async function getBalance ({ nwcUrl }) {
+  const result = await nwcCall({
+    nwcUrl,
+    method: 'get_balance'
+  }, {})
+  return BigInt(result.balance)
+}

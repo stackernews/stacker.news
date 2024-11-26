@@ -8,7 +8,7 @@ import classNames from 'classnames'
 
 const KEY_ID = '0'
 
-function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', eventKey, show }) {
+function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', eventKey, show, togglerClassName }) {
   const { activeEventKey } = useContext(AccordionContext)
   const decoratedOnClick = useAccordionButton(eventKey)
 
@@ -22,7 +22,7 @@ function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', even
   const isCurrentEventKey = activeEventKey === eventKey
 
   return (
-    <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={decoratedOnClick}>
+    <div className={togglerClassName} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={decoratedOnClick}>
       {isCurrentEventKey
         ? <ArrowDown style={{ fill: headerColor }} height={20} width={20} />
         : <ArrowRight style={{ fill: headerColor }} height={20} width={20} />}
@@ -31,7 +31,7 @@ function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', even
   )
 }
 
-export default function AccordianItem ({ header, body, className, headerColor = 'var(--theme-grey)', show }) {
+export default function AccordianItem ({ header, body, className, togglerClassName, headerColor = 'var(--theme-grey)', show }) {
   const [activeKey, setActiveKey] = useState()
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function AccordianItem ({ header, body, className, headerColor = 
 
   return (
     <Accordion defaultActiveKey={activeKey} activeKey={activeKey} onSelect={handleOnSelect}>
-      <ContextAwareToggle show={show} eventKey={KEY_ID} headerColor={headerColor}><div style={{ color: headerColor }}>{header}</div></ContextAwareToggle>
+      <ContextAwareToggle togglerClassName={togglerClassName} show={show} eventKey={KEY_ID} headerColor={headerColor}><div style={{ color: headerColor }}>{header}</div></ContextAwareToggle>
       <Accordion.Collapse eventKey={KEY_ID} className={classNames('mt-2', className)}>
         <div>{body}</div>
       </Accordion.Collapse>

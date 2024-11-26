@@ -15,6 +15,7 @@ export async function getWallet (authToken, currency) {
                   wallets {
                       id
                       walletCurrency
+                      balance
                   }
               }
           }

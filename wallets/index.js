@@ -1,6 +1,6 @@
 import { useMe } from '@/components/me'
 import { SET_WALLET_PRIORITY, WALLETS } from '@/fragments/wallet'
-import { SSR } from '@/lib/constants'
+import { SSR, LONG_POLL_INTERVAL as WALLETS_DISPLAY_BALANCE_REFRESH_TIME } from '@/lib/constants'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getStorageKey, getWalletByType, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally } from './common'
@@ -194,12 +194,74 @@ export function WalletsProvider ({ children }) {
     }
   }, [setWalletPriority, me?.id, reloadLocalWallets])
 
+  const [displayBalances, setDisplayBalances] = useState({})
+
+  useEffect(() => {
+    let timeoutId = null
+    let terminated = false
+
+    const refreshPeriodically = async () => {
+      const finalStates = {}
+      await Promise.allSettled(wallets
+        .filter(w => isEnabledSendingWallet(w) && w.config?.showBalance)
+        .map(async wallet => {
+          const newState = finalStates[wallet.def.name] = { msats: 0, error: null }
+          try {
+            if (!wallet.def.getBalance) throw new Error(`${wallet.def.name} does not support getBalance`)
+            const balance = await wallet.def.getBalance(wallet.config)
+            newState.msats = balance
+          } catch (error) {
+            console.warn(error)
+            // we'll handle the error downstream where it makes sense
+            newState.error = error
+            newState.msats = 0n
+          }
+
+          if (terminated) return
+
+          // early additive state aggregation:
+          // overwrites the balance data of each wallet as soon as it is available
+          setDisplayBalances((old) => {
+            const oldState = old[wallet.def.name]
+            if (
+              !oldState ||
+              oldState.msats !== newState.msats ||
+              (!!oldState.error) !== (!!newState.error)
+            ) {
+            // ensure the state update happens only if something changed
+              return {
+                ...old,
+                [wallet.def.name]: newState
+              }
+            }
+            return old
+          })
+        }))
+
+      if (terminated) return
+      // finalize the state update after all the promises have settled
+      // this gets rid of the stale data lingering after the additive update
+      // (eg. disabled or disconnected wallets) without doing an explicit cleanup
+      // pre-pass
+      setDisplayBalances(finalStates)
+      // rerun after a while
+      timeoutId = setTimeout(refreshPeriodically, WALLETS_DISPLAY_BALANCE_REFRESH_TIME)
+    }
+
+    refreshPeriodically()
+    return () => {
+      terminated = true
+      if (timeoutId) clearTimeout(timeoutId)
+    }
+  }, [wallets])
+
   // provides priority sorted wallets to children, a function to reload local wallets,
   // and a function to set priorities
   return (
     <WalletsContext.Provider
       value={{
         wallets,
+        displayBalances,
         reloadLocalWallets,
         setPriorities,
         onVaultKeySet: syncLocalWallets,
@@ -248,4 +310,10 @@ export function useWallet (name) {
   if (!wallet) return null
 
   return { ...wallet, sendPayment }
+}
+
+export function isEnabledSendingWallet (w) {
+  return (!w.def.isAvailable || w.def.isAvailable()) &&
+        w.config?.enabled &&
+        canSend(w)
 }

@@ -7,6 +7,8 @@ import { Status, isConfigured } from '@/wallets/common'
 import DraggableIcon from '@/svgs/draggable.svg'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
+import { useWallets } from '@/wallets/index'
+import { abbrNum, msatsToSats } from '@/lib/format'
 import { useWalletImage } from '@/components/wallet-image'
 import { useWalletStatus, statusToClass } from '@/components/wallet-status'
 import { useWalletSupport } from '@/components/wallet-support'
@@ -15,6 +17,11 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
   const image = useWalletImage(wallet)
   const status = useWalletStatus(wallet)
   const support = useWalletSupport(wallet)
+
+  const { displayBalances } = useWallets()
+
+  const walletDisplayBalanceInfo = displayBalances?.[wallet.def.name]
+  const walletDisplayBalance = walletDisplayBalanceInfo && !walletDisplayBalanceInfo.error ? abbrNum(msatsToSats(walletDisplayBalanceInfo.msats), { abbreviate: true }) : null
 
   return (
     <Card
@@ -26,11 +33,18 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       onDragEnd={onDragEnd}
     >
       <div className={styles.cardMeta}>
-        <div className={styles.indicators}>
-          {status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
-          {support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(status.recv)}`} />}
-          {support.send && <SendIcon className={`${styles.indicator} ${statusToClass(status.send)}`} />}
+
+        <div className={styles.cardHeader}>
+          <div classname={styles.balance}>
+            {walletDisplayBalance !== null && <span className='balance text-monospace p-0 m-0 text-nowrap text-success'>{walletDisplayBalance}</span>}
+          </div>
+          <div className={styles.indicators}>
+            {status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
+            {support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(status.recv)}`} />}
+            {support.send && <SendIcon className={`${styles.indicator} ${statusToClass(status.send)}`} />}
+          </div>
         </div>
+
       </div>
       <Card.Body
         // we attach touch listener only to card body to not interfere with wallet link

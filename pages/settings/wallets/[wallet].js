@@ -108,6 +108,7 @@ export default function WalletSettings () {
             groupClassName='mb-0'
           />
         </CheckboxGroup>
+        <SendSettings walletDef={wallet.def} />
         <ReceiveSettings walletDef={wallet.def} />
         <WalletButtonBar
           wallet={wallet} onDelete={async () => {
@@ -140,6 +141,18 @@ function SendWarningBanner ({ walletDef }) {
 function ReceiveSettings ({ walletDef }) {
   const { values } = useFormikContext()
   return canReceive({ def: walletDef, config: values }) && <AutowithdrawSettings />
+}
+
+function SendSettings ({ walletDef }) {
+  const { values } = useFormikContext()
+  return canSend({ def: walletDef, config: values }) &&
+    <CheckboxGroup name='showBalance'>
+      <Checkbox
+        label='show balance'
+        name='showBalance'
+        groupClassName='mb-0'
+      />
+    </CheckboxGroup>
 }
 
 function WalletFields ({ wallet }) {

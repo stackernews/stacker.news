@@ -1,17 +1,19 @@
 import Link from 'next/link'
 import { Button, Dropdown, Nav, Navbar } from 'react-bootstrap'
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
+import Tooltip from 'react-bootstrap/Tooltip'
 import styles from '../header.module.css'
 import { useRouter } from 'next/router'
 import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
-import { USER_ID, BALANCE_LIMIT_MSATS } from '../../lib/constants'
+import { USER_ID, BALANCE_LIMIT_MSATS } from '@/lib/constants'
 import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
 import HiddenWalletSummary from '../hidden-wallet-summary'
-import { abbrNum, msatsToSats } from '../../lib/format'
+import { msatsToSats } from '../../lib/format'
 import { useServiceWorker } from '../serviceworker'
 import { signOut } from 'next-auth/react'
 import Badges from '../badge'
@@ -25,7 +27,8 @@ import { useHasNewNotes } from '../use-has-new-notes'
 import { useWallets } from '@/wallets/index'
 import SwitchAccountList, { useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
-
+import { toPositiveNumber } from '@/lib/validate'
+import { formatSats } from '@/lib/format'
 export function Brand ({ className }) {
   return (
     <Link href='/' passHref legacyBehavior>
@@ -138,24 +141,86 @@ export function NavNotifications ({ className }) {
   )
 }
 
-export function WalletSummary () {
+export function WalletAttachmentBalances ({ className, abbreviate = true, withUnit = true, format = true }) {
+  const { me } = useMe()
+  const custodialSats = toPositiveNumber(me.privates?.sats)
+  const walletSummary = [`custodial: ${formatSats(custodialSats, { abbreviate, withUnit, format })}`]
+
+  const { displayBalances } = useWallets()
+  const sortedDisplayBalanceEntries = Object.entries(displayBalances).sort((a, b) => Number(b[1].msats - a[1].msats))
+  for (const [walletName, { msats, error }] of sortedDisplayBalanceEntries) {
+    if (error) {
+      // if there is an error, we don't know how much is in the wallet, so we assume it has a non-zero balance
+      walletSummary.push(`${walletName} attachment: ?`)
+    } else {
+      const balance = msatsToSats(msats)
+      walletSummary.push(`${walletName} attachment: ${formatSats(balance, { abbreviate, withUnit, format })}`)
+    }
+  }
+  return (
+    <div className={className}>
+      {
+        walletSummary.map((w, i) => {
+          return (
+            <div key={i}>{w}</div>
+          )
+        })
+      }
+    </div>
+  )
+}
+
+export function WalletSummary ({ className, abbreviate = true, withUnit = false, fixedWidth = true, format = false }) {
   const { me } = useMe()
   if (!me) return null
   if (me.privates?.hideWalletBalance) {
-    return <HiddenWalletSummary abbreviate fixedWidth />
+    return <HiddenWalletSummary abbreviate={abbreviate} fixedWidth={fixedWidth} />
   }
-  return `${abbrNum(me.privates?.sats)}`
+
+  const { displayBalances } = useWallets()
+
+  const custodialSats = toPositiveNumber(me.privates?.sats)
+
+  let numNonZeroBalances = custodialSats > 0 ? 1 : 0
+  let highestBalance = custodialSats
+
+  for (const { msats, error } of Object.values(displayBalances)) {
+    if (error) {
+      // if there is an error, we don't know how much is in the wallet, so we assume it has a non-zero balance
+      numNonZeroBalances++
+    } else {
+      if (msats > 0)numNonZeroBalances++
+      const balance = msatsToSats(msats)
+      if (balance > highestBalance) highestBalance = balance
+    }
+  }
+
+  return <span className={className}>{formatSats(highestBalance, { abbreviate, withUnit, format, satsSuffix: numNonZeroBalances > 1 ? '+' : '' })} </span>
 }
 
 export function NavWalletSummary ({ className }) {
   const { me } = useMe()
   const walletLimitReached = me?.privates?.sats >= msatsToSats(BALANCE_LIMIT_MSATS)
-
   return (
     <Nav.Item className={className}>
       <Link href='/wallet' passHref legacyBehavior>
         <Nav.Link eventKey='wallet' className={`${walletLimitReached ? 'text-warning' : 'text-success'} text-monospace px-0 text-nowrap`}>
-          <WalletSummary me={me} />
+          {me.privates?.hideWalletBalance
+            ? <WalletSummary />
+            : (
+              <OverlayTrigger
+                placement='bottom'
+                overlay={<Tooltip>  <WalletAttachmentBalances /> </Tooltip>}
+                trigger={['hover', 'focus']}
+                popperConfig={{
+                  modifiers: {
+                    preventOverflow: {
+                      enabled: false
+                    }
+                  }
+                }}
+              ><div><WalletSummary /> </div>
+              </OverlayTrigger>)}
         </Nav.Link>
       </Link>
     </Nav.Item>

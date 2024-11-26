@@ -22,6 +22,14 @@ export async function sendPayment (bolt11, { apiKey, currency }) {
   return await payInvoice(apiKey, wallet, bolt11)
 }
 
+export async function getBalance ({ apiKey, currency }) {
+  if (currency !== 'BTC') {
+    throw new Error('unsupported currency')
+  }
+  const wallet = await getWallet(apiKey, currency)
+  return BigInt(wallet.balance * 1000)
+}
+
 async function payInvoice (authToken, wallet, invoice) {
   const walletId = wallet.id
   const out = await request(authToken, `

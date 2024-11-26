@@ -24,6 +24,12 @@ export async function sendPayment (bolt11, { url, adminKey }) {
   return checkResponse.preimage
 }
 
+export async function getBalance ({ url, adminKey }) {
+  url = url.replace(/\/+$/, '')
+  const wallet = await getWallet({ url, adminKey })
+  return BigInt(wallet.balance)
+}
+
 async function getWallet ({ url, adminKey, invoiceKey }) {
   const path = '/api/v1/wallet'
 

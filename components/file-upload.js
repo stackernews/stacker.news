@@ -28,6 +28,7 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
     return new Promise((resolve, reject) => {
       async function onload () {
         onUpload?.(file)
+        file = await transcodeFFMPEG(file) // will transcode if video
         let data
         const variables = {
           avatar,
@@ -125,6 +126,23 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
     </>
   )
 })
+
+const transcodeFFMPEG = async (file) => {
+  if (!file || !file.type.startsWith('video/')) return file
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await fetch(process.env.NEXT_PUBLIC_FFMPEG_URL + '/api/transcode', {
+    method: 'POST',
+    body: formData
+  })
+
+  if (!res.ok) {
+    throw new Error('Failed to contact FFMPEG service')
+  }
+
+  const processedFile = await res.blob()
+  return new File([processedFile], file.name, { type: file.type })
+}
 
 // from https://stackoverflow.com/a/77472484
 const removeExifData = async (file) => {

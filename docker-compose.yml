@@ -653,6 +653,17 @@ services:
       CONNECT: "localhost:${LNBITS_WEB_PORT}"
       TORDIR: "/app/.tor"
     cpu_shares: "${CPU_SHARES_LOW}"
+  ffmpeg:
+    build:
+      context: ./docker/ffmpeg
+    container_name: ffmpeg
+    env_file: *env_file
+    profiles:
+      - images
+    volumes:
+      - uploads:/app/uploads
+    ports:
+      - "3002:3002"
 volumes:
   db:
   os:
@@ -664,3 +675,4 @@ volumes:
   nwc_send:
   nwc_recv:
   tordata:
+  uploads:

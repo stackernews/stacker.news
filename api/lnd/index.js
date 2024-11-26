@@ -1,5 +1,5 @@
 import { cachedFetcher } from '@/lib/fetch'
-import { toPositiveNumber } from '@/lib/validate'
+import { toPositiveNumber } from '@/lib/format'
 import { authenticatedLndGrpc } from '@/lib/lnd'
 import { getIdentity, getHeight, getWalletInfo, getNode, getPayment } from 'ln-service'
 import { datePivot } from '@/lib/time'

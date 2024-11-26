@@ -1,6 +1,5 @@
 import { LND_PATHFINDING_TIMEOUT_MS, USER_ID } from '@/lib/constants'
-import { msatsToSats, satsToMsats } from '@/lib/format'
-import { toPositiveBigInt } from '@/lib/validate'
+import { msatsToSats, satsToMsats, toPositiveBigInt } from '@/lib/format'
 import { Prisma } from '@prisma/client'
 import { parsePaymentRequest, payViaPaymentRequest } from 'ln-service'
 

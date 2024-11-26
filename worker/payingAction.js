@@ -1,8 +1,7 @@
 import { getPaymentFailureStatus, getPaymentOrNotSent } from '@/api/lnd'
 import { walletLogger } from '@/api/resolvers/wallet'
-import { formatMsats, formatSats, msatsToSats } from '@/lib/format'
+import { formatMsats, formatSats, msatsToSats, toPositiveBigInt } from '@/lib/format'
 import { datePivot } from '@/lib/time'
-import { toPositiveBigInt, toPositiveNumber } from '@/lib/validate'
 import { notifyWithdrawal } from '@/lib/webPush'
 import { Prisma } from '@prisma/client'
 
@@ -153,7 +152,7 @@ export async function payingActionFailed ({ data: args, models, lnd, boss }) {
       `incoming payment failed: ${message}`,
       {
         bolt11: transitionedWithdrawal.bolt11,
-        max_fee: formatMsats(toPositiveNumber(transitionedWithdrawal.msatsFeePaying))
+        max_fee: formatMsats(transitionedWithdrawal.msatsFeePaying)
       })
   }
 }

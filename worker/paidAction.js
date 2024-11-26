@@ -2,9 +2,8 @@ import { getPaymentFailureStatus, hodlInvoiceCltvDetails, getPaymentOrNotSent } 
 import { paidActions } from '@/api/paidAction'
 import { walletLogger } from '@/api/resolvers/wallet'
 import { LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
-import { formatMsats, formatSats, msatsToSats } from '@/lib/format'
+import { formatMsats, formatSats, msatsToSats, toPositiveNumber } from '@/lib/format'
 import { datePivot } from '@/lib/time'
-import { toPositiveNumber } from '@/lib/validate'
 import { Prisma } from '@prisma/client'
 import {
   cancelHodlInvoice,
@@ -308,7 +307,7 @@ export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...a
           preimage: payment.secret
           // we could show the outgoing fee that we paid from the incoming amount to the receiver
           // but we don't since it might look like the receiver paid the fee but that's not the case.
-          // fee: formatMsats(Number(payment.fee_mtokens))
+          // fee: formatMsats(payment.fee_mtokens)
         })
 
       return {
@@ -359,7 +358,7 @@ export async function paidActionFailedForward ({ data: { invoiceId, withdrawal: 
       logger.warn(
         `incoming payment failed: ${message}`, {
           bolt11,
-          max_fee: formatMsats(Number(msatsFeePaying))
+          max_fee: formatMsats(msatsFeePaying)
         })
 
       return {

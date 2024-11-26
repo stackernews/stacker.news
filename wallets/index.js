@@ -269,7 +269,7 @@ export function WalletsProvider ({ children }) {
       terminated = true
       if (timeoutId) clearTimeout(timeoutId)
     }
-  }, [wallets])
+  }, [wallets.map(w => w.def.name).join()])
 
   // provides priority sorted wallets to children, a function to reload local wallets,
   // and a function to set priorities

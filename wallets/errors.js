@@ -24,7 +24,7 @@ export class WalletNotEnabledError extends Error {
 export class SenderError extends Error {
   constructor (name, hash) {
     super(`${name} failed to pay invoice: ${hash}`)
-    this.name = 'WalletPaymentFailedError'
+    this.name = 'SenderError'
   }
 }
 

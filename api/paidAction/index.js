@@ -308,10 +308,10 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     throw new Error(`retryPaidAction - missing invoice ${actionType}`)
   }
 
-  const { msatsRequested, actionId, actionArgs } = failedInvoice
+  const { msatsRequested, actionId, actionArgs, actionOptimistic } = failedInvoice
   const retryContext = {
     ...incomingContext,
-    optimistic: failedInvoice.actionOptimistic,
+    optimistic: actionOptimistic,
     me: await models.user.findUnique({ where: { id: me.id } }),
     cost: BigInt(msatsRequested),
     actionId
@@ -339,7 +339,7 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     return {
       result: await action.retry?.({ invoiceId: failedInvoice.id, newInvoiceId: invoice.id }, context),
       invoice,
-      paymentMethod: 'OPTIMISTIC'
+      paymentMethod: actionOptimistic ? 'OPTIMISTIC' : 'PESSIMISTIC'
     }
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 }

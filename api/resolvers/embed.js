@@ -36,6 +36,9 @@ export default {
             }
           }
         }
+
+        if (!meta) meta = {}
+
         await models.embedMeta.upsert({
           where: { hash },
           create: { hash, meta },

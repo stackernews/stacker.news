@@ -75,7 +75,7 @@ const typeDefs = `
   }
 
   extend type Mutation {
-    createInvoice(amount: Int!): Invoice!
+    createInvoice(amount: Int!): InvoiceOrDirect!
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
     cancelInvoice(hash: String!, hmac: String!): Invoice!
@@ -83,6 +83,10 @@ const typeDefs = `
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(wallet: String): Boolean
     setWalletPriority(id: ID!, priority: Int!): Boolean
+  }
+
+  interface InvoiceOrDirect {
+    id: ID!
   }
 
   type Wallet {
@@ -102,7 +106,7 @@ const typeDefs = `
     autoWithdrawMaxFeeTotal: Int!
   }
 
-  type Invoice {
+  type Invoice implements InvoiceOrDirect {
     id: ID!
     createdAt: Date!
     hash: String!
@@ -142,7 +146,7 @@ const typeDefs = `
     forwardedActionType: String
   }
 
-  type Direct {
+  type Direct implements InvoiceOrDirect {
     id: ID!
     createdAt: Date!
     bolt11: String

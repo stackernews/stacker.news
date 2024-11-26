@@ -7,7 +7,8 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
 import { formatMsats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
 import {
-  USER_ID, INVOICE_RETENTION_DAYS
+  USER_ID, INVOICE_RETENTION_DAYS,
+  PAID_ACTION_PAYMENT_METHODS
 } from '@/lib/constants'
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
@@ -458,16 +459,23 @@ const resolvers = {
   WalletDetails: {
     __resolveType: wallet => wallet.__resolveType
   },
+  InvoiceOrDirect: {
+    __resolveType: invoiceOrDirect => invoiceOrDirect.__resolveType
+  },
   Mutation: {
     createInvoice: async (parent, { amount }, { me, models, lnd, headers }) => {
       await validateSchema(amountSchema, { amount })
       await assertGofacYourself({ models, headers })
 
-      const { invoice } = await performPaidAction('RECEIVE', {
+      const { invoice, paymentMethod } = await performPaidAction('RECEIVE', {
         msats: satsToMsats(amount)
       }, { models, lnd, me })
 
-      return invoice
+      return {
+        ...invoice,
+        __resolveType:
+          paymentMethod === PAID_ACTION_PAYMENT_METHODS.DIRECT ? 'Direct' : 'Invoice'
+      }
     },
     createWithdrawl: createWithdrawal,
     sendToLnAddr,

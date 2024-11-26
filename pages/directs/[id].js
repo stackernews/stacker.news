@@ -1,14 +1,14 @@
 import { useQuery } from '@apollo/client'
 import { CenterLayout } from '@/components/layout'
-import { CopyInput, InputSkeleton } from '@/components/form'
 import { useRouter } from 'next/router'
 import { DIRECT } from '@/fragments/wallet'
 import { SSR, FAST_POLL_INTERVAL } from '@/lib/constants'
 import Bolt11Info from '@/components/bolt11-info'
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import InvoiceStatus from '@/components/invoice-status'
 import { PrivacyOption } from '../withdrawals/[id]'
 import { InvoiceExtras } from '@/components/invoice'
+import { numWithUnits } from '@/lib/format'
+import Qr, { QrSkeleton } from '@/components/qr'
 // force SSR to include CSP nonces
 export const getServerSideProps = getGetServerSideProps({ query: null })
 
@@ -24,7 +24,7 @@ export function DirectSkeleton ({ status }) {
   return (
     <>
       <div className='w-100 form-group'>
-        <InputSkeleton label='invoice' />
+        <QrSkeleton status={status} />
       </div>
       <div className='w-100 mt-3'>
         <Bolt11Info />
@@ -49,13 +49,11 @@ function LoadDirect () {
 
   return (
     <>
-      <div className='w-100'>
-        <CopyInput
-          label='invoice' type='text'
-          placeholder={data.direct.bolt11 || 'deleted'} readOnly noForm
-        />
-        <InvoiceStatus variant='pending' status={`direct payment of ${data.direct.sats} sats`} />
-      </div>
+      <Qr
+        value={data.direct.bolt11}
+        description={numWithUnits(data.direct.sats, { abbreviate: false })}
+        statusVariant='pending' status='direct payment to attached wallet'
+      />
       <div className='w-100 mt-3'>
         <InvoiceExtras {...data.direct} />
         <Bolt11Info bolt11={data.direct.bolt11} preimage={data.direct.preimage} />

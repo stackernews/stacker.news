@@ -1,4 +1,4 @@
-import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
+import { callApi } from '@/wallets/phoenixd'
 
 export * from '@/wallets/phoenixd'
 
@@ -12,29 +12,28 @@ export async function testSendPayment (config, { logger }) {
 
 export async function sendPayment (bolt11, { url, primaryPassword }) {
   // https://phoenix.acinq.co/server/api#pay-bolt11-invoice
-  const path = '/payinvoice'
-
-  const headers = new Headers()
-  headers.set('Authorization', 'Basic ' + Buffer.from(':' + primaryPassword).toString('base64'))
-  headers.set('Content-type', 'application/x-www-form-urlencoded')
-
-  const body = new URLSearchParams()
-  body.append('invoice', bolt11)
-
-  const res = await fetch(url + path, {
-    method: 'POST',
-    headers,
-    body
-  })
-
-  assertResponseOk(res)
-  assertContentTypeJson(res)
-
-  const payment = await res.json()
+  const payment = await callApi(
+    'payinvoice',
+    { invoice: bolt11 },
+    { url, password: primaryPassword }
+  )
   const preimage = payment.paymentPreimage
   if (!preimage) {
     throw new Error(payment.reason)
   }
 
   return preimage
+}
+
+export async function getBalance ({ url, primaryPassword }) {
+  // https://phoenix.acinq.co/server/api#get-balance
+  const result = await callApi(
+    'getbalance',
+    {},
+    {
+      url,
+      password: primaryPassword,
+      method: 'GET'
+    })
+  return BigInt(result.balanceSat * 1000)
 }

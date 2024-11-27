@@ -107,6 +107,20 @@ export function usePaidMutation (mutation,
           onPaid?.(client.cache, { data })
         }).catch(e => {
           console.error('usePaidMutation: failed to pay invoice', e)
+          if (e.invoice) {
+            // update the failed invoice for the Apollo cache update
+            data = {
+              [Object.keys(data)[0]]: {
+                ...data,
+                invoice: {
+                  ...e.invoice,
+                  actionState: 'FAILED',
+                  cancelled: true,
+                  cancelledAt: new Date()
+                }
+              }
+            }
+          }
           // onPayError is called after the invoice fails to pay
           // useful for updating invoiceActionState to FAILED
           onPayError?.(e, client.cache, { data })

@@ -61,3 +61,16 @@ export class WalletAggregateError extends WalletError {
     this.invoice = invoice
   }
 }
+
+export class WalletPaymentAggregateError extends WalletPaymentError {
+  constructor (errors, invoice) {
+    super('WalletPaymentAggregateError')
+    this.name = 'WalletPaymentAggregateError'
+    this.errors = errors
+    this.invoice = invoice
+
+    if (!errors.every(e => e instanceof WalletPaymentError)) {
+      throw new Error('only WalletPaymentError instances are allowed')
+    }
+  }
+}

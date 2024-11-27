@@ -6,8 +6,8 @@ import { useWalletLogger } from '@/components/wallet-logger'
 import { useInvoice } from '@/components/payment'
 import { FAST_POLL_INTERVAL } from '@/lib/constants'
 import {
-  WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletNotEnabledError,
-  WalletSendNotConfiguredError, WalletPaymentError, WalletError, WalletConfigurationError
+  WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
+  WalletNotEnabledError, WalletSendNotConfiguredError, WalletPaymentError, WalletError
 } from '@/wallets/errors'
 import { canSend } from './common'
 
@@ -102,7 +102,7 @@ export function useWalletPayment () {
     // if we reach this line, no wallet payment succeeded
     // only return payment errors
     const paymentErrors = walletError.errors.filter(e => e instanceof WalletPaymentError)
-    throw new WalletAggregateError(paymentErrors, walletInvoice)
+    throw new WalletPaymentAggregateError(paymentErrors, walletInvoice)
   }, [walletsWithPayments, invoiceHelper])
 
   return waitForPayment

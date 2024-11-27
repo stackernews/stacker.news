@@ -8,7 +8,7 @@ import Bolt11Info from './bolt11-info'
 import { useQuery } from '@apollo/client'
 import { INVOICE } from '@/fragments/wallet'
 import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
-import { WalletAggregateError, WalletConfigurationError } from '@/wallets/errors'
+import { WalletConfigurationError, WalletPaymentAggregateError } from '@/wallets/errors'
 import ItemJob from './item-job'
 import Item from './item'
 import { CommentFlat } from './comment'
@@ -205,7 +205,7 @@ function ActionInfo ({ invoice }) {
 function WalletError ({ error }) {
   if (!error || error instanceof WalletConfigurationError) return null
 
-  if (!(error instanceof WalletAggregateError)) {
+  if (!(error instanceof WalletPaymentAggregateError)) {
     console.error('unexpected wallet error:', error)
     return null
   }

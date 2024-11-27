@@ -364,12 +364,18 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
                 let preMarker = text.slice(0, cursorPosition)
                 let postMarker = text.slice(cursorPosition)
                 // when uploading multiple files at once, we want to make sure the upload markers are separated by blank lines
-                if (preMarker && !/\n+\s*$/.test(preMarker)) {
-                  preMarker += '\n\n'
+                if (preMarker) {
+                  // Count existing newlines at the end of preMarker
+                  const existingNewlines = preMarker.match(/[\n]+$/)?.[0].length || 0
+                  // Add only the needed newlines to reach 2
+                  preMarker += '\n'.repeat(Math.max(0, 2 - existingNewlines))
                 }
                 // if there's text after the cursor, we want to make sure the upload marker is separated by a blank line
                 if (postMarker) {
-                  postMarker = '\n\n' + postMarker
+                  // Count existing newlines at the start of postMarker
+                  const existingNewlines = postMarker.match(/^[\n]*/)?.[0].length || 0
+                  // Add only the needed newlines to reach 2
+                  postMarker = '\n'.repeat(Math.max(0, 2 - existingNewlines)) + postMarker
                 }
                 const newText = preMarker + uploadMarker + postMarker
                 helpers.setValue(newText)

@@ -25,6 +25,7 @@ export async function sendPayment (bolt11, credentials, { logger }) {
       return preimage
     } catch (err) {
       const msg = err.message || err.toString?.()
+      // TODO: pass full invoice
       if (msg.includes('invoice expired')) throw new InvoiceExpiredError(hash)
       if (msg.includes('canceled')) throw new InvoiceCanceledError(hash)
       throw err

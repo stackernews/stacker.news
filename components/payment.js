@@ -24,15 +24,15 @@ export const useInvoice = () => {
       throw error
     }
 
-    const { hash, cancelled, cancelledAt, actionError, actionState, expiresAt } = data.invoice
+    const { cancelled, cancelledAt, actionError, actionState, expiresAt } = data.invoice
 
     const expired = cancelledAt && new Date(expiresAt) < new Date(cancelledAt)
     if (expired) {
-      throw new InvoiceExpiredError(hash)
+      throw new InvoiceExpiredError(data.invoice)
     }
 
     if (cancelled || actionError) {
-      throw new InvoiceCanceledError(hash, actionError)
+      throw new InvoiceCanceledError(data.invoice, actionError)
     }
 
     // write to cache if paid
@@ -84,7 +84,7 @@ export const useQrPayment = () => {
       const cancelAndReject = async (onClose) => {
         if (!paid && cancelOnClose) {
           await invoice.cancel(inv).catch(console.error)
-          reject(new InvoiceCanceledError(inv?.hash))
+          reject(new InvoiceCanceledError(inv))
         }
         resolve(inv)
       }
@@ -97,8 +97,8 @@ export const useQrPayment = () => {
           successVerb='received'
           walletError={walletError}
           waitFor={waitFor}
-          onExpired={inv => reject(new InvoiceExpiredError(inv?.hash))}
-          onCanceled={inv => { onClose(); reject(new InvoiceCanceledError(inv?.hash, inv?.actionError)) }}
+          onExpired={inv => reject(new InvoiceExpiredError(inv))}
+          onCanceled={inv => { onClose(); reject(new InvoiceCanceledError(inv, inv?.actionError)) }}
           onPayment={() => { paid = true; onClose(); resolve(inv) }}
           poll
         />,

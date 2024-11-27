@@ -113,11 +113,12 @@ const invoiceController = (inv, isInvoice) => {
   const signal = controller.signal
   controller.wait = async (waitFor = inv => inv?.actionState === 'PAID') => {
     return await new Promise((resolve, reject) => {
+      let updatedInvoice, paid
       const interval = setInterval(async () => {
         try {
-          const paid = await isInvoice(inv, waitFor)
+          ({ invoice: updatedInvoice, check: paid } = await isInvoice(inv, waitFor))
           if (paid) {
-            resolve(inv)
+            resolve(updatedInvoice)
             clearInterval(interval)
             signal.removeEventListener('abort', abort)
           } else {
@@ -132,7 +133,7 @@ const invoiceController = (inv, isInvoice) => {
 
       const abort = () => {
         console.info(`invoice #${inv.id}: stopped waiting`)
-        resolve(inv)
+        resolve(updatedInvoice)
         clearInterval(interval)
         signal.removeEventListener('abort', abort)
       }

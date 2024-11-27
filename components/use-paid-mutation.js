@@ -98,26 +98,30 @@ export function usePaidMutation (mutation,
         error: e instanceof InvoiceCanceledError && e.actionError ? e : undefined
       })
 
+      const dataKey = Object.keys(data)[0]
+
       // should we wait for the invoice to be paid?
       if (response?.paymentMethod === 'OPTIMISTIC' && !forceWaitForPayment) {
         // onCompleted is called before the invoice is paid for optimistic updates
         ourOnCompleted?.(data)
         // don't wait to pay the invoice
-        waitForPayment(invoice, { persistOnNavigate, waitFor }).then(() => {
+        waitForPayment(invoice, { persistOnNavigate, waitFor }).then((invoice) => {
+          // invoice might have been retried during payment
+          data = {
+            [dataKey]: {
+              ...data[dataKey],
+              invoice
+            }
+          }
           onPaid?.(client.cache, { data })
         }).catch(e => {
           console.error('usePaidMutation: failed to pay invoice', e)
           if (e.invoice) {
             // update the failed invoice for the Apollo cache update
             data = {
-              [Object.keys(data)[0]]: {
-                ...data,
-                invoice: {
-                  ...e.invoice,
-                  actionState: 'FAILED',
-                  cancelled: true,
-                  cancelledAt: new Date()
-                }
+              [dataKey]: {
+                ...data[dataKey],
+                invoice
               }
             }
           }
@@ -138,7 +142,7 @@ export function usePaidMutation (mutation,
             // create new data object
             // ( hmac is only returned on invoice creation so we need to add it back to the data )
             data = {
-              [Object.keys(data)[0]]: {
+              [dataKey]: {
                 ...paidAction,
                 invoice: { ...paidAction.invoice, hmac: invoice.hmac }
               }

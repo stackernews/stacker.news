@@ -53,6 +53,7 @@ export const WITHDRAWL = gql`
       id
       createdAt
       bolt11
+      hash
       satsPaid
       satsFeePaying
       satsFeePaid
@@ -60,6 +61,21 @@ export const WITHDRAWL = gql`
       autoWithdraw
       preimage
       forwardedActionType
+    }
+  }`
+
+export const DIRECT = gql`
+  query Direct($id: ID!) {
+    direct(id: $id) {
+      id
+      createdAt
+      bolt11
+      hash
+      sats
+      preimage
+      comment
+      lud18Data
+      nostr
     }
   }`
 

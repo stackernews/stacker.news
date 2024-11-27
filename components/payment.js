@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
-import { gql, useApolloClient, useMutation } from '@apollo/client'
-import { INVOICE } from '@/fragments/wallet'
+import { useApolloClient, useMutation } from '@apollo/client'
+import { CANCEL_INVOICE, INVOICE } from '@/fragments/wallet'
 import Invoice from '@/components/invoice'
 import { useShowModal } from './modal'
 import { InvoiceCanceledError, InvoiceExpiredError } from '@/wallets/errors'
@@ -10,13 +10,7 @@ export const useInvoice = () => {
   const client = useApolloClient()
   const [retryPaidAction] = useMutation(RETRY_PAID_ACTION)
 
-  const [cancelInvoice] = useMutation(gql`
-    mutation cancelInvoice($hash: String!, $hmac: String!) {
-      cancelInvoice(hash: $hash, hmac: $hmac) {
-        id
-      }
-    }
-  `)
+  const [cancelInvoice] = useMutation(CANCEL_INVOICE)
 
   const isInvoice = useCallback(async ({ id }, that) => {
     const { data, error } = await client.query({ query: INVOICE, fetchPolicy: 'network-only', variables: { id } })
@@ -40,7 +34,7 @@ export const useInvoice = () => {
       client.writeQuery({ query: INVOICE, variables: { id }, data: { invoice: data.invoice } })
     }
 
-    return that(data.invoice)
+    return { invoice: data.invoice, check: that(data.invoice) }
   }, [client])
 
   const cancel = useCallback(async ({ hash, hmac }) => {
@@ -49,8 +43,8 @@ export const useInvoice = () => {
     }
 
     console.log('canceling invoice:', hash)
-    const inv = await cancelInvoice({ variables: { hash, hmac } })
-    return inv
+    const { data } = await cancelInvoice({ variables: { hash, hmac } })
+    return data.cancelInvoice
   }, [cancelInvoice])
 
   const retry = useCallback(async ({ id, hash, hmac }) => {
@@ -83,8 +77,8 @@ export const useQrPayment = () => {
       let paid
       const cancelAndReject = async (onClose) => {
         if (!paid && cancelOnClose) {
-          await invoice.cancel(inv).catch(console.error)
-          reject(new InvoiceCanceledError(inv))
+          const updatedInv = await invoice.cancel(inv).catch(console.error)
+          reject(new InvoiceCanceledError(updatedInv))
         }
         resolve(inv)
       }
@@ -99,7 +93,7 @@ export const useQrPayment = () => {
           waitFor={waitFor}
           onExpired={inv => reject(new InvoiceExpiredError(inv))}
           onCanceled={inv => { onClose(); reject(new InvoiceCanceledError(inv, inv?.actionError)) }}
-          onPayment={() => { paid = true; onClose(); resolve(inv) }}
+          onPayment={(inv) => { paid = true; onClose(); resolve(inv) }}
           poll
         />,
       { keepOpen, persistOnNavigate, onClose: cancelAndReject })

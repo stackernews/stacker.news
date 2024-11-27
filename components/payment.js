@@ -150,7 +150,6 @@ export const useQrPayment = () => {
           description
           status='loading'
           successVerb='received'
-          useWallet={false}
           walletError={walletError}
           waitFor={waitFor}
           onExpired={inv => reject(new InvoiceExpiredError(inv?.hash))}

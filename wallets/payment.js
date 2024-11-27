@@ -1,8 +1,6 @@
-import { useCallback, useMemo } from 'react'
-import { useWallets } from '@/wallets'
-import walletDefs from '@/wallets/client'
+import { useCallback } from 'react'
+import { useWalletsWithPayments } from '@/wallets'
 import { formatSats } from '@/lib/format'
-import { useWalletLogger } from '@/components/wallet-logger'
 import { useInvoice } from '@/components/payment'
 import { FAST_POLL_INTERVAL } from '@/lib/constants'
 import {
@@ -10,57 +8,30 @@ import {
   WalletNotEnabledError, WalletSendNotConfiguredError, WalletPaymentError, WalletError
 } from '@/wallets/errors'
 import { canSend } from './common'
+import { useWalletLoggerFactory } from './logger'
 
 export function useWalletPayment () {
-  const { wallets } = useWallets()
+  const wallets = useWalletsWithPayments()
+  const sendPayment = useSendPayment()
   const invoiceHelper = useInvoice()
 
-  // XXX calling hooks in a loop is against the rules of hooks
-  //
-  // we do this here anyway since we need the logger for each wallet.
-  // hooks are always called in the same order since walletDefs does not change between renders.
-  //
-  // we don't use the return value of useWallets here because it is empty on first render
-  // so using it would change the order of the hooks between renders.
-  //
-  // see https://react.dev/reference/rules/rules-of-hooks
-  const loggers = walletDefs
-    .reduce((acc, def) => {
-      return {
-        ...acc,
-        [def.name]: useWalletLogger(def)?.logger
-      }
-    }, {})
-
-  const walletsWithPayments = useMemo(() => {
-    return wallets
-      .filter(wallet => canSend(wallet) && wallet.config.enabled)
-      .map(wallet => {
-        const logger = loggers[wallet.def.name]
-        return {
-          ...wallet,
-          sendPayment: sendPayment(wallet, logger)
-        }
-      })
-  }, [wallets, loggers])
-
-  const waitForPayment = useCallback(async (invoice, { waitFor }) => {
+  return useCallback(async (invoice, { waitFor }) => {
     let walletError = new WalletAggregateError([])
     let walletInvoice = invoice
 
     // throw a special error that caller can handle separately if no payment was attempted
-    const noWalletAvailable = walletsWithPayments.length === 0
+    const noWalletAvailable = wallets.length === 0
     if (noWalletAvailable) {
       throw new WalletsNotAvailableError()
     }
 
-    for (const [i, wallet] of walletsWithPayments.entries()) {
+    for (const [i, wallet] of wallets.entries()) {
       const controller = invoiceController(walletInvoice, invoiceHelper.isInvoice)
       try {
         return await new Promise((resolve, reject) => {
           // can't await wallet payments since we might pay hold invoices and thus payments might not settle immediately.
           // that's why we separately check if we received the payment with the invoice controller.
-          wallet.sendPayment(walletInvoice).catch(reject)
+          sendPayment(wallet, walletInvoice).catch(reject)
           controller.wait(waitFor)
             .then(resolve)
             .catch(reject)
@@ -73,7 +44,7 @@ export function useWalletPayment () {
           await invoiceHelper.cancel(walletInvoice)
 
           // is there another wallet to try?
-          const lastAttempt = i === walletsWithPayments.length - 1
+          const lastAttempt = i === wallets.length - 1
           if (!lastAttempt) {
             walletInvoice = await invoiceHelper.retry(walletInvoice)
           }
@@ -103,12 +74,10 @@ export function useWalletPayment () {
     // only return payment errors
     const paymentErrors = walletError.errors.filter(e => e instanceof WalletPaymentError)
     throw new WalletPaymentAggregateError(paymentErrors, walletInvoice)
-  }, [walletsWithPayments, invoiceHelper])
-
-  return waitForPayment
+  }, [wallets, invoiceHelper, sendPayment])
 }
 
-const invoiceController = (inv, isInvoice) => {
+function invoiceController (inv, isInvoice) {
   const controller = new AbortController()
   const signal = controller.signal
   controller.wait = async (waitFor = inv => inv?.actionState === 'PAID') => {
@@ -146,8 +115,12 @@ const invoiceController = (inv, isInvoice) => {
   return controller
 }
 
-function sendPayment (wallet, logger) {
-  return async (invoice) => {
+function useSendPayment () {
+  const factory = useWalletLoggerFactory()
+
+  return useCallback(async (wallet, invoice) => {
+    const logger = factory(wallet)
+
     if (!wallet.config.enabled) {
       throw new WalletNotEnabledError(wallet.def.name)
     }
@@ -167,5 +140,5 @@ function sendPayment (wallet, logger) {
       logger.error(`payment failed: ${message}`, { bolt11 })
       throw new WalletSenderError(wallet.def.name, invoice, message)
     }
-  }
+  }, [factory])
 }

@@ -34,7 +34,7 @@ export function useWalletPayment () {
 
   const walletsWithPayments = useMemo(() => {
     return wallets
-      .filter(wallet => canSend(wallet))
+      .filter(wallet => canSend(wallet) && wallet.config.enabled)
       .map(wallet => {
         const logger = loggers[wallet.def.name]
         return {
@@ -47,6 +47,12 @@ export function useWalletPayment () {
   const waitForPayment = useCallback(async (invoice, { waitFor }) => {
     let walletError = new WalletAggregateError([])
     let walletInvoice = invoice
+
+    // throw a special error that caller can handle separately if no payment was attempted
+    const noWalletAvailable = walletsWithPayments.length === 0
+    if (noWalletAvailable) {
+      throw new WalletsNotAvailableError()
+    }
 
     for (const [i, wallet] of walletsWithPayments.entries()) {
       const controller = invoiceController(walletInvoice, invoiceHelper.isInvoice)
@@ -94,13 +100,6 @@ export function useWalletPayment () {
     }
 
     // if we reach this line, no wallet payment succeeded
-
-    // throw a special error that caller can handle separately if no payment was attempted
-    const noWalletAvailable = walletError.errors.every(e => e instanceof WalletConfigurationError)
-    if (noWalletAvailable) {
-      throw new WalletsNotAvailableError()
-    }
-
     // only return payment errors
     const paymentErrors = walletError.errors.filter(e => e instanceof WalletPaymentError)
     throw new WalletAggregateError(paymentErrors, walletInvoice)

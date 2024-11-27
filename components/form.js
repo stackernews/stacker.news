@@ -360,12 +360,16 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
               onUpload={file => {
                 const uploadMarker = `![Uploading ${file.name}…]()`
                 const text = innerRef.current.value
-                const cursorPosition = innerRef.current.selectionStart || text.length
+                const cursorPosition = innerRef.current.selectionStart
                 let preMarker = text.slice(0, cursorPosition)
-                const postMarker = text.slice(cursorPosition)
+                let postMarker = text.slice(cursorPosition)
                 // when uploading multiple files at once, we want to make sure the upload markers are separated by blank lines
                 if (preMarker && !/\n+\s*$/.test(preMarker)) {
                   preMarker += '\n\n'
+                }
+                // if there's text after the cursor, we want to make sure the upload marker is separated by a blank line
+                if (postMarker) {
+                  postMarker = '\n\n' + postMarker
                 }
                 const newText = preMarker + uploadMarker + postMarker
                 helpers.setValue(newText)

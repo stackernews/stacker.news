@@ -25,12 +25,10 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       onDragEnter={onDragEnter}
       onDragEnd={onDragEnd}
     >
-      <div className={styles.cardMeta}>
-        <div className={styles.indicators}>
-          {status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
-          {support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(status.recv)}`} />}
-          {support.send && <SendIcon className={`${styles.indicator} ${statusToClass(status.send)}`} />}
-        </div>
+      <div className={styles.indicators}>
+        {status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
+        {support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(status.recv)}`} />}
+        {support.send && <SendIcon className={`${styles.indicator} ${statusToClass(status.send)}`} />}
       </div>
       <Card.Body
         // we attach touch listener only to card body to not interfere with wallet link

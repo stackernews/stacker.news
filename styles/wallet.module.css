@@ -49,6 +49,11 @@
   line-height: 1;
 }
 
+.walletBanner {
+  max-width: min(256px, 100vw);
+  max-height: 100px;
+  padding-bottom: 1rem;
+}
 
 .badge {
   color: var(--theme-grey) !important;

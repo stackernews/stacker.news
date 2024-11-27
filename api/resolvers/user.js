@@ -440,29 +440,37 @@ export default {
       }
 
       if (user.noteWithdrawals) {
+        const p2pZap = await models.invoice.findFirst({
+          where: {
+            confirmedAt: {
+              gt: lastChecked
+            },
+            invoiceForward: {
+              withdrawl: {
+                userId: me.id,
+                status: 'CONFIRMED',
+                updatedAt: {
+                  gt: lastChecked
+                }
+              }
+            }
+          }
+        })
+        if (p2pZap) {
+          foundNotes()
+          return true
+        }
         const wdrwl = await models.withdrawl.findFirst({
           where: {
             userId: me.id,
             status: 'CONFIRMED',
+            hash: {
+              not: null
+            },
             updatedAt: {
               gt: lastChecked
             },
-            OR: [
-              {
-                invoiceForward: {
-                  none: {}
-                }
-              },
-              {
-                invoiceForward: {
-                  some: {
-                    invoice: {
-                      actionType: 'ZAP'
-                    }
-                  }
-                }
-              }
-            ]
+            invoiceForward: { is: null }
           }
         })
         if (wdrwl) {

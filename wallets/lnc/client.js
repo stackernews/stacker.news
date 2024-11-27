@@ -1,5 +1,3 @@
-import { InvoiceCanceledError, InvoiceExpiredError } from '@/wallets/errors'
-import { bolt11Tags } from '@/lib/bolt11'
 import { Mutex } from 'async-mutex'
 export * from '@/wallets/lnc'
 
@@ -15,21 +13,12 @@ export async function testSendPayment (credentials, { logger }) {
 }
 
 export async function sendPayment (bolt11, credentials, { logger }) {
-  const hash = bolt11Tags(bolt11).payment_hash
   return await mutex.runExclusive(async () => {
-    try {
-      const lnc = await getLNC(credentials, { logger })
-      const { paymentError, paymentPreimage: preimage } = await lnc.lnd.lightning.sendPaymentSync({ payment_request: bolt11 })
-      if (paymentError) throw new Error(paymentError)
-      if (!preimage) throw new Error('No preimage in response')
-      return preimage
-    } catch (err) {
-      const msg = err.message || err.toString?.()
-      // TODO: pass full invoice
-      if (msg.includes('invoice expired')) throw new InvoiceExpiredError(hash)
-      if (msg.includes('canceled')) throw new InvoiceCanceledError(hash)
-      throw err
-    }
+    const lnc = await getLNC(credentials, { logger })
+    const { paymentError, paymentPreimage: preimage } = await lnc.lnd.lightning.sendPaymentSync({ payment_request: bolt11 })
+    if (paymentError) throw new Error(paymentError)
+    if (!preimage) throw new Error('No preimage in response')
+    return preimage
   })
 }
 

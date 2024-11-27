@@ -23,7 +23,6 @@
 .indicators {
   display: flex;
   align-items: center;
-  justify-content: center;
   column-gap: 0.2rem;
   margin-left: auto;
 }

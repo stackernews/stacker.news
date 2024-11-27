@@ -11,6 +11,7 @@ import BootstrapForm from 'react-bootstrap/Form'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
 import { useRouter } from 'next/router'
+import { supportsReceive, supportsSend } from '@/wallets/common'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -109,8 +110,8 @@ export default function Wallet ({ ssrData }) {
         <div className={styles.walletGrid} onDragEnd={onDragEnd}>
           {wallets
             .filter(w => {
-              return (!filter.send || (filter.send && w.support.send)) &&
-              (!filter.receive || (filter.receive && w.support.recv))
+              return (!filter.send || (filter.send && supportsSend(w))) &&
+              (!filter.receive || (filter.receive && supportsReceive(w)))
             })
             .map((w, i) => {
               const draggable = isClient && w.config?.enabled

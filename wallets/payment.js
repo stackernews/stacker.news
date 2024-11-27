@@ -33,20 +33,22 @@ export function useWalletPayment () {
     }, {})
 
   const walletsWithPayments = useMemo(() => {
-    return wallets.map(wallet => {
-      const logger = loggers[wallet.def.name]
-      return {
-        ...wallet,
-        sendPayment: sendPayment(wallet, logger)
-      }
-    })
+    return wallets
+      .filter(wallet => canSend(wallet))
+      .map(wallet => {
+        const logger = loggers[wallet.def.name]
+        return {
+          ...wallet,
+          sendPayment: sendPayment(wallet, logger)
+        }
+      })
   }, [wallets, loggers])
 
   const waitForPayment = useCallback(async (invoice, { waitFor }) => {
     let walletError = new WalletAggregateError([])
     let walletInvoice = invoice
 
-    for (const wallet of walletsWithPayments) {
+    for (const [i, wallet] of walletsWithPayments.entries()) {
       const controller = invoiceController(walletInvoice, invoiceHelper.isInvoice)
       try {
         return await new Promise((resolve, reject) => {
@@ -63,7 +65,12 @@ export function useWalletPayment () {
         const paymentAttempt = err instanceof WalletPaymentError
         if (paymentAttempt) {
           await invoiceHelper.cancel(walletInvoice)
-          walletInvoice = await invoiceHelper.retry(walletInvoice)
+
+          // is there another wallet to try?
+          const lastAttempt = i === walletsWithPayments.length - 1
+          if (!lastAttempt) {
+            walletInvoice = await invoiceHelper.retry(walletInvoice)
+          }
         }
 
         // TODO: receiver fallbacks

@@ -54,10 +54,10 @@ export class WalletsNotAvailableError extends WalletConfigurationError {
 }
 
 export class WalletAggregateError extends WalletError {
-  constructor (errors, newInvoice) {
+  constructor (errors, invoice) {
     super('WalletAggregateError')
     this.name = 'WalletAggregateError'
     this.errors = errors
-    this.newInvoice = newInvoice
+    this.invoice = invoice
   }
 }

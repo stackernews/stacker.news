@@ -42,9 +42,8 @@ export function usePaidMutation (mutation,
       walletError = null
       if (err instanceof WalletError) {
         walletError = err
-        // wallet payment error handling always creates a new invoice to retry
-        // unless no wallet was even able to attempt a payment
-        if (err.newInvoice) walletInvoice = err.newInvoice
+        // get the last invoice that was attempted but failed and was canceled
+        if (err.invoice) walletInvoice = err.invoice
       }
 
       const invoiceError = err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError
@@ -62,6 +61,7 @@ export function usePaidMutation (mutation,
       }
     }
 
+    walletInvoice = await invoiceHelper.retry(walletInvoice)
     return await waitForQrPayment(walletInvoice, walletError, { persistOnNavigate, waitFor })
   }, [waitForWalletPayment, waitForQrPayment, invoiceHelper])
 

@@ -19,7 +19,7 @@ import styles from './invoice.module.css'
 
 export default function Invoice ({
   id, query = INVOICE, modal, onPayment, onExpired, onCanceled, info, successVerb = 'deposited',
-  heldVerb = 'settling', useWallet = true, walletError, poll, waitFor, ...props
+  heldVerb = 'settling', walletError, poll, waitFor, ...props
 }) {
   const { data, error } = useQuery(query, SSR
     ? {}
@@ -79,15 +79,12 @@ export default function Invoice ({
         {invoice.forwardedSats && <Badge className={styles.badge} bg={null}>p2p</Badge>}
       </>
     )
-    useWallet = false
   } else if (expired) {
     variant = 'failed'
     status = 'expired'
-    useWallet = false
   } else if (invoice.cancelled) {
     variant = 'failed'
     status = 'cancelled'
-    useWallet = false
   } else if (invoice.isHeld) {
     variant = 'pending'
     status = (
@@ -95,7 +92,6 @@ export default function Invoice ({
         <Moon className='spin fill-grey me-2' /> {heldVerb}
       </div>
     )
-    useWallet = false
   } else {
     variant = 'pending'
     status = (
@@ -113,7 +109,7 @@ export default function Invoice ({
           <code> {walletError.message}</code>
         </div>}
       <Qr
-        useWallet={useWallet} value={invoice.bolt11}
+        value={invoice.bolt11}
         description={numWithUnits(invoice.satsRequested, { abbreviate: false })}
         statusVariant={variant} status={status}
       />

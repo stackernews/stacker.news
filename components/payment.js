@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import { useWallet } from '@/wallets/index'
-import { FAST_POLL_INTERVAL, JIT_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { FAST_POLL_INTERVAL } from '@/lib/constants'
 import { INVOICE } from '@/fragments/wallet'
 import Invoice from '@/components/invoice'
 import { useShowModal } from './modal'
@@ -10,17 +10,6 @@ import { InvoiceCanceledError, NoAttachedWalletError, InvoiceExpiredError } from
 export const useInvoice = () => {
   const client = useApolloClient()
 
-  const [createInvoice] = useMutation(gql`
-    mutation createInvoice($amount: Int!, $expireSecs: Int!) {
-      createInvoice(amount: $amount, hodlInvoice: true, expireSecs: $expireSecs) {
-        id
-        bolt11
-        hash
-        hmac
-        expiresAt
-        satsRequested
-      }
-    }`)
   const [cancelInvoice] = useMutation(gql`
     mutation cancelInvoice($hash: String!, $hmac: String!) {
       cancelInvoice(hash: $hash, hmac: $hmac) {
@@ -28,15 +17,6 @@ export const useInvoice = () => {
       }
     }
   `)
-
-  const create = useCallback(async amount => {
-    const { data, error } = await createInvoice({ variables: { amount, expireSecs: JIT_INVOICE_TIMEOUT_MS / 1000 } })
-    if (error) {
-      throw error
-    }
-    const invoice = data.createInvoice
-    return invoice
-  }, [createInvoice])
 
   const isInvoice = useCallback(async ({ id }, that) => {
     const { data, error } = await client.query({ query: INVOICE, fetchPolicy: 'network-only', variables: { id } })
@@ -73,7 +53,7 @@ export const useInvoice = () => {
     return inv
   }, [cancelInvoice])
 
-  return { create, cancel, isInvoice }
+  return { cancel, isInvoice }
 }
 
 const invoiceController = (id, isInvoice) => {

@@ -170,7 +170,7 @@ export function useWalletLogger (wallet, setLogs) {
       const decoded = bolt11Decode(context.bolt11)
       context = {
         ...context,
-        amount: formatMsats(Number(decoded.millisatoshis)),
+        amount: formatMsats(decoded.millisatoshis),
         payment_hash: decoded.tagsObject.payment_hash,
         description: decoded.tagsObject.description,
         created_at: new Date(decoded.timestamp * 1000).toISOString(),

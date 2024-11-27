@@ -25,7 +25,7 @@ async function transitionWithdrawal (jobName,
     const lndWithdrawal = withdrawal ?? await getPaymentOrNotSent({ id: hash, lnd, createdAt })
 
     const transitionedWithdrawal = await models.$transaction(async tx => {
-      // grab optimistic concurrency lock and the invoice
+      // grab optimistic concurrency lock and the withdrawal
       dbWithdrawal = await tx.withdrawl.update({
         include: {
           wallet: true
@@ -96,13 +96,21 @@ export async function payingActionConfirmed ({ data: args, models, lnd, boss }) 
     toStatus: 'CONFIRMED',
     ...args,
     transition: async ({ dbWithdrawal, lndWithdrawal, tx }) => {
+      if (!lndWithdrawal?.is_confirmed) {
+        throw new Error('withdrawal is not confirmed')
+      }
+
       const msatsFeePaid = toPositiveBigInt(lndWithdrawal.payment.fee_mtokens)
       const msatsPaid = toPositiveBigInt(lndWithdrawal.payment.mtokens) - msatsFeePaid
+
+      console.log(`withdrawal confirmed paying ${msatsToSats(msatsPaid)} sats with ${msatsToSats(msatsFeePaid)} fee`)
 
       await tx.user.update({
         where: { id: dbWithdrawal.userId },
         data: { msats: { increment: dbWithdrawal.msatsFeePaying - msatsFeePaid } }
       })
+
+      console.log(`user refunded ${msatsToSats(dbWithdrawal.msatsFeePaying - msatsFeePaid)} sats`)
 
       return {
         msatsFeePaid,
@@ -132,14 +140,24 @@ export async function payingActionFailed ({ data: args, models, lnd, boss }) {
     toStatus: 'UNKNOWN_FAILURE',
     ...args,
     transition: async ({ dbWithdrawal, lndWithdrawal, tx }) => {
+      if (!lndWithdrawal?.is_failed) {
+        throw new Error('withdrawal is not failed')
+      }
+
+      console.log(`withdrawal failed paying ${msatsToSats(dbWithdrawal.msatsPaying)} sats with ${msatsToSats(dbWithdrawal.msatsFeePaying)} fee`)
+
       await tx.user.update({
         where: { id: dbWithdrawal.userId },
         data: { msats: { increment: dbWithdrawal.msatsFeePaying + dbWithdrawal.msatsPaying } }
       })
 
+      console.log(`user refunded ${msatsToSats(dbWithdrawal.msatsFeePaying + dbWithdrawal.msatsPaying)} sats`)
+
       // update to particular status
       const { status, message: failureMessage } = getPaymentFailureStatus(lndWithdrawal)
       message = failureMessage
+
+      console.log('withdrawal failed with status', status)
       return {
         status
       }

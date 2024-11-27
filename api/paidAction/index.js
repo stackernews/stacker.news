@@ -317,7 +317,29 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     actionId
   }
 
-  const invoiceArgs = await createSNInvoice(actionType, actionArgs, retryContext)
+  let invoiceArgs
+  const invoiceForward = await models.invoiceForward.findUnique({
+    where: { invoiceId: failedInvoice.id },
+    include: {
+      wallet: true,
+      invoice: true,
+      withdrawl: true
+    }
+  })
+  if (invoiceForward) {
+    // TODO: receiver fallbacks
+    // use next receiver wallet if forward failed
+    const { userId } = invoiceForward.wallet
+    const { invoice: bolt11, wrappedInvoice: wrappedBolt11, wallet, maxFee } = await createWrappedInvoice(userId, {
+      msats: failedInvoice.msatsRequested,
+      feePercent: await action.getSybilFeePercent?.(actionArgs, retryContext),
+      description: await action.describe?.(actionArgs, retryContext),
+      expiry: INVOICE_EXPIRE_SECS
+    }, retryContext)
+    invoiceArgs = { bolt11, wrappedBolt11, wallet, maxFee }
+  } else {
+    invoiceArgs = await createSNInvoice(actionType, actionArgs, retryContext)
+  }
 
   return await models.$transaction(async tx => {
     const context = { ...retryContext, tx, invoiceArgs }

@@ -326,9 +326,10 @@ export async function retryPaidAction (actionType, args, incomingContext) {
       withdrawl: true
     }
   })
-  if (invoiceForward) {
-    // TODO: receiver fallbacks
-    // use next receiver wallet if forward failed
+  // TODO: receiver fallbacks
+  // use next receiver wallet if forward failed (we currently immediately fallback to SN)
+  const failedForward = invoiceForward?.withdrawl && invoiceForward.withdrawl.actionState !== 'CONFIRMED'
+  if (invoiceForward && !failedForward) {
     const { userId } = invoiceForward.wallet
     const { invoice: bolt11, wrappedInvoice: wrappedBolt11, wallet, maxFee } = await createWrappedInvoice(userId, {
       msats: failedInvoice.msatsRequested,

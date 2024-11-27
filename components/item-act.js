@@ -13,7 +13,7 @@ import { usePaidMutation } from './use-paid-mutation'
 import { ACT_MUTATION } from '@/fragments/paidAction'
 import { meAnonSats } from '@/lib/apollo'
 import { BoostItemInput } from './adv-post-form'
-import { useWallet } from '@/wallets/index'
+import { useWalletsWithPayments } from '@/wallets/index'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -89,7 +89,7 @@ function BoostForm ({ step, onSubmit, children, item, oValue, inputRef, act = 'B
 export default function ItemAct ({ onClose, item, act = 'TIP', step, children, abortSignal }) {
   const inputRef = useRef(null)
   const { me } = useMe()
-  const wallet = useWallet()
+  const wallets = useWalletsWithPayments()
   const [oValue, setOValue] = useState()
 
   useEffect(() => {
@@ -117,7 +117,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       if (!me) setItemMeAnonSats({ id: item.id, amount })
     }
 
-    const closeImmediately = !!wallet || me?.privates?.sats > Number(amount)
+    const closeImmediately = wallets.length > 0 || me?.privates?.sats > Number(amount)
     if (closeImmediately) {
       onPaid()
     }
@@ -143,7 +143,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
     })
     if (error) throw error
     addCustomTip(Number(amount))
-  }, [me, actor, !!wallet, act, item.id, onClose, abortSignal, strike])
+  }, [me, actor, wallets.length, act, item.id, onClose, abortSignal, strike])
 
   return act === 'BOOST'
     ? <BoostForm step={step} onSubmit={onSubmit} item={item} inputRef={inputRef} act={act}>{children}</BoostForm>
@@ -260,7 +260,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
 }
 
 export function useZap () {
-  const wallet = useWallet()
+  const wallets = useWalletsWithPayments()
   const act = useAct()
   const strike = useLightning()
   const toaster = useToast()
@@ -278,7 +278,7 @@ export function useZap () {
       await abortSignal.pause({ me, amount: sats })
       strike()
       // batch zaps if wallet is enabled or using fee credits so they can be executed serially in a single request
-      const { error } = await act({ variables, optimisticResponse, context: { batch: !!wallet || me?.privates?.sats > sats } })
+      const { error } = await act({ variables, optimisticResponse, context: { batch: wallets.length > 0 || me?.privates?.sats > sats } })
       if (error) throw error
     } catch (error) {
       if (error instanceof ActCanceledError) {
@@ -288,7 +288,7 @@ export function useZap () {
       const reason = error?.message || error?.toString?.()
       toaster.danger(reason)
     }
-  }, [act, toaster, strike, !!wallet])
+  }, [act, toaster, strike, wallets.length])
 }
 
 export class ActCanceledError extends Error {

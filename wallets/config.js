@@ -5,7 +5,7 @@ import { canReceive, canSend, getStorageKey, saveWalletLocally, siftConfig, upse
 import { useMutation } from '@apollo/client'
 import { generateMutation } from './graphql'
 import { REMOVE_WALLET } from '@/fragments/wallet'
-import { useWalletLogger } from '@/components/wallet-logger'
+import { useWalletLogger } from '@/wallets/logger'
 import { useWallets } from '.'
 import validateWallet from './validate'
 

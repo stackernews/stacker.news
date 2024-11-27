@@ -1,7 +1,10 @@
 import { BALANCE_LIMIT_MSATS, PAID_ACTION_TERMINAL_STATES, USER_ID, SN_ADMIN_IDS } from '@/lib/constants'
 import { msatsToSats, numWithUnits } from '@/lib/format'
+import { datePivot } from '@/lib/time'
 
 const MAX_PENDING_PAID_ACTIONS_PER_USER = 100
+const MAX_PENDING_DIRECT_INVOICES_PER_USER_MINUTES = 10
+const MAX_PENDING_DIRECT_INVOICES_PER_USER = 100
 const USER_IDS_BALANCE_NO_LIMIT = [...SN_ADMIN_IDS, USER_ID.anon, USER_ID.ad]
 
 export async function assertBelowMaxPendingInvoices (context) {
@@ -17,6 +20,40 @@ export async function assertBelowMaxPendingInvoices (context) {
 
   if (pendingInvoices >= MAX_PENDING_PAID_ACTIONS_PER_USER) {
     throw new Error('You have too many pending paid actions, cancel some or wait for them to expire')
+  }
+}
+
+export async function assertBelowMaxPendingDirectPayments (userId, context) {
+  const { models, me } = context
+
+  if (me?.id !== userId) {
+    const pendingSenderInvoices = await models.directPayment.count({
+      where: {
+        senderId: me?.id ?? USER_ID.anon,
+        createdAt: {
+          gt: datePivot(new Date(), { minutes: -MAX_PENDING_DIRECT_INVOICES_PER_USER_MINUTES })
+        }
+      }
+    })
+
+    if (pendingSenderInvoices >= MAX_PENDING_DIRECT_INVOICES_PER_USER) {
+      throw new Error('You\'ve sent too many direct payments')
+    }
+  }
+
+  if (!userId) return
+
+  const pendingReceiverInvoices = await models.directPayment.count({
+    where: {
+      receiverId: userId,
+      createdAt: {
+        gt: datePivot(new Date(), { minutes: -MAX_PENDING_DIRECT_INVOICES_PER_USER_MINUTES })
+      }
+    }
+  })
+
+  if (pendingReceiverInvoices >= MAX_PENDING_DIRECT_INVOICES_PER_USER) {
+    throw new Error('Receiver has too many direct payments')
   }
 }
 

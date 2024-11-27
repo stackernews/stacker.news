@@ -103,7 +103,7 @@ export default function Invoice ({
     )
   }
 
-  const { nostr, comment, lud18Data, bolt11, confirmedPreimage } = invoice
+  const { bolt11, confirmedPreimage } = invoice
 
   return (
     <>
@@ -120,39 +120,47 @@ export default function Invoice ({
       {!modal &&
         <>
           {info && <div className='text-muted fst-italic text-center'>{info}</div>}
-          <div className='w-100'>
-            {nostr
-              ? <AccordianItem
-                  header='Nostr Zap Request'
-                  body={
-                    <pre>
-                      <code>
-                        {JSON.stringify(nostr, null, 2)}
-                      </code>
-                    </pre>
-            }
-                />
-              : null}
-          </div>
-          {lud18Data &&
-            <div className='w-100'>
-              <AccordianItem
-                header='sender information'
-                body={<PayerData data={lud18Data} className='text-muted ms-3' />}
-                className='mb-3'
-              />
-            </div>}
-          {comment &&
-            <div className='w-100'>
-              <AccordianItem
-                header='sender comments'
-                body={<span className='text-muted ms-3'>{comment}</span>}
-                className='mb-3'
-              />
-            </div>}
+          <InvoiceExtras {...invoice} />
           <Bolt11Info bolt11={bolt11} preimage={confirmedPreimage} />
           {invoice?.item && <ActionInfo invoice={invoice} />}
         </>}
+    </>
+  )
+}
+
+export function InvoiceExtras ({ nostr, lud18Data, comment }) {
+  return (
+    <>
+      <div className='w-100'>
+        {nostr
+          ? <AccordianItem
+              header='Nostr Zap Request'
+              body={
+                <pre>
+                  <code>
+                    {JSON.stringify(nostr, null, 2)}
+                  </code>
+                </pre>
+            }
+            />
+          : null}
+      </div>
+      {lud18Data &&
+        <div className='w-100'>
+          <AccordianItem
+            header='sender information'
+            body={<PayerData data={lud18Data} className='text-muted ms-3' />}
+            className='mb-3'
+          />
+        </div>}
+      {comment &&
+        <div className='w-100'>
+          <AccordianItem
+            header='sender comments'
+            body={<span className='text-muted ms-3'>{comment}</span>}
+            className='mb-3'
+          />
+        </div>}
     </>
   )
 }

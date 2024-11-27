@@ -1,10 +1,34 @@
 .walletGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, 160px);
   grid-gap: 20px;
-  justify-items: center;
-  align-items: center;
-  margin-top: 3rem;
+  padding: 20px 0;
+  justify-content: center;
+}
+
+@media (max-width: 440px) {
+  .walletGrid {
+    grid-template-columns: repeat(auto-fill, 140px);
+    grid-gap: 15px;
+  }
+  .card {
+    width: 140px;
+  }
+}
+
+@media (max-width: 330px) {
+  .walletGrid {
+    grid-template-columns: 100%;
+  }
+  .walletGrid > * {
+    justify-self: center;
+  }
+}
+
+.walletFilters {
+  grid-column: 1 / -1;
+  margin-left: 0.2rem;
+  user-select: none;
 }
 
 .drag {
@@ -17,7 +41,8 @@
 
 .card {
   width: 160px;
-  height: 180px;
+  max-width: 100%;
+  aspect-ratio: 160 / 180;
 }
 
 .indicators {

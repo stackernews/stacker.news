@@ -114,6 +114,7 @@ export function FundForm () {
   const [createInvoice, { called, error }] = useMutation(gql`
     mutation createInvoice($amount: Int!) {
       createInvoice(amount: $amount) {
+        __typename
         id
       }
     }`)
@@ -147,7 +148,11 @@ export function FundForm () {
           schema={amountSchema}
           onSubmit={async ({ amount }) => {
             const { data } = await createInvoice({ variables: { amount: Number(amount) } })
-            router.push(`/invoices/${data.createInvoice.id}`)
+            if (data.createInvoice.__typename === 'Direct') {
+              router.push(`/directs/${data.createInvoice.id}`)
+            } else {
+              router.push(`/invoices/${data.createInvoice.id}`)
+            }
           }}
         >
           <Input

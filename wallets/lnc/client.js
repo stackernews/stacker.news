@@ -103,7 +103,7 @@ async function getLNC (credentials = {}, { logger } = {}) {
     mutex.runExclusive(async () => {
       await disconnectLNC(window.snLnc, { logger })
     })
-  }, 120 * 1000)
+  }, 4000)
 
   return window.snLnc
 }

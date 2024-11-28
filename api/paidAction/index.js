@@ -304,28 +304,43 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     throw new Error(`retryPaidAction - must be logged in ${actionType}`)
   }
 
-  if (!action.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC)) {
-    throw new Error(`retryPaidAction - action does not support optimism ${actionType}`)
-  }
-
-  if (!action.retry) {
-    throw new Error(`retryPaidAction - action does not support retrying ${actionType}`)
-  }
-
   if (!failedInvoice) {
     throw new Error(`retryPaidAction - missing invoice ${actionType}`)
   }
 
-  const { msatsRequested, actionId, actionArgs } = failedInvoice
+  const { msatsRequested, actionId, actionArgs, actionOptimistic } = failedInvoice
   const retryContext = {
     ...incomingContext,
-    optimistic: true,
+    optimistic: actionOptimistic,
     me: await models.user.findUnique({ where: { id: me.id } }),
     cost: BigInt(msatsRequested),
     actionId
   }
 
-  const invoiceArgs = await createSNInvoice(actionType, actionArgs, retryContext)
+  let invoiceArgs
+  const invoiceForward = await models.invoiceForward.findUnique({
+    where: { invoiceId: failedInvoice.id },
+    include: {
+      wallet: true,
+      invoice: true,
+      withdrawl: true
+    }
+  })
+  // TODO: receiver fallbacks
+  // use next receiver wallet if forward failed (we currently immediately fallback to SN)
+  const failedForward = invoiceForward?.withdrawl && invoiceForward.withdrawl.actionState !== 'CONFIRMED'
+  if (invoiceForward && !failedForward) {
+    const { userId } = invoiceForward.wallet
+    const { invoice: bolt11, wrappedInvoice: wrappedBolt11, wallet, maxFee } = await createWrappedInvoice(userId, {
+      msats: failedInvoice.msatsRequested,
+      feePercent: await action.getSybilFeePercent?.(actionArgs, retryContext),
+      description: await action.describe?.(actionArgs, retryContext),
+      expiry: INVOICE_EXPIRE_SECS
+    }, retryContext)
+    invoiceArgs = { bolt11, wrappedBolt11, wallet, maxFee }
+  } else {
+    invoiceArgs = await createSNInvoice(actionType, actionArgs, retryContext)
+  }
 
   return await models.$transaction(async tx => {
     const context = { ...retryContext, tx, invoiceArgs }
@@ -345,9 +360,9 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     const invoice = await createDbInvoice(actionType, actionArgs, context)
 
     return {
-      result: await action.retry({ invoiceId: failedInvoice.id, newInvoiceId: invoice.id }, context),
+      result: await action.retry?.({ invoiceId: failedInvoice.id, newInvoiceId: invoice.id }, context),
       invoice,
-      paymentMethod: 'OPTIMISTIC'
+      paymentMethod: actionOptimistic ? 'OPTIMISTIC' : 'PESSIMISTIC'
     }
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 }

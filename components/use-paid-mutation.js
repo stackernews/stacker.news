@@ -63,7 +63,7 @@ export function usePaidMutation (mutation,
 
     const paymentAttempted = walletError instanceof WalletPaymentError
     if (paymentAttempted) {
-      walletInvoice = await invoiceHelper.retry(walletInvoice, { updateOnFallback })
+      walletInvoice = await invoiceHelper.retry(walletInvoice, { update: updateOnFallback })
     }
     return await waitForQrPayment(walletInvoice, walletError, { persistOnNavigate, waitFor })
   }, [waitForWalletPayment, waitForQrPayment, invoiceHelper])

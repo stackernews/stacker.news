@@ -98,7 +98,12 @@ export function usePaidMutation (mutation,
         error: e instanceof InvoiceCanceledError && e.actionError ? e : undefined
       })
 
-      const dataKey = Object.keys(data)[0]
+      const mergeData = obj => ({
+        [Object.keys(data)[0]]: {
+          ...data?.[Object.keys(data)[0]],
+          ...obj
+        }
+      })
 
       // should we wait for the invoice to be paid?
       if (response?.paymentMethod === 'OPTIMISTIC' && !forceWaitForPayment) {
@@ -107,23 +112,13 @@ export function usePaidMutation (mutation,
         // don't wait to pay the invoice
         waitForPayment(invoice, { persistOnNavigate, waitFor, updateOnFallback }).then((invoice) => {
           // invoice might have been retried during payment
-          data = {
-            [dataKey]: {
-              ...data[dataKey],
-              invoice
-            }
-          }
+          data = mergeData({ invoice })
           onPaid?.(client.cache, { data })
         }).catch(e => {
           console.error('usePaidMutation: failed to pay invoice', e)
           if (e.invoice) {
             // update the failed invoice for the Apollo cache update
-            data = {
-              [dataKey]: {
-                ...data[dataKey],
-                invoice: e.invoice
-              }
-            }
+            data = mergeData({ invoice: e.invoice })
           }
           // onPayError is called after the invoice fails to pay
           // useful for updating invoiceActionState to FAILED
@@ -141,12 +136,7 @@ export function usePaidMutation (mutation,
             const { data: { paidAction } } = await getPaidAction({ variables: { invoiceId: parseInt(invoice.id) } })
             // create new data object
             // ( hmac is only returned on invoice creation so we need to add it back to the data )
-            data = {
-              [dataKey]: {
-                ...paidAction,
-                invoice: { ...paidAction.invoice, hmac: invoice.hmac }
-              }
-            }
+            data = mergeData({ ...paidAction, invoice: { ...paidAction.invoice, hmac: invoice.hmac } })
             // we need to run update functions on mutations now that we have the data
             update?.(client.cache, { data })
           }

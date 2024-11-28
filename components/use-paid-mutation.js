@@ -31,13 +31,13 @@ export function usePaidMutation (mutation,
   // innerResult is used to store/control the result of the mutation when innerMutate runs
   const [innerResult, setInnerResult] = useState(result)
 
-  const waitForPayment = useCallback(async (invoice, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor, update }) => {
+  const waitForPayment = useCallback(async (invoice, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor, updateOnFallback }) => {
     let walletError
     let walletInvoice = invoice
     const start = Date.now()
 
     try {
-      return await waitForWalletPayment(walletInvoice, { waitFor, update })
+      return await waitForWalletPayment(walletInvoice, { waitFor, updateOnFallback })
     } catch (err) {
       walletError = null
       if (err instanceof WalletError) {
@@ -63,7 +63,7 @@ export function usePaidMutation (mutation,
 
     const paymentAttempted = walletError instanceof WalletPaymentError
     if (paymentAttempted) {
-      walletInvoice = await invoiceHelper.retry(walletInvoice)
+      walletInvoice = await invoiceHelper.retry(walletInvoice, { updateOnFallback })
     }
     return await waitForQrPayment(walletInvoice, walletError, { persistOnNavigate, waitFor })
   }, [waitForWalletPayment, waitForQrPayment, invoiceHelper])
@@ -77,7 +77,7 @@ export function usePaidMutation (mutation,
     // use the most inner callbacks/options if they exist
     const {
       onPaid, onPayError, forceWaitForPayment, persistOnNavigate,
-      update, waitFor = inv => inv?.actionState === 'PAID'
+      update, waitFor = inv => inv?.actionState === 'PAID', updateOnFallback
     } = { ...options, ...innerOptions }
     const ourOnCompleted = innerOnCompleted || onCompleted
 
@@ -105,7 +105,7 @@ export function usePaidMutation (mutation,
         // onCompleted is called before the invoice is paid for optimistic updates
         ourOnCompleted?.(data)
         // don't wait to pay the invoice
-        waitForPayment(invoice, { persistOnNavigate, waitFor, update }).then((invoice) => {
+        waitForPayment(invoice, { persistOnNavigate, waitFor, updateOnFallback }).then((invoice) => {
           // invoice might have been retried during payment
           data = {
             [dataKey]: {
@@ -135,7 +135,7 @@ export function usePaidMutation (mutation,
         try {
           // wait for the invoice to be paid
           // returns the invoice that was paid since it might have been updated via retries
-          invoice = await waitForPayment(invoice, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor, update })
+          invoice = await waitForPayment(invoice, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor, updateOnFallback })
           if (!response.result) {
             // if the mutation didn't return any data, ie pessimistic, we need to fetch it
             const { data: { paidAction } } = await getPaidAction({ variables: { invoiceId: parseInt(invoice.id) } })

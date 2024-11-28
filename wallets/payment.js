@@ -15,7 +15,7 @@ export function useWalletPayment () {
   const sendPayment = useSendPayment()
   const invoiceHelper = useInvoice()
 
-  return useCallback(async (invoice, { waitFor, update }) => {
+  return useCallback(async (invoice, { waitFor, updateOnFallback }) => {
     let aggregateError = new WalletAggregateError([])
     let latestInvoice = invoice
 
@@ -44,7 +44,7 @@ export function useWalletPayment () {
           // is there another wallet to try?
           const lastAttempt = i === wallets.length - 1
           if (!lastAttempt) {
-            latestInvoice = await invoiceHelper.retry(latestInvoice, { update })
+            latestInvoice = await invoiceHelper.retry(latestInvoice, { update: updateOnFallback })
           }
         }
 

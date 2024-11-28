@@ -13,7 +13,7 @@ import { usePaidMutation } from './use-paid-mutation'
 import { ACT_MUTATION } from '@/fragments/paidAction'
 import { meAnonSats } from '@/lib/apollo'
 import { BoostItemInput } from './adv-post-form'
-import { useWalletsWithPayments } from '@/wallets/index'
+import { useSendWallets } from '@/wallets/index'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -89,7 +89,7 @@ function BoostForm ({ step, onSubmit, children, item, oValue, inputRef, act = 'B
 export default function ItemAct ({ onClose, item, act = 'TIP', step, children, abortSignal }) {
   const inputRef = useRef(null)
   const { me } = useMe()
-  const wallets = useWalletsWithPayments()
+  const wallets = useSendWallets()
   const [oValue, setOValue] = useState()
 
   useEffect(() => {
@@ -260,7 +260,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
 }
 
 export function useZap () {
-  const wallets = useWalletsWithPayments()
+  const wallets = useSendWallets()
   const act = useAct()
   const strike = useLightning()
   const toaster = useToast()

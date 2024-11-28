@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useWalletsWithPayments } from '@/wallets'
+import { useSendWallets } from '@/wallets'
 import { formatSats } from '@/lib/format'
 import { useInvoice } from '@/components/payment'
 import { FAST_POLL_INTERVAL } from '@/lib/constants'
@@ -11,7 +11,7 @@ import { canSend } from './common'
 import { useWalletLoggerFactory } from './logger'
 
 export function useWalletPayment () {
-  const wallets = useWalletsWithPayments()
+  const wallets = useSendWallets()
   const sendPayment = useSendPayment()
   const invoiceHelper = useInvoice()
 

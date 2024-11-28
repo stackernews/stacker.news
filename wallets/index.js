@@ -218,7 +218,7 @@ export function useWallet (name) {
   return wallets.find(w => w.def.name === name)
 }
 
-export function useWalletsWithPayments () {
+export function useSendWallets () {
   const { wallets } = useWallets()
   // return the first enabled wallet that is available and can send
   return wallets

@@ -13,7 +13,7 @@ export function useWalletConfigurator (wallet) {
   const { me } = useMe()
   const { reloadLocalWallets } = useWallets()
   const { encrypt, isActive } = useVault()
-  const { logger } = useWalletLogger(wallet?.def)
+  const logger = useWalletLogger(wallet?.def)
   const [upsertWallet] = useMutation(generateMutation(wallet?.def))
   const [removeWallet] = useMutation(REMOVE_WALLET)
 

@@ -112,7 +112,7 @@ export function useWalletLogManager (setLogs) {
   const { add, clear, notSupported } = useWalletLogDB()
 
   const appendLog = useCallback(async (wallet, level, message, context) => {
-    const log = { wallet: walletTag(wallet), level, message, ts: +new Date(), context }
+    const log = { wallet: walletTag(wallet.def), level, message, ts: +new Date(), context }
     try {
       if (notSupported) {
         console.log('cannot persist wallet log: indexeddb not supported')

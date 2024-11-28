@@ -29,7 +29,7 @@ export function useWalletLoggerFactory () {
     context.send = true
 
     appendLog(wallet, level, message, context)
-    console[level !== 'error' ? 'info' : 'error'](`[${walletTag(wallet)}]`, message)
+    console[level !== 'error' ? 'info' : 'error'](`[${walletTag(wallet.def)}]`, message)
   }, [appendLog])
 
   return useCallback(wallet => ({

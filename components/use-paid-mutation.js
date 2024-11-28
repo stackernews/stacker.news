@@ -121,7 +121,7 @@ export function usePaidMutation (mutation,
             data = {
               [dataKey]: {
                 ...data[dataKey],
-                invoice
+                invoice: e.invoice
               }
             }
           }

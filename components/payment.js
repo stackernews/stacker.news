@@ -1,28 +1,15 @@
 import { useCallback } from 'react'
-import { useMe } from './me'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import { useWallet } from '@/wallets/index'
-import { FAST_POLL_INTERVAL, JIT_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { FAST_POLL_INTERVAL } from '@/lib/constants'
 import { INVOICE } from '@/fragments/wallet'
 import Invoice from '@/components/invoice'
-import { useFeeButton } from './fee-button'
 import { useShowModal } from './modal'
 import { InvoiceCanceledError, NoAttachedWalletError, InvoiceExpiredError } from '@/wallets/errors'
 
 export const useInvoice = () => {
   const client = useApolloClient()
 
-  const [createInvoice] = useMutation(gql`
-    mutation createInvoice($amount: Int!, $expireSecs: Int!) {
-      createInvoice(amount: $amount, hodlInvoice: true, expireSecs: $expireSecs) {
-        id
-        bolt11
-        hash
-        hmac
-        expiresAt
-        satsRequested
-      }
-    }`)
   const [cancelInvoice] = useMutation(gql`
     mutation cancelInvoice($hash: String!, $hmac: String!) {
       cancelInvoice(hash: $hash, hmac: $hmac) {
@@ -31,22 +18,18 @@ export const useInvoice = () => {
     }
   `)
 
-  const create = useCallback(async amount => {
-    const { data, error } = await createInvoice({ variables: { amount, expireSecs: JIT_INVOICE_TIMEOUT_MS / 1000 } })
-    if (error) {
-      throw error
-    }
-    const invoice = data.createInvoice
-    return invoice
-  }, [createInvoice])
-
   const isInvoice = useCallback(async ({ id }, that) => {
     const { data, error } = await client.query({ query: INVOICE, fetchPolicy: 'network-only', variables: { id } })
     if (error) {
       throw error
     }
 
-    const { hash, cancelled, actionError, actionState } = data.invoice
+    const { hash, cancelled, cancelledAt, actionError, actionState, expiresAt } = data.invoice
+
+    const expired = cancelledAt && new Date(expiresAt) < new Date(cancelledAt)
+    if (expired) {
+      throw new InvoiceExpiredError(hash)
+    }
 
     if (cancelled || actionError) {
       throw new InvoiceCanceledError(hash, actionError)
@@ -70,7 +53,7 @@ export const useInvoice = () => {
     return inv
   }, [cancelInvoice])
 
-  return { create, cancel, isInvoice }
+  return { cancel, isInvoice }
 }
 
 const invoiceController = (id, isInvoice) => {
@@ -167,9 +150,9 @@ export const useQrPayment = () => {
           description
           status='loading'
           successVerb='received'
-          useWallet={false}
           walletError={walletError}
           waitFor={waitFor}
+          onExpired={inv => reject(new InvoiceExpiredError(inv?.hash))}
           onCanceled={inv => { onClose(); reject(new InvoiceCanceledError(inv?.hash, inv?.actionError)) }}
           onPayment={() => { paid = true; onClose(); resolve() }}
           poll
@@ -179,54 +162,4 @@ export const useQrPayment = () => {
   }, [invoice])
 
   return waitForQrPayment
-}
-
-export const usePayment = () => {
-  const { me } = useMe()
-  const feeButton = useFeeButton()
-  const invoice = useInvoice()
-  const waitForWalletPayment = useWalletPayment()
-  const waitForQrPayment = useQrPayment()
-
-  const waitForPayment = useCallback(async (invoice) => {
-    let walletError
-    try {
-      return await waitForWalletPayment(invoice)
-    } catch (err) {
-      if (err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError) {
-        // bail since qr code payment will also fail
-        throw err
-      }
-      walletError = err
-    }
-    return await waitForQrPayment(invoice, walletError)
-  }, [waitForWalletPayment, waitForQrPayment])
-
-  const request = useCallback(async (amount) => {
-    amount ??= feeButton?.total
-    const free = feeButton?.free
-    const balance = me ? me.privates.sats : 0
-
-    // if user has enough funds in their custodial wallet or action is free, never prompt for payment
-    // XXX this will probably not work as intended for deposits < balance
-    //   which means you can't always fund your custodial wallet with attached wallets ...
-    //   but should this even be the case?
-    const insufficientFunds = balance < amount
-    if (free || !insufficientFunds) return [{ hash: null, hmac: null }, null]
-
-    const inv = await invoice.create(amount)
-
-    await waitForPayment(inv)
-
-    const cancel = () => invoice.cancel(inv).catch(console.error)
-    return [inv, cancel]
-  }, [me, feeButton?.total, invoice, waitForPayment])
-
-  const cancel = useCallback(({ hash, hmac }) => {
-    if (hash && hmac) {
-      invoice.cancel({ hash, hmac }).catch(console.error)
-    }
-  }, [invoice])
-
-  return { request, cancel }
 }

@@ -47,16 +47,16 @@ export const useInvoice = () => {
     return data.cancelInvoice
   }, [cancelInvoice])
 
-  const retry = useCallback(async ({ id, hash, hmac }) => {
+  const retry = useCallback(async ({ id, hash, hmac }, { update }) => {
     console.log('retrying invoice:', hash)
-    const { data, error } = await retryPaidAction({ variables: { invoiceId: Number(id) } })
+    const { data, error } = await retryPaidAction({ variables: { invoiceId: Number(id) }, update })
     if (error) throw error
 
     const newInvoice = data.retryPaidAction.invoice
     console.log('new invoice:', newInvoice?.hash)
 
     return newInvoice
-  })
+  }, [retryPaidAction])
 
   return { cancel, retry, isInvoice }
 }

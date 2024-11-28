@@ -8,7 +8,7 @@ import Bolt11Info from './bolt11-info'
 import { useQuery } from '@apollo/client'
 import { INVOICE } from '@/fragments/wallet'
 import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
-import { NoAttachedWalletError } from '@/wallets/errors'
+import { WalletConfigurationError, WalletPaymentAggregateError } from '@/wallets/errors'
 import ItemJob from './item-job'
 import Item from './item'
 import { CommentFlat } from './comment'
@@ -103,11 +103,7 @@ export default function Invoice ({
 
   return (
     <>
-      {walletError && !(walletError instanceof NoAttachedWalletError) &&
-        <div className='text-center fw-bold text-info mb-3' style={{ lineHeight: 1.25 }}>
-          Paying from attached wallet failed:
-          <code> {walletError.message}</code>
-        </div>}
+      <WalletError error={walletError} />
       <Qr
         value={invoice.bolt11}
         description={numWithUnits(invoice.satsRequested, { abbreviate: false })}
@@ -202,6 +198,26 @@ function ActionInfo ({ invoice }) {
       {(invoice.item?.isJob && <ItemJob item={invoice?.item} />) ||
        (invoice.item?.title && <Item item={invoice?.item} />) ||
          <CommentFlat item={invoice.item} includeParent noReply truncate />}
+    </div>
+  )
+}
+
+function WalletError ({ error }) {
+  if (!error || error instanceof WalletConfigurationError) return null
+
+  if (!(error instanceof WalletPaymentAggregateError)) {
+    console.error('unexpected wallet error:', error)
+    return null
+  }
+
+  return (
+    <div className='text-center fw-bold text-info mb-3' style={{ lineHeight: 1.25 }}>
+      <div className='text-info mb-2'>Paying from attached wallets failed:</div>
+      {error.errors.map((e, i) => (
+        <div key={i}>
+          <code>{e.wallet}: {e.reason || e.message}</code>
+        </div>
+      ))}
     </div>
   )
 }

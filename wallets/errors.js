@@ -58,7 +58,14 @@ export class WalletAggregateError extends WalletError {
   constructor (errors, invoice) {
     super('WalletAggregateError')
     this.name = 'WalletAggregateError'
-    this.errors = errors
+    this.errors = errors.reduce((acc, e) => {
+      if (Array.isArray(e?.errors)) {
+        acc.push(...e.errors)
+      } else {
+        acc.push(e)
+      }
+      return acc
+    }, [])
     this.invoice = invoice
   }
 }
@@ -67,11 +74,14 @@ export class WalletPaymentAggregateError extends WalletPaymentError {
   constructor (errors, invoice) {
     super('WalletPaymentAggregateError')
     this.name = 'WalletPaymentAggregateError'
-    this.errors = errors
+    this.errors = errors.reduce((acc, e) => {
+      if (Array.isArray(e?.errors)) {
+        acc.push(...e.errors)
+      } else {
+        acc.push(e)
+      }
+      return acc
+    }, []).filter(e => e instanceof WalletPaymentError)
     this.invoice = invoice
-
-    if (!errors.every(e => e instanceof WalletPaymentError)) {
-      throw new Error('only WalletPaymentError instances are allowed')
-    }
   }
 }

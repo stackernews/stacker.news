@@ -16,22 +16,21 @@ export function useWalletPayment () {
   const invoiceHelper = useInvoice()
 
   return useCallback(async (invoice, { waitFor }) => {
-    let walletError = new WalletAggregateError([])
-    let walletInvoice = invoice
+    let aggregateError = new WalletAggregateError([])
+    let latestInvoice = invoice
 
     // throw a special error that caller can handle separately if no payment was attempted
-    const noWalletAvailable = wallets.length === 0
-    if (noWalletAvailable) {
+    if (wallets.length === 0) {
       throw new WalletsNotAvailableError()
     }
 
     for (const [i, wallet] of wallets.entries()) {
-      const controller = invoiceController(walletInvoice, invoiceHelper.isInvoice)
+      const controller = invoiceController(latestInvoice, invoiceHelper.isInvoice)
       try {
         return await new Promise((resolve, reject) => {
           // can't await wallet payments since we might pay hold invoices and thus payments might not settle immediately.
           // that's why we separately check if we received the payment with the invoice controller.
-          sendPayment(wallet, walletInvoice).catch(reject)
+          sendPayment(wallet, latestInvoice).catch(reject)
           controller.wait(waitFor)
             .then(resolve)
             .catch(reject)
@@ -39,14 +38,13 @@ export function useWalletPayment () {
       } catch (err) {
         // cancel invoice to make sure it cannot be paid later and create new invoice to retry.
         // we only need to do this if payment was attempted which is not the case if the wallet is not enabled.
-        const paymentAttempt = err instanceof WalletPaymentError
-        if (paymentAttempt) {
-          await invoiceHelper.cancel(walletInvoice)
+        if (err instanceof WalletPaymentError) {
+          await invoiceHelper.cancel(latestInvoice)
 
           // is there another wallet to try?
           const lastAttempt = i === wallets.length - 1
           if (!lastAttempt) {
-            walletInvoice = await invoiceHelper.retry(walletInvoice)
+            latestInvoice = await invoiceHelper.retry(latestInvoice)
           }
         }
 
@@ -57,9 +55,8 @@ export function useWalletPayment () {
 
         // try next wallet if the payment failed because of the wallet
         // and not because it expired or was canceled
-        const isWalletError = err instanceof WalletError
-        if (isWalletError) {
-          walletError = new WalletAggregateError([...walletError.errors, err], walletInvoice)
+        if (err instanceof WalletError) {
+          aggregateError = new WalletAggregateError([aggregateError, err], latestInvoice)
           continue
         }
 
@@ -71,9 +68,7 @@ export function useWalletPayment () {
     }
 
     // if we reach this line, no wallet payment succeeded
-    // only return payment errors
-    const paymentErrors = walletError.errors.filter(e => e instanceof WalletPaymentError)
-    throw new WalletPaymentAggregateError(paymentErrors, walletInvoice)
+    throw new WalletPaymentAggregateError([aggregateError], latestInvoice)
   }, [wallets, invoiceHelper, sendPayment])
 }
 

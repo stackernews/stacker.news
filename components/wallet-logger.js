@@ -144,7 +144,7 @@ export function useWalletLogManager (setLogs) {
     }
     if (!wallet || wallet.sendPayment) {
       try {
-        const tag = wallet ? walletTag(wallet) : null
+        const tag = wallet ? walletTag(wallet.def) : null
         if (notSupported) {
           console.log('cannot clear wallet logs: indexeddb not supported')
         } else {

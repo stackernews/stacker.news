@@ -1,5 +1,7 @@
 import Nostr from '@/lib/nostr'
 import { string } from '@/lib/yup'
+import { parseNwcUrl } from '@/lib/url'
+import { NDKNwc } from '@nostr-dev-kit/ndk'
 
 export const name = 'nwc'
 export const walletType = 'NWC'
@@ -31,9 +33,17 @@ export const card = {
   subtitle: 'use Nostr Wallet Connect for payments'
 }
 
-export async function getNwc (nwcUrl, { timeout } = {}) {
+export async function getNwc (nwcUrl, { timeout = 2e3 } = {}) {
   const ndk = Nostr.ndk
-  return await ndk.nwc(nwcUrl, timeout)
+  const { walletPubkey, secret, relayUrls } = parseNwcUrl(nwcUrl)
+  const nwc = new NDKNwc({
+    ndk,
+    pubkey: walletPubkey,
+    relayUrls,
+    secret
+  })
+  await nwc.blockUntilReady(timeout)
+  return nwc
 }
 
 export async function supportedMethods (nwcUrl, { logger, timeout } = {}) {

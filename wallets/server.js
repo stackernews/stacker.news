@@ -14,11 +14,10 @@ import * as webln from '@/wallets/webln'
 import { walletLogger } from '@/api/resolvers/wallet'
 import walletDefs from '@/wallets/server'
 import { parsePaymentRequest } from 'ln-service'
-import { toPositiveBigInt, toPositiveNumber } from '@/lib/validate'
+import { toPositiveBigInt, toPositiveNumber, formatMsats, formatSats, msatsToSats } from '@/lib/format'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { withTimeout } from '@/lib/time'
 import { canReceive } from './common'
-import { formatMsats, formatSats, msatsToSats } from '@/lib/format'
 import wrapInvoice from './wrap'
 
 export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
@@ -73,7 +72,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 
       return { invoice, wallet, logger }
     } catch (err) {
-      logger.error(err.message)
+      logger.error(err.message, { status: true })
     }
   }
 

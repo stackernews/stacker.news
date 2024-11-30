@@ -7,28 +7,14 @@ import { Status, isConfigured } from '@/wallets/common'
 import DraggableIcon from '@/svgs/draggable.svg'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
-import useDarkMode from './dark-mode'
-import { useEffect, useState } from 'react'
-
-const statusToClass = status => {
-  switch (status) {
-    case Status.Enabled: return styles.success
-    case Status.Disabled: return styles.disabled
-    case Status.Error: return styles.error
-    case Status.Warning: return styles.warning
-  }
-}
+import { useWalletImage } from '@/components/wallet-image'
+import { useWalletStatus, statusToClass } from '@/components/wallet-status'
+import { useWalletSupport } from '@/components/wallet-support'
 
 export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnter, onDragEnd, onTouchStart, sourceIndex, targetIndex, index }) {
-  const [dark] = useDarkMode()
-  const { card: { title, image } } = wallet.def
-  const [imgSrc, setImgSrc] = useState(image?.src)
-
-  useEffect(() => {
-    if (!imgSrc) return
-    // wallet.png <-> wallet-dark.png
-    setImgSrc(dark ? image?.src.replace(/\.([a-z]{3})$/, '-dark.$1') : image?.src)
-  }, [dark])
+  const image = useWalletImage(wallet)
+  const status = useWalletStatus(wallet)
+  const support = useWalletSupport(wallet)
 
   return (
     <Card
@@ -39,12 +25,10 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       onDragEnter={onDragEnter}
       onDragEnd={onDragEnd}
     >
-      <div className={styles.cardMeta}>
-        <div className={styles.indicators}>
-          {wallet.status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
-          {wallet.support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(wallet.status.recv)}`} />}
-          {wallet.support.send && <SendIcon className={`${styles.indicator} ${statusToClass(wallet.status.send)}`} />}
-        </div>
+      <div className={styles.indicators}>
+        {status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
+        {support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(status.recv)}`} />}
+        {support.send && <SendIcon className={`${styles.indicator} ${statusToClass(status.send)}`} />}
       </div>
       <Card.Body
         // we attach touch listener only to card body to not interfere with wallet link
@@ -56,8 +40,8 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       >
         <div className='d-flex text-center align-items-center h-100'>
           {image
-            ? <img alt={title} width='100%' {...image} src={imgSrc} />
-            : <Card.Title className='w-100 justify-content-center align-items-center'>{title}</Card.Title>}
+            ? <img className={styles.walletLogo} {...image} />
+            : <Card.Title className={styles.walletLogo}>{wallet.def.card.title}</Card.Title>}
         </div>
       </Card.Body>
       <Link href={`/settings/wallets/${wallet.def.name}`}>

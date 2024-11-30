@@ -108,6 +108,7 @@ export default gql`
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
     proxyReceive: Boolean
+    directReceive: Boolean
   }
 
   type AuthMethods {
@@ -187,6 +188,7 @@ export default gql`
     vaultKeyHash: String
     walletsUpdatedAt: Date
     proxyReceive: Boolean
+    directReceive: Boolean
   }
 
   type UserOptional {

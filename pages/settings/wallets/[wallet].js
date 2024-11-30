@@ -18,6 +18,8 @@ import { useMe } from '@/components/me'
 import validateWallet from '@/wallets/validate'
 import { ValidationError } from 'yup'
 import { useFormikContext } from 'formik'
+import { useWalletImage } from '@/components/wallet-image'
+import styles from '@/styles/wallet.module.css'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -28,6 +30,7 @@ export default function WalletSettings () {
   const wallet = useWallet(name)
   const { me } = useMe()
   const { save, detach } = useWalletConfigurator(wallet)
+  const image = useWalletImage(wallet)
 
   const initial = useMemo(() => {
     const initial = wallet?.def.fields.reduce((acc, field) => {
@@ -67,16 +70,12 @@ export default function WalletSettings () {
     }
   }, [wallet.def])
 
-  const { card: { image, title, subtitle } } = wallet?.def || { card: {} }
-
   return (
     <CenterLayout>
       {image
-        ? typeof image === 'object'
-          ? <img {...image} alt={title} className='pb-2' />
-          : <img src={image} width='33%' alt={title} className='pb-2' />
-        : <h2 className='pb-2'>{title}</h2>}
-      <h6 className='text-muted text-center pb-3'><Text>{subtitle}</Text></h6>
+        ? <img {...image} className={styles.walletBanner} />
+        : <h2 className='pb-2'>{wallet.def.card.title}</h2>}
+      <h6 className='text-muted text-center pb-3'><Text>{wallet.def.card.subtitle}</Text></h6>
       <Form
         initial={initial}
         enableReinitialize

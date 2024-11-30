@@ -2,11 +2,11 @@ import { USER_ID } from '@/lib/constants'
 import { deleteReminders, getDeleteAt, getRemindAt } from '@/lib/item'
 import { parseInternalLinks } from '@/lib/url'
 
-export async function getMentions ({ text }, { me, models }) {
+export async function getMentions ({ text }, { me, tx }) {
   const mentionPattern = /\B@[\w_]+/gi
   const names = text.match(mentionPattern)?.map(m => m.slice(1))
   if (names?.length > 0) {
-    const users = await models.user.findMany({
+    const users = await tx.user.findMany({
       where: {
         name: {
           in: names
@@ -21,7 +21,7 @@ export async function getMentions ({ text }, { me, models }) {
   return []
 }
 
-export const getItemMentions = async ({ text }, { me, models }) => {
+export const getItemMentions = async ({ text }, { me, tx }) => {
   const linkPattern = new RegExp(`${process.env.NEXT_PUBLIC_URL}/items/\\d+[a-zA-Z0-9/?=]*`, 'gi')
   const refs = text.match(linkPattern)?.map(m => {
     try {
@@ -33,7 +33,7 @@ export const getItemMentions = async ({ text }, { me, models }) => {
   }).filter(r => !!r)
 
   if (refs?.length > 0) {
-    const referee = await models.item.findMany({
+    const referee = await tx.item.findMany({
       where: {
         id: { in: refs },
         userId: { not: me?.id || USER_ID.anon }

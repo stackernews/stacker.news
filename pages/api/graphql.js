@@ -82,7 +82,7 @@ export default startServerAndCreateNextHandler(apolloServer, {
   }
 })
 
-function multiAuthMiddleware (request) {
+export function multiAuthMiddleware (request) {
   // switch next-auth session cookie with multi_auth cookie if cookie pointer present
 
   // is there a cookie pointer?

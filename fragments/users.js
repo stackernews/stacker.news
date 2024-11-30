@@ -37,6 +37,7 @@ ${STREAK_FIELDS}
       imgproxyOnly
       showImagesAndVideos
       nostrCrossposting
+      nsfwMode
       sats
       tipDefault
       tipRandom
@@ -50,6 +51,8 @@ ${STREAK_FIELDS}
       disableFreebies
       vaultKeyHash
       walletsUpdatedAt
+      proxyReceive
+      directReceive
     }
     optional {
       isContributor
@@ -111,6 +114,8 @@ export const SETTINGS_FIELDS = gql`
         apiKey
       }
       apiKeyEnabled
+      proxyReceive
+      directReceive
     }
   }`
 

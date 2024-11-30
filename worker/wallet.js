@@ -1,11 +1,9 @@
-import serialize from '@/api/resolvers/serial'
 import {
-  getInvoice, getPayment, cancelHodlInvoice, deletePayment,
+  getInvoice,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
-import { notifyDeposit, notifyWithdrawal } from '@/lib/webPush'
-import { INVOICE_RETENTION_DAYS, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
-import { datePivot, sleep } from '@/lib/time'
+import { getPaymentOrNotSent } from '@/api/lnd'
+import { sleep } from '@/lib/time'
 import retry from 'async-retry'
 import {
   paidActionPaid, paidActionForwarded,
@@ -13,9 +11,7 @@ import {
   paidActionForwarding,
   paidActionCanceling
 } from './paidAction'
-import { getPaymentFailureStatus } from '@/api/lnd/index.js'
-import { walletLogger } from '@/api/resolvers/wallet.js'
-import { formatMsats, formatSats, msatsToSats } from '@/lib/format.js'
+import { payingActionConfirmed, payingActionFailed } from './payingAction'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -143,21 +139,6 @@ export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd
     if (dbInv.actionType) {
       return await paidActionPaid({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
     }
-
-    // NOTE: confirm invoice prevents double confirmations (idempotent)
-    // ALSO: is_confirmed and is_held are mutually exclusive
-    // that is, a hold invoice will first be is_held but not is_confirmed
-    // and once it's settled it will be is_confirmed but not is_held
-    const [[{ confirm_invoice: code }]] = await serialize([
-      models.$queryRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`,
-      models.invoice.update({ where: { hash }, data: { confirmedIndex: inv.confirmed_index } })
-    ], { models })
-
-    if (code === 0) {
-      notifyDeposit(dbInv.userId, { comment: dbInv.comment, ...inv })
-    }
-
-    return await boss.send('nip57', { hash })
   }
 
   if (inv.is_held) {
@@ -171,43 +152,12 @@ export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd
       }
       return await paidActionHeld({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
     }
-    // First query makes sure that after payment, JIT invoices are settled
-    // within 60 seconds or they will be canceled to minimize risk of
-    // force closures or wallets banning us.
-    // Second query is basically confirm_invoice without setting confirmed_at
-    // and without setting the user balance
-    // those will be set when the invoice is settled by user action
-    const expiresAt = new Date(Math.min(dbInv.expiresAt, datePivot(new Date(), { seconds: 60 })))
-    return await serialize([
-      models.$queryRaw`
-      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
-      VALUES ('finalizeHodlInvoice', jsonb_build_object('hash', ${hash}), 21, true, ${expiresAt})`,
-      models.invoice.update({
-        where: { hash },
-        data: {
-          msatsReceived: Number(inv.received_mtokens),
-          expiresAt,
-          isHeld: true
-        }
-      })
-    ], { models })
   }
 
   if (inv.is_canceled) {
     if (dbInv.actionType) {
       return await paidActionFailed({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
     }
-
-    return await serialize(
-      models.invoice.update({
-        where: {
-          hash: inv.id
-        },
-        data: {
-          cancelled: true
-        }
-      }), { models }
-    )
   }
 }
 
@@ -256,13 +206,12 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
       hash,
       OR: [
         { status: null },
-        { invoiceForward: { some: { } } }
+        { invoiceForward: { isNot: null } }
       ]
     },
     include: {
       wallet: true,
       invoiceForward: {
-        orderBy: { createdAt: 'desc' },
         include: {
           invoice: true
         }
@@ -273,103 +222,20 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
   // nothing to do if the withdrawl is already recorded and it isn't an invoiceForward
   if (!dbWdrwl) return
 
-  let wdrwl
-  let notSent = false
-  try {
-    wdrwl = withdrawal ?? await getPayment({ id: hash, lnd })
-  } catch (err) {
-    if (err[1] === 'SentPaymentNotFound' &&
-      dbWdrwl.createdAt < datePivot(new Date(), { milliseconds: -LND_PATHFINDING_TIMEOUT_MS * 2 })) {
-      // if the payment is older than 2x timeout, but not found in LND, we can assume it errored before lnd stored it
-      notSent = true
-    } else {
-      throw err
-    }
-  }
-
-  const logger = walletLogger({ models, wallet: dbWdrwl.wallet })
+  const wdrwl = withdrawal ?? await getPaymentOrNotSent({ id: hash, lnd, createdAt: dbWdrwl.createdAt })
 
   if (wdrwl?.is_confirmed) {
-    if (dbWdrwl.invoiceForward.length > 0) {
-      return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
+    if (dbWdrwl.invoiceForward) {
+      return await paidActionForwarded({ data: { invoiceId: dbWdrwl.invoiceForward.invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
     }
 
-    const fee = Number(wdrwl.payment.fee_mtokens)
-    const paid = Number(wdrwl.payment.mtokens) - fee
-    const [[{ confirm_withdrawl: code }]] = await serialize([
-      models.$queryRaw`SELECT confirm_withdrawl(${dbWdrwl.id}::INTEGER, ${paid}, ${fee})`,
-      models.withdrawl.update({
-        where: { id: dbWdrwl.id },
-        data: {
-          preimage: wdrwl.payment.secret
-        }
-      })
-    ], { models })
-    if (code === 0) {
-      notifyWithdrawal(dbWdrwl.userId, wdrwl)
-
-      const { request: bolt11, secret: preimage } = wdrwl.payment
-
-      logger?.ok(
-        `↙ payment received: ${formatSats(msatsToSats(paid))}`,
-        {
-          bolt11,
-          preimage,
-          fee: formatMsats(fee)
-        })
-    }
-  } else if (wdrwl?.is_failed || notSent) {
-    if (dbWdrwl.invoiceForward.length > 0) {
-      return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward[0].invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
+    return await payingActionConfirmed({ data: { withdrawalId: dbWdrwl.id, withdrawal: wdrwl }, models, lnd, boss })
+  } else if (wdrwl?.is_failed || wdrwl?.notSent) {
+    if (dbWdrwl.invoiceForward) {
+      return await paidActionFailedForward({ data: { invoiceId: dbWdrwl.invoiceForward.invoice.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
     }
 
-    const { message, status } = getPaymentFailureStatus(wdrwl)
-    await serialize(
-      models.$queryRaw`
-        SELECT reverse_withdrawl(${dbWdrwl.id}::INTEGER, ${status}::"WithdrawlStatus")`,
-      { models }
-    )
-
-    logger?.error(
-      `incoming payment failed: ${message}`,
-      {
-        bolt11: wdrwl.payment.request,
-        max_fee: formatMsats(dbWdrwl.msatsFeePaying)
-      })
-  }
-}
-
-export async function autoDropBolt11s ({ models, lnd }) {
-  const retention = `${INVOICE_RETENTION_DAYS} days`
-
-  // This query will update the withdrawls and return what the hash and bol11 values were before the update
-  const invoices = await models.$queryRaw`
-    WITH to_be_updated AS (
-      SELECT id, hash, bolt11
-      FROM "Withdrawl"
-      WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
-      AND now() > created_at + ${retention}::INTERVAL
-      AND hash IS NOT NULL
-      AND status IS NOT NULL
-    ), updated_rows AS (
-      UPDATE "Withdrawl"
-      SET hash = NULL, bolt11 = NULL, preimage = NULL
-      FROM to_be_updated
-      WHERE "Withdrawl".id = to_be_updated.id)
-    SELECT * FROM to_be_updated;`
-
-  if (invoices.length > 0) {
-    for (const invoice of invoices) {
-      try {
-        await deletePayment({ id: invoice.hash, lnd })
-      } catch (error) {
-        console.error(`Error removing invoice with hash ${invoice.hash}:`, error)
-        await models.withdrawl.update({
-          where: { id: invoice.id },
-          data: { hash: invoice.hash, bolt11: invoice.bolt11, preimage: invoice.preimage }
-        })
-      }
-    }
+    return await payingActionFailed({ data: { withdrawalId: dbWdrwl.id, withdrawal: wdrwl }, models, lnd, boss })
   }
 }
 
@@ -381,33 +247,16 @@ export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, 
     return
   }
 
-  const dbInv = await models.invoice.findUnique({
-    where: { hash },
-    include: {
-      invoiceForward: {
-        include: {
-          withdrawl: true,
-          wallet: true
-        }
-      }
-    }
-  })
+  const dbInv = await models.invoice.findUnique({ where: { hash } })
   if (!dbInv) {
     console.log('invoice not found in database', hash)
     return
   }
 
-  // if this is an actionType we need to cancel conditionally
-  if (dbInv.actionType) {
-    await paidActionCanceling({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
-  } else {
-    await cancelHodlInvoice({ id: hash, lnd })
-  }
+  await paidActionCanceling({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
 
   // sync LND invoice status with invoice status in database
   await checkInvoice({ data: { hash }, models, lnd, boss })
-
-  return dbInv
 }
 
 export async function checkPendingDeposits (args) {

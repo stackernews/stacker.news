@@ -1,6 +1,7 @@
 import { msatsToSats } from '@/lib/format'
+import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
-export * from 'wallets/phoenixd'
+export * from '@/wallets/phoenixd'
 
 export async function testCreateInvoice ({ url, secondaryPassword }) {
   return await createInvoice(
@@ -28,9 +29,9 @@ export async function createInvoice (
     headers,
     body
   })
-  if (!res.ok) {
-    throw new Error(`POST ${res.url}: ${res.status} ${res.statusText}`)
-  }
+
+  assertResponseOk(res)
+  assertContentTypeJson(res)
 
   const payment = await res.json()
   return payment.serialized

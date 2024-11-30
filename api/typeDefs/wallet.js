@@ -1,7 +1,7 @@
 import { gql } from 'graphql-tag'
 import { fieldToGqlArg, fieldToGqlArgOptional, generateResolverName, generateTypeDefName } from '@/wallets/graphql'
 import { isServerField } from '@/wallets/common'
-import walletDefs from 'wallets/server'
+import walletDefs from '@/wallets/server'
 
 function injectTypeDefs (typeDefs) {
   const injected = [rawTypeDefs(), mutationTypeDefs()]
@@ -64,6 +64,7 @@ const typeDefs = `
   extend type Query {
     invoice(id: ID!): Invoice!
     withdrawl(id: ID!): Withdrawl!
+    direct(id: ID!): Direct!
     numBolt11s: Int!
     connectAddress: String!
     walletHistory(cursor: String, inc: String): History
@@ -74,14 +75,18 @@ const typeDefs = `
   }
 
   extend type Mutation {
-    createInvoice(amount: Int!, expireSecs: Int, hodlInvoice: Boolean): Invoice!
+    createInvoice(amount: Int!): InvoiceOrDirect!
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
     cancelInvoice(hash: String!, hmac: String!): Invoice!
-    dropBolt11(id: ID): Withdrawl
+    dropBolt11(hash: String!): Boolean
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(wallet: String): Boolean
     setWalletPriority(id: ID!, priority: Int!): Boolean
+  }
+
+  interface InvoiceOrDirect {
+    id: ID!
   }
 
   type Wallet {
@@ -101,13 +106,14 @@ const typeDefs = `
     autoWithdrawMaxFeeTotal: Int!
   }
 
-  type Invoice {
+  type Invoice implements InvoiceOrDirect {
     id: ID!
     createdAt: Date!
     hash: String!
     bolt11: String!
     expiresAt: Date!
     cancelled: Boolean!
+    cancelledAt: Date
     confirmedAt: Date
     satsReceived: Int
     satsRequested: Int!
@@ -122,6 +128,7 @@ const typeDefs = `
     actionError: String
     item: Item
     itemAct: ItemAct
+    forwardedSats: Int
   }
 
   type Withdrawl {
@@ -135,8 +142,20 @@ const typeDefs = `
     satsFeePaid: Int
     status: String
     autoWithdraw: Boolean!
-    p2p: Boolean!
     preimage: String
+    forwardedActionType: String
+  }
+
+  type Direct implements InvoiceOrDirect {
+    id: ID!
+    createdAt: Date!
+    bolt11: String
+    hash: String
+    sats: Int
+    preimage: String
+    nostr: JSONObject
+    comment: String
+    lud18Data: JSONObject
   }
 
   type Fact {

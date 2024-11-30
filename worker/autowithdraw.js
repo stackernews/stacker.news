@@ -1,6 +1,6 @@
 import { msatsSatsFloor, msatsToSats, satsToMsats } from '@/lib/format'
 import { createWithdrawal } from '@/api/resolvers/wallet'
-import { createInvoice } from 'wallets/server'
+import { createInvoice } from '@/wallets/server'
 
 export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const user = await models.user.findUnique({ where: { id } })

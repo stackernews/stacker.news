@@ -1,7 +1,7 @@
 import { withTimeout } from '@/lib/time'
-import { getScopes, SCOPE_READ, SCOPE_RECEIVE, SCOPE_WRITE, getWallet, request } from 'wallets/blink/common'
+import { getScopes, SCOPE_READ, SCOPE_RECEIVE, SCOPE_WRITE, getWallet, request } from '@/wallets/blink/common'
 import { msatsToSats } from '@/lib/format'
-export * from 'wallets/blink'
+export * from '@/wallets/blink'
 
 export async function testCreateInvoice ({ apiKeyRecv, currencyRecv }) {
   const scopes = await getScopes(apiKeyRecv)

@@ -300,6 +300,8 @@ function typeClause (type) {
       return ['"Item".bio = true', '"Item"."parentId" IS NULL']
     case 'bounties':
       return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL']
+    case 'bounties_active':
+      return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL', '"Item"."bountyPaidTo" IS NULL']
     case 'comments':
       return '"Item"."parentId" IS NOT NULL'
     case 'freebies':
@@ -1033,6 +1035,7 @@ export default {
   },
   ItemAct: {
     invoice: async (itemAct, args, { models }) => {
+      // we never want to fetch the sensitive data full monty in nested resolvers
       if (itemAct.invoiceId) {
         return {
           id: itemAct.invoiceId,
@@ -1282,6 +1285,7 @@ export default {
       return root
     },
     invoice: async (item, args, { models }) => {
+      // we never want to fetch the sensitive data full monty in nested resolvers
       if (item.invoiceId) {
         return {
           id: item.invoiceId,

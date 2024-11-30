@@ -1,4 +1,6 @@
-export * from 'wallets/phoenixd'
+import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
+
+export * from '@/wallets/phoenixd'
 
 export async function testSendPayment (config, { logger }) {
   // TODO:
@@ -24,9 +26,9 @@ export async function sendPayment (bolt11, { url, primaryPassword }) {
     headers,
     body
   })
-  if (!res.ok) {
-    throw new Error(`POST ${res.url}: ${res.status} ${res.statusText}`)
-  }
+
+  assertResponseOk(res)
+  assertContentTypeJson(res)
 
   const payment = await res.json()
   const preimage = payment.paymentPreimage

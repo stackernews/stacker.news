@@ -1,8 +1,10 @@
-import walletDefs from 'wallets/client'
+import walletDefs from '@/wallets/client'
 
 export const Status = {
   Enabled: 'Enabled',
-  Disabled: 'Disabled'
+  Disabled: 'Disabled',
+  Error: 'Error',
+  Warning: 'Warning'
 }
 
 export function getWalletByName (name) {
@@ -23,6 +25,10 @@ export function getStorageKey (name, userId) {
   }
 
   return storageKey
+}
+
+export function walletTag (walletDef) {
+  return walletDef.shortName || walletDef.name
 }
 
 export function walletPrioritySort (w1, w2) {
@@ -89,12 +95,24 @@ function isReceiveConfigured ({ def, config }) {
   return fields.length > 0 && checkFields({ fields, config })
 }
 
+export function supportsSend ({ def, config }) {
+  return !!def.sendPayment
+}
+
+export function supportsReceive ({ def, config }) {
+  return def.fields.some(f => f.serverOnly)
+}
+
 export function canSend ({ def, config }) {
-  return !!def.sendPayment && isSendConfigured({ def, config })
+  return (
+    supportsSend({ def, config }) &&
+    isSendConfigured({ def, config }) &&
+    (def.requiresConfig || config?.enabled)
+  )
 }
 
 export function canReceive ({ def, config }) {
-  return def.fields.some(f => f.serverOnly) && isReceiveConfigured({ def, config })
+  return supportsReceive({ def, config }) && isReceiveConfigured({ def, config })
 }
 
 export function siftConfig (fields, config) {

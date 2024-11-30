@@ -261,7 +261,7 @@ sndev__withdraw() {
   if [ "$1" = "--cln" ]; then
     shift
     label=$(date +%s)
-    sndev__cli -t cln invoice "$1" "$label" sndev | jq -j '.bolt11'; echo
+    sndev__cli -t cln invoice "$1"sats "$label" sndev | jq -j '.bolt11'; echo
   else
     sndev__cli lnd addinvoice --amt "$@" | jq -j '.payment_request'; echo
   fi

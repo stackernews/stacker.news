@@ -1,7 +1,6 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
-import { toPositiveBigInt } from '@/lib/validate'
+import { toPositiveBigInt, numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyDeposit } from '@/lib/webPush'
-import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { getInvoiceableWallets } from '@/wallets/server'
 import { assertBelowBalanceLimit } from './lib/assert'
 
@@ -9,6 +8,7 @@ export const anonable = false
 
 export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.P2P,
+  PAID_ACTION_PAYMENT_METHODS.DIRECT,
   PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
 ]
 
@@ -16,17 +16,17 @@ export async function getCost ({ msats }) {
   return toPositiveBigInt(msats)
 }
 
-export async function getInvoiceablePeer (_, { me, models, cost }) {
-  if (!me?.proxyReceive) return null
-  const wallets = await getInvoiceableWallets(me.id, { models })
+export async function getInvoiceablePeer (_, { me, models, cost, paymentMethod }) {
+  if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.P2P && !me?.proxyReceive) return null
+  if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.DIRECT && !me?.directReceive) return null
+  if ((cost + me.msats) <= satsToMsats(me.autoWithdrawThreshold)) return null
 
-  // if the user has any invoiceable wallets and this action will result in their balance
-  // being greater than their desired threshold
-  if (wallets.length > 0 && (cost + me.msats) > satsToMsats(me.autoWithdrawThreshold)) {
-    return me.id
+  const wallets = await getInvoiceableWallets(me.id, { models })
+  if (wallets.length === 0) {
+    return null
   }
 
-  return null
+  return me.id
 }
 
 export async function getSybilFeePercent () {
@@ -36,13 +36,15 @@ export async function getSybilFeePercent () {
 export async function perform ({
   invoiceId,
   comment,
-  lud18Data
+  lud18Data,
+  noteStr
 }, { me, tx }) {
   const invoice = await tx.invoice.update({
     where: { id: invoiceId },
     data: {
       comment,
-      lud18Data
+      lud18Data,
+      ...(noteStr ? { desc: noteStr } : {})
     },
     include: { invoiceForward: true }
   })

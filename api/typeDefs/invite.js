@@ -7,7 +7,7 @@ export default gql`
   }
 
   extend type Mutation {
-    createInvite(id:String, gift: Int!, limit: Int, description: String): Invite
+    createInvite(id: String, gift: Int!, limit: Int, description: String): Invite
     revokeInvite(id: ID!): Invite
   }
 

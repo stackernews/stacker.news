@@ -370,6 +370,29 @@ function useActRetry ({ invoice }) {
     invoice.item.root?.bounty === invoice.satsRequested && invoice.item.root?.mine
       ? payBountyCacheMods
       : {}
+
+  const update = (cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.invoice) return
+    cache.modify({
+      id: `ItemAct:${invoice.itemAct?.id}`,
+      fields: {
+        // this is a bit of a hack just to update the reference to the new invoice
+        invoice: () => cache.writeFragment({
+          id: `Invoice:${response.invoice.id}`,
+          fragment: gql`
+            fragment _ on Invoice {
+              bolt11
+            }
+          `,
+          data: { bolt11: response.invoice.bolt11 }
+        })
+      }
+    })
+    paidActionCacheMods?.update?.(cache, { data })
+    bountyCacheMods?.update?.(cache, { data })
+  }
+
   return useAct({
     query: RETRY_PAID_ACTION,
     onPayError: (e, cache, { data }) => {
@@ -380,27 +403,8 @@ function useActRetry ({ invoice }) {
       paidActionCacheMods?.onPaid?.(cache, { data })
       bountyCacheMods?.onPaid?.(cache, { data })
     },
-    update: (cache, { data }) => {
-      const response = Object.values(data)[0]
-      if (!response?.invoice) return
-      cache.modify({
-        id: `ItemAct:${invoice.itemAct?.id}`,
-        fields: {
-          // this is a bit of a hack just to update the reference to the new invoice
-          invoice: () => cache.writeFragment({
-            id: `Invoice:${response.invoice.id}`,
-            fragment: gql`
-              fragment _ on Invoice {
-                bolt11
-              }
-            `,
-            data: { bolt11: response.invoice.bolt11 }
-          })
-        }
-      })
-      paidActionCacheMods?.update?.(cache, { data })
-      bountyCacheMods?.update?.(cache, { data })
-    }
+    update,
+    updateOnFallback: update
   })
 }
 

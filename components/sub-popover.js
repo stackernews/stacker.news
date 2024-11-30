@@ -4,6 +4,7 @@ import { useLazyQuery } from '@apollo/client'
 import classNames from 'classnames'
 import HoverablePopover from './hoverable-popover'
 import { TerritoryInfo, TerritoryInfoSkeleton } from './territory-header'
+import { truncateString } from '@/lib/format'
 
 export default function SubPopover ({ sub, children }) {
   const [getSub, { loading, data }] = useLazyQuery(
@@ -22,7 +23,7 @@ export default function SubPopover ({ sub, children }) {
         ? <TerritoryInfoSkeleton />
         : !data.sub
             ? <h1 className={classNames(errorStyles.status, errorStyles.describe)}>SUB NOT FOUND</h1>
-            : <TerritoryInfo sub={data.sub} />}
+            : <TerritoryInfo sub={{ ...data.sub, desc: truncateString(data.sub.desc, 280) }} />}
     />
   )
 }

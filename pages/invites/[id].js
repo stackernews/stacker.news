@@ -41,7 +41,7 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
         { models }
       )
       const invite = await models.invite.findUnique({ where: { id } })
-      notifyInvite(invite.userId, invite.id, invite.description)
+      notifyInvite(invite.userId)
     } catch (e) {
       console.log(e)
     }

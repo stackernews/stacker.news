@@ -74,6 +74,7 @@ function InviteForm () {
         headerColor='#6c757d' header='advanced' body={
           <>
             <Input
+              prepend={<InputGroup.Text className='text-muted'>{`${process.env.NEXT_PUBLIC_URL}/invites/`}</InputGroup.Text>}
               label={<>invite code <small className='text-muted ms-2'>optional</small></>}
               name='id'
               autocomplete='off'

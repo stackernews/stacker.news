@@ -18,7 +18,7 @@ function InviteForm () {
     gql`
       ${INVITE_FIELDS}
       mutation createInvite($id: String, $gift: Int!, $limit: Int, $description: String) {
-        createInvite(id:$id, gift: $gift, limit: $limit, description: $description) {
+        createInvite(id: $id, gift: $gift, limit: $limit, description: $description) {
           ...InviteFields
         }
       }`, {

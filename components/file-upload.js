@@ -24,7 +24,6 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
       : document.createElement('video')
 
     file = await removeExifData(file)
-    file = await adjustMov(file) // adjust mov files to mp4
 
     return new Promise((resolve, reject) => {
       async function onload () {
@@ -107,7 +106,11 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
               if (onSelect) await onSelect?.(file, s3Upload)
               else await s3Upload(file)
             } catch (e) {
-              toaster.danger(`upload of '${file.name}' failed: ` + e.message || e.toString?.())
+              if (file.type === 'video/quicktime') {
+                toaster.danger(`upload of '${file.name}' failed: codec might not be supported, check video settings`)
+              } else {
+                toaster.danger(`upload of '${file.name}' failed: ` + e.message || e.toString?.())
+              }
               continue
             }
           }
@@ -126,13 +129,6 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
     </>
   )
 })
-
-// trick browsers into thinking that .mov files are 'true' .mp4 files
-const adjustMov = async (file) => {
-  if (!file || !file.type.startsWith('video/quicktime')) return file
-  const blob = file.slice(0, file.size, 'video/mp4')
-  return new File([blob], file.name.replace(/\.mov$/, '.mp4'), { type: 'video/mp4' })
-}
 
 // from https://stackoverflow.com/a/77472484
 const removeExifData = async (file) => {

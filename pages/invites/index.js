@@ -9,6 +9,8 @@ import Invite from '@/components/invite'
 import { inviteSchema } from '@/lib/validate'
 import { SSR } from '@/lib/constants'
 import { getGetServerSideProps } from '@/api/ssrApollo'
+import Info from '@/components/info'
+import Text from '@/components/text'
 
 // force SSR to include CSP nonces
 export const getServerSideProps = getGetServerSideProps({ query: null })
@@ -48,7 +50,7 @@ function InviteForm () {
         description: undefined
       }}
       schema={inviteSchema}
-      onSubmit={async ({ id, gift, limit, description }) => {
+      onSubmit={async ({ id, gift, limit, description }, { resetForm }) => {
         const { error } = await createInvite({
           variables: {
             id: id || undefined,
@@ -58,6 +60,7 @@ function InviteForm () {
           }
         })
         if (error) throw error
+        resetForm()
       }}
     >
       <Input
@@ -80,7 +83,19 @@ function InviteForm () {
               autocomplete='off'
             />
             <Input
-              label={<>description <small className='text-muted ms-2'>optional</small></>}
+              label={
+                <>
+                  <div className='d-flex align-items-center'>
+                    description <small className='text-muted ms-2'>optional</small>
+                    <Info>
+                      <Text>
+                        A brief description to keep track of the invite purpose, such as "Shared in group chat".
+                        This description is private and visible only to you.
+                      </Text>
+                    </Info>
+                  </div>
+                </>
+}
               name='description'
               autocomplete='off'
             />

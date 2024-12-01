@@ -285,8 +285,9 @@ export function useZap () {
         return
       }
 
-      const reason = error?.message || error?.toString?.()
-      toaster.danger(reason)
+      // TODO: we should selectively toast based on error type
+      // but right now this toast is noisy for optimistic zaps
+      console.error(error)
     }
   }, [act, toaster, strike, wallets.length])
 }

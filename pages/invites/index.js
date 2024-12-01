@@ -43,7 +43,7 @@ function InviteForm () {
 
   const initialValues = {
     id: '',
-    gift: 100,
+    gift: 1000,
     limit: 1,
     description: ''
   }

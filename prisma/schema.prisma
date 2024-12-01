@@ -477,6 +477,8 @@ model Invite {
   user      User     @relation("Invites", fields: [userId], references: [id], onDelete: Cascade)
   invitees  User[]
 
+  description String?
+
   @@index([createdAt], map: "Invite.created_at_index")
   @@index([userId], map: "Invite.userId_index")
 }

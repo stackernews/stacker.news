@@ -48,18 +48,20 @@ export default function ItemInfo ({
     }
   }, [item])
 
-  // allow anon edits if they have the correct hmac for the item invoice
-  // (the server will verify the hmac)
-  const [anonEdit, setAnonEdit] = useState(false)
-  useEffect(() => {
-    const invParams = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
-    setAnonEdit(!!invParams && !me && Number(item.user.id) === USER_ID.anon)
-  }, [])
-
   // deleted items can never be edited and every item has a 10 minute edit window
   // except bios, they can always be edited but they should never show the countdown
   const noEdit = !!item.deletedAt || (Date.now() >= editThreshold) || item.bio
-  const canEdit = !noEdit && ((me && item.mine) || anonEdit)
+  const authorEdit = me && item.mine
+  const [canEdit, setCanEdit] = useState(!noEdit && authorEdit)
+
+  useEffect(() => {
+    // allow anon edits if they have the correct hmac for the item invoice
+    // (the server will verify the hmac)
+    const invParams = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
+    const anonEdit = !!invParams && !me && Number(item.user.id) === USER_ID.anon
+    // anonEdit should not override canEdit, but only allow edits if they aren't already allowed
+    setCanEdit(canEdit => canEdit || anonEdit)
+  }, [])
 
   // territory founders can pin any post in their territory
   // and OPs can pin any root reply in their post
@@ -160,7 +162,7 @@ export default function ItemInfo ({
           <>
             <EditInfo
               item={item} edit={edit} canEdit={canEdit}
-              setCanEdit={setAnonEdit} toggleEdit={toggleEdit} editText={editText} editThreshold={editThreshold}
+              setCanEdit={setCanEdit} toggleEdit={toggleEdit} editText={editText} editThreshold={editThreshold}
             />
             <PaymentInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
             <ActionDropdown>

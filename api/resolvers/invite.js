@@ -1,7 +1,7 @@
 import { inviteSchema, validateSchema } from '@/lib/validate'
 import { msatsToSats } from '@/lib/format'
 import assertApiKeyNotPermitted from './apiKey'
-import { GqlAuthenticationError } from '@/lib/error'
+import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 
 export default {
   Query: {
@@ -46,10 +46,17 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      return await models.invite.update({
-        where: { id },
-        data: { revoked: true }
-      })
+      try {
+        return await models.invite.update({
+          where: { id, userId: me.id },
+          data: { revoked: true }
+        })
+      } catch (err) {
+        if (err.code === 'P2025') {
+          throw new GqlInputError('invite not found')
+        }
+        throw err
+      }
     }
   },
 

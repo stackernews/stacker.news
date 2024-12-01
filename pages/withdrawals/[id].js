@@ -118,18 +118,18 @@ function LoadWithdrawl () {
       <InvoiceStatus variant={variant} status={status} />
       <div className='w-100 mt-3'>
         <Bolt11Info bolt11={data.withdrawl.bolt11} preimage={data.withdrawl.preimage}>
-          <PrivacyOption wd={data.withdrawl} />
+          <PrivacyOption payment={data.withdrawl} />
         </Bolt11Info>
       </div>
     </>
   )
 }
 
-function PrivacyOption ({ wd }) {
-  if (!wd.bolt11) return
+export function PrivacyOption ({ payment }) {
+  if (!payment.bolt11) return
 
   const { me } = useMe()
-  const keepUntil = datePivot(new Date(wd.createdAt), { days: INVOICE_RETENTION_DAYS })
+  const keepUntil = datePivot(new Date(payment.createdAt), { days: INVOICE_RETENTION_DAYS })
   const oldEnough = new Date() >= keepUntil
   if (!oldEnough) {
     return (
@@ -143,19 +143,19 @@ function PrivacyOption ({ wd }) {
   const toaster = useToast()
   const [dropBolt11] = useMutation(
     gql`
-      mutation dropBolt11($id: ID!) {
-        dropBolt11(id: $id) {
-          id
-        }
+      mutation dropBolt11($hash: String!) {
+        dropBolt11(hash: $hash)
       }`, {
-      update (cache) {
-        cache.modify({
-          id: `Withdrawl:${wd.id}`,
-          fields: {
-            bolt11: () => null,
-            hash: () => null
-          }
-        })
+      update (cache, { data }) {
+        if (data.dropBolt11) {
+          cache.modify({
+            id: `${payment.__typename}:${payment.id}`,
+            fields: {
+              bolt11: () => null,
+              hash: () => null
+            }
+          })
+        }
       }
     })
 
@@ -169,7 +169,7 @@ function PrivacyOption ({ wd }) {
               onConfirm={async () => {
                 if (me) {
                   try {
-                    await dropBolt11({ variables: { id: wd.id } })
+                    await dropBolt11({ variables: { hash: payment.hash } })
                   } catch (err) {
                     toaster.danger('unable to delete invoice: ' + err.message || err.toString?.())
                     throw err

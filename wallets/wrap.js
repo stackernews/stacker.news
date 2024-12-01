@@ -1,6 +1,6 @@
 import { createHodlInvoice, parsePaymentRequest } from 'ln-service'
 import { estimateRouteFee, getBlockHeight } from '../api/lnd'
-import { toBigInt, toPositiveBigInt, toPositiveNumber } from '@/lib/validate'
+import { toBigInt, toPositiveBigInt, toPositiveNumber } from '@/lib/format'
 
 const MIN_OUTGOING_MSATS = BigInt(900) // the minimum msats we'll allow for the outgoing invoice
 const MAX_OUTGOING_MSATS = BigInt(900_000_000) // the maximum msats we'll allow for the outgoing invoice
@@ -181,7 +181,7 @@ export default async function wrapInvoice ({ bolt11, feePercent }, { msats, desc
     const minEstFees = toPositiveNumber(routingFeeMsat)
     const outgoingMaxFeeMsat = Math.ceil(toPositiveNumber(msats * MAX_FEE_ESTIMATE_PERCENT) / 100)
     if (minEstFees > outgoingMaxFeeMsat) {
-      throw new Error('Estimated fees are too high')
+      throw new Error('Estimated fees are too high (' + minEstFees + ' > ' + outgoingMaxFeeMsat + ')')
     }
 
     // calculate the incoming invoice amount, without fees

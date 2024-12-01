@@ -60,10 +60,17 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      return await models.invite.update({
-        where: { id },
-        data: { revoked: true }
-      })
+      try {
+        return await models.invite.update({
+          where: { id, userId: me.id },
+          data: { revoked: true }
+        })
+      } catch (err) {
+        if (err.code === 'P2025') {
+          throw new GqlInputError('invite not found')
+        }
+        throw err
+      }
     }
   },
 

@@ -27,6 +27,7 @@ import { useRetryCreateItem } from './use-item-submit'
 import { useToast } from './toast'
 import { useShowModal } from './modal'
 import classNames from 'classnames'
+import SubPopover from './sub-popover'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
@@ -134,9 +135,11 @@ export default function ItemInfo ({
           </>}
       </span>
       {item.subName &&
-        <Link href={`/~${item.subName}`}>
-          {' '}<Badge className={styles.newComment} bg={null}>{item.subName}</Badge>
-        </Link>}
+        <SubPopover sub={item.subName}>
+          <Link href={`/~${item.subName}`}>
+            {' '}<Badge className={styles.newComment} bg={null}>{item.subName}</Badge>
+          </Link>
+        </SubPopover>}
       {sub?.nsfw &&
         <Badge className={styles.newComment} bg={null}>nsfw</Badge>}
       {(item.outlawed && !item.mine &&

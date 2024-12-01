@@ -23,7 +23,6 @@ import { HasNewNotesProvider } from '@/components/use-has-new-notes'
 import { WebLnProvider } from '@/wallets/webln/client'
 import { AccountProvider } from '@/components/account'
 import { WalletsProvider } from '@/wallets/index'
-import { usePathname } from 'next/navigation'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
@@ -46,11 +45,10 @@ function writeQuery (client, apollo, data) {
 export default function MyApp ({ Component, pageProps: { ...props } }) {
   const client = getApolloClient()
   const router = useRouter()
-  const pathname = usePathname()
 
   const shouldShowProgressBar = useCallback((newPathname, shallow) => {
-    return !shallow || newPathname !== pathname
-  }, [pathname])
+    return !shallow || newPathname !== router.pathname
+  }, [router.pathname])
 
   useEffect(() => {
     const nprogressStart = (newPathname, { shallow }) => {
@@ -87,7 +85,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
       router.events.off('routeChangeComplete', nprogressDone)
       router.events.off('routeChangeError', nprogressDone)
     }
-  }, [router.asPath, props?.apollo])
+  }, [router.asPath, props?.apollo, shouldShowProgressBar])
 
   useEffect(() => {
     // hack to disable ios pwa prompt for https://github.com/stackernews/stacker.news/issues/953

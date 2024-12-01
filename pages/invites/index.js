@@ -41,14 +41,16 @@ function InviteForm () {
     }
   )
 
+  const initialValues = {
+    id: '',
+    gift: 100,
+    limit: 1,
+    description: ''
+  }
+
   return (
     <Form
-      initial={{
-        id: undefined,
-        gift: 100,
-        limit: 1,
-        description: undefined
-      }}
+      initial={initialValues}
       schema={inviteSchema}
       onSubmit={async ({ id, gift, limit, description }, { resetForm }) => {
         const { error } = await createInvite({
@@ -60,7 +62,7 @@ function InviteForm () {
           }
         })
         if (error) throw error
-        resetForm()
+        resetForm({ values: initialValues })
       }}
     >
       <Input
@@ -80,7 +82,7 @@ function InviteForm () {
               prepend={<InputGroup.Text className='text-muted'>{`${process.env.NEXT_PUBLIC_URL}/invites/`}</InputGroup.Text>}
               label={<>invite code <small className='text-muted ms-2'>optional</small></>}
               name='id'
-              autocomplete='off'
+              autoComplete='off'
             />
             <Input
               label={
@@ -95,9 +97,9 @@ function InviteForm () {
                     </Info>
                   </div>
                 </>
-}
+              }
               name='description'
-              autocomplete='off'
+              autoComplete='off'
             />
           </>
       }

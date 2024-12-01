@@ -20,6 +20,7 @@ export default function Invite ({ invite, active }) {
     <div
       className={styles.invite}
     >
+      {invite.description && <small className='text-muted'>{invite.description}</small>}
       <CopyInput
         groupClassName='mb-1'
         size='sm' type='text'

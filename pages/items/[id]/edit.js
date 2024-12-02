@@ -12,6 +12,7 @@ import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import { FeeButtonProvider } from '@/components/fee-button'
 import SubSelect from '@/components/sub-select'
+import useCanEdit from '@/components/use-can-edit'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM,
@@ -26,7 +27,7 @@ export default function PostEdit ({ ssrData }) {
   const { item } = data || ssrData
   const [sub, setSub] = useState(item.subName)
 
-  const editThreshold = new Date(item?.invoice?.confirmedAt ?? item.createdAt).getTime() + 10 * 60000
+  const [,, editThreshold] = useCanEdit(item)
 
   let FormType = DiscussionForm
   let itemType = 'DISCUSSION'

@@ -166,11 +166,10 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
   }
 
   if (provider === 'youtube') {
-    const videoId = id ?? meta?.videoId
     return (
       <div className={classNames(styles.videoWrapper, className)}>
         <YouTube
-          videoId={videoId} className={styles.videoContainer} opts={{
+          videoId={id} className={styles.videoContainer} opts={{
             playerVars: {
               start: meta?.start || 0
             }

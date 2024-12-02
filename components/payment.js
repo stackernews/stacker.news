@@ -37,18 +37,14 @@ export const useInvoice = () => {
     return { invoice: data.invoice, check: that(data.invoice) }
   }, [client])
 
-  const cancel = useCallback(async ({ hash, hmac }) => {
-    if (!hash || !hmac) {
-      throw new Error('missing hash or hmac')
-    }
-
-    console.log('canceling invoice:', hash)
-    const { data } = await cancelInvoice({ variables: { hash, hmac } })
+  const cancel = useCallback(async ({ id, hash, hmac }) => {
+    console.log('canceling invoice:', id || hash)
+    const { data } = await cancelInvoice({ variables: { id, hash, hmac } })
     return data.cancelInvoice
   }, [cancelInvoice])
 
-  const retry = useCallback(async ({ id, hash, hmac }, { update }) => {
-    console.log('retrying invoice:', hash)
+  const retry = useCallback(async ({ id, hash, hmac }, { update } = {}) => {
+    console.log('retrying invoice:', id || hash)
     const { data, error } = await retryPaidAction({ variables: { invoiceId: Number(id) }, update })
     if (error) throw error
 
@@ -70,30 +66,38 @@ export const useQrPayment = () => {
       keepOpen = true,
       cancelOnClose = true,
       persistOnNavigate = false,
-      waitFor = inv => inv?.satsReceived > 0
+      waitFor = inv => inv?.satsReceived > 0,
+      retry = false
     } = {}
   ) => {
+    let qrInv = inv
+
+    if (retry) {
+      await invoice.cancel(inv)
+      qrInv = await invoice.retry(inv)
+    }
+
     return await new Promise((resolve, reject) => {
       let paid
       const cancelAndReject = async (onClose) => {
         if (!paid && cancelOnClose) {
-          const updatedInv = await invoice.cancel(inv).catch(console.error)
+          const updatedInv = await invoice.cancel(qrInv).catch(console.error)
           reject(new InvoiceCanceledError(updatedInv))
         }
-        resolve(inv)
+        resolve(qrInv)
       }
       showModal(onClose =>
         <Invoice
-          id={inv.id}
+          id={qrInv.id}
           modal
           description
           status='loading'
           successVerb='received'
           walletError={walletError}
           waitFor={waitFor}
-          onExpired={inv => reject(new InvoiceExpiredError(inv))}
-          onCanceled={inv => { onClose(); reject(new InvoiceCanceledError(inv, inv?.actionError)) }}
-          onPayment={(inv) => { paid = true; onClose(); resolve(inv) }}
+          onExpired={expiredInv => reject(new InvoiceExpiredError(expiredInv))}
+          onCanceled={canceledInv => { onClose(); reject(new InvoiceCanceledError(canceledInv, canceledInv?.actionError)) }}
+          onPayment={(paidInv) => { paid = true; onClose(); resolve(paidInv) }}
           poll
         />,
       { keepOpen, persistOnNavigate, onClose: cancelAndReject })

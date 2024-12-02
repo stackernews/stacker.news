@@ -300,7 +300,7 @@ function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
         >pending
         </span>
       )
-      onClick = () => waitForQrPayment({ id: item.invoice?.id }, null, { cancelOnClose: false }).catch(console.error)
+      onClick = () => waitForQrPayment({ id: item.invoice?.id }, null, { cancelOnClose: false, retry: true }).catch(console.error)
     }
   } else {
     return null

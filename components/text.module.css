@@ -433,3 +433,41 @@
     border-radius: 13px;
     overflow: hidden;
 }
+
+/* Details/Summary styling */
+.details {
+    border: 1px solid var(--theme-quoteBar);
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin: calc(var(--grid-gap) * 0.5) 0;
+    background: var(--bs-body-bg);
+    transition: all 0.2s ease;
+}
+
+.details[open] {
+    background: color-mix(in srgb, var(--bs-body-bg) 97%, white);
+}
+
+.summary {
+    cursor: pointer;
+    user-select: none;
+    padding: 0.25rem 0;
+    margin: -0.25rem 0;
+    color: var(--bs-info);
+    font-weight: 500;
+}
+
+.summary:hover {
+    color: color-mix(in srgb, var(--bs-info) 85%, white);
+}
+
+.summary::marker,
+.summary::-webkit-details-marker {
+    color: var(--bs-info);
+}
+
+.details[open] > .summary {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--theme-quoteBar);
+}

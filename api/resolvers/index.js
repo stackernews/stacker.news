@@ -20,7 +20,6 @@ import { GraphQLScalarType, Kind } from 'graphql'
 import { createIntScalar } from 'graphql-scalar'
 import paidAction from './paidAction'
 import vault from './vault'
-import embed from './embed'
 
 const date = new GraphQLScalarType({
   name: 'Date',
@@ -57,4 +56,4 @@ const limit = createIntScalar({
 
 export default [user, item, message, wallet, lnurl, notifications, invite, sub,
   upload, search, growth, rewards, referrals, price, admin, blockHeight, chainFee,
-  { JSONObject }, { Date: date }, { Limit: limit }, paidAction, vault, embed]
+  { JSONObject }, { Date: date }, { Limit: limit }, paidAction, vault]

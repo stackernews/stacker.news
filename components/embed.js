@@ -5,8 +5,6 @@ import styles from './text.module.css'
 import { Button } from 'react-bootstrap'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
-import { useLazyQuery } from '@apollo/client'
-import gql from 'graphql-tag'
 
 function TweetSkeleton ({ className }) {
   return (

@@ -300,6 +300,8 @@ function typeClause (type) {
       return ['"Item".bio = true', '"Item"."parentId" IS NULL']
     case 'bounties':
       return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL']
+    case 'bounties_active':
+      return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL', '"Item"."bountyPaidTo" IS NULL']
     case 'comments':
       return '"Item"."parentId" IS NOT NULL'
     case 'freebies':
@@ -423,6 +425,7 @@ export default {
                 subClause(sub, 5, subClauseTable(type), me, showNsfw),
                 typeClause(type),
                 whenClause(when, 'Item'),
+                activeOrMine(me),
                 await filterClause(me, models, type),
                 by === 'boost' && '"Item".boost > 0',
                 muteClause(me))}

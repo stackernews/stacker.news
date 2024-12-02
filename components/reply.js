@@ -113,7 +113,7 @@ export default forwardRef(function Reply ({
       }
     },
     onSuccessfulSubmit: (data, { resetForm }) => {
-      resetForm({ text: '' })
+      resetForm({ values: { text: '' } })
       setReply(replyOpen || false)
     },
     navigateOnSubmit: false

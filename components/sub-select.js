@@ -1,10 +1,11 @@
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { Select } from './form'
 import { EXTRA_LONG_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { SUBS } from '@/fragments/subs'
 import { useQuery } from '@apollo/client'
-import { useEffect, useState } from 'react'
 import styles from './sub-select.module.css'
+import { useMe } from './me'
 
 export function SubSelectInitial ({ sub }) {
   const router = useRouter()
@@ -20,19 +21,27 @@ const DEFAULT_APPEND_SUBS = []
 const DEFAULT_FILTER_SUBS = () => true
 
 export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs = DEFAULT_FILTER_SUBS, appendSubs = DEFAULT_APPEND_SUBS }) {
-  const { data } = useQuery(SUBS, SSR
+  const { data, refetch } = useQuery(SUBS, SSR
     ? {}
     : {
         pollInterval: EXTRA_LONG_POLL_INTERVAL,
         nextFetchPolicy: 'cache-and-network'
       })
 
+  const { me } = useMe()
+
+  useEffect(() => {
+    refetch()
+  }, [me?.privates?.nsfwMode])
+
   const [subs, setSubs] = useState([
     ...prependSubs.filter(s => s !== sub),
     ...(sub ? [sub] : []),
     ...appendSubs.filter(s => s !== sub)])
+
   useEffect(() => {
     if (!data) return
+
     const joined = data.subs.filter(filterSubs).filter(s => !s.meMuteSub).map(s => s.name)
     const muted = data.subs.filter(filterSubs).filter(s => s.meMuteSub).map(s => s.name)
     const mutedSection = muted.length ? [{ label: 'muted', items: muted }] : []

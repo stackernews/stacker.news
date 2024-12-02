@@ -3,7 +3,7 @@ import './loadenv'
 import PgBoss from 'pg-boss'
 import createPrisma from '@/lib/create-prisma'
 import {
-  autoDropBolt11s, checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
+  checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
   checkWithdrawal,
   finalizeHodlInvoice, subscribeToWallet
 } from './wallet'
@@ -36,6 +36,8 @@ import { isServiceEnabled } from '@/lib/sndev'
 import { payWeeklyPostBounty, weeklyPost } from './weeklyPosts'
 import { expireBoost } from './expireBoost'
 import { fetchEmbedMeta } from './fetchEmbedMeta'
+import { payingActionConfirmed, payingActionFailed } from './payingAction'
+import { autoDropBolt11s } from './autoDropBolt11'
 
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)
@@ -103,6 +105,9 @@ async function work () {
     await boss.work('paidActionCanceling', jobWrapper(paidActionCanceling))
     await boss.work('paidActionFailed', jobWrapper(paidActionFailed))
     await boss.work('paidActionPaid', jobWrapper(paidActionPaid))
+    // payingAction jobs
+    await boss.work('payingActionFailed', jobWrapper(payingActionFailed))
+    await boss.work('payingActionConfirmed', jobWrapper(payingActionConfirmed))
   }
   if (isServiceEnabled('search')) {
     await boss.work('indexItem', jobWrapper(indexItem))

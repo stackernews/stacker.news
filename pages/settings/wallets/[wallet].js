@@ -19,6 +19,7 @@ import validateWallet from '@/wallets/validate'
 import { ValidationError } from 'yup'
 import { useFormikContext } from 'formik'
 import { useWalletImage } from '@/components/wallet-image'
+import styles from '@/styles/wallet.module.css'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -72,7 +73,7 @@ export default function WalletSettings () {
   return (
     <CenterLayout>
       {image
-        ? <img {...image} className='pb-3 px-2 mw-100' />
+        ? <img {...image} className={styles.walletBanner} />
         : <h2 className='pb-2'>{wallet.def.card.title}</h2>}
       <h6 className='text-muted text-center pb-3'><Text>{wallet.def.card.subtitle}</Text></h6>
       <Form

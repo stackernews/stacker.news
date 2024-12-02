@@ -12,6 +12,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
+import SubPopover from './sub-popover'
 import UserPopover from './user-popover'
 import ItemPopover from './item-popover'
 import classNames from 'classnames'
@@ -189,8 +190,12 @@ function Mention ({ children, node, href, name, id }) {
   )
 }
 
-function Sub ({ children, node, href, ...props }) {
-  return <Link href={href}>{children}</Link>
+function Sub ({ children, node, href, name, ...props }) {
+  return (
+    <SubPopover sub={name}>
+      <Link href={href}>{children}</Link>
+    </SubPopover>
+  )
 }
 
 function Item ({ children, node, href, id }) {

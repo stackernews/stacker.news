@@ -159,7 +159,8 @@ export default function Settings ({ ssrData }) {
             diagnostics: settings?.diagnostics,
             hideIsContributor: settings?.hideIsContributor,
             noReferralLinks: settings?.noReferralLinks,
-            proxyReceive: settings?.proxyReceive
+            proxyReceive: settings?.proxyReceive,
+            directReceive: settings?.directReceive
           }}
           schema={settingsSchema}
           onSubmit={async ({
@@ -339,7 +340,7 @@ export default function Settings ({ ssrData }) {
               <div className='d-flex align-items-center'>proxy deposits to attached wallets
                 <Info>
                   <ul>
-                    <li>Forward deposits directly to your attached wallets if they will cause your balance to exceed your auto-withdraw threshold</li>
+                    <li>Forward deposits directly to your attached wallets if they cause your balance to exceed your auto-withdraw threshold</li>
                     <li>Payments will be wrapped by the SN node to preserve your wallet's privacy</li>
                     <li>This will incur in a 10% fee</li>
                   </ul>
@@ -347,6 +348,22 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='proxyReceive'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>directly deposit to attached wallets
+                <Info>
+                  <ul>
+                    <li>Directly deposit to your attached wallets if they cause your balance to exceed your auto-withdraw threshold</li>
+                    <li>Senders will be able to see your wallet's lightning node public key</li>
+                    <li>If 'proxy deposits' is also checked, it will take precedence and direct deposits will only be used as a fallback</li>
+                    <li>Because we can't determine if a payment succeeds, you won't be notified about direct deposits</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='directReceive'
             groupClassName='mb-0'
           />
           <Checkbox

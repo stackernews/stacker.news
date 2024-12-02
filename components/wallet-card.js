@@ -25,12 +25,10 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       onDragEnter={onDragEnter}
       onDragEnd={onDragEnd}
     >
-      <div className={styles.cardMeta}>
-        <div className={styles.indicators}>
-          {status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
-          {support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(status.recv)}`} />}
-          {support.send && <SendIcon className={`${styles.indicator} ${statusToClass(status.send)}`} />}
-        </div>
+      <div className={styles.indicators}>
+        {status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
+        {support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(status.recv)}`} />}
+        {support.send && <SendIcon className={`${styles.indicator} ${statusToClass(status.send)}`} />}
       </div>
       <Card.Body
         // we attach touch listener only to card body to not interfere with wallet link
@@ -42,8 +40,8 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       >
         <div className='d-flex text-center align-items-center h-100'>
           {image
-            ? <img width='100%' {...image} />
-            : <Card.Title className='w-100 justify-content-center align-items-center'>{wallet.def.card.title}</Card.Title>}
+            ? <img className={styles.walletLogo} {...image} />
+            : <Card.Title className={styles.walletLogo}>{wallet.def.card.title}</Card.Title>}
         </div>
       </Card.Body>
       <Link href={`/settings/wallets/${wallet.def.name}`}>

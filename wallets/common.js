@@ -27,6 +27,10 @@ export function getStorageKey (name, userId) {
   return storageKey
 }
 
+export function walletTag (walletDef) {
+  return walletDef.shortName || walletDef.name
+}
+
 export function walletPrioritySort (w1, w2) {
   // enabled/configured wallets always come before disabled/unconfigured wallets
   if ((w1.config?.enabled && !w2.config?.enabled) || (isConfigured(w1) && !isConfigured(w2))) {

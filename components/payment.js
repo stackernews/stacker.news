@@ -67,7 +67,7 @@ export const useQrPayment = () => {
       cancelOnClose = true,
       persistOnNavigate = false,
       waitFor = inv => inv?.satsReceived > 0,
-      retry = false
+      retry = true
     } = {}
   ) => {
     let qrInv = inv

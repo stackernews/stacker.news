@@ -131,10 +131,15 @@ export function createHmac (hash) {
 }
 
 export function verifyHmac (hash, hmac) {
+  if (!hmac) {
+    throw new GqlInputError('hmac required')
+  }
+
   const hmac2 = createHmac(hash)
   if (!timingSafeEqual(Buffer.from(hmac), Buffer.from(hmac2))) {
     throw new GqlAuthorizationError('bad hmac')
   }
+
   return true
 }
 
@@ -479,10 +484,24 @@ const resolvers = {
     },
     createWithdrawl: createWithdrawal,
     sendToLnAddr,
-    cancelInvoice: async (parent, { hash, hmac }, { models, lnd, boss }) => {
-      verifyHmac(hash, hmac)
-      await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
-      return await models.invoice.findFirst({ where: { hash } })
+    cancelInvoice: async (parent, { id, hash, hmac }, { me, models, lnd, boss }) => {
+      if (!id && !hash) {
+        throw new GqlInputError('id or hash required')
+      }
+
+      const inv = await models.invoice.findFirst({
+        where: id
+          ? { id: Number(id) }
+          : { hash }
+      })
+
+      // owners can always cancel their own invoices, anons can only cancel with valid hmac
+      if (!me || inv.userId !== me.id) {
+        verifyHmac(inv.hash, hmac)
+      }
+
+      await finalizeHodlInvoice({ data: { hash: inv.hash }, lnd, models, boss })
+      return await models.invoice.findFirst({ where: { id: inv.id } })
     },
     dropBolt11: async (parent, { hash }, { me, models, lnd }) => {
       if (!me) {

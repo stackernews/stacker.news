@@ -14,6 +14,7 @@ import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
 import * as cookie from 'cookie'
+import { multiAuthMiddleware } from '@/pages/api/graphql'
 
 /**
  * Stores userIds in user table
@@ -97,6 +98,8 @@ function getCallbacks (req, res) {
         const secret = process.env.NEXTAUTH_SECRET
         const jwt = await encodeJWT({ token, secret })
         const me = await prisma.user.findUnique({ where: { id: token.id } })
+        // we set multi_auth cookies on login/signup with only one user so the rest of the code doesn't
+        // have to consider the case where they aren't set yet because account switching wasn't used yet
         setMultiAuthCookies(req, res, { ...me, jwt })
       }
 
@@ -130,6 +133,9 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
   // add JWT to **httpOnly** cookie
   res.appendHeader('Set-Cookie', cookie.serialize(`multi_auth.${id}`, jwt, cookieOptions))
 
+  // switch to user we just added
+  res.appendHeader('Set-Cookie', cookie.serialize('multi_auth.user-id', id, { ...cookieOptions, httpOnly: false }))
+
   let newMultiAuth = [{ id, name, photoId }]
   if (req.cookies.multi_auth) {
     const oldMultiAuth = b64Decode(req.cookies.multi_auth)
@@ -138,9 +144,6 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
     newMultiAuth = [...oldMultiAuth, ...newMultiAuth]
   }
   res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', b64Encode(newMultiAuth), { ...cookieOptions, httpOnly: false }))
-
-  // switch to user we just added
-  res.appendHeader('Set-Cookie', cookie.serialize('multi_auth.user-id', id, { ...cookieOptions, httpOnly: false }))
 }
 
 async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
@@ -163,6 +166,7 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
       let user = await prisma.user.findUnique({ where: { [pubkeyColumnName]: pubkey } })
 
       // get token if it exists
+      req = multiAuthMiddleware(req)
       const token = await getToken({ req })
       if (!user) {
         // we have not seen this pubkey before

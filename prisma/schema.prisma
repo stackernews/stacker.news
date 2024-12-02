@@ -140,6 +140,10 @@ model User {
   vaultKeyHash              String               @default("")
   walletsUpdatedAt          DateTime?
   vaultEntries              VaultEntry[]         @relation("VaultEntries")
+  proxyReceive              Boolean              @default(false)
+  directReceive             Boolean              @default(false)
+  DirectPaymentReceived     DirectPayment[]      @relation("DirectPaymentReceived")
+  DirectPaymentSent         DirectPayment[]      @relation("DirectPaymentSent")
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -216,6 +220,7 @@ model Wallet {
   vaultEntries   VaultEntry[]     @relation("VaultEntries")
   withdrawals    Withdrawl[]
   InvoiceForward InvoiceForward[]
+  DirectPayment  DirectPayment[]
 
   @@index([userId])
   @@index([priority])
@@ -288,7 +293,7 @@ model WalletLNbits {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
   url        String
-  invoiceKey String
+  invoiceKey String?
 }
 
 model WalletNWC {
@@ -297,7 +302,7 @@ model WalletNWC {
   wallet     Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
-  nwcUrlRecv String
+  nwcUrlRecv String?
 }
 
 model WalletBlink {
@@ -306,7 +311,7 @@ model WalletBlink {
   wallet       Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
-  apiKeyRecv   String
+  apiKeyRecv   String?
   currencyRecv String?
 }
 
@@ -317,7 +322,7 @@ model WalletPhoenixd {
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
   url               String
-  secondaryPassword String
+  secondaryPassword String?
 }
 
 model Mute {
@@ -471,6 +476,8 @@ model Invite {
   revoked   Boolean  @default(false)
   user      User     @relation("Invites", fields: [userId], references: [id], onDelete: Cascade)
   invitees  User[]
+
+  description String?
 
   @@index([createdAt], map: "Invite.created_at_index")
   @@index([userId], map: "Invite.userId_index")
@@ -864,6 +871,7 @@ enum InvoiceActionType {
   TERRITORY_UPDATE
   TERRITORY_BILLING
   TERRITORY_UNARCHIVE
+  RECEIVE
 }
 
 enum InvoiceActionState {
@@ -907,6 +915,7 @@ model Invoice {
   confirmedAt    DateTime?
   confirmedIndex BigInt?
   cancelled      Boolean         @default(false)
+  cancelledAt    DateTime?
   msatsRequested BigInt
   msatsReceived  BigInt?
   desc           String?
@@ -937,6 +946,29 @@ model Invoice {
   @@index([actionState])
 }
 
+model DirectPayment {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+  senderId   Int?
+  receiverId Int?
+  preimage   String?  @unique
+  bolt11     String?
+  hash       String?  @unique
+  desc       String?
+  comment    String?
+  lud18Data  Json?
+  msats      BigInt
+  walletId   Int?
+  sender     User?    @relation("DirectPaymentSent", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User?    @relation("DirectPaymentReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+  wallet     Wallet?  @relation(fields: [walletId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([senderId])
+  @@index([receiverId])
+}
+
 model InvoiceForward {
   id          Int      @id @default(autoincrement())
   createdAt   DateTime @default(now()) @map("created_at")
@@ -951,7 +983,7 @@ model InvoiceForward {
 
   // we get these values when the outgoing invoice is settled
   invoiceId   Int  @unique
-  withdrawlId Int?
+  withdrawlId Int? @unique
 
   invoice   Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   wallet    Wallet     @relation(fields: [walletId], references: [id], onDelete: Cascade)
@@ -979,7 +1011,7 @@ model Withdrawl {
   walletId       Int?
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   wallet         Wallet?          @relation(fields: [walletId], references: [id], onDelete: SetNull)
-  invoiceForward InvoiceForward[]
+  invoiceForward InvoiceForward?
 
   @@index([createdAt], map: "Withdrawl.created_at_index")
   @@index([userId], map: "Withdrawl.userId_index")

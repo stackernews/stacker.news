@@ -421,8 +421,16 @@ export default {
             confirmedAt: {
               gt: lastChecked
             },
-            isHeld: null,
-            actionType: null
+            OR: [
+              {
+                isHeld: null,
+                actionType: null
+              },
+              {
+                actionType: 'RECEIVE',
+                actionState: 'PAID'
+              }
+            ]
           }
         })
         if (invoice) {
@@ -432,13 +440,37 @@ export default {
       }
 
       if (user.noteWithdrawals) {
+        const p2pZap = await models.invoice.findFirst({
+          where: {
+            confirmedAt: {
+              gt: lastChecked
+            },
+            invoiceForward: {
+              withdrawl: {
+                userId: me.id,
+                status: 'CONFIRMED',
+                updatedAt: {
+                  gt: lastChecked
+                }
+              }
+            }
+          }
+        })
+        if (p2pZap) {
+          foundNotes()
+          return true
+        }
         const wdrwl = await models.withdrawl.findFirst({
           where: {
             userId: me.id,
             status: 'CONFIRMED',
+            hash: {
+              not: null
+            },
             updatedAt: {
               gt: lastChecked
-            }
+            },
+            invoiceForward: { is: null }
           }
         })
         if (wdrwl) {
@@ -922,7 +954,8 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },
@@ -939,7 +972,8 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },
@@ -956,7 +990,8 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },

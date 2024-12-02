@@ -36,9 +36,9 @@ export default (req, res) => {
   cookies.push(cookie.serialize(`multi_auth.${userId}`, '', { ...cookieOptions, expires: 0, maxAge: 0 }))
 
   // update multi_auth cookie and check if there are more accounts available
-  const oldMultiAuth = b64Decode(req.cookies.multi_auth)
-  const newMultiAuth = oldMultiAuth.filter(({ id }) => id !== Number(userId))
-  if (newMultiAuth.length === 0) {
+  const oldMultiAuth = req.cookies.multi_auth ? b64Decode(req.cookies.multi_auth) : undefined
+  const newMultiAuth = oldMultiAuth?.filter(({ id }) => id !== Number(userId))
+  if (!oldMultiAuth || newMultiAuth?.length === 0) {
     // no next account available. cleanup: remove multi_auth + pointer cookie
     cookies.push(cookie.serialize('multi_auth', '', { ...cookieOptions, httpOnly: false, expires: 0, maxAge: 0 }))
     cookies.push(cookie.serialize('multi_auth.user-id', '', { ...cookieOptions, httpOnly: false, expires: 0, maxAge: 0 }))

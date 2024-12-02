@@ -1,18 +1,16 @@
 import LogMessage from './log-message'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from '@/styles/log.module.css'
 import { Button } from 'react-bootstrap'
 import { useToast } from './toast'
 import { useShowModal } from './modal'
 import { WALLET_LOGS } from '@/fragments/wallet'
-import { getWalletByType } from '@/wallets/common'
+import { getWalletByType, walletTag } from '@/wallets/common'
 import { gql, useLazyQuery, useMutation } from '@apollo/client'
 import { useMe } from './me'
 import useIndexedDB, { getDbName } from './use-indexeddb'
 import { SSR } from '@/lib/constants'
-import useInterval from './use-interval'
-import { decode as bolt11Decode } from 'bolt11'
-import { formatMsats } from '@/lib/format'
+import { useRouter } from 'next/router'
 
 export function WalletLogs ({ wallet, embedded }) {
   const { logs, setLogs, hasMore, loadMore, loading } = useWalletLogs(wallet)
@@ -61,7 +59,7 @@ export function WalletLogs ({ wallet, embedded }) {
 }
 
 function DeleteWalletLogsObstacle ({ wallet, setLogs, onClose }) {
-  const { deleteLogs } = useWalletLogger(wallet, setLogs)
+  const { deleteLogs } = useWalletLogManager(setLogs)
   const toaster = useToast()
 
   const prompt = `Do you really want to delete all ${wallet ? '' : 'wallet'} logs ${wallet ? 'of this wallet' : ''}?`
@@ -110,11 +108,11 @@ function useWalletLogDB () {
   return { add, getPage, clear, error, notSupported }
 }
 
-export function useWalletLogger (wallet, setLogs) {
+export function useWalletLogManager (setLogs) {
   const { add, clear, notSupported } = useWalletLogDB()
 
   const appendLog = useCallback(async (wallet, level, message, context) => {
-    const log = { wallet: tag(wallet), level, message, ts: +new Date(), context }
+    const log = { wallet: walletTag(wallet.def), level, message, ts: +new Date(), context }
     try {
       if (notSupported) {
         console.log('cannot persist wallet log: indexeddb not supported')
@@ -146,53 +144,20 @@ export function useWalletLogger (wallet, setLogs) {
     }
     if (!wallet || wallet.sendPayment) {
       try {
-        const walletTag = wallet ? tag(wallet) : null
+        const tag = wallet ? walletTag(wallet.def) : null
         if (notSupported) {
           console.log('cannot clear wallet logs: indexeddb not supported')
         } else {
-          await clear('wallet_ts', walletTag ? window.IDBKeyRange.bound([walletTag, 0], [walletTag, Infinity]) : null)
+          await clear('wallet_ts', tag ? window.IDBKeyRange.bound([tag, 0], [tag, Infinity]) : null)
         }
-        setLogs?.(logs => logs.filter(l => wallet ? l.wallet !== tag(wallet) : false))
+        setLogs?.(logs => logs.filter(l => wallet ? l.wallet !== tag : false))
       } catch (e) {
         console.error('failed to delete logs', e)
       }
     }
   }, [clear, deleteServerWalletLogs, setLogs, notSupported])
 
-  const log = useCallback(level => (message, context = {}) => {
-    if (!wallet) {
-      // console.error('cannot log: no wallet set')
-      return
-    }
-
-    if (context?.bolt11) {
-      // automatically populate context from bolt11 to avoid duplicating this code
-      const decoded = bolt11Decode(context.bolt11)
-      context = {
-        ...context,
-        amount: formatMsats(Number(decoded.millisatoshis)),
-        payment_hash: decoded.tagsObject.payment_hash,
-        description: decoded.tagsObject.description,
-        created_at: new Date(decoded.timestamp * 1000).toISOString(),
-        expires_at: new Date(decoded.timeExpireDate * 1000).toISOString()
-      }
-    }
-
-    appendLog(wallet, level, message, context)
-    console[level !== 'error' ? 'info' : 'error'](`[${tag(wallet)}]`, message)
-  }, [appendLog, wallet])
-
-  const logger = useMemo(() => ({
-    ok: (message, context) => log('ok')(message, context),
-    info: (message, context) => log('info')(message, context),
-    error: (message, context) => log('error')(message, context)
-  }), [log])
-
-  return { logger, deleteLogs }
-}
-
-function tag (walletDef) {
-  return walletDef.shortName || walletDef.name
+  return { appendLog, deleteLogs }
 }
 
 export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
@@ -201,6 +166,9 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
   const [hasMore, setHasMore] = useState(true)
   const [cursor, setCursor] = useState(null)
   const [loading, setLoading] = useState(true)
+  const latestTimestamp = useRef()
+  const { me } = useMe()
+  const router = useRouter()
 
   const { getPage, error, notSupported } = useWalletLogDB()
   const [getWalletLogs] = useLazyQuery(WALLET_LOGS, SSR ? {} : { fetchPolicy: 'cache-and-network' })
@@ -211,6 +179,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     const newLogs = typeof action === 'function' ? action(logs) : action
     // make sure 'more' button is removed if logs were deleted
     if (newLogs.length === 0) setHasMore(false)
+    latestTimestamp.current = newLogs[0]?.ts
   }, [logs, _setLogs, setHasMore])
 
   const loadLogsPage = useCallback(async (page, pageSize, walletDef, variables = {}) => {
@@ -220,7 +189,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
         console.log('cannot get client wallet logs: indexeddb not supported')
       } else {
         const indexName = walletDef ? 'wallet_ts' : 'ts'
-        const query = walletDef ? window.IDBKeyRange.bound([tag(walletDef), -Infinity], [tag(walletDef), Infinity]) : null
+        const query = walletDef ? window.IDBKeyRange.bound([walletTag(walletDef), -Infinity], [walletTag(walletDef), Infinity]) : null
 
         result = await getPage(page, pageSize, indexName, query, 'prev')
         // if given wallet has no walletType it means logs are only stored in local IDB
@@ -265,7 +234,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
 
       const newLogs = data.walletLogs.entries.map(({ createdAt, wallet: walletType, ...log }) => ({
         ts: +new Date(createdAt),
-        wallet: tag(getWalletByType(walletType)),
+        wallet: walletTag(getWalletByType(walletType)),
         ...log
       }))
       const combinedLogs = uniqueSort([...result.data, ...newLogs])
@@ -290,7 +259,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     if (hasMore) {
       setLoading(true)
       const result = await loadLogsPage(page + 1, logsPerPage, wallet?.def)
-      _setLogs(prevLogs => [...prevLogs, ...result.data])
+      _setLogs(prevLogs => uniqueSort([...prevLogs, ...result.data]))
       setHasMore(result.hasMore)
       setPage(prevPage => prevPage + 1)
       setLoading(false)
@@ -298,21 +267,38 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
   }, [loadLogsPage, page, logsPerPage, wallet?.def, hasMore])
 
   const loadNew = useCallback(async () => {
-    const newestTs = logs[0]?.ts
-    const variables = { from: newestTs?.toString(), to: null }
+    const latestTs = latestTimestamp.current
+    const variables = { from: latestTs?.toString(), to: null }
     const result = await loadLogsPage(1, logsPerPage, wallet?.def, variables)
     setLoading(false)
     _setLogs(prevLogs => uniqueSort([...result.data, ...prevLogs]))
-    if (!newestTs) {
+    if (!latestTs) {
       // we only want to update the more button if we didn't fetch new logs since it is about old logs.
       // we didn't fetch new logs if this is our first fetch (no newest timestamp available)
       setHasMore(result.hasMore)
     }
-  }, [logs, wallet?.def, loadLogsPage])
+  }, [wallet?.def, loadLogsPage])
 
-  useInterval(() => {
-    loadNew().catch(console.error)
-  }, 1_000, [loadNew])
+  useEffect(() => {
+    // only fetch new logs if we are on a page that uses logs
+    const needLogs = router.asPath.startsWith('/settings/wallets') || router.asPath.startsWith('/wallet/logs')
+    if (!me || !needLogs) return
+
+    let timeout
+    let stop = false
+
+    const poll = async () => {
+      await loadNew().catch(console.error)
+      if (!stop) timeout = setTimeout(poll, 1_000)
+    }
+
+    timeout = setTimeout(poll, 1_000)
+
+    return () => {
+      stop = true
+      clearTimeout(timeout)
+    }
+  }, [me?.id, router.pathname, loadNew])
 
   return { logs, hasMore: !loading && hasMore, loadMore, setLogs, loading }
 }

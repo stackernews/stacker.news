@@ -23,13 +23,13 @@ A _server.js_ file is only required for wallets that support receiving by exposi
 > Every wallet must have a client.js file (even if it does not support paying invoices) because every wallet is imported on the client. This is not the case on the server. On the client, wallets are imported via
 >
 > ```js
-> import wallet from 'wallets/<name>/client'
+> import wallet from '@/wallets/<name>/client'
 > ```
 >
 > vs
 >
 > ```js
-> import wallet from 'wallets/<name>/server'
+> import wallet from '@/wallets/<name>/server'
 > ```
 >
 > on the server.
@@ -37,7 +37,7 @@ A _server.js_ file is only required for wallets that support receiving by exposi
 > To have access to the properties that can be shared between client and server, server.js and client.js always reexport everything in index.js with a line like this:
 >
 > ```js
-> export * from 'wallets/<name>'
+> export * from '@/wallets/<name>'
 > ```
 >
 > If a wallet does not support paying invoices, this is all that client.js of this wallet does. The reason for this structure is to make sure the client does not import dependencies that can only be imported on the server and would thus break the build.
@@ -152,9 +152,9 @@ The card title.
 
 The subtitle that is shown below the title if you enter the configuration form of a wallet.
 
-- `badges: string[]`
+- `image: { src: string, ... }`
 
-The badges that are shown inside the card.
+The image props that will be used to show an image inside the card. Should contain at least the `src` property.
 
 ### client.js
 
@@ -181,7 +181,7 @@ The first argument is the [BOLT11 payment request](https://github.com/lightning/
 >
 > ```js
 > // wallets/<wallet>/client.js
-> export * from 'wallets/<name>'
+> export * from '@/wallets/<name>'
 > ```
 >
 > where `<name>` is the wallet directory name.
@@ -191,13 +191,13 @@ The first argument is the [BOLT11 payment request](https://github.com/lightning/
 >
 > ```diff
 > // wallets/client.js
-> import * as nwc from 'wallets/nwc/client'
-> import * as lnbits from 'wallets/lnbits/client'
-> import * as lnc from 'wallets/lnc/client'
-> import * as lnAddr from 'wallets/lightning-address/client'
-> import * as cln from 'wallets/cln/client'
-> import * as lnd from 'wallets/lnd/client'
-> + import * as newWallet from 'wallets/<name>/client'
+> import * as nwc from '@/wallets/nwc/client'
+> import * as lnbits from '@/wallets/lnbits/client'
+> import * as lnc from '@/wallets/lnc/client'
+> import * as lnAddr from '@/wallets/lightning-address/client'
+> import * as cln from '@/wallets/cln/client'
+> import * as lnd from '@/wallets/lnd/client'
+> + import * as newWallet from '@/wallets/<name>/client'
 >
 > - export default [nwc, lnbits, lnc, lnAddr, cln, lnd]
 > + export default [nwc, lnbits, lnc, lnAddr, cln, lnd, newWallet]
@@ -225,7 +225,7 @@ Again, like `testSendPayment`, the first argument is the wallet configuration th
 >
 > ```js
 > // wallets/<wallet>/server.js
-> export * from 'wallets/<name>'
+> export * from '@/wallets/<name>'
 > ```
 >
 > where `<name>` is the wallet directory name.
@@ -235,10 +235,10 @@ Again, like `testSendPayment`, the first argument is the wallet configuration th
 >
 > ```diff
 > // wallets/server.js
-> import * as lnd from 'wallets/lnd/server'
-> import * as cln from 'wallets/cln/server'
-> import * as lnAddr from 'wallets/lightning-address/server'
-> + import * as newWallet from 'wallets/<name>/client'
+> import * as lnd from '@/wallets/lnd/server'
+> import * as cln from '@/wallets/cln/server'
+> import * as lnAddr from '@/wallets/lightning-address/server'
+> + import * as newWallet from '@/wallets/<name>/client'
 >
 > - export default [lnd, cln, lnAddr]
 > + export default [lnd, cln, lnAddr, newWallet]

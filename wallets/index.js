@@ -3,13 +3,10 @@ import { SET_WALLET_PRIORITY, WALLETS } from '@/fragments/wallet'
 import { SSR } from '@/lib/constants'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { getStorageKey, getWalletByType, Status, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally } from './common'
+import { getStorageKey, getWalletByType, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally } from './common'
 import useVault from '@/components/vault/use-vault'
-import { useWalletLogger } from '@/components/wallet-logger'
-import { decode as bolt11Decode } from 'bolt11'
-import walletDefs from 'wallets/client'
+import walletDefs from '@/wallets/client'
 import { generateMutation } from './graphql'
-import { formatSats } from '@/lib/format'
 
 const WalletsContext = createContext({
   wallets: []
@@ -45,7 +42,7 @@ function useLocalWallets () {
     // listen for changes to any wallet config in local storage
     // from any window with the same origin
     const handleStorage = (event) => {
-      if (event.key.startsWith(getStorageKey(''))) {
+      if (event.key?.startsWith(getStorageKey(''))) {
         loadWallets()
       }
     }
@@ -111,7 +108,10 @@ export function WalletsProvider ({ children }) {
     const merged = {}
     for (const wallet of [...walletDefsOnly, ...localWallets, ...serverWallets]) {
       merged[wallet.def.name] = {
-        def: wallet.def,
+        def: {
+          ...wallet.def,
+          requiresConfig: wallet.def.fields.length > 0
+        },
         config: {
           ...merged[wallet.def.name]?.config,
           ...Object.fromEntries(
@@ -125,10 +125,8 @@ export function WalletsProvider ({ children }) {
       }
     }
 
-    // sort by priority, then add status field
-    return Object.values(merged)
-      .sort(walletPrioritySort)
-      .map(w => ({ ...w, status: w.config?.enabled ? Status.Enabled : Status.Disabled }))
+    // sort by priority
+    return Object.values(merged).sort(walletPrioritySort)
   }, [serverWallets, localWallets])
 
   const settings = useMemo(() => {
@@ -217,34 +215,13 @@ export function useWallets () {
 
 export function useWallet (name) {
   const { wallets } = useWallets()
+  return wallets.find(w => w.def.name === name)
+}
 
-  const wallet = useMemo(() => {
-    if (name) {
-      return wallets.find(w => w.def.name === name)
-    }
-
-    // return the first enabled wallet that is available and can send
-    return wallets
-      .filter(w => !w.def.isAvailable || w.def.isAvailable())
-      .filter(w => w.config?.enabled && canSend(w))[0]
-  }, [wallets, name])
-
-  const { logger } = useWalletLogger(wallet?.def)
-
-  const sendPayment = useCallback(async (bolt11) => {
-    const decoded = bolt11Decode(bolt11)
-    logger.info(`↗ sending payment: ${formatSats(decoded.satoshis)}`, { bolt11 })
-    try {
-      const preimage = await wallet.def.sendPayment(bolt11, wallet.config, { logger })
-      logger.ok(`↗ payment sent: ${formatSats(decoded.satoshis)}`, { bolt11, preimage })
-    } catch (err) {
-      const message = err.message || err.toString?.()
-      logger.error(`payment failed: ${message}`, { bolt11 })
-      throw err
-    }
-  }, [wallet, logger])
-
-  if (!wallet) return null
-
-  return { ...wallet, sendPayment }
+export function useSendWallets () {
+  const { wallets } = useWallets()
+  // return the first enabled wallet that is available and can send
+  return wallets
+    .filter(w => !w.def.isAvailable || w.def.isAvailable())
+    .filter(w => w.config?.enabled && canSend(w))
 }

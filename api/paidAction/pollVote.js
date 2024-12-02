@@ -1,8 +1,12 @@
+import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 
 export const anonable = false
-export const supportsPessimism = true
-export const supportsOptimism = true
+
+export const paymentMethods = [
+  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
+]
 
 export async function getCost ({ id }, { me, models }) {
   const pollOption = await models.pollOption.findUnique({

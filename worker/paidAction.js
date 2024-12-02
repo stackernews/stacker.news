@@ -1,24 +1,27 @@
-import { getPaymentFailureStatus, hodlInvoiceCltvDetails } from '@/api/lnd'
+import { getPaymentFailureStatus, hodlInvoiceCltvDetails, getPaymentOrNotSent } from '@/api/lnd'
 import { paidActions } from '@/api/paidAction'
 import { walletLogger } from '@/api/resolvers/wallet'
 import { LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
-import { formatMsats, formatSats, msatsToSats } from '@/lib/format'
+import { formatMsats, formatSats, msatsToSats, toPositiveNumber } from '@/lib/format'
 import { datePivot } from '@/lib/time'
-import { toPositiveNumber } from '@/lib/validate'
 import { Prisma } from '@prisma/client'
 import {
   cancelHodlInvoice,
-  getInvoice, getPayment, parsePaymentRequest,
+  getInvoice, parsePaymentRequest,
   payViaPaymentRequest, settleHodlInvoice
 } from 'ln-service'
-import { MIN_SETTLEMENT_CLTV_DELTA } from 'wallets/wrap'
+import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/wrap'
 
 // aggressive finalization retry options
 const FINALIZE_OPTIONS = { retryLimit: 2 ** 31 - 1, retryBackoff: false, retryDelay: 5, priority: 1000 }
 
-async function transitionInvoice (jobName, { invoiceId, fromState, toState, transition, invoice }, { models, lnd, boss }) {
+async function transitionInvoice (jobName,
+  { invoiceId, fromState, toState, transition, invoice, onUnexpectedError },
+  { models, lnd, boss }
+) {
   console.group(`${jobName}: transitioning invoice ${invoiceId} from ${fromState} to ${toState}`)
 
+  let dbInvoice
   try {
     const currentDbInvoice = await models.invoice.findUnique({ where: { id: invoiceId } })
     console.log('invoice is in state', currentDbInvoice.actionState)
@@ -47,7 +50,7 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
       }
 
       // grab optimistic concurrency lock and the invoice
-      const dbInvoice = await tx.invoice.update({
+      dbInvoice = await tx.invoice.update({
         include,
         where: {
           id: invoiceId,
@@ -100,6 +103,7 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
     }
 
     console.error('unexpected error', e)
+    onUnexpectedError?.({ error: e, dbInvoice, models, boss })
     await boss.send(
       jobName,
       { invoiceId },
@@ -109,30 +113,37 @@ async function transitionInvoice (jobName, { invoiceId, fromState, toState, tran
   }
 }
 
-async function performPessimisticAction ({ lndInvoice, dbInvoice, tx, models, lnd, boss }) {
-  try {
-    const args = { ...dbInvoice.actionArgs, invoiceId: dbInvoice.id }
-    const result = await paidActions[dbInvoice.actionType].perform(args,
-      { models, tx, lnd, cost: BigInt(lndInvoice.received_mtokens), me: dbInvoice.user })
-    await tx.invoice.update({
-      where: { id: dbInvoice.id },
-      data: {
-        actionResult: result,
-        actionError: null
-      }
-    })
-  } catch (e) {
-    // store the error in the invoice, nonblocking and outside of this tx, finalizing immediately
-    models.invoice.update({
-      where: { id: dbInvoice.id },
-      data: {
-        actionError: e.message
-      }
-    }).catch(e => console.error('failed to store action error', e))
-    boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash }, FINALIZE_OPTIONS)
-      .catch(e => console.error('failed to finalize', e))
-    throw e
+async function performPessimisticAction ({ lndInvoice, dbInvoice, tx, lnd, boss }) {
+  const args = { ...dbInvoice.actionArgs, invoiceId: dbInvoice.id }
+  const context = {
+    tx,
+    cost: BigInt(lndInvoice.received_mtokens),
+    me: dbInvoice.user
   }
+
+  const sybilFeePercent = await paidActions[dbInvoice.actionType].getSybilFeePercent?.(args, context)
+
+  const result = await paidActions[dbInvoice.actionType].perform(args, { ...context, sybilFeePercent })
+  await tx.invoice.update({
+    where: { id: dbInvoice.id },
+    data: {
+      actionResult: result,
+      actionError: null
+    }
+  })
+}
+
+// if we experience an unexpected error when holding an invoice, we need aggressively attempt to cancel it
+// store the error in the invoice, nonblocking and outside of this tx, finalizing immediately
+function onHeldInvoiceError ({ error, dbInvoice, models, boss }) {
+  models.invoice.update({
+    where: { id: dbInvoice.id },
+    data: {
+      actionError: error.message
+    }
+  }).catch(e => console.error('failed to store action error', e))
+  boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash }, FINALIZE_OPTIONS)
+    .catch(e => console.error('failed to finalize', e))
 }
 
 export async function paidActionPaid ({ data: { invoiceId, ...args }, models, lnd, boss }) {
@@ -145,9 +156,17 @@ export async function paidActionPaid ({ data: { invoiceId, ...args }, models, ln
         throw new Error('invoice is not confirmed')
       }
 
-      await paidActions[dbInvoice.actionType].onPaid?.({ invoice: dbInvoice }, { models, tx, lnd })
+      const updateFields = {
+        confirmedAt: new Date(lndInvoice.confirmed_at),
+        confirmedIndex: lndInvoice.confirmed_index,
+        msatsReceived: BigInt(lndInvoice.received_mtokens)
+      }
 
-      // any paid action is eligible for a cowboy hat streak
+      await paidActions[dbInvoice.actionType].onPaid?.({
+        invoice: { ...dbInvoice, ...updateFields }
+      }, { models, tx, lnd })
+
+      // most paid actions are eligible for a cowboy hat streak
       await tx.$executeRaw`
         INSERT INTO pgboss.job (name, data)
         VALUES ('checkStreak', jsonb_build_object('id', ${dbInvoice.userId}, 'type', 'COWBOY_HAT'))`
@@ -160,11 +179,7 @@ export async function paidActionPaid ({ data: { invoiceId, ...args }, models, ln
             ('checkStreak', jsonb_build_object('id', ${dbInvoice.invoiceForward.withdrawl.userId}, 'type', 'HORSE'))`
       }
 
-      return {
-        confirmedAt: new Date(lndInvoice.confirmed_at),
-        confirmedIndex: lndInvoice.confirmed_index,
-        msatsReceived: BigInt(lndInvoice.received_mtokens)
-      }
+      return updateFields
     },
     ...args
   }, { models, lnd, boss })
@@ -235,6 +250,7 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
         }
       }
     },
+    onUnexpectedError: onHeldInvoiceError,
     ...args
   }, { models, lnd, boss })
 
@@ -261,7 +277,7 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
 
 // this finalizes the forward by settling the incoming invoice after the outgoing payment is confirmed
 export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...args }, models, lnd, boss }) {
-  return await transitionInvoice('paidActionForwarded', {
+  const transitionedInvoice = await transitionInvoice('paidActionForwarded', {
     invoiceId,
     fromState: 'FORWARDING',
     toState: 'FORWARDED',
@@ -270,25 +286,15 @@ export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...a
         throw new Error('invoice is not held')
       }
 
-      const { bolt11, hash, msatsPaying } = dbInvoice.invoiceForward.withdrawl
-      const { payment, is_confirmed: isConfirmed } = withdrawal ?? await getPayment({ id: hash, lnd })
+      const { hash, msatsPaying, createdAt } = dbInvoice.invoiceForward.withdrawl
+      const { payment, is_confirmed: isConfirmed } = withdrawal ??
+        await getPaymentOrNotSent({ id: hash, lnd, createdAt })
       if (!isConfirmed) {
         throw new Error('payment is not confirmed')
       }
 
       // settle the invoice, allowing us to transition to PAID
       await settleHodlInvoice({ secret: payment.secret, lnd })
-
-      const logger = walletLogger({ wallet: dbInvoice.invoiceForward.wallet, models })
-      logger.ok(
-        `↙ payment received: ${formatSats(msatsToSats(payment.mtokens))}`,
-        {
-          bolt11,
-          preimage: payment.secret
-          // we could show the outgoing fee that we paid from the incoming amount to the receiver
-          // but we don't since it might look like the receiver paid the fee but that's not the case.
-          // fee: formatMsats(Number(payment.fee_mtokens))
-        })
 
       return {
         preimage: payment.secret,
@@ -308,11 +314,31 @@ export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...a
     },
     ...args
   }, { models, lnd, boss })
+
+  if (transitionedInvoice) {
+    const { bolt11, msatsPaid, msatsFeePaid } = transitionedInvoice.invoiceForward.withdrawl
+    // the amount we paid includes the fee so we need to subtract it to get the amount received
+    const received = Number(msatsPaid) - Number(msatsFeePaid)
+
+    const logger = walletLogger({ wallet: transitionedInvoice.invoiceForward.wallet, models })
+    logger.ok(
+      `↙ payment received: ${formatSats(msatsToSats(received))}`,
+      {
+        bolt11,
+        preimage: transitionedInvoice.preimage
+        // we could show the outgoing fee that we paid from the incoming amount to the receiver
+        // but we don't since it might look like the receiver paid the fee but that's not the case.
+        // fee: formatMsats(msatsFeePaid)
+      })
+  }
+
+  return transitionedInvoice
 }
 
 // when the pending forward fails, we need to cancel the incoming invoice
 export async function paidActionFailedForward ({ data: { invoiceId, withdrawal: pWithdrawal, ...args }, models, lnd, boss }) {
-  return await transitionInvoice('paidActionFailedForward', {
+  let message
+  const transitionedInvoice = await transitionInvoice('paidActionFailedForward', {
     invoiceId,
     fromState: 'FORWARDING',
     toState: 'FAILED_FORWARD',
@@ -321,21 +347,10 @@ export async function paidActionFailedForward ({ data: { invoiceId, withdrawal: 
         throw new Error('invoice is not held')
       }
 
-      let withdrawal
-      let notSent = false
-      try {
-        withdrawal = pWithdrawal ?? await getPayment({ id: dbInvoice.invoiceForward.withdrawl.hash, lnd })
-      } catch (err) {
-        if (err[1] === 'SentPaymentNotFound' &&
-          dbInvoice.invoiceForward.withdrawl.createdAt < datePivot(new Date(), { milliseconds: -LND_PATHFINDING_TIMEOUT_MS * 2 })) {
-          // if the payment is older than 2x timeout, but not found in LND, we can assume it errored before lnd stored it
-          notSent = true
-        } else {
-          throw err
-        }
-      }
+      const { hash, createdAt } = dbInvoice.invoiceForward.withdrawl
+      const withdrawal = pWithdrawal ?? await getPaymentOrNotSent({ id: hash, lnd, createdAt })
 
-      if (!(withdrawal?.is_failed || notSent)) {
+      if (!(withdrawal?.is_failed || withdrawal?.notSent)) {
         throw new Error('payment has not failed')
       }
 
@@ -343,14 +358,8 @@ export async function paidActionFailedForward ({ data: { invoiceId, withdrawal: 
       // which once it does succeed will ensure we will try to cancel the held invoice until it actually cancels
       await boss.send('finalizeHodlInvoice', { hash: dbInvoice.hash }, FINALIZE_OPTIONS)
 
-      const { status, message } = getPaymentFailureStatus(withdrawal)
-      const { bolt11, msatsFeePaying } = dbInvoice.invoiceForward.withdrawl
-      const logger = walletLogger({ wallet: dbInvoice.invoiceForward.wallet, models })
-      logger.warn(
-        `incoming payment failed: ${message}`, {
-          bolt11,
-          max_fee: formatMsats(Number(msatsFeePaying))
-        })
+      const { status, message: failureMessage } = getPaymentFailureStatus(withdrawal)
+      message = failureMessage
 
       return {
         invoiceForward: {
@@ -366,6 +375,18 @@ export async function paidActionFailedForward ({ data: { invoiceId, withdrawal: 
     },
     ...args
   }, { models, lnd, boss })
+
+  if (transitionedInvoice) {
+    const { bolt11, msatsFeePaying } = transitionedInvoice.invoiceForward.withdrawl
+    const logger = walletLogger({ wallet: transitionedInvoice.invoiceForward.wallet, models })
+    logger.warn(
+      `incoming payment failed: ${message}`, {
+        bolt11,
+        max_fee: formatMsats(msatsFeePaying)
+      })
+  }
+
+  return transitionedInvoice
 }
 
 export async function paidActionHeld ({ data: { invoiceId, ...args }, models, lnd, boss }) {
@@ -401,12 +422,13 @@ export async function paidActionHeld ({ data: { invoiceId, ...args }, models, ln
         msatsReceived: BigInt(lndInvoice.received_mtokens)
       }
     },
+    onUnexpectedError: onHeldInvoiceError,
     ...args
   }, { models, lnd, boss })
 }
 
 export async function paidActionCanceling ({ data: { invoiceId, ...args }, models, lnd, boss }) {
-  return await transitionInvoice('paidActionCanceling', {
+  const transitionedInvoice = await transitionInvoice('paidActionCanceling', {
     invoiceId,
     fromState: ['HELD', 'PENDING', 'PENDING_HELD', 'FAILED_FORWARD'],
     toState: 'CANCELING',
@@ -419,6 +441,17 @@ export async function paidActionCanceling ({ data: { invoiceId, ...args }, model
     },
     ...args
   }, { models, lnd, boss })
+
+  if (transitionedInvoice) {
+    if (transitionedInvoice.invoiceForward) {
+      const { wallet, bolt11 } = transitionedInvoice.invoiceForward
+      const logger = walletLogger({ wallet, models })
+      const decoded = await parsePaymentRequest({ request: bolt11 })
+      logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, { bolt11 })
+    }
+  }
+
+  return transitionedInvoice
 }
 
 export async function paidActionFailed ({ data: { invoiceId, ...args }, models, lnd, boss }) {
@@ -435,7 +468,8 @@ export async function paidActionFailed ({ data: { invoiceId, ...args }, models, 
       await paidActions[dbInvoice.actionType].onFail?.({ invoice: dbInvoice }, { models, tx, lnd })
 
       return {
-        cancelled: true
+        cancelled: true,
+        cancelledAt: new Date()
       }
     },
     ...args

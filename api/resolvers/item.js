@@ -300,6 +300,8 @@ function typeClause (type) {
       return ['"Item".bio = true', '"Item"."parentId" IS NULL']
     case 'bounties':
       return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL']
+    case 'bounties_active':
+      return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL', '"Item"."bountyPaidTo" IS NULL']
     case 'comments':
       return '"Item"."parentId" IS NOT NULL'
     case 'freebies':
@@ -423,6 +425,7 @@ export default {
                 subClause(sub, 5, subClauseTable(type), me, showNsfw),
                 typeClause(type),
                 whenClause(when, 'Item'),
+                activeOrMine(me),
                 await filterClause(me, models, type),
                 by === 'boost' && '"Item".boost > 0',
                 muteClause(me))}
@@ -535,6 +538,7 @@ export default {
                       '"Item".bio = false',
                       ad ? `"Item".id <> ${ad.id}` : '',
                       activeOrMine(me),
+                      await filterClause(me, models, type),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
                     ORDER BY rank DESC
@@ -1032,6 +1036,7 @@ export default {
   },
   ItemAct: {
     invoice: async (itemAct, args, { models }) => {
+      // we never want to fetch the sensitive data full monty in nested resolvers
       if (itemAct.invoiceId) {
         return {
           id: itemAct.invoiceId,
@@ -1281,6 +1286,7 @@ export default {
       return root
     },
     invoice: async (item, args, { models }) => {
+      // we never want to fetch the sensitive data full monty in nested resolvers
       if (item.invoiceId) {
         return {
           id: item.invoiceId,
@@ -1375,7 +1381,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
 
   // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
   const myBio = user.bioId === old.id
-  const timer = Date.now() < new Date(old.invoicePaidAt ?? old.createdAt).getTime() + 10 * 60_000
+  const timer = Date.now() < datePivot(new Date(old.invoicePaidAt ?? old.createdAt), { minutes: 10 })
 
   // timer permission check
   if (!adminEdit && !myBio && !timer && !isJob(item)) {

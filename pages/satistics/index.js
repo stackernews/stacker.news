@@ -24,7 +24,7 @@ export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY,
 
 function satusClass (status) {
   if (!status) {
-    return ''
+    return 'text-reset'
   }
 
   switch (status) {

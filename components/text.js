@@ -125,13 +125,7 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, embed
       return <Link id={props.id} target='_blank' rel={rel} href={href}>{children}</Link>
     },
     img: TextMediaOrLink,
-    embed: (args) => {
-      // merge parsed meta with fetched meta
-      const fetchedMeta = embedMeta?.[args.id]
-      const aggMeta = args.meta ? { ...args.meta, ...fetchedMeta } : undefined
-
-      return <Embed {...{ ...args, meta: aggMeta }} />
-    }
+    embed: (args) => <Embed {...args} meta={{ ...args.meta, ...embedMeta?.[args.id] }} topLevel />
   }), [outlawed, rel, TextMediaOrLink, topLevel])
 
   const carousel = useCarousel()

@@ -53,12 +53,9 @@ function BioItem ({ item, handleClick }) {
 function ItemEmbed ({ url, imgproxyUrls, embedMeta }) {
   const embed = parseEmbedUrl(url)
   if (embed) {
-    const fetchedMeta = embedMeta?.[embed.id]
-    const aggMeta = embed.meta ? { ...embed.meta, ...fetchedMeta } : undefined
-
     return (
       <div className='mt-3'>
-        <Embed src={url} {...{ ...embed, meta: aggMeta }} topLevel />
+        <Embed src={url} {...embed} meta={{ ...embed.meta, ...embedMeta?.[embed.id] }} topLevel />
       </div>
     )
   }

@@ -5,7 +5,7 @@ export async function fetchEmbedMeta ({ data: { id: itemId }, models }) {
   console.log('[fetchEmbedMeta] fetching embed meta for item', itemId)
   const item = await models.item.findUnique({ where: { id: itemId } })
 
-  const text = item.text || item.url
+  const text = item?.text || item?.url
   if (!text) return
 
   const urls = findUniqueUrls(text) // extract every url from the text

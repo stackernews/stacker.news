@@ -35,8 +35,8 @@ ALTER TABLE "ItemEmbedMeta" ADD CONSTRAINT "ItemEmbedMeta_itemId_fkey" FOREIGN K
 -- AddForeignKey
 ALTER TABLE "ItemEmbedMeta" ADD CONSTRAINT "ItemEmbedMeta_embedId_provider_fkey" FOREIGN KEY ("embedId", "provider") REFERENCES "EmbedMeta"("id", "provider") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- Denormalize embedMeta into Item
-CREATE OR REPLACE FUNCTION update_item_embed_meta()
+-- Denormalize embedMeta into Item on insert/update
+CREATE OR REPLACE FUNCTION update_item_embed_meta_insert_update()
 RETURNS TRIGGER AS $$
 BEGIN
   UPDATE "Item"
@@ -52,10 +52,32 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER item_embed_meta_trigger
-AFTER INSERT OR UPDATE OR DELETE ON "ItemEmbedMeta"
+CREATE TRIGGER item_embed_meta_insert_update_trigger
+AFTER INSERT OR UPDATE ON "ItemEmbedMeta"
 FOR EACH ROW
-EXECUTE FUNCTION update_item_embed_meta();
+EXECUTE FUNCTION update_item_embed_meta_insert_update();
+
+-- Denormalize embedMeta into Item on delete
+CREATE OR REPLACE FUNCTION update_item_embed_meta_delete()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE "Item"
+  SET "embedMeta" = (
+    SELECT jsonb_object_agg(em."id", em."meta")
+    FROM "ItemEmbedMeta" iem
+    JOIN "EmbedMeta" em ON iem."embedId" = em."id" AND iem."provider" = em."provider"
+    WHERE iem."itemId" = OLD."itemId"
+  )
+  WHERE "id" = OLD."itemId";
+
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER item_embed_meta_delete_trigger
+AFTER DELETE ON "ItemEmbedMeta"
+FOR EACH ROW
+EXECUTE FUNCTION update_item_embed_meta_delete();
 
 
 -- Delete unused embeds

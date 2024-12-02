@@ -75,8 +75,18 @@ export async function fetchEmbedMeta ({ data: { id }, models }) {
     const fetcher = MetaFetchers[provider]
     if (!fetcher) continue // there is no additional fetch logic for this provider
 
-    // we'll wait the promises all at once to allow for parallel fetching
-    embedMetaPromises.push(fetcher(embed).then(meta => ({ provider, embedId, meta })))
+    const existingMeta = await models.embedMeta.findUnique({ where: { provider, id: embedId } })
+    if (existingMeta) {
+      // we reuse existing meta to avoid fetching it again
+      // N.B. it is important to try to reinsert the existing metadata, because
+      //      the embedMeta entry might have been orphaned and subsequently deleted (by the cleanup trigger)
+      //      between the time this check is performed and the embedMeta entry is linked to the item.
+      //      The alternative would be to run everything into a transaction, but that would be less efficient.
+      embedMetaPromises.push(Promise.resolve({ provider, embedId, meta: existingMeta.meta }))
+    } else {
+      // we'll wait the promises all at once to allow for parallel fetching
+      embedMetaPromises.push(fetcher(embed).then(meta => ({ provider, embedId, meta })))
+    }
   }
 
   // separate success from errors
@@ -91,19 +101,25 @@ export async function fetchEmbedMeta ({ data: { id }, models }) {
   }
 
   if (fetchResults.length) {
-    console.log('[fetchEmbedMeta] upserting', fetchResults.length, 'embeds for item', id)
+    console.log('[fetchEmbedMeta] updating', fetchResults.length, 'embeds for item', id)
     await models.$transaction(async (tx) => {
-      await Promise.all(fetchResults.map(({ provider, embedId, meta }) => {
-        // TODO: no upsertMany in prisma yet
-        return tx.embedMeta.upsert({
-          where: { id_provider: { id: embedId, provider } },
-          create: { id: embedId, provider, meta },
-          update: { meta }
-        })
-      }))
-      await tx.itemEmbedMeta.deleteMany({ where: { itemId: id } })
+      await tx.embedMeta.createMany({
+        data: fetchResults.map(({ provider, embedId, meta }) => ({ id: embedId, provider, meta })),
+        skipDuplicates: true
+      })
+
+      await tx.itemEmbedMeta.deleteMany({
+        where: {
+          itemId: id,
+          NOT: {
+            OR: fetchResults.map(({ provider, embedId }) => ({ provider, embedId }))
+          }
+        }
+      })
+
       await tx.itemEmbedMeta.createMany({
-        data: fetchResults.map(({ provider, embedId }) => ({ itemId: id, embedId, provider }))
+        data: fetchResults.map(({ provider, embedId }) => ({ itemId: id, embedId, provider })),
+        skipDuplicates: true
       })
     })
   }

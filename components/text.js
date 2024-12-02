@@ -50,7 +50,7 @@ export function SearchText ({ text }) {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
+export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, embedMeta, children, tab, itemId, outlawed, topLevel }) {
   const [overflowing, setOverflowing] = useState(false)
   const router = useRouter()
   const [show, setShow] = useState(false)
@@ -124,7 +124,13 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
       return <Link id={props.id} target='_blank' rel={rel} href={href}>{children}</Link>
     },
     img: TextMediaOrLink,
-    embed: Embed
+    embed: (args) => {
+      // merge parsed meta with fetched meta
+      const fetchedMeta = embedMeta?.[args.id]
+      const aggMeta = args.meta ? { ...args.meta, ...fetchedMeta } : undefined
+
+      return <Embed {...{ ...args, meta: aggMeta }} />
+    }
   }), [outlawed, rel, TextMediaOrLink, topLevel])
 
   const carousel = useCarousel()

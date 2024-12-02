@@ -67,6 +67,7 @@ export const ITEM_FIELDS = gql`
     uploadId
     mine
     imgproxyUrls
+    embedMeta
     rel
     apiKey
     invoice {

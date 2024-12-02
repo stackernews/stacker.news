@@ -119,33 +119,10 @@ const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
   )
 }
 
-const Embed = memo(function Embed ({ src, provider, id, meta: initialMeta, fetchMeta: fetchMetaArgs, className, topLevel, onError }) {
+const Embed = memo(function Embed ({ src, provider, id, meta, className, topLevel, onError }) {
   const [darkMode] = useDarkMode()
   const [overflowing, setOverflowing] = useState(true)
   const [show, setShow] = useState(false)
-  const [meta, setMeta] = useState(initialMeta)
-
-  const [fetchMeta] = useLazyQuery(gql`  
-    query FetchEmbedMeta($provider: String!, $args: JSONObject!) {
-      fetchEmbedMeta(provider: $provider, args: $args)
-    }`)
-
-  useEffect(() => {
-    let abort
-    if (fetchMetaArgs) {
-      fetchMeta({
-        variables: {
-          provider: fetchMetaArgs.provider,
-          args: fetchMetaArgs.args
-        }
-      }).then(({ data }) => {
-        if (abort) return
-        const newMeta = data.fetchEmbedMeta
-        setMeta((prev) => ({ ...prev, ...newMeta }))
-      }).catch(onError)
-    }
-    return () => { abort = true }
-  }, [fetchMetaArgs])
 
   // This Twitter embed could use similar logic to the video embeds below
   if (provider === 'twitter') {
@@ -192,36 +169,37 @@ const Embed = memo(function Embed ({ src, provider, id, meta: initialMeta, fetch
 
   if (provider === 'youtube') {
     const videoId = id ?? meta?.videoId
+    return (
+      <div className={classNames(styles.videoWrapper, className)}>
+        <YouTube
+          videoId={videoId} className={styles.videoContainer} opts={{
+            playerVars: {
+              start: meta?.start || 0
+            }
+          }}
+        />
+      </div>
+    )
+  }
+
+  if (provider === 'youtube-clip') {
+    const videoId = meta?.videoId
     const clipId = meta?.clipId
     const clipt = meta?.clipt
-    if (clipId) {
-      return (
-        <div className={classNames(styles.videoWrapper, className)}>
-          <div className={styles.videoContainer}>
-            <iframe
-              title='Youtube Video'
-              allowFullScreen
-              src={`https://www.youtube.com/embed/${videoId}?clip=${clipId}&amp;clipt=${clipt}`}
-              sandbox='allow-scripts allow-same-origin'
-              allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
-              referrerPolicy='strict-origin-when-cross-origin'
-            />
-          </div>
-        </div>
-      )
-    } else {
-      return (
-        <div className={classNames(styles.videoWrapper, className)}>
-          <YouTube
-            videoId={videoId} className={styles.videoContainer} opts={{
-              playerVars: {
-                start: meta?.start || 0
-              }
-            }}
+    return (
+      <div className={classNames(styles.videoWrapper, className)}>
+        <div className={styles.videoContainer}>
+          <iframe
+            title='Youtube Clip'
+            allowFullScreen
+            src={`https://www.youtube.com/embed/${videoId}?clip=${clipId}&amp;clipt=${clipt}`}
+            sandbox='allow-scripts allow-same-origin'
+            allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
+            referrerPolicy='strict-origin-when-cross-origin'
           />
         </div>
-      )
-    }
+      </div>
+    )
   }
 
   if (provider === 'rumble') {

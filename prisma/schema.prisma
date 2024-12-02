@@ -525,6 +525,7 @@ model Item {
   otsFile             Bytes?
   otsHash             String?
   imgproxyUrls        Json?
+  embedMeta           Json?
   bounty              Int?
   noteId              String?               @unique(map: "Item.noteId_unique")
   rootId              Int?
@@ -562,6 +563,7 @@ model Item {
   invoice             Invoice?              @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   PollBlindVote       PollBlindVote[]
   ItemUserAgg         ItemUserAgg[]
+  itemEmbedMetas      ItemEmbedMeta[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -1154,10 +1156,27 @@ model Reminder {
 }
 
 model EmbedMeta {
-  hash        String @id
-  meta        Json
+  id             String               @id
+  provider       String
+  meta           Json
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at")  
+  itemEmbedMetas ItemEmbedMeta[]
+
+  @@unique([id, provider])
+}
+
+model ItemEmbedMeta {
+  itemId      Int
+  embedId     String
+  provider    String
   createdAt   DateTime             @default(now()) @map("created_at")
-  updatedAt   DateTime             @default(now()) @updatedAt @map("updated_at")  
+  updatedAt   DateTime             @default(now()) @updatedAt @map("updated_at")
+  item        Item                 @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  embedMeta   EmbedMeta            @relation(fields: [embedId, provider], references: [id, provider], onDelete: Cascade)
+
+  @@id([itemId, embedId, provider])
+  @@index([createdAt], map: "ItemEmbedMeta.created_at_index")
 }
 
 enum EarnType {

@@ -43,6 +43,7 @@ export const COMMENT_FIELDS = gql`
     otsHash
     ncomments
     imgproxyUrls
+    embedMeta
     rel
     apiKey
     invoice {

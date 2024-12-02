@@ -160,6 +160,7 @@ export default gql`
     parentOtsHash: String
     forwards: [ItemForward]
     imgproxyUrls: JSONObject
+    embedMeta: JSONObject
     rel: String
     apiKey: Boolean
     invoice: Invoice

@@ -35,6 +35,7 @@ import { thisDay } from './thisDay'
 import { isServiceEnabled } from '@/lib/sndev'
 import { payWeeklyPostBounty, weeklyPost } from './weeklyPosts'
 import { expireBoost } from './expireBoost'
+import { fetchEmbedMeta } from './fetchEmbedMeta'
 
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)
@@ -130,7 +131,7 @@ async function work () {
   await boss.work('saltAndHashEmails', jobWrapper(saltAndHashEmails))
   await boss.work('reminder', jobWrapper(remindUser))
   await boss.work('thisDay', jobWrapper(thisDay))
-
+  await boss.work('fetchEmbedMeta', jobWrapper(fetchEmbedMeta))
   console.log('working jobs')
 }
 

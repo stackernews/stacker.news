@@ -50,12 +50,15 @@ function BioItem ({ item, handleClick }) {
   )
 }
 
-function ItemEmbed ({ url, imgproxyUrls }) {
-  const provider = parseEmbedUrl(url)
-  if (provider) {
+function ItemEmbed ({ url, imgproxyUrls, embedMeta }) {
+  const embed = parseEmbedUrl(url)
+  if (embed) {
+    const fetchedMeta = embedMeta?.[embed.id]
+    const aggMeta = embed.meta ? { ...embed.meta, ...fetchedMeta } : undefined
+
     return (
       <div className='mt-3'>
-        <Embed src={url} {...provider} topLevel />
+        <Embed src={url} {...{ ...embed, meta: aggMeta }} topLevel />
       </div>
     )
   }
@@ -110,7 +113,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
     >
       <article className={classNames(styles.fullItemContainer, 'topLevel')} ref={textRef}>
         {item.text && <ItemText item={item} />}
-        {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
+        {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} embedMeta={item.embedMeta} />}
         {item.poll && <Poll item={item} />}
         {item.bounty &&
           <div className='fw-bold mt-2'>

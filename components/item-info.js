@@ -6,7 +6,7 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import Countdown from './countdown'
 import { abbrNum, numWithUnits } from '@/lib/format'
 import { newComments, commentsViewedAt } from '@/lib/new-comments'
-import { datePivot, timeSince } from '@/lib/time'
+import { timeSince } from '@/lib/time'
 import { DeleteDropdownItem } from './delete'
 import styles from './item.module.css'
 import { useMe } from './me'
@@ -28,6 +28,7 @@ import { useToast } from './toast'
 import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
+import useCanEdit from './use-can-edit'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
@@ -35,31 +36,18 @@ export default function ItemInfo ({
   onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true,
   setDisableRetry, disableRetry
 }) {
-  const editThreshold = datePivot(new Date(item.invoice?.confirmedAt ?? item.createdAt), { minutes: 10 })
   const { me } = useMe()
   const router = useRouter()
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
   const sub = item?.sub || root?.sub
+  const [canEdit, setCanEdit, editThreshold] = useCanEdit(item)
 
   useEffect(() => {
     if (!full) {
       setHasNewComments(newComments(item))
     }
   }, [item])
-
-  // allow anon edits if they have the correct hmac for the item invoice
-  // (the server will verify the hmac)
-  const [anonEdit, setAnonEdit] = useState(false)
-  useEffect(() => {
-    const invParams = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
-    setAnonEdit(!!invParams && !me && Number(item.user.id) === USER_ID.anon)
-  }, [])
-
-  // deleted items can never be edited and every item has a 10 minute edit window
-  // except bios, they can always be edited but they should never show the countdown
-  const noEdit = !!item.deletedAt || (Date.now() >= editThreshold) || item.bio
-  const canEdit = !noEdit && ((me && item.mine) || anonEdit)
 
   // territory founders can pin any post in their territory
   // and OPs can pin any root reply in their post
@@ -160,7 +148,7 @@ export default function ItemInfo ({
           <>
             <EditInfo
               item={item} edit={edit} canEdit={canEdit}
-              setCanEdit={setAnonEdit} toggleEdit={toggleEdit} editText={editText} editThreshold={editThreshold}
+              setCanEdit={setCanEdit} toggleEdit={toggleEdit} editText={editText} editThreshold={editThreshold}
             />
             <PaymentInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
             <ActionDropdown>

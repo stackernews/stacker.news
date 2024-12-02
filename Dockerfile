@@ -2,18 +2,12 @@
 
 FROM node:18.20.4-bullseye
 
-ENV NODE_ENV=development
-
-ARG UID
-ARG GID
-RUN groupadd -fg "$GID" apprunner
-RUN useradd -om -u "$UID" -g "$GID" apprunner
-USER apprunner
+ENV NODE_ENV=production
 
 WORKDIR /app
 
 EXPOSE 3000
 
-COPY package.json package-lock.json ./
+COPY . .
 RUN npm ci --legacy-peer-deps --loglevel verbose
-CMD ["sh","-c","npm install --loglevel verbose --legacy-peer-deps && npx prisma migrate dev && npm run dev"]
+RUN npm run build --verbose

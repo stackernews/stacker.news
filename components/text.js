@@ -126,6 +126,9 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
     img: TextMediaOrLink,
     embed: Embed,
     details: Details,
+    summary: Summary
+    embed: Embed,
+    details: Details,
     summary: Summary,
   }), [outlawed, rel, TextMediaOrLink, topLevel])
 

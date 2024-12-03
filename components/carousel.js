@@ -5,6 +5,7 @@ import ArrowRight from '@/svgs/arrow-right-line.svg'
 import styles from './carousel.module.css'
 import { useShowModal } from './modal'
 import { Dropdown } from 'react-bootstrap'
+import { usePathname } from 'next/navigation'
 
 function useSwiping ({ moveLeft, moveRight }) {
   const [touchStartX, setTouchStartX] = useState(null)
@@ -104,12 +105,19 @@ function CarouselOverflow ({ originalSrc, rel }) {
 }
 
 export function CarouselProvider ({ children }) {
+  const pathname = usePathname()
+
   const media = useRef(new Map())
   const showModal = useShowModal()
 
   const showCarousel = useCallback(({ src }) => {
+    window.history.pushState(null, '', pathname)
+
     showModal((close, setOptions) => {
-      return <Carousel close={close} mediaArr={Array.from(media.current.entries())} src={src} setOptions={setOptions} />
+      const closeAction = () => {
+        window.history.back()
+      }
+      return <Carousel close={closeAction} mediaArr={Array.from(media.current.entries())} src={src} setOptions={setOptions} />
     }, {
       fullScreen: true,
       overflow: <CarouselOverflow {...media.current.get(src)} />

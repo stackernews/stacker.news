@@ -64,6 +64,8 @@ jobs:
           echo "VAPID_MAILTO=mailto:cicd@stacker.news" > .env
           echo "NEXT_PUBLIC_VAPID_PUBKEY=test_vapid_pubkey" > .env
           echo "VAPID_PRIVKEY=test_vapid_privkey" > .env
+          echo "Environment:"
+          cat .env
           ./node_modules/.bin/next build
 
       # Here's the first place where next-bundle-analysis' own script is used

@@ -55,10 +55,10 @@ export async function getNwc (nwcUrl, { timeout = 5e4 } = {}) {
 export async function nwcTryRun (fun) {
   try {
     const { error, result } = await fun()
-    if (error) throw new Error(error.code + ' ' + error.message)
+    if (error) throw new Error(error.message || error.code)
     return result
   } catch (e) {
-    if (e.error) throw new Error(e.error.code + ' ' + e.error.message)
+    if (e.error) throw new Error(e.error.message || e.error.code)
     throw e
   }
 }

@@ -49,8 +49,8 @@ jobs:
           cat .env.development >> .env
           cat .env.production >> .env
           echo "VAPID_MAILTO=mailto:cicd@stacker.news" >> .env
-          echo "NEXT_PUBLIC_VAPID_PUBKEY=test_vapid_pubkey" >> .env
-          echo "VAPID_PRIVKEY=test_vapid_privkey" >> .env
+          echo "NEXT_PUBLIC_VAPID_PUBKEY=*****example_publicKey_*******" >> .env
+          echo "VAPID_PRIVKEY=*****example_privateKey_*******" >> .env
           echo "Environment:"
           cat .env
 

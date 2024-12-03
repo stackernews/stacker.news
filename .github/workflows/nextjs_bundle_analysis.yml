@@ -22,8 +22,27 @@ permissions:
 
 jobs:
   analyze:
-    runs-on: node:18.20.4-bullseye
+    runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        uses: bahmutov/npm-install@v1
+
+      - name: Restore next build
+        uses: actions/cache@v3
+        id: restore-build-cache
+        env:
+          cache-name: cache-next-build
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
+
       - name: Create dotenv file
         run: |
           touch .env

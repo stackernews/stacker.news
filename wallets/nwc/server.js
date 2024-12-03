@@ -1,5 +1,5 @@
 import { withTimeout } from '@/lib/time'
-import { getNwc, supportedMethods } from '@/wallets/nwc'
+import { getNwc, supportedMethods, nwcTryRun } from '@/wallets/nwc'
 export * from '@/wallets/nwc'
 
 export async function testCreateInvoice ({ nwcUrlRecv }, { logger }) {
@@ -25,7 +25,6 @@ export async function testCreateInvoice ({ nwcUrlRecv }, { logger }) {
 
 export async function createInvoice ({ msats, description, expiry }, { nwcUrlRecv }, { logger }) {
   const nwc = await getNwc(nwcUrlRecv)
-  const { error, result } = await nwc.sendReq('make_invoice', { amount: msats, description, expiry })
-  if (error) throw new Error(`${error.code} ${error.message}`)
+  const result = await nwcTryRun(() => nwc.sendReq('make_invoice', { amount: msats, description, expiry }))
   return result.invoice
 }

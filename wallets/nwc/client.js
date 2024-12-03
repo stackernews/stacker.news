@@ -1,4 +1,4 @@
-import { getNwc, supportedMethods } from '@/wallets/nwc'
+import { getNwc, supportedMethods, nwcTryRun } from '@/wallets/nwc'
 export * from '@/wallets/nwc'
 
 export async function testSendPayment ({ nwcUrl }, { logger }) {
@@ -12,7 +12,6 @@ export async function testSendPayment ({ nwcUrl }, { logger }) {
 
 export async function sendPayment (bolt11, { nwcUrl }, { logger }) {
   const nwc = await getNwc(nwcUrl)
-  const { error, result } = await nwc.payInvoice(bolt11)
-  if (error) throw new Error(error.code + ' ' + error.message)
+  const result = await nwcTryRun(() => nwc.payInvoice(bolt11))
   return result.preimage
 }

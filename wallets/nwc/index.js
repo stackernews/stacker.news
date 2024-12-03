@@ -46,9 +46,25 @@ export async function getNwc (nwcUrl, { timeout = 5e4 } = {}) {
   return nwc
 }
 
+/**
+ * Run a nwc function and throw if it errors
+ * (workaround to handle ambiguous NDK error handling)
+ * @param {function} fun - the nwc function to run
+ * @returns - the result of the nwc function
+ */
+export async function nwcTryRun (fun) {
+  try {
+    const { error, result } = await fun()
+    if (error) throw new Error(error.code + ' ' + error.message)
+    return result
+  } catch (e) {
+    if (e.error) throw new Error(e.error.code + ' ' + e.error.message)
+    throw e
+  }
+}
+
 export async function supportedMethods (nwcUrl, { logger, timeout } = {}) {
   const nwc = await getNwc(nwcUrl, { timeout })
-  const { error, result } = await nwc.getInfo()
-  if (error) throw new Error(error.code + ' ' + error.message)
+  const result = await nwcTryRun(() => nwc.getInfo())
   return result.methods
 }

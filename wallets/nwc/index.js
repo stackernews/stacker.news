@@ -33,7 +33,7 @@ export const card = {
   subtitle: 'use Nostr Wallet Connect for payments'
 }
 
-export async function getNwc (nwcUrl, { timeout = 2e3 } = {}) {
+export async function getNwc (nwcUrl, { timeout = 5e4 } = {}) {
   const ndk = Nostr.ndk
   const { walletPubkey, secret, relayUrls } = parseNwcUrl(nwcUrl)
   const nwc = new NDKNwc({

@@ -49,8 +49,8 @@ jobs:
           cat .env.development >> .env
           cat .env.production >> .env
           echo "VAPID_MAILTO=mailto:cicd@stacker.news" >> .env
-          echo "NEXT_PUBLIC_VAPID_PUBKEY=*****example_publicKey_*******" >> .env
-          echo "VAPID_PRIVKEY=*****example_privateKey_*******" >> .env
+          echo "NEXT_PUBLIC_VAPID_PUBKEY=BPxWyxu_wyLJKvK8YQIOz9Bu7lyck6PJVZE9DcZKuxMzii_AcS6J43N8xaed6Q4uBmeMuUvAHE6UQRGIJY1CCMo" >> .env
+          echo "VAPID_PRIVKEY=mqF8ZYR8DucADCoyux17QCy8T_kFocnfDWEOndPW-WE" >> .env
           echo "Environment:"
           cat .env
 

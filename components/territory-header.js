@@ -31,6 +31,17 @@ export function TerritoryDetails ({ sub, children }) {
   )
 }
 
+export function TerritoryInfoSkeleton ({ children, className }) {
+  return (
+    <div className={`${styles.item} ${styles.skeleton} ${className}`}>
+      <div className={styles.hunk}>
+        <div className={`${styles.name} clouds text-reset`} />
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export function TerritoryInfo ({ sub }) {
   return (
     <>

@@ -12,6 +12,7 @@ import Badges from './badge'
 import { MEDIA_URL } from '@/lib/constants'
 import { abbrNum } from '@/lib/format'
 import { Badge } from 'react-bootstrap'
+import SubPopover from './sub-popover'
 
 export default function ItemJob ({ item, toc, rank, children }) {
   const isEmail = string().email().isValidSync(item.url)
@@ -62,9 +63,11 @@ export default function ItemJob ({ item, toc, rank, children }) {
               </Link>
             </span>
             {item.subName &&
-              <Link href={`/~${item.subName}`}>
-                {' '}<Badge className={styles.newComment} bg={null}>{item.subName}</Badge>
-              </Link>}
+              <SubPopover sub={item.subName}>
+                <Link href={`/~${item.subName}`}>
+                  {' '}<Badge className={styles.newComment} bg={null}>{item.subName}</Badge>
+                </Link>
+              </SubPopover>}
             {item.status === 'STOPPED' &&
               <>{' '}<Badge bg='info' className={styles.badge}>stopped</Badge></>}
             {item.mine && !item.deletedAt &&

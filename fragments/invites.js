@@ -19,5 +19,6 @@ export const INVITE_FIELDS = gql`
       ...StreakFields
     }
     poor
+    description
   }
 `

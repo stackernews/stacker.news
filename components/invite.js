@@ -2,6 +2,7 @@ import { CopyInput } from './form'
 import { gql, useMutation } from '@apollo/client'
 import { INVITE_FIELDS } from '@/fragments/invites'
 import styles from '@/styles/invites.module.css'
+import { useToast } from '@/components/toast'
 
 export default function Invite ({ invite, active }) {
   const [revokeInvite] = useMutation(
@@ -13,11 +14,13 @@ export default function Invite ({ invite, active }) {
         }
       }`
   )
+  const toaster = useToast()
 
   return (
     <div
       className={styles.invite}
     >
+      {invite.description && <small className='text-muted'>{invite.description}</small>}
       <CopyInput
         groupClassName='mb-1'
         size='sm' type='text'
@@ -33,7 +36,13 @@ export default function Invite ({ invite, active }) {
               <span> \ </span>
               <span
                 className={styles.revoke}
-                onClick={() => revokeInvite({ variables: { id: invite.id } })}
+                onClick={async () => {
+                  try {
+                    await revokeInvite({ variables: { id: invite.id } })
+                  } catch (err) {
+                    toaster.danger(err.message)
+                  }
+                }}
               >revoke
               </span>
             </>)

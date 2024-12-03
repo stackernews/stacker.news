@@ -110,6 +110,8 @@ export default function Settings ({ ssrData }) {
   // if we switched to anon, me is null before the page is reloaded
   if ((!data && !ssrData) || !me) return <PageLoading />
 
+  console.log(settings)
+
   return (
     <Layout>
       <div className='pb-3 w-100 mt-2' style={{ maxWidth: '600px' }}>
@@ -160,7 +162,9 @@ export default function Settings ({ ssrData }) {
             hideIsContributor: settings?.hideIsContributor,
             noReferralLinks: settings?.noReferralLinks,
             proxyReceive: settings?.proxyReceive,
-            directReceive: settings?.directReceive
+            directReceive: settings?.directReceive,
+            receiveCreditsBelowSats: settings?.receiveCreditsBelowSats,
+            sendCreditsBelowSats: settings?.sendCreditsBelowSats
           }}
           schema={settingsSchema}
           onSubmit={async ({
@@ -335,6 +339,18 @@ export default function Settings ({ ssrData }) {
             name='noteCowboyHat'
           />
           <div className='form-label'>wallet</div>
+          <Input
+            label='receive credits for zaps and deposits below'
+            name='receiveCreditsBelowSats'
+            required
+            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
+          <Input
+            label='send credits for zaps below'
+            name='sendCreditsBelowSats'
+            required
+            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
           <Checkbox
             label={
               <div className='d-flex align-items-center'>proxy deposits to attached wallets

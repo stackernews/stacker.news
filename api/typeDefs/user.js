@@ -109,6 +109,8 @@ export default gql`
     withdrawMaxFeeDefault: Int!
     proxyReceive: Boolean
     directReceive: Boolean
+    receiveCreditsBelowSats: Int!
+    sendCreditsBelowSats: Int!
   }
 
   type AuthMethods {
@@ -125,6 +127,7 @@ export default gql`
     extremely sensitive
     """
     sats: Int!
+    credits: Int!
     authMethods: AuthMethods!
     lnAddr: String
 
@@ -189,6 +192,8 @@ export default gql`
     walletsUpdatedAt: Date
     proxyReceive: Boolean
     directReceive: Boolean
+    receiveCreditsBelowSats: Int!
+    sendCreditsBelowSats: Int!
   }
 
   type UserOptional {

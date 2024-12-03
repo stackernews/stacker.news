@@ -116,6 +116,8 @@ export const SETTINGS_FIELDS = gql`
       apiKeyEnabled
       proxyReceive
       directReceive
+      receiveCreditsBelowSats
+      sendCreditsBelowSats
     }
   }`
 

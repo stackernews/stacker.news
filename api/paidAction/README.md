@@ -92,18 +92,19 @@ stateDiagram-v2
 
 ### Table of existing paid actions and their supported flows
 
-| action            | fee credits | optimistic | pessimistic | anonable | qr payable | p2p wrapped | side effects |
-| ----------------- | ----------- | ---------- | ----------- | -------- | ---------- | ----------- | ------------ |
-| zaps              | x           | x          | x           | x        | x          | x           | x            |
-| posts             | x           | x          | x           | x        | x          |             | x            |
-| comments          | x           | x          | x           | x        | x          |             | x            |
-| downzaps          | x           | x          |             |          | x          |             | x            |
-| poll votes        | x           | x          |             |          | x          |             |              |
-| territory actions | x           |            | x           |          | x          |             |              |
-| donations         | x           |            | x           | x        | x          |             |              |
-| update posts      | x           |            | x           |          | x          |             | x            |
-| update comments   | x           |            | x           |          | x          |             | x            |
-| receive           |             | x          |             | x        | x          | x           | x            |
+| action            | fee credits | optimistic | pessimistic | anonable | qr payable | p2p wrapped | side effects | reward sats | p2p direct |
+| ----------------- | ----------- | ---------- | ----------- | -------- | ---------- | ----------- | ------------ | ----------- | ---------- |
+| zaps              | x           | x          | x           | x        | x          | x           | x            |             |            |
+| posts             | x           | x          | x           | x        | x          |             | x            | x           |            |
+| comments          | x           | x          | x           | x        | x          |             | x            | x           |            |
+| downzaps          | x           | x          |             |          | x          |             | x            | x           |            |
+| poll votes        | x           | x          |             |          | x          |             |              | x           |            |
+| territory actions | x           |            | x           |          | x          |             |              | x           |            |
+| donations         | x           |            | x           | x        | x          |             |              | x           |            |
+| update posts      | x           |            | x           |          | x          |             | x            | x           |            |
+| update comments   | x           |            | x           |          | x          |             | x            | x           |            |
+| receive           |             | x          |             |          | x          | x           | x            |             | x          |
+| buy fee credits   |             |            | x           |          |            |             |              | x           |            |
 
 ## Not-custodial zaps (ie p2p wrapped payments)
 Zaps, and possibly other future actions, can be performed peer to peer and non-custodially. This means that the payment is made directly from the client to the recipient, without the server taking custody of the funds. Currently, in order to trigger this behavior, the recipient must have a receiving wallet attached and the sender must have insufficient funds in their custodial wallet to perform the requested zap.

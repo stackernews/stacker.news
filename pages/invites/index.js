@@ -81,6 +81,7 @@ function InviteForm () {
             <Input
               prepend={<InputGroup.Text className='text-muted'>{`${process.env.NEXT_PUBLIC_URL}/invites/`}</InputGroup.Text>}
               label={<>invite code <small className='text-muted ms-2'>optional</small></>}
+              hint='leave blank for a random code that is hard to guess'
               name='id'
               autoComplete='off'
             />

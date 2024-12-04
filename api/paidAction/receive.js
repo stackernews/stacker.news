@@ -2,7 +2,6 @@ import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { toPositiveBigInt, numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyDeposit } from '@/lib/webPush'
 import { getInvoiceableWallets } from '@/wallets/server'
-import { assertBelowBalanceLimit } from './lib/assert'
 
 export const anonable = false
 
@@ -42,7 +41,7 @@ export async function perform ({
   lud18Data,
   noteStr
 }, { me, tx }) {
-  const invoice = await tx.invoice.update({
+  return await tx.invoice.update({
     where: { id: invoiceId },
     data: {
       comment,
@@ -51,11 +50,6 @@ export async function perform ({
     },
     include: { invoiceForward: true }
   })
-
-  if (!invoice.invoiceForward) {
-    // if the invoice is not p2p, assert that the user's balance limit is not exceeded
-    await assertBelowBalanceLimit({ me, tx })
-  }
 }
 
 export async function describe ({ description }, { me, cost, paymentMethod, sybilFeePercent }) {

@@ -19,6 +19,7 @@ import * as DONATE from './donate'
 import * as BOOST from './boost'
 import * as RECEIVE from './receive'
 import * as BUY_FEE_CREDITS from './buyFeeCredits'
+import * as INVITE_GIFT from './inviteGift'
 
 export const paidActions = {
   ITEM_CREATE,
@@ -33,7 +34,8 @@ export const paidActions = {
   TERRITORY_UNARCHIVE,
   DONATE,
   RECEIVE,
-  BUY_FEE_CREDITS
+  BUY_FEE_CREDITS,
+  INVITE_GIFT
 }
 
 export default async function performPaidAction (actionType, args, incomingContext) {
@@ -103,7 +105,8 @@ export default async function performPaidAction (actionType, args, incomingConte
           } catch (e) {
             // if we fail with fee credits or reward sats, but not because of insufficient funds, bail
             console.error(`${paymentMethod} action failed`, e)
-            if (!e.message.includes('\\"users\\" violates check constraint \\"msats_positive\\"')) {
+            if (!e.message.includes('\\"users\\" violates check constraint \\"msats_positive\\"') &&
+              !e.message.includes('\\"users\\" violates check constraint \\"mcredits_positive\\"')) {
               throw e
             }
           }

@@ -2,14 +2,13 @@ import Login from '@/components/login'
 import { getProviders } from 'next-auth/react'
 import { getServerSession } from 'next-auth/next'
 import models from '@/api/models'
-import serialize from '@/api/resolvers/serial'
 import { gql } from '@apollo/client'
 import { INVITE_FIELDS } from '@/fragments/invites'
 import getSSRApolloClient from '@/api/ssrApollo'
 import Link from 'next/link'
 import { CenterLayout } from '@/components/layout'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
-import { notifyInvite } from '@/lib/webPush'
+import performPaidAction from '@/api/paidAction'
 
 export async function getServerSideProps ({ req, res, query: { id, error = null } }) {
   const session = await getServerSession(req, res, getAuthOptions(req))
@@ -36,12 +35,11 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
     try {
       // attempt to send gift
       // catch any errors and just ignore them for now
-      await serialize(
-        models.$queryRawUnsafe('SELECT invite_drain($1::INTEGER, $2::TEXT)', session.user.id, id),
-        { models }
-      )
-      const invite = await models.invite.findUnique({ where: { id } })
-      notifyInvite(invite.userId)
+      await performPaidAction({
+        action: 'INVITE_GIFT',
+        id,
+        userId: session.user.id
+      }, { models, me: { id: data.invite.user.id } })
     } catch (e) {
       console.log(e)
     }

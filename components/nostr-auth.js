@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { gql, useMutation } from '@apollo/client'
 import { signIn } from 'next-auth/react'
-import Container from 'react-bootstrap/Container'
 import Col from 'react-bootstrap/Col'
 import Row from 'react-bootstrap/Row'
 import { useRouter } from 'next/router'
@@ -15,7 +14,7 @@ import CancelButton from '@/components/cancel-button'
 import { Button } from 'react-bootstrap'
 import { Form, Input, SubmitButton } from '@/components/form'
 import Moon from '@/svgs/moon-fill.svg'
-import styles from './lightning-auth.module.css'
+import styles from './login.module.css'
 
 const sanitizeURL = (s) => {
   try {
@@ -122,8 +121,9 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
 
       if (signer instanceof NDKNip46Signer) {
         signer.once('authUrl', challengeResolver)
-        await signer.blockUntilReady()
       }
+
+      await signer.blockUntilReady()
 
       setStatus({
         msg: 'Signing in',
@@ -210,14 +210,6 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
                             available for: chrome, firefox, and safari
                           </li>
                           <li>
-                            <a href='https://github.com/nostr-connect/nostrum'>Nostrum</a><br />
-                            available for: iOS and Android
-                          </li>
-                          <li>
-                            <a href='https://github.com/greenart7c3/amber'>Amber</a><br />
-                            available for: Android
-                          </li>
-                          <li>
                             <a href='https://app.nsecbunker.com/'>nsecBunker</a><br />
                             available as: SaaS or self-hosted
                           </li>
@@ -273,12 +265,10 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
 export function NostrAuthWithExplainer ({ text, callbackUrl, multiAuth }) {
   const router = useRouter()
   return (
-    <Container>
-      <div className={styles.login}>
-        <div className='w-100 mb-3 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>
-        <h3 className='w-100 pb-2'>{text || 'Login'} with Nostr</h3>
-        <NostrAuth text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
-      </div>
-    </Container>
+    <div className={styles.login}>
+      <div className='w-100 mb-3 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>
+      <h3 className='w-100 pb-2'>{text || 'Login'} with Nostr</h3>
+      <NostrAuth text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
+    </div>
   )
 }

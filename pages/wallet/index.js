@@ -15,8 +15,8 @@ import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/wallet'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { amountSchema, lnAddrSchema, withdrawlSchema } from '@/lib/validate'
 import Nav from 'react-bootstrap/Nav'
-import { BALANCE_LIMIT_MSATS, FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
-import { msatsToSats, numWithUnits } from '@/lib/format'
+import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { numWithUnits } from '@/lib/format'
 import styles from '@/components/user-header.module.css'
 import HiddenWalletSummary from '@/components/hidden-wallet-summary'
 import AccordianItem from '@/components/accordian-item'
@@ -27,7 +27,6 @@ import CameraIcon from '@/svgs/camera-line.svg'
 import { useShowModal } from '@/components/modal'
 import { useField } from 'formik'
 import { useToast } from '@/components/toast'
-import { WalletLimitBanner } from '@/components/banners'
 import Plug from '@/svgs/plug.svg'
 import { decode } from 'bolt11'
 
@@ -52,7 +51,6 @@ export default function Wallet () {
     return (
       <CenterLayout>
         <YouHaveSats />
-        <WalletLimitBanner />
         <WalletForm />
         <WalletHistory />
       </CenterLayout>
@@ -62,9 +60,8 @@ export default function Wallet () {
 
 function YouHaveSats () {
   const { me } = useMe()
-  const limitReached = me?.privates?.sats >= msatsToSats(BALANCE_LIMIT_MSATS)
   return (
-    <h2 className={`${me ? 'visible' : 'invisible'} ${limitReached ? 'text-warning' : 'text-success'}`}>
+    <h2 className={`${me ? 'visible' : 'invisible'} text-success`}>
       you have{' '}
       <span className='text-monospace'>{me && (
         me.privates?.hideWalletBalance
@@ -130,7 +127,6 @@ export function FundForm () {
   return (
     <>
       <YouHaveSats />
-      <WalletLimitBanner />
       <div className='w-100 py-5'>
         {me && showAlert &&
           <Alert

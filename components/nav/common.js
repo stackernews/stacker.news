@@ -6,12 +6,12 @@ import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
-import { USER_ID, BALANCE_LIMIT_MSATS } from '../../lib/constants'
+import { USER_ID } from '../../lib/constants'
 import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
 import HiddenWalletSummary from '../hidden-wallet-summary'
-import { abbrNum, msatsToSats } from '../../lib/format'
+import { abbrNum } from '../../lib/format'
 import { useServiceWorker } from '../serviceworker'
 import { signOut } from 'next-auth/react'
 import Badges from '../badge'
@@ -149,12 +149,11 @@ export function WalletSummary () {
 
 export function NavWalletSummary ({ className }) {
   const { me } = useMe()
-  const walletLimitReached = me?.privates?.sats >= msatsToSats(BALANCE_LIMIT_MSATS)
 
   return (
     <Nav.Item className={className}>
       <Link href='/wallet' passHref legacyBehavior>
-        <Nav.Link eventKey='wallet' className={`${walletLimitReached ? 'text-warning' : 'text-success'} text-monospace px-0 text-nowrap`}>
+        <Nav.Link eventKey='wallet' className='text-success text-monospace px-0 text-nowrap'>
           <WalletSummary me={me} />
         </Nav.Link>
       </Link>

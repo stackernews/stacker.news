@@ -31,7 +31,7 @@ export async function perform ({ id, userId }, { me, cost, tx }) {
   await tx.user.update({
     where: {
       id: userId,
-      inviteId: { is: null },
+      inviteId: null,
       createdAt: {
         gt: new Date(Date.now() - 1000 * 60 * 60)
       }

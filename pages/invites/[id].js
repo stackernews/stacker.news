@@ -35,8 +35,7 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
     try {
       // attempt to send gift
       // catch any errors and just ignore them for now
-      await performPaidAction({
-        action: 'INVITE_GIFT',
+      await performPaidAction('INVITE_GIFT', {
         id,
         userId: session.user.id
       }, { models, me: { id: data.invite.user.id } })

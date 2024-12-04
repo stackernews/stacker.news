@@ -56,7 +56,7 @@ export default async function performPaidAction (actionType, args, incomingConte
     // treat context as immutable
     const contextWithMe = {
       ...incomingContext,
-      me: me ? await models.user.findUnique({ where: { id: me.id } }) : undefined
+      me: me ? await models.user.findUnique({ where: { id: parseInt(me.id) } }) : undefined
     }
     const context = {
       ...contextWithMe,
@@ -325,7 +325,7 @@ export async function retryPaidAction (actionType, args, incomingContext) {
   const retryContext = {
     ...incomingContext,
     optimistic: actionOptimistic,
-    me: await models.user.findUnique({ where: { id: me.id } }),
+    me: await models.user.findUnique({ where: { id: parseInt(me.id) } }),
     cost: BigInt(msatsRequested),
     actionId
   }

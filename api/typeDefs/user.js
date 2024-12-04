@@ -44,6 +44,8 @@ export default gql`
     generateApiKey(id: ID!): String
     deleteApiKey(id: ID!): User
     disableFreebies: Boolean
+    setTotpSecret(secret: String!, token: String!): Boolean
+    unsetTotpSecret: Boolean
   }
 
   type User {
@@ -189,6 +191,7 @@ export default gql`
     walletsUpdatedAt: Date
     proxyReceive: Boolean
     directReceive: Boolean
+    isTotpEnabled: Boolean
   }
 
   type UserOptional {

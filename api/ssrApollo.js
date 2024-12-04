@@ -13,9 +13,15 @@ import { BLOCK_HEIGHT } from '@/fragments/blockHeight'
 import { CHAIN_FEE } from '@/fragments/chainFee'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
+import * as Auth2fa from '@/lib/auth2fa'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
-  const session = req && await getServerSession(req, res, getAuthOptions(req))
+  let session = req && await getServerSession(req, res, getAuthOptions(req))
+
+  // 2fa check
+  let unverifiedSession = null
+  ;({ session, unverifiedSession } = await Auth2fa.sessionGuard({ session, req }))
+
   const client = new ApolloClient({
     ssrMode: true,
     link: new SchemaLink({
@@ -29,7 +35,8 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
           ? session.user
           : me,
         lnd,
-        search
+        search,
+        unverifiedSession
       }
     }),
     cache: new InMemoryCache({

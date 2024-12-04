@@ -66,6 +66,7 @@
     "nostr-tools": "^2.8.0",
     "nprogress": "^0.2.0",
     "opentimestamps": "^0.4.9",
+    "otpauth": "^9.3.5",
     "page-metadata-parser": "^1.1.4",
     "pg-boss": "^9.0.3",
     "piexifjs": "^1.0.6",

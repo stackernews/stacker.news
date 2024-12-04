@@ -14,7 +14,7 @@ const AccountContext = createContext()
 const b64Decode = str => Buffer.from(str, 'base64').toString('utf-8')
 const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
 
-const maybeSecureCookie = cookie => {
+export const maybeSecureCookie = cookie => {
   return window.location.protocol === 'https:' ? cookie + '; Secure' : cookie
 }
 

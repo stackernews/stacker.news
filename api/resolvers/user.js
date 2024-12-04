@@ -2,7 +2,7 @@ import { readFile } from 'fs/promises'
 import { join, resolve } from 'path'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
-import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
+import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema, totpSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
 import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES } from '@/lib/constants'
 import { viewGroup } from './growth'
@@ -11,6 +11,7 @@ import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
+import { validateTotp } from '@/lib/auth2fa'
 
 const contributors = new Set()
 
@@ -882,6 +883,27 @@ export default {
 
       await models.user.update({ where: { id: me.id }, data: { hideWelcomeBanner: true } })
       return true
+    },
+    setTotpSecret: async (parent, { secret, token }, { me, models }) => {
+      if (!me) throw new GqlAuthenticationError()
+      await validateSchema(totpSchema, { secret, token })
+      await validateTotp({ secret, token })
+      const result = await models.user.update({
+        where: {
+          id: me.id,
+          totpSecret: null
+        },
+        data: {
+          totpSecret: secret
+        }
+      })
+      if (!result) throw new Error('could not set totp secret')
+      return true
+    },
+    unsetTotpSecret: async (parent, args, { me, models }) => {
+      if (!me) throw new GqlAuthenticationError()
+      await models.user.update({ where: { id: me.id }, data: { totpSecret: null } })
+      return true
     }
   },
 
@@ -1048,6 +1070,12 @@ export default {
         return false
       }
       return !!user.tipRandomMin && !!user.tipRandomMax
+    },
+    isTotpEnabled: async (user, args, { me }) => {
+      if (!me || me.id !== user.id) {
+        return false
+      }
+      return !!user.totpSecret
     }
   },
 

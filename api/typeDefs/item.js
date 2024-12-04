@@ -127,7 +127,9 @@ export default gql`
     bountyPaidTo: [Int]
     noteId: String
     sats: Int!
+    credits: Int!
     commentSats: Int!
+    commentCredits: Int!
     lastCommentAt: Date
     upvotes: Int!
     meSats: Int!

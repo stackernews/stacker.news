@@ -1,6 +1,5 @@
 import lnd from '@/api/lnd'
 import performPaidAction from '@/api/paidAction'
-import serialize from '@/api/resolvers/serial'
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { datePivot } from '@/lib/time'
@@ -53,8 +52,10 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
 }
 
 export async function territoryRevenue ({ models }) {
-  await serialize(
-    models.$executeRaw`
+  // this is safe nonserializable because it only acts on old data that won't
+  // be affected by concurrent updates ... and the update takes a lock on the
+  // users table
+  await models.$executeRaw`
       WITH revenue AS (
         SELECT coalesce(sum(msats), 0) as revenue, "subName", "userId"
         FROM (
@@ -88,7 +89,5 @@ export async function territoryRevenue ({ models }) {
       SET msats = users.msats + "SubActResultTotal".total_msats,
         "stackedMsats" = users."stackedMsats" + "SubActResultTotal".total_msats
       FROM "SubActResultTotal"
-      WHERE users.id = "SubActResultTotal"."userId"`,
-    { models }
-  )
+      WHERE users.id = "SubActResultTotal"."userId"`
 }

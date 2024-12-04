@@ -37,6 +37,7 @@ ${STREAK_FIELDS}
       imgproxyOnly
       showImagesAndVideos
       nostrCrossposting
+      nsfwMode
       sats
       tipDefault
       tipRandom

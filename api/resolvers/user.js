@@ -888,16 +888,22 @@ export default {
       if (!me) throw new GqlAuthenticationError()
       await validateSchema(totpSchema, { secret, token })
       await validateTotp({ secret, token })
-      const result = await models.user.update({
-        where: {
-          id: me.id,
-          totpSecret: null
-        },
-        data: {
-          totpSecret: secret
+      try {
+        await models.user.update({
+          where: {
+            id: me.id,
+            totpSecret: null
+          },
+          data: {
+            totpSecret: secret
+          }
+        })
+      } catch (error) {
+        if (error.code === 'P2025') {
+          throw new Error('could not set totp secret')
         }
-      })
-      if (!result) throw new Error('could not set totp secret')
+        throw error
+      }
       return true
     },
     unsetTotpSecret: async (parent, args, { me, models }) => {

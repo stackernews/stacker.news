@@ -514,13 +514,8 @@ services:
       ofelia.job-exec.cln_channel_cron.schedule: "@every 1m"
       ofelia.job-exec.cln_channel_cron.command: >
         su clightning -c bash -c "
-          if [ $$(lightning-cli --regtest getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
-            exit 0
-          else
-            lightning-cli --regtest connect $LND_PUBKEY@sn_lnd:9735
-            lightning-cli --regtest fundchannel id=$LND_PUBKEY feerate=1000perkb \\
-              amount=1000000000 push_msat=500000000000 minconf=0
-          fi
+          lightning-cli --regtest connect $STACKER_LND_PUBKEY@lnd:9735
+          lightning-cli --regtest connect $LND_PUBKEY@sn_lnd:9735
         "
     cpu_shares: "${CPU_SHARES_MODERATE}"
   channdler:

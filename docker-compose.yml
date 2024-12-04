@@ -358,7 +358,7 @@ services:
           if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
             exit 0
           else
-            lncli openchannel --node_key=$STACKER_LND_PUBKEY --connect lnd:9735 --sat_per_vbyte 1 \\
+            lncli openchannel --node_key=$STACKER_CLN_PUBKEY --connect cln:9735 --sat_per_vbyte 1 \\
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
         "
@@ -429,7 +429,7 @@ services:
           if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
             exit 0
           else
-            lncli openchannel --node_key=$LND_PUBKEY --connect sn_lnd:9735 --sat_per_vbyte 1 \\
+            lncli openchannel --node_key=$STACKER_CLN_PUBKEY --connect cln:9735 --sat_per_vbyte 1 \\
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
         "

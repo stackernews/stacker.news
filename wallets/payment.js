@@ -5,7 +5,7 @@ import useInvoice from '@/components/use-invoice'
 import { FAST_POLL_INTERVAL } from '@/lib/constants'
 import {
   WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
-  WalletNotEnabledError, WalletSendNotConfiguredError, WalletPaymentError, WalletError
+  WalletNotEnabledError, WalletSendNotConfiguredError, WalletPaymentError, WalletError, WalletReceiverError
 } from '@/wallets/errors'
 import { canSend } from './common'
 import { useWalletLoggerFactory } from './logger'
@@ -24,44 +24,61 @@ export function useWalletPayment () {
       throw new WalletsNotAvailableError()
     }
 
-    for (const [i, wallet] of wallets.entries()) {
+    for (let i = 0; i < wallets.length; i++) {
+      const wallet = wallets[i]
       const controller = invoiceController(latestInvoice, invoiceHelper.isInvoice)
+
+      const walletPromise = sendPayment(wallet, latestInvoice)
+      const pollPromise = controller.wait(waitFor)
+
       try {
         return await new Promise((resolve, reject) => {
           // can't await wallet payments since we might pay hold invoices and thus payments might not settle immediately.
           // that's why we separately check if we received the payment with the invoice controller.
-          sendPayment(wallet, latestInvoice).catch(reject)
-          controller.wait(waitFor)
-            .then(resolve)
-            .catch(reject)
+          walletPromise.catch(reject)
+          pollPromise.then(resolve).catch(reject)
         })
       } catch (err) {
-        // cancel invoice to make sure it cannot be paid later and create new invoice to retry.
-        // we only need to do this if payment was attempted which is not the case if the wallet is not enabled.
-        if (err instanceof WalletPaymentError) {
-          await invoiceHelper.cancel(latestInvoice)
+        let paymentError = err
 
-          // is there another wallet to try?
-          const lastAttempt = i === wallets.length - 1
-          if (!lastAttempt) {
-            latestInvoice = await invoiceHelper.retry(latestInvoice, { update: updateOnFallback })
+        if (!(paymentError instanceof WalletError)) {
+          // payment failed for some reason unrelated to wallets (ie invoice expired or was canceled).
+          // bail out of attempting wallets.
+          throw paymentError
+        }
+
+        // at this point, paymentError is always a wallet error,
+        // we just need to distinguish between receiver and sender errors
+
+        try {
+          // we always await the poll promise here to check for failed forwards since sender wallet errors
+          // can be caused by them which we want to handle as receiver errors, not sender errors.
+          await pollPromise
+        } catch (err) {
+          if (err instanceof WalletError) {
+            paymentError = err
           }
         }
 
-        // TODO: receiver fallbacks
-        //
-        // if payment failed because of the receiver, we should use the same wallet again.
-        // if (err instanceof ReceiverError) { ... }
-
-        // try next wallet if the payment failed because of the wallet
-        // and not because it expired or was canceled
-        if (err instanceof WalletError) {
-          aggregateError = new WalletAggregateError([aggregateError, err], latestInvoice)
-          continue
+        if (paymentError instanceof WalletReceiverError) {
+          // if payment failed because of the receiver, use the same wallet again.
+          i -= 1
         }
 
-        // payment failed not because of the sender or receiver wallet. bail out of attemping wallets.
-        throw err
+        if (paymentError instanceof WalletPaymentError) {
+          // if a payment was attempted, cancel invoice to make sure it cannot be paid later and create new invoice to retry.
+          await invoiceHelper.cancel(latestInvoice)
+        }
+
+        // only create a new invoice if we will try to pay with a wallet again
+        const retry = paymentError instanceof WalletReceiverError || i < wallets.length - 1
+        if (retry) {
+          latestInvoice = await invoiceHelper.retry(latestInvoice, { update: updateOnFallback })
+        }
+
+        aggregateError = new WalletAggregateError([aggregateError, paymentError], latestInvoice)
+
+        continue
       } finally {
         controller.stop()
       }
@@ -131,6 +148,7 @@ function useSendPayment () {
       const preimage = await wallet.def.sendPayment(bolt11, wallet.config, { logger })
       logger.ok(`↗ payment sent: ${formatSats(satsRequested)}`, { bolt11, preimage })
     } catch (err) {
+      // TODO: avoid logging confusing payment error if receiver failed and we canceled the invoice
       const message = err.message || err.toString?.()
       logger.error(`payment failed: ${message}`, { bolt11 })
       throw new WalletSenderError(wallet.def.name, invoice, message)

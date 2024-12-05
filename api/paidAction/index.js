@@ -317,33 +317,38 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     optimistic: actionOptimistic,
     me: await models.user.findUnique({ where: { id: parseInt(me.id) } }),
     cost: BigInt(msatsRequested),
-    actionId
+    actionId,
+    failedInvoiceId: failedInvoice.id
   }
 
   let invoiceArgs
   const invoiceForward = await models.invoiceForward.findUnique({
-    where: { invoiceId: failedInvoice.id },
+    where: {
+      invoiceId: failedInvoice.id
+    },
     include: {
-      wallet: true,
-      invoice: true,
-      withdrawl: true
+      wallet: true
     }
   })
-  // TODO: receiver fallbacks
-  // use next receiver wallet if forward failed (we currently immediately fallback to SN)
-  const failedForward = invoiceForward?.withdrawl && invoiceForward.withdrawl.actionState !== 'CONFIRMED'
-  if (invoiceForward && !failedForward) {
-    const { userId } = invoiceForward.wallet
-    const { invoice: bolt11, wrappedInvoice: wrappedBolt11, wallet, maxFee } = await createWrappedInvoice(userId, {
-      msats: failedInvoice.msatsRequested,
-      feePercent: await action.getSybilFeePercent?.(actionArgs, retryContext),
-      description: await action.describe?.(actionArgs, retryContext),
-      expiry: INVOICE_EXPIRE_SECS
-    }, retryContext)
-    invoiceArgs = { bolt11, wrappedBolt11, wallet, maxFee }
-  } else {
-    invoiceArgs = await createSNInvoice(actionType, actionArgs, retryContext)
+
+  if (invoiceForward) {
+    // this is a wrapped invoice, we need to retry it with receiver fallbacks
+    try {
+      const { userId } = invoiceForward.wallet
+      // this will return an invoice from the first receiver wallet that didn't fail yet and throw if none is available
+      const { invoice: bolt11, wrappedInvoice: wrappedBolt11, wallet, maxFee } = await createWrappedInvoice(userId, {
+        msats: failedInvoice.msatsRequested,
+        feePercent: await action.getSybilFeePercent?.(actionArgs, retryContext),
+        description: await action.describe?.(actionArgs, retryContext),
+        expiry: INVOICE_EXPIRE_SECS
+      }, retryContext)
+      invoiceArgs = { bolt11, wrappedBolt11, wallet, maxFee }
+    } catch (err) {
+      console.log('failed to retry wrapped invoice, falling back to SN:', err)
+    }
   }
+
+  invoiceArgs ??= await createSNInvoice(actionType, actionArgs, retryContext)
 
   return await models.$transaction(async tx => {
     const context = { ...retryContext, tx, invoiceArgs }
@@ -404,7 +409,7 @@ async function createSNInvoice (actionType, args, context) {
 }
 
 async function createDbInvoice (actionType, args, context) {
-  const { me, models, tx, cost, optimistic, actionId, invoiceArgs } = context
+  const { me, models, tx, cost, optimistic, actionId, invoiceArgs, failedInvoiceId } = context
   const { bolt11, wrappedBolt11, preimage, wallet, maxFee } = invoiceArgs
 
   const db = tx ?? models
@@ -429,7 +434,8 @@ async function createDbInvoice (actionType, args, context) {
     actionOptimistic: optimistic,
     actionArgs: args,
     expiresAt,
-    actionId
+    actionId,
+    failedInvoiceId
   }
 
   let invoice

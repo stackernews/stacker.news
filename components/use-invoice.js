@@ -1,8 +1,8 @@
 import { useApolloClient, useMutation } from '@apollo/client'
 import { useCallback } from 'react'
+import { InvoiceCanceledError, InvoiceExpiredError, WalletReceiverError } from '@/wallets/errors'
 import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
 import { INVOICE, CANCEL_INVOICE } from '@/fragments/wallet'
-import { InvoiceExpiredError, InvoiceCanceledError } from '@/wallets/errors'
 
 export default function useInvoice () {
   const client = useApolloClient()
@@ -16,14 +16,21 @@ export default function useInvoice () {
       throw error
     }
 
-    const { cancelled, cancelledAt, actionError, actionState, expiresAt } = data.invoice
+    const { cancelled, cancelledAt, actionError, actionState, expiresAt, isHeld } = data.invoice
 
     const expired = cancelledAt && new Date(expiresAt) < new Date(cancelledAt)
     if (expired) {
       throw new InvoiceExpiredError(data.invoice)
     }
 
-    if (cancelled || actionError) {
+    const failed = cancelled || actionError
+
+    // failed forwards might already have been finalized (actionState === 'FAILED') so we also check for failed held payments
+    if (actionState === 'FAILED_FORWARD' || (failed && isHeld)) {
+      throw new WalletReceiverError(data.invoice)
+    }
+
+    if (failed) {
       throw new InvoiceCanceledError(data.invoice, actionError)
     }
 

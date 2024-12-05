@@ -904,27 +904,29 @@ model ItemMention {
 }
 
 model Invoice {
-  id             Int             @id @default(autoincrement())
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at")
-  userId         Int
-  hash           String          @unique(map: "Invoice.hash_unique")
-  preimage       String?         @unique(map: "Invoice.preimage_unique")
-  isHeld         Boolean?
-  bolt11         String
-  expiresAt      DateTime
-  confirmedAt    DateTime?
-  confirmedIndex BigInt?
-  cancelled      Boolean         @default(false)
-  cancelledAt    DateTime?
-  msatsRequested BigInt
-  msatsReceived  BigInt?
-  desc           String?
-  comment        String?
-  lud18Data      Json?
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  invoiceForward InvoiceForward?
-
+  id               Int                 @id @default(autoincrement())
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @default(now()) @updatedAt @map("updated_at")
+  userId           Int
+  hash             String              @unique(map: "Invoice.hash_unique")
+  preimage         String?             @unique(map: "Invoice.preimage_unique")
+  isHeld           Boolean?
+  bolt11           String
+  expiresAt        DateTime
+  confirmedAt      DateTime?
+  confirmedIndex   BigInt?
+  cancelled        Boolean             @default(false)
+  cancelledAt      DateTime?
+  msatsRequested   BigInt
+  msatsReceived    BigInt?
+  desc             String?
+  comment          String?
+  lud18Data        Json?
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoiceForward   InvoiceForward?
+  failedInvoiceId  Int?                @unique(map: "Invoice.failedInvoiceId_unique")
+  failedInvoice    Invoice?            @relation("InvoiceChain", fields: [failedInvoiceId], references: [id], onDelete: Cascade)
+  retryInvoice     Invoice?            @relation("InvoiceChain")
   actionState      InvoiceActionState?
   actionType       InvoiceActionType?
   actionOptimistic Boolean?

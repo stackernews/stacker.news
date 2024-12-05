@@ -24,9 +24,9 @@ export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 
-export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { models }) {
+export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { failedInvoiceId, models }) {
   // get the wallets in order of priority
-  const wallets = await getInvoiceableWallets(userId, { models })
+  const wallets = await getInvoiceableWallets(userId, { failedInvoiceId, models })
 
   msats = toPositiveNumber(msats)
 
@@ -81,7 +81,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 
 export async function createWrappedInvoice (userId,
   { msats, feePercent, description, descriptionHash, expiry = 360 },
-  { models, me, lnd }) {
+  { failedInvoiceId, models, me, lnd }) {
   let logger, bolt11
   try {
     const { invoice, wallet } = await createInvoice(userId, {
@@ -90,7 +90,7 @@ export async function createWrappedInvoice (userId,
       description,
       descriptionHash,
       expiry
-    }, { models })
+    }, { failedInvoiceId, models })
 
     logger = walletLogger({ wallet, models })
     bolt11 = invoice
@@ -110,18 +110,48 @@ export async function createWrappedInvoice (userId,
   }
 }
 
-export async function getInvoiceableWallets (userId, { models }) {
-  const wallets = await models.wallet.findMany({
-    where: { userId, enabled: true },
-    include: {
-      user: true
-    },
-    orderBy: [
-      { priority: 'asc' },
-      // use id as tie breaker (older wallet first)
-      { id: 'asc' }
-    ]
-  })
+export async function getInvoiceableWallets (userId, { failedInvoiceId, models }) {
+  // filter out all wallets that have already been tried by recursively following the chain of retried invoices.
+  // the current failed invoice is in state 'FAILED' and not in state 'RETRYING'
+  // because we are currently retrying it so it has not been updated yet.
+  // if failedInvoiceId is not provided, the subquery will be empty and thus no wallets are filtered out.
+  const wallets = await models.$queryRaw`
+    SELECT
+      "Wallet".*,
+      jsonb_build_object(
+        'id', "users"."id",
+        'hideInvoiceDesc', "users"."hideInvoiceDesc"
+      ) AS "user"
+    FROM "Wallet"
+    JOIN "users" ON "users"."id" = "Wallet"."userId"
+    WHERE
+      "Wallet"."userId" = ${userId}
+      AND "Wallet"."enabled" = true
+      AND "Wallet"."id" NOT IN (
+        WITH RECURSIVE "Retries" AS (
+          -- select the current failed invoice that we are currently retrying
+          -- this failed invoice will be used to start the recursion
+          SELECT "Invoice"."id", "Invoice"."failedInvoiceId"
+          FROM "Invoice"
+          WHERE "Invoice"."id" = ${failedInvoiceId} AND "Invoice"."actionState" = 'FAILED'
+
+          UNION ALL
+
+          -- recursive part: use failedInvoiceId to select the previous invoice that failed in the chain
+          -- until there is no more previous invoice
+          SELECT "Invoice"."id", "Invoice"."failedInvoiceId"
+          FROM "Invoice"
+          JOIN "Retries" ON "Invoice"."id" = "Retries"."failedInvoiceId"
+          WHERE "Invoice"."actionState" = 'RETRYING'
+        )
+        SELECT
+          "Wallet"."id"
+        FROM "Retries"
+        JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Retries"."id"
+        JOIN "Wallet" ON "Wallet"."id" = "InvoiceForward"."walletId"
+        WHERE "InvoiceForward"."withdrawlId" IS NOT NULL
+      )
+    ORDER BY "Wallet"."priority" ASC, "Wallet"."id" ASC`
 
   const walletsWithDefs = wallets.map(wallet => {
     const w = walletDefs.find(w => w.walletType === wallet.type)

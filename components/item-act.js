@@ -179,7 +179,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       </Form>)
 }
 
-function modifyActCache (cache, { result, invoice }) {
+function modifyActCache (cache, { result, invoice }, me) {
   if (!result) return
   const { id, sats, path, act } = result
   const p2p = invoice?.invoiceForward
@@ -188,7 +188,7 @@ function modifyActCache (cache, { result, invoice }) {
     id: `Item:${id}`,
     fields: {
       sats (existingSats = 0) {
-        if (act === 'TIP' && p2p) {
+        if (act === 'TIP') {
           return existingSats + sats
         }
         return existingSats
@@ -200,13 +200,13 @@ function modifyActCache (cache, { result, invoice }) {
         return existingCredits
       },
       meSats: (existingSats = 0) => {
-        if (act === 'TIP') {
+        if (act === 'TIP' && me) {
           return existingSats + sats
         }
         return existingSats
       },
       meCredits: (existingCredits = 0) => {
-        if (act === 'TIP' && !p2p) {
+        if (act === 'TIP' && !p2p && me) {
           return existingCredits + sats
         }
         return existingCredits
@@ -249,6 +249,7 @@ function modifyActCache (cache, { result, invoice }) {
 }
 
 export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
+  const { me } = useMe()
   // because the mutation name we use varies,
   // we need to extract the result/invoice from the response
   const getPaidActionResult = data => Object.values(data)[0]
@@ -259,7 +260,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
     update: (cache, { data }) => {
       const response = getPaidActionResult(data)
       if (!response) return
-      modifyActCache(cache, response)
+      modifyActCache(cache, response, me)
       options?.update?.(cache, { data })
     },
     onPayError: (e, cache, { data }) => {
@@ -267,7 +268,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
       if (!response || !response.result) return
       const { result: { sats } } = response
       const negate = { ...response, result: { ...response.result, sats: -1 * sats } }
-      modifyActCache(cache, negate)
+      modifyActCache(cache, negate, me)
       options?.onPayError?.(e, cache, { data })
     },
     onPaid: (cache, { data }) => {

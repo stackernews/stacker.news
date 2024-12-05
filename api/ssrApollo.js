@@ -14,6 +14,8 @@ import { CHAIN_FEE } from '@/fragments/chainFee'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
 import * as Auth2fa from '@/lib/auth2fa'
+import { NOFOLLOW_LIMIT } from '@/lib/constants'
+import { satsToMsats } from '@/lib/format'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
   let session = req && await getServerSession(req, res, getAuthOptions(req))
@@ -71,7 +73,17 @@ function oneDayReferral (request, { me }) {
     let prismaPromise, getData
 
     if (referrer.startsWith('item-')) {
-      prismaPromise = models.item.findUnique({ where: { id: parseInt(referrer.slice(5)) } })
+      prismaPromise = models.item.findUnique({
+        where: {
+          id: parseInt(referrer.slice(5)),
+          msats: {
+            gt: satsToMsats(NOFOLLOW_LIMIT)
+          },
+          weightedVotes: {
+            gt: 0
+          }
+        }
+      })
       getData = item => ({
         referrerId: item.userId,
         refereeId: parseInt(me.id),

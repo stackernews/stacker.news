@@ -7,7 +7,7 @@ import { PriceProvider } from '@/components/price'
 import { BlockHeightProvider } from '@/components/block-height'
 import Head from 'next/head'
 import { useRouter } from 'next/dist/client/router'
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { ShowModalProvider } from '@/components/modal'
 import ErrorBoundary from '@/components/error-boundary'
 import { LightningProvider } from '@/components/lightning'
@@ -47,9 +47,17 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
   const client = getApolloClient()
   const router = useRouter()
 
+  const shouldShowProgressBar = useCallback((newPathname, shallow) => {
+    return !shallow || newPathname !== router.pathname
+  }, [router.pathname])
+
   useEffect(() => {
-    const nprogressStart = (_, { shallow }) => !shallow && NProgress.start()
-    const nprogressDone = (_, { shallow }) => !shallow && NProgress.done()
+    const nprogressStart = (newPathname, { shallow }) => {
+      shouldShowProgressBar(newPathname, shallow) && NProgress.start()
+    }
+    const nprogressDone = (newPathname, { shallow }) => {
+      NProgress.done()
+    }
 
     router.events.on('routeChangeStart', nprogressStart)
     router.events.on('routeChangeComplete', nprogressDone)
@@ -78,7 +86,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
       router.events.off('routeChangeComplete', nprogressDone)
       router.events.off('routeChangeError', nprogressDone)
     }
-  }, [router.asPath, props?.apollo])
+  }, [router.asPath, props?.apollo, shouldShowProgressBar])
 
   useEffect(() => {
     // hack to disable ios pwa prompt for https://github.com/stackernews/stacker.news/issues/953

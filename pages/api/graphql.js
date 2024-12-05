@@ -47,6 +47,7 @@ const apolloServer = new ApolloServer({
       }
     }
   },
+  Auth2fa.newApolloServer2faPlugin(),
   process.env.NODE_ENV === 'production'
     ? ApolloServerPluginLandingPageProductionDefault(
       { embed: { endpointIsEditable: false, persistExplorerState: true, displayOptions: { theme: 'dark' } }, footer: false })

@@ -8,6 +8,8 @@ import { totpSchema, totpTokenSchema } from '@/lib/validate'
 import { Form, SubmitButton, PasswordInput } from '@/components/form'
 import { useToast } from '@/components/toast'
 import CancelButton from './cancel-button'
+import { SSR } from '@/lib/constants'
+import { useMe } from '@/components/me'
 
 export const useTOTPEnableDialog = () => {
   const showModal = useShowModal()
@@ -85,4 +87,45 @@ export const TOTPInputForm = ({ onSubmit, onCancel }) => {
       </div>
     </Form>
   )
+}
+
+export const useTOTPDialog = () => {
+  const showModal = useShowModal()
+  const showTOTPDialog = useCallback((onToken, onClose) => {
+    showModal((close) => {
+      return (
+        <TOTPInputForm
+          onSubmit={
+            (token) => {
+              onToken(token)
+              close()
+            }
+          }
+          onCancel={close}
+        />
+      )
+    }, { onClose })
+  }, [])
+  return showTOTPDialog
+}
+
+export const TOTPDialogProvider = ({ children }) => {
+  const { me } = useMe()
+  const totpDialog = useTOTPDialog()
+  const hasTotp = me?.privates?.isTotpEnabled
+  const showTOTPPrompt = useCallback(() => {
+    if (!hasTotp) return Promise.resolve(null)
+    return new Promise((resolve, reject) => {
+      totpDialog((token) => {
+        resolve({ method: 'totp', token })
+      }, () => {
+        reject(new Error('2fa required'))
+      })
+    })
+  }, [me])
+  if (!SSR) {
+    if (!window.prompts2fa) window.prompts2fa = {}
+    window.prompts2fa.totp = showTOTPPrompt
+  }
+  return children
 }

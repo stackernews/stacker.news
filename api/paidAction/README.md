@@ -194,6 +194,12 @@ All functions have the following signature: `function(args: Object, context: Obj
 - `models`: the current prisma client (for anything that doesn't need to be done atomically with the payment)
 - `lnd`: the current lnd client
 
+## Recording Cowboy Credits
+
+To avoid adding sats and credits together everywhere to show an aggregate sat value, in most cases we denormalize a `sats` field that carries the "sats value", the combined sats + credits of something, and a `credits` field that carries only the earned `credits`. For example, the `Item` table has an `msats` field that carries the sum of the `mcredits` and `msats` earned and a `mcredits` field that carries the value of the `mcredits` earned. So, the sats value an item earned is `item.msats` BUT the real sats earned is `item.sats - item.mcredits`.
+
+The ONLY exception to this are for the `users` table where we store a stacker's rewards sats and credits balances separately.
+
 ## `IMPORTANT: transaction isolation`
 
 We use a `read committed` isolation level for actions. This means paid actions need to be mindful of concurrency issues. Specifically, reading data from the database and then writing it back in `read committed` is a common source of consistency bugs (aka serialization anamolies).

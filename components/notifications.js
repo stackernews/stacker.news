@@ -525,9 +525,31 @@ function Referral ({ n }) {
   )
 }
 
+function stackedText (item) {
+  let text = ''
+  console.log(item.sats, item.credits)
+  if (item.sats) {
+    text += `${numWithUnits(item.sats, { abbreviate: false })}`
+
+    if (item.credits) {
+      text += ' ('
+    }
+  }
+  if (item.credits) {
+    text += `${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
+    if (item.sats) {
+      text += ')'
+    }
+  }
+
+  return text
+}
+
 function Votification ({ n }) {
   let forwardedSats = 0
   let ForwardedUsers = null
+  let stackedTextString
+  let forwardedTextString
   if (n.item.forwards?.length) {
     forwardedSats = Math.floor(n.earnedSats * n.item.forwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
     ForwardedUsers = () => n.item.forwards.map((fwd, i) =>
@@ -537,14 +559,18 @@ function Votification ({ n }) {
         </Link>
         {i !== n.item.forwards.length - 1 && ' '}
       </span>)
+    stackedTextString = numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
+    forwardedTextString = numWithUnits(forwardedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
+  } else {
+    stackedTextString = stackedText(n.item)
   }
   return (
     <>
       <NoteHeader color='success'>
-        your {n.item.title ? 'post' : 'reply'} stacked {numWithUnits(n.earnedSats, { abbreviate: false })}
+        your {n.item.title ? 'post' : 'reply'} stacked {stackedTextString}
         {n.item.forwards?.length > 0 &&
           <>
-            {' '}and forwarded {numWithUnits(forwardedSats, { abbreviate: false })} to{' '}
+            {' '}and forwarded {forwardedTextString} to{' '}
             <ForwardedUsers />
           </>}
       </NoteHeader>
@@ -557,7 +583,7 @@ function ForwardedVotification ({ n }) {
   return (
     <>
       <NoteHeader color='success'>
-        you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false })} from
+        you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })} from
       </NoteHeader>
       <NoteItem item={n.item} />
     </>

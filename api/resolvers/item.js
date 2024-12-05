@@ -1053,14 +1053,13 @@ export default {
   },
   Item: {
     sats: async (item, args, { models }) => {
-      return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0) +
-        BigInt(item.mcredits) + BigInt(item.mePendingMcredits || 0))
+      return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0) + BigInt(item.mePendingMcredits || 0))
     },
     credits: async (item, args, { models }) => {
       return msatsToSats(BigInt(item.mcredits) + BigInt(item.mePendingMcredits || 0))
     },
     commentSats: async (item, args, { models }) => {
-      return msatsToSats(item.commentMsats + item.commentMcredits)
+      return msatsToSats(item.commentMsats)
     },
     commentCredits: async (item, args, { models }) => {
       return msatsToSats(item.commentMcredits)

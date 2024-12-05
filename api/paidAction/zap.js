@@ -132,6 +132,7 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
       UPDATE users
       SET
         mcredits = users.mcredits + recipients.mcredits,
+        "stackedMsats" = users."stackedMsats" + recipients.mcredits,
         "stackedMcredits" = users."stackedMcredits" + recipients.mcredits
       FROM recipients
       WHERE users.id = recipients."userId"`
@@ -154,7 +155,7 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
     SET
       "weightedVotes" = "weightedVotes" + (zapper.trust * zap.log_sats),
       upvotes = upvotes + zap.first_vote,
-      msats = "Item".msats + ${invoice?.invoiceForward ? msats : 0n}::BIGINT,
+      msats = "Item".msats + ${msats}::BIGINT,
       mcredits = "Item".mcredits + ${invoice?.invoiceForward ? 0n : msats}::BIGINT,
       "lastZapAt" = now()
     FROM zap, zapper
@@ -186,7 +187,7 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
         SELECT * FROM "Item" WHERE id = ${itemAct.itemId}::INTEGER
       )
       UPDATE "Item"
-      SET "commentMsats" = "Item"."commentMsats" + ${invoice?.invoiceForward ? msats : 0n}::BIGINT,
+      SET "commentMsats" = "Item"."commentMsats" + ${msats}::BIGINT,
         "commentMcredits" = "Item"."commentMcredits" + ${invoice?.invoiceForward ? 0n : msats}::BIGINT
       FROM zapped
       WHERE "Item".path @> zapped.path AND "Item".id <> zapped.id`

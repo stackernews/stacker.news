@@ -25,7 +25,7 @@ import { useHasNewNotes } from '../use-has-new-notes'
 import { useWallets } from '@/wallets/index'
 import SwitchAccountList, { useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
-
+import { numWithUnits } from '@/lib/format'
 export function Brand ({ className }) {
   return (
     <Link href='/' passHref legacyBehavior>
@@ -144,7 +144,14 @@ export function WalletSummary () {
   if (me.privates?.hideWalletBalance) {
     return <HiddenWalletSummary abbreviate fixedWidth />
   }
-  return `${abbrNum(me.privates?.sats)}`
+  return (
+    <span
+      className='text-monospace'
+      title={`${numWithUnits(me.privates?.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`}
+    >
+      {`${abbrNum(me.privates?.sats)}`}
+    </span>
+  )
 }
 
 export function NavWalletSummary ({ className }) {

@@ -1022,7 +1022,13 @@ export default {
       if (!me || me.id !== user.id) {
         return 0
       }
-      return msatsToSats(user.msats)
+      return msatsToSats(user.msats + user.mcredits)
+    },
+    credits: async (user, args, { models, me }) => {
+      if (!me || me.id !== user.id) {
+        return 0
+      }
+      return msatsToSats(user.mcredits)
     },
     authMethods,
     hasInvites: async (user, args, { models }) => {

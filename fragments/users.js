@@ -39,6 +39,7 @@ ${STREAK_FIELDS}
       nostrCrossposting
       nsfwMode
       sats
+      credits
       tipDefault
       tipRandom
       tipRandomMin

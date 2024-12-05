@@ -18,7 +18,6 @@ import Nav from 'react-bootstrap/Nav'
 import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { numWithUnits } from '@/lib/format'
 import styles from '@/components/user-header.module.css'
-import HiddenWalletSummary from '@/components/hidden-wallet-summary'
 import AccordianItem from '@/components/accordian-item'
 import { lnAddrOptions } from '@/lib/lnurl'
 import useDebounceCallback from '@/components/use-debounce-callback'
@@ -60,16 +59,24 @@ export default function Wallet () {
 
 function YouHaveSats () {
   const { me } = useMe()
+
+  if (!me) return null
+
   return (
-    <h2 className={`${me ? 'visible' : 'invisible'} text-success`}>
-      you have{' '}
-      <span className='text-monospace'>{me && (
-        me.privates?.hideWalletBalance
-          ? <HiddenWalletSummary />
-          : numWithUnits(me.privates?.sats, { abbreviate: false, format: true })
-      )}
-      </span>
-    </h2>
+    <>
+      <h2 className='text-success'>
+        you have{' '}
+        <span className='text-monospace'>
+          {numWithUnits(me.privates?.sats - me.privates?.credits, { abbreviate: false, format: true })}
+        </span>
+      </h2>
+      <h2 className='text-info'>
+        you have{' '}
+        <span className='text-monospace'>
+          {numWithUnits(me.privates?.credits, { abbreviate: false, format: true, unitSingular: 'cowboy credit', unitPlural: 'cowboy credits' })}
+        </span>
+      </h2>
+    </>
   )
 }
 

@@ -31,14 +31,20 @@ import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
 
 function itemTitle (item) {
-  let title = 'from '
+  let title = ''
   title += numWithUnits(item.upvotes, {
     abbreviate: false,
-    unitSingular: 'stacker',
-    unitPlural: 'stackers'
+    unitSingular: 'zapper',
+    unitPlural: 'zappers'
   })
+  if (item.sats) {
+    title += ` \\ ${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
+  }
+  if (item.credits) {
+    title += ` \\ ${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
+  }
   if (item.mine) {
-    title += ` \\ ${numWithUnits(item.meSats, { abbreviate: false })} to post`
+    title += ` (${numWithUnits(item.meSats, { abbreviate: false })} to post)`
   } else if (item.meSats || item.meDontLikeSats || item.meAnonSats) {
     const satSources = []
     if (item.meAnonSats || (item.meSats || 0) - (item.meCredits || 0) > 0) {

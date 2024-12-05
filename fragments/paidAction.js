@@ -11,6 +11,7 @@ export const PAID_ACTION = gql`
   fragment PaidActionFields on PaidAction {
     invoice {
       ...InvoiceFields
+      invoiceForward
     }
     paymentMethod
   }`

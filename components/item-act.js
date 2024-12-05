@@ -182,20 +182,34 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
 function modifyActCache (cache, { result, invoice }) {
   if (!result) return
   const { id, sats, path, act } = result
+  const p2p = invoice?.invoiceForward
+
   cache.modify({
     id: `Item:${id}`,
     fields: {
       sats (existingSats = 0) {
-        if (act === 'TIP') {
+        if (act === 'TIP' && p2p) {
           return existingSats + sats
         }
         return existingSats
+      },
+      credits (existingCredits = 0) {
+        if (act === 'TIP' && !p2p) {
+          return existingCredits + sats
+        }
+        return existingCredits
       },
       meSats: (existingSats = 0) => {
         if (act === 'TIP') {
           return existingSats + sats
         }
         return existingSats
+      },
+      meCredits: (existingCredits = 0) => {
+        if (act === 'TIP' && !p2p) {
+          return existingCredits + sats
+        }
+        return existingCredits
       },
       meDontLikeSats: (existingSats = 0) => {
         if (act === 'DONT_LIKE_THIS') {
@@ -219,6 +233,12 @@ function modifyActCache (cache, { result, invoice }) {
       cache.modify({
         id: `Item:${aId}`,
         fields: {
+          commentCredits (existingCommentCredits = 0) {
+            if (p2p) {
+              return existingCommentCredits
+            }
+            return existingCommentCredits + sats
+          },
           commentSats (existingCommentSats = 0) {
             return existingCommentSats + sats
           }

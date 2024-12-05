@@ -615,6 +615,9 @@ const resolvers = {
       }))?.withdrawl?.msatsPaid
       return msats ? msatsToSats(msats) : null
     },
+    invoiceForward: async (invoice, args, { models }) => {
+      return !!invoice.invoiceForward || !!(await models.invoiceForward.findUnique({ where: { invoiceId: Number(invoice.id) } }))
+    },
     nostr: async (invoice, args, { models }) => {
       try {
         return JSON.parse(invoice.desc)

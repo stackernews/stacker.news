@@ -126,6 +126,7 @@ const typeDefs = `
     actionState: String
     actionType: String
     actionError: String
+    invoiceForward: Boolean
     item: Item
     itemAct: ItemAct
     forwardedSats: Int

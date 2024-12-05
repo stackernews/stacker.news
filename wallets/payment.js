@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useSendWallets } from '@/wallets'
 import { formatSats } from '@/lib/format'
-import { useInvoice } from '@/components/payment'
+import useInvoice from '@/components/use-invoice'
 import { FAST_POLL_INTERVAL } from '@/lib/constants'
 import {
   WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,

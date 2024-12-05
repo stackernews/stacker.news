@@ -499,7 +499,7 @@ services:
       - '--rest-host=0.0.0.0'
       - '--log-file=/home/clightning/.lightning/debug.log'
       - '--fee-base=1000'
-      - '--fee-per-satoshi=1000'
+      - '--fee-per-satoshi=0'
       - '--funding-confirms=1'
     expose:
       - "9735"

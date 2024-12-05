@@ -40,7 +40,7 @@ export async function perform (args, context) {
 
   const deletedUploads = []
   for (const uploadId of uploadIds) {
-    if (!await tx.upload.findUnique({ where: { id: uploadId }})) {
+    if (!await tx.upload.findUnique({ where: { id: uploadId } })) {
       deletedUploads.push(uploadId)
     }
   }

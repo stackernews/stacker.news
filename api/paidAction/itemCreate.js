@@ -38,6 +38,16 @@ export async function perform (args, context) {
   const { tx, me, cost } = context
   const boostMsats = satsToMsats(boost)
 
+  const deletedUploads = []
+  for (const uploadId of uploadIds) {
+    if (!await tx.upload.findUnique({ where: { id: uploadId }})) {
+      deletedUploads.push(uploadId)
+    }
+  }
+  if (deletedUploads.length > 0) {
+    throw new Error(`upload(s) ${deletedUploads.join(', ')} are expired, consider reuploading.`)
+  }
+
   let invoiceData = {}
   if (invoiceId) {
     invoiceData = { invoiceId, invoiceActionState: 'PENDING' }

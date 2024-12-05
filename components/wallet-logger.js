@@ -142,7 +142,7 @@ export function useWalletLogManager (setLogs) {
     if ((!wallet || wallet.def.walletType) && !options?.clientOnly) {
       await deleteServerWalletLogs({ variables: { wallet: wallet?.def.walletType } })
     }
-    if (!wallet || wallet.sendPayment) {
+    if (!wallet || wallet.def.sendPayment) {
       try {
         const tag = wallet ? walletTag(wallet.def) : null
         if (notSupported) {

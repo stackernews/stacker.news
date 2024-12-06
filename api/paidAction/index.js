@@ -318,7 +318,7 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     me: await models.user.findUnique({ where: { id: parseInt(me.id) } }),
     cost: BigInt(msatsRequested),
     actionId,
-    failedInvoiceId: failedInvoice.id
+    predecessorId: failedInvoice.id
   }
 
   let invoiceArgs
@@ -409,7 +409,7 @@ async function createSNInvoice (actionType, args, context) {
 }
 
 async function createDbInvoice (actionType, args, context) {
-  const { me, models, tx, cost, optimistic, actionId, invoiceArgs, failedInvoiceId } = context
+  const { me, models, tx, cost, optimistic, actionId, invoiceArgs, predecessorId } = context
   const { bolt11, wrappedBolt11, preimage, wallet, maxFee } = invoiceArgs
 
   const db = tx ?? models
@@ -435,7 +435,7 @@ async function createDbInvoice (actionType, args, context) {
     actionArgs: args,
     expiresAt,
     actionId,
-    failedInvoiceId
+    predecessorId
   }
 
   let invoice

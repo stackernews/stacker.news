@@ -24,9 +24,9 @@ export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 
-export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { failedInvoiceId, models }) {
+export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { predecessorId, models }) {
   // get the wallets in order of priority
-  const wallets = await getInvoiceableWallets(userId, { failedInvoiceId, models })
+  const wallets = await getInvoiceableWallets(userId, { predecessorId, models })
 
   msats = toPositiveNumber(msats)
 
@@ -81,7 +81,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 
 export async function createWrappedInvoice (userId,
   { msats, feePercent, description, descriptionHash, expiry = 360 },
-  { failedInvoiceId, models, me, lnd }) {
+  { predecessorId, models, me, lnd }) {
   let logger, bolt11
   try {
     const { invoice, wallet } = await createInvoice(userId, {
@@ -90,7 +90,7 @@ export async function createWrappedInvoice (userId,
       description,
       descriptionHash,
       expiry
-    }, { failedInvoiceId, models })
+    }, { predecessorId, models })
 
     logger = walletLogger({ wallet, models })
     bolt11 = invoice
@@ -110,11 +110,11 @@ export async function createWrappedInvoice (userId,
   }
 }
 
-export async function getInvoiceableWallets (userId, { failedInvoiceId, models }) {
-  // filter out all wallets that have already been tried by recursively following the chain of retried invoices.
-  // the current failed invoice is in state 'FAILED' and not in state 'RETRYING'
-  // because we are currently retrying it so it has not been updated yet.
-  // if failedInvoiceId is not provided, the subquery will be empty and thus no wallets are filtered out.
+export async function getInvoiceableWallets (userId, { predecessorId, models }) {
+  // filter out all wallets that have already been tried by recursively following the retry chain of ancestor invoices.
+  // the current ancestor invoice is in state 'FAILED' and not in state 'RETRYING' because we are currently retrying it
+  // so it has not been updated yet.
+  // if predecessorId is not provided, the subquery will be empty and thus no wallets are filtered out.
   const wallets = await models.$queryRaw`
     SELECT
       "Wallet".*,
@@ -131,17 +131,17 @@ export async function getInvoiceableWallets (userId, { failedInvoiceId, models }
         WITH RECURSIVE "Retries" AS (
           -- select the current failed invoice that we are currently retrying
           -- this failed invoice will be used to start the recursion
-          SELECT "Invoice"."id", "Invoice"."failedInvoiceId"
+          SELECT "Invoice"."id", "Invoice"."predecessorId"
           FROM "Invoice"
-          WHERE "Invoice"."id" = ${failedInvoiceId} AND "Invoice"."actionState" = 'FAILED'
+          WHERE "Invoice"."id" = ${predecessorId} AND "Invoice"."actionState" = 'FAILED'
 
           UNION ALL
 
-          -- recursive part: use failedInvoiceId to select the previous invoice that failed in the chain
+          -- recursive part: use predecessorId to select the previous invoice that failed in the chain
           -- until there is no more previous invoice
-          SELECT "Invoice"."id", "Invoice"."failedInvoiceId"
+          SELECT "Invoice"."id", "Invoice"."predecessorId"
           FROM "Invoice"
-          JOIN "Retries" ON "Invoice"."id" = "Retries"."failedInvoiceId"
+          JOIN "Retries" ON "Invoice"."id" = "Retries"."predecessorId"
           WHERE "Invoice"."actionState" = 'RETRYING'
         )
         SELECT

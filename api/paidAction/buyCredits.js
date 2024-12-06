@@ -13,7 +13,7 @@ export async function getCost ({ credits }) {
 }
 
 export async function perform ({ credits }, { me, cost, tx }) {
-  return await tx.user.update({
+  await tx.user.update({
     where: { id: me.id },
     data: {
       mcredits: {
@@ -21,6 +21,10 @@ export async function perform ({ credits }, { me, cost, tx }) {
       }
     }
   })
+
+  return {
+    credits
+  }
 }
 
 export async function describe () {

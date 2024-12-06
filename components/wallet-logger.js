@@ -281,7 +281,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
 
   useEffect(() => {
     // only fetch new logs if we are on a page that uses logs
-    const needLogs = router.asPath.startsWith('/settings/wallets') || router.asPath.startsWith('/wallet/logs')
+    const needLogs = router.asPath.startsWith('/wallets')
     if (!me || !needLogs) return
 
     let timeout

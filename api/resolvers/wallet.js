@@ -563,6 +563,9 @@ const resolvers = {
       await models.walletLog.deleteMany({ where: { userId: me.id, wallet } })
 
       return true
+    },
+    buyCredits: async (parent, { credits }, { me, models, lnd }) => {
+      return await performPaidAction('BUY_CREDITS', { credits }, { models, me, lnd })
     }
   },
 

@@ -18,7 +18,7 @@ import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
 import * as BOOST from './boost'
 import * as RECEIVE from './receive'
-import * as BUY_FEE_CREDITS from './buyFeeCredits'
+import * as BUY_CREDITS from './buyCredits'
 import * as INVITE_GIFT from './inviteGift'
 
 export const paidActions = {
@@ -34,7 +34,7 @@ export const paidActions = {
   TERRITORY_UNARCHIVE,
   DONATE,
   RECEIVE,
-  BUY_FEE_CREDITS,
+  BUY_CREDITS,
   INVITE_GIFT
 }
 

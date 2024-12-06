@@ -118,6 +118,17 @@ export const DONATE = gql`
     }
   }`
 
+export const BUY_CREDITS = gql`
+  ${PAID_ACTION}
+  mutation buyCredits($credits: Int!) {
+    buyCredits(credits: $credits) {
+      result {
+        credits
+      }
+      ...PaidActionFields
+    }
+  }`
+
 export const ACT_MUTATION = gql`
   ${PAID_ACTION}
   ${ITEM_ACT_PAID_ACTION_FIELDS}

@@ -10,7 +10,6 @@ import { USER_ID } from '../../lib/constants'
 import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
-import HiddenWalletSummary from '../hidden-wallet-summary'
 import { abbrNum } from '../../lib/format'
 import { useServiceWorker } from '../serviceworker'
 import { signOut } from 'next-auth/react'
@@ -140,10 +139,7 @@ export function NavNotifications ({ className }) {
 
 export function WalletSummary () {
   const { me } = useMe()
-  if (!me) return null
-  if (me.privates?.hideWalletBalance) {
-    return <HiddenWalletSummary abbreviate fixedWidth />
-  }
+  if (!me || me.privates?.sats === 0) return null
   return (
     <span
       className='text-monospace'
@@ -159,8 +155,8 @@ export function NavWalletSummary ({ className }) {
 
   return (
     <Nav.Item className={className}>
-      <Link href='/wallet' passHref legacyBehavior>
-        <Nav.Link eventKey='wallet' className='text-success text-monospace px-0 text-nowrap'>
+      <Link href='/credits' passHref legacyBehavior>
+        <Nav.Link eventKey='credits' className='text-success text-monospace px-0 text-nowrap'>
           <WalletSummary me={me} />
         </Nav.Link>
       </Link>
@@ -200,8 +196,8 @@ export function MeDropdown ({ me, dropNavKey }) {
           <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
             <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
           </Link>
-          <Link href='/wallet' passHref legacyBehavior>
-            <Dropdown.Item eventKey='wallet'>wallet</Dropdown.Item>
+          <Link href='/wallets' passHref legacyBehavior>
+            <Dropdown.Item eventKey='wallets'>wallets</Dropdown.Item>
           </Link>
           <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
             <Dropdown.Item eventKey='satistics'>satistics</Dropdown.Item>

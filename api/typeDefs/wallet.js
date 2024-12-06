@@ -83,6 +83,11 @@ const typeDefs = `
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(wallet: String): Boolean
     setWalletPriority(id: ID!, priority: Int!): Boolean
+    buyCredits(credits: Int!): BuyCreditsPaidAction!
+  }
+
+  type BuyCreditsResult {
+    credits: Int!
   }
 
   interface InvoiceOrDirect {

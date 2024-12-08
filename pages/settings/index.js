@@ -170,6 +170,7 @@ export default function Settings ({ ssrData }) {
           onSubmit={async ({
             tipDefault, tipRandom, tipRandomMin, tipRandomMax, withdrawMaxFeeDefault,
             zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, satsFilter,
+            receiveCreditsBelowSats, sendCreditsBelowSats,
             ...values
           }) => {
             if (nostrPubkey.length === 0) {
@@ -195,6 +196,8 @@ export default function Settings ({ ssrData }) {
                     withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
                     satsFilter: Number(satsFilter),
                     zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
+                    receiveCreditsBelowSats: Number(receiveCreditsBelowSats),
+                    sendCreditsBelowSats: Number(sendCreditsBelowSats),
                     nostrPubkey,
                     nostrRelays: nostrRelaysFiltered,
                     ...values

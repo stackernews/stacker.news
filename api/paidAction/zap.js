@@ -30,6 +30,11 @@ export async function getInvoiceablePeer ({ id, sats }, { models, me }) {
     }
   })
 
+  // bios don't get sats
+  if (item.bio) {
+    return null
+  }
+
   const wallets = await getInvoiceableWallets(item.userId, { models })
 
   // request peer invoice if they have an attached wallet and have not forwarded the item

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { gql, useMutation } from '@apollo/client'
 import { signIn } from 'next-auth/react'
 import Col from 'react-bootstrap/Col'
@@ -41,7 +41,11 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
     title: undefined,
     button: undefined
   })
+
+  const [suggestion, setSuggestion] = useState(null)
+  const suggestionTimeout = useRef(null)
   const toaster = useToast()
+
   const challengeResolver = useCallback(async (challenge) => {
     const challengeUrl = sanitizeURL(challenge)
     if (challengeUrl) {
@@ -89,6 +93,23 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
     })
   }, [])
 
+  const clearSuggestionTimer = () => {
+    if (suggestionTimeout.current) clearTimeout(suggestionTimeout.current)
+  }
+
+  const setSuggestionWithTimer = (msg) => {
+    clearSuggestionTimer()
+    suggestionTimeout.current = setTimeout(() => {
+      setSuggestion(msg)
+    }, 10_000)
+  }
+
+  useEffect(() => {
+    return () => {
+      clearSuggestionTimer()
+    }
+  }, [])
+
   // authorize user
   const auth = useCallback(async (nip46token) => {
     setStatus({
@@ -111,7 +132,9 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
         signer.once('authUrl', challengeResolver)
       }
 
+      setSuggestionWithTimer('Having trouble? Try to use a fresh token or NIP-05 address')
       await signer.blockUntilReady()
+      clearSuggestionTimer()
 
       setStatus({
         msg: 'Signing in',
@@ -137,6 +160,8 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
       })
     } catch (e) {
       setError(e)
+    } finally {
+      clearSuggestionTimer()
     }
   }, [])
 
@@ -156,6 +181,9 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
               >
                 {status.button.label}
               </Button>
+            )}
+            {suggestion && (
+              <div className='text-muted text-center small pt-2'>{suggestion}</div>
             )}
           </>
           )

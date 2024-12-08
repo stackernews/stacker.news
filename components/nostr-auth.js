@@ -120,7 +120,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
       })
 
       const signedEvent = await Nostr.sign({
-        kind: 22242,
+        kind: 27235,
         created_at: Math.floor(Date.now() / 1000),
         tags: [['challenge', k1]],
         content: 'Stacker News Authentication'

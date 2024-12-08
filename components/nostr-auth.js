@@ -8,9 +8,7 @@ import AccordianItem from './accordian-item'
 import BackIcon from '@/svgs/arrow-left-line.svg'
 import Nostr from '@/lib/nostr'
 import { NDKNip46Signer } from '@nostr-dev-kit/ndk'
-import { useShowModal } from '@/components/modal'
 import { useToast } from '@/components/toast'
-import CancelButton from '@/components/cancel-button'
 import { Button } from 'react-bootstrap'
 import { Form, Input, SubmitButton } from '@/components/form'
 import Moon from '@/svgs/moon-fill.svg'
@@ -39,44 +37,34 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
   const [status, setStatus] = useState({
     msg: '',
     error: false,
-    loading: false
+    loading: false,
+    title: undefined,
+    button: undefined
   })
   const toaster = useToast()
-  const showModal = useShowModal()
-
   const challengeResolver = useCallback(async (challenge) => {
     const challengeUrl = sanitizeURL(challenge)
-    showModal((onClose) => (
-      <div>
-        <h2>Waiting for confirmation</h2>
-        <p>
-          Please confirm this action on your remote signer.
-        </p>
-        {!challengeUrl && (<pre>{challenge}</pre>)}
-        <div className='mt-3'>
-          <div className='d-flex justify-content-between'>
-            <div className='d-flex align-items-center ms-auto'>
-              <CancelButton onClick={onClose} />
-              {challengeUrl && (
-                <Button
-                  variant='primary'
-                  onClick={() => {
-                    setStatus({
-                      msg: 'Waiting for challenge',
-                      error: false,
-                      loading: true
-                    })
-                    window.open(challengeUrl, '_blank')
-                    onClose()
-                  }}
-                >confirm
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    ))
+    if (challengeUrl) {
+      setStatus({
+        title: 'Waiting for confirmation',
+        msg: 'Please confirm this action on your remote signer',
+        error: false,
+        loading: true,
+        button: {
+          label: 'open signer',
+          action: () => {
+            window.open(challengeUrl, '_blank')
+          }
+        }
+      })
+    } else {
+      setStatus({
+        title: 'Waiting for confirmation',
+        msg: challenge,
+        error: false,
+        loading: true
+      })
+    }
   }, [])
 
   // create auth challenge
@@ -150,9 +138,23 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
 
   return (
     <>
+      <h3 className='w-100 pb-2'>{status.title ? status.title : ((text || 'Login') + ' with Nostr')}</h3>
       {status.error && <NostrError message={status.msg} />}
       {status.loading
-        ? (<Moon className='spin fill-grey' width='50' height='50' />)
+        ? (
+          <>
+            <Moon className='spin fill-grey' width='50' height='50' />
+            <div className='text-muted pt-4 pb-4 w-100'>{status.msg}</div>
+            {status.button && (
+              <Button
+                className='w-100' variant='primary'
+                onClick={() => status.button.action()}
+              >
+                {status.button.label}
+              </Button>
+            )}
+          </>
+          )
         : (
           <>
             <Row className='w-100 g-1'>
@@ -174,11 +176,9 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
                   autoFocus
                 />
                 <div className='mt-2'>
-
                   <SubmitButton className='w-100' variant='primary'>
                     {text || 'Login'} with token or NIP-05
                   </SubmitButton>
-
                 </div>
               </Form>
               <div className='text-center text-muted fw-bold'>or</div>
@@ -267,7 +267,6 @@ export function NostrAuthWithExplainer ({ text, callbackUrl, multiAuth }) {
   return (
     <div className={styles.login}>
       <div className='w-100 mb-3 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>
-      <h3 className='w-100 pb-2'>{text || 'Login'} with Nostr</h3>
       <NostrAuth text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
     </div>
   )

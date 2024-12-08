@@ -4,10 +4,10 @@ import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString, lnurlPayDescrip
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
 import { LNURLP_COMMENT_MAX_LENGTH, MAX_INVOICE_DESCRIPTION_LENGTH } from '@/lib/constants'
-import { validateSchema, toPositiveBigInt } from '@/lib/format'
+import { toPositiveBigInt } from '@/lib/format'
 import assertGofacYourself from '@/api/resolvers/ofac'
 import performPaidAction from '@/api/paidAction'
-import { lud18PayerDataSchema } from '@/lib/validate'
+import { validateSchema, lud18PayerDataSchema } from '@/lib/validate'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })

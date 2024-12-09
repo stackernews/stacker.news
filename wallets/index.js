@@ -220,7 +220,7 @@ export function useWallet (name) {
 
 export function useSendWallets () {
   const { wallets } = useWallets()
-  // return the first enabled wallet that is available and can send
+  // return all enabled wallets that are available and can send
   return wallets
     .filter(w => !w.def.isAvailable || w.def.isAvailable())
     .filter(w => w.config?.enabled && canSend(w))

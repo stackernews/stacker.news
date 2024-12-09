@@ -111,8 +111,8 @@ export async function createWrappedInvoice (userId,
 }
 
 export async function getInvoiceableWallets (userId, { predecessorId, models }) {
-  // filter out all wallets that have already been tried by recursively following the retry chain of ancestor invoices.
-  // the current ancestor invoice is in state 'FAILED' and not in state 'RETRYING' because we are currently retrying it
+  // filter out all wallets that have already been tried by recursively following the retry chain of predecessor invoices.
+  // the current predecessor invoice is in state 'FAILED' and not in state 'RETRYING' because we are currently retrying it
   // so it has not been updated yet.
   // if predecessorId is not provided, the subquery will be empty and thus no wallets are filtered out.
   const wallets = await models.$queryRaw`

@@ -499,7 +499,6 @@ services:
       - '--large-channels'
       - '--rest-port=3010'
       - '--rest-host=0.0.0.0'
-      - '--log-file=/home/clightning/.lightning/debug.log'
       - '--fee-base=1000'
       - '--fee-per-satoshi=0'
       - '--funding-confirms=1'

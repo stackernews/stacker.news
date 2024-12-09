@@ -132,7 +132,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
         signer.once('authUrl', challengeResolver)
       }
 
-      setSuggestionWithTimer('Having trouble? Try to use a fresh token or NIP-05 address')
+      setSuggestionWithTimer('Having trouble? Make sure you used a fresh token or valid NIP-05 address')
       await signer.blockUntilReady()
       clearSuggestionTimer()
 

@@ -14,6 +14,7 @@ import { withTimeout } from '@/lib/time'
 export function useWalletPayment () {
   const wallets = useSendWallets()
   const sendPayment = useSendPayment()
+  const loggerFactory = useWalletLoggerFactory()
   const invoiceHelper = useInvoice()
 
   return useCallback(async (invoice, { waitFor, updateOnFallback }) => {
@@ -27,9 +28,12 @@ export function useWalletPayment () {
 
     for (let i = 0; i < wallets.length; i++) {
       const wallet = wallets[i]
+      const logger = loggerFactory(wallet)
+
+      const { bolt11 } = latestInvoice
       const controller = invoiceController(latestInvoice, invoiceHelper.isInvoice)
 
-      const walletPromise = sendPayment(wallet, latestInvoice)
+      const walletPromise = sendPayment(wallet, logger, latestInvoice)
       const pollPromise = controller.wait(waitFor)
 
       try {
@@ -41,10 +45,12 @@ export function useWalletPayment () {
         })
       } catch (err) {
         let paymentError = err
+        const message = `payment failed: ${paymentError.reason ?? paymentError.message}`
 
         if (!(paymentError instanceof WalletError)) {
           // payment failed for some reason unrelated to wallets (ie invoice expired or was canceled).
           // bail out of attempting wallets.
+          logger.error(message, { bolt11 })
           throw paymentError
         }
 
@@ -63,8 +69,13 @@ export function useWalletPayment () {
         }
 
         if (paymentError instanceof WalletReceiverError) {
-          // if payment failed because of the receiver, use the same wallet again.
+          // if payment failed because of the receiver, use the same wallet again
+          // and log this as info, not error
+          logger.info('failed to forward payment to receiver, retrying with new invoice', { bolt11 })
           i -= 1
+        } else if (paymentError instanceof WalletPaymentError) {
+          // only log payment errors, not configuration errors
+          logger.error(message, { bolt11 })
         }
 
         if (paymentError instanceof WalletPaymentError) {
@@ -130,11 +141,7 @@ function invoiceController (inv, isInvoice) {
 }
 
 function useSendPayment () {
-  const factory = useWalletLoggerFactory()
-
-  return useCallback(async (wallet, invoice) => {
-    const logger = factory(wallet)
-
+  return useCallback(async (wallet, logger, invoice) => {
     if (!wallet.config.enabled) {
       throw new WalletNotEnabledError(wallet.def.name)
     }
@@ -150,10 +157,9 @@ function useSendPayment () {
       const preimage = await wallet.def.sendPayment(bolt11, wallet.config, { logger })
       logger.ok(`↗ payment sent: ${formatSats(satsRequested)}`, { bolt11, preimage })
     } catch (err) {
-      // TODO: avoid logging confusing payment error if receiver failed and we canceled the invoice
+      // we don't log the error here since we want to handle receiver errors separately
       const message = err.message || err.toString?.()
-      logger.error(`payment failed: ${message}`, { bolt11 })
       throw new WalletSenderError(wallet.def.name, invoice, message)
     }
-  }, [factory])
+  }, [])
 }

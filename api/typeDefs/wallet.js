@@ -135,6 +135,7 @@ const typeDefs = `
     item: Item
     itemAct: ItemAct
     forwardedSats: Int
+    forwardStatus: String
   }
 
   type Withdrawl {

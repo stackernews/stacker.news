@@ -259,12 +259,12 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
     if (hasMore) {
       setLoading(true)
       const result = await loadLogsPage(page + 1, logsPerPage, wallet?.def)
-      _setLogs(prevLogs => uniqueSort([...prevLogs, ...result.data]))
+      setLogs(prevLogs => uniqueSort([...prevLogs, ...result.data]))
       setHasMore(result.hasMore)
       setPage(prevPage => prevPage + 1)
       setLoading(false)
     }
-  }, [loadLogsPage, page, logsPerPage, wallet?.def, hasMore])
+  }, [setLogs, loadLogsPage, page, logsPerPage, wallet?.def, hasMore])
 
   const loadNew = useCallback(async () => {
     const latestTs = latestTimestamp.current

@@ -39,7 +39,7 @@ services:
       - db:/var/lib/postgresql/data
     labels:
       CONNECT: "localhost:5431"
-    cpu_shares: "${CPU_SHARES_IMPORTANT}"
+    cpu_shares: "${CPU_SHARES_IMPORTANT:-1024}"
   tor:
     build:
       context: ./docker/tor
@@ -49,7 +49,7 @@ services:
     restart: unless-stopped
     volumes:
       - tordata:/tordata/
-    cpu_shares: "${CPU_SHARES_LOW}"
+    cpu_shares: "${CPU_SHARES_LOW:-256}"
     env_file: *env_file
     healthcheck:
       <<: *healthcheck
@@ -61,8 +61,8 @@ services:
     build:
       context: ./
       args:
-        - UID=${CURRENT_UID}
-        - GID=${CURRENT_GID}
+        - UID=${CURRENT_UID:-1000}
+        - GID=${CURRENT_GID:-100}
     restart: unless-stopped
     healthcheck:
       <<: *healthcheck
@@ -77,7 +77,7 @@ services:
       - ./:/app
     labels:
       CONNECT: "localhost:3000"
-    cpu_shares: "${CPU_SHARES_IMPORTANT}"
+    cpu_shares: "${CPU_SHARES_IMPORTANT:-1024}"
   capture:
     container_name: capture
     build:
@@ -99,14 +99,14 @@ services:
       - "5678:5678"
     labels:
       CONNECT: "localhost:5678"
-    cpu_shares: "${CPU_SHARES_LOW}"
+    cpu_shares: "${CPU_SHARES_LOW:-256}"
   worker:
     container_name: worker
     build:
       context: ./worker
       args:
-        - UID=${CURRENT_UID}
-        - GID=${CURRENT_GID}
+        - UID=${CURRENT_UID:-1000}
+        - GID=${CURRENT_GID:-100}
     restart: unless-stopped
     depends_on:
       <<:
@@ -118,7 +118,7 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - npm run worker:dev
-    cpu_shares: "${CPU_SHARES_IMPORTANT}"
+    cpu_shares: "${CPU_SHARES_IMPORTANT:-1024}"
   imgproxy:
     container_name: imgproxy
     image: darthsim/imgproxy:v3.23.0
@@ -135,7 +135,7 @@ services:
       - "8080"
     labels:
       - "CONNECT=localhost:3001"
-    cpu_shares: "${CPU_SHARES_LOW}"
+    cpu_shares: "${CPU_SHARES_LOW:-256}"
   s3:
     container_name: s3
     image: localstack/localstack:s3-latest
@@ -161,7 +161,7 @@ services:
       - './docker/s3/cors.json:/etc/localstack/init/ready.d/cors.json'
     labels:
       - "CONNECT=localhost:4566"
-    cpu_shares: "${CPU_SHARES_LOW}"
+    cpu_shares: "${CPU_SHARES_LOW:-256}"
   opensearch:
     image: opensearchproject/opensearch:2.12.0
     container_name: opensearch
@@ -201,7 +201,7 @@ services:
         echo "OpenSearch index created."
         fg
       '
-    cpu_shares: "${CPU_SHARES_LOW}"
+    cpu_shares: "${CPU_SHARES_LOW:-256}"
   os-dashboard:
     image: opensearchproject/opensearch-dashboards:2.12.0
     container_name: os-dashboard
@@ -223,7 +223,7 @@ services:
       - opensearch
     labels:
       CONNECT: "localhost:5601"
-    cpu_shares: "${CPU_SHARES_LOW}"
+    cpu_shares: "${CPU_SHARES_LOW:-256}"
   bitcoin:
     image: polarlightning/bitcoind:27.0
     container_name: bitcoin
@@ -302,7 +302,7 @@ services:
             done
           fi
         '
-    cpu_shares: "${CPU_SHARES_MODERATE}"
+    cpu_shares: "${CPU_SHARES_MODERATE:-512}"
   sn_lnd:
     build:
       context: ./docker/lnd
@@ -362,7 +362,7 @@ services:
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
         "
-    cpu_shares: "${CPU_SHARES_MODERATE}"
+    cpu_shares: "${CPU_SHARES_MODERATE:-512}"
   lnd:
     build:
       context: ./docker/lnd
@@ -433,7 +433,7 @@ services:
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
         "
-    cpu_shares: "${CPU_SHARES_MODERATE}"
+    cpu_shares: "${CPU_SHARES_MODERATE:-512}"
   litd:
     container_name: litd
     build:
@@ -470,7 +470,7 @@ services:
       CONNECT: "localhost:8443"
       CLI: "litcli"
       CLI_ARGS: "-n regtest --rpcserver localhost:8444"
-    cpu_shares: "${CPU_SHARES_MODERATE}"
+    cpu_shares: "${CPU_SHARES_MODERATE:-512}"
   cln:
     build:
       context: ./docker/cln
@@ -492,8 +492,8 @@ services:
       - '--network=regtest'
       - '--alias=cln'
       - '--bitcoin-rpcconnect=bitcoin'
-      - '--bitcoin-rpcuser=${RPC_USER}'
-      - '--bitcoin-rpcpassword=${RPC_PASS}'
+      - '--bitcoin-rpcuser=${RPC_USER:-bitcoin}'
+      - '--bitcoin-rpcpassword=${RPC_PASS:-bitcoin}'
       - '--large-channels'
       - '--rest-port=3010'
       - '--rest-host=0.0.0.0'
@@ -501,7 +501,7 @@ services:
     expose:
       - "9735"
     ports:
-      - "${STACKER_CLN_REST_PORT}:3010"
+      - "${STACKER_CLN_REST_PORT:-3010}:3010"
     volumes:
       - cln:/home/clightning/.lightning
       - tordata:/home/clightning/.tor
@@ -522,7 +522,7 @@ services:
               amount=1000000000 push_msat=500000000000 minconf=0
           fi
         "
-    cpu_shares: "${CPU_SHARES_MODERATE}"
+    cpu_shares: "${CPU_SHARES_MODERATE:-512}"
   channdler:
     image: mcuadros/ofelia:latest
     container_name: channdler
@@ -537,7 +537,7 @@ services:
     command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    cpu_shares: "${CPU_SHARES_LOW}"
+    cpu_shares: "${CPU_SHARES_LOW:-256}"
   mailhog:
     image: mailhog/mailhog:latest
     container_name: mailhog
@@ -554,7 +554,7 @@ services:
       - app
     labels:
       CONNECT: "localhost:8025"
-    cpu_shares: "${CPU_SHARES_LOW}"
+    cpu_shares: "${CPU_SHARES_LOW:-256}"
   nwc_send:
     image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master
     container_name: nwc_send
@@ -588,7 +588,7 @@ services:
       - '0'
       - '--keys-file'
       - 'keys-file.json'
-    cpu_shares: "${CPU_SHARES_LOW}"
+    cpu_shares: "${CPU_SHARES_LOW:-256}"
   nwc_recv:
     image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master
     container_name: nwc_recv
@@ -622,7 +622,7 @@ services:
       - '0'
       - '--keys-file'
       - 'keys-file.json'
-    cpu_shares: "${CPU_SHARES_LOW}"
+    cpu_shares: "${CPU_SHARES_LOW:-256}"
   lnbits:
     build:
       context: ./docker/lnbits
@@ -631,7 +631,7 @@ services:
       - wallets
     restart: unless-stopped
     ports:
-      - "${LNBITS_WEB_PORT}:5000"
+      - "${LNBITS_WEB_PORT:-5000}:5000"
     depends_on:
       tor:
         condition: service_healthy
@@ -650,9 +650,9 @@ services:
       - lnd:/app/.lnd
       - tordata:/app/.tor
     labels:
-      CONNECT: "localhost:${LNBITS_WEB_PORT}"
+      CONNECT: "localhost:${LNBITS_WEB_PORT:-5000}"
       TORDIR: "/app/.tor"
-    cpu_shares: "${CPU_SHARES_LOW}"
+    cpu_shares: "${CPU_SHARES_LOW:-256}"
 volumes:
   db:
   os:

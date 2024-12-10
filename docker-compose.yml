@@ -489,6 +489,8 @@ services:
     env_file: *env_file
     command:
       - 'lightningd'
+      - '--addr=0.0.0.0:9735'
+      - '--announce-addr=cln:9735'
       - '--network=regtest'
       - '--alias=cln'
       - '--bitcoin-rpcconnect=bitcoin'
@@ -497,7 +499,6 @@ services:
       - '--large-channels'
       - '--rest-port=3010'
       - '--rest-host=0.0.0.0'
-      - '--log-file=/home/clightning/.lightning/debug.log'
     expose:
       - "9735"
     ports:

@@ -557,6 +557,8 @@ services:
       - '--bitcoind.zmqpubrawblock=tcp://bitcoin:${ZMQ_BLOCK_PORT}'
       - '--bitcoind.zmqpubrawtx=tcp://bitcoin:${ZMQ_TX_PORT}'
       - '--protocol.wumbo-channels'
+      - '--bitcoin.basefee=1000'
+      - '--bitcoin.feerate=0'
       - '--maxchansize=1000000000'
       - '--allow-circular-route'
       - '--bitcoin.defaultchanconfs=1'

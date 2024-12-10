@@ -270,7 +270,7 @@ services:
             command bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} "$$@"
           }
           blockcount=$$(bitcoin-cli getblockcount 2>/dev/null)
-          nodes=(${LND_ADDR} ${STACKER_LND_ADDR} ${STACKER_CLN_ADDR})
+          nodes=(${SN_LND_ADDR} ${LND_ADDR} ${CLN_ADDR})
           if (( blockcount <= 0 )); then
             echo "Creating wallet and address..."
             bitcoin-cli createwallet ""
@@ -344,8 +344,8 @@ services:
     expose:
       - "9735"
     ports:
-      - "${LND_REST_PORT}:8080"
-      - "${LND_GRPC_PORT}:10009"
+      - "${SN_LND_REST_PORT}:8080"
+      - "${SN_LND_GRPC_PORT}:10009"
     volumes:
       - sn_lnd:/home/lnd/.lnd
     labels:
@@ -358,7 +358,7 @@ services:
           if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
             exit 0
           else
-            lncli openchannel --node_key=$STACKER_LND_PUBKEY --connect lnd:9735 --sat_per_vbyte 1 \\
+            lncli openchannel --node_key=$LND_PUBKEY --connect lnd:9735 --sat_per_vbyte 1 \\
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
         "
@@ -412,8 +412,8 @@ services:
       - "9735"
       - "10009"
     ports:
-      - "${STACKER_LND_REST_PORT}:8080"
-      - "${STACKER_LND_GRPC_PORT}:10009"
+      - "${LND_REST_PORT}:8080"
+      - "${LND_GRPC_PORT}:10009"
     volumes:
       - lnd:/home/lnd/.lnd
       - tordata:/home/lnd/.tor
@@ -429,7 +429,7 @@ services:
           if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
             exit 0
           else
-            lncli openchannel --node_key=$LND_PUBKEY --connect sn_lnd:9735 --sat_per_vbyte 1 \\
+            lncli openchannel --node_key=$SN_LND_PUBKEY --connect sn_lnd:9735 --sat_per_vbyte 1 \\
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
         "
@@ -501,7 +501,7 @@ services:
     expose:
       - "9735"
     ports:
-      - "${STACKER_CLN_REST_PORT}:3010"
+      - "${CLN_REST_PORT}:3010"
     volumes:
       - cln:/home/clightning/.lightning
       - tordata:/home/clightning/.tor
@@ -517,8 +517,8 @@ services:
           if [ $$(lightning-cli --regtest getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
             exit 0
           else
-            lightning-cli --regtest connect $LND_PUBKEY@sn_lnd:9735
-            lightning-cli --regtest fundchannel id=$LND_PUBKEY feerate=1000perkb \\
+            lightning-cli --regtest connect $SN_LND_PUBKEY@sn_lnd:9735
+            lightning-cli --regtest fundchannel id=$SN_LND_PUBKEY feerate=1000perkb \\
               amount=1000000000 push_msat=500000000000 minconf=0
           fi
         "

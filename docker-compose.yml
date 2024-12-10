@@ -270,7 +270,7 @@ services:
             command bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} "$$@"
           }
           blockcount=$$(bitcoin-cli getblockcount 2>/dev/null)
-          nodes=(${SN_LND_ADDR} ${LND_ADDR} ${CLN_ADDR})
+          nodes=(${SN_LND_ADDR} ${LND_ADDR} ${CLN_ADDR} ${ROUTER_LND_ADDR})
           if (( blockcount <= 0 )); then
             echo "Creating wallet and address..."
             bitcoin-cli createwallet ""

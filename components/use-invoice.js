@@ -16,7 +16,7 @@ export default function useInvoice () {
       throw error
     }
 
-    const { cancelled, cancelledAt, actionError, actionState, expiresAt, isHeld } = data.invoice
+    const { cancelled, cancelledAt, actionError, expiresAt, forwardStatus } = data.invoice
 
     const expired = cancelledAt && new Date(expiresAt) < new Date(cancelledAt)
     if (expired) {
@@ -25,18 +25,12 @@ export default function useInvoice () {
 
     const failed = cancelled || actionError
 
-    // failed forwards might already have been finalized (actionState === 'FAILED') so we also check for failed held payments
-    if (actionState === 'FAILED_FORWARD' || (failed && isHeld)) {
+    if (failed && (forwardStatus && forwardStatus !== 'CONFIRMED')) {
       throw new WalletReceiverError(data.invoice)
     }
 
     if (failed) {
       throw new InvoiceCanceledError(data.invoice, actionError)
-    }
-
-    // write to cache if paid
-    if (actionState === 'PAID') {
-      client.writeQuery({ query: INVOICE, variables: { id }, data: { invoice: data.invoice } })
     }
 
     return { invoice: data.invoice, check: that(data.invoice) }

@@ -12,12 +12,12 @@ const carousel = [
   'halving'
 ]
 
-export const CarouselContext = createContext({
+export const PriceCarouselContext = createContext({
   selection: undefined,
   handleClick: () => {}
 })
 
-export function CarouselProvider ({ children }) {
+export function PriceCarouselProvider ({ children }) {
   const [selection, setSelection] = useState(undefined)
   const [pos, setPos] = useState(0)
 
@@ -35,12 +35,12 @@ export function CarouselProvider ({ children }) {
   }, [pos])
 
   return (
-    <CarouselContext.Provider value={[selection, handleClick]}>
+    <PriceCarouselContext.Provider value={[selection, handleClick]}>
       {children}
-    </CarouselContext.Provider>
+    </PriceCarouselContext.Provider>
   )
 }
 
-export function useCarousel () {
-  return useContext(CarouselContext)
+export function usePriceCarousel () {
+  return useContext(PriceCarouselContext)
 }

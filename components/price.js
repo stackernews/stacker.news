@@ -8,7 +8,7 @@ import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { useBlockHeight } from './block-height'
 import { useChainFee } from './chain-fee'
 import { CompactLongCountdown } from './countdown'
-import { useCarousel } from './nav/carousel'
+import { usePriceCarousel } from './nav/price-carousel'
 
 export const PriceContext = React.createContext({
   price: null,
@@ -45,7 +45,7 @@ export function PriceProvider ({ price, children }) {
 }
 
 export default function Price ({ className }) {
-  const [selection, handleClick] = useCarousel()
+  const [selection, handleClick] = usePriceCarousel()
 
   const { price, fiatSymbol } = usePrice()
   const { height: blockHeight, halving } = useBlockHeight()

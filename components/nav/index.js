@@ -2,7 +2,7 @@ import { useRouter } from 'next/router'
 import DesktopHeader from './desktop/header'
 import MobileHeader from './mobile/header'
 import StickyBar from './sticky-bar'
-import { CarouselProvider } from './carousel'
+import { PriceCarouselProvider } from './price-carousel'
 
 export default function Navigation ({ sub }) {
   const router = useRouter()
@@ -17,10 +17,10 @@ export default function Navigation ({ sub }) {
   }
 
   return (
-    <CarouselProvider>
+    <PriceCarouselProvider>
       <DesktopHeader {...props} />
       <MobileHeader {...props} />
       <StickyBar {...props} />
-    </CarouselProvider>
+    </PriceCarouselProvider>
   )
 }

@@ -241,12 +241,15 @@ services:
       - '-debug=1'
       - '-zmqpubrawblock=tcp://0.0.0.0:${ZMQ_BLOCK_PORT}'
       - '-zmqpubrawtx=tcp://0.0.0.0:${ZMQ_TX_PORT}'
+      - '-zmqpubhashblock=tcp://bitcoin:${ZMQ_HASHBLOCK_PORT}'
       - '-txindex=1'
       - '-dnsseed=0'
       - '-upnp=0'
       - '-rpcbind=0.0.0.0'
       - '-rpcallowip=0.0.0.0/0'
+      - '-whitelist=0.0.0.0/0'
       - '-rpcport=${RPC_PORT}'
+      - '-deprecatedrpc=signrawtransaction'
       - '-rest'
       - '-listen=1'
       - '-listenonion=0'
@@ -262,6 +265,8 @@ services:
     volumes:
       - bitcoin:/home/bitcoin/.bitcoin
     labels:
+      CLI: "bitcoin-cli"
+      CLI_ARGS: "-chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS}"
       ofelia.enabled: "true"
       ofelia.job-exec.minecron.schedule: "@every 1m"
       ofelia.job-exec.minecron.command: >
@@ -270,12 +275,12 @@ services:
             command bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} "$$@"
           }
           blockcount=$$(bitcoin-cli getblockcount 2>/dev/null)
-          nodes=(${SN_LND_ADDR} ${LND_ADDR} ${CLN_ADDR})
+          nodes=(${SN_LND_ADDR} ${LND_ADDR} ${CLN_ADDR} ${ECLAIR_ADDR})
           if (( blockcount <= 0 )); then
             echo "Creating wallet and address..."
             bitcoin-cli createwallet ""
             nodes+=($$(bitcoin-cli getnewaddress))
-            echo "Mining 100 blocks to sn_lnd, lnd, cln..."
+            echo "Mining 100 blocks to sn_lnd, lnd, cln, eclair..."
             for addr in  "$${nodes[@]}"; do
               bitcoin-cli generatetoaddress 100 $$addr
               echo "Mining 100 blocks to a random address..."
@@ -341,6 +346,10 @@ services:
       - '--allow-circular-route'
       - '--bitcoin.defaultchanconfs=1'
       - '--maxpendingchannels=10'
+      - '--gossip.sub-batch-delay=1s'
+      - '--protocol.custom-message=513'
+      - '--protocol.custom-nodeann=39'
+      - '--protocol.custom-init=39'
     expose:
       - "9735"
     ports:
@@ -362,6 +371,32 @@ services:
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
         "
+    cpu_shares: "${CPU_SHARES_MODERATE}"
+  sn_lndk:
+    build:
+      context: ./docker/lndk
+    container_name: sn_lndk
+    restart: unless-stopped
+    profiles:
+      - payments
+    depends_on:
+      sn_lnd:
+        condition: service_healthy
+        restart: true
+    env_file: *env_file
+    command:
+      - 'lndk' 
+      - '--grpc-host=0.0.0.0'
+      - '--address=https://sn_lnd:10009'   
+      - '--cert-path=/home/lnd/.lnd/tls.cert'
+      - '--macaroon-path=/home/lnd/.lnd/data/chain/bitcoin/regtest/admin.macaroon'
+    ports:
+      - "${SN_LNDK_GRPC_PORT}:7000"
+    volumes:
+      - sn_lnd:/home/lnd/.lnd
+    labels:
+      CLI: "lndk-cli --macaroon-path=/home/lnd/.lnd/data/chain/bitcoin/regtest/admin.macaroon"
+      CLI_USER: "lndk"
     cpu_shares: "${CPU_SHARES_MODERATE}"
   lnd:
     build:
@@ -524,6 +559,63 @@ services:
           fi
         "
     cpu_shares: "${CPU_SHARES_MODERATE}"
+  eclair:
+    build:
+      context: ./docker/eclair
+      args:
+        - LN_NODE_FOR=stacker
+    container_name: eclair
+    profiles:
+      - payments
+    restart: unless-stopped
+    depends_on:
+      <<: *depends_on_bitcoin
+    environment:
+      <<: *env_file
+      JAVA_OPTS:
+        -Declair.printToConsole
+        -Dakka.loglevel=DEBUG
+        -Declair.server.port=9735
+        -Declair.server.public-ips.0=eclair
+        -Declair.api.binding-ip=0.0.0.0
+        -Declair.api.enabled=true
+        -Declair.api.port=8080
+        -Declair.api.password=pass        
+        -Declair.node-alias=eclair
+        -Declair.chain=regtest
+        -Declair.bitcoind.host=bitcoin
+        -Declair.bitcoind.rpcport=${RPC_PORT}
+        -Declair.bitcoind.rpcuser=${RPC_USER}
+        -Declair.bitcoind.rpcpassword=${RPC_PASS}
+        -Declair.bitcoind.zmqblock=tcp://bitcoin:${ZMQ_HASHBLOCK_PORT}
+        -Declair.bitcoind.zmqtx=tcp://bitcoin:${ZMQ_TX_PORT}
+        -Declair.bitcoind.batch-watcher-requests=false
+        -Declair.features.option_onion_messages=optional        
+        -Declair.features.option_route_blinding=optional   
+        -Declair.features.keysend=optional   
+        -Declair.channel.accept-incoming-static-remote-key-channels=true     
+        -Declair.tip-jar.description=bolt12     
+        -Declair.tip-jar.default-amount-msat=100000000 
+        -Declair.tip-jar.max-final-expiry-delta=1000 
+    volumes:
+      - eclair:/data
+    expose:
+      - "9735"
+    labels:
+      CLI: "eclair-cli"
+      CLI_USER: "root"
+      CLI_ARGS: "-p pass"
+      ofelia.enabled: "true"
+      ofelia.job-exec.eclair_channel_cron.schedule: "@every 1m"
+      ofelia.job-exec.eclair_channel_cron.command: >
+        bash -c "
+          if [ $$(eclair-cli -p pass channels | jq 'length') -ge 3 ]; then
+            exit 0
+          else
+            eclair-cli -p pass connect --uri=$SN_LND_PUBKEY@sn_lnd:9735
+            eclair-cli -p pass open --nodeId=$SN_LND_PUBKEY --fundingFeerateSatByte=1 --fundingSatoshis=1000000 --pushMsat=500000000 --announceChannel=true
+          fi
+        "
   channdler:
     image: mcuadros/ofelia:latest
     container_name: channdler
@@ -665,3 +757,4 @@ volumes:
   nwc_send:
   nwc_recv:
   tordata:
+  eclair:

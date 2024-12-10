@@ -523,6 +523,55 @@ services:
           fi
         "
     cpu_shares: "${CPU_SHARES_MODERATE}"
+  router_lnd:
+    build:
+      context: ./docker/lnd
+      args:
+        - LN_NODE_FOR=router
+    container_name: router_lnd
+    restart: unless-stopped
+    profiles:
+      - payments
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD-SHELL", "lncli", "getinfo"]
+    depends_on: *depends_on_bitcoin
+    env_file: *env_file
+    command:
+      - 'lnd'
+      - '--noseedbackup'
+      - '--trickledelay=5000'
+      - '--alias=router_lnd'
+      - '--externalip=router_lnd'
+      - '--tlsextradomain=router_lnd'
+      - '--tlsextradomain=host.docker.internal'
+      - '--listen=0.0.0.0:9735'
+      - '--rpclisten=0.0.0.0:10009'
+      - '--restlisten=0.0.0.0:8080'
+      - '--bitcoin.active'
+      - '--bitcoin.regtest'
+      - '--bitcoin.node=bitcoind'
+      - '--bitcoind.rpchost=bitcoin'
+      - '--bitcoind.rpcuser=${RPC_USER}'
+      - '--bitcoind.rpcpass=${RPC_PASS}'
+      - '--bitcoind.zmqpubrawblock=tcp://bitcoin:${ZMQ_BLOCK_PORT}'
+      - '--bitcoind.zmqpubrawtx=tcp://bitcoin:${ZMQ_TX_PORT}'
+      - '--protocol.wumbo-channels'
+      - '--maxchansize=1000000000'
+      - '--allow-circular-route'
+      - '--bitcoin.defaultchanconfs=1'
+      - '--maxpendingchannels=10'
+    expose:
+      - "9735"
+    ports:
+      - "${ROUTER_LND_REST_PORT}:8080"
+      - "${ROUTER_LND_GRPC_PORT}:10009"
+    volumes:
+      - router_lnd:/home/lnd/.lnd
+    labels:
+      CLI: "lncli"
+      CLI_USER: "lnd"
+    cpu_shares: "${CPU_SHARES_MODERATE}"
   channdler:
     image: mcuadros/ofelia:latest
     container_name: channdler
@@ -660,6 +709,7 @@ volumes:
   sn_lnd:
   lnd:
   cln:
+  router_lnd:
   s3:
   nwc_send:
   nwc_recv:

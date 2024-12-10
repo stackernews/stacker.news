@@ -606,6 +606,15 @@ const resolvers = {
     satsReceived: i => msatsToSats(i.msatsReceived),
     satsRequested: i => msatsToSats(i.msatsRequested),
     // we never want to fetch the sensitive data full monty in nested resolvers
+    forwardStatus: async (invoice, args, { models }) => {
+      const forward = await models.invoiceForward.findUnique({
+        where: { invoiceId: Number(invoice.id) },
+        include: {
+          withdrawl: true
+        }
+      })
+      return forward?.withdrawl?.status
+    },
     forwardedSats: async (invoice, args, { models }) => {
       const msats = (await models.invoiceForward.findUnique({
         where: { invoiceId: Number(invoice.id) },

@@ -1,8 +1,8 @@
 import { useApolloClient, useMutation } from '@apollo/client'
 import { useCallback } from 'react'
+import { InvoiceCanceledError, InvoiceExpiredError, WalletReceiverError } from '@/wallets/errors'
 import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
 import { INVOICE, CANCEL_INVOICE } from '@/fragments/wallet'
-import { InvoiceExpiredError, InvoiceCanceledError } from '@/wallets/errors'
 
 export default function useInvoice () {
   const client = useApolloClient()
@@ -16,20 +16,21 @@ export default function useInvoice () {
       throw error
     }
 
-    const { cancelled, cancelledAt, actionError, actionState, expiresAt } = data.invoice
+    const { cancelled, cancelledAt, actionError, expiresAt, forwardStatus } = data.invoice
 
     const expired = cancelledAt && new Date(expiresAt) < new Date(cancelledAt)
     if (expired) {
       throw new InvoiceExpiredError(data.invoice)
     }
 
-    if (cancelled || actionError) {
-      throw new InvoiceCanceledError(data.invoice, actionError)
+    const failed = cancelled || actionError
+
+    if (failed && (forwardStatus && forwardStatus !== 'CONFIRMED')) {
+      throw new WalletReceiverError(data.invoice)
     }
 
-    // write to cache if paid
-    if (actionState === 'PAID') {
-      client.writeQuery({ query: INVOICE, variables: { id }, data: { invoice: data.invoice } })
+    if (failed) {
+      throw new InvoiceCanceledError(data.invoice, actionError)
     }
 
     return { invoice: data.invoice, check: that(data.invoice) }

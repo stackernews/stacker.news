@@ -316,13 +316,11 @@ export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...a
   }, { models, lnd, boss })
 
   if (transitionedInvoice) {
-    const { bolt11, msatsPaid, msatsFeePaid } = transitionedInvoice.invoiceForward.withdrawl
-    // the amount we paid includes the fee so we need to subtract it to get the amount received
-    const received = Number(msatsPaid) - Number(msatsFeePaid)
+    const { bolt11, msatsPaid } = transitionedInvoice.invoiceForward.withdrawl
 
     const logger = walletLogger({ wallet: transitionedInvoice.invoiceForward.wallet, models })
     logger.ok(
-      `↙ payment received: ${formatSats(msatsToSats(received))}`,
+      `↙ payment received: ${formatSats(msatsToSats(Number(msatsPaid)))}`,
       {
         bolt11,
         preimage: transitionedInvoice.preimage

@@ -292,7 +292,7 @@ export function useZap () {
     // add current sats to next tip since idempotent zaps use desired total zap not difference
     const sats = nextTip(meSats, { ...me?.privates })
 
-    const variables = { id: item.id, sats, act: 'TIP' }
+    const variables = { id: item.id, sats, act: 'TIP', hasSendWallet: wallets.length > 0 }
     const optimisticResponse = { act: { __typename: 'ItemActPaidAction', result: { path: item.path, ...variables } } }
 
     try {

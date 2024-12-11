@@ -1,4 +1,4 @@
-import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
+import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { msatsToSats, satsToMsats, toPositiveBigInt } from '@/lib/format'
 import { Prisma } from '@prisma/client'
 import { parsePaymentRequest, payViaPaymentRequest } from 'ln-service'
@@ -44,7 +44,8 @@ export default async function performPayingAction ({ bolt11, maxFee, walletId },
       lnd,
       request: withdrawal.bolt11,
       max_fee: msatsToSats(withdrawal.msatsFeePaying),
-      pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS
+      pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
+      confidence: LND_PATHFINDING_TIME_PREF_PPM
     }).catch(console.error)
 
     return withdrawal

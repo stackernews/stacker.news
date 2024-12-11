@@ -1,7 +1,7 @@
 import { getPaymentFailureStatus, hodlInvoiceCltvDetails, getPaymentOrNotSent } from '@/api/lnd'
 import { paidActions } from '@/api/paidAction'
 import { walletLogger } from '@/api/resolvers/wallet'
-import { LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
+import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { formatMsats, formatSats, msatsToSats, toPositiveNumber } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
@@ -270,6 +270,7 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
       request: bolt11,
       max_fee_mtokens: String(maxFeeMsats),
       pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
+      confidence: LND_PATHFINDING_TIME_PREF_PPM,
       max_timeout_height: maxTimeoutHeight
     }).catch(console.error)
   }

@@ -232,9 +232,15 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   // because the mutation name we use varies,
   // we need to extract the result/invoice from the response
   const getPaidActionResult = data => Object.values(data)[0]
+  const wallets = useSendWallets()
 
   const [act] = usePaidMutation(query, {
-    waitFor: inv => inv?.satsReceived > 0,
+    waitFor: inv =>
+      // if we have attached wallets, we might be paying a wrapped invoice in which case we need to make sure
+      // we don't prematurely consider the payment as successful (important for receiver fallbacks)
+      wallets.length > 0
+        ? inv?.actionState === 'PAID'
+        : inv?.satsReceived > 0,
     ...options,
     update: (cache, { data }) => {
       const response = getPaidActionResult(data)

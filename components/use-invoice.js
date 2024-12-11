@@ -4,6 +4,8 @@ import { InvoiceCanceledError, InvoiceExpiredError, WalletReceiverError } from '
 import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
 import { INVOICE, CANCEL_INVOICE } from '@/fragments/wallet'
 
+const PENDING_FORWARD_STATES = ['PENDING_HELD', 'FORWARDING']
+
 export default function useInvoice () {
   const client = useApolloClient()
   const [retryPaidAction] = useMutation(RETRY_PAID_ACTION)
@@ -16,24 +18,29 @@ export default function useInvoice () {
       throw error
     }
 
-    const { cancelled, cancelledAt, actionError, expiresAt, forwardStatus } = data.invoice
+    const { cancelled, cancelledAt, actionState, actionError, expiresAt, forwardStatus } = data.invoice
 
     const expired = cancelledAt && new Date(expiresAt) < new Date(cancelledAt)
     if (expired) {
       throw new InvoiceExpiredError(data.invoice)
     }
 
-    const failed = cancelled || actionError
-
-    if (failed && (forwardStatus && forwardStatus !== 'CONFIRMED')) {
+    const failedForward = forwardStatus && forwardStatus !== 'CONFIRMED'
+    if (failedForward) {
       throw new WalletReceiverError(data.invoice)
     }
 
+    const failed = cancelled || actionError
     if (failed) {
       throw new InvoiceCanceledError(data.invoice, actionError)
     }
 
-    return { invoice: data.invoice, check: that(data.invoice) }
+    // never let check pass if a forward is pending
+    // see https://github.com/stackernews/stacker.news/issues/1707
+    const pendingForward = PENDING_FORWARD_STATES.includes(actionState)
+    const check = that(data.invoice) && !pendingForward
+
+    return { invoice: data.invoice, check }
   }, [client])
 
   const cancel = useCallback(async ({ hash, hmac }) => {

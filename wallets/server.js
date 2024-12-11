@@ -148,7 +148,8 @@ export async function getInvoiceableWallets (userId, { predecessorId, models }) 
           "InvoiceForward"."walletId"
         FROM "Retries"
         JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Retries"."id"
-        WHERE "InvoiceForward"."withdrawlId" IS NOT NULL
+        JOIN "Withdrawl" ON "Withdrawl".id = "InvoiceForward"."withdrawlId"
+        WHERE "Withdrawl"."status" IS DISTINCT FROM 'CONFIRMED'
       )
     ORDER BY "Wallet"."priority" ASC, "Wallet"."id" ASC`
 

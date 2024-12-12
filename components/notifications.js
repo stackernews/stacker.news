@@ -501,13 +501,23 @@ function Invoicification ({ n: { invoice, sortTime } }) {
 }
 
 function WithdrawlPaid ({ n }) {
-  let actionString = n.withdrawl.autoWithdraw ? 'sent to your attached wallet' : 'withdrawn from your account'
+  let amount = n.earnedSats + n.withdrawl.satsFeePaid
+  let actionString = 'withdrawn from your account'
+
+  if (n.withdrawl.autoWithdraw) {
+    actionString = 'sent to your attached wallet'
+  }
+
   if (n.withdrawl.forwardedActionType === 'ZAP') {
+    // don't expose receivers to routing fees they aren't paying
+    amount = n.earnedSats
     actionString = 'zapped directly to your attached wallet'
   }
+
   return (
     <div className='fw-bold text-info'>
-      <Check className='fill-info me-1' />{numWithUnits(n.earnedSats + n.withdrawl.satsFeePaid, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
+      <Check className='fill-info me-1' />
+      {numWithUnits(amount, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
       {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       {(n.withdrawl.forwardedActionType === 'ZAP' && <Badge className={styles.badge} bg={null}>p2p</Badge>) ||

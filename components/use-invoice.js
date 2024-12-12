@@ -23,12 +23,12 @@ export default function useInvoice () {
       throw new InvoiceExpiredError(data.invoice)
     }
 
-    const failed = cancelled || actionError
-
-    if (failed && (forwardStatus && forwardStatus !== 'CONFIRMED')) {
+    const failedForward = forwardStatus && forwardStatus !== 'CONFIRMED'
+    if (failedForward) {
       throw new WalletReceiverError(data.invoice)
     }
 
+    const failed = cancelled || actionError
     if (failed) {
       throw new InvoiceCanceledError(data.invoice, actionError)
     }

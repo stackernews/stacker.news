@@ -8,7 +8,8 @@ import {
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   USER_ID, POLL_COST, ADMIN_ITEMS, GLOBAL_SEED,
   NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS,
-  BOOST_MULT
+  BOOST_MULT,
+  ITEM_EDIT_SECONDS
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
@@ -1350,8 +1351,9 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     throw new GqlInputError('item is deleted')
   }
 
-  // author can edit their own item (except anon)
   const meId = Number(me?.id ?? USER_ID.anon)
+
+  // author can edit their own item (except anon)
   const authorEdit = !!me && Number(old.userId) === meId
   // admins can edit special items
   const adminEdit = ADMIN_ITEMS.includes(old.id) && SN_ADMIN_IDS.includes(meId)
@@ -1360,9 +1362,9 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   if (old.invoice?.hash && hash && hmac) {
     hmacEdit = old.invoice.hash === hash && verifyHmac(hash, hmac)
   }
-
   // ownership permission check
-  if (!authorEdit && !adminEdit && !hmacEdit) {
+  const ownerEdit = authorEdit || adminEdit || hmacEdit
+  if (!ownerEdit) {
     throw new GqlInputError('item does not belong to you')
   }
 
@@ -1379,12 +1381,11 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
 
   const user = await models.user.findUnique({ where: { id: meId } })
 
-  // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
+  // edits are only allowed for own items within 10 minutes but forever if it's their bio or a job
   const myBio = user.bioId === old.id
-  const timer = Date.now() < datePivot(new Date(old.invoicePaidAt ?? old.createdAt), { minutes: 10 })
-
-  // timer permission check
-  if (!adminEdit && !myBio && !timer && !isJob(item)) {
+  const timer = Date.now() < datePivot(new Date(old.invoicePaidAt ?? old.createdAt), { seconds: ITEM_EDIT_SECONDS })
+  const canEdit = (timer && ownerEdit) || myBio || isJob(item)
+  if (!canEdit) {
     throw new GqlInputError('item can no longer be edited')
   }
 

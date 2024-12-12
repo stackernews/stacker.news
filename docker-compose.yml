@@ -389,6 +389,7 @@ services:
       - '--grpc-host=0.0.0.0'
       - '--address=https://sn_lnd:10009'   
       - '--cert-path=/home/lnd/.lnd/tls.cert'
+      - '--tls-ip=sn_lndk'
       - '--macaroon-path=/home/lnd/.lnd/data/chain/bitcoin/regtest/admin.macaroon'
     ports:
       - "${SN_LNDK_GRPC_PORT}:7000"

@@ -11,7 +11,7 @@ RUN npm ci
 
 COPY . .
 
-ADD http://deb.debian.org/debian/pool/main/f/fonts-noto-color-emoji/fonts-noto-color-emoji_0~20200916-1_all.deb fonts-noto-color-emoji.deb
+ADD https://deb.debian.org/debian/pool/main/f/fonts-noto-color-emoji/fonts-noto-color-emoji_0~20200916-1_all.deb fonts-noto-color-emoji.deb
 RUN dpkg -i fonts-noto-color-emoji.deb
 CMD [ "node", "index.js" ]
 USER pptruser

@@ -9,7 +9,6 @@ import {
 } from '@/wallets/errors'
 import { canSend } from './common'
 import { useWalletLoggerFactory } from './logger'
-import { withTimeout } from '@/lib/time'
 
 export function useWalletPayment () {
   const wallets = useSendWallets()

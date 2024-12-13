@@ -58,10 +58,9 @@ export function useWalletPayment () {
         // we just need to distinguish between receiver and sender errors
 
         try {
-          // we always await the poll promise here to check for failed forwards since sender wallet errors
+          // we need to poll one more time to check for failed forwards since sender wallet errors
           // can be caused by them which we want to handle as receiver errors, not sender errors.
-          // but we don't wait forever because real sender errors will cause the poll promise to never settle.
-          await withTimeout(pollPromise, FAST_POLL_INTERVAL * 2.5)
+          await invoiceHelper.isInvoice(latestInvoice, waitFor)
         } catch (err) {
           if (err instanceof WalletError) {
             paymentError = err

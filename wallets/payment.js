@@ -2,13 +2,14 @@ import { useCallback } from 'react'
 import { useSendWallets } from '@/wallets'
 import { formatSats } from '@/lib/format'
 import useInvoice from '@/components/use-invoice'
-import { FAST_POLL_INTERVAL } from '@/lib/constants'
+import { FAST_POLL_INTERVAL, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
   WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
   WalletNotEnabledError, WalletSendNotConfiguredError, WalletPaymentError, WalletError, WalletReceiverError
 } from '@/wallets/errors'
 import { canSend } from './common'
 import { useWalletLoggerFactory } from './logger'
+import { withTimeout } from '@/lib/time'
 
 export function useWalletPayment () {
   const wallets = useSendWallets()
@@ -152,7 +153,10 @@ function useSendPayment () {
 
     logger.info(`↗ sending payment: ${formatSats(satsRequested)}`, { bolt11 })
     try {
-      const preimage = await wallet.def.sendPayment(bolt11, wallet.config, { logger })
+      const preimage = await withTimeout(
+        // TODO: pass and use AbortSignal to also abort any pending requests
+        wallet.def.sendPayment(bolt11, wallet.config, { logger }),
+        WALLET_SEND_PAYMENT_TIMEOUT_MS)
       logger.ok(`↗ payment sent: ${formatSats(satsRequested)}`, { bolt11, preimage })
     } catch (err) {
       // we don't log the error here since we want to handle receiver errors separately

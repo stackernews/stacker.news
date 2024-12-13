@@ -8,6 +8,8 @@ import { REMOVE_WALLET } from '@/fragments/wallet'
 import { useWalletLogger } from '@/wallets/logger'
 import { useWallets } from '.'
 import validateWallet from './validate'
+import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
+import { withTimeout } from '@/lib/time'
 
 export function useWalletConfigurator (wallet) {
   const { me } = useMe()
@@ -43,7 +45,11 @@ export function useWalletConfigurator (wallet) {
           clientConfig = Object.assign(clientConfig, transformedConfig)
         }
         if (wallet.def.testSendPayment && validateLightning) {
-          transformedConfig = await wallet.def.testSendPayment(clientConfig, { logger })
+          transformedConfig = await withTimeout(
+            // TODO: pass and use AbortSignal to also abort any request
+            wallet.def.testSendPayment(clientConfig, { logger }),
+            WALLET_SEND_PAYMENT_TIMEOUT_MS
+          )
           if (transformedConfig) {
             clientConfig = Object.assign(clientConfig, transformedConfig)
           }

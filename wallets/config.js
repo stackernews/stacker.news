@@ -37,17 +37,22 @@ export function useWalletConfigurator (wallet) {
     let serverConfig = serverWithShared
 
     if (canSend({ def: wallet.def, config: clientConfig })) {
-      let transformedConfig = await validateWallet(wallet.def, clientWithShared, { skipGenerated: true })
-      if (transformedConfig) {
-        clientConfig = Object.assign(clientConfig, transformedConfig)
-      }
-      if (wallet.def.testSendPayment && validateLightning) {
-        transformedConfig = await wallet.def.testSendPayment(clientConfig, { me, logger })
+      try {
+        let transformedConfig = await validateWallet(wallet.def, clientWithShared, { skipGenerated: true })
         if (transformedConfig) {
           clientConfig = Object.assign(clientConfig, transformedConfig)
         }
-        // validate again to ensure generated fields are valid
-        await validateWallet(wallet.def, clientConfig)
+        if (wallet.def.testSendPayment && validateLightning) {
+          transformedConfig = await wallet.def.testSendPayment(clientConfig, { me, logger })
+          if (transformedConfig) {
+            clientConfig = Object.assign(clientConfig, transformedConfig)
+          }
+          // validate again to ensure generated fields are valid
+          await validateWallet(wallet.def, clientConfig)
+        }
+      } catch (err) {
+        logger.error(err.message)
+        throw err
       }
     } else if (canReceive({ def: wallet.def, config: serverConfig })) {
       const transformedConfig = await validateWallet(wallet.def, serverConfig)

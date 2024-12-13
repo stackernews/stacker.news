@@ -275,9 +275,9 @@ services:
             command bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} "$$@"
           }
           blockcount=$$(bitcoin-cli getblockcount 2>/dev/null)
-          
+
           nodes=(${SN_LND_ADDR} ${LND_ADDR} ${CLN_ADDR} ${ROUTER_LND_ADDR} ${ECLAIR_ADDR})
-          
+
           if (( blockcount <= 0 )); then
             echo "Creating wallet and address..."
             bitcoin-cli createwallet ""
@@ -375,21 +375,22 @@ services:
         "
     cpu_shares: "${CPU_SHARES_MODERATE}"
   sn_lndk:
+    platform: linux/x86_64
     build:
       context: ./docker/lndk
     container_name: sn_lndk
     restart: unless-stopped
     profiles:
-      - payments
+      - wallets
     depends_on:
       sn_lnd:
         condition: service_healthy
         restart: true
     env_file: *env_file
     command:
-      - 'lndk' 
+      - 'lndk'
       - '--grpc-host=0.0.0.0'
-      - '--address=https://sn_lnd:10009'   
+      - '--address=https://sn_lnd:10009'
       - '--cert-path=/home/lnd/.lnd/tls.cert'
       - '--tls-ip=sn_lndk'
       - '--macaroon-path=/home/lnd/.lnd/data/chain/bitcoin/regtest/admin.macaroon'
@@ -515,7 +516,7 @@ services:
     container_name: cln
     restart: unless-stopped
     profiles:
-      - payments
+      - wallets
     healthcheck:
       <<: *healthcheck
       test: ["CMD-SHELL", "su clightning -c 'lightning-cli --network=regtest getinfo'"]
@@ -569,7 +570,7 @@ services:
         - LN_NODE_FOR=stacker
     container_name: eclair
     profiles:
-      - payments
+      - wallets
     restart: unless-stopped
     depends_on:
       <<: *depends_on_bitcoin
@@ -583,7 +584,7 @@ services:
         -Declair.api.binding-ip=0.0.0.0
         -Declair.api.enabled=true
         -Declair.api.port=8080
-        -Declair.api.password=pass        
+        -Declair.api.password=pass
         -Declair.node-alias=eclair
         -Declair.chain=regtest
         -Declair.bitcoind.host=bitcoin
@@ -593,13 +594,13 @@ services:
         -Declair.bitcoind.zmqblock=tcp://bitcoin:${ZMQ_HASHBLOCK_PORT}
         -Declair.bitcoind.zmqtx=tcp://bitcoin:${ZMQ_TX_PORT}
         -Declair.bitcoind.batch-watcher-requests=false
-        -Declair.features.option_onion_messages=optional        
-        -Declair.features.option_route_blinding=optional   
-        -Declair.features.keysend=optional   
-        -Declair.channel.accept-incoming-static-remote-key-channels=true     
-        -Declair.tip-jar.description=bolt12     
-        -Declair.tip-jar.default-amount-msat=100000000 
-        -Declair.tip-jar.max-final-expiry-delta=1000 
+        -Declair.features.option_onion_messages=optional
+        -Declair.features.option_route_blinding=optional
+        -Declair.features.keysend=optional
+        -Declair.channel.accept-incoming-static-remote-key-channels=true
+        -Declair.tip-jar.description=bolt12
+        -Declair.tip-jar.default-amount-msat=100000000
+        -Declair.tip-jar.max-final-expiry-delta=1000
     volumes:
       - eclair:/data
     expose:

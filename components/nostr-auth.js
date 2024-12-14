@@ -9,10 +9,10 @@ import BackIcon from '@/svgs/arrow-left-line.svg'
 import Nostr from '@/lib/nostr'
 import { NDKNip46Signer } from '@nostr-dev-kit/ndk'
 import { useToast } from '@/components/toast'
-import { Button } from 'react-bootstrap'
+import { Button, Container } from 'react-bootstrap'
 import { Form, Input, SubmitButton } from '@/components/form'
 import Moon from '@/svgs/moon-fill.svg'
-import styles from './login.module.css'
+import styles from './lightning-auth.module.css'
 
 const sanitizeURL = (s) => {
   try {
@@ -167,13 +167,14 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
 
   return (
     <>
-      <h3 className='w-100 pb-2'>{status.title ? status.title : ((text || 'Login') + ' with Nostr')}</h3>
       {status.error && <NostrError message={status.msg} />}
       {status.loading
         ? (
           <>
-            <Moon className='spin fill-grey' width='50' height='50' />
-            <div className='text-muted pt-4 pb-4 w-100'>{status.msg}</div>
+            <div className='text-muted py-4 w-100 line-height-1 d-flex align-items-center gap-2'>
+              <Moon className='spin fill-grey flex-shrink-0' width='30' height='30' />
+              {status.msg}
+            </div>
             {status.button && (
               <Button
                 className='w-100' variant='primary'
@@ -189,117 +190,144 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
           )
         : (
           <>
-            <Row className='w-100 g-1'>
-              <Form
-                initial={{ token: '' }}
-                onSubmit={values => {
-                  if (!values.token) {
-                    setError(new Error('Token or NIP-05 address is required'))
-                  } else {
-                    auth(values.token)
-                  }
-                }}
-              >
-                <Input
-                  label='Connect with token or NIP-05 address'
-                  name='token'
-                  placeholder='bunker://...  or NIP-05 address'
-                  required
-                  autoFocus
-                />
-                <div className='mt-2'>
-                  <SubmitButton className='w-100' variant='primary'>
-                    {text || 'Login'} with token or NIP-05
-                  </SubmitButton>
-                </div>
-              </Form>
-              <div className='text-center text-muted fw-bold'>or</div>
-              <Button
-                variant='nostr'
-                className='w-100'
-                type='submit'
-                onClick={async () => {
-                  try {
-                    await auth()
-                  } catch (e) {
-                    setError(e)
-                  }
-                }}
-              >
-                {text || 'Login'} with extension
-              </Button>
-            </Row>
-            <Row className='w-100 mt-4 text-muted small'>
-              <AccordianItem
-                header='Which NIP-46 signers can I use?'
-                body={
-                  <>
-                    <Row>
-                      <Col>
-                        <ul>
-                          <li>
-                            <a href='https://nsec.app/'>Nsec.app</a><br />
-                            available for: chrome, firefox, and safari
-                          </li>
-                          <li>
-                            <a href='https://app.nsecbunker.com/'>nsecBunker</a><br />
-                            available as: SaaS or self-hosted
-                          </li>
-                        </ul>
-                      </Col>
-                    </Row>
-                  </>
-          }
+            <Form
+              initial={{ token: '' }}
+              onSubmit={values => {
+                if (!values.token) {
+                  setError(new Error('Token or NIP-05 address is required'))
+                } else {
+                  auth(values.token)
+                }
+              }}
+            >
+              <Input
+                label='Connect with token or NIP-05 address'
+                name='token'
+                placeholder='bunker://...  or NIP-05 address'
+                required
+                autoFocus
               />
-            </Row>
-            <Row className='w-100 text-muted small'>
-              <AccordianItem
-                header='Which extensions can I use?'
-                body={
-                  <>
-                    <Row>
-                      <Col>
-                        <ul>
-                          <li>
-                            <a href='https://getalby.com'>Alby</a><br />
-                            available for: chrome, firefox, and safari
-                          </li>
-                          <li>
-                            <a href='https://www.getflamingo.org/'>Flamingo</a><br />
-                            available for: chrome
-                          </li>
-                          <li>
-                            <a href='https://github.com/fiatjaf/nos2x'>nos2x</a><br />
-                            available for: chrome
-                          </li>
-                          <li>
-                            <a href='https://diegogurpegui.com/nos2x-fox/'>nos2x-fox</a><br />
-                            available for: firefox
-                          </li>
-                          <li>
-                            <a href='https://github.com/fiatjaf/horse'>horse</a><br />
-                            available for: chrome<br />
-                            supports hardware signing
-                          </li>
-                        </ul>
-                      </Col>
-                    </Row>
-                  </>
-          }
-              />
-            </Row>
+              <div className='mt-2'>
+                <SubmitButton className='w-100' variant='primary'>
+                  {text || 'Login'} with token or NIP-05
+                </SubmitButton>
+              </div>
+            </Form>
+            <div className='text-center text-muted fw-bold'>or</div>
+            <Button
+              variant='nostr'
+              className='w-100'
+              type='submit'
+              onClick={async () => {
+                try {
+                  await auth()
+                } catch (e) {
+                  setError(e)
+                }
+              }}
+            >
+              {text || 'Login'} with extension
+            </Button>
           </>
           )}
     </>
   )
 }
 
-export function NostrAuthWithExplainer ({ text, callbackUrl, multiAuth }) {
+function NostrExplainer ({ text, children }) {
   const router = useRouter()
   return (
-    <div className={styles.login}>
-      <div className='w-100 mb-3 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>
+    <Container>
+      <div className={styles.login}>
+        <div className='w-100 mb-3 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>
+        <h3 className='w-100 pb-2'>
+          {text || 'Login'} with Nostr
+        </h3>
+        <Row className='w-100 text-muted'>
+          <Col className='ps-0 mb-4' md>
+            <AccordianItem
+              header='Which NIP-46 signers can I use?'
+              body={
+                <>
+                  <Row>
+                    <Col xs>
+                      <ul>
+                        <li>
+                          <a href='https://nsec.app/'>Nsec.app</a>
+                          <ul>
+                            <li>available for: chrome, firefox, and safari</li>
+                          </ul>
+                        </li>
+                        <li>
+                          <a href='https://app.nsecbunker.com/'>nsecBunker</a>
+                          <ul>
+                            <li>available as: SaaS or self-hosted</li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </Col>
+                  </Row>
+                </>
+          }
+            />
+            <AccordianItem
+              header='Which extensions can I use?'
+              body={
+                <>
+                  <Row>
+                    <Col>
+                      <ul>
+                        <li>
+                          <a href='https://getalby.com'>Alby</a>
+                          <ul>
+                            <li>available for: chrome, firefox, and safari</li>
+                          </ul>
+                        </li>
+                        <li>
+                          <a href='https://www.getflamingo.org/'>Flamingo</a>
+                          <ul>
+                            <li>available for: chrome</li>
+                          </ul>
+                        </li>
+                        <li>
+                          <a href='https://github.com/fiatjaf/nos2x'>nos2x</a>
+                          <ul>
+                            <li>available for: chrome</li>
+                          </ul>
+                        </li>
+                        <li>
+                          <a href='https://diegogurpegui.com/nos2x-fox/'>nos2x-fox</a>
+                          <ul>
+                            <li>available for: firefox</li>
+                          </ul>
+                        </li>
+                        <li>
+                          <a href='https://github.com/fiatjaf/horse'>horse</a>
+                          <ul>
+                            <li>available for: chrome</li>
+                            <li>supports hardware signing</li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </Col>
+                  </Row>
+                </>
+          }
+            />
+          </Col>
+          <Col md className='mx-auto' style={{ maxWidth: '300px' }}>
+            {children}
+          </Col>
+        </Row>
+      </div>
+    </Container>
+  )
+}
+
+export function NostrAuthWithExplainer ({ text, callbackUrl, multiAuth }) {
+  return (
+    <NostrExplainer text={text}>
       <NostrAuth text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
-    </div>
+    </NostrExplainer>
   )
 }

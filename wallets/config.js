@@ -43,7 +43,7 @@ export function useWalletConfigurator (wallet) {
           clientConfig = Object.assign(clientConfig, transformedConfig)
         }
         if (wallet.def.testSendPayment && validateLightning) {
-          transformedConfig = await wallet.def.testSendPayment(clientConfig, { me, logger })
+          transformedConfig = await wallet.def.testSendPayment(clientConfig, { logger })
           if (transformedConfig) {
             clientConfig = Object.assign(clientConfig, transformedConfig)
           }

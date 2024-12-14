@@ -65,7 +65,7 @@ function injectResolvers (resolvers) {
         wallet,
         testCreateInvoice:
           walletDef.testCreateInvoice && validateLightning && canReceive({ def: walletDef, config: data })
-            ? (data) => walletDef.testCreateInvoice(data, { logger, me, models })
+            ? (data) => walletDef.testCreateInvoice(data, { logger })
             : null
       }, {
         settings,

@@ -3,7 +3,8 @@ export * from '@/wallets/blink'
 
 export async function testSendPayment ({ apiKey, currency }, { logger }) {
   logger.info('trying to fetch ' + currency + ' wallet')
-  const scopes = await getScopes(apiKey)
+
+  const scopes = await getScopes({ apiKey })
   if (!scopes.includes(SCOPE_READ)) {
     throw new Error('missing READ scope')
   }
@@ -12,46 +13,48 @@ export async function testSendPayment ({ apiKey, currency }, { logger }) {
   }
 
   currency = currency ? currency.toUpperCase() : 'BTC'
-  await getWallet(apiKey, currency)
+  await getWallet({ apiKey, currency })
 
   logger.ok(currency + ' wallet found')
 }
 
 export async function sendPayment (bolt11, { apiKey, currency }) {
-  const wallet = await getWallet(apiKey, currency)
-  return await payInvoice(apiKey, wallet, bolt11)
+  const wallet = await getWallet({ apiKey, currency })
+  return await payInvoice(bolt11, { apiKey, wallet })
 }
 
-async function payInvoice (authToken, wallet, invoice) {
-  const walletId = wallet.id
-  const out = await request(authToken, `
-    mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
+async function payInvoice (bolt11, { apiKey, wallet }) {
+  const out = await request({
+    apiKey,
+    query: `
+      mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
         lnInvoicePaymentSend(input: $input) {
-            status
-            errors {
-                message
-                path
-                code
+          status
+          errors {
+            message
+            path
+            code
+          }
+          transaction {
+            settlementVia {
+              ... on SettlementViaIntraLedger {
+                preImage
+              }
+              ... on SettlementViaLn {
+                preImage
+              }
             }
-            transaction {
-                settlementVia {
-                    ... on SettlementViaIntraLedger {
-                        preImage
-                    }
-                    ... on SettlementViaLn {
-                        preImage
-                    }
-                }
-            }
+          }
         }
-    }
-  `,
-  {
-    input: {
-      paymentRequest: invoice,
-      walletId
+      }`,
+    variables: {
+      input: {
+        paymentRequest: bolt11,
+        walletId: wallet.id
+      }
     }
   })
+
   const status = out.data.lnInvoicePaymentSend.status
   const errors = out.data.lnInvoicePaymentSend.errors
   if (errors && errors.length > 0) {
@@ -76,7 +79,7 @@ async function payInvoice (authToken, wallet, invoice) {
       // at some point it should either be settled or fail on the backend, so the loop will exit
       await new Promise(resolve => setTimeout(resolve, 100))
 
-      const txInfo = await getTxInfo(authToken, wallet, invoice)
+      const txInfo = await getTxInfo(bolt11, { apiKey, wallet })
       // settled
       if (txInfo.status === 'SUCCESS') {
         if (!txInfo.preImage) throw new Error('no preimage')
@@ -95,35 +98,36 @@ async function payInvoice (authToken, wallet, invoice) {
   throw new Error('unexpected error')
 }
 
-async function getTxInfo (authToken, wallet, invoice) {
-  const walletId = wallet.id
+async function getTxInfo (bolt11, { apiKey, wallet }) {
   let out
   try {
-    out = await request(authToken, `
-      query GetTxInfo($walletId: WalletId!, $paymentRequest: LnPaymentRequest!) {
-        me {
-          defaultAccount {
-            walletById(walletId: $walletId) {
-              transactionsByPaymentRequest(paymentRequest: $paymentRequest) {
-                status
-                direction
-                settlementVia {
+    out = await request({
+      apiKey,
+      query: `
+        query GetTxInfo($walletId: WalletId!, $paymentRequest: LnPaymentRequest!) {
+          me {
+            defaultAccount {
+              walletById(walletId: $walletId) {
+                transactionsByPaymentRequest(paymentRequest: $paymentRequest) {
+                  status
+                  direction
+                  settlementVia {
                     ... on SettlementViaIntraLedger {
-                        preImage
+                      preImage
                     }
                     ... on SettlementViaLn {
-                        preImage
+                      preImage
                     }
+                  }
                 }
               }
             }
           }
-        }
+        }`,
+      variables: {
+        paymentRequest: bolt11,
+        walletId: wallet.Id
       }
-    `,
-    {
-      paymentRequest: invoice,
-      walletId
     })
   } catch (e) {
     // something went wrong during the query,

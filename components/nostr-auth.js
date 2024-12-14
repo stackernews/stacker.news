@@ -213,7 +213,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
                 </SubmitButton>
               </div>
             </Form>
-            <div className='text-center text-muted fw-bold'>or</div>
+            <div className='text-center text-muted fw-bold my-2'>or</div>
             <Button
               variant='nostr'
               className='w-100'

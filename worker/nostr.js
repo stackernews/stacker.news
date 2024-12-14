@@ -1,5 +1,4 @@
-import { signId, calculateId, getPublicKey } from 'nostr'
-import { Relay } from '@/lib/nostr'
+import Nostr from '@/lib/nostr'
 
 const nostrOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
@@ -40,26 +39,18 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
 
     const e = {
       kind: 9735,
-      pubkey: getPublicKey(process.env.NOSTR_PRIVATE_KEY),
       created_at: Math.floor(new Date(inv.confirmedAt).getTime() / 1000),
       content: '',
       tags
     }
-    e.id = await calculateId(e)
-    e.sig = await signId(process.env.NOSTR_PRIVATE_KEY, e.id)
 
     console.log('zap note', e, relays)
-    await Promise.allSettled(
-      relays.map(async r => {
-        const timeout = 1000
-        const relay = await Relay.connect(r, { timeout })
-        try {
-          await relay.publish(e, { timeout })
-        } finally {
-          relay.close()
-        }
-      })
-    )
+    const signer = Nostr.getSigner({ privKey: process.env.NOSTR_PRIVATE_KEY })
+    await Nostr.publish(e, {
+      relays,
+      signer,
+      timeout: 1000
+    })
   } catch (e) {
     console.log(e)
   }

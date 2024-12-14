@@ -118,7 +118,7 @@ export const ToastProvider = ({ children }) => {
 
   return (
     <ToastContext.Provider value={toaster}>
-      <ToastContainer className={`pb-3 pe-3 ${styles.toastContainer}`} position='bottom-end' containerPosition='fixed'>
+      <ToastContainer className={`pb-3 px-3 ${styles.toastContainer}`} position='bottom-end' containerPosition='fixed'>
         {visibleToasts.map(toast => {
           const textStyle = toast.variant === 'warning' ? 'text-dark' : ''
           const onClose = () => {

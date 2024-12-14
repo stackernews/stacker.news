@@ -63,7 +63,7 @@ export async function nwcTryRun (fun) {
   }
 }
 
-export async function supportedMethods (nwcUrl, { logger, timeout } = {}) {
+export async function supportedMethods (nwcUrl, { timeout } = {}) {
   const nwc = await getNwc(nwcUrl, { timeout })
   const result = await nwcTryRun(() => nwc.getInfo())
   return result.methods

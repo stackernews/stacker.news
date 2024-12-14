@@ -7,18 +7,20 @@ export const testCreateInvoice = async ({ socket, rune, cert }) => {
 }
 
 export const createInvoice = async (
-  { msats, description, descriptionHash, expiry },
+  { msats, description, expiry },
   { socket, rune, cert }
 ) => {
-  const inv = await clnCreateInvoice({
-    socket,
-    rune,
-    cert,
-    description,
-    descriptionHash,
-    msats,
-    expiry
-  })
+  const inv = await clnCreateInvoice(
+    {
+      msats,
+      description,
+      expiry
+    },
+    {
+      socket,
+      rune,
+      cert
+    })
 
   return inv.bolt11
 }

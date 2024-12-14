@@ -2,8 +2,8 @@ import { getScopes, SCOPE_READ, SCOPE_RECEIVE, SCOPE_WRITE, getWallet, request }
 import { msatsToSats } from '@/lib/format'
 export * from '@/wallets/blink'
 
-export async function testCreateInvoice ({ apiKeyRecv, currencyRecv }) {
-  const scopes = await getScopes({ apiKey: apiKeyRecv })
+export async function testCreateInvoice ({ apiKeyRecv, currencyRecv }, { signal }) {
+  const scopes = await getScopes({ apiKey: apiKeyRecv }, { signal })
   if (!scopes.includes(SCOPE_READ)) {
     throw new Error('missing READ scope')
   }
@@ -15,15 +15,16 @@ export async function testCreateInvoice ({ apiKeyRecv, currencyRecv }) {
   }
 
   currencyRecv = currencyRecv ? currencyRecv.toUpperCase() : 'BTC'
-  return await createInvoice({ msats: 1000, expiry: 1 }, { apiKeyRecv, currencyRecv })
+  return await createInvoice({ msats: 1000, expiry: 1 }, { apiKeyRecv, currencyRecv }, { signal })
 }
 
 export async function createInvoice (
   { msats, description, expiry },
-  { apiKeyRecv: apiKey, currencyRecv: currency }) {
+  { apiKeyRecv: apiKey, currencyRecv: currency },
+  { signal }) {
   currency = currency ? currency.toUpperCase() : 'BTC'
 
-  const wallet = await getWallet({ apiKey, currency })
+  const wallet = await getWallet({ apiKey, currency }, { signal })
 
   if (currency !== 'BTC') {
     throw new Error('unsupported currency ' + currency)
@@ -50,7 +51,7 @@ export async function createInvoice (
         walletId: wallet.id
       }
     }
-  })
+  }, { signal })
 
   const res = out.data.lnInvoiceCreate
   const errors = res.errors

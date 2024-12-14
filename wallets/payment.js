@@ -154,8 +154,10 @@ function useSendPayment () {
     logger.info(`↗ sending payment: ${formatSats(satsRequested)}`, { bolt11 })
     try {
       const preimage = await withTimeout(
-        // TODO: pass and use AbortSignal to also abort any pending requests
-        wallet.def.sendPayment(bolt11, wallet.config, { logger }),
+        wallet.def.sendPayment(bolt11, wallet.config, {
+          logger,
+          signal: AbortSignal.timeout(WALLET_SEND_PAYMENT_TIMEOUT_MS)
+        }),
         WALLET_SEND_PAYMENT_TIMEOUT_MS)
       logger.ok(`↗ payment sent: ${formatSats(satsRequested)}`, { bolt11, preimage })
     } catch (err) {

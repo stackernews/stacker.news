@@ -193,7 +193,6 @@ async function walletCreateInvoice ({ wallet, def }, {
   }
 
   return await withTimeout(
-    // TODO: pass and use AbortSignal to also abort any pending requests
     def.createInvoice(
       {
         msats,
@@ -202,6 +201,9 @@ async function walletCreateInvoice ({ wallet, def }, {
         expiry
       },
       wallet.wallet,
-      { logger }
+      {
+        logger,
+        signal: AbortSignal.timeout(WALLET_CREATE_INVOICE_TIMEOUT_MS)
+      }
     ), WALLET_CREATE_INVOICE_TIMEOUT_MS)
 }

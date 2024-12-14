@@ -2,7 +2,7 @@ import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
 export * from '@/wallets/phoenixd'
 
-export async function testSendPayment (config, { logger }) {
+export async function testSendPayment (config, { logger, signal }) {
   // TODO:
   //   Not sure which endpoint to call to test primary password
   //   see https://phoenix.acinq.co/server/api
@@ -10,7 +10,7 @@ export async function testSendPayment (config, { logger }) {
 
 }
 
-export async function sendPayment (bolt11, { url, primaryPassword }) {
+export async function sendPayment (bolt11, { url, primaryPassword }, { signal }) {
   // https://phoenix.acinq.co/server/api#pay-bolt11-invoice
   const path = '/payinvoice'
 
@@ -24,7 +24,8 @@ export async function sendPayment (bolt11, { url, primaryPassword }) {
   const res = await fetch(url + path, {
     method: 'POST',
     headers,
-    body
+    body,
+    signal
   })
 
   assertResponseOk(res)

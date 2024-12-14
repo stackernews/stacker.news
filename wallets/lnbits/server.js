@@ -5,13 +5,14 @@ import fetch from 'cross-fetch'
 
 export * from '@/wallets/lnbits'
 
-export async function testCreateInvoice ({ url, invoiceKey }) {
-  return await createInvoice({ msats: 1000, expiry: 1 }, { url, invoiceKey })
+export async function testCreateInvoice ({ url, invoiceKey }, { signal }) {
+  return await createInvoice({ msats: 1000, expiry: 1 }, { url, invoiceKey }, { signal })
 }
 
 export async function createInvoice (
   { msats, description, descriptionHash, expiry },
-  { url, invoiceKey }) {
+  { url, invoiceKey },
+  { signal }) {
   const path = '/api/v1/payments'
 
   const headers = new Headers()
@@ -42,7 +43,8 @@ export async function createInvoice (
     method: 'POST',
     headers,
     agent,
-    body
+    body,
+    signal
   })
 
   assertContentTypeJson(res)

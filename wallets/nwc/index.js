@@ -3,6 +3,8 @@ import { string } from '@/lib/yup'
 import { parseNwcUrl } from '@/lib/url'
 import { NDKNwc } from '@nostr-dev-kit/ndk'
 
+const NWC_CONNECT_TIMEOUT_MS = 5_000
+
 export const name = 'nwc'
 export const walletType = 'NWC'
 export const walletField = 'walletNWC'
@@ -33,7 +35,7 @@ export const card = {
   subtitle: 'use Nostr Wallet Connect for payments'
 }
 
-export async function getNwc (nwcUrl, { timeout = 5e4 } = {}) {
+export async function getNwc (nwcUrl, { signal }) {
   const ndk = Nostr.ndk
   const { walletPubkey, secret, relayUrls } = parseNwcUrl(nwcUrl)
   const nwc = new NDKNwc({
@@ -42,7 +44,8 @@ export async function getNwc (nwcUrl, { timeout = 5e4 } = {}) {
     relayUrls,
     secret
   })
-  await nwc.blockUntilReady(timeout)
+  // TODO: support AbortSignal
+  await nwc.blockUntilReady(NWC_CONNECT_TIMEOUT_MS)
   return nwc
 }
 
@@ -63,8 +66,9 @@ export async function nwcTryRun (fun) {
   }
 }
 
-export async function supportedMethods (nwcUrl, { timeout } = {}) {
-  const nwc = await getNwc(nwcUrl, { timeout })
+export async function supportedMethods (nwcUrl, { signal }) {
+  const nwc = await getNwc(nwcUrl, { signal })
+  // TODO: support AbortSignal
   const result = await nwcTryRun(() => nwc.getInfo())
   return result.methods
 }

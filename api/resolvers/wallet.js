@@ -68,8 +68,10 @@ function injectResolvers (resolvers) {
         testCreateInvoice:
           walletDef.testCreateInvoice && validateLightning && canReceive({ def: walletDef, config: data })
             ? (data) => withTimeout(
-                // TODO: pass and use AbortSignal to also abort any pending requests
-                walletDef.testCreateInvoice(data, { logger }),
+                walletDef.testCreateInvoice(data, {
+                  logger,
+                  signal: AbortSignal.timeout(WALLET_CREATE_INVOICE_TIMEOUT_MS)
+                }),
                 WALLET_CREATE_INVOICE_TIMEOUT_MS)
             : null
       }, {

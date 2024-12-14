@@ -3,15 +3,17 @@ import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
 export * from '@/wallets/phoenixd'
 
-export async function testCreateInvoice ({ url, secondaryPassword }) {
+export async function testCreateInvoice ({ url, secondaryPassword }, { signal }) {
   return await createInvoice(
     { msats: 1000, description: 'SN test invoice', expiry: 1 },
-    { url, secondaryPassword })
+    { url, secondaryPassword },
+    { signal })
 }
 
 export async function createInvoice (
   { msats, description, descriptionHash, expiry },
-  { url, secondaryPassword }
+  { url, secondaryPassword },
+  { signal }
 ) {
   // https://phoenix.acinq.co/server/api#create-bolt11-invoice
   const path = '/createinvoice'
@@ -27,7 +29,8 @@ export async function createInvoice (
   const res = await fetch(url + path, {
     method: 'POST',
     headers,
-    body
+    body,
+    signal
   })
 
   assertResponseOk(res)

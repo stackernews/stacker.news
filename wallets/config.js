@@ -46,8 +46,10 @@ export function useWalletConfigurator (wallet) {
         }
         if (wallet.def.testSendPayment && validateLightning) {
           transformedConfig = await withTimeout(
-            // TODO: pass and use AbortSignal to also abort any request
-            wallet.def.testSendPayment(clientConfig, { logger }),
+            wallet.def.testSendPayment(clientConfig, {
+              logger,
+              signal: AbortSignal.timeout(WALLET_SEND_PAYMENT_TIMEOUT_MS)
+            }),
             WALLET_SEND_PAYMENT_TIMEOUT_MS
           )
           if (transformedConfig) {

@@ -7,7 +7,7 @@ export const SCOPE_READ = 'READ'
 export const SCOPE_WRITE = 'WRITE'
 export const SCOPE_RECEIVE = 'RECEIVE'
 
-export async function getWallet ({ apiKey, currency }) {
+export async function getWallet ({ apiKey, currency }, { signal }) {
   const out = await request({
     apiKey,
     query: `
@@ -21,7 +21,7 @@ export async function getWallet ({ apiKey, currency }) {
           }
         }
       }`
-  })
+  }, { signal })
 
   const wallets = out.data.me.defaultAccount.wallets
   for (const wallet of wallets) {
@@ -33,14 +33,15 @@ export async function getWallet ({ apiKey, currency }) {
   throw new Error(`wallet ${currency} not found`)
 }
 
-export async function request ({ apiKey, query, variables = {} }) {
+export async function request ({ apiKey, query, variables = {} }, { signal }) {
   const res = await fetch(galoyBlinkUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-API-KEY': apiKey
     },
-    body: JSON.stringify({ query, variables })
+    body: JSON.stringify({ query, variables }),
+    signal
   })
 
   assertResponseOk(res)
@@ -49,7 +50,7 @@ export async function request ({ apiKey, query, variables = {} }) {
   return res.json()
 }
 
-export async function getScopes ({ apiKey }) {
+export async function getScopes ({ apiKey }, { signal }) {
   const out = await request({
     apiKey,
     query: `
@@ -58,7 +59,7 @@ export async function getScopes ({ apiKey }) {
           scopes
         }
       }`
-  })
+  }, { signal })
   const scopes = out?.data?.authorization?.scopes
   return scopes || []
 }

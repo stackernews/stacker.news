@@ -1,3 +1,5 @@
+import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { FetchTimeoutError } from '@/lib/fetch'
 import { msatsToSats } from '@/lib/format'
 import { getAgent } from '@/lib/proxy'
 import { assertContentTypeJson } from '@/lib/url'
@@ -39,13 +41,23 @@ export async function createInvoice (
     hostname = 'lnbits:5000'
   }
 
-  const res = await fetch(`${agent.protocol}//${hostname}${path}`, {
-    method: 'POST',
-    headers,
-    agent,
-    body,
-    signal
-  })
+  let res
+  try {
+    res = await fetch(`${agent.protocol}//${hostname}${path}`, {
+      method: 'POST',
+      headers,
+      agent,
+      body,
+      signal
+    })
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      // XXX node-fetch doesn't throw our custom TimeoutError but throws a generic error so we have to handle that manually.
+      // see https://github.com/node-fetch/node-fetch/issues/1462
+      throw new FetchTimeoutError('POST', url, WALLET_CREATE_INVOICE_TIMEOUT_MS)
+    }
+    throw err
+  }
 
   assertContentTypeJson(res)
   if (!res.ok) {

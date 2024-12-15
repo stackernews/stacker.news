@@ -144,8 +144,8 @@ model User {
   vaultKeyHash              String               @default("")
   walletsUpdatedAt          DateTime?
   vaultEntries              VaultEntry[]         @relation("VaultEntries")
-  proxyReceive              Boolean              @default(false)
-  directReceive             Boolean              @default(false)
+  proxyReceive              Boolean              @default(true)
+  directReceive             Boolean              @default(true)
   DirectPaymentReceived     DirectPayment[]      @relation("DirectPaymentReceived")
   DirectPaymentSent         DirectPayment[]      @relation("DirectPaymentSent")
 

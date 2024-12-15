@@ -9,7 +9,7 @@ import {
 } from '@/wallets/errors'
 import { canSend } from './common'
 import { useWalletLoggerFactory } from './logger'
-import { withTimeout } from '@/lib/time'
+import { timeoutSignal, withTimeout } from '@/lib/time'
 
 export function useWalletPayment () {
   const wallets = useSendWallets()
@@ -156,7 +156,7 @@ function useSendPayment () {
       const preimage = await withTimeout(
         wallet.def.sendPayment(bolt11, wallet.config, {
           logger,
-          signal: AbortSignal.timeout(WALLET_SEND_PAYMENT_TIMEOUT_MS)
+          signal: timeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS)
         }),
         WALLET_SEND_PAYMENT_TIMEOUT_MS)
       logger.ok(`↗ payment sent: ${formatSats(satsRequested)}`, { bolt11, preimage })

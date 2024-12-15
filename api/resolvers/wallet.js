@@ -25,7 +25,7 @@ import validateWallet from '@/wallets/validate'
 import { canReceive } from '@/wallets/common'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
-import { withTimeout } from '@/lib/time'
+import { timeoutSignal, withTimeout } from '@/lib/time'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
@@ -70,7 +70,7 @@ function injectResolvers (resolvers) {
             ? (data) => withTimeout(
                 walletDef.testCreateInvoice(data, {
                   logger,
-                  signal: AbortSignal.timeout(WALLET_CREATE_INVOICE_TIMEOUT_MS)
+                  signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS)
                 }),
                 WALLET_CREATE_INVOICE_TIMEOUT_MS)
             : null

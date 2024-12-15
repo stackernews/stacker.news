@@ -9,7 +9,7 @@ import { useWalletLogger } from '@/wallets/logger'
 import { useWallets } from '.'
 import validateWallet from './validate'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
-import { withTimeout } from '@/lib/time'
+import { timeoutSignal, withTimeout } from '@/lib/time'
 
 export function useWalletConfigurator (wallet) {
   const { me } = useMe()
@@ -48,7 +48,7 @@ export function useWalletConfigurator (wallet) {
           transformedConfig = await withTimeout(
             wallet.def.testSendPayment(clientConfig, {
               logger,
-              signal: AbortSignal.timeout(WALLET_SEND_PAYMENT_TIMEOUT_MS)
+              signal: timeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS)
             }),
             WALLET_SEND_PAYMENT_TIMEOUT_MS
           )

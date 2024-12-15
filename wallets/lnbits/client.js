@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '@/lib/fetch'
 import { assertContentTypeJson } from '@/lib/url'
 
 export * from '@/wallets/lnbits'
@@ -32,7 +33,7 @@ async function getWallet ({ url, adminKey, invoiceKey }, { signal }) {
   headers.append('Content-Type', 'application/json')
   headers.append('X-Api-Key', adminKey || invoiceKey)
 
-  const res = await fetch(url + path, { method: 'GET', headers, signal })
+  const res = await fetchWithTimeout(url + path, { method: 'GET', headers, signal })
 
   assertContentTypeJson(res)
   if (!res.ok) {
@@ -54,7 +55,7 @@ async function postPayment (bolt11, { url, adminKey }, { signal }) {
 
   const body = JSON.stringify({ bolt11, out: true })
 
-  const res = await fetch(url + path, { method: 'POST', headers, body, signal })
+  const res = await fetchWithTimeout(url + path, { method: 'POST', headers, body, signal })
 
   assertContentTypeJson(res)
   if (!res.ok) {
@@ -74,7 +75,7 @@ async function getPayment (paymentHash, { url, adminKey }, { signal }) {
   headers.append('Content-Type', 'application/json')
   headers.append('X-Api-Key', adminKey)
 
-  const res = await fetch(url + path, { method: 'GET', headers, signal })
+  const res = await fetchWithTimeout(url + path, { method: 'GET', headers, signal })
 
   assertContentTypeJson(res)
   if (!res.ok) {

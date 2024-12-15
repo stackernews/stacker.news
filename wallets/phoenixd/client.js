@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '@/lib/fetch'
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
 export * from '@/wallets/phoenixd'
@@ -21,7 +22,7 @@ export async function sendPayment (bolt11, { url, primaryPassword }, { signal })
   const body = new URLSearchParams()
   body.append('invoice', bolt11)
 
-  const res = await fetch(url + path, {
+  const res = await fetchWithTimeout(url + path, {
     method: 'POST',
     headers,
     body,

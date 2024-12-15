@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '@/lib/fetch'
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
 export const galoyBlinkUrl = 'https://api.blink.sv/graphql'
@@ -34,7 +35,7 @@ export async function getWallet ({ apiKey, currency }, { signal }) {
 }
 
 export async function request ({ apiKey, query, variables = {} }, { signal }) {
-  const res = await fetch(galoyBlinkUrl, {
+  const res = await fetchWithTimeout(galoyBlinkUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

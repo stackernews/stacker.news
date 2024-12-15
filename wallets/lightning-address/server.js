@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '@/lib/fetch'
 import { msatsSatsFloor } from '@/lib/format'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
@@ -26,7 +27,7 @@ export const createInvoice = async (
   }
 
   // call callback with amount and conditionally comment
-  const res = await fetch(callbackUrl.toString(), { signal })
+  const res = await fetchWithTimeout(callbackUrl.toString(), { signal })
 
   assertResponseOk(res)
   assertContentTypeJson(res)

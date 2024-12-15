@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '@/lib/fetch'
 import { msatsToSats } from '@/lib/format'
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
@@ -26,7 +27,7 @@ export async function createInvoice (
   body.append('description', description)
   body.append('amountSat', msatsToSats(msats))
 
-  const res = await fetch(url + path, {
+  const res = await fetchWithTimeout(url + path, {
     method: 'POST',
     headers,
     body,

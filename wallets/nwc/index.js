@@ -4,7 +4,7 @@ import { parseNwcUrl } from '@/lib/url'
 import { NDKNwc } from '@nostr-dev-kit/ndk'
 import { TimeoutError } from '@/lib/time'
 
-const NWC_CONNECT_TIMEOUT_MS = 5_000
+const NWC_CONNECT_TIMEOUT_MS = 15_000
 
 export const name = 'nwc'
 export const walletType = 'NWC'

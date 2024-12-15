@@ -2,6 +2,7 @@ import Nostr from '@/lib/nostr'
 import { string } from '@/lib/yup'
 import { parseNwcUrl } from '@/lib/url'
 import { NDKNwc } from '@nostr-dev-kit/ndk'
+import { TimeoutError } from '@/lib/time'
 
 const NWC_CONNECT_TIMEOUT_MS = 5_000
 
@@ -44,8 +45,17 @@ export async function getNwc (nwcUrl, { signal }) {
     relayUrls,
     secret
   })
+
   // TODO: support AbortSignal
-  await nwc.blockUntilReady(NWC_CONNECT_TIMEOUT_MS)
+  try {
+    await nwc.blockUntilReady(NWC_CONNECT_TIMEOUT_MS)
+  } catch (err) {
+    if (err.message === 'Timeout') {
+      throw new TimeoutError(NWC_CONNECT_TIMEOUT_MS)
+    }
+    throw err
+  }
+
   return nwc
 }
 

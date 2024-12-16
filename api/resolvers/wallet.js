@@ -8,7 +8,8 @@ import { SELECT, itemQueryWithMeta } from './item'
 import { formatMsats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
 import {
   USER_ID, INVOICE_RETENTION_DAYS,
-  PAID_ACTION_PAYMENT_METHODS
+  PAID_ACTION_PAYMENT_METHODS,
+  WALLET_CREATE_INVOICE_TIMEOUT_MS
 } from '@/lib/constants'
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
@@ -24,6 +25,7 @@ import validateWallet from '@/wallets/validate'
 import { canReceive } from '@/wallets/common'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
+import { timeoutSignal, withTimeout } from '@/lib/time'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
@@ -65,7 +67,12 @@ function injectResolvers (resolvers) {
         wallet,
         testCreateInvoice:
           walletDef.testCreateInvoice && validateLightning && canReceive({ def: walletDef, config: data })
-            ? (data) => walletDef.testCreateInvoice(data, { logger })
+            ? (data) => withTimeout(
+                walletDef.testCreateInvoice(data, {
+                  logger,
+                  signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS)
+                }),
+                WALLET_CREATE_INVOICE_TIMEOUT_MS)
             : null
       }, {
         settings,

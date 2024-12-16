@@ -551,7 +551,7 @@ const resolvers = {
 
       const logger = walletLogger({ wallet, models })
       await models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
-      logger.info('wallet detached')
+      logger.info('details for receiving deleted')
 
       return true
     },
@@ -871,7 +871,7 @@ async function upsertWallet (
         userId: me.id,
         wallet: wallet.type,
         level: 'SUCCESS',
-        message: id ? 'wallet details updated' : 'wallet attached'
+        message: id ? 'details for receiving updated' : 'details for receiving saved'
       }
     }),
     models.walletLog.create({
@@ -879,7 +879,7 @@ async function upsertWallet (
         userId: me.id,
         wallet: wallet.type,
         level: enabled ? 'SUCCESS' : 'INFO',
-        message: enabled ? 'wallet enabled' : 'wallet disabled'
+        message: enabled ? 'receiving enabled' : 'receiving disabled'
       }
     })
   )

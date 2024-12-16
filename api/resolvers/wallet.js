@@ -22,7 +22,7 @@ import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets, getOurPubkey } from '../lnd'
 import validateWallet from '@/wallets/validate'
-import { canReceive } from '@/wallets/common'
+import { canReceive, getWalletByType } from '@/wallets/common'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
 import { timeoutSignal, withTimeout } from '@/lib/time'
@@ -65,6 +65,7 @@ function injectResolvers (resolvers) {
 
       return await upsertWallet({
         wallet,
+        walletDef,
         testCreateInvoice:
           walletDef.testCreateInvoice && validateLightning && canReceive({ def: walletDef, config: data })
             ? (data) => withTimeout(
@@ -558,7 +559,10 @@ const resolvers = {
 
       const logger = walletLogger({ wallet, models })
       await models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
-      logger.info('details for receiving deleted')
+
+      if (canReceive({ def: getWalletByType(wallet.type), config: wallet.wallet })) {
+        logger.info('details for receiving deleted')
+      }
 
       return true
     },
@@ -766,7 +770,7 @@ export const walletLogger = ({ wallet, models }) => {
 }
 
 async function upsertWallet (
-  { wallet, testCreateInvoice }, { settings, data, vaultEntries }, { logger, me, models }) {
+  { wallet, walletDef, testCreateInvoice }, { settings, data, vaultEntries }, { logger, me, models }) {
   if (!me) {
     throw new GqlAuthenticationError()
   }
@@ -872,24 +876,26 @@ async function upsertWallet (
     )
   }
 
-  txs.push(
-    models.walletLog.createMany({
-      data: {
-        userId: me.id,
-        wallet: wallet.type,
-        level: 'SUCCESS',
-        message: id ? 'details for receiving updated' : 'details for receiving saved'
-      }
-    }),
-    models.walletLog.create({
-      data: {
-        userId: me.id,
-        wallet: wallet.type,
-        level: enabled ? 'SUCCESS' : 'INFO',
-        message: enabled ? 'receiving enabled' : 'receiving disabled'
-      }
-    })
-  )
+  if (canReceive({ def: walletDef, config: walletData })) {
+    txs.push(
+      models.walletLog.createMany({
+        data: {
+          userId: me.id,
+          wallet: wallet.type,
+          level: 'SUCCESS',
+          message: id ? 'details for receiving updated' : 'details for receiving saved'
+        }
+      }),
+      models.walletLog.create({
+        data: {
+          userId: me.id,
+          wallet: wallet.type,
+          level: enabled ? 'SUCCESS' : 'INFO',
+          message: enabled ? 'receiving enabled' : 'receiving disabled'
+        }
+      })
+    )
+  }
 
   const [upsertedWallet] = await models.$transaction(txs)
   return upsertedWallet

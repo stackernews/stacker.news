@@ -1,11 +1,8 @@
-import { withTimeout } from '@/lib/time'
-import { nwcCall, supportedMethods } from '@/wallets/nwc'
+import { getNwc, supportedMethods, nwcTryRun } from '@/wallets/nwc'
 export * from '@/wallets/nwc'
 
-export async function testCreateInvoice ({ nwcUrlRecv }, { logger }) {
-  const timeout = 15_000
-
-  const supported = await supportedMethods(nwcUrlRecv, { logger, timeout })
+export async function testCreateInvoice ({ nwcUrlRecv }, { signal }) {
+  const supported = await supportedMethods(nwcUrlRecv, { signal })
 
   const supports = (method) => supported.includes(method)
 
@@ -20,20 +17,12 @@ export async function testCreateInvoice ({ nwcUrlRecv }, { logger }) {
     }
   }
 
-  return await withTimeout(createInvoice({ msats: 1000, expiry: 1 }, { nwcUrlRecv }, { logger }), timeout)
+  return await createInvoice({ msats: 1000, expiry: 1 }, { nwcUrlRecv }, { signal })
 }
 
-export async function createInvoice (
-  { msats, description, expiry },
-  { nwcUrlRecv }, { logger }) {
-  const result = await nwcCall({
-    nwcUrl: nwcUrlRecv,
-    method: 'make_invoice',
-    params: {
-      amount: msats,
-      description,
-      expiry
-    }
-  }, { logger })
+export async function createInvoice ({ msats, description, expiry }, { nwcUrlRecv }, { signal }) {
+  const nwc = await getNwc(nwcUrlRecv, { signal })
+  // TODO: support AbortSignal
+  const result = await nwcTryRun(() => nwc.sendReq('make_invoice', { amount: msats, description, expiry }))
   return result.invoice
 }

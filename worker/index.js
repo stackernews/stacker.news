@@ -39,6 +39,12 @@ import { fetchEmbedMeta } from './fetchEmbedMeta'
 import { payingActionConfirmed, payingActionFailed } from './payingAction'
 import { autoDropBolt11s } from './autoDropBolt11'
 
+// WebSocket polyfill
+import ws from 'isomorphic-ws'
+if (typeof WebSocket === 'undefined') {
+  global.WebSocket = ws
+}
+
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)
   const models = createPrisma({

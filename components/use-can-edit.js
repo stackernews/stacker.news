@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { datePivot } from '@/lib/time'
 import { useMe } from '@/components/me'
-import { USER_ID } from '@/lib/constants'
+import { ITEM_EDIT_SECONDS, USER_ID } from '@/lib/constants'
 
 export default function useCanEdit (item) {
-  const editThreshold = datePivot(new Date(item.invoice?.confirmedAt ?? item.createdAt), { minutes: 10 })
+  const editThreshold = datePivot(new Date(item.invoice?.confirmedAt ?? item.createdAt), { seconds: ITEM_EDIT_SECONDS })
   const { me } = useMe()
 
   // deleted items can never be edited and every item has a 10 minute edit window

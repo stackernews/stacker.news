@@ -12,7 +12,8 @@ import {
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
-import { bolt11Tags } from '@/lib/bolt11'
+import { bolt11Info, isBolt11 } from '@/lib/bolt11-info'
+import { bolt12Info } from '@/lib/bolt12-info'
 import { finalizeHodlInvoice } from '@/worker/wallet'
 import walletDefs from '@/wallets/server'
 import { generateResolverName, generateTypeDefName } from '@/wallets/graphql'
@@ -368,7 +369,7 @@ const resolvers = {
         f = { ...f, ...f.other }
 
         if (f.bolt11) {
-          f.description = bolt11Tags(f.bolt11).description
+          f.description = isBolt11(f.bolt11) ? bolt11Info(f.bolt11).description : bolt12Info(f.bolt11).description
         }
 
         switch (f.type) {

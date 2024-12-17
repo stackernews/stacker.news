@@ -5,7 +5,7 @@ import { createHmac } from '@/api/resolvers/wallet'
 import { Prisma } from '@prisma/client'
 import { createWrappedInvoice, createInvoice as createUserInvoice } from '@/wallets/server'
 import { assertBelowMaxPendingInvoices, assertBelowMaxPendingDirectPayments } from './lib/assert'
-import { parseBolt11 } from '@/lib/invoices'
+import { parseBolt11 } from '@/lib/bolt11'
 
 import * as ITEM_CREATE from './itemCreate'
 import * as ITEM_UPDATE from './itemUpdate'

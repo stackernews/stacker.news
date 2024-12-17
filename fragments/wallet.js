@@ -169,6 +169,9 @@ export const WALLET_FIELDS = gql`
         apiKeyRecv
         currencyRecv
       }
+      ... on WalletBolt12 {
+        offer
+      }
     }
   }
 `

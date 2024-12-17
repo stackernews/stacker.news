@@ -42,7 +42,7 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
 
   if (pendingOrFailed.exists) return
 
-  const { invoice, wallet, logger } = await createInvoice(id, { msats, description: 'SN: autowithdrawal', expiry: 360 }, { models })
+  const { invoice, wallet, logger } = await createInvoice(id, { msats, description: 'SN: autowithdrawal', expiry: 360 }, { models, lnd })
 
   try {
     return await createWithdrawal(null,

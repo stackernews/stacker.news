@@ -1,6 +1,5 @@
 import {
-  getInvoice as getInvoiceFromLnd, deletePayment, getPayment,
-  parsePaymentRequest
+  getInvoice as getInvoiceFromLnd, deletePayment, getPayment
 } from 'ln-service'
 import crypto, { timingSafeEqual } from 'crypto'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
@@ -24,6 +23,8 @@ import validateWallet from '@/wallets/validate'
 import { canReceive } from '@/wallets/common'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
+import { parseInvoice } from '@/lib/invoices'
+import lnd from '@/api/lnd'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
@@ -721,8 +722,8 @@ export const walletLogger = ({ wallet, models }) => {
   const log = (level) => async (message, context = {}) => {
     try {
       if (context?.bolt11) {
-        // automatically populate context from bolt11 to avoid duplicating this code
-        const decoded = await parsePaymentRequest({ request: context.bolt11 })
+        // automatically populate context from invoice to avoid duplicating this code
+        const decoded = await parseInvoice({ request: context.bolt11, lnd })
         context = {
           ...context,
           amount: formatMsats(decoded.mtokens),
@@ -899,7 +900,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   // decode invoice to get amount
   let decoded, sockets
   try {
-    decoded = await parsePaymentRequest({ request: invoice })
+    decoded = await parseInvoice({ request: invoice, lnd })
   } catch (error) {
     console.log(error)
     throw new GqlInputError('could not decode invoice')
@@ -938,7 +939,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     throw new GqlInputError('SN cannot pay an invoice that SN is proxying')
   }
 
-  return await performPayingAction({ bolt11: invoice, maxFee, walletId: wallet?.id }, { me, models, lnd })
+  return await performPayingAction({ invoice, maxFee, walletId: wallet?.id }, { me, models, lnd })
 }
 
 export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },
@@ -999,7 +1000,7 @@ export async function fetchLnAddrInvoice (
 
   // decode invoice
   try {
-    const decoded = await parsePaymentRequest({ request: res.pr })
+    const decoded = await parseInvoice({ request: res.pr, lnd })
     const ourPubkey = await getOurPubkey({ lnd })
     if (autoWithdraw && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
       // unset lnaddr so we don't trigger another withdrawal with same destination

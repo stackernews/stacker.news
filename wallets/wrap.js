@@ -1,6 +1,7 @@
-import { createHodlInvoice, parsePaymentRequest } from 'ln-service'
-import { estimateRouteFee, getBlockHeight } from '../api/lnd'
+import { createHodlInvoice } from 'ln-service'
+import { getBlockHeight } from '../api/lnd'
 import { toBigInt, toPositiveBigInt, toPositiveNumber } from '@/lib/format'
+import { parseInvoice, estimateFees } from '@/lib/invoices'
 
 const MIN_OUTGOING_MSATS = BigInt(900) // the minimum msats we'll allow for the outgoing invoice
 const MAX_OUTGOING_MSATS = BigInt(900_000_000) // the maximum msats we'll allow for the outgoing invoice
@@ -15,7 +16,7 @@ const MAX_FEE_ESTIMATE_PERCENT = 3n // the maximum fee relative to outgoing we'l
   The wrapInvoice function is used to wrap an outgoing invoice with the necessary parameters for an incoming hold invoice.
 
   @param args {object} {
-    bolt11: {string} the bolt11 invoice to wrap
+    bolt11: {string} the bolt11 or bolt12 invoice to wrap
     feePercent: {bigint} the fee percent to use for the incoming invoice
   }
   @param options {object} {
@@ -37,7 +38,7 @@ export default async function wrapInvoice ({ bolt11, feePercent }, { msats, desc
     let outgoingMsat
 
     // decode the invoice
-    const inv = await parsePaymentRequest({ request: bolt11 })
+    const inv = await parseInvoice({ request: bolt11, lnd })
     if (!inv) {
       throw new Error('Unable to decode invoice')
     }
@@ -147,7 +148,7 @@ export default async function wrapInvoice ({ bolt11, feePercent }, { msats, desc
 
     // get routing estimates
     const { routingFeeMsat, timeLockDelay } =
-      await estimateRouteFee({
+      await estimateFees({
         lnd,
         destination: inv.destination,
         mtokens: inv.mtokens,

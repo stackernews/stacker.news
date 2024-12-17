@@ -1,10 +1,11 @@
-import { createHodlInvoice, createInvoice, parsePaymentRequest } from 'ln-service'
+import { createHodlInvoice, createInvoice } from 'ln-service'
 import { datePivot } from '@/lib/time'
 import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { createHmac } from '@/api/resolvers/wallet'
 import { Prisma } from '@prisma/client'
 import { createWrappedInvoice, createInvoice as createUserInvoice } from '@/wallets/server'
 import { assertBelowMaxPendingInvoices, assertBelowMaxPendingDirectPayments } from './lib/assert'
+import { parseBolt11 } from '@/lib/invoices'
 
 import * as ITEM_CREATE from './itemCreate'
 import * as ITEM_UPDATE from './itemUpdate'
@@ -271,7 +272,7 @@ async function performDirectAction (actionType, args, incomingContext) {
   }
 
   const { invoice, wallet } = invoiceObject
-  const hash = parsePaymentRequest({ request: invoice }).id
+  const hash = await parseBolt11({ request: invoice }).id // direct payments are always to bolt11 invoices
 
   const payment = await models.directPayment.create({
     data: {
@@ -419,8 +420,9 @@ async function createDbInvoice (actionType, args, context) {
     throw new Error('The cost of the action must be at least 1 sat')
   }
 
+  // note: served invoice is always bolt11
   const servedBolt11 = wrappedBolt11 ?? bolt11
-  const servedInvoice = parsePaymentRequest({ request: servedBolt11 })
+  const servedInvoice = await parseBolt11({ request: servedBolt11 })
   const expiresAt = new Date(servedInvoice.expires_at)
 
   const invoiceData = {

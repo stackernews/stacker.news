@@ -1,7 +1,7 @@
 import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { msatsToSats, satsToMsats, toPositiveBigInt } from '@/lib/format'
 import { Prisma } from '@prisma/client'
-import { parsePaymentRequest, payViaPaymentRequest } from 'ln-service'
+import { payInvoice, parseInvoice } from '@/lib/invoices'
 
 // paying actions are completely distinct from paid actions
 // and there's only one paying action: send
@@ -14,7 +14,7 @@ export default async function performPayingAction ({ bolt11, maxFee, walletId },
       throw new Error('You must be logged in to perform this action')
     }
 
-    const decoded = await parsePaymentRequest({ request: bolt11 })
+    const decoded = await parseInvoice({ request: bolt11, lnd })
     const cost = toPositiveBigInt(toPositiveBigInt(decoded.mtokens) + satsToMsats(maxFee))
 
     console.log('cost', cost)
@@ -40,7 +40,7 @@ export default async function performPayingAction ({ bolt11, maxFee, walletId },
       })
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 
-    payViaPaymentRequest({
+    payInvoice({
       lnd,
       request: withdrawal.bolt11,
       max_fee: msatsToSats(withdrawal.msatsFeePaying),

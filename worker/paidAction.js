@@ -7,11 +7,11 @@ import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
 import {
   cancelHodlInvoice,
-  getInvoice, parsePaymentRequest,
-  payViaPaymentRequest, settleHodlInvoice
+  getInvoice,
+  settleHodlInvoice
 } from 'ln-service'
+import { payInvoice, parseInvoice } from '@/lib/invoices'
 import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/wrap'
-
 // aggressive finalization retry options
 const FINALIZE_OPTIONS = { retryLimit: 2 ** 31 - 1, retryBackoff: false, retryDelay: 5, priority: 1000 }
 
@@ -211,7 +211,7 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
 
       const { expiryHeight, acceptHeight } = hodlInvoiceCltvDetails(lndInvoice)
       const { bolt11, maxFeeMsats } = invoiceForward
-      const invoice = await parsePaymentRequest({ request: bolt11 })
+      const invoice = await parseInvoice({ request: bolt11, lnd })
       // maxTimeoutDelta is the number of blocks left for the outgoing payment to settle
       const maxTimeoutDelta = toPositiveNumber(expiryHeight) - toPositiveNumber(acceptHeight) - MIN_SETTLEMENT_CLTV_DELTA
       if (maxTimeoutDelta - toPositiveNumber(invoice.cltv_delta) < 0) {
@@ -265,7 +265,7 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
     console.log('forwarding with max fee', maxFeeMsats, 'max_timeout_height', maxTimeoutHeight,
       'accept_height', acceptHeight, 'expiry_height', expiryHeight)
 
-    payViaPaymentRequest({
+    payInvoice({
       lnd,
       request: bolt11,
       max_fee_mtokens: String(maxFeeMsats),
@@ -445,7 +445,7 @@ export async function paidActionCanceling ({ data: { invoiceId, ...args }, model
     if (transitionedInvoice.invoiceForward) {
       const { wallet, bolt11 } = transitionedInvoice.invoiceForward
       const logger = walletLogger({ wallet, models })
-      const decoded = await parsePaymentRequest({ request: bolt11 })
+      const decoded = await parseInvoice({ request: bolt11, lnd })
       logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, { bolt11 })
     }
   }

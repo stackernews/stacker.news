@@ -264,7 +264,8 @@ async function performDirectAction (actionType, args, incomingContext) {
     invoiceObject = await createUserInvoice(userId, {
       msats: cost,
       description,
-      expiry: INVOICE_EXPIRE_SECS
+      expiry: INVOICE_EXPIRE_SECS,
+      supportBolt12: false // direct payment is not supported to bolt12 for compatibility reasons
     }, { models, lnd })
   } catch (e) {
     console.error('failed to create outside invoice', e)
@@ -272,7 +273,7 @@ async function performDirectAction (actionType, args, incomingContext) {
   }
 
   const { invoice, wallet } = invoiceObject
-  const hash = await parseBolt11({ request: invoice }).id // direct payments are always to bolt11 invoices
+  const hash = await parseBolt11({ request: invoice }).id
 
   const payment = await models.directPayment.create({
     data: {

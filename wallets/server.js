@@ -47,7 +47,7 @@ async function checkInvoice (invoice, { msats }, { lnd, logger }) {
   }
 }
 
-export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { predecessorId, models, lnd }) {
+export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360, supportBolt12 = true }, { predecessorId, models, lnd }) {
   // get the wallets in order of priority
   const wallets = await getInvoiceableWallets(userId, { predecessorId, models })
 
@@ -74,6 +74,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
       }
 
       if (!isBolt12Offer(invoice)) {
+        if (!supportBolt12) continue
         checkInvoice(invoice, { msats }, { lnd, logger })
       }
 

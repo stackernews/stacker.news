@@ -70,7 +70,7 @@ export async function topUsers (parent, { cursor, when, by, from, to, limit = LI
   }
 
   const users = (await models.$queryRawUnsafe(`
-    SELECT *
+    SELECT *, ${column === 'proportion' ? 'proportion' : ''}
     FROM
       (SELECT users.*,
         COALESCE(floor(sum(msats_spent)/1000), 0) as spent,

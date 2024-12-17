@@ -107,13 +107,13 @@ export function User ({ user, rank, statComps, className = 'mb-2', Embellish, ny
           <div className={styles.other}>
             {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
           </div>}
-        {Embellish && <Embellish rank={rank} />}
+        {Embellish && <Embellish rank={rank} user={user} />}
       </UserBase>
     </>
   )
 }
 
-function UserHidden ({ rank, Embellish }) {
+function UserHidden ({ rank, user, Embellish }) {
   return (
     <>
       {rank
@@ -133,7 +133,7 @@ function UserHidden ({ rank, Embellish }) {
           <div className={`${styles.title} text-muted d-inline-flex align-items-center`}>
             stacker is in hiding
           </div>
-          {Embellish && <Embellish rank={rank} />}
+          {Embellish && <Embellish rank={rank} user={user} />}
         </div>
       </div>
     </>
@@ -148,7 +148,7 @@ export function ListUsers ({ users, rank, statComps = DEFAULT_STAT_COMPONENTS, E
       {users.map((user, i) => (
         user
           ? <User key={user.id} user={user} rank={rank && i + 1} statComps={statComps} Embellish={Embellish} nymActionDropdown={nymActionDropdown} />
-          : <UserHidden key={i} rank={rank && i + 1} Embellish={Embellish} />
+          : <UserHidden key={i} rank={rank && i + 1} user={user} Embellish={Embellish} />
       ))}
     </div>
   )

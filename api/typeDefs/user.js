@@ -58,7 +58,7 @@ export default gql`
     bioId: Int
     photoId: Int
     since: Int
-
+    proportion: Float
     optional: UserOptional!
     privates: UserPrivates
 

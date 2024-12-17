@@ -3,7 +3,7 @@ CREATE OR REPLACE FUNCTION user_values(
     percentile_cutoff INTEGER DEFAULT 50,
     each_upvote_portion FLOAT DEFAULT 4.0,
     each_item_portion FLOAT DEFAULT 4.0,
-    handicap_ids INTEGER[] DEFAULT '{616, 6030, 4502}',
+    handicap_ids INTEGER[] DEFAULT '{616, 6030, 4502, 27}',
     handicap_zap_mult FLOAT DEFAULT 0.3)
 RETURNS TABLE (
     t TIMESTAMP(3), id INTEGER, proportion FLOAT
@@ -49,8 +49,9 @@ BEGIN
         ),
         -- isolate contiguous upzaps from the same user on the same item so that when we take the log
         -- of the upzaps it accounts for successive zaps and does not disproportionately reward them
+        -- quad root of the total tipped
         upvoters AS (
-            SELECT "userId", upvoter_islands.id, ratio, "parentId", GREATEST(log(sum(tipped) / 1000), 0) as tipped, min(acted_at) as acted_at
+            SELECT "userId", upvoter_islands.id, ratio, "parentId", GREATEST(power(sum(tipped) / 1000, 0.25), 0) as tipped, min(acted_at) as acted_at
             FROM upvoter_islands
             GROUP BY "userId", upvoter_islands.id, ratio, "parentId", island
         ),
@@ -60,14 +61,14 @@ BEGIN
         -- multiplied by the relative rank of the item to the total items
         -- multiplied by the trust of the user
         upvoter_ratios AS (
-            SELECT "userId", sum((early_weight+tipped_ratio)*ratio*CASE WHEN users.id = ANY (handicap_ids) THEN handicap_zap_mult ELSE users.trust+0.1 END) as upvoter_ratio,
+            SELECT "userId", sum((early_multiplier+tipped_ratio)*ratio*CASE WHEN users.id = ANY (handicap_ids) THEN handicap_zap_mult ELSE users.trust+0.1 END) as upvoter_ratio,
                 "parentId" IS NULL as "isPost", CASE WHEN "parentId" IS NULL THEN 'TIP_POST' ELSE 'TIP_COMMENT' END as type
             FROM (
                 SELECT *,
                     1.0/LN(ROW_NUMBER() OVER (partition by upvoters.id order by acted_at asc) + EXP(1.0) - 1) AS early_multiplier,
                     tipped::float/(sum(tipped) OVER (partition by upvoters.id)) tipped_ratio
                 FROM upvoters
-                WHERE tipped >= 10
+                WHERE tipped > 2
             ) u
             JOIN users on "userId" = users.id
             GROUP BY "userId", "parentId" IS NULL

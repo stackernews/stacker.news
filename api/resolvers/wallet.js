@@ -8,7 +8,8 @@ import { SELECT, itemQueryWithMeta } from './item'
 import { formatMsats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
 import {
   USER_ID, INVOICE_RETENTION_DAYS,
-  PAID_ACTION_PAYMENT_METHODS
+  PAID_ACTION_PAYMENT_METHODS,
+  WALLET_CREATE_INVOICE_TIMEOUT_MS
 } from '@/lib/constants'
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
@@ -21,9 +22,10 @@ import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets, getOurPubkey } from '../lnd'
 import validateWallet from '@/wallets/validate'
-import { canReceive } from '@/wallets/common'
+import { canReceive, getWalletByType } from '@/wallets/common'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
+import { timeoutSignal, withTimeout } from '@/lib/time'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
@@ -63,9 +65,15 @@ function injectResolvers (resolvers) {
 
       return await upsertWallet({
         wallet,
+        walletDef,
         testCreateInvoice:
           walletDef.testCreateInvoice && validateLightning && canReceive({ def: walletDef, config: data })
-            ? (data) => walletDef.testCreateInvoice(data, { logger })
+            ? (data) => withTimeout(
+                walletDef.testCreateInvoice(data, {
+                  logger,
+                  signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS)
+                }),
+                WALLET_CREATE_INVOICE_TIMEOUT_MS)
             : null
       }, {
         settings,
@@ -551,7 +559,10 @@ const resolvers = {
 
       const logger = walletLogger({ wallet, models })
       await models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
-      logger.info('wallet detached')
+
+      if (canReceive({ def: getWalletByType(wallet.type), config: wallet.wallet })) {
+        logger.info('details for receiving deleted')
+      }
 
       return true
     },
@@ -765,7 +776,7 @@ export const walletLogger = ({ wallet, models }) => {
 }
 
 async function upsertWallet (
-  { wallet, testCreateInvoice }, { settings, data, vaultEntries }, { logger, me, models }) {
+  { wallet, walletDef, testCreateInvoice }, { settings, data, vaultEntries }, { logger, me, models }) {
   if (!me) {
     throw new GqlAuthenticationError()
   }
@@ -871,24 +882,26 @@ async function upsertWallet (
     )
   }
 
-  txs.push(
-    models.walletLog.createMany({
-      data: {
-        userId: me.id,
-        wallet: wallet.type,
-        level: 'SUCCESS',
-        message: id ? 'wallet details updated' : 'wallet attached'
-      }
-    }),
-    models.walletLog.create({
-      data: {
-        userId: me.id,
-        wallet: wallet.type,
-        level: enabled ? 'SUCCESS' : 'INFO',
-        message: enabled ? 'wallet enabled' : 'wallet disabled'
-      }
-    })
-  )
+  if (canReceive({ def: walletDef, config: walletData })) {
+    txs.push(
+      models.walletLog.createMany({
+        data: {
+          userId: me.id,
+          wallet: wallet.type,
+          level: 'SUCCESS',
+          message: id ? 'details for receiving updated' : 'details for receiving saved'
+        }
+      }),
+      models.walletLog.create({
+        data: {
+          userId: me.id,
+          wallet: wallet.type,
+          level: enabled ? 'SUCCESS' : 'INFO',
+          message: enabled ? 'receiving enabled' : 'receiving disabled'
+        }
+      })
+    )
+  }
 
   const [upsertedWallet] = await models.$transaction(txs)
   return upsertedWallet

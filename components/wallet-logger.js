@@ -133,7 +133,7 @@ export function useWalletLogManager (setLogs) {
     `,
     {
       onCompleted: (_, { variables: { wallet: walletType } }) => {
-        setLogs?.(logs => logs.filter(l => walletType ? l.wallet !== getWalletByType(walletType).name : false))
+        setLogs?.(logs => logs.filter(l => walletType ? l.wallet !== walletTag(getWalletByType(walletType)) : false))
       }
     }
   )

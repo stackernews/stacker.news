@@ -15,8 +15,8 @@ import { walletLogger } from '@/api/resolvers/wallet'
 import walletDefs from '@/wallets/server'
 import { parsePaymentRequest } from 'ln-service'
 import { toPositiveBigInt, toPositiveNumber, formatMsats, formatSats, msatsToSats } from '@/lib/format'
-import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
-import { withTimeout } from '@/lib/time'
+import { PAID_ACTION_TERMINAL_STATES, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { timeoutSignal, withTimeout } from '@/lib/time'
 import { canReceive } from './common'
 import wrapInvoice from './wrap'
 
@@ -201,6 +201,9 @@ async function walletCreateInvoice ({ wallet, def }, {
         expiry
       },
       wallet.wallet,
-      { logger }
-    ), 10_000)
+      {
+        logger,
+        signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS)
+      }
+    ), WALLET_CREATE_INVOICE_TIMEOUT_MS)
 }

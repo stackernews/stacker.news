@@ -2,7 +2,7 @@
 # glibc 2.39 which is not available on debian or ubuntu images.
 FROM fedora:40
 
-ENV INSTALLER_DOWNLOAD_URL="https://github.com/riccardobl/lndk/releases/download/v0.2.0-maxfee"
+ENV INSTALLER_DOWNLOAD_URL="https://github.com/stackernews/lndk/releases/download/v0.2.0-maxfee"
 
 RUN useradd -u 1000 -m lndk
 RUN mkdir -p /home/lndk/.lndk 

@@ -19,5 +19,7 @@ export const fields = [
 
 export const card = {
   title: 'Bolt12',
-  subtitle: 'bolt12'
+  subtitle: 'bolt12',
+  image: { src: '/wallets/bolt12.svg' }
+
 }

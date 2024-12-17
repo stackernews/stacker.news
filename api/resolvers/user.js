@@ -1110,8 +1110,7 @@ export default {
 
       if (!when || when === 'forever') {
         // forever
-        return ((user.stackedMsats && msatsToSats(user.stackedMsats)) || 0) +
-          ((user.stackedMcredits && msatsToSats(user.stackedMcredits)) || 0)
+        return ((user.stackedMsats && msatsToSats(user.stackedMsats)) || 0)
       }
 
       const range = whenRange(when, from, to)

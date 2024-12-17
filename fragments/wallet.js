@@ -121,6 +121,13 @@ export const SEND_TO_LNADDR = gql`
     }
 }`
 
+export const SEND_TO_BOLT12_OFFER = gql`
+  mutation sendToBolt12Offer($offer: String!, $amountSats: Int!, $maxFee: Int!, $comment: String) {
+    sendToBolt12Offer(offer: $offer, amountSats: $amountSats, maxFee: $maxFee, comment: $comment) {
+      id
+    }
+}`
+
 export const REMOVE_WALLET =
 gql`
 mutation removeWallet($id: ID!) {

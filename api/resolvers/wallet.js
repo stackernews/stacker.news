@@ -12,7 +12,7 @@ import {
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
-import { bolt11Info, isBolt11 } from '@/lib/bolt11-info'
+import { bolt11Tags, isBolt11 } from '@/lib/bolt11-tags'
 import { bolt12Info } from '@/lib/bolt12-info'
 import { finalizeHodlInvoice } from '@/worker/wallet'
 import walletDefs from '@/wallets/server'
@@ -24,8 +24,10 @@ import validateWallet from '@/wallets/validate'
 import { canReceive } from '@/wallets/common'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
-import { parseInvoice } from '@/lib/invoices'
+import { parseInvoice } from '@/lib/boltInvoices'
 import lnd from '@/api/lnd'
+import { isBolt12Offer } from '@/lib/bolt12'
+import { fetchBolt12InvoiceFromOffer } from '@/lib/lndk'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
@@ -369,7 +371,7 @@ const resolvers = {
         f = { ...f, ...f.other }
 
         if (f.bolt11) {
-          f.description = isBolt11(f.bolt11) ? bolt11Info(f.bolt11).description : bolt12Info(f.bolt11).description
+          f.description = isBolt11(f.bolt11) ? bolt11Tags(f.bolt11).description : bolt12Info(f.bolt11).description
         }
 
         switch (f.type) {
@@ -481,6 +483,7 @@ const resolvers = {
     },
     createWithdrawl: createWithdrawal,
     sendToLnAddr,
+    sendToBolt12Offer,
     cancelInvoice: async (parent, { hash, hmac }, { models, lnd, boss }) => {
       verifyHmac(hash, hmac)
       await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
@@ -940,7 +943,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     throw new GqlInputError('SN cannot pay an invoice that SN is proxying')
   }
 
-  return await performPayingAction({ invoice, maxFee, walletId: wallet?.id }, { me, models, lnd })
+  return await performPayingAction({ bolt11: invoice, maxFee, walletId: wallet?.id }, { me, models, lnd })
 }
 
 export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },
@@ -959,6 +962,18 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
 
   // take pr and createWithdrawl
   return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers })
+}
+
+export async function sendToBolt12Offer (parent, { offer, amountSats, maxFee, comment }, { me, models, lnd, headers }) {
+  if (!me) {
+    throw new GqlAuthenticationError()
+  }
+  assertApiKeyNotPermitted({ me })
+  if (!isBolt12Offer(offer)) {
+    throw new GqlInputError('not a bolt12 offer')
+  }
+  const invoice = await fetchBolt12InvoiceFromOffer({ lnd, offer, msats: satsToMsats(amountSats), description: comment })
+  return await createWithdrawal(parent, { invoice, maxFee }, { me, models, lnd, headers })
 }
 
 export async function fetchLnAddrInvoice (

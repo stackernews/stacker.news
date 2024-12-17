@@ -1,7 +1,7 @@
 import { createHodlInvoice } from 'ln-service'
 import { getBlockHeight } from '../api/lnd'
 import { toBigInt, toPositiveBigInt, toPositiveNumber } from '@/lib/format'
-import { parseInvoice, estimateFees } from '@/lib/invoices'
+import { parseInvoice, estimateFees } from '@/lib/boltInvoices'
 
 const MIN_OUTGOING_MSATS = BigInt(900) // the minimum msats we'll allow for the outgoing invoice
 const MAX_OUTGOING_MSATS = BigInt(900_000_000) // the maximum msats we'll allow for the outgoing invoice

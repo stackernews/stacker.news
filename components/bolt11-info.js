@@ -1,12 +1,12 @@
 import AccordianItem from './accordian-item'
 import { CopyInput } from './form'
-import { bolt11Info, isBolt11 } from '@/lib/bolt11-info'
+import { bolt11Tags, isBolt11 } from '@/lib/bolt11-tags'
 import { bolt12Info } from '@/lib/bolt12-info'
 
 export default ({ bolt11, preimage, children }) => {
   let description, paymentHash
   if (bolt11) {
-    ({ description, payment_hash: paymentHash } = isBolt11(bolt11) ? bolt11Info(bolt11) : bolt12Info(bolt11))
+    ({ description, payment_hash: paymentHash } = isBolt11(bolt11) ? bolt11Tags(bolt11) : bolt12Info(bolt11))
   }
 
   return (

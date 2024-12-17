@@ -11,9 +11,9 @@ import { useMe } from '@/components/me'
 import { useEffect, useState } from 'react'
 import { requestProvider } from 'webln'
 import Alert from 'react-bootstrap/Alert'
-import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/wallet'
+import { CREATE_WITHDRAWL, SEND_TO_BOLT12_OFFER, SEND_TO_LNADDR } from '@/fragments/wallet'
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { amountSchema, lnAddrSchema, withdrawlSchema } from '@/lib/validate'
+import { amountSchema, lnAddrSchema, withdrawlSchema, bolt12WithdrawSchema } from '@/lib/validate'
 import Nav from 'react-bootstrap/Nav'
 import { BALANCE_LIMIT_MSATS, FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { msatsToSats, numWithUnits } from '@/lib/format'
@@ -195,6 +195,11 @@ export function WithdrawalForm () {
             <Nav.Link eventKey='lnaddr-withdraw'>lightning address</Nav.Link>
           </Link>
         </Nav.Item>
+        <Nav.Item>
+          <Link href='/wallet?type=bolt12-withdraw' passHref legacyBehavior>
+            <Nav.Link eventKey='bolt12-withdraw'>bolt12 offer</Nav.Link>
+          </Link>
+        </Nav.Item>
       </Nav>
       <SelectedWithdrawalForm />
     </div>
@@ -211,6 +216,8 @@ export function SelectedWithdrawalForm () {
       return <LnWithdrawal />
     case 'lnaddr-withdraw':
       return <LnAddrWithdrawal />
+    case 'bolt12-withdraw':
+      return <Bolt12Withdrawal />
   }
 }
 
@@ -507,6 +514,74 @@ export function LnAddrWithdrawal () {
               />
             </div>
           </div>}
+        <SubmitButton variant='success' className='mt-2'>send</SubmitButton>
+      </Form>
+    </>
+  )
+}
+
+export function Bolt12Withdrawal () {
+  const { me } = useMe()
+  const router = useRouter()
+  const [sendToBolt12Offer, { called, error }] = useMutation(SEND_TO_BOLT12_OFFER)
+
+  const maxFeeDefault = me?.privates?.withdrawMaxFeeDefault
+
+  return (
+    <>
+      {called && !error && <WithdrawlSkeleton status='sending' />}
+      <Form
+        // hide/show instead of add/remove from react tree to avoid re-initializing the form state on error
+        style={{ display: !(called && !error) ? 'block' : 'none' }}
+        initial={{
+          offer: '',
+          amount: 1,
+          maxFee: maxFeeDefault,
+          comment: ''
+        }}
+        schema={bolt12WithdrawSchema}
+        onSubmit={async ({ offer, amount, maxFee, comment }) => {
+          const { data } = await sendToBolt12Offer({
+            variables: {
+              offer,
+              amountSats: Number(amount),
+              maxFee: Number(maxFee),
+              comment
+            }
+          })
+          router.push(`/withdrawals/${data.sendToBolt12Offer.id}`)
+        }}
+      >
+        <Input
+          label='offer'
+          name='offer'
+          type='text'
+          required
+          autoFocus
+        />
+        <Input
+          label='amount'
+          name='amount'
+          type='number'
+          step={10}
+          required
+          min={1}
+          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        />
+        <Input
+          label='max fee'
+          name='maxFee'
+          type='number'
+          step={10}
+          required
+          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        />
+        <Input
+          as='textarea'
+          label={<>comment <small className='text-muted ms-2'>optional</small></>}
+          name='comment'
+          maxLength={128}
+        />
         <SubmitButton variant='success' className='mt-2'>send</SubmitButton>
       </Form>
     </>

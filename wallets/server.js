@@ -14,7 +14,7 @@ import * as webln from '@/wallets/webln'
 
 import { walletLogger } from '@/api/resolvers/wallet'
 import walletDefs from '@/wallets/server'
-import { parseInvoice } from '@/lib/invoices'
+import { parseInvoice } from '@/lib/boltInvoices'
 import { isBolt12Offer } from '@/lib/bolt12'
 import { toPositiveBigInt, toPositiveNumber, formatMsats, formatSats, msatsToSats } from '@/lib/format'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
@@ -29,7 +29,6 @@ const MAX_PENDING_INVOICES_PER_WALLET = 25
 
 async function checkInvoice (invoice, { msats }, { lnd, logger }) {
   const parsedInvoice = await parseInvoice({ lnd, request: invoice })
-  console.log('parsedInvoice', parsedInvoice)
   logger.info(`created invoice for ${formatSats(msatsToSats(parsedInvoice.mtokens))}`, {
     bolt11: invoice
   })
@@ -106,7 +105,7 @@ export async function createWrappedInvoice (userId,
 
     // We need a bolt12 invoice to wrap, so we fetch one
     if (isBolt12Offer(invoice)) {
-      invoice = await fetchBolt12InvoiceFromOffer({ lnd, offer: invoice, amount: innerAmount, description })
+      invoice = await fetchBolt12InvoiceFromOffer({ lnd, offer: invoice, msats: innerAmount, description })
       checkInvoice(invoice, { msats: innerAmount }, { lnd, logger })
     }
 

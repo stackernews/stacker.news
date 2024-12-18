@@ -34,7 +34,7 @@ function injectResolvers (resolvers) {
   for (const walletDef of walletDefs) {
     const resolverName = generateResolverName(walletDef.walletField)
     console.log(resolverName)
-    resolvers.Mutation[resolverName] = async (parent, { settings, validateLightning, vaultEntries, ...data }, { me, models }) => {
+    resolvers.Mutation[resolverName] = async (parent, { settings, validateLightning, vaultEntries, ...data }, { me, models, lnd }) => {
       console.log('resolving', resolverName, { settings, validateLightning, vaultEntries, ...data })
 
       let existingVaultEntries
@@ -69,7 +69,7 @@ function injectResolvers (resolvers) {
         wallet,
         testCreateInvoice:
           walletDef.testCreateInvoice && validateLightning && canReceive({ def: walletDef, config: data })
-            ? (data) => walletDef.testCreateInvoice(data, { logger })
+            ? (data) => walletDef.testCreateInvoice(data, { logger, lnd })
             : null
       }, {
         settings,

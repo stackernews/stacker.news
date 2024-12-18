@@ -3,6 +3,7 @@ import { string } from '@/lib/yup'
 export const name = 'bolt12'
 export const walletType = 'BOLT12'
 export const walletField = 'walletBolt12'
+export const isBolt12OnlyWallet = true
 
 export const fields = [
   {

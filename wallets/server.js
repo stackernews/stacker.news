@@ -15,13 +15,12 @@ import * as webln from '@/wallets/webln'
 import { walletLogger } from '@/api/resolvers/wallet'
 import walletDefs from '@/wallets/server'
 import { parseInvoice } from '@/lib/boltInvoices'
-import { isBolt12Offer } from '@/lib/bolt12'
+import { isBolt12Offer, isBolt12Invoice } from '@/lib/bolt12'
 import { toPositiveBigInt, toPositiveNumber, formatMsats, formatSats, msatsToSats } from '@/lib/format'
 import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { withTimeout } from '@/lib/time'
 import { canReceive } from './common'
 import wrapInvoice from './wrap'
-import { fetchBolt12InvoiceFromOffer } from '@/lib/lndk'
 
 export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln, bolt12]
 
@@ -55,6 +54,9 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 
   for (const { def, wallet } of wallets) {
     const logger = walletLogger({ wallet, models })
+    if (def.isBolt12OnlyWallet) {
+      if (!supportBolt12) continue
+    }
 
     try {
       logger.info(
@@ -68,16 +70,20 @@ export async function createInvoice (userId, { msats, description, descriptionHa
         invoice = await walletCreateInvoice(
           { wallet, def },
           { msats, description, descriptionHash, expiry },
-          { logger, models, lnd })
+          { logger, models, lnd, supportBolt12 })
       } catch (err) {
         throw new Error('failed to create invoice: ' + err.message)
       }
 
-      if (!isBolt12Offer(invoice)) {
-        if (!supportBolt12) continue
-        checkInvoice(invoice, { msats }, { lnd, logger })
+      if (isBolt12Invoice(invoice)) {
+        if (!supportBolt12) {
+          throw new Error('the wallet returned a bolt12 invoice, but a bolt11 invoice was expected')
+        }
+      } else if (isBolt12Offer(invoice)) {
+        throw new Error('the wallet returned a bolt12 offer, but an invoice was expected')
       }
 
+      checkInvoice(invoice, { msats }, { lnd, logger })
       return { invoice, wallet, logger }
     } catch (err) {
       logger.error(err.message, { status: true })
@@ -102,12 +108,6 @@ export async function createWrappedInvoice (userId,
     }, { predecessorId, models, lnd }))
 
     logger = walletLogger({ wallet, models })
-
-    // We need a bolt12 invoice to wrap, so we fetch one
-    if (isBolt12Offer(invoice)) {
-      invoice = await fetchBolt12InvoiceFromOffer({ lnd, offer: invoice, msats: innerAmount, description })
-      checkInvoice(invoice, { msats: innerAmount }, { lnd, logger })
-    }
 
     const { invoice: wrappedInvoice, maxFee } =
       await wrapInvoice(

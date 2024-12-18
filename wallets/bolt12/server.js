@@ -1,12 +1,11 @@
 import { withTimeout } from '@/lib/time'
-import lnd from '@/api/lnd'
 import { fetchBolt12InvoiceFromOffer } from '@/lib/lndk'
 import { isBolt12Invoice } from '@/lib/bolt12'
 import { parseInvoice } from '@/lib/boltInvoices'
 import { toPositiveNumber } from '@/lib/format'
 export * from '@/wallets/bolt12'
 
-export async function testCreateInvoice ({ offer }) {
+export async function testCreateInvoice ({ offer }, { lnd }) {
   const timeout = 15_000
   return await withTimeout((async () => {
     const invoice = await fetchBolt12InvoiceFromOffer({ lnd, offer, msats: 1000, description: 'test' })
@@ -17,6 +16,7 @@ export async function testCreateInvoice ({ offer }) {
   })(), timeout)
 }
 
-export async function createInvoice ({ msats, description, expiry }, { offer }) {
-  return offer
+export async function createInvoice ({ msats, description, expiry }, { offer }, { lnd }) {
+  const invoice = await fetchBolt12InvoiceFromOffer({ lnd, offer, msats, description })
+  return invoice
 }

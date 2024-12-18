@@ -66,6 +66,7 @@ export async function topUsers (parent, { cursor, when, by, from, to, limit = LI
     case 'comments': column = 'ncomments'; break
     case 'referrals': column = 'referrals'; break
     case 'stacking': column = 'stacked'; break
+    case 'value':
     default: column = 'proportion'; break
   }
 

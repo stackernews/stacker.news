@@ -58,7 +58,12 @@ export default gql`
     bioId: Int
     photoId: Int
     since: Int
+
+    """
+    this is only returned when we sort stackers by value
+    """
     proportion: Float
+
     optional: UserOptional!
     privates: UserPrivates
 

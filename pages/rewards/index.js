@@ -118,6 +118,7 @@ export default function Rewards ({ ssrData }) {
   if (!dat) return <PageLoading />
 
   function EstimatedReward ({ rank, user }) {
+    if (!user) return null
     const referrerReward = Math.max(Math.floor(total * user.proportion * 0.2), 0)
     const reward = Math.max(Math.floor(total * user.proportion) - referrerReward, 0)
 

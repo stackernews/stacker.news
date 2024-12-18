@@ -68,7 +68,7 @@ BEGIN
                     1.0/LN(ROW_NUMBER() OVER (partition by upvoters.id order by acted_at asc) + EXP(1.0) - 1) AS early_multiplier,
                     tipped::float/(sum(tipped) OVER (partition by upvoters.id)) tipped_ratio
                 FROM upvoters
-                WHERE tipped > 2
+                WHERE tipped > 2.1
             ) u
             JOIN users on "userId" = users.id
             GROUP BY "userId", "parentId" IS NULL

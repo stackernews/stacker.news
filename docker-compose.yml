@@ -680,7 +680,6 @@ services:
       - bitcoin
       - sn_lnd
       - lnd
-      - cln
     restart: unless-stopped
     command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}
     volumes:

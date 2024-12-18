@@ -88,3 +88,6 @@ BEGIN
         HAVING sum(proportions.proportion) > 0.000001) u;
 END;
 $$;
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY user_values_today;
+REFRESH MATERIALIZED VIEW CONCURRENTLY user_values_days;

@@ -17,8 +17,8 @@ import walletDefs from '@/wallets/server'
 import { parseInvoice } from '@/lib/boltInvoices'
 import { isBolt12Offer, isBolt12Invoice } from '@/lib/bolt12'
 import { toPositiveBigInt, toPositiveNumber, formatMsats, formatSats, msatsToSats } from '@/lib/format'
-import { PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
-import { withTimeout } from '@/lib/time'
+import { PAID_ACTION_TERMINAL_STATES, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { timeoutSignal, withTimeout } from '@/lib/time'
 import { canReceive } from './common'
 import wrapInvoice from './wrap'
 
@@ -219,6 +219,10 @@ async function walletCreateInvoice ({ wallet, def }, {
         expiry
       },
       wallet.wallet,
-      { logger, lnd }
-    ), 10_000)
+      {
+        logger,
+        lnd,
+        signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS)
+      }
+    ), WALLET_CREATE_INVOICE_TIMEOUT_MS)
 }

@@ -1,10 +1,10 @@
 import { getScopes, SCOPE_READ, SCOPE_WRITE, getWallet, request } from '@/wallets/blink/common'
 export * from '@/wallets/blink'
 
-export async function testSendPayment ({ apiKey, currency }, { logger }) {
+export async function testSendPayment ({ apiKey, currency }, { logger, signal }) {
   logger.info('trying to fetch ' + currency + ' wallet')
 
-  const scopes = await getScopes({ apiKey })
+  const scopes = await getScopes({ apiKey }, { signal })
   if (!scopes.includes(SCOPE_READ)) {
     throw new Error('missing READ scope')
   }
@@ -13,17 +13,17 @@ export async function testSendPayment ({ apiKey, currency }, { logger }) {
   }
 
   currency = currency ? currency.toUpperCase() : 'BTC'
-  await getWallet({ apiKey, currency })
+  await getWallet({ apiKey, currency }, { signal })
 
   logger.ok(currency + ' wallet found')
 }
 
-export async function sendPayment (bolt11, { apiKey, currency }) {
-  const wallet = await getWallet({ apiKey, currency })
-  return await payInvoice(bolt11, { apiKey, wallet })
+export async function sendPayment (bolt11, { apiKey, currency }, { signal }) {
+  const wallet = await getWallet({ apiKey, currency }, { signal })
+  return await payInvoice(bolt11, { apiKey, wallet }, { signal })
 }
 
-async function payInvoice (bolt11, { apiKey, wallet }) {
+async function payInvoice (bolt11, { apiKey, wallet }, { signal }) {
   const out = await request({
     apiKey,
     query: `
@@ -53,7 +53,7 @@ async function payInvoice (bolt11, { apiKey, wallet }) {
         walletId: wallet.id
       }
     }
-  })
+  }, { signal })
 
   const status = out.data.lnInvoicePaymentSend.status
   const errors = out.data.lnInvoicePaymentSend.errors
@@ -79,7 +79,7 @@ async function payInvoice (bolt11, { apiKey, wallet }) {
       // at some point it should either be settled or fail on the backend, so the loop will exit
       await new Promise(resolve => setTimeout(resolve, 100))
 
-      const txInfo = await getTxInfo(bolt11, { apiKey, wallet })
+      const txInfo = await getTxInfo(bolt11, { apiKey, wallet }, { signal })
       // settled
       if (txInfo.status === 'SUCCESS') {
         if (!txInfo.preImage) throw new Error('no preimage')
@@ -98,7 +98,7 @@ async function payInvoice (bolt11, { apiKey, wallet }) {
   throw new Error('unexpected error')
 }
 
-async function getTxInfo (bolt11, { apiKey, wallet }) {
+async function getTxInfo (bolt11, { apiKey, wallet }, { signal }) {
   let out
   try {
     out = await request({
@@ -128,7 +128,7 @@ async function getTxInfo (bolt11, { apiKey, wallet }) {
         paymentRequest: bolt11,
         walletId: wallet.Id
       }
-    })
+    }, { signal })
   } catch (e) {
     // something went wrong during the query,
     // maybe the connection was lost, so we just return

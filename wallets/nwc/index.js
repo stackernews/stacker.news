@@ -1,7 +1,10 @@
-import { Relay } from '@/lib/nostr'
-import { parseNwcUrl } from '@/lib/url'
+import Nostr from '@/lib/nostr'
 import { string } from '@/lib/yup'
-import { finalizeEvent, nip04, verifyEvent } from 'nostr-tools'
+import { parseNwcUrl } from '@/lib/url'
+import { NDKNwc } from '@nostr-dev-kit/ndk'
+import { TimeoutError } from '@/lib/time'
+
+const NWC_CONNECT_TIMEOUT_MS = 15_000
 
 export const name = 'nwc'
 export const walletType = 'NWC'
@@ -33,61 +36,61 @@ export const card = {
   subtitle: 'use Nostr Wallet Connect for payments'
 }
 
-export async function nwcCall ({ nwcUrl, method, params }, { logger, timeout } = {}) {
-  const { relayUrl, walletPubkey, secret } = parseNwcUrl(nwcUrl)
+async function getNwc (nwcUrl, { signal }) {
+  const ndk = new Nostr().ndk
+  const { walletPubkey, secret, relayUrls } = parseNwcUrl(nwcUrl)
+  const nwc = new NDKNwc({
+    ndk,
+    pubkey: walletPubkey,
+    relayUrls,
+    secret
+  })
 
-  const relay = await Relay.connect(relayUrl, { timeout })
-  logger?.ok(`connected to ${relayUrl}`)
-
+  // TODO: support AbortSignal
   try {
-    const payload = { method, params }
-    const encrypted = await nip04.encrypt(secret, walletPubkey, JSON.stringify(payload))
-
-    const request = finalizeEvent({
-      kind: 23194,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: [['p', walletPubkey]],
-      content: encrypted
-    }, secret)
-
-    // we need to subscribe to the response before publishing the request
-    // since NWC events are ephemeral (20000 <= kind < 30000)
-    const subscription = relay.fetch([{
-      kinds: [23195],
-      authors: [walletPubkey],
-      '#e': [request.id]
-    }], { timeout })
-
-    await relay.publish(request, { timeout })
-
-    logger?.info(`published ${method} request`)
-
-    logger?.info(`waiting for ${method} response ...`)
-
-    const [response] = await subscription
-
-    if (!response) {
-      throw new Error(`no ${method} response`)
+    await nwc.blockUntilReady(NWC_CONNECT_TIMEOUT_MS)
+  } catch (err) {
+    if (err.message === 'Timeout') {
+      throw new TimeoutError(NWC_CONNECT_TIMEOUT_MS)
     }
+    throw err
+  }
 
-    logger?.ok(`${method} response received`)
+  return nwc
+}
 
-    if (!verifyEvent(response)) throw new Error(`invalid ${method} response: failed to verify`)
-
-    const decrypted = await nip04.decrypt(secret, walletPubkey, response.content)
-    const content = JSON.parse(decrypted)
-
-    if (content.error) throw new Error(content.error.message)
-    if (content.result) return content.result
-
-    throw new Error(`invalid ${method} response: missing error or result`)
+/**
+ * Run a nwc function and throw if it errors
+ * (workaround to handle ambiguous NDK error handling)
+ * @param {function} fun - the nwc function to run
+ * @returns - the result of the nwc function
+ */
+export async function nwcTryRun (fun, { nwcUrl }, { signal }) {
+  let nwc
+  try {
+    nwc = await getNwc(nwcUrl, { signal })
+    const { error, result } = await fun(nwc)
+    if (error) throw new Error(error.message || error.code)
+    return result
+  } catch (e) {
+    if (e.error) throw new Error(e.error.message || e.error.code)
+    throw e
   } finally {
-    relay?.close()
-    logger?.info(`closed connection to ${relayUrl}`)
+    if (nwc) close(nwc)
   }
 }
 
-export async function supportedMethods (nwcUrl, { logger, timeout } = {}) {
-  const result = await nwcCall({ nwcUrl, method: 'get_info' }, { logger, timeout })
+/**
+ * Close all relay connections of the NDKNwc instance
+ * @param {NDKNwc} nwc
+ */
+async function close (nwc) {
+  for (const relay of nwc.relaySet.relays) {
+    nwc.ndk.pool.removeRelay(relay.url)
+  }
+}
+
+export async function supportedMethods (nwcUrl, { signal }) {
+  const result = await nwcTryRun(nwc => nwc.getInfo(), { nwcUrl }, { signal })
   return result.methods
 }

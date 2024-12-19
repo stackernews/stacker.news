@@ -1,7 +1,7 @@
 import { getPaymentFailureStatus, hodlInvoiceCltvDetails, getPaymentOrNotSent } from '@/api/lnd'
 import { paidActions } from '@/api/paidAction'
 import { walletLogger } from '@/api/resolvers/wallet'
-import { LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
+import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { formatMsats, formatSats, msatsToSats, toPositiveNumber } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
@@ -270,6 +270,7 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
       request: bolt11,
       max_fee_mtokens: String(maxFeeMsats),
       pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
+      confidence: LND_PATHFINDING_TIME_PREF_PPM,
       max_timeout_height: maxTimeoutHeight
     }).catch(console.error)
   }
@@ -316,13 +317,11 @@ export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...a
   }, { models, lnd, boss })
 
   if (transitionedInvoice) {
-    const { bolt11, msatsPaid, msatsFeePaid } = transitionedInvoice.invoiceForward.withdrawl
-    // the amount we paid includes the fee so we need to subtract it to get the amount received
-    const received = Number(msatsPaid) - Number(msatsFeePaid)
+    const { bolt11, msatsPaid } = transitionedInvoice.invoiceForward.withdrawl
 
     const logger = walletLogger({ wallet: transitionedInvoice.invoiceForward.wallet, models })
     logger.ok(
-      `↙ payment received: ${formatSats(msatsToSats(received))}`,
+      `↙ payment received: ${formatSats(msatsToSats(Number(msatsPaid)))}`,
       {
         bolt11,
         preimage: transitionedInvoice.preimage

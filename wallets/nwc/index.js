@@ -3,8 +3,9 @@ import { string } from '@/lib/yup'
 import { parseNwcUrl } from '@/lib/url'
 import { NDKNwc } from '@nostr-dev-kit/ndk'
 import { TimeoutError } from '@/lib/time'
+import { WALLET_CREATE_INVOICE_TIMEOUT_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 
-const NWC_CONNECT_TIMEOUT_MS = 15_000
+const NWC_CONNECT_TIMEOUT_MS = Math.max(WALLET_SEND_PAYMENT_TIMEOUT_MS, WALLET_CREATE_INVOICE_TIMEOUT_MS)
 
 export const name = 'nwc'
 export const walletType = 'NWC'

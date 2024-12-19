@@ -786,7 +786,7 @@ async function upsertWallet (
     }
   }
 
-  const { id, enabled, priority, ...walletData } = data
+  const { id, enabled, priority, ...recvConfig } = data
 
   const txs = []
 
@@ -806,13 +806,13 @@ async function upsertWallet (
         data: {
           enabled,
           priority,
-          // client only wallets has no walletData
-          ...(Object.keys(walletData).length > 0
+          // client only wallets have no receive config and thus don't have their own table
+          ...(Object.keys(recvConfig).length > 0
             ? {
                 [wallet.field]: {
                   update: {
                     where: { walletId: Number(id) },
-                    data: walletData
+                    data: recvConfig
                   }
                 }
               }
@@ -851,8 +851,8 @@ async function upsertWallet (
           priority,
           userId: me.id,
           type: wallet.type,
-          // client only wallets has no walletData
-          ...(Object.keys(walletData).length > 0 ? { [wallet.field]: { create: walletData } } : {}),
+          // client only wallets have no receive config and thus don't have their own table
+          ...(Object.keys(recvConfig).length > 0 ? { [wallet.field]: { create: recvConfig } } : {}),
           ...(vaultEntries
             ? {
                 vaultEntries: {
@@ -876,7 +876,7 @@ async function upsertWallet (
     )
   }
 
-  if (canReceive({ def: walletDef, config: walletData })) {
+  if (canReceive({ def: walletDef, config: recvConfig })) {
     txs.push(
       models.walletLog.createMany({
         data: {

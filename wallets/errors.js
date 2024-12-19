@@ -47,6 +47,14 @@ export class WalletSenderError extends WalletPaymentError {
   }
 }
 
+export class WalletReceiverError extends WalletPaymentError {
+  constructor (invoice) {
+    super(`payment forwarding failed for invoice ${invoice.hash}`)
+    this.name = 'WalletReceiverError'
+    this.invoice = invoice
+  }
+}
+
 export class WalletsNotAvailableError extends WalletConfigurationError {
   constructor () {
     super('no wallet available')

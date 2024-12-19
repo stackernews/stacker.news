@@ -169,6 +169,9 @@ export const WALLET_FIELDS = gql`
         apiKeyRecv
         currencyRecv
       }
+      ... on WalletZebedee {
+        gamerTagId
+      }
     }
   }
 `

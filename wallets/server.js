@@ -6,6 +6,7 @@ import * as lnbits from '@/wallets/lnbits/server'
 import * as nwc from '@/wallets/nwc/server'
 import * as phoenixd from '@/wallets/phoenixd/server'
 import * as blink from '@/wallets/blink/server'
+import * as zebedee from '@/wallets/zebedee/server'
 
 // we import only the metadata of client side wallets
 import * as lnc from '@/wallets/lnc'
@@ -20,7 +21,7 @@ import { timeoutSignal, withTimeout } from '@/lib/time'
 import { canReceive } from './common'
 import wrapInvoice from './wrap'
 
-export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
+export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln, zebedee]
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 

@@ -189,6 +189,7 @@ enum WalletType {
   BLINK
   LNC
   WEBLN
+  ZEBEDEE
 }
 
 model Wallet {
@@ -216,6 +217,7 @@ model Wallet {
   walletNWC              WalletNWC?
   walletPhoenixd         WalletPhoenixd?
   walletBlink            WalletBlink?
+  walletZebedee          WalletZebedee?
 
   vaultEntries   VaultEntry[]     @relation("VaultEntries")
   withdrawals    Withdrawl[]
@@ -323,6 +325,15 @@ model WalletPhoenixd {
   updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
   url               String
   secondaryPassword String?
+}
+
+model WalletZebedee {
+  id           Int      @id @default(autoincrement())
+  walletId     Int      @unique
+  wallet       Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  gamerTagId   String?
 }
 
 model Mute {

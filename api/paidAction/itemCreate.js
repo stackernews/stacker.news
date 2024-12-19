@@ -1,11 +1,15 @@
-import { ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, USER_ID } from '@/lib/constants'
+import { ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers } from '@/lib/webPush'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 
 export const anonable = true
-export const supportsPessimism = true
-export const supportsOptimism = true
+
+export const paymentMethods = [
+  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC,
+  PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
+]
 
 export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio }, { models, me }) {
   const sub = (parentId || bio) ? null : await models.sub.findUnique({ where: { name: subName } })
@@ -33,6 +37,16 @@ export async function perform (args, context) {
   const { invoiceId, parentId, uploadIds = [], forwardUsers = [], options: pollOptions = [], boost = 0, ...data } = args
   const { tx, me, cost } = context
   const boostMsats = satsToMsats(boost)
+
+  const deletedUploads = []
+  for (const uploadId of uploadIds) {
+    if (!await tx.upload.findUnique({ where: { id: uploadId } })) {
+      deletedUploads.push(uploadId)
+    }
+  }
+  if (deletedUploads.length > 0) {
+    throw new Error(`upload(s) ${deletedUploads.join(', ')} are expired, consider reuploading.`)
+  }
 
   let invoiceData = {}
   if (invoiceId) {

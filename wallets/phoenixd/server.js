@@ -1,16 +1,20 @@
+import { fetchWithTimeout } from '@/lib/fetch'
 import { msatsToSats } from '@/lib/format'
+import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
-export * from 'wallets/phoenixd'
+export * from '@/wallets/phoenixd'
 
-export async function testCreateInvoice ({ url, secondaryPassword }) {
+export async function testCreateInvoice ({ url, secondaryPassword }, { signal }) {
   return await createInvoice(
     { msats: 1000, description: 'SN test invoice', expiry: 1 },
-    { url, secondaryPassword })
+    { url, secondaryPassword },
+    { signal })
 }
 
 export async function createInvoice (
   { msats, description, descriptionHash, expiry },
-  { url, secondaryPassword }
+  { url, secondaryPassword },
+  { signal }
 ) {
   // https://phoenix.acinq.co/server/api#create-bolt11-invoice
   const path = '/createinvoice'
@@ -23,15 +27,15 @@ export async function createInvoice (
   body.append('description', description)
   body.append('amountSat', msatsToSats(msats))
 
-  const res = await fetch(url + path, {
+  const res = await fetchWithTimeout(url + path, {
     method: 'POST',
     headers,
-    body
+    body,
+    signal
   })
-  if (!res.ok) {
-    const error = await res.text()
-    throw new Error(error)
-  }
+
+  assertResponseOk(res)
+  assertContentTypeJson(res)
 
   const payment = await res.json()
   return payment.serialized

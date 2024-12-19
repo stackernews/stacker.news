@@ -78,6 +78,11 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
 
       element.onerror = reject
       element.src = window.URL.createObjectURL(file)
+
+      // iOS Force the video to load metadata
+      if (element.tagName === 'VIDEO') {
+        element.load()
+      }
     })
   }, [toaster, getSignedPOST])
 
@@ -101,7 +106,11 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
               if (onSelect) await onSelect?.(file, s3Upload)
               else await s3Upload(file)
             } catch (e) {
-              toaster.danger(`upload of '${file.name}' failed: ` + e.message || e.toString?.())
+              if (file.type === 'video/quicktime') {
+                toaster.danger(`upload of '${file.name}' failed: codec might not be supported, check video settings`)
+              } else {
+                toaster.danger(`upload of '${file.name}' failed: ` + e.message || e.toString?.())
+              }
               continue
             }
           }

@@ -22,38 +22,32 @@ import { DropdownItemUpVote } from './upvote'
 import { useRoot } from './root'
 import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 import UserPopover from './user-popover'
-import { useQrPayment } from './payment'
+import useQrPayment from './use-qr-payment'
 import { useRetryCreateItem } from './use-item-submit'
 import { useToast } from './toast'
 import { useShowModal } from './modal'
 import classNames from 'classnames'
+import SubPopover from './sub-popover'
+import useCanEdit from './use-can-edit'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
-  commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
+  commentTextSingular = 'comment', className, embellishUser, extraInfo, edit, toggleEdit, editText,
   onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true,
   setDisableRetry, disableRetry
 }) {
-  const editThreshold = new Date(item.invoice?.confirmedAt ?? item.createdAt).getTime() + 10 * 60000
   const { me } = useMe()
   const router = useRouter()
-  const [canEdit, setCanEdit] = useState(item.mine && !item.bio && (Date.now() < editThreshold))
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
   const sub = item?.sub || root?.sub
+  const [canEdit, setCanEdit, editThreshold] = useCanEdit(item)
 
   useEffect(() => {
     if (!full) {
       setHasNewComments(newComments(item))
     }
   }, [item])
-
-  useEffect(() => {
-    const authorEdit = item.mine && !item.bio
-    const invParams = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
-    const hmacEdit = !!invParams && !me && Number(item.user.id) === USER_ID.anon
-    setCanEdit((authorEdit || hmacEdit) && (Date.now() < editThreshold))
-  }, [me, item.id, item.mine, editThreshold])
 
   // territory founders can pin any post in their territory
   // and OPs can pin any root reply in their post
@@ -129,9 +123,11 @@ export default function ItemInfo ({
           </>}
       </span>
       {item.subName &&
-        <Link href={`/~${item.subName}`}>
-          {' '}<Badge className={styles.newComment} bg={null}>{item.subName}</Badge>
-        </Link>}
+        <SubPopover sub={item.subName}>
+          <Link href={`/~${item.subName}`}>
+            {' '}<Badge className={styles.newComment} bg={null}>{item.subName}</Badge>
+          </Link>
+        </SubPopover>}
       {sub?.nsfw &&
         <Badge className={styles.newComment} bg={null}>nsfw</Badge>}
       {(item.outlawed && !item.mine &&
@@ -151,8 +147,8 @@ export default function ItemInfo ({
         showActionDropdown &&
           <>
             <EditInfo
-              item={item} canEdit={canEdit}
-              setCanEdit={setCanEdit} onEdit={onEdit} editText={editText} editThreshold={editThreshold}
+              item={item} edit={edit} canEdit={canEdit}
+              setCanEdit={setCanEdit} toggleEdit={toggleEdit} editText={editText} editThreshold={editThreshold}
             />
             <PaymentInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
             <ActionDropdown>
@@ -311,7 +307,7 @@ function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
   )
 }
 
-function EditInfo ({ item, canEdit, setCanEdit, onEdit, editText, editThreshold }) {
+function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, editThreshold }) {
   const router = useRouter()
 
   if (canEdit) {
@@ -320,7 +316,7 @@ function EditInfo ({ item, canEdit, setCanEdit, onEdit, editText, editThreshold 
         <span> \ </span>
         <span
           className='text-reset pointer fw-bold'
-          onClick={() => onEdit ? onEdit() : router.push(`/items/${item.id}/edit`)}
+          onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}/edit`)}
         >
           <span>{editText || 'edit'} </span>
           {(!item.invoice?.actionState || item.invoice?.actionState === 'PAID')
@@ -329,6 +325,22 @@ function EditInfo ({ item, canEdit, setCanEdit, onEdit, editText, editThreshold 
                 onComplete={() => { setCanEdit(false) }}
               />
             : <span>10:00</span>}
+        </span>
+      </>
+    )
+  }
+
+  if (edit && !canEdit) {
+    // if we're still editing after timer ran out
+    return (
+      <>
+        <span> \ </span>
+        <span
+          className='text-reset pointer fw-bold'
+          onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}`)}
+        >
+          <span>cancel </span>
+          <span>00:00</span>
         </span>
       </>
     )

@@ -59,6 +59,11 @@ export default gql`
     photoId: Int
     since: Int
 
+    """
+    this is only returned when we sort stackers by value
+    """
+    proportion: Float
+
     optional: UserOptional!
     privates: UserPrivates
 
@@ -107,6 +112,8 @@ export default gql`
     zapUndos: Int
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
+    proxyReceive: Boolean
+    directReceive: Boolean
   }
 
   type AuthMethods {
@@ -183,6 +190,10 @@ export default gql`
     autoWithdrawThreshold: Int
     autoWithdrawMaxFeePercent: Float
     autoWithdrawMaxFeeTotal: Int
+    vaultKeyHash: String
+    walletsUpdatedAt: Date
+    proxyReceive: Boolean
+    directReceive: Boolean
   }
 
   type UserOptional {

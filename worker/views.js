@@ -1,4 +1,4 @@
-import createPrisma from '@/lib/create-prisma.js'
+import createPrisma from '@/lib/create-prisma'
 
 const viewPrefixes = ['reg_growth', 'spender_growth', 'item_growth', 'spending_growth',
   'stackers_growth', 'stacking_growth', 'user_stats', 'sub_stats']

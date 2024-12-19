@@ -77,6 +77,11 @@ export function SettingsHeader () {
             <Nav.Link eventKey='mutes'>muted stackers</Nav.Link>
           </Link>
         </Nav.Item>
+        <Nav.Item>
+          <Link href='/settings/passphrase' passHref legacyBehavior>
+            <Nav.Link eventKey='passphrase'>device sync</Nav.Link>
+          </Link>
+        </Nav.Item>
       </Nav>
     </>
   )
@@ -153,7 +158,9 @@ export default function Settings ({ ssrData }) {
             hideWalletBalance: settings?.hideWalletBalance,
             diagnostics: settings?.diagnostics,
             hideIsContributor: settings?.hideIsContributor,
-            noReferralLinks: settings?.noReferralLinks
+            noReferralLinks: settings?.noReferralLinks,
+            proxyReceive: settings?.proxyReceive,
+            directReceive: settings?.directReceive
           }}
           schema={settingsSchema}
           onSubmit={async ({
@@ -327,7 +334,38 @@ export default function Settings ({ ssrData }) {
             label='I find or lose cowboy essentials (e.g. cowboy hat)'
             name='noteCowboyHat'
           />
-          <div className='form-label'>privacy</div>
+          <div className='form-label'>wallet</div>
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>proxy deposits to attached wallets
+                <Info>
+                  <ul>
+                    <li>Forward deposits directly to your attached wallets if they cause your balance to exceed your auto-withdraw threshold</li>
+                    <li>Payments will be wrapped by the SN node to preserve your wallet's privacy</li>
+                    <li>This will incur in a 10% fee</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='proxyReceive'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>directly deposit to attached wallets
+                <Info>
+                  <ul>
+                    <li>Directly deposit to your attached wallets if they cause your balance to exceed your auto-withdraw threshold</li>
+                    <li>Senders will be able to see your wallet's lightning node public key</li>
+                    <li>If 'proxy deposits' is also checked, it will take precedence and direct deposits will only be used as a fallback</li>
+                    <li>Because we can't determine if a payment succeeds, you won't be notified about direct deposits</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='directReceive'
+            groupClassName='mb-0'
+          />
           <Checkbox
             label={
               <div className='d-flex align-items-center'>hide invoice descriptions
@@ -348,6 +386,7 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <DropBolt11sCheckbox
+            groupClassName='mb-0'
             ssrData={ssrData}
             label={
               <div className='d-flex align-items-center'>autodelete withdrawal invoices
@@ -362,8 +401,12 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='autoDropBolt11s'
-            groupClassName='mb-0'
           />
+          <Checkbox
+            label={<>hide my wallet balance</>}
+            name='hideWalletBalance'
+          />
+          <div className='form-label'>privacy</div>
           <Checkbox
             label={<>hide me from  <Link href='/top/stackers/day'>top stackers</Link></>}
             name='hideFromTopUsers'
@@ -372,11 +415,6 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label={<>hide my cowboy essentials (e.g. cowboy hat)</>}
             name='hideCowboyHat'
-            groupClassName='mb-0'
-          />
-          <Checkbox
-            label={<>hide my wallet balance</>}
-            name='hideWalletBalance'
             groupClassName='mb-0'
           />
           <Checkbox

@@ -1,48 +1,60 @@
-import { galoyBlinkUrl } from 'wallets/blink'
-export * from 'wallets/blink'
+import { getScopes, SCOPE_READ, SCOPE_WRITE, getWallet, request } from '@/wallets/blink/common'
+export * from '@/wallets/blink'
 
-export async function testSendPayment ({ apiKey, currency }, { logger }) {
-  currency = currency ? currency.toUpperCase() : 'BTC'
+export async function testSendPayment ({ apiKey, currency }, { logger, signal }) {
   logger.info('trying to fetch ' + currency + ' wallet')
-  await getWallet(apiKey, currency)
+
+  const scopes = await getScopes({ apiKey }, { signal })
+  if (!scopes.includes(SCOPE_READ)) {
+    throw new Error('missing READ scope')
+  }
+  if (!scopes.includes(SCOPE_WRITE)) {
+    throw new Error('missing WRITE scope')
+  }
+
+  currency = currency ? currency.toUpperCase() : 'BTC'
+  await getWallet({ apiKey, currency }, { signal })
+
   logger.ok(currency + ' wallet found')
 }
 
-export async function sendPayment (bolt11, { apiKey, currency }) {
-  const wallet = await getWallet(apiKey, currency)
-  return await payInvoice(apiKey, wallet, bolt11)
+export async function sendPayment (bolt11, { apiKey, currency }, { signal }) {
+  const wallet = await getWallet({ apiKey, currency }, { signal })
+  return await payInvoice(bolt11, { apiKey, wallet }, { signal })
 }
 
-async function payInvoice (authToken, wallet, invoice) {
-  const walletId = wallet.id
-  const out = await request(authToken, `
-    mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
+async function payInvoice (bolt11, { apiKey, wallet }, { signal }) {
+  const out = await request({
+    apiKey,
+    query: `
+      mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
         lnInvoicePaymentSend(input: $input) {
-            status
-            errors {
-                message
-                path
-                code
+          status
+          errors {
+            message
+            path
+            code
+          }
+          transaction {
+            settlementVia {
+              ... on SettlementViaIntraLedger {
+                preImage
+              }
+              ... on SettlementViaLn {
+                preImage
+              }
             }
-            transaction {
-                settlementVia {
-                    ... on SettlementViaIntraLedger {
-                        preImage
-                    }
-                    ... on SettlementViaLn {
-                        preImage
-                    }
-                }
-            }
+          }
         }
+      }`,
+    variables: {
+      input: {
+        paymentRequest: bolt11,
+        walletId: wallet.id
+      }
     }
-  `,
-  {
-    input: {
-      paymentRequest: invoice,
-      walletId
-    }
-  })
+  }, { signal })
+
   const status = out.data.lnInvoicePaymentSend.status
   const errors = out.data.lnInvoicePaymentSend.errors
   if (errors && errors.length > 0) {
@@ -67,7 +79,7 @@ async function payInvoice (authToken, wallet, invoice) {
       // at some point it should either be settled or fail on the backend, so the loop will exit
       await new Promise(resolve => setTimeout(resolve, 100))
 
-      const txInfo = await getTxInfo(authToken, wallet, invoice)
+      const txInfo = await getTxInfo(bolt11, { apiKey, wallet }, { signal })
       // settled
       if (txInfo.status === 'SUCCESS') {
         if (!txInfo.preImage) throw new Error('no preimage')
@@ -86,36 +98,37 @@ async function payInvoice (authToken, wallet, invoice) {
   throw new Error('unexpected error')
 }
 
-async function getTxInfo (authToken, wallet, invoice) {
-  const walletId = wallet.id
+async function getTxInfo (bolt11, { apiKey, wallet }, { signal }) {
   let out
   try {
-    out = await request(authToken, `
-      query GetTxInfo($walletId: WalletId!, $paymentRequest: LnPaymentRequest!) {
-        me {
-          defaultAccount {
-            walletById(walletId: $walletId) {
-              transactionsByPaymentRequest(paymentRequest: $paymentRequest) {
-                status
-                direction
-                settlementVia {
+    out = await request({
+      apiKey,
+      query: `
+        query GetTxInfo($walletId: WalletId!, $paymentRequest: LnPaymentRequest!) {
+          me {
+            defaultAccount {
+              walletById(walletId: $walletId) {
+                transactionsByPaymentRequest(paymentRequest: $paymentRequest) {
+                  status
+                  direction
+                  settlementVia {
                     ... on SettlementViaIntraLedger {
-                        preImage
+                      preImage
                     }
                     ... on SettlementViaLn {
-                        preImage
+                      preImage
                     }
+                  }
                 }
               }
             }
           }
-        }
+        }`,
+      variables: {
+        paymentRequest: bolt11,
+        walletId: wallet.Id
       }
-    `,
-    {
-      paymentRequest: invoice,
-      walletId
-    })
+    }, { signal })
   } catch (e) {
     // something went wrong during the query,
     // maybe the connection was lost, so we just return
@@ -142,46 +155,4 @@ async function getTxInfo (authToken, wallet, invoice) {
     preImage,
     error: ''
   }
-}
-
-async function getWallet (authToken, currency) {
-  const out = await request(authToken, `
-    query me {
-        me {
-            defaultAccount {
-                wallets {
-                    id
-                    walletCurrency
-                }
-            }
-        }
-    }
-  `, {})
-  const wallets = out.data.me.defaultAccount.wallets
-  for (const wallet of wallets) {
-    if (wallet.walletCurrency === currency) {
-      return wallet
-    }
-  }
-  throw new Error(`wallet ${currency} not found`)
-}
-
-async function request (authToken, query, variables = {}) {
-  const options = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': authToken
-    },
-    body: JSON.stringify({ query, variables })
-  }
-  const res = await fetch(galoyBlinkUrl, options)
-  if (res.status >= 400 && res.status <= 599) {
-    if (res.status === 401) {
-      throw new Error('unauthorized')
-    } else {
-      throw new Error('API responded with HTTP ' + res.status)
-    }
-  }
-  return res.json()
 }

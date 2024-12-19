@@ -37,6 +37,7 @@ ${STREAK_FIELDS}
       imgproxyOnly
       showImagesAndVideos
       nostrCrossposting
+      nsfwMode
       sats
       tipDefault
       tipRandom
@@ -48,6 +49,10 @@ ${STREAK_FIELDS}
       upvotePopover
       wildWestMode
       disableFreebies
+      vaultKeyHash
+      walletsUpdatedAt
+      proxyReceive
+      directReceive
     }
     optional {
       isContributor
@@ -109,6 +114,8 @@ export const SETTINGS_FIELDS = gql`
         apiKey
       }
       apiKeyEnabled
+      proxyReceive
+      directReceive
     }
   }`
 
@@ -247,7 +254,7 @@ export const TOP_USERS = gql`
         photoId
         ncomments(when: $when, from: $from, to: $to)
         nposts(when: $when, from: $from, to: $to)
-
+        proportion
         optional {
           stacked(when: $when, from: $from, to: $to)
           spent(when: $when, from: $from, to: $to)

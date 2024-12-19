@@ -8,12 +8,13 @@ import {
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   USER_ID, POLL_COST, ADMIN_ITEMS, GLOBAL_SEED,
   NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS,
-  BOOST_MULT
+  BOOST_MULT,
+  ITEM_EDIT_SECONDS
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
-import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '@/lib/validate'
+import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
 import { uploadIdsFromText } from './upload'
@@ -115,11 +116,11 @@ const orderByClause = (by, me, models, type) => {
 }
 
 export function orderByNumerator ({ models, commentScaler = 0.5, considerBoost = false }) {
-  return `(CASE WHEN "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0 THEN
+  return `((CASE WHEN "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0 THEN
               GREATEST("Item"."weightedVotes" - "Item"."weightedDownVotes", POWER("Item"."weightedVotes" - "Item"."weightedDownVotes", 1.2))
             ELSE
               "Item"."weightedVotes" - "Item"."weightedDownVotes"
-            END + "Item"."weightedComments"*${commentScaler}) + ${considerBoost ? `("Item".boost / ${BOOST_MULT})` : 0}`
+            END + "Item"."weightedComments"*${commentScaler}) + ${considerBoost ? `("Item".boost / ${BOOST_MULT})` : 0})`
 }
 
 export function joinZapRankPersonalView (me, models) {
@@ -300,6 +301,8 @@ function typeClause (type) {
       return ['"Item".bio = true', '"Item"."parentId" IS NULL']
     case 'bounties':
       return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL']
+    case 'bounties_active':
+      return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL', '"Item"."bountyPaidTo" IS NULL']
     case 'comments':
       return '"Item"."parentId" IS NOT NULL'
     case 'freebies':
@@ -423,6 +426,7 @@ export default {
                 subClause(sub, 5, subClauseTable(type), me, showNsfw),
                 typeClause(type),
                 whenClause(when, 'Item'),
+                activeOrMine(me),
                 await filterClause(me, models, type),
                 by === 'boost' && '"Item".boost > 0',
                 muteClause(me))}
@@ -535,6 +539,7 @@ export default {
                       '"Item".bio = false',
                       ad ? `"Item".id <> ${ad.id}` : '',
                       activeOrMine(me),
+                      await filterClause(me, models, type),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
                     ORDER BY rank DESC
@@ -844,7 +849,7 @@ export default {
       return await deleteItemByAuthor({ models, id, item: old })
     },
     upsertLink: async (parent, { id, ...item }, { me, models, lnd }) => {
-      await ssValidate(linkSchema, item, { models, me })
+      await validateSchema(linkSchema, item, { models, me })
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -853,7 +858,7 @@ export default {
       }
     },
     upsertDiscussion: async (parent, { id, ...item }, { me, models, lnd }) => {
-      await ssValidate(discussionSchema, item, { models, me })
+      await validateSchema(discussionSchema, item, { models, me })
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -862,7 +867,7 @@ export default {
       }
     },
     upsertBounty: async (parent, { id, ...item }, { me, models, lnd }) => {
-      await ssValidate(bountySchema, item, { models, me })
+      await validateSchema(bountySchema, item, { models, me })
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -879,7 +884,7 @@ export default {
         })
         : 0
 
-      await ssValidate(pollSchema, item, { models, me, numExistingChoices })
+      await validateSchema(pollSchema, item, { models, me, numExistingChoices })
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -894,7 +899,7 @@ export default {
       }
 
       item.location = item.location?.toLowerCase() === 'remote' ? undefined : item.location
-      await ssValidate(jobSchema, item, { models })
+      await validateSchema(jobSchema, item, { models })
       if (item.logo !== undefined) {
         item.uploadId = item.logo
         delete item.logo
@@ -907,7 +912,7 @@ export default {
       }
     },
     upsertComment: async (parent, { id, ...item }, { me, models, lnd }) => {
-      await ssValidate(commentSchema, item)
+      await validateSchema(commentSchema, item)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -937,7 +942,7 @@ export default {
     },
     act: async (parent, { id, sats, act = 'TIP' }, { me, models, lnd, headers }) => {
       assertApiKeyNotPermitted({ me })
-      await ssValidate(actSchema, { sats, act })
+      await validateSchema(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
 
       const [item] = await models.$queryRawUnsafe(`
@@ -1032,6 +1037,7 @@ export default {
   },
   ItemAct: {
     invoice: async (itemAct, args, { models }) => {
+      // we never want to fetch the sensitive data full monty in nested resolvers
       if (itemAct.invoiceId) {
         return {
           id: itemAct.invoiceId,
@@ -1281,6 +1287,7 @@ export default {
       return root
     },
     invoice: async (item, args, { models }) => {
+      // we never want to fetch the sensitive data full monty in nested resolvers
       if (item.invoiceId) {
         return {
           id: item.invoiceId,
@@ -1344,8 +1351,9 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     throw new GqlInputError('item is deleted')
   }
 
-  // author can edit their own item (except anon)
   const meId = Number(me?.id ?? USER_ID.anon)
+
+  // author can edit their own item (except anon)
   const authorEdit = !!me && Number(old.userId) === meId
   // admins can edit special items
   const adminEdit = ADMIN_ITEMS.includes(old.id) && SN_ADMIN_IDS.includes(meId)
@@ -1354,9 +1362,9 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   if (old.invoice?.hash && hash && hmac) {
     hmacEdit = old.invoice.hash === hash && verifyHmac(hash, hmac)
   }
-
   // ownership permission check
-  if (!authorEdit && !adminEdit && !hmacEdit) {
+  const ownerEdit = authorEdit || adminEdit || hmacEdit
+  if (!ownerEdit) {
     throw new GqlInputError('item does not belong to you')
   }
 
@@ -1369,16 +1377,16 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   }
 
   // in case they lied about their existing boost
-  await ssValidate(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
+  await validateSchema(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
 
   const user = await models.user.findUnique({ where: { id: meId } })
 
-  // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
+  // edits are only allowed for own items within 10 minutes
+  // but forever if an admin is editing an "admin item", it's their bio or a job
   const myBio = user.bioId === old.id
-  const timer = Date.now() < new Date(old.invoicePaidAt ?? old.createdAt).getTime() + 10 * 60_000
-
-  // timer permission check
-  if (!adminEdit && !myBio && !timer && !isJob(item)) {
+  const timer = Date.now() < datePivot(new Date(old.invoicePaidAt ?? old.createdAt), { seconds: ITEM_EDIT_SECONDS })
+  const canEdit = (timer && ownerEdit) || adminEdit || myBio || isJob(item)
+  if (!canEdit) {
     throw new GqlInputError('item can no longer be edited')
   }
 

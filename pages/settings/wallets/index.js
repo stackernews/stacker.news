@@ -2,68 +2,86 @@ import { getGetServerSideProps } from '@/api/ssrApollo'
 import Layout from '@/components/layout'
 import styles from '@/styles/wallet.module.css'
 import Link from 'next/link'
-import { useWallets, walletPrioritySort } from 'wallets'
-import { useState } from 'react'
-import dynamic from 'next/dynamic'
+import { useWallets } from '@/wallets/index'
+import { useCallback, useState } from 'react'
 import { useIsClient } from '@/components/use-client'
-
-const WalletCard = dynamic(() => import('@/components/wallet-card'), { ssr: false })
+import WalletCard from '@/components/wallet-card'
+import { useToast } from '@/components/toast'
+import BootstrapForm from 'react-bootstrap/Form'
+import RecvIcon from '@/svgs/arrow-left-down-line.svg'
+import SendIcon from '@/svgs/arrow-right-up-line.svg'
+import { useRouter } from 'next/router'
+import { supportsReceive, supportsSend } from '@/wallets/common'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
-async function reorder (wallets, sourceIndex, targetIndex) {
-  const newOrder = [...wallets]
-
-  const [source] = newOrder.splice(sourceIndex, 1)
-  const newTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
-  const append = sourceIndex < targetIndex
-
-  newOrder.splice(newTargetIndex + (append ? 1 : 0), 0, source)
-
-  await Promise.all(
-    newOrder.map((w, i) =>
-      w.setPriority(i).catch(console.error)
-    )
-  )
-}
-
 export default function Wallet ({ ssrData }) {
-  const { wallets } = useWallets()
-
+  const { wallets, setPriorities } = useWallets()
+  const toast = useToast()
   const isClient = useIsClient()
   const [sourceIndex, setSourceIndex] = useState(null)
   const [targetIndex, setTargetIndex] = useState(null)
 
-  const onDragStart = (i) => (e) => {
+  const router = useRouter()
+  const [filter, setFilter] = useState({
+    send: router.query.send === 'true',
+    receive: router.query.receive === 'true'
+  })
+
+  const reorder = useCallback(async (sourceIndex, targetIndex) => {
+    const newOrder = [...wallets.filter(w => w.config?.enabled)]
+    const [source] = newOrder.splice(sourceIndex, 1)
+
+    const priorities = newOrder.slice(0, targetIndex)
+      .concat(source)
+      .concat(newOrder.slice(targetIndex))
+      .map((w, i) => ({ wallet: w, priority: i }))
+
+    await setPriorities(priorities)
+  }, [setPriorities, wallets])
+
+  const onDragStart = useCallback((i) => (e) => {
     // e.dataTransfer.dropEffect = 'move'
     // We can only use the DataTransfer API inside the drop event
     // see https://html.spec.whatwg.org/multipage/dnd.html#security-risks-in-the-drag-and-drop-model
     // e.dataTransfer.setData('text/plain', name)
     // That's why we use React state instead
     setSourceIndex(i)
-  }
+  }, [setSourceIndex])
 
-  const onDragEnter = (i) => (e) => {
+  const onDragEnter = useCallback((i) => (e) => {
     setTargetIndex(i)
-  }
+  }, [setTargetIndex])
 
-  const onDragEnd = async (e) => {
+  const onReorderError = useCallback((err) => {
+    console.error(err)
+    toast.danger('failed to reorder wallets')
+  }, [toast])
+
+  const onDragEnd = useCallback((e) => {
     setSourceIndex(null)
     setTargetIndex(null)
 
     if (sourceIndex === targetIndex) return
 
-    await reorder(wallets, sourceIndex, targetIndex)
-  }
+    reorder(sourceIndex, targetIndex).catch(onReorderError)
+  }, [sourceIndex, targetIndex, reorder, onReorderError])
 
-  const onTouchStart = (i) => async (e) => {
+  const onTouchStart = useCallback((i) => (e) => {
     if (sourceIndex !== null) {
-      await reorder(wallets, sourceIndex, i)
+      reorder(sourceIndex, i).catch(onReorderError)
       setSourceIndex(null)
     } else {
       setSourceIndex(i)
     }
-  }
+  }, [sourceIndex, reorder, onReorderError])
+
+  const onFilterChange = useCallback((key) => {
+    return e => {
+      setFilter(old => ({ ...old, [key]: e.target.checked }))
+      router.replace({ query: { ...router.query, [key]: e.target.checked } }, undefined, { shallow: true })
+    }
+  }, [router])
 
   return (
     <Layout>
@@ -76,23 +94,31 @@ export default function Wallet ({ ssrData }) {
           </Link>
         </div>
         <div className={styles.walletGrid} onDragEnd={onDragEnd}>
+          <div className={styles.walletFilters}>
+            <BootstrapForm.Check
+              inline
+              label={<span><RecvIcon width={16} height={16} /> receive</span>}
+              onChange={onFilterChange('receive')}
+              checked={filter.receive}
+            />
+            <BootstrapForm.Check
+              inline
+              label={<span><SendIcon width={16} height={16} /> send</span>}
+              onChange={onFilterChange('send')}
+              checked={filter.send}
+            />
+          </div>
           {wallets
-            .sort((w1, w2) => {
-              // enabled/configured wallets always come before disabled/unconfigured wallets
-              if ((w1.enabled && !w2.enabled) || (w1.isConfigured && !w2.isConfigured)) {
-                return -1
-              } else if ((w2.enabled && !w1.enabled) || (w2.isConfigured && !w1.isConfigured)) {
-                return 1
-              }
-
-              return walletPrioritySort(w1, w2)
+            .filter(w => {
+              return (!filter.send || (filter.send && supportsSend(w))) &&
+              (!filter.receive || (filter.receive && supportsReceive(w)))
             })
             .map((w, i) => {
-              const draggable = isClient && w.enabled
+              const draggable = isClient && w.config?.enabled
 
               return (
                 <div
-                  key={w.name}
+                  key={w.def.name}
                   className={
                     !draggable
                       ? ''

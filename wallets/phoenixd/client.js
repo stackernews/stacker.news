@@ -1,6 +1,9 @@
-export * from 'wallets/phoenixd'
+import { fetchWithTimeout } from '@/lib/fetch'
+import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
-export async function testSendPayment (config, { logger }) {
+export * from '@/wallets/phoenixd'
+
+export async function testSendPayment (config, { logger, signal }) {
   // TODO:
   //   Not sure which endpoint to call to test primary password
   //   see https://phoenix.acinq.co/server/api
@@ -8,7 +11,7 @@ export async function testSendPayment (config, { logger }) {
 
 }
 
-export async function sendPayment (bolt11, { url, primaryPassword }) {
+export async function sendPayment (bolt11, { url, primaryPassword }, { signal }) {
   // https://phoenix.acinq.co/server/api#pay-bolt11-invoice
   const path = '/payinvoice'
 
@@ -19,15 +22,15 @@ export async function sendPayment (bolt11, { url, primaryPassword }) {
   const body = new URLSearchParams()
   body.append('invoice', bolt11)
 
-  const res = await fetch(url + path, {
+  const res = await fetchWithTimeout(url + path, {
     method: 'POST',
     headers,
-    body
+    body,
+    signal
   })
-  if (!res.ok) {
-    const error = await res.text()
-    throw new Error(error)
-  }
+
+  assertResponseOk(res)
+  assertContentTypeJson(res)
 
   const payment = await res.json()
   const preimage = payment.paymentPreimage

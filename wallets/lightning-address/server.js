@@ -1,17 +1,20 @@
+import { fetchWithTimeout } from '@/lib/fetch'
 import { msatsSatsFloor } from '@/lib/format'
 import { lnAddrOptions } from '@/lib/lnurl'
+import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
-export * from 'wallets/lightning-address'
+export * from '@/wallets/lightning-address'
 
-export const testCreateInvoice = async ({ address }) => {
-  return await createInvoice({ msats: 1000 }, { address })
+export const testCreateInvoice = async ({ address }, { signal }) => {
+  return await createInvoice({ msats: 1000 }, { address }, { signal })
 }
 
 export const createInvoice = async (
   { msats, description },
-  { address }
+  { address },
+  { signal }
 ) => {
-  const { callback, commentAllowed } = await lnAddrOptions(address)
+  const { callback, commentAllowed } = await lnAddrOptions(address, { signal })
   const callbackUrl = new URL(callback)
 
   // most lnurl providers suck nards so we have to floor to nearest sat
@@ -24,10 +27,15 @@ export const createInvoice = async (
   }
 
   // call callback with amount and conditionally comment
-  const res = await (await fetch(callbackUrl.toString())).json()
-  if (res.status === 'ERROR') {
-    throw new Error(res.reason)
+  const res = await fetchWithTimeout(callbackUrl.toString(), { signal })
+
+  assertResponseOk(res)
+  assertContentTypeJson(res)
+
+  const body = await res.json()
+  if (body.status === 'ERROR') {
+    throw new Error(body.reason)
   }
 
-  return res.pr
+  return body.pr
 }

@@ -137,6 +137,13 @@ model User {
   ItemUserAgg               ItemUserAgg[]
   oneDayReferrals           OneDayReferral[]     @relation("OneDayReferral_referrer")
   oneDayReferrees           OneDayReferral[]     @relation("OneDayReferral_referrees")
+  vaultKeyHash              String               @default("")
+  walletsUpdatedAt          DateTime?
+  vaultEntries              VaultEntry[]         @relation("VaultEntries")
+  proxyReceive              Boolean              @default(false)
+  directReceive             Boolean              @default(false)
+  DirectPaymentReceived     DirectPayment[]      @relation("DirectPaymentReceived")
+  DirectPaymentSent         DirectPayment[]      @relation("DirectPaymentSent")
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -179,6 +186,9 @@ enum WalletType {
   LNBITS
   NWC
   PHOENIXD
+  BLINK
+  LNC
+  WEBLN
 }
 
 model Wallet {
@@ -205,10 +215,31 @@ model Wallet {
   walletLNbits           WalletLNbits?
   walletNWC              WalletNWC?
   walletPhoenixd         WalletPhoenixd?
-  withdrawals            Withdrawl[]
-  InvoiceForward         InvoiceForward[]
+  walletBlink            WalletBlink?
+
+  vaultEntries   VaultEntry[]     @relation("VaultEntries")
+  withdrawals    Withdrawl[]
+  InvoiceForward InvoiceForward[]
+  DirectPayment  DirectPayment[]
 
   @@index([userId])
+  @@index([priority])
+}
+
+model VaultEntry {
+  id        Int      @id @default(autoincrement())
+  key       String   @db.Text
+  iv        String   @db.Text
+  value     String   @db.Text
+  userId    Int
+  walletId  Int?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, name: "VaultEntries")
+  wallet    Wallet?  @relation(fields: [walletId], references: [id], onDelete: Cascade, name: "VaultEntries")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([userId, key])
+  @@index([walletId])
 }
 
 model WalletLog {
@@ -219,6 +250,7 @@ model WalletLog {
   wallet    WalletType
   level     LogLevel
   message   String
+  context   Json?      @db.JsonB
 
   @@index([userId, createdAt])
 }
@@ -261,7 +293,7 @@ model WalletLNbits {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
   url        String
-  invoiceKey String
+  invoiceKey String?
 }
 
 model WalletNWC {
@@ -270,7 +302,17 @@ model WalletNWC {
   wallet     Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
-  nwcUrlRecv String
+  nwcUrlRecv String?
+}
+
+model WalletBlink {
+  id           Int      @id @default(autoincrement())
+  walletId     Int      @unique
+  wallet       Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  apiKeyRecv   String?
+  currencyRecv String?
 }
 
 model WalletPhoenixd {
@@ -280,7 +322,7 @@ model WalletPhoenixd {
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
   url               String
-  secondaryPassword String
+  secondaryPassword String?
 }
 
 model Mute {
@@ -425,15 +467,18 @@ model LnWith {
 }
 
 model Invite {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
-  userId    Int
-  gift      Int?
-  limit     Int?
-  revoked   Boolean  @default(false)
-  user      User     @relation("Invites", fields: [userId], references: [id], onDelete: Cascade)
-  invitees  User[]
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  userId      Int
+  gift        Int?
+  limit       Int?
+  giftedCount Int      @default(0)
+  revoked     Boolean  @default(false)
+  user        User     @relation("Invites", fields: [userId], references: [id], onDelete: Cascade)
+  invitees    User[]
+
+  description String?
 
   @@index([createdAt], map: "Invite.created_at_index")
   @@index([userId], map: "Invite.userId_index")
@@ -827,6 +872,7 @@ enum InvoiceActionType {
   TERRITORY_UPDATE
   TERRITORY_BILLING
   TERRITORY_UNARCHIVE
+  RECEIVE
 }
 
 enum InvoiceActionState {
@@ -858,38 +904,41 @@ model ItemMention {
 }
 
 model Invoice {
-  id             Int             @id @default(autoincrement())
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at")
-  userId         Int
-  hash           String          @unique(map: "Invoice.hash_unique")
-  preimage       String?         @unique(map: "Invoice.preimage_unique")
-  isHeld         Boolean?
-  bolt11         String
-  expiresAt      DateTime
-  confirmedAt    DateTime?
-  confirmedIndex BigInt?
-  cancelled      Boolean         @default(false)
-  msatsRequested BigInt
-  msatsReceived  BigInt?
-  desc           String?
-  comment        String?
-  lud18Data      Json?
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  invoiceForward InvoiceForward?
-
-  actionState      InvoiceActionState?
-  actionType       InvoiceActionType?
-  actionOptimistic Boolean?
-  actionId         Int?
-  actionArgs       Json?               @db.JsonB
-  actionError      String?
-  actionResult     Json?               @db.JsonB
-  ItemAct          ItemAct[]
-  Item             Item[]
-  Upload           Upload[]
-  PollVote         PollVote[]
-  PollBlindVote    PollBlindVote[]
+  id                 Int                 @id @default(autoincrement())
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at")
+  userId             Int
+  hash               String              @unique(map: "Invoice.hash_unique")
+  preimage           String?             @unique(map: "Invoice.preimage_unique")
+  isHeld             Boolean?
+  bolt11             String
+  expiresAt          DateTime
+  confirmedAt        DateTime?
+  confirmedIndex     BigInt?
+  cancelled          Boolean             @default(false)
+  cancelledAt        DateTime?
+  msatsRequested     BigInt
+  msatsReceived      BigInt?
+  desc               String?
+  comment            String?
+  lud18Data          Json?
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoiceForward     InvoiceForward?
+  predecessorId      Int?                @unique(map: "Invoice.predecessorId_unique")
+  predecessorInvoice Invoice?            @relation("PredecessorInvoice", fields: [predecessorId], references: [id], onDelete: Cascade)
+  successorInvoice   Invoice?            @relation("PredecessorInvoice")
+  actionState        InvoiceActionState?
+  actionType         InvoiceActionType?
+  actionOptimistic   Boolean?
+  actionId           Int?
+  actionArgs         Json?               @db.JsonB
+  actionError        String?
+  actionResult       Json?               @db.JsonB
+  ItemAct            ItemAct[]
+  Item               Item[]
+  Upload             Upload[]
+  PollVote           PollVote[]
+  PollBlindVote      PollBlindVote[]
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")
@@ -898,6 +947,29 @@ model Invoice {
   @@index([confirmedAt])
   @@index([actionType])
   @@index([actionState])
+}
+
+model DirectPayment {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+  senderId   Int?
+  receiverId Int?
+  preimage   String?  @unique
+  bolt11     String?
+  hash       String?  @unique
+  desc       String?
+  comment    String?
+  lud18Data  Json?
+  msats      BigInt
+  walletId   Int?
+  sender     User?    @relation("DirectPaymentSent", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User?    @relation("DirectPaymentReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+  wallet     Wallet?  @relation(fields: [walletId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([senderId])
+  @@index([receiverId])
 }
 
 model InvoiceForward {
@@ -914,7 +986,7 @@ model InvoiceForward {
 
   // we get these values when the outgoing invoice is settled
   invoiceId   Int  @unique
-  withdrawlId Int?
+  withdrawlId Int? @unique
 
   invoice   Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   wallet    Wallet     @relation(fields: [walletId], references: [id], onDelete: Cascade)
@@ -942,7 +1014,7 @@ model Withdrawl {
   walletId       Int?
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   wallet         Wallet?          @relation(fields: [walletId], references: [id], onDelete: SetNull)
-  invoiceForward InvoiceForward[]
+  invoiceForward InvoiceForward?
 
   @@index([createdAt], map: "Withdrawl.created_at_index")
   @@index([userId], map: "Withdrawl.userId_index")

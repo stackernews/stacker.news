@@ -184,8 +184,12 @@
 .p:has(> .mediaContainer) .mediaContainer
 {
     display: flex;
-    width: min-content;
     max-width: 100%;
+}
+
+.p:has(> .mediaContainer) .mediaContainer.loaded
+{
+    width: min-content;
 }
 
 .p:has(> .mediaContainer) .mediaContainer img,

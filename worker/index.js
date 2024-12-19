@@ -1,42 +1,48 @@
 // environment variables are loaded from files and imports run before the rest of the code
-import './loadenv.js'
+import './loadenv'
 import PgBoss from 'pg-boss'
-import createPrisma from '@/lib/create-prisma.js'
+import createPrisma from '@/lib/create-prisma'
 import {
-  autoDropBolt11s, checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
+  checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
   checkWithdrawal,
   finalizeHodlInvoice, subscribeToWallet
-} from './wallet.js'
-import { repin } from './repin.js'
-import { trust } from './trust.js'
-import { earn } from './earn.js'
-import apolloClient from '@apollo/client'
-import { indexItem, indexAllItems } from './search.js'
-import { timestampItem } from './ots.js'
-import { computeStreaks, checkStreak } from './streak.js'
-import { nip57 } from './nostr.js'
+} from './wallet'
+import { repin } from './repin'
+import { trust } from './trust'
+import { earn } from './earn'
+import { ApolloClient, HttpLink, InMemoryCache } from '@apollo/client'
+import { indexItem, indexAllItems } from './search'
+import { timestampItem } from './ots'
+import { computeStreaks, checkStreak } from './streak'
+import { nip57 } from './nostr'
 import fetch from 'cross-fetch'
-import { authenticatedLndGrpc } from 'ln-service'
-import { views, rankViews } from './views.js'
-import { imgproxy } from './imgproxy.js'
-import { deleteItem } from './ephemeralItems.js'
-import { deleteUnusedImages } from './deleteUnusedImages.js'
-import { territoryBilling, territoryRevenue } from './territory.js'
-import { ofac } from './ofac.js'
-import { autoWithdraw } from './autowithdraw.js'
-import { saltAndHashEmails } from './saltAndHashEmails.js'
-import { remindUser } from './reminder.js'
+import { authenticatedLndGrpc } from '@/lib/lnd'
+import { views, rankViews } from './views'
+import { imgproxy } from './imgproxy'
+import { deleteItem } from './ephemeralItems'
+import { deleteUnusedImages } from './deleteUnusedImages'
+import { territoryBilling, territoryRevenue } from './territory'
+import { ofac } from './ofac'
+import { autoWithdraw } from './autowithdraw'
+import { saltAndHashEmails } from './saltAndHashEmails'
+import { remindUser } from './reminder'
 import {
   paidActionPaid, paidActionForwarding, paidActionForwarded,
   paidActionFailedForward, paidActionHeld, paidActionFailed,
   paidActionCanceling
-} from './paidAction.js'
-import { thisDay } from './thisDay.js'
-import { isServiceEnabled } from '@/lib/sndev.js'
-import { payWeeklyPostBounty, weeklyPost } from './weeklyPosts.js'
-import { expireBoost } from './expireBoost.js'
+} from './paidAction'
+import { thisDay } from './thisDay'
+import { isServiceEnabled } from '@/lib/sndev'
+import { payWeeklyPostBounty, weeklyPost } from './weeklyPosts'
+import { expireBoost } from './expireBoost'
+import { payingActionConfirmed, payingActionFailed } from './payingAction'
+import { autoDropBolt11s } from './autoDropBolt11'
 
-const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
+// WebSocket polyfill
+import ws from 'isomorphic-ws'
+if (typeof WebSocket === 'undefined') {
+  global.WebSocket = ws
+}
 
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)
@@ -104,6 +110,9 @@ async function work () {
     await boss.work('paidActionCanceling', jobWrapper(paidActionCanceling))
     await boss.work('paidActionFailed', jobWrapper(paidActionFailed))
     await boss.work('paidActionPaid', jobWrapper(paidActionPaid))
+    // payingAction jobs
+    await boss.work('payingActionFailed', jobWrapper(payingActionFailed))
+    await boss.work('payingActionConfirmed', jobWrapper(payingActionConfirmed))
   }
   if (isServiceEnabled('search')) {
     await boss.work('indexItem', jobWrapper(indexItem))

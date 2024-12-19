@@ -1,20 +1,23 @@
-export * from 'wallets/lnbits'
+import { fetchWithTimeout } from '@/lib/fetch'
+import { assertContentTypeJson } from '@/lib/url'
 
-export async function testSendPayment ({ url, adminKey, invoiceKey }, { logger }) {
+export * from '@/wallets/lnbits'
+
+export async function testSendPayment ({ url, adminKey, invoiceKey }, { signal, logger }) {
   logger.info('trying to fetch wallet')
 
   url = url.replace(/\/+$/, '')
-  await getWallet({ url, adminKey, invoiceKey })
+  await getWallet({ url, adminKey, invoiceKey }, { signal })
 
   logger.ok('wallet found')
 }
 
-export async function sendPayment (bolt11, { url, adminKey }) {
+export async function sendPayment (bolt11, { url, adminKey }, { signal }) {
   url = url.replace(/\/+$/, '')
 
-  const response = await postPayment(bolt11, { url, adminKey })
+  const response = await postPayment(bolt11, { url, adminKey }, { signal })
 
-  const checkResponse = await getPayment(response.payment_hash, { url, adminKey })
+  const checkResponse = await getPayment(response.payment_hash, { url, adminKey }, { signal })
   if (!checkResponse.preimage) {
     throw new Error('No preimage')
   }
@@ -22,7 +25,7 @@ export async function sendPayment (bolt11, { url, adminKey }) {
   return checkResponse.preimage
 }
 
-async function getWallet ({ url, adminKey, invoiceKey }) {
+async function getWallet ({ url, adminKey, invoiceKey }, { signal }) {
   const path = '/api/v1/wallet'
 
   const headers = new Headers()
@@ -30,7 +33,9 @@ async function getWallet ({ url, adminKey, invoiceKey }) {
   headers.append('Content-Type', 'application/json')
   headers.append('X-Api-Key', adminKey || invoiceKey)
 
-  const res = await fetch(url + path, { method: 'GET', headers })
+  const res = await fetchWithTimeout(url + path, { method: 'GET', headers, signal })
+
+  assertContentTypeJson(res)
   if (!res.ok) {
     const errBody = await res.json()
     throw new Error(errBody.detail)
@@ -40,7 +45,7 @@ async function getWallet ({ url, adminKey, invoiceKey }) {
   return wallet
 }
 
-async function postPayment (bolt11, { url, adminKey }) {
+async function postPayment (bolt11, { url, adminKey }, { signal }) {
   const path = '/api/v1/payments'
 
   const headers = new Headers()
@@ -50,7 +55,9 @@ async function postPayment (bolt11, { url, adminKey }) {
 
   const body = JSON.stringify({ bolt11, out: true })
 
-  const res = await fetch(url + path, { method: 'POST', headers, body })
+  const res = await fetchWithTimeout(url + path, { method: 'POST', headers, body, signal })
+
+  assertContentTypeJson(res)
   if (!res.ok) {
     const errBody = await res.json()
     throw new Error(errBody.detail)
@@ -60,7 +67,7 @@ async function postPayment (bolt11, { url, adminKey }) {
   return payment
 }
 
-async function getPayment (paymentHash, { url, adminKey }) {
+async function getPayment (paymentHash, { url, adminKey }, { signal }) {
   const path = `/api/v1/payments/${paymentHash}`
 
   const headers = new Headers()
@@ -68,7 +75,9 @@ async function getPayment (paymentHash, { url, adminKey }) {
   headers.append('Content-Type', 'application/json')
   headers.append('X-Api-Key', adminKey)
 
-  const res = await fetch(url + path, { method: 'GET', headers })
+  const res = await fetchWithTimeout(url + path, { method: 'GET', headers, signal })
+
+  assertContentTypeJson(res)
   if (!res.ok) {
     const errBody = await res.json()
     throw new Error(errBody.detail)

@@ -64,44 +64,39 @@ USAGE
   $ sndev help [COMMAND]
 
 COMMANDS
-  help            show help
+  help                    show help
 
   env:
-    start         start env
-    stop          stop env
-    restart       restart env
-    status        status of env
-    logs          logs from env
-    delete        delete env
+    start                 start env
+    stop                  stop env
+    restart               restart env
+    status                status of env
+    logs                  logs from env
+    delete                delete env
 
   sn:
-    login         login as a nym
-    fund_user     fund a nym without using an LN invoice
+    login                 login as a nym
+    set_balance           set the balance of a nym
 
-  lnd:
-    fund          pay a bolt11 for funding
-    withdraw      create a bolt11 for withdrawal
-
-  cln:
-    cln_fund      pay a bolt11 for funding with CLN
-    cln_withdraw  create a bolt11 for withdrawal with CLN
+  lightning:
+    fund                   pay a bolt11 for funding
+    withdraw               create a bolt11 for withdrawal
 
   db:
-    psql          open psql on db
-    prisma        run prisma commands
+    psql                   open psql on db
+    prisma                 run prisma commands
 
   dev:
-    pr            fetch and checkout a pr
-    lint          run linters
-    open          open container url in browser
+    pr                     fetch and checkout a pr
+    lint                   run linters
+    test                   run tests
 
   other:
-    compose         docker compose passthrough
-    sn_lndcli       lncli passthrough on sn_lnd
-    stacker_lndcli  lncli passthrough on stacker_lnd
-    stacker_clncli  lightning-cli passthrough on stacker_cln
-    stacker_litcli  litcli passthrough on litd
-
+    cli                    service cli passthrough
+    open                   open service GUI in browser
+    onion                  service onion address
+    cert                   service tls cert
+    compose                docker compose passthrough
 ```
 
 ### Modifying services
@@ -368,9 +363,11 @@ You can connect to the local database via `./sndev psql`. [psql](https://www.pos
 
 <br>
 
-## Running lncli on the local lnd nodes
+## Running cli on local lightning nodes
 
-You can run `lncli` on the local lnd nodes via `./sndev sn_lncli` and `./sndev stacker_lncli`. The node for your local SN instance is `sn_lnd` and the node serving as any external node, like a stacker's node or external wallet, is `stacker_lnd`.
+You can run `lncli` on the local lnd nodes via `./sndev cli lnd` and `./sndev cli sn_lnd`. The node for your local SN instance is `sn_lnd` and the node serving as any external node, like a stacker's node or external wallet, is `lnd`.
+
+You can run `lightning-cli` on the local cln node via `./sndev cli cln` which serves as an external node or wallet.
 
 <br>
 

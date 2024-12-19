@@ -1,7 +1,7 @@
 import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
 import { getItem, filterClause, whereClause, muteClause, activeOrMine } from './item'
 import { getInvoice, getWithdrawl } from './wallet'
-import { pushSubscriptionSchema, ssValidate } from '@/lib/validate'
+import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
 import { replyToSubscription } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
@@ -217,14 +217,20 @@ export default {
 
       if (meFull.noteDeposits) {
         queries.push(
-          `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime", FLOOR("msatsReceived" / 1000) as "earnedSats",
+          `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime",
+              FLOOR("Invoice"."msatsReceived" / 1000) as "earnedSats",
             'InvoicePaid' AS type
             FROM "Invoice"
             WHERE "Invoice"."userId" = $1
-            AND "confirmedAt" IS NOT NULL
-            AND "isHeld" IS NULL
-            AND "actionState" IS NULL
-            AND created_at < $2
+            AND "Invoice"."confirmedAt" IS NOT NULL
+            AND "Invoice"."created_at" < $2
+            AND (
+              ("Invoice"."isHeld" IS NULL AND "Invoice"."actionType" IS NULL)
+              OR (
+                "Invoice"."actionType" = 'RECEIVE'
+                AND "Invoice"."actionState" = 'PAID'
+              )
+            )
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -232,12 +238,17 @@ export default {
 
       if (meFull.noteWithdrawals) {
         queries.push(
-          `(SELECT "Withdrawl".id::text, "Withdrawl".created_at AS "sortTime", FLOOR("msatsPaid" / 1000) as "earnedSats",
+          `(SELECT "Withdrawl".id::text, MAX(COALESCE("Invoice"."confirmedAt", "Withdrawl".created_at)) AS "sortTime",
+            FLOOR(MAX("Withdrawl"."msatsPaid" / 1000)) as "earnedSats",
             'WithdrawlPaid' AS type
             FROM "Withdrawl"
+            LEFT JOIN "InvoiceForward" ON "InvoiceForward"."withdrawlId" = "Withdrawl".id
+            LEFT JOIN "Invoice" ON "InvoiceForward"."invoiceId" = "Invoice".id
             WHERE "Withdrawl"."userId" = $1
-            AND status = 'CONFIRMED'
-            AND created_at < $2
+            AND "Withdrawl".status = 'CONFIRMED'
+            AND "Withdrawl".created_at < $2
+            AND ("InvoiceForward"."id" IS NULL OR "Invoice"."actionType" = 'ZAP')
+            GROUP BY "Withdrawl".id
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -375,7 +386,7 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      await ssValidate(pushSubscriptionSchema, { endpoint, p256dh, auth })
+      await validateSchema(pushSubscriptionSchema, { endpoint, p256dh, auth })
 
       let dbPushSubscription
       if (oldEndpoint) {

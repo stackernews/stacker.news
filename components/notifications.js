@@ -283,7 +283,7 @@ function Invitification ({ n }) {
     <>
       <NoteHeader color='secondary'>
         your invite has been redeemed by
-        {numWithUnits(n.invite.invitees.length, {
+        {' ' + numWithUnits(n.invite.invitees.length, {
           abbreviate: false,
           unitSingular: 'stacker',
           unitPlural: 'stackers'
@@ -326,10 +326,10 @@ function NostrZap ({ n }) {
   )
 }
 
-function InvoicePaid ({ n }) {
+function getPayerSig (lud18Data) {
   let payerSig
-  if (n.invoice.lud18Data) {
-    const { name, identifier, email, pubkey } = n.invoice.lud18Data
+  if (lud18Data) {
+    const { name, identifier, email, pubkey } = lud18Data
     const id = identifier || email || pubkey
     payerSig = '- '
     if (name) {
@@ -339,10 +339,23 @@ function InvoicePaid ({ n }) {
 
     if (id) payerSig += id
   }
+  return payerSig
+}
+
+function InvoicePaid ({ n }) {
+  const payerSig = getPayerSig(n.invoice.lud18Data)
+  let actionString = 'desposited to your account'
+  let sats = n.earnedSats
+  if (n.invoice.forwardedSats) {
+    actionString = 'sent directly to your attached wallet'
+    sats = n.invoice.forwardedSats
+  }
+
   return (
     <div className='fw-bold text-info'>
-      <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} deposited in your account
+      <Check className='fill-info me-1' />{numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      {n.invoice.forwardedSats && <Badge className={styles.badge} bg={null}>p2p</Badge>}
       {n.invoice.comment &&
         <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'>
           <Text>{n.invoice.comment}</Text>
@@ -357,6 +370,29 @@ function useActRetry ({ invoice }) {
     invoice.item.root?.bounty === invoice.satsRequested && invoice.item.root?.mine
       ? payBountyCacheMods
       : {}
+
+  const update = (cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.invoice) return
+    cache.modify({
+      id: `ItemAct:${invoice.itemAct?.id}`,
+      fields: {
+        // this is a bit of a hack just to update the reference to the new invoice
+        invoice: () => cache.writeFragment({
+          id: `Invoice:${response.invoice.id}`,
+          fragment: gql`
+            fragment _ on Invoice {
+              bolt11
+            }
+          `,
+          data: { bolt11: response.invoice.bolt11 }
+        })
+      }
+    })
+    paidActionCacheMods?.update?.(cache, { data })
+    bountyCacheMods?.update?.(cache, { data })
+  }
+
   return useAct({
     query: RETRY_PAID_ACTION,
     onPayError: (e, cache, { data }) => {
@@ -367,27 +403,8 @@ function useActRetry ({ invoice }) {
       paidActionCacheMods?.onPaid?.(cache, { data })
       bountyCacheMods?.onPaid?.(cache, { data })
     },
-    update: (cache, { data }) => {
-      const response = Object.values(data)[0]
-      if (!response?.invoice) return
-      cache.modify({
-        id: `ItemAct:${invoice.itemAct?.id}`,
-        fields: {
-          // this is a bit of a hack just to update the reference to the new invoice
-          invoice: () => cache.writeFragment({
-            id: `Invoice:${response.invoice.id}`,
-            fragment: gql`
-              fragment _ on Invoice {
-                bolt11
-              }
-            `,
-            data: { bolt11: response.invoice.bolt11 }
-          })
-        }
-      })
-      paidActionCacheMods?.update?.(cache, { data })
-      bountyCacheMods?.update?.(cache, { data })
-    }
+    update,
+    updateOnFallback: update
   })
 }
 
@@ -484,13 +501,27 @@ function Invoicification ({ n: { invoice, sortTime } }) {
 }
 
 function WithdrawlPaid ({ n }) {
+  let amount = n.earnedSats + n.withdrawl.satsFeePaid
+  let actionString = 'withdrawn from your account'
+
+  if (n.withdrawl.autoWithdraw) {
+    actionString = 'sent to your attached wallet'
+  }
+
+  if (n.withdrawl.forwardedActionType === 'ZAP') {
+    // don't expose receivers to routing fees they aren't paying
+    amount = n.earnedSats
+    actionString = 'zapped directly to your attached wallet'
+  }
+
   return (
     <div className='fw-bold text-info'>
-      <Check className='fill-info me-1' />{numWithUnits(n.earnedSats + n.withdrawl.satsFeePaid, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
-      {n.withdrawl.p2p || n.withdrawl.autoWithdraw ? 'sent to your attached wallet' : 'withdrawn from your account'}
+      <Check className='fill-info me-1' />
+      {numWithUnits(amount, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
+      {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      {(n.withdrawl.p2p && <Badge className={styles.badge} bg={null}>p2p</Badge>) ||
-      (n.withdrawl.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>)}
+      {(n.withdrawl.forwardedActionType === 'ZAP' && <Badge className={styles.badge} bg={null}>p2p</Badge>) ||
+        (n.withdrawl.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>)}
     </div>
   )
 }

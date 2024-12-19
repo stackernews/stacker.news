@@ -1,4 +1,4 @@
-import { amountSchema, ssValidate } from '@/lib/validate'
+import { amountSchema, validateSchema } from '@/lib/validate'
 import { getAd, getItem } from './item'
 import { topUsers } from './user'
 import performPaidAction from '../paidAction'
@@ -157,7 +157,7 @@ export default {
       const [{ to, from }] = await models.$queryRaw`
         SELECT date_trunc('day',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago' as from,
                (date_trunc('day',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago') + interval '1 day - 1 second' as to`
-      return await topUsers(parent, { when: 'custom', to: new Date(to).getTime().toString(), from: new Date(from).getTime().toString(), limit: 100 }, { models, ...context })
+      return await topUsers(parent, { when: 'custom', to: new Date(to).getTime().toString(), from: new Date(from).getTime().toString(), limit: 500 }, { models, ...context })
     },
     total: async (parent, args, { models }) => {
       if (!parent.total) {
@@ -171,7 +171,7 @@ export default {
   },
   Mutation: {
     donateToRewards: async (parent, { sats }, { me, models, lnd }) => {
-      await ssValidate(amountSchema, { amount: sats })
+      await validateSchema(amountSchema, { amount: sats })
 
       return await performPaidAction('DONATE', { sats }, { me, models, lnd })
     }

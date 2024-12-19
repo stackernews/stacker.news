@@ -2,7 +2,7 @@ import { readFile } from 'fs/promises'
 import { join, resolve } from 'path'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
-import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '@/lib/validate'
+import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
 import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES } from '@/lib/constants'
 import { viewGroup } from './growth'
@@ -66,11 +66,12 @@ export async function topUsers (parent, { cursor, when, by, from, to, limit = LI
     case 'comments': column = 'ncomments'; break
     case 'referrals': column = 'referrals'; break
     case 'stacking': column = 'stacked'; break
+    case 'value':
     default: column = 'proportion'; break
   }
 
   const users = (await models.$queryRawUnsafe(`
-    SELECT *
+    SELECT * ${column === 'proportion' ? ', proportion' : ''}
     FROM
       (SELECT users.*,
         COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
@@ -421,8 +422,16 @@ export default {
             confirmedAt: {
               gt: lastChecked
             },
-            isHeld: null,
-            actionType: null
+            OR: [
+              {
+                isHeld: null,
+                actionType: null
+              },
+              {
+                actionType: 'RECEIVE',
+                actionState: 'PAID'
+              }
+            ]
           }
         })
         if (invoice) {
@@ -432,13 +441,37 @@ export default {
       }
 
       if (user.noteWithdrawals) {
+        const p2pZap = await models.invoice.findFirst({
+          where: {
+            confirmedAt: {
+              gt: lastChecked
+            },
+            invoiceForward: {
+              withdrawl: {
+                userId: me.id,
+                status: 'CONFIRMED',
+                updatedAt: {
+                  gt: lastChecked
+                }
+              }
+            }
+          }
+        })
+        if (p2pZap) {
+          foundNotes()
+          return true
+        }
         const wdrwl = await models.withdrawl.findFirst({
           where: {
             userId: me.id,
             status: 'CONFIRMED',
+            hash: {
+              not: null
+            },
             updatedAt: {
               gt: lastChecked
-            }
+            },
+            invoiceForward: { is: null }
           }
         })
         if (wdrwl) {
@@ -632,7 +665,7 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      await ssValidate(userSchema, data, { models })
+      await validateSchema(userSchema, data, { models })
 
       try {
         await models.user.update({ where: { id: me.id }, data })
@@ -649,7 +682,7 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      await ssValidate(settingsSchema, { nostrRelays, ...data })
+      await validateSchema(settingsSchema, { nostrRelays, ...data })
 
       if (nostrRelays?.length) {
         const connectOrCreate = []
@@ -696,7 +729,7 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      await ssValidate(bioSchema, { text })
+      await validateSchema(bioSchema, { text })
 
       const user = await models.user.findUnique({ where: { id: me.id } })
 
@@ -770,7 +803,7 @@ export default {
       }
       assertApiKeyNotPermitted({ me })
 
-      await ssValidate(emailSchema, { email })
+      await validateSchema(emailSchema, { email })
 
       try {
         await models.user.update({
@@ -922,7 +955,8 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },
@@ -939,7 +973,8 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },
@@ -956,7 +991,8 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },

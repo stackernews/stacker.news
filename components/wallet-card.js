@@ -1,31 +1,20 @@
-import { Badge, Card } from 'react-bootstrap'
+import { Card } from 'react-bootstrap'
 import styles from '@/styles/wallet.module.css'
 import Plug from '@/svgs/plug.svg'
 import Gear from '@/svgs/settings-5-fill.svg'
 import Link from 'next/link'
-import { Status } from 'wallets'
+import { Status, isConfigured } from '@/wallets/common'
 import DraggableIcon from '@/svgs/draggable.svg'
+import RecvIcon from '@/svgs/arrow-left-down-line.svg'
+import SendIcon from '@/svgs/arrow-right-up-line.svg'
+import { useWalletImage } from '@/components/wallet-image'
+import { useWalletStatus, statusToClass } from '@/components/wallet-status'
+import { useWalletSupport } from '@/components/wallet-support'
 
 export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnter, onDragEnd, onTouchStart, sourceIndex, targetIndex, index }) {
-  const { card: { title, badges } } = wallet
-
-  let indicator = styles.disabled
-  switch (wallet.status) {
-    case Status.Enabled:
-    case true:
-      indicator = styles.success
-      break
-    case Status.Locked:
-      indicator = styles.warning
-      break
-    case Status.Error:
-      indicator = styles.error
-      break
-    case Status.Initialized:
-    case false:
-      indicator = styles.disabled
-      break
-  }
+  const image = useWalletImage(wallet)
+  const status = useWalletStatus(wallet)
+  const support = useWalletSupport(wallet)
 
   return (
     <Card
@@ -36,9 +25,10 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
       onDragEnter={onDragEnter}
       onDragEnd={onDragEnd}
     >
-      <div className={styles.cardMeta}>
-        {wallet.status === Status.Enabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
-        <div className={`${styles.indicator} ${indicator}`} />
+      <div className={styles.indicators}>
+        {status.any !== Status.Disabled && <DraggableIcon className={styles.drag} width={16} height={16} />}
+        {support.recv && <RecvIcon className={`${styles.indicator} ${statusToClass(status.recv)}`} />}
+        {support.send && <SendIcon className={`${styles.indicator} ${statusToClass(status.send)}`} />}
       </div>
       <Card.Body
         // we attach touch listener only to card body to not interfere with wallet link
@@ -48,18 +38,15 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
           : ''}
         style={{ cursor: draggable ? 'move' : 'default' }}
       >
-        <Card.Title>{title}</Card.Title>
-        <Card.Subtitle className='mt-2'>
-          {badges?.map(
-            badge =>
-              <Badge className={styles.badge} key={badge} bg={null}>
-                {badge}
-              </Badge>)}
-        </Card.Subtitle>
+        <div className='d-flex text-center align-items-center h-100'>
+          {image
+            ? <img className={styles.walletLogo} {...image} />
+            : <Card.Title className={styles.walletLogo}>{wallet.def.card.title}</Card.Title>}
+        </div>
       </Card.Body>
-      <Link href={`/settings/wallets/${wallet.name}`}>
+      <Link href={`/settings/wallets/${wallet.def.name}`}>
         <Card.Footer className={styles.attach}>
-          {wallet.isConfigured
+          {isConfigured(wallet)
             ? <>configure<Gear width={14} height={14} /></>
             : <>attach<Plug width={14} height={14} /></>}
         </Card.Footer>

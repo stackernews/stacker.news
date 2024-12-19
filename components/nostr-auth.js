@@ -117,6 +117,8 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
       error: false,
       loading: true
     })
+
+    const nostr = new Nostr()
     try {
       const { data, error } = await createAuth()
       if (error) throw error
@@ -125,7 +127,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
       if (!k1) throw new Error('Error generating challenge') // should never happen
 
       const useExtension = !nip46token
-      const signer = Nostr.getSigner({ nip46token, supportNip07: useExtension })
+      const signer = nostr.getSigner({ nip46token, supportNip07: useExtension })
       if (!signer && useExtension) throw new Error('No extension found')
 
       if (signer instanceof NDKNip46Signer) {
@@ -142,7 +144,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
         loading: true
       })
 
-      const signedEvent = await Nostr.sign({
+      const signedEvent = await nostr.sign({
         kind: 27235,
         created_at: Math.floor(Date.now() / 1000),
         tags: [
@@ -161,6 +163,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
     } catch (e) {
       setError(e)
     } finally {
+      nostr.close()
       clearSuggestionTimer()
     }
   }, [])

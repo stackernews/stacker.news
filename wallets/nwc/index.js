@@ -36,8 +36,8 @@ export const card = {
   subtitle: 'use Nostr Wallet Connect for payments'
 }
 
-export async function getNwc (nwcUrl, { signal }) {
-  const ndk = Nostr.ndk
+async function getNwc (nwcUrl, { signal }) {
+  const ndk = new Nostr().ndk
   const { walletPubkey, secret, relayUrls } = parseNwcUrl(nwcUrl)
   const nwc = new NDKNwc({
     ndk,
@@ -65,20 +65,32 @@ export async function getNwc (nwcUrl, { signal }) {
  * @param {function} fun - the nwc function to run
  * @returns - the result of the nwc function
  */
-export async function nwcTryRun (fun) {
+export async function nwcTryRun (fun, { nwcUrl }, { signal }) {
+  let nwc
   try {
-    const { error, result } = await fun()
+    nwc = await getNwc(nwcUrl, { signal })
+    const { error, result } = await fun(nwc)
     if (error) throw new Error(error.message || error.code)
     return result
   } catch (e) {
     if (e.error) throw new Error(e.error.message || e.error.code)
     throw e
+  } finally {
+    if (nwc) close(nwc)
+  }
+}
+
+/**
+ * Close all relay connections of the NDKNwc instance
+ * @param {NDKNwc} nwc
+ */
+async function close (nwc) {
+  for (const relay of nwc.relaySet.relays) {
+    nwc.ndk.pool.removeRelay(relay.url)
   }
 }
 
 export async function supportedMethods (nwcUrl, { signal }) {
-  const nwc = await getNwc(nwcUrl, { signal })
-  // TODO: support AbortSignal
-  const result = await nwcTryRun(() => nwc.getInfo())
+  const result = await nwcTryRun(nwc => nwc.getInfo(), { nwcUrl }, { signal })
   return result.methods
 }

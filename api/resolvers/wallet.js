@@ -810,9 +810,9 @@ async function upsertWallet (
           ...(Object.keys(recvConfig).length > 0
             ? {
                 [wallet.field]: {
-                  update: {
-                    where: { walletId: Number(id) },
-                    data: recvConfig
+                  upsert: {
+                    create: recvConfig,
+                    update: recvConfig
                   }
                 }
               }

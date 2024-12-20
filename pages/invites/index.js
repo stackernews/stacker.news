@@ -57,7 +57,7 @@ function InviteForm () {
           variables: {
             id: id || undefined,
             gift: Number(gift),
-            limit: limit ? Number(limit) : limit,
+            limit: limit ? Number(limit) : null,
             description: description || undefined
           }
         })

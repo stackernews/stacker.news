@@ -467,15 +467,16 @@ model LnWith {
 }
 
 model Invite {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
-  userId    Int
-  gift      Int?
-  limit     Int?
-  revoked   Boolean  @default(false)
-  user      User     @relation("Invites", fields: [userId], references: [id], onDelete: Cascade)
-  invitees  User[]
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  userId      Int
+  gift        Int?
+  limit       Int?
+  giftedCount Int      @default(0)
+  revoked     Boolean  @default(false)
+  user        User     @relation("Invites", fields: [userId], references: [id], onDelete: Cascade)
+  invitees    User[]
 
   description String?
 
@@ -903,39 +904,41 @@ model ItemMention {
 }
 
 model Invoice {
-  id             Int             @id @default(autoincrement())
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at")
-  userId         Int
-  hash           String          @unique(map: "Invoice.hash_unique")
-  preimage       String?         @unique(map: "Invoice.preimage_unique")
-  isHeld         Boolean?
-  bolt11         String
-  expiresAt      DateTime
-  confirmedAt    DateTime?
-  confirmedIndex BigInt?
-  cancelled      Boolean         @default(false)
-  cancelledAt    DateTime?
-  msatsRequested BigInt
-  msatsReceived  BigInt?
-  desc           String?
-  comment        String?
-  lud18Data      Json?
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  invoiceForward InvoiceForward?
-
-  actionState      InvoiceActionState?
-  actionType       InvoiceActionType?
-  actionOptimistic Boolean?
-  actionId         Int?
-  actionArgs       Json?               @db.JsonB
-  actionError      String?
-  actionResult     Json?               @db.JsonB
-  ItemAct          ItemAct[]
-  Item             Item[]
-  Upload           Upload[]
-  PollVote         PollVote[]
-  PollBlindVote    PollBlindVote[]
+  id                 Int                 @id @default(autoincrement())
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at")
+  userId             Int
+  hash               String              @unique(map: "Invoice.hash_unique")
+  preimage           String?             @unique(map: "Invoice.preimage_unique")
+  isHeld             Boolean?
+  bolt11             String
+  expiresAt          DateTime
+  confirmedAt        DateTime?
+  confirmedIndex     BigInt?
+  cancelled          Boolean             @default(false)
+  cancelledAt        DateTime?
+  msatsRequested     BigInt
+  msatsReceived      BigInt?
+  desc               String?
+  comment            String?
+  lud18Data          Json?
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoiceForward     InvoiceForward?
+  predecessorId      Int?                @unique(map: "Invoice.predecessorId_unique")
+  predecessorInvoice Invoice?            @relation("PredecessorInvoice", fields: [predecessorId], references: [id], onDelete: Cascade)
+  successorInvoice   Invoice?            @relation("PredecessorInvoice")
+  actionState        InvoiceActionState?
+  actionType         InvoiceActionType?
+  actionOptimistic   Boolean?
+  actionId           Int?
+  actionArgs         Json?               @db.JsonB
+  actionError        String?
+  actionResult       Json?               @db.JsonB
+  ItemAct            ItemAct[]
+  Item               Item[]
+  Upload             Upload[]
+  PollVote           PollVote[]
+  PollBlindVote      PollBlindVote[]
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")

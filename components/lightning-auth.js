@@ -36,7 +36,7 @@ function QrAuth ({ k1, encodedUrl, callbackUrl, multiAuth }) {
       await window.webln.enable()
       await window.webln.lnurl(encodedUrl)
     }
-    effect()
+    effect().catch(console.error)
   }, [encodedUrl])
 
   // output pubkey and k1

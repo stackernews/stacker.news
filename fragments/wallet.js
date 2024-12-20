@@ -23,6 +23,7 @@ export const INVOICE_FIELDS = gql`
     actionError
     confirmedPreimage
     forwardedSats
+    forwardStatus
   }`
 
 export const INVOICE_FULL = gql`

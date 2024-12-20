@@ -16,7 +16,6 @@ import { useToast } from '@/components/toast'
 import { useLightning } from '@/components/lightning'
 import { ListUsers } from '@/components/user-list'
 import { Col, Row } from 'react-bootstrap'
-import { proportions } from '@/lib/madness'
 import { useData } from '@/components/use-data'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
 import { useMemo } from 'react'
@@ -50,6 +49,7 @@ ${ITEM_FULL_FIELDS}
         photoId
         ncomments
         nposts
+        proportion
 
         optional {
           streak
@@ -117,9 +117,10 @@ export default function Rewards ({ ssrData }) {
 
   if (!dat) return <PageLoading />
 
-  function EstimatedReward ({ rank }) {
-    const referrerReward = Math.floor(total * proportions[rank - 1] * 0.2)
-    const reward = Math.floor(total * proportions[rank - 1]) - referrerReward
+  function EstimatedReward ({ rank, user }) {
+    if (!user) return null
+    const referrerReward = Math.max(Math.floor(total * user.proportion * 0.2), 0)
+    const reward = Math.max(Math.floor(total * user.proportion) - referrerReward, 0)
 
     return (
       <div className='text-muted fst-italic'>

@@ -1,4 +1,5 @@
 -- create a partial exclusion constraint that prevents insertion of duplicate items within 10 minutes
+CREATE EXTENSION IF NOT EXISTS btree_gist;
 ALTER TABLE "Item" ADD CONSTRAINT "Item_unique_time_constraint"
   EXCLUDE USING gist (
     "userId" WITH =,

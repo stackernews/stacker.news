@@ -142,7 +142,8 @@ export async function perform (args, context) {
       item = await tx.item.create({ data: itemData })
     } catch (err) {
       if (err.message.includes('violates exclusion constraint \\"Item_unique_time_constraint\\"')) {
-        throw new GqlInputError('duplicate item within 10 minutes')
+        const message = `you already submitted this ${itemData.title ? 'post' : 'comment'}`
+        throw new GqlInputError(message)
       }
       throw err
     }

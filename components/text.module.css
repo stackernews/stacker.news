@@ -440,41 +440,27 @@
 
 /* Details/Summary styling */
 .details {
-    border-left: 2px solid var(--theme-quoteBar);
-    padding-left: 0.75rem;
+    border: 1px solid rgba(220, 220, 220, 0.5);
+    border-radius: 4px;
+    padding: 1rem;
     margin: calc(var(--grid-gap) * 0.5) 0;
-    transition: border-color 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .details[open] {
-    border-left-color: #f7931a; 
+    border-color: rgba(249, 217, 94, 0.5);
 }
 
 .summary {
     cursor: pointer;
-    user-select: none;
-    color: #8b949e; 
+    color: rgba(220, 220, 220, 0.5);
     transition: color 0.2s ease;
-    padding: 0.25rem 0;
+}
+
+.details[open] > .summary {
+    color: rgba(249, 217, 94, 0.5);
 }
 
 .summary:hover {
-    color: #ffd700; 
-}
-
-
-.summary::marker,
-.summary::-webkit-details-marker {
-    color: #8b949e;
-}
-
-.details[open] > .summary::marker,
-.details[open] > .summary::-webkit-details-marker {
-    color: #f7931a;
-}
-
-
-.details > *:not(.summary) {
-    margin-top: calc(var(--grid-gap) * 0.5);
-    padding-bottom: calc(var(--grid-gap) * 0.25);
+    color: #f9d95e;
 }

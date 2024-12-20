@@ -70,296 +70,330 @@ export default {
       // queries ... we only ever need at most LIMIT+current offset in the child queries to
       // have enough items to return in the union
 
+      const include = new Set(inc ? inc.split(',') : [])
+
       const queries = []
 
       const itemDrivenQueries = []
 
+      // types = types || []
+      // const selectedTypes = include.length ? `WHERE type IN (${include.map(type => `'${type}'`).join(', ')})` : ''
+
       // Thread subscriptions
-      itemDrivenQueries.push(
-        `SELECT "Item".*, "Item".created_at AS "sortTime", 'Reply' AS type
-          FROM "ThreadSubscription"
-          JOIN "Reply" r ON "ThreadSubscription"."itemId" = r."ancestorId"
-          JOIN "Item" ON r."itemId" = "Item".id
-          ${whereClause(
-            '"ThreadSubscription"."userId" = $1',
-            'r.created_at >= "ThreadSubscription".created_at',
-            'r.created_at < $2',
-            'r."userId" <> $1',
-            ...(meFull.noteAllDescendants ? [] : ['r.level = 1'])
-          )}
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}`
-      )
+      if (!include.size || include.has('replies')) {
+        itemDrivenQueries.push(
+          `SELECT "Item".*, "Item".created_at AS "sortTime", 'Reply' AS type
+            FROM "ThreadSubscription"
+            JOIN "Reply" r ON "ThreadSubscription"."itemId" = r."ancestorId"
+            JOIN "Item" ON r."itemId" = "Item".id
+            ${whereClause(
+              '"ThreadSubscription"."userId" = $1',
+              'r.created_at >= "ThreadSubscription".created_at',
+              'r.created_at < $2',
+              'r."userId" <> $1',
+              ...(meFull.noteAllDescendants ? [] : ['r.level = 1'])
+            )}
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}`
+        )
+      }
 
       // User subscriptions
       // Only include posts or comments created after the corresponding subscription was enabled, not _all_ from history
-      itemDrivenQueries.push(
-        `SELECT "Item".*, "Item".created_at AS "sortTime", 'FollowActivity' AS type
-          FROM "Item"
-          JOIN "UserSubscription" ON "Item"."userId" = "UserSubscription"."followeeId"
-          ${whereClause(
-            '"Item".created_at < $2',
-            '"UserSubscription"."followerId" = $1',
-            `(
-              ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
-              OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
-            )`
-          )}
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}`
-      )
-
-      // Territory subscriptions
-      itemDrivenQueries.push(
-        `SELECT "Item".*, "Item".created_at AS "sortTime", 'TerritoryPost' AS type
-          FROM "Item"
-          JOIN "SubSubscription" ON "Item"."subName" = "SubSubscription"."subName"
-          ${whereClause(
-            '"Item".created_at < $2',
-            '"SubSubscription"."userId" = $1',
-            '"Item"."userId" <> $1',
-            '"Item"."parentId" IS NULL',
-            '"Item".created_at >= "SubSubscription".created_at'
-          )}
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}`
-      )
-
-      // mentions
-      if (meFull.noteMentions) {
+      if (!include.size || include.has('followed')) {
         itemDrivenQueries.push(
-          `SELECT "Item".*, "Mention".created_at AS "sortTime", 'Mention' AS type
-            FROM "Mention"
-            JOIN "Item" ON "Mention"."itemId" = "Item".id
+          `SELECT "Item".*, "Item".created_at AS "sortTime", 'FollowActivity' AS type
+            FROM "Item"
+            JOIN "UserSubscription" ON "Item"."userId" = "UserSubscription"."followeeId"
             ${whereClause(
               '"Item".created_at < $2',
-              '"Mention"."userId" = $1',
-              '"Item"."userId" <> $1'
+              '"UserSubscription"."followerId" = $1',
+              `(
+                ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
+                OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
+              )`
             )}
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}`
         )
       }
-      // item mentions
-      if (meFull.noteItemMentions) {
+
+      // Territory subscriptions
+      if (!include.size || include.has('territories')) {
         itemDrivenQueries.push(
-          `SELECT "Referrer".*, "ItemMention".created_at AS "sortTime", 'ItemMention' AS type
-            FROM "ItemMention"
-            JOIN "Item" "Referee" ON "ItemMention"."refereeId" = "Referee".id
-            JOIN "Item" "Referrer" ON "ItemMention"."referrerId" = "Referrer".id
+          `SELECT "Item".*, "Item".created_at AS "sortTime", 'TerritoryPost' AS type
+            FROM "Item"
+            JOIN "SubSubscription" ON "Item"."subName" = "SubSubscription"."subName"
             ${whereClause(
-              '"ItemMention".created_at < $2',
-              '"Referrer"."userId" <> $1',
-              '"Referee"."userId" = $1'
+              '"Item".created_at < $2',
+              '"SubSubscription"."userId" = $1',
+              '"Item"."userId" <> $1',
+              '"Item"."parentId" IS NULL',
+              '"Item".created_at >= "SubSubscription".created_at'
             )}
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}`
         )
+      }
+
+      if (!include.size || include.has('replies')) {
+        // mentions
+        if (meFull.noteMentions) {
+          itemDrivenQueries.push(
+            `SELECT "Item".*, "Mention".created_at AS "sortTime", 'Mention' AS type
+              FROM "Mention"
+              JOIN "Item" ON "Mention"."itemId" = "Item".id
+              ${whereClause(
+                '"Item".created_at < $2',
+                '"Mention"."userId" = $1',
+                '"Item"."userId" <> $1'
+              )}
+              ORDER BY "sortTime" DESC
+              LIMIT ${LIMIT}`
+          )
+        }
+
+        // item mentions
+        if (meFull.noteItemMentions) {
+          itemDrivenQueries.push(
+            `SELECT "Referrer".*, "ItemMention".created_at AS "sortTime", 'ItemMention' AS type
+              FROM "ItemMention"
+              JOIN "Item" "Referee" ON "ItemMention"."refereeId" = "Referee".id
+              JOIN "Item" "Referrer" ON "ItemMention"."referrerId" = "Referrer".id
+              ${whereClause(
+                '"ItemMention".created_at < $2',
+                '"Referrer"."userId" <> $1',
+                '"Referee"."userId" = $1'
+              )}
+              ORDER BY "sortTime" DESC
+              LIMIT ${LIMIT}`
+          )
+        }
       }
       // Inner union to de-dupe item-driven notifications
-      queries.push(
-        // Only record per item ID
-        `(
-          SELECT DISTINCT ON (id) "Item".id::TEXT, "Item"."sortTime", NULL::BIGINT AS "earnedSats", "Item".type
-          FROM (
-            ${itemDrivenQueries.map(q => `(${q})`).join(' UNION ALL ')}
-          ) as "Item"
-          ${whereClause(
-            '"Item".created_at < $2',
-            await filterClause(me, models),
-            muteClause(me),
-            activeOrMine(me))}
-          ORDER BY id ASC, CASE
-            WHEN type = 'Mention' THEN 1
-            WHEN type = 'Reply' THEN 2
-            WHEN type = 'FollowActivity' THEN 3
-            WHEN type = 'TerritoryPost' THEN 4
-            WHEN type = 'ItemMention' THEN 5
-          END ASC
-        )`
-      )
+      if (!include.size || include.has('replies') || include.has('territories') || include.has('followed')) {
+        queries.push(
+          // Only record per item ID
+          `(
+            SELECT DISTINCT ON (id) "Item".id::TEXT, "Item"."sortTime", NULL::BIGINT AS "earnedSats", "Item".type
+            FROM (
+              ${itemDrivenQueries.map(q => `(${q})`).join(' UNION ALL ')}
+            ) as "Item"
+            ${whereClause(
+              '"Item".created_at < $2',
+              await filterClause(me, models),
+              muteClause(me),
+              activeOrMine(me))}
+            ORDER BY id ASC, CASE
+              WHEN type = 'Mention' THEN 1
+              WHEN type = 'Reply' THEN 2
+              WHEN type = 'FollowActivity' THEN 3
+              WHEN type = 'TerritoryPost' THEN 4
+              WHEN type = 'ItemMention' THEN 5
+            END ASC
+          )`
+        )
+      }
 
       // territory transfers
-      queries.push(
-        `(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL as "earnedSats",
-          'TerritoryTransfer' AS type
-          FROM "TerritoryTransfer"
-          WHERE "TerritoryTransfer"."newUserId" = $1
-          AND "TerritoryTransfer"."created_at" <= $2
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
-      )
-
-      if (meFull.noteItemSats) {
+      if (!include.size || include.has('territories')) {
         queries.push(
-          `(SELECT "Item".id::TEXT, "Item"."lastZapAt" AS "sortTime",
-            "Item".msats/1000 as "earnedSats", 'Votification' AS type
-            FROM "Item"
-            WHERE "Item"."userId" = $1
-            AND "Item"."lastZapAt" < $2
+          `(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL as "earnedSats",
+            'TerritoryTransfer' AS type
+            FROM "TerritoryTransfer"
+            WHERE "TerritoryTransfer"."newUserId" = $1
+            AND "TerritoryTransfer"."created_at" <= $2
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
       }
 
-      if (meFull.noteForwardedSats) {
-        queries.push(
-          `(SELECT "Item".id::TEXT, "Item"."lastZapAt" AS "sortTime",
-            ("Item".msats / 1000 * "ItemForward".pct / 100) as "earnedSats", 'ForwardedVotification' AS type
-            FROM "Item"
-            JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = $1
-            WHERE "Item"."userId" <> $1
-            AND "Item"."lastZapAt" < $2
-            ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
-        )
+      if (!include.size || include.has('stacking')) {
+        if (meFull.noteItemSats) {
+          queries.push(
+            `(SELECT "Item".id::TEXT, "Item"."lastZapAt" AS "sortTime",
+              "Item".msats/1000.0 as "earnedSats", 'Votification' AS type
+              FROM "Item"
+              WHERE "Item"."userId" = $1
+              AND "Item"."lastZapAt" < $2
+              ORDER BY "sortTime" DESC
+              LIMIT ${LIMIT})`
+          )
+        }
+
+        if (meFull.noteForwardedSats) {
+          queries.push(
+            `(SELECT "Item".id::TEXT, "Item"."lastZapAt" AS "sortTime",
+              ("Item".msats / 1000 * "ItemForward".pct / 100) as "earnedSats", 'ForwardedVotification' AS type
+              FROM "Item"
+              JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = $1
+              WHERE "Item"."userId" <> $1
+              AND "Item"."lastZapAt" < $2
+              ORDER BY "sortTime" DESC
+              LIMIT ${LIMIT})`
+          )
+        }
       }
 
-      if (meFull.noteDeposits) {
-        queries.push(
-          `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime",
-              FLOOR("Invoice"."msatsReceived" / 1000) as "earnedSats",
-            'InvoicePaid' AS type
-            FROM "Invoice"
-            WHERE "Invoice"."userId" = $1
-            AND "Invoice"."confirmedAt" IS NOT NULL
-            AND "Invoice"."created_at" < $2
-            AND (
-              ("Invoice"."isHeld" IS NULL AND "Invoice"."actionType" IS NULL)
-              OR (
-                "Invoice"."actionType" = 'RECEIVE'
-                AND "Invoice"."actionState" = 'PAID'
+      if (!include.size || include.has('payments')) {
+        if (meFull.noteDeposits) {
+          queries.push(
+            `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime",
+                FLOOR("Invoice"."msatsReceived" / 1000) as "earnedSats",
+              'InvoicePaid' AS type
+              FROM "Invoice"
+              WHERE "Invoice"."userId" = $1
+              AND "Invoice"."confirmedAt" IS NOT NULL
+              AND "Invoice"."created_at" < $2
+              AND (
+                ("Invoice"."isHeld" IS NULL AND "Invoice"."actionType" IS NULL)
+                OR (
+                  "Invoice"."actionType" = 'RECEIVE'
+                  AND "Invoice"."actionState" = 'PAID'
+                )
               )
-            )
+              ORDER BY "sortTime" DESC
+              LIMIT ${LIMIT})`
+          )
+        }
+
+        if (meFull.noteWithdrawals) {
+          queries.push(
+            `(SELECT "Withdrawl".id::text, MAX(COALESCE("Invoice"."confirmedAt", "Withdrawl".created_at)) AS "sortTime",
+              FLOOR(MAX("Withdrawl"."msatsPaid" / 1000)) as "earnedSats",
+              'WithdrawlPaid' AS type
+              FROM "Withdrawl"
+              LEFT JOIN "InvoiceForward" ON "InvoiceForward"."withdrawlId" = "Withdrawl".id
+              LEFT JOIN "Invoice" ON "InvoiceForward"."invoiceId" = "Invoice".id
+              WHERE "Withdrawl"."userId" = $1
+              AND "Withdrawl".status = 'CONFIRMED'
+              AND "Withdrawl".created_at < $2
+              AND ("InvoiceForward"."id" IS NULL OR "Invoice"."actionType" = 'ZAP')
+              GROUP BY "Withdrawl".id
+              ORDER BY "sortTime" DESC
+              LIMIT ${LIMIT})`
+          )
+        }
+      }
+
+      if (!include.size || include.has('referral')) {
+        if (meFull.noteInvites) {
+          queries.push(
+            `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",
+              'Invitification' AS type
+              FROM users JOIN "Invite" on users."inviteId" = "Invite".id
+              WHERE "Invite"."userId" = $1
+              AND users.created_at < $2
+              GROUP BY "Invite".id
+              ORDER BY "sortTime" DESC
+              LIMIT ${LIMIT})`
+          )
+          queries.push(
+            `(SELECT users.id::text, users.created_at AS "sortTime", NULL as "earnedSats",
+              'Referral' AS type
+              FROM users
+              WHERE "users"."referrerId" = $1
+              AND "inviteId" IS NULL
+              AND users.created_at < $2
+              ORDER BY "sortTime" DESC
+              LIMIT ${LIMIT})`
+          )
+        }
+      }
+
+      if (!include.size || include.has('earnings')) {
+        if (meFull.noteEarning) {
+          queries.push(
+            `(SELECT min(id)::text AS id, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
+            'Earn' AS type
+            FROM "Earn"
+            WHERE "userId" = $1
+            AND created_at < $2
+            AND (type IS NULL OR type NOT IN ('FOREVER_REFERRAL', 'ONE_DAY_REFERRAL'))
+            GROUP BY "userId", created_at
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+          )
+          queries.push(
+            `(SELECT min(id)::text AS id, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
+            'Revenue' AS type
+            FROM "SubAct"
+            WHERE "userId" = $1
+            AND type = 'REVENUE'
+            AND created_at < $2
+            GROUP BY "userId", "subName", created_at
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+          )
+          queries.push(
+            `(SELECT min(id)::text AS id, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
+            'ReferralReward' AS type
+            FROM "Earn"
+            WHERE "userId" = $1
+            AND created_at < $2
+            AND type IN ('FOREVER_REFERRAL', 'ONE_DAY_REFERRAL')
+            GROUP BY "userId", created_at
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+          )
+        }
+      }
+
+      if (!include.size || include.has('streak')) {
+        if (meFull.noteCowboyHat) {
+          queries.push(
+            `(SELECT id::text, updated_at AS "sortTime", 0 as "earnedSats", 'Streak' AS type
+            FROM "Streak"
+            WHERE "userId" = $1
+            AND updated_at < $2
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+          )
+        }
+      }
+
+      if (!include.size || include.has('territories')) {
+        queries.push(
+          `(SELECT "Sub".name::text AS id, "Sub"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
+            'SubStatus' AS type
+            FROM "Sub"
+            WHERE "Sub"."userId" = $1
+            AND "status" <> 'ACTIVE'
+            AND "statusUpdatedAt" < $2
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
       }
 
-      if (meFull.noteWithdrawals) {
+      if (!include.size || include.has('reminders')) {
         queries.push(
-          `(SELECT "Withdrawl".id::text, MAX(COALESCE("Invoice"."confirmedAt", "Withdrawl".created_at)) AS "sortTime",
-            FLOOR(MAX("Withdrawl"."msatsPaid" / 1000)) as "earnedSats",
-            'WithdrawlPaid' AS type
-            FROM "Withdrawl"
-            LEFT JOIN "InvoiceForward" ON "InvoiceForward"."withdrawlId" = "Withdrawl".id
-            LEFT JOIN "Invoice" ON "InvoiceForward"."invoiceId" = "Invoice".id
-            WHERE "Withdrawl"."userId" = $1
-            AND "Withdrawl".status = 'CONFIRMED'
-            AND "Withdrawl".created_at < $2
-            AND ("InvoiceForward"."id" IS NULL OR "Invoice"."actionType" = 'ZAP')
-            GROUP BY "Withdrawl".id
-            ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
-        )
-      }
-
-      if (meFull.noteInvites) {
-        queries.push(
-          `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",
-            'Invitification' AS type
-            FROM users JOIN "Invite" on users."inviteId" = "Invite".id
-            WHERE "Invite"."userId" = $1
-            AND users.created_at < $2
-            GROUP BY "Invite".id
-            ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
-        )
-        queries.push(
-          `(SELECT users.id::text, users.created_at AS "sortTime", NULL as "earnedSats",
-            'Referral' AS type
-            FROM users
-            WHERE "users"."referrerId" = $1
-            AND "inviteId" IS NULL
-            AND users.created_at < $2
-            ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
-        )
-      }
-
-      if (meFull.noteEarning) {
-        queries.push(
-          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
-          'Earn' AS type
-          FROM "Earn"
-          WHERE "userId" = $1
-          AND created_at < $2
-          AND (type IS NULL OR type NOT IN ('FOREVER_REFERRAL', 'ONE_DAY_REFERRAL'))
-          GROUP BY "userId", created_at
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
-        )
-        queries.push(
-          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
-          'Revenue' AS type
-          FROM "SubAct"
-          WHERE "userId" = $1
-          AND type = 'REVENUE'
-          AND created_at < $2
-          GROUP BY "userId", "subName", created_at
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
-        )
-        queries.push(
-          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
-          'ReferralReward' AS type
-          FROM "Earn"
-          WHERE "userId" = $1
-          AND created_at < $2
-          AND type IN ('FOREVER_REFERRAL', 'ONE_DAY_REFERRAL')
-          GROUP BY "userId", created_at
+          `(SELECT "Reminder".id::text, "Reminder"."remindAt" AS "sortTime", NULL as "earnedSats", 'Reminder' AS type
+          FROM "Reminder"
+          WHERE "Reminder"."userId" = $1
+          AND "Reminder"."remindAt" < $2
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT})`
         )
       }
 
-      if (meFull.noteCowboyHat) {
+      if (!include.size || include.has('payments')) {
         queries.push(
-          `(SELECT id::text, updated_at AS "sortTime", 0 as "earnedSats", 'Streak' AS type
-          FROM "Streak"
-          WHERE "userId" = $1
-          AND updated_at < $2
+          `(SELECT "Invoice".id::text, "Invoice"."updated_at" AS "sortTime", NULL as "earnedSats", 'Invoicification' AS type
+          FROM "Invoice"
+          WHERE "Invoice"."userId" = $1
+          AND "Invoice"."updated_at" < $2
+          AND "Invoice"."actionState" = 'FAILED'
+          AND (
+            "Invoice"."actionType" = 'ITEM_CREATE' OR
+            "Invoice"."actionType" = 'ZAP' OR
+            "Invoice"."actionType" = 'DOWN_ZAP' OR
+            "Invoice"."actionType" = 'POLL_VOTE' OR
+            "Invoice"."actionType" = 'BOOST'
+          )
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT})`
         )
       }
-
-      queries.push(
-        `(SELECT "Sub".name::text, "Sub"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
-          'SubStatus' AS type
-          FROM "Sub"
-          WHERE "Sub"."userId" = $1
-          AND "status" <> 'ACTIVE'
-          AND "statusUpdatedAt" < $2
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
-      )
-
-      queries.push(
-        `(SELECT "Reminder".id::text, "Reminder"."remindAt" AS "sortTime", NULL as "earnedSats", 'Reminder' AS type
-        FROM "Reminder"
-        WHERE "Reminder"."userId" = $1
-        AND "Reminder"."remindAt" < $2
-        ORDER BY "sortTime" DESC
-        LIMIT ${LIMIT})`
-      )
-
-      queries.push(
-        `(SELECT "Invoice".id::text, "Invoice"."updated_at" AS "sortTime", NULL as "earnedSats", 'Invoicification' AS type
-        FROM "Invoice"
-        WHERE "Invoice"."userId" = $1
-        AND "Invoice"."updated_at" < $2
-        AND "Invoice"."actionState" = 'FAILED'
-        AND (
-          "Invoice"."actionType" = 'ITEM_CREATE' OR
-          "Invoice"."actionType" = 'ZAP' OR
-          "Invoice"."actionType" = 'DOWN_ZAP' OR
-          "Invoice"."actionType" = 'POLL_VOTE' OR
-          "Invoice"."actionType" = 'BOOST'
-        )
-        ORDER BY "sortTime" DESC
-        LIMIT ${LIMIT})`
-      )
 
       const notifications = await models.$queryRawUnsafe(
         `SELECT id, "sortTime", "earnedSats", type,

@@ -1,0 +1,9 @@
+.filterIcon {
+    cursor: pointer;
+}
+
+.filterIconActive {
+    cursor: pointer;
+    fill: var(--theme-brandColor);
+    filter: drop-shadow(0 0 2px var(--bs-primary));
+}

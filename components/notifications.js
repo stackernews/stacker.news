@@ -43,6 +43,7 @@ import { useToast } from './toast'
 import classNames from 'classnames'
 import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
+import NotificationsHeader from './notifications-filter'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -721,8 +722,8 @@ export function NotificationAlert () {
 const nid = n => n.__typename + n.id + n.sortTime
 
 export default function Notifications ({ ssrData }) {
-  const { data, fetchMore } = useQuery(NOTIFICATIONS)
   const router = useRouter()
+  const { data, fetchMore } = useQuery(NOTIFICATIONS, { variables: { inc: router.query.inc } })
   const dat = useData(data, ssrData)
 
   const { notifications, lastChecked, cursor } = useMemo(() => {
@@ -753,6 +754,7 @@ export default function Notifications ({ ssrData }) {
 
   return (
     <>
+      <NotificationsHeader />
       {notifications.map(n =>
         <Notification
           n={n} key={nid(n)}

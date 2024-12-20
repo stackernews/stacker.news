@@ -3,13 +3,12 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 ALTER TABLE "Item" ADD CONSTRAINT "Item_unique_time_constraint"
   EXCLUDE USING gist (
     "userId" WITH =,
-    -- we use COALESCE so NULL is considered equal to itself
+    -- we use COALESCE so NULL is considered equal to itself. we also use md5 hashes because columns
+    -- of type TEXT can make index row too large and columns of type CITEXT are not supported by GiST.
     COALESCE("parentId", -1) WITH =,
-    COALESCE("title", '') WITH =,
-    -- GiST does not support citext so we use md5 hash
+    md5(COALESCE("title", '')) WITH =,
     md5(COALESCE("subName", '')) WITH =,
-    -- including text column directly can make index row too large so we use md5 hash
-    md5("text") WITH =,
+    md5(COALESCE("text", '')) WITH =,
     tsrange(created_at, created_at + INTERVAL '10 minutes') WITH &&
   )
   -- enforce constraint after this date

@@ -437,3 +437,16 @@
     border-radius: 13px;
     overflow: hidden;
 }
+
+.details {
+  margin: 1rem 0;
+}
+
+.summary {
+  cursor: pointer;
+  padding: 0.5rem 0;
+}
+
+.summary:hover {
+  opacity: 0.8;
+}

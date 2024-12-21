@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useShowModal } from './modal'
 import { useRouter } from 'next/router'
 import { NOTIFICATION_CATEGORIES } from '../lib/constants'
@@ -10,25 +10,17 @@ export function NotificationsFilter ({ onClose }) {
   const router = useRouter()
 
   const appliedFilters = useMemo(() => {
-    const filters = new Set(router.query.inc?.split(',') || [])
-    filters.delete('')
+    const filters = new Set(router.query.inc?.split(',') || []) // get filters from URL
+    filters.delete('') // avoid empty category
     return filters
   }, [router.query.inc])
 
   const [filters, setFilters] = useState(appliedFilters)
 
-  useEffect(() => {
-    setFilters(appliedFilters)
-  }, [appliedFilters])
-
   const handleFilters = useCallback((filter, add) => {
     setFilters(prev => {
       const newFilters = new Set(prev)
-      if (add) {
-        newFilters.add(filter)
-      } else {
-        newFilters.delete(filter)
-      }
+      add ? newFilters.add(filter) : newFilters.delete(filter)
       return newFilters
     })
   }, [])
@@ -56,7 +48,7 @@ export function NotificationsFilter ({ onClose }) {
         {filters.size ? ` ${[...filters].join(', ')}` : ' all'}
       </p>
       <Form
-        initial={filters || []}
+        initial={filters}
         onSubmit={() => {
           filterRoutePush()
           onClose?.()
@@ -69,14 +61,14 @@ export function NotificationsFilter ({ onClose }) {
               label={category}
               name={category}
               inline
-              checked={filters?.has(category)}
+              checked={filters.has(category)}
               handleChange={(c) => handleFilters(category, c)}
             />
           ))}
         </div>
         <div className='d-flex flex-row gap-2 mt-4 justify-content-end'>
-          {filters.size ? <SubmitButton variant='secondary' className='mt-1 px-4' onClick={() => setFilters(new Set())}>reset</SubmitButton> : null}
-          <SubmitButton variant='primary' className='mt-1 px-4'>apply filters</SubmitButton>
+          {filters.size ? <SubmitButton variant='secondary' className='px-4' onClick={() => setFilters(new Set())}>reset</SubmitButton> : null}
+          <SubmitButton variant='primary' className='px-4'>apply filters</SubmitButton>
         </div>
       </Form>
     </div>
@@ -86,11 +78,7 @@ export function NotificationsFilter ({ onClose }) {
 export default function NotificationsHeader () {
   const showModal = useShowModal()
   const router = useRouter()
-  const [active, setActive] = useState(router.query.inc?.length)
-
-  useEffect(() => {
-    setActive(router.query.inc?.length)
-  }, [router.query.inc])
+  const hasActiveFilters = router.query.inc?.length
 
   return (
     <div className='d-flex align-items-center gap-2'>
@@ -98,7 +86,7 @@ export default function NotificationsHeader () {
       <FilterIcon
         width={20}
         height={20}
-        className={active ? styles.filterIconActive : styles.filterIcon}
+        className={hasActiveFilters ? styles.filterIconActive : styles.filterIcon}
         onClick={() => {
           showModal((onClose) => (
             <NotificationsFilter onClose={onClose} />

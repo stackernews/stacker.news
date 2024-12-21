@@ -1,4 +1,4 @@
-import { getNwc, supportedMethods, nwcTryRun } from '@/wallets/nwc'
+import { supportedMethods, nwcTryRun } from '@/wallets/nwc'
 export * from '@/wallets/nwc'
 
 export async function testCreateInvoice ({ nwcUrlRecv }, { signal }) {
@@ -21,8 +21,9 @@ export async function testCreateInvoice ({ nwcUrlRecv }, { signal }) {
 }
 
 export async function createInvoice ({ msats, description, expiry }, { nwcUrlRecv }, { signal }) {
-  const nwc = await getNwc(nwcUrlRecv, { signal })
-  // TODO: support AbortSignal
-  const result = await nwcTryRun(() => nwc.sendReq('make_invoice', { amount: msats, description, expiry }))
+  const result = await nwcTryRun(
+    nwc => nwc.sendReq('make_invoice', { amount: msats, description, expiry }),
+    { nwcUrl: nwcUrlRecv }, { signal }
+  )
   return result.invoice
 }

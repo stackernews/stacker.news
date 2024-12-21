@@ -66,11 +66,12 @@ export async function topUsers (parent, { cursor, when, by, from, to, limit = LI
     case 'comments': column = 'ncomments'; break
     case 'referrals': column = 'referrals'; break
     case 'stacking': column = 'stacked'; break
+    case 'value':
     default: column = 'proportion'; break
   }
 
   const users = (await models.$queryRawUnsafe(`
-    SELECT *
+    SELECT * ${column === 'proportion' ? ', proportion' : ''}
     FROM
       (SELECT users.*,
         COALESCE(floor(sum(msats_spent)/1000), 0) as spent,

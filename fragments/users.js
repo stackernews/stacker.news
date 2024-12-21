@@ -257,7 +257,7 @@ export const TOP_USERS = gql`
         photoId
         ncomments(when: $when, from: $from, to: $to)
         nposts(when: $when, from: $from, to: $to)
-
+        proportion
         optional {
           stacked(when: $when, from: $from, to: $to)
           spent(when: $when, from: $from, to: $to)

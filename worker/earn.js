@@ -1,6 +1,5 @@
 import { notifyEarner } from '@/lib/webPush'
 import createPrisma from '@/lib/create-prisma'
-import { proportions } from '@/lib/madness'
 import { SN_NO_REWARDS_IDS } from '@/lib/constants'
 
 const TOTAL_UPPER_BOUND_MSATS = 1_000_000_000
@@ -40,18 +39,19 @@ export async function earn ({ name }) {
 
     /*
       How earnings (used to) work:
-      1/3: top 21% posts over last 36 hours, scored on a relative basis
-      1/3: top 21% comments over last 36 hours, scored on a relative basis
+      1/3: top 50% posts over last 36 hours, scored on a relative basis
+      1/3: top 50% comments over last 36 hours, scored on a relative basis
       1/3: top upvoters of top posts/comments, scored on:
         - their trust
         - how much they tipped
         - how early they upvoted it
         - how the post/comment scored
 
-      Now: 80% of earnings go to top 100 stackers by value, and 10% each to their forever and one day referrers
+      Now: 80% of earnings go to top stackers by relative value, and 10% each to their forever and one day referrers
     */
 
     // get earners { userId, id, type, rank, proportion, foreverReferrerId, oneDayReferrerId }
+    // has to earn at least 125000 msats to be eligible (so that they get at least 1 sat after referrals)
     const earners = await models.$queryRaw`
       WITH earners AS (
         SELECT users.id AS "userId", users."referrerId" AS "foreverReferrerId",
@@ -63,8 +63,8 @@ export async function earn ({ name }) {
           'day') uv
         JOIN users ON users.id = uv.id
         WHERE NOT (users.id = ANY (${SN_NO_REWARDS_IDS}))
+        AND uv.proportion >= 0.0000125
         ORDER BY proportion DESC
-        LIMIT 100
       )
       SELECT earners.*,
         COALESCE(
@@ -86,10 +86,10 @@ export async function earn ({ name }) {
     let total = 0
 
     const notifications = {}
-    for (const [i, earner] of earners.entries()) {
+    for (const [, earner] of earners.entries()) {
       const foreverReferrerEarnings = Math.floor(parseFloat(earner.proportion * sum * 0.1)) // 10% of earnings
       let oneDayReferrerEarnings = Math.floor(parseFloat(earner.proportion * sum * 0.1)) // 10% of earnings
-      const earnerEarnings = Math.floor(parseFloat(proportions[i] * sum)) - foreverReferrerEarnings - oneDayReferrerEarnings
+      const earnerEarnings = Math.floor(parseFloat(earner.proportion * sum)) - foreverReferrerEarnings - oneDayReferrerEarnings
 
       total += earnerEarnings + foreverReferrerEarnings + oneDayReferrerEarnings
       if (total > sum) {
@@ -108,7 +108,7 @@ export async function earn ({ name }) {
         'oneDayReferrer', earner.oneDayReferrerId,
         'oneDayReferrerEarnings', oneDayReferrerEarnings)
 
-      if (earnerEarnings > 0) {
+      if (earnerEarnings > 1000) {
         stmts.push(...earnStmts({
           msats: earnerEarnings,
           userId: earner.userId,
@@ -140,7 +140,7 @@ export async function earn ({ name }) {
         }
       }
 
-      if (earner.foreverReferrerId && foreverReferrerEarnings > 0) {
+      if (earner.foreverReferrerId && foreverReferrerEarnings > 1000) {
         stmts.push(...earnStmts({
           msats: foreverReferrerEarnings,
           userId: earner.foreverReferrerId,
@@ -153,7 +153,7 @@ export async function earn ({ name }) {
         oneDayReferrerEarnings += foreverReferrerEarnings
       }
 
-      if (earner.oneDayReferrerId && oneDayReferrerEarnings > 0) {
+      if (earner.oneDayReferrerId && oneDayReferrerEarnings > 1000) {
         stmts.push(...earnStmts({
           msats: oneDayReferrerEarnings,
           userId: earner.oneDayReferrerId,

@@ -121,7 +121,7 @@ export function useVaultConfigurator ({ onVaultKeySet, beforeDisconnectVault } =
       console.error('error setting vault key', e)
       toaster.danger(e.message)
     }
-  }, [getVaultEntries, updateVaultKey, set, get, remove, onVaultKeySet, keyReactiveVar, me.id])
+  }, [getVaultEntries, updateVaultKey, set, get, remove, onVaultKeySet, keyReactiveVar, me?.id])
 
   return { key, setVaultKey, clearVault, disconnectVault }
 }

@@ -37,7 +37,7 @@
 }
 
 .noSelfTips {
-    transform: scaleX(-1);
+    visibility: hidden;
 }
 
 .upvoteWrapper:not(.noSelfTips):hover {

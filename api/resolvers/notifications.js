@@ -198,7 +198,7 @@ export default {
       // territory transfers
       if (!include.size || include.has('territories')) {
         queries.push(
-          `(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL as "earnedSats",
+          `(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL::BIGINT as "earnedSats",
             'TerritoryTransfer' AS type
             FROM "TerritoryTransfer"
             WHERE "TerritoryTransfer"."newUserId" = $1
@@ -279,7 +279,7 @@ export default {
       if (!include.size || include.has('referral')) {
         if (meFull.noteInvites) {
           queries.push(
-            `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",
+            `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL::BIGINT as "earnedSats",
               'Invitification' AS type
               FROM users JOIN "Invite" on users."inviteId" = "Invite".id
               WHERE "Invite"."userId" = $1
@@ -289,7 +289,7 @@ export default {
               LIMIT ${LIMIT})`
           )
           queries.push(
-            `(SELECT users.id::text, users.created_at AS "sortTime", NULL as "earnedSats",
+            `(SELECT users.id::text, users.created_at AS "sortTime", NULL::BIGINT as "earnedSats",
               'Referral' AS type
               FROM users
               WHERE "users"."referrerId" = $1
@@ -354,7 +354,7 @@ export default {
 
       if (!include.size || include.has('territories')) {
         queries.push(
-          `(SELECT "Sub".name::text AS id, "Sub"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
+          `(SELECT "Sub".name::text AS id, "Sub"."statusUpdatedAt" AS "sortTime", NULL::BIGINT as "earnedSats",
             'SubStatus' AS type
             FROM "Sub"
             WHERE "Sub"."userId" = $1
@@ -367,7 +367,7 @@ export default {
 
       if (!include.size || include.has('reminders')) {
         queries.push(
-          `(SELECT "Reminder".id::text, "Reminder"."remindAt" AS "sortTime", NULL as "earnedSats", 'Reminder' AS type
+          `(SELECT "Reminder".id::text, "Reminder"."remindAt" AS "sortTime", NULL::BIGINT as "earnedSats", 'Reminder' AS type
           FROM "Reminder"
           WHERE "Reminder"."userId" = $1
           AND "Reminder"."remindAt" < $2
@@ -378,7 +378,7 @@ export default {
 
       if (!include.size || include.has('payments')) {
         queries.push(
-          `(SELECT "Invoice".id::text, "Invoice"."updated_at" AS "sortTime", NULL as "earnedSats", 'Invoicification' AS type
+          `(SELECT "Invoice".id::text, "Invoice"."updated_at" AS "sortTime", NULL::BIGINT as "earnedSats", 'Invoicification' AS type
           FROM "Invoice"
           WHERE "Invoice"."userId" = $1
           AND "Invoice"."updated_at" < $2

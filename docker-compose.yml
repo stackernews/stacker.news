@@ -268,6 +268,7 @@ services:
       CLI: "bitcoin-cli"
       CLI_ARGS: "-chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS}"
       ofelia.enabled: "true"
+      ofelia.group: "payments"
       ofelia.job-exec.minecron.schedule: "@every 1m"
       ofelia.job-exec.minecron.command: >
         bash -c '
@@ -363,6 +364,7 @@ services:
       CLI: "lncli"
       CLI_USER: "lnd"
       ofelia.enabled: "true"
+      ofelia.group: "payments"
       ofelia.job-exec.sn_channel_cron.schedule: "@every 1m"
       ofelia.job-exec.sn_channel_cron.command: >
         su lnd -c bash -c "
@@ -462,6 +464,7 @@ services:
       CLI: "lncli"
       CLI_USER: "lnd"
       ofelia.enabled: "true"
+      ofelia.group: "payments"
       ofelia.job-exec.lnd_channel_cron.schedule: "@every 1m"
       ofelia.job-exec.lnd_channel_cron.command: >
         su lnd -c bash -c "
@@ -551,13 +554,14 @@ services:
       CLI_USER: "clightning"
       CLI_ARGS: "--regtest"
       ofelia.enabled: "true"
+      ofelia.group: "wallets"
       ofelia.job-exec.cln_channel_cron.schedule: "@every 1m"
       ofelia.job-exec.cln_channel_cron.command: >
         su clightning -c bash -c "
+          lightning-cli --regtest connect $ROUTER_LND_PUBKEY@router_lnd:9735
           if [ $$(lightning-cli --regtest getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
             exit 0
           else
-            lightning-cli --regtest connect $ROUTER_LND_PUBKEY@router_lnd:9735
             lightning-cli --regtest fundchannel id=$ROUTER_LND_PUBKEY feerate=1000perkb \\
               amount=1000000000 push_msat=500000000000 minconf=0
           fi
@@ -610,6 +614,7 @@ services:
       CLI_USER: "root"
       CLI_ARGS: "-p pass"
       ofelia.enabled: "true"
+      ofelia.group: "wallets"
       ofelia.job-exec.eclair_channel_cron.schedule: "@every 1m"
       ofelia.job-exec.eclair_channel_cron.command: >
         bash -c "
@@ -670,6 +675,7 @@ services:
     labels:
       CLI: "lncli"
       CLI_USER: "lnd"
+      ofelia.group: "payments"
     cpu_shares: "${CPU_SHARES_MODERATE}"
   channdler:
     image: mcuadros/ofelia:latest
@@ -680,9 +686,23 @@ services:
       - bitcoin
       - sn_lnd
       - lnd
+      - router_lnd
+    restart: unless-stopped 
+    command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME} -f label=ofelia.group=payments
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    cpu_shares: "${CPU_SHARES_LOW}"
+  walletscron:
+    image: mcuadros/ofelia:latest
+    container_name: walletscron
+    profiles:
+      - wallets
+    depends_on:
+      - router_lnd
+      - eclair
       - cln
     restart: unless-stopped
-    command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}
+    command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME} -f label=ofelia.group=wallets
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     cpu_shares: "${CPU_SHARES_LOW}"

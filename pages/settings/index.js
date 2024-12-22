@@ -4,7 +4,7 @@ import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import Nav from 'react-bootstrap/Nav'
 import Layout from '@/components/layout'
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import LoginButton from '@/components/login-button'
@@ -28,9 +28,10 @@ import { useServiceWorkerLogger } from '@/components/logger'
 import { useMe } from '@/components/me'
 import { INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
-import { useField } from 'formik'
+import { useField, useFormikContext } from 'formik'
 import styles from './settings.module.css'
 import { AuthBanner } from '@/components/banners'
+import { useEncryptedPrivates } from '@/components/use-encrypted-privates'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -90,6 +91,8 @@ export function SettingsHeader () {
 export default function Settings ({ ssrData }) {
   const toaster = useToast()
   const { me } = useMe()
+  const { encryptedPrivates, setEncryptedSettings } = useEncryptedPrivates({ me })
+
   const [setSettings] = useMutation(SET_SETTINGS, {
     update (cache, { data: { setSettings } }) {
       cache.modify({
@@ -105,7 +108,16 @@ export default function Settings ({ ssrData }) {
   const logger = useServiceWorkerLogger()
 
   const { data } = useQuery(SETTINGS)
-  const { settings: { privates: settings } } = useMemo(() => data ?? ssrData, [data, ssrData])
+  const [settings, setSettingsState] = useState(() => (data ?? ssrData)?.settings?.privates)
+
+  useEffect(() => {
+    let settings = (data ?? ssrData)?.settings?.privates
+    if (!settings) return
+    if (encryptedPrivates) {
+      settings = { ...settings, ...encryptedPrivates }
+    }
+    setSettingsState(settings)
+  }, [data, ssrData, encryptedPrivates])
 
   // if we switched to anon, me is null before the page is reloaded
   if ((!data && !ssrData) || !me) return <PageLoading />
@@ -160,12 +172,15 @@ export default function Settings ({ ssrData }) {
             hideIsContributor: settings?.hideIsContributor,
             noReferralLinks: settings?.noReferralLinks,
             proxyReceive: settings?.proxyReceive,
-            directReceive: settings?.directReceive
+            directReceive: settings?.directReceive,
+            signerType: settings?.signerType,
+            signer: settings?.signer
           }}
           schema={settingsSchema}
           onSubmit={async ({
             tipDefault, tipRandom, tipRandomMin, tipRandomMax, withdrawMaxFeeDefault,
             zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, satsFilter,
+            signer, signerType,
             ...values
           }) => {
             if (nostrPubkey.length === 0) {
@@ -197,6 +212,9 @@ export default function Settings ({ ssrData }) {
                   }
                 }
               })
+
+              await setEncryptedSettings({ signer, signerType })
+
               toaster.success('saved settings')
             } catch (err) {
               console.error(err)
@@ -628,6 +646,7 @@ export default function Settings ({ ssrData }) {
             clear
             hint={<small className='text-muted'>used for NIP-05</small>}
           />
+          <SignerSettings />
           <VariableInput
             label={<>relays <small className='text-muted ms-2'>optional</small></>}
             name='nostrRelays'
@@ -647,6 +666,44 @@ export default function Settings ({ ssrData }) {
         </div>
       </div>
     </Layout>
+  )
+}
+
+const SignerSettings = () => {
+  const { values } = useFormikContext()
+  const TypeSelector = (args) => {
+    return (
+      <Select
+        name='signerType'
+        key='signerType'
+        items={[
+          {
+            label: 'browser extension',
+            items: ['nip07']
+          },
+          {
+            label: 'remote signer',
+            items: ['nip46']
+          }
+        ]}
+        {...args}
+      />
+    )
+  }
+
+  return (
+    <>
+      <TypeSelector label='primary nostr signer' />
+      {(values?.signerType === 'nip46')
+        ? (
+          <Input
+            key={`signer${values.signerType}`}
+            placeholder='bunker://... or nip05 identifier'
+            name='signer'
+            clear
+          />)
+        : null}
+    </>
   )
 }
 

@@ -5,7 +5,8 @@ import Nostr, { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
-
+import { useMe } from '@/components/me'
+import { useEncryptedPrivates } from '@/components/use-encrypted-privates'
 function itemToContent (item, { includeTitle = true } = {}) {
   let content = includeTitle ? item.title : ''
 
@@ -86,6 +87,8 @@ export default function useCrossposter () {
   const { data } = useQuery(SETTINGS)
   const userRelays = data?.settings?.privates?.nostrRelays || []
   const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...userRelays]
+  const { me } = useMe()
+  const { encryptedPrivates } = useEncryptedPrivates({ me })
 
   const [fetchItem] = useLazyQuery(
     gql`
@@ -193,52 +196,59 @@ export default function useCrossposter () {
     }
   }
 
-  const crosspostItem = async item => {
+  const crosspostItem = useCallback(async item => {
     let failedRelays
     let allSuccessful = false
     let noteId
 
     const event = await handleEventCreation(item)
     if (!event) return { allSuccessful, noteId }
+    const nostr = new Nostr()
+    try {
+      const signer = nostr.getSigner({
+        userPreferences: encryptedPrivates || {},
+        // if the user has no signer preference, we fallback to NIP-07
+        nip07: true
+      })
 
-    do {
-      const nostr = new Nostr()
-      try {
-        const result = await nostr.crosspost(event, { relays: failedRelays || relays })
+      do {
+        try {
+          const result = await nostr.crosspost(event, { relays: failedRelays || relays, signer })
 
-        if (result.error) {
-          failedRelays = []
-          throw new Error(result.error)
-        }
-
-        noteId = result.noteId
-        failedRelays = result?.failedRelays?.map(relayObj => relayObj.relay) || []
-
-        if (failedRelays.length > 0) {
-          const userAction = await relayError(failedRelays)
-
-          if (userAction === 'skip') {
-            toaster.success('Skipped failed relays.')
-            // wait 2 seconds then break
-            await new Promise(resolve => setTimeout(resolve, 2000))
-            break
+          if (result.error) {
+            failedRelays = []
+            throw new Error(result.error)
           }
-        } else {
-          allSuccessful = true
-        }
-      } catch (error) {
-        await crosspostError(error.message)
 
-        // wait 2 seconds to show error then break
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        return { allSuccessful, noteId }
-      } finally {
-        nostr.close()
-      }
-    } while (failedRelays.length > 0)
+          noteId = result.noteId
+          failedRelays = result?.failedRelays?.map(relayObj => relayObj.relay) || []
+
+          if (failedRelays.length > 0) {
+            const userAction = await relayError(failedRelays)
+
+            if (userAction === 'skip') {
+              toaster.success('Skipped failed relays.')
+              // wait 2 seconds then break
+              await new Promise(resolve => setTimeout(resolve, 2000))
+              break
+            }
+          } else {
+            allSuccessful = true
+          }
+        } catch (error) {
+          await crosspostError(error.message)
+
+          // wait 2 seconds to show error then break
+          await new Promise(resolve => setTimeout(resolve, 2000))
+          return { allSuccessful, noteId }
+        }
+      } while (failedRelays.length > 0)
+    } finally {
+      nostr.close()
+    }
 
     return { allSuccessful, noteId }
-  }
+  }, [relays, encryptedPrivates])
 
   const handleCrosspost = useCallback(async (itemId) => {
     let noteId

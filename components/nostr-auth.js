@@ -127,7 +127,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
       if (!k1) throw new Error('Error generating challenge') // should never happen
 
       const useExtension = !nip46token
-      const signer = nostr.getSigner({ nip46token, supportNip07: useExtension })
+      const signer = nostr.getSigner({ nip46token, nip07: useExtension })
       if (!signer && useExtension) throw new Error('No extension found')
 
       if (signer instanceof NDKNip46Signer) {

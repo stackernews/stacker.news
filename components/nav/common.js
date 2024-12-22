@@ -25,6 +25,7 @@ import { useHasNewNotes } from '../use-has-new-notes'
 import { useWallets } from '@/wallets/index'
 import SwitchAccountList, { useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
+import { useEncryptedPrivates } from '@/components/use-encrypted-privates'
 
 export function Brand ({ className }) {
   return (
@@ -266,6 +267,8 @@ function LogoutObstacle ({ onClose }) {
   const { removeLocalWallets } = useWallets()
   const { multiAuthSignout } = useAccounts()
   const router = useRouter()
+  const { me } = useMe()
+  const { clearLocalEncryptedPrivates } = useEncryptedPrivates({ me })
 
   return (
     <div className='d-flex m-auto flex-column w-fit-content'>
@@ -296,6 +299,7 @@ function LogoutObstacle ({ onClose }) {
             }
 
             removeLocalWallets()
+            clearLocalEncryptedPrivates()
 
             await signOut({ callbackUrl: '/' })
           }}

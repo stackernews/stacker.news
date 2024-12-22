@@ -2,7 +2,7 @@ import { readFile } from 'fs/promises'
 import { join, resolve } from 'path'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
-import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
+import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema, encryptedPrivates, encryptedPrivatesVaultEntriesSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
 import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES } from '@/lib/constants'
 import { viewGroup } from './growth'
@@ -677,6 +677,33 @@ export default {
         throw error
       }
     },
+    setEncryptedSettings: async (parent, { settings }, { me, models }) => {
+      if (!me) throw new GqlAuthenticationError()
+      await validateSchema(encryptedPrivatesVaultEntriesSchema, settings)
+      for (const vaultEntry of settings) {
+        const { key, iv, value } = vaultEntry
+        await models.vaultEntry.upsert({
+          where: {
+            userId_key: {
+              userId: me.id,
+              key
+            }
+          },
+          update: {
+            iv,
+            value
+          },
+          create: {
+            userId: me.id,
+            key,
+            iv,
+            value
+          }
+        })
+      }
+      const user = await models.user.findUnique({ where: { id: me.id } })
+      return user
+    },
     setSettings: async (parent, { settings: { nostrRelays, ...data } }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
@@ -893,6 +920,18 @@ export default {
       }
 
       return user
+    },
+    encryptedPrivates: async (user, args, { me, models }) => {
+      if (!me || me.id !== user.id) return null
+      const vaultEntries = await models.vaultEntry.findMany({
+        where: {
+          userId: user.id,
+          key: {
+            in: encryptedPrivates
+          }
+        }
+      })
+      return vaultEntries
     },
     optional: user => user,
     meSubscriptionPosts: async (user, args, { me, models }) => {

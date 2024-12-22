@@ -110,8 +110,6 @@ export default function Settings ({ ssrData }) {
   // if we switched to anon, me is null before the page is reloaded
   if ((!data && !ssrData) || !me) return <PageLoading />
 
-  console.log(settings)
-
   return (
     <Layout>
       <div className='pb-3 w-100 mt-2' style={{ maxWidth: '600px' }}>

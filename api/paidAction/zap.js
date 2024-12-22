@@ -21,7 +21,7 @@ export async function getInvoiceablePeer ({ id, sats, hasSendWallet }, { models,
   // if the zap is dust, or if me doesn't have a send wallet but has enough sats/credits to pay for it
   // then we don't invoice the peer
   if (sats < me?.sendCreditsBelowSats ||
-    (me && !hasSendWallet && (me.mcredits > cost || me.msats > cost))) {
+    (me && !hasSendWallet && (me.mcredits >= cost || me.msats >= cost))) {
     return null
   }
 

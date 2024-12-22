@@ -537,19 +537,15 @@ function Referral ({ n }) {
 
 function stackedText (item) {
   let text = ''
-  console.log(item.sats, item.credits)
-  if (item.sats) {
-    text += `${numWithUnits(item.sats, { abbreviate: false })}`
+  if (item.sats - item.credits > 0) {
+    text += `${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
 
-    if (item.credits) {
-      text += ' ('
+    if (item.credits > 0) {
+      text += ' and '
     }
   }
-  if (item.credits) {
+  if (item.credits > 0) {
     text += `${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
-    if (item.sats) {
-      text += ')'
-    }
   }
 
   return text

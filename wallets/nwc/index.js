@@ -36,8 +36,8 @@ export const card = {
   subtitle: 'use Nostr Wallet Connect for payments'
 }
 
-export async function getNwc (nwcUrl, { signal }) {
-  const ndk = Nostr.ndk
+async function getNwc (nostr, nwcUrl, { signal }) {
+  const ndk = nostr.ndk
   const { walletPubkey, secret, relayUrls } = parseNwcUrl(nwcUrl)
   const nwc = new NDKNwc({
     ndk,
@@ -65,20 +65,22 @@ export async function getNwc (nwcUrl, { signal }) {
  * @param {function} fun - the nwc function to run
  * @returns - the result of the nwc function
  */
-export async function nwcTryRun (fun) {
+export async function nwcTryRun (fun, { nwcUrl }, { signal }) {
+  const nostr = new Nostr()
   try {
-    const { error, result } = await fun()
+    const nwc = await getNwc(nostr, nwcUrl, { signal })
+    const { error, result } = await fun(nwc)
     if (error) throw new Error(error.message || error.code)
     return result
   } catch (e) {
     if (e.error) throw new Error(e.error.message || e.error.code)
     throw e
+  } finally {
+    nostr.close()
   }
 }
 
 export async function supportedMethods (nwcUrl, { signal }) {
-  const nwc = await getNwc(nwcUrl, { signal })
-  // TODO: support AbortSignal
-  const result = await nwcTryRun(() => nwc.getInfo())
+  const result = await nwcTryRun(nwc => nwc.getInfo(), { nwcUrl }, { signal })
   return result.methods
 }

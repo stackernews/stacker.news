@@ -1,4 +1,4 @@
-import { getNwc, supportedMethods, nwcTryRun } from '@/wallets/nwc'
+import { supportedMethods, nwcTryRun } from '@/wallets/nwc'
 export * from '@/wallets/nwc'
 
 export async function testSendPayment ({ nwcUrl }, { signal }) {
@@ -9,8 +9,6 @@ export async function testSendPayment ({ nwcUrl }, { signal }) {
 }
 
 export async function sendPayment (bolt11, { nwcUrl }, { signal }) {
-  const nwc = await getNwc(nwcUrl, { signal })
-  // TODO: support AbortSignal
-  const result = await nwcTryRun(() => nwc.payInvoice(bolt11))
+  const result = await nwcTryRun(nwc => nwc.payInvoice(bolt11), { nwcUrl }, { signal })
   return result.preimage
 }

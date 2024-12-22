@@ -523,6 +523,19 @@ export default {
         }
       }
 
+      if (user.noteDailyStats) {
+        const dailyStats = await models.dailyStats.findFirst({
+          where: {
+            id: me.id
+          }
+        })
+
+        if (dailyStats) {
+          foundNotes()
+          return true
+        }
+      }
+
       const subStatus = await models.sub.findFirst({
         where: {
           userId: me.id,

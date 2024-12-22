@@ -361,6 +361,22 @@ export default {
         LIMIT ${LIMIT})`
       )
 
+      if (meFull.noteDailyStats) {
+        queries.push(
+          `(SELECT CONCAT('stats_', date_trunc('day', t))::text as id,
+            t AS "sortTime",
+            NULL as "earnedSats",
+            'DailyStats' AS type
+            FROM user_stats_days
+            WHERE "user_stats_days"."id" = $1
+            AND t >= date_trunc('day', CURRENT_DATE - INTERVAL '1 day')
+            AND t <= $2
+            GROUP BY t, msats_stacked, msats_spent
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+        )
+      }
+
       const notifications = await models.$queryRawUnsafe(
         `SELECT id, "sortTime", "earnedSats", type,
             "sortTime" AS "minSortTime"
@@ -484,6 +500,29 @@ export default {
         WHERE id = ${Number(n.id)}
       `
       return res.length ? res[0].type : null
+    }
+  },
+  DailyStats: {
+    date: async (n, args, { models }) => {
+      return new Date(n.id.replace('stats_', ''))
+    },
+    stacked: async (n, args, { me, models }) => {
+      const res = await models.$queryRaw`
+        SELECT ((msats_stacked+msats_rewards)::float)/1000.0 as sats_stacked
+        FROM user_stats_days
+        WHERE id = ${Number(me.id)}
+        AND t = ${new Date(n.id.replace('stats_', ''))}::timestamp
+      `
+      return res.length ? res[0].sats_stacked : 0
+    },
+    spent: async (n, args, { me, models }) => {
+      const res = await models.$queryRaw`
+        SELECT (msats_spent::float)/1000.0 as sats_spent
+        FROM user_stats_days
+        WHERE id = ${Number(me.id)} 
+        AND t = ${new Date(n.id.replace('stats_', ''))}::timestamp
+      `
+      return res.length ? res[0].sats_spent : 0
     }
   },
   Earn: {

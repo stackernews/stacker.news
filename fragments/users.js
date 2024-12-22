@@ -82,6 +82,7 @@ export const SETTINGS_FIELDS = gql`
       noteWithdrawals
       noteInvites
       noteJobIndicator
+      noteDailyStats
       noteCowboyHat
       noteForwardedSats
       hideInvoiceDesc

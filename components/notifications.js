@@ -13,6 +13,7 @@ import HandCoin from '@/svgs/hand-coin-fill.svg'
 import UserAdd from '@/svgs/user-add-fill.svg'
 import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
+import LightningIcon from '@/svgs/lightning.svg'
 import BaldIcon from '@/svgs/bald.svg'
 import GunIcon from '@/svgs/revolver.svg'
 import HorseIcon from '@/svgs/horse.svg'
@@ -57,6 +58,7 @@ function Notification ({ n, fresh }) {
         (type === 'WithdrawlPaid' && <WithdrawlPaid n={n} />) ||
         (type === 'Referral' && <Referral n={n} />) ||
         (type === 'Streak' && <Streak n={n} />) ||
+        (type === 'DailyStats' && <DailyStats n={n} />) ||
         (type === 'Votification' && <Votification n={n} />) ||
         (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
@@ -162,6 +164,7 @@ const defaultOnClick = n => {
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'ReferralReward') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
+  if (type === 'DailyStats') return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
 
   if (!n.item) return {}
@@ -195,6 +198,20 @@ function Streak ({ n }) {
       <div className='ms-1 p-1'>
         <span className='fw-bold'>you {n.days ? 'lost your' : 'found a'} {n.type.toLowerCase().replace('_', ' ')}</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
+      </div>
+    </div>
+  )
+}
+
+function DailyStats ({ n }) { // WIP
+  // TODO ADD SCALES OF JUSTICE AS ICON
+  // stacked and spent
+  return (
+    <div className='d-flex'>
+      <div style={{ fontSize: '2rem' }}><LightningIcon className='fill-grey' height={40} width={40} /></div>
+      <div className='ms-1 p-1'>
+        <span className='fw-bold'>you stacked {numWithUnits(n.stacked, { abbreviate: false })} and spent {numWithUnits(n.spent, { abbreviate: false })}</span>
+        <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>on {dayMonthYear(new Date(n.date))}</small></div>
       </div>
     </div>
   )

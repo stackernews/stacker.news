@@ -26,7 +26,7 @@ export default function Boost ({ item, className, ...props }) {
       item={item} As={oprops =>
         <div className='upvoteParent'>
           <div
-            className={styles.upvoteWrapper}
+            className={classNames(styles.upvoteWrapper, item.deletedAt && styles.noSelfTips)}
           >
             <BoostIcon
               {...props}

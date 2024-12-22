@@ -202,8 +202,9 @@ export default function useCrossposter () {
     if (!event) return { allSuccessful, noteId }
 
     do {
+      const nostr = new Nostr()
       try {
-        const result = await Nostr.crosspost(event, { relays: failedRelays || relays })
+        const result = await nostr.crosspost(event, { relays: failedRelays || relays })
 
         if (result.error) {
           failedRelays = []
@@ -231,6 +232,8 @@ export default function useCrossposter () {
         // wait 2 seconds to show error then break
         await new Promise(resolve => setTimeout(resolve, 2000))
         return { allSuccessful, noteId }
+      } finally {
+        nostr.close()
       }
     } while (failedRelays.length > 0)
 

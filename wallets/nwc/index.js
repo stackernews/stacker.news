@@ -36,8 +36,8 @@ export const card = {
   subtitle: 'use Nostr Wallet Connect for payments'
 }
 
-async function getNwc (nwcUrl, { signal }) {
-  const ndk = new Nostr().ndk
+async function getNwc (nostr, nwcUrl, { signal }) {
+  const ndk = nostr.ndk
   const { walletPubkey, secret, relayUrls } = parseNwcUrl(nwcUrl)
   const nwc = new NDKNwc({
     ndk,
@@ -66,9 +66,9 @@ async function getNwc (nwcUrl, { signal }) {
  * @returns - the result of the nwc function
  */
 export async function nwcTryRun (fun, { nwcUrl }, { signal }) {
-  let nwc
+  const nostr = new Nostr()
   try {
-    nwc = await getNwc(nwcUrl, { signal })
+    const nwc = await getNwc(nostr, nwcUrl, { signal })
     const { error, result } = await fun(nwc)
     if (error) throw new Error(error.message || error.code)
     return result
@@ -76,17 +76,7 @@ export async function nwcTryRun (fun, { nwcUrl }, { signal }) {
     if (e.error) throw new Error(e.error.message || e.error.code)
     throw e
   } finally {
-    if (nwc) close(nwc)
-  }
-}
-
-/**
- * Close all relay connections of the NDKNwc instance
- * @param {NDKNwc} nwc
- */
-async function close (nwc) {
-  for (const relay of nwc.relaySet.relays) {
-    nwc.ndk.pool.removeRelay(relay.url)
+    nostr.close()
   }
 }
 

@@ -505,7 +505,7 @@ export default {
     date: async (n, args, { models }) => {
       return new Date(n.sortTime)
     },
-    stacked: async (n, args, { me, models }) => { // msats_rewards is already counted in msats_stacked
+    stacked: async (n, args, { me, models }) => {
       const [{ stacked }] = await models.$queryRaw`
         SELECT sum(msats_stacked) as stacked
         FROM user_stats_days

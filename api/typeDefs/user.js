@@ -94,7 +94,7 @@ export default gql`
     nostrPubkey: String
     nostrRelays: [String!]
     noteAllDescendants: Boolean!
-    noteSatSummary: Boolean
+    noteSatSummary: Boolean!
     noteCowboyHat: Boolean!
     noteDeposits: Boolean!,
     noteWithdrawals: Boolean!,

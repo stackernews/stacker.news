@@ -18,6 +18,6 @@ export async function summarizeDailySats ({ data: { userId }, models }) {
       })
     }
   } catch (err) {
-    console.error('failed to process daily stats', err)
+    console.error('failed to process daily sat summary', err)
   }
 }

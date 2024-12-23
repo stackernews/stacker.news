@@ -524,13 +524,14 @@ export default {
       }
 
       if (user.noteSatSummary) {
-        const satSummary = await models.satSummary.findFirst({
-          where: {
-            id: me.id
-          }
-        })
-
-        if (satSummary) {
+        const [satSummary] = await models.$queryRawUnsafe(`
+          SELECT EXISTS(
+            SELECT *
+            FROM user_stats_days
+            WHERE "user_stats_days"."id" = $1 
+            AND t > $2
+            LIMIT 1)`, me.id, lastChecked)
+        if (satSummary.exists) {
           foundNotes()
           return true
         }

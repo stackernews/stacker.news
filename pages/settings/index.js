@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, SubmitButton, Select, VariableInput, CopyInput } from '@/components/form'
+import { Checkbox, Form, Input, SubmitButton, Select, VariableInput, CopyInput, PasswordInput } from '@/components/form'
 import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
@@ -737,7 +737,7 @@ const SignerSettings = () => {
       <TypeSelector label='primary nostr signer' />
       {(values?.signerType === 'nip46')
         ? (
-          <Input
+          <PasswordInput
             key={`signer${values.signerType}`}
             placeholder='bunker://... or nip05 identifier'
             name='signer'

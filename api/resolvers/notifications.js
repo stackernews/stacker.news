@@ -368,11 +368,11 @@ export default {
             t AS "sortTime", NULL as "earnedSats", 'SatSummary' AS type
             FROM user_stats_days
             WHERE id = $1
-            AND t >= date_trunc('day', CURRENT_DATE - INTERVAL '1 day')
+            AND t >= date_trunc('day', CURRENT_DATE - INTERVAL '2 day')
             AND t <= $2
             GROUP BY t
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
+            LIMIT 1)`
         )
       }
 

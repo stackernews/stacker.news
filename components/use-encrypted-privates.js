@@ -119,7 +119,7 @@ export function useEncryptedPrivates ({ me }) {
       setLocalValue(storageKey(key), value)
     }
     refreshEncryptedPrivates()
-  }, [getEncryptedPrivates])
+  }, [getEncryptedPrivates, refreshEncryptedPrivates])
 
   return { encryptedPrivates: innerEncryptedPrivatesState, getEncryptedPrivates, setEncryptedSettings, clearLocalEncryptedPrivates, onVaultKeySet, beforeDisconnectVault, refreshEncryptedPrivates }
 }

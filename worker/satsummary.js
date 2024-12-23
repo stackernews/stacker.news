@@ -1,13 +1,13 @@
-import { notifyDailyStats } from '@/lib/webPush'
+import { notifySatSummary } from '@/lib/webPush'
 export async function summarizeDailySats ({ data: { userId }, models }) {
-  let dailyStats
+  let satSummary
   try {
-    dailyStats = await models.dailyStats.findUnique({ where: { id: userId } })
+    satSummary = await models.satSummary.findUnique({ where: { id: userId } })
   } catch (err) {
     console.error('failed to lookup daily stats by user', err)
   }
   try {
-    await notifyDailyStats({ userId, dailyStats })
+    await notifySatSummary({ userId, satSummary })
   } catch (err) {
     console.error('failed to send push notification for daily stats', err)
   }

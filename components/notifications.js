@@ -58,7 +58,7 @@ function Notification ({ n, fresh }) {
         (type === 'WithdrawlPaid' && <WithdrawlPaid n={n} />) ||
         (type === 'Referral' && <Referral n={n} />) ||
         (type === 'Streak' && <Streak n={n} />) ||
-        (type === 'DailyStats' && <DailyStats n={n} />) ||
+        (type === 'SatSummary' && <SatSummary n={n} />) ||
         (type === 'Votification' && <Votification n={n} />) ||
         (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
@@ -164,7 +164,7 @@ const defaultOnClick = n => {
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'ReferralReward') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
-  if (type === 'DailyStats') return {}
+  if (type === 'SatSummary') return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
 
   if (!n.item) return {}
@@ -203,7 +203,7 @@ function Streak ({ n }) {
   )
 }
 
-function DailyStats ({ n }) { // WIP
+function SatSummary ({ n }) { // WIP
   // stacked and spent
   return (
     <div className='d-flex'>

@@ -523,14 +523,14 @@ export default {
         }
       }
 
-      if (user.noteDailyStats) {
-        const dailyStats = await models.dailyStats.findFirst({
+      if (user.noteSatSummary) {
+        const satSummary = await models.satSummary.findFirst({
           where: {
             id: me.id
           }
         })
 
-        if (dailyStats) {
+        if (satSummary) {
           foundNotes()
           return true
         }

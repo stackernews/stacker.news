@@ -94,7 +94,7 @@ export default gql`
     nostrPubkey: String
     nostrRelays: [String!]
     noteAllDescendants: Boolean!
-    noteDailyStats: Boolean
+    noteSatSummary: Boolean
     noteCowboyHat: Boolean!
     noteDeposits: Boolean!,
     noteWithdrawals: Boolean!,
@@ -169,7 +169,7 @@ export default gql`
     nostrPubkey: String
     nostrRelays: [String!]
     noteAllDescendants: Boolean!
-    noteDailyStats: Boolean!
+    noteSatSummary: Boolean!
     noteCowboyHat: Boolean!
     noteDeposits: Boolean!
     noteWithdrawals: Boolean!

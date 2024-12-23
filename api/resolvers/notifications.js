@@ -5,6 +5,7 @@ import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
 import { replyToSubscription } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { msatsToSats } from '@/lib/format'
 
 export default {
   Query: {
@@ -361,12 +362,12 @@ export default {
         LIMIT ${LIMIT})`
       )
 
-      if (meFull.noteDailyStats) {
+      if (meFull.noteSatSummary) {
         queries.push(
           `(SELECT CONCAT('stats_', date_trunc('day', t))::text as id,
             t AS "sortTime",
             NULL as "earnedSats",
-            'DailyStats' AS type
+            'SatSummary' AS type
             FROM user_stats_days
             WHERE "user_stats_days"."id" = $1
             AND t >= date_trunc('day', CURRENT_DATE - INTERVAL '1 day')
@@ -502,27 +503,27 @@ export default {
       return res.length ? res[0].type : null
     }
   },
-  DailyStats: {
+  SatSummary: {
     date: async (n, args, { models }) => {
       return new Date(n.id.replace('stats_', ''))
     },
-    stacked: async (n, args, { me, models }) => {
-      const res = await models.$queryRaw`
-        SELECT ((msats_stacked+msats_rewards)::float)/1000.0 as sats_stacked
+    stacked: async (n, args, { me, models }) => { // msats_rewards is already counted in msats_stacked
+      const [{ stacked }] = await models.$queryRaw`
+        SELECT sum(msats_stacked) as stacked
         FROM user_stats_days
         WHERE id = ${Number(me.id)}
         AND t = ${new Date(n.id.replace('stats_', ''))}::timestamp
       `
-      return res.length ? res[0].sats_stacked : 0
+      return (stacked && msatsToSats(stacked)) || 0
     },
     spent: async (n, args, { me, models }) => {
-      const res = await models.$queryRaw`
-        SELECT (msats_spent::float)/1000.0 as sats_spent
+      const [{ spent }] = await models.$queryRaw`
+        SELECT sum(msats_spent) as spent
         FROM user_stats_days
         WHERE id = ${Number(me.id)} 
         AND t = ${new Date(n.id.replace('stats_', ''))}::timestamp
       `
-      return res.length ? res[0].sats_spent : 0
+      return (spent && msatsToSats(spent)) || 0
     }
   },
   Earn: {

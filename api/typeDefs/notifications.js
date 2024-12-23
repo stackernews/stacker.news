@@ -82,7 +82,7 @@ export default gql`
     type: String!
   }
 
-  type DailyStats {
+  type SatSummary {
     id: ID!
     sortTime: Date!
     date: Date!
@@ -163,7 +163,7 @@ export default gql`
 
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
-    | Streak | DailyStats | FollowActivity | ForwardedVotification | Revenue | SubStatus
+    | Streak | SatSummary | FollowActivity | ForwardedVotification | Revenue | SubStatus
     | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | Invoicification
     | ReferralReward
 

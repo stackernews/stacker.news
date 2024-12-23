@@ -138,7 +138,7 @@ export default function Settings ({ ssrData }) {
             noteInvites: settings?.noteInvites,
             noteJobIndicator: settings?.noteJobIndicator,
             noteCowboyHat: settings?.noteCowboyHat,
-            noteDailyStats: settings?.noteDailyStats,
+            noteSatSummary: settings?.noteSatSummary,
             noteForwardedSats: settings?.noteForwardedSats,
             hideInvoiceDesc: settings?.hideInvoiceDesc,
             autoDropBolt11s: settings?.autoDropBolt11s,
@@ -333,7 +333,7 @@ export default function Settings ({ ssrData }) {
           />
           <Checkbox
             label='daily stacked and spent sats summary is available'
-            name='noteDailyStats'
+            name='noteSatSummary'
             groupClassName='mb-0'
           />
           <Checkbox

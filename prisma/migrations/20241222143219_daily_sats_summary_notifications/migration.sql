@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "users" ADD COLUMN     "noteDailyStats" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "users" ADD COLUMN     "noteSatSummary" BOOLEAN NOT NULL DEFAULT false;

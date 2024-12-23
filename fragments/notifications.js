@@ -88,7 +88,7 @@ export const NOTIFICATIONS = gql`
           days
           type
         }
-        ... on DailyStats {
+        ... on SatSummary {
           id
           sortTime
           date

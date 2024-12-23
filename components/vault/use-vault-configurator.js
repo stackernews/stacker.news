@@ -37,7 +37,7 @@ export function useVaultConfigurator ({ onVaultKeySet, beforeDisconnectVault } =
     await beforeDisconnectVault?.()
     await remove('key')
     keyReactiveVar(null)
-  }, [remove, keyReactiveVar])
+  }, [remove, keyReactiveVar, beforeDisconnectVault])
 
   useEffect(() => {
     if (!me) return
@@ -94,6 +94,17 @@ export function useVaultConfigurator ({ onVaultKeySet, beforeDisconnectVault } =
 
       await updateVaultKey({
         variables: { entries, hash: vaultKey.hash },
+        update: (cache, { data }) => {
+          cache.modify({
+            id: `User:${me.id}`,
+            fields: {
+              privates: (existing) => ({
+                ...existing,
+                vaultKeyHash: vaultKey.hash
+              })
+            }
+          })
+        },
         onError: (error) => {
           const errorCode = error.graphQLErrors[0]?.extensions?.code
           if (errorCode === E_VAULT_KEY_EXISTS) {
@@ -110,7 +121,7 @@ export function useVaultConfigurator ({ onVaultKeySet, beforeDisconnectVault } =
       console.error('error setting vault key', e)
       toaster.danger(e.message)
     }
-  }, [getVaultEntries, updateVaultKey, set, get, remove, onVaultKeySet, keyReactiveVar])
+  }, [getVaultEntries, updateVaultKey, set, get, remove, onVaultKeySet, keyReactiveVar, me?.id])
 
   return { key, setVaultKey, clearVault, disconnectVault }
 }

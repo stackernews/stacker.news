@@ -16,13 +16,13 @@ import Info from '@/components/info'
 import Link from 'next/link'
 import AccordianItem from '@/components/accordian-item'
 import { bech32 } from 'bech32'
-import { NOSTR_MAX_RELAY_NUM, NOSTR_PUBKEY_BECH32, DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
+import Nostr, { NOSTR_MAX_RELAY_NUM, NOSTR_PUBKEY_BECH32, DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import { emailSchema, lastAuthRemovalSchema, settingsSchema } from '@/lib/validate'
 import { SUPPORTED_CURRENCIES } from '@/lib/currency'
 import PageLoading from '@/components/page-loading'
 import { useShowModal } from '@/components/modal'
 import { authErrorMessage } from '@/components/login'
-import { NostrAuth } from '@/components/nostr-auth'
+import { NostrAuth, useNostrAuthStateModal } from '@/components/nostr-auth'
 import { useToast } from '@/components/toast'
 import { useServiceWorkerLogger } from '@/components/logger'
 import { useMe } from '@/components/me'
@@ -34,6 +34,8 @@ import { AuthBanner } from '@/components/banners'
 import { useEncryptedPrivates } from '@/components/use-encrypted-privates'
 import { generateSecretKey } from 'nostr-tools'
 import { bytesToHex } from '@noble/hashes/utils'
+import { NDKNip46Signer } from '@nostr-dev-kit/ndk'
+import { callWithTimeout } from '@/lib/time'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -93,7 +95,7 @@ export function SettingsHeader () {
 export default function Settings ({ ssrData }) {
   const toaster = useToast()
   const { me } = useMe()
-  const { encryptedPrivates, setEncryptedSettings } = useEncryptedPrivates({ me })
+  const { encryptedPrivates, setEncryptedSettings, refreshEncryptedPrivates } = useEncryptedPrivates({ me })
 
   const [setSettings] = useMutation(SET_SETTINGS, {
     update (cache, { data: { setSettings } }) {
@@ -111,6 +113,10 @@ export default function Settings ({ ssrData }) {
 
   const { data } = useQuery(SETTINGS)
   const [settings, setSettingsState] = useState(() => (data ?? ssrData)?.settings?.privates)
+
+  const { challengeResolver: nostrAuthChallengeResolver, setStatus: nostrAuthSetStatus } = useNostrAuthStateModal({
+    challengeTitle: 'Configuring crosspost to Nostr'
+  })
 
   useEffect(() => {
     let settings = (data ?? ssrData)?.settings?.privates
@@ -221,8 +227,34 @@ export default function Settings ({ ssrData }) {
                 // this is used to identify the app instance by nip46 and permit
                 // token reuse
                 signerInstanceKey = bytesToHex(generateSecretKey())
+
+                // we create the initial connection for the nip46 signer here
+                // because it makes for better ux (no confirmation delay on crosspost)
+                // and because we can test immediately if the connection works
+                if (signerType === 'nip46' && signer) {
+                  const nostr = new Nostr()
+                  try {
+                    await callWithTimeout(async () => {
+                      const testSignerInstance = nostr.getSigner({
+                        userPreferences: { signer, signerType, signerInstanceKey }
+                      })
+                      if (testSignerInstance instanceof NDKNip46Signer) {
+                        testSignerInstance.once('authUrl', nostrAuthChallengeResolver)
+                      }
+                      await testSignerInstance.blockUntilReady()
+                      nostrAuthSetStatus({ success: true })
+                    }, 60_000 * 5) // after some time we give up, likely the signer is not responding at this point
+                  } catch (err) {
+                    toaster.danger('invalid nostr signer: ' + err.message)
+                    throw err
+                  } finally {
+                    nostr.close()
+                  }
+                }
               }
+
               await setEncryptedSettings({ signer, signerType, signerInstanceKey })
+              await refreshEncryptedPrivates()
 
               toaster.success('saved settings')
             } catch (err) {

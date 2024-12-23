@@ -8,7 +8,7 @@ import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
 import { useMe } from '@/components/me'
 import { useEncryptedPrivates } from '@/components/use-encrypted-privates'
 import { NDKNip46Signer } from '@nostr-dev-kit/ndk'
-import { useNostrAuthState } from '@/components/nostr-auth'
+import { useNostrAuthStateModal } from '@/components/nostr-auth'
 
 function itemToContent (item, { includeTitle = true } = {}) {
   let content = includeTitle ? item.title : ''
@@ -93,8 +93,7 @@ export default function useCrossposter () {
   const { me } = useMe()
   const { encryptedPrivates } = useEncryptedPrivates({ me })
 
-  const { challengeResolver } = useNostrAuthState({
-    showModalStatus: true,
+  const { challengeResolver: nostrAuthChallengeResolver, setStatus: nostrAuthSetStatus } = useNostrAuthStateModal({
     challengeTitle: 'Crossposting to Nostr'
   })
 
@@ -219,9 +218,10 @@ export default function useCrossposter () {
         nip07: true
       })
       if (signer instanceof NDKNip46Signer) {
-        signer.once('authUrl', challengeResolver)
+        signer.once('authUrl', nostrAuthChallengeResolver)
       }
       await signer.blockUntilReady()
+      nostrAuthSetStatus({ success: true })
 
       do {
         try {

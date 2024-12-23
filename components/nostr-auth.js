@@ -35,12 +35,10 @@ function NostrError ({ message }) {
 }
 
 export function useNostrAuthState ({
-  showModalStatus = false,
   challengeTitle = 'Waiting for confirmation',
   challengeMessage = 'Please confirm this action on your remote signer',
   challengeButtonLabel = 'open signer'
 } = {}) {
-  const showModal = useShowModal()
   const toaster = useToast()
 
   const [status, setStatus] = useState({
@@ -87,16 +85,30 @@ export function useNostrAuthState ({
     }
   }, [])
 
+  return { status, setStatus, setError, challengeResolver }
+}
+
+export function useNostrAuthStateModal ({
+  ...args
+}) {
+  const showModal = useShowModal()
+
+  const { status, setStatus, setError, challengeResolver } = useNostrAuthState(args)
+  const closeModalRef = useRef(null)
+
   useEffect(() => {
-    if (!showModalStatus || !status?.loading) return
-    showModal(onClose => {
-      return (
-        <>
-          <h3 className='w-100 pb-2'>{status.title}</h3>
-          <NostrAuthStatus status={status} />
-        </>
-      )
-    })
+    closeModalRef?.current?.()
+    if (status.loading) {
+      showModal(onClose => {
+        closeModalRef.current = onClose
+        return (
+          <>
+            <h3 className='w-100 pb-2'>{status.title}</h3>
+            <NostrAuthStatus status={status} />
+          </>
+        )
+      })
+    }
   }, [status])
 
   return { status, setStatus, setError, challengeResolver }

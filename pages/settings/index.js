@@ -175,7 +175,7 @@ export default function Settings ({ ssrData }) {
             noReferralLinks: settings?.noReferralLinks,
             proxyReceive: settings?.proxyReceive,
             directReceive: settings?.directReceive,
-            signerType: settings?.signerType,
+            signerType: settings?.signerType || 'nip07',
             signer: settings?.signer
           }}
           schema={settingsSchema}

@@ -371,6 +371,7 @@ export default {
             AND t >= date_trunc('day', CURRENT_DATE - INTERVAL '2 day')
             AND t <= $2
             GROUP BY t
+            HAVING sum(msats_stacked) != 0 OR sum(msats_spent) != 0
             ORDER BY "sortTime" DESC
             LIMIT 1)`
         )

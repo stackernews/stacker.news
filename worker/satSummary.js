@@ -8,6 +8,8 @@ export async function summarizeDailySats ({ data: { userId }, models }) {
       WHERE id = ${userId}
       AND t >= date_trunc('day', CURRENT_DATE - INTERVAL '1 day')
       AND t <= date_trunc('day', CURRENT_DATE)
+      GROUP BY id
+      HAVING sum(msats_stacked) != 0 OR sum(msats_spent) != 0
       LIMIT 1
     `
 

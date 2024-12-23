@@ -13,6 +13,7 @@ import { Button, Container } from 'react-bootstrap'
 import { Form, Input, SubmitButton } from '@/components/form'
 import Moon from '@/svgs/moon-fill.svg'
 import styles from './lightning-auth.module.css'
+import { useShowModal } from '@/components/modal'
 
 const sanitizeURL = (s) => {
   try {
@@ -33,53 +34,21 @@ function NostrError ({ message }) {
   )
 }
 
-export function NostrAuth ({ text, callbackUrl, multiAuth }) {
+export function useNostrAuthState ({
+  showModalStatus = false,
+  challengeTitle = 'Waiting for confirmation',
+  challengeMessage = 'Please confirm this action on your remote signer',
+  challengeButtonLabel = 'open signer'
+} = {}) {
+  const showModal = useShowModal()
+  const toaster = useToast()
+
   const [status, setStatus] = useState({
     msg: '',
     error: false,
     loading: false,
     title: undefined,
     button: undefined
-  })
-
-  const [suggestion, setSuggestion] = useState(null)
-  const suggestionTimeout = useRef(null)
-  const toaster = useToast()
-
-  const challengeResolver = useCallback(async (challenge) => {
-    const challengeUrl = sanitizeURL(challenge)
-    if (challengeUrl) {
-      setStatus({
-        title: 'Waiting for confirmation',
-        msg: 'Please confirm this action on your remote signer',
-        error: false,
-        loading: true,
-        button: {
-          label: 'open signer',
-          action: () => {
-            window.open(challengeUrl, '_blank')
-          }
-        }
-      })
-    } else {
-      setStatus({
-        title: 'Waiting for confirmation',
-        msg: challenge,
-        error: false,
-        loading: true
-      })
-    }
-  }, [])
-
-  // create auth challenge
-  const [createAuth] = useMutation(gql`
-    mutation createAuth {
-      createAuth {
-        k1
-      }
-    }`, {
-    // don't cache this mutation
-    fetchPolicy: 'no-cache'
   })
 
   // print an error message
@@ -92,6 +61,91 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
       loading: false
     })
   }, [])
+
+  const challengeResolver = useCallback(async (challenge) => {
+    const challengeUrl = sanitizeURL(challenge)
+    if (challengeUrl) {
+      setStatus({
+        title: challengeTitle,
+        msg: challengeMessage,
+        error: false,
+        loading: true,
+        button: {
+          label: challengeButtonLabel,
+          action: () => {
+            window.open(challengeUrl, '_blank')
+          }
+        }
+      })
+    } else {
+      setStatus({
+        title: challengeTitle,
+        msg: challenge,
+        error: false,
+        loading: true
+      })
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!showModalStatus || !status?.loading) return
+    showModal(onClose => {
+      return (
+        <>
+          <h3 className='w-100 pb-2'>{status.title}</h3>
+          <NostrAuthStatus status={status} />
+        </>
+      )
+    })
+  }, [status])
+
+  return { status, setStatus, setError, challengeResolver }
+}
+
+export function NostrAuthStatus ({ status, suggestion }) {
+  return (
+    <>
+      {status.error && <NostrError message={status.msg} />}
+      {status.loading &&
+      (
+        <>
+          <div className='text-muted py-4 w-100 line-height-1 d-flex align-items-center gap-2'>
+            <Moon className='spin fill-grey flex-shrink-0' width='30' height='30' />
+            {status.msg}
+          </div>
+          {status.button && (
+            <Button
+              className='w-100' variant='primary'
+              onClick={() => status.button.action()}
+            >
+              {status.button.label}
+            </Button>
+          )}
+          {suggestion && (
+            <div className='text-muted text-center small pt-2'>{suggestion}</div>
+          )}
+        </>
+      )}
+    </>
+  )
+}
+
+export function NostrAuth ({ text, callbackUrl, multiAuth }) {
+  const { status, setStatus, setError, challengeResolver } = useNostrAuthState()
+
+  const [suggestion, setSuggestion] = useState(null)
+  const suggestionTimeout = useRef(null)
+
+  // create auth challenge
+  const [createAuth] = useMutation(gql`
+    mutation createAuth {
+      createAuth {
+        k1
+      }
+    }`, {
+    // don't cache this mutation
+    fetchPolicy: 'no-cache'
+  })
 
   const clearSuggestionTimer = () => {
     if (suggestionTimeout.current) clearTimeout(suggestionTimeout.current)
@@ -170,69 +224,49 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
 
   return (
     <>
-      {status.error && <NostrError message={status.msg} />}
-      {status.loading
-        ? (
-          <>
-            <div className='text-muted py-4 w-100 line-height-1 d-flex align-items-center gap-2'>
-              <Moon className='spin fill-grey flex-shrink-0' width='30' height='30' />
-              {status.msg}
+      <NostrAuthStatus status={status} suggestion={suggestion} />
+      {!status.loading && (
+        <>
+          <Form
+            initial={{ token: '' }}
+            onSubmit={values => {
+              if (!values.token) {
+                setError(new Error('Token or NIP-05 address is required'))
+              } else {
+                auth(values.token)
+              }
+            }}
+          >
+            <Input
+              label='Connect with token or NIP-05 address'
+              name='token'
+              placeholder='bunker://...  or NIP-05 address'
+              required
+              autoFocus
+            />
+            <div className='mt-2'>
+              <SubmitButton className='w-100' variant='primary'>
+                {text || 'Login'} with token or NIP-05
+              </SubmitButton>
             </div>
-            {status.button && (
-              <Button
-                className='w-100' variant='primary'
-                onClick={() => status.button.action()}
-              >
-                {status.button.label}
-              </Button>
-            )}
-            {suggestion && (
-              <div className='text-muted text-center small pt-2'>{suggestion}</div>
-            )}
-          </>
-          )
-        : (
-          <>
-            <Form
-              initial={{ token: '' }}
-              onSubmit={values => {
-                if (!values.token) {
-                  setError(new Error('Token or NIP-05 address is required'))
-                } else {
-                  auth(values.token)
-                }
-              }}
-            >
-              <Input
-                label='Connect with token or NIP-05 address'
-                name='token'
-                placeholder='bunker://...  or NIP-05 address'
-                required
-                autoFocus
-              />
-              <div className='mt-2'>
-                <SubmitButton className='w-100' variant='primary'>
-                  {text || 'Login'} with token or NIP-05
-                </SubmitButton>
-              </div>
-            </Form>
-            <div className='text-center text-muted fw-bold my-2'>or</div>
-            <Button
-              variant='nostr'
-              className='w-100'
-              type='submit'
-              onClick={async () => {
-                try {
-                  await auth()
-                } catch (e) {
-                  setError(e)
-                }
-              }}
-            >
-              {text || 'Login'} with extension
-            </Button>
-          </>
-          )}
+          </Form>
+          <div className='text-center text-muted fw-bold my-2'>or</div>
+          <Button
+            variant='nostr'
+            className='w-100'
+            type='submit'
+            onClick={async () => {
+              try {
+                await auth()
+              } catch (e) {
+                setError(e)
+              }
+            }}
+          >
+            {text || 'Login'} with extension
+          </Button>
+        </>
+      )}
     </>
   )
 }

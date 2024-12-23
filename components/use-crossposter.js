@@ -7,6 +7,9 @@ import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
 import { useMe } from '@/components/me'
 import { useEncryptedPrivates } from '@/components/use-encrypted-privates'
+import { NDKNip46Signer } from '@nostr-dev-kit/ndk'
+import { useNostrAuthState } from '@/components/nostr-auth'
+
 function itemToContent (item, { includeTitle = true } = {}) {
   let content = includeTitle ? item.title : ''
 
@@ -89,6 +92,11 @@ export default function useCrossposter () {
   const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...userRelays]
   const { me } = useMe()
   const { encryptedPrivates } = useEncryptedPrivates({ me })
+
+  const { challengeResolver } = useNostrAuthState({
+    showModalStatus: true,
+    challengeTitle: 'Crossposting to Nostr'
+  })
 
   const [fetchItem] = useLazyQuery(
     gql`
@@ -210,6 +218,10 @@ export default function useCrossposter () {
         // if the user has no signer preference, we fallback to NIP-07
         nip07: true
       })
+      if (signer instanceof NDKNip46Signer) {
+        signer.once('authUrl', challengeResolver)
+      }
+      await signer.blockUntilReady()
 
       do {
         try {

@@ -283,7 +283,7 @@ services:
             echo "Creating wallet and address..."
             bitcoin-cli createwallet ""
             nodes+=($$(bitcoin-cli getnewaddress))
-            echo "Mining 100 blocks to sn_lnd, lnd, cln, eclair..."
+            echo "Mining 100 blocks to sn_lnd, lnd, cln, router_lnd, eclair..."
             for addr in  "$${nodes[@]}"; do
               bitcoin-cli generatetoaddress 100 $$addr
               echo "Mining 100 blocks to a random address..."

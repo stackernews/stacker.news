@@ -132,7 +132,7 @@ async function work () {
   await boss.work('earn', jobWrapper(earn))
   await boss.work('streak', jobWrapper(computeStreaks))
   await boss.work('checkStreak', jobWrapper(checkStreak))
-  await boss.work('satSummary', jobWrapper(summarizeDailySats))
+  await boss.work('dailySatSummary', jobWrapper(summarizeDailySats))
   await boss.work('nip57', jobWrapper(nip57))
   await boss.work('views-*', jobWrapper(views))
   await boss.work('rankViews', jobWrapper(rankViews))

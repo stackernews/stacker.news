@@ -13,7 +13,7 @@ import HandCoin from '@/svgs/hand-coin-fill.svg'
 import UserAdd from '@/svgs/user-add-fill.svg'
 import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
-import JusticeIcon from '@/svgs/scales-of-justice.svg' // WIP
+import ScalesIcon from '@/svgs/scales-of-justice.svg'
 import BaldIcon from '@/svgs/bald.svg'
 import GunIcon from '@/svgs/revolver.svg'
 import HorseIcon from '@/svgs/horse.svg'
@@ -164,7 +164,7 @@ const defaultOnClick = n => {
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'ReferralReward') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
-  if (type === 'SatSummary') return {}
+  if (type === 'SatSummary') return { href: '/satistics?inc=stacked,spent' }
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
 
   if (!n.item) return {}
@@ -203,11 +203,10 @@ function Streak ({ n }) {
   )
 }
 
-function SatSummary ({ n }) { // WIP
-  // stacked and spent
+function SatSummary ({ n }) {
   return (
     <div className='d-flex'>
-      <div style={{ fontSize: '2rem' }}><JusticeIcon className='fill-grey' fill='gray' height={40} width={40} /></div>
+      <div style={{ fontSize: '2rem' }}><ScalesIcon className='fill-grey' fill='gray' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='fw-bold'>you stacked {numWithUnits(n.stacked, { abbreviate: false })} and spent {numWithUnits(n.spent, { abbreviate: false })}</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>on {dayMonthYear(new Date(n.date))}</small></div>

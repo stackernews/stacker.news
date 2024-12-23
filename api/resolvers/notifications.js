@@ -364,15 +364,13 @@ export default {
 
       if (meFull.noteSatSummary) {
         queries.push(
-          `(SELECT CONCAT('stats_', date_trunc('day', t))::text as id,
-            t AS "sortTime",
-            NULL as "earnedSats",
-            'SatSummary' AS type
+          `(SELECT 'stats_' || date_trunc('day', t)::text as id,
+            t AS "sortTime", NULL as "earnedSats", 'SatSummary' AS type
             FROM user_stats_days
-            WHERE "user_stats_days"."id" = $1
+            WHERE id = $1
             AND t >= date_trunc('day', CURRENT_DATE - INTERVAL '1 day')
             AND t <= $2
-            GROUP BY t, msats_stacked, msats_spent
+            GROUP BY t
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -505,14 +503,14 @@ export default {
   },
   SatSummary: {
     date: async (n, args, { models }) => {
-      return new Date(n.id.replace('stats_', ''))
+      return new Date(n.sortTime)
     },
     stacked: async (n, args, { me, models }) => { // msats_rewards is already counted in msats_stacked
       const [{ stacked }] = await models.$queryRaw`
         SELECT sum(msats_stacked) as stacked
         FROM user_stats_days
         WHERE id = ${Number(me.id)}
-        AND t = ${new Date(n.id.replace('stats_', ''))}::timestamp
+        AND t = ${n.sortTime}::timestamp
       `
       return (stacked && msatsToSats(stacked)) || 0
     },
@@ -521,7 +519,7 @@ export default {
         SELECT sum(msats_spent) as spent
         FROM user_stats_days
         WHERE id = ${Number(me.id)} 
-        AND t = ${new Date(n.id.replace('stats_', ''))}::timestamp
+        AND t = ${n.sortTime}::timestamp
       `
       return (spent && msatsToSats(spent)) || 0
     }

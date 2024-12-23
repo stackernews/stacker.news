@@ -32,6 +32,8 @@ import { useField, useFormikContext } from 'formik'
 import styles from './settings.module.css'
 import { AuthBanner } from '@/components/banners'
 import { useEncryptedPrivates } from '@/components/use-encrypted-privates'
+import { generateSecretKey } from 'nostr-tools'
+import { bytesToHex } from '@noble/hashes/utils'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -213,7 +215,14 @@ export default function Settings ({ ssrData }) {
                 }
               })
 
-              await setEncryptedSettings({ signer, signerType })
+              let signerInstanceKey = settings.signerInstanceKey
+              if (signer !== settings.signer || signerType !== settings.signerType) {
+                // if the signer changes, we regenerate the signerInstanceKey.
+                // this is used to identify the app instance by nip46 and permit
+                // token reuse
+                signerInstanceKey = bytesToHex(generateSecretKey())
+              }
+              await setEncryptedSettings({ signer, signerType, signerInstanceKey })
 
               toaster.success('saved settings')
             } catch (err) {

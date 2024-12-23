@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 
 export function setValue (storageKey, value) {
   if (SSR) return
+  if (value === undefined) value = null
   window.localStorage.setItem(storageKey, JSON.stringify(value))
 }
 

@@ -28,7 +28,7 @@ export function useEncryptedPrivates ({ me }) {
     for (const key of encryptedPrivates) {
       clearLocalValue(storageKey(key))
     }
-  }, [])
+  }, [encryptedPrivates])
 
   /**
    * Get and decrypt signer data from vaultEntries if vault is active, or from local storage if vault is not active

@@ -1,4 +1,5 @@
 import { notifySatSummary } from '@/lib/webPush'
+import { msatsToSats } from '@/lib/format'
 export async function dailySatSummary ({ models }) {
   try {
     const stats = await models.$queryRaw`
@@ -15,7 +16,11 @@ export async function dailySatSummary ({ models }) {
       for (const stat of stats) {
         const user = await models.user.findUnique({ where: { id: stat.userid } })
         if (user && user.noteSatSummary) {
-          await notifySatSummary(stat.userid, stat.stacked || 0, stat.spent || 0)
+          await notifySatSummary(
+            stat.userid,
+            (stats.stacked && msatsToSats(stats.stacked)) || 0,
+            (stats.spent && msatsToSats(stats.spent)) || 0
+          )
         }
       }
     }

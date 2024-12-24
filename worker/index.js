@@ -14,7 +14,7 @@ import { ApolloClient, HttpLink, InMemoryCache } from '@apollo/client'
 import { indexItem, indexAllItems } from './search'
 import { timestampItem } from './ots'
 import { computeStreaks, checkStreak } from './streak'
-import { summarizeDailySats } from './satSummary'
+import { dailySatSummary } from './satSummary'
 import { nip57 } from './nostr'
 import fetch from 'cross-fetch'
 import { authenticatedLndGrpc } from '@/lib/lnd'
@@ -132,7 +132,7 @@ async function work () {
   await boss.work('earn', jobWrapper(earn))
   await boss.work('streak', jobWrapper(computeStreaks))
   await boss.work('checkStreak', jobWrapper(checkStreak))
-  await boss.work('dailySatSummary', jobWrapper(summarizeDailySats))
+  await boss.work('dailySatSummary', jobWrapper(dailySatSummary))
   await boss.work('nip57', jobWrapper(nip57))
   await boss.work('views-*', jobWrapper(views))
   await boss.work('rankViews', jobWrapper(rankViews))

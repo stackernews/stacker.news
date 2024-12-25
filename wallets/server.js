@@ -81,7 +81,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
         throw new Error('the wallet returned a bolt12 offer, but an invoice was expected')
       }
 
-      checkInvoice(invoice, { msats }, { lnd, logger })
+      await checkInvoice(invoice, { msats }, { lnd, logger })
       return { invoice, wallet, logger }
     } catch (err) {
       logger.error(err.message, { status: true })

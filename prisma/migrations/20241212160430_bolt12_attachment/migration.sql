@@ -20,6 +20,6 @@ ALTER TABLE "WalletBolt12" ADD CONSTRAINT "WalletBolt12_walletId_fkey" FOREIGN K
 
 
 -- Update wallet json
-CREATE TRIGGER wallet_blink_as_jsonb
+CREATE TRIGGER wallet_bolt12_as_jsonb
 AFTER INSERT OR UPDATE ON "WalletBolt12"
 FOR EACH ROW EXECUTE PROCEDURE wallet_wallet_type_as_jsonb();

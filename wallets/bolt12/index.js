@@ -21,5 +21,4 @@ export const card = {
   title: 'Bolt12',
   subtitle: 'receive payments to a bolt12 offer',
   image: { src: '/wallets/bolt12.svg' }
-
 }

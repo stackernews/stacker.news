@@ -2,7 +2,7 @@ import { useRouter } from 'next/router'
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import styles from './pull-to-refresh.module.css'
 
-const REFRESH_THRESHOLD = 50
+const REFRESH_THRESHOLD = 150
 
 export default function PullToRefresh ({ children, className }) {
   const router = useRouter()

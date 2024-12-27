@@ -91,6 +91,7 @@ export default function TerritoryForm ({ sub }) {
           name: sub?.name || '',
           desc: sub?.desc || '',
           baseCost: sub?.baseCost || 10,
+          replyCost: sub?.replyCost || 1,
           postTypes: sub?.postTypes || POST_TYPES,
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false,
@@ -132,6 +133,13 @@ export default function TerritoryForm ({ sub }) {
         <Input
           label='post cost'
           name='baseCost'
+          type='number'
+          required
+          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        />
+        <Input
+          label='reply cost'
+          name='replyCost'
           type='number'
           required
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}

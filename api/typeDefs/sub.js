@@ -16,6 +16,7 @@ export default gql`
 
   extend type Mutation {
     upsertSub(oldName: String, name: String!, desc: String, baseCost: Int!,
+      replyCost: Int!,
       postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
       moderated: Boolean!, nsfw: Boolean!): SubPaidAction!
@@ -45,6 +46,7 @@ export default gql`
     billedLastAt: Date!
     billPaidUntil: Date
     baseCost: Int!
+    replyCost: Int!
     status: String!
     moderated: Boolean!
     moderatedCount: Int!

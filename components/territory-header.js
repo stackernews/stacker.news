@@ -61,6 +61,10 @@ export function TerritoryInfo ({ sub }) {
           <span>post cost </span>
           <span className='fw-bold'>{numWithUnits(sub.baseCost)}</span>
         </div>
+        <div className='text-muted'>
+          <span>reply cost </span>
+          <span className='fw-bold'>{numWithUnits(sub.replyCost)}</span>
+        </div>
         <TerritoryBillingLine sub={sub} />
       </CardFooter>
     </>

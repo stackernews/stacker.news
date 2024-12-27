@@ -45,6 +45,7 @@ export default forwardRef(function Reply ({
   const replyInput = useRef(null)
   const showModal = useShowModal()
   const root = useRoot()
+  const bio = root?.bio
   const sub = item?.sub || root?.sub
 
   useEffect(() => {
@@ -173,7 +174,7 @@ export default forwardRef(function Reply ({
       {reply &&
         <div className={styles.reply}>
           <FeeButtonProvider
-            baseLineItems={postCommentBaseLineItems({ baseCost: 1, comment: true, me: !!me })}
+            baseLineItems={postCommentBaseLineItems({ baseCost: bio ? 1 : sub.replyCost, comment: true, me: !!me })}
             useRemoteLineItems={postCommentUseRemoteLineItems({ parentId: item.id, me: !!me })}
           >
             <Form

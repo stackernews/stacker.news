@@ -83,7 +83,7 @@ export const getServerSideProps = getGetServerSideProps({ query: REWARDS_FULL })
 export function RewardLine ({ total, time }) {
   return (
     <>
-      <span tyle={{ whiteSpace: 'nowrap' }}>
+      <span style={{ whiteSpace: 'nowrap' }}>
         {numWithUnits(total)} in rewards
       </span>
       {time &&

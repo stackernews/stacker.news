@@ -13,7 +13,7 @@ export const fields = [
     placeholder: 'lno....',
     clear: true,
     serverOnly: true,
-    validate: string()
+    validate: string().matches(/^lno[a-z0-9]+$/, 'invalid offer string')
   }
 ]
 

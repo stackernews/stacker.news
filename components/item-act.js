@@ -211,23 +211,27 @@ function modifyActCache (cache, { result, invoice }) {
       }
     }
   })
+}
 
-  // removing this fixes issue #1695 because optimistically updating all ancestors
-  // conflicts with the writeQuery on navigation from SSR
-  // if (act === 'TIP') {
-  //   // update all ancestors
-  //   path.split('.').forEach(aId => {
-  //     if (Number(aId) === Number(id)) return
-  //     cache.modify({
-  //       id: `Item:${aId}`,
-  //       fields: {
-  //         commentSats (existingCommentSats = 0) {
-  //           return existingCommentSats + sats
-  //         }
-  //       }
-  //     })
-  //   })
-  // }
+// doing this onPaid fixes issue #1695 because optimistically updating all ancestors
+// conflicts with the writeQuery on navigation from SSR
+function updateAncestors (cache, { result, invoice }) {
+  if (!result) return
+  const { id, sats, act, path } = result
+  if (act === 'TIP') {
+    // update all ancestors
+    path.split('.').forEach(aId => {
+      if (Number(aId) === Number(id)) return
+      cache.modify({
+        id: `Item:${aId}`,
+        fields: {
+          commentSats (existingCommentSats = 0) {
+            return existingCommentSats + sats
+          }
+        }
+      })
+    })
+  }
 }
 
 export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
@@ -261,6 +265,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
     onPaid: (cache, { data }) => {
       const response = getPaidActionResult(data)
       if (!response) return
+      updateAncestors(cache, response)
       options?.onPaid?.(cache, { data })
     }
   })

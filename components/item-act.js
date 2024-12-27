@@ -209,7 +209,8 @@ function modifyActCache (cache, { result, invoice }) {
         }
         return existingBoost
       }
-    }
+    },
+    optimistic: true
   })
 }
 
@@ -228,7 +229,8 @@ function updateAncestors (cache, { result, invoice }) {
           commentSats (existingCommentSats = 0) {
             return existingCommentSats + sats
           }
-        }
+        },
+        optimistic: true
       })
     })
   }

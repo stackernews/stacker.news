@@ -26,26 +26,6 @@ export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln, bolt
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 
-async function checkInvoice (invoice, { msats }, { lnd, logger }) {
-  const parsedInvoice = await parseInvoice({ lnd, request: invoice })
-  logger.info(`created invoice for ${formatSats(msatsToSats(parsedInvoice.mtokens))}`, {
-    bolt11: invoice
-  })
-  if (BigInt(parsedInvoice.mtokens) !== BigInt(msats)) {
-    if (BigInt(parsedInvoice.mtokens) > BigInt(msats)) {
-      throw new Error('invoice invalid: amount too big')
-    }
-    if (BigInt(parsedInvoice.mtokens) === 0n) {
-      throw new Error('invoice invalid: amount is 0 msats')
-    }
-    if (BigInt(msats) - BigInt(parsedInvoice.mtokens) >= 1000n) {
-      throw new Error('invoice invalid: amount too small')
-    }
-
-    logger.warn('wallet does not support msats')
-  }
-}
-
 export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360, supportBolt12 = true }, { predecessorId, models, lnd }) {
   // get the wallets in order of priority
   const wallets = await getInvoiceableWallets(userId, { predecessorId, models })
@@ -81,7 +61,25 @@ export async function createInvoice (userId, { msats, description, descriptionHa
         throw new Error('the wallet returned a bolt12 offer, but an invoice was expected')
       }
 
-      await checkInvoice(invoice, { msats }, { lnd, logger })
+      const parsedInvoice = await parseInvoice({ lnd, request: invoice })
+      logger.info(`created invoice for ${formatSats(msatsToSats(parsedInvoice.mtokens))}`, {
+        bolt11: invoice
+      })
+
+      if (BigInt(parsedInvoice.mtokens) !== BigInt(msats)) {
+        if (BigInt(parsedInvoice.mtokens) > BigInt(msats)) {
+          throw new Error('invoice invalid: amount too big')
+        }
+        if (BigInt(parsedInvoice.mtokens) === 0n) {
+          throw new Error('invoice invalid: amount is 0 msats')
+        }
+        if (BigInt(msats) - BigInt(parsedInvoice.mtokens) >= 1000n) {
+          throw new Error('invoice invalid: amount too small')
+        }
+
+        logger.warn('wallet does not support msats')
+      }
+
       return { invoice, wallet, logger }
     } catch (err) {
       logger.error(err.message, { status: true })

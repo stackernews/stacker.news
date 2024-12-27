@@ -25,7 +25,7 @@ export default gql`
     toggleSubSubscription(name: String!): Boolean!
     transferTerritory(subName: String!, userName: String!): Sub
     unarchiveTerritory(name: String!, desc: String, baseCost: Int!,
-      postTypes: [String!]!,
+      replyCost: Int!, postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
       moderated: Boolean!, nsfw: Boolean!): SubPaidAction!
   }

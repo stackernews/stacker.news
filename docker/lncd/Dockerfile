@@ -2,7 +2,7 @@ FROM debian:bookworm-slim
 RUN useradd -u 1000 -m lncd
 
 ARG VERSION=0.2.2
-ARG REPO=riccardobl/lncd
+ARG REPO=stackernews/lncd
 ARG DOWNLOAD_URL=https://github.com/$REPO/releases/download/$VERSION/lncd
 
 RUN mkdir -p /home/lncd && \

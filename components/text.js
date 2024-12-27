@@ -255,7 +255,7 @@ function P ({ children, node, onlyImages, somethingBefore, somethingAfter, ...pr
   )
 }
 
-function Details({ children, ...props }) {
+function Details ({ children, ...props }) {
   return (
     <details className={styles.details} {...props}>
       {children}
@@ -263,7 +263,7 @@ function Details({ children, ...props }) {
   )
 }
 
-function Summary({ children, ...props }) {
+function Summary ({ children, ...props }) {
   return (
     <summary className={styles.summary} {...props}>
       {children}

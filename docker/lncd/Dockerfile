@@ -1,0 +1,18 @@
+FROM debian:bookworm-slim
+RUN useradd -u 1000 -m lncd
+
+ARG VERSION=0.2.2
+ARG REPO=riccardobl/lncd
+ARG DOWNLOAD_URL=https://github.com/$REPO/releases/download/$VERSION/lncd
+
+RUN mkdir -p /home/lncd && \
+chown 1000:1000 -Rvf /home/lncd/ &&\
+apt-get update && apt-get install -y curl &&\
+apt-get clean && rm -rf /var/lib/apt/lists/*
+
+USER lncd
+RUN curl --proto '=https' --tlsv1.2 -LsSf $DOWNLOAD_URL -o /home/lncd/lncd && chmod +x /home/lncd/lncd
+WORKDIR /home/lncd
+EXPOSE 7167
+
+CMD ["./lncd"]

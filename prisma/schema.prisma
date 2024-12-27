@@ -216,6 +216,7 @@ model Wallet {
   walletNWC              WalletNWC?
   walletPhoenixd         WalletPhoenixd?
   walletBlink            WalletBlink?
+  walletLNC              WalletLNC?
 
   vaultEntries   VaultEntry[]     @relation("VaultEntries")
   withdrawals    Withdrawl[]
@@ -313,6 +314,18 @@ model WalletBlink {
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
   apiKeyRecv   String?
   currencyRecv String?
+}
+
+model WalletLNC {
+  id                Int      @id @default(autoincrement())
+  walletId          Int      @unique
+  wallet            Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+  pairingPhraseRecv String
+  localKeyRecv      String?
+  remoteKeyRecv     String?
+  serverHostRecv    String?
 }
 
 model WalletPhoenixd {

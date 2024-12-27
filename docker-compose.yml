@@ -513,6 +513,24 @@ services:
       CLI: "litcli"
       CLI_ARGS: "-n regtest --rpcserver localhost:8444"
     cpu_shares: "${CPU_SHARES_MODERATE}"
+  lncd:
+    container_name: lncd
+    build:
+      context: ./docker/lncd
+    profiles:
+      - wallets
+    restart: unless-stopped
+    environment:
+      - LNCD_DEBUG=true
+      - LNCD_DEV_UNSAFE_LOG=true
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:7167/health"]
+    depends_on:
+      litd:
+        condition: service_healthy
+        restart: true
+    cpu_shares: "${CPU_SHARES_MODERATE}"
   cln:
     build:
       context: ./docker/cln

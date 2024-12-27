@@ -169,6 +169,12 @@ export const WALLET_FIELDS = gql`
         apiKeyRecv
         currencyRecv
       }
+      ... on WalletLnc {
+        pairingPhraseRecv
+        localKeyRecv
+        remoteKeyRecv
+        serverHostRecv
+      }
     }
   }
 `

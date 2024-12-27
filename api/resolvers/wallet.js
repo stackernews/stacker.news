@@ -47,13 +47,18 @@ function injectResolvers (resolvers) {
         })
       }
 
-      const validData = await validateWallet(walletDef,
-        { ...data, ...settings, vaultEntries: vaultEntries ?? existingVaultEntries },
-        { serverSide: true })
-      if (validData) {
-        data && Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
-        settings && Object.keys(validData).filter(key => key in settings).forEach(key => { settings[key] = validData[key] })
+      const validate = async ({ data, settings, skipGenerated = false }) => {
+        const validData = await validateWallet(walletDef,
+          { ...data, ...settings, vaultEntries: vaultEntries ?? existingVaultEntries },
+          { serverSide: true, skipGenerated })
+        if (validData) {
+          data && Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
+          settings && Object.keys(validData).filter(key => key in settings).forEach(key => { settings[key] = validData[key] })
+        }
       }
+
+      const needsTest = walletDef.testCreateInvoice && validateLightning && canReceive({ def: walletDef, config: data })
+      await validate({ data, settings, skipGenerated: needsTest })
 
       // wallet in shape of db row
       const wallet = {
@@ -67,7 +72,7 @@ function injectResolvers (resolvers) {
         wallet,
         walletDef,
         testCreateInvoice:
-          walletDef.testCreateInvoice && validateLightning && canReceive({ def: walletDef, config: data })
+          needsTest
             ? (data) => withTimeout(
                 walletDef.testCreateInvoice(data, {
                   logger,
@@ -79,7 +84,7 @@ function injectResolvers (resolvers) {
         settings,
         data,
         vaultEntries
-      }, { logger, me, models })
+      }, { logger, me, models, validate })
     }
   }
   console.groupEnd()
@@ -770,7 +775,7 @@ export const walletLogger = ({ wallet, models }) => {
 }
 
 async function upsertWallet (
-  { wallet, walletDef, testCreateInvoice }, { settings, data, vaultEntries }, { logger, me, models }) {
+  { wallet, walletDef, testCreateInvoice }, { settings, data, vaultEntries }, { logger, me, models, validate }) {
   if (!me) {
     throw new GqlAuthenticationError()
   }
@@ -779,6 +784,7 @@ async function upsertWallet (
   if (testCreateInvoice) {
     try {
       await testCreateInvoice(data)
+      await validate({ data, settings, skipGenerated: false })
     } catch (err) {
       const message = 'failed to create test invoice: ' + (err.message || err.toString?.())
       logger.error(message)

@@ -12,4 +12,4 @@ ALTER TABLE "Item" ADD CONSTRAINT "Item_unique_time_constraint"
     tsrange(created_at, created_at + INTERVAL '10 minutes') WITH &&
   )
   -- enforce constraint after this date
-  WHERE (created_at > '2024-12-20');
+  WHERE (created_at > '2024-12-30');

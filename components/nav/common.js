@@ -359,7 +359,7 @@ export function LoginButtons ({ handleClose }) {
         <LoginButton />
       </Dropdown.Item>
       <Dropdown.Item className='py-1'>
-        <SignUpButton className='py-1'/>
+        <SignUpButton className='py-1' />
       </Dropdown.Item>
       <Dropdown.Item className='py-1'>
         <SwitchAccountButton handleClose={handleClose} />

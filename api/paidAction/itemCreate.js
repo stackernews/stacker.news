@@ -2,6 +2,7 @@ import { ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHOD
 import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers } from '@/lib/webPush'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
+import { GqlInputError } from '@/lib/error'
 
 export const anonable = true
 
@@ -138,7 +139,15 @@ export async function perform (args, context) {
       }
     })).bio
   } else {
-    item = await tx.item.create({ data: itemData })
+    try {
+      item = await tx.item.create({ data: itemData })
+    } catch (err) {
+      if (err.message.includes('violates exclusion constraint \\"Item_unique_time_constraint\\"')) {
+        const message = `you already submitted this ${itemData.title ? 'post' : 'comment'}`
+        throw new GqlInputError(message)
+      }
+      throw err
+    }
   }
 
   // store a reference to the item in the invoice

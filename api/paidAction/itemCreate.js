@@ -223,7 +223,7 @@ export async function onPaid ({ invoice, id }, context) {
       ), ancestors AS (
         UPDATE "Item"
         SET ncomments = "Item".ncomments + 1,
-          "lastCommentAt" = now(),
+          "lastCommentAt" = GREATEST("Item"."lastCommentAt", comment.created_at),
           "weightedComments" = "Item"."weightedComments" +
             CASE WHEN comment."userId" = "Item"."userId" THEN 0 ELSE comment.trust END
         FROM comment

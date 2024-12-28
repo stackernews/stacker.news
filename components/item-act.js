@@ -233,6 +233,8 @@ function modifyActCache (cache, { result, invoice }, me) {
 function updateAncestors (cache, { result, invoice }) {
   if (!result) return
   const { id, sats, act, path } = result
+  const p2p = invoice?.invoiceForward
+
   if (act === 'TIP') {
     // update all ancestors
     path.split('.').forEach(aId => {

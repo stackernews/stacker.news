@@ -15,6 +15,8 @@ import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
 import * as cookie from 'cookie'
 import { multiAuthMiddleware } from '@/pages/api/graphql'
+import * as Auth2fa from '@/lib/auth2fa'
+import { v4 as uuidv4 } from 'uuid'
 
 /**
  * Stores userIds in user table
@@ -96,8 +98,13 @@ function getCallbacks (req, res) {
         req = new NodeNextRequest(req)
         res = new NodeNextResponse(res)
         const secret = process.env.NEXTAUTH_SECRET
-        const jwt = await encodeJWT({ token, secret })
         const me = await prisma.user.findUnique({ where: { id: token.id } })
+
+        // on login we check if the user needs 2fa
+        token.requires2faMethods = Auth2fa.getRequired2faMethods({ me })
+        token.jti2fa = uuidv4() // and we generate a 2fa jti to avoid replay attacks
+
+        const jwt = await encodeJWT({ token, secret })
         // we set multi_auth cookies on login/signup with only one user so the rest of the code doesn't
         // have to consider the case where they aren't set yet because account switching wasn't used yet
         setMultiAuthCookies(req, res, { ...me, jwt })
@@ -109,7 +116,8 @@ function getCallbacks (req, res) {
       // note: this function takes the current token (result of running jwt above)
       // and returns a new object session that's returned whenever get|use[Server]Session is called
       session.user.id = token.id
-
+      session.requires2faMethods = token.requires2faMethods
+      session.jti2fa = token.jti2fa
       return session
     }
   }

@@ -7,6 +7,8 @@ import typeDefs from '@/api/typeDefs'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './auth/[...nextauth]'
 import search from '@/api/search'
+import * as Auth2fa from '@/lib/auth2fa'
+
 import {
   ApolloServerPluginLandingPageLocalDefault,
   ApolloServerPluginLandingPageProductionDefault
@@ -70,6 +72,11 @@ export default startServerAndCreateNextHandler(apolloServer, {
       req = multiAuthMiddleware(req)
       session = await getServerSession(req, res, getAuthOptions(req))
     }
+
+    // 2fa check
+    let unverifiedSession = null
+    ;({ session, unverifiedSession } = await Auth2fa.sessionGuard({ session, req }))
+
     return {
       models,
       headers: req.headers,
@@ -77,7 +84,8 @@ export default startServerAndCreateNextHandler(apolloServer, {
       me: session
         ? session.user
         : null,
-      search
+      search,
+      unverifiedSession
     }
   }
 })

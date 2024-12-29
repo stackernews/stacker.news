@@ -31,6 +31,8 @@ import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { useField } from 'formik'
 import styles from './settings.module.css'
 import { AuthBanner } from '@/components/banners'
+import { generateTotpSecret } from '@/lib/auth2fa'
+import { useTOTPEnableDialog } from '@/components/totp'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -644,6 +646,7 @@ export default function Settings ({ ssrData }) {
           <div className='form-label'>saturday newsletter</div>
           <Button href='https://mail.stacker.news/subscription/form' target='_blank'>(re)subscribe</Button>
           {settings?.authMethods && <AuthMethods methods={settings.authMethods} apiKeyEnabled={settings.apiKeyEnabled} />}
+          <Auth2fa />
         </div>
       </div>
     </Layout>
@@ -1167,6 +1170,52 @@ const TipRandomField = () => {
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
         </>}
+    </>
+  )
+}
+
+function Auth2fa () {
+  const { me } = useMe()
+
+  const [unsetTotpSecret] = useMutation(
+    gql`
+      mutation UnsetTotpSecret {
+        unsetTotpSecret
+      }
+    `
+  )
+  const [setTotpSecret] = useMutation(
+    gql`
+      mutation SetTotpSecret ($secret: String!, $token: String!) {
+        setTotpSecret(secret: $secret, token: $token)
+      }
+    `
+  )
+  const totpDialog = useTOTPEnableDialog()
+
+  return (
+    <>
+      <div className='form-label mt-3'>two-factor authentication</div>
+      {me?.privates?.isTotpEnabled
+        ? (
+          <Button
+            variant='danger' onClick={unsetTotpSecret}
+          >Disable TOTP
+          </Button>
+          )
+        : (
+          <Button
+            variant='secondary' onClick={() => {
+              const secret = generateTotpSecret({ label: me.name })
+              const otpUri = secret.uri
+              totpDialog({ secret, otpUri }, async token => {
+                return setTotpSecret({ variables: { secret: secret.base32, token } })
+              })
+            }}
+          > Enable TOTP
+          </Button>
+          )}
+
     </>
   )
 }

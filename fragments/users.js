@@ -53,6 +53,7 @@ ${STREAK_FIELDS}
       walletsUpdatedAt
       proxyReceive
       directReceive
+      isTotpEnabled
     }
     optional {
       isContributor

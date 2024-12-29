@@ -227,7 +227,7 @@ export function SignUpButton ({ className = 'py-0', width }) {
 
   return (
     <Button
-      className={classNames('align-items-center ps-2 py-1 pe-3', className)}
+      className={classNames('align-items-center ps-2 pe-3', className)}
       style={{ borderWidth: '2px', width: width || '150px' }}
       id='signup'
       onClick={() => handleLogin('/signup')}
@@ -359,7 +359,7 @@ export function LoginButtons ({ handleClose }) {
         <LoginButton />
       </Dropdown.Item>
       <Dropdown.Item className='py-1'>
-        <SignUpButton />
+        <SignUpButton className='py-1' />
       </Dropdown.Item>
       <Dropdown.Item className='py-1'>
         <SwitchAccountButton handleClose={handleClose} />

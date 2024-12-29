@@ -11,33 +11,34 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
+export const BIO_COST = 1000n
+
+export async function findRootItem (models, parentId) {
+  const item = await models.item.findFirst({
+    where: { id: Number(parentId) },
+    select: { rootId: true }
+  })
+
+  return models.item.findFirst({
+    where: { id: Number(item.rootId || parentId) },
+    include: { sub: true }
+  })
+}
+
+export async function getBaseCost ({ models, bio, parentId, subName }) {
+  if (bio) return BIO_COST
+
+  if (parentId) {
+    const rootItem = await findRootItem(models, parentId)
+    return rootItem.bio ? BIO_COST : satsToMsats(rootItem.sub?.replyCost)
+  }
+
+  const sub = await models.sub.findUnique({ where: { name: subName } })
+  return satsToMsats(sub.baseCost)
+}
+
 export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio }, { models, me }) {
-  const BIO_COST = 1000n
-  async function findRootItem (models, parentId) {
-    const item = await models.item.findFirst({
-      where: { id: Number(parentId) },
-      select: { rootId: true }
-    })
-
-    return models.item.findFirst({
-      where: { id: Number(item.rootId || parentId) },
-      include: { sub: true }
-    })
-  }
-  async function getBaseCost ({ models, bio, parentId, subName }) {
-    if (bio) return BIO_COST
-
-    if (parentId) {
-      const rootItem = await findRootItem(models, parentId)
-      return rootItem.bio ? BIO_COST : satsToMsats(rootItem.sub?.replyCost)
-    }
-
-    const sub = await models.sub.findUnique({ where: { name: subName } })
-    return satsToMsats(sub.baseCost)
-  }
   const baseCost = await getBaseCost({ models, bio, parentId, subName })
-  // const sub = (parentId || bio) ? null : await models.sub.findUnique({ where: { name: subName } })
-  // const baseCost = sub ? satsToMsats(sub.baseCost) : 1000n
 
   // cost = baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + upload fees + boost
   const [{ cost }] = await models.$queryRaw`

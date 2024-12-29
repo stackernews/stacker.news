@@ -359,7 +359,7 @@ function getPayerSig (lud18Data) {
 
 function InvoicePaid ({ n }) {
   const payerSig = getPayerSig(n.invoice.lud18Data)
-  let actionString = 'desposited to your account'
+  let actionString = 'deposited to your account'
   let sats = n.earnedSats
   if (n.invoice.forwardedSats) {
     actionString = 'sent directly to your attached wallet'

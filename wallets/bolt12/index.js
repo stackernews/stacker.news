@@ -1,5 +1,4 @@
-import { string } from '@/lib/yup'
-
+import { bolt12OfferSchema } from '@/lib/validate'
 export const name = 'bolt12'
 export const walletType = 'BOLT12'
 export const walletField = 'walletBolt12'
@@ -13,7 +12,7 @@ export const fields = [
     placeholder: 'lno....',
     clear: true,
     serverOnly: true,
-    validate: string().matches(/^lno[a-z0-9]+$/, 'invalid offer string')
+    validate: bolt12OfferSchema
   }
 ]
 

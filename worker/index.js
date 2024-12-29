@@ -17,7 +17,7 @@ import { computeStreaks, checkStreak } from './streak'
 import { nip57 } from './nostr'
 import fetch from 'cross-fetch'
 import { authenticatedLndGrpc } from '@/lib/lnd'
-import { installLNDK } from '@/lib/lndk'
+import { enableLNDK } from '@/lib/lndk'
 import { views, rankViews } from './views'
 import { imgproxy } from './imgproxy'
 import { deleteItem } from './ephemeralItems'
@@ -74,7 +74,7 @@ async function work () {
     macaroon: process.env.LND_MACAROON,
     socket: process.env.LND_SOCKET
   })
-  installLNDK(lnd, {
+  enableLNDK(lnd, {
     cert: process.env.LNDK_CERT,
     macaroon: process.env.LNDK_MACAROON,
     socket: process.env.LNDK_SOCKET

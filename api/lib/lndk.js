@@ -1,6 +1,6 @@
 import { satsToMsats, toPositiveNumber } from '@/lib/format'
 import { loadPackageDefinition } from '@grpc/grpc-js'
-import LNDK_RPC_PROTO from '@/lib/lndkrpc-proto'
+import LNDK_RPC_PROTO from '@/api/lib/lndkrpc-proto'
 import protobuf from 'protobufjs'
 import grpcCredentials from 'lightning/lnd_grpc/grpc_credentials'
 import { grpcSslCipherSuites } from 'lightning/grpc/index'

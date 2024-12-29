@@ -1,6 +1,6 @@
 import AccordianItem from './accordian-item'
 import { CopyInput } from './form'
-import { getInvoiceDescription, getInvoicePaymentHash } from '@/lib/bolt/bolt-info'
+import { getInvoiceDescription, getInvoicePaymentHash } from '@/lib/bolt'
 
 export default ({ bolt11, preimage, children }) => {
   let description, paymentHash

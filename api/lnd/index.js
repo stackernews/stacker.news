@@ -1,7 +1,7 @@
 import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/format'
 import { authenticatedLndGrpc } from '@/lib/lnd'
-import { enableLNDK } from '@/lib/lndk'
+import { enableLNDK } from '@/api/lib/lndk'
 import { getIdentity, getHeight, getWalletInfo, getNode, getPayment } from 'ln-service'
 import { datePivot } from '@/lib/time'
 import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'

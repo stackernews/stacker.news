@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 
-import { payViaBolt12PaymentRequest, decodeBolt12Invoice } from '@/lib/lndk'
+import { payViaBolt12PaymentRequest, decodeBolt12Invoice } from '@/api/lib/lndk'
 import { isBolt12Invoice, isBolt12Offer, isBolt12 } from '@/lib/bolt/bolt12-info'
 import { toPositiveNumber } from '@/lib/format'
 export { isBolt12Invoice, isBolt12Offer, isBolt12 }

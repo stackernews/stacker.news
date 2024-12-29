@@ -1,7 +1,7 @@
 import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { msatsToSats, satsToMsats, toPositiveBigInt } from '@/lib/format'
 import { Prisma } from '@prisma/client'
-import { payInvoice, parseInvoice } from '@/lib/boltInvoices'
+import { payInvoice, parseInvoice } from '@/lib/bolt'
 
 // paying actions are completely distinct from paid actions
 // and there's only one paying action: send

@@ -1,7 +1,7 @@
 import AccordianItem from './accordian-item'
 import { CopyInput } from './form'
-import { bolt11Tags, isBolt11 } from '@/lib/bolt11-tags'
-import { bolt12Info } from '@/lib/bolt12-info'
+import { bolt11Tags, isBolt11 } from '@/lib/bolt/bolt11-tags'
+import { bolt12Info } from '@/lib/bolt/bolt12-info'
 
 export default ({ bolt11, preimage, children }) => {
   let description, paymentHash

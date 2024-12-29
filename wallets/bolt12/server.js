@@ -1,5 +1,5 @@
 import { fetchBolt12InvoiceFromOffer } from '@/lib/lndk'
-import { parseInvoice } from '@/lib/boltInvoices'
+import { parseInvoice } from '@/lib/bolt'
 import { toPositiveNumber } from '@/lib/format'
 export * from '@/wallets/bolt12'
 

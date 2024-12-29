@@ -181,7 +181,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
 
 function modifyActCache (cache, { result, invoice }) {
   if (!result) return
-  const { id, sats, path, act } = result
+  const { id, sats, act } = result
   cache.modify({
     id: `Item:${id}`,
     fields: {
@@ -209,9 +209,16 @@ function modifyActCache (cache, { result, invoice }) {
         }
         return existingBoost
       }
-    }
+    },
+    optimistic: true
   })
+}
 
+// doing this onPaid fixes issue #1695 because optimistically updating all ancestors
+// conflicts with the writeQuery on navigation from SSR
+function updateAncestors (cache, { result, invoice }) {
+  if (!result) return
+  const { id, sats, act, path } = result
   if (act === 'TIP') {
     // update all ancestors
     path.split('.').forEach(aId => {
@@ -222,7 +229,8 @@ function modifyActCache (cache, { result, invoice }) {
           commentSats (existingCommentSats = 0) {
             return existingCommentSats + sats
           }
-        }
+        },
+        optimistic: true
       })
     })
   }
@@ -259,6 +267,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
     onPaid: (cache, { data }) => {
       const response = getPaidActionResult(data)
       if (!response) return
+      updateAncestors(cache, response)
       options?.onPaid?.(cache, { data })
     }
   })

@@ -11,7 +11,7 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export const BIO_COST = 1000n
+export const ITEM_COST = 1000n
 
 export async function findRootItem (models, parentId) {
   const item = await models.item.findFirst({
@@ -26,11 +26,13 @@ export async function findRootItem (models, parentId) {
 }
 
 export async function getBaseCost ({ models, bio, parentId, subName }) {
-  if (bio) return BIO_COST
+  if (bio) return ITEM_COST
 
   if (parentId) {
     const rootItem = await findRootItem(models, parentId)
-    return rootItem.bio ? BIO_COST : satsToMsats(rootItem.sub?.replyCost)
+
+    if (rootItem.bio || !rootItem.sub) return ITEM_COST
+    return satsToMsats(rootItem.sub.replyCost)
   }
 
   const sub = await models.sub.findUnique({ where: { name: subName } })

@@ -22,7 +22,8 @@ export const payBountyCacheMods = {
         bountyPaidTo (existingPaidTo = []) {
           return [...(existingPaidTo || []), Number(id)]
         }
-      }
+      },
+      optimistic: true
     })
   },
   onPayError: (e, cache, { data }) => {
@@ -36,7 +37,8 @@ export const payBountyCacheMods = {
         bountyPaidTo (existingPaidTo = []) {
           return (existingPaidTo || []).filter(i => i !== Number(id))
         }
-      }
+      },
+      optimistic: true
     })
   }
 }

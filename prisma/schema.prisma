@@ -927,6 +927,7 @@ model Invoice {
   cancelled          Boolean             @default(false)
   cancelledAt        DateTime?
   userCancel         Boolean?
+  lockedAt           DateTime?
   msatsRequested     BigInt
   msatsReceived      BigInt?
   desc               String?

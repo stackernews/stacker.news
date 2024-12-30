@@ -284,3 +284,7 @@ export async function checkPendingWithdrawals (args) {
     }
   }
 }
+
+export async function unlockInvoice ({ data: { id }, models }) {
+  await models.invoice.update({ where: { id }, data: { lockedAt: null } })
+}

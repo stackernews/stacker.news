@@ -1,6 +1,6 @@
 import { useMe } from '@/components/me'
-import { SET_WALLET_PRIORITY, WALLETS } from '@/fragments/wallet'
-import { SSR } from '@/lib/constants'
+import { FAILED_INVOICES, SET_WALLET_PRIORITY, WALLETS } from '@/fragments/wallet'
+import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getStorageKey, getWalletByType, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally } from './common'
@@ -204,7 +204,9 @@ export function WalletsProvider ({ children }) {
         removeLocalWallets
       }}
     >
-      {children}
+      <RetryHandler>
+        {children}
+      </RetryHandler>
     </WalletsContext.Provider>
   )
 }
@@ -224,4 +226,28 @@ export function useSendWallets () {
   return wallets
     .filter(w => !w.def.isAvailable || w.def.isAvailable())
     .filter(w => w.config?.enabled && canSend(w))
+}
+
+function RetryHandler ({ children }) {
+  const failedInvoices = useFailedInvoices()
+
+  useEffect(() => {
+    // TODO: retry
+  }, [failedInvoices])
+
+  return children
+}
+
+function useFailedInvoices () {
+  const wallets = useSendWallets()
+
+  // TODO: use longer poll interval in prod?
+  const { data } = useQuery(FAILED_INVOICES, {
+    pollInterval: FAST_POLL_INTERVAL,
+    fetchPolicy: 'no-cache',
+    nextFetchPolicy: 'no-cache',
+    skip: wallets.length === 0
+  })
+
+  return data?.failedInvoices ?? []
 }

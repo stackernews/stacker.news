@@ -456,6 +456,37 @@ const resolvers = {
         cursor: nextCursor,
         entries: logs
       }
+    },
+    failedInvoices: async (parent, args, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+      // make sure each invoice is only returned once via visibility timeouts and SKIP LOCKED
+      return await models.$queryRaw`
+        WITH failed AS (
+          UPDATE "Invoice"
+          SET "lockedAt" = now()
+          WHERE id IN (
+            SELECT id FROM "Invoice"
+            WHERE "userId" = ${me.id}
+            AND "actionState" = 'FAILED'
+            AND "userCancel" = false
+            AND "lockedAt" IS NULL
+            ORDER BY id DESC
+            FOR UPDATE SKIP LOCKED
+          )
+          RETURNING *
+        ),
+        _ AS (
+          INSERT INTO pgboss.job (name, data, startafter, keepuntil)
+          SELECT
+            'unlockInvoice',
+            jsonb_build_object('id', id),
+            now() + interval '10 minutes',
+            now() + interval '15 minutes'
+          FROM failed
+        )
+        SELECT * FROM failed`
     }
   },
   Wallet: {

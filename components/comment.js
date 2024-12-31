@@ -124,7 +124,7 @@ export default function Comment ({
     }
     setCollapse(window.localStorage.getItem(`commentCollapse:${item.id}`) || collapse)
     if (Number(router.query.commentId) === Number(item.id)) {
-      // HACK wait for other comments to collapse if they're collapsed
+      // HACK wait for other comments to uncollapse if they're collapsed
       setTimeout(() => {
         ref.current.scrollIntoView({ behavior: 'instant', block: 'start' })
         ref.current.classList.add('outline-it')

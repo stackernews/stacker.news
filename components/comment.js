@@ -26,6 +26,7 @@ import { commentSubTreeRootId } from '@/lib/item'
 import Pin from '@/svgs/pushpin-fill.svg'
 import LinkToContext from './link-to-context'
 import Boost from './boost-button'
+import { gql, useApolloClient } from '@apollo/client'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -108,16 +109,28 @@ export default function Comment ({
   const root = useRoot()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
+  const { cache } = useApolloClient()
+
   useEffect(() => {
+    const comment = cache.readFragment({
+      id: `Item:${router.query.commentId}`,
+      fragment: gql`
+        fragment CommentPath on Item {
+          path
+        }`
+    })
+    if (comment?.path.split('.').includes(item.id)) {
+      window.localStorage.setItem(`commentCollapse:${item.id}`, 'nope')
+    }
     setCollapse(window.localStorage.getItem(`commentCollapse:${item.id}`) || collapse)
     if (Number(router.query.commentId) === Number(item.id)) {
-      // HACK wait for other comments to collapse if they're collapsed
+      // HACK wait for other comments to uncollapse if they're collapsed
       setTimeout(() => {
         ref.current.scrollIntoView({ behavior: 'instant', block: 'start' })
         ref.current.classList.add('outline-it')
       }, 100)
     }
-  }, [item.id, router.query.commentId])
+  }, [item.id, cache, router.query.commentId])
 
   useEffect(() => {
     if (router.query.commentsViewedAt &&

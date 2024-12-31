@@ -707,7 +707,7 @@ function NostrLinkButton ({ unlink, status }) {
     ? unlink
     : () => showModal(onClose =>
       <div className='d-flex flex-column align-items-center'>
-        <NostrAuth text='Unlink' />
+        <NostrAuth text='Link' />
       </div>)
 
   return (

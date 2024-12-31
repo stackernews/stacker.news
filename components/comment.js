@@ -115,7 +115,7 @@ export default function Comment ({
     const comment = cache.readFragment({
       id: `Item:${router.query.commentId}`,
       fragment: gql`
-        fragment _ on Item {
+        fragment CommentPath on Item {
           path
         }`
     })

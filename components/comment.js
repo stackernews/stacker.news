@@ -130,7 +130,7 @@ export default function Comment ({
         ref.current.classList.add('outline-it')
       }, 100)
     }
-  }, [item.id, router.query.commentId])
+  }, [item.id, cache, router.query.commentId])
 
   useEffect(() => {
     if (router.query.commentsViewedAt &&

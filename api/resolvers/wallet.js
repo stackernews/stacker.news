@@ -489,7 +489,7 @@ const resolvers = {
     },
     createWithdrawl: createWithdrawal,
     sendToLnAddr,
-    cancelInvoice: async (parent, { hash, hmac }, { me, models, lnd, boss }) => {
+    cancelInvoice: async (parent, { hash, hmac, userCancel }, { me, models, lnd, boss }) => {
       // stackers can cancel their own invoices without hmac
       if (me && !hmac) {
         const inv = await models.invoice.findUnique({ where: { hash } })
@@ -499,7 +499,7 @@ const resolvers = {
         verifyHmac(hash, hmac)
       }
       await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
-      return await models.invoice.findFirst({ where: { hash } })
+      return await models.invoice.update({ where: { hash }, data: { userCancel: !!userCancel } })
     },
     dropBolt11: async (parent, { hash }, { me, models, lnd }) => {
       if (!me) {

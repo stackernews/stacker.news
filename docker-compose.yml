@@ -526,7 +526,7 @@ services:
       - LNCD_AUTH_TOKEN=${LNCD_AUTH_TOKEN}
     healthcheck:
       <<: *healthcheck
-      test: ["CMD", "curl", "-f", "http://localhost:7167/health"]
+      test: ["CMD", "curl", "-k", "-f", "-H", "Authorization: Bearer ${LNCD_AUTH_TOKEN}", "https://localhost:7167/health"]
     depends_on:
       litd:
         condition: service_healthy

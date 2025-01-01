@@ -100,8 +100,9 @@ export default function Comment ({
   const [edit, setEdit] = useState()
   const { me } = useMe()
   const isHiddenFreebie = me?.privates?.satsFilter !== 0 && !item.mine && item.freebie && !item.freedFreebie
+  const isDeletedChildless = item?.ncomments === 0 && item?.deletedAt
   const [collapse, setCollapse] = useState(
-    (isHiddenFreebie || item?.user?.meMute || (item?.outlawed && !me?.privates?.wildWestMode)) && !includeParent
+    (isHiddenFreebie || isDeletedChildless || item?.user?.meMute || (item?.outlawed && !me?.privates?.wildWestMode)) && !includeParent
       ? 'yep'
       : 'nope')
   const ref = useRef(null)

@@ -1,7 +1,7 @@
 FROM debian:bookworm-slim
 RUN useradd -u 1000 -m lncd
 
-ARG VERSION=0.3.1
+ARG VERSION=0.3.2
 ARG REPO=stackernews/lncd
 ARG DOWNLOAD_URL=https://github.com/$REPO/releases/download/$VERSION/lncd
 

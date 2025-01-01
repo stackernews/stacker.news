@@ -523,6 +523,7 @@ services:
     environment:
       - LNCD_DEBUG=true
       - LNCD_DEV_UNSAFE_LOG=true
+      - LNCD_AUTH_TOKEN=${LNCD_AUTH_TOKEN}
     healthcheck:
       <<: *healthcheck
       test: ["CMD", "curl", "-f", "http://localhost:7167/health"]

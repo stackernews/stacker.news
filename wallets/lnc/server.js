@@ -1,4 +1,6 @@
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
+import { fetch } from 'cross-fetch'
+import https from 'https'
 export * from 'wallets/lnc'
 
 export async function testCreateInvoice (credentials, { signal }) {
@@ -33,25 +35,41 @@ async function checkPerms (credentials, { signal }) {
 }
 
 async function rpcCall (credentials, method, payload, { signal }) {
-  const body = {
-    Connection: {
-      Mailbox: credentials.serverHostRecv || 'mailbox.terminal.lightning.today:443',
-      PairingPhrase: credentials.pairingPhraseRecv,
-      LocalKey: credentials.localKeyRecv,
-      RemoteKey: credentials.remoteKeyRecv
-    },
-    Method: method,
-    Payload: JSON.stringify(payload)
-  }
-
-  let res = await fetch(process.env.LNCD_URL + '/rpc', {
+  const fetchArgs = {
     method: 'POST',
     signal,
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(body)
-  })
+    body: JSON.stringify({
+      Connection: {
+        Mailbox: credentials.serverHostRecv || 'mailbox.terminal.lightning.today:443',
+        PairingPhrase: credentials.pairingPhraseRecv,
+        LocalKey: credentials.localKeyRecv,
+        RemoteKey: credentials.remoteKeyRecv
+      },
+      Method: method,
+      Payload: JSON.stringify(payload)
+    })
+  }
+
+  // auth
+  if (process.env.LNCD_AUTH_TOKEN) {
+    fetchArgs.headers.Authorization = `Bearer ${process.env.LNCD_AUTH_TOKEN}`
+  }
+
+  // self-signed cert support
+  if (process.env.LNCD_URL.startsWith('https://') && process.env.LNCD_CERT) {
+    const cert = Buffer.from(process.env.LNCD_CERT, 'hex').toString('utf-8')
+    const agent = new https.Agent({
+      ca: cert,
+      cert,
+      rejectUnauthorized: false
+    })
+    fetchArgs.agent = agent
+  }
+
+  let res = await fetch(process.env.LNCD_URL + '/rpc', fetchArgs)
 
   assertResponseOk(res)
   assertContentTypeJson(res)

@@ -935,7 +935,8 @@ export default {
       // get the user's first item
       const item = await models.item.findFirst({
         where: {
-          userId: user.id
+          userId: user.id,
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         },
         orderBy: {
           createdAt: 'asc'

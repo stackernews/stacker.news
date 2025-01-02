@@ -78,7 +78,7 @@ const typeDefs = `
     createInvoice(amount: Int!): InvoiceOrDirect!
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
-    cancelInvoice(hash: String!, hmac: String!): Invoice!
+    cancelInvoice(hash: String!, hmac: String, userCancel: Boolean): Invoice!
     dropBolt11(hash: String!): Boolean
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(wallet: String): Boolean

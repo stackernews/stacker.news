@@ -134,11 +134,13 @@ export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
 }
 
 export function createHmac (hash) {
+  if (!hash) throw new GqlInputError('hash required to create hmac')
   const key = Buffer.from(process.env.INVOICE_HMAC_KEY, 'hex')
   return crypto.createHmac('sha256', key).update(Buffer.from(hash, 'hex')).digest('hex')
 }
 
 export function verifyHmac (hash, hmac) {
+  if (!hash || !hmac) throw new GqlInputError('hash or hmac missing')
   const hmac2 = createHmac(hash)
   if (!timingSafeEqual(Buffer.from(hmac), Buffer.from(hmac2))) {
     throw new GqlAuthorizationError('bad hmac')
@@ -487,10 +489,17 @@ const resolvers = {
     },
     createWithdrawl: createWithdrawal,
     sendToLnAddr,
-    cancelInvoice: async (parent, { hash, hmac }, { models, lnd, boss }) => {
-      verifyHmac(hash, hmac)
+    cancelInvoice: async (parent, { hash, hmac, userCancel }, { me, models, lnd, boss }) => {
+      // stackers can cancel their own invoices without hmac
+      if (me && !hmac) {
+        const inv = await models.invoice.findUnique({ where: { hash } })
+        if (!inv) throw new GqlInputError('invoice not found')
+        if (inv.userId !== me.id) throw new GqlInputError('not ur invoice')
+      } else {
+        verifyHmac(hash, hmac)
+      }
       await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
-      return await models.invoice.findFirst({ where: { hash } })
+      return await models.invoice.update({ where: { hash }, data: { userCancel: !!userCancel } })
     },
     dropBolt11: async (parent, { hash }, { me, models, lnd }) => {
       if (!me) {

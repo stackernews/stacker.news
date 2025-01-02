@@ -30,7 +30,7 @@ export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio },
   // sub allows freebies (or is a bio or a comment), cost is less than baseCost, not anon,
   // cost must be greater than user's balance, and user has not disabled freebies
   const freebie = (parentId || bio) && cost <= baseCost && !!me &&
-    cost > me?.msats && !me?.disableFreebies
+    me?.msats < cost && !me?.disableFreebies && me?.mcredits < cost
 
   return freebie ? BigInt(0) : BigInt(cost)
 }

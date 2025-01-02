@@ -9,7 +9,8 @@ import { formatMsats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib
 import {
   USER_ID, INVOICE_RETENTION_DAYS,
   PAID_ACTION_PAYMENT_METHODS,
-  WALLET_CREATE_INVOICE_TIMEOUT_MS
+  WALLET_CREATE_INVOICE_TIMEOUT_MS,
+  WALLET_RETRY_AFTER_MS
 } from '@/lib/constants'
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
@@ -471,6 +472,7 @@ const resolvers = {
             WHERE "userId" = ${me.id}
             AND "actionState" = 'FAILED'
             AND "userCancel" = false
+            AND "cancelledAt" < now() - interval '${WALLET_RETRY_AFTER_MS} milliseconds'
             AND "lockedAt" IS NULL
             ORDER BY id DESC
             FOR UPDATE SKIP LOCKED

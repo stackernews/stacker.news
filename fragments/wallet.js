@@ -225,7 +225,7 @@ export const SET_WALLET_PRIORITY = gql`
 
 export const CANCEL_INVOICE = gql`
   ${INVOICE_FIELDS}
-  mutation cancelInvoice($hash: String!, $hmac: String!) {
+  mutation cancelInvoice($hash: String!, $hmac: String) {
     cancelInvoice(hash: $hash, hmac: $hmac) {
       ...InvoiceFields
     }

@@ -1182,7 +1182,7 @@ export default {
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
       if (typeof item.meMsats !== 'undefined' && typeof item.meMcredits !== 'undefined') {
-        return msatsToSats(item.meMsats + item.meMcredits)
+        return msatsToSats(BigInt(item.meMsats) + BigInt(item.meMcredits))
       }
 
       const { _sum: { msats } } = await models.itemAct.aggregate({

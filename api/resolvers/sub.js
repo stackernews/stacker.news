@@ -255,14 +255,6 @@ export default {
         // unsubscribe the old user
         const oldSubscription = await tx.subSubscription.findUnique({ where: { userId_subName: { userId: oldUserId, subName } } })
         if (oldSubscription) await tx.subSubscription.delete({ where: { userId_subName: { subName, userId: oldUserId } } })
-
-        // subscribe the new user if they aren't already
-        // await tx.subSubscription.upsert({
-        //   where: { userId_subName: { userId: newUserId, subName } },
-        //   update: {},
-        //   create: { userId: newUserId, subName }
-        // })
-
         return updatedSub
       })
 

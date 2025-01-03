@@ -42,13 +42,6 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
     // unsubscribe the old user
     const oldSubscription = await tx.subSubscription.findUnique({ where: { userId_subName: { userId: oldUserId, subName: name } } })
     if (oldSubscription) await tx.subSubscription.delete({ where: { userId_subName: { subName: name, userId: oldUserId } } })
-
-    // subscribe the new user if they aren't already
-    // await tx.subSubscription.upsert({
-    //   where: { userId_subName: { userId: newUserId, subName: name } },
-    //   update: {},
-    //   create: { userId: newUserId, subName: name }
-    // })
   }
 
   await tx.subAct.create({

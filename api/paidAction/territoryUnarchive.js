@@ -34,7 +34,21 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
   data.userId = me.id
 
   if (sub.userId !== me.id) {
-    await tx.territoryTransfer.create({ data: { subName: name, oldUserId: sub.userId, newUserId: me.id } })
+    const oldUserId = sub.userId
+    const newUserId = me.id
+
+    await tx.territoryTransfer.create({ data: { subName: name, oldUserId, newUserId } })
+
+    // unsubscribe the old user
+    const oldSubscription = await tx.subSubscription.findUnique({ where: { userId_subName: { userId: oldUserId, subName: name } } })
+    if (oldSubscription) await tx.subSubscription.delete({ where: { userId_subName: { subName: name, userId: oldUserId } } })
+
+    // subscribe the new user if they aren't already
+    // await tx.subSubscription.upsert({
+    //   where: { userId_subName: { userId: newUserId, subName: name } },
+    //   update: {},
+    //   create: { userId: newUserId, subName: name }
+    // })
   }
 
   await tx.subAct.create({

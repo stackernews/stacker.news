@@ -179,9 +179,11 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       </Form>)
 }
 
-function modifyActCache (cache, { result, invoice }) {
+function modifyActCache (cache, { result, invoice }, me) {
   if (!result) return
   const { id, sats, act } = result
+  const p2p = invoice?.invoiceForward
+
   cache.modify({
     id: `Item:${id}`,
     fields: {
@@ -191,11 +193,23 @@ function modifyActCache (cache, { result, invoice }) {
         }
         return existingSats
       },
+      credits (existingCredits = 0) {
+        if (act === 'TIP' && !p2p) {
+          return existingCredits + sats
+        }
+        return existingCredits
+      },
       meSats: (existingSats = 0) => {
-        if (act === 'TIP') {
+        if (act === 'TIP' && me) {
           return existingSats + sats
         }
         return existingSats
+      },
+      meCredits: (existingCredits = 0) => {
+        if (act === 'TIP' && !p2p && me) {
+          return existingCredits + sats
+        }
+        return existingCredits
       },
       meDontLikeSats: (existingSats = 0) => {
         if (act === 'DONT_LIKE_THIS') {
@@ -219,6 +233,8 @@ function modifyActCache (cache, { result, invoice }) {
 function updateAncestors (cache, { result, invoice }) {
   if (!result) return
   const { id, sats, act, path } = result
+  const p2p = invoice?.invoiceForward
+
   if (act === 'TIP') {
     // update all ancestors
     path.split('.').forEach(aId => {
@@ -226,6 +242,12 @@ function updateAncestors (cache, { result, invoice }) {
       cache.modify({
         id: `Item:${aId}`,
         fields: {
+          commentCredits (existingCommentCredits = 0) {
+            if (p2p) {
+              return existingCommentCredits
+            }
+            return existingCommentCredits + sats
+          },
           commentSats (existingCommentSats = 0) {
             return existingCommentSats + sats
           }
@@ -237,6 +259,7 @@ function updateAncestors (cache, { result, invoice }) {
 }
 
 export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
+  const { me } = useMe()
   // because the mutation name we use varies,
   // we need to extract the result/invoice from the response
   const getPaidActionResult = data => Object.values(data)[0]
@@ -253,7 +276,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
     update: (cache, { data }) => {
       const response = getPaidActionResult(data)
       if (!response) return
-      modifyActCache(cache, response)
+      modifyActCache(cache, response, me)
       options?.update?.(cache, { data })
     },
     onPayError: (e, cache, { data }) => {
@@ -261,7 +284,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
       if (!response || !response.result) return
       const { result: { sats } } = response
       const negate = { ...response, result: { ...response.result, sats: -1 * sats } }
-      modifyActCache(cache, negate)
+      modifyActCache(cache, negate, me)
       options?.onPayError?.(e, cache, { data })
     },
     onPaid: (cache, { data }) => {
@@ -286,7 +309,7 @@ export function useZap () {
     // add current sats to next tip since idempotent zaps use desired total zap not difference
     const sats = nextTip(meSats, { ...me?.privates })
 
-    const variables = { id: item.id, sats, act: 'TIP' }
+    const variables = { id: item.id, sats, act: 'TIP', hasSendWallet: wallets.length > 0 }
     const optimisticResponse = { act: { __typename: 'ItemActPaidAction', result: { path: item.path, ...variables } } }
 
     try {

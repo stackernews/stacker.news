@@ -11,6 +11,7 @@ export const PAID_ACTION = gql`
   fragment PaidActionFields on PaidAction {
     invoice {
       ...InvoiceFields
+      invoiceForward
     }
     paymentMethod
   }`
@@ -112,6 +113,17 @@ export const DONATE = gql`
     donateToRewards(sats: $sats) {
       result {
         sats
+      }
+      ...PaidActionFields
+    }
+  }`
+
+export const BUY_CREDITS = gql`
+  ${PAID_ACTION}
+  mutation buyCredits($credits: Int!) {
+    buyCredits(credits: $credits) {
+      result {
+        credits
       }
       ...PaidActionFields
     }

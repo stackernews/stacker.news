@@ -18,6 +18,7 @@ import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
 import * as BOOST from './boost'
 import * as RECEIVE from './receive'
+import * as BUY_CREDITS from './buyCredits'
 import * as INVITE_GIFT from './inviteGift'
 
 export const paidActions = {
@@ -33,6 +34,7 @@ export const paidActions = {
   TERRITORY_UNARCHIVE,
   DONATE,
   RECEIVE,
+  BUY_CREDITS,
   INVITE_GIFT
 }
 
@@ -96,7 +98,8 @@ export default async function performPaidAction (actionType, args, incomingConte
 
       // additional payment methods that logged in users can use
       if (me) {
-        if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT) {
+        if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT ||
+          paymentMethod === PAID_ACTION_PAYMENT_METHODS.REWARD_SATS) {
           try {
             return await performNoInvoiceAction(actionType, args, contextWithPaymentMethod)
           } catch (e) {
@@ -141,6 +144,13 @@ async function performNoInvoiceAction (actionType, args, incomingContext) {
     const context = { ...incomingContext, tx }
 
     if (paymentMethod === 'FEE_CREDIT') {
+      await tx.user.update({
+        where: {
+          id: me?.id ?? USER_ID.anon
+        },
+        data: { mcredits: { decrement: cost } }
+      })
+    } else if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.REWARD_SATS) {
       await tx.user.update({
         where: {
           id: me?.id ?? USER_ID.anon

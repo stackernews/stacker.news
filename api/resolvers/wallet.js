@@ -583,6 +583,9 @@ const resolvers = {
       await models.walletLog.deleteMany({ where: { userId: me.id, wallet } })
 
       return true
+    },
+    buyCredits: async (parent, { credits }, { me, models, lnd }) => {
+      return await performPaidAction('BUY_CREDITS', { credits }, { models, me, lnd })
     }
   },
 
@@ -643,6 +646,9 @@ const resolvers = {
         }
       }))?.withdrawl?.msatsPaid
       return msats ? msatsToSats(msats) : null
+    },
+    invoiceForward: async (invoice, args, { models }) => {
+      return !!invoice.invoiceForward || !!(await models.invoiceForward.findUnique({ where: { invoiceId: Number(invoice.id) } }))
     },
     nostr: async (invoice, args, { models }) => {
       try {

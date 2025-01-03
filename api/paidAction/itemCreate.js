@@ -217,9 +217,9 @@ export async function onPaid ({ invoice, id }, context) {
 
   if (item.boost > 0) {
     await tx.$executeRaw`
-    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein)
+    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
     VALUES ('expireBoost', jsonb_build_object('id', ${item.id}::INTEGER), 21, true,
-              now() + interval '30 days', interval '40 days')`
+              now() + interval '30 days', now() + interval '40 days')`
   }
 
   if (item.parentId) {

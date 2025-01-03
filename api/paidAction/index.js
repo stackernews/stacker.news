@@ -471,11 +471,11 @@ async function createDbInvoice (actionType, args, context) {
 
   // insert a job to check the invoice after it's set to expire
   await db.$executeRaw`
-      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein, priority)
+      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil, priority)
       VALUES ('checkInvoice',
         jsonb_build_object('hash', ${invoice.hash}::TEXT), 21, true,
           ${expiresAt}::TIMESTAMP WITH TIME ZONE,
-          ${expiresAt}::TIMESTAMP WITH TIME ZONE - now() + interval '10m', 100)`
+          ${expiresAt}::TIMESTAMP WITH TIME ZONE + interval '10m', 100)`
 
   // the HMAC is only returned during invoice creation
   // this makes sure that only the person who created this invoice

@@ -68,9 +68,9 @@ export async function onPaid ({ invoice, actId }, { tx }) {
   })
 
   await tx.$executeRaw`
-    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein)
+    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
     VALUES ('expireBoost', jsonb_build_object('id', ${itemAct.itemId}::INTEGER), 21, true,
-              now() + interval '30 days', interval '40 days')`
+              now() + interval '30 days', now() + interval '40 days')`
 }
 
 export async function onFail ({ invoice }, { tx }) {

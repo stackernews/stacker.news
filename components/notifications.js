@@ -714,16 +714,18 @@ export function NotificationAlert () {
         ? (
           <Alert variant='info' dismissible onClose={close}>
             <span className='align-middle'>Enable push notifications?</span>
-            <button
-              className={`${styles.alertBtn} mx-1`}
-              onClick={async () => {
-                await sw.requestNotificationPermission()
-                  .then(close)
-                  .catch(setError)
-              }}
-            >Yes
-            </button>
-            <button className={styles.alertBtn} onClick={close}>No</button>
+            <span className='d-inline-flex'>
+              <button
+                className={`${styles.alertBtn} mx-1`}
+                onClick={async () => {
+                  await sw.requestNotificationPermission()
+                    .then(close)
+                    .catch(setError)
+                }}
+              >Yes
+              </button>
+              <button className={styles.alertBtn} onClick={close}>No</button>
+            </span>
           </Alert>
           )
         : (

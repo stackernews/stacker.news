@@ -126,7 +126,8 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       variables: {
         id: item.id,
         sats: Number(amount),
-        act
+        act,
+        hasSendWallet: wallets.length > 0
       },
       optimisticResponse: me
         ? {

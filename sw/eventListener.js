@@ -67,7 +67,7 @@ export function onPush (sw) {
           notifications.filter(({ tag: nTag }) => nTag === tag).forEach(n => n.close())
         }
         log(`[sw:push] ${nid} - show notification with title "${payload.title}"`)
-        return await sw.registration.showNotification(payload.title, payload.options)
+        return event.waitUntil(sw.registration.showNotification(payload.title, payload.options))
       }
 
       // according to the spec, there should only be zero or one notification since we used a tag filter
@@ -77,7 +77,7 @@ export function onPush (sw) {
         log(`[sw:push] ${nid} - no existing ${tag} notifications found`)
         setAppBadge(sw, ++activeCount)
         log(`[sw:push] ${nid} - show notification with title "${payload.title}"`)
-        return await sw.registration.showNotification(payload.title, payload.options)
+        return event.waitUntil(sw.registration.showNotification(payload.title, payload.options))
       }
 
       // handle unexpected case here
@@ -90,7 +90,7 @@ export function onPush (sw) {
         // return null
       }
 
-      return await mergeAndShowNotification(sw, payload, notifications, tag, nid, iOS)
+      return event.waitUntil(mergeAndShowNotification(event, sw, payload, notifications, tag, nid, iOS))
     })())
   }
 }
@@ -100,7 +100,7 @@ export function onPush (sw) {
 const immediatelyShowNotification = (tag) =>
   !tag || ['TIP', 'FORWARDEDTIP', 'EARN', 'STREAK', 'TERRITORY_TRANSFER'].includes(tag.split('-')[0])
 
-const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, nid, iOS) => {
+const mergeAndShowNotification = async (event, sw, payload, currentNotifications, tag, nid, iOS) => {
   // sanity check
   const otherTagNotifications = currentNotifications.filter(({ tag: nTag }) => nTag !== tag)
   if (otherTagNotifications.length > 0) {
@@ -178,7 +178,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
 
   const options = { icon: payload.options?.icon, tag, data: { url: '/notifications', ...mergedPayload } }
   log(`[sw:push] ${nid} - show notification with title "${title}"`)
-  return await sw.registration.showNotification(title, options)
+  return event.waitUntil(sw.registration.showNotification(title, options))
 }
 
 export function onNotificationClick (sw) {

@@ -150,6 +150,7 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
     return await models.$queryRawUnsafe(`
       SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
         COALESCE("ItemAct"."meMsats", 0) as "meMsats", COALESCE("ItemAct"."mePendingMsats", 0) as "mePendingMsats",
+        COALESCE("ItemAct"."meMcredits", 0) as "meMcredits", COALESCE("ItemAct"."mePendingMcredits", 0) as "mePendingMcredits",
         COALESCE("ItemAct"."meDontLikeMsats", 0) as "meDontLikeMsats", b."itemId" IS NOT NULL AS "meBookmark",
         "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward",
         to_jsonb("Sub".*) || jsonb_build_object('meMuteSub', "MuteSub"."userId" IS NOT NULL)
@@ -167,10 +168,14 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
       LEFT JOIN "SubSubscription" ON "Sub"."name" = "SubSubscription"."subName" AND "SubSubscription"."userId" = ${me.id}
       LEFT JOIN LATERAL (
         SELECT "itemId",
-          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND (act = 'FEE' OR act = 'TIP')) AS "meMsats",
-          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS NOT DISTINCT FROM 'PENDING' AND (act = 'FEE' OR act = 'TIP') AND "Item"."userId" <> ${me.id}) AS "mePendingMsats",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND "InvoiceForward".id IS NOT NULL AND (act = 'FEE' OR act = 'TIP')) AS "meMsats",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND "InvoiceForward".id IS NULL AND (act = 'FEE' OR act = 'TIP')) AS "meMcredits",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS NOT DISTINCT FROM 'PENDING' AND "InvoiceForward".id IS NOT NULL AND (act = 'FEE' OR act = 'TIP')) AS "mePendingMsats",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS NOT DISTINCT FROM 'PENDING' AND "InvoiceForward".id IS NULL AND (act = 'FEE' OR act = 'TIP')) AS "mePendingMcredits",
           sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND act = 'DONT_LIKE_THIS') AS "meDontLikeMsats"
         FROM "ItemAct"
+        LEFT JOIN "Invoice" ON "Invoice".id = "ItemAct"."invoiceId"
+        LEFT JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Invoice"."id"
         WHERE "ItemAct"."userId" = ${me.id}
         AND "ItemAct"."itemId" = "Item".id
         GROUP BY "ItemAct"."itemId"
@@ -940,7 +945,7 @@ export default {
 
       return await performPaidAction('POLL_VOTE', { id }, { me, models, lnd })
     },
-    act: async (parent, { id, sats, act = 'TIP' }, { me, models, lnd, headers }) => {
+    act: async (parent, { id, sats, act = 'TIP', hasSendWallet }, { me, models, lnd, headers }) => {
       assertApiKeyNotPermitted({ me })
       await validateSchema(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
@@ -974,7 +979,7 @@ export default {
       }
 
       if (act === 'TIP') {
-        return await performPaidAction('ZAP', { id, sats }, { me, models, lnd })
+        return await performPaidAction('ZAP', { id, sats, hasSendWallet }, { me, models, lnd })
       } else if (act === 'DONT_LIKE_THIS') {
         return await performPaidAction('DOWN_ZAP', { id, sats }, { me, models, lnd })
       } else if (act === 'BOOST') {
@@ -1048,11 +1053,23 @@ export default {
     }
   },
   Item: {
-    sats: async (item, args, { models }) => {
-      return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0))
+    sats: async (item, args, { models, me }) => {
+      if (me?.id === item.userId) {
+        return msatsToSats(BigInt(item.msats))
+      }
+      return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0) + BigInt(item.mePendingMcredits || 0))
+    },
+    credits: async (item, args, { models, me }) => {
+      if (me?.id === item.userId) {
+        return msatsToSats(BigInt(item.mcredits))
+      }
+      return msatsToSats(BigInt(item.mcredits) + BigInt(item.mePendingMcredits || 0))
     },
     commentSats: async (item, args, { models }) => {
       return msatsToSats(item.commentMsats)
+    },
+    commentCredits: async (item, args, { models }) => {
+      return msatsToSats(item.commentMcredits)
     },
     isJob: async (item, args, { models }) => {
       return item.subName === 'jobs'
@@ -1170,8 +1187,8 @@ export default {
     },
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
-      if (typeof item.meMsats !== 'undefined') {
-        return msatsToSats(item.meMsats)
+      if (typeof item.meMsats !== 'undefined' && typeof item.meMcredits !== 'undefined') {
+        return msatsToSats(BigInt(item.meMsats) + BigInt(item.meMcredits))
       }
 
       const { _sum: { msats } } = await models.itemAct.aggregate({
@@ -1183,6 +1200,38 @@ export default {
           userId: me.id,
           invoiceActionState: {
             not: 'FAILED'
+          },
+          OR: [
+            {
+              act: 'TIP'
+            },
+            {
+              act: 'FEE'
+            }
+          ]
+        }
+      })
+
+      return (msats && msatsToSats(msats)) || 0
+    },
+    meCredits: async (item, args, { me, models }) => {
+      if (!me) return 0
+      if (typeof item.meMcredits !== 'undefined') {
+        return msatsToSats(item.meMcredits)
+      }
+
+      const { _sum: { msats } } = await models.itemAct.aggregate({
+        _sum: {
+          msats: true
+        },
+        where: {
+          itemId: Number(item.id),
+          userId: me.id,
+          invoiceActionState: {
+            not: 'FAILED'
+          },
+          invoice: {
+            invoiceForward: { is: null }
           },
           OR: [
             {

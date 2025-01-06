@@ -1053,10 +1053,16 @@ export default {
     }
   },
   Item: {
-    sats: async (item, args, { models }) => {
+    sats: async (item, args, { models, me }) => {
+      if (me?.id === item.userId) {
+        return msatsToSats(BigInt(item.msats))
+      }
       return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0) + BigInt(item.mePendingMcredits || 0))
     },
-    credits: async (item, args, { models }) => {
+    credits: async (item, args, { models, me }) => {
+      if (me?.id === item.userId) {
+        return msatsToSats(BigInt(item.mcredits))
+      }
       return msatsToSats(BigInt(item.mcredits) + BigInt(item.mePendingMcredits || 0))
     },
     commentSats: async (item, args, { models }) => {

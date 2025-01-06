@@ -27,9 +27,11 @@ const ITEM_SEARCH_FIELDS = gql`
     remote
     upvotes
     sats
+    credits
     boost
     lastCommentAt
     commentSats
+    commentCredits
     path
     ncomments
   }`

@@ -79,11 +79,16 @@ const typeDefs = `
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
     sendToBolt12Offer(offer: String!, amountSats: Int!, maxFee: Int!, comment: String): Withdrawl!
-    cancelInvoice(hash: String!, hmac: String!): Invoice!
+    cancelInvoice(hash: String!, hmac: String, userCancel: Boolean): Invoice!
     dropBolt11(hash: String!): Boolean
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(wallet: String): Boolean
     setWalletPriority(id: ID!, priority: Int!): Boolean
+    buyCredits(credits: Int!): BuyCreditsPaidAction!
+  }
+
+  type BuyCreditsResult {
+    credits: Int!
   }
 
   interface InvoiceOrDirect {
@@ -127,6 +132,7 @@ const typeDefs = `
     actionState: String
     actionType: String
     actionError: String
+    invoiceForward: Boolean
     item: Item
     itemAct: ItemAct
     forwardedSats: Int

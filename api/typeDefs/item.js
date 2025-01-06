@@ -60,7 +60,7 @@ export default gql`
       hash: String, hmac: String): ItemPaidAction!
     updateNoteId(id: ID!, noteId: String!): Item!
     upsertComment(id: ID, text: String!, parentId: ID, boost: Int, hash: String, hmac: String): ItemPaidAction!
-    act(id: ID!, sats: Int, act: String, idempotent: Boolean): ItemActPaidAction!
+    act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): ItemActPaidAction!
     pollVote(id: ID!): PollVotePaidAction!
     toggleOutlaw(id: ID!): Item!
   }
@@ -127,10 +127,13 @@ export default gql`
     bountyPaidTo: [Int]
     noteId: String
     sats: Int!
+    credits: Int!
     commentSats: Int!
+    commentCredits: Int!
     lastCommentAt: Date
     upvotes: Int!
     meSats: Int!
+    meCredits: Int!
     meDontLikeSats: Int!
     meBookmark: Boolean!
     meSubscription: Boolean!

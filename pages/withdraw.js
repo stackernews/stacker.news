@@ -1,198 +1,68 @@
-import { useRouter } from 'next/router'
-import { Checkbox, Form, Input, InputUserSuggest, SubmitButton } from '@/components/form'
-import Link from 'next/link'
-import Button from 'react-bootstrap/Button'
-import { gql, useMutation, useQuery } from '@apollo/client'
-import Qr, { QrSkeleton } from '@/components/qr'
-import { CenterLayout } from '@/components/layout'
-import InputGroup from 'react-bootstrap/InputGroup'
-import { WithdrawlSkeleton } from '@/pages/withdrawals/[id]'
-import { useMe } from '@/components/me'
-import { useEffect, useState } from 'react'
-import { requestProvider } from 'webln'
-import Alert from 'react-bootstrap/Alert'
-import { CREATE_WITHDRAWL, SEND_TO_BOLT12_OFFER, SEND_TO_LNADDR } from '@/fragments/wallet'
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { amountSchema, lnAddrSchema, withdrawlSchema, bolt12WithdrawSchema } from '@/lib/validate'
-import Nav from 'react-bootstrap/Nav'
-import { BALANCE_LIMIT_MSATS, FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
-import { msatsToSats, numWithUnits } from '@/lib/format'
+import { CenterLayout } from '@/components/layout'
+import Link from 'next/link'
+import { useRouter } from 'next/router'
+import { InputGroup, Nav } from 'react-bootstrap'
 import styles from '@/components/user-header.module.css'
-import HiddenWalletSummary from '@/components/hidden-wallet-summary'
-import AccordianItem from '@/components/accordian-item'
-import { lnAddrOptions } from '@/lib/lnurl'
-import useDebounceCallback from '@/components/use-debounce-callback'
-import { Scanner } from '@yudiel/react-qr-scanner'
-import CameraIcon from '@/svgs/camera-line.svg'
+import { gql, useMutation, useQuery } from '@apollo/client'
+import { CREATE_WITHDRAWL, SEND_TO_LNADDR, SEND_TO_BOLT12_OFFER } from '@/fragments/wallet'
+import { requestProvider } from 'webln'
+import { useEffect, useState } from 'react'
+import { useMe } from '@/components/me'
+import { WithdrawlSkeleton } from './withdrawals/[id]'
+import { Checkbox, Form, Input, InputUserSuggest, SubmitButton } from '@/components/form'
+import { lnAddrSchema, withdrawlSchema, bolt12WithdrawSchema } from '@/lib/validate'
 import { useShowModal } from '@/components/modal'
 import { useField } from 'formik'
 import { useToast } from '@/components/toast'
-import { WalletLimitBanner } from '@/components/banners'
-import Plug from '@/svgs/plug.svg'
+import { Scanner } from '@yudiel/react-qr-scanner'
 import { decode } from 'bolt11'
+import CameraIcon from '@/svgs/camera-line.svg'
+import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
+import Qr, { QrSkeleton } from '@/components/qr'
+import useDebounceCallback from '@/components/use-debounce-callback'
+import { lnAddrOptions } from '@/lib/lnurl'
+import AccordianItem from '@/components/accordian-item'
+import { numWithUnits } from '@/lib/format'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
-export default function Wallet () {
-  const router = useRouter()
-
-  if (router.query.type === 'fund') {
-    return (
-      <CenterLayout>
-        <FundForm />
-      </CenterLayout>
-    )
-  } else if (router.query.type?.includes('withdraw')) {
-    return (
-      <CenterLayout>
-        <WithdrawalForm />
-      </CenterLayout>
-    )
-  } else {
-    return (
-      <CenterLayout>
-        <YouHaveSats />
-        <WalletLimitBanner />
-        <WalletForm />
-        <WalletHistory />
-      </CenterLayout>
-    )
-  }
+export default function Withdraw () {
+  return (
+    <CenterLayout>
+      <WithdrawForm />
+    </CenterLayout>
+  )
 }
 
-function YouHaveSats () {
+function WithdrawForm () {
+  const router = useRouter()
   const { me } = useMe()
-  const limitReached = me?.privates?.sats >= msatsToSats(BALANCE_LIMIT_MSATS)
-  return (
-    <h2 className={`${me ? 'visible' : 'invisible'} ${limitReached ? 'text-warning' : 'text-success'}`}>
-      you have{' '}
-      <span className='text-monospace'>{me && (
-        me.privates?.hideWalletBalance
-          ? <HiddenWalletSummary />
-          : numWithUnits(me.privates?.sats, { abbreviate: false, format: true })
-      )}
-      </span>
-    </h2>
-  )
-}
-
-function WalletHistory () {
-  return (
-    <div className='d-flex flex-column text-center'>
-      <div>
-        <Link href='/satistics?inc=invoice,withdrawal' className='text-muted fw-bold text-underline'>
-          wallet history
-        </Link>
-      </div>
-    </div>
-  )
-}
-
-export function WalletForm () {
-  return (
-    <div className='align-items-center text-center pt-5 pb-4'>
-      <Link href='/wallet?type=fund'>
-        <Button variant='success'>fund</Button>
-      </Link>
-      <span className='mx-3 fw-bold text-muted'>or</span>
-      <Link href='/wallet?type=withdraw'>
-        <Button variant='success'>withdraw</Button>
-      </Link>
-      <div className='mt-5'>
-        <Link href='/settings/wallets'>
-          <Button variant='info'>attach wallets <Plug className='fill-white ms-1' width={16} height={16} /></Button>
-        </Link>
-      </div>
-    </div>
-  )
-}
-
-export function FundForm () {
-  const { me } = useMe()
-  const [showAlert, setShowAlert] = useState(true)
-  const router = useRouter()
-  const [createInvoice, { called, error }] = useMutation(gql`
-    mutation createInvoice($amount: Int!) {
-      createInvoice(amount: $amount) {
-        __typename
-        id
-      }
-    }`)
-
-  useEffect(() => {
-    setShowAlert(!window.localStorage.getItem('hideLnAddrAlert'))
-  }, [])
-
-  if (called && !error) {
-    return <QrSkeleton description status='generating' bolt11Info />
-  }
-
-  return (
-    <>
-      <YouHaveSats />
-      <WalletLimitBanner />
-      <div className='w-100 py-5'>
-        {me && showAlert &&
-          <Alert
-            variant='success' dismissible onClose={() => {
-              window.localStorage.setItem('hideLnAddrAlert', 'yep')
-              setShowAlert(false)
-            }}
-          >
-            You can also fund your account via lightning address with <strong>{`${me.name}@stacker.news`}</strong>
-          </Alert>}
-        <Form
-          initial={{
-            amount: 1000
-          }}
-          schema={amountSchema}
-          onSubmit={async ({ amount }) => {
-            const { data } = await createInvoice({ variables: { amount: Number(amount) } })
-            if (data.createInvoice.__typename === 'Direct') {
-              router.push(`/directs/${data.createInvoice.id}`)
-            } else {
-              router.push(`/invoices/${data.createInvoice.id}`)
-            }
-          }}
-        >
-          <Input
-            label='amount'
-            name='amount'
-            required
-            autoFocus
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-          />
-          <SubmitButton variant='success' className='mt-2'>generate invoice</SubmitButton>
-        </Form>
-      </div>
-      <WalletHistory />
-    </>
-  )
-}
-
-export function WithdrawalForm () {
-  const router = useRouter()
 
   return (
     <div className='w-100 d-flex flex-column align-items-center py-5'>
-      <YouHaveSats />
+      <h2 className='text-start ms-1 ms-md-3'>
+        <div className='text-monospace'>
+          {numWithUnits(me?.privates?.sats - me?.privates?.credits, { abbreviate: false, format: true, unitSingular: 'sats', unitPlural: 'sats' })}
+        </div>
+      </h2>
       <Nav
         className={styles.nav}
-        activeKey={router.query.type}
+        activeKey={router.query.type ?? 'invoice'}
       >
         <Nav.Item>
-          <Link href='/wallet?type=withdraw' passHref legacyBehavior>
-            <Nav.Link eventKey='withdraw'>invoice</Nav.Link>
+          <Link href='/withdraw' passHref legacyBehavior>
+            <Nav.Link eventKey='invoice'>invoice</Nav.Link>
           </Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/wallet?type=lnurl-withdraw' passHref legacyBehavior>
-            <Nav.Link eventKey='lnurl-withdraw'>QR code</Nav.Link>
+          <Link href='/withdraw?type=lnurl' passHref legacyBehavior>
+            <Nav.Link eventKey='lnurl'>QR code</Nav.Link>
           </Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/wallet?type=lnaddr-withdraw' passHref legacyBehavior>
-            <Nav.Link eventKey='lnaddr-withdraw'>lightning address</Nav.Link>
+          <Link href='/withdraw?type=lnaddr' passHref legacyBehavior>
+            <Nav.Link eventKey='lnaddr'>lightning address</Nav.Link>
           </Link>
         </Nav.Item>
         <Nav.Item>
@@ -210,14 +80,14 @@ export function SelectedWithdrawalForm () {
   const router = useRouter()
 
   switch (router.query.type) {
-    case 'withdraw':
-      return <InvWithdrawal />
-    case 'lnurl-withdraw':
-      return <LnWithdrawal />
-    case 'lnaddr-withdraw':
+    case 'lnurl':
+      return <LnurlWithdrawal />
+    case 'lnaddr':
       return <LnAddrWithdrawal />
     case 'bolt12-withdraw':
       return <Bolt12Withdrawal />
+    default:
+      return <InvWithdrawal />
   }
 }
 
@@ -278,7 +148,9 @@ export function InvWithdrawal () {
           required
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
-        <SubmitButton variant='success' className='mt-2'>withdraw</SubmitButton>
+        <div className='d-flex justify-content-end mt-4'>
+          <SubmitButton variant='success'>withdraw</SubmitButton>
+        </div>
       </Form>
     </>
   )
@@ -350,7 +222,7 @@ function LnQRWith ({ k1, encodedUrl }) {
   return <Qr value={encodedUrl} status='waiting for you' />
 }
 
-export function LnWithdrawal () {
+export function LnurlWithdrawal () {
   // query for challenge
   const [createWith, { data, error }] = useMutation(gql`
     mutation createWith {
@@ -514,7 +386,9 @@ export function LnAddrWithdrawal () {
               />
             </div>
           </div>}
-        <SubmitButton variant='success' className='mt-2'>send</SubmitButton>
+        <div className='d-flex justify-content-end mt-4'>
+          <SubmitButton variant='success'>send</SubmitButton>
+        </div>
       </Form>
     </>
   )

@@ -8,6 +8,7 @@ export const anonable = true
 
 export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.REWARD_SATS,
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
@@ -137,15 +138,15 @@ export async function perform (args, context) {
   })
 
   await tx.$executeRaw`
-    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein)
+    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
     VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true,
-              now() + interval '5 seconds', interval '1 day')`
+              now() + interval '5 seconds', now() + interval '1 day')`
 
   if (newBoost > 0) {
     await tx.$executeRaw`
-      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein)
+      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
       VALUES ('expireBoost', jsonb_build_object('id', ${id}::INTEGER), 21, true,
-                now() + interval '30 days', interval '40 days')`
+                now() + interval '30 days', now() + interval '40 days')`
   }
 
   await performBotBehavior(args, context)

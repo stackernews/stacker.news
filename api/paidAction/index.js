@@ -19,6 +19,7 @@ import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
 import * as BOOST from './boost'
 import * as RECEIVE from './receive'
+import * as BUY_CREDITS from './buyCredits'
 import * as INVITE_GIFT from './inviteGift'
 
 export const paidActions = {
@@ -34,6 +35,7 @@ export const paidActions = {
   TERRITORY_UNARCHIVE,
   DONATE,
   RECEIVE,
+  BUY_CREDITS,
   INVITE_GIFT
 }
 
@@ -97,7 +99,8 @@ export default async function performPaidAction (actionType, args, incomingConte
 
       // additional payment methods that logged in users can use
       if (me) {
-        if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT) {
+        if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT ||
+          paymentMethod === PAID_ACTION_PAYMENT_METHODS.REWARD_SATS) {
           try {
             return await performNoInvoiceAction(actionType, args, contextWithPaymentMethod)
           } catch (e) {
@@ -142,6 +145,13 @@ async function performNoInvoiceAction (actionType, args, incomingContext) {
     const context = { ...incomingContext, tx }
 
     if (paymentMethod === 'FEE_CREDIT') {
+      await tx.user.update({
+        where: {
+          id: me?.id ?? USER_ID.anon
+        },
+        data: { mcredits: { decrement: cost } }
+      })
+    } else if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.REWARD_SATS) {
       await tx.user.update({
         where: {
           id: me?.id ?? USER_ID.anon
@@ -464,11 +474,11 @@ async function createDbInvoice (actionType, args, context) {
 
   // insert a job to check the invoice after it's set to expire
   await db.$executeRaw`
-      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein, priority)
+      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil, priority)
       VALUES ('checkInvoice',
         jsonb_build_object('hash', ${invoice.hash}::TEXT), 21, true,
           ${expiresAt}::TIMESTAMP WITH TIME ZONE,
-          ${expiresAt}::TIMESTAMP WITH TIME ZONE - now() + interval '10m', 100)`
+          ${expiresAt}::TIMESTAMP WITH TIME ZONE + interval '10m', 100)`
 
   // the HMAC is only returned during invoice creation
   // this makes sure that only the person who created this invoice

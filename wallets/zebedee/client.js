@@ -9,8 +9,11 @@ export async function testSendPayment ({ apiKey }, { signal }) {
 
 export async function sendPayment (bolt11, { apiKey }, { signal }) {
   const res = await apiCall('payments', { body: { invoice: bolt11 }, apiKey }, { signal })
-  const { id, preimage } = res?.data
+  if (!res?.data) throw new Error('payment failed')
+
+  const { id, preimage } = res.data
   if (preimage) return preimage
+
   // the api might return before the invoice is paid, so we'll wait for the preimage
   return await waitForPreimage(id, { apiKey }, { signal })
 }
@@ -59,8 +62,10 @@ export async function apiCall (api, { body, apiKey, method = 'POST' }, { signal 
     } catch (e) {
       console.log('failed to parse error', e)
     }
+
     // throw the error, if we don't have one, we try to use the request status
-    throw new Error(error ?? (res.statusText || `error ${res.status}`))
+    if (!error) error = res.statusText || `error ${res.status}`
+    throw new Error(error)
   }
 
   assertContentTypeJson(res)

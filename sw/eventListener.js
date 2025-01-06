@@ -46,6 +46,7 @@ export function onPush (sw) {
     } else { // Check if there are already notifications with the same tag and merge them
       // logger.info(`[${nid}] checking for existing notification with tag ${tag}`)
       promises.push(sw.registration.getNotifications({ tag }).then((notifications) => {
+        // logger.info(`[${nid}] found ${notifications.length} notifications with tag ${tag}`)
         if (notifications.length) {
           // logger.info(`[${nid}] found ${notifications.length} notifications with tag ${tag}`)
           payload = mergeNotification(event, sw, payload, notifications, tag, nid)
@@ -89,7 +90,7 @@ const mergeNotification = (event, sw, payload, currentNotifications, tag, nid) =
   // tags that need to know the sum of sats of notifications with same tag for merging
   const SUM_SATS_TAGS = ['DEPOSIT', 'WITHDRAWAL']
   // this should reflect the amount of notifications that were already merged before
-  const initialAmount = currentNotifications[0]?.data?.amount || 1
+  const initialAmount = currentNotifications.length || 1
   const initialSats = currentNotifications[0]?.data?.sats || 0
   // logger.info(`[sw:push] ${nid} - initial amount: ${initialAmount}`)
   // logger.info(`[sw:push] ${nid} - initial sats: ${initialSats}`)

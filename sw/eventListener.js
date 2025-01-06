@@ -94,6 +94,7 @@ const mergeNotification = (event, sw, payload, currentNotifications, tag, nid) =
   // logger.info(`[sw:push] ${nid} - initial amount: ${initialAmount}`)
   // logger.info(`[sw:push] ${nid} - initial sats: ${initialSats}`)
 
+  // currentNotifications.reduce causes iOS to sum n notifications + initialAmount which is already n notifications
   const mergedPayload = {
     ...incomingData,
     amount: initialAmount + 1,
@@ -132,23 +133,26 @@ const mergeNotification = (event, sw, payload, currentNotifications, tag, nid) =
 
   const options = { icon: payload.options?.icon, tag, data: { url: '/notifications', ...mergedPayload } }
   // logger.info(`[sw:push] ${nid} - show notification with title "${title}"`)
-  return { title, options }
+  return { title, options } // send the new, merged, payload
 }
 
+// iOS-specific bug, notificationclick event only works when the app is closed
 export function onNotificationClick (sw) {
   return (event) => {
+    const promises = []
     // const logger = getLogger('sw:onNotificationClick', ['onNotificationClick'])
     const url = event.notification.data?.url
     // logger.info(`[sw:onNotificationClick] clicked notification with url ${url}`)
     if (url) {
-      event.waitUntil(sw.clients.openWindow(url))
+      promises.push(sw.clients.openWindow(url))
     }
     activeCount = Math.max(0, activeCount - 1)
     if (activeCount === 0) {
-      clearAppBadge(sw)
+      promises.push(clearAppBadge(sw))
     } else {
-      setAppBadge(sw, activeCount)
+      promises.push(setAppBadge(sw, activeCount))
     }
+    event.waitUntil(Promise.all(promises))
     event.notification.close()
   }
 }

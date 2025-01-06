@@ -62,7 +62,7 @@ function ErrorImage ({ statusCode }) {
   return <Image className='rounded-1 shadow-sm' width='500' height='376' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/falling.gif`} fluid />
 }
 
-export default function Error ({ statusCode }) {
+export default function ErrorPage ({ statusCode }) {
   return (
     <StaticLayout>
       <ErrorImage statusCode={statusCode} />
@@ -71,7 +71,7 @@ export default function Error ({ statusCode }) {
   )
 }
 
-Error.getInitialProps = ({ res, err }) => {
+ErrorPage.getInitialProps = ({ res, err }) => {
   const statusCode = res ? res.statusCode : err ? err.statusCode : 404
   return { statusCode }
 }

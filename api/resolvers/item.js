@@ -1434,7 +1434,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   // but forever if an admin is editing an "admin item", it's their bio or a job
   const myBio = user.bioId === old.id
   const timer = Date.now() < datePivot(new Date(old.invoicePaidAt ?? old.createdAt), { seconds: ITEM_EDIT_SECONDS })
-  const canEdit = (timer && ownerEdit) || adminEdit || myBio || isJob(item)
+  const canEdit = (timer && ownerEdit) || adminEdit || myBio || isJob(old)
   if (!canEdit) {
     throw new GqlInputError('item can no longer be edited')
   }

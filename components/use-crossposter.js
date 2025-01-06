@@ -207,7 +207,6 @@ export default function useCrossposter () {
         const result = await nostr.crosspost(event, { relays: failedRelays || relays })
 
         if (result.error) {
-          failedRelays = []
           throw new Error(result.error)
         }
 

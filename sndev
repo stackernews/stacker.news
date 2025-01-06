@@ -7,6 +7,10 @@ if [ -f .env.local ]; then
   . ./.env.local
 fi
 
+logFilter() {
+  grep -v --line-buffered --color=never 'POST /api/graphql .*200'
+}
+
 docker__compose() {
   if [ ! -x "$(command -v docker)" ]; then
     echo "docker compose is not installed"
@@ -128,7 +132,7 @@ OPTIONS"
 sndev__logs() {
   shift
   if [ $# -eq 1 ]; then
-    docker__compose logs -t --tail=1000 -f "$@"
+    docker__compose logs -t --tail=1000 -f "$@" | logFilter
     exit 0
   fi
 

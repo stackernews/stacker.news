@@ -18,7 +18,8 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
             text () {
               return result.text
             }
-          }
+          },
+          optimistic: true
         })
       }
     },

@@ -41,6 +41,7 @@ ${VAULT_ENTRY_FIELDS}
       nostrCrossposting
       nsfwMode
       sats
+      credits
       tipDefault
       tipRandom
       tipRandomMin
@@ -121,6 +122,8 @@ export const SETTINGS_FIELDS = gql`
       apiKeyEnabled
       proxyReceive
       directReceive
+      receiveCreditsBelowSats
+      sendCreditsBelowSats
     }
     encryptedPrivates {
       key

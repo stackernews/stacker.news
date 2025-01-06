@@ -183,12 +183,15 @@ export default function Settings ({ ssrData }) {
             directReceive: settings?.directReceive,
             signerType: settings?.signerType || 'nip07',
             signer: settings?.signer
+            receiveCreditsBelowSats: settings?.receiveCreditsBelowSats,
+            sendCreditsBelowSats: settings?.sendCreditsBelowSats
           }}
           schema={settingsSchema}
           onSubmit={async ({
             tipDefault, tipRandom, tipRandomMin, tipRandomMax, withdrawMaxFeeDefault,
             zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, satsFilter,
             signer, signerType,
+            receiveCreditsBelowSats, sendCreditsBelowSats,
             ...values
           }) => {
             if (nostrPubkey.length === 0) {
@@ -214,6 +217,8 @@ export default function Settings ({ ssrData }) {
                     withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
                     satsFilter: Number(satsFilter),
                     zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
+                    receiveCreditsBelowSats: Number(receiveCreditsBelowSats),
+                    sendCreditsBelowSats: Number(sendCreditsBelowSats),
                     nostrPubkey,
                     nostrRelays: nostrRelaysFiltered,
                     ...values
@@ -394,6 +399,18 @@ export default function Settings ({ ssrData }) {
             name='noteCowboyHat'
           />
           <div className='form-label'>wallet</div>
+          <Input
+            label='receive credits for zaps and deposits below'
+            name='receiveCreditsBelowSats'
+            required
+            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
+          <Input
+            label='send credits for zaps below'
+            name='sendCreditsBelowSats'
+            required
+            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
           <Checkbox
             label={
               <div className='d-flex align-items-center'>proxy deposits to attached wallets
@@ -805,7 +822,7 @@ function NostrLinkButton ({ unlink, status }) {
     ? unlink
     : () => showModal(onClose =>
       <div className='d-flex flex-column align-items-center'>
-        <NostrAuth text='Unlink' />
+        <NostrAuth text='Link' />
       </div>)
 
   return (

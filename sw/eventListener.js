@@ -13,7 +13,12 @@ let actionChannelPort
 
 // operating system. the value will be received via a STORE_OS message from app since service workers don't have access to window.navigator
 let os = ''
-const iOS = () => os === 'iOS'
+async function getOS () {
+  if (!os) {
+    os = await storage.getItem('os') || ''
+  }
+  return os
+}
 
 // current push notification count for badge purposes
 let activeCount = 0
@@ -28,6 +33,7 @@ export function onPush (sw) {
     if (!payload) return
     const { tag } = payload.options
     event.waitUntil((async () => {
+      const iOS = await getOS() === 'iOS'
       // generate random ID for every incoming push for better tracing in logs
       const nid = crypto.randomUUID()
       log(`[sw:push] ${nid} - received notification with tag ${tag}`)
@@ -56,7 +62,7 @@ export function onPush (sw) {
         // close them and then we display the notification.
         const notifications = await sw.registration.getNotifications({ tag })
         // we only close notifications manually on iOS because we don't want to degrade android UX just because iOS is behind in their support.
-        if (iOS()) {
+        if (iOS) {
           log(`[sw:push] ${nid} - closing existing notifications`)
           notifications.filter(({ tag: nTag }) => nTag === tag).forEach(n => n.close())
         }
@@ -84,7 +90,7 @@ export function onPush (sw) {
         // return null
       }
 
-      return await mergeAndShowNotification(sw, payload, notifications, tag, nid)
+      return await mergeAndShowNotification(sw, payload, notifications, tag, nid, iOS)
     })())
   }
 }
@@ -94,7 +100,7 @@ export function onPush (sw) {
 const immediatelyShowNotification = (tag) =>
   !tag || ['TIP', 'FORWARDEDTIP', 'EARN', 'STREAK', 'TERRITORY_TRANSFER'].includes(tag.split('-')[0])
 
-const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, nid) => {
+const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, nid, iOS) => {
   // sanity check
   const otherTagNotifications = currentNotifications.filter(({ tag: nTag }) => nTag !== tag)
   if (otherTagNotifications.length > 0) {
@@ -119,7 +125,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
   const SUM_SATS_TAGS = ['DEPOSIT', 'WITHDRAWAL']
   // this should reflect the amount of notifications that were already merged before
   let initialAmount = currentNotifications[0]?.data?.amount || 1
-  if (iOS()) initialAmount = 1
+  if (iOS) initialAmount = 1
   log(`[sw:push] ${nid} - initial amount: ${initialAmount}`)
   const mergedPayload = currentNotifications.reduce((acc, { data }) => {
     let newAmount, newSats
@@ -165,7 +171,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
 
   // close all current notifications before showing new one to "merge" notifications
   // we only do this on iOS because we don't want to degrade android UX just because iOS is behind in their support.
-  if (iOS()) {
+  if (iOS) {
     log(`[sw:push] ${nid} - closing existing notifications`)
     currentNotifications.forEach(n => n.close())
   }
@@ -249,19 +255,21 @@ export function onPushSubscriptionChange (sw) {
 }
 
 export function onMessage (sw) {
-  return (event) => {
+  return async (event) => {
     if (event.data.action === ACTION_PORT) {
       actionChannelPort = event.ports[0]
       return
     }
     if (event.data.action === STORE_OS) {
-      os = event.data.os
+      event.waitUntil(storage.setItem('os', event.data.os))
       return
     }
     if (event.data.action === MESSAGE_PORT) {
       messageChannelPort = event.ports[0]
     }
     log('[sw:message] received message', 'info', { action: event.data.action })
+    const currentOS = await getOS()
+    log('[sw:message] stored os: ' + currentOS, 'info', { action: event.data.action })
     if (event.data.action === STORE_SUBSCRIPTION) {
       log('[sw:message] storing subscription in IndexedDB', 'info', { endpoint: event.data.subscription.endpoint })
       return event.waitUntil(storage.setItem('subscription', { ...event.data.subscription, swVersion: 2 }))

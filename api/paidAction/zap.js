@@ -206,6 +206,8 @@ export async function nonCriticalSideEffects ({ invoice, actIds }, { models }) {
     where: invoice ? { invoiceId: invoice.id } : { id: { in: actIds } },
     include: { item: true }
   })
+  // avoid duplicate notifications with the same zap amount
+  // by checking if there are any other pending acts on the item
   const pendingActs = await models.itemAct.count({
     where: {
       itemId: itemAct.itemId,

@@ -97,6 +97,7 @@ const mergeNotification = (event, sw, payload, currentNotifications, tag, nid) =
   // currentNotifications.reduce causes iOS to sum n notifications + initialAmount which is already n notifications
   const mergedPayload = {
     ...incomingData,
+    url: '/notifications', // when merged we should always go to the notifications page
     amount: initialAmount + 1,
     sats: initialSats + incomingData.sats
   }
@@ -131,7 +132,7 @@ const mergeNotification = (event, sw, payload, currentNotifications, tag, nid) =
   }
   // logger.info(`[sw:push] ${nid} - calculated title: ${title}`)
 
-  const options = { icon: payload.options?.icon, tag, data: { url: '/notifications', ...mergedPayload } }
+  const options = { icon: payload.options?.icon, tag, data: { ...mergedPayload } }
   // logger.info(`[sw:push] ${nid} - show notification with title "${title}"`)
   return { title, options } // send the new, merged, payload
 }

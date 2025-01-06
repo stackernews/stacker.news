@@ -16,7 +16,7 @@ export default function HiddenWalletSummary ({ abbreviate, fixedWidth }) {
 
   return (
     <span
-      className='text-monospace' style={{ whiteSpace: 'pre-wrap' }} align='right' onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)}
+      className='text-monospace' style={{ whiteSpace: 'pre-wrap' }} onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)}
     >
       {hover ? (abbreviate ? fixedWidthAbbrSats : numWithUnits(me.privates?.sats, { abbreviate: false, format: true })) : '******'}
     </span>

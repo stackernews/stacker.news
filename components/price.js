@@ -56,7 +56,7 @@ export default function Price ({ className }) {
   if (selection === 'yep') {
     if (!price || price < 0) return null
     return (
-      <div className={compClassName} onClick={handleClick} variant='link'>
+      <div className={compClassName} onClick={handleClick}>
         {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
       </div>
     )
@@ -64,7 +64,7 @@ export default function Price ({ className }) {
 
   if (selection === '1btc') {
     return (
-      <div className={compClassName} onClick={handleClick} variant='link'>
+      <div className={compClassName} onClick={handleClick}>
         1sat=1sat
       </div>
     )
@@ -73,7 +73,7 @@ export default function Price ({ className }) {
   if (selection === 'blockHeight') {
     if (blockHeight <= 0) return null
     return (
-      <div className={compClassName} onClick={handleClick} variant='link'>
+      <div className={compClassName} onClick={handleClick}>
         {blockHeight}
       </div>
     )
@@ -82,7 +82,7 @@ export default function Price ({ className }) {
   if (selection === 'halving') {
     if (!halving) return null
     return (
-      <div className={compClassName} onClick={handleClick} variant='link'>
+      <div className={compClassName} onClick={handleClick}>
         <CompactLongCountdown date={halving} />
       </div>
     )
@@ -91,7 +91,7 @@ export default function Price ({ className }) {
   if (selection === 'chainFee') {
     if (chainFee <= 0) return null
     return (
-      <div className={compClassName} onClick={handleClick} variant='link'>
+      <div className={compClassName} onClick={handleClick}>
         {chainFee} sat/vB
       </div>
     )
@@ -100,7 +100,7 @@ export default function Price ({ className }) {
   if (selection === 'fiat') {
     if (!price || price < 0) return null
     return (
-      <div className={compClassName} onClick={handleClick} variant='link'>
+      <div className={compClassName} onClick={handleClick}>
         {fiatSymbol + fixedDecimal(price, 0)}
       </div>
     )

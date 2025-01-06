@@ -242,17 +242,13 @@ export function onMessage (sw) {
       return event.waitUntil(storage.removeItem('subscription'))
     }
     if (event.data.action === CLEAR_NOTIFICATIONS) {
-      return event.waitUntil((async () => {
-        let notifications = []
-        try {
-          notifications = await sw.registration.getNotifications()
-        } catch (err) {
-          console.error('failed to get notifications')
-        }
+      const promises = []
+      promises.push(sw.registration.getNotifications().then((notifications) => {
         notifications.forEach(notification => notification.close())
-        activeCount = 0
-        return await clearAppBadge(sw)
-      })())
+      }))
+      activeCount = 0
+      promises.push(clearAppBadge(sw))
+      event.waitUntil(Promise.all(promises))
     }
   }
 }

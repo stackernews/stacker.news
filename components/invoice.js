@@ -56,8 +56,8 @@ export default function Invoice ({
     return <QrSkeleton {...props} />
   }
 
-  let variant = 'default'
-  let status = 'waiting for you'
+  let variant
+  let status
   let sats = invoice.satsRequested
   if (invoice.forwardedSats) {
     if (invoice.actionType === 'RECEIVE') {

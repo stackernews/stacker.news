@@ -1,8 +1,5 @@
-import { API_URL, PREIMAGE_AWAIT_TIMEOUT_MS } from '@/wallets/zebedee'
+import { API_URL } from '@/wallets/zebedee'
 import { assertContentTypeJson } from '@/lib/url'
-import { callWithTimeout } from '@/lib/time'
-import { fetchWithTimeout } from '@/lib/fetch'
-
 export * from '@/wallets/zebedee'
 
 export async function testSendPayment ({ apiKey }, { signal }) {
@@ -19,45 +16,53 @@ export async function sendPayment (bolt11, { apiKey }, { signal }) {
 }
 
 async function waitForPreimage (id, { apiKey }, { signal }) {
-  return await callWithTimeout(async () => {
-    let preimage
-    while (true) {
-      const res = await apiCall('payments/{id}', { body: { id }, apiKey, method: 'GET' }, { signal })
-      preimage = res?.data?.preimage
-      if (preimage) break
-      await new Promise(resolve => setTimeout(resolve, 10))
-    }
-    return preimage
-  }, PREIMAGE_AWAIT_TIMEOUT_MS)
+  while (!signal.aborted) {
+    const res = await apiCall('payments/{id}', { body: { id }, apiKey, method: 'GET' }, { signal })
+
+    // return preimage if it's available
+    const preimage = res?.data?.preimage
+    if (preimage) return preimage
+
+    // wait a before checking again
+    await new Promise(resolve => setTimeout(resolve, 30))
+  }
+  return null
 }
 
 export async function apiCall (api, { body, apiKey, method = 'POST' }, { signal }) {
-  const headers = {
-    apikey: apiKey,
-    'Content-Type': 'application/json'
-  }
+  // if get request, put params into the url
   if (method === 'GET' && body) {
     for (const [k, v] of Object.entries(body)) {
-      api = api.replace('{' + k + '}', v)
+      api = api.replace(`{${k}}`, v)
     }
   }
-  const res = await fetchWithTimeout(API_URL + api, {
+
+  const res = await fetch(API_URL + api, {
     method,
-    headers,
+    headers: {
+      apikey: apiKey,
+      'Content-Type': 'application/json'
+    },
     signal,
     body: method === 'POST' ? JSON.stringify(body) : undefined
   })
-  // https://zbd.dev/api-reference/errors
-  if (res.status !== 200) {
+
+  // Catch errors
+  //   ref: https://zbd.dev/api-reference/errors
+  if (res.status < 200 || res.status > 299) {
+    // try to extract the error message from the response
     let error
     try {
       assertContentTypeJson(res)
       const json = await res.json()
       if (json?.message) error = json.message
     } catch (e) {
-      error = res.statusText || 'error ' + res.status
+      console.log('failed to parse error', e)
     }
-    throw new Error(error)
+    // throw the error, if we don't have one, we try to use the request status
+    throw new Error(error ?? (res.statusText || `error ${res.status}`))
   }
-  return res.json()
+
+  assertContentTypeJson(res)
+  return await res.json()
 }

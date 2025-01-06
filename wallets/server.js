@@ -82,19 +82,18 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 export async function createWrappedInvoice (userId,
   { msats, feePercent, description, descriptionHash, expiry = 360 },
   { predecessorId, models, me, lnd }) {
-  let logger, bolt11
+  const { invoice, wallet } = await createInvoice(userId, {
+    // this is the amount the stacker will receive, the other (feePercent)% is our fee
+    msats: toPositiveBigInt(msats) * (100n - feePercent) / 100n,
+    description,
+    descriptionHash,
+    expiry
+  }, { predecessorId, models })
+
+  const logger = walletLogger({ wallet, models })
+  const bolt11 = invoice
+
   try {
-    const { invoice, wallet } = await createInvoice(userId, {
-      // this is the amount the stacker will receive, the other (feePercent)% is our fee
-      msats: toPositiveBigInt(msats) * (100n - feePercent) / 100n,
-      description,
-      descriptionHash,
-      expiry
-    }, { predecessorId, models })
-
-    logger = walletLogger({ wallet, models })
-    bolt11 = invoice
-
     const { invoice: wrappedInvoice, maxFee } =
       await wrapInvoice({ bolt11, feePercent }, { msats, description, descriptionHash }, { me, lnd })
 
@@ -105,7 +104,7 @@ export async function createWrappedInvoice (userId,
       maxFee
     }
   } catch (e) {
-    logger?.error('invalid invoice: ' + e.message, { bolt11 })
+    logger.error('invalid invoice: ' + e.message, { bolt11 })
     throw e
   }
 }

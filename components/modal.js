@@ -109,6 +109,7 @@ export default function useModal () {
 
   const showModal = useCallback(
     (getContent, options) => {
+      document.activeElement?.blur()
       const ref = { node: getContent(onClose, setOptions), options }
       if (options?.replaceModal) {
         modalStack.current = [ref]

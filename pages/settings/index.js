@@ -182,7 +182,7 @@ export default function Settings ({ ssrData }) {
             proxyReceive: settings?.proxyReceive,
             directReceive: settings?.directReceive,
             signerType: settings?.signerType || 'nip07',
-            signer: settings?.signer
+            signer: settings?.signer,
             receiveCreditsBelowSats: settings?.receiveCreditsBelowSats,
             sendCreditsBelowSats: settings?.sendCreditsBelowSats
           }}

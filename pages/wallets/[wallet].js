@@ -92,7 +92,7 @@ export default function WalletSettings () {
             await save(values, values.enabled)
 
             toaster.success('saved settings')
-            router.push('/settings/wallets')
+            router.push('/wallets')
           } catch (err) {
             console.error(err)
             toaster.danger(err.message || err.toString?.())
@@ -115,7 +115,7 @@ export default function WalletSettings () {
             try {
               await detach()
               toaster.success('saved settings')
-              router.push('/settings/wallets')
+              router.push('/wallets')
             } catch (err) {
               console.error(err)
               const message = 'failed to detach: ' + err.message || err.toString?.()

@@ -44,7 +44,7 @@ export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnte
             : <Card.Title className={styles.walletLogo}>{wallet.def.card.title}</Card.Title>}
         </div>
       </Card.Body>
-      <Link href={`/settings/wallets/${wallet.def.name}`}>
+      <Link href={`/wallets/${wallet.def.name}`}>
         <Card.Footer className={styles.attach}>
           {isConfigured(wallet)
             ? <>configure<Gear width={14} height={14} /></>

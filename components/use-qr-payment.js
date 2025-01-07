@@ -20,7 +20,7 @@ export default function useQrPayment () {
       let paid
       const cancelAndReject = async (onClose) => {
         if (!paid && cancelOnClose) {
-          const updatedInv = await invoice.cancel(inv).catch(console.error)
+          const updatedInv = await invoice.cancel(inv, { userCancel: true })
           reject(new InvoiceCanceledError(updatedInv))
         }
         resolve(inv)

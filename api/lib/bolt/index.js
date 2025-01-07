@@ -1,7 +1,6 @@
 /* eslint-disable camelcase */
-import { payBolt12, parseBolt12, isBolt12Invoice, isBolt12Offer } from '@/api/lib/bolt/bolt12'
+import { payBolt12, parseBolt12, isBolt12Invoice, isBolt12Offer, estimateBolt12RouteFee } from '@/api/lib/bolt/bolt12'
 import { payBolt11, parseBolt11, isBolt11, estimateBolt11RouteFee } from '@/api/lib/bolt/bolt11'
-import { estimateBolt12RouteFee } from '@/api/lib/lndk'
 
 export async function payInvoice ({ lnd, lndk, request: invoice, max_fee, max_fee_mtokens, ...args }) {
   if (isBolt12Invoice(invoice)) {

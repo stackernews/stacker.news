@@ -7,6 +7,8 @@ import { getStorageKey, getWalletByType, walletPrioritySort, canSend, isConfigur
 import useVault from '@/components/vault/use-vault'
 import walletDefs from '@/wallets/client'
 import { generateMutation } from './graphql'
+import { useWalletPayment } from './payment'
+import useInvoice from '@/components/use-invoice'
 
 const WalletsContext = createContext({
   wallets: []
@@ -223,17 +225,25 @@ export function useWallet (name) {
 export function useSendWallets () {
   const { wallets } = useWallets()
   // return all enabled wallets that are available and can send
-  return wallets
+  return useMemo(() => wallets
     .filter(w => !w.def.isAvailable || w.def.isAvailable())
-    .filter(w => w.config?.enabled && canSend(w))
+    .filter(w => w.config?.enabled && canSend(w)), [wallets])
 }
 
 function RetryHandler ({ children }) {
   const failedInvoices = useFailedInvoices()
+  const waitForWalletPayment = useWalletPayment()
+  const invoiceHelper = useInvoice()
 
   useEffect(() => {
-    // TODO: retry
-  }, [failedInvoices])
+    (async () => {
+      for (const invoice of failedInvoices) {
+        // TODO: don't retry forever
+        const newInvoice = await invoiceHelper.retry(invoice)
+        waitForWalletPayment(newInvoice).catch(console.error)
+      }
+    })()
+  }, [failedInvoices, invoiceHelper, waitForWalletPayment])
 
   return children
 }
@@ -244,9 +254,8 @@ function useFailedInvoices () {
   // TODO: use longer poll interval in prod?
   const { data } = useQuery(FAILED_INVOICES, {
     pollInterval: FAST_POLL_INTERVAL,
-    fetchPolicy: 'no-cache',
-    nextFetchPolicy: 'no-cache',
-    skip: wallets.length === 0
+    skip: wallets.length === 0,
+    notifyOnNetworkStatusChange: true
   })
 
   return data?.failedInvoices ?? []

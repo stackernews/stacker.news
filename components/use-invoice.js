@@ -1,5 +1,5 @@
 import { useApolloClient, useMutation } from '@apollo/client'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { InvoiceCanceledError, InvoiceExpiredError, WalletReceiverError } from '@/wallets/errors'
 import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
 import { INVOICE, CANCEL_INVOICE } from '@/fragments/wallet'
@@ -42,7 +42,7 @@ export default function useInvoice () {
     return data.cancelInvoice
   }, [cancelInvoice])
 
-  const retry = useCallback(async ({ id, hash, hmac }, { update }) => {
+  const retry = useCallback(async ({ id, hash, hmac }, { update } = {}) => {
     console.log('retrying invoice:', hash)
     const { data, error } = await retryPaidAction({ variables: { invoiceId: Number(id) }, update })
     if (error) throw error
@@ -53,5 +53,5 @@ export default function useInvoice () {
     return newInvoice
   }, [retryPaidAction])
 
-  return { cancel, retry, isInvoice }
+  return useMemo(() => ({ cancel, retry, isInvoice }), [cancel, retry, isInvoice])
 }

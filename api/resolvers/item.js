@@ -1053,10 +1053,16 @@ export default {
     }
   },
   Item: {
-    sats: async (item, args, { models }) => {
+    sats: async (item, args, { models, me }) => {
+      if (me?.id === item.userId) {
+        return msatsToSats(BigInt(item.msats))
+      }
       return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0) + BigInt(item.mePendingMcredits || 0))
     },
-    credits: async (item, args, { models }) => {
+    credits: async (item, args, { models, me }) => {
+      if (me?.id === item.userId) {
+        return msatsToSats(BigInt(item.mcredits))
+      }
       return msatsToSats(BigInt(item.mcredits) + BigInt(item.mePendingMcredits || 0))
     },
     commentSats: async (item, args, { models }) => {
@@ -1428,7 +1434,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   // but forever if an admin is editing an "admin item", it's their bio or a job
   const myBio = user.bioId === old.id
   const timer = Date.now() < datePivot(new Date(old.invoicePaidAt ?? old.createdAt), { seconds: ITEM_EDIT_SECONDS })
-  const canEdit = (timer && ownerEdit) || adminEdit || myBio || isJob(item)
+  const canEdit = (timer && ownerEdit) || adminEdit || myBio || isJob(old)
   if (!canEdit) {
     throw new GqlInputError('item can no longer be edited')
   }

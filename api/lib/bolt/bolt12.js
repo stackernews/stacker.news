@@ -3,17 +3,37 @@
 import { payViaBolt12PaymentRequest, decodeBolt12Invoice } from '@/api/lib/lndk'
 import { isBolt12Invoice, isBolt12Offer, isBolt12 } from '@/lib/bolt/bolt12-info'
 import { toPositiveNumber } from '@/lib/format'
+import { estimateRouteFee } from '@/api/lnd'
 export { isBolt12Invoice, isBolt12Offer, isBolt12 }
 
-export async function payBolt12 ({ lnd, request: invoice, max_fee, max_fee_mtokens }) {
+export async function payBolt12 ({ lndk, request: invoice, max_fee, max_fee_mtokens }) {
+  if (!lndk) throw new Error('lndk required') // check if forgot to pass lndk
   if (!isBolt12Invoice(invoice)) throw new Error('not a bolt12 invoice')
-  return await payViaBolt12PaymentRequest({ lnd, request: invoice, max_fee, max_fee_mtokens })
+  return await payViaBolt12PaymentRequest({ lndk, request: invoice, max_fee, max_fee_mtokens })
 }
 
-export async function parseBolt12 ({ lnd, request: invoice }) {
+export async function parseBolt12 ({ lndk, request: invoice }) {
+  if (!lndk) throw new Error('lndk required') // check if forgot to pass lndk
   if (!isBolt12Invoice(invoice)) throw new Error('not a bolt12 request')
-  const decodedInvoice = await decodeBolt12Invoice({ lnd, request: invoice })
+  const decodedInvoice = await decodeBolt12Invoice({ lndk, request: invoice })
   return convertBolt12RequestToLNRequest(decodedInvoice)
+}
+
+export async function estimateBolt12RouteFee ({ lnd, lndk, destination, tokens, mtokens, request, timeout }) {
+  if (!lndk) throw new Error('lndk required') // check if forgot to pass lndk
+  if (!lnd) throw new Error('lnd required') // check if forgot to pass lnd
+  if (request && !isBolt12Invoice(request)) throw new Error('not a bolt12 request')
+
+  const { amount_msats, node_id } = request ? await decodeBolt12Invoice({ lndk, request }) : {}
+
+  // extract mtokens and destination from invoice if they are not provided
+  if (!tokens && !mtokens) mtokens = toPositiveNumber(amount_msats)
+  destination ??= Buffer.from(node_id.key).toString('hex')
+
+  if (!destination) throw new Error('no destination provided')
+  if (!tokens && !mtokens) throw new Error('no tokens amount provided')
+
+  return await estimateRouteFee({ lnd, destination, tokens, mtokens, timeout })
 }
 
 const featureBitTypes = {

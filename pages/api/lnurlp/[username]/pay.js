@@ -1,5 +1,5 @@
 import models from '@/api/models'
-import lnd from '@/api/lnd'
+import lnd, { lndk } from '@/api/lnd'
 import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString, lnurlPayDescriptionHash } from '@/lib/lnurl'
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
@@ -85,7 +85,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       comment: comment || '',
       lud18Data: parsedPayerData,
       noteStr
-    }, { models, lnd, me: user })
+    }, { models, lnd, lndk, me: user })
 
     if (!invoice?.bolt11) throw new Error('could not generate invoice')
 

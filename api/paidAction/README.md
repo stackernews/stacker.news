@@ -193,6 +193,7 @@ All functions have the following signature: `function(args: Object, context: Obj
 - `tx`: the current transaction (for anything that needs to be done atomically with the payment)
 - `models`: the current prisma client (for anything that doesn't need to be done atomically with the payment)
 - `lnd`: the current lnd client
+- `lndk`: the current lndk client
 
 ## Recording Cowboy Credits
 

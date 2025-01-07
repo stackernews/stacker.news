@@ -2,7 +2,7 @@
 // send back
 import models from '@/api/models'
 import { datePivot } from '@/lib/time'
-import lnd from '@/api/lnd'
+import lnd, { lndk } from '@/api/lnd'
 import { createWithdrawal } from '@/api/resolvers/wallet'
 
 export default async ({ query, headers }, res) => {
@@ -68,7 +68,7 @@ async function doWithdrawal (query, res, headers) {
   try {
     const withdrawal = await createWithdrawal(null,
       { invoice: query.pr, maxFee: me.withdrawMaxFeeDefault },
-      { me, models, lnd, headers })
+      { me, models, lnd, lndk, headers })
 
     // store withdrawal id lnWith so client can show it
     await models.lnWith.update({ where: { k1: query.k1 }, data: { withdrawalId: Number(withdrawal.id) } })

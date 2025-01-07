@@ -213,7 +213,7 @@ async function beginPessimisticAction (actionType, args, context) {
 async function performP2PAction (actionType, args, incomingContext) {
   // if the action has an invoiceable peer, we'll create a peer invoice
   // wrap it, and return the wrapped invoice
-  const { cost, sybilFeePercent, models, lnd, me } = incomingContext
+  const { cost, sybilFeePercent, models, lnd, lndk, me } = incomingContext
   if (!sybilFeePercent) {
     throw new Error('sybil fee percent is not set for an invoiceable peer action')
   }
@@ -233,7 +233,7 @@ async function performP2PAction (actionType, args, incomingContext) {
       feePercent: sybilFeePercent,
       description,
       expiry: INVOICE_EXPIRE_SECS
-    }, { models, me, lnd })
+    }, { models, me, lnd, lndk })
 
     context = {
       ...incomingContext,
@@ -257,7 +257,7 @@ async function performP2PAction (actionType, args, incomingContext) {
 // we don't need to use the module for perform-ing outside actions
 // because we can't track the state of outside invoices we aren't paid/paying
 async function performDirectAction (actionType, args, incomingContext) {
-  const { models, lnd, cost } = incomingContext
+  const { models, lnd, cost, lndk } = incomingContext
   const { comment, lud18Data, noteStr, description: actionDescription } = args
 
   const userId = await paidActions[actionType]?.getInvoiceablePeer?.(args, incomingContext)
@@ -276,7 +276,7 @@ async function performDirectAction (actionType, args, incomingContext) {
       description,
       expiry: INVOICE_EXPIRE_SECS,
       supportBolt12: false // direct payment is not supported to bolt12 for compatibility reasons
-    }, { models, lnd })
+    }, { models, lnd, lndk })
   } catch (e) {
     console.error('failed to create outside invoice', e)
     throw new NonInvoiceablePeerError()

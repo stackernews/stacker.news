@@ -22,7 +22,7 @@ export async function weeklyPost (args) {
   }
 }
 
-export async function payWeeklyPostBounty ({ data: { id }, models, apollo, lnd }) {
+export async function payWeeklyPostBounty ({ data: { id }, models, apollo, lnd, lndk }) {
   const itemQ = await apollo.query({
     query: gql`
       query item($id: ID!) {
@@ -56,6 +56,7 @@ export async function payWeeklyPostBounty ({ data: { id }, models, apollo, lnd }
       models,
       me: { id: USER_ID.sn },
       lnd,
+      lndk,
       forcePaymentMethod: PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT
     })
 }

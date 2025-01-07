@@ -29,7 +29,7 @@ const MAX_FEE_ESTIMATE_PERCENT = 3n // the maximum fee relative to outgoing we'l
     maxFee: number
   }
 */
-export default async function wrapInvoice ({ bolt11, feePercent }, { msats, description, descriptionHash }, { me, lnd }) {
+export default async function wrapInvoice ({ bolt11, feePercent }, { msats, description, descriptionHash }, { me, lnd, lndk }) {
   try {
     console.group('wrapInvoice', description)
 
@@ -38,7 +38,7 @@ export default async function wrapInvoice ({ bolt11, feePercent }, { msats, desc
     let outgoingMsat
 
     // decode the invoice
-    const inv = await parseInvoice({ request: bolt11, lnd })
+    const inv = await parseInvoice({ request: bolt11, lnd, lndk })
     if (!inv) {
       throw new Error('Unable to decode invoice')
     }
@@ -150,6 +150,7 @@ export default async function wrapInvoice ({ bolt11, feePercent }, { msats, desc
     const { routingFeeMsat, timeLockDelay } =
       await estimateFees({
         lnd,
+        lndk,
         destination: inv.destination,
         mtokens: inv.mtokens,
         request: bolt11,

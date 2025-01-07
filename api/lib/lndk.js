@@ -5,19 +5,12 @@ import protobuf from 'protobufjs'
 import grpcCredentials from 'lightning/lnd_grpc/grpc_credentials'
 import { grpcSslCipherSuites } from 'lightning/grpc/index'
 import { fromJSON } from '@grpc/proto-loader'
-import { estimateRouteFee } from '@/api/lnd'
 import * as bech32b12 from '@/lib/bech32b12'
 
 /* eslint-disable camelcase */
 const { GRPC_SSL_CIPHER_SUITES } = process.env
 
-const lndkInstances = new WeakMap()
-
-export function enableLNDK (lnd, { cert, macaroon, socket: lndkSocket }, withProxy) {
-  // already installed
-  if (lndkInstances.has(lnd)) return
-  console.log('enabling lndk', lndkSocket, 'withProxy', withProxy)
-
+export function authenticatedLndkGrpc ({ cert, macaroon, socket: lndkSocket }, withProxy) {
   // workaround to load from string
   const protoArgs = { keepCase: true, longs: Number, defaults: true, oneofs: true }
   const proto = protobuf.parse(LNDK_RPC_PROTO, protoArgs).root
@@ -38,22 +31,13 @@ export function enableLNDK (lnd, { cert, macaroon, socket: lndkSocket }, withPro
   }
 
   const client = new OffersService(lndkSocket, credentials, params)
-  lndkInstances.set(lnd, client)
-}
-
-export function getLNDK (lnd) {
-  if (!lndkInstances.has(lnd)) {
-    throw new Error('lndk not available, please use enableLNDK first')
-  }
-  return lndkInstances.get(lnd)
+  return client
 }
 
 export async function decodeBolt12Invoice ({
-  lnd,
+  lndk,
   request
 }) {
-  const lndk = getLNDK(lnd)
-
   // decode bech32 bolt12 invoice to hex string
   if (!request.startsWith('lni1')) throw new Error('not a valid bech32 encoded bolt12 invoice')
   const invoice_hex_str = bech32b12.decode(request.slice(4)).toString('hex')
@@ -70,9 +54,7 @@ export async function decodeBolt12Invoice ({
   return { ...decodedRequest, invoice_hex_str }
 }
 
-export async function fetchBolt12InvoiceFromOffer ({ lnd, offer, msats, description, timeout = 10_000 }) {
-  const lndk = getLNDK(lnd)
-
+export async function fetchBolt12InvoiceFromOffer ({ lndk, offer, msats, description, timeout = 10_000 }) {
   return new Promise((resolve, reject) => {
     lndk.GetInvoice({
       offer,
@@ -87,7 +69,7 @@ export async function fetchBolt12InvoiceFromOffer ({ lnd, offer, msats, descript
         const bech32invoice = 'lni1' + bech32b12.encode(Buffer.from(response.invoice_hex_str, 'hex'))
 
         // sanity check
-        const { amount_msats } = await decodeBolt12Invoice({ lnd, request: bech32invoice })
+        const { amount_msats } = await decodeBolt12Invoice({ lndk, request: bech32invoice })
         if (toPositiveNumber(amount_msats) !== toPositiveNumber(msats)) {
           return reject(new Error('invalid invoice response'))
         }
@@ -101,14 +83,12 @@ export async function fetchBolt12InvoiceFromOffer ({ lnd, offer, msats, descript
 }
 
 export async function payViaBolt12PaymentRequest ({
-  lnd,
+  lndk,
   request: invoiceBech32,
   max_fee,
   max_fee_mtokens
 }) {
-  const lndk = getLNDK(lnd)
-
-  const { amount_msats, invoice_hex_str } = await decodeBolt12Invoice({ lnd, request: invoiceBech32 })
+  const { amount_msats, invoice_hex_str } = await decodeBolt12Invoice({ lndk, request: invoiceBech32 })
 
   if (!max_fee_mtokens && max_fee) {
     max_fee_mtokens = toPositiveNumber(satsToMsats(max_fee))
@@ -129,17 +109,4 @@ export async function payViaBolt12PaymentRequest ({
       })
     })
   })
-}
-
-export async function estimateBolt12RouteFee ({ lnd, destination, tokens, mtokens, request, timeout }) {
-  const { amount_msats, node_id } = request ? await decodeBolt12Invoice({ lnd, request }) : {}
-
-  // extract mtokens and destination from invoice if they are not provided
-  if (!tokens && !mtokens) mtokens = toPositiveNumber(amount_msats)
-  destination ??= Buffer.from(node_id.key).toString('hex')
-
-  if (!destination) throw new Error('no destination provided')
-  if (!tokens && !mtokens) throw new Error('no tokens amount provided')
-
-  return await estimateRouteFee({ lnd, destination, tokens, mtokens, timeout })
 }

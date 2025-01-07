@@ -39,6 +39,7 @@ model User {
   trust                     Float                @default(0)
   lastSeenAt                DateTime?
   stackedMsats              BigInt               @default(0)
+  stackedMcredits           BigInt               @default(0)
   noteAllDescendants        Boolean              @default(true)
   noteDeposits              Boolean              @default(true)
   noteWithdrawals           Boolean              @default(true)
@@ -120,6 +121,9 @@ model User {
   autoWithdrawThreshold     Int?
   autoWithdrawMaxFeeTotal   Int?
   totpSecret                String?
+  mcredits                  BigInt               @default(0)
+  receiveCreditsBelowSats   Int                  @default(10)
+  sendCreditsBelowSats      Int                  @default(10)
   muters                    Mute[]               @relation("muter")
   muteds                    Mute[]               @relation("muted")
   ArcOut                    Arc[]                @relation("fromUser")
@@ -141,8 +145,8 @@ model User {
   vaultKeyHash              String               @default("")
   walletsUpdatedAt          DateTime?
   vaultEntries              VaultEntry[]         @relation("VaultEntries")
-  proxyReceive              Boolean              @default(false)
-  directReceive             Boolean              @default(false)
+  proxyReceive              Boolean              @default(true)
+  directReceive             Boolean              @default(true)
   DirectPaymentReceived     DirectPayment[]      @relation("DirectPaymentReceived")
   DirectPaymentSent         DirectPayment[]      @relation("DirectPaymentSent")
 
@@ -468,7 +472,7 @@ model LnWith {
 }
 
 model Invite {
-  id          String   @id @default(cuid())
+  id          String   @id @default(dbgenerated("encode(gen_random_bytes(16), 'hex'::text)"))
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
   userId      Int
@@ -521,10 +525,12 @@ model Item {
   pollCost            Int?
   paidImgLink         Boolean               @default(false)
   commentMsats        BigInt                @default(0)
+  commentMcredits     BigInt                @default(0)
   lastCommentAt       DateTime?
   lastZapAt           DateTime?
   ncomments           Int                   @default(0)
   msats               BigInt                @default(0)
+  mcredits            BigInt                @default(0)
   cost                Int                   @default(0)
   weightedDownVotes   Float                 @default(0)
   bio                 Boolean               @default(false)
@@ -918,6 +924,7 @@ model Invoice {
   confirmedIndex     BigInt?
   cancelled          Boolean             @default(false)
   cancelledAt        DateTime?
+  userCancel         Boolean?
   msatsRequested     BigInt
   msatsReceived      BigInt?
   desc               String?

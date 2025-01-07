@@ -93,7 +93,8 @@ function getCallbacks (req, res) {
         token.sub = Number(token.id)
       }
 
-      // response is only defined during signup/login
+      // this only runs during a signup/login because response is only defined during signup/login
+      // and will add the multi_auth cookies for the user we just logged in as
       if (req && res) {
         req = new NodeNextRequest(req)
         res = new NodeNextResponse(res)
@@ -107,6 +108,7 @@ function getCallbacks (req, res) {
         const jwt = await encodeJWT({ token, secret })
         // we set multi_auth cookies on login/signup with only one user so the rest of the code doesn't
         // have to consider the case where they aren't set yet because account switching wasn't used yet
+
         setMultiAuthCookies(req, res, { ...me, jwt })
       }
 
@@ -173,30 +175,21 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
       // does the pubkey already exist in our db?
       let user = await prisma.user.findUnique({ where: { [pubkeyColumnName]: pubkey } })
 
-      // get token if it exists
+      // make following code aware of cookie pointer for account switching
       req = multiAuthMiddleware(req)
+      // token will be undefined if we're not logged in at all or if we switched to anon
       const token = await getToken({ req })
       if (!user) {
         // we have not seen this pubkey before
 
-        // only update our pubkey if we're not currently trying to add a new account
+        // only update our pubkey if we're logged in (token exists)
+        // and we're not currently trying to add a new account
         if (token?.id && !multiAuth) {
           user = await prisma.user.update({ where: { id: token.id }, data: { [pubkeyColumnName]: pubkey } })
         } else {
           // we're not logged in: create new user with that pubkey
           user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), [pubkeyColumnName]: pubkey } })
         }
-      }
-
-      if (token && token?.id !== user.id && multiAuth) {
-        // we're logged in as a different user than the one we're authenticating as
-        // and we want to add a new account. this means we want to add this account
-        // to our list of accounts for switching between so we issue a new JWT and
-        // update the cookies for multi-authentication.
-        const secret = process.env.NEXTAUTH_SECRET
-        const userJWT = await encodeJWT({ token: { id: user.id, name: user.name, email: user.email }, secret })
-        setMultiAuthCookies(req, res, { ...user, jwt: userJWT })
-        return token
       }
 
       return user

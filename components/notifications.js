@@ -344,7 +344,7 @@ function getPayerSig (lud18Data) {
 
 function InvoicePaid ({ n }) {
   const payerSig = getPayerSig(n.invoice.lud18Data)
-  let actionString = 'desposited to your account'
+  let actionString = 'deposited to your account'
   let sats = n.earnedSats
   if (n.invoice.forwardedSats) {
     actionString = 'sent directly to your attached wallet'
@@ -535,9 +535,27 @@ function Referral ({ n }) {
   )
 }
 
+function stackedText (item) {
+  let text = ''
+  if (item.sats - item.credits > 0) {
+    text += `${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
+
+    if (item.credits > 0) {
+      text += ' and '
+    }
+  }
+  if (item.credits > 0) {
+    text += `${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
+  }
+
+  return text
+}
+
 function Votification ({ n }) {
   let forwardedSats = 0
   let ForwardedUsers = null
+  let stackedTextString
+  let forwardedTextString
   if (n.item.forwards?.length) {
     forwardedSats = Math.floor(n.earnedSats * n.item.forwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
     ForwardedUsers = () => n.item.forwards.map((fwd, i) =>
@@ -547,14 +565,18 @@ function Votification ({ n }) {
         </Link>
         {i !== n.item.forwards.length - 1 && ' '}
       </span>)
+    stackedTextString = numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
+    forwardedTextString = numWithUnits(forwardedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
+  } else {
+    stackedTextString = stackedText(n.item)
   }
   return (
     <>
       <NoteHeader color='success'>
-        your {n.item.title ? 'post' : 'reply'} stacked {numWithUnits(n.earnedSats, { abbreviate: false })}
+        your {n.item.title ? 'post' : 'reply'} stacked {stackedTextString}
         {n.item.forwards?.length > 0 &&
           <>
-            {' '}and forwarded {numWithUnits(forwardedSats, { abbreviate: false })} to{' '}
+            {' '}and forwarded {forwardedTextString} to{' '}
             <ForwardedUsers />
           </>}
       </NoteHeader>
@@ -567,7 +589,7 @@ function ForwardedVotification ({ n }) {
   return (
     <>
       <NoteHeader color='success'>
-        you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false })} from
+        you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })} from
       </NoteHeader>
       <NoteItem item={n.item} />
     </>

@@ -75,7 +75,7 @@ export function BadgeTooltip ({ children, overlayText, placement }) {
     <OverlayTrigger
       placement={placement || 'bottom'}
       overlay={
-        <Tooltip>
+        <Tooltip style={{ position: 'fixed' }}>
           {overlayText}
         </Tooltip>
       }

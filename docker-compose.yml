@@ -78,6 +78,22 @@ services:
     labels:
       CONNECT: "localhost:3000"
     cpu_shares: "${CPU_SHARES_IMPORTANT}"
+  logpipe:
+    container_name: logpipe
+    image: ghcr.io/riccardobl/logpipe:0.0.6
+    restart: unless-stopped
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:7068/health"]
+    expose:
+      - "7068:7068"
+    environment:
+      - LOGPIPE_DEBUG=true
+    ports:
+      - "7068:7068"
+    tmpfs:
+      - /tmp
+    cpu_shares: "${CPU_SHARES_LOW}"    
   capture:
     container_name: capture
     build:

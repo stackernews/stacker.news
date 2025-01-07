@@ -139,6 +139,10 @@ sndev__logs() {
   docker__compose logs "$@"
 }
 
+sndev__logview() {
+  docker__compose exec -it logpipe bash /app/scripts/stream.sh
+}
+
 sndev__help_logs() {
 help="
 get logs from sndev env
@@ -593,6 +597,7 @@ COMMANDS
     restart               restart env
     status                status of env
     logs                  logs from env
+    logview               stream logs from the app
     delete                delete env
 
   sn:

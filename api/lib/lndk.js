@@ -94,6 +94,9 @@ export async function payViaBolt12PaymentRequest ({
     max_fee_mtokens = toPositiveNumber(satsToMsats(max_fee))
   }
 
+  // safety check
+  if (!max_fee_mtokens || isNaN(max_fee_mtokens)) throw new Error('invalid max_fee')
+
   return new Promise((resolve, reject) => {
     lndk.PayInvoice({
       invoice: invoice_hex_str,

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Invoice" ADD COLUMN     "retry" INTEGER NOT NULL DEFAULT 0;

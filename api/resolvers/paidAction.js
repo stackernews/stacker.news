@@ -1,5 +1,5 @@
 import { retryPaidAction } from '../paidAction'
-import { USER_ID } from '@/lib/constants'
+import { USER_ID, WALLET_MAX_RETRIES } from '@/lib/constants'
 
 function paidActionType (actionType) {
   switch (actionType) {
@@ -65,6 +65,10 @@ export default {
           throw new Error('Invoice is already paid')
         }
         throw new Error(`Invoice is not in failed state: ${invoice.actionState}`)
+      }
+
+      if (invoice.retry >= WALLET_MAX_RETRIES) {
+        throw new Error('Payment has been retried too many times')
       }
 
       const result = await retryPaidAction(invoice.actionType, { invoice }, { models, me, lnd })

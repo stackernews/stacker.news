@@ -928,6 +928,7 @@ model Invoice {
   cancelledAt        DateTime?
   userCancel         Boolean?
   lockedAt           DateTime?
+  retry              Int                 @default(0)
   msatsRequested     BigInt
   msatsReceived      BigInt?
   desc               String?

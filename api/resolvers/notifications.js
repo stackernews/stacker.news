@@ -5,6 +5,7 @@ import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
 import { replyToSubscription } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { WALLET_MAX_RETRIES } from '@/lib/constants'
 
 export default {
   Query: {
@@ -350,6 +351,7 @@ export default {
         WHERE "Invoice"."userId" = $1
         AND "Invoice"."updated_at" < $2
         AND "Invoice"."actionState" = 'FAILED'
+        AND "Invoice"."retry" >= ${WALLET_MAX_RETRIES}
         AND (
           "Invoice"."actionType" = 'ITEM_CREATE' OR
           "Invoice"."actionType" = 'ZAP' OR

@@ -328,7 +328,9 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     me: await models.user.findUnique({ where: { id: parseInt(me.id) } }),
     cost: BigInt(msatsRequested),
     actionId,
-    predecessorId: failedInvoice.id
+    predecessorId: failedInvoice.id,
+    // a locked invoice means we're retrying a payment from the beginning with all sender and receiver wallets
+    retry: failedInvoice.lockedAt ? failedInvoice.retry + 1 : failedInvoice.retry
   }
 
   let invoiceArgs
@@ -419,7 +421,7 @@ async function createSNInvoice (actionType, args, context) {
 }
 
 async function createDbInvoice (actionType, args, context) {
-  const { me, models, tx, cost, optimistic, actionId, invoiceArgs, predecessorId } = context
+  const { me, models, tx, cost, optimistic, actionId, invoiceArgs, retry, predecessorId } = context
   const { bolt11, wrappedBolt11, preimage, wallet, maxFee } = invoiceArgs
 
   const db = tx ?? models
@@ -445,6 +447,7 @@ async function createDbInvoice (actionType, args, context) {
     actionArgs: args,
     expiresAt,
     actionId,
+    retry,
     predecessorId
   }
 

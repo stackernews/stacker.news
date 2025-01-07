@@ -11,7 +11,8 @@ import {
   PAID_ACTION_PAYMENT_METHODS,
   WALLET_CREATE_INVOICE_TIMEOUT_MS,
   WALLET_RETRY_AFTER_MS,
-  WALLET_RETRY_BEFORE_MS
+  WALLET_RETRY_BEFORE_MS,
+  WALLET_MAX_RETRIES
 } from '@/lib/constants'
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
@@ -480,6 +481,7 @@ const resolvers = {
               "cancelledAt" + $3::interval
             )
             AND "lockedAt" IS NULL
+            AND "retry" < $4
             ORDER BY id DESC
             FOR UPDATE SKIP LOCKED
           )
@@ -497,7 +499,8 @@ const resolvers = {
         SELECT * FROM failed`,
       me.id,
       `${WALLET_RETRY_AFTER_MS} milliseconds`,
-      `${WALLET_RETRY_BEFORE_MS} milliseconds`)
+      `${WALLET_RETRY_BEFORE_MS} milliseconds`,
+      WALLET_MAX_RETRIES)
     }
   },
   Wallet: {

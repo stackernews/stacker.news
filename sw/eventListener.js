@@ -4,7 +4,7 @@ import { CLEAR_NOTIFICATIONS, clearAppBadge, setAppBadge } from '@/lib/badge'
 import { ACTION_PORT, DELETE_SUBSCRIPTION, MESSAGE_PORT, STORE_OS, STORE_SUBSCRIPTION, SYNC_SUBSCRIPTION } from '@/components/serviceworker'
 // import { getLogger } from '@/lib/logger'
 
-// we store existing push subscriptions to keep them in sync with server
+// we store existing push subscriptions and OS to keep them in sync with server
 const storage = new ServiceWorkerStorage('sw:storage', 1)
 
 // for communication between app and service worker
@@ -24,17 +24,19 @@ async function getOS () {
 // current push notification count for badge purposes
 let activeCount = 0
 
+// message event listener for communication between app and service worker
 const log = (message, level = 'info', context) => {
   messageChannelPort?.postMessage({ level, message, context })
 }
 
 export function onPush (sw) {
   return (event) => {
+    // in case of push notifications, make sure that the logger has an HTTPS endpoint
     // const logger = getLogger('sw:push', ['onPush'])
     let payload = event.data?.json()
-    if (!payload) return
+    if (!payload) return // ignore push events without payload, like isTrusted events
     const { tag } = payload.options
-    const nid = crypto.randomUUID()
+    const nid = crypto.randomUUID() // notification id for tracking
 
     // iOS requirement: group all promises
     const promises = []
@@ -43,8 +45,9 @@ export function onPush (sw) {
     if (immediatelyShowNotification(tag)) {
       // logger.info(`[${nid}] showing immediate notification with title: ${payload.title}`)
       promises.push(setAppBadge(sw, ++activeCount))
-    } else { // Check if there are already notifications with the same tag and merge them
+    } else {
       // logger.info(`[${nid}] checking for existing notification with tag ${tag}`)
+      // Check if there are already notifications with the same tag and merge them
       promises.push(sw.registration.getNotifications({ tag }).then((notifications) => {
         // logger.info(`[${nid}] found ${notifications.length} notifications with tag ${tag}`)
         if (notifications.length) {
@@ -54,20 +57,22 @@ export function onPush (sw) {
       }))
     }
 
-    // Apple requirement: wait for all promises to resolve
+    // iOS requirement: wait for all promises to resolve before showing the notification
     event.waitUntil(Promise.all(promises).then(() => {
       sw.registration.showNotification(payload.title, payload.options)
     }))
   }
 }
 
-// if there is no tag or it's a TIP, FORWARDEDTIP or EARN notification
-// we don't need to merge notifications and thus the notification should be immediately shown using `showNotification`
+// if there is no tag or the tag is one of the following
+// we show the notification immediately
 const immediatelyShowNotification = (tag) =>
   !tag || ['TIP', 'FORWARDEDTIP', 'EARN', 'STREAK', 'TERRITORY_TRANSFER'].includes(tag.split('-')[0])
 
+// merge notifications with the same tag
 const mergeNotification = (event, sw, payload, currentNotifications, tag, nid) => {
   // const logger = getLogger('sw:push:mergeNotification', ['mergeNotification'])
+
   // sanity check
   const otherTagNotifications = currentNotifications.filter(({ tag: nTag }) => nTag !== tag)
   if (otherTagNotifications.length > 0) {

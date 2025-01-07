@@ -1,4 +1,5 @@
 import createPrisma from '@/lib/create-prisma'
+import { dailySatSummary } from './satSummary'
 
 const viewPrefixes = ['reg_growth', 'spender_growth', 'item_growth', 'spending_growth',
   'stackers_growth', 'stacking_growth', 'user_stats', 'sub_stats']
@@ -22,6 +23,7 @@ export async function views ({ data: { period } = { period: 'days' } }) {
       await models.$queryRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}_${period}`)
     }
   } finally {
+    if (period === 'days') await dailySatSummary({ models }).catch(console.error) // run dailySatSummary after views-days refresh
     await models.$disconnect()
   }
 }

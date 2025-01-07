@@ -1,6 +1,7 @@
 import { notifySatSummary } from '@/lib/webPush'
 import { msatsToSats } from '@/lib/format'
 export async function dailySatSummary ({ models }) {
+  console.log('running dailySatSummary')
   try {
     const stats = await models.$queryRaw`
       SELECT 
@@ -26,5 +27,7 @@ export async function dailySatSummary ({ models }) {
     }
   } catch (err) {
     console.error('failed to process daily sat summary', err)
+  } finally {
+    console.log('finished dailySatSummary')
   }
 }

@@ -66,7 +66,7 @@ function WithdrawForm () {
           </Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/wallet?type=bolt12-withdraw' passHref legacyBehavior>
+          <Link href='/withdraw?type=bolt12' passHref legacyBehavior>
             <Nav.Link eventKey='bolt12-withdraw'>bolt12 offer</Nav.Link>
           </Link>
         </Nav.Item>
@@ -84,7 +84,7 @@ export function SelectedWithdrawalForm () {
       return <LnurlWithdrawal />
     case 'lnaddr':
       return <LnAddrWithdrawal />
-    case 'bolt12-withdraw':
+    case 'bolt12':
       return <Bolt12Withdrawal />
     default:
       return <InvWithdrawal />

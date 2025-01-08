@@ -5,7 +5,8 @@ import { notifyInvite } from '@/lib/webPush'
 export const anonable = false
 
 export const paymentMethods = [
-  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT
+  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.REWARD_SATS
 ]
 
 export async function getCost ({ id }, { models, me }) {
@@ -36,7 +37,7 @@ export async function perform ({ id, userId }, { me, cost, tx }) {
       }
     },
     data: {
-      msats: {
+      mcredits: {
         increment: cost
       },
       inviteId: id,

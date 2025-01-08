@@ -114,7 +114,7 @@ export function FeeButtonProvider ({ baseLineItems = DEFAULT_BASE_LINE_ITEMS, us
     const lines = { ...baseLineItems, ...lineItems, ...remoteLineItems }
     const total = Object.values(lines).sort(sortHelper).reduce((acc, { modifier }) => modifier(acc), 0)
     // freebies: there's only a base cost and we don't have enough sats
-    const free = total === lines.baseCost?.modifier(0) && lines.baseCost?.allowFreebies && me?.privates?.sats < total && !me?.privates?.disableFreebies
+    const free = total === lines.baseCost?.modifier(0) && lines.baseCost?.allowFreebies && me?.privates?.sats < total && me?.privates?.credits < total && !me?.privates?.disableFreebies
     return {
       lines,
       merge: mergeLineItems,

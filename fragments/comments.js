@@ -27,11 +27,13 @@ export const COMMENT_FIELDS = gql`
       ...StreakFields
     }
     sats
+    credits
     meAnonSats @client
     upvotes
     freedFreebie
     boost
     meSats
+    meCredits
     meDontLikeSats
     meBookmark
     meSubscription
@@ -39,6 +41,7 @@ export const COMMENT_FIELDS = gql`
     freebie
     path
     commentSats
+    commentCredits
     mine
     otsHash
     ncomments

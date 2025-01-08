@@ -351,7 +351,7 @@ export default {
         WHERE "Invoice"."userId" = $1
         AND "Invoice"."updated_at" < $2
         AND "Invoice"."actionState" = 'FAILED'
-        AND "Invoice"."retry" >= ${WALLET_MAX_RETRIES}
+        AND "Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES}
         AND (
           "Invoice"."actionType" = 'ITEM_CREATE' OR
           "Invoice"."actionType" = 'ZAP' OR

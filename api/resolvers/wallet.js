@@ -481,7 +481,7 @@ const resolvers = {
               "cancelledAt" + $3::interval
             )
             AND "lockedAt" IS NULL
-            AND "retry" < $4
+            AND "paymentAttempt" < $4
             ORDER BY id DESC
             FOR UPDATE SKIP LOCKED
           )

@@ -419,7 +419,7 @@ async function createSNInvoice (actionType, args, context) {
 }
 
 async function createDbInvoice (actionType, args, context) {
-  const { me, models, tx, cost, optimistic, actionId, invoiceArgs, retry, predecessorId } = context
+  const { me, models, tx, cost, optimistic, actionId, invoiceArgs, paymentAttempt, predecessorId } = context
   const { bolt11, wrappedBolt11, preimage, wallet, maxFee } = invoiceArgs
 
   const db = tx ?? models
@@ -445,7 +445,7 @@ async function createDbInvoice (actionType, args, context) {
     actionArgs: args,
     expiresAt,
     actionId,
-    retry,
+    paymentAttempt,
     predecessorId
   }
 

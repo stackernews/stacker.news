@@ -252,20 +252,14 @@ function InfoDropdownItem ({ item }) {
           <div>{item.createdAt}</div>
           <div>cost</div>
           <div>{item.cost}</div>
-          <div>sats</div>
-          <div>{item.sats - item.credits}</div>
-          <div>CCs</div>
-          <div>{item.credits}</div>
-          <div>comment sats</div>
-          <div>{item.commentSats - item.commentCredits}</div>
-          <div>comment CCs</div>
-          <div>{item.commentCredits}</div>
+          <div>stacked</div>
+          <div>{item.sats - item.credits} sats / {item.credits} ccs</div>
+          <div>stacked (comments)</div>
+          <div>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
           {me && (
             <>
-              <div>sats from me</div>
-              <div>{item.meSats - item.meCredits}</div>
-              <div>CCs from me</div>
-              <div>{item.meCredits}</div>
+              <div>from me</div>
+              <div>{item.meSats - item.meCredits} sats / {item.meCredits} ccs</div>
               <div>downsats from me</div>
               <div>{item.meDontLikeSats}</div>
             </>

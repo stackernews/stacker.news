@@ -256,24 +256,6 @@ export default {
               LIMIT ${LIMIT})`
           )
         }
-
-        if (meFull.noteWithdrawals) {
-          queries.push(
-            `(SELECT "Withdrawl".id::text, MAX(COALESCE("Invoice"."confirmedAt", "Withdrawl".created_at)) AS "sortTime",
-              FLOOR(MAX("Withdrawl"."msatsPaid" / 1000)) as "earnedSats",
-              'WithdrawlPaid' AS type
-              FROM "Withdrawl"
-              LEFT JOIN "InvoiceForward" ON "InvoiceForward"."withdrawlId" = "Withdrawl".id
-              LEFT JOIN "Invoice" ON "InvoiceForward"."invoiceId" = "Invoice".id
-              WHERE "Withdrawl"."userId" = $1
-              AND "Withdrawl".status = 'CONFIRMED'
-              AND "Withdrawl".created_at < $2
-              AND ("InvoiceForward"."id" IS NULL OR "Invoice"."actionType" = 'ZAP')
-              GROUP BY "Withdrawl".id
-              ORDER BY "sortTime" DESC
-              LIMIT ${LIMIT})`
-          )
-        }
       }
 
       if (!include.size || include.has('referral')) {
@@ -337,6 +319,24 @@ export default {
             LIMIT ${LIMIT})`
           )
         }
+      }
+
+      if (meFull.noteWithdrawals) {
+        queries.push(
+          `(SELECT "Withdrawl".id::text, MAX(COALESCE("Invoice"."confirmedAt", "Withdrawl".created_at)) AS "sortTime",
+            FLOOR(MAX("Withdrawl"."msatsPaid" / 1000)) as "earnedSats",
+            'WithdrawlPaid' AS type
+            FROM "Withdrawl"
+            LEFT JOIN "InvoiceForward" ON "InvoiceForward"."withdrawlId" = "Withdrawl".id
+            LEFT JOIN "Invoice" ON "InvoiceForward"."invoiceId" = "Invoice".id
+            WHERE "Withdrawl"."userId" = $1
+            AND "Withdrawl".status = 'CONFIRMED'
+            AND "Withdrawl".created_at < $2
+            AND "InvoiceForward"."id" IS NULL
+            GROUP BY "Withdrawl".id
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+        )
       }
 
       if (!include.size || include.has('streak')) {

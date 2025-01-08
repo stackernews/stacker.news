@@ -328,9 +328,7 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     me: await models.user.findUnique({ where: { id: parseInt(me.id) } }),
     cost: BigInt(msatsRequested),
     actionId,
-    predecessorId: failedInvoice.id,
-    // a locked invoice means we're retrying a payment from the beginning with all sender and receiver wallets
-    retry: failedInvoice.lockedAt ? failedInvoice.retry + 1 : failedInvoice.retry
+    predecessorId: failedInvoice.id
   }
 
   let invoiceArgs

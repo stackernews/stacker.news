@@ -67,11 +67,14 @@ export default {
         throw new Error(`Invoice is not in failed state: ${invoice.actionState}`)
       }
 
-      if (invoice.retry >= WALLET_MAX_RETRIES) {
+      // a locked invoice means we want to retry a payment from the beginning
+      // with all sender and receiver wallets so we need to increment the retry count
+      const retry = invoice.lockedAt ? invoice.retry + 1 : invoice.retry
+      if (retry > WALLET_MAX_RETRIES) {
         throw new Error('Payment has been retried too many times')
       }
 
-      const result = await retryPaidAction(invoice.actionType, { invoice }, { models, me, lnd })
+      const result = await retryPaidAction(invoice.actionType, { invoice }, { retry, models, me, lnd })
 
       return {
         ...result,

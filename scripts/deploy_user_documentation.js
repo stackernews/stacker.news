@@ -76,6 +76,6 @@ async function upsertDiscussion (variables) {
   return json.data
 }
 
-const faq = readItem('faq.md')
+const faq = readItem('../docs/user/faq.md')
 
 upsertDiscussion(faq)

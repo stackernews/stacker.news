@@ -467,21 +467,19 @@ const resolvers = {
       // make sure each invoice is only returned once via visibility timeouts and SKIP LOCKED
       // we use queryRawUnsafe because Prisma does not support tsrange
       // see https://www.prisma.io/docs/orm/overview/databases/postgresql
-      return await models.$queryRawUnsafe(`
+      return await models.$queryRaw`
         WITH failed AS (
           UPDATE "Invoice"
           SET "lockedAt" = now()
           WHERE id IN (
             SELECT id FROM "Invoice"
-            WHERE "userId" = $1
+            WHERE "userId" = ${me.id}
             AND "actionState" = 'FAILED'
             AND "userCancel" = false
-            AND now()::timestamp <@ tsrange(
-              "cancelledAt" + $2::interval,
-              "cancelledAt" + $3::interval
-            )
+            AND "cancelledAt" < now() - ${`${WALLET_RETRY_AFTER_MS} milliseconds`}::interval
+            AND "cancelledAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
             AND "lockedAt" IS NULL
-            AND "paymentAttempt" < $4
+            AND "paymentAttempt" < ${WALLET_MAX_RETRIES}
             ORDER BY id DESC
             FOR UPDATE SKIP LOCKED
           )
@@ -496,11 +494,7 @@ const resolvers = {
             now() + interval '15 minutes'
           FROM failed
         )
-        SELECT * FROM failed`,
-      me.id,
-      `${WALLET_RETRY_AFTER_MS} milliseconds`,
-      `${WALLET_RETRY_BEFORE_MS} milliseconds`,
-      WALLET_MAX_RETRIES)
+        SELECT * FROM failed`
     }
   },
   Wallet: {

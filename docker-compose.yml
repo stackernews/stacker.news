@@ -79,6 +79,7 @@ services:
       CONNECT: "localhost:3000"
     cpu_shares: "${CPU_SHARES_IMPORTANT}"
   logpipe:
+    platform: linux/x86_64
     container_name: logpipe
     image: ghcr.io/riccardobl/logpipe:0.0.6
     restart: unless-stopped
@@ -93,7 +94,7 @@ services:
       - "7068:7068"
     tmpfs:
       - /tmp
-    cpu_shares: "${CPU_SHARES_LOW}"    
+    cpu_shares: "${CPU_SHARES_LOW}"
   capture:
     container_name: capture
     build:
@@ -703,7 +704,7 @@ services:
       - sn_lnd
       - lnd
       - router_lnd
-    restart: unless-stopped 
+    restart: unless-stopped
     command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME} -f label=ofelia.group=payments
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro

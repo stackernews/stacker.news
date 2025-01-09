@@ -1,6 +1,6 @@
 import { useMe } from '@/components/me'
 import { FAILED_INVOICES, SET_WALLET_PRIORITY, WALLETS } from '@/fragments/wallet'
-import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getStorageKey, getWalletByType, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally } from './common'
@@ -238,7 +238,6 @@ function RetryHandler ({ children }) {
   useEffect(() => {
     (async () => {
       for (const invoice of failedInvoices) {
-        // TODO: don't retry forever
         const newInvoice = await invoiceHelper.retry(invoice)
         waitForWalletPayment(newInvoice).catch(console.error)
       }
@@ -251,9 +250,8 @@ function RetryHandler ({ children }) {
 function useFailedInvoices () {
   const wallets = useSendWallets()
 
-  // TODO: use longer poll interval in prod?
   const { data } = useQuery(FAILED_INVOICES, {
-    pollInterval: FAST_POLL_INTERVAL,
+    pollInterval: NORMAL_POLL_INTERVAL,
     skip: wallets.length === 0,
     notifyOnNetworkStatusChange: true
   })

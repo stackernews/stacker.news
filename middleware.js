@@ -1,4 +1,5 @@
 import { NextResponse, URLPattern } from 'next/server'
+import * as Auth2fa from '@/lib/auth2fa'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -69,7 +70,11 @@ function referrerMiddleware (request) {
   return response
 }
 
-export function middleware (request) {
+export async function middleware (request) {
+  // 2fa check
+  const redirect = await Auth2fa.pageGuard({ req: request })
+  if (redirect) return redirect
+
   const resp = referrerMiddleware(request)
 
   const isDev = process.env.NODE_ENV === 'development'

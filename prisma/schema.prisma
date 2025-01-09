@@ -120,6 +120,7 @@ model User {
   autoWithdrawMaxFeePercent Float?
   autoWithdrawThreshold     Int?
   autoWithdrawMaxFeeTotal   Int?
+  totpSecret                String?
   mcredits                  BigInt               @default(0)
   receiveCreditsBelowSats   Int                  @default(10)
   sendCreditsBelowSats      Int                  @default(10)

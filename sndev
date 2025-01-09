@@ -139,10 +139,6 @@ sndev__logs() {
   docker__compose logs "$@"
 }
 
-sndev__logview() {
-  docker__compose exec -it logpipe bash /app/scripts/stream.sh
-}
-
 sndev__help_logs() {
 help="
 get logs from sndev env
@@ -154,6 +150,25 @@ OPTIONS"
 
   echo "$help"
   docker__compose logs --help | awk '/Options:/{y=1;next}y'
+}
+
+sndev__logger() {
+  docker__compose exec -it logpipe bash /app/scripts/stream.sh
+}
+
+sndev__help_logger() {
+  help="
+filterable logs from app logger
+
+USAGE
+  $ sndev logger
+
+INTERACTIVE COMMANDS
+  filter=csv-list,of,tags
+  level=<MIN_LEVEL> (eg. level=INFO level=ERROR...etc)
+"
+
+  echo "$help"
 }
 
 sndev__status() {
@@ -597,7 +612,6 @@ COMMANDS
     restart               restart env
     status                status of env
     logs                  logs from env
-    logview               stream logs from the app
     delete                delete env
 
   sn:
@@ -605,24 +619,25 @@ COMMANDS
     set_balance           set the balance of a nym
 
   lightning:
-    fund                   pay a bolt11 for funding
-    withdraw               create a bolt11 for withdrawal
+    fund                  pay a bolt11 for funding
+    withdraw              create a bolt11 for withdrawal
 
   db:
-    psql                   open psql on db
-    prisma                 run prisma commands
+    psql                  open psql on db
+    prisma                run prisma commands
 
   dev:
-    pr                     fetch and checkout a pr
-    lint                   run linters
-    test                   run tests
+    pr                    fetch and checkout a pr
+    lint                  run linters
+    test                  run tests
+    logger                filterable logs from app logger
 
   other:
-    cli                    service cli passthrough
-    open                   open service GUI in browser
-    onion                  service onion address
-    cert                   service tls cert
-    compose                docker compose passthrough
+    cli                   service cli passthrough
+    open                  open service GUI in browser
+    onion                 service onion address
+    cert                  service tls cert
+    compose               docker compose passthrough
 "
   echo "$help"
 }

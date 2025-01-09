@@ -79,24 +79,25 @@ COMMANDS
     set_balance           set the balance of a nym
 
   lightning:
-    fund                   pay a bolt11 for funding
-    withdraw               create a bolt11 for withdrawal
+    fund                  pay a bolt11 for funding
+    withdraw              create a bolt11 for withdrawal
 
   db:
-    psql                   open psql on db
-    prisma                 run prisma commands
+    psql                  open psql on db
+    prisma                run prisma commands
 
   dev:
-    pr                     fetch and checkout a pr
-    lint                   run linters
-    test                   run tests
+    pr                    fetch and checkout a pr
+    lint                  run linters
+    test                  run tests
+    logger                filterable logs from app logger
 
   other:
-    cli                    service cli passthrough
-    open                   open service GUI in browser
-    onion                  service onion address
-    cert                   service tls cert
-    compose                docker compose passthrough
+    cli                   service cli passthrough
+    open                  open service GUI in browser
+    onion                 service onion address
+    cert                  service tls cert
+    compose               docker compose passthrough
 ```
 
 ### Modifying services

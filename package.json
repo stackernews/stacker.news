@@ -17,6 +17,7 @@
     "@apollo/server": "^4.11.0",
     "@as-integrations/next": "^3.1.0",
     "@auth/prisma-adapter": "^2.7.0",
+    "@cashu/cashu-ts": "^2.1.0",
     "@graphql-tools/schema": "^10.0.6",
     "@lightninglabs/lnc-web": "^0.3.2-alpha",
     "@noble/curves": "^1.6.0",

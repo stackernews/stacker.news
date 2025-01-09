@@ -149,7 +149,7 @@ export function InvWithdrawal () {
   )
 }
 
-function InvoiceScanner ({ fieldName }) {
+export function InvoiceScanner ({ fieldName }) {
   const showModal = useShowModal()
   const [,, helpers] = useField(fieldName)
   const toaster = useToast()

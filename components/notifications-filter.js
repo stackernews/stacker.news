@@ -1,10 +1,8 @@
 import { useState, useCallback, useMemo } from 'react'
-import { useShowModal } from './modal'
 import { useRouter } from 'next/router'
 import { NOTIFICATION_CATEGORIES } from '../lib/constants'
 import { Checkbox, Form, SubmitButton } from './form'
-import FilterIcon from '@/svgs/equalizer-line.svg'
-import styles from './notifications-filter.module.css'
+import styles from './notifications.module.css'
 
 export const getFiltersFromInc = (inc) => {
   const filters = new Set(inc?.split(',') || [])
@@ -17,7 +15,7 @@ export const getSavedFilters = () => {
   return savedFilters ? new Set(savedFilters) : new Set()
 }
 
-export function NotificationsFilter ({ onClose }) {
+export default function NotificationsFilter ({ onClose }) {
   const router = useRouter()
 
   const appliedFilters = useMemo(() => {
@@ -65,7 +63,7 @@ export function NotificationsFilter ({ onClose }) {
           onClose?.()
         }}
       >
-        <div className='d-flex flex-row flex-wrap mt-4'>
+        <div className={styles.filterContainer}>
           {NOTIFICATION_CATEGORIES.map((category) => (
             <Checkbox
               key={category}
@@ -82,32 +80,6 @@ export function NotificationsFilter ({ onClose }) {
           <SubmitButton variant='primary' className='px-4'>apply filters</SubmitButton>
         </div>
       </Form>
-    </div>
-  )
-}
-
-export default function NotificationsHeader () {
-  const showModal = useShowModal()
-  const router = useRouter()
-
-  const hasActiveFilters = useMemo(() => {
-    const incFilters = getFiltersFromInc(router.query.inc)
-    return incFilters.size > 0
-  })
-
-  return (
-    <div className='d-flex align-items-center gap-2'>
-      <h2 className='mt-1 text-start'>notifications</h2>
-      <FilterIcon
-        width={20}
-        height={20}
-        className={hasActiveFilters ? styles.filterIconActive : styles.filterIcon}
-        onClick={() => {
-          showModal((onClose) => (
-            <NotificationsFilter onClose={onClose} />
-          ))
-        }}
-      />
     </div>
   )
 }

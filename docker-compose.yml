@@ -81,7 +81,7 @@ services:
   logpipe:
     platform: linux/x86_64
     container_name: logpipe
-    image: ghcr.io/riccardobl/logpipe:0.0.6
+    image: ghcr.io/riccardobl/logpipe:0.0.8
     restart: unless-stopped
     healthcheck:
       <<: *healthcheck

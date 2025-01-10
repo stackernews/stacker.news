@@ -179,6 +179,26 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
     )
   }
 
+  if (provider === 'youtube-clip') {
+    const videoId = meta?.videoId
+    const clipId = meta?.clipId
+    const clipt = meta?.clipt
+    return (
+      <div className={classNames(styles.videoWrapper, className)}>
+        <div className={styles.videoContainer}>
+          <iframe
+            title='Youtube Clip'
+            allowFullScreen
+            src={`https://www.youtube.com/embed/${videoId}?clip=${clipId}&amp;clipt=${clipt}`}
+            sandbox='allow-scripts allow-same-origin'
+            allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
+            referrerPolicy='strict-origin-when-cross-origin'
+          />
+        </div>
+      </div>
+    )
+  }
+
   if (provider === 'rumble') {
     return (
       <div className={classNames(styles.videoWrapper, className)}>

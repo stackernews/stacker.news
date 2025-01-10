@@ -50,12 +50,12 @@ function BioItem ({ item, handleClick }) {
   )
 }
 
-function ItemEmbed ({ url, imgproxyUrls }) {
-  const provider = parseEmbedUrl(url)
-  if (provider) {
+function ItemEmbed ({ url, imgproxyUrls, embedMeta }) {
+  const embed = parseEmbedUrl(url)
+  if (embed) {
     return (
       <div className='mt-3'>
-        <Embed src={url} {...provider} topLevel />
+        <Embed src={url} {...embed} meta={{ ...embed.meta, ...embedMeta?.[embed.id] }} topLevel />
       </div>
     )
   }
@@ -110,7 +110,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
     >
       <article className={classNames(styles.fullItemContainer, 'topLevel')} ref={textRef}>
         {item.text && <ItemText item={item} />}
-        {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
+        {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} embedMeta={item.embedMeta} />}
         {item.poll && <Poll item={item} />}
         {item.bounty &&
           <div className='fw-bold mt-2'>
@@ -157,7 +157,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
 function ItemText ({ item }) {
   return item.searchText
     ? <SearchText text={item.searchText} />
-    : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
+    : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls} embedMeta={item.embedMeta}>{item.text}</Text>
 }
 
 export default function ItemFull ({ item, bio, rank, ...props }) {

@@ -206,7 +206,17 @@ export async function nonCriticalSideEffects ({ invoice, actIds }, { models }) {
     where: invoice ? { invoiceId: invoice.id } : { id: { in: actIds } },
     include: { item: true }
   })
-  notifyZapped({ models, item: itemAct.item }).catch(console.error)
+  // avoid duplicate notifications with the same zap amount
+  // by checking if there are any other pending acts on the item
+  const pendingActs = await models.itemAct.count({
+    where: {
+      itemId: itemAct.itemId,
+      createdAt: {
+        gt: itemAct.createdAt
+      }
+    }
+  })
+  if (pendingActs === 0) notifyZapped({ models, item: itemAct.item }).catch(console.error)
 }
 
 export async function onFail ({ invoice }, { tx }) {

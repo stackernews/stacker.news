@@ -37,6 +37,7 @@ export const ITEM_FIELDS = gql`
     }
     otsHash
     position
+    pinId
     sats
     credits
     meAnonSats @client

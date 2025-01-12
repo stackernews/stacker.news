@@ -536,8 +536,8 @@ export default {
                     LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
                     ${joinZapRankPersonalView(me, models)}
                     ${whereClause(
-                      // in "home" (sub undefined), we want to show pinned items (but without the pin icon)
-                      sub ? '"Item"."pinId" IS NULL' : '',
+                      // in home (sub undefined), filter out global pinned items since we inject them later
+                      sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
                       '"Item"."deletedAt" IS NULL',
                       '"Item"."parentId" IS NULL',
                       '"Item".outlawed = false',
@@ -565,8 +565,8 @@ export default {
                       ${whereClause(
                         subClause(sub, 3, 'Item', me, showNsfw),
                         muteClause(me),
-                        // in "home" (sub undefined), we want to show pinned items (but without the pin icon)
-                        sub ? '"Item"."pinId" IS NULL' : '',
+                        // in home (sub undefined), filter out global pinned items since we inject them later
+                        sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
                         '"Item"."deletedAt" IS NULL',
                         '"Item"."parentId" IS NULL',
                         '"Item".bio = false',

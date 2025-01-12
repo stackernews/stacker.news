@@ -147,6 +147,7 @@ export default gql`
     comments(sort: String): [Item!]!
     path: String
     position: Int
+    pinId: Int
     prior: Int
     isJob: Boolean!
     pollCost: Int

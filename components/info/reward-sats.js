@@ -7,7 +7,7 @@ export default function RewardSatsInfo (props) {
       <h6>Where did my sats come from?</h6>
       <ul className='line-height-md'>
         <li>you may have sats from before <Link href='/items/835465'>SN went not-custodial</Link></li>
-        <li>sats also come from <Link href='/daily'>daily rewards</Link> and territory revenue
+        <li>sats also come from <Link href='/rewards'>daily rewards</Link> and territory revenue
           <ul>
             <li>you can configure these sats to autowithdraw by attaching an <Link href='/wallets'>external receiving wallet</Link></li>
           </ul>

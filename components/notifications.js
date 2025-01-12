@@ -40,9 +40,12 @@ import { paidActionCacheMods } from './use-paid-mutation'
 import { useRetryCreateItem } from './use-item-submit'
 import { payBountyCacheMods } from './pay-bounty'
 import { useToast } from './toast'
+import { useShowModal } from './modal'
+import NotificationsFilter, { getFiltersFromInc } from './notifications-filter'
 import classNames from 'classnames'
 import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
+import FilterIcon from '@/svgs/equalizer-line.svg'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -740,11 +743,40 @@ export function NotificationAlert () {
   )
 }
 
+export function NotificationsHeader () {
+  const showModal = useShowModal()
+  const router = useRouter()
+
+  const hasActiveFilters = useMemo(() => {
+    const incFilters = getFiltersFromInc(router.query.inc)
+    return incFilters.size > 0
+  })
+
+  return (
+    <div className='d-flex align-items-center gap-2 justify-content-between'>
+      <div className='d-flex align-items-center gap-2'>
+        <h2 className='mt-1 text-start'>notifications</h2>
+        <FilterIcon
+          width={20}
+          height={20}
+          className={hasActiveFilters ? styles.filterIconActive : styles.filterIcon}
+          onClick={() => {
+            showModal((onClose) => (
+              <NotificationsFilter onClose={onClose} />
+            ))
+          }}
+        />
+      </div>
+      <NotificationAlert />
+    </div>
+  )
+}
+
 const nid = n => n.__typename + n.id + n.sortTime
 
 export default function Notifications ({ ssrData }) {
-  const { data, fetchMore } = useQuery(NOTIFICATIONS)
   const router = useRouter()
+  const { data, fetchMore } = useQuery(NOTIFICATIONS, { variables: { inc: router.query.inc } })
   const dat = useData(data, ssrData)
 
   const { notifications, lastChecked, cursor } = useMemo(() => {

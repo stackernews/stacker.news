@@ -74,3 +74,24 @@
     line-height: 1.25;
     vertical-align: middle;
 }
+
+.filterIcon {
+    cursor: pointer;
+    fill: var(--theme-grey);
+}
+.filterIcon:hover {
+    fill: var(--theme-brandColor);
+    filter: drop-shadow(0 0 2px var(--bs-primary));
+}
+
+.filterIconActive {
+    cursor: pointer;
+    fill: var(--theme-brandColor);
+    filter: drop-shadow(0 0 2px var(--bs-primary));
+}
+
+.filterContainer {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}

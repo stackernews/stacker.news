@@ -43,6 +43,7 @@ import { useToast } from './toast'
 import classNames from 'classnames'
 import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
+import CCInfo from './info/cc'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -573,12 +574,17 @@ function Votification ({ n }) {
   return (
     <>
       <NoteHeader color='success'>
-        your {n.item.title ? 'post' : 'reply'} stacked {stackedTextString}
-        {n.item.forwards?.length > 0 &&
-          <>
-            {' '}and forwarded {forwardedTextString} to{' '}
-            <ForwardedUsers />
-          </>}
+        <span className='d-inline-flex'>
+          <span>
+            your {n.item.title ? 'post' : 'reply'} stacked {stackedTextString}
+            {n.item.forwards?.length > 0 &&
+              <>
+                {' '}and forwarded {forwardedTextString} to{' '}
+                <ForwardedUsers />
+              </>}
+          </span>
+          {n.item.credits > 0 && <CCInfo size={16} />}
+        </span>
       </NoteHeader>
       <NoteItem item={n.item} />
     </>
@@ -589,7 +595,10 @@ function ForwardedVotification ({ n }) {
   return (
     <>
       <NoteHeader color='success'>
-        you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })} from
+        <span className='d-inline-flex'>
+          you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}
+          <CCInfo size={16} />
+        </span>
       </NoteHeader>
       <NoteItem item={n.item} />
     </>

@@ -8,7 +8,7 @@ export default function CCInfo (props) {
       <ul className='line-height-md'>
         <li>to receive sats, you must attach an <Link href='/wallets'>external receiving wallet</Link></li>
         <li>zappers may have chosen to send you CCs instead of sats</li>
-        <li>if the zaps are split on post, recepients will receive CCs regardless of their configured receiving wallet</li>
+        <li>if the zaps are split on a post, recepients will receive CCs regardless of their configured receiving wallet</li>
         <li>there could be an issue paying your receiving wallet
           <ul>
             <li>check your <Link href='/wallets/logs'>wallet logs</Link> for clues</li>

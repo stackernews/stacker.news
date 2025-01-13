@@ -12,6 +12,7 @@ import {
   WALLET_CREATE_INVOICE_TIMEOUT_MS,
   WALLET_RETRY_AFTER_MS,
   WALLET_RETRY_BEFORE_MS,
+  WALLET_VISIBILITY_TIMEOUT_MS,
   WALLET_MAX_RETRIES
 } from '@/lib/constants'
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
@@ -465,36 +466,22 @@ const resolvers = {
         throw new GqlAuthenticationError()
       }
       // make sure each invoice is only returned once via visibility timeouts and SKIP LOCKED
-      // we use queryRawUnsafe because Prisma does not support tsrange
-      // see https://www.prisma.io/docs/orm/overview/databases/postgresql
       return await models.$queryRaw`
-        WITH failed AS (
-          UPDATE "Invoice"
-          SET "lockedAt" = now()
-          WHERE id IN (
-            SELECT id FROM "Invoice"
-            WHERE "userId" = ${me.id}
-            AND "actionState" = 'FAILED'
-            AND "userCancel" = false
-            AND "cancelledAt" < now() - ${`${WALLET_RETRY_AFTER_MS} milliseconds`}::interval
-            AND "cancelledAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
-            AND "lockedAt" IS NULL
-            AND "paymentAttempt" < ${WALLET_MAX_RETRIES}
-            ORDER BY id DESC
-            FOR UPDATE SKIP LOCKED
-          )
-          RETURNING *
-        ),
-        _ AS (
-          INSERT INTO pgboss.job (name, data, startafter, keepuntil)
-          SELECT
-            'unlockInvoice',
-            jsonb_build_object('id', id),
-            now() + interval '10 minutes',
-            now() + interval '15 minutes'
-          FROM failed
+        UPDATE "Invoice"
+        SET "lockedAt" = now()
+        WHERE id IN (
+          SELECT id FROM "Invoice"
+          WHERE "userId" = ${me.id}
+          AND "actionState" = 'FAILED'
+          AND "userCancel" = false
+          AND "cancelledAt" < now() - ${`${WALLET_RETRY_AFTER_MS} milliseconds`}::interval
+          AND "cancelledAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
+          AND ("lockedAt" IS NULL OR "lockedAt" < now() - ${`${WALLET_VISIBILITY_TIMEOUT_MS} milliseconds`}::interval)
+          AND "paymentAttempt" < ${WALLET_MAX_RETRIES}
+          ORDER BY id DESC
+          FOR UPDATE SKIP LOCKED
         )
-        SELECT * FROM failed`
+        RETURNING *`
     }
   },
   Wallet: {

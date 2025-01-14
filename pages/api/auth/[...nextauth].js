@@ -1,4 +1,4 @@
-import { createHash, randomInt } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GitHubProvider from 'next-auth/providers/github'
@@ -15,6 +15,7 @@ import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
 import * as cookie from 'cookie'
 import { multiAuthMiddleware } from '@/pages/api/graphql'
+import { bech32 } from 'bech32'
 
 /**
  * Stores userIds in user table
@@ -369,7 +370,8 @@ export default async (req, res) => {
 }
 
 function randomizeToken () {
-  return randomInt(100000, 1000000).toString()
+  const words = bech32.toWords(Buffer.from(randomBytes(3)))
+  return bech32.encode('token', words).slice(6, 12)
 }
 
 async function sendVerificationRequest ({
@@ -398,15 +400,15 @@ async function sendVerificationRequest ({
     const { server, from } = provider
 
     const site = new URL(url).host
-    // const isPWA = new URL(url).searchParams.get('pwa') === 'true'
+    const code = token.toUpperCase()
 
     nodemailer.createTransport(server).sendMail(
       {
         to: email,
         from,
         subject: `login to ${site}`,
-        text: text({ url, token, site, email }),
-        html: user ? html({ url, token, site, email }) : newUserHtml({ url, token, site, email })
+        text: text({ url, code, site, email }),
+        html: user ? html({ url, code, site, email }) : newUserHtml({ url, code, site, email })
       },
       (error) => {
         if (error) {
@@ -419,7 +421,7 @@ async function sendVerificationRequest ({
 }
 
 // Email HTML body
-const html = ({ url, token, site, email }) => {
+const html = ({ url, code, site, email }) => {
   // Insert invisible space into domains and email address to prevent both the
   // email address and the domain from being turned into a hyperlink by email
   // clients like Outlook and Apple mail, as this is confusing because it seems
@@ -459,7 +461,7 @@ const html = ({ url, token, site, email }) => {
             </td>
             <tr><td height="10px"></td></tr>
             <td align="center" style="padding: 10px 0px 0px 0px; font-size: 36px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-              <strong>${token}</strong>
+              <strong>${code}</strong>
             </td>
           </tr>
         </table>
@@ -493,9 +495,9 @@ const html = ({ url, token, site, email }) => {
 }
 
 // Email text body –fallback for email clients that don't render HTML
-const text = ({ url, token, site }) => `Sign in to ${site}\nusing the app: ${token}\non browser: ${url}\n\n`
+const text = ({ url, code, site }) => `Sign in to ${site}\nusing the app: ${code}\non browser: ${url}\n\n`
 
-const newUserHtml = ({ url, token, site, email }) => {
+const newUserHtml = ({ url, code, site, email }) => {
   const escapedEmail = `${email.replace(/\./g, '&#8203;.')}`
 
   const replaceCb = (path) => {
@@ -673,7 +675,7 @@ const newUserHtml = ({ url, token, site, email }) => {
                             </td>
                             <tr><td height="10px"></td></tr>
                             <td align="center" style="padding: 10px 0px 0px 0px; font-size: 36px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-                              <strong>${token}</strong>
+                              <strong>${code}</strong>
                             </td>
                           </tr>
                         </table>

@@ -2,7 +2,7 @@ import Image from 'react-bootstrap/Image'
 import { StaticLayout } from '@/components/layout'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { useRouter } from 'next/router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Form, SubmitButton, PasswordInput } from '@/components/form'
 import { emailTokenSchema } from '@/lib/validate'
 
@@ -11,11 +11,10 @@ export const getServerSideProps = getGetServerSideProps({ query: null })
 
 export default function Email () {
   const router = useRouter()
-  const [callback, setCallback] = useState('') // callback.email, callback.callbackUrl
+  const [callback, setCallback] = useState(null) // callback.email, callback.callbackUrl
   const [isPWA, setIsPWA] = useState(false)
 
-  // TODO: evaluate independent checkPWA function
-  const checkPWA = () => { // from pull-to-refresh.js
+  const checkPWA = () => {
     const androidPWA = window.matchMedia('(display-mode: standalone)').matches
     const iosPWA = window.navigator.standalone === true
     setIsPWA(androidPWA || iosPWA)
@@ -27,10 +26,10 @@ export default function Email () {
   }, [])
 
   // build and push the final callback URL
-  const pushCallback = (token) => {
+  const pushCallback = useCallback((token) => {
     const url = `/api/auth/callback/email?${callback.callbackUrl ? `callbackUrl=${callback.callbackUrl}` : ''}&token=${token}&email=${encodeURIComponent(callback.email)}`
     router.push(url)
-  }
+  }, [callback, router])
 
   return (
     <StaticLayout>

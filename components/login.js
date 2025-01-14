@@ -20,6 +20,7 @@ export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
       }}
       schema={emailSchema}
       onSubmit={async ({ email }) => {
+        window.sessionStorage.setItem('callback', JSON.stringify({ email, callbackUrl }))
         signIn('email', { email, callbackUrl, multiAuth })
       }}
     >

@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomInt } from 'node:crypto'
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GitHubProvider from 'next-auth/providers/github'
@@ -272,6 +272,8 @@ const getProviders = res => [
   EmailProvider({
     server: process.env.LOGIN_EMAIL_SERVER,
     from: process.env.LOGIN_EMAIL_FROM,
+    maxAge: 5 * 60, // expires in 5 minutes
+    generateVerificationToken: randomizeToken,
     sendVerificationRequest
   })
 ]
@@ -366,9 +368,14 @@ export default async (req, res) => {
   await NextAuth(req, res, getAuthOptions(req, res))
 }
 
+function randomizeToken () {
+  return randomInt(100000, 1000000).toString()
+}
+
 async function sendVerificationRequest ({
   identifier: email,
   url,
+  token,
   provider
 }) {
   let user = await prisma.user.findUnique({
@@ -391,14 +398,15 @@ async function sendVerificationRequest ({
     const { server, from } = provider
 
     const site = new URL(url).host
+    // const isPWA = new URL(url).searchParams.get('pwa') === 'true'
 
     nodemailer.createTransport(server).sendMail(
       {
         to: email,
         from,
         subject: `login to ${site}`,
-        text: text({ url, site, email }),
-        html: user ? html({ url, site, email }) : newUserHtml({ url, site, email })
+        text: text({ url, token, site, email }),
+        html: user ? html({ url, token, site, email }) : newUserHtml({ url, token, site, email })
       },
       (error) => {
         if (error) {
@@ -411,7 +419,7 @@ async function sendVerificationRequest ({
 }
 
 // Email HTML body
-const html = ({ url, site, email }) => {
+const html = ({ url, token, site, email }) => {
   // Insert invisible space into domains and email address to prevent both the
   // email address and the domain from being turned into a hyperlink by email
   // clients like Outlook and Apple mail, as this is confusing because it seems
@@ -439,13 +447,32 @@ const html = ({ url, site, email }) => {
   <table width="100%" border="0" cellspacing="20" cellpadding="0" style="background: ${mainBackgroundColor}; max-width: 600px; margin: auto; border-radius: 10px;">
     <tr>
       <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-        login as <strong>${escapedEmail}</strong>
+        login with <strong>${escapedEmail}</strong>
       </td>
     </tr>
     <tr>
       <td align="center" style="padding: 20px 0;">
         <table border="0" cellspacing="0" cellpadding="0">
           <tr>
+            <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
+              using the app? copy the magic code
+            </td>
+            <tr><td height="10px"></td></tr>
+            <td align="center" style="padding: 10px 0px 0px 0px; font-size: 36px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
+              <strong>${token}</strong>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 10px 0;">
+        <table border="0" cellspacing="0" cellpadding="0">
+          <tr>
+            <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
+              on browser? click the button below
+            </td>
+            <tr><td height="10px"></td></tr>
             <td align="center" style="border-radius: 5px;" bgcolor="${buttonBackgroundColor}"><a href="${url}" target="_blank" style="font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${buttonTextColor}; text-decoration: none; text-decoration: none;border-radius: 5px; padding: 10px 20px; border: 1px solid ${buttonBackgroundColor}; display: inline-block; font-weight: bold;">login</a></td>
           </tr>
         </table>

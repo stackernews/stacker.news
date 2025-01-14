@@ -11,6 +11,7 @@ export default function CCInfo (props) {
         <li>if the zaps are split on a post, recepients will receive CCs regardless of their configured receiving wallet</li>
         <li>there could be an issue paying your receiving wallet
           <ul>
+            <li>if the zap is small and you don't have a direct channel to SN, the routing fee may exceed SN's 3% max fee</li>
             <li>check your <Link href='/wallets/logs'>wallet logs</Link> for clues</li>
             <li>if you have questions about the errors in your wallet logs, mention the error in the <Link href='/daily'>saloon</Link></li>
           </ul>

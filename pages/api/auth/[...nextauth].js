@@ -494,9 +494,9 @@ const html = ({ url, token, site, email }) => {
 }
 
 // Email text body –fallback for email clients that don't render HTML
-const text = ({ url, site }) => `Sign in to ${site}\n${url}\n\n`
+const text = ({ url, token, site }) => `Sign in to ${site}\nusing the app: ${token}\non browser: ${url}\n\n`
 
-const newUserHtml = ({ url, site, email }) => {
+const newUserHtml = ({ url, token, site, email }) => {
   const escapedEmail = `${email.replace(/\./g, '&#8203;.')}`
 
   const replaceCb = (path) => {
@@ -662,25 +662,35 @@ const newUserHtml = ({ url, site, email }) => {
                   <tbody>
                     <tr>
                       <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:18px;line-height:1;text-align:center;color:#000000;">login as <b>${escapedEmail}</b></div>
+                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:18px;line-height:1;text-align:center;color:#000000;">login with <b>${escapedEmail}</b></div>
                       </td>
                     </tr>
                     <tr>
-                      <td align="center" vertical-align="middle" style="font-size:0px;padding:10px 25px;padding-top:20px;padding-bottom:30px;word-break:break-word;">
-                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:separate;line-height:100%;">
+                      <td align="center" style="padding: 20px 0;">
+                        <table border="0" cellspacing="0" cellpadding="0">
                           <tr>
-                            <td align="center" bgcolor="${buttonBackgroundColor}" role="presentation" style="border:none;border-radius:5px;cursor:auto;mso-padding-alt:15px 40px;background:${buttonBackgroundColor};" valign="middle">
-                              <a href="${url}" style="display:inline-block;background:${buttonBackgroundColor};color:${textColor};font-family:Helvetica, Arial, sans-serif;font-size:22px;font-weight:normal;line-height:120%;margin:0;text-decoration:none;text-transform:none;padding:15px 40px;mso-padding-alt:0px;border-radius:5px;" target="_blank">
-                                <mj-text align="center" font-family="Helvetica, Arial, sans-serif" font-size="20px"><b font-family="Helvetica, Arial, sans-serif">login</b></mj-text>
-                              </a>
+                            <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
+                              using the app? copy the magic code
+                            </td>
+                            <tr><td height="10px"></td></tr>
+                            <td align="center" style="padding: 10px 0px 0px 0px; font-size: 36px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
+                              <strong>${token}</strong>
                             </td>
                           </tr>
                         </table>
                       </td>
                     </tr>
                     <tr>
-                      <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:24px;text-align:center;color:#000000;">Or copy and paste this link: <a href="#" style="text-decoration:none; color:#787878">${url}</a></div>
+                      <td align="center" style="padding: 10px 0;">
+                        <table border="0" cellspacing="0" cellpadding="0">
+                          <tr>
+                            <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
+                              on browser? click the button below
+                            </td>
+                            <tr><td height="10px"></td></tr>
+                            <td align="center" style="border-radius: 5px;" bgcolor="${buttonBackgroundColor}"><a href="${url}" target="_blank" style="font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor}; text-decoration: none; text-decoration: none;border-radius: 5px; padding: 10px 20px; border: 1px solid ${buttonBackgroundColor}; display: inline-block; font-weight: bold;">login</a></td>
+                          </tr>
+                        </table>
                       </td>
                     </tr>
                   </tbody>

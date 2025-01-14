@@ -466,7 +466,7 @@ const html = ({ url, token, site, email }) => {
       </td>
     </tr>
     <tr>
-      <td align="center" style="padding: 10px 0;">
+      <td align="center">
         <table border="0" cellspacing="0" cellpadding="0">
           <tr>
             <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
@@ -479,9 +479,8 @@ const html = ({ url, token, site, email }) => {
       </td>
     </tr>
     <tr>
-      <td align="center" style="padding: 0px 0px 10px 0px; font-size: 16px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-        Or copy and paste this link: <a href="#" style="text-decoration:none; color:${textColor}">${url}</a>
-      </td>
+      <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
+      <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:24px;text-align:center;color:#000000;">Or copy and paste this link: <a href="#" style="text-decoration:none; color:#787878">${url}</a></div>
     </tr>
     <tr>
       <td align="center" style="padding: 0px 0px 10px 0px; font-size: 10px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">

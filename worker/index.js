@@ -9,7 +9,7 @@ import {
 } from './wallet'
 import { repin } from './repin'
 import { trust } from './trust'
-import { earn } from './earn'
+import { earn, earnRefill } from './earn'
 import { ApolloClient, HttpLink, InMemoryCache } from '@apollo/client'
 import { indexItem, indexAllItems } from './search'
 import { timestampItem } from './ots'
@@ -129,6 +129,7 @@ async function work () {
   await boss.work('trust', jobWrapper(trust))
   await boss.work('timestampItem', jobWrapper(timestampItem))
   await boss.work('earn', jobWrapper(earn))
+  await boss.work('earnRefill', jobWrapper(earnRefill))
   await boss.work('streak', jobWrapper(computeStreaks))
   await boss.work('checkStreak', jobWrapper(checkStreak))
   await boss.work('nip57', jobWrapper(nip57))

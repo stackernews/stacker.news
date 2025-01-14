@@ -693,6 +693,10 @@ const newUserHtml = ({ url, token, site, email }) => {
                         </table>
                       </td>
                     </tr>
+                    <tr>
+                      <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
+                      <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:24px;text-align:center;color:#000000;">Or copy and paste this link: <a href="#" style="text-decoration:none; color:#787878">${url}</a></div>
+                    </tr>
                   </tbody>
                 </table>
               </div>

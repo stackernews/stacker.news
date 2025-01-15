@@ -53,7 +53,7 @@ export const MagicCodeForm = ({ onSubmit }) => {
         token: ''
       }}
       schema={emailTokenSchema}
-      onSubmit={({ token }) => { onSubmit(token) }}
+      onSubmit={({ token }) => { onSubmit(token.toLowerCase()) }}
     >
       <PasswordInput name='token' required placeholder='input your 6-digit magic code' />
       <SubmitButton variant='primary' className='px-4'>verify</SubmitButton>

@@ -408,32 +408,6 @@ function randomizeToken () {
   return bech32.encode('token', words).slice(6, 12)
 }
 
-export async function checkVerificationAttempt (email) {
-  const verificationRequest = await prisma.verificationRequest.findUnique({
-    where: { identifier: email }
-  })
-
-  if (verificationRequest) {
-    const newAttempts = verificationRequest.attempts + 1
-
-    if (newAttempts > 3) {
-      await prisma.verificationRequest.deleteMany({
-        where: {
-          identifier: email,
-          attempts: {
-            gt: 3
-          }
-        }
-      })
-    } else {
-      await prisma.verificationRequest.update({
-        where: { identifier: email },
-        data: { attempts: newAttempts }
-      })
-    }
-  }
-}
-
 async function sendVerificationRequest ({
   identifier: email,
   url,

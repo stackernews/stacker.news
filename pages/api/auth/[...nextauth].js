@@ -337,7 +337,10 @@ export const getAuthOptions = (req, res) => ({
       })
 
       if (verificationRequest) {
-        if (verificationRequest.token === token) { // continue if correct
+        if (verificationRequest.token === token) { // if correct delete the token and continue
+          await prisma.verificationToken.delete({
+            where: { id: verificationRequest.id }
+          })
           return verificationRequest
         } else { // increment attempts if incorrect
           const newAttempts = verificationRequest.attempts + 1

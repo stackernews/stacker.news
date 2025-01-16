@@ -27,8 +27,8 @@ export default function AuthError ({ error }) {
     return (
       <StaticLayout>
         <Image className='rounded-1 shadow-sm' width='500' height='375' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/double.gif`} fluid />
-        <h2 className='pt-4'>This magic link has expired.</h2>
-        <h4 className='text-muted pt-2'>Get another by logging in.</h4>
+        <h2 className='pt-4'>This magic link has expired or the code was entered incorrectly.</h2>
+        <h4 className='text-muted pt-2'>Get another by logging in or try again by going back.</h4>
         <Button
           className='align-items-center my-3'
           style={{ borderWidth: '2px' }}

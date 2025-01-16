@@ -324,6 +324,37 @@ export const getAuthOptions = (req, res) => ({
         user.email = email
       }
       return user
+    },
+    useVerificationToken: async ({ identifier, token }) => {
+      // we need to find the most recent verification request for this email/identifier
+      const verificationRequest = await prisma.verificationToken.findFirst({
+        where: {
+          identifier
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      })
+
+      if (verificationRequest) {
+        if (verificationRequest.token === token) { // continue if correct
+          return verificationRequest
+        } else { // increment attempts if incorrect
+          const newAttempts = verificationRequest.attempts + 1
+
+          if (newAttempts > 3) { // the moment the user has tried 3 times, delete the token
+            await prisma.verificationToken.delete({
+              where: { id: verificationRequest.id }
+            })
+          } else { // otherwise, just increment the failed attempts
+            await prisma.verificationToken.update({
+              where: { id: verificationRequest.id },
+              data: { attempts: newAttempts }
+            })
+          }
+        }
+      }
+      return null
     }
   },
   session: {
@@ -372,6 +403,32 @@ export default async (req, res) => {
 function randomizeToken () {
   const words = bech32.toWords(Buffer.from(randomBytes(3)))
   return bech32.encode('token', words).slice(6, 12)
+}
+
+export async function checkVerificationAttempt (email) {
+  const verificationRequest = await prisma.verificationRequest.findUnique({
+    where: { identifier: email }
+  })
+
+  if (verificationRequest) {
+    const newAttempts = verificationRequest.attempts + 1
+
+    if (newAttempts > 3) {
+      await prisma.verificationRequest.deleteMany({
+        where: {
+          identifier: email,
+          attempts: {
+            gt: 3
+          }
+        }
+      })
+    } else {
+      await prisma.verificationRequest.update({
+        where: { identifier: email },
+        data: { attempts: newAttempts }
+      })
+    }
+  }
 }
 
 async function sendVerificationRequest ({

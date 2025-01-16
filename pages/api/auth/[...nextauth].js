@@ -542,8 +542,13 @@ const html = ({ url, code, site, email }) => {
       <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:24px;text-align:center;color:#000000;">Or copy and paste this link: <a href="#" style="text-decoration:none; color:#787878">${url}</a></div>
     </tr>
     <tr>
-      <td align="center" style="padding: 0px 0px 10px 0px; font-size: 10px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-        If you did not request this email you can safely ignore it.
+      <td align="center" style="font-size:0px;padding:0px 20px;word-break:break-word;">
+        <div style="font-family:Arial, sans-serif;font-size:11px;line-height:22px;text-align:center;color:#55575d;">Expires in 5 minutes</div>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="font-size:0px;padding:0px 20px;word-break:break-word;">
+        <div style="font-family:Arial, sans-serif;font-size:11px;line-height:22px;text-align:center;color:#55575d;">If you did not request this email you can safely ignore it.</div>
       </td>
     </tr>
   </table>
@@ -552,7 +557,7 @@ const html = ({ url, code, site, email }) => {
 }
 
 // Email text body –fallback for email clients that don't render HTML
-const text = ({ url, code, site }) => `Sign in to ${site}\nusing the app: ${code}\non browser: ${url}\n\n`
+const text = ({ url, code, site }) => `Sign in to ${site}\nusing the app: ${code}\non browser: ${url}\n\nExpires in 5 minutes`
 
 const newUserHtml = ({ url, code, site, email }) => {
   const escapedEmail = `${email.replace(/\./g, '&#8203;.')}`
@@ -754,6 +759,11 @@ const newUserHtml = ({ url, code, site, email }) => {
                     <tr>
                       <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
                       <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:24px;text-align:center;color:#000000;">Or copy and paste this link: <a href="#" style="text-decoration:none; color:#787878">${url}</a></div>
+                    </tr>
+                    <tr>
+                      <td align="center" style="font-size:0px;padding:0px 20px;word-break:break-word;">
+                        <div style="font-family:Arial, sans-serif;font-size:11px;line-height:22px;text-align:center;color:#55575d;">Expires in 5 minutes</div>
+                      </td>
                     </tr>
                   </tbody>
                 </table>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/router'
 import { useState, useEffect, useCallback } from 'react'
 import { Form, SubmitButton, PasswordInput } from '@/components/form'
 import { emailTokenSchema } from '@/lib/validate'
+import { checkPWA } from '@/lib/pwa'
 
 // force SSR to include CSP nonces
 export const getServerSideProps = getGetServerSideProps({ query: null })
@@ -14,14 +15,8 @@ export default function Email () {
   const [callback, setCallback] = useState(null) // callback.email, callback.callbackUrl
   const [isPWA, setIsPWA] = useState(false)
 
-  const checkPWA = () => {
-    const androidPWA = window.matchMedia('(display-mode: standalone)').matches
-    const iosPWA = window.navigator.standalone === true
-    setIsPWA(androidPWA || iosPWA)
-  }
-
   useEffect(() => {
-    checkPWA()
+    typeof window !== 'undefined' && setIsPWA(checkPWA(window))
     setCallback(JSON.parse(window.sessionStorage.getItem('callback')))
   }, [])
 

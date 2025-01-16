@@ -1,5 +1,6 @@
 import { useRouter } from 'next/router'
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { checkPWA } from '@/lib/pwa'
 import styles from './pull-to-refresh.module.css'
 
 const REFRESH_THRESHOLD = 150
@@ -11,13 +12,9 @@ export default function PullToRefresh ({ children, className }) {
   const touchStartY = useRef(0)
   const touchEndY = useRef(0)
 
-  const checkPWA = () => {
-    const androidPWA = window.matchMedia('(display-mode: standalone)').matches
-    const iosPWA = window.navigator.standalone === true
-    setIsPWA(androidPWA || iosPWA)
-  }
-
-  useEffect(checkPWA, [])
+  useEffect(() => {
+    typeof window !== 'undefined' && setIsPWA(checkPWA(window))
+  }, [])
 
   const handleTouchStart = useCallback((e) => {
     // don't handle if the user is not scrolling from the top of the page, is not on a PWA or if we want Android's native PTR

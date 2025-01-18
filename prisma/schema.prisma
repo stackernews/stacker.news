@@ -254,6 +254,8 @@ model WalletLog {
   wallet    WalletType
   level     LogLevel
   message   String
+  invoiceId Int?
+  invoice   Invoice?   @relation(fields: [invoiceId], references: [id])
   context   Json?      @db.JsonB
 
   @@index([userId, createdAt])
@@ -949,6 +951,7 @@ model Invoice {
   Upload             Upload[]
   PollVote           PollVote[]
   PollBlindVote      PollBlindVote[]
+  WalletLog          WalletLog[]
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")

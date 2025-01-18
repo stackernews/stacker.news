@@ -30,9 +30,8 @@ function commentsOrderByClause (me, models, sort) {
   }
 
   if (me && sort === 'hot') {
-    return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, COALESCE(
-        personal_hot_score,
-        ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
+    return `ORDER BY ("Item"."deletedAt" IS NULL) DESC,
+        "personal_hot_score" DESC NULLS LAST,
         "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
   } else {
     if (sort === 'top') {
@@ -49,14 +48,15 @@ async function comments (me, models, id, sort) {
   if (me) {
     const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) `
     const [{ item_comments_zaprank_with_me: comments }] = await models.$queryRawUnsafe(
-      'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)',
-      Number(id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+      'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8, $9)',
+      Number(id), GLOBAL_SEED, Number(me.id), 100, 0, 10, COMMENT_DEPTH_LIMIT, filter, orderBy)
     return comments
   }
 
   const filter = ' AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = \'PAID\') '
   const [{ item_comments: comments }] = await models.$queryRawUnsafe(
-    'SELECT item_comments($1::INTEGER, $2::INTEGER, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+    'SELECT item_comments($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6, $7)',
+    Number(id), 100, 0, 10, COMMENT_DEPTH_LIMIT, filter, orderBy)
   return comments
 }
 

@@ -336,27 +336,27 @@ export const getAuthOptions = (req, res) => ({
         }
       })
 
-      if (verificationRequest) {
-        if (verificationRequest.token === token) { // if correct delete the token and continue
-          await prisma.verificationToken.delete({
-            where: { id: verificationRequest.id }
-          })
-          return verificationRequest
-        } else { // increment attempts if incorrect
-          const newAttempts = verificationRequest.attempts + 1
+      if (!verificationRequest) return null
 
-          if (newAttempts > 3) { // the moment the user has tried 3 times, delete the token
-            await prisma.verificationToken.delete({
-              where: { id: verificationRequest.id }
-            })
-          } else { // otherwise, just increment the failed attempts
-            await prisma.verificationToken.update({
-              where: { id: verificationRequest.id },
-              data: { attempts: newAttempts }
-            })
-          }
-        }
+      if (verificationRequest.token === token) { // if correct delete the token and continue
+        await prisma.verificationToken.delete({
+          where: { id: verificationRequest.id }
+        })
+        return verificationRequest
       }
+
+      const newAttempts = verificationRequest.attempts + 1
+      if (newAttempts > 3) { // the moment the user has tried 3 times, delete the token
+        await prisma.verificationToken.delete({
+          where: { id: verificationRequest.id }
+        })
+      } else { // otherwise, just increment the failed attempts
+        await prisma.verificationToken.update({
+          where: { id: verificationRequest.id },
+          data: { attempts: newAttempts }
+        })
+      }
+
       return null
     }
   },

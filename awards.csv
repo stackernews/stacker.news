@@ -160,9 +160,11 @@ Darth-Coin,issue,#1649,#1421,medium,,,,25k,darthcoin@stacker.news,2024-12-07
 Soxasora,pr,#1685,,medium,,,,250k,soxasora@blink.sv,2024-12-07
 aegroto,pr,#1606,#1242,medium,,,,250k,aegroto@blink.sv,2024-12-07
 sfr0xyz,issue,#1696,#1196,good-first-issue,,,,2k,sefiro@getalby.com,2024-12-10
-Soxasora,pr,#1794,#756,hard,urgent,,,3m,bolt11,2024-01-09
-Soxasora,pr,#1794,#411,hard,high,sort of grouped with #1794,,1m,bolt11,2024-01-09
-SatsAllDay,issue,#1749,#411,hard,high,,,200k,weareallsatoshi@getalby.com,???
-Soxasora,pr,#1786,#363,easy,,,,100k,soxasora@blink.sv,???
-felipebueno,issue,#1786,#363,easy,,,,10k,felipebueno@getalby.com,???
-cyphercosmo,pr,#1745,#1648,good-first-issue,,,2,16k,cyphercosmo@getalby.com,???
+Soxasora,pr,#1794,#756,hard,urgent,,includes #411,3m,bolt11,2024-01-09
+Soxasora,pr,#1786,#363,easy,,,,100k,bolt11,2024-01-09
+Soxasora,pr,#1768,#1186,medium-hard,,,,500k,bolt11,2024-01-09
+Soxasora,pr,#1750,#1035,medium,,,,250k,bolt11,2024-01-09
+SatsAllDay,issue,#1794,#411,hard,high,,,200k,weareallsatoshi@getalby.com,2024-01-20
+felipebueno,issue,#1786,#363,easy,,,,10k,felipebueno@getalby.com,2024-01-20
+cyphercosmo,pr,#1745,#1648,good-first-issue,,,2,16k,cyphercosmo@getalby.com,2024-01-20
+Radentor,issue,#1768,#1186,medium-hard,,,,50k,???,???

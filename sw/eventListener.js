@@ -59,7 +59,7 @@ export function onPush (sw) {
 
     // iOS requirement: wait for all promises to resolve before showing the notification
     event.waitUntil(Promise.all(promises).then(() => {
-      sw.registration.showNotification(payload.title, payload.options)
+      return sw.registration.showNotification(payload.title, payload.options)
     }))
   }
 }

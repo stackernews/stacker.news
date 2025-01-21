@@ -467,8 +467,6 @@ const html = ({ url, code, site, email }) => {
   const backgroundColor = '#f5f5f5'
   const textColor = '#212529'
   const mainBackgroundColor = '#ffffff'
-  const buttonBackgroundColor = '#FADA5E'
-  const buttonTextColor = '#212529'
 
   // Uses tables for layout and inline CSS due to email client limitations
   return `
@@ -491,7 +489,7 @@ const html = ({ url, code, site, email }) => {
         <table border="0" cellspacing="0" cellpadding="0">
           <tr>
             <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-              using the app? copy the magic code
+              copy this magic code
             </td>
             <tr><td height="10px"></td></tr>
             <td align="center" style="padding: 10px 0px 0px 0px; font-size: 36px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
@@ -500,23 +498,6 @@ const html = ({ url, code, site, email }) => {
           </tr>
         </table>
       </td>
-    </tr>
-    <tr>
-      <td align="center">
-        <table border="0" cellspacing="0" cellpadding="0">
-          <tr>
-            <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-              on browser? click the button below
-            </td>
-            <tr><td height="10px"></td></tr>
-            <td align="center" style="border-radius: 5px;" bgcolor="${buttonBackgroundColor}"><a href="${url}" target="_blank" style="font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${buttonTextColor}; text-decoration: none; text-decoration: none;border-radius: 5px; padding: 10px 20px; border: 1px solid ${buttonBackgroundColor}; display: inline-block; font-weight: bold;">login</a></td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-    <tr>
-      <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-      <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:24px;text-align:center;color:#000000;">Or copy and paste this link: <a href="#" style="text-decoration:none; color:#787878">${url}</a></div>
     </tr>
     <tr>
       <td align="center" style="font-size:0px;padding:0px 20px;word-break:break-word;">
@@ -534,7 +515,7 @@ const html = ({ url, code, site, email }) => {
 }
 
 // Email text body –fallback for email clients that don't render HTML
-const text = ({ url, code, site }) => `Sign in to ${site}\nusing the app: ${code}\non browser: ${url}\n\nExpires in 5 minutes`
+const text = ({ url, code, site }) => `Sign in to ${site}\ncopy this code: ${code}\n\n\nExpires in 5 minutes`
 
 const newUserHtml = ({ url, code, site, email }) => {
   const escapedEmail = `${email.replace(/\./g, '&#8203;.')}`
@@ -555,7 +536,6 @@ const newUserHtml = ({ url, code, site, email }) => {
   const backgroundColor = '#f5f5f5'
   const textColor = '#212529'
   const mainBackgroundColor = '#ffffff'
-  const buttonBackgroundColor = '#FADA5E'
 
   return `
 <!doctype html>
@@ -710,7 +690,7 @@ const newUserHtml = ({ url, code, site, email }) => {
                         <table border="0" cellspacing="0" cellpadding="0">
                           <tr>
                             <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-                              using the app? copy the magic code
+                              copy this magic code
                             </td>
                             <tr><td height="10px"></td></tr>
                             <td align="center" style="padding: 10px 0px 0px 0px; font-size: 36px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
@@ -719,23 +699,6 @@ const newUserHtml = ({ url, code, site, email }) => {
                           </tr>
                         </table>
                       </td>
-                    </tr>
-                    <tr>
-                      <td align="center" style="padding: 10px 0;">
-                        <table border="0" cellspacing="0" cellpadding="0">
-                          <tr>
-                            <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-                              on browser? click the button below
-                            </td>
-                            <tr><td height="10px"></td></tr>
-                            <td align="center" style="border-radius: 5px;" bgcolor="${buttonBackgroundColor}"><a href="${url}" target="_blank" style="font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor}; text-decoration: none; text-decoration: none;border-radius: 5px; padding: 10px 20px; border: 1px solid ${buttonBackgroundColor}; display: inline-block; font-weight: bold;">login</a></td>
-                          </tr>
-                        </table>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                      <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:24px;text-align:center;color:#000000;">Or copy and paste this link: <a href="#" style="text-decoration:none; color:#787878">${url}</a></div>
                     </tr>
                     <tr>
                       <td align="center" style="font-size:0px;padding:0px 20px;word-break:break-word;">

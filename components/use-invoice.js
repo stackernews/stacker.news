@@ -42,9 +42,9 @@ export default function useInvoice () {
     return data.cancelInvoice
   }, [cancelInvoice])
 
-  const retry = useCallback(async ({ id, hash, hmac }, { update } = {}) => {
+  const retry = useCallback(async ({ id, hash, hmac, newAttempt = false }, { update } = {}) => {
     console.log('retrying invoice:', hash)
-    const { data, error } = await retryPaidAction({ variables: { invoiceId: Number(id) }, update })
+    const { data, error } = await retryPaidAction({ variables: { invoiceId: Number(id), newAttempt }, update })
     if (error) throw error
 
     const newInvoice = data.retryPaidAction.invoice

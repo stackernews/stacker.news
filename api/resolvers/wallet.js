@@ -12,7 +12,6 @@ import {
   WALLET_CREATE_INVOICE_TIMEOUT_MS,
   WALLET_RETRY_AFTER_MS,
   WALLET_RETRY_BEFORE_MS,
-  WALLET_VISIBILITY_TIMEOUT_MS,
   WALLET_MAX_RETRIES
 } from '@/lib/constants'
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
@@ -467,21 +466,14 @@ const resolvers = {
       }
       // make sure each invoice is only returned once via visibility timeouts and SKIP LOCKED
       return await models.$queryRaw`
-        UPDATE "Invoice"
-        SET "lockedAt" = now()
-        WHERE id IN (
-          SELECT id FROM "Invoice"
-          WHERE "userId" = ${me.id}
-          AND "actionState" = 'FAILED'
-          AND "userCancel" = false
-          AND "cancelledAt" < now() - ${`${WALLET_RETRY_AFTER_MS} milliseconds`}::interval
-          AND "cancelledAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
-          AND ("lockedAt" IS NULL OR "lockedAt" < now() - ${`${WALLET_VISIBILITY_TIMEOUT_MS} milliseconds`}::interval)
-          AND "paymentAttempt" < ${WALLET_MAX_RETRIES}
-          ORDER BY id DESC
-          FOR UPDATE SKIP LOCKED
-        )
-        RETURNING *`
+        SELECT * FROM "Invoice"
+        WHERE "userId" = ${me.id}
+        AND "actionState" = 'FAILED'
+        AND "userCancel" = false
+        AND "cancelledAt" < now() - ${`${WALLET_RETRY_AFTER_MS} milliseconds`}::interval
+        AND "cancelledAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
+        AND "paymentAttempt" < ${WALLET_MAX_RETRIES}
+        ORDER BY id DESC`
     }
   },
   Wallet: {

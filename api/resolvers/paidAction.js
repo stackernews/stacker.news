@@ -50,35 +50,44 @@ export default {
     }
   },
   Mutation: {
-    retryPaidAction: async (parent, { invoiceId }, { models, me, lnd }) => {
+    retryPaidAction: async (parent, { invoiceId, newAttempt }, { models, me, lnd }) => {
       if (!me) {
         throw new Error('You must be logged in')
       }
 
-      const invoice = await models.invoice.findUnique({ where: { id: invoiceId, userId: me.id } })
+      // make sure only one client at a time can retry by immediately transitioning to an intermediate state
+      const [invoice] = await models.$queryRaw`
+          UPDATE "Invoice"
+          SET "actionState" = 'RETRY_PENDING'
+          WHERE id in (
+            SELECT id FROM "Invoice"
+            WHERE id = ${invoiceId} AND "userId" = ${me.id} AND "actionState" = 'FAILED'
+            FOR UPDATE
+          )
+          RETURNING *`
       if (!invoice) {
         throw new Error('Invoice not found')
       }
 
-      if (invoice.actionState !== 'FAILED') {
-        if (invoice.actionState === 'PAID') {
-          throw new Error('Invoice is already paid')
-        }
-        throw new Error(`Invoice is not in failed state: ${invoice.actionState}`)
-      }
-
-      // a locked invoice means we want to retry a payment from the beginning
-      // with all sender and receiver wallets so we need to increment the retry count
-      const paymentAttempt = invoice.lockedAt ? invoice.paymentAttempt + 1 : invoice.paymentAttempt
+      // do we want to retry a payment from the beginning with all sender and receiver wallets?
+      const paymentAttempt = newAttempt ? invoice.paymentAttempt + 1 : invoice.paymentAttempt
       if (paymentAttempt > WALLET_MAX_RETRIES) {
         throw new Error('Payment has been retried too many times')
       }
 
-      const result = await retryPaidAction(invoice.actionType, { invoice }, { paymentAttempt, models, me, lnd })
-
-      return {
-        ...result,
-        type: paidActionType(invoice.actionType)
+      try {
+        const result = await retryPaidAction(invoice.actionType, { invoice }, { paymentAttempt, models, me, lnd })
+        return {
+          ...result,
+          type: paidActionType(invoice.actionType)
+        }
+      } catch (err) {
+        // revert state transition to allow new retry for this invoice
+        await models.invoice.update({
+          where: { id: invoiceId, actionState: 'RETRY_PENDING' },
+          data: { actionState: 'FAILED' }
+        })
+        throw err
       }
     }
   },

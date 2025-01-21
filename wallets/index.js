@@ -1,7 +1,7 @@
 import { useMe } from '@/components/me'
 import { FAILED_INVOICES, SET_WALLET_PRIORITY, WALLETS } from '@/fragments/wallet'
 import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
-import { useApolloClient, useMutation, useQuery } from '@apollo/client'
+import { useApolloClient, useLazyQuery, useMutation, useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getStorageKey, getWalletByType, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally } from './common'
 import useVault from '@/components/vault/use-vault'
@@ -231,30 +231,62 @@ export function useSendWallets () {
 }
 
 function RetryHandler ({ children }) {
-  const failedInvoices = useFailedInvoices()
+  const wallets = useSendWallets()
   const waitForWalletPayment = useWalletPayment()
   const invoiceHelper = useInvoice()
+  const [getFailedInvoices] = useLazyQuery(FAILED_INVOICES, { fetchPolicy: 'network-only', nextFetchPolicy: 'network-only' })
+
+  const retry = useCallback(async (invoice) => {
+    const newInvoice = await invoiceHelper.retry({ ...invoice, newAttempt: true })
+    await waitForWalletPayment(newInvoice)
+  }, [invoiceHelper, waitForWalletPayment])
 
   useEffect(() => {
-    (async () => {
-      for (const invoice of failedInvoices) {
-        const newInvoice = await invoiceHelper.retry(invoice)
-        waitForWalletPayment(newInvoice).catch(console.error)
+    if (wallets.length === 0) return
+
+    const retryPoll = async () => {
+      let failedInvoices
+      try {
+        const { data, error } = await getFailedInvoices()
+        if (error) throw error
+        failedInvoices = data.failedInvoices
+      } catch (err) {
+        console.error('failed to fetch invoices to retry:', err)
+        return
       }
-    })()
-  }, [failedInvoices, invoiceHelper, waitForWalletPayment])
+
+      for (const inv of failedInvoices) {
+        try {
+          await retry(inv)
+        } catch (err) {
+          // some retries are expected to fail since only one client at a time is allowed to retry
+          // these should show up as 'invoice not found' errors
+          console.error('retry failed:', err)
+        }
+      }
+    }
+
+    let timeout, stopped
+    const queuePoll = () => {
+      timeout = setTimeout(async () => {
+        try {
+          await retryPoll()
+        } catch (err) {
+          // every error should already be handled in retryPoll
+          // but this catch is a safety net to not trigger an unhandled promise rejection
+          console.error('retry poll failed:', err)
+        }
+        if (!stopped) queuePoll()
+      }, NORMAL_POLL_INTERVAL)
+    }
+    const stopPolling = () => {
+      stopped = true
+      clearTimeout(timeout)
+    }
+
+    queuePoll()
+    return stopPolling
+  }, [wallets, getFailedInvoices, retry])
 
   return children
-}
-
-function useFailedInvoices () {
-  const wallets = useSendWallets()
-
-  const { data } = useQuery(FAILED_INVOICES, {
-    pollInterval: NORMAL_POLL_INTERVAL,
-    skip: wallets.length === 0,
-    notifyOnNetworkStatusChange: true
-  })
-
-  return data?.failedInvoices ?? []
 }

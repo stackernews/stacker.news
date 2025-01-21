@@ -66,8 +66,6 @@ export async function createInvoice (userId, { msats, description, descriptionHa
         if (BigInt(msats) - BigInt(bolt11.mtokens) >= 1000n) {
           throw new Error('invoice invalid: amount too small')
         }
-
-        logger.warn('wallet does not support msats')
       }
 
       return { invoice, wallet, logger }

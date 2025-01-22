@@ -193,8 +193,7 @@ export default function ItemInfo ({
               )}
               {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
                 <CrosspostDropdownItem item={item} />}
-              {me && !item.position &&
-            !item.mine && !item.deletedAt &&
+              {me && !item.mine && !item.deletedAt &&
             (item.meDontLikeSats > meSats
               ? <DropdownItemUpVote item={item} />
               : <DontLikeThisDropdownItem item={item} />)}

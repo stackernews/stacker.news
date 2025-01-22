@@ -135,8 +135,8 @@ export default function ItemInfo ({
             {embellishUser}
           </Link>}
         <span> </span>
-        <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
-          {timeSince(new Date(item.createdAt))}
+        <Link href={`/items/${item.id}`} title={item.invoicePaidAt || item.createdAt} className='text-reset' suppressHydrationWarning>
+          {timeSince(new Date(item.invoicePaidAt || item.createdAt))}
         </Link>
         {item.prior &&
           <>
@@ -250,6 +250,11 @@ function InfoDropdownItem ({ item }) {
           <div>{item.id}</div>
           <div>created at</div>
           <div>{item.createdAt}</div>
+          {item.invoicePaidAt &&
+            <>
+              <div>paid at</div>
+              <div>{item.invoicePaidAt}</div>
+            </>}
           <div>cost</div>
           <div>{item.cost}</div>
           <div>stacked</div>

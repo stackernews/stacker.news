@@ -47,6 +47,13 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
     }
   })
 
+  await tx.subSubscription.create({
+    data: {
+      userId: me.id,
+      subName: name
+    }
+  })
+
   return await tx.sub.update({
     data,
     // optimistic concurrency control

@@ -59,7 +59,7 @@ export function onPush (sw) {
 
     // iOS requirement: wait for all promises to resolve before showing the notification
     event.waitUntil(Promise.all(promises).then(() => {
-      sw.registration.showNotification(payload.title, payload.options)
+      return sw.registration.showNotification(payload.title, payload.options)
     }))
   }
 }
@@ -236,7 +236,7 @@ export function onMessage (sw) {
       messageChannelPort = event.ports[0]
     }
     log('[sw:message] received message', 'info', { action: event.data.action })
-    const currentOS = await getOS()
+    const currentOS = event.waitUntil(getOS())
     log('[sw:message] stored os: ' + currentOS, 'info', { action: event.data.action })
     if (event.data.action === STORE_SUBSCRIPTION) {
       log('[sw:message] storing subscription in IndexedDB', 'info', { endpoint: event.data.subscription.endpoint })
@@ -253,8 +253,8 @@ export function onMessage (sw) {
       promises.push(sw.registration.getNotifications().then((notifications) => {
         notifications.forEach(notification => notification.close())
       }))
-      activeCount = 0
       promises.push(clearAppBadge(sw))
+      activeCount = 0
       event.waitUntil(Promise.all(promises))
     }
   }

@@ -5,7 +5,7 @@ import gql from 'graphql-tag'
 
 export async function autoPost ({ data: item, models, apollo, lnd, boss }) {
   return await performPaidAction('ITEM_CREATE',
-    { ...item, subName: 'meta', userId: USER_ID.sn, apiKey: true },
+    { subName: 'meta', ...item, userId: USER_ID.sn, apiKey: true },
     {
       models,
       me: { id: USER_ID.sn },

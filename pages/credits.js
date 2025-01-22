@@ -1,4 +1,5 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
+import CCInfo from '@/components/info/cc'
 import { Form, Input, SubmitButton } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
 import { useLightning } from '@/components/lightning'
@@ -7,7 +8,9 @@ import { useShowModal } from '@/components/modal'
 import { usePaidMutation } from '@/components/use-paid-mutation'
 import { BUY_CREDITS } from '@/fragments/paidAction'
 import { amountSchema } from '@/lib/validate'
+import classNames from 'classnames'
 import { Button, Col, InputGroup, Row } from 'react-bootstrap'
+import RewardSatsInfo from '@/components/info/reward-sats'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -21,8 +24,8 @@ export default function Credits () {
             <div className='text-monospace'>
               {me?.privates?.credits}
             </div>
-            <div className='text-muted'>cowboy credits</div>
-            <BuyCreditsButton />
+            <div className='text-muted d-flex align-items-baseline justify-content-end'><CCInfo size={16} /> cowboy credits</div>
+            <BuyCreditsButton className='ms-auto' />
           </h2>
         </Col>
         <Col>
@@ -30,8 +33,8 @@ export default function Credits () {
             <div className='text-monospace'>
               {me?.privates?.sats - me?.privates?.credits}
             </div>
-            <div className='text-muted'>sats</div>
-            <Button variant='success mt-3' href='/withdraw'>withdraw sats</Button>
+            <div className='text-muted d-flex align-items-baseline justify-content-start'>sats <RewardSatsInfo size={16} /></div>
+            <WithdrawButton className='me-auto' />
           </h2>
         </Col>
       </Row>
@@ -41,8 +44,8 @@ export default function Credits () {
             <div className='text-monospace'>
               {me?.privates?.credits}
             </div>
-            <div className='text-muted'>cowboy credits</div>
-            <BuyCreditsButton />
+            <div className='text-muted d-flex align-items-baseline justify-content-start'>cowboy credits <CCInfo size={16} /></div>
+            <BuyCreditsButton className='me-auto' />
           </h2>
         </Row>
         <Row>
@@ -50,8 +53,8 @@ export default function Credits () {
             <div className='text-monospace'>
               {me?.privates?.sats - me?.privates?.credits}
             </div>
-            <div className='text-muted'>sats</div>
-            <Button variant='success mt-3' href='/withdraw'>withdraw sats</Button>
+            <div className='text-muted d-flex align-items-baseline justify-content-end'><RewardSatsInfo size={16} /> sats</div>
+            <WithdrawButton className='ms-auto' />
           </h2>
         </Row>
       </Row>
@@ -59,7 +62,19 @@ export default function Credits () {
   )
 }
 
-export function BuyCreditsButton () {
+function WithdrawButton ({ className }) {
+  return (
+    <Button
+      variant='success'
+      className={classNames('mt-3 d-block', className)}
+      style={{ width: 'fit-content' }}
+      href='/withdraw'
+    >withdraw sats
+    </Button>
+  )
+}
+
+export function BuyCreditsButton ({ className }) {
   const showModal = useShowModal()
   const strike = useLightning()
   const [buyCredits] = usePaidMutation(BUY_CREDITS)
@@ -99,7 +114,7 @@ export function BuyCreditsButton () {
             </div>
           </Form>
         ))}
-        className='mt-3'
+        className={classNames('mt-3 d-block', className)}
         variant='secondary'
       >buy credits
       </Button>

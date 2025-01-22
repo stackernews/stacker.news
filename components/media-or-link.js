@@ -134,6 +134,7 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
       // if it's not a video it will throw an error, so we can assume it's an image
       const img = new window.Image()
       img.onload = () => setIsImage(true)
+      img.decoding = 'sync' // iOS could give up on decoding if async
       img.src = src
     }
     video.src = src

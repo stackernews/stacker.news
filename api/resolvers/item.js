@@ -9,7 +9,9 @@ import {
   USER_ID, POLL_COST, ADMIN_ITEMS, GLOBAL_SEED,
   NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS,
   BOOST_MULT,
-  ITEM_EDIT_SECONDS
+  ITEM_EDIT_SECONDS,
+  COMMENTS_LIMIT,
+  COMMENTS_OF_COMMENT_LIMIT
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
@@ -25,38 +27,47 @@ import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 
 function commentsOrderByClause (me, models, sort) {
+  const sharedSortsArray = []
+  sharedSortsArray.push('("Item"."pinId" IS NOT NULL) DESC')
+  sharedSortsArray.push('("Item"."deletedAt" IS NULL) DESC')
+  const sharedSorts = sharedSortsArray.join(', ')
+
   if (sort === 'recent') {
-    return 'ORDER BY ("Item"."deletedAt" IS NULL) DESC, ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC, "Item".created_at DESC, "Item".id DESC'
+    return `ORDER BY ${sharedSorts},
+      ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC,
+      "Item".created_at DESC, "Item".id DESC`
   }
 
   if (me && sort === 'hot') {
-    return `ORDER BY ("Item"."deletedAt" IS NULL) DESC,
-        "personal_hot_score" DESC NULLS LAST,
-        "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+    return `ORDER BY ${sharedSorts},
+      "personal_hot_score" DESC NULLS LAST,
+      "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
   } else {
     if (sort === 'top') {
-      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator({ models, commentScaler: 0 })} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
+      return `ORDER BY ${sharedSorts}, ${orderByNumerator({ models, commentScaler: 0 })} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
     } else {
-      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+      return `ORDER BY ${sharedSorts}, ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
     }
   }
 }
 
-async function comments (me, models, id, sort) {
+async function comments (me, models, id, sort, cursor) {
   const orderBy = commentsOrderByClause(me, models, sort)
+  const decodedCursor = decodeCursor(cursor)
+  const offset = decodedCursor.offset
 
   if (me) {
     const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) `
     const [{ item_comments_zaprank_with_me: comments }] = await models.$queryRawUnsafe(
       'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8, $9)',
-      Number(id), GLOBAL_SEED, Number(me.id), 100, 0, 10, COMMENT_DEPTH_LIMIT, filter, orderBy)
+      Number(id), GLOBAL_SEED, Number(me.id), COMMENTS_LIMIT, offset, COMMENTS_OF_COMMENT_LIMIT, COMMENT_DEPTH_LIMIT, filter, orderBy)
     return comments
   }
 
   const filter = ' AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = \'PAID\') '
   const [{ item_comments: comments }] = await models.$queryRawUnsafe(
     'SELECT item_comments($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6, $7)',
-    Number(id), 100, 0, 10, COMMENT_DEPTH_LIMIT, filter, orderBy)
+    Number(id), GLOBAL_SEED, Number(me.id), COMMENTS_LIMIT, offset, COMMENTS_OF_COMMENT_LIMIT, COMMENT_DEPTH_LIMIT, filter, orderBy)
   return comments
 }
 
@@ -658,6 +669,27 @@ export default {
           ORDER BY created_at DESC
           LIMIT 3`
       }, similar)
+    },
+    comments: async (parent, { id, name, sort, cursor }, { me, models }) => {
+      let item
+      if (id) {
+        item = await models.item.findUnique({ where: { id: Number(id) } })
+      } else if (name) {
+        item = (await models.user.findFirst({ where: { name }, include: { bio: true } })).bio
+      } else {
+        throw new GqlInputError('item id or name is required')
+      }
+
+      if (!item) {
+        throw new GqlInputError('item not found')
+      }
+      const decodedCursor = decodeCursor(cursor)
+      const comments2 = await comments(me, models, item.id, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor)
+      console.log('comments2', comments2.length, COMMENTS_LIMIT, decodedCursor)
+      return {
+        comments: comments2,
+        cursor: comments2.length === COMMENTS_LIMIT ? nextCursorEncoded(decodedCursor, COMMENTS_LIMIT) : null
+      }
     },
     auctionPosition: async (parent, { id, sub, boost }, { models, me }) => {
       const createdAt = id ? (await getItem(parent, { id }, { models, me })).createdAt : new Date()

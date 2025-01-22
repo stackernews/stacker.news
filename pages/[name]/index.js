@@ -85,7 +85,7 @@ export default function User ({ ssrData }) {
   const { data } = useQuery(USER_FULL, { variables: { ...router.query } })
   if (!data && !ssrData) return <PageLoading />
 
-  const { user } = data || ssrData
+  const { user, comments } = data || ssrData
   const mine = me?.name === user.name
 
   return (
@@ -96,7 +96,7 @@ export default function User ({ ssrData }) {
               <div className={styles.create}>
                 <BioForm bio={user.bio} me={me} handleDone={() => setEdit(false)} />
               </div>)
-            : <ItemFull item={user.bio} bio handleClick={setEdit} />
+            : <ItemFull item={user.bio} comments={comments} bio handleClick={setEdit} />
           )
         : (mine &&
           <div className={styles.create}>

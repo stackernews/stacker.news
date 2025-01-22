@@ -9,7 +9,7 @@ import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
 import CommentEdit from './comment-edit'
-import { USER_ID, COMMENT_DEPTH_LIMIT, UNKNOWN_LINK_REL } from '@/lib/constants'
+import { USER_ID, COMMENT_DEPTH_LIMIT, UNKNOWN_LINK_REL, COMMENTS_OF_COMMENT_LIMIT } from '@/lib/constants'
 import PayBounty from './pay-bounty'
 import BountyIcon from '@/svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
@@ -255,10 +255,16 @@ export default function Comment ({
               {children}
               <div className={styles.comments}>
                 {item.comments && !noComments
-                  ? item.comments.map((item) => (
-                    <Comment depth={depth + 1} key={item.id} item={item} />
-                  ))
+                  ? (
+                    <>
+                      {item.comments.map((item) => (
+                        <Comment depth={depth + 1} key={item.id} item={item} />
+                      ))}
+                      {item.comments.length === COMMENTS_OF_COMMENT_LIMIT && <Link href={`/items/${item.id}`}>more</Link>}
+                    </>
+                    )
                   : null}
+                {/* TODO: add link to more comments if they're limited */}
               </div>
             </div>
             )

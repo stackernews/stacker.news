@@ -14,15 +14,19 @@ export const getServerSideProps = getGetServerSideProps({
 export default function Item ({ ssrData }) {
   const router = useRouter()
 
-  const { data } = useQuery(ITEM_FULL, { variables: { ...router.query } })
+  const { data, fetchMore } = useQuery(ITEM_FULL, { variables: { ...router.query } })
   if (!data && !ssrData) return <PageLoading />
 
-  const { item } = data || ssrData
+  const { item, comments } = data || ssrData
   const sub = item.subName || item.root?.subName
+
+  const fetchMoreComments = async () => {
+    await fetchMore({ variables: { ...router.query, cursor: comments.cursor } })
+  }
 
   return (
     <Layout sub={sub} item={item}>
-      <ItemFull item={item} />
+      <ItemFull item={item} comments={comments} fetchMoreComments={fetchMoreComments} />
     </Layout>
   )
 }

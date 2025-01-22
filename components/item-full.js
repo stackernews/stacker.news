@@ -160,7 +160,7 @@ function ItemText ({ item }) {
     : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
 }
 
-export default function ItemFull ({ item, bio, rank, ...props }) {
+export default function ItemFull ({ item, comments, fetchMoreComments, bio, rank, ...props }) {
   useEffect(() => {
     commentsViewed(item)
   }, [item.lastCommentAt])
@@ -182,11 +182,14 @@ export default function ItemFull ({ item, bio, rank, ...props }) {
                 ? <BioItem item={item} {...props} />
                 : <TopLevelItem item={item} {...props} />}
               </div>)}
-          {item.comments &&
+          {comments &&
             <div className={styles.comments}>
               <Comments
                 parentId={item.id} parentCreatedAt={item.createdAt}
-                pinned={item.position} bio={bio} commentSats={item.commentSats} comments={item.comments}
+                pinned={item.position} bio={bio} commentSats={item.commentSats}
+                comments={comments?.comments}
+                commentsCursor={comments.cursor}
+                fetchMoreComments={fetchMoreComments}
               />
             </div>}
         </CarouselProvider>

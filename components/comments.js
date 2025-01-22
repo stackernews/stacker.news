@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useMemo } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
 import Nav from 'react-bootstrap/Nav'
@@ -6,6 +6,7 @@ import Navbar from 'react-bootstrap/Navbar'
 import { numWithUnits } from '@/lib/format'
 import { defaultCommentSort } from '@/lib/item'
 import { useRouter } from 'next/router'
+import MoreFooter from './more-footer'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
   const router = useRouter()
@@ -60,10 +61,13 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
   )
 }
 
-export default function Comments ({ parentId, pinned, bio, parentCreatedAt, commentSats, comments, ...props }) {
+export default function Comments ({
+  parentId, pinned, bio, parentCreatedAt,
+  commentSats, comments, commentsCursor, fetchMoreComments, ...props
+}) {
   const router = useRouter()
 
-  const pins = comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position)
+  const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
 
   return (
     <>
@@ -91,6 +95,11 @@ export default function Comments ({ parentId, pinned, bio, parentCreatedAt, comm
       {comments.filter(({ position }) => !position).map(item => (
         <Comment depth={1} key={item.id} item={item} {...props} />
       ))}
+      <MoreFooter
+        cursor={commentsCursor} fetchMore={fetchMoreComments} noMoreText="THAT'S ALL"
+        count={comments?.length}
+        Skeleton={CommentsSkeleton}
+      />
     </>
   )
 }

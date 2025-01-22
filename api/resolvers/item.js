@@ -401,7 +401,7 @@ export default {
             me,
             models,
             query: `
-              ${SELECT}, COALESCE("Item"."invoicePaidAt", "Item".created_at) AS "createdAt"
+              ${SELECT}
               ${relationClause(type)}
               ${whereClause(
                 '"Item".created_at <= $1',
@@ -412,7 +412,7 @@ export default {
                 typeClause(type),
                 muteClause(me)
               )}
-              ORDER BY "Item".created_at DESC
+              ORDER BY COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC
               OFFSET $2
               LIMIT $3`,
             orderBy: 'ORDER BY COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC'

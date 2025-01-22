@@ -240,14 +240,23 @@ export default {
       if (!user) {
         throw new GqlInputError('user not found')
       }
-      if (user.id === me.id) {
+
+      const oldUserId = me.id
+      const newUserId = user.id
+
+      if (newUserId === oldUserId) {
         throw new GqlInputError('cannot transfer territory to yourself')
       }
 
-      const [, updatedSub] = await models.$transaction([
-        models.territoryTransfer.create({ data: { subName, oldUserId: me.id, newUserId: user.id } }),
-        models.sub.update({ where: { name: subName }, data: { userId: user.id, billingAutoRenew: false } })
-      ])
+      const updatedSub = await models.$transaction(async tx => {
+        await tx.territoryTransfer.create({ data: { subName, oldUserId, newUserId } })
+        const updatedSub = await tx.sub.update({ where: { name: subName }, data: { userId: newUserId, billingAutoRenew: false } })
+
+        // unsubscribe the old user
+        const oldSubscription = await tx.subSubscription.findUnique({ where: { userId_subName: { userId: oldUserId, subName } } })
+        if (oldSubscription) await tx.subSubscription.delete({ where: { userId_subName: { subName, userId: oldUserId } } })
+        return updatedSub
+      })
 
       notifyTerritoryTransfer({ models, sub, to: user })
 

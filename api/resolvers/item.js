@@ -26,7 +26,7 @@ import { verifyHmac } from './wallet'
 
 function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
-    return 'ORDER BY ("Item"."deletedAt" IS NULL) DESC, ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC, "Item".created_at DESC, "Item".id DESC'
+    return 'ORDER BY ("Item"."deletedAt" IS NULL) DESC, ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC, COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC, "Item".id DESC'
   }
 
   if (me && sort === 'hot') {

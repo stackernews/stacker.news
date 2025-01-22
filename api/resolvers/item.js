@@ -26,7 +26,7 @@ import { verifyHmac } from './wallet'
 
 function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
-    return 'ORDER BY ("Item"."deletedAt" IS NULL) DESC, ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC, "Item".created_at DESC, "Item".id DESC'
+    return 'ORDER BY ("Item"."deletedAt" IS NULL) DESC, ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC, COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC, "Item".id DESC'
   }
 
   if (me && sort === 'hot') {
@@ -412,10 +412,10 @@ export default {
                 typeClause(type),
                 muteClause(me)
               )}
-              ORDER BY "Item".created_at DESC
+              ORDER BY COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC
               OFFSET $2
               LIMIT $3`,
-            orderBy: 'ORDER BY "Item"."createdAt" DESC'
+            orderBy: 'ORDER BY COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC'
           }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
           break
         case 'top':

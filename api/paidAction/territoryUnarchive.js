@@ -36,6 +36,7 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
 
   if (sub.userId !== me.id) {
     await tx.territoryTransfer.create({ data: { subName: name, oldUserId: sub.userId, newUserId: me.id } })
+    await tx.subSubscription.delete({ where: { userId_subName: { userId: sub.userId, subName: name } } })
   }
 
   await tx.subAct.create({
@@ -47,8 +48,18 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
     }
   })
 
-  await tx.subSubscription.create({
-    data: {
+  await tx.subSubscription.upsert({
+    where: {
+      userId_subName: {
+        userId: me.id,
+        subName: name
+      }
+    },
+    update: {
+      userId: me.id,
+      subName: name
+    },
+    create: {
       userId: me.id,
       subName: name
     }

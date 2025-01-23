@@ -18,6 +18,7 @@ export const COMMENT_FIELDS = gql`
     position
     parentId
     createdAt
+    invoicePaidAt
     deletedAt
     text
     user {

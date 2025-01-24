@@ -108,6 +108,7 @@ export default gql`
     id: ID!
     createdAt: Date!
     updatedAt: Date!
+    invoicePaidAt: Date
     deletedAt: Date
     deleteScheduledAt: Date
     reminderScheduledAt: Date

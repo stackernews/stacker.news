@@ -259,6 +259,7 @@ export async function nonCriticalSideEffects ({ invoice, id }, { models }) {
 
   if (item.parentId) {
     notifyItemParents({ item, models }).catch(console.error)
+    notifyThreadSubscribers({ models, item }).catch(console.error)
   }
   for (const { userId } of item.mentions) {
     notifyMention({ models, item, userId }).catch(console.error)
@@ -269,7 +270,6 @@ export async function nonCriticalSideEffects ({ invoice, id }, { models }) {
 
   notifyUserSubscribers({ models, item }).catch(console.error)
   notifyTerritorySubscribers({ models, item }).catch(console.error)
-  notifyThreadSubscribers({ models, item }).catch(console.error)
 }
 
 export async function onFail ({ invoice }, { tx }) {

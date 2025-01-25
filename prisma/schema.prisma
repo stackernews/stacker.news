@@ -1103,8 +1103,6 @@ model Bookmark {
   @@index([createdAt], map: "Bookmark.created_at_index")
 }
 
-// TODO: make thread subscriptions for OP by default so they can
-// unsubscribe from their own threads and its not a special case
 model ThreadSubscription {
   userId    Int
   itemId    Int

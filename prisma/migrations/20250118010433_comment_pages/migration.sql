@@ -14,7 +14,7 @@ BEGIN
 
     EXECUTE 'CREATE TEMP TABLE IF NOT EXISTS t_item ON COMMIT DROP AS '
     || 'WITH RECURSIVE base AS ( '
-    || '    (SELECT "Item".*, '
+    || '    (SELECT "Item".*, 1 as level, ROW_NUMBER() OVER () as rn, '
     || '        GREATEST(g.tf_hot_score, l.tf_hot_score) AS personal_hot_score, '
     || '        GREATEST(g.tf_top_score, l.tf_top_score) AS personal_top_score '
     || '    FROM "Item" '
@@ -25,15 +25,14 @@ BEGIN
     || '    LIMIT $4 '
     || '    OFFSET $5) '
     || '    UNION ALL '
-    || '    (SELECT "Item".*, '
+    || '    (SELECT "Item".*, b.level + 1, ROW_NUMBER() OVER (PARTITION BY "Item"."parentId" ' || _order_by || ') as rn, '
     || '        GREATEST(g.tf_hot_score, l.tf_hot_score) AS personal_hot_score, '
     || '        GREATEST(g.tf_top_score, l.tf_top_score) AS personal_top_score '
     || '    FROM "Item" '
     || '    JOIN base b ON "Item"."parentId" = b.id '
     || '    LEFT JOIN zap_rank_personal_view g ON g."viewerId" = $2 AND g.id = "Item".id '
     || '    LEFT JOIN zap_rank_personal_view l ON l."viewerId" = $3 AND l.id = g.id '
-    ||       _order_by || ' '
-    || '    LIMIT $6) '
+    || '    WHERE b.level < $7 AND (b.level = 1 OR b.rn <= $6)) '
     || ') '
     || 'SELECT "Item".*, '
     || '    "Item".created_at at time zone ''UTC'' AS "createdAt", '
@@ -66,7 +65,7 @@ BEGIN
     || '    AND "ItemAct"."itemId" = "Item".id '
     || '    GROUP BY "ItemAct"."itemId" '
     || ') "ItemAct" ON true '
-    || 'WHERE true ' || _where || ' '
+    || 'WHERE ("Item".level = 1 OR "Item".rn <= $6 - "Item".level + 2) ' || _where || ' '
     USING _item_id, _global_seed, _me_id, _limit, _offset, _grandchild_limit, _level, _where, _order_by;
 
     EXECUTE ''
@@ -99,25 +98,24 @@ BEGIN
 
     EXECUTE 'CREATE TEMP TABLE IF NOT EXISTS t_item ON COMMIT DROP AS '
         || 'WITH RECURSIVE base AS ( '
-        || '    (SELECT "Item".* '
+        || '    (SELECT "Item".*, 1 as level, ROW_NUMBER() OVER () as rn '
         || '    FROM "Item" '
         || '    WHERE "Item"."parentId" = $1 '
         ||      _order_by || ' '
         || '    LIMIT $2 '
         || '    OFFSET $3) '
         || '    UNION ALL '
-        || '    (SELECT "Item".* '
+        || '    (SELECT "Item".*, b.level + 1, ROW_NUMBER() OVER (PARTITION BY "Item"."parentId" ' || _order_by || ') '
         || '    FROM "Item" '
         || '    JOIN base b ON "Item"."parentId" = b.id '
-        ||       _order_by || ' '
-        || '    LIMIT $4) '
+        || '    WHERE b.level < $5 AND (b.level = 1 OR b.rn <= $4)) '
         || ') '
         || 'SELECT "Item".*, "Item".created_at at time zone ''UTC'' AS "createdAt", "Item".updated_at at time zone ''UTC'' AS "updatedAt", '
         || '    "Item"."invoicePaidAt" at time zone ''UTC'' AS "invoicePaidAtUTC", '
         || '    to_jsonb(users.*) as user '
         || 'FROM base "Item" '
         || 'JOIN users ON users.id = "Item"."userId" '
-        || 'WHERE  true ' || _where
+        || 'WHERE ("Item".level = 1 OR "Item".rn <= $4) ' || _where
     USING _item_id, _limit, _offset, _grandchild_limit, _level, _where, _order_by;
 
 

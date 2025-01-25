@@ -67,7 +67,7 @@ async function comments (me, models, id, sort, cursor) {
   const filter = ' AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = \'PAID\') '
   const [{ item_comments: comments }] = await models.$queryRawUnsafe(
     'SELECT item_comments($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6, $7)',
-    Number(id), GLOBAL_SEED, Number(me.id), COMMENTS_LIMIT, offset, COMMENTS_OF_COMMENT_LIMIT, COMMENT_DEPTH_LIMIT, filter, orderBy)
+    Number(id), COMMENTS_LIMIT, offset, COMMENTS_OF_COMMENT_LIMIT, COMMENT_DEPTH_LIMIT, filter, orderBy)
   return comments
 }
 
@@ -685,7 +685,6 @@ export default {
       }
       const decodedCursor = decodeCursor(cursor)
       const comments2 = await comments(me, models, item.id, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor)
-      console.log('comments2', comments2.length, COMMENTS_LIMIT, decodedCursor)
       return {
         comments: comments2,
         cursor: comments2.length === COMMENTS_LIMIT ? nextCursorEncoded(decodedCursor, COMMENTS_LIMIT) : null

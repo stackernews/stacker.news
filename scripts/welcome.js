@@ -78,6 +78,7 @@ async function populate (bios) {
         bio.user.items = await fetchUserItems(bio.user.name)
         bio.user.credits = sumBy(bio.user.items, 'credits')
         bio.user.sats = sumBy(bio.user.items, 'sats') - bio.user.credits
+        bio.user.satstandard = bio.user.sats / (bio.user.sats + bio.user.credits)
         return bio
       }
     )
@@ -85,8 +86,8 @@ async function populate (bios) {
 }
 
 async function printTable (bios) {
-  console.log('| nym | bio (stacking since) | items | sats/ccs stacked |')
-  console.log('| --- | -------------------- | ----- | ---------------- |')
+  console.log('| nym | bio (stacking since) | items | sats/ccs stacked | sat standard |')
+  console.log('| --- | -------------------- | ----- | ---------------- | ------------ |')
 
   for (const bio of bios) {
     const { user } = bio
@@ -101,7 +102,7 @@ async function printTable (bios) {
         col2 += ` (${dateLink(user.since)})`
       }
     }
-    console.log(`| @${user.name} | ${col2} | ${user.nitems} | ${user.sats}/${user.credits} |`)
+    console.log(`| @${user.name} | ${col2} | ${user.nitems} | ${user.sats}/${user.credits} | ${user.satstandard.toFixed(2)} |`)
   }
 
   console.log(`${bios.length} rows`)

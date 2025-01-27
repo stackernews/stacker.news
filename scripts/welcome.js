@@ -75,6 +75,9 @@ async function populate (bios) {
     bios.map(
       async bio => {
         bio.user.since = await fetchItem(bio.user.since)
+        bio.user.items = await fetchUserItems(bio.user.name)
+        bio.user.credits = sumBy(bio.user.items, 'credits')
+        bio.user.sats = sumBy(bio.user.items, 'sats') - bio.user.credits
         return bio
       }
     )
@@ -82,8 +85,8 @@ async function populate (bios) {
 }
 
 async function printTable (bios) {
-  console.log('| nym | bio (stacking since) | items | sats stacked |')
-  console.log('| --- | -------------------- | ----- | ------------ |')
+  console.log('| nym | bio (stacking since) | items | sats/ccs stacked |')
+  console.log('| --- | -------------------- | ----- | ---------------- |')
 
   for (const bio of bios) {
     const { user } = bio
@@ -98,7 +101,7 @@ async function printTable (bios) {
         col2 += ` (${dateLink(user.since)})`
       }
     }
-    console.log(`| @${user.name} | ${col2} | ${user.nitems} | ${user.optional.stacked || '???'} |`)
+    console.log(`| @${user.name} | ${col2} | ${user.nitems} | ${user.sats}/${user.credits} |`)
   }
 
   console.log(`${bios.length} rows`)
@@ -108,6 +111,10 @@ async function printTable (bios) {
 
 function formatDate (date) {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function sumBy (arr, key) {
+  return arr.reduce((acc, item) => acc + item[key], 0)
 }
 
 function itemLink (id) {
@@ -128,6 +135,22 @@ async function fetchItem (id) {
     }`, { id }
   )
   return data.item
+}
+
+async function fetchUserItems (name) {
+  const data = await gql(`
+    query UserItems($name: String!) {
+      items(sort: "user", name: $name) {
+        items {
+          id
+          createdAt
+          sats
+          credits
+        }
+      }
+    }`, { name }
+  )
+  return data.items.items
 }
 
 fetchRecentBios()

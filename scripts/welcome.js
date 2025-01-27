@@ -1,9 +1,23 @@
 #!/usr/bin/env node
 
-const SN_API_URL = process.env.SN_API_URL ?? 'http://localhost:3000'
+function usage () {
+  console.log('Usage: scripts/welcome.js <fetch-after> [--prod]')
+  process.exit(1)
+}
+
+let args = process.argv.slice(2)
+
+const useProd = args.indexOf('--prod') !== -1
+const SN_API_URL = useProd ? 'https://stacker.news' : 'http://localhost:3000'
+args = args.filter(arg => arg !== '--prod')
+console.log('> url:', SN_API_URL)
+
 // this is the item id of the last bio that was included in the previous post of the series
-// TODO: make this configurable
-const FETCH_AFTER = 838433
+const FETCH_AFTER = args[0]
+console.log('> fetch-after:', FETCH_AFTER)
+if (!FETCH_AFTER) {
+  usage()
+}
 
 async function gql (query, variables = {}) {
   const response = await fetch(`${SN_API_URL}/api/graphql`, {
@@ -56,25 +70,39 @@ function filterBios (bios) {
   return newBios
 }
 
+async function populate (bios) {
+  return await Promise.all(
+    bios.map(
+      async bio => {
+        bio.user.since = await fetchItem(bio.user.since)
+        bio.user.items = await fetchUserItems(bio.user.name)
+        bio.user.credits = sumBy(bio.user.items, 'credits')
+        bio.user.sats = sumBy(bio.user.items, 'sats') - bio.user.credits
+        bio.user.satstandard = bio.user.sats / (bio.user.sats + bio.user.credits)
+        return bio
+      }
+    )
+  )
+}
+
 async function printTable (bios) {
-  console.log('| nym | bio (stacking since) | items | sats stacked |')
-  console.log('| --- | -------------------- | ----- | ------------ |')
+  console.log('| nym | bio (stacking since) | items | sats/ccs stacked | sat standard |')
+  console.log('| --- | -------------------- | ----- | ---------------- | ------------ |')
 
   for (const bio of bios) {
     const { user } = bio
 
     const bioCreatedAt = formatDate(bio.createdAt)
-    let col2 = `[${formatDate(bio.createdAt)}](${itemLink(bio.id)})`
-    if (Number(bio.id) !== user.since) {
-      const since = await fetchItem(user.since)
-      const sinceCreatedAt = formatDate(since.createdAt)
+    let col2 = dateLink(bio)
+    if (Number(bio.id) !== user.since.id) {
+      const sinceCreatedAt = formatDate(user.since.createdAt)
       // stacking since might not be the same item as the bio
       // but it can still have been created on the same day
       if (bioCreatedAt !== sinceCreatedAt) {
-        col2 += ` ([${formatDate(since.createdAt)}](${itemLink(since.id)}))`
+        col2 += ` (${dateLink(user.since)})`
       }
     }
-    console.log(`| @${user.name} | ${col2} | ${user.nitems} | ${user.optional.stacked || '???'} |`)
+    console.log(`| @${user.name} | ${col2} | ${user.nitems} | ${user.sats}/${user.credits} | ${user.satstandard.toFixed(2)} |`)
   }
 
   console.log(`${bios.length} rows`)
@@ -86,8 +114,16 @@ function formatDate (date) {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+function sumBy (arr, key) {
+  return arr.reduce((acc, item) => acc + item[key], 0)
+}
+
 function itemLink (id) {
   return `https://stacker.news/items/${id}`
+}
+
+function dateLink (item) {
+  return `[${formatDate(item.createdAt)}](${itemLink(item.id)})`
 }
 
 async function fetchItem (id) {
@@ -102,7 +138,24 @@ async function fetchItem (id) {
   return data.item
 }
 
+async function fetchUserItems (name) {
+  const data = await gql(`
+    query UserItems($name: String!) {
+      items(sort: "user", name: $name) {
+        items {
+          id
+          createdAt
+          sats
+          credits
+        }
+      }
+    }`, { name }
+  )
+  return data.items.items
+}
+
 fetchRecentBios()
   .then(data => filterBios(data.items.items))
+  .then(populate)
   .then(printTable)
   .catch(console.error)

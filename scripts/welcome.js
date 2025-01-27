@@ -70,6 +70,17 @@ function filterBios (bios) {
   return newBios
 }
 
+async function populate (bios) {
+  return await Promise.all(
+    bios.map(
+      async bio => {
+        bio.user.since = await fetchItem(bio.user.since)
+        return bio
+      }
+    )
+  )
+}
+
 async function printTable (bios) {
   console.log('| nym | bio (stacking since) | items | sats stacked |')
   console.log('| --- | -------------------- | ----- | ------------ |')
@@ -78,14 +89,13 @@ async function printTable (bios) {
     const { user } = bio
 
     const bioCreatedAt = formatDate(bio.createdAt)
-    let col2 = `[${formatDate(bio.createdAt)}](${itemLink(bio.id)})`
-    if (Number(bio.id) !== user.since) {
-      const since = await fetchItem(user.since)
-      const sinceCreatedAt = formatDate(since.createdAt)
+    let col2 = dateLink(bio)
+    if (Number(bio.id) !== user.since.id) {
+      const sinceCreatedAt = formatDate(user.since.createdAt)
       // stacking since might not be the same item as the bio
       // but it can still have been created on the same day
       if (bioCreatedAt !== sinceCreatedAt) {
-        col2 += ` ([${formatDate(since.createdAt)}](${itemLink(since.id)}))`
+        col2 += ` (${dateLink(user.since)})`
       }
     }
     console.log(`| @${user.name} | ${col2} | ${user.nitems} | ${user.optional.stacked || '???'} |`)
@@ -104,6 +114,10 @@ function itemLink (id) {
   return `https://stacker.news/items/${id}`
 }
 
+function dateLink (item) {
+  return `[${formatDate(item.createdAt)}](${itemLink(item.id)})`
+}
+
 async function fetchItem (id) {
   const data = await gql(`
     query Item($id: ID!) {
@@ -118,5 +132,6 @@ async function fetchItem (id) {
 
 fetchRecentBios()
   .then(data => filterBios(data.items.items))
+  .then(populate)
   .then(printTable)
   .catch(console.error)

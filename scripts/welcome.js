@@ -1,9 +1,23 @@
 #!/usr/bin/env node
 
-const SN_API_URL = process.env.SN_API_URL ?? 'http://localhost:3000'
+function usage () {
+  console.log('Usage: scripts/welcome.js <fetch-after> [--prod]')
+  process.exit(1)
+}
+
+let args = process.argv.slice(2)
+
+const useProd = args.indexOf('--prod') !== -1
+const SN_API_URL = useProd ? 'https://stacker.news' : 'http://localhost:3000'
+args = args.filter(arg => arg !== '--prod')
+console.log('> url:', SN_API_URL)
+
 // this is the item id of the last bio that was included in the previous post of the series
-// TODO: make this configurable
-const FETCH_AFTER = 838433
+const FETCH_AFTER = args[0]
+console.log('> fetch-after:', FETCH_AFTER)
+if (!FETCH_AFTER) {
+  usage()
+}
 
 async function gql (query, variables = {}) {
   const response = await fetch(`${SN_API_URL}/api/graphql`, {

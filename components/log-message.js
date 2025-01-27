@@ -1,6 +1,6 @@
 import { timeSince } from '@/lib/time'
 import styles from '@/styles/log.module.css'
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 
 export default function LogMessage ({ showWallet, wallet, level, message, context, ts }) {
   const [show, setShow] = useState(false)

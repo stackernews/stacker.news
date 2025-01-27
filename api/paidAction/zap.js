@@ -102,7 +102,6 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
       }
     })
     acts = await tx.itemAct.findMany({ where: { invoiceId: invoice.id }, include: { item: true } })
-    actIds = acts.map(act => act.id)
   } else if (actIds) {
     acts = await tx.itemAct.findMany({ where: { id: { in: actIds } }, include: { item: true } })
   } else {

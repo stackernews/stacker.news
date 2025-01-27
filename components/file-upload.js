@@ -1,4 +1,4 @@
-import { Fragment, useCallback, forwardRef, useRef } from 'react'
+import { useCallback, forwardRef, useRef } from 'react'
 import { UPLOAD_TYPES_ALLOW, MEDIA_URL } from '@/lib/constants'
 import { useToast } from './toast'
 import gql from 'graphql-tag'

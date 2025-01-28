@@ -135,8 +135,8 @@ export default function ItemInfo ({
             {embellishUser}
           </Link>}
         <span> </span>
-        <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
-          {timeSince(new Date(item.createdAt))}
+        <Link href={`/items/${item.id}`} title={item.invoicePaidAt || item.createdAt} className='text-reset' suppressHydrationWarning>
+          {timeSince(new Date(item.invoicePaidAt || item.createdAt))}
         </Link>
         {item.prior &&
           <>
@@ -193,8 +193,7 @@ export default function ItemInfo ({
               )}
               {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
                 <CrosspostDropdownItem item={item} />}
-              {me && !item.position &&
-            !item.mine && !item.deletedAt &&
+              {me && !item.mine && !item.deletedAt &&
             (item.meDontLikeSats > meSats
               ? <DropdownItemUpVote item={item} />
               : <DontLikeThisDropdownItem item={item} />)}
@@ -250,6 +249,11 @@ function InfoDropdownItem ({ item }) {
           <div>{item.id}</div>
           <div>created at</div>
           <div>{item.createdAt}</div>
+          {item.invoicePaidAt &&
+            <>
+              <div>paid at</div>
+              <div>{item.invoicePaidAt}</div>
+            </>}
           <div>cost</div>
           <div>{item.cost}</div>
           <div>stacked</div>

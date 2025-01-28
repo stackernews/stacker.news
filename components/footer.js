@@ -208,10 +208,6 @@ export default function Footer ({ links = true }) {
                 story
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <Link href='/changes' className='nav-link p-0 p-0 d-inline-flex'>
-                changes
-              </Link>
-              <span className='mx-2 text-muted'> \ </span>
               <OverlayTrigger trigger='click' placement='top' overlay={LegalPopover} rootClose>
                 <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
                   legal

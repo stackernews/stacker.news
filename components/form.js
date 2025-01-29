@@ -1319,7 +1319,7 @@ export function MultiInput ({
             onKeyDown={e => handleKeyDown(e, index)}
             style={{
               textAlign: 'center',
-              maxWidth: `${charLength * 40}px` // adjusts the max width of the input based on the charLength
+              maxWidth: `${charLength * 44}px` // adjusts the max width of the input based on the charLength
             }}
             prepend={showSequence && <InputGroup.Text>{index + 1}</InputGroup.Text>} // show the index of the input
             hideError

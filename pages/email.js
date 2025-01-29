@@ -50,7 +50,7 @@ export const MagicCodeForm = ({ onSubmit, disabled }) => {
       }}
     >
       <MultiInput
-        length={8}
+        length={6}
         charLength={1}
         name='token'
         required

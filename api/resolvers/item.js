@@ -68,7 +68,7 @@ async function comments (me, models, item, sort, cursor) {
   // XXX what a mess
   let comments
   if (me) {
-    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) `
+    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) AND "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3) `
     if (item.ncomments > FULL_COMMENTS_THRESHOLD) {
       const [{ item_comments_zaprank_with_me_limited: limitedComments }] = await models.$queryRawUnsafe(
         'SELECT item_comments_zaprank_with_me_limited($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8, $9)',
@@ -81,7 +81,7 @@ async function comments (me, models, item, sort, cursor) {
       comments = fullComments
     }
   } else {
-    const filter = ' AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = \'PAID\') '
+    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID') AND "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3) `
     if (item.ncomments > FULL_COMMENTS_THRESHOLD) {
       const [{ item_comments_limited: limitedComments }] = await models.$queryRawUnsafe(
         'SELECT item_comments_limited($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6, $7)',

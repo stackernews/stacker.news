@@ -63,7 +63,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 
 export default function Comments ({
   parentId, pinned, bio, parentCreatedAt,
-  commentSats, comments, commentsCursor, fetchMoreComments, ...props
+  commentSats, comments, commentsCursor, fetchMoreComments, ncomments, ...props
 }) {
   const router = useRouter()
 
@@ -96,7 +96,7 @@ export default function Comments ({
         <Comment depth={1} key={item.id} item={item} {...props} />
       ))}
       <MoreFooter
-        cursor={commentsCursor} fetchMore={fetchMoreComments} noMoreText="THAT'S ALL"
+        cursor={commentsCursor} fetchMore={fetchMoreComments} noMoreText=' '
         count={comments?.length}
         Skeleton={CommentsSkeleton}
       />

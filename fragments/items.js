@@ -57,6 +57,7 @@ export const ITEM_FIELDS = gql`
     freebie
     bio
     ncomments
+    nDirectComments
     commentSats
     commentCredits
     lastCommentAt
@@ -94,6 +95,7 @@ export const ITEM_FULL_FIELDS = gql`
       bountyPaidTo
       subName
       mine
+      ncomments
       user {
         id
         name

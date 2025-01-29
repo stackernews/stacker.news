@@ -9,7 +9,7 @@ import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
 import CommentEdit from './comment-edit'
-import { USER_ID, COMMENT_DEPTH_LIMIT, UNKNOWN_LINK_REL, COMMENTS_OF_COMMENT_LIMIT } from '@/lib/constants'
+import { USER_ID, COMMENT_DEPTH_LIMIT, UNKNOWN_LINK_REL } from '@/lib/constants'
 import PayBounty from './pay-bounty'
 import BountyIcon from '@/svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
@@ -260,7 +260,7 @@ export default function Comment ({
                       {item.comments.map((item) => (
                         <Comment depth={depth + 1} key={item.id} item={item} />
                       ))}
-                      {item.comments.length === COMMENTS_OF_COMMENT_LIMIT && <Link href={`/items/${item.id}`}>more</Link>}
+                      {item.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nshown={item.comments.length} nhas={item.nDirectComments} />}
                     </>
                     )
                   : null}
@@ -269,6 +269,18 @@ export default function Comment ({
             </div>
             )
       )}
+    </div>
+  )
+}
+
+export function ViewAllReplies ({ id, nshown, nhas }) {
+  const text = `view all ${nhas} replies`
+
+  return (
+    <div className={`d-block fw-bold ${styles.comment} pb-2 ps-3`}>
+      <Link href={`/items/${id}`} as={`/items/${id}`} className='text-muted'>
+        {text}
+      </Link>
     </div>
   )
 }

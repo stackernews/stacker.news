@@ -146,6 +146,7 @@ export default gql`
     bio: Boolean!
     paidImgLink: Boolean
     ncomments: Int!
+    nDirectComments: Int!
     comments(sort: String): [Item!]!
     path: String
     position: Int

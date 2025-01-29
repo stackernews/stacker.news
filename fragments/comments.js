@@ -46,6 +46,7 @@ export const COMMENT_FIELDS = gql`
     mine
     otsHash
     ncomments
+    nDirectComments
     imgproxyUrls
     rel
     apiKey
@@ -66,6 +67,7 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
       id
       title
       bounty
+      ncomments
       bountyPaidTo
       subName
       sub {

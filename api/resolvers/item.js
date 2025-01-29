@@ -95,7 +95,7 @@ async function comments (me, models, item, sort, cursor) {
 
   return {
     comments,
-    cursor: comments.length < item.nDirectComments ? nextCursorEncoded(decodedCursor, COMMENTS_LIMIT) : null
+    cursor: comments.length + offset < item.nDirectComments ? nextCursorEncoded(decodedCursor, COMMENTS_LIMIT) : null
   }
 }
 
@@ -1227,6 +1227,10 @@ export default {
           user: true
         }
       })
+    },
+    comments: async (item, { sort }, { me, models }) => {
+      if (typeof item.comments !== 'undefined') return item.comments
+      return []
     },
     freedFreebie: async (item) => {
       return item.weightedVotes - item.weightedDownVotes > 0

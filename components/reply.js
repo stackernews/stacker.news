@@ -70,13 +70,16 @@ export default forwardRef(function Reply ({
         cache.modify({
           id: `Item:${parentId}`,
           fields: {
-            comments (existingCommentRefs = []) {
+            comments (existingComments = {}) {
               const newCommentRef = cache.writeFragment({
                 data: result,
                 fragment: COMMENTS,
                 fragmentName: 'CommentsRecursive'
               })
-              return [newCommentRef, ...existingCommentRefs]
+              return {
+                cursor: existingComments.cursor,
+                comments: [newCommentRef, ...(existingComments?.comments || [])]
+              }
             }
           },
           optimistic: true

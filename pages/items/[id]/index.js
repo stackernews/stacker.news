@@ -17,16 +17,16 @@ export default function Item ({ ssrData }) {
   const { data, fetchMore } = useQuery(ITEM_FULL, { variables: { ...router.query } })
   if (!data && !ssrData) return <PageLoading />
 
-  const { item, comments } = data || ssrData
+  const { item } = data || ssrData
   const sub = item.subName || item.root?.subName
 
   const fetchMoreComments = async () => {
-    await fetchMore({ variables: { ...router.query, cursor: comments.cursor } })
+    await fetchMore({ variables: { ...router.query, cursor: item.comments.cursor } })
   }
 
   return (
     <Layout sub={sub} item={item}>
-      <ItemFull item={item} comments={comments} fetchMoreComments={fetchMoreComments} />
+      <ItemFull item={item} fetchMoreComments={fetchMoreComments} />
     </Layout>
   )
 }

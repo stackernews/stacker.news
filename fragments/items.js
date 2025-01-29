@@ -173,11 +173,11 @@ export const ITEM_FULL = gql`
       ...ItemFullFields
       prior
       ...PollFields
-    }
-    comments(id: $id, sort: $sort, cursor: $cursor) {
-      cursor
-      comments {
-        ...CommentsRecursive
+      comments(sort: $sort, cursor: $cursor) {
+        cursor
+        comments {
+          ...CommentsRecursive
+        }
       }
     }
   }`

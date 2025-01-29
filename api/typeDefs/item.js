@@ -11,7 +11,6 @@ export default gql`
     auctionPosition(sub: String, id: ID, boost: Int): Int!
     boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
-    comments(name: String, id: ID, sort: String, cursor: String): Comments!
   }
 
   type BoostPositions {
@@ -147,7 +146,7 @@ export default gql`
     paidImgLink: Boolean
     ncomments: Int!
     nDirectComments: Int!
-    comments(sort: String): [Item!]!
+    comments(sort: String, cursor: String): Comments!
     path: String
     position: Int
     prior: Int

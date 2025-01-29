@@ -254,13 +254,13 @@ export default function Comment ({
                   </Reply>}
               {children}
               <div className={styles.comments}>
-                {item.comments && !noComments
+                {item.comments?.comments && !noComments
                   ? (
                     <>
-                      {item.comments.map((item) => (
+                      {item.comments.comments.map((item) => (
                         <Comment depth={depth + 1} key={item.id} item={item} />
                       ))}
-                      {item.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nshown={item.comments.length} nhas={item.nDirectComments} />}
+                      {item.comments.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nshown={item.comments.comments.length} nhas={item.nDirectComments} />}
                     </>
                     )
                   : null}

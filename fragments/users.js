@@ -302,12 +302,12 @@ export const USER_FULL = gql`
       ...UserFields
       bio {
         ...ItemFullFields
-      }
-    }
-    comments(name: $name, sort: $sort, cursor: $cursor) {
-      cursor
-      comments {
-        ...CommentsRecursive
+        comments(sort: $sort, cursor: $cursor) {
+          cursor
+          comments {
+            ...CommentsRecursive
+          }
+        }
       }
     }
   }`

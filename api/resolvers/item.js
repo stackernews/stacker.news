@@ -699,22 +699,6 @@ export default {
           LIMIT 3`
       }, similar)
     },
-    comments: async (parent, { id, name, sort, cursor }, { me, models }) => {
-      let item
-      if (id) {
-        item = await models.item.findUnique({ where: { id: Number(id) } })
-      } else if (name) {
-        item = (await models.user.findFirst({ where: { name }, include: { bio: true } })).bio
-      } else {
-        throw new GqlInputError('item id or name is required')
-      }
-
-      if (!item) {
-        throw new GqlInputError('item not found')
-      }
-
-      return await comments(me, models, item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor)
-    },
     auctionPosition: async (parent, { id, sub, boost }, { models, me }) => {
       const createdAt = id ? (await getItem(parent, { id }, { models, me })).createdAt : new Date()
       let where
@@ -1229,9 +1213,25 @@ export default {
         }
       })
     },
-    comments: async (item, { sort }, { me, models }) => {
-      if (typeof item.comments !== 'undefined') return item.comments
-      return []
+    comments: async (item, { sort, cursor }, { me, models }) => {
+      if (typeof item.comments !== 'undefined') {
+        if (Array.isArray(item.comments)) {
+          return {
+            comments: item.comments,
+            cursor: null
+          }
+        }
+        return item.comments
+      }
+
+      if (item.ncomments === 0) {
+        return {
+          comments: [],
+          cursor: null
+        }
+      }
+
+      return comments(me, models, item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor)
     },
     freedFreebie: async (item) => {
       return item.weightedVotes - item.weightedDownVotes > 0

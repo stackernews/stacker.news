@@ -91,19 +91,23 @@ export const COMMENTS = gql`
   fragment CommentsRecursive on Item {
     ...CommentFields
     comments {
-      ...CommentFields
       comments {
         ...CommentFields
         comments {
-          ...CommentFields
           comments {
             ...CommentFields
             comments {
-              ...CommentFields
               comments {
                 ...CommentFields
                 comments {
-                  ...CommentFields
+                  comments {
+                    ...CommentFields
+                    comments {
+                      comments {
+                        ...CommentFields
+                      }
+                    }
+                  }
                 }
               }
             }

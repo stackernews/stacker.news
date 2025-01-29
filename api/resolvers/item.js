@@ -65,6 +65,7 @@ async function comments (me, models, item, sort, cursor) {
   const decodedCursor = decodeCursor(cursor)
   const offset = decodedCursor.offset
 
+  // XXX what a mess
   let comments
   if (me) {
     const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) `

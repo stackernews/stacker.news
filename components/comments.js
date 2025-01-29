@@ -7,6 +7,7 @@ import { numWithUnits } from '@/lib/format'
 import { defaultCommentSort } from '@/lib/item'
 import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
+import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
   const router = useRouter()
@@ -95,11 +96,12 @@ export default function Comments ({
       {comments.filter(({ position }) => !position).map(item => (
         <Comment depth={1} key={item.id} item={item} {...props} />
       ))}
-      <MoreFooter
-        cursor={commentsCursor} fetchMore={fetchMoreComments} noMoreText=' '
-        count={comments?.length}
-        Skeleton={CommentsSkeleton}
-      />
+      {ncomments > FULL_COMMENTS_THRESHOLD &&
+        <MoreFooter
+          cursor={commentsCursor} fetchMore={fetchMoreComments} noMoreText=' '
+          count={comments?.length}
+          Skeleton={CommentsSkeleton}
+        />}
     </>
   )
 }

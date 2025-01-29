@@ -55,9 +55,9 @@ export default forwardRef(function Reply ({
 
   const placeholder = useMemo(() => {
     return [
-      'comment for currency?',
+      'comment for currency',
       'fractions of a penny for your thoughts?',
-      'put your money where your mouth is?'
+      'put your money where your mouth is'
     ][parentId % 3]
   }, [parentId])
 

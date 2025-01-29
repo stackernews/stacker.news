@@ -1,5 +1,5 @@
 -- add limit and offset
-CREATE OR REPLACE FUNCTION item_comments_zaprank_with_me(
+CREATE OR REPLACE FUNCTION item_comments_zaprank_with_me_limited(
     _item_id int, _global_seed int, _me_id int, _limit int, _offset int, _grandchild_limit int,
     _level int, _where text, _order_by text)
   RETURNS jsonb
@@ -83,7 +83,7 @@ END
 $$;
 
 -- add limit and offset
-CREATE OR REPLACE FUNCTION item_comments(
+CREATE OR REPLACE FUNCTION item_comments_limited(
     _item_id int, _limit int, _offset int, _grandchild_limit int,
     _level int, _where text, _order_by text)
   RETURNS jsonb

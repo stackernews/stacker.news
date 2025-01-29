@@ -11,7 +11,8 @@ import {
   BOOST_MULT,
   ITEM_EDIT_SECONDS,
   COMMENTS_LIMIT,
-  COMMENTS_OF_COMMENT_LIMIT
+  COMMENTS_OF_COMMENT_LIMIT,
+  FULL_COMMENTS_THRESHOLD
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
@@ -51,24 +52,51 @@ function commentsOrderByClause (me, models, sort) {
   }
 }
 
-async function comments (me, models, id, sort, cursor) {
+async function comments (me, models, item, sort, cursor) {
   const orderBy = commentsOrderByClause(me, models, sort)
+
+  if (item.nDirectComments === 0) {
+    return {
+      comments: [],
+      cursor: null
+    }
+  }
+
   const decodedCursor = decodeCursor(cursor)
   const offset = decodedCursor.offset
 
+  let comments
   if (me) {
     const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) `
-    const [{ item_comments_zaprank_with_me: comments }] = await models.$queryRawUnsafe(
-      'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8, $9)',
-      Number(id), GLOBAL_SEED, Number(me.id), COMMENTS_LIMIT, offset, COMMENTS_OF_COMMENT_LIMIT, COMMENT_DEPTH_LIMIT, filter, orderBy)
-    return comments
+    if (item.ncomments > FULL_COMMENTS_THRESHOLD) {
+      const [{ item_comments_zaprank_with_me_limited: limitedComments }] = await models.$queryRawUnsafe(
+        'SELECT item_comments_zaprank_with_me_limited($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8, $9)',
+        Number(item.id), GLOBAL_SEED, Number(me.id), COMMENTS_LIMIT, offset, COMMENTS_OF_COMMENT_LIMIT, COMMENT_DEPTH_LIMIT, filter, orderBy)
+      comments = limitedComments
+    } else {
+      const [{ item_comments_zaprank_with_me: fullComments }] = await models.$queryRawUnsafe(
+        'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)',
+        Number(item.id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+      comments = fullComments
+    }
+  } else {
+    const filter = ' AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = \'PAID\') '
+    if (item.ncomments > FULL_COMMENTS_THRESHOLD) {
+      const [{ item_comments_limited: limitedComments }] = await models.$queryRawUnsafe(
+        'SELECT item_comments_limited($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6, $7)',
+        Number(item.id), COMMENTS_LIMIT, offset, COMMENTS_OF_COMMENT_LIMIT, COMMENT_DEPTH_LIMIT, filter, orderBy)
+      comments = limitedComments
+    } else {
+      const [{ item_comments: fullComments }] = await models.$queryRawUnsafe(
+        'SELECT item_comments($1::INTEGER, $2::INTEGER, $3, $4)', Number(item.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+      comments = fullComments
+    }
   }
 
-  const filter = ' AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = \'PAID\') '
-  const [{ item_comments: comments }] = await models.$queryRawUnsafe(
-    'SELECT item_comments($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6, $7)',
-    Number(id), COMMENTS_LIMIT, offset, COMMENTS_OF_COMMENT_LIMIT, COMMENT_DEPTH_LIMIT, filter, orderBy)
-  return comments
+  return {
+    comments,
+    cursor: comments.length < item.nDirectComments ? nextCursorEncoded(decodedCursor, COMMENTS_LIMIT) : null
+  }
 }
 
 export async function getItem (parent, { id }, { me, models }) {
@@ -683,12 +711,8 @@ export default {
       if (!item) {
         throw new GqlInputError('item not found')
       }
-      const decodedCursor = decodeCursor(cursor)
-      const comments2 = await comments(me, models, item.id, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor)
-      return {
-        comments: comments2,
-        cursor: comments2.length === COMMENTS_LIMIT ? nextCursorEncoded(decodedCursor, COMMENTS_LIMIT) : null
-      }
+
+      return await comments(me, models, item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor)
     },
     auctionPosition: async (parent, { id, sub, boost }, { models, me }) => {
       const createdAt = id ? (await getItem(parent, { id }, { models, me })).createdAt : new Date()
@@ -1203,12 +1227,6 @@ export default {
           user: true
         }
       })
-    },
-    comments: async (item, { sort }, { me, models }) => {
-      if (typeof item.comments !== 'undefined') return item.comments
-      if (item.ncomments === 0) return []
-
-      return comments(me, models, item.id, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt))
     },
     freedFreebie: async (item) => {
       return item.weightedVotes - item.weightedDownVotes > 0

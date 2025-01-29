@@ -28,7 +28,7 @@ export default function AuthError ({ error }) {
       <StaticLayout>
         <Image className='rounded-1 shadow-sm' width='500' height='375' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/double.gif`} fluid />
         <h2 className='pt-4'>Where did the magic go?</h2>
-        <h4 className='text-muted pt-2'>Get another magic code by logging in or try again by going back.</h4>
+        <h4 className='text-muted text-center pt-2'>Get another magic code by logging in or try again by going back.</h4>
         <Button
           className='align-items-center my-3'
           style={{ borderWidth: '2px' }}

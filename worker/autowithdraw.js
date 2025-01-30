@@ -2,7 +2,7 @@ import { msatsSatsFloor, msatsToSats, satsToMsats } from '@/lib/format'
 import { createWithdrawal } from '@/api/resolvers/wallet'
 import { createInvoice } from '@/wallets/server'
 
-export async function autoWithdraw ({ data: { id }, models, lnd }) {
+export async function autoWithdraw ({ data: { id }, models, lnd, lndk }) {
   const user = await models.user.findUnique({ where: { id } })
   if (
     user.autoWithdrawThreshold === null ||
@@ -42,12 +42,12 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
 
   if (pendingOrFailed.exists) return
 
-  const { invoice, wallet, logger } = await createInvoice(id, { msats, description: 'SN: autowithdrawal', expiry: 360 }, { models })
+  const { invoice, wallet, logger } = await createInvoice(id, { msats, description: 'SN: autowithdrawal', expiry: 360 }, { models, lnd, lndk })
 
   try {
     return await createWithdrawal(null,
       { invoice, maxFee: msatsToSats(maxFeeMsats) },
-      { me: { id }, models, lnd, wallet, logger })
+      { me: { id }, models, lnd, lndk, wallet, logger })
   } catch (err) {
     logger.error(`incoming payment failed: ${err}`, { bolt11: invoice })
     throw err

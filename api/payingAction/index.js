@@ -1,12 +1,12 @@
 import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { msatsToSats, satsToMsats, toPositiveBigInt } from '@/lib/format'
 import { Prisma } from '@prisma/client'
-import { parsePaymentRequest, payViaPaymentRequest } from 'ln-service'
+import { payInvoice, parseInvoice } from '@/api/lib/bolt'
 
 // paying actions are completely distinct from paid actions
 // and there's only one paying action: send
 // ... still we want the api to at least be similar
-export default async function performPayingAction ({ bolt11, maxFee, walletId }, { me, models, lnd }) {
+export default async function performPayingAction ({ bolt11, maxFee, walletId }, { me, models, lnd, lndk }) {
   try {
     console.group('performPayingAction', `${bolt11.slice(0, 10)}...`, maxFee, walletId)
 
@@ -14,7 +14,7 @@ export default async function performPayingAction ({ bolt11, maxFee, walletId },
       throw new Error('You must be logged in to perform this action')
     }
 
-    const decoded = await parsePaymentRequest({ request: bolt11 })
+    const decoded = await parseInvoice({ request: bolt11, lnd, lndk })
     const cost = toPositiveBigInt(toPositiveBigInt(decoded.mtokens) + satsToMsats(maxFee))
 
     console.log('cost', cost)
@@ -40,8 +40,9 @@ export default async function performPayingAction ({ bolt11, maxFee, walletId },
       })
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 
-    payViaPaymentRequest({
+    payInvoice({
       lnd,
+      lndk,
       request: withdrawal.bolt11,
       max_fee: msatsToSats(withdrawal.msatsFeePaying),
       pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,

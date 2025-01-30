@@ -17,6 +17,7 @@ import { computeStreaks, checkStreak } from './streak'
 import { nip57 } from './nostr'
 import fetch from 'cross-fetch'
 import { authenticatedLndGrpc } from '@/lib/lnd'
+import { authenticatedLndkGrpc } from '@/api/lib/lndk'
 import { views, rankViews } from './views'
 import { imgproxy } from './imgproxy'
 import { deleteItem } from './ephemeralItems'
@@ -74,7 +75,13 @@ async function work () {
     socket: process.env.LND_SOCKET
   })
 
-  const args = { boss, models, apollo, lnd }
+  const lndk = authenticatedLndkGrpc({
+    cert: process.env.LNDK_CERT,
+    macaroon: process.env.LNDK_MACAROON,
+    socket: process.env.LNDK_SOCKET
+  })
+
+  const args = { boss, models, apollo, lnd, lndk }
 
   boss.on('error', error => console.error(error))
 

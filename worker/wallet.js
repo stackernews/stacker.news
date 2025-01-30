@@ -115,7 +115,7 @@ function subscribeToHodlInvoice (args) {
 
 // if we already have the invoice from a subscription event or previous call,
 // we can skip a getInvoice call
-export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd }) {
+export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd, lndk }) {
   const inv = invoice ?? await getInvoice({ id: hash, lnd })
 
   // invoice could be created by LND but wasn't inserted into the database yet
@@ -148,7 +148,7 @@ export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd
           // transitions when held are dependent on the withdrawl status
           return await checkWithdrawal({ data: { hash: dbInv.invoiceForward.withdrawl.hash, invoice: inv }, models, lnd, boss })
         }
-        return await paidActionForwarding({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
+        return await paidActionForwarding({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, lndk, boss })
       }
       return await paidActionHeld({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
     }
@@ -241,7 +241,7 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
 
 // The callback subscriptions above will NOT get called for JIT invoices that are already paid.
 // So we manually cancel the HODL invoice here if it wasn't settled by user action
-export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, ...args }) {
+export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, lndk, boss, ...args }) {
   const inv = await getInvoice({ id: hash, lnd })
   if (inv.is_confirmed) {
     return
@@ -256,7 +256,7 @@ export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, 
   await paidActionCanceling({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
 
   // sync LND invoice status with invoice status in database
-  await checkInvoice({ data: { hash }, models, lnd, boss })
+  await checkInvoice({ data: { hash }, models, lnd, lndk, boss })
 }
 
 export async function checkPendingDeposits (args) {

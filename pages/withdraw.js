@@ -5,13 +5,13 @@ import { useRouter } from 'next/router'
 import { InputGroup, Nav } from 'react-bootstrap'
 import styles from '@/components/user-header.module.css'
 import { gql, useMutation, useQuery } from '@apollo/client'
-import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/wallet'
+import { CREATE_WITHDRAWL, SEND_TO_LNADDR, SEND_TO_BOLT12_OFFER } from '@/fragments/wallet'
 import { requestProvider } from 'webln'
 import { useEffect, useState } from 'react'
 import { useMe } from '@/components/me'
 import { WithdrawlSkeleton } from './withdrawals/[id]'
 import { Checkbox, Form, Input, InputUserSuggest, SubmitButton } from '@/components/form'
-import { lnAddrSchema, withdrawlSchema } from '@/lib/validate'
+import { lnAddrSchema, withdrawlSchema, bolt12WithdrawSchema } from '@/lib/validate'
 import { useShowModal } from '@/components/modal'
 import { useField } from 'formik'
 import { useToast } from '@/components/toast'
@@ -65,6 +65,11 @@ function WithdrawForm () {
             <Nav.Link eventKey='lnaddr'>lightning address</Nav.Link>
           </Link>
         </Nav.Item>
+        <Nav.Item>
+          <Link href='/withdraw?type=bolt12' passHref legacyBehavior>
+            <Nav.Link eventKey='bolt12-withdraw'>bolt12 offer</Nav.Link>
+          </Link>
+        </Nav.Item>
       </Nav>
       <SelectedWithdrawalForm />
     </div>
@@ -79,6 +84,8 @@ export function SelectedWithdrawalForm () {
       return <LnurlWithdrawal />
     case 'lnaddr':
       return <LnAddrWithdrawal />
+    case 'bolt12':
+      return <Bolt12Withdrawal />
     default:
       return <InvWithdrawal />
   }
@@ -382,6 +389,74 @@ export function LnAddrWithdrawal () {
         <div className='d-flex justify-content-end mt-4'>
           <SubmitButton variant='success'>send</SubmitButton>
         </div>
+      </Form>
+    </>
+  )
+}
+
+export function Bolt12Withdrawal () {
+  const { me } = useMe()
+  const router = useRouter()
+  const [sendToBolt12Offer, { called, error }] = useMutation(SEND_TO_BOLT12_OFFER)
+
+  const maxFeeDefault = me?.privates?.withdrawMaxFeeDefault
+
+  return (
+    <>
+      {called && !error && <WithdrawlSkeleton status='sending' />}
+      <Form
+        // hide/show instead of add/remove from react tree to avoid re-initializing the form state on error
+        style={{ display: !(called && !error) ? 'block' : 'none' }}
+        initial={{
+          offer: '',
+          amount: 1,
+          maxFee: maxFeeDefault,
+          comment: ''
+        }}
+        schema={bolt12WithdrawSchema}
+        onSubmit={async ({ offer, amount, maxFee, comment }) => {
+          const { data } = await sendToBolt12Offer({
+            variables: {
+              offer,
+              amountSats: Number(amount),
+              maxFee: Number(maxFee),
+              comment
+            }
+          })
+          router.push(`/withdrawals/${data.sendToBolt12Offer.id}`)
+        }}
+      >
+        <Input
+          label='offer'
+          name='offer'
+          type='text'
+          required
+          autoFocus
+        />
+        <Input
+          label='amount'
+          name='amount'
+          type='number'
+          step={10}
+          required
+          min={1}
+          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        />
+        <Input
+          label='max fee'
+          name='maxFee'
+          type='number'
+          step={10}
+          required
+          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        />
+        <Input
+          as='textarea'
+          label={<>comment <small className='text-muted ms-2'>optional</small></>}
+          name='comment'
+          maxLength={128}
+        />
+        <SubmitButton variant='success' className='mt-2'>send</SubmitButton>
       </Form>
     </>
   )

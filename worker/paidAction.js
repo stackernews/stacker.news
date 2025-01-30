@@ -7,11 +7,11 @@ import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
 import {
   cancelHodlInvoice,
-  getInvoice, parsePaymentRequest,
-  payViaPaymentRequest, settleHodlInvoice
+  getInvoice,
+  settleHodlInvoice
 } from 'ln-service'
+import { payInvoice, parseInvoice } from '@/api/lib/bolt'
 import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/wrap'
-
 // aggressive finalization retry options
 const FINALIZE_OPTIONS = { retryLimit: 2 ** 31 - 1, retryBackoff: false, retryDelay: 5, priority: 1000 }
 
@@ -194,7 +194,7 @@ export async function paidActionPaid ({ data: { invoiceId, ...args }, models, ln
 }
 
 // this performs forward creating the outgoing payment
-export async function paidActionForwarding ({ data: { invoiceId, ...args }, models, lnd, boss }) {
+export async function paidActionForwarding ({ data: { invoiceId, ...args }, models, lnd, lndk, boss }) {
   const transitionedInvoice = await transitionInvoice('paidActionForwarding', {
     invoiceId,
     fromState: 'PENDING_HELD',
@@ -211,7 +211,7 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
 
       const { expiryHeight, acceptHeight } = hodlInvoiceCltvDetails(lndInvoice)
       const { bolt11, maxFeeMsats } = invoiceForward
-      const invoice = await parsePaymentRequest({ request: bolt11 })
+      const invoice = await parseInvoice({ request: bolt11, lnd, lndk })
       // maxTimeoutDelta is the number of blocks left for the outgoing payment to settle
       const maxTimeoutDelta = toPositiveNumber(expiryHeight) - toPositiveNumber(acceptHeight) - MIN_SETTLEMENT_CLTV_DELTA
       if (maxTimeoutDelta - toPositiveNumber(invoice.cltv_delta) < 0) {
@@ -265,8 +265,9 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
     console.log('forwarding with max fee', maxFeeMsats, 'max_timeout_height', maxTimeoutHeight,
       'accept_height', acceptHeight, 'expiry_height', expiryHeight)
 
-    payViaPaymentRequest({
+    payInvoice({
       lnd,
+      lndk,
       request: bolt11,
       max_fee_mtokens: String(maxFeeMsats),
       pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
@@ -426,7 +427,7 @@ export async function paidActionHeld ({ data: { invoiceId, ...args }, models, ln
   }, { models, lnd, boss })
 }
 
-export async function paidActionCanceling ({ data: { invoiceId, ...args }, models, lnd, boss }) {
+export async function paidActionCanceling ({ data: { invoiceId, ...args }, models, lnd, lndk, boss }) {
   const transitionedInvoice = await transitionInvoice('paidActionCanceling', {
     invoiceId,
     fromState: ['HELD', 'PENDING', 'PENDING_HELD', 'FAILED_FORWARD'],
@@ -445,7 +446,7 @@ export async function paidActionCanceling ({ data: { invoiceId, ...args }, model
     if (transitionedInvoice.invoiceForward) {
       const { wallet, bolt11 } = transitionedInvoice.invoiceForward
       const logger = walletLogger({ wallet, models })
-      const decoded = await parsePaymentRequest({ request: bolt11 })
+      const decoded = await parseInvoice({ request: bolt11, lnd, lndk })
       logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, { bolt11 })
     }
   }

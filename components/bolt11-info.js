@@ -1,11 +1,12 @@
 import AccordianItem from './accordian-item'
 import { CopyInput } from './form'
-import { bolt11Tags } from '@/lib/bolt11'
+import { getInvoiceDescription, getInvoicePaymentHash } from '@/lib/bolt'
 
 export default ({ bolt11, preimage, children }) => {
   let description, paymentHash
   if (bolt11) {
-    ({ description, payment_hash: paymentHash } = bolt11Tags(bolt11))
+    description = getInvoiceDescription(bolt11)
+    paymentHash = getInvoicePaymentHash(bolt11)
   }
 
   return (

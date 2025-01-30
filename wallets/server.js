@@ -6,6 +6,7 @@ import * as lnbits from '@/wallets/lnbits/server'
 import * as nwc from '@/wallets/nwc/server'
 import * as phoenixd from '@/wallets/phoenixd/server'
 import * as blink from '@/wallets/blink/server'
+import * as bolt12 from '@/wallets/bolt12/server'
 
 // we import only the metadata of client side wallets
 import * as lnc from '@/wallets/lnc'
@@ -13,18 +14,19 @@ import * as webln from '@/wallets/webln'
 
 import { walletLogger } from '@/api/resolvers/wallet'
 import walletDefs from '@/wallets/server'
-import { parsePaymentRequest } from 'ln-service'
+import { parseInvoice } from '@/api/lib/bolt'
+import { isBolt12Offer, isBolt12Invoice } from '@/api/lib/bolt/bolt12'
 import { toPositiveBigInt, toPositiveNumber, formatMsats, formatSats, msatsToSats } from '@/lib/format'
 import { PAID_ACTION_TERMINAL_STATES, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { canReceive } from './common'
 import wrapInvoice from './wrap'
 
-export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
+export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln, bolt12]
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 
-export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { predecessorId, models }) {
+export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360, supportBolt12 = true }, { predecessorId, models, lnd, lndk }) {
   // get the wallets in order of priority
   const wallets = await getInvoiceableWallets(userId, { predecessorId, models })
 
@@ -32,6 +34,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 
   for (const { def, wallet } of wallets) {
     const logger = walletLogger({ wallet, models })
+    if (def.isBolt12OnlyWallet && !supportBolt12) continue
 
     try {
       logger.info(
@@ -45,25 +48,32 @@ export async function createInvoice (userId, { msats, description, descriptionHa
         invoice = await walletCreateInvoice(
           { wallet, def },
           { msats, description, descriptionHash, expiry },
-          { logger, models })
+          { logger, models, lnd, lndk, supportBolt12 })
       } catch (err) {
         throw new Error('failed to create invoice: ' + err.message)
       }
 
-      const bolt11 = await parsePaymentRequest({ request: invoice })
+      if (isBolt12Invoice(invoice)) {
+        if (!supportBolt12) {
+          throw new Error('the wallet returned a bolt12 invoice, but a bolt11 invoice was expected')
+        }
+      } else if (isBolt12Offer(invoice)) {
+        throw new Error('the wallet returned a bolt12 offer, but an invoice was expected')
+      }
 
-      logger.info(`created invoice for ${formatSats(msatsToSats(bolt11.mtokens))}`, {
+      const parsedInvoice = await parseInvoice({ lnd, lndk, request: invoice })
+      logger.info(`created invoice for ${formatSats(msatsToSats(parsedInvoice.mtokens))}`, {
         bolt11: invoice
       })
 
-      if (BigInt(bolt11.mtokens) !== BigInt(msats)) {
-        if (BigInt(bolt11.mtokens) > BigInt(msats)) {
+      if (BigInt(parsedInvoice.mtokens) !== BigInt(msats)) {
+        if (BigInt(parsedInvoice.mtokens) > BigInt(msats)) {
           throw new Error('invoice invalid: amount too big')
         }
-        if (BigInt(bolt11.mtokens) === 0n) {
+        if (BigInt(parsedInvoice.mtokens) === 0n) {
           throw new Error('invoice invalid: amount is 0 msats')
         }
-        if (BigInt(msats) - BigInt(bolt11.mtokens) >= 1000n) {
+        if (BigInt(msats) - BigInt(parsedInvoice.mtokens) >= 1000n) {
           throw new Error('invoice invalid: amount too small')
         }
       }
@@ -79,7 +89,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 
 export async function createWrappedInvoice (userId,
   { msats, feePercent, description, descriptionHash, expiry = 360 },
-  { predecessorId, models, me, lnd }) {
+  { predecessorId, models, me, lnd, lndk }) {
   let logger, bolt11
   try {
     const { invoice, wallet } = await createInvoice(userId, {
@@ -88,13 +98,12 @@ export async function createWrappedInvoice (userId,
       description,
       descriptionHash,
       expiry
-    }, { predecessorId, models })
-
+    }, { predecessorId, models, lnd, lndk })
     logger = walletLogger({ wallet, models })
     bolt11 = invoice
 
     const { invoice: wrappedInvoice, maxFee } =
-      await wrapInvoice({ bolt11, feePercent }, { msats, description, descriptionHash }, { me, lnd })
+      await wrapInvoice({ bolt11, feePercent }, { msats, description, descriptionHash }, { me, lnd, lndk })
 
     return {
       invoice,
@@ -164,7 +173,7 @@ async function walletCreateInvoice ({ wallet, def }, {
   description,
   descriptionHash,
   expiry = 360
-}, { logger, models }) {
+}, { logger, models, lnd, lndk }) {
   // check for pending withdrawals
   const pendingWithdrawals = await models.withdrawl.count({
     where: {
@@ -201,6 +210,8 @@ async function walletCreateInvoice ({ wallet, def }, {
       wallet.wallet,
       {
         logger,
+        lnd,
+        lndk,
         signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS)
       }
     ), WALLET_CREATE_INVOICE_TIMEOUT_MS)

@@ -2,7 +2,7 @@ import { ApolloServer } from '@apollo/server'
 import { startServerAndCreateNextHandler } from '@as-integrations/next'
 import resolvers from '@/api/resolvers'
 import models from '@/api/models'
-import lnd from '@/api/lnd'
+import lnd, { lndk } from '@/api/lnd'
 import typeDefs from '@/api/typeDefs'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './auth/[...nextauth]'
@@ -74,6 +74,7 @@ export default startServerAndCreateNextHandler(apolloServer, {
       models,
       headers: req.headers,
       lnd,
+      lndk,
       me: session
         ? session.user
         : null,

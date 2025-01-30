@@ -193,6 +193,7 @@ enum WalletType {
   BLINK
   LNC
   WEBLN
+  BOLT12
 }
 
 model Wallet {
@@ -220,6 +221,7 @@ model Wallet {
   walletNWC              WalletNWC?
   walletPhoenixd         WalletPhoenixd?
   walletBlink            WalletBlink?
+  walletBolt12           WalletBolt12?
 
   vaultEntries   VaultEntry[]     @relation("VaultEntries")
   withdrawals    Withdrawl[]
@@ -327,6 +329,15 @@ model WalletPhoenixd {
   updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
   url               String
   secondaryPassword String?
+}
+
+model WalletBolt12 {
+  id         Int      @id @default(autoincrement())
+  walletId   Int      @unique
+  wallet     Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+  offer     String?
 }
 
 model Mute {

@@ -985,7 +985,7 @@ export default {
 
       return await performPaidAction('POLL_VOTE', { id }, { me, models, lnd })
     },
-    act: async (parent, { id, sats, act = 'TIP', hasSendWallet }, { me, models, lnd, headers }) => {
+    act: async (parent, { id, sats, act = 'TIP', hasSendWallet }, { me, models, lnd, lndk, headers }) => {
       assertApiKeyNotPermitted({ me })
       await validateSchema(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
@@ -1019,11 +1019,11 @@ export default {
       }
 
       if (act === 'TIP') {
-        return await performPaidAction('ZAP', { id, sats, hasSendWallet }, { me, models, lnd })
+        return await performPaidAction('ZAP', { id, sats, hasSendWallet }, { me, models, lnd, lndk })
       } else if (act === 'DONT_LIKE_THIS') {
-        return await performPaidAction('DOWN_ZAP', { id, sats }, { me, models, lnd })
+        return await performPaidAction('DOWN_ZAP', { id, sats }, { me, models, lnd, lndk })
       } else if (act === 'BOOST') {
-        return await performPaidAction('BOOST', { id, sats }, { me, models, lnd })
+        return await performPaidAction('BOOST', { id, sats }, { me, models, lnd, lndk })
       } else {
         throw new GqlInputError('unknown act')
       }

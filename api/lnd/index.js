@@ -1,6 +1,7 @@
 import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/format'
 import { authenticatedLndGrpc } from '@/lib/lnd'
+import { authenticatedLndkGrpc } from '@/api/lib/lndk'
 import { getIdentity, getHeight, getWalletInfo, getNode, getPayment } from 'ln-service'
 import { datePivot } from '@/lib/time'
 import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
@@ -10,6 +11,11 @@ const lnd = global.lnd || authenticatedLndGrpc({
   macaroon: process.env.LND_MACAROON,
   socket: process.env.LND_SOCKET
 }).lnd
+export const lndk = authenticatedLndkGrpc({
+  cert: process.env.LNDK_CERT,
+  macaroon: process.env.LNDK_MACAROON,
+  socket: process.env.LNDK_SOCKET
+})
 
 if (process.env.NODE_ENV === 'development') global.lnd = lnd
 

@@ -50,7 +50,7 @@ export default {
     }
   },
   Mutation: {
-    retryPaidAction: async (parent, { invoiceId }, { models, me, lnd }) => {
+    retryPaidAction: async (parent, { invoiceId }, { models, me, lnd, lndk }) => {
       if (!me) {
         throw new Error('You must be logged in')
       }
@@ -67,7 +67,7 @@ export default {
         throw new Error(`Invoice is not in failed state: ${invoice.actionState}`)
       }
 
-      const result = await retryPaidAction(invoice.actionType, { invoice }, { models, me, lnd })
+      const result = await retryPaidAction(invoice.actionType, { invoice }, { models, me, lnd, lndk })
 
       return {
         ...result,

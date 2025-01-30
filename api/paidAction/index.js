@@ -1,10 +1,11 @@
-import { createHodlInvoice, createInvoice, parsePaymentRequest } from 'ln-service'
+import { createHodlInvoice, createInvoice } from 'ln-service'
 import { datePivot } from '@/lib/time'
 import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { createHmac } from '@/api/resolvers/wallet'
 import { Prisma } from '@prisma/client'
 import { createWrappedInvoice, createInvoice as createUserInvoice } from '@/wallets/server'
 import { assertBelowMaxPendingInvoices, assertBelowMaxPendingDirectPayments } from './lib/assert'
+import { parseBolt11 } from '@/api/lib/bolt/bolt11'
 
 import * as ITEM_CREATE from './itemCreate'
 import * as ITEM_UPDATE from './itemUpdate'
@@ -212,7 +213,7 @@ async function beginPessimisticAction (actionType, args, context) {
 async function performP2PAction (actionType, args, incomingContext) {
   // if the action has an invoiceable peer, we'll create a peer invoice
   // wrap it, and return the wrapped invoice
-  const { cost, sybilFeePercent, models, lnd, me } = incomingContext
+  const { cost, sybilFeePercent, models, lnd, lndk, me } = incomingContext
   if (!sybilFeePercent) {
     throw new Error('sybil fee percent is not set for an invoiceable peer action')
   }
@@ -232,7 +233,7 @@ async function performP2PAction (actionType, args, incomingContext) {
       feePercent: sybilFeePercent,
       description,
       expiry: INVOICE_EXPIRE_SECS
-    }, { models, me, lnd })
+    }, { models, me, lnd, lndk })
 
     context = {
       ...incomingContext,
@@ -256,7 +257,7 @@ async function performP2PAction (actionType, args, incomingContext) {
 // we don't need to use the module for perform-ing outside actions
 // because we can't track the state of outside invoices we aren't paid/paying
 async function performDirectAction (actionType, args, incomingContext) {
-  const { models, lnd, cost } = incomingContext
+  const { models, lnd, cost, lndk } = incomingContext
   const { comment, lud18Data, noteStr, description: actionDescription } = args
 
   const userId = await paidActions[actionType]?.getInvoiceablePeer?.(args, incomingContext)
@@ -273,15 +274,16 @@ async function performDirectAction (actionType, args, incomingContext) {
     invoiceObject = await createUserInvoice(userId, {
       msats: cost,
       description,
-      expiry: INVOICE_EXPIRE_SECS
-    }, { models, lnd })
+      expiry: INVOICE_EXPIRE_SECS,
+      supportBolt12: false // direct payment is not supported to bolt12 for compatibility reasons
+    }, { models, lnd, lndk })
   } catch (e) {
     console.error('failed to create outside invoice', e)
     throw new NonInvoiceablePeerError()
   }
 
   const { invoice, wallet } = invoiceObject
-  const hash = parsePaymentRequest({ request: invoice }).id
+  const hash = await parseBolt11({ request: invoice }).id
 
   const payment = await models.directPayment.create({
     data: {
@@ -429,8 +431,9 @@ async function createDbInvoice (actionType, args, context) {
     throw new Error('The cost of the action must be at least 1 sat')
   }
 
+  // note: served invoice is always bolt11
   const servedBolt11 = wrappedBolt11 ?? bolt11
-  const servedInvoice = parsePaymentRequest({ request: servedBolt11 })
+  const servedInvoice = await parseBolt11({ request: servedBolt11 })
   const expiresAt = new Date(servedInvoice.expires_at)
 
   const invoiceData = {

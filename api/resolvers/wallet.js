@@ -1,6 +1,5 @@
 import {
-  getInvoice as getInvoiceFromLnd, deletePayment, getPayment,
-  parsePaymentRequest
+  getInvoice as getInvoiceFromLnd, deletePayment, getPayment
 } from 'ln-service'
 import crypto, { timingSafeEqual } from 'crypto'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
@@ -14,7 +13,7 @@ import {
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
-import { bolt11Tags } from '@/lib/bolt11'
+import { getInvoiceDescription } from '@/lib/bolt'
 import { finalizeHodlInvoice } from '@/worker/wallet'
 import walletDefs from '@/wallets/server'
 import { generateResolverName, generateTypeDefName } from '@/wallets/graphql'
@@ -25,6 +24,10 @@ import validateWallet from '@/wallets/validate'
 import { canReceive, getWalletByType } from '@/wallets/common'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
+import { parseInvoice } from '@/api/lib/bolt'
+import lnd, { lndk } from '@/api/lnd'
+import { isBolt12Offer } from '@/api/lib/bolt/bolt12'
+import { fetchBolt12InvoiceFromOffer } from '@/api/lib/lndk'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 
 function injectResolvers (resolvers) {
@@ -32,7 +35,7 @@ function injectResolvers (resolvers) {
   for (const walletDef of walletDefs) {
     const resolverName = generateResolverName(walletDef.walletField)
     console.log(resolverName)
-    resolvers.Mutation[resolverName] = async (parent, { settings, validateLightning, vaultEntries, ...data }, { me, models }) => {
+    resolvers.Mutation[resolverName] = async (parent, { settings, validateLightning, vaultEntries, ...data }, { me, models, lnd, lndk }) => {
       console.log('resolving', resolverName, { settings, validateLightning, vaultEntries, ...data })
 
       let existingVaultEntries
@@ -71,6 +74,8 @@ function injectResolvers (resolvers) {
             ? (data) => withTimeout(
                 walletDef.testCreateInvoice(data, {
                   logger,
+                  lnd,
+                  lndk,
                   signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS)
                 }),
                 WALLET_CREATE_INVOICE_TIMEOUT_MS)
@@ -377,7 +382,7 @@ const resolvers = {
         f = { ...f, ...f.other }
 
         if (f.bolt11) {
-          f.description = bolt11Tags(f.bolt11).description
+          f.description = getInvoiceDescription(f.bolt11)
         }
 
         switch (f.type) {
@@ -473,13 +478,13 @@ const resolvers = {
     __resolveType: invoiceOrDirect => invoiceOrDirect.__resolveType
   },
   Mutation: {
-    createInvoice: async (parent, { amount }, { me, models, lnd, headers }) => {
+    createInvoice: async (parent, { amount }, { me, models, lnd, lndk, headers }) => {
       await validateSchema(amountSchema, { amount })
       await assertGofacYourself({ models, headers })
 
       const { invoice, paymentMethod } = await performPaidAction('RECEIVE', {
         msats: satsToMsats(amount)
-      }, { models, lnd, me })
+      }, { models, lnd, lndk, me })
 
       return {
         ...invoice,
@@ -489,7 +494,8 @@ const resolvers = {
     },
     createWithdrawl: createWithdrawal,
     sendToLnAddr,
-    cancelInvoice: async (parent, { hash, hmac, userCancel }, { me, models, lnd, boss }) => {
+    sendToBolt12Offer,
+    cancelInvoice: async (parent, { hash, hmac, userCancel }, { me, models, lnd, lndk, boss }) => {
       // stackers can cancel their own invoices without hmac
       if (me && !hmac) {
         const inv = await models.invoice.findUnique({ where: { hash } })
@@ -498,7 +504,7 @@ const resolvers = {
       } else {
         verifyHmac(hash, hmac)
       }
-      await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
+      await finalizeHodlInvoice({ data: { hash }, lnd, lndk, models, boss })
       return await models.invoice.update({ where: { hash }, data: { userCancel: !!userCancel } })
     },
     dropBolt11: async (parent, { hash }, { me, models, lnd }) => {
@@ -747,8 +753,8 @@ export const walletLogger = ({ wallet, models }) => {
   const log = (level) => async (message, context = {}) => {
     try {
       if (context?.bolt11) {
-        // automatically populate context from bolt11 to avoid duplicating this code
-        const decoded = await parsePaymentRequest({ request: context.bolt11 })
+        // automatically populate context from invoice to avoid duplicating this code
+        const decoded = await parseInvoice({ request: context.bolt11, lnd, lndk })
         context = {
           ...context,
           amount: formatMsats(decoded.mtokens),
@@ -916,7 +922,7 @@ async function upsertWallet (
   return upsertedWallet
 }
 
-export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, wallet, logger }) {
+export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, lndk, headers, wallet, logger }) {
   assertApiKeyNotPermitted({ me })
   await validateSchema(withdrawlSchema, { invoice, maxFee })
   await assertGofacYourself({ models, headers })
@@ -927,7 +933,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   // decode invoice to get amount
   let decoded, sockets
   try {
-    decoded = await parsePaymentRequest({ request: invoice })
+    decoded = await parseInvoice({ request: invoice, lnd, lndk })
   } catch (error) {
     console.log(error)
     throw new GqlInputError('could not decode invoice')
@@ -966,11 +972,11 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     throw new GqlInputError('SN cannot pay an invoice that SN is proxying')
   }
 
-  return await performPayingAction({ bolt11: invoice, maxFee, walletId: wallet?.id }, { me, models, lnd })
+  return await performPayingAction({ bolt11: invoice, maxFee, walletId: wallet?.id }, { me, models, lnd, lndk })
 }
 
 export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },
-  { me, models, lnd, headers }) {
+  { me, models, lnd, lndk, headers }) {
   if (!me) {
     throw new GqlAuthenticationError()
   }
@@ -980,17 +986,30 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
     {
       me,
       models,
-      lnd
+      lnd,
+      lndk
     })
 
   // take pr and createWithdrawl
-  return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers })
+  return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, lndk, headers })
+}
+
+export async function sendToBolt12Offer (parent, { offer, amountSats, maxFee, comment }, { me, models, lnd, lndk, headers }) {
+  if (!me) {
+    throw new GqlAuthenticationError()
+  }
+  assertApiKeyNotPermitted({ me })
+  if (!isBolt12Offer(offer)) {
+    throw new GqlInputError('not a bolt12 offer')
+  }
+  const invoice = await fetchBolt12InvoiceFromOffer({ lnd, lndk, offer, msats: satsToMsats(amountSats), description: comment })
+  return await createWithdrawal(parent, { invoice, maxFee }, { me, models, lnd, lndk, headers })
 }
 
 export async function fetchLnAddrInvoice (
   { addr, amount, maxFee, comment, ...payer },
   {
-    me, models, lnd, autoWithdraw = false
+    me, models, lnd, lndk, autoWithdraw = false
   }) {
   const options = await lnAddrOptions(addr)
   await validateSchema(lnAddrSchema, { addr, amount, maxFee, comment, ...payer }, options)
@@ -1027,7 +1046,7 @@ export async function fetchLnAddrInvoice (
 
   // decode invoice
   try {
-    const decoded = await parsePaymentRequest({ request: res.pr })
+    const decoded = await parseInvoice({ request: res.pr, lnd, lndk })
     const ourPubkey = await getOurPubkey({ lnd })
     if (autoWithdraw && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
       // unset lnaddr so we don't trigger another withdrawal with same destination

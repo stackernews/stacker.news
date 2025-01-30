@@ -9,7 +9,10 @@ import {
   USER_ID, POLL_COST, ADMIN_ITEMS, GLOBAL_SEED,
   NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS,
   BOOST_MULT,
-  ITEM_EDIT_SECONDS
+  ITEM_EDIT_SECONDS,
+  COMMENTS_LIMIT,
+  COMMENTS_OF_COMMENT_LIMIT,
+  FULL_COMMENTS_THRESHOLD
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
@@ -25,39 +28,76 @@ import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 
 function commentsOrderByClause (me, models, sort) {
+  const sharedSortsArray = []
+  sharedSortsArray.push('("Item"."pinId" IS NOT NULL) DESC')
+  sharedSortsArray.push('("Item"."deletedAt" IS NULL) DESC')
+  const sharedSorts = sharedSortsArray.join(', ')
+
   if (sort === 'recent') {
-    return 'ORDER BY ("Item"."deletedAt" IS NULL) DESC, ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC, COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC, "Item".id DESC'
+    return `ORDER BY ${sharedSorts},
+      ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC,
+      COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC, "Item".id DESC`
   }
 
   if (me && sort === 'hot') {
-    return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, COALESCE(
-        personal_hot_score,
-        ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
-        "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+    return `ORDER BY ${sharedSorts},
+      "personal_hot_score" DESC NULLS LAST,
+      "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
   } else {
     if (sort === 'top') {
-      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator({ models, commentScaler: 0 })} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
+      return `ORDER BY ${sharedSorts}, ${orderByNumerator({ models, commentScaler: 0 })} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
     } else {
-      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+      return `ORDER BY ${sharedSorts}, ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
     }
   }
 }
 
-async function comments (me, models, id, sort) {
+async function comments (me, models, item, sort, cursor) {
   const orderBy = commentsOrderByClause(me, models, sort)
 
-  if (me) {
-    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) `
-    const [{ item_comments_zaprank_with_me: comments }] = await models.$queryRawUnsafe(
-      'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)',
-      Number(id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
-    return comments
+  if (item.nDirectComments === 0) {
+    return {
+      comments: [],
+      cursor: null
+    }
   }
 
-  const filter = ' AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = \'PAID\') '
-  const [{ item_comments: comments }] = await models.$queryRawUnsafe(
-    'SELECT item_comments($1::INTEGER, $2::INTEGER, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, filter, orderBy)
-  return comments
+  const decodedCursor = decodeCursor(cursor)
+  const offset = decodedCursor.offset
+
+  // XXX what a mess
+  let comments
+  if (me) {
+    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) AND "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3) `
+    if (item.ncomments > FULL_COMMENTS_THRESHOLD) {
+      const [{ item_comments_zaprank_with_me_limited: limitedComments }] = await models.$queryRawUnsafe(
+        'SELECT item_comments_zaprank_with_me_limited($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8, $9)',
+        Number(item.id), GLOBAL_SEED, Number(me.id), COMMENTS_LIMIT, offset, COMMENTS_OF_COMMENT_LIMIT, COMMENT_DEPTH_LIMIT, filter, orderBy)
+      comments = limitedComments
+    } else {
+      const [{ item_comments_zaprank_with_me: fullComments }] = await models.$queryRawUnsafe(
+        'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)',
+        Number(item.id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+      comments = fullComments
+    }
+  } else {
+    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID') AND "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3) `
+    if (item.ncomments > FULL_COMMENTS_THRESHOLD) {
+      const [{ item_comments_limited: limitedComments }] = await models.$queryRawUnsafe(
+        'SELECT item_comments_limited($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6, $7)',
+        Number(item.id), COMMENTS_LIMIT, offset, COMMENTS_OF_COMMENT_LIMIT, COMMENT_DEPTH_LIMIT, filter, orderBy)
+      comments = limitedComments
+    } else {
+      const [{ item_comments: fullComments }] = await models.$queryRawUnsafe(
+        'SELECT item_comments($1::INTEGER, $2::INTEGER, $3, $4)', Number(item.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+      comments = fullComments
+    }
+  }
+
+  return {
+    comments,
+    cursor: comments.length + offset < item.nDirectComments ? nextCursorEncoded(decodedCursor, COMMENTS_LIMIT) : null
+  }
 }
 
 export async function getItem (parent, { id }, { me, models }) {
@@ -1173,11 +1213,25 @@ export default {
         }
       })
     },
-    comments: async (item, { sort }, { me, models }) => {
-      if (typeof item.comments !== 'undefined') return item.comments
-      if (item.ncomments === 0) return []
+    comments: async (item, { sort, cursor }, { me, models }) => {
+      if (typeof item.comments !== 'undefined') {
+        if (Array.isArray(item.comments)) {
+          return {
+            comments: item.comments,
+            cursor: null
+          }
+        }
+        return item.comments
+      }
 
-      return comments(me, models, item.id, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt))
+      if (item.ncomments === 0) {
+        return {
+          comments: [],
+          cursor: null
+        }
+      }
+
+      return comments(me, models, item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor)
     },
     freedFreebie: async (item) => {
       return item.weightedVotes - item.weightedDownVotes > 0

@@ -528,6 +528,7 @@ model Item {
   lastCommentAt       DateTime?
   lastZapAt           DateTime?
   ncomments           Int                   @default(0)
+  nDirectComments     Int                   @default(0)
   msats               BigInt                @default(0)
   mcredits            BigInt                @default(0)
   cost                Int                   @default(0)

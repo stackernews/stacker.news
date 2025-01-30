@@ -25,7 +25,9 @@ const ITEM_PAID_ACTION_FIELDS = gql`
       reminderScheduledAt
       ...CommentFields
       comments {
-        ...CommentsRecursive
+        comments {
+          ...CommentsRecursive
+        }
       }
     }
   }`

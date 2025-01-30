@@ -297,17 +297,20 @@ export const USER_FULL = gql`
   ${USER_FIELDS}
   ${ITEM_FULL_FIELDS}
   ${COMMENTS}
-  query User($name: String!, $sort: String) {
+  query User($name: String!, $sort: String, $cursor: String) {
     user(name: $name) {
       ...UserFields
       bio {
         ...ItemFullFields
-        comments(sort: $sort) {
-          ...CommentsRecursive
+        comments(sort: $sort, cursor: $cursor) {
+          cursor
+          comments {
+            ...CommentsRecursive
+          }
         }
       }
-  }
-}`
+    }
+  }`
 
 export const USER = gql`
   ${USER_FIELDS}

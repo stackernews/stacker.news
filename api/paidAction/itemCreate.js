@@ -235,7 +235,9 @@ export async function onPaid ({ invoice, id }, context) {
         SET ncomments = "Item".ncomments + 1,
           "lastCommentAt" = GREATEST("Item"."lastCommentAt", comment.created_at),
           "weightedComments" = "Item"."weightedComments" +
-            CASE WHEN comment."userId" = "Item"."userId" THEN 0 ELSE comment.trust END
+            CASE WHEN comment."userId" = "Item"."userId" THEN 0 ELSE comment.trust END,
+          "nDirectComments" = "Item"."nDirectComments" +
+            CASE WHEN comment."parentId" = "Item".id THEN 1 ELSE 0 END
         FROM comment
         WHERE "Item".path @> comment.path AND "Item".id <> comment.id
         RETURNING "Item".*

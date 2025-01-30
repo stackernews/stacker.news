@@ -81,6 +81,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
       <LinkToContext
         className='py-2'
         onClick={e => {
+          e.preventDefault()
           router.push(href, as)
         }}
         href={href}

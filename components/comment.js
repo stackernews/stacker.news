@@ -254,7 +254,7 @@ export default function Comment ({
                   </Reply>}
               {children}
               <div className={styles.comments}>
-                {item.comments?.comments && !noComments
+                {item.comments.comments && !noComments
                   ? (
                     <>
                       {item.comments.comments.map((item) => (

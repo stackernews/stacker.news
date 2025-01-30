@@ -188,7 +188,7 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
                 parentId={item.id} parentCreatedAt={item.createdAt}
                 pinned={item.position} bio={bio} commentSats={item.commentSats}
                 ncomments={item.ncomments}
-                comments={item.comments?.comments}
+                comments={item.comments.comments}
                 commentsCursor={item.comments.cursor}
                 fetchMoreComments={fetchMoreComments}
               />

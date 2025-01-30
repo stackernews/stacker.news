@@ -1307,9 +1307,10 @@ export function MultiInput ({
 
   return (
     <FormGroup label={label} className={groupClassName}>
-      <div className='d-flex flex-row gap-2'>
+      <div className='d-flex flex-row justify-content-center gap-2'>
         {inputs.map((value, index) => (
           <InputInner
+            inputGroupClassName='w-auto'
             name={name}
             key={index}
             type={inputType}

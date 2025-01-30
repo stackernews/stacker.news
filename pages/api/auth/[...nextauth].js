@@ -15,7 +15,7 @@ import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
 import * as cookie from 'cookie'
 import { multiAuthMiddleware } from '@/pages/api/graphql'
-import { bech32 } from 'bech32'
+import { BECH32_CHARSET } from '@/lib/constants'
 
 /**
  * Stores userIds in user table
@@ -274,7 +274,7 @@ const getProviders = res => [
     server: process.env.LOGIN_EMAIL_SERVER,
     from: process.env.LOGIN_EMAIL_FROM,
     maxAge: 5 * 60, // expires in 5 minutes
-    generateVerificationToken: randomizeToken,
+    generateVerificationToken: generateRandomString,
     sendVerificationRequest
   })
 ]
@@ -403,9 +403,16 @@ export default async (req, res) => {
   await NextAuth(req, res, getAuthOptions(req, res))
 }
 
-function randomizeToken () {
-  const words = bech32.toWords(Buffer.from(randomBytes(3)))
-  return bech32.encode('token', words).slice(6, 12)
+function generateRandomString (length = 6, charset = BECH32_CHARSET) {
+  const bytes = randomBytes(length)
+  const result = new Array(length)
+
+  // Map each byte to a character in the charset
+  for (let i = 0; i < length; i++) {
+    result[i] = charset[bytes[i] % charset.length]
+  }
+
+  return result.join('')
 }
 
 async function sendVerificationRequest ({
@@ -434,15 +441,14 @@ async function sendVerificationRequest ({
     const { server, from } = provider
 
     const site = new URL(url).host
-    const code = token.toUpperCase()
 
     nodemailer.createTransport(server).sendMail(
       {
         to: email,
         from,
         subject: `login to ${site}`,
-        text: text({ url, code, site, email }),
-        html: user ? html({ url, code, site, email }) : newUserHtml({ url, code, site, email })
+        text: text({ url, token, site, email }),
+        html: user ? html({ url, token, site, email }) : newUserHtml({ url, token, site, email })
       },
       (error) => {
         if (error) {
@@ -455,7 +461,7 @@ async function sendVerificationRequest ({
 }
 
 // Email HTML body
-const html = ({ url, code, site, email }) => {
+const html = ({ url, token, site, email }) => {
   // Insert invisible space into domains and email address to prevent both the
   // email address and the domain from being turned into a hyperlink by email
   // clients like Outlook and Apple mail, as this is confusing because it seems
@@ -493,7 +499,7 @@ const html = ({ url, code, site, email }) => {
             </td>
             <tr><td height="10px"></td></tr>
             <td align="center" style="padding: 10px 0px 0px 0px; font-size: 36px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-              <strong>${code}</strong>
+              <strong>${token}</strong>
             </td>
           </tr>
         </table>
@@ -515,9 +521,9 @@ const html = ({ url, code, site, email }) => {
 }
 
 // Email text body –fallback for email clients that don't render HTML
-const text = ({ url, code, site }) => `Sign in to ${site}\ncopy this code: ${code}\n\n\nExpires in 5 minutes`
+const text = ({ url, token, site }) => `Sign in to ${site}\ncopy this code: ${token}\n\n\nExpires in 5 minutes`
 
-const newUserHtml = ({ url, code, site, email }) => {
+const newUserHtml = ({ url, token, site, email }) => {
   const escapedEmail = `${email.replace(/\./g, '&#8203;.')}`
 
   const replaceCb = (path) => {
@@ -694,7 +700,7 @@ const newUserHtml = ({ url, code, site, email }) => {
                             </td>
                             <tr><td height="10px"></td></tr>
                             <td align="center" style="padding: 10px 0px 0px 0px; font-size: 36px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-                              <strong>${code}</strong>
+                              <strong>${token}</strong>
                             </td>
                           </tr>
                         </table>

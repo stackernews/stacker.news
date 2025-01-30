@@ -54,7 +54,6 @@ export const MagicCodeForm = ({ onSubmit, disabled }) => {
         charLength={1}
         name='token'
         required
-        upperCase // display token in uppercase
         autoFocus
         groupClassName='d-flex flex-wrap justify-content-center'
         inputType='text'

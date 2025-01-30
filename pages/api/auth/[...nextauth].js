@@ -405,14 +405,14 @@ export default async (req, res) => {
 
 function generateRandomString (length = 6, charset = BECH32_CHARSET) {
   const bytes = randomBytes(length)
-  const result = new Array(length)
+  let result = ''
 
   // Map each byte to a character in the charset
   for (let i = 0; i < length; i++) {
-    result[i] = charset[bytes[i] % charset.length]
+    result += charset[bytes[i] % charset.length]
   }
 
-  return result.join('')
+  return result
 }
 
 async function sendVerificationRequest ({

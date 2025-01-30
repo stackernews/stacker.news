@@ -254,15 +254,33 @@ export default function Comment ({
                   </Reply>}
               {children}
               <div className={styles.comments}>
-                {item.comments && !noComments
-                  ? item.comments.map((item) => (
-                    <Comment depth={depth + 1} key={item.id} item={item} />
-                  ))
+                {item.comments.comments && !noComments
+                  ? (
+                    <>
+                      {item.comments.comments.map((item) => (
+                        <Comment depth={depth + 1} key={item.id} item={item} />
+                      ))}
+                      {item.comments.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nshown={item.comments.comments.length} nhas={item.nDirectComments} />}
+                    </>
+                    )
                   : null}
+                {/* TODO: add link to more comments if they're limited */}
               </div>
             </div>
             )
       )}
+    </div>
+  )
+}
+
+export function ViewAllReplies ({ id, nshown, nhas }) {
+  const text = `view all ${nhas} replies`
+
+  return (
+    <div className={`d-block fw-bold ${styles.comment} pb-2 ps-3`}>
+      <Link href={`/items/${id}`} as={`/items/${id}`} className='text-muted'>
+        {text}
+      </Link>
     </div>
   )
 }

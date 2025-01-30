@@ -57,6 +57,7 @@ export const ITEM_FIELDS = gql`
     freebie
     bio
     ncomments
+    nDirectComments
     commentSats
     commentCredits
     lastCommentAt
@@ -94,6 +95,7 @@ export const ITEM_FULL_FIELDS = gql`
       bountyPaidTo
       subName
       mine
+      ncomments
       user {
         id
         name
@@ -166,13 +168,16 @@ export const ITEM_FULL = gql`
   ${ITEM_FULL_FIELDS}
   ${POLL_FIELDS}
   ${COMMENTS}
-  query Item($id: ID!, $sort: String) {
+  query Item($id: ID!, $sort: String, $cursor: String) {
     item(id: $id) {
       ...ItemFullFields
       prior
       ...PollFields
-      comments(sort: $sort) {
-        ...CommentsRecursive
+      comments(sort: $sort, cursor: $cursor) {
+        cursor
+        comments {
+          ...CommentsRecursive
+        }
       }
     }
   }`

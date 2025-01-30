@@ -85,7 +85,7 @@ BEGIN
     EXECUTE ''
         || 'SELECT COALESCE(jsonb_agg(sub), ''[]''::jsonb) AS comments '
         || 'FROM  ( '
-        || '    SELECT "Item".*, item_comments_zaprank_with_me("Item".id, $2, $3, $4, $5, $6, $7 - 1, $8, $9) AS comments '
+        || '    SELECT "Item".*, item_comments_zaprank_with_me_limited("Item".id, $2, $3, $4, $5, $6, $7 - 1, $8, $9) AS comments '
         || '    FROM t_item "Item" '
         || '    WHERE  "Item"."parentId" = $1 '
         ||      _order_by
@@ -136,7 +136,7 @@ BEGIN
     EXECUTE ''
         || 'SELECT COALESCE(jsonb_agg(sub), ''[]''::jsonb) AS comments '
         || 'FROM  ( '
-        || '    SELECT "Item".*, item_comments("Item".id, $2, $3, $4, $5 - 1, $6, $7) AS comments '
+        || '    SELECT "Item".*, item_comments_limited("Item".id, $2, $3, $4, $5 - 1, $6, $7) AS comments '
         || '    FROM   t_item "Item" '
         || '    WHERE  "Item"."parentId" = $1 '
         ||      _order_by

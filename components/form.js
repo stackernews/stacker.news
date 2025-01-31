@@ -1262,19 +1262,33 @@ export function MultiInput ({
   }, [onChange, helpers])
 
   const handleChange = useCallback((formik, e, index) => { // formik is not used but it's required to get the value
-    const newValue = upperCase // convert the input to uppercase if upperCase is true
-      ? e.target.value.slice(-charLength).toUpperCase()
-      : e.target.value.slice(-charLength)
+    const value = e.target.value.slice(-charLength)
+    const processedValue = upperCase ? value.toUpperCase() : value // convert the input to uppercase if upperCase is tru
 
     const newInputs = [...inputs]
-    newInputs[index] = newValue
+    newInputs[index] = processedValue
     updateInputs(newInputs)
 
     // focus the next input if the current input is filled
-    if (newValue.length === charLength && index < length - 1) {
+    if (processedValue.length === charLength && index < length - 1) {
       inputRefs.current[index + 1].focus()
     }
   }, [inputs, charLength, upperCase, onChange, length])
+
+  const handlePaste = useCallback((e) => {
+    e.preventDefault()
+    const pastedValues = e.clipboardData.getData('text').slice(0, length)
+    const processedValues = upperCase ? pastedValues.toUpperCase() : pastedValues
+    const chars = processedValues.split('')
+
+    const newInputs = [...inputs]
+    chars.forEach((char, i) => {
+      newInputs[i] = char.slice(0, charLength)
+    })
+
+    updateInputs(newInputs)
+    inputRefs.current[length - 1]?.focus() // simulating the paste by focusing the last input
+  }, [inputs, length, charLength, upperCase, updateInputs])
 
   const handleKeyDown = useCallback((e, index) => {
     switch (e.key) {
@@ -1318,6 +1332,7 @@ export function MultiInput ({
             innerRef={(el) => { inputRefs.current[index] = el }}
             onChange={(formik, e) => handleChange(formik, e, index)}
             onKeyDown={e => handleKeyDown(e, index)}
+            onPaste={e => handlePaste(e, index)}
             style={{
               textAlign: 'center',
               maxWidth: `${charLength * 44}px` // adjusts the max width of the input based on the charLength

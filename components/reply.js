@@ -3,7 +3,6 @@ import styles from './reply.module.css'
 import { COMMENTS } from '@/fragments/comments'
 import { useMe } from './me'
 import { forwardRef, useCallback, useEffect, useState, useRef, useMemo } from 'react'
-import Link from 'next/link'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import { commentsViewedAfterComment } from '@/lib/new-comments'
 import { commentSchema } from '@/lib/validate'
@@ -11,25 +10,9 @@ import { ItemButtonBar } from './post'
 import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
-import { commentSubTreeRootId } from '@/lib/item'
 import { CREATE_COMMENT } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
-
-export function ReplyOnAnotherPage ({ item }) {
-  const rootId = commentSubTreeRootId(item)
-
-  let text = 'reply on another page'
-  if (item.ncomments > 0) {
-    text = 'view replies'
-  }
-
-  return (
-    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='d-block py-3 fw-bold text-muted'>
-      {text}
-    </Link>
-  )
-}
 
 export default forwardRef(function Reply ({
   item,

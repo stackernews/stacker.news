@@ -2,7 +2,7 @@ import itemStyles from './item.module.css'
 import styles from './comment.module.css'
 import Text, { SearchText } from './text'
 import Link from 'next/link'
-import Reply, { ReplyOnAnotherPage } from './reply'
+import Reply from './reply'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import UpVote from './upvote'
 import Eye from '@/svgs/eye-fill.svg'
@@ -27,6 +27,7 @@ import Pin from '@/svgs/pushpin-fill.svg'
 import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
+import classNames from 'classnames'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -142,7 +143,7 @@ export default function Comment ({
     }
   }, [item.id])
 
-  const bottomedOut = depth === COMMENT_DEPTH_LIMIT
+  const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
   const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon
     ? 'OP'
@@ -244,7 +245,7 @@ export default function Comment ({
       </div>
       {collapse !== 'yep' && (
         bottomedOut
-          ? <div className={styles.children}><ReplyOnAnotherPage item={item} /></div>
+          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3')}><ReplyOnAnotherPage item={item} /></div></div>
           : (
             <div className={styles.children}>
               {item.outlawed && !me?.privates?.wildWestMode
@@ -261,7 +262,7 @@ export default function Comment ({
                       {item.comments.comments.map((item) => (
                         <Comment depth={depth + 1} key={item.id} item={item} />
                       ))}
-                      {item.comments.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nshown={item.comments.comments.length} nhas={item.nDirectComments} />}
+                      {item.comments.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nhas={item.ncomments} />}
                     </>
                     )
                   : null}
@@ -283,6 +284,22 @@ export function ViewAllReplies ({ id, nshown, nhas }) {
         {text}
       </Link>
     </div>
+  )
+}
+
+function ReplyOnAnotherPage ({ item }) {
+  const root = useRoot()
+  const rootId = commentSubTreeRootId(item, root)
+
+  let text = 'reply on another page'
+  if (item.ncomments > 0) {
+    text = `view all ${item.ncomments} replies`
+  }
+
+  return (
+    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='d-block pb-2 fw-bold text-muted'>
+      {text}
+    </Link>
   )
 }
 

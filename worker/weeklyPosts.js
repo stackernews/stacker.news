@@ -31,7 +31,9 @@ export async function payWeeklyPostBounty ({ data: { id }, models, apollo, lnd }
           bounty
           bountyPaidTo
           comments(sort: "top") {
-            id
+            comments {
+              id
+            }
           }
         }
       }`,
@@ -44,7 +46,7 @@ export async function payWeeklyPostBounty ({ data: { id }, models, apollo, lnd }
     throw new Error('Bounty already paid')
   }
 
-  const winner = item.comments[0]
+  const winner = item.comments.comments[0]
 
   if (!winner) {
     throw new Error('No winner')

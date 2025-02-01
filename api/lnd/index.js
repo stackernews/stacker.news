@@ -28,11 +28,16 @@ export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, req
   if (request) {
     const inv = parsePaymentRequest({ request })
     const ourPubkey = await getOurPubkey({ lnd })
-    for (const route of inv.routes) {
-      for (const hop of route) {
-        if (hop.public_key === ourPubkey) {
-          request = false
-          break
+    if (Array.isArray(inv.routes)) {
+      for (const route of inv.routes) {
+        if (Array.isArray(route)) {
+          for (const hop of route) {
+            if (hop.public_key === ourPubkey) {
+              console.log('estimateRouteFee ignoring self-payment route')
+              request = false
+              break
+            }
+          }
         }
       }
     }
@@ -42,8 +47,10 @@ export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, req
     const params = {}
 
     if (request) {
+      console.log('estimateRouteFee using payment request')
       params.payment_request = request
     } else {
+      console.log('estimateRouteFee using destination and amount')
       params.dest = Buffer.from(destination, 'hex')
       params.amt_sat = tokens ? toPositiveNumber(tokens) : toPositiveNumber(BigInt(mtokens) / BigInt(1e3))
     }

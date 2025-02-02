@@ -117,6 +117,11 @@ export async function indexItem ({ data: { id, updatedAt }, apollo, models }) {
         }`
   })
 
+  if (!item) {
+    console.log('item not found', id)
+    return
+  }
+
   // 2. index it with external version based on updatedAt
   await _indexItem(item, { models, updatedAt })
 }

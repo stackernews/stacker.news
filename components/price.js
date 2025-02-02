@@ -56,53 +56,53 @@ export default function Price ({ className }) {
   if (selection === 'yep') {
     if (!price || price < 0) return null
     return (
-      <div className={compClassName} onClick={handleClick} variant='link'>
+      <button className={compClassName} onClick={handleClick} variant='link' aria-label='Show 1 satoshi equals 1 satoshi'>
         {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
-      </div>
+      </button>
     )
   }
 
   if (selection === '1btc') {
     return (
-      <div className={compClassName} onClick={handleClick} variant='link'>
+      <button className={compClassName} onClick={handleClick} variant='link' aria-label='Show blockheight'>
         1sat=1sat
-      </div>
+      </button>
     )
   }
 
   if (selection === 'blockHeight') {
     if (blockHeight <= 0) return null
     return (
-      <div className={compClassName} onClick={handleClick} variant='link'>
+      <button className={compClassName} onClick={handleClick} variant='link' aria-label='Show fee rate'>
         {blockHeight}
-      </div>
+      </button>
     )
   }
 
   if (selection === 'halving') {
     if (!halving) return null
     return (
-      <div className={compClassName} onClick={handleClick} variant='link'>
+      <button className={compClassName} onClick={handleClick} variant='link' aria-label='Show fiat price'>
         <CompactLongCountdown date={halving} />
-      </div>
+      </button>
     )
   }
 
   if (selection === 'chainFee') {
     if (chainFee <= 0) return null
     return (
-      <div className={compClassName} onClick={handleClick} variant='link'>
+      <button className={compClassName} onClick={handleClick} variant='link' aria-label='Show time until halving'>
         {chainFee} sat/vB
-      </div>
+      </button>
     )
   }
 
   if (selection === 'fiat') {
     if (!price || price < 0) return null
     return (
-      <div className={compClassName} onClick={handleClick} variant='link'>
+      <button className={compClassName} onClick={handleClick} variant='link' aria-label='Show price in satoshis per fiat unit'>
         {fiatSymbol + fixedDecimal(price, 0)}
-      </div>
+      </button>
     )
   }
 }

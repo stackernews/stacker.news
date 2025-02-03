@@ -526,17 +526,11 @@ const text = ({ url, token, site }) => `Sign in to ${site}\ncopy this code: ${to
 const newUserHtml = ({ url, token, site, email }) => {
   const escapedEmail = `${email.replace(/\./g, '&#8203;.')}`
 
-  const replaceCb = (path) => {
-    const urlObj = new URL(url)
-    urlObj.searchParams.set('callbackUrl', path)
-    return urlObj.href
-  }
-
-  const dailyUrl = replaceCb('/daily')
-  const guideUrl = replaceCb('/guide')
-  const faqUrl = replaceCb('/faq')
-  const topUrl = replaceCb('/top/stackers/forever')
-  const postUrl = replaceCb('/post')
+  const dailyUrl = new URL('/daily', process.env.NEXT_PUBLIC_URL).href
+  const guideUrl = new URL('/guide', process.env.NEXT_PUBLIC_URL).href
+  const faqUrl = new URL('/faq', process.env.NEXT_PUBLIC_URL).href
+  const topUrl = new URL('/top/stackers/forever', process.env.NEXT_PUBLIC_URL).href
+  const postUrl = new URL('/post', process.env.NEXT_PUBLIC_URL).href
 
   // Some simple styling options
   const backgroundColor = '#f5f5f5'
@@ -659,7 +653,7 @@ const newUserHtml = ({ url, token, site, email }) => {
                   <tbody>
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:16px;line-height:22px;text-align:left;color:#000000;">If you know how Stacker News works, click the login button below.</div>
+                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:16px;line-height:22px;text-align:left;color:#000000;">If you know how Stacker News works, copy the magic code below.</div>
                       </td>
                     </tr>
                     <tr>
@@ -762,7 +756,7 @@ const newUserHtml = ({ url, token, site, email }) => {
                     </tr>
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">Zap,<br /> Stacker News</div>
+                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">Yeehaw,<br /> Stacker News</div>
                       </td>
                     </tr>
                   </tbody>
@@ -786,7 +780,7 @@ const newUserHtml = ({ url, token, site, email }) => {
                   <tbody>
                     <tr>
                       <td align="center" style="font-size:0px;padding:0px 25px 0px 25px;word-break:break-word;">
-                        <div style="font-family:Arial, sans-serif;font-size:14px;line-height:28px;text-align:center;color:#55575d;">P.S. Stacker News loves you!</div>
+                        <div style="font-family:Arial, sans-serif;font-size:14px;line-height:28px;text-align:center;color:#55575d;">P.S. We're thrilled you're joinin' the posse!</div>
                       </td>
                     </tr>
                   </tbody>

@@ -19,7 +19,11 @@ export default function Email () {
 
   // build and push the final callback URL
   const pushCallback = useCallback((token) => {
-    const url = `/api/auth/callback/email?${callback.callbackUrl ? `callbackUrl=${callback.callbackUrl}` : ''}&token=${token}&email=${encodeURIComponent(callback.email)}`
+    const params = new URLSearchParams()
+    if (callback.callbackUrl) params.set('callbackUrl', callback.callbackUrl)
+    params.set('token', token)
+    params.set('email', callback.email)
+    const url = `/api/auth/callback/email?${params.toString()}`
     router.push(url)
   }, [callback, router])
 
@@ -60,7 +64,7 @@ export const MagicCodeForm = ({ onSubmit, disabled }) => {
         hideError // hide error message on every input, allow custom error message
         disabled={disabled} // disable the form if no callback is provided
       />
-      <SubmitButton variant='primary' className='px-4' disabled={disabled}>verify</SubmitButton>
+      <SubmitButton variant='primary' className='px-4' disabled={disabled}>login</SubmitButton>
     </Form>
   )
 }

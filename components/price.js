@@ -56,53 +56,71 @@ export default function Price ({ className }) {
   if (selection === 'yep') {
     if (!price || price < 0) return null
     return (
-      <button className={compClassName} onClick={handleClick} variant='link' aria-label='Show 1 satoshi equals 1 satoshi'>
-        {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
-      </button>
+      <div>
+        <button className={compClassName} onClick={handleClick} variant='link' aria-describedby="yep-hint">
+          {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
+        </button>
+        <div id='yep-hint' class='visually-hidden'>Show 1 satoshi equals 1 satoshi</div>
+      </div> 
     )
   }
 
   if (selection === '1btc') {
     return (
-      <button className={compClassName} onClick={handleClick} variant='link' aria-label='Show blockheight'>
-        1sat=1sat
-      </button>
+      <div>
+        <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='1btc-hint'>
+          1sat=1sat
+        </button>
+        <div id='1btc-hint' class='visually-hidden'>Show blockheight</div>
+      </div>
     )
   }
 
   if (selection === 'blockHeight') {
     if (blockHeight <= 0) return null
     return (
-      <button className={compClassName} onClick={handleClick} variant='link' aria-label='Show fee rate'>
-        {blockHeight}
-      </button>
+      <div>
+        <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='blockHeight-hint'>
+          {blockHeight}
+        </button>
+        <div id='blockHeight-hint' class='visually-hidden'>Show fee rate</div>
+      </div>
     )
   }
 
   if (selection === 'halving') {
     if (!halving) return null
     return (
-      <button className={compClassName} onClick={handleClick} variant='link' aria-label='Show fiat price'>
-        <CompactLongCountdown date={halving} />
-      </button>
+      <div>
+        <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='halving-hint'>
+          <CompactLongCountdown date={halving} />
+        </button>
+        <div id='halving-hint' class='visually-hidden'>Show fiat price</div>
+      </div>
     )
   }
 
   if (selection === 'chainFee') {
     if (chainFee <= 0) return null
     return (
-      <button className={compClassName} onClick={handleClick} variant='link' aria-label='Show time until halving'>
-        {chainFee} sat/vB
-      </button>
+      <div>
+        <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='chainFee-hint'>
+          {chainFee} sat/vB
+        </button>
+        <div id='chainFee-hint' class='visually-hidden'>Show time until halving</div>
+      </div>
     )
   }
 
   if (selection === 'fiat') {
     if (!price || price < 0) return null
     return (
-      <button className={compClassName} onClick={handleClick} variant='link' aria-label='Show price in satoshis per fiat unit'>
-        {fiatSymbol + fixedDecimal(price, 0)}
-      </button>
+      <div>
+        <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='fiat-hint'>
+          {fiatSymbol + fixedDecimal(price, 0)}
+        </button>
+        <div id='fiat-hint' class='visually-hidden'>Show price in satoshis per fiat unit</div> 
+      </div>
     )
   }
 }

@@ -61,7 +61,7 @@ export default function Price ({ className }) {
           {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
         </button>
         <div id='yep-hint' class='visually-hidden'>Show 1 satoshi equals 1 satoshi</div>
-      </div> 
+      </div>
     )
   }
 
@@ -119,7 +119,7 @@ export default function Price ({ className }) {
         <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='fiat-hint'>
           {fiatSymbol + fixedDecimal(price, 0)}
         </button>
-        <div id='fiat-hint' class='visually-hidden'>Show price in satoshis per fiat unit</div> 
+        <div id='fiat-hint' class='visually-hidden'>Show price in satoshis per fiat unit</div>
       </div>
     )
   }

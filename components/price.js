@@ -57,7 +57,7 @@ export default function Price ({ className }) {
     if (!price || price < 0) return null
     return (
       <div>
-        <button className={compClassName} onClick={handleClick} variant='link' aria-describedby="yep-hint">
+        <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='yep-hint'>
           {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
         </button>
         <div id='yep-hint' class='visually-hidden'>Show 1 satoshi equals 1 satoshi</div>

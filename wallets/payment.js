@@ -78,8 +78,12 @@ export function useWalletPayment () {
         }
 
         if (paymentError instanceof WalletPaymentError) {
-          // if a payment was attempted, cancel invoice to make sure it cannot be paid later and create new invoice to retry.
-          await invoiceHelper.cancel(latestInvoice)
+          // only cancel the invoice if we're not dealing with a WebLN error
+          // as WebLN failures need to fall back to QR code and anonymous users can't retry
+          if (paymentError.wallet !== 'webln') {
+            // if a payment was attempted, cancel invoice to make sure it cannot be paid later and create new invoice to retry.
+            await invoiceHelper.cancel(latestInvoice)
+          }
         }
 
         // only create a new invoice if we will try to pay with a wallet again

@@ -64,7 +64,13 @@ export function usePaidMutation (mutation,
 
     const paymentAttempted = walletError instanceof WalletPaymentError
     if (paymentAttempted) {
-      walletInvoice = await invoiceHelper.retry(walletInvoice, { update: updateOnFallback })
+      try {
+        walletInvoice = await invoiceHelper.retry(walletInvoice, { update: updateOnFallback })
+      } catch (err) {
+        if (err.message.includes('must be logged in')) {
+          console.log('anon detected - skipping retry, showing QR payment')
+        }
+      }
     }
     return await waitForQrPayment(walletInvoice, walletError, { persistOnNavigate, waitFor })
   }, [waitForWalletPayment, waitForQrPayment, invoiceHelper])

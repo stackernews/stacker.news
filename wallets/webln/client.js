@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { SSR } from '@/lib/constants'
+import { WalletError } from '../errors'
 export * from '@/wallets/webln'
 
 export const sendPayment = async (bolt11) => {
@@ -8,7 +9,11 @@ export const sendPayment = async (bolt11) => {
   }
 
   // this will prompt the user to unlock the wallet if it's locked
-  await window.webln.enable()
+  try {
+    await window.webln.enable()
+  } catch (err) {
+    throw new WalletError('cannot re-enable wallet')
+  }
 
   // this will prompt for payment if no budget is set
   const response = await window.webln.sendPayment(bolt11)

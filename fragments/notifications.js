@@ -118,7 +118,7 @@ export const NOTIFICATIONS = gql`
               text
             }
             sub {
-              subName
+              ...SubFields
             }
             profile {
               name

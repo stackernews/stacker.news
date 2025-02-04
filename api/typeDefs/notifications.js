@@ -124,9 +124,16 @@ export default gql`
     withdrawl: Withdrawl!
   }
 
+  type ReferralSource {
+    item: Item
+    type: String
+    typeId: String
+  }
+
   type Referral {
     id: ID!
     sortTime: Date!
+    source: ReferralSource
   }
 
   type SubStatus {

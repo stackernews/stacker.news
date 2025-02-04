@@ -467,6 +467,22 @@ export default {
       return subAct.subName
     }
   },
+  Referral: {
+    source: async (n, args, { models, me }) => {
+      const referral = await models.oneDayReferral.findFirst({
+        where: {
+          refereeId: Number(n.id)
+        }
+      })
+      if (referral) {
+        return {
+          item: await getItem(n, { id: referral.typeId }, { models, me }),
+          type: referral.type,
+          typeId: referral.typeId
+        }
+      }
+    }
+  },
   Streak: {
     days: async (n, args, { models }) => {
       const res = await models.$queryRaw`

@@ -528,10 +528,28 @@ function WithdrawlPaid ({ n }) {
 }
 
 function Referral ({ n }) {
+  let referralSource
+  switch (n.source.type) {
+    case 'POST':
+      referralSource = 'you shared this post'
+      break
+    case 'COMMENT':
+      referralSource = 'you shared this comment'
+      break
+    case 'PROFILE':
+      referralSource = 'you shared a profile'
+      break
+    case 'TERRITORY':
+      referralSource = 'you shared a territory'
+      break
+    default:
+      referralSource = 'of you'
+  }
   return (
     <small className='fw-bold text-success'>
-      <UserAdd className='fill-success me-2' height={21} width={21} style={{ transform: 'rotateY(180deg)' }} />someone joined SN because of you
+      <UserAdd className='fill-success me-2' height={21} width={21} style={{ transform: 'rotateY(180deg)' }} />someone joined SN because {referralSource}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      {n.source.item && <NoteItem item={n.source.item} />}
     </small>
   )
 }

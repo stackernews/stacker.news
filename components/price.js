@@ -60,7 +60,7 @@ export default function Price ({ className }) {
         <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='yep-hint'>
           {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
         </button>
-        <div id='yep-hint' class='visually-hidden'>Show 1 satoshi equals 1 satoshi</div>
+        <div id='yep-hint' className='visually-hidden'>Show 1 satoshi equals 1 satoshi</div>
       </div>
     )
   }
@@ -71,7 +71,7 @@ export default function Price ({ className }) {
         <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='1btc-hint'>
           1sat=1sat
         </button>
-        <div id='1btc-hint' class='visually-hidden'>Show blockheight</div>
+        <div id='1btc-hint' className='visually-hidden'>Show blockheight</div>
       </div>
     )
   }
@@ -83,7 +83,7 @@ export default function Price ({ className }) {
         <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='blockHeight-hint'>
           {blockHeight}
         </button>
-        <div id='blockHeight-hint' class='visually-hidden'>Show fee rate</div>
+        <div id='blockHeight-hint' className='visually-hidden'>Show fee rate</div>
       </div>
     )
   }
@@ -95,7 +95,7 @@ export default function Price ({ className }) {
         <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='halving-hint'>
           <CompactLongCountdown date={halving} />
         </button>
-        <div id='halving-hint' class='visually-hidden'>Show fiat price</div>
+        <div id='halving-hint' className='visually-hidden'>Show fiat price</div>
       </div>
     )
   }
@@ -107,7 +107,7 @@ export default function Price ({ className }) {
         <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='chainFee-hint'>
           {chainFee} sat/vB
         </button>
-        <div id='chainFee-hint' class='visually-hidden'>Show time until halving</div>
+        <div id='chainFee-hint' className='visually-hidden'>Show time until halving</div>
       </div>
     )
   }
@@ -119,7 +119,7 @@ export default function Price ({ className }) {
         <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='fiat-hint'>
           {fiatSymbol + fixedDecimal(price, 0)}
         </button>
-        <div id='fiat-hint' class='visually-hidden'>Show price in satoshis per fiat unit</div>
+        <div id='fiat-hint' className='visually-hidden'>Show price in satoshis per fiat unit</div>
       </div>
     )
   }

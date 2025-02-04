@@ -55,14 +55,6 @@ const setItemMeAnonSats = ({ id, amount }) => {
   window.localStorage.setItem(storageKey, existingAmount + amount)
 }
 
-// TODO: we need to clear this when the payment fails
-const clearItemMeAnonSats = ({ id }) => {
-  const reactiveVar = meAnonSats[id]
-  reactiveVar(0)
-  const storageKey = `TIP-item:${id}`
-  window.localStorage.removeItem(storageKey)
-}
-
 function BoostForm ({ step, onSubmit, children, item, oValue, inputRef, act = 'BOOST' }) {
   return (
     <Form

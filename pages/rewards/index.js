@@ -138,7 +138,7 @@ export default function Rewards ({ ssrData }) {
           <div className='fw-bold text-muted pb-2'>
             top boost this month
           </div>
-          <ListItem item={ad} />
+          <ListItem item={ad} ad />
         </div>}
       <Row className='pb-3'>
         <Col lg={leaderboard?.users && 5}>

@@ -44,6 +44,15 @@ export function PriceProvider ({ price, children }) {
   )
 }
 
+function AccessibleButton ({ id, description, children, ...props }) {
+  return (
+    <div>
+      <button {...props} aria-describedby={id}>{children}</button>
+      <div id={id} className='visually-hidden'>{description}</div>
+    </div>
+  )
+}
+
 export default function Price ({ className }) {
   const [selection, handleClick] = usePriceCarousel()
 
@@ -56,71 +65,53 @@ export default function Price ({ className }) {
   if (selection === 'yep') {
     if (!price || price < 0) return null
     return (
-      <div>
-        <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='yep-hint'>
-          {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
-        </button>
-        <div id='yep-hint' className='visually-hidden'>Show 1 satoshi equals 1 satoshi</div>
-      </div>
+      <AccessibleButton id='yep-hint' description='Show 1 satoshi equals 1 satoshi' className={compClassName} onClick={handleClick} variant='link'>
+        {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
+      </AccessibleButton>
     )
   }
 
   if (selection === '1btc') {
     return (
-      <div>
-        <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='1btc-hint'>
-          1sat=1sat
-        </button>
-        <div id='1btc-hint' className='visually-hidden'>Show blockheight</div>
-      </div>
+      <AccessibleButton id='1btc-hint' description='Show blockheight' className={compClassName} onClick={handleClick} variant='link'>
+        1sat=1sat
+      </AccessibleButton>
     )
   }
 
   if (selection === 'blockHeight') {
     if (blockHeight <= 0) return null
     return (
-      <div>
-        <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='blockHeight-hint'>
-          {blockHeight}
-        </button>
-        <div id='blockHeight-hint' className='visually-hidden'>Show fee rate</div>
-      </div>
+      <AccessibleButton id='blockHeight-hint' description='Show fee rate' className={compClassName} onClick={handleClick} variant='link'>
+        {blockHeight}
+      </AccessibleButton>
     )
   }
 
   if (selection === 'halving') {
     if (!halving) return null
     return (
-      <div>
-        <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='halving-hint'>
-          <CompactLongCountdown date={halving} />
-        </button>
-        <div id='halving-hint' className='visually-hidden'>Show fiat price</div>
-      </div>
+      <AccessibleButton id='halving-hint' description='Show fiat price' className={compClassName} onClick={handleClick} variant='link'>
+        <CompactLongCountdown date={halving} />
+      </AccessibleButton>
     )
   }
 
   if (selection === 'chainFee') {
     if (chainFee <= 0) return null
     return (
-      <div>
-        <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='chainFee-hint'>
-          {chainFee} sat/vB
-        </button>
-        <div id='chainFee-hint' className='visually-hidden'>Show time until halving</div>
-      </div>
+      <AccessibleButton id='chainFee-hint' description='Show time until halving' className={compClassName} onClick={handleClick} variant='link'>
+        {chainFee} sat/vB
+      </AccessibleButton>
     )
   }
 
   if (selection === 'fiat') {
     if (!price || price < 0) return null
     return (
-      <div>
-        <button className={compClassName} onClick={handleClick} variant='link' aria-describedby='fiat-hint'>
-          {fiatSymbol + fixedDecimal(price, 0)}
-        </button>
-        <div id='fiat-hint' className='visually-hidden'>Show price in satoshis per fiat unit</div>
-      </div>
+      <AccessibleButton id='fiat-hint' description='Show price in satoshis per fiat unit' className={compClassName} onClick={handleClick} variant='link'>
+        {fiatSymbol + fixedDecimal(price, 0)}
+      </AccessibleButton>
     )
   }
 }

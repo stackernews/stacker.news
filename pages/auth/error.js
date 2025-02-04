@@ -27,12 +27,11 @@ export default function AuthError ({ error }) {
       <StaticLayout>
         <Image className='rounded-1 shadow-sm' width='500' height='375' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/double.gif`} fluid />
         <h2 className='pt-4'>Incorrect magic code</h2>
-        <h4 className='text-muted text-center pt-2'>login again and get a new magic code</h4>
         <Button
           className='align-items-center my-3'
           style={{ borderWidth: '2px' }}
           id='login'
-          onClick={() => router.push('/login')}
+          onClick={() => router.back()}
           size='lg'
         >
           try again

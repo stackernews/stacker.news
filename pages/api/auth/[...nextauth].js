@@ -329,14 +329,17 @@ export const getAuthOptions = (req, res) => ({
       // we need to find the most recent verification request for this email/identifier
       const verificationRequest = await prisma.verificationToken.findFirst({
         where: {
-          identifier
+          identifier,
+          attempts: {
+            lt: 2 // count starts at 0
+          }
         },
         orderBy: {
           createdAt: 'desc'
         }
       })
 
-      if (!verificationRequest) return null
+      if (!verificationRequest) throw new Error('No verification request found')
 
       if (verificationRequest.token === token) { // if correct delete the token and continue
         await prisma.verificationToken.delete({
@@ -345,17 +348,14 @@ export const getAuthOptions = (req, res) => ({
         return verificationRequest
       }
 
-      const newAttempts = verificationRequest.attempts + 1
-      if (newAttempts > 3) { // the moment the user has tried 3 times, delete the token
-        await prisma.verificationToken.delete({
-          where: { id: verificationRequest.id }
-        })
-      } else { // otherwise, just increment the failed attempts
-        await prisma.verificationToken.update({
-          where: { id: verificationRequest.id },
-          data: { attempts: newAttempts }
-        })
-      }
+      await prisma.verificationToken.update({
+        where: { id: verificationRequest.id },
+        data: { attempts: { increment: 1 } }
+      })
+
+      await prisma.verificationToken.deleteMany({
+        where: { id: verificationRequest.id, attempts: { gte: 2 } }
+      })
 
       return null
     }

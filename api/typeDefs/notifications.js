@@ -126,8 +126,8 @@ export default gql`
 
   type ReferralSource {
     item: Item
-    type: String
-    typeId: String
+    sub: Sub
+    profile: User
   }
 
   type Referral {

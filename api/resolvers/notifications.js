@@ -476,9 +476,9 @@ export default {
       })
       if (referral) {
         return {
-          item: await getItem(n, { id: referral.typeId }, { models, me }),
-          type: referral.type,
-          typeId: referral.typeId
+          item: referral.type === 'POST' ? await getItem(n, { id: referral.typeId }, { models, me }) : null,
+          sub: referral.type === 'TERRITORY' ? await getSub(n, { name: referral.typeId }, { models, me }) : null,
+          profile: referral.type === 'PROFILE' ? await models.user.findUnique({ where: { id: Number(referral.typeId) }, select: { name: true } }) : null
         }
       }
     }

@@ -117,8 +117,12 @@ export const NOTIFICATIONS = gql`
               ...ItemFullFields
               text
             }
-            type
-            typeId
+            sub {
+              subName
+            }
+            profile {
+              name
+            }
           }
         }
         ... on Reply {

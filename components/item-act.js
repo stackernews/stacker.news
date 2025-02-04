@@ -55,6 +55,14 @@ const setItemMeAnonSats = ({ id, amount }) => {
   window.localStorage.setItem(storageKey, existingAmount + amount)
 }
 
+// TODO: we need to clear this when the payment fails
+const clearItemMeAnonSats = ({ id }) => {
+  const reactiveVar = meAnonSats[id]
+  reactiveVar(0)
+  const storageKey = `TIP-item:${id}`
+  window.localStorage.removeItem(storageKey)
+}
+
 function BoostForm ({ step, onSubmit, children, item, oValue, inputRef, act = 'BOOST' }) {
   return (
     <Form
@@ -119,6 +127,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
 
     const closeImmediately = wallets.length > 0 || me?.privates?.sats > Number(amount)
     if (closeImmediately) {
+      console.log(wallets)
       onPaid()
     }
 

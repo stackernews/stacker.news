@@ -893,7 +893,6 @@ enum InvoiceActionState {
   FORWARDING
   FORWARDED
   FAILED_FORWARD
-  RETRY_PENDING
   RETRYING
   CANCELING
 }
@@ -929,6 +928,7 @@ model Invoice {
   cancelledAt        DateTime?
   userCancel         Boolean?
   paymentAttempt     Int                 @default(0)
+  retryPendingSince  DateTime?
   msatsRequested     BigInt
   msatsReceived      BigInt?
   desc               String?

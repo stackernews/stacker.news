@@ -366,7 +366,7 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     await tx.invoice.update({
       where: {
         id: failedInvoice.id,
-        actionState: 'RETRY_PENDING'
+        actionState: 'FAILED'
       },
       data: {
         actionState: 'RETRYING'

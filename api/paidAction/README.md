@@ -15,9 +15,8 @@ stateDiagram-v2
     PENDING --> FAILED
     PAID --> [*]
     CANCELING --> FAILED
-    FAILED --> RETRY_PENDING
+    FAILED --> RETRYING
     FAILED --> [*]
-    RETRY_PENDING --> RETRYING
     RETRYING --> [*]
     [*] --> PENDING_HELD
     PENDING_HELD --> HELD
@@ -60,9 +59,8 @@ stateDiagram-v2
     PENDING --> FAILED
     PAID --> [*]
     CANCELING --> FAILED
-    FAILED --> RETRY_PENDING
+    FAILED --> RETRYING
     FAILED --> [*]
-    RETRY_PENDING --> RETRYING
     RETRYING --> [*]
 ```
 </details>
@@ -123,9 +121,8 @@ This works by requesting an invoice from the recipient's wallet and reusing the 
 stateDiagram-v2
     PAID --> [*]
     CANCELING --> FAILED
-    FAILED --> RETRY_PENDING
+    FAILED --> RETRYING
     FAILED --> [*]
-    RETRY_PENDING --> RETRYING
     RETRYING --> [*]
     [*] --> PENDING_HELD
     PENDING_HELD --> FORWARDING

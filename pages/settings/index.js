@@ -858,7 +858,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
                 </Button>
               </div>
               )
-            : <div key={provider} className='mt-2'><EmailLinkForm /></div>
+            : <div key={provider} className='mt-2'><EmailLinkForm callbackUrl='/settings' /></div>
         } else if (provider === 'lightning') {
           return (
             <QRLinkButton
@@ -910,6 +910,7 @@ export function EmailLinkForm ({ callbackUrl }) {
         // then call signIn
         const { data } = await linkUnverifiedEmail({ variables: { email } })
         if (data.linkUnverifiedEmail) {
+          window.sessionStorage.setItem('callback', JSON.stringify({ email, callbackUrl }))
           signIn('email', { email, callbackUrl })
         }
       }}

@@ -1093,6 +1093,9 @@ export default {
     }
   },
   Item: {
+    invoicePaidAt: async (item, args, { models }) => {
+      return item.invoicePaidAtUTC ?? item.invoicePaidAt
+    },
     sats: async (item, args, { models, me }) => {
       if (me?.id === item.userId) {
         return msatsToSats(BigInt(item.msats))

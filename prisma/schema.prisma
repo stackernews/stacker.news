@@ -1088,6 +1088,7 @@ model VerificationToken {
   identifier String
   token      String   @unique(map: "verification_requests.token_unique")
   expires    DateTime
+  attempts   Int      @default(0)
 
   @@unique([identifier, token])
   @@map("verification_requests")

@@ -25,6 +25,8 @@ import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/u
 import ItemPopover from './item-popover'
 import { useMe } from './me'
 import Boost from './boost-button'
+import { useShowModal } from './modal'
+import { BoostHelp } from './adv-post-form'
 
 function onItemClick (e, router, item) {
   const viewedAt = commentsViewedAt(item)
@@ -87,10 +89,11 @@ function ItemLink ({ url, rel }) {
 
 export default function Item ({
   item, rank, belowTitle, right, full, children, itemClassName,
-  onQuoteReply, pinnable, setDisableRetry, disableRetry
+  onQuoteReply, pinnable, setDisableRetry, disableRetry, ad
 }) {
   const titleRef = useRef()
   const router = useRouter()
+  const showModal = useShowModal()
 
   const media = mediaType({ url: item.url, imgproxyUrls: item.imgproxyUrls })
   const MediaIcon = media === 'video' ? VideoIcon : ImageIcon
@@ -138,7 +141,15 @@ export default function Item ({
             full={full} item={item}
             onQuoteReply={onQuoteReply}
             pinnable={pinnable}
-            extraBadges={Number(item?.user?.id) === USER_ID.ad && <Badge className={styles.newComment} bg={null}>AD</Badge>}
+            extraBadges={ad &&
+              <>{' '}
+                <Badge
+                  className={classNames(styles.newComment, 'pointer')}
+                  bg={null} onClick={() => showModal(() => <BoostHelp />)}
+                >
+                  top boost
+                </Badge>
+              </>}
             setDisableRetry={setDisableRetry}
             disableRetry={disableRetry}
           />

@@ -58,7 +58,7 @@ export default {
       // make sure only one client at a time can retry by acquiring a lock that expires
       const [invoice] = await models.$queryRaw`
           UPDATE "Invoice"
-          SET "retryPendingSince" = CURRENT_TIMESTAMP
+          SET "retryPendingSince" = now()
           WHERE
             id = ${invoiceId} AND
             "userId" = ${me.id} AND

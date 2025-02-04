@@ -119,7 +119,6 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
 
     const closeImmediately = wallets.length > 0 || me?.privates?.sats > Number(amount)
     if (closeImmediately) {
-      console.log(wallets)
       onPaid()
     }
 

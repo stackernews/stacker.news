@@ -61,14 +61,13 @@ export function usePaidMutation (mutation,
         throw err
       }
     }
-
     const paymentAttempted = walletError instanceof WalletPaymentError
     if (paymentAttempted) {
       try {
         walletInvoice = await invoiceHelper.retry(walletInvoice, { update: updateOnFallback })
       } catch (err) {
-        if (err.message.includes('must be logged in')) {
-          console.log('anon detected - skipping retry, showing QR payment')
+        if (walletError.wallet === 'webln') { // show QR code for WebLN errors
+          throw err
         }
       }
     }

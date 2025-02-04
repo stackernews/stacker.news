@@ -114,7 +114,7 @@ export const NOTIFICATIONS = gql`
           sortTime
           source {
             item {
-              ...ItemFields
+              ...ItemFullFields
             }
             sub {
               ...SubFields

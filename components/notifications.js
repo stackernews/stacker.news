@@ -529,7 +529,7 @@ function WithdrawlPaid ({ n }) {
 
 function Referral ({ n }) {
   let referralSource = 'of you'
-  if (n.source?.item) referralSource = 'you shared this post'
+  if (n.source?.item) referralSource = 'you shared this ' + (n.source.item.title ? 'post' : 'comment')
   if (n.source?.sub) referralSource = 'you shared ~' + n.source.sub.name + ' territory'
   if (n.source?.profile) referralSource = 'you shared ' + n.source.profile.name + '\'s profile'
   return (

@@ -472,7 +472,7 @@ export default {
       const referral = await models.oneDayReferral.findFirst({ where: { refereeId: Number(n.id) } })
       if (referral) {
         return {
-          item: referral.type === 'POST' ? await getItem(n, { id: referral.typeId }, { models, me }) : null,
+          item: referral.type === 'POST' || referral.type === 'COMMENT' ? await getItem(n, { id: referral.typeId }, { models, me }) : null,
           sub: referral.type === 'TERRITORY' ? await getSub(n, { name: referral.typeId }, { models, me }) : null,
           profile: referral.type === 'PROFILE' ? await models.user.findUnique({ where: { id: Number(referral.typeId) }, select: { name: true } }) : null
         }

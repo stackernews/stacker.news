@@ -469,11 +469,7 @@ export default {
   },
   Referral: {
     source: async (n, args, { models, me }) => {
-      const referral = await models.oneDayReferral.findFirst({
-        where: {
-          refereeId: Number(n.id)
-        }
-      })
+      const referral = await models.oneDayReferral.findFirst({ where: { refereeId: Number(n.id) } })
       if (referral) {
         return {
           item: referral.type === 'POST' ? await getItem(n, { id: referral.typeId }, { models, me }) : null,

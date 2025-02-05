@@ -3,16 +3,29 @@ For testing litd as an attached receiving wallet, you'll need a pairing phrase:
 This can be done one of two ways:
 
 # cli
-
-We only need permissions for the uri `/lnrpc.Lightning/SendPaymentSync`
+Create an account
 
 ```bash
 $ sndev cli litd accounts create --balance <budget>
 ```
 
 Grab the `account.id` from the output and use it here:
+
+### send attachment 
+The sender attachment only needs permissions for the uri `/lnrpc.Lightning/SendPaymentSync`
+
 ```bash
 $ sndev cli litd sessions add --type custom --label <your label> --account_id <account_id> --uri /lnrpc.Lightning/SendPaymentSync
+```
+
+Grab the `pairing_secret_mnemonic` from the output and that's your pairing phrase.
+
+### receive attachment
+The receive attachment only needs permissions for the uri `/lnrpc.Lightning/AddInvoice`
+
+
+```bash
+$ sndev cli litd sessions add --type custom --label <your label> --account_id <account_id> --uri /lnrpc.Lightning/AddInvoice
 ```
 
 Grab the `pairing_secret_mnemonic` from the output and that's your pairing phrase.

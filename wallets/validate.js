@@ -72,7 +72,7 @@ function composeWalletSchema (walletDef, serverSide, skipGenerated) {
 
     if (clientOnly && serverSide) {
       // For server-side validation, accumulate clientOnly fields as vaultEntries
-      vaultEntrySchemas[optional ? 'optional' : 'required'].push(vaultEntrySchema(name))
+      vaultEntrySchemas[(optional || generated) ? 'optional' : 'required'].push(vaultEntrySchema(name))
     } else {
       acc[name] = createFieldSchema(name, validate)
 

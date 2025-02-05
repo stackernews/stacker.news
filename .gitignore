@@ -62,3 +62,6 @@ docker/lnbits/data
 
 # lndk
 !docker/lndk/tls-*.pem
+
+# lncd
+!docker/lncd/certs/*.pem

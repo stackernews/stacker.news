@@ -64,7 +64,7 @@ export function useWalletConfigurator (wallet) {
         throw err
       }
     } else if (canReceive({ def: wallet.def, config: serverConfig })) {
-      const transformedConfig = await validateWallet(wallet.def, serverConfig)
+      const transformedConfig = await validateWallet(wallet.def, serverConfig, { skipGenerated: true })
       if (transformedConfig) {
         serverConfig = Object.assign(serverConfig, transformedConfig)
       }

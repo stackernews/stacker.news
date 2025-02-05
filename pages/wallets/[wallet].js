@@ -13,7 +13,7 @@ import { canReceive, canSend, isConfigured } from '@/wallets/common'
 import { SSR } from '@/lib/constants'
 import WalletButtonBar from '@/components/wallet-buttonbar'
 import { useWalletConfigurator } from '@/wallets/config'
-import { useCallback, useMemo } from 'react'
+import { Fragment, useCallback, useMemo } from 'react'
 import { useMe } from '@/components/me'
 import validateWallet from '@/wallets/validate'
 import { ValidationError } from 'yup'
@@ -101,6 +101,7 @@ export default function WalletSettings () {
       >
         <SendWarningBanner walletDef={wallet.def} />
         {wallet && <WalletFields wallet={wallet} />}
+        {wallet && <WalletComponents wallet={wallet} />}
         <CheckboxGroup name='enabled'>
           <Checkbox
             disabled={!isConfigured(wallet)}
@@ -184,4 +185,18 @@ function WalletFields ({ wallet }) {
       }
       return null
     })
+}
+
+function WalletComponents ({ wallet }) {
+  if (!canSend({ def: wallet.def, config: wallet.config })) return null
+
+  return (
+    <div className='d-flex align-items-center justify-content-end column-gap-3'>
+      {
+        wallet.def.components?.map((Component, i) => {
+          return (<Fragment key={i}><Component wallet={wallet} /></Fragment>)
+        })
+      }
+    </div>
+  )
 }

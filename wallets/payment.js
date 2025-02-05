@@ -10,6 +10,7 @@ import {
 import { canSend } from './common'
 import { useWalletLoggerFactory } from './logger'
 import { timeoutSignal, withTimeout } from '@/lib/time'
+import { useCashuProofs } from '@/wallets/cashu/components/context'
 
 export function useWalletPayment () {
   const wallets = useSendWallets()
@@ -140,6 +141,9 @@ function invoiceController (inv, isInvoice) {
 }
 
 function useSendPayment () {
+  // TODO: refactor this in a generic way to provide specific wallet context
+  const { proofs, setProofs } = useCashuProofs()
+
   return useCallback(async (wallet, logger, invoice) => {
     if (!wallet.config.enabled) {
       throw new WalletNotEnabledError(wallet.def.name)
@@ -156,7 +160,11 @@ function useSendPayment () {
       const preimage = await withTimeout(
         wallet.def.sendPayment(bolt11, wallet.config, {
           logger,
-          signal: timeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS)
+          signal: timeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS),
+          cashu: {
+            proofs,
+            setProofs
+          }
         }),
         WALLET_SEND_PAYMENT_TIMEOUT_MS)
       logger.ok(`↗ payment sent: ${formatSats(satsRequested)}`, { bolt11, preimage })
@@ -165,5 +173,5 @@ function useSendPayment () {
       const message = err.message || err.toString?.()
       throw new WalletSenderError(wallet.def.name, invoice, message)
     }
-  }, [])
+  }, [proofs])
 }

@@ -821,6 +821,34 @@ services:
       CONNECT: "localhost:${LNBITS_WEB_PORT}"
       TORDIR: "/app/.tor"
     cpu_shares: "${CPU_SHARES_LOW}"
+  cashu:
+    image: cashubtc/nutshell:0.16.4
+    container_name: cashu
+    profiles:
+      - wallets
+    restart: unless-stopped
+    ports:
+      - "3338:3338"
+    depends_on:
+      lnd:
+        condition: service_healthy
+        restart: true
+    environment:
+      - MINT_LISTEN_HOST=0.0.0.0
+      - MINT_LISTEN_PORT=3338
+      - MINT_INFO_NAME="SN Cashu Test Mint"
+      - MINT_PRIVATE_KEY=TEST_PRIVATE_KEY
+      - MINT_BACKEND_BOLT11_SAT=LndRPCWallet
+      - MINT_LND_RPC_ENDPOINT=lnd:10009
+      - MINT_LND_RPC_CERT=/app/.lnd/tls.cert
+      - MINT_LND_RPC_MACAROON=/app/.lnd/data/chain/bitcoin/regtest/admin.macaroon
+    command: ["poetry", "run", "mint"]
+    volumes:
+      - lnd:/app/.lnd
+      - cashu:/app/.cashu
+    labels:
+      CONNECT: "localhost:3338"
+    cpu_shares: "${CPU_SHARES_LOW}"
 volumes:
   db:
   os:
@@ -834,3 +862,4 @@ volumes:
   nwc_recv:
   tordata:
   eclair:
+  cashu:

@@ -363,6 +363,7 @@ export async function retryPaidAction (actionType, args, incomingContext) {
   return await models.$transaction(async tx => {
     const context = { ...retryContext, tx, invoiceArgs }
 
+    // update the old invoice to RETRYING, so that it's not confused with FAILED
     await tx.invoice.update({
       where: {
         id: failedInvoice.id,

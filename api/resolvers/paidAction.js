@@ -76,6 +76,7 @@ export default {
       }
 
       const result = await retryPaidAction(invoice.actionType, { invoice }, { paymentAttempt, models, me, lnd })
+
       return {
         ...result,
         type: paidActionType(invoice.actionType)

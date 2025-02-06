@@ -464,7 +464,6 @@ const resolvers = {
       if (!me) {
         throw new GqlAuthenticationError()
       }
-      // make sure each invoice is only returned once via visibility timeouts and SKIP LOCKED
       return await models.$queryRaw`
         SELECT * FROM "Invoice"
         WHERE "userId" = ${me.id}

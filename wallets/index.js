@@ -279,6 +279,7 @@ function RetryHandler ({ children }) {
         if (!stopped) queuePoll()
       }, NORMAL_POLL_INTERVAL)
     }
+
     const stopPolling = () => {
       stopped = true
       clearTimeout(timeout)

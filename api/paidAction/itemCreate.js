@@ -13,28 +13,25 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export const ITEM_COST = 1000n
-
-export async function findRootItem (models, parentId) {
-  const item = await models.item.findFirst({
-    where: { id: Number(parentId) },
-    select: { rootId: true }
-  })
-
-  return models.item.findFirst({
-    where: { id: Number(item.rootId || parentId) },
-    include: { sub: true }
-  })
-}
+export const DEFAULT_ITEM_COST = 1000n
 
 export async function getBaseCost ({ models, bio, parentId, subName }) {
-  if (bio) return ITEM_COST
+  if (bio) return DEFAULT_ITEM_COST
 
   if (parentId) {
-    const rootItem = await findRootItem(models, parentId)
+    // the subname is stored in the root item of the thread
+    const parent = await models.item.findFirst({
+      where: { id: Number(parentId) },
+      include: {
+        root: { include: { sub: true } },
+        sub: true
+      }
+    })
 
-    if (rootItem.bio || !rootItem.sub) return ITEM_COST
-    return satsToMsats(rootItem.sub.replyCost)
+    const root = parent.root ?? parent
+
+    if (!root.sub) return DEFAULT_ITEM_COST
+    return satsToMsats(root.sub.replyCost)
   }
 
   const sub = await models.sub.findUnique({ where: { name: subName } })

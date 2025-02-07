@@ -123,7 +123,8 @@ export function usePollVote ({ query = POLL_VOTE, itemId }) {
           poll.count += 1
           return poll
         }
-      }
+      },
+      optimistic: true
     })
     cache.modify({
       id: `PollOption:${id}`,
@@ -131,7 +132,8 @@ export function usePollVote ({ query = POLL_VOTE, itemId }) {
         count (existingCount) {
           return existingCount + 1
         }
-      }
+      },
+      optimistic: true
     })
   }
 
@@ -154,7 +156,8 @@ export function usePollVote ({ query = POLL_VOTE, itemId }) {
           poll.count -= 1
           return poll
         }
-      }
+      },
+      optimistic: true
     })
     cache.modify({
       id: `PollOption:${id}`,
@@ -162,7 +165,8 @@ export function usePollVote ({ query = POLL_VOTE, itemId }) {
         count (existingCount) {
           return existingCount - 1
         }
-      }
+      },
+      optimistic: true
     })
   }
 

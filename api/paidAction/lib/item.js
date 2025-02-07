@@ -60,23 +60,23 @@ export async function performBotBehavior ({ text, id }, { me, tx }) {
     const deleteAt = getDeleteAt(text)
     if (deleteAt) {
       await tx.$queryRaw`
-        INSERT INTO pgboss.job (name, data, startafter, expirein)
+        INSERT INTO pgboss.job (name, data, startafter, keepuntil)
         VALUES (
           'deleteItem',
           jsonb_build_object('id', ${id}::INTEGER),
           ${deleteAt}::TIMESTAMP WITH TIME ZONE,
-          ${deleteAt}::TIMESTAMP WITH TIME ZONE - now() + interval '1 minute')`
+          ${deleteAt}::TIMESTAMP WITH TIME ZONE + interval '1 minute')`
     }
 
     const remindAt = getRemindAt(text)
     if (remindAt) {
       await tx.$queryRaw`
-        INSERT INTO pgboss.job (name, data, startafter, expirein)
+        INSERT INTO pgboss.job (name, data, startafter, keepuntil)
         VALUES (
           'reminder',
           jsonb_build_object('itemId', ${id}::INTEGER, 'userId', ${userId}::INTEGER),
           ${remindAt}::TIMESTAMP WITH TIME ZONE,
-          ${remindAt}::TIMESTAMP WITH TIME ZONE - now() + interval '1 minute')`
+          ${remindAt}::TIMESTAMP WITH TIME ZONE + interval '1 minute')`
       await tx.reminder.create({
         data: {
           userId,

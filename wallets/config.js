@@ -2,7 +2,7 @@ import { useMe } from '@/components/me'
 import useVault from '@/components/vault/use-vault'
 import { useCallback } from 'react'
 import { canReceive, canSend, getStorageKey, saveWalletLocally, siftConfig, upsertWalletVariables } from './common'
-import { useMutation } from '@apollo/client'
+import { gql, useMutation } from '@apollo/client'
 import { generateMutation } from './graphql'
 import { REMOVE_WALLET } from '@/fragments/wallet'
 import { useWalletLogger } from '@/wallets/logger'
@@ -18,6 +18,7 @@ export function useWalletConfigurator (wallet) {
   const logger = useWalletLogger(wallet)
   const [upsertWallet] = useMutation(generateMutation(wallet?.def))
   const [removeWallet] = useMutation(REMOVE_WALLET)
+  const [disableFreebies] = useMutation(gql`mutation { disableFreebies }`)
 
   const _saveToServer = useCallback(async (serverConfig, clientConfig, validateLightning) => {
     const variables = await upsertWalletVariables(
@@ -116,6 +117,7 @@ export function useWalletConfigurator (wallet) {
     }
 
     if (newCanSend) {
+      disableFreebies().catch(console.error)
       if (oldCanSend) {
         logger.ok('details for sending updated')
       } else {
@@ -130,7 +132,7 @@ export function useWalletConfigurator (wallet) {
       logger.info('details for sending deleted')
     }
   }, [isActive, wallet.def, wallet.config, _saveToServer, _saveToLocal, _validate,
-    _detachFromLocal, _detachFromServer])
+    _detachFromLocal, _detachFromServer, disableFreebies])
 
   const detach = useCallback(async () => {
     if (isActive) {

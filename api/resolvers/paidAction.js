@@ -21,6 +21,8 @@ function paidActionType (actionType) {
       return 'PollVotePaidAction'
     case 'RECEIVE':
       return 'ReceivePaidAction'
+    case 'BUY_CREDITS':
+      return 'BuyCreditsPaidAction'
     default:
       throw new Error('Unknown action type')
   }

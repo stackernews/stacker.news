@@ -2,7 +2,7 @@ import itemStyles from './item.module.css'
 import styles from './comment.module.css'
 import Text, { SearchText } from './text'
 import Link from 'next/link'
-import Reply, { ReplyOnAnotherPage } from './reply'
+import Reply from './reply'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import UpVote from './upvote'
 import Eye from '@/svgs/eye-fill.svg'
@@ -26,6 +26,8 @@ import { commentSubTreeRootId } from '@/lib/item'
 import Pin from '@/svgs/pushpin-fill.svg'
 import LinkToContext from './link-to-context'
 import Boost from './boost-button'
+import { gql, useApolloClient } from '@apollo/client'
+import classNames from 'classnames'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -80,6 +82,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
       <LinkToContext
         className='py-2'
         onClick={e => {
+          e.preventDefault()
           router.push(href, as)
         }}
         href={href}
@@ -99,8 +102,9 @@ export default function Comment ({
   const [edit, setEdit] = useState()
   const { me } = useMe()
   const isHiddenFreebie = me?.privates?.satsFilter !== 0 && !item.mine && item.freebie && !item.freedFreebie
+  const isDeletedChildless = item?.ncomments === 0 && item?.deletedAt
   const [collapse, setCollapse] = useState(
-    (isHiddenFreebie || item?.user?.meMute || (item?.outlawed && !me?.privates?.wildWestMode)) && !includeParent
+    (isHiddenFreebie || isDeletedChildless || item?.user?.meMute || (item?.outlawed && !me?.privates?.wildWestMode)) && !includeParent
       ? 'yep'
       : 'nope')
   const ref = useRef(null)
@@ -108,16 +112,28 @@ export default function Comment ({
   const root = useRoot()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
+  const { cache } = useApolloClient()
+
   useEffect(() => {
+    const comment = cache.readFragment({
+      id: `Item:${router.query.commentId}`,
+      fragment: gql`
+        fragment CommentPath on Item {
+          path
+        }`
+    })
+    if (comment?.path.split('.').includes(item.id)) {
+      window.localStorage.setItem(`commentCollapse:${item.id}`, 'nope')
+    }
     setCollapse(window.localStorage.getItem(`commentCollapse:${item.id}`) || collapse)
     if (Number(router.query.commentId) === Number(item.id)) {
-      // HACK wait for other comments to collapse if they're collapsed
+      // HACK wait for other comments to uncollapse if they're collapsed
       setTimeout(() => {
         ref.current.scrollIntoView({ behavior: 'instant', block: 'start' })
         ref.current.classList.add('outline-it')
       }, 100)
     }
-  }, [item.id, router.query.commentId])
+  }, [item.id, cache, router.query.commentId])
 
   useEffect(() => {
     if (router.query.commentsViewedAt &&
@@ -127,7 +143,7 @@ export default function Comment ({
     }
   }, [item.id])
 
-  const bottomedOut = depth === COMMENT_DEPTH_LIMIT
+  const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
   const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon
     ? 'OP'
@@ -229,7 +245,7 @@ export default function Comment ({
       </div>
       {collapse !== 'yep' && (
         bottomedOut
-          ? <div className={styles.children}><ReplyOnAnotherPage item={item} /></div>
+          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3')}><ReplyOnAnotherPage item={item} /></div></div>
           : (
             <div className={styles.children}>
               {item.outlawed && !me?.privates?.wildWestMode
@@ -240,16 +256,50 @@ export default function Comment ({
                   </Reply>}
               {children}
               <div className={styles.comments}>
-                {item.comments && !noComments
-                  ? item.comments.map((item) => (
-                    <Comment depth={depth + 1} key={item.id} item={item} />
-                  ))
+                {!noComments && item.comments?.comments
+                  ? (
+                    <>
+                      {item.comments.comments.map((item) => (
+                        <Comment depth={depth + 1} key={item.id} item={item} />
+                      ))}
+                      {item.comments.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nhas={item.ncomments} />}
+                    </>
+                    )
                   : null}
+                {/* TODO: add link to more comments if they're limited */}
               </div>
             </div>
             )
       )}
     </div>
+  )
+}
+
+export function ViewAllReplies ({ id, nshown, nhas }) {
+  const text = `view all ${nhas} replies`
+
+  return (
+    <div className={`d-block fw-bold ${styles.comment} pb-2 ps-3`}>
+      <Link href={`/items/${id}`} as={`/items/${id}`} className='text-muted'>
+        {text}
+      </Link>
+    </div>
+  )
+}
+
+function ReplyOnAnotherPage ({ item }) {
+  const root = useRoot()
+  const rootId = commentSubTreeRootId(item, root)
+
+  let text = 'reply on another page'
+  if (item.ncomments > 0) {
+    text = `view all ${item.ncomments} replies`
+  }
+
+  return (
+    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='d-block pb-2 fw-bold text-muted'>
+      {text}
+    </Link>
   )
 }
 

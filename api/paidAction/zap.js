@@ -6,8 +6,9 @@ import { getInvoiceableWallets } from '@/wallets/server'
 export const anonable = true
 
 export const paymentMethods = [
-  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
   PAID_ACTION_PAYMENT_METHODS.P2P,
+  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.REWARD_SATS,
   PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC,
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
@@ -16,16 +17,38 @@ export async function getCost ({ sats }) {
   return satsToMsats(sats)
 }
 
-export async function getInvoiceablePeer ({ id }, { models }) {
+export async function getInvoiceablePeer ({ id, sats, hasSendWallet }, { models, me, cost }) {
+  // if the zap is dust, or if me doesn't have a send wallet but has enough sats/credits to pay for it
+  // then we don't invoice the peer
+  if (sats < me?.sendCreditsBelowSats ||
+    (me && !hasSendWallet && (me.mcredits >= cost || me.msats >= cost))) {
+    return null
+  }
+
   const item = await models.item.findUnique({
     where: { id: parseInt(id) },
-    include: { itemForwards: true }
+    include: {
+      itemForwards: true,
+      user: true
+    }
   })
+
+  // bios don't get sats
+  if (item.bio) {
+    return null
+  }
 
   const wallets = await getInvoiceableWallets(item.userId, { models })
 
   // request peer invoice if they have an attached wallet and have not forwarded the item
-  return wallets.length > 0 && item.itemForwards.length === 0 ? item.userId : null
+  // and the receiver doesn't want to receive credits
+  if (wallets.length > 0 &&
+    item.itemForwards.length === 0 &&
+    sats >= item.user.receiveCreditsBelowSats) {
+    return item.userId
+  }
+
+  return null
 }
 
 export async function getSybilFeePercent () {
@@ -90,32 +113,38 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
   const sats = msatsToSats(msats)
   const itemAct = acts.find(act => act.act === 'TIP')
 
-  // give user and all forwards the sats
-  await tx.$executeRaw`
-    WITH forwardees AS (
-      SELECT "userId", ((${itemAct.msats}::BIGINT * pct) / 100)::BIGINT AS msats
-      FROM "ItemForward"
-      WHERE "itemId" = ${itemAct.itemId}::INTEGER
-    ), total_forwarded AS (
-      SELECT COALESCE(SUM(msats), 0) as msats
-      FROM forwardees
-    ), recipients AS (
-      SELECT "userId", msats, msats AS "stackedMsats" FROM forwardees
-      UNION
-      SELECT ${itemAct.item.userId}::INTEGER as "userId",
-        CASE WHEN ${!!invoice?.invoiceForward}::BOOLEAN
-          THEN 0::BIGINT
-          ELSE ${itemAct.msats}::BIGINT - (SELECT msats FROM total_forwarded)::BIGINT
-        END as msats,
-        ${itemAct.msats}::BIGINT - (SELECT msats FROM total_forwarded)::BIGINT as "stackedMsats"
-      ORDER BY "userId" ASC -- order to prevent deadlocks
-    )
-    UPDATE users
-    SET
-      msats = users.msats + recipients.msats,
-      "stackedMsats" = users."stackedMsats" + recipients."stackedMsats"
-    FROM recipients
-    WHERE users.id = recipients."userId"`
+  if (invoice?.invoiceForward) {
+    // only the op got sats and we need to add it to their stackedMsats
+    // because the sats were p2p
+    await tx.user.update({
+      where: { id: itemAct.item.userId },
+      data: { stackedMsats: { increment: itemAct.msats } }
+    })
+  } else {
+    // splits only use mcredits
+    await tx.$executeRaw`
+      WITH forwardees AS (
+        SELECT "userId", ((${itemAct.msats}::BIGINT * pct) / 100)::BIGINT AS mcredits
+        FROM "ItemForward"
+        WHERE "itemId" = ${itemAct.itemId}::INTEGER
+      ), total_forwarded AS (
+        SELECT COALESCE(SUM(mcredits), 0) as mcredits
+        FROM forwardees
+      ), recipients AS (
+        SELECT "userId", mcredits FROM forwardees
+        UNION
+        SELECT ${itemAct.item.userId}::INTEGER as "userId",
+          ${itemAct.msats}::BIGINT - (SELECT mcredits FROM total_forwarded)::BIGINT as mcredits
+        ORDER BY "userId" ASC -- order to prevent deadlocks
+      )
+      UPDATE users
+      SET
+        mcredits = users.mcredits + recipients.mcredits,
+        "stackedMsats" = users."stackedMsats" + recipients.mcredits,
+        "stackedMcredits" = users."stackedMcredits" + recipients.mcredits
+      FROM recipients
+      WHERE users.id = recipients."userId"`
+  }
 
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
@@ -135,6 +164,7 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
       "weightedVotes" = "weightedVotes" + (zapper.trust * zap.log_sats),
       upvotes = upvotes + zap.first_vote,
       msats = "Item".msats + ${msats}::BIGINT,
+      mcredits = "Item".mcredits + ${invoice?.invoiceForward ? 0n : msats}::BIGINT,
       "lastZapAt" = now()
     FROM zap, zapper
     WHERE "Item".id = ${itemAct.itemId}::INTEGER
@@ -165,7 +195,8 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
         SELECT * FROM "Item" WHERE id = ${itemAct.itemId}::INTEGER
       )
       UPDATE "Item"
-      SET "commentMsats" = "Item"."commentMsats" + ${msats}::BIGINT
+      SET "commentMsats" = "Item"."commentMsats" + ${msats}::BIGINT,
+        "commentMcredits" = "Item"."commentMcredits" + ${invoice?.invoiceForward ? 0n : msats}::BIGINT
       FROM zapped
       WHERE "Item".path @> zapped.path AND "Item".id <> zapped.id`
 }
@@ -175,7 +206,17 @@ export async function nonCriticalSideEffects ({ invoice, actIds }, { models }) {
     where: invoice ? { invoiceId: invoice.id } : { id: { in: actIds } },
     include: { item: true }
   })
-  notifyZapped({ models, item: itemAct.item }).catch(console.error)
+  // avoid duplicate notifications with the same zap amount
+  // by checking if there are any other pending acts on the item
+  const pendingActs = await models.itemAct.count({
+    where: {
+      itemId: itemAct.itemId,
+      createdAt: {
+        gt: itemAct.createdAt
+      }
+    }
+  })
+  if (pendingActs === 0) notifyZapped({ models, item: itemAct.item }).catch(console.error)
 }
 
 export async function onFail ({ invoice }, { tx }) {

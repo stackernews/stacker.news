@@ -160,12 +160,15 @@ export default function Settings ({ ssrData }) {
             hideIsContributor: settings?.hideIsContributor,
             noReferralLinks: settings?.noReferralLinks,
             proxyReceive: settings?.proxyReceive,
-            directReceive: settings?.directReceive
+            directReceive: settings?.directReceive,
+            receiveCreditsBelowSats: settings?.receiveCreditsBelowSats,
+            sendCreditsBelowSats: settings?.sendCreditsBelowSats
           }}
           schema={settingsSchema}
           onSubmit={async ({
             tipDefault, tipRandom, tipRandomMin, tipRandomMax, withdrawMaxFeeDefault,
             zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, satsFilter,
+            receiveCreditsBelowSats, sendCreditsBelowSats,
             ...values
           }) => {
             if (nostrPubkey.length === 0) {
@@ -191,6 +194,8 @@ export default function Settings ({ ssrData }) {
                     withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
                     satsFilter: Number(satsFilter),
                     zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
+                    receiveCreditsBelowSats: Number(receiveCreditsBelowSats),
+                    sendCreditsBelowSats: Number(sendCreditsBelowSats),
                     nostrPubkey,
                     nostrRelays: nostrRelaysFiltered,
                     ...values
@@ -335,6 +340,18 @@ export default function Settings ({ ssrData }) {
             name='noteCowboyHat'
           />
           <div className='form-label'>wallet</div>
+          <Input
+            label='receive credits for zaps and deposits below'
+            name='receiveCreditsBelowSats'
+            required
+            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
+          <Input
+            label='send credits for zaps below'
+            name='sendCreditsBelowSats'
+            required
+            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
           <Checkbox
             label={
               <div className='d-flex align-items-center'>proxy deposits to attached wallets
@@ -707,7 +724,7 @@ function NostrLinkButton ({ unlink, status }) {
     ? unlink
     : () => showModal(onClose =>
       <div className='d-flex flex-column align-items-center'>
-        <NostrAuth text='Unlink' />
+        <NostrAuth text='Link' />
       </div>)
 
   return (
@@ -841,7 +858,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
                 </Button>
               </div>
               )
-            : <div key={provider} className='mt-2'><EmailLinkForm /></div>
+            : <div key={provider} className='mt-2'><EmailLinkForm callbackUrl='/settings' /></div>
         } else if (provider === 'lightning') {
           return (
             <QRLinkButton
@@ -893,6 +910,7 @@ export function EmailLinkForm ({ callbackUrl }) {
         // then call signIn
         const { data } = await linkUnverifiedEmail({ variables: { email } })
         if (data.linkUnverifiedEmail) {
+          window.sessionStorage.setItem('callback', JSON.stringify({ email, callbackUrl }))
           signIn('email', { email, callbackUrl })
         }
       }}

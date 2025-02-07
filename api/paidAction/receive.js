@@ -2,7 +2,6 @@ import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { toPositiveBigInt, numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyDeposit } from '@/lib/webPush'
 import { getInvoiceableWallets } from '@/wallets/server'
-import { assertBelowBalanceLimit } from './lib/assert'
 
 export const anonable = false
 
@@ -19,10 +18,13 @@ export async function getCost ({ msats }) {
 export async function getInvoiceablePeer (_, { me, models, cost, paymentMethod }) {
   if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.P2P && !me?.proxyReceive) return null
   if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.DIRECT && !me?.directReceive) return null
-  if ((cost + me.msats) <= satsToMsats(me.autoWithdrawThreshold)) return null
 
   const wallets = await getInvoiceableWallets(me.id, { models })
   if (wallets.length === 0) {
+    return null
+  }
+
+  if (cost < satsToMsats(me.receiveCreditsBelowSats)) {
     return null
   }
 
@@ -39,7 +41,7 @@ export async function perform ({
   lud18Data,
   noteStr
 }, { me, tx }) {
-  const invoice = await tx.invoice.update({
+  return await tx.invoice.update({
     where: { id: invoiceId },
     data: {
       comment,
@@ -48,11 +50,6 @@ export async function perform ({
     },
     include: { invoiceForward: true }
   })
-
-  if (!invoice.invoiceForward) {
-    // if the invoice is not p2p, assert that the user's balance limit is not exceeded
-    await assertBelowBalanceLimit({ me, tx })
-  }
 }
 
 export async function describe ({ description }, { me, cost, paymentMethod, sybilFeePercent }) {
@@ -73,7 +70,7 @@ export async function onPaid ({ invoice }, { tx }) {
   await tx.user.update({
     where: { id: invoice.userId },
     data: {
-      msats: {
+      mcredits: {
         increment: invoice.msatsReceived
       }
     }

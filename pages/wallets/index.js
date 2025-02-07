@@ -86,10 +86,10 @@ export default function Wallet ({ ssrData }) {
   return (
     <Layout>
       <div className='py-5 w-100'>
-        <h2 className='mb-2 text-center'>attach wallets</h2>
-        <h6 className='text-muted text-center'>attach wallets to supplement your SN wallet</h6>
+        <h2 className='mb-2 text-center'>wallets</h2>
+        <h6 className='text-muted text-center'>use real bitcoin</h6>
         <div className='text-center'>
-          <Link href='/wallet/logs' className='text-muted fw-bold text-underline'>
+          <Link href='/wallets/logs' className='text-muted fw-bold text-underline'>
             wallet logs
           </Link>
         </div>

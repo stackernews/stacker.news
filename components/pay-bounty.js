@@ -9,6 +9,7 @@ import { useRoot } from './root'
 import { ActCanceledError, useAct } from './item-act'
 import { useLightning } from './lightning'
 import { useToast } from './toast'
+import { useSendWallets } from '@/wallets/index'
 
 export const payBountyCacheMods = {
   onPaid: (cache, { data }) => {
@@ -22,7 +23,8 @@ export const payBountyCacheMods = {
         bountyPaidTo (existingPaidTo = []) {
           return [...(existingPaidTo || []), Number(id)]
         }
-      }
+      },
+      optimistic: true
     })
   },
   onPayError: (e, cache, { data }) => {
@@ -36,7 +38,8 @@ export const payBountyCacheMods = {
         bountyPaidTo (existingPaidTo = []) {
           return (existingPaidTo || []).filter(i => i !== Number(id))
         }
-      }
+      },
+      optimistic: true
     })
   }
 }
@@ -47,7 +50,9 @@ export default function PayBounty ({ children, item }) {
   const root = useRoot()
   const strike = useLightning()
   const toaster = useToast()
-  const variables = { id: item.id, sats: root.bounty, act: 'TIP' }
+  const wallets = useSendWallets()
+
+  const variables = { id: item.id, sats: root.bounty, act: 'TIP', hasSendWallet: wallets.length > 0 }
   const act = useAct({
     variables,
     optimisticResponse: { act: { __typename: 'ItemActPaidAction', result: { ...variables, path: item.path } } },

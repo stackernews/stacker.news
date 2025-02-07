@@ -133,8 +133,12 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
       // hack
       // if it's not a video it will throw an error, so we can assume it's an image
       const img = new window.Image()
-      img.onload = () => setIsImage(true)
       img.src = src
+      img.decode().then(() => { // decoding beforehand to prevent wrong image cropping
+        setIsImage(true)
+      }).catch((e) => {
+        console.error('Cannot decode image', e)
+      })
     }
     video.src = src
 

@@ -18,6 +18,7 @@ export const COMMENT_FIELDS = gql`
     position
     parentId
     createdAt
+    invoicePaidAt
     deletedAt
     text
     user {
@@ -27,11 +28,13 @@ export const COMMENT_FIELDS = gql`
       ...StreakFields
     }
     sats
+    credits
     meAnonSats @client
     upvotes
     freedFreebie
     boost
     meSats
+    meCredits
     meDontLikeSats
     meBookmark
     meSubscription
@@ -39,9 +42,11 @@ export const COMMENT_FIELDS = gql`
     freebie
     path
     commentSats
+    commentCredits
     mine
     otsHash
     ncomments
+    nDirectComments
     imgproxyUrls
     rel
     apiKey
@@ -62,6 +67,7 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
       id
       title
       bounty
+      ncomments
       bountyPaidTo
       subName
       sub {
@@ -85,19 +91,23 @@ export const COMMENTS = gql`
   fragment CommentsRecursive on Item {
     ...CommentFields
     comments {
-      ...CommentFields
       comments {
         ...CommentFields
         comments {
-          ...CommentFields
           comments {
             ...CommentFields
             comments {
-              ...CommentFields
               comments {
                 ...CommentFields
                 comments {
-                  ...CommentFields
+                  comments {
+                    ...CommentFields
+                    comments {
+                      comments {
+                        ...CommentFields
+                      }
+                    }
+                  }
                 }
               }
             }

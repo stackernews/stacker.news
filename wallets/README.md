@@ -1,6 +1,6 @@
 # Wallets
 
-Every wallet that you can see at [/settings/wallets](https://stacker.news/settings/wallets) is implemented as a plugin in this directory.
+Every wallet that you can see at [/wallets](https://stacker.news/wallets) is implemented as a plugin in this directory.
 
 This README explains how you can add another wallet for use with Stacker News.
 
@@ -59,11 +59,11 @@ This is an optional value. Set this to true if your wallet needs to be configure
 
 - `fields: WalletField[]`
 
-Wallet fields define what this wallet requires for configuration and thus are used to construct the forms like the one you can see at [/settings/wallets/lnbits](https://stacker.news/settings/walletslnbits).
+Wallet fields define what this wallet requires for configuration and thus are used to construct the forms like the one you can see at [/wallets/lnbits](https://stacker.news/walletslnbits).
 
 - `card: WalletCard`
 
-Wallet cards are the components you can see at [/settings/wallets](https://stacker.news/settings/wallets). This property customizes this card for this wallet.
+Wallet cards are the components you can see at [/wallets](https://stacker.news/wallets). This property customizes this card for this wallet.
 
 - `validate: (config) => void`
 

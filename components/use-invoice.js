@@ -36,13 +36,9 @@ export default function useInvoice () {
     return { invoice: data.invoice, check: that(data.invoice) }
   }, [client])
 
-  const cancel = useCallback(async ({ hash, hmac }) => {
-    if (!hash || !hmac) {
-      throw new Error('missing hash or hmac')
-    }
-
+  const cancel = useCallback(async ({ hash, hmac }, { userCancel = false } = {}) => {
     console.log('canceling invoice:', hash)
-    const { data } = await cancelInvoice({ variables: { hash, hmac } })
+    const { data } = await cancelInvoice({ variables: { hash, hmac, userCancel } })
     return data.cancelInvoice
   }, [cancelInvoice])
 

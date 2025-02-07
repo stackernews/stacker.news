@@ -19,7 +19,7 @@ function InviteForm () {
   const [createInvite] = useMutation(
     gql`
       ${INVITE_FIELDS}
-      mutation createInvite($id: String, $gift: Int!, $limit: Int, $description: String) {
+      mutation createInvite($id: String, $gift: Int!, $limit: Int!, $description: String) {
         createInvite(id: $id, gift: $gift, limit: $limit, description: $description) {
           ...InviteFields
         }
@@ -57,7 +57,7 @@ function InviteForm () {
           variables: {
             id: id || undefined,
             gift: Number(gift),
-            limit: limit ? Number(limit) : limit,
+            limit: Number(limit),
             description: description || undefined
           }
         })
@@ -72,7 +72,7 @@ function InviteForm () {
         required
       />
       <Input
-        label={<>invitee limit <small className='text-muted ms-2'>optional</small></>}
+        label='invitee limit'
         name='limit'
       />
       <AccordianItem

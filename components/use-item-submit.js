@@ -118,7 +118,8 @@ export function useRetryCreateItem ({ id }) {
               `,
               data: { bolt11: response.invoice.bolt11 }
             })
-          }
+          },
+          optimistic: true
         })
         paidActionCacheMods?.update?.(cache, { data })
       }

@@ -57,9 +57,16 @@ export function TerritoryInfo ({ sub }) {
           <span> on </span>
           <span className='fw-bold'>{new Date(sub.createdAt).toDateString()}</span>
         </div>
-        <div className='text-muted'>
-          <span>post cost </span>
-          <span className='fw-bold'>{numWithUnits(sub.baseCost)}</span>
+        <div className='d-flex'>
+          <div className='text-muted'>
+            <span>post cost </span>
+            <span className='fw-bold'>{numWithUnits(sub.baseCost)}</span>
+          </div>
+          <span className='px-1'> \ </span>
+          <div className='text-muted'>
+            <span>reply cost </span>
+            <span className='fw-bold'>{numWithUnits(sub.replyCost)}</span>
+          </div>
         </div>
         <TerritoryBillingLine sub={sub} />
       </CardFooter>

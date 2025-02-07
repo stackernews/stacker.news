@@ -1,7 +1,7 @@
 import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/format'
 import { authenticatedLndGrpc } from '@/lib/lnd'
-import { getIdentity, getHeight, getWalletInfo, getNode, getPayment } from 'ln-service'
+import { getIdentity, getHeight, getWalletInfo, getNode, getPayment, parsePaymentRequest } from 'ln-service'
 import { datePivot } from '@/lib/time'
 import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 
@@ -23,11 +23,34 @@ getWalletInfo({ lnd }, (err, result) => {
 })
 
 export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, request, timeout }) {
+  // if the payment request includes us as route hint, we needd to use the destination and amount
+  // otherwise, this will fail with a self-payment error
+  if (request) {
+    const inv = parsePaymentRequest({ request })
+    const ourPubkey = await getOurPubkey({ lnd })
+    if (Array.isArray(inv.routes)) {
+      for (const route of inv.routes) {
+        if (Array.isArray(route)) {
+          for (const hop of route) {
+            if (hop.public_key === ourPubkey) {
+              console.log('estimateRouteFee ignoring self-payment route')
+              request = false
+              break
+            }
+          }
+        }
+      }
+    }
+  }
+
   return await new Promise((resolve, reject) => {
     const params = {}
+
     if (request) {
+      console.log('estimateRouteFee using payment request')
       params.payment_request = request
     } else {
+      console.log('estimateRouteFee using destination and amount')
       params.dest = Buffer.from(destination, 'hex')
       params.amt_sat = tokens ? toPositiveNumber(tokens) : toPositiveNumber(BigInt(mtokens) / BigInt(1e3))
     }

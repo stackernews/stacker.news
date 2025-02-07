@@ -2,8 +2,9 @@ import ServiceWorkerStorage from 'serviceworker-storage'
 import { numWithUnits } from '@/lib/format'
 import { CLEAR_NOTIFICATIONS, clearAppBadge, setAppBadge } from '@/lib/badge'
 import { ACTION_PORT, DELETE_SUBSCRIPTION, MESSAGE_PORT, STORE_OS, STORE_SUBSCRIPTION, SYNC_SUBSCRIPTION } from '@/components/serviceworker'
+// import { getLogger } from '@/lib/logger'
 
-// we store existing push subscriptions to keep them in sync with server
+// we store existing push subscriptions and OS to keep them in sync with server
 const storage = new ServiceWorkerStorage('sw:storage', 1)
 
 // for communication between app and service worker
@@ -13,103 +14,79 @@ let actionChannelPort
 
 // operating system. the value will be received via a STORE_OS message from app since service workers don't have access to window.navigator
 let os = ''
-const iOS = () => os === 'iOS'
+async function getOS () {
+  if (!os) {
+    os = await storage.getItem('os') || ''
+  }
+  return os
+}
 
 // current push notification count for badge purposes
 let activeCount = 0
 
+// message event listener for communication between app and service worker
 const log = (message, level = 'info', context) => {
   messageChannelPort?.postMessage({ level, message, context })
 }
 
 export function onPush (sw) {
-  return async (event) => {
-    const payload = event.data?.json()
-    if (!payload) return
+  return (event) => {
+    // in case of push notifications, make sure that the logger has an HTTPS endpoint
+    // const logger = getLogger('sw:push', ['onPush'])
+    let payload = event.data?.json()
+    if (!payload) return // ignore push events without payload, like isTrusted events
     const { tag } = payload.options
-    event.waitUntil((async () => {
-      // generate random ID for every incoming push for better tracing in logs
-      const nid = crypto.randomUUID()
-      log(`[sw:push] ${nid} - received notification with tag ${tag}`)
+    const nid = crypto.randomUUID() // notification id for tracking
 
-      // due to missing proper tag support in Safari on iOS, we can't rely on the tag built-in filter.
-      // we therefore fetch all notifications with the same tag and manually filter them, too.
-      // see https://bugs.webkit.org/show_bug.cgi?id=258922
-      const notifications = await sw.registration.getNotifications({ tag })
-      log(`[sw:push] ${nid} - found ${notifications.length} ${tag} notifications`)
-      log(`[sw:push] ${nid} - built-in tag filter: ${JSON.stringify(notifications.map(({ tag }) => tag))}`)
+    // iOS requirement: group all promises
+    const promises = []
 
-      // we're not sure if the built-in tag filter actually filters by tag on iOS
-      // or if it just returns all currently displayed notifications (?)
-      const filtered = notifications.filter(({ tag: nTag }) => nTag === tag)
-      log(`[sw:push] ${nid} - found ${filtered.length} ${tag} notifications after manual tag filter`)
-      log(`[sw:push] ${nid} - manual tag filter: ${JSON.stringify(filtered.map(({ tag }) => tag))}`)
-
-      if (immediatelyShowNotification(tag)) {
-        // we can't rely on the tag property to replace notifications on Safari on iOS.
-        // we therefore close them manually and then we display the notification.
-        log(`[sw:push] ${nid} - ${tag} notifications replace previous notifications`)
-        setAppBadge(sw, ++activeCount)
-        // due to missing proper tag support in Safari on iOS, we can't rely on the tag property to replace notifications.
-        // see https://bugs.webkit.org/show_bug.cgi?id=258922 for more information
-        // we therefore fetch all notifications with the same tag (+ manual filter),
-        // close them and then we display the notification.
-        const notifications = await sw.registration.getNotifications({ tag })
-        // we only close notifications manually on iOS because we don't want to degrade android UX just because iOS is behind in their support.
-        if (iOS()) {
-          log(`[sw:push] ${nid} - closing existing notifications`)
-          notifications.filter(({ tag: nTag }) => nTag === tag).forEach(n => n.close())
+    // On immediate notifications we update the counter
+    if (immediatelyShowNotification(tag)) {
+      // logger.info(`[${nid}] showing immediate notification with title: ${payload.title}`)
+      promises.push(setAppBadge(sw, ++activeCount))
+    } else {
+      // logger.info(`[${nid}] checking for existing notification with tag ${tag}`)
+      // Check if there are already notifications with the same tag and merge them
+      promises.push(sw.registration.getNotifications({ tag }).then((notifications) => {
+        // logger.info(`[${nid}] found ${notifications.length} notifications with tag ${tag}`)
+        if (notifications.length) {
+          // logger.info(`[${nid}] found ${notifications.length} notifications with tag ${tag}`)
+          payload = mergeNotification(event, sw, payload, notifications, tag, nid)
         }
-        log(`[sw:push] ${nid} - show notification with title "${payload.title}"`)
-        return await sw.registration.showNotification(payload.title, payload.options)
-      }
+      }))
+    }
 
-      // according to the spec, there should only be zero or one notification since we used a tag filter
-      // handle zero case here
-      if (notifications.length === 0) {
-        // incoming notification is first notification with this tag
-        log(`[sw:push] ${nid} - no existing ${tag} notifications found`)
-        setAppBadge(sw, ++activeCount)
-        log(`[sw:push] ${nid} - show notification with title "${payload.title}"`)
-        return await sw.registration.showNotification(payload.title, payload.options)
-      }
-
-      // handle unexpected case here
-      if (notifications.length > 1) {
-        log(`[sw:push] ${nid} - more than one notification with tag ${tag} found`, 'error')
-        // due to missing proper tag support in Safari on iOS,
-        // we only acknowledge this error in our logs and don't bail here anymore
-        // see https://bugs.webkit.org/show_bug.cgi?id=258922 for more information
-        log(`[sw:push] ${nid} - skip bail -- merging notifications with tag ${tag} manually`)
-        // return null
-      }
-
-      return await mergeAndShowNotification(sw, payload, notifications, tag, nid)
-    })())
+    // iOS requirement: wait for all promises to resolve before showing the notification
+    event.waitUntil(Promise.all(promises).then(() => {
+      return sw.registration.showNotification(payload.title, payload.options)
+    }))
   }
 }
 
-// if there is no tag or it's a TIP, FORWARDEDTIP or EARN notification
-// we don't need to merge notifications and thus the notification should be immediately shown using `showNotification`
+// if there is no tag or the tag is one of the following
+// we show the notification immediately
 const immediatelyShowNotification = (tag) =>
   !tag || ['TIP', 'FORWARDEDTIP', 'EARN', 'STREAK', 'TERRITORY_TRANSFER'].includes(tag.split('-')[0])
 
-const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, nid) => {
+// merge notifications with the same tag
+const mergeNotification = (event, sw, payload, currentNotifications, tag, nid) => {
+  // const logger = getLogger('sw:push:mergeNotification', ['mergeNotification'])
+
   // sanity check
   const otherTagNotifications = currentNotifications.filter(({ tag: nTag }) => nTag !== tag)
   if (otherTagNotifications.length > 0) {
     // we can't recover from this here. bail.
-    const message = `[sw:push] ${nid} - bailing -- more than one notification with tag ${tag} found after manual filter`
-    log(message, 'error')
+    // logger.error(`${nid} - bailing -- more than one notification with tag ${tag} found after manual filter`)
     return
   }
 
   const { data: incomingData } = payload.options
-  log(`[sw:push] ${nid} - incoming payload.options.data: ${JSON.stringify(incomingData)}`)
+  // logger.info(`[sw:push] ${nid} - incoming payload.options.data: ${JSON.stringify(incomingData)}`)
 
   // we can ignore everything after the first dash in the tag for our control flow
   const compareTag = tag.split('-')[0]
-  log(`[sw:push] ${nid} - using ${compareTag} for control flow`)
+  // logger.info(`[sw:push] ${nid} - using ${compareTag} for control flow`)
 
   // merge notifications into single notification payload
   // ---
@@ -118,22 +95,20 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
   // tags that need to know the sum of sats of notifications with same tag for merging
   const SUM_SATS_TAGS = ['DEPOSIT', 'WITHDRAWAL']
   // this should reflect the amount of notifications that were already merged before
-  let initialAmount = currentNotifications[0]?.data?.amount || 1
-  if (iOS()) initialAmount = 1
-  log(`[sw:push] ${nid} - initial amount: ${initialAmount}`)
-  const mergedPayload = currentNotifications.reduce((acc, { data }) => {
-    let newAmount, newSats
-    if (AMOUNT_TAGS.includes(compareTag)) {
-      newAmount = acc.amount + 1
-    }
-    if (SUM_SATS_TAGS.includes(compareTag)) {
-      newSats = acc.sats + data.sats
-    }
-    const newPayload = { ...data, amount: newAmount, sats: newSats }
-    return newPayload
-  }, { ...incomingData, amount: initialAmount })
+  const initialAmount = currentNotifications.length || 1
+  const initialSats = currentNotifications[0]?.data?.sats || 0
+  // logger.info(`[sw:push] ${nid} - initial amount: ${initialAmount}`)
+  // logger.info(`[sw:push] ${nid} - initial sats: ${initialSats}`)
 
-  log(`[sw:push] ${nid} - merged payload: ${JSON.stringify(mergedPayload)}`)
+  // currentNotifications.reduce causes iOS to sum n notifications + initialAmount which is already n notifications
+  const mergedPayload = {
+    ...incomingData,
+    url: '/notifications', // when merged we should always go to the notifications page
+    amount: initialAmount + 1,
+    sats: initialSats + incomingData.sats
+  }
+
+  // logger.info(`[sw:push] ${nid} - merged payload: ${JSON.stringify(mergedPayload)}`)
 
   // calculate title from merged payload
   const { amount, followeeName, subName, subType, sats } = mergedPayload
@@ -161,32 +136,30 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
       title = `${numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} withdrawn from your account`
     }
   }
-  log(`[sw:push] ${nid} - calculated title: ${title}`)
+  // logger.info(`[sw:push] ${nid} - calculated title: ${title}`)
 
-  // close all current notifications before showing new one to "merge" notifications
-  // we only do this on iOS because we don't want to degrade android UX just because iOS is behind in their support.
-  if (iOS()) {
-    log(`[sw:push] ${nid} - closing existing notifications`)
-    currentNotifications.forEach(n => n.close())
-  }
-
-  const options = { icon: payload.options?.icon, tag, data: { url: '/notifications', ...mergedPayload } }
-  log(`[sw:push] ${nid} - show notification with title "${title}"`)
-  return await sw.registration.showNotification(title, options)
+  const options = { icon: payload.options?.icon, tag, data: { ...mergedPayload } }
+  // logger.info(`[sw:push] ${nid} - show notification with title "${title}"`)
+  return { title, options } // send the new, merged, payload
 }
 
+// iOS-specific bug, notificationclick event only works when the app is closed
 export function onNotificationClick (sw) {
   return (event) => {
+    const promises = []
+    // const logger = getLogger('sw:onNotificationClick', ['onNotificationClick'])
     const url = event.notification.data?.url
+    // logger.info(`[sw:onNotificationClick] clicked notification with url ${url}`)
     if (url) {
-      event.waitUntil(sw.clients.openWindow(url))
+      promises.push(sw.clients.openWindow(url))
     }
     activeCount = Math.max(0, activeCount - 1)
     if (activeCount === 0) {
-      clearAppBadge(sw)
+      promises.push(clearAppBadge(sw))
     } else {
-      setAppBadge(sw, activeCount)
+      promises.push(setAppBadge(sw, activeCount))
     }
+    event.waitUntil(Promise.all(promises))
     event.notification.close()
   }
 }
@@ -196,10 +169,11 @@ export function onPushSubscriptionChange (sw) {
   // `isSync` is passed if function was called because of 'SYNC_SUBSCRIPTION' event
   // this makes sure we can differentiate between 'pushsubscriptionchange' events and our custom 'SYNC_SUBSCRIPTION' event
   return async (event, isSync) => {
+    // const logger = getLogger('sw:onPushSubscriptionChange', ['onPushSubscriptionChange'])
     let { oldSubscription, newSubscription } = event
     // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event
     // fallbacks since browser may not set oldSubscription and newSubscription
-    log('[sw:handlePushSubscriptionChange] invoked')
+    // logger.info('[sw:handlePushSubscriptionChange] invoked')
     oldSubscription ??= await storage.getItem('subscription')
     newSubscription ??= await sw.registration.pushManager.getSubscription()
     if (!newSubscription) {
@@ -208,17 +182,17 @@ export function onPushSubscriptionChange (sw) {
         // see https://github.com/stackernews/stacker.news/issues/411#issuecomment-1790675861
         // NOTE: this is only run on IndexedDB subscriptions stored under service worker version 2 since this is not backwards compatible
         // see discussion in https://github.com/stackernews/stacker.news/pull/597
-        log('[sw:handlePushSubscriptionChange] service worker lost subscription')
+        // logger.info('[sw:handlePushSubscriptionChange] service worker lost subscription')
         actionChannelPort?.postMessage({ action: 'RESUBSCRIBE' })
         return
       }
       // no subscription exists at the moment
-      log('[sw:handlePushSubscriptionChange] no existing subscription found')
+      // logger.info('[sw:handlePushSubscriptionChange] no existing subscription found')
       return
     }
     if (oldSubscription?.endpoint === newSubscription.endpoint) {
     // subscription did not change. no need to sync with server
-      log('[sw:handlePushSubscriptionChange] old subscription matches existing subscription')
+      // logger.info('[sw:handlePushSubscriptionChange] old subscription matches existing subscription')
       return
     }
     // convert keys from ArrayBuffer to string
@@ -243,25 +217,27 @@ export function onPushSubscriptionChange (sw) {
       },
       body
     })
-    log('[sw:handlePushSubscriptionChange] synced push subscription with server', 'info', { endpoint: variables.endpoint, oldEndpoint: variables.oldEndpoint })
+    // logger.info('[sw:handlePushSubscriptionChange] synced push subscription with server', 'info', { endpoint: variables.endpoint, oldEndpoint: variables.oldEndpoint })
     await storage.setItem('subscription', JSON.parse(JSON.stringify(newSubscription)))
   }
 }
 
 export function onMessage (sw) {
-  return (event) => {
+  return async (event) => {
     if (event.data.action === ACTION_PORT) {
       actionChannelPort = event.ports[0]
       return
     }
     if (event.data.action === STORE_OS) {
-      os = event.data.os
+      event.waitUntil(storage.setItem('os', event.data.os))
       return
     }
     if (event.data.action === MESSAGE_PORT) {
       messageChannelPort = event.ports[0]
     }
     log('[sw:message] received message', 'info', { action: event.data.action })
+    const currentOS = event.waitUntil(getOS())
+    log('[sw:message] stored os: ' + currentOS, 'info', { action: event.data.action })
     if (event.data.action === STORE_SUBSCRIPTION) {
       log('[sw:message] storing subscription in IndexedDB', 'info', { endpoint: event.data.subscription.endpoint })
       return event.waitUntil(storage.setItem('subscription', { ...event.data.subscription, swVersion: 2 }))
@@ -273,17 +249,13 @@ export function onMessage (sw) {
       return event.waitUntil(storage.removeItem('subscription'))
     }
     if (event.data.action === CLEAR_NOTIFICATIONS) {
-      return event.waitUntil((async () => {
-        let notifications = []
-        try {
-          notifications = await sw.registration.getNotifications()
-        } catch (err) {
-          console.error('failed to get notifications')
-        }
+      const promises = []
+      promises.push(sw.registration.getNotifications().then((notifications) => {
         notifications.forEach(notification => notification.close())
-        activeCount = 0
-        return await clearAppBadge(sw)
-      })())
+      }))
+      promises.push(clearAppBadge(sw))
+      activeCount = 0
+      event.waitUntil(Promise.all(promises))
     }
   }
 }

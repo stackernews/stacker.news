@@ -84,7 +84,8 @@ export function OutlawDropdownItem ({ item }) {
           id: `Item:${item.id}`,
           fields: {
             outlawed: () => true
-          }
+          },
+          optimistic: true
         })
       }
     }

@@ -91,6 +91,7 @@ export default function TerritoryForm ({ sub }) {
           name: sub?.name || '',
           desc: sub?.desc || '',
           baseCost: sub?.baseCost || 10,
+          replyCost: sub?.replyCost || 1,
           postTypes: sub?.postTypes || POST_TYPES,
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false,
@@ -234,6 +235,13 @@ export default function TerritoryForm ({ sub }) {
           header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
           body={
             <>
+              <Input
+                label='reply cost'
+                name='replyCost'
+                type='number'
+                required
+                append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+              />
               <BootstrapForm.Label>moderation</BootstrapForm.Label>
               <Checkbox
                 inline

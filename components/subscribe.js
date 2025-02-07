@@ -17,7 +17,8 @@ export default function SubscribeDropdownItem ({ item: { id, meSubscription } })
           id: `Item:${id}`,
           fields: {
             meSubscription: () => subscribeItem.meSubscription
-          }
+          },
+          optimistic: true
         })
       }
     }

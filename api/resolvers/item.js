@@ -9,7 +9,10 @@ import {
   USER_ID, POLL_COST, ADMIN_ITEMS, GLOBAL_SEED,
   NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS,
   BOOST_MULT,
-  ITEM_EDIT_SECONDS
+  ITEM_EDIT_SECONDS,
+  COMMENTS_LIMIT,
+  COMMENTS_OF_COMMENT_LIMIT,
+  FULL_COMMENTS_THRESHOLD
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
@@ -25,39 +28,76 @@ import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 
 function commentsOrderByClause (me, models, sort) {
+  const sharedSortsArray = []
+  sharedSortsArray.push('("Item"."pinId" IS NOT NULL) DESC')
+  sharedSortsArray.push('("Item"."deletedAt" IS NULL) DESC')
+  const sharedSorts = sharedSortsArray.join(', ')
+
   if (sort === 'recent') {
-    return 'ORDER BY ("Item"."deletedAt" IS NULL) DESC, ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC, "Item".created_at DESC, "Item".id DESC'
+    return `ORDER BY ${sharedSorts},
+      ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC,
+      COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC, "Item".id DESC`
   }
 
   if (me && sort === 'hot') {
-    return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, COALESCE(
-        personal_hot_score,
-        ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
-        "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+    return `ORDER BY ${sharedSorts},
+      "personal_hot_score" DESC NULLS LAST,
+      "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
   } else {
     if (sort === 'top') {
-      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator({ models, commentScaler: 0 })} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
+      return `ORDER BY ${sharedSorts}, ${orderByNumerator({ models, commentScaler: 0 })} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
     } else {
-      return `ORDER BY ("Item"."deletedAt" IS NULL) DESC, ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+      return `ORDER BY ${sharedSorts}, ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
     }
   }
 }
 
-async function comments (me, models, id, sort) {
+async function comments (me, models, item, sort, cursor) {
   const orderBy = commentsOrderByClause(me, models, sort)
 
-  if (me) {
-    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) `
-    const [{ item_comments_zaprank_with_me: comments }] = await models.$queryRawUnsafe(
-      'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)',
-      Number(id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
-    return comments
+  if (item.nDirectComments === 0) {
+    return {
+      comments: [],
+      cursor: null
+    }
   }
 
-  const filter = ' AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = \'PAID\') '
-  const [{ item_comments: comments }] = await models.$queryRawUnsafe(
-    'SELECT item_comments($1::INTEGER, $2::INTEGER, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, filter, orderBy)
-  return comments
+  const decodedCursor = decodeCursor(cursor)
+  const offset = decodedCursor.offset
+
+  // XXX what a mess
+  let comments
+  if (me) {
+    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) AND "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3) `
+    if (item.ncomments > FULL_COMMENTS_THRESHOLD) {
+      const [{ item_comments_zaprank_with_me_limited: limitedComments }] = await models.$queryRawUnsafe(
+        'SELECT item_comments_zaprank_with_me_limited($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8, $9)',
+        Number(item.id), GLOBAL_SEED, Number(me.id), COMMENTS_LIMIT, offset, COMMENTS_OF_COMMENT_LIMIT, COMMENT_DEPTH_LIMIT, filter, orderBy)
+      comments = limitedComments
+    } else {
+      const [{ item_comments_zaprank_with_me: fullComments }] = await models.$queryRawUnsafe(
+        'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)',
+        Number(item.id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+      comments = fullComments
+    }
+  } else {
+    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID') AND "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3) `
+    if (item.ncomments > FULL_COMMENTS_THRESHOLD) {
+      const [{ item_comments_limited: limitedComments }] = await models.$queryRawUnsafe(
+        'SELECT item_comments_limited($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6, $7)',
+        Number(item.id), COMMENTS_LIMIT, offset, COMMENTS_OF_COMMENT_LIMIT, COMMENT_DEPTH_LIMIT, filter, orderBy)
+      comments = limitedComments
+    } else {
+      const [{ item_comments: fullComments }] = await models.$queryRawUnsafe(
+        'SELECT item_comments($1::INTEGER, $2::INTEGER, $3, $4)', Number(item.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+      comments = fullComments
+    }
+  }
+
+  return {
+    comments,
+    cursor: comments.length + offset < item.nDirectComments ? nextCursorEncoded(decodedCursor, COMMENTS_LIMIT) : null
+  }
 }
 
 export async function getItem (parent, { id }, { me, models }) {
@@ -150,6 +190,7 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
     return await models.$queryRawUnsafe(`
       SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
         COALESCE("ItemAct"."meMsats", 0) as "meMsats", COALESCE("ItemAct"."mePendingMsats", 0) as "mePendingMsats",
+        COALESCE("ItemAct"."meMcredits", 0) as "meMcredits", COALESCE("ItemAct"."mePendingMcredits", 0) as "mePendingMcredits",
         COALESCE("ItemAct"."meDontLikeMsats", 0) as "meDontLikeMsats", b."itemId" IS NOT NULL AS "meBookmark",
         "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward",
         to_jsonb("Sub".*) || jsonb_build_object('meMuteSub', "MuteSub"."userId" IS NOT NULL)
@@ -167,10 +208,14 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
       LEFT JOIN "SubSubscription" ON "Sub"."name" = "SubSubscription"."subName" AND "SubSubscription"."userId" = ${me.id}
       LEFT JOIN LATERAL (
         SELECT "itemId",
-          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND (act = 'FEE' OR act = 'TIP')) AS "meMsats",
-          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS NOT DISTINCT FROM 'PENDING' AND (act = 'FEE' OR act = 'TIP') AND "Item"."userId" <> ${me.id}) AS "mePendingMsats",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND "InvoiceForward".id IS NOT NULL AND (act = 'FEE' OR act = 'TIP')) AS "meMsats",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND "InvoiceForward".id IS NULL AND (act = 'FEE' OR act = 'TIP')) AS "meMcredits",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS NOT DISTINCT FROM 'PENDING' AND "InvoiceForward".id IS NOT NULL AND (act = 'FEE' OR act = 'TIP')) AS "mePendingMsats",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS NOT DISTINCT FROM 'PENDING' AND "InvoiceForward".id IS NULL AND (act = 'FEE' OR act = 'TIP')) AS "mePendingMcredits",
           sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND act = 'DONT_LIKE_THIS') AS "meDontLikeMsats"
         FROM "ItemAct"
+        LEFT JOIN "Invoice" ON "Invoice".id = "ItemAct"."invoiceId"
+        LEFT JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Invoice"."id"
         WHERE "ItemAct"."userId" = ${me.id}
         AND "ItemAct"."itemId" = "Item".id
         GROUP BY "ItemAct"."itemId"
@@ -407,10 +452,10 @@ export default {
                 typeClause(type),
                 muteClause(me)
               )}
-              ORDER BY "Item".created_at DESC
+              ORDER BY COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC
               OFFSET $2
               LIMIT $3`,
-            orderBy: 'ORDER BY "Item"."createdAt" DESC'
+            orderBy: 'ORDER BY COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC'
           }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
           break
         case 'top':
@@ -531,8 +576,8 @@ export default {
                     LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
                     ${joinZapRankPersonalView(me, models)}
                     ${whereClause(
-                      // in "home" (sub undefined), we want to show pinned items (but without the pin icon)
-                      sub ? '"Item"."pinId" IS NULL' : '',
+                      // in home (sub undefined), filter out global pinned items since we inject them later
+                      sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
                       '"Item"."deletedAt" IS NULL',
                       '"Item"."parentId" IS NULL',
                       '"Item".outlawed = false',
@@ -560,8 +605,8 @@ export default {
                       ${whereClause(
                         subClause(sub, 3, 'Item', me, showNsfw),
                         muteClause(me),
-                        // in "home" (sub undefined), we want to show pinned items (but without the pin icon)
-                        sub ? '"Item"."pinId" IS NULL' : '',
+                        // in home (sub undefined), filter out global pinned items since we inject them later
+                        sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
                         '"Item"."deletedAt" IS NULL',
                         '"Item"."parentId" IS NULL',
                         '"Item".bio = false',
@@ -940,7 +985,7 @@ export default {
 
       return await performPaidAction('POLL_VOTE', { id }, { me, models, lnd })
     },
-    act: async (parent, { id, sats, act = 'TIP' }, { me, models, lnd, headers }) => {
+    act: async (parent, { id, sats, act = 'TIP', hasSendWallet }, { me, models, lnd, headers }) => {
       assertApiKeyNotPermitted({ me })
       await validateSchema(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
@@ -974,7 +1019,7 @@ export default {
       }
 
       if (act === 'TIP') {
-        return await performPaidAction('ZAP', { id, sats }, { me, models, lnd })
+        return await performPaidAction('ZAP', { id, sats, hasSendWallet }, { me, models, lnd })
       } else if (act === 'DONT_LIKE_THIS') {
         return await performPaidAction('DOWN_ZAP', { id, sats }, { me, models, lnd })
       } else if (act === 'BOOST') {
@@ -1048,11 +1093,26 @@ export default {
     }
   },
   Item: {
-    sats: async (item, args, { models }) => {
-      return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0))
+    invoicePaidAt: async (item, args, { models }) => {
+      return item.invoicePaidAtUTC ?? item.invoicePaidAt
+    },
+    sats: async (item, args, { models, me }) => {
+      if (me?.id === item.userId) {
+        return msatsToSats(BigInt(item.msats))
+      }
+      return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0) + BigInt(item.mePendingMcredits || 0))
+    },
+    credits: async (item, args, { models, me }) => {
+      if (me?.id === item.userId) {
+        return msatsToSats(BigInt(item.mcredits))
+      }
+      return msatsToSats(BigInt(item.mcredits) + BigInt(item.mePendingMcredits || 0))
     },
     commentSats: async (item, args, { models }) => {
       return msatsToSats(item.commentMsats)
+    },
+    commentCredits: async (item, args, { models }) => {
+      return msatsToSats(item.commentMcredits)
     },
     isJob: async (item, args, { models }) => {
       return item.subName === 'jobs'
@@ -1156,11 +1216,25 @@ export default {
         }
       })
     },
-    comments: async (item, { sort }, { me, models }) => {
-      if (typeof item.comments !== 'undefined') return item.comments
-      if (item.ncomments === 0) return []
+    comments: async (item, { sort, cursor }, { me, models }) => {
+      if (typeof item.comments !== 'undefined') {
+        if (Array.isArray(item.comments)) {
+          return {
+            comments: item.comments,
+            cursor: null
+          }
+        }
+        return item.comments
+      }
 
-      return comments(me, models, item.id, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt))
+      if (item.ncomments === 0) {
+        return {
+          comments: [],
+          cursor: null
+        }
+      }
+
+      return comments(me, models, item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor)
     },
     freedFreebie: async (item) => {
       return item.weightedVotes - item.weightedDownVotes > 0
@@ -1170,8 +1244,8 @@ export default {
     },
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
-      if (typeof item.meMsats !== 'undefined') {
-        return msatsToSats(item.meMsats)
+      if (typeof item.meMsats !== 'undefined' && typeof item.meMcredits !== 'undefined') {
+        return msatsToSats(BigInt(item.meMsats) + BigInt(item.meMcredits))
       }
 
       const { _sum: { msats } } = await models.itemAct.aggregate({
@@ -1183,6 +1257,38 @@ export default {
           userId: me.id,
           invoiceActionState: {
             not: 'FAILED'
+          },
+          OR: [
+            {
+              act: 'TIP'
+            },
+            {
+              act: 'FEE'
+            }
+          ]
+        }
+      })
+
+      return (msats && msatsToSats(msats)) || 0
+    },
+    meCredits: async (item, args, { me, models }) => {
+      if (!me) return 0
+      if (typeof item.meMcredits !== 'undefined') {
+        return msatsToSats(item.meMcredits)
+      }
+
+      const { _sum: { msats } } = await models.itemAct.aggregate({
+        _sum: {
+          msats: true
+        },
+        where: {
+          itemId: Number(item.id),
+          userId: me.id,
+          invoiceActionState: {
+            not: 'FAILED'
+          },
+          invoice: {
+            invoiceForward: { is: null }
           },
           OR: [
             {
@@ -1385,7 +1491,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   // but forever if an admin is editing an "admin item", it's their bio or a job
   const myBio = user.bioId === old.id
   const timer = Date.now() < datePivot(new Date(old.invoicePaidAt ?? old.createdAt), { seconds: ITEM_EDIT_SECONDS })
-  const canEdit = (timer && ownerEdit) || adminEdit || myBio || isJob(item)
+  const canEdit = (timer && ownerEdit) || adminEdit || myBio || isJob(old)
   if (!canEdit) {
     throw new GqlInputError('item can no longer be edited')
   }

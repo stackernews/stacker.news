@@ -5,7 +5,8 @@ import { notifyInvite } from '@/lib/webPush'
 export const anonable = false
 
 export const paymentMethods = [
-  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT
+  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.REWARD_SATS
 ]
 
 export async function getCost ({ id }, { models, me }) {
@@ -21,7 +22,7 @@ export async function perform ({ id, userId }, { me, cost, tx }) {
     where: { id, userId: me.id, revoked: false }
   })
 
-  if (invite.giftedCount >= invite.limit) {
+  if (invite.limit && invite.giftedCount >= invite.limit) {
     throw new Error('invite limit reached')
   }
 
@@ -36,7 +37,7 @@ export async function perform ({ id, userId }, { me, cost, tx }) {
       }
     },
     data: {
-      msats: {
+      mcredits: {
         increment: cost
       },
       inviteId: id,
@@ -45,7 +46,7 @@ export async function perform ({ id, userId }, { me, cost, tx }) {
   })
 
   return await tx.invite.update({
-    where: { id, userId: me.id, giftedCount: { lt: invite.limit }, revoked: false },
+    where: { id, userId: me.id, revoked: false, ...(invite.limit ? { giftedCount: { lt: invite.limit } } : {}) },
     data: {
       giftedCount: {
         increment: 1

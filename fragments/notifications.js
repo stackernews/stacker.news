@@ -113,13 +113,14 @@ export const NOTIFICATIONS = gql`
           id
           sortTime
           source {
-            item {
+            __typename
+            ... on Item {
               ...ItemFullFields
             }
-            sub {
+            ... on Sub {
               ...SubFields
             }
-            profile {
+            ... on User {
               name
             }
           }

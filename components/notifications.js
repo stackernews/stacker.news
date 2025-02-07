@@ -529,16 +529,24 @@ function WithdrawlPaid ({ n }) {
 
 function Referral ({ n }) {
   let referralSource = 'of you'
-  if (n.source?.item) referralSource = 'you shared this ' + (n.source.item.title ? 'post' : 'comment')
-  if (n.source?.sub) referralSource = 'you shared ~' + n.source.sub.name + ' territory'
-  if (n.source?.profile) referralSource = 'you shared ' + n.source.profile.name + '\'s profile'
+  switch (n.source?.__typename) {
+    case 'Item':
+      referralSource = 'you shared this ' + (n.source.title ? 'post' : 'comment')
+      break
+    case 'Sub':
+      referralSource = 'you shared ~' + n.source.name + ' territory'
+      break
+    case 'User':
+      referralSource = 'you shared ' + n.source.name + '\'s profile'
+      break
+  }
   return (
     <>
       <small className='fw-bold text-success'>
         <UserAdd className='fill-success me-1' height={21} width={21} style={{ transform: 'rotateY(180deg)' }} />someone joined SN because {referralSource}
         <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       </small>
-      {n.source?.item && <NoteItem itemClassName='pt-2' item={n.source.item} />}
+      {n.source?.__typename === 'Item' && <NoteItem itemClassName='pt-2' item={n.source} />}
     </>
   )
 }

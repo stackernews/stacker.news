@@ -467,15 +467,30 @@ export default {
       return subAct.subName
     }
   },
+  ReferralSource: {
+    __resolveType: async (n, args, { models }) => n.type
+  },
   Referral: {
     source: async (n, args, { models, me }) => {
       const referral = await models.oneDayReferral.findFirst({ where: { refereeId: Number(n.id) } })
-      if (referral) {
-        return {
-          item: referral.type === 'POST' || referral.type === 'COMMENT' ? await getItem(n, { id: referral.typeId }, { models, me }) : null,
-          sub: referral.type === 'TERRITORY' ? await getSub(n, { name: referral.typeId }, { models, me }) : null,
-          profile: referral.type === 'PROFILE' ? await models.user.findUnique({ where: { id: Number(referral.typeId) }, select: { name: true } }) : null
+      if (!referral) return null
+
+      switch (referral.type) {
+        case 'POST':
+        case 'COMMENT': {
+          const item = await getItem(n, { id: referral.typeId }, { models, me })
+          return { ...item, type: 'Item' }
         }
+        case 'TERRITORY': {
+          const sub = await getSub(n, { name: referral.typeId }, { models, me })
+          return { ...sub, type: 'Sub' }
+        }
+        case 'PROFILE': {
+          const profile = await models.user.findUnique({ where: { id: Number(referral.typeId) }, select: { name: true } })
+          return { ...profile, type: 'User' }
+        }
+        default:
+          return null
       }
     }
   },

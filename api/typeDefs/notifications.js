@@ -124,11 +124,7 @@ export default gql`
     withdrawl: Withdrawl!
   }
 
-  type ReferralSource {
-    item: Item
-    sub: Sub
-    profile: User
-  }
+  union ReferralSource = Item | Sub | User
 
   type Referral {
     id: ID!

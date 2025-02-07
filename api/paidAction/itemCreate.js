@@ -13,9 +13,33 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
+export const DEFAULT_ITEM_COST = 1000n
+
+export async function getBaseCost ({ models, bio, parentId, subName }) {
+  if (bio) return DEFAULT_ITEM_COST
+
+  if (parentId) {
+    // the subname is stored in the root item of the thread
+    const parent = await models.item.findFirst({
+      where: { id: Number(parentId) },
+      include: {
+        root: { include: { sub: true } },
+        sub: true
+      }
+    })
+
+    const root = parent.root ?? parent
+
+    if (!root.sub) return DEFAULT_ITEM_COST
+    return satsToMsats(root.sub.replyCost)
+  }
+
+  const sub = await models.sub.findUnique({ where: { name: subName } })
+  return satsToMsats(sub.baseCost)
+}
+
 export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio }, { models, me }) {
-  const sub = (parentId || bio) ? null : await models.sub.findUnique({ where: { name: subName } })
-  const baseCost = sub ? satsToMsats(sub.baseCost) : 1000n
+  const baseCost = await getBaseCost({ models, bio, parentId, subName })
 
   // cost = baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + upload fees + boost
   const [{ cost }] = await models.$queryRaw`

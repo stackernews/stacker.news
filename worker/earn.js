@@ -1,6 +1,7 @@
 import { notifyEarner } from '@/lib/webPush'
 import createPrisma from '@/lib/create-prisma'
-import { SN_NO_REWARDS_IDS } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, SN_NO_REWARDS_IDS, USER_ID } from '@/lib/constants'
+import performPaidAction from '@/api/paidAction'
 
 const TOTAL_UPPER_BOUND_MSATS = 1_000_000_000
 
@@ -186,4 +187,16 @@ function earnStmts (data, { models }) {
         stackedMsats: { increment: msats }
       }
     })]
+}
+
+const DAILY_STIMULUS_SATS = 50_000
+export async function earnRefill ({ models, lnd }) {
+  return await performPaidAction('DONATE',
+    { sats: DAILY_STIMULUS_SATS },
+    {
+      models,
+      me: { id: USER_ID.sn },
+      lnd,
+      forcePaymentMethod: PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT
+    })
 }

@@ -17,7 +17,8 @@ export default function BookmarkDropdownItem ({ item: { id, meBookmark } }) {
           id: `Item:${id}`,
           fields: {
             meBookmark: () => bookmarkItem.meBookmark
-          }
+          },
+          optimistic: true
         })
       }
     }

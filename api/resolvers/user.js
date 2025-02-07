@@ -441,26 +441,6 @@ export default {
       }
 
       if (user.noteWithdrawals) {
-        const p2pZap = await models.invoice.findFirst({
-          where: {
-            confirmedAt: {
-              gt: lastChecked
-            },
-            invoiceForward: {
-              withdrawl: {
-                userId: me.id,
-                status: 'CONFIRMED',
-                updatedAt: {
-                  gt: lastChecked
-                }
-              }
-            }
-          }
-        })
-        if (p2pZap) {
-          foundNotes()
-          return true
-        }
         const wdrwl = await models.withdrawl.findFirst({
           where: {
             userId: me.id,
@@ -935,7 +915,8 @@ export default {
       // get the user's first item
       const item = await models.item.findFirst({
         where: {
-          userId: user.id
+          userId: user.id,
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         },
         orderBy: {
           createdAt: 'asc'
@@ -1023,7 +1004,13 @@ export default {
       if (!me || me.id !== user.id) {
         return 0
       }
-      return msatsToSats(user.msats)
+      return msatsToSats(user.msats + user.mcredits)
+    },
+    credits: async (user, args, { models, me }) => {
+      if (!me || me.id !== user.id) {
+        return 0
+      }
+      return msatsToSats(user.mcredits)
     },
     authMethods,
     hasInvites: async (user, args, { models }) => {
@@ -1105,7 +1092,7 @@ export default {
 
       if (!when || when === 'forever') {
         // forever
-        return (user.stackedMsats && msatsToSats(user.stackedMsats)) || 0
+        return ((user.stackedMsats && msatsToSats(user.stackedMsats)) || 0)
       }
 
       const range = whenRange(when, from, to)

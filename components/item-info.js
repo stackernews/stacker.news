@@ -30,6 +30,39 @@ import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
 
+function itemTitle (item) {
+  let title = ''
+  title += numWithUnits(item.upvotes, {
+    abbreviate: false,
+    unitSingular: 'zapper',
+    unitPlural: 'zappers'
+  })
+  if (item.sats) {
+    title += ` \\ ${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
+  }
+  if (item.credits) {
+    title += ` \\ ${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
+  }
+  if (item.mine) {
+    title += ` (${numWithUnits(item.meSats, { abbreviate: false })} to post)`
+  } else if (item.meSats || item.meDontLikeSats || item.meAnonSats) {
+    const satSources = []
+    if (item.meAnonSats || (item.meSats || 0) - (item.meCredits || 0) > 0) {
+      satSources.push(`${numWithUnits((item.meSats || 0) + (item.meAnonSats || 0) - (item.meCredits || 0), { abbreviate: false })}`)
+    }
+    if (item.meCredits) {
+      satSources.push(`${numWithUnits(item.meCredits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`)
+    }
+    if (item.meDontLikeSats) {
+      satSources.push(`${numWithUnits(item.meDontLikeSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`)
+    }
+    if (satSources.length) {
+      title += ` (${satSources.join(' & ')} from me)`
+    }
+  }
+  return title
+}
+
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, edit, toggleEdit, editText,
@@ -62,16 +95,7 @@ export default function ItemInfo ({
     <div className={className || `${styles.other}`}>
       {!(item.position && (pinnable || !item.subName)) && !(!item.parentId && Number(item.user?.id) === USER_ID.ad) &&
         <>
-          <span title={`from ${numWithUnits(item.upvotes, {
-            abbreviate: false,
-            unitSingular: 'stacker',
-            unitPlural: 'stackers'
-          })} ${item.mine
-            ? `\\ ${numWithUnits(item.meSats, { abbreviate: false })} to post`
-            : `(${numWithUnits(meSats, { abbreviate: false })}${item.meDontLikeSats
-              ? ` & ${numWithUnits(item.meDontLikeSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
-              : ''} from me)`} `}
-          >
+          <span title={itemTitle(item)}>
             {numWithUnits(item.sats)}
           </span>
           <span> \ </span>
@@ -111,8 +135,8 @@ export default function ItemInfo ({
             {embellishUser}
           </Link>}
         <span> </span>
-        <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
-          {timeSince(new Date(item.createdAt))}
+        <Link href={`/items/${item.id}`} title={item.invoicePaidAt || item.createdAt} className='text-reset' suppressHydrationWarning>
+          {timeSince(new Date(item.invoicePaidAt || item.createdAt))}
         </Link>
         {item.prior &&
           <>
@@ -169,8 +193,7 @@ export default function ItemInfo ({
               )}
               {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
                 <CrosspostDropdownItem item={item} />}
-              {me && !item.position &&
-            !item.mine && !item.deletedAt &&
+              {me && !item.mine && !item.deletedAt &&
             (item.meDontLikeSats > meSats
               ? <DropdownItemUpVote item={item} />
               : <DontLikeThisDropdownItem item={item} />)}
@@ -226,14 +249,23 @@ function InfoDropdownItem ({ item }) {
           <div>{item.id}</div>
           <div>created at</div>
           <div>{item.createdAt}</div>
+          {item.invoicePaidAt &&
+            <>
+              <div>paid at</div>
+              <div>{item.invoicePaidAt}</div>
+            </>}
           <div>cost</div>
           <div>{item.cost}</div>
-          <div>sats</div>
-          <div>{item.sats}</div>
+          <div>stacked</div>
+          <div>{item.sats - item.credits} sats / {item.credits} ccs</div>
+          <div>stacked (comments)</div>
+          <div>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
           {me && (
             <>
-              <div>sats from me</div>
-              <div>{item.meSats}</div>
+              <div>from me</div>
+              <div>{item.meSats - item.meCredits} sats / {item.meCredits} ccs</div>
+              <div>downsats from me</div>
+              <div>{item.meDontLikeSats}</div>
             </>
           )}
           <div>zappers</div>

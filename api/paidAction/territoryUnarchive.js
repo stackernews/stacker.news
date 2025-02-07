@@ -6,6 +6,7 @@ export const anonable = false
 
 export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.REWARD_SATS,
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
@@ -35,6 +36,7 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
 
   if (sub.userId !== me.id) {
     await tx.territoryTransfer.create({ data: { subName: name, oldUserId: sub.userId, newUserId: me.id } })
+    await tx.subSubscription.delete({ where: { userId_subName: { userId: sub.userId, subName: name } } })
   }
 
   await tx.subAct.create({
@@ -43,6 +45,23 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
       subName: name,
       msats: cost,
       type: 'BILLING'
+    }
+  })
+
+  await tx.subSubscription.upsert({
+    where: {
+      userId_subName: {
+        userId: me.id,
+        subName: name
+      }
+    },
+    update: {
+      userId: me.id,
+      subName: name
+    },
+    create: {
+      userId: me.id,
+      subName: name
     }
   })
 

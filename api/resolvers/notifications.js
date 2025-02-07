@@ -247,7 +247,7 @@ export default {
             WHERE "Withdrawl"."userId" = $1
             AND "Withdrawl".status = 'CONFIRMED'
             AND "Withdrawl".created_at < $2
-            AND ("InvoiceForward"."id" IS NULL OR "Invoice"."actionType" = 'ZAP')
+            AND "InvoiceForward"."id" IS NULL
             GROUP BY "Withdrawl".id
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`

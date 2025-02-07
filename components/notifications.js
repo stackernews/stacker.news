@@ -43,6 +43,7 @@ import { useToast } from './toast'
 import classNames from 'classnames'
 import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
+import CCInfo from './info/cc'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -535,9 +536,27 @@ function Referral ({ n }) {
   )
 }
 
+function stackedText (item) {
+  let text = ''
+  if (item.sats - item.credits > 0) {
+    text += `${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
+
+    if (item.credits > 0) {
+      text += ' and '
+    }
+  }
+  if (item.credits > 0) {
+    text += `${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
+  }
+
+  return text
+}
+
 function Votification ({ n }) {
   let forwardedSats = 0
   let ForwardedUsers = null
+  let stackedTextString
+  let forwardedTextString
   if (n.item.forwards?.length) {
     forwardedSats = Math.floor(n.earnedSats * n.item.forwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
     ForwardedUsers = () => n.item.forwards.map((fwd, i) =>
@@ -547,16 +566,25 @@ function Votification ({ n }) {
         </Link>
         {i !== n.item.forwards.length - 1 && ' '}
       </span>)
+    stackedTextString = numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
+    forwardedTextString = numWithUnits(forwardedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
+  } else {
+    stackedTextString = stackedText(n.item)
   }
   return (
     <>
       <NoteHeader color='success'>
-        your {n.item.title ? 'post' : 'reply'} stacked {numWithUnits(n.earnedSats, { abbreviate: false })}
-        {n.item.forwards?.length > 0 &&
-          <>
-            {' '}and forwarded {numWithUnits(forwardedSats, { abbreviate: false })} to{' '}
-            <ForwardedUsers />
-          </>}
+        <span className='d-inline-flex'>
+          <span>
+            your {n.item.title ? 'post' : 'reply'} stacked {stackedTextString}
+            {n.item.forwards?.length > 0 &&
+              <>
+                {' '}and forwarded {forwardedTextString} to{' '}
+                <ForwardedUsers />
+              </>}
+          </span>
+          {n.item.credits > 0 && <CCInfo size={16} />}
+        </span>
       </NoteHeader>
       <NoteItem item={n.item} />
     </>
@@ -567,7 +595,10 @@ function ForwardedVotification ({ n }) {
   return (
     <>
       <NoteHeader color='success'>
-        you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false })} from
+        <span className='d-inline-flex'>
+          you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}
+          <CCInfo size={16} />
+        </span>
       </NoteHeader>
       <NoteItem item={n.item} />
     </>

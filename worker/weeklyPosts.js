@@ -5,7 +5,7 @@ import gql from 'graphql-tag'
 
 export async function autoPost ({ data: item, models, apollo, lnd, boss }) {
   return await performPaidAction('ITEM_CREATE',
-    { ...item, subName: 'meta', userId: USER_ID.sn, apiKey: true },
+    { subName: 'meta', ...item, userId: USER_ID.sn, apiKey: true },
     {
       models,
       me: { id: USER_ID.sn },
@@ -31,7 +31,9 @@ export async function payWeeklyPostBounty ({ data: { id }, models, apollo, lnd }
           bounty
           bountyPaidTo
           comments(sort: "top") {
-            id
+            comments {
+              id
+            }
           }
         }
       }`,
@@ -44,7 +46,7 @@ export async function payWeeklyPostBounty ({ data: { id }, models, apollo, lnd }
     throw new Error('Bounty already paid')
   }
 
-  const winner = item.comments[0]
+  const winner = item.comments.comments[0]
 
   if (!winner) {
     throw new Error('No winner')

@@ -1,9 +1,10 @@
 const { ApolloClient, InMemoryCache, HttpLink, gql } = require('@apollo/client')
 const { quote } = require('../lib/md.js')
+const { datePivot } = require('../lib/time.js')
 
 const ITEMS = gql`
-  query items ($sort: String, $when: String, $sub: String, $by: String) {
-    items (sort: $sort, when: $when, sub: $sub, by: $by) {
+  query items ($sort: String, $when: String, $sub: String, $by: String, $from: String, $to: String) {
+    items (sort: $sort, when: $when, sub: $sub, by: $by, from: $from, to: $to) {
       cursor
       items {
         id
@@ -70,8 +71,8 @@ const abbrNum = n => {
 }
 
 const SEARCH = gql`
-query Search($q: String, $sort: String, $what: String, $when: String) {
-  search(q: $q, sort: $sort, what: $what, when: $when) {
+query Search($q: String, $sort: String, $what: String, $when: String, $from: String, $to: String) {
+  search(q: $q, sort: $sort, what: $what, when: $when, from: $from, to: $to) {
     items {
       id
       title
@@ -79,6 +80,9 @@ query Search($q: String, $sort: String, $what: String, $when: String) {
     }
   }
 }`
+
+const to = String(new Date(new Date().setHours(0, 0, 0, 0)).getTime())
+const from = String(datePivot(new Date(Number(to)), { days: -8 }).getTime())
 
 async function bountyWinner (q) {
   const WINNER = gql`
@@ -95,7 +99,7 @@ async function bountyWinner (q) {
 
   const bounty = await client.query({
     query: SEARCH,
-    variables: { q: `${q} @sn`, sort: 'recent', what: 'posts', when: 'week' }
+    variables: { q: `${q} @sn`, sort: 'recent', what: 'posts', when: 'custom', from, to }
   })
 
   const items = bounty.data.search.items.filter(i => i.bountyPaidTo?.length > 0)
@@ -115,7 +119,7 @@ async function bountyWinner (q) {
   }
 }
 
-async function getTopUsers ({ by, cowboys = false, includeHidden = false, count = 5, when = 'week' } = {}) {
+async function getTopUsers ({ by, cowboys = false, includeHidden = false, count = 5, when = 'custom', from, to } = {}) {
   const accum = []
   let cursor = ''
   try {
@@ -127,7 +131,9 @@ async function getTopUsers ({ by, cowboys = false, includeHidden = false, count 
         variables = {
           ...variables,
           by,
-          when
+          when,
+          from,
+          to
         }
       }
       const result = await client.query({
@@ -146,17 +152,17 @@ async function getTopUsers ({ by, cowboys = false, includeHidden = false, count 
 async function main () {
   const top = await client.query({
     query: ITEMS,
-    variables: { sort: 'top', when: 'week' }
+    variables: { sort: 'top', when: 'custom', from, to }
   })
 
   const meta = await client.query({
     query: ITEMS,
-    variables: { sort: 'top', when: 'week', sub: 'meta' }
+    variables: { sort: 'top', when: 'custom', from, to, sub: 'meta' }
   })
 
   const ama = await client.query({
     query: ITEMS,
-    variables: { sort: 'top', when: 'week', sub: 'ama' }
+    variables: { sort: 'top', when: 'custom', from, to, sub: 'ama' }
   })
 
   const boosts = await client.query({
@@ -167,9 +173,9 @@ async function main () {
   const topMeme = await bountyWinner('meme monday')
   const topFact = await bountyWinner('fun fact')
 
-  const topCowboys = await getTopUsers({ cowboys: true })
-  const topStackers = await getTopUsers({ by: 'stacking' })
-  const topSpenders = await getTopUsers({ by: 'spent' })
+  const topCowboys = await getTopUsers({ cowboys: true, when: 'custom', from, to })
+  const topStackers = await getTopUsers({ by: 'stacking', when: 'custom', from, to })
+  const topSpenders = await getTopUsers({ by: 'spent', when: 'custom', from, to })
 
   process.stdout.write(
 `Happy Sat-urday Stackers,
@@ -186,7 +192,7 @@ ${ama.data.items.items.slice(0, 3).map((item, i) =>
   `${i + 1}. [${item.title}](https://stacker.news/items/${item.id})
     - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
 
-[**all AMAs**](https://stacker.news/~meta/top/posts/forever)
+[**all of this week's AMAs**](https://stacker.news/~AMA/top/posts/week)
 
 ##### Don't miss
 ${top.data.items.items.map((item, i) =>
@@ -200,18 +206,18 @@ ${top.data.items.items.map((item, i) =>
 ${meta.data.items.items.slice(0, 10).map((item, i) =>
   `- [${item.title}](https://stacker.news/items/${item.id})\n`).join('')}
 
-[**all meta**](https://stacker.news/~meta/top/posts/week)
+[**all of this week's meta**](https://stacker.news/~meta/top/posts/week)
 
 -------
 
-##### Top Monday meme \\ ${abbrNum(topMeme?.winner.sats)} sats \\ [@${topMeme?.winner.user.name}](https://stacker.news/${topMeme?.winner.user.name})
-![](${topMeme?.winner.image})
+##### Top Monday meme
+![](${new URL(topMeme?.winner.image, 'https://imgprxy.stacker.news').href})
 
 [**all monday memes**](https://stacker.news/items/${topMeme?.bounty})
 
 ------
 
-##### Top Friday fun fact \\ ${abbrNum(topFact?.winner.sats)} sats \\ [@${topFact?.winner.user.name}](https://stacker.news/${topFact?.winner.user.name})
+##### Top Friday fun fact
 ${topFact && quote(topFact?.winner.text)}
 
 [**all friday fun facts**](https://stacker.news/items/${topFact?.bounty})
@@ -246,7 +252,7 @@ ${boosts.data.items.items.map((item, i) =>
   : `${i + 1}. [${item.title.trim()}](https://stacker.news/items/${item.id})\n`
   ).join('')}
 
-[**all jobs**](https://stacker.news/~jobs)
+[**all active boosts**](https://stacker.news/top/boosts/month?by=boost)
 
 ------
 

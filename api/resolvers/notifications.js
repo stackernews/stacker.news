@@ -477,20 +477,10 @@ export default {
 
       switch (referral.type) {
         case 'POST':
-        case 'COMMENT': {
-          const item = await getItem(n, { id: referral.typeId }, { models, me })
-          return { ...item, type: 'Item' }
-        }
-        case 'TERRITORY': {
-          const sub = await getSub(n, { name: referral.typeId }, { models, me })
-          return { ...sub, type: 'Sub' }
-        }
-        case 'PROFILE': {
-          const profile = await models.user.findUnique({ where: { id: Number(referral.typeId) }, select: { name: true } })
-          return { ...profile, type: 'User' }
-        }
-        default:
-          return null
+        case 'COMMENT': return { ...await getItem(n, { id: referral.typeId }, { models, me }), type: 'Item' }
+        case 'TERRITORY': return { ...await getSub(n, { name: referral.typeId }, { models, me }), type: 'Sub' }
+        case 'PROFILE': return { ...await models.user.findUnique({ where: { id: Number(referral.typeId) }, select: { name: true } }), type: 'User' }
+        default: return null
       }
     }
   },

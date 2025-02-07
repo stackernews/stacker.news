@@ -137,13 +137,6 @@ export default function TerritoryForm ({ sub }) {
           required
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
-        <Input
-          label='reply cost'
-          name='replyCost'
-          type='number'
-          required
-          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-        />
         <CheckboxGroup label='post types' name='postTypes'>
           <Row>
             <Col xs={4} sm='auto'>
@@ -242,6 +235,13 @@ export default function TerritoryForm ({ sub }) {
           header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
           body={
             <>
+              <Input
+                label='reply cost'
+                name='replyCost'
+                type='number'
+                required
+                append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+              />
               <BootstrapForm.Label>moderation</BootstrapForm.Label>
               <Checkbox
                 inline

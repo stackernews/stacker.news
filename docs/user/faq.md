@@ -251,6 +251,20 @@ Other than that, the process to bring back an archived territory is the same as 
 
 You can't do that yet but this is planned. Currently, territories can only have a single founder.
 
+### What do the territory stats in my profile mean?
+
+![](https://m.stacker.news/76546)
+
+The stats for each territory are the following:
+
+- stacked: how many sats stackers stacked in this territory without the 30% sybil fee
+- revenue: how much revenue went to the founder
+- spent: how many sats have been spent in this territory on posts, comments, boosts, zaps, downzaps, jobs and poll votes
+- posts: the total number of posts in the territory
+- comments: the total number of comments in the territory
+
+You can filter the same stats by different periods in [top territories](/top/territories/day).
+
 ---
 
 ## Zaps

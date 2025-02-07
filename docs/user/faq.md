@@ -8,6 +8,8 @@ sub: meta
 
 _To quickly browse through this FAQ page, click the chapters icon in the top-right corner. This will let you scroll through all chapters or search for a particular topic within this page._
 
+last updated: February 7, 2025
+
 ---
 
 ## New Stackers Start Here
@@ -62,9 +64,9 @@ Stackers can also earn sats via daily rewards. Stacker News uses the revenue it 
 
 **3. Referrals**
 
-Another way to earn sats is via [referrals](/referrals/month). If a stacker signs up through one of your referral links, you will earn 10% of their rewards in perpetuity. A referral link is any link that ends with /r/\<your nym\>. Additionally, if a stacker clicks your referral links more than anyone else's on a given day, you will also receive 10% of their rewards for that day.
+Another way to earn sats is via [referrals](/referrals/month). If a stacker signs up through one of your referral links, you will earn 10% of their rewards in perpetuity. A referral link is any link that ends with /r/\<your name\>. Additionally, if a stacker clicks your referral links more than anyone else's on a given day, you will also receive 10% of their rewards for that day.
 
-Your posts, comments and profile are implicit referral links. They don't need to have the /r/\<your nym\> suffix.
+Your posts, comments and profile are implicit referral links. They don't need to have the /r/\<your name\> suffix.
 
 To make referring stackers easy, clicking on `...` next to a post or comment and selecting 'copy link' will copy it as a referral link by default. You can disable this in your [settings](/settings).
 
@@ -80,7 +82,7 @@ Stacker News is non-custodial. To send and receive sats, you need to attach a wa
 
 ### How do I attach a wallet?
 
-Click [here](/wallets) or click on your nym and select 'wallets'. You should then see this:
+Click [here](/wallets) or click on your name and select 'wallets'. You should then see this:
 
 ![](https://m.stacker.news/75164)
 
@@ -98,10 +100,6 @@ We currently support the following wallets:
 
 Click on the wallet you want to attach and complete the form.
 
-### What do the arrows mean?
-
-Not every wallet supports both sending and receiving sats. For example, a lightning address can receive sats but not send them. This is indicated with an arrow to the bottom-left ↙️. A wallet that can send sats will have an arrow to the top-right ↗️.
-
 ### I can't find my wallet. Can I not attach one?
 
 We currently don't list every wallet individually but [this is planned](https://github.com/stackernews/stacker.news/issues/1495).
@@ -115,6 +113,10 @@ If you can't find your wallet, there is still a high chance that you can attach 
 | [Wallet of Satoshi](https://www.walletofsatoshi.com/) | ✅ | ❌ |
 | [Zebedee](https://zbd.gg/) | ✅ | ❌ |
 | [Coinos](https://coinos.io/) | ✅ | ✅ |
+
+### What do the arrows mean?
+
+Not every wallet supports both sending and receiving sats. For example, a lightning address can receive sats but not send them. This is indicated with an arrow to the bottom-left ↙️. A wallet that can send sats will have an arrow to the top-right ↗️.
 
 If you still can't attach a wallet, you can reach out to us in the [saloon](/daily) or simply reply to this FAQ.
 

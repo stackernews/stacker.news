@@ -76,7 +76,7 @@ export function DiscussionForm ({
         name='text'
         minRows={6}
         hint={editThreshold
-          ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
+          ? <div className='text-muted fw-bold font-monospace'><Countdown date={editThreshold} /></div>
           : null}
       />
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />

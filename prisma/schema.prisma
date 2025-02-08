@@ -737,6 +737,7 @@ model Sub {
   rankingType      RankingType
   allowFreebies    Boolean     @default(true)
   baseCost         Int         @default(1)
+  replyCost        Int         @default(1)
   rewardsPct       Int         @default(50)
   desc             String?
   status           Status      @default(ACTIVE)

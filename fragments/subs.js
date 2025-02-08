@@ -25,6 +25,7 @@ export const SUB_FIELDS = gql`
     billedLastAt
     billPaidUntil
     baseCost
+    replyCost
     userId
     desc
     status

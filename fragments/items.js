@@ -35,6 +35,7 @@ export const ITEM_FIELDS = gql`
       meMuteSub
       meSubscription
       nsfw
+      replyCost
     }
     otsHash
     position

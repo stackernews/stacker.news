@@ -9,6 +9,8 @@ const territoryPattern = new URLPattern({ pathname: '/~:name([\\w_]+){/*}?' })
 const SN_REFERRER = 'sn_referrer'
 // we use this to hold /r/... referrers through the redirect
 const SN_REFERRER_NONCE = 'sn_referrer_nonce'
+// key for referred pages
+const SN_REFEREE_LANDING = 'sn_referee_landing'
 
 // we store the referrers in cookies for a future signup event
 // we pass the referrers in the request headers so we can use them in referral rewards for logged in stackers
@@ -60,6 +62,11 @@ function referrerMiddleware (request) {
       headers: requestHeaders
     }
   })
+
+  // we record the first page the user lands on and keep it for 24 hours
+  if (!request.cookies.has(SN_REFEREE_LANDING) && contentReferrer) {
+    response.cookies.set(SN_REFEREE_LANDING, contentReferrer, { maxAge: 60 * 60 * 24 })
+  }
 
   // if we don't already have an explicit referrer, give them the content referrer as one
   if (!request.cookies.has(SN_REFERRER) && contentReferrer) {

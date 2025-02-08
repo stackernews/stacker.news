@@ -56,6 +56,27 @@ async function getReferrerId (referrer) {
   }
 }
 
+async function getRefereeLanding (refereeLanding, refereeId) {
+  const referrerId = await getReferrerId(refereeLanding)
+  if (!referrerId) return null // we only record if it's a valid content
+
+  let type, typeId
+
+  if (refereeLanding.startsWith('item-')) {
+    typeId = refereeLanding.slice(5)
+    const item = await prisma.item.findUnique({ where: { id: parseInt(typeId) } })
+    type = item?.parentId ? 'COMMENT' : 'POST'
+  } else if (refereeLanding.startsWith('profile-')) {
+    type = 'PROFILE'
+    typeId = refereeLanding.slice(8)
+  } else if (refereeLanding.startsWith('territory-')) {
+    type = 'TERRITORY'
+    typeId = refereeLanding.slice(10)
+  }
+
+  return { referrerId, refereeId, type, typeId, landing: true }
+}
+
 /** @returns {Partial<import('next-auth').CallbacksOptions>} */
 function getCallbacks (req, res) {
   return {
@@ -79,6 +100,10 @@ function getCallbacks (req, res) {
         if (req.cookies.sn_referrer && user?.id) {
           const referrerId = await getReferrerId(req.cookies.sn_referrer)
           if (referrerId && referrerId !== parseInt(user?.id)) {
+            if (req.cookies.sn_referee_landing) { // if we have a landing referrer, record it
+              const refereeLanding = await getRefereeLanding(req.cookies.sn_referee_landing, user.id)
+              if (refereeLanding) await prisma.oneDayReferral.create({ data: refereeLanding })
+            }
             const { count } = await prisma.user.updateMany({ where: { id: user.id, referrerId: null }, data: { referrerId } })
             if (count > 0) notifyReferral(referrerId)
           }

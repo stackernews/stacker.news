@@ -176,6 +176,7 @@ model OneDayReferral {
   referee    User               @relation("OneDayReferral_referrees", fields: [refereeId], references: [id], onDelete: Cascade)
   type       OneDayReferralType
   typeId     String
+  landing    Boolean            @default(false)
 
   @@index([createdAt])
   @@index([referrerId])

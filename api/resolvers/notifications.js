@@ -472,8 +472,9 @@ export default {
   },
   Referral: {
     source: async (n, args, { models, me }) => {
+      // retrieve the referee landing record
       const referral = await models.oneDayReferral.findFirst({ where: { refereeId: Number(n.id), landing: true } })
-      if (!referral) return null
+      if (!referral) return null // if no landing record, it will return a generic referral
 
       switch (referral.type) {
         case 'POST':

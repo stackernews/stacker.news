@@ -100,7 +100,8 @@ function getCallbacks (req, res) {
         if (req.cookies.sn_referrer && user?.id) {
           const referrerId = await getReferrerId(req.cookies.sn_referrer)
           if (referrerId && referrerId !== parseInt(user?.id)) {
-            if (req.cookies.sn_referee_landing) { // if we have a landing referrer, record it
+            // if we have recorded a referee landing, record it in the db
+            if (req.cookies.sn_referee_landing) {
               const refereeLanding = await getRefereeLanding(req.cookies.sn_referee_landing, user.id)
               if (refereeLanding) await prisma.oneDayReferral.create({ data: refereeLanding })
             }

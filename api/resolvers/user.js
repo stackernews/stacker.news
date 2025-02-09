@@ -4,7 +4,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
-import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES } from '@/lib/constants'
+import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES, WALLET_MAX_RETRIES } from '@/lib/constants'
 import { viewGroup } from './growth'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
@@ -543,7 +543,17 @@ export default {
           actionType: {
             in: INVOICE_ACTION_NOTIFICATION_TYPES
           },
-          actionState: 'FAILED'
+          actionState: 'FAILED',
+          OR: [
+            {
+              paymentAttempt: {
+                gte: WALLET_MAX_RETRIES
+              }
+            },
+            {
+              actionType: 'ITEM_CREATE'
+            }
+          ]
         }
       })
 

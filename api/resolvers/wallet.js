@@ -468,7 +468,7 @@ const resolvers = {
         SELECT * FROM "Invoice"
         WHERE "userId" = ${me.id}
         AND "actionState" = 'FAILED'
-        AND "userCancel" = false
+        AND ("userCancel" = false OR "actionType" = 'ITEM_CREATE')
         AND "cancelledAt" < now() - ${`${WALLET_RETRY_AFTER_MS} milliseconds`}::interval
         AND "cancelledAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
         AND "paymentAttempt" < ${WALLET_MAX_RETRIES}

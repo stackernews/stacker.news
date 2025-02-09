@@ -351,7 +351,9 @@ export default {
         WHERE "Invoice"."userId" = $1
         AND "Invoice"."updated_at" < $2
         AND "Invoice"."actionState" = 'FAILED'
-        AND "Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES}
+        -- we want to show failed payments for posts in /notifications immediately and not wait for retries.
+        -- also, retries would never happen if the user has no wallet attached.
+        AND ("Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES} OR "Invoice"."actionType" = 'ITEM_CREATE')
         AND (
           "Invoice"."actionType" = 'ITEM_CREATE' OR
           "Invoice"."actionType" = 'ZAP' OR

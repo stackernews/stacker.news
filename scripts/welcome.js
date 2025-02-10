@@ -109,7 +109,11 @@ async function populate (bios) {
         bio.user.items = await fetchUserItems(bio.user.name)
         bio.user.credits = sumBy(bio.user.items, 'credits')
         bio.user.sats = sumBy(bio.user.items, 'sats') - bio.user.credits
-        bio.user.satstandard = bio.user.sats / (bio.user.sats + bio.user.credits)
+        if (bio.user.sats > 0 || bio.user.credits > 0) {
+          bio.user.satstandard = bio.user.sats / (bio.user.sats + bio.user.credits)
+        } else {
+          bio.user.satstandard = 0
+        }
         return bio
       }
     )

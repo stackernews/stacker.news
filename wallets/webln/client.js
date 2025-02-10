@@ -12,7 +12,7 @@ export const sendPayment = async (bolt11) => {
   try {
     await window.webln.enable()
   } catch (err) {
-    throw new WalletError('cannot re-enable wallet')
+    throw new WalletError(err.message)
   }
 
   // this will prompt for payment if no budget is set

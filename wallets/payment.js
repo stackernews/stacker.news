@@ -4,18 +4,20 @@ import { formatSats } from '@/lib/format'
 import useInvoice from '@/components/use-invoice'
 import { FAST_POLL_INTERVAL, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
-  WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
+  AnonWalletError, WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
   WalletNotEnabledError, WalletSendNotConfiguredError, WalletPaymentError, WalletError, WalletReceiverError
 } from '@/wallets/errors'
 import { canSend } from './common'
 import { useWalletLoggerFactory } from './logger'
 import { timeoutSignal, withTimeout } from '@/lib/time'
+import { useMe } from '@/components/me'
 
 export function useWalletPayment () {
   const wallets = useSendWallets()
   const sendPayment = useSendPayment()
   const loggerFactory = useWalletLoggerFactory()
   const invoiceHelper = useInvoice()
+  const { me } = useMe()
 
   return useCallback(async (invoice, { waitFor, updateOnFallback }) => {
     let aggregateError = new WalletAggregateError([])
@@ -24,6 +26,11 @@ export function useWalletPayment () {
     // throw a special error that caller can handle separately if no payment was attempted
     if (wallets.length === 0) {
       throw new WalletsNotAvailableError()
+    }
+
+    // anon user cannot pay with wallets
+    if (!me) {
+      throw new AnonWalletError()
     }
 
     for (let i = 0; i < wallets.length; i++) {
@@ -78,12 +85,8 @@ export function useWalletPayment () {
         }
 
         if (paymentError instanceof WalletPaymentError) {
-          // only cancel the invoice if we're not dealing with a WebLN error
-          // as WebLN failures need to fall back to QR code and anonymous users can't retry
-          if (paymentError.wallet !== 'webln') {
-            // if a payment was attempted, cancel invoice to make sure it cannot be paid later and create new invoice to retry.
-            await invoiceHelper.cancel(latestInvoice)
-          }
+          // if a payment was attempted, cancel invoice to make sure it cannot be paid later and create new invoice to retry.
+          await invoiceHelper.cancel(latestInvoice)
         }
 
         // only create a new invoice if we will try to pay with a wallet again

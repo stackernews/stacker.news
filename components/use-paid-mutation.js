@@ -61,15 +61,10 @@ export function usePaidMutation (mutation,
         throw err
       }
     }
+
     const paymentAttempted = walletError instanceof WalletPaymentError
     if (paymentAttempted) {
-      try {
-        walletInvoice = await invoiceHelper.retry(walletInvoice, { update: updateOnFallback })
-      } catch (err) {
-        if (walletError.wallet === 'webln') { // show QR code for WebLN errors
-          throw err
-        }
-      }
+      walletInvoice = await invoiceHelper.retry(walletInvoice, { update: updateOnFallback })
     }
     return await waitForQrPayment(walletInvoice, walletError, { persistOnNavigate, waitFor })
   }, [waitForWalletPayment, waitForQrPayment, invoiceHelper])

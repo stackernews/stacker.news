@@ -200,6 +200,10 @@
 }
 
 .p.onlyImages {
+    display: block;
+}
+
+.p.onlyImages:has(> .mediaContainer.loaded) {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;

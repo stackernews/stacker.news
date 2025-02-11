@@ -91,7 +91,7 @@ const mergeNotification = (event, sw, payload, currentNotifications, tag, nid) =
   // merge notifications into single notification payload
   // ---
   // tags that need to know the amount of notifications with same tag for merging
-  const AMOUNT_TAGS = ['REPLY', 'MENTION', 'ITEM_MENTION', 'REFERRAL', 'INVITE', 'FOLLOW', 'TERRITORY_POST']
+  const AMOUNT_TAGS = ['REPLY', 'THREAD', 'MENTION', 'ITEM_MENTION', 'REFERRAL', 'INVITE', 'FOLLOW', 'TERRITORY_POST']
   // tags that need to know the sum of sats of notifications with same tag for merging
   const SUM_SATS_TAGS = ['DEPOSIT', 'WITHDRAWAL']
   // this should reflect the amount of notifications that were already merged before
@@ -116,6 +116,8 @@ const mergeNotification = (event, sw, payload, currentNotifications, tag, nid) =
   if (AMOUNT_TAGS.includes(compareTag)) {
     if (compareTag === 'REPLY') {
       title = `you have ${amount} new replies`
+    } else if (compareTag === 'THREAD') {
+      title = `you have ${amount} new follow-up replies`
     } else if (compareTag === 'MENTION') {
       title = `you were mentioned ${amount} times`
     } else if (compareTag === 'ITEM_MENTION') {

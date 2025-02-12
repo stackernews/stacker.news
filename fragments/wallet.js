@@ -240,9 +240,3 @@ export const FAILED_INVOICES = gql`
     }
   }
 `
-
-export const SET_SEND_WALLETS = gql`
-  mutation SetSendWallets($sendWallets: Boolean!) {
-    setSendWallets(sendWallets: $sendWallets)
-  }
-`

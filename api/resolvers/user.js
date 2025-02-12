@@ -544,29 +544,25 @@ export default {
             in: INVOICE_ACTION_NOTIFICATION_TYPES
           },
           actionState: 'FAILED',
-          ...(user.sendWallets
-            ? {
-                OR: [
-                  {
-                    paymentAttempt: {
-                      gte: WALLET_MAX_RETRIES
-                    }
-                  },
-                  {
-                    actionType: 'ITEM_CREATE'
-                  },
-                  {
-                    userCancel: true
-                  },
-                  {
-                    cancelledAt: {
-                      lte: datePivot(new Date(), { milliseconds: -WALLET_RETRY_BEFORE_MS })
-                    }
-                  }
-                ]
+          OR: [
+            {
+              paymentAttempt: {
+                gte: WALLET_MAX_RETRIES
               }
-            : {})
-
+            },
+            {
+              actionType: 'ITEM_CREATE'
+            },
+            {
+              userCancel: true
+            },
+            {
+              // TODO: test this since invoice is not updated after retry-before
+              cancelledAt: {
+                lte: datePivot(new Date(), { milliseconds: -WALLET_RETRY_BEFORE_MS })
+              }
+            }
+          ]
         }
       })
 
@@ -886,14 +882,6 @@ export default {
 
       await models.user.update({ where: { id: me.id }, data: { hideWelcomeBanner: true } })
       return true
-    },
-    setSendWallets: async (parent, { sendWallets }, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      await models.user.update({ where: { id: me.id }, data: { sendWallets } })
-      return sendWallets
     }
   },
 

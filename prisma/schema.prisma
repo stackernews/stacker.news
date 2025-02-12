@@ -74,7 +74,6 @@ model User {
   nostrCrossposting         Boolean              @default(false)
   slashtagId                String?              @unique(map: "users.slashtagId_unique")
   noteCowboyHat             Boolean              @default(true)
-  sendWallets               Boolean              @default(false)
   streak                    Int?
   gunStreak                 Int?
   horseStreak               Int?

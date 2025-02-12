@@ -4,9 +4,9 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
-import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES, WALLET_MAX_RETRIES } from '@/lib/constants'
+import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 import { viewGroup } from './growth'
-import { timeUnitForRange, whenRange } from '@/lib/time'
+import { datePivot, timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
@@ -557,6 +557,11 @@ export default {
                   },
                   {
                     userCancel: true
+                  },
+                  {
+                    cancelledAt: {
+                      lte: datePivot(new Date(), { milliseconds: -WALLET_RETRY_BEFORE_MS })
+                    }
                   }
                 ]
               }

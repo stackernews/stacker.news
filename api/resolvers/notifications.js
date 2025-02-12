@@ -5,7 +5,7 @@ import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
 import { replyToSubscription } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
-import { WALLET_MAX_RETRIES } from '@/lib/constants'
+import { WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 
 export default {
   Query: {
@@ -353,9 +353,14 @@ export default {
         AND "Invoice"."actionState" = 'FAILED'
         -- we want to show notifications only if no more automated retries will be attempted.
         -- automated retries depend on if the user has wallets or not.
-        -- failed posts are an exception where we want to show them immediately and thus never automatically retry.
         ${meFull.sendWallets
-          ? `AND ("Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES} OR "Invoice"."actionType" = 'ITEM_CREATE' OR "Invoice"."userCancel" = true)`
+          ? `AND (
+              -- this is the inverse of the filter for automated retries
+              "Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES}
+              OR "Invoice"."actionType" = 'ITEM_CREATE'
+              OR "Invoice"."userCancel" = true
+              OR "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
+            )`
           : ''}
         AND (
           "Invoice"."actionType" = 'ITEM_CREATE' OR

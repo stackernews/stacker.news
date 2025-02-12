@@ -468,7 +468,8 @@ const resolvers = {
         SELECT * FROM "Invoice"
         WHERE "userId" = ${me.id}
         AND "actionState" = 'FAILED'
-        AND ("userCancel" = false OR "actionType" = 'ITEM_CREATE')
+        -- never retry if user has cancelled the invoice manually
+        AND "userCancel" = false
         AND "cancelledAt" < now() - ${`${WALLET_RETRY_AFTER_MS} milliseconds`}::interval
         AND "cancelledAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
         AND "paymentAttempt" < ${WALLET_MAX_RETRIES}

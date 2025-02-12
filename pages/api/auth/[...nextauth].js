@@ -105,12 +105,15 @@ function getCallbacks (req, res) {
         if (req.cookies.sn_referrer && user?.id) {
           const referrerData = await getReferrerData(req.cookies.sn_referrer, req.cookies.sn_referee_landing)
           if (referrerData?.referrerId && referrerData.referrerId !== parseInt(user?.id)) {
-            // if we have recorded a referee landing, record it in the db
-            if (referrerData.type && referrerData.typeId) {
-              await prisma.oneDayReferral.create({ data: { ...referrerData, refereeId: user.id, landing: true } })
-            }
+            // if user doesn't have a referrer, record it in the db
             const { count } = await prisma.user.updateMany({ where: { id: user.id, referrerId: null }, data: { referrerId: referrerData.referrerId } })
-            if (count > 0) notifyReferral(referrerData.referrerId)
+            if (count > 0) {
+              // if user has an associated landing, record it in the db
+              if (referrerData.type && referrerData.typeId) {
+                await prisma.oneDayReferral.create({ data: { ...referrerData, refereeId: user.id, landing: true } })
+              }
+              notifyReferral(referrerData.referrerId)
+            }
           }
         }
       }

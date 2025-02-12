@@ -40,41 +40,46 @@ function getEventCallbacks () {
   }
 }
 
-async function getReferrerId (referrer) {
+async function getReferrerFromCookie (referrer) {
+  let referrerId
+  let type
+  let typeId
   try {
     if (referrer.startsWith('item-')) {
-      return (await prisma.item.findUnique({ where: { id: parseInt(referrer.slice(5)) } }))?.userId
+      const item = await prisma.item.findUnique({ where: { id: parseInt(referrer.slice(5)) } })
+      type = item?.parentId ? 'COMMENT' : 'POST'
+      referrerId = item?.userId
+      typeId = item?.id
     } else if (referrer.startsWith('profile-')) {
-      return (await prisma.user.findUnique({ where: { name: referrer.slice(8) } }))?.id
+      const user = await prisma.user.findUnique({ where: { name: referrer.slice(8) } })
+      type = 'PROFILE'
+      referrerId = user?.id
+      typeId = user?.id
     } else if (referrer.startsWith('territory-')) {
-      return (await prisma.sub.findUnique({ where: { name: referrer.slice(10) } }))?.userId
+      type = 'TERRITORY'
+      typeId = referrer.slice(10)
+      const sub = await prisma.sub.findUnique({ where: { name: typeId } })
+      referrerId = sub?.userId
     } else {
-      return (await prisma.user.findUnique({ where: { name: referrer } }))?.id
+      return {
+        referrerId: (await prisma.user.findUnique({ where: { name: referrer } }))?.id
+      }
     }
   } catch (error) {
     console.error('error getting referrer id', error)
+    return
   }
+  return { referrerId, type, typeId: String(typeId) }
 }
 
-async function getRefereeLanding (refereeLanding, refereeId) {
-  const referrerId = await getReferrerId(refereeLanding)
-  if (!referrerId) return null // we only record if it's a valid content
-
-  let type, typeId
-
-  if (refereeLanding.startsWith('item-')) {
-    typeId = refereeLanding.slice(5)
-    const item = await prisma.item.findUnique({ where: { id: parseInt(typeId) } })
-    type = item?.parentId ? 'COMMENT' : 'POST'
-  } else if (refereeLanding.startsWith('profile-')) {
-    type = 'PROFILE'
-    typeId = refereeLanding.slice(8)
-  } else if (refereeLanding.startsWith('territory-')) {
-    type = 'TERRITORY'
-    typeId = refereeLanding.slice(10)
+async function getReferrerData (referrer, landing) {
+  const referrerData = await getReferrerFromCookie(referrer)
+  if (landing) {
+    const landingData = await getReferrerFromCookie(landing)
+    // explicit referrer takes precedence over landing referrer
+    return { ...landingData, ...referrerData }
   }
-
-  return { referrerId, refereeId, type, typeId, landing: true }
+  return referrerData
 }
 
 /** @returns {Partial<import('next-auth').CallbacksOptions>} */
@@ -98,15 +103,14 @@ function getCallbacks (req, res) {
         // isNewUser doesn't work for nostr/lightning auth because we create the user before nextauth can
         // this means users can update their referrer if they don't have one, which is fine
         if (req.cookies.sn_referrer && user?.id) {
-          const referrerId = await getReferrerId(req.cookies.sn_referrer)
-          if (referrerId && referrerId !== parseInt(user?.id)) {
+          const referrerData = await getReferrerData(req.cookies.sn_referrer, req.cookies.sn_referee_landing)
+          if (referrerData?.referrerId && referrerData.referrerId !== parseInt(user?.id)) {
             // if we have recorded a referee landing, record it in the db
-            if (req.cookies.sn_referee_landing) {
-              const refereeLanding = await getRefereeLanding(req.cookies.sn_referee_landing, user.id)
-              if (refereeLanding) await prisma.oneDayReferral.create({ data: refereeLanding })
+            if (referrerData.type && referrerData.typeId) {
+              await prisma.oneDayReferral.create({ data: { ...referrerData, refereeId: user.id, landing: true } })
             }
-            const { count } = await prisma.user.updateMany({ where: { id: user.id, referrerId: null }, data: { referrerId } })
-            if (count > 0) notifyReferral(referrerId)
+            const { count } = await prisma.user.updateMany({ where: { id: user.id, referrerId: null }, data: { referrerId: referrerData.referrerId } })
+            if (count > 0) notifyReferral(referrerData.referrerId)
           }
         }
       }

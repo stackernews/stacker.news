@@ -12,6 +12,24 @@ const SN_REFERRER_NONCE = 'sn_referrer_nonce'
 // key for referred pages
 const SN_REFEREE_LANDING = 'sn_referee_landing'
 
+function getContentReferrer (request, url) {
+  if (itemPattern.test(url)) {
+    let id = request.nextUrl.searchParams.get('commentId')
+    if (!id) {
+      ({ id } = itemPattern.exec(url).pathname.groups)
+    }
+    return `item-${id}`
+  }
+  if (profilePattern.test(url)) {
+    const { name } = profilePattern.exec(url).pathname.groups
+    return `profile-${name}`
+  }
+  if (territoryPattern.test(url)) {
+    const { name } = territoryPattern.exec(url).pathname.groups
+    return `territory-${name}`
+  }
+}
+
 // we store the referrers in cookies for a future signup event
 // we pass the referrers in the request headers so we can use them in referral rewards for logged in stackers
 function referrerMiddleware (request) {
@@ -27,6 +45,14 @@ function referrerMiddleware (request) {
     // referrers. Content referrers do not override explicit referrers because
     // explicit referees might click around before signing up.
     response.cookies.set(SN_REFERRER, referrer, { maxAge: 60 * 60 * 24 })
+
+    // we record the first page the user lands on and keep it for 24 hours
+    // in addition to the explicit referrer, this allows us to tell the referrer
+    // which share link the user clicked on
+    const contentReferrer = getContentReferrer(request, url)
+    if (contentReferrer) {
+      response.cookies.set(SN_REFEREE_LANDING, contentReferrer, { maxAge: 60 * 60 * 24 })
+    }
     // store the explicit referrer for one page load
     // this allows us to attribute both explicit and implicit referrers after the redirect
     // e.g. items/<num>/r/<referrer> links should attribute both the item op and the referrer
@@ -35,22 +61,9 @@ function referrerMiddleware (request) {
     return response
   }
 
-  let contentReferrer
-  if (itemPattern.test(request.url)) {
-    let id = request.nextUrl.searchParams.get('commentId')
-    if (!id) {
-      ({ id } = itemPattern.exec(request.url).pathname.groups)
-    }
-    contentReferrer = `item-${id}`
-  } else if (profilePattern.test(request.url)) {
-    const { name } = profilePattern.exec(request.url).pathname.groups
-    contentReferrer = `profile-${name}`
-  } else if (territoryPattern.test(request.url)) {
-    const { name } = territoryPattern.exec(request.url).pathname.groups
-    contentReferrer = `territory-${name}`
-  }
+  const contentReferrer = getContentReferrer(request, request.url)
 
-  // pass the referrers to SSR in the request headers
+  // pass the referrers to SSR in the request headers for one day referrer attribution
   const requestHeaders = new Headers(request.headers)
   const referrers = [request.cookies.get(SN_REFERRER_NONCE)?.value, contentReferrer].filter(Boolean)
   if (referrers.length) {
@@ -62,11 +75,6 @@ function referrerMiddleware (request) {
       headers: requestHeaders
     }
   })
-
-  // we record the first page the user lands on and keep it for 24 hours
-  if (!request.cookies.has(SN_REFEREE_LANDING) && contentReferrer) {
-    response.cookies.set(SN_REFEREE_LANDING, contentReferrer, { maxAge: 60 * 60 * 24 })
-  }
 
   // if we don't already have an explicit referrer, give them the content referrer as one
   if (!request.cookies.has(SN_REFERRER) && contentReferrer) {

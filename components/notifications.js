@@ -44,6 +44,7 @@ import classNames from 'classnames'
 import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
+import { useMe } from './me'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -528,16 +529,17 @@ function WithdrawlPaid ({ n }) {
 }
 
 function Referral ({ n }) {
+  const { me } = useMe()
   let referralSource = 'of you'
   switch (n.source?.__typename) {
     case 'Item':
-      referralSource = 'you shared this ' + (n.source.title ? 'post' : 'comment')
+      referralSource = (Number(me?.id) === Number(n.source.user?.id) ? 'of your' : 'you shared this') + ' ' + (n.source.title ? 'post' : 'comment')
       break
     case 'Sub':
-      referralSource = 'you shared ~' + n.source.name + ' territory'
+      referralSource = (Number(me?.id) === Number(n.source.userId) ? 'of your' : 'you shared the') + ' ~' + n.source.name + ' territory'
       break
     case 'User':
-      referralSource = 'you shared ' + n.source.name + '\'s profile'
+      referralSource = (me?.name === n.source.name ? 'of your profile' : `you shared ${n.source.name}'s profile`)
       break
   }
   return (

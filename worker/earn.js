@@ -74,6 +74,7 @@ export async function earn ({ name }) {
       FROM earners
       LEFT JOIN "OneDayReferral" ON "OneDayReferral"."refereeId" = earners."userId"
       WHERE "OneDayReferral".created_at >= date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day')
+      AND "OneDayReferral".landing IS NOT TRUE
       GROUP BY earners."userId", earners."foreverReferrerId", earners.proportion, earners.rank
       ORDER BY rank ASC`
 

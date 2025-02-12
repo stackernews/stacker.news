@@ -351,9 +351,10 @@ export default {
         WHERE "Invoice"."userId" = $1
         AND "Invoice"."updated_at" < $2
         AND "Invoice"."actionState" = 'FAILED'
-        -- we want to show failed payments for posts in /notifications immediately and not wait for retries.
-        -- also, retries would never happen if the user has no wallet attached.
-        AND ("Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES} OR "Invoice"."actionType" = 'ITEM_CREATE')
+        -- we want to show notifications only if no more automated retries will be attempted.
+        -- automated retries depend on if the user has wallets or not.
+        -- failed posts are an exception where we want to show them immediately and thus never automatically retry.
+        ${meFull.sendWallets ? `AND ("Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES} OR "Invoice"."actionType" = 'ITEM_CREATE')` : ''}
         AND (
           "Invoice"."actionType" = 'ITEM_CREATE' OR
           "Invoice"."actionType" = 'ZAP' OR

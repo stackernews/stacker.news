@@ -44,6 +44,7 @@ export default gql`
     generateApiKey(id: ID!): String
     deleteApiKey(id: ID!): User
     disableFreebies: Boolean
+    setSendWallets(sendWallets: Boolean!): Boolean
   }
 
   type User {

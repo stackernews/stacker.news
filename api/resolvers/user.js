@@ -544,16 +544,21 @@ export default {
             in: INVOICE_ACTION_NOTIFICATION_TYPES
           },
           actionState: 'FAILED',
-          OR: [
-            {
-              paymentAttempt: {
-                gte: WALLET_MAX_RETRIES
+          ...(user.sendWallets
+            ? {
+                OR: [
+                  {
+                    paymentAttempt: {
+                      gte: WALLET_MAX_RETRIES
+                    }
+                  },
+                  {
+                    actionType: 'ITEM_CREATE'
+                  }
+                ]
               }
-            },
-            {
-              actionType: 'ITEM_CREATE'
-            }
-          ]
+            : {})
+
         }
       })
 
@@ -873,6 +878,14 @@ export default {
 
       await models.user.update({ where: { id: me.id }, data: { hideWelcomeBanner: true } })
       return true
+    },
+    setSendWallets: async (parent, { sendWallets }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      await models.user.update({ where: { id: me.id }, data: { sendWallets } })
+      return sendWallets
     }
   },
 

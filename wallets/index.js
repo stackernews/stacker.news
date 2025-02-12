@@ -1,5 +1,5 @@
 import { useMe } from '@/components/me'
-import { FAILED_INVOICES, SET_WALLET_PRIORITY, WALLETS } from '@/fragments/wallet'
+import { FAILED_INVOICES, SET_WALLET_PRIORITY, WALLETS, SET_SEND_WALLETS } from '@/fragments/wallet'
 import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { useApolloClient, useLazyQuery, useMutation, useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -235,6 +235,7 @@ function RetryHandler ({ children }) {
   const waitForWalletPayment = useWalletPayment()
   const invoiceHelper = useInvoice()
   const [getFailedInvoices] = useLazyQuery(FAILED_INVOICES, { fetchPolicy: 'network-only', nextFetchPolicy: 'network-only' })
+  const [setSendWallets] = useMutation(SET_SEND_WALLETS)
 
   const retry = useCallback(async (invoice) => {
     const newInvoice = await invoiceHelper.retry({ ...invoice, newAttempt: true })
@@ -288,6 +289,14 @@ function RetryHandler ({ children }) {
     queuePoll()
     return stopPolling
   }, [wallets, getFailedInvoices, retry])
+
+  // save on server if user has send wallets so we can render notifications on the server
+  useEffect(() => {
+    setSendWallets({ variables: { sendWallets: wallets.length > 0 } })
+      .catch(err => {
+        console.error('setSendWallets mutation failed:', err)
+      })
+  }, [wallets.length])
 
   return children
 }

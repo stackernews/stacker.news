@@ -130,6 +130,10 @@ export default function Comment ({
       // HACK wait for other comments to uncollapse if they're collapsed
       setTimeout(() => {
         ref.current.scrollIntoView({ behavior: 'instant', block: 'start' })
+        // make sure we can outline a comment again if it was already outlined before
+        ref.current.addEventListener('animationend', () => {
+          ref.current.classList.remove('outline-it')
+        }, { once: true })
         ref.current.classList.add('outline-it')
       }, 100)
     }

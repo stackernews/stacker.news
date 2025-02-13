@@ -356,7 +356,6 @@ export default {
           "Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES}
           OR "Invoice"."actionType" = 'ITEM_CREATE'
           OR "Invoice"."userCancel" = true
-          -- TODO: test this since invoice is not updated after retry-before
           OR "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
         )
         AND (

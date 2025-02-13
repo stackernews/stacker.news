@@ -1,7 +1,7 @@
 import { getPaymentFailureStatus, hodlInvoiceCltvDetails, getPaymentOrNotSent } from '@/api/lnd'
 import { paidActions } from '@/api/paidAction'
 import { walletLogger } from '@/api/resolvers/wallet'
-import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
+import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 import { formatMsats, formatSats, msatsToSats, toPositiveNumber } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
@@ -466,9 +466,19 @@ export async function paidActionFailed ({ data: { invoiceId, ...args }, models, 
 
       await paidActions[dbInvoice.actionType].onFail?.({ invoice: dbInvoice }, { models, tx, lnd })
 
+      const cancelledAt = new Date()
+
+      // XXX update invoice after retry timeout for notification indicator
+      await models.$executeRaw`
+        INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil, priority)
+        VALUES ('retryTimeout',
+          jsonb_build_object('hash', ${dbInvoice.hash}::TEXT), 21, true,
+            ${cancelledAt}::TIMESTAMP WITH TIME ZONE + ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval,
+            ${cancelledAt}::TIMESTAMP WITH TIME ZONE + ${`${2 * WALLET_RETRY_BEFORE_MS} milliseconds`}::interval, 100)`
+
       return {
         cancelled: true,
-        cancelledAt: new Date()
+        cancelledAt
       }
     },
     ...args

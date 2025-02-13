@@ -557,7 +557,6 @@ export default {
               userCancel: true
             },
             {
-              // TODO: test this since invoice is not updated after retry-before
               cancelledAt: {
                 lte: datePivot(new Date(), { milliseconds: -WALLET_RETRY_BEFORE_MS })
               }

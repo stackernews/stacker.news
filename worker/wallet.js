@@ -161,6 +161,10 @@ export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd
   }
 }
 
+export async function retryTimeout ({ data: { hash }, models, lnd, boss }) {
+  await models.invoice.update({ where: { hash }, data: { updatedAt: new Date() } })
+}
+
 async function subscribeToWithdrawals (args) {
   const { lnd } = args
 

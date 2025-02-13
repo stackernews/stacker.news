@@ -5,7 +5,7 @@ import createPrisma from '@/lib/create-prisma'
 import {
   checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
   checkWithdrawal,
-  finalizeHodlInvoice, subscribeToWallet
+  finalizeHodlInvoice, retryTimeout, subscribeToWallet
 } from './wallet'
 import { repin } from './repin'
 import { trust } from './trust'
@@ -101,6 +101,7 @@ async function work () {
     await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
     await boss.work('autoWithdraw', jobWrapper(autoWithdraw))
     await boss.work('checkInvoice', jobWrapper(checkInvoice))
+    await boss.work('retryTimeout', jobWrapper(retryTimeout))
     await boss.work('checkWithdrawal', jobWrapper(checkWithdrawal))
     // paidAction jobs
     await boss.work('paidActionForwarding', jobWrapper(paidActionForwarding))

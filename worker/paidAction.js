@@ -470,11 +470,11 @@ export async function paidActionFailed ({ data: { invoiceId, ...args }, models, 
 
       // XXX update invoice after retry timeout for notification indicator
       await models.$executeRaw`
-        INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil, priority)
+        INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
         VALUES ('retryTimeout',
           jsonb_build_object('hash', ${dbInvoice.hash}::TEXT), 21, true,
             ${cancelledAt}::TIMESTAMP WITH TIME ZONE + ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval,
-            ${cancelledAt}::TIMESTAMP WITH TIME ZONE + ${`${2 * WALLET_RETRY_BEFORE_MS} milliseconds`}::interval, 100)`
+            ${cancelledAt}::TIMESTAMP WITH TIME ZONE + ${`${2 * WALLET_RETRY_BEFORE_MS} milliseconds`}::interval)`
 
       return {
         cancelled: true,

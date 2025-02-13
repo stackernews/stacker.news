@@ -475,6 +475,24 @@ export default {
       return subAct.subName
     }
   },
+  ReferralSource: {
+    __resolveType: async (n, args, { models }) => n.type
+  },
+  Referral: {
+    source: async (n, args, { models, me }) => {
+      // retrieve the referee landing record
+      const referral = await models.oneDayReferral.findFirst({ where: { refereeId: Number(n.id), landing: true } })
+      if (!referral) return null // if no landing record, it will return a generic referral
+
+      switch (referral.type) {
+        case 'POST':
+        case 'COMMENT': return { ...await getItem(n, { id: referral.typeId }, { models, me }), type: 'Item' }
+        case 'TERRITORY': return { ...await getSub(n, { name: referral.typeId }, { models, me }), type: 'Sub' }
+        case 'PROFILE': return { ...await models.user.findUnique({ where: { id: Number(referral.typeId) }, select: { name: true } }), type: 'User' }
+        default: return null
+      }
+    }
+  },
   Streak: {
     days: async (n, args, { models }) => {
       const res = await models.$queryRaw`

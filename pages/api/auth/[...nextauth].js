@@ -199,7 +199,7 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
       let user = await prisma.user.findUnique({ where: { [pubkeyColumnName]: pubkey } })
 
       // make following code aware of cookie pointer for account switching
-      req = multiAuthMiddleware(req)
+      req = await multiAuthMiddleware(req)
       // token will be undefined if we're not logged in at all or if we switched to anon
       const token = await getToken({ req })
       if (!user) {

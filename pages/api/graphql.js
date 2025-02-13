@@ -6,6 +6,7 @@ import lnd from '@/api/lnd'
 import typeDefs from '@/api/typeDefs'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './auth/[...nextauth]'
+import { decode as decodeJWT, encode as encodeJWT } from 'next-auth/jwt'
 import search from '@/api/search'
 import {
   ApolloServerPluginLandingPageLocalDefault,
@@ -67,7 +68,7 @@ export default startServerAndCreateNextHandler(apolloServer, {
         session = { user: { ...sessionFields, apiKey: true } }
       }
     } else {
-      req = multiAuthMiddleware(req)
+      req = await multiAuthMiddleware(req)
       session = await getServerSession(req, res, getAuthOptions(req))
     }
     return {
@@ -82,14 +83,14 @@ export default startServerAndCreateNextHandler(apolloServer, {
   }
 })
 
-export function multiAuthMiddleware (request) {
+export async function multiAuthMiddleware (request) {
   // switch next-auth session cookie with multi_auth cookie if cookie pointer present
 
   // is there a cookie pointer?
   const cookiePointerName = 'multi_auth.user-id'
   const hasCookiePointer = !!request.cookies[cookiePointerName]
 
-  const secure = process.env.NODE_ENV === 'production'
+  const secure = process.env.NODE_ENV === 'development'
 
   // is there a session?
   const sessionCookieName = secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
@@ -115,9 +116,22 @@ export function multiAuthMiddleware (request) {
 
   if (userJWT) {
     // use JWT found in cookie pointed to by cookie pointer
-    request.cookies[sessionCookieName] = userJWT
+    // refresh JWT if possible
+    request.cookies[sessionCookieName] = await refreshJWT(userJWT)
     return request
   }
 
   return request
+}
+
+async function refreshJWT (userJWT) {
+  try {
+    const secret = process.env.NEXTAUTH_SECRET
+    const decodedJWT = await decodeJWT({ token: userJWT, secret })
+    const refreshedJWT = await encodeJWT({ token: decodedJWT, secret })
+    return refreshedJWT
+  } catch (e) {
+    console.error('error refreshing JWT', e)
+    return userJWT
+  }
 }

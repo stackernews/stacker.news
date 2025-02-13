@@ -37,6 +37,7 @@ model User {
   tipPopover                Boolean              @default(false)
   upvotePopover             Boolean              @default(false)
   trust                     Float                @default(0)
+  trustWithoutConflict      Float                @default(0)
   lastSeenAt                DateTime?
   stackedMsats              BigInt               @default(0)
   stackedMcredits           BigInt               @default(0)
@@ -343,14 +344,18 @@ model Mute {
 }
 
 model Arc {
-  fromId   Int
-  fromUser User  @relation("fromUser", fields: [fromId], references: [id], onDelete: Cascade)
-  toId     Int
-  toUser   User  @relation("toUser", fields: [toId], references: [id], onDelete: Cascade)
-  zapTrust Float
+  id              Int     @id @default(autoincrement())
+  fromId          Int
+  fromUser        User    @relation("fromUser", fields: [fromId], references: [id], onDelete: Cascade)
+  toId            Int
+  toUser          User    @relation("toUser", fields: [toId], references: [id], onDelete: Cascade)
+  zapTrust        Float
+  // this is used to store trust without conflicts
+  // it's a temporary solution until we create trust graphs for each territory
+  withoutConflict Boolean @default(false)
 
-  @@id([fromId, toId])
-  @@index([toId, fromId])
+  @@unique([fromId, toId, withoutConflict])
+  @@unique([toId, fromId, withoutConflict])
 }
 
 enum StreakType {

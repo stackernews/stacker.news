@@ -1,8 +1,13 @@
 import * as math from 'mathjs'
 import { USER_ID, SN_ADMIN_IDS } from '@/lib/constants'
+import { Prisma } from '@prisma/client'
 
 export async function trust ({ boss, models }) {
+  // for simplicity, until this is completely rewritten, we want to do two trust runs
+  // one run not checking for conflicts, computing global AND personal trust
+  // one run removing conflicts, recording unconflicted arcs
   try {
+    // first run
     console.time('trust')
     console.timeLog('trust', 'getting graph')
     const graph = await getGraph(models)
@@ -10,8 +15,18 @@ export async function trust ({ boss, models }) {
     const [vGlobal, mPersonal] = await trustGivenGraph(graph)
     console.timeLog('trust', 'storing trust')
     await storeTrust(models, graph, vGlobal, mPersonal)
+
+    // second run
+    console.time('trust without conflicts')
+    console.timeLog('trust without conflicts', 'getting graph')
+    const graphWithoutConflicts = await getGraph(models, true)
+    console.timeLog('trust without conflicts', 'computing trust')
+    const [vGlobalWithoutConflicts, mPersonalWithoutConflicts] = await trustGivenGraph(graphWithoutConflicts)
+    console.timeLog('trust without conflicts', 'storing trust')
+    await storeTrust(models, graphWithoutConflicts, vGlobalWithoutConflicts, mPersonalWithoutConflicts, true)
   } finally {
     console.timeEnd('trust')
+    console.timeEnd('trust without conflicts')
   }
 }
 
@@ -26,7 +41,7 @@ const Z_CONFIDENCE = 6.109410204869 // 99.9999999% confidence
 const GLOBAL_ROOT = 616
 const SEED_WEIGHT = 0.25
 const AGAINST_MSAT_MIN = 1000
-const MSAT_MIN = 1000
+const MSAT_MIN = 10001 // 10001 is the minimum for a tip to be counted in trust
 const SIG_DIFF = 0.1 // need to differ by at least 10 percent
 
 /*
@@ -114,7 +129,7 @@ function trustGivenGraph (graph) {
     ...
   ]
 */
-async function getGraph (models) {
+async function getGraph (models, withoutConflict = false) {
   return await models.$queryRaw`
     SELECT id, json_agg(json_build_object(
       'node', oid,
@@ -128,7 +143,11 @@ async function getGraph (models) {
         JOIN "Item" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".act IN ('FEE', 'TIP', 'DONT_LIKE_THIS')
           AND "Item"."parentId" IS NULL AND NOT "Item".bio AND "Item"."userId" <> "ItemAct"."userId"
         JOIN users ON "ItemAct"."userId" = users.id AND users.id <> ${USER_ID.anon}
-        WHERE "ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID'
+        JOIN "Sub" ON "Sub".name = "Item"."subName"
+        WHERE ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
+        ${withoutConflict
+          ? Prisma.sql` AND ("Sub"."userId" <> "ItemAct"."userId" OR "Sub"."userId" = ANY (${SN_ADMIN_IDS}))`
+          : Prisma.empty}
         GROUP BY user_id, name, item_id, user_at, against
         HAVING CASE WHEN
           "ItemAct".act = 'DONT_LIKE_THIS' THEN sum("ItemAct".msats) > ${AGAINST_MSAT_MIN}
@@ -167,7 +186,7 @@ async function getGraph (models) {
     ORDER BY id ASC`
 }
 
-async function storeTrust (models, graph, vGlobal, mPersonal) {
+async function storeTrust (models, graph, vGlobal, mPersonal, withoutConflict = false) {
   // convert nodeTrust into table literal string
   let globalValues = ''
   let personalValues = ''
@@ -176,29 +195,36 @@ async function storeTrust (models, graph, vGlobal, mPersonal) {
     if (globalValues) globalValues += ','
     globalValues += `(${graph[idx].id}, ${val}::FLOAT)`
     if (personalValues) personalValues += ','
-    personalValues += `(${GLOBAL_ROOT}, ${graph[idx].id}, ${val}::FLOAT)`
+    personalValues += `(${GLOBAL_ROOT}, ${graph[idx].id}, ${val}::FLOAT, ${withoutConflict}::BOOLEAN)`
   })
 
   math.forEach(mPersonal, (val, [fromIdx, toIdx]) => {
     const globalVal = vGlobal.get([toIdx])
     if (isNaN(val) || val - globalVal <= SIG_DIFF) return
     if (personalValues) personalValues += ','
-    personalValues += `(${graph[fromIdx].id}, ${graph[toIdx].id}, ${val}::FLOAT)`
+    personalValues += `(${graph[fromIdx].id}, ${graph[toIdx].id}, ${val}::FLOAT, ${withoutConflict}::BOOLEAN)`
   })
 
   // update the trust of each user in graph
   await models.$transaction([
-    models.$executeRaw`UPDATE users SET trust = 0`,
+    models.$executeRaw`UPDATE users SET ${withoutConflict ? 'trustWithoutConflict' : 'trust'} = 0`,
     models.$executeRawUnsafe(
       `UPDATE users
-        SET trust = g.trust
+        SET ${withoutConflict ? 'trustWithoutConflict' : 'trust'} = g.trust
         FROM (values ${globalValues}) g(id, trust)
         WHERE users.id = g.id`),
     models.$executeRawUnsafe(
-      `INSERT INTO "Arc" ("fromId", "toId", "zapTrust")
-        SELECT id, oid, trust
-        FROM (values ${personalValues}) g(id, oid, trust)
-        ON CONFLICT ("fromId", "toId") DO UPDATE SET "zapTrust" = EXCLUDED."zapTrust"`
+      `INSERT INTO "Arc" ("fromId", "toId", "zapTrust", "withoutConflict")
+        SELECT id, oid, trust, "withoutConflict"
+        FROM (values ${personalValues}) g(id, oid, trust, "withoutConflict")
+        ON CONFLICT ("fromId", "toId", "withoutConflict") DO UPDATE SET "zapTrust" = EXCLUDED."zapTrust"`
+    ),
+    // select all arcs that don't exist in personalValues and delete them
+    models.$executeRawUnsafe(
+      `DELETE FROM "Arc"
+        WHERE "Arc"."fromId" NOT IN (SELECT id FROM (values ${personalValues}) g(id, oid, trust, "withoutConflict"))
+        AND "Arc"."toId" NOT IN (SELECT oid FROM (values ${personalValues}) g(id, oid, trust, "withoutConflict"))
+        AND "Arc"."withoutConflict" = ${withoutConflict}::BOOLEAN`
     )
   ])
 }

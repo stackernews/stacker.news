@@ -88,6 +88,13 @@ export const NOTIFICATIONS = gql`
           days
           type
         }
+        ... on SatSummary {
+          id
+          sortTime
+          date
+          stacked
+          spent
+        }
         ... on Earn {
           id
           sortTime

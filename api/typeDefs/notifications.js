@@ -82,6 +82,14 @@ export default gql`
     type: String!
   }
 
+  type SatSummary {
+    id: ID!
+    sortTime: Date!
+    date: Date!
+    stacked: Int
+    spent: Int
+  }
+
   type Earn {
     id: ID!
     earnedSats: Int!
@@ -158,7 +166,7 @@ export default gql`
 
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
-    | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus
+    | Streak | SatSummary | FollowActivity | ForwardedVotification | Revenue | SubStatus
     | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | Invoicification
     | ReferralReward
 

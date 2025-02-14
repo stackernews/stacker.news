@@ -5,6 +5,7 @@ import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
 import { replyToSubscription } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { msatsToSats } from '@/lib/format'
 
 export default {
   Query: {
@@ -361,6 +362,21 @@ export default {
         LIMIT ${LIMIT})`
       )
 
+      if (meFull.noteSatSummary) {
+        queries.push(
+          `(SELECT 'stats_' || date_trunc('day', t)::text as id,
+            t AS "sortTime", NULL as "earnedSats", 'SatSummary' AS type
+            FROM user_stats_days
+            WHERE id = $1
+            AND t >= date_trunc('day', CURRENT_DATE - INTERVAL '2 day')
+            AND t <= $2
+            GROUP BY t
+            HAVING sum(msats_stacked) != 0 OR sum(msats_spent) != 0
+            ORDER BY "sortTime" DESC
+            LIMIT 1)`
+        )
+      }
+
       const notifications = await models.$queryRawUnsafe(
         `SELECT id, "sortTime", "earnedSats", type,
             "sortTime" AS "minSortTime"
@@ -502,6 +518,29 @@ export default {
         WHERE id = ${Number(n.id)}
       `
       return res.length ? res[0].type : null
+    }
+  },
+  SatSummary: {
+    date: async (n, args, { models }) => {
+      return new Date(n.sortTime)
+    },
+    stacked: async (n, args, { me, models }) => {
+      const [{ stacked }] = await models.$queryRaw`
+        SELECT sum(msats_stacked) as stacked
+        FROM user_stats_days
+        WHERE id = ${Number(me.id)}
+        AND t = ${n.sortTime}::timestamp
+      `
+      return (stacked && msatsToSats(stacked)) || 0
+    },
+    spent: async (n, args, { me, models }) => {
+      const [{ spent }] = await models.$queryRaw`
+        SELECT sum(msats_spent) as spent
+        FROM user_stats_days
+        WHERE id = ${Number(me.id)} 
+        AND t = ${n.sortTime}::timestamp
+      `
+      return (spent && msatsToSats(spent)) || 0
     }
   },
   Earn: {

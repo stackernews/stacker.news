@@ -67,7 +67,7 @@ export function onPush (sw) {
 // if there is no tag or the tag is one of the following
 // we show the notification immediately
 const immediatelyShowNotification = (tag) =>
-  !tag || ['TIP', 'FORWARDEDTIP', 'EARN', 'STREAK', 'TERRITORY_TRANSFER'].includes(tag.split('-')[0])
+  !tag || ['TIP', 'FORWARDEDTIP', 'EARN', 'STREAK', 'TERRITORY_TRANSFER', 'DAILY_STATS'].includes(tag.split('-')[0])
 
 // merge notifications with the same tag
 const mergeNotification = (event, sw, payload, currentNotifications, tag, nid) => {

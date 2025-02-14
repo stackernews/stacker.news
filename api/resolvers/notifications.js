@@ -354,7 +354,6 @@ export default {
         AND (
           -- this is the inverse of the filter for automated retries
           "Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES}
-          OR "Invoice"."actionType" = 'ITEM_CREATE'
           OR "Invoice"."userCancel" = true
           OR "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
         )

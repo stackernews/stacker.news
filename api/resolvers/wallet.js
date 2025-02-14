@@ -473,8 +473,6 @@ const resolvers = {
         AND "cancelledAt" < now() - ${`${WALLET_RETRY_AFTER_MS} milliseconds`}::interval
         AND "cancelledAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
         AND "paymentAttempt" < ${WALLET_MAX_RETRIES}
-        -- never retry failed posts because we always immediately show them in notifications
-        AND "actionType" <> 'ITEM_CREATE'
         ORDER BY id DESC`
     }
   },

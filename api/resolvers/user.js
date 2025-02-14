@@ -551,9 +551,6 @@ export default {
               }
             },
             {
-              actionType: 'ITEM_CREATE'
-            },
-            {
               userCancel: true
             },
             {

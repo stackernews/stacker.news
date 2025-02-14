@@ -552,17 +552,37 @@ export default {
             },
             {
               userCancel: true
-            },
-            {
-              cancelledAt: {
-                lte: datePivot(new Date(), { milliseconds: -WALLET_RETRY_BEFORE_MS })
-              }
             }
           ]
         }
       })
 
       if (invoiceActionFailed) {
+        foundNotes()
+        return true
+      }
+
+      const invoiceActionFailed2 = await models.invoice.findFirst({
+        where: {
+          userId: me.id,
+          updatedAt: {
+            gt: datePivot(lastChecked, { milliseconds: -WALLET_RETRY_BEFORE_MS })
+          },
+          actionType: {
+            in: INVOICE_ACTION_NOTIFICATION_TYPES
+          },
+          actionState: 'FAILED',
+          paymentAttempt: {
+            lt: WALLET_MAX_RETRIES
+          },
+          userCancel: false,
+          cancelledAt: {
+            lte: datePivot(new Date(), { milliseconds: -WALLET_RETRY_BEFORE_MS })
+          }
+        }
+      })
+
+      if (invoiceActionFailed2) {
         foundNotes()
         return true
       }

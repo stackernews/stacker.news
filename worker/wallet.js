@@ -3,7 +3,7 @@ import {
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
 import { getPaymentOrNotSent } from '@/api/lnd'
-import { datePivot, sleep } from '@/lib/time'
+import { sleep } from '@/lib/time'
 import retry from 'async-retry'
 import {
   paidActionPaid, paidActionForwarded,
@@ -159,17 +159,6 @@ export async function checkInvoice ({ data: { hash, invoice }, boss, models, lnd
       return await paidActionFailed({ data: { invoiceId: dbInv.id, invoice: inv }, models, lnd, boss })
     }
   }
-}
-
-export async function retryTimeout ({ data: { hash }, models, lnd, boss }) {
-  // This job exists to make sure the notification indicator shows up when
-  //   1) not enough automated retries have been attempted
-  //     and
-  //   2) no more automated retries will be attempted because invoice is too old
-  // since the notification indicator only checks invoices that have been updated since the last poll.
-  // We set the date slightly in future to avoid possibly possible (= not verified)
-  // race conditions between the notification indicator poll and this update.
-  await models.invoice.update({ where: { hash }, data: { updatedAt: datePivot(new Date(), { seconds: 5 }) } })
 }
 
 async function subscribeToWithdrawals (args) {

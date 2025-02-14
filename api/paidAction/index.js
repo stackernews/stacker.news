@@ -264,42 +264,49 @@ async function performDirectAction (actionType, args, incomingContext) {
     throw new NonInvoiceablePeerError()
   }
 
-  let invoiceObject
-
   try {
     await assertBelowMaxPendingDirectPayments(userId, incomingContext)
 
     const description = actionDescription ?? await paidActions[actionType].describe(args, incomingContext)
-    invoiceObject = await createUserInvoice(userId, {
+
+    for await (const { invoice, wallet } of createUserInvoice(userId, {
       msats: cost,
       description,
       expiry: INVOICE_EXPIRE_SECS
-    }, { models, lnd })
-  } catch (e) {
-    console.error('failed to create outside invoice', e)
-    throw new NonInvoiceablePeerError()
-  }
+    }, { models, lnd })) {
+      let hash
+      try {
+        hash = parsePaymentRequest({ request: invoice }).id
+      } catch (e) {
+        console.error('failed to parse invoice', e)
+        continue
+      }
 
-  const { invoice, wallet } = invoiceObject
-  const hash = parsePaymentRequest({ request: invoice }).id
-
-  const payment = await models.directPayment.create({
-    data: {
-      comment,
-      lud18Data,
-      desc: noteStr,
-      bolt11: invoice,
-      msats: cost,
-      hash,
-      walletId: wallet.id,
-      receiverId: userId
+      try {
+        return {
+          invoice: await models.directPayment.create({
+            data: {
+              comment,
+              lud18Data,
+              desc: noteStr,
+              bolt11: invoice,
+              msats: cost,
+              hash,
+              walletId: wallet.id,
+              receiverId: userId
+            }
+          }),
+          paymentMethod: 'DIRECT'
+        }
+      } catch (e) {
+        console.error('failed to create direct payment', e)
+      }
     }
-  })
-
-  return {
-    invoice: payment,
-    paymentMethod: 'DIRECT'
+  } catch (e) {
+    console.error('failed to create user invoice', e)
   }
+
+  throw new NonInvoiceablePeerError()
 }
 
 export async function retryPaidAction (actionType, args, incomingContext) {

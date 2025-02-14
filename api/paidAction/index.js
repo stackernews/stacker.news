@@ -3,7 +3,7 @@ import { datePivot } from '@/lib/time'
 import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { createHmac } from '@/api/resolvers/wallet'
 import { Prisma } from '@prisma/client'
-import { createWrappedInvoice, createInvoice as createUserInvoice } from '@/wallets/server'
+import { createWrappedInvoice, createUserInvoice } from '@/wallets/server'
 import { assertBelowMaxPendingInvoices, assertBelowMaxPendingDirectPayments } from './lib/assert'
 
 import * as ITEM_CREATE from './itemCreate'

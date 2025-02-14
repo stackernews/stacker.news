@@ -24,7 +24,7 @@ export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 
-export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { paymentAttempt, predecessorId, models }) {
+export async function createUserInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { paymentAttempt, predecessorId, models }) {
   // get the wallets in order of priority
   const wallets = await getInvoiceableWallets(userId, {
     paymentAttempt,
@@ -86,7 +86,7 @@ export async function createWrappedInvoice (userId,
   { paymentAttempt, predecessorId, models, me, lnd }) {
   let logger, bolt11
   try {
-    const { invoice, wallet } = await createInvoice(userId, {
+    const { invoice, wallet } = await createUserInvoice(userId, {
       // this is the amount the stacker will receive, the other (feePercent)% is our fee
       msats: toPositiveBigInt(msats) * (100n - feePercent) / 100n,
       description,

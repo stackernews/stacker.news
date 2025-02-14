@@ -34,20 +34,23 @@ const setTheme = (dark) => {
 
 const listenForThemeChange = (onChange) => {
   const mql = window.matchMedia(PREFER_DARK_QUERY)
-  mql.onchange = mql => {
+  const onMqlChange = () => {
     const { user, dark } = getTheme()
     if (!user) {
       handleThemeChange(dark)
       onChange({ user, dark })
     }
   }
-  window.onstorage = e => {
+  mql.addEventListener('change', onMqlChange)
+
+  const onStorage = (e) => {
     if (e.key === STORAGE_KEY) {
       const dark = JSON.parse(e.newValue)
       setTheme(dark)
       onChange({ user: true, dark })
     }
   }
+  window.addEventListener('storage', onStorage)
 
   const root = window.document.documentElement
   const observer = new window.MutationObserver(() => {
@@ -56,7 +59,11 @@ const listenForThemeChange = (onChange) => {
   })
   observer.observe(root, { attributes: true, attributeFilter: ['data-bs-theme'] })
 
-  return () => observer.disconnect()
+  return () => {
+    observer.disconnect()
+    mql.removeEventListener('change', onMqlChange)
+    window.removeEventListener('storage', onStorage)
+  }
 }
 
 export default function useDarkMode () {
@@ -65,7 +72,7 @@ export default function useDarkMode () {
   useEffect(() => {
     const { user, dark } = getTheme()
     setDark({ user, dark })
-    listenForThemeChange(setDark)
+    return listenForThemeChange(setDark)
   }, [])
 
   return [dark?.dark, () => {

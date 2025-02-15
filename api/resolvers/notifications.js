@@ -5,6 +5,7 @@ import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
 import { replyToSubscription } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 
 export default {
   Query: {
@@ -345,11 +346,25 @@ export default {
       )
 
       queries.push(
-        `(SELECT "Invoice".id::text, "Invoice"."updated_at" AS "sortTime", NULL as "earnedSats", 'Invoicification' AS type
+        `(SELECT "Invoice".id::text,
+          CASE
+            WHEN
+              "Invoice"."paymentAttempt" < ${WALLET_MAX_RETRIES}
+              AND "Invoice"."userCancel" = false
+              AND "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
+            THEN "Invoice"."cancelledAt" + interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
+            ELSE "Invoice"."updated_at"
+          END AS "sortTime", NULL as "earnedSats", 'Invoicification' AS type
         FROM "Invoice"
         WHERE "Invoice"."userId" = $1
         AND "Invoice"."updated_at" < $2
         AND "Invoice"."actionState" = 'FAILED'
+        AND (
+          -- this is the inverse of the filter for automated retries
+          "Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES}
+          OR "Invoice"."userCancel" = true
+          OR "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
+        )
         AND (
           "Invoice"."actionType" = 'ITEM_CREATE' OR
           "Invoice"."actionType" = 'ZAP' OR
@@ -465,6 +480,24 @@ export default {
       })
 
       return subAct.subName
+    }
+  },
+  ReferralSource: {
+    __resolveType: async (n, args, { models }) => n.type
+  },
+  Referral: {
+    source: async (n, args, { models, me }) => {
+      // retrieve the referee landing record
+      const referral = await models.oneDayReferral.findFirst({ where: { refereeId: Number(n.id), landing: true } })
+      if (!referral) return null // if no landing record, it will return a generic referral
+
+      switch (referral.type) {
+        case 'POST':
+        case 'COMMENT': return { ...await getItem(n, { id: referral.typeId }, { models, me }), type: 'Item' }
+        case 'TERRITORY': return { ...await getSub(n, { name: referral.typeId }, { models, me }), type: 'Sub' }
+        case 'PROFILE': return { ...await models.user.findUnique({ where: { id: Number(referral.typeId) }, select: { name: true } }), type: 'User' }
+        default: return null
+      }
     }
   },
   Streak: {

@@ -40,20 +40,46 @@ function getEventCallbacks () {
   }
 }
 
-async function getReferrerId (referrer) {
+async function getReferrerFromCookie (referrer) {
+  let referrerId
+  let type
+  let typeId
   try {
     if (referrer.startsWith('item-')) {
-      return (await prisma.item.findUnique({ where: { id: parseInt(referrer.slice(5)) } }))?.userId
+      const item = await prisma.item.findUnique({ where: { id: parseInt(referrer.slice(5)) } })
+      type = item?.parentId ? 'COMMENT' : 'POST'
+      referrerId = item?.userId
+      typeId = item?.id
     } else if (referrer.startsWith('profile-')) {
-      return (await prisma.user.findUnique({ where: { name: referrer.slice(8) } }))?.id
+      const user = await prisma.user.findUnique({ where: { name: referrer.slice(8) } })
+      type = 'PROFILE'
+      referrerId = user?.id
+      typeId = user?.id
     } else if (referrer.startsWith('territory-')) {
-      return (await prisma.sub.findUnique({ where: { name: referrer.slice(10) } }))?.userId
+      type = 'TERRITORY'
+      typeId = referrer.slice(10)
+      const sub = await prisma.sub.findUnique({ where: { name: typeId } })
+      referrerId = sub?.userId
     } else {
-      return (await prisma.user.findUnique({ where: { name: referrer } }))?.id
+      return {
+        referrerId: (await prisma.user.findUnique({ where: { name: referrer } }))?.id
+      }
     }
   } catch (error) {
     console.error('error getting referrer id', error)
+    return
   }
+  return { referrerId, type, typeId: String(typeId) }
+}
+
+async function getReferrerData (referrer, landing) {
+  const referrerData = await getReferrerFromCookie(referrer)
+  if (landing) {
+    const landingData = await getReferrerFromCookie(landing)
+    // explicit referrer takes precedence over landing referrer
+    return { ...landingData, ...referrerData }
+  }
+  return referrerData
 }
 
 /** @returns {Partial<import('next-auth').CallbacksOptions>} */
@@ -77,10 +103,17 @@ function getCallbacks (req, res) {
         // isNewUser doesn't work for nostr/lightning auth because we create the user before nextauth can
         // this means users can update their referrer if they don't have one, which is fine
         if (req.cookies.sn_referrer && user?.id) {
-          const referrerId = await getReferrerId(req.cookies.sn_referrer)
-          if (referrerId && referrerId !== parseInt(user?.id)) {
-            const { count } = await prisma.user.updateMany({ where: { id: user.id, referrerId: null }, data: { referrerId } })
-            if (count > 0) notifyReferral(referrerId)
+          const referrerData = await getReferrerData(req.cookies.sn_referrer, req.cookies.sn_referee_landing)
+          if (referrerData?.referrerId && referrerData.referrerId !== parseInt(user?.id)) {
+            // if user doesn't have a referrer, record it in the db
+            const { count } = await prisma.user.updateMany({ where: { id: user.id, referrerId: null }, data: { referrerId: referrerData.referrerId } })
+            if (count > 0) {
+              // if user has an associated landing, record it in the db
+              if (referrerData.type && referrerData.typeId) {
+                await prisma.oneDayReferral.create({ data: { ...referrerData, refereeId: user.id, landing: true } })
+              }
+              notifyReferral(referrerData.referrerId)
+            }
           }
         }
       }

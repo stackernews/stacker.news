@@ -73,7 +73,7 @@ export function BountyForm ({
         hint={
           editThreshold
             ? (
-              <div className='text-muted fw-bold'>
+              <div className='text-muted fw-bold font-monospace'>
                 <Countdown date={editThreshold} />
               </div>
               )

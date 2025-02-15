@@ -19,7 +19,7 @@ export function useWalletPayment () {
   const invoiceHelper = useInvoice()
   const { me } = useMe()
 
-  return useCallback(async (invoice, { waitFor, updateOnFallback }) => {
+  return useCallback(async (invoice, { waitFor, updateOnFallback } = {}) => {
     let aggregateError = new WalletAggregateError([])
     let latestInvoice = invoice
 

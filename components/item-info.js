@@ -347,7 +347,7 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, edit
       <>
         <span> \ </span>
         <span
-          className='text-reset pointer fw-bold'
+          className='text-reset pointer fw-bold font-monospace'
           onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}/edit`)}
         >
           <span>{editText || 'edit'} </span>
@@ -368,7 +368,7 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, edit
       <>
         <span> \ </span>
         <span
-          className='text-reset pointer fw-bold'
+          className='text-reset pointer fw-bold font-monospace'
           onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}`)}
         >
           <span>cancel </span>

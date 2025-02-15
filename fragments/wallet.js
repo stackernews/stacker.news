@@ -231,3 +231,12 @@ export const CANCEL_INVOICE = gql`
     }
   }
 `
+
+export const FAILED_INVOICES = gql`
+  ${INVOICE_FIELDS}
+  query FailedInvoices {
+    failedInvoices {
+      ...InvoiceFields
+    }
+  }
+`

@@ -928,6 +928,8 @@ model Invoice {
   cancelled          Boolean             @default(false)
   cancelledAt        DateTime?
   userCancel         Boolean?
+  paymentAttempt     Int                 @default(0)
+  retryPendingSince  DateTime?
   msatsRequested     BigInt
   msatsReceived      BigInt?
   desc               String?
@@ -956,6 +958,7 @@ model Invoice {
   @@index([confirmedIndex], map: "Invoice.confirmedIndex_index")
   @@index([isHeld])
   @@index([confirmedAt])
+  @@index([cancelledAt])
   @@index([actionType])
   @@index([actionState])
 }

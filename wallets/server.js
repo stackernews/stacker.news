@@ -24,9 +24,13 @@ export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 
-export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { predecessorId, models }) {
+export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { paymentAttempt, predecessorId, models }) {
   // get the wallets in order of priority
-  const wallets = await getInvoiceableWallets(userId, { predecessorId, models })
+  const wallets = await getInvoiceableWallets(userId, {
+    paymentAttempt,
+    predecessorId,
+    models
+  })
 
   msats = toPositiveNumber(msats)
 
@@ -79,7 +83,7 @@ export async function createInvoice (userId, { msats, description, descriptionHa
 
 export async function createWrappedInvoice (userId,
   { msats, feePercent, description, descriptionHash, expiry = 360 },
-  { predecessorId, models, me, lnd }) {
+  { paymentAttempt, predecessorId, models, me, lnd }) {
   let logger, bolt11
   try {
     const { invoice, wallet } = await createInvoice(userId, {
@@ -88,7 +92,7 @@ export async function createWrappedInvoice (userId,
       description,
       descriptionHash,
       expiry
-    }, { predecessorId, models })
+    }, { paymentAttempt, predecessorId, models })
 
     logger = walletLogger({ wallet, models })
     bolt11 = invoice
@@ -108,7 +112,7 @@ export async function createWrappedInvoice (userId,
   }
 }
 
-export async function getInvoiceableWallets (userId, { predecessorId, models }) {
+export async function getInvoiceableWallets (userId, { paymentAttempt, predecessorId, models }) {
   // filter out all wallets that have already been tried by recursively following the retry chain of predecessor invoices.
   // the current predecessor invoice is in state 'FAILED' and not in state 'RETRYING' because we are currently retrying it
   // so it has not been updated yet.
@@ -141,6 +145,7 @@ export async function getInvoiceableWallets (userId, { predecessorId, models }) 
           FROM "Invoice"
           JOIN "Retries" ON "Invoice"."id" = "Retries"."predecessorId"
           WHERE "Invoice"."actionState" = 'RETRYING'
+          AND "Invoice"."paymentAttempt" = ${paymentAttempt}
         )
         SELECT
           "InvoiceForward"."walletId"

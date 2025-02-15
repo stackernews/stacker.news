@@ -56,4 +56,6 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
       logger?.error('incoming payment failed: ' + err.message, { bolt11: invoice })
     }
   }
+
+  throw new Error('no wallet to receive available')
 }

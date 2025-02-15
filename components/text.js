@@ -1,8 +1,7 @@
 import styles from './text.module.css'
 import ReactMarkdown from 'react-markdown'
 import gfm from 'remark-gfm'
-import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
-import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
+import dynamic from 'next/dynamic'
 import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
 import MediaOrLink from './media-or-link'
 import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
@@ -229,17 +228,41 @@ function Table ({ node, ...props }) {
 }
 
 function Code ({ node, inline, className, children, style, ...props }) {
-  return inline
-    ? (
+  const [ReactSyntaxHighlighter, setReactSyntaxHighlighter] = useState(null)
+  const [syntaxTheme, setSyntaxTheme] = useState(null)
+
+  const loadHighlighter = useCallback(() =>
+    Promise.all([
+      dynamic(() => import('react-syntax-highlighter').then(mod => mod.LightAsync), { ssr: false }),
+      import('react-syntax-highlighter/dist/cjs/styles/hljs/atom-one-dark').then(mod => mod.default)
+    ]), []
+  )
+
+  useEffect(() => {
+    if (!inline) {
+      // loading the syntax highlighter and theme only when needed
+      loadHighlighter().then(([highlighter, theme]) => {
+        setReactSyntaxHighlighter(() => highlighter)
+        setSyntaxTheme(() => theme)
+      })
+    }
+  }, [inline])
+
+  if (inline || !ReactSyntaxHighlighter || !syntaxTheme) {
+    return (
       <code className={className} {...props}>
         {children}
       </code>
-      )
-    : (
-      <SyntaxHighlighter style={atomDark} language='text' PreTag='div' {...props}>
-        {children}
-      </SyntaxHighlighter>
-      )
+    )
+  }
+
+  const language = className?.match(/language-(\w+)/)?.[1] || 'text'
+
+  return (
+    <ReactSyntaxHighlighter style={syntaxTheme} language={language} PreTag='div' customStyle={{ borderRadius: '0.3rem' }} {...props}>
+      {children}
+    </ReactSyntaxHighlighter>
+  )
 }
 
 function P ({ children, node, onlyImages, somethingBefore, somethingAfter, ...props }) {

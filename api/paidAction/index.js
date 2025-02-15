@@ -269,7 +269,7 @@ async function performDirectAction (actionType, args, incomingContext) {
 
     const description = actionDescription ?? await paidActions[actionType].describe(args, incomingContext)
 
-    for await (const { invoice, wallet } of createUserInvoice(userId, {
+    for await (const { invoice, logger, wallet } of createUserInvoice(userId, {
       msats: cost,
       description,
       expiry: INVOICE_EXPIRE_SECS
@@ -279,6 +279,7 @@ async function performDirectAction (actionType, args, incomingContext) {
         hash = parsePaymentRequest({ request: invoice }).id
       } catch (e) {
         console.error('failed to parse invoice', e)
+        logger?.error('failed to parse invoice: ' + e.message, { bolt11: invoice })
         continue
       }
 
@@ -300,6 +301,7 @@ async function performDirectAction (actionType, args, incomingContext) {
         }
       } catch (e) {
         console.error('failed to create direct payment', e)
+        logger?.error('failed to create direct payment: ' + e.message, { bolt11: invoice })
       }
     }
   } catch (e) {

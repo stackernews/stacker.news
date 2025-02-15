@@ -6,7 +6,6 @@ import lnd from '@/api/lnd'
 import typeDefs from '@/api/typeDefs'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './auth/[...nextauth]'
-import { decode as decodeJWT, encode as encodeJWT } from 'next-auth/jwt'
 import search from '@/api/search'
 import {
   ApolloServerPluginLandingPageLocalDefault,
@@ -68,8 +67,8 @@ export default startServerAndCreateNextHandler(apolloServer, {
         session = { user: { ...sessionFields, apiKey: true } }
       }
     } else {
-      req = await multiAuthMiddleware(req)
-      session = await getServerSession(req, res, getAuthOptions(req))
+      req = multiAuthMiddleware(req)
+      session = await getServerSession(req, res, getAuthOptions(req, res))
     }
     return {
       models,
@@ -83,15 +82,14 @@ export default startServerAndCreateNextHandler(apolloServer, {
   }
 })
 
-export async function multiAuthMiddleware (request) {
+export function multiAuthMiddleware (request) {
   // switch next-auth session cookie with multi_auth cookie if cookie pointer present
 
   // is there a cookie pointer?
   const cookiePointerName = 'multi_auth.user-id'
   const hasCookiePointer = !!request.cookies[cookiePointerName]
 
-  // for development purposes, TODO REMOVE THIS
-  const secure = process.env.NODE_ENV === 'development'
+  const secure = process.env.NODE_ENV === 'production'
 
   // is there a session?
   const sessionCookieName = secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
@@ -117,30 +115,9 @@ export async function multiAuthMiddleware (request) {
 
   if (userJWT) {
     // use JWT found in cookie pointed to by cookie pointer
-    // refresh JWT if possible
-    request.cookies[sessionCookieName] = await refreshJWT(userJWT)
+    request.cookies[sessionCookieName] = userJWT
     return request
   }
 
   return request
-}
-
-async function refreshJWT (userJWT) {
-  try {
-    const secret = process.env.NEXTAUTH_SECRET
-    const decodedJWT = await decodeJWT({ token: userJWT, secret })
-    // check if JWT is almost expired
-    const timestampNow = Math.floor(Date.now() / 1000)
-    const tokenExpiry = decodedJWT.exp || 0
-    const refreshThreshold = 60 * 60 * 24 // 24 hours
-    if (tokenExpiry - timestampNow < refreshThreshold) {
-      console.log('refreshing almost expired JWT')
-      const refreshedJWT = await encodeJWT({ token: decodedJWT, secret })
-      return refreshedJWT
-    }
-    return userJWT
-  } catch (e) {
-    console.error('error refreshing JWT', e)
-    return userJWT
-  }
 }

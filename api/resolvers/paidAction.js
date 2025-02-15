@@ -1,5 +1,5 @@
 import { retryPaidAction } from '../paidAction'
-import { USER_ID } from '@/lib/constants'
+import { USER_ID, WALLET_MAX_RETRIES, WALLET_RETRY_TIMEOUT_MS } from '@/lib/constants'
 
 function paidActionType (actionType) {
   switch (actionType) {
@@ -50,24 +50,32 @@ export default {
     }
   },
   Mutation: {
-    retryPaidAction: async (parent, { invoiceId }, { models, me, lnd }) => {
+    retryPaidAction: async (parent, { invoiceId, newAttempt }, { models, me, lnd }) => {
       if (!me) {
         throw new Error('You must be logged in')
       }
 
-      const invoice = await models.invoice.findUnique({ where: { id: invoiceId, userId: me.id } })
+      // make sure only one client at a time can retry by acquiring a lock that expires
+      const [invoice] = await models.$queryRaw`
+          UPDATE "Invoice"
+          SET "retryPendingSince" = now()
+          WHERE
+            id = ${invoiceId} AND
+            "userId" = ${me.id} AND
+            "actionState" = 'FAILED' AND
+            ("retryPendingSince" IS NULL OR "retryPendingSince" < now() - ${`${WALLET_RETRY_TIMEOUT_MS} milliseconds`}::interval)
+          RETURNING *`
       if (!invoice) {
-        throw new Error('Invoice not found')
+        throw new Error('Invoice not found or retry pending')
       }
 
-      if (invoice.actionState !== 'FAILED') {
-        if (invoice.actionState === 'PAID') {
-          throw new Error('Invoice is already paid')
-        }
-        throw new Error(`Invoice is not in failed state: ${invoice.actionState}`)
+      // do we want to retry a payment from the beginning with all sender and receiver wallets?
+      const paymentAttempt = newAttempt ? invoice.paymentAttempt + 1 : invoice.paymentAttempt
+      if (paymentAttempt > WALLET_MAX_RETRIES) {
+        throw new Error('Payment has been retried too many times')
       }
 
-      const result = await retryPaidAction(invoice.actionType, { invoice }, { models, me, lnd })
+      const result = await retryPaidAction(invoice.actionType, { invoice }, { paymentAttempt, models, me, lnd })
 
       return {
         ...result,

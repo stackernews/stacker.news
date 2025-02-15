@@ -159,7 +159,7 @@ export default gql`
     remote: Boolean
     sub: Sub
     subName: String
-    status: String
+    status: String!
     uploadId: Int
     otsHash: String
     parentOtsHash: String

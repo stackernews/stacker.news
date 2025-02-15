@@ -17,7 +17,7 @@ export function useWalletPayment () {
   const loggerFactory = useWalletLoggerFactory()
   const invoiceHelper = useInvoice()
 
-  return useCallback(async (invoice, { waitFor, updateOnFallback }) => {
+  return useCallback(async (invoice, { waitFor, updateOnFallback } = {}) => {
     let aggregateError = new WalletAggregateError([])
     let latestInvoice = invoice
 

@@ -24,7 +24,7 @@ export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 
-export async function createInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { paymentAttempt, predecessorId, models }) {
+export async function * createUserInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { paymentAttempt, predecessorId, models }) {
   // get the wallets in order of priority
   const wallets = await getInvoiceableWallets(userId, {
     paymentAttempt,
@@ -72,44 +72,42 @@ export async function createInvoice (userId, { msats, description, descriptionHa
         }
       }
 
-      return { invoice, wallet, logger }
+      yield { invoice, wallet, logger }
     } catch (err) {
+      console.error('failed to create user invoice:', err)
       logger.error(err.message, { status: true })
     }
   }
-
-  throw new Error('no wallet to receive available')
 }
 
 export async function createWrappedInvoice (userId,
   { msats, feePercent, description, descriptionHash, expiry = 360 },
   { paymentAttempt, predecessorId, models, me, lnd }) {
-  let logger, bolt11
-  try {
-    const { invoice, wallet } = await createInvoice(userId, {
-      // this is the amount the stacker will receive, the other (feePercent)% is our fee
-      msats: toPositiveBigInt(msats) * (100n - feePercent) / 100n,
-      description,
-      descriptionHash,
-      expiry
-    }, { paymentAttempt, predecessorId, models })
-
-    logger = walletLogger({ wallet, models })
-    bolt11 = invoice
-
-    const { invoice: wrappedInvoice, maxFee } =
-      await wrapInvoice({ bolt11, feePercent }, { msats, description, descriptionHash }, { me, lnd })
-
-    return {
-      invoice,
-      wrappedInvoice: wrappedInvoice.request,
-      wallet,
-      maxFee
+  // loop over all receiver wallet invoices until we successfully wrapped one
+  for await (const { invoice, logger, wallet } of createUserInvoice(userId, {
+    // this is the amount the stacker will receive, the other (feePercent)% is our fee
+    msats: toPositiveBigInt(msats) * (100n - feePercent) / 100n,
+    description,
+    descriptionHash,
+    expiry
+  }, { paymentAttempt, predecessorId, models })) {
+    let bolt11
+    try {
+      bolt11 = invoice
+      const { invoice: wrappedInvoice, maxFee } = await wrapInvoice({ bolt11, feePercent }, { msats, description, descriptionHash }, { me, lnd })
+      return {
+        invoice,
+        wrappedInvoice: wrappedInvoice.request,
+        wallet,
+        maxFee
+      }
+    } catch (e) {
+      console.error('failed to wrap invoice:', e)
+      logger?.error('failed to wrap invoice: ' + e.message, { bolt11 })
     }
-  } catch (e) {
-    logger?.error('invalid invoice: ' + e.message, { bolt11 })
-    throw e
   }
+
+  throw new Error('no wallet to receive available')
 }
 
 export async function getInvoiceableWallets (userId, { paymentAttempt, predecessorId, models }) {

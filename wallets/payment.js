@@ -23,14 +23,14 @@ export function useWalletPayment () {
     let aggregateError = new WalletAggregateError([])
     let latestInvoice = invoice
 
-    // throw a special error that caller can handle separately if no payment was attempted
-    if (wallets.length === 0) {
-      throw new WalletsNotAvailableError()
-    }
-
     // anon user cannot pay with wallets
     if (!me) {
       throw new AnonWalletError()
+    }
+
+    // throw a special error that caller can handle separately if no payment was attempted
+    if (wallets.length === 0) {
+      throw new WalletsNotAvailableError()
     }
 
     for (let i = 0; i < wallets.length; i++) {

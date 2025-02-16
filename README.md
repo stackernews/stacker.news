@@ -31,6 +31,7 @@ Go to [localhost:3000](http://localhost:3000).
    - ssh: `git clone git@github.com:stackernews/stacker.news.git`
    - https: `git clone https://github.com/stackernews/stacker.news.git`
 - Install [docker](https://docs.docker.com/compose/install/)
+    - If you're running MacOS or Windows computer, I ***highly recommend***  using [OrbStack](https://orbstack.dev/) instead of Docker Desktop
 - Please make sure that at least 10 GB of free space is available, otherwise you may encounter issues while setting up the development environment.
 
 <br>

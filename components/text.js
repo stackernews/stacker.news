@@ -55,9 +55,9 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
   const containerRef = useRef(null)
   const [mathJaxPlugin, setMathJaxPlugin] = useState(null)
 
-  // we only need mathjax if there's math content
+  // we only need mathjax if there's math content between $$ tags
   useEffect(() => {
-    if (children?.includes('$$')) {
+    if (/\$\$(.*?)\$\$/g.test(children)) {
       import('rehype-mathjax').then(mod => {
         setMathJaxPlugin(() => mod.default)
       }).catch(err => {
@@ -144,7 +144,7 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
     <ReactMarkdown
       components={components}
       remarkPlugins={remarkPlugins}
-      rehypePlugins={[rehypeSNStyled, ...(mathJaxPlugin ? [mathJaxPlugin] : [])]}
+      rehypePlugins={[rehypeSNStyled, mathJaxPlugin].filter(Boolean)}
       remarkRehypeOptions={{ clobberPrefix: `itemfn-${itemId}-` }}
     >
       {children}

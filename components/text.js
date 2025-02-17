@@ -241,6 +241,7 @@ function Table ({ node, ...props }) {
 function Code ({ node, inline, className, children, style, ...props }) {
   const [ReactSyntaxHighlighter, setReactSyntaxHighlighter] = useState(null)
   const [syntaxTheme, setSyntaxTheme] = useState(null)
+  const language = className?.match(/language-(\w+)/)?.[1] || 'text'
 
   const loadHighlighter = useCallback(() =>
     Promise.all([
@@ -250,7 +251,7 @@ function Code ({ node, inline, className, children, style, ...props }) {
   )
 
   useEffect(() => {
-    if (!inline) {
+    if (!inline && language !== 'math') { // MathJax should handle math
       // loading the syntax highlighter and theme only when needed
       loadHighlighter().then(([highlighter, theme]) => {
         setReactSyntaxHighlighter(() => highlighter)
@@ -266,8 +267,6 @@ function Code ({ node, inline, className, children, style, ...props }) {
       </code>
     )
   }
-
-  const language = className?.match(/language-(\w+)/)?.[1] || 'text'
 
   return (
     <ReactSyntaxHighlighter style={syntaxTheme} language={language} PreTag='div' customStyle={{ borderRadius: '0.3rem' }} {...props}>

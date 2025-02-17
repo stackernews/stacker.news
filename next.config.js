@@ -189,6 +189,11 @@ module.exports = withPlausibleProxy()({
         source: '/statistics',
         destination: '/satistics?inc=invoice,withdrawal',
         permanent: true
+      },
+      {
+        source: '/top/cowboys/:when',
+        destination: '/top/cowboys',
+        permanent: true
       }
     ]
   },

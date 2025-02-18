@@ -6,7 +6,7 @@ import { isConfigured } from '@/wallets/common'
 export default function WalletButtonBar ({
   wallet, disable,
   className, children, onDelete, onCancel, hasCancel = true,
-  createText = 'attach', deleteText = 'detach', shadowEditText = 'save'
+  createText = 'attach', deleteText = 'detach', editText = 'save'
 }) {
   return (
     <div className={`mt-3 ${className}`}>
@@ -16,7 +16,7 @@ export default function WalletButtonBar ({
         {children}
         <div className='d-flex align-items-center ms-auto'>
           {hasCancel && <CancelButton onClick={onCancel} />}
-          <SubmitButton variant='primary' disabled={disable}>{isConfigured(wallet) ? shadowEditText : createText}</SubmitButton>
+          <SubmitButton variant='primary' disabled={disable}>{isConfigured(wallet) ? editText : createText}</SubmitButton>
         </div>
       </div>
     </div>

@@ -59,7 +59,7 @@ export async function perform (args, context) {
   const mentions = await getMentions(args, context)
   const itemMentions = await getItemMentions(args, context)
   const itemUploads = uploadIds.map(id => ({ uploadId: id }))
-  console.log('performing update')
+
   await tx.upload.updateMany({
     where: { id: { in: uploadIds } },
     data: { paid: true }

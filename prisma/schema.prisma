@@ -615,6 +615,7 @@ model OldItem {
   url                 String?
   userId              Int
   subName             String?               @db.Citext
+  imgproxyUrls        Json?
   cloneBornAt         DateTime?
   cloneDiedAt         DateTime?
   uploadId            Int?

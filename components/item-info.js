@@ -29,7 +29,7 @@ import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanShadowEdit from './use-can-edit'
-import ItemHistory from './item-history'
+import OldItem from './item-history'
 
 function itemTitle (item) {
   let title = ''
@@ -163,7 +163,7 @@ export default function ItemInfo ({
                   edited {timeSince(new Date(item.cloneBornAt))} ago (most recent)
                 </Dropdown.Item>
                 {item.oldVersions.map((version) => ( // TODO: prettier
-                  <Dropdown.Item key={version.id} onClick={() => showModal((onClose) => <ItemHistory version={version} onClose={onClose} />)}>
+                  <Dropdown.Item key={version.id} onClick={() => showModal((onClose) => <OldItem version={version} onClose={onClose} />)}>
                     {!version.cloneBornAt ? 'created' : 'edited'} {timeSince(new Date(version.cloneBornAt || version.createdAt))} ago
                   </Dropdown.Item>
                 ))}

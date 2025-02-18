@@ -48,6 +48,18 @@ export const COMMENT_FIELDS = gql`
     ncomments
     nDirectComments
     imgproxyUrls
+    cloneBornAt
+    cloneDiedAt
+    oldVersions {
+      id
+      title
+      text
+      url
+      createdAt
+      updatedAt
+      cloneBornAt
+      cloneDiedAt
+    }
     rel
     apiKey
     invoice {

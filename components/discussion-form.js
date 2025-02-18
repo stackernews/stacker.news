@@ -16,7 +16,7 @@ import { UPSERT_DISCUSSION } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
 
 export function DiscussionForm ({
-  item, sub, editThreshold, titleLabel = 'title',
+  item, sub, shadowEditThreshold, titleLabel = 'title',
   textLabel = 'text',
   handleSubmit, children
 }) {
@@ -75,8 +75,8 @@ export function DiscussionForm ({
         label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>}
         name='text'
         minRows={6}
-        hint={editThreshold
-          ? <div className='text-muted fw-bold font-monospace'><Countdown date={editThreshold} /></div>
+        hint={shadowEditThreshold // TODO: when countdown expires don't show it, we need the countdown to know if can shadow edit
+          ? <div className='text-muted fw-bold font-monospace'><Countdown date={shadowEditThreshold} /></div>
           : null}
       />
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />

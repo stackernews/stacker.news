@@ -40,6 +40,9 @@ export async function perform (args, context) {
     }
   })
 
+  console.log(data)
+  console.log(old)
+
   const newBoost = boost - old.boost
   const itemActs = []
   if (newBoost > 0) {
@@ -59,7 +62,7 @@ export async function perform (args, context) {
   const mentions = await getMentions(args, context)
   const itemMentions = await getItemMentions(args, context)
   const itemUploads = uploadIds.map(id => ({ uploadId: id }))
-
+  console.log(old)
   await tx.upload.updateMany({
     where: { id: { in: uploadIds } },
     data: { paid: true }

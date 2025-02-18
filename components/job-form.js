@@ -134,7 +134,7 @@ export default function JobForm ({ item, sub }) {
 
 export function JobButtonBar ({
   itemId, disable, className, children, handleStop, onCancel, hasCancel = true,
-  createText = 'post', editText = 'save', stopText = 'remove'
+  createText = 'post', shadowEditText = 'save', stopText = 'remove'
 }) {
   return (
     <div className={`mt-3 ${className}`}>
@@ -145,7 +145,7 @@ export function JobButtonBar ({
         <div className='d-flex align-items-center ms-auto'>
           {hasCancel && <CancelButton onClick={onCancel} />}
           <FeeButton
-            text={itemId ? editText : createText}
+            text={itemId ? shadowEditText : createText}
             variant='secondary'
             disabled={disable}
           />

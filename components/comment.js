@@ -201,8 +201,8 @@ export default function Comment ({
                     </>
                   }
                   edit={edit}
-                  toggleEdit={e => { setEdit(!edit) }}
-                  editText={edit ? 'cancel' : 'edit'}
+                  toggleShadowEdit={e => { setEdit(!edit) }}
+                  shadowEditText={edit ? 'cancel' : 'edit'}
                 />}
 
             {!includeParent && (collapse === 'yep'

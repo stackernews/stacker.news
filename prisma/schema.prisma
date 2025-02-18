@@ -546,6 +546,9 @@ model Item {
   bountyPaidTo        Int[]
   upvotes             Int                   @default(0)
   weightedComments    Float                 @default(0)
+  cloneBornAt         DateTime?
+  cloneDiedAt         DateTime?
+  oldVersions         OldItem[]
   Bookmark            Bookmark[]
   parent              Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
   children            Item[]                @relation("ParentChildren")
@@ -601,6 +604,29 @@ model Item {
   @@index([url])
   @@index([boost])
   @@index([invoicePaidAt])
+}
+
+model OldItem {
+  id                  Int                   @id @default(autoincrement())
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @default(now()) @updatedAt @map("updated_at")
+  title               String?
+  text                String?
+  url                 String?
+  userId              Int
+  subName             String?               @db.Citext
+  otsFile             Bytes?
+  otsHash             String?
+  imgproxyUrls        Json?
+  cloneBornAt         DateTime?
+  cloneDiedAt         DateTime?
+  uploadId            Int?
+  originalItemId      Int                   @map("original_itemId")
+  originalItem        Item                  @relation(fields: [originalItemId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([originalItemId])
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item

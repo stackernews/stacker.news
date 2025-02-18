@@ -187,7 +187,7 @@ export default function Post ({ sub }) {
 export function ItemButtonBar ({
   itemId, canDelete = true, disable,
   className, children, onDelete, onCancel, hasCancel = true,
-  createText = 'post', editText = 'save', deleteText = 'delete'
+  createText = 'post', shadowEditText = 'save', deleteText = 'delete'
 }) {
   const router = useRouter()
 
@@ -205,7 +205,7 @@ export function ItemButtonBar ({
         <div className='d-flex align-items-center ms-auto'>
           {hasCancel && <CancelButton onClick={onCancel} />}
           <FeeButton
-            text={itemId ? editText : createText}
+            text={itemId ? shadowEditText : createText}
             variant='secondary'
             disabled={disable}
           />

@@ -90,6 +90,17 @@ export default gql`
     ad: Item
   }
 
+  type OldItem {
+    id: ID!
+    title: String
+    text: String
+    url: String
+    createdAt: Date
+    updatedAt: Date
+    cloneBornAt: Date
+    cloneDiedAt: Date
+  }
+
   type Comments {
     cursor: String
     comments: [Item!]!
@@ -165,6 +176,9 @@ export default gql`
     parentOtsHash: String
     forwards: [ItemForward]
     imgproxyUrls: JSONObject
+    cloneBornAt: Date
+    cloneDiedAt: Date
+    oldVersions: [OldItem!]
     rel: String
     apiKey: Boolean
     invoice: Invoice

@@ -147,12 +147,28 @@ export default function ItemInfo ({
               yesterday
             </Link>
           </>}
-        {item.oldVersions?.length > 0 &&
+        {item.oldVersions?.length > 0 && !item.deletedAt &&
           <>
             <span> \ </span>
-            <span onClick={() => showModal((onClose) => <ItemHistory item={item} onClose={onClose} />)} className='text-reset' title={item.cloneBornAt}>
-              edited {item.oldVersions.length} times
-            </span>
+            <Dropdown className='pointer' as='span'>
+              <Dropdown.Toggle as='span' onPointerDown={e => e.preventDefault()}>
+                edited
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Header className='text-muted'>
+                  edited {item.oldVersions.length} times
+                </Dropdown.Header>
+                <hr className='dropdown-divider' />
+                <Dropdown.Item>
+                  edited {timeSince(new Date(item.cloneBornAt))} ago (most recent)
+                </Dropdown.Item>
+                {item.oldVersions.map((version) => ( // TODO: prettier
+                  <Dropdown.Item key={version.id} onClick={() => showModal((onClose) => <ItemHistory version={version} onClose={onClose} />)}>
+                    {!version.cloneBornAt ? 'created' : 'edited'} {timeSince(new Date(version.cloneBornAt || version.createdAt))} ago
+                  </Dropdown.Item>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown>
           </>}
       </span>
       {item.subName &&

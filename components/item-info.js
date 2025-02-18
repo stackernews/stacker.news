@@ -231,9 +231,9 @@ export default function ItemInfo ({
               {item.mine && !item.position && !item.deletedAt && !item.bio && // TODO: adjust every edit
                 <>
                   <hr className='dropdown-divider' />
-                  <Link href={`/items/${item.id}/edit`} className='text-reset dropdown-item'>
+                  <span onClick={() => !item.parentId ? router.push(`/items/${item.id}/edit`) : toggleShadowEdit(true)} className='text-reset dropdown-item'>
                     edit
-                  </Link>
+                  </span>
                 </>}
               {item.mine && !item.position && !item.deletedAt && !item.bio &&
                 <>

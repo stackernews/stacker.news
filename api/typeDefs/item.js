@@ -99,6 +99,8 @@ export default gql`
     updatedAt: Date
     cloneBornAt: Date
     cloneDiedAt: Date
+    pollCost: Int
+    deletedAt: Date
   }
 
   type Comments {

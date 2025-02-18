@@ -16,12 +16,11 @@ CREATE TABLE "OldItem" (
     "url" TEXT,
     "userId" INTEGER NOT NULL,
     "subName" CITEXT,
-    "otsFile" BYTEA,
-    "otsHash" TEXT,
-    "imgproxyUrls" JSONB,
     "cloneBornAt" TIMESTAMP(3),
     "cloneDiedAt" TIMESTAMP(3),
     "uploadId" INTEGER,
+    "pollCost" INTEGER,
+    "deletedAt" TIMESTAMP(3),
     "original_itemId" INTEGER NOT NULL,
 
     CONSTRAINT "OldItem_pkey" PRIMARY KEY ("id")
@@ -44,7 +43,9 @@ RETURNS TRIGGER AS $$
 BEGIN
     -- history shall be written only if the item is older than 10 minutes and content has changed
     IF (OLD."created_at" < now() - interval '10 minutes')
-    AND (OLD."bio" IS FALSE OR OLD."text" != NEW."text" OR OLD."title" != NEW."title" OR OLD."url" != NEW."url")
+    AND OLD."bio" IS FALSE
+    AND NEW."deletedAt" IS NULL
+    AND (OLD."text" != NEW."text" OR OLD."title" != NEW."title" OR OLD."url" != NEW."url")
     THEN
         -- TODO honestly find a better way to do this, I mean this works but it's bad
         INSERT INTO "OldItem" (
@@ -55,12 +56,11 @@ BEGIN
             "url",
             "userId",
             "subName",
-            "otsFile",
-            "otsHash",
-            "imgproxyUrls",
             "cloneBornAt",
             "cloneDiedAt",
             "uploadId",
+            "pollCost",
+            "deletedAt",
             "original_itemId"
         )
         VALUES (
@@ -71,12 +71,11 @@ BEGIN
             OLD."url",
             OLD."userId",
             OLD."subName",
-            OLD."otsFile",
-            OLD."otsHash",
-            OLD."imgproxyUrls",
             OLD."cloneBornAt",
             OLD."cloneDiedAt",
             OLD."uploadId",
+            OLD."pollCost",
+            OLD."deletedAt",
             OLD."id"
         );
         

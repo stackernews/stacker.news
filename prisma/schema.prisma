@@ -615,12 +615,11 @@ model OldItem {
   url                 String?
   userId              Int
   subName             String?               @db.Citext
-  otsFile             Bytes?
-  otsHash             String?
-  imgproxyUrls        Json?
   cloneBornAt         DateTime?
   cloneDiedAt         DateTime?
   uploadId            Int?
+  pollCost            Int?
+  deletedAt           DateTime?
   originalItemId      Int                   @map("original_itemId")
   originalItem        Item                  @relation(fields: [originalItemId], references: [id], onDelete: Cascade)
 

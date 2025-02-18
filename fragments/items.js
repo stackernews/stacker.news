@@ -84,6 +84,8 @@ export const ITEM_FIELDS = gql`
       updatedAt
       cloneBornAt
       cloneDiedAt
+      pollCost
+      deletedAt
     }
     rel
     apiKey

@@ -92,13 +92,17 @@ export default gql`
 
   type OldItem {
     id: ID!
+    createdAt: Date
+    updatedAt: Date
     title: String
     text: String
     url: String
-    createdAt: Date
-    updatedAt: Date
+    userId: Int
+    subName: String
+    imgproxyUrls: JSONObject
     cloneBornAt: Date
     cloneDiedAt: Date
+    uploadId: Int
     pollCost: Int
     deletedAt: Date
   }

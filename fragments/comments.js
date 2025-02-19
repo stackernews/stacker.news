@@ -52,13 +52,17 @@ export const COMMENT_FIELDS = gql`
     cloneDiedAt
     oldVersions {
       id
+      createdAt
+      updatedAt
       title
       text
       url
-      createdAt
-      updatedAt
+      userId
+      subName
+      imgproxyUrls
       cloneBornAt
       cloneDiedAt
+      uploadId
       pollCost
       deletedAt
     }

@@ -147,7 +147,7 @@ export default function ItemInfo ({
               yesterday
             </Link>
           </>}
-        {item.oldVersions?.length > 0 && !item.deletedAt &&
+        {item.oldVersions?.length > 0 && !item.deletedAt && // TODO: better way to handle this
           <>
             <span> \ </span>
             <Dropdown className='pointer' as='span'>
@@ -159,11 +159,11 @@ export default function ItemInfo ({
                   edited {item.oldVersions.length} times
                 </Dropdown.Header>
                 <hr className='dropdown-divider' />
-                <Dropdown.Item>
-                  edited {timeSince(new Date(item.cloneBornAt))} ago (most recent)
+                <Dropdown.Item title={item.oldVersions[0].cloneDiedAt}>
+                  edited {timeSince(new Date(item.oldVersions[0].cloneDiedAt))} ago (most recent)
                 </Dropdown.Item>
                 {item.oldVersions.map((version) => ( // TODO: prettier
-                  <Dropdown.Item key={version.id} onClick={() => showModal((onClose) => <OldItem version={version} onClose={onClose} />)}>
+                  <Dropdown.Item key={version.id} title={version.cloneBornAt} onClick={() => showModal((onClose) => <OldItem version={version} onClose={onClose} />)}>
                     {!version.cloneBornAt ? 'created' : 'edited'} {timeSince(new Date(version.cloneBornAt || version.createdAt))} ago
                   </Dropdown.Item>
                 ))}

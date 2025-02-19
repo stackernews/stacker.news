@@ -75,7 +75,7 @@ export function DiscussionForm ({
         label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>}
         name='text'
         minRows={6}
-        hint={shadowEditThreshold // TODO: when countdown expires don't show it, we need the countdown to know if can shadow edit
+        hint={shadowEditThreshold && shadowEditThreshold > Date.now() // when shadow edit countdown expires don't show it
           ? <div className='text-muted fw-bold font-monospace'><Countdown date={shadowEditThreshold} /></div>
           : null}
       />

@@ -149,12 +149,12 @@ export default function ItemInfo ({
           </>}
         {item.oldVersions?.length > 0 && !item.deletedAt && // TODO: better way to handle this
           <>
-            <span> \ </span>
+            <span> </span>
             <Dropdown className='pointer' as='span'>
               <Dropdown.Toggle as='span' onPointerDown={e => e.preventDefault()}>
                 edited
               </Dropdown.Toggle>
-              <Dropdown.Menu>
+              <Dropdown.Menu style={{ height: '15rem', overflowY: 'auto' }}>
                 <Dropdown.Header className='text-muted'>
                   edited {item.oldVersions.length} times
                 </Dropdown.Header>
@@ -247,9 +247,9 @@ export default function ItemInfo ({
               {item.mine && !item.position && !item.deletedAt && !item.bio && // TODO: adjust every edit
                 <>
                   <hr className='dropdown-divider' />
-                  <span onClick={() => !item.parentId ? router.push(`/items/${item.id}/edit`) : toggleShadowEdit(true)} className='text-reset dropdown-item'>
+                  <Dropdown.Item onClick={() => !item.parentId ? router.push(`/items/${item.id}/edit`) : toggleShadowEdit(true)} className='text-reset dropdown-item'>
                     edit
-                  </span>
+                  </Dropdown.Item>
                 </>}
               {item.mine && !item.position && !item.deletedAt && !item.bio &&
                 <>
@@ -395,7 +395,7 @@ function EditInfo ({ item, edit, canShadowEdit, setCanShadowEdit, toggleShadowEd
   }
 
   if (edit && !canShadowEdit) {
-    // if we're still editing after timer ran out
+    // we're not in shadow editing mode anymore
     return (
       <>
         <span> \ </span>
@@ -403,8 +403,7 @@ function EditInfo ({ item, edit, canShadowEdit, setCanShadowEdit, toggleShadowEd
           className='text-reset pointer fw-bold font-monospace'
           onClick={() => toggleShadowEdit ? toggleShadowEdit() : router.push(`/items/${item.id}`)}
         >
-          <span>cancel </span>
-          <span>00:00</span>
+          <span>cancel</span>
         </span>
       </>
     )

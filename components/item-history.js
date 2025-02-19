@@ -1,12 +1,11 @@
 import { timeSince } from '@/lib/time'
 import styles from './item.module.css'
 import Text from './text'
+import { Dropdown } from 'react-bootstrap'
+import { useRouter } from 'next/router'
+import { useShowModal } from './modal'
 
-// TODO: PAID add a button to restore the item to the version
-// TODO: styling
-// TODO: render it as Item
-
-export default function OldItem ({ version }) {
+export function OldItem ({ version }) {
   return (
     <>
       <div className={styles.other}>
@@ -17,5 +16,32 @@ export default function OldItem ({ version }) {
         <Text itemId={version.originalItemId} topLevel imgproxyUrls={version.imgproxyUrls}>{version.text}</Text>
       </div>
     </>
+  )
+}
+
+export default function HistoryDropdownItem ({ item }) {
+  const router = useRouter()
+  const showModal = useShowModal()
+
+  return (
+    <Dropdown className='pointer' as='span'>
+      <Dropdown.Toggle as='span' onPointerDown={e => e.preventDefault()}>
+        edited
+      </Dropdown.Toggle>
+      <Dropdown.Menu style={{ maxHeight: '15rem', overflowY: 'auto' }}>
+        <Dropdown.Header className='text-muted'>
+          edited {item.oldVersions.length} times
+        </Dropdown.Header>
+        <hr className='dropdown-divider' />
+        <Dropdown.Item title={item.oldVersions[0].cloneDiedAt} onClick={() => router.push(`/items/${item.id}`)}>
+          edited {timeSince(new Date(item.oldVersions[0].cloneDiedAt))} ago (most recent)
+        </Dropdown.Item>
+        {item.oldVersions.map((version) => ( // TODO: prettier
+          <Dropdown.Item key={version.id} title={version.cloneBornAt} onClick={() => showModal((onClose) => <OldItem version={version} onClose={onClose} />)}>
+            {!version.cloneBornAt ? 'created' : 'edited'} {timeSince(new Date(version.cloneBornAt || version.createdAt))} ago
+          </Dropdown.Item>
+        ))}
+      </Dropdown.Menu>
+    </Dropdown>
   )
 }

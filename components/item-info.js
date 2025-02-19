@@ -29,7 +29,7 @@ import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanShadowEdit from './use-can-edit'
-import OldItem from './item-history'
+import HistoryDropdownItem from './item-history'
 
 function itemTitle (item) {
   let title = ''
@@ -71,7 +71,6 @@ export default function ItemInfo ({
   setDisableRetry, disableRetry
 }) {
   const { me } = useMe()
-  const showModal = useShowModal()
   const router = useRouter()
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
@@ -147,28 +146,10 @@ export default function ItemInfo ({
               yesterday
             </Link>
           </>}
-        {item.oldVersions?.length > 0 && !item.deletedAt && // TODO: better way to handle this
+        {item.oldVersions?.length > 0 && !item.deletedAt &&
           <>
             <span> </span>
-            <Dropdown className='pointer' as='span'>
-              <Dropdown.Toggle as='span' onPointerDown={e => e.preventDefault()}>
-                edited
-              </Dropdown.Toggle>
-              <Dropdown.Menu style={{ height: '15rem', overflowY: 'auto' }}>
-                <Dropdown.Header className='text-muted'>
-                  edited {item.oldVersions.length} times
-                </Dropdown.Header>
-                <hr className='dropdown-divider' />
-                <Dropdown.Item title={item.oldVersions[0].cloneDiedAt}>
-                  edited {timeSince(new Date(item.oldVersions[0].cloneDiedAt))} ago (most recent)
-                </Dropdown.Item>
-                {item.oldVersions.map((version) => ( // TODO: prettier
-                  <Dropdown.Item key={version.id} title={version.cloneBornAt} onClick={() => showModal((onClose) => <OldItem version={version} onClose={onClose} />)}>
-                    {!version.cloneBornAt ? 'created' : 'edited'} {timeSince(new Date(version.cloneBornAt || version.createdAt))} ago
-                  </Dropdown.Item>
-                ))}
-              </Dropdown.Menu>
-            </Dropdown>
+            <HistoryDropdownItem item={item} />
           </>}
       </span>
       {item.subName &&
@@ -244,7 +225,7 @@ export default function ItemInfo ({
                   <hr className='dropdown-divider' />
                   <PinSubDropdownItem item={item} />
                 </>}
-              {item.mine && !item.position && !item.deletedAt && !item.bio && // TODO: adjust every edit
+              {item.mine && sub && !item.deletedAt && !item.bio && // has to have a sub for edit page
                 <>
                   <hr className='dropdown-divider' />
                   <Dropdown.Item onClick={() => !item.parentId ? router.push(`/items/${item.id}/edit`) : toggleShadowEdit(true)} className='text-reset dropdown-item'>

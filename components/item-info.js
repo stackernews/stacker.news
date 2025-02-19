@@ -28,7 +28,8 @@ import { useToast } from './toast'
 import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
-import useCanEdit from './use-can-edit'
+import useCanShadowEdit from './use-can-edit'
+import HistoryDropdownItem from './item-history'
 
 function itemTitle (item) {
   let title = ''
@@ -65,7 +66,7 @@ function itemTitle (item) {
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
-  commentTextSingular = 'comment', className, embellishUser, extraInfo, edit, toggleEdit, editText,
+  commentTextSingular = 'comment', className, embellishUser, extraInfo, edit, toggleShadowEdit, shadowEditText,
   onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true,
   setDisableRetry, disableRetry
 }) {
@@ -74,7 +75,7 @@ export default function ItemInfo ({
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
   const sub = item?.sub || root?.sub
-  const [canEdit, setCanEdit, editThreshold] = useCanEdit(item)
+  const [canShadowEdit, setCanShadowEdit, shadowEditThreshold] = useCanShadowEdit(item)
 
   useEffect(() => {
     if (!full) {
@@ -145,6 +146,11 @@ export default function ItemInfo ({
               yesterday
             </Link>
           </>}
+        {item.oldVersions?.length > 0 && !item.deletedAt &&
+          <>
+            <span> </span>
+            <HistoryDropdownItem item={item} />
+          </>}
       </span>
       {item.subName &&
         <SubPopover sub={item.subName}>
@@ -171,8 +177,8 @@ export default function ItemInfo ({
         showActionDropdown &&
           <>
             <EditInfo
-              item={item} edit={edit} canEdit={canEdit}
-              setCanEdit={setCanEdit} toggleEdit={toggleEdit} editText={editText} editThreshold={editThreshold}
+              item={item} edit={edit} canShadowEdit={canShadowEdit}
+              setCanShadowEdit={setCanShadowEdit} toggleShadowEdit={toggleShadowEdit} shadowEditText={shadowEditText} shadowEditThreshold={shadowEditThreshold}
             />
             <PaymentInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
             <ActionDropdown>
@@ -218,6 +224,13 @@ export default function ItemInfo ({
                 <>
                   <hr className='dropdown-divider' />
                   <PinSubDropdownItem item={item} />
+                </>}
+              {item.mine && sub && !item.deletedAt && !item.bio && // has to have a sub for edit page
+                <>
+                  <hr className='dropdown-divider' />
+                  <Dropdown.Item onClick={() => !item.parentId ? router.push(`/items/${item.id}/edit`) : toggleShadowEdit(true)} className='text-reset dropdown-item'>
+                    edit
+                  </Dropdown.Item>
                 </>}
               {item.mine && !item.position && !item.deletedAt && !item.bio &&
                 <>
@@ -339,22 +352,22 @@ function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
   )
 }
 
-function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, editThreshold }) {
+function EditInfo ({ item, edit, canShadowEdit, setCanShadowEdit, toggleShadowEdit, shadowEditText, shadowEditThreshold }) {
   const router = useRouter()
 
-  if (canEdit) {
+  if (canShadowEdit) {
     return (
       <>
         <span> \ </span>
         <span
           className='text-reset pointer fw-bold font-monospace'
-          onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}/edit`)}
+          onClick={() => toggleShadowEdit ? toggleShadowEdit() : router.push(`/items/${item.id}/edit`)}
         >
-          <span>{editText || 'edit'} </span>
+          <span>{shadowEditText || 'edit'} </span>
           {(!item.invoice?.actionState || item.invoice?.actionState === 'PAID')
             ? <Countdown
-                date={editThreshold}
-                onComplete={() => { setCanEdit(false) }}
+                date={shadowEditThreshold}
+                onComplete={() => { setCanShadowEdit(false) }}
               />
             : <span>10:00</span>}
         </span>
@@ -362,17 +375,16 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, edit
     )
   }
 
-  if (edit && !canEdit) {
-    // if we're still editing after timer ran out
+  if (edit && !canShadowEdit) {
+    // we're not in shadow editing mode anymore
     return (
       <>
         <span> \ </span>
         <span
           className='text-reset pointer fw-bold font-monospace'
-          onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}`)}
+          onClick={() => toggleShadowEdit ? toggleShadowEdit() : router.push(`/items/${item.id}`)}
         >
-          <span>cancel </span>
-          <span>00:00</span>
+          <span>cancel</span>
         </span>
       </>
     )

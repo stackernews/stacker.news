@@ -73,6 +73,24 @@ export const ITEM_FIELDS = gql`
     uploadId
     mine
     imgproxyUrls
+    cloneBornAt
+    cloneDiedAt
+    oldVersions {
+      id
+      createdAt
+      updatedAt
+      title
+      text
+      url
+      userId
+      subName
+      imgproxyUrls
+      cloneBornAt
+      cloneDiedAt
+      uploadId
+      pollCost
+      deletedAt
+    }
     rel
     apiKey
     invoice {

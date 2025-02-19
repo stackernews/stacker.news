@@ -19,9 +19,20 @@ export function OldItem ({ version }) {
   )
 }
 
-export default function HistoryDropdownItem ({ item }) {
+export default function HistoryDropdown ({ item }) {
   const router = useRouter()
   const showModal = useShowModal()
+
+  const lastEdited = new Date(item.oldVersions[0].cloneDiedAt)
+
+  // TODO: overengineering? not handling it just closes the modal
+  /* const handleLastEdit = () => {
+    if (!item.parentId) {
+      router.replace(`/items/${item.id}`)
+    } else {
+      router.replace(`/items/${item.parentId}/?commentId=${item.id}`)
+    }
+  } */
 
   return (
     <Dropdown className='pointer' as='span'>
@@ -33,11 +44,18 @@ export default function HistoryDropdownItem ({ item }) {
           edited {item.oldVersions.length} times
         </Dropdown.Header>
         <hr className='dropdown-divider' />
-        <Dropdown.Item title={item.oldVersions[0].cloneDiedAt} onClick={() => router.push(`/items/${item.id}`)}>
-          edited {timeSince(new Date(item.oldVersions[0].cloneDiedAt))} ago (most recent)
+        <Dropdown.Item
+          title={lastEdited}
+          // onClick={handleLastEdit}
+        >
+          edited {timeSince(lastEdited)} ago (most recent)
         </Dropdown.Item>
-        {item.oldVersions.map((version) => ( // TODO: prettier
-          <Dropdown.Item key={version.id} title={version.cloneBornAt} onClick={() => showModal((onClose) => <OldItem version={version} onClose={onClose} />)}>
+        {item.oldVersions.map((version) => (
+          <Dropdown.Item
+            key={version.id}
+            title={version.cloneBornAt}
+            onClick={() => showModal((onClose) => <OldItem version={version} onClose={onClose} />)}
+          >
             {!version.cloneBornAt ? 'created' : 'edited'} {timeSince(new Date(version.cloneBornAt || version.createdAt))} ago
           </Dropdown.Item>
         ))}

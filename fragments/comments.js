@@ -65,6 +65,7 @@ export const COMMENT_FIELDS = gql`
       uploadId
       pollCost
       deletedAt
+      originalItemId
     }
     rel
     apiKey

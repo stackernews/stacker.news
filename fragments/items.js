@@ -90,6 +90,7 @@ export const ITEM_FIELDS = gql`
       uploadId
       pollCost
       deletedAt
+      originalItemId
     }
     rel
     apiKey

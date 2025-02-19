@@ -105,6 +105,7 @@ export default gql`
     uploadId: Int
     pollCost: Int
     deletedAt: Date
+    originalItemId: Int
   }
 
   type Comments {

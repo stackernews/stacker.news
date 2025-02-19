@@ -29,7 +29,7 @@ import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanShadowEdit from './use-can-edit'
-import HistoryDropdownItem from './item-history'
+import HistoryDropdown from './item-history'
 
 function itemTitle (item) {
   let title = ''
@@ -149,7 +149,7 @@ export default function ItemInfo ({
         {item.oldVersions?.length > 0 && !item.deletedAt &&
           <>
             <span> </span>
-            <HistoryDropdownItem item={item} />
+            <HistoryDropdown item={item} />
           </>}
       </span>
       {item.subName &&

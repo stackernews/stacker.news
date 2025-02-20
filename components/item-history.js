@@ -2,7 +2,6 @@ import { timeSince } from '@/lib/time'
 import styles from './item.module.css'
 import Text from './text'
 import { Dropdown } from 'react-bootstrap'
-import { useRouter } from 'next/router'
 import { useShowModal } from './modal'
 
 export function OldItem ({ version }) {
@@ -20,19 +19,8 @@ export function OldItem ({ version }) {
 }
 
 export default function HistoryDropdown ({ item }) {
-  const router = useRouter()
   const showModal = useShowModal()
-
   const lastEdited = new Date(item.oldVersions[0].cloneDiedAt)
-
-  // TODO: overengineering? not handling it just closes the modal
-  /* const handleLastEdit = () => {
-    if (!item.parentId) {
-      router.replace(`/items/${item.id}`)
-    } else {
-      router.replace(`/items/${item.parentId}/?commentId=${item.id}`)
-    }
-  } */
 
   return (
     <Dropdown className='pointer' as='span'>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 
 export function getDbName (userId, name) {
   return `app:storage:${userId ?? ''}${name ? `:${name}` : ''}`
@@ -294,7 +294,7 @@ function useIndexedDB ({ dbName, storeName, options = DEFAULT_OPTIONS, indices =
     })
   }, [queueOperation, storeName])
 
-  return { add, get, getAll, set, remove, clear, getByIndex, getAllByIndex, getPage, error, notSupported }
+  return useMemo(() => ({ add, get, getAll, set, remove, clear, getByIndex, getAllByIndex, getPage, error, notSupported }), [add, get, getAll, set, remove, clear, getByIndex, getAllByIndex, getPage, error, notSupported])
 }
 
 export default useIndexedDB

@@ -34,7 +34,6 @@ export default function HistoryDropdown ({ item }) {
         <hr className='dropdown-divider' />
         <Dropdown.Item
           title={lastEdited}
-          // onClick={handleLastEdit}
         >
           edited {timeSince(lastEdited)} ago (most recent)
         </Dropdown.Item>

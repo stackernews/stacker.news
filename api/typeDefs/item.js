@@ -102,8 +102,6 @@ export default gql`
     imgproxyUrls: JSONObject
     cloneBornAt: Date
     cloneDiedAt: Date
-    uploadId: Int
-    pollCost: Int
     deletedAt: Date
     originalItemId: Int
   }

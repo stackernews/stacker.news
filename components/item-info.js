@@ -146,7 +146,7 @@ export default function ItemInfo ({
               yesterday
             </Link>
           </>}
-        {item.oldVersions?.length > 0 && !item.deletedAt &&
+        {item.oldVersions?.length > 0 && !item.deletedAt && // bios, jobs and admin items are not tracked
           <>
             <span> </span>
             <HistoryDropdown item={item} />
@@ -225,7 +225,7 @@ export default function ItemInfo ({
                   <hr className='dropdown-divider' />
                   <PinSubDropdownItem item={item} />
                 </>}
-              {item.mine && sub && !item.deletedAt && !item.bio && // has to have a sub for edit page
+              {item.mine && !item.deletedAt && sub && // has to have a sub for edit page
                 <>
                   <hr className='dropdown-divider' />
                   <Dropdown.Item onClick={() => !item.parentId ? router.push(`/items/${item.id}/edit`) : toggleShadowEdit(true)} className='text-reset dropdown-item'>

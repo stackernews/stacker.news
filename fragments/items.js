@@ -87,8 +87,6 @@ export const ITEM_FIELDS = gql`
       imgproxyUrls
       cloneBornAt
       cloneDiedAt
-      uploadId
-      pollCost
       deletedAt
       originalItemId
     }

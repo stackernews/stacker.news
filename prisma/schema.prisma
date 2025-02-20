@@ -618,8 +618,6 @@ model OldItem {
   imgproxyUrls        Json?
   cloneBornAt         DateTime?
   cloneDiedAt         DateTime?
-  uploadId            Int?
-  pollCost            Int?
   deletedAt           DateTime?
   originalItemId      Int                   @map("original_itemId")
   originalItem        Item                  @relation(fields: [originalItemId], references: [id], onDelete: Cascade)

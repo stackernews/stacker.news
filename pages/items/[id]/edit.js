@@ -7,17 +7,28 @@ import JobForm from '@/components/job-form'
 import { PollForm } from '@/components/poll-form'
 import { BountyForm } from '@/components/bounty-form'
 import { useState } from 'react'
-import { useQuery } from '@apollo/client'
+import { useQuery, gql } from '@apollo/client'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
-import { FeeButtonProvider } from '@/components/fee-button'
+import { FeeButtonProvider, postCommentBaseLineItems } from '@/components/fee-button'
 import SubSelect from '@/components/sub-select'
 import useCanEdit from '@/components/use-can-edit'
+import { useMe } from '@/components/me'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM,
   notFound: data => !data.item
 })
+
+// TODO: cleanup
+const SUB_QUERY = gql`
+  query Sub($name: String!) {
+    sub(name: $name) {
+      name
+      baseCost
+    }
+  }
+`
 
 export default function PostEdit ({ ssrData }) {
   const router = useRouter()
@@ -25,7 +36,19 @@ export default function PostEdit ({ ssrData }) {
   if (!data && !ssrData) return <PageLoading />
 
   const { item } = data || ssrData
+  const { me } = useMe()
   const [sub, setSub] = useState(item.subName)
+
+  // TODO: cleanup
+  const { data: oldSubData } = useQuery(SUB_QUERY, {
+    variables: { name: item.subName },
+    skip: !item.subName
+  })
+
+  const { data: newSubData } = useQuery(SUB_QUERY, {
+    variables: { name: sub },
+    skip: !sub
+  })
 
   const [,, editThreshold] = useCanEdit(item)
 
@@ -45,20 +68,26 @@ export default function PostEdit ({ ssrData }) {
     itemType = 'BOUNTY'
   }
 
-  const existingBoostLineItem = item.boost
-    ? {
-        existingBoost: {
-          label: 'old boost',
-          term: `- ${item.boost}`,
-          op: '-',
-          modifier: cost => cost - item.boost
+  function editLineItems (oldSub, newSub) {
+    const existingBoostLineItem = item.boost
+      ? {
+          existingBoost: {
+            label: 'old boost',
+            term: `- ${item.boost}`,
+            op: '-',
+            modifier: cost => cost - item.boost
+          }
         }
-      }
-    : undefined
+      : undefined
+    return {
+      ...(item.subName !== newSub?.name ? postCommentBaseLineItems({ baseCost: Math.max(0, newSub?.baseCost - oldSub?.baseCost), me: !!me }) : undefined),
+      ...existingBoostLineItem
+    }
+  }
 
   return (
     <CenterLayout sub={sub}>
-      <FeeButtonProvider baseLineItems={existingBoostLineItem}>
+      <FeeButtonProvider baseLineItems={editLineItems(oldSubData?.sub, newSubData?.sub)}>
         <FormType item={item} editThreshold={editThreshold}>
           {!item.isJob &&
             <SubSelect

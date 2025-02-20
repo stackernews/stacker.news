@@ -20,8 +20,7 @@ export const getServerSideProps = getGetServerSideProps({
   notFound: data => !data.item
 })
 
-// TODO: cleanup
-const SUB_QUERY = gql`
+const SUB_BASECOST = gql`
   query Sub($name: String!) {
     sub(name: $name) {
       name
@@ -39,16 +38,8 @@ export default function PostEdit ({ ssrData }) {
   const { me } = useMe()
   const [sub, setSub] = useState(item.subName)
 
-  // TODO: cleanup
-  const { data: oldSubData } = useQuery(SUB_QUERY, {
-    variables: { name: item.subName },
-    skip: !item.subName
-  })
-
-  const { data: newSubData } = useQuery(SUB_QUERY, {
-    variables: { name: sub },
-    skip: !sub
-  })
+  // we need to fetch the new sub to calculate the cost difference
+  const { data: newSubData } = useQuery(SUB_BASECOST, { variables: { name: sub } })
 
   const [,, editThreshold] = useCanEdit(item)
 
@@ -68,7 +59,7 @@ export default function PostEdit ({ ssrData }) {
     itemType = 'BOUNTY'
   }
 
-  function editLineItems (oldSub, newSub) {
+  const editLineItems = (newSub) => {
     const existingBoostLineItem = item.boost
       ? {
           existingBoost: {
@@ -79,15 +70,24 @@ export default function PostEdit ({ ssrData }) {
           }
         }
       : undefined
+
+    const isSwitchingSub = item.subName !== newSub?.name
+    const subCostDifference = isSwitchingSub && {
+      ...postCommentBaseLineItems({
+        baseCost: Math.max(0, (newSub?.baseCost ?? 0) - (item?.sub?.baseCost ?? 0)),
+        me: !!me
+      })
+    }
+
     return {
-      ...(item.subName !== newSub?.name ? postCommentBaseLineItems({ baseCost: Math.max(0, newSub?.baseCost - oldSub?.baseCost), me: !!me }) : undefined),
+      ...subCostDifference,
       ...existingBoostLineItem
     }
   }
 
   return (
     <CenterLayout sub={sub}>
-      <FeeButtonProvider baseLineItems={editLineItems(oldSubData?.sub, newSubData?.sub)}>
+      <FeeButtonProvider baseLineItems={editLineItems(newSubData?.sub)}>
         <FormType item={item} editThreshold={editThreshold}>
           {!item.isJob &&
             <SubSelect

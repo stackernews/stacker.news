@@ -71,6 +71,8 @@ export async function perform (args, context) {
   if (old.createdAt < new Date(Date.now() - 10 * 60 * 1000) && !old.bio && old.subName !== 'jobs' && !data.deletedAt && !adminItem) {
     await tx.oldItem.create({
       data: {
+        createdAt: old.createdAt,
+        updatedAt: old.updatedAt,
         title: old.title,
         text: old.text,
         url: old.url,

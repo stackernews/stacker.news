@@ -54,15 +54,8 @@ export const COMMENT_FIELDS = gql`
       id
       createdAt
       updatedAt
-      title
-      text
-      url
-      userId
-      subName
-      imgproxyUrls
       cloneBornAt
       cloneDiedAt
-      deletedAt
       originalItemId
     }
     rel

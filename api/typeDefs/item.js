@@ -11,6 +11,7 @@ export default gql`
     auctionPosition(sub: String, id: ID, boost: Int): Int!
     boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
+    oldItem(id: ID!): OldItem
   }
 
   type BoostPositions {

@@ -632,6 +632,9 @@ export default {
       }
     },
     item: getItem,
+    oldItem: async (parent, { id }, { models }) => {
+      return await models.oldItem.findUnique({ where: { id: Number(id) } })
+    },
     pageTitleAndUnshorted: async (parent, { url }, { models }) => {
       const res = {}
       try {
@@ -1207,6 +1210,14 @@ export default {
     },
     oldVersions: async (item, args, { models }) => {
       return await models.oldItem.findMany({
+        select: {
+          id: true,
+          createdAt: true,
+          updatedAt: true,
+          cloneBornAt: true,
+          cloneDiedAt: true,
+          originalItemId: true
+        },
         where: { originalItemId: item.id },
         orderBy: { cloneDiedAt: 'desc' } // ordering by cloneDiedAt allows us to see the most recent edits first
       })

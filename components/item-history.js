@@ -3,25 +3,61 @@ import styles from './item.module.css'
 import Text from './text'
 import { Dropdown } from 'react-bootstrap'
 import { useShowModal } from './modal'
+import { EDIT } from '@/fragments/items'
+import { useQuery } from '@apollo/client'
+import PageLoading from './page-loading'
 
-// OldItem: takes a version and shows the old item
-export function OldItem ({ version }) {
+// OldItem: takes a versionId and shows the old item
+export function OldItem ({ versionId }) {
+  const { data } = useQuery(EDIT, { variables: { id: versionId } })
+  if (!data) return <PageLoading />
+
+  const actionType = data?.oldItem?.cloneBornAt ? 'edited' : 'created'
+  const timestamp = data?.oldItem?.cloneBornAt
+    ? data?.oldItem?.cloneDiedAt
+    : data?.oldItem?.createdAt
+
   return (
     <>
       <div className={styles.other}>
-        {!version.cloneBornAt ? 'created' : 'edited'} {timeSince(new Date(version.cloneBornAt || version.createdAt))} ago
+        {actionType} {timeSince(new Date(timestamp))} ago
       </div>
       <div>
-        <h5>{version.title}</h5>
-        <Text itemId={version.originalItemId} topLevel imgproxyUrls={version.imgproxyUrls}>{version.text}</Text>
+        <h5>{data?.oldItem?.title}</h5>
+        <Text
+          itemId={data?.oldItem?.originalItemId}
+          topLevel
+          imgproxyUrls={data?.oldItem?.imgproxyUrls}
+        >
+          {data?.oldItem?.text}
+        </Text>
       </div>
     </>
   )
 }
 
-// History dropdown: takes an item and by mapping over the oldVersions, it will show the history of the item
-export default function HistoryDropdown ({ item }) {
+export const HistoryDropdownItem = ({ version }) => {
   const showModal = useShowModal()
+
+  const actionType = !version.cloneBornAt ? 'created' : 'edited'
+  const timestamp = version.cloneBornAt
+    ? version.cloneDiedAt
+    : version.createdAt
+
+  return (
+    <Dropdown.Item
+      key={version.id}
+      title={version.cloneBornAt || version.createdAt}
+      onClick={() => showModal((onClose) => <OldItem versionId={version.id} />)}
+    >
+      {actionType} {timeSince(new Date(timestamp))} ago
+    </Dropdown.Item>
+  )
+}
+
+// History dropdown: takes an item and maps over the oldVersions
+export default function HistoryDropdown ({ item }) {
+  const mostRecentTimestamp = item.cloneBornAt || item.oldVersions[0].createdAt
 
   return (
     <Dropdown className='pointer' as='span'>
@@ -33,17 +69,11 @@ export default function HistoryDropdown ({ item }) {
           edited {item.oldVersions.length} times
         </Dropdown.Header>
         <hr className='dropdown-divider' />
-        <Dropdown.Item title={item.oldVersions[0].cloneDiedAt}>
-          edited {timeSince(new Date(item.oldVersions[0].cloneDiedAt))} ago (most recent)
+        <Dropdown.Item title={mostRecentTimestamp}>
+          edited {timeSince(new Date(mostRecentTimestamp))} ago (most recent)
         </Dropdown.Item>
         {item.oldVersions.map((version) => (
-          <Dropdown.Item
-            key={version.id}
-            title={version.cloneBornAt || version.createdAt}
-            onClick={() => showModal((onClose) => <OldItem version={version} />)}
-          >
-            {!version.cloneBornAt ? 'created' : 'edited'} {timeSince(new Date(version.cloneBornAt || version.createdAt))} ago
-          </Dropdown.Item>
+          <HistoryDropdownItem key={version.id} version={version} />
         ))}
       </Dropdown.Menu>
     </Dropdown>

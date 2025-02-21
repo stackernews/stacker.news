@@ -83,7 +83,7 @@ export async function perform (args, context) {
       }
     })
 
-    data.cloneBornAt = new Date()
+    data.cloneBornAt = new Date() // we can use this to determine if the item has been edited
     data.cloneDiedAt = null
   }
 

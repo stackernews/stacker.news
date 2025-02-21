@@ -4,6 +4,7 @@ import Text from './text'
 import { Dropdown } from 'react-bootstrap'
 import { useShowModal } from './modal'
 
+// OldItem: takes a version and shows the old item
 export function OldItem ({ version }) {
   return (
     <>
@@ -18,9 +19,9 @@ export function OldItem ({ version }) {
   )
 }
 
+// History dropdown: takes an item and by mapping over the oldVersions, it will show the history of the item
 export default function HistoryDropdown ({ item }) {
   const showModal = useShowModal()
-  const lastEdited = new Date(item.oldVersions[0].cloneDiedAt)
 
   return (
     <Dropdown className='pointer' as='span'>
@@ -32,16 +33,14 @@ export default function HistoryDropdown ({ item }) {
           edited {item.oldVersions.length} times
         </Dropdown.Header>
         <hr className='dropdown-divider' />
-        <Dropdown.Item
-          title={lastEdited}
-        >
-          edited {timeSince(lastEdited)} ago (most recent)
+        <Dropdown.Item title={item.oldVersions[0].cloneDiedAt}>
+          edited {timeSince(new Date(item.oldVersions[0].cloneDiedAt))} ago (most recent)
         </Dropdown.Item>
         {item.oldVersions.map((version) => (
           <Dropdown.Item
             key={version.id}
-            title={version.cloneBornAt}
-            onClick={() => showModal((onClose) => <OldItem version={version} onClose={onClose} />)}
+            title={version.cloneBornAt || version.createdAt}
+            onClick={() => showModal((onClose) => <OldItem version={version} />)}
           >
             {!version.cloneBornAt ? 'created' : 'edited'} {timeSince(new Date(version.cloneBornAt || version.createdAt))} ago
           </Dropdown.Item>

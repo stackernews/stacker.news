@@ -9,7 +9,7 @@ export default function useCanShadowEdit (item) {
 
   // deleted items can never be edited and every item has a 10 minute shadow edit window
   // except bios, they can always be edited but they should never show the countdown
-  const noEdit = !!item.deletedAt || item.bio // TODO: check for backwards compatibility
+  const noEdit = !!item.deletedAt || item.bio
   const authorEdit = me && item.mine
   const [canShadowEdit, setCanShadowEdit] = useState(!noEdit && authorEdit)
 

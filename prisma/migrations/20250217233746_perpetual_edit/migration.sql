@@ -5,8 +5,6 @@ ALTER TABLE "Item" ADD COLUMN     "cloneBornAt" TIMESTAMP(3),
 ADD COLUMN     "cloneDiedAt" TIMESTAMP(3);
 
 -- CreateTable
--- TODO Postgres supports Inheritance but Prisma doesn't support it yet
--- Figure out a better way to do this
 CREATE TABLE "OldItem" (
     "id" SERIAL NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

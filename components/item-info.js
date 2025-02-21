@@ -178,7 +178,8 @@ export default function ItemInfo ({
           <>
             <EditInfo
               item={item} edit={edit} canShadowEdit={canShadowEdit}
-              setCanShadowEdit={setCanShadowEdit} toggleShadowEdit={toggleShadowEdit} shadowEditText={shadowEditText} shadowEditThreshold={shadowEditThreshold}
+              setCanShadowEdit={setCanShadowEdit} toggleShadowEdit={toggleShadowEdit}
+              shadowEditText={shadowEditText} shadowEditThreshold={shadowEditThreshold}
             />
             <PaymentInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
             <ActionDropdown>

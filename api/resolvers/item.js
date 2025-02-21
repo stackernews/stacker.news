@@ -1208,7 +1208,7 @@ export default {
     oldVersions: async (item, args, { models }) => {
       return await models.oldItem.findMany({
         where: { originalItemId: item.id },
-        orderBy: { cloneDiedAt: 'desc' }
+        orderBy: { cloneDiedAt: 'desc' } // ordering by cloneDiedAt allows us to see the most recent edits first
       })
     },
     forwards: async (item, args, { models }) => {

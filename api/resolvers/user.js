@@ -898,6 +898,14 @@ export default {
 
       await models.user.update({ where: { id: me.id }, data: { hideWelcomeBanner: true } })
       return true
+    },
+    invalidateSessions: async (parent, args, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      await models.user.update({ where: { id: me.id }, data: { sessionRev: { increment: 1 } } })
+      return true
     }
   },
 

@@ -98,6 +98,7 @@ function getCallbacks (req, res) {
         // token won't have an id on it for new logins, we add it
         // note: token is what's kept in the jwt
         token.id = Number(user.id)
+        token.sessionRev = user.sessionRev || 0
 
         // if referrer exists, set on user
         // isNewUser doesn't work for nostr/lightning auth because we create the user before nextauth can
@@ -142,6 +143,11 @@ function getCallbacks (req, res) {
       // note: this function takes the current token (result of running jwt above)
       // and returns a new object session that's returned whenever get|use[Server]Session is called
       session.user.id = token.id
+
+      // invalidate this session if session revision mismatch
+      session.user.sessionRev = token.sessionRev || 0 // if no sessionRev, set to 0, the user will have one after login
+      const sessionRev = await prisma.user.findUnique({ where: { id: session.user.id }, select: { sessionRev: true } })
+      if (session.user.sessionRev !== sessionRev?.sessionRev) return {}
 
       return session
     }

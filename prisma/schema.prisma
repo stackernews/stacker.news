@@ -123,6 +123,7 @@ model User {
   mcredits                  BigInt               @default(0)
   receiveCreditsBelowSats   Int                  @default(10)
   sendCreditsBelowSats      Int                  @default(10)
+  sessionRev                Int                  @default(0)
   muters                    Mute[]               @relation("muter")
   muteds                    Mute[]               @relation("muted")
   ArcOut                    Arc[]                @relation("fromUser")

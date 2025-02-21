@@ -20,7 +20,6 @@ import rehypeSN from '@/lib/rehype-sn'
 import remarkUnicode from '@/lib/remark-unicode'
 import Embed from './embed'
 import remarkMath from 'remark-math'
-import rehypeMathjax from 'rehype-mathjax'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -35,7 +34,6 @@ const rehypeSNStyled = () => rehypeSN({
 })
 
 const remarkPlugins = [gfm, remarkUnicode, [remarkMath, { singleDollarTextMath: false }]]
-const rehypePlugins = [rehypeSNStyled, rehypeMathjax]
 
 export function SearchText ({ text }) {
   return (
@@ -55,6 +53,19 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
   const router = useRouter()
   const [show, setShow] = useState(false)
   const containerRef = useRef(null)
+  const [mathJaxPlugin, setMathJaxPlugin] = useState(null)
+
+  // we only need mathjax if there's math content between $$ tags
+  useEffect(() => {
+    if (/\$\$(.|\n)+\$\$/g.test(children)) {
+      import('rehype-mathjax').then(mod => {
+        setMathJaxPlugin(() => mod.default)
+      }).catch(err => {
+        console.error('error loading mathjax', err)
+        setMathJaxPlugin(null)
+      })
+    }
+  }, [children])
 
   // if we are navigating to a hash, show the full text
   useEffect(() => {
@@ -133,12 +144,12 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
     <ReactMarkdown
       components={components}
       remarkPlugins={remarkPlugins}
-      rehypePlugins={rehypePlugins}
+      rehypePlugins={[rehypeSNStyled, mathJaxPlugin].filter(Boolean)}
       remarkRehypeOptions={{ clobberPrefix: `itemfn-${itemId}-` }}
     >
       {children}
     </ReactMarkdown>
-  ), [components, remarkPlugins, rehypePlugins, children, itemId])
+  ), [components, remarkPlugins, mathJaxPlugin, children, itemId])
 
   const showOverflow = useCallback(() => setShow(true), [setShow])
 
@@ -230,6 +241,7 @@ function Table ({ node, ...props }) {
 function Code ({ node, inline, className, children, style, ...props }) {
   const [ReactSyntaxHighlighter, setReactSyntaxHighlighter] = useState(null)
   const [syntaxTheme, setSyntaxTheme] = useState(null)
+  const language = className?.match(/language-(\w+)/)?.[1] || 'text'
 
   const loadHighlighter = useCallback(() =>
     Promise.all([
@@ -239,7 +251,7 @@ function Code ({ node, inline, className, children, style, ...props }) {
   )
 
   useEffect(() => {
-    if (!inline) {
+    if (!inline && language !== 'math') { // MathJax should handle math
       // loading the syntax highlighter and theme only when needed
       loadHighlighter().then(([highlighter, theme]) => {
         setReactSyntaxHighlighter(() => highlighter)
@@ -255,8 +267,6 @@ function Code ({ node, inline, className, children, style, ...props }) {
       </code>
     )
   }
-
-  const language = className?.match(/language-(\w+)/)?.[1] || 'text'
 
   return (
     <ReactSyntaxHighlighter style={syntaxTheme} language={language} PreTag='div' customStyle={{ borderRadius: '0.3rem' }} {...props}>

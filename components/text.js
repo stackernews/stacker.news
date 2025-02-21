@@ -57,7 +57,7 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
 
   // we only need mathjax if there's math content between $$ tags
   useEffect(() => {
-    if (/\$\$(.*?)\$\$/g.test(children)) {
+    if (/\$\$(.|\n)+\$\$/g.test(children)) {
       import('rehype-mathjax').then(mod => {
         setMathJaxPlugin(() => mod.default)
       }).catch(err => {

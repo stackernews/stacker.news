@@ -625,6 +625,7 @@ model OldItem {
   @@index([createdAt])
   @@index([userId])
   @@index([originalItemId])
+  @@index([originalItemId, cloneDiedAt(sort: Desc)])
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item

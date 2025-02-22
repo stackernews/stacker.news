@@ -32,5 +32,8 @@ CREATE INDEX "OldItem_userId_idx" ON "OldItem"("userId");
 -- CreateIndex
 CREATE INDEX "OldItem_original_itemId_idx" ON "OldItem"("original_itemId");
 
+-- CreateIndex -- history of the item
+CREATE INDEX "OldItem_original_itemId_cloneDiedAt_idx" ON "OldItem"("original_itemId", "cloneDiedAt" DESC);
+
 -- AddForeignKey
 ALTER TABLE "OldItem" ADD CONSTRAINT "OldItem_original_itemId_fkey" FOREIGN KEY ("original_itemId") REFERENCES "Item"("id") ON DELETE CASCADE ON UPDATE CASCADE;

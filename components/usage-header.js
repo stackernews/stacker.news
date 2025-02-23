@@ -1,5 +1,6 @@
 import { useRouter } from 'next/router'
 import { Select, DatePicker } from './form'
+import { useSubs } from './sub-select'
 import { WHENS } from '@/lib/constants'
 import { whenToFrom } from '@/lib/time'
 
@@ -9,24 +10,48 @@ export function UsageHeader ({ pathname = null }) {
   const path = pathname || 'stackers'
 
   const select = async values => {
-    const { when, ...query } = values
+    const { sub, when, ...query } = values
 
     if (when !== 'custom') { delete query.from; delete query.to }
     if (query.from && !query.to) return
 
     await router.push({
 
-      pathname: `/${path}/${when}`,
+      pathname: `/${path}/${sub}/${when}`,
       query
     })
   }
 
   const when = router.query.when || 'day'
+  const sub = router.query.sub || 'all'
+
+  console.log(when)
+  console.log(sub)
+
+  const subs = useSubs({ prependSubs: ['all'], sub: sub, filterSubs: [], filterSubs: () => true})
+  
+  //const subs = useSubs({ [], '', [], () => true })
+  //const subs = useSubs({ sub='' })
+  //const subs = useSubs({ prependSubs, sub, filterSubs, appendSubs })
 
   return (
     <div className='text-muted fw-bold my-0 d-flex align-items-center flex-wrap'>
       <div className='text-muted fw-bold mb-2 d-flex align-items-center'>
-        stacker analytics for
+        stacker analytics for 
+        <Select
+          groupClassName='mb-0 mx-2'
+          className='w-auto'
+          name='sub'
+          size='sm'
+          items={subs}
+          value={sub}
+          noForm
+          onChange={(formik, e) => {
+            const range = when === 'custom' ? { from: router.query.from, to: router.query.to } : {}
+            select({ sub: e.target.value, when: when, ...range })
+          }}
+        />
+         for 
         <Select
           groupClassName='mb-0 mx-2'
           className='w-auto'
@@ -37,7 +62,7 @@ export function UsageHeader ({ pathname = null }) {
           noForm
           onChange={(formik, e) => {
             const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: Date.now() } : {}
-            select({ when: e.target.value, ...range })
+            select({ sub: sub, when: e.target.value, ...range })
           }}
         />
       </div>
@@ -48,7 +73,7 @@ export function UsageHeader ({ pathname = null }) {
           toName='to'
           className='p-0 px-2 mb-0'
           onChange={(formik, [from, to], e) => {
-            select({ when, from: from.getTime(), to: to.getTime() })
+            select({ sub, when, from: from.getTime(), to: to.getTime() })
           }}
           from={router.query.from}
           to={router.query.to}

@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, USER_ID, ADMIN_ITEMS } from '@/lib/constants'
 import { uploadFees } from '../resolvers/upload'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
@@ -64,6 +64,30 @@ export async function perform (args, context) {
     where: { id: { in: uploadIds } },
     data: { paid: true }
   })
+
+  // history tracking
+  // has to be older than 10 minutes, not a bio, not a job, not deleted, not a special item.
+  const adminItem = ADMIN_ITEMS.includes(old.id)
+  if (old.createdAt < new Date(Date.now() - 10 * 60 * 1000) && !old.bio && old.subName !== 'jobs' && !data.deletedAt && !adminItem) {
+    await tx.oldItem.create({
+      data: {
+        createdAt: old.createdAt,
+        updatedAt: old.updatedAt,
+        title: old.title,
+        text: old.text,
+        url: old.url,
+        userId: old.userId,
+        subName: old.subName,
+        imgproxyUrls: old.imgproxyUrls,
+        cloneBornAt: old.cloneBornAt,
+        cloneDiedAt: new Date(),
+        originalItemId: parseInt(id)
+      }
+    })
+
+    data.cloneBornAt = new Date() // we can use this to determine if the item has been edited
+    data.cloneDiedAt = null
+  }
 
   // we put boost in the where clause because we don't want to update the boost
   // if it has changed concurrently

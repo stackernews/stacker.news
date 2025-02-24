@@ -73,6 +73,16 @@ export const ITEM_FIELDS = gql`
     uploadId
     mine
     imgproxyUrls
+    cloneBornAt
+    cloneDiedAt
+    oldVersions {
+      id
+      createdAt
+      updatedAt
+      cloneBornAt
+      cloneDiedAt
+      originalItemId
+    }
     rel
     apiKey
     invoice {
@@ -118,6 +128,24 @@ export const ITEM_FULL_FIELDS = gql`
       }
     }
   }`
+
+export const OLDITEM_FIELDS = gql`
+  fragment OldItemFields on OldItem {
+    id
+    createdAt
+    updatedAt
+    title
+    text
+    url
+    userId
+    subName
+    imgproxyUrls
+    cloneBornAt
+    cloneDiedAt
+    deletedAt
+    originalItemId
+  }
+`
 
 export const ITEM_OTS_FIELDS = gql`
   fragment ItemOtsFields on Item {
@@ -206,6 +234,15 @@ export const RELATED_ITEMS_WITH_ITEM = gql`
       items {
         ...ItemFields
       }
+    }
+  }
+`
+
+export const EDIT = gql`
+  ${OLDITEM_FIELDS}
+  query Edit($id: ID!) {
+    oldItem(id: $id) {
+      ...OldItemFields
     }
   }
 `

@@ -9,7 +9,6 @@ import {
   USER_ID, POLL_COST, ADMIN_ITEMS, GLOBAL_SEED,
   NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS,
   BOOST_MULT,
-  ITEM_EDIT_SECONDS,
   COMMENTS_LIMIT,
   COMMENTS_OF_COMMENT_LIMIT,
   FULL_COMMENTS_THRESHOLD
@@ -633,6 +632,9 @@ export default {
       }
     },
     item: getItem,
+    oldItem: async (parent, { id }, { models }) => {
+      return await models.oldItem.findUnique({ where: { id: Number(id) } })
+    },
     pageTitleAndUnshorted: async (parent, { url }, { models }) => {
       const res = {}
       try {
@@ -1206,6 +1208,20 @@ export default {
       }
       return await models.user.findUnique({ where: { id: item.userId } })
     },
+    oldVersions: async (item, args, { models }) => {
+      return await models.oldItem.findMany({
+        select: {
+          id: true,
+          createdAt: true,
+          updatedAt: true,
+          cloneBornAt: true,
+          cloneDiedAt: true,
+          originalItemId: true
+        },
+        where: { originalItemId: item.id },
+        orderBy: { cloneDiedAt: 'desc' } // ordering by cloneDiedAt allows us to see the most recent edits first
+      })
+    },
     forwards: async (item, args, { models }) => {
       return await models.itemForward.findMany({
         where: {
@@ -1487,13 +1503,12 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
 
   const user = await models.user.findUnique({ where: { id: meId } })
 
-  // edits are only allowed for own items within 10 minutes
-  // but forever if an admin is editing an "admin item", it's their bio or a job
+  // edit always allowed for own items
+  // or if it's an admin item, their bio or a job TODO: adjust every edit
   const myBio = user.bioId === old.id
-  const timer = Date.now() < datePivot(new Date(old.invoicePaidAt ?? old.createdAt), { seconds: ITEM_EDIT_SECONDS })
-  const canEdit = (timer && ownerEdit) || adminEdit || myBio || isJob(old)
+  const canEdit = ownerEdit || adminEdit || myBio || isJob(old)
   if (!canEdit) {
-    throw new GqlInputError('item can no longer be edited')
+    throw new GqlInputError('item cannot be edited')
   }
 
   if (item.url && !isJob(item)) {
@@ -1515,7 +1530,6 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
 
   // never change author of item
   item.userId = old.userId
-
   const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd })
 
   resultItem.comments = []

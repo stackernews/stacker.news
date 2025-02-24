@@ -11,6 +11,7 @@ export default gql`
     auctionPosition(sub: String, id: ID, boost: Int): Int!
     boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
+    oldItem(id: ID!): OldItem
   }
 
   type BoostPositions {
@@ -90,6 +91,22 @@ export default gql`
     ad: Item
   }
 
+  type OldItem {
+    id: ID!
+    createdAt: Date
+    updatedAt: Date
+    title: String
+    text: String
+    url: String
+    userId: Int
+    subName: String
+    imgproxyUrls: JSONObject
+    cloneBornAt: Date
+    cloneDiedAt: Date
+    deletedAt: Date
+    originalItemId: Int
+  }
+
   type Comments {
     cursor: String
     comments: [Item!]!
@@ -165,6 +182,9 @@ export default gql`
     parentOtsHash: String
     forwards: [ItemForward]
     imgproxyUrls: JSONObject
+    cloneBornAt: Date
+    cloneDiedAt: Date
+    oldVersions: [OldItem!]
     rel: String
     apiKey: Boolean
     invoice: Invoice

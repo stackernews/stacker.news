@@ -12,7 +12,7 @@ import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import { FeeButtonProvider } from '@/components/fee-button'
 import SubSelect from '@/components/sub-select'
-import useCanEdit from '@/components/use-can-edit'
+import useCanShadowEdit from '@/components/use-can-edit'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM,
@@ -27,7 +27,7 @@ export default function PostEdit ({ ssrData }) {
   const { item } = data || ssrData
   const [sub, setSub] = useState(item.subName)
 
-  const [,, editThreshold] = useCanEdit(item)
+  const [,, shadowEditThreshold] = useCanShadowEdit(item)
 
   let FormType = DiscussionForm
   let itemType = 'DISCUSSION'
@@ -59,7 +59,7 @@ export default function PostEdit ({ ssrData }) {
   return (
     <CenterLayout sub={sub}>
       <FeeButtonProvider baseLineItems={existingBoostLineItem}>
-        <FormType item={item} editThreshold={editThreshold}>
+        <FormType item={item} shadowEditThreshold={shadowEditThreshold}>
           {!item.isJob &&
             <SubSelect
               className='d-flex'

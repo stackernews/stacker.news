@@ -20,7 +20,6 @@ import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
 import { numWithUnits } from '@/lib/format'
 import textAreaCaret from 'textarea-caret'
-import ReactDatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import useDebounceCallback, { debounce } from './use-debounce-callback'
 import { FileUpload } from './file-upload'
@@ -38,9 +37,10 @@ import QrIcon from '@/svgs/qr-code-line.svg'
 import QrScanIcon from '@/svgs/qr-scan-line.svg'
 import { useShowModal } from './modal'
 import { QRCodeSVG } from 'qrcode.react'
-import { Scanner } from '@yudiel/react-qr-scanner'
+import dynamic from 'next/dynamic'
 import { qrImageSettings } from './qr'
 import { useIsClient } from './use-client'
+import PageLoading from './page-loading'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -976,6 +976,10 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
   const [,, fromHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: fromName })
   const [,, toHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: toName })
   const { minDate, maxDate } = props
+  const ReactDatePicker = dynamic(() => import('react-datepicker').then(mod => mod.default), {
+    ssr: false,
+    loading: () => <span>loading date picker</span>
+  })
 
   const [[innerFrom, innerTo], setRange] = useState(whenRange(when, from, to))
 
@@ -1038,19 +1042,23 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
   }
 
   return (
-    <ReactDatePicker
-      className={`form-control text-center ${className}`}
-      selectsRange
-      maxDate={new Date()}
-      minDate={new Date('2021-05-01')}
-      {...props}
-      selected={new Date(innerFrom)}
-      startDate={new Date(innerFrom)}
-      endDate={innerTo ? new Date(innerTo) : undefined}
-      dateFormat={dateFormat}
-      onChangeRaw={onChangeRawHandler}
-      onChange={innerOnChange}
-    />
+    <>
+      {ReactDatePicker && (
+        <ReactDatePicker
+          className={`form-control text-center ${className}`}
+          selectsRange
+          maxDate={new Date()}
+          minDate={new Date('2021-05-01')}
+          {...props}
+          selected={new Date(innerFrom)}
+          startDate={new Date(innerFrom)}
+          endDate={innerTo ? new Date(innerTo) : undefined}
+          dateFormat={dateFormat}
+          onChangeRaw={onChangeRawHandler}
+          onChange={innerOnChange}
+        />
+      )}
+    </>
   )
 }
 
@@ -1070,19 +1078,27 @@ export function DateTimeInput ({ label, groupClassName, name, ...props }) {
 
 function DateTimePicker ({ name, className, ...props }) {
   const [field, , helpers] = useField({ ...props, name })
+  const ReactDatePicker = dynamic(() => import('react-datepicker').then(mod => mod.default), {
+    ssr: false,
+    loading: () => <span>loading date picker</span>
+  })
   return (
-    <ReactDatePicker
-      {...field}
-      {...props}
-      showTimeSelect
-      dateFormat='Pp'
-      className={`form-control ${className}`}
-      selected={(field.value && new Date(field.value)) || null}
-      value={(field.value && new Date(field.value)) || null}
-      onChange={(val) => {
-        helpers.setValue(val)
-      }}
-    />
+    <>
+      {ReactDatePicker && (
+        <ReactDatePicker
+          {...field}
+          {...props}
+          showTimeSelect
+          dateFormat='Pp'
+          className={`form-control ${className}`}
+          selected={(field.value && new Date(field.value)) || null}
+          value={(field.value && new Date(field.value)) || null}
+          onChange={(val) => {
+            helpers.setValue(val)
+          }}
+        />
+      )}
+    </>
   )
 }
 
@@ -1149,6 +1165,10 @@ function QrPassword ({ value }) {
 function PasswordScanner ({ onScan, text }) {
   const showModal = useShowModal()
   const toaster = useToast()
+  const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner), {
+    ssr: false,
+    loading: () => <PageLoading />
+  })
 
   return (
     <InputGroup.Text
@@ -1158,26 +1178,28 @@ function PasswordScanner ({ onScan, text }) {
           return (
             <div>
               {text && <h5 className='line-height-md mb-4 text-center'>{text}</h5>}
-              <Scanner
-                formats={['qr_code']}
-                onScan={([{ rawValue: result }]) => {
-                  onScan(result)
-                  onClose()
-                }}
-                styles={{
-                  video: {
-                    aspectRatio: '1 / 1'
-                  }
-                }}
-                onError={(error) => {
-                  if (error instanceof DOMException) {
-                    console.log(error)
-                  } else {
-                    toaster.danger('qr scan: ' + error?.message || error?.toString?.())
-                  }
-                  onClose()
-                }}
-              />
+              {Scanner && (
+                <Scanner
+                  formats={['qr_code']}
+                  onScan={([{ rawValue: result }]) => {
+                    onScan(result)
+                    onClose()
+                  }}
+                  styles={{
+                    video: {
+                      aspectRatio: '1 / 1'
+                    }
+                  }}
+                  onError={(error) => {
+                    if (error instanceof DOMException) {
+                      console.log(error)
+                    } else {
+                      toaster.danger('qr scan: ' + error?.message || error?.toString?.())
+                    }
+                    onClose()
+                  }}
+                />
+              )}
             </div>
           )
         })

@@ -971,15 +971,24 @@ export function Select ({ label, items, info, groupClassName, onChange, noForm, 
   )
 }
 
+function DatePickerSkeleton () {
+  return (
+    <div className='react-datepicker-wrapper'>
+      <input className='form-control clouds fade-out p-0 px-2 mb-0' />
+    </div>
+  )
+}
+
+const ReactDatePicker = dynamic(() => import('react-datepicker').then(mod => mod.default), {
+  ssr: false,
+  loading: () => <DatePickerSkeleton />
+})
+
 export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to, className, ...props }) {
   const formik = noForm ? null : useFormikContext()
   const [,, fromHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: fromName })
   const [,, toHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: toName })
   const { minDate, maxDate } = props
-  const ReactDatePicker = dynamic(() => import('react-datepicker').then(mod => mod.default), {
-    ssr: false,
-    loading: () => <span>loading date picker</span>
-  })
 
   const [[innerFrom, innerTo], setRange] = useState(whenRange(when, from, to))
 

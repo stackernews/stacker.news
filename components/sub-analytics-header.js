@@ -4,7 +4,7 @@ import { useSubs } from './sub-select'
 import { WHENS } from '@/lib/constants'
 import { whenToFrom } from '@/lib/time'
 
-export function UsageHeader ({ pathname = null }) {
+export function SubAnalyticsHeader ({ pathname = null }) {
   const router = useRouter()
 
   const path = pathname || 'stackers'
@@ -24,16 +24,9 @@ export function UsageHeader ({ pathname = null }) {
 
   const when = router.query.when || 'day'
   const sub = router.query.sub || 'all'
-
-  console.log(when)
-  console.log(sub)
-
+  
   const subs = useSubs({ prependSubs: ['all'], sub: sub, filterSubs: [], filterSubs: () => true})
   
-  //const subs = useSubs({ [], '', [], () => true })
-  //const subs = useSubs({ sub='' })
-  //const subs = useSubs({ prependSubs, sub, filterSubs, appendSubs })
-
   return (
     <div className='text-muted fw-bold my-0 d-flex align-items-center flex-wrap'>
       <div className='text-muted fw-bold mb-2 d-flex align-items-center'>

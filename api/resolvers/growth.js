@@ -121,6 +121,33 @@ export default {
         FROM ${viewGroup(range, 'stacking_growth')}
         GROUP BY time
         ORDER BY time ASC`, ...range)
+    },
+    itemGrowthSubs: async (parent, { when, to, from, sub }, { models }) => {
+      const range = whenRange(when, from, to)
+      
+      return await models.$queryRawUnsafe(`
+        SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time, json_build_array(
+          json_build_object('name', 'posts', 'value', coalesce(sum(posts),0)),
+          json_build_object('name', 'comments', 'value', coalesce(sum(comments),0))
+        ) AS data
+        FROM ${viewGroup(range, 'sub_stats')}
+        WHERE sub_name='${sub}'
+        GROUP BY time
+        ORDER BY time ASC`, ...range)
+    },
+    revenueGrowthSubs: async (parent, { when, to, from, sub }, { models }) => {
+      const range = whenRange(when, from, to)
+      
+      return await models.$queryRawUnsafe(`
+        SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time, json_build_array(
+          json_build_object('name', 'revenue', 'value', coalesce(sum(msats_revenue/1000),0)),
+          json_build_object('name', 'stacking', 'value', coalesce(sum(msats_stacked/1000),0)),
+          json_build_object('name', 'spending', 'value', coalesce(sum(msats_spent/1000),0))
+        ) AS data
+        FROM ${viewGroup(range, 'sub_stats')}
+        WHERE sub_name='${sub}'
+        GROUP BY time
+        ORDER BY time ASC`, ...range)
     }
   }
 }

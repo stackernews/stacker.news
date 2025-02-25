@@ -12,12 +12,20 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getCost ({ id, boost = 0, uploadIds, bio }, { me, models }) {
+async function getBaseCostDifference (oldSubName, newSubName, { models }) {
+  if (oldSubName === newSubName) return 0
+  const oldSub = await models.sub.findUnique({ where: { name: oldSubName }, select: { baseCost: true } })
+  const newSub = await models.sub.findUnique({ where: { name: newSubName }, select: { baseCost: true } })
+  return Math.max(0, (newSub?.baseCost ?? 0) - (oldSub?.baseCost ?? 0))
+}
+
+export async function getCost ({ subName, id, boost = 0, uploadIds, bio }, { me, models }) {
   // the only reason updating items costs anything is when it has new uploads
-  // or more boost
+  // or more boost or is switching to a more expensive sub
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
-  const cost = BigInt(totalFeesMsats) + satsToMsats(boost - old.boost)
+  const baseCostDifference = await getBaseCostDifference(old.subName, subName, { models })
+  const cost = BigInt(totalFeesMsats) + satsToMsats(boost - old.boost) + satsToMsats(baseCostDifference)
 
   if (cost > 0 && old.invoiceActionState && old.invoiceActionState !== 'PAID') {
     throw new Error('creation invoice not paid')

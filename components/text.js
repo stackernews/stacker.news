@@ -238,6 +238,17 @@ function Table ({ node, ...props }) {
   )
 }
 
+// prevent layout shifting when the code block is loading
+function CodeSkeleton ({ className, children, ...props }) {
+  return (
+    <div className='rounded' style={{ padding: '0.5em' }}>
+      <code className={`${className}`} {...props}>
+        {children}
+      </code>
+    </div>
+  )
+}
+
 function Code ({ node, inline, className, children, style, ...props }) {
   const [ReactSyntaxHighlighter, setReactSyntaxHighlighter] = useState(null)
   const [syntaxTheme, setSyntaxTheme] = useState(null)
@@ -245,7 +256,10 @@ function Code ({ node, inline, className, children, style, ...props }) {
 
   const loadHighlighter = useCallback(() =>
     Promise.all([
-      dynamic(() => import('react-syntax-highlighter').then(mod => mod.LightAsync), { ssr: false }),
+      dynamic(() => import('react-syntax-highlighter').then(mod => mod.LightAsync), {
+        ssr: false,
+        loading: () => <CodeSkeleton className={className} {...props}>{children}</CodeSkeleton>
+      }),
       import('react-syntax-highlighter/dist/cjs/styles/hljs/atom-one-dark').then(mod => mod.default)
     ]), []
   )
@@ -260,7 +274,7 @@ function Code ({ node, inline, className, children, style, ...props }) {
     }
   }, [inline])
 
-  if (inline || !ReactSyntaxHighlighter || !syntaxTheme) {
+  if (inline || !ReactSyntaxHighlighter) { // inline code doesn't have a border radius
     return (
       <code className={className} {...props}>
         {children}
@@ -269,9 +283,13 @@ function Code ({ node, inline, className, children, style, ...props }) {
   }
 
   return (
-    <ReactSyntaxHighlighter style={syntaxTheme} language={language} PreTag='div' customStyle={{ borderRadius: '0.3rem' }} {...props}>
-      {children}
-    </ReactSyntaxHighlighter>
+    <>
+      {ReactSyntaxHighlighter && syntaxTheme && (
+        <ReactSyntaxHighlighter style={syntaxTheme} language={language} PreTag='div' customStyle={{ borderRadius: '0.3rem' }} {...props}>
+          {children}
+        </ReactSyntaxHighlighter>
+      )}
+    </>
   )
 }
 

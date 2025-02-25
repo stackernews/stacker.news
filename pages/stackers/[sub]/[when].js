@@ -89,18 +89,18 @@ export default function Growth ({ ssrData }) {
   const { data } = useQuery(GROWTH_QUERY, { variables: { when, from, to, sub } })
   if (!data && !ssrData) return <PageLoading />
 
-  const { 
-    registrationGrowth, 
-    itemGrowth, 
-    spendingGrowth, 
-    spenderGrowth, 
-    stackingGrowth, 
+  const {
+    registrationGrowth,
+    itemGrowth,
+    spendingGrowth,
+    spenderGrowth,
+    stackingGrowth,
     stackerGrowth,
     itemGrowthSubs,
     revenueGrowthSubs
   } = data || ssrData
 
-  if (sub==='all') {
+  if (sub === 'all') {
     return (
       <Layout>
         <SubAnalyticsHeader />

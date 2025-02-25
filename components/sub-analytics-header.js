@@ -24,13 +24,13 @@ export function SubAnalyticsHeader ({ pathname = null }) {
 
   const when = router.query.when || 'day'
   const sub = router.query.sub || 'all'
-  
-  const subs = useSubs({ prependSubs: ['all'], sub: sub, filterSubs: [], filterSubs: () => true})
-  
+
+  const subs = useSubs({ prependSubs: ['all'], sub, appendSubs: [], filterSubs: () => true })
+
   return (
     <div className='text-muted fw-bold my-0 d-flex align-items-center flex-wrap'>
       <div className='text-muted fw-bold mb-2 d-flex align-items-center'>
-        stacker analytics for 
+        stacker analytics for
         <Select
           groupClassName='mb-0 mx-2'
           className='w-auto'
@@ -41,10 +41,10 @@ export function SubAnalyticsHeader ({ pathname = null }) {
           noForm
           onChange={(formik, e) => {
             const range = when === 'custom' ? { from: router.query.from, to: router.query.to } : {}
-            select({ sub: e.target.value, when: when, ...range })
+            select({ sub: e.target.value, when, ...range })
           }}
         />
-         for 
+        for
         <Select
           groupClassName='mb-0 mx-2'
           className='w-auto'
@@ -55,7 +55,7 @@ export function SubAnalyticsHeader ({ pathname = null }) {
           noForm
           onChange={(formik, e) => {
             const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: Date.now() } : {}
-            select({ sub: sub, when: e.target.value, ...range })
+            select({ sub, when: e.target.value, ...range })
           }}
         />
       </div>

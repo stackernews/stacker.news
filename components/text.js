@@ -204,7 +204,7 @@ function Sub ({ children, node, href, name, ...props }) {
 
 function Item ({ children, node, href, id }) {
   return (
-    <ItemPopover id={children.replace('#', '')}>
+    <ItemPopover id={id}>
       <Link href={href}>{children}</Link>
     </ItemPopover>
   )

@@ -131,9 +131,9 @@ export default {
           json_build_object('name', 'comments', 'value', coalesce(sum(comments),0))
         ) AS data
         FROM ${viewGroup(range, 'sub_stats')}
-        WHERE sub_name='${sub}'
+        WHERE sub_name = $3
         GROUP BY time
-        ORDER BY time ASC`, ...range)
+        ORDER BY time ASC`, ...range, sub)
     },
     revenueGrowthSubs: async (parent, { when, to, from, sub }, { models }) => {
       const range = whenRange(when, from, to)
@@ -145,9 +145,9 @@ export default {
           json_build_object('name', 'spending', 'value', coalesce(sum(msats_spent/1000),0))
         ) AS data
         FROM ${viewGroup(range, 'sub_stats')}
-        WHERE sub_name='${sub}'
+        WHERE sub_name = $3
         GROUP BY time
-        ORDER BY time ASC`, ...range)
+        ORDER BY time ASC`, ...range, sub)
     }
   }
 }

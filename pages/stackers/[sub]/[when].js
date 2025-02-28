@@ -20,58 +20,58 @@ const WhenComposedChart = dynamic(() => import('@/components/charts').then(mod =
 })
 
 const GROWTH_QUERY = gql`
-  query Growth($when: String!, $from: String, $to: String, $sub: String)
+  query Growth($when: String!, $from: String, $to: String, $sub: String, $subSelect: Boolean = false)
   {
-    registrationGrowth(when: $when, from: $from, to: $to) {
+    registrationGrowth(when: $when, from: $from, to: $to) @skip(if: $subSelect) {
       time
       data {
         name
         value
       }
     }
-    itemGrowth(when: $when, from: $from, to: $to) {
+    itemGrowth(when: $when, from: $from, to: $to) @skip(if: $subSelect) {
       time
       data {
         name
         value
       }
     }
-    spendingGrowth(when: $when, from: $from, to: $to) {
+    spendingGrowth(when: $when, from: $from, to: $to) @skip(if: $subSelect) {
       time
       data {
         name
         value
       }
     }
-    spenderGrowth(when: $when, from: $from, to: $to) {
+    spenderGrowth(when: $when, from: $from, to: $to) @skip(if: $subSelect) {
       time
       data {
         name
         value
       }
     }
-    stackingGrowth(when: $when, from: $from, to: $to) {
+    stackingGrowth(when: $when, from: $from, to: $to) @skip(if: $subSelect) {
       time
       data {
         name
         value
       }
     }
-    stackerGrowth(when: $when, from: $from, to: $to) {
+    stackerGrowth(when: $when, from: $from, to: $to) @skip(if: $subSelect) {
       time
       data {
         name
         value
       }
     }
-    itemGrowthSubs(when: $when, from: $from, to: $to, sub: $sub) {
+    itemGrowthSubs(when: $when, from: $from, to: $to, sub: $sub) @include(if: $subSelect) {
       time
       data {
         name
         value
       }
     }
-    revenueGrowthSubs(when: $when, from: $from, to: $to, sub: $sub) {
+    revenueGrowthSubs(when: $when, from: $from, to: $to, sub: $sub) @include(if: $subSelect) {
       time
       data {
         name
@@ -80,13 +80,14 @@ const GROWTH_QUERY = gql`
     }
   }`
 
-export const getServerSideProps = getGetServerSideProps({ query: GROWTH_QUERY })
+const variablesFunc = vars => ({ ...vars, subSelect: vars.sub !== 'all' })
+export const getServerSideProps = getGetServerSideProps({ query: GROWTH_QUERY, variables: variablesFunc })
 
 export default function Growth ({ ssrData }) {
   const router = useRouter()
   const { when, from, to, sub } = router.query
 
-  const { data } = useQuery(GROWTH_QUERY, { variables: { when, from, to, sub } })
+  const { data } = useQuery(GROWTH_QUERY, { variables: { when, from, to, sub, subSelect: sub !== 'all' } })
   if (!data && !ssrData) return <PageLoading />
 
   const {

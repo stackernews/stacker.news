@@ -3,6 +3,8 @@ import { Select, DatePicker } from './form'
 import { useSubs } from './sub-select'
 import { WHENS } from '@/lib/constants'
 import { whenToFrom } from '@/lib/time'
+import styles from './sub-select.module.css'
+import classNames from 'classnames'
 
 export function SubAnalyticsHeader ({ pathname = null }) {
   const router = useRouter()
@@ -30,10 +32,10 @@ export function SubAnalyticsHeader ({ pathname = null }) {
   return (
     <div className='text-muted fw-bold my-0 d-flex align-items-center flex-wrap'>
       <div className='text-muted fw-bold mb-2 d-flex align-items-center'>
-        stacker analytics for
+        stacker analytics in
         <Select
           groupClassName='mb-0 mx-2'
-          className='w-auto'
+          className={classNames(styles.subSelect, styles.subSelectSmall)}
           name='sub'
           size='sm'
           items={subs}

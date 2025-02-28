@@ -125,6 +125,9 @@ export default {
     itemGrowthSubs: async (parent, { when, to, from, sub }, { models }) => {
       const range = whenRange(when, from, to)
 
+      const subExists = await models.sub.findUnique({ where: { name: sub } })
+      if (!subExists) throw new Error('Sub not found')
+
       return await models.$queryRawUnsafe(`
         SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time, json_build_array(
           json_build_object('name', 'posts', 'value', coalesce(sum(posts),0)),
@@ -137,6 +140,9 @@ export default {
     },
     revenueGrowthSubs: async (parent, { when, to, from, sub }, { models }) => {
       const range = whenRange(when, from, to)
+
+      const subExists = await models.sub.findUnique({ where: { name: sub } })
+      if (!subExists) throw new Error('Sub not found')
 
       return await models.$queryRawUnsafe(`
         SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time, json_build_array(

@@ -130,9 +130,6 @@ function appendSubWithPlus (newSub) {
 
 // TODO: this is a copy of SubSelect with some changes to handle multiple territories
 //       mainly to test the new MultiSelect component
-// TODO: don't redirect on add territory
-// TODO: make sure that this can be validated and used in post form
-// TODO: prevent re-refresh on add territory
 export function MultiSubSelect ({ prependSubs, sub, onChange, size, appendSubs, filterSubs, className, ...props }) {
   const router = useRouter()
   const subs = useSubs({ prependSubs, sub, filterSubs, appendSubs })
@@ -193,7 +190,7 @@ export function MultiSubSelect ({ prependSubs, sub, onChange, size, appendSubs, 
         }
         const query = {
           ...router.query,
-          sub: router.query.sub ? appendSubWithPlus(sub) : sub
+          sub
         }
         delete query.nodata
         router.push({

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import { Select } from './form'
+import { Select, MultiSelect } from './form'
 import { EXTRA_LONG_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { SUBS } from '@/fragments/subs'
 import { useQuery } from '@apollo/client'
@@ -116,6 +116,94 @@ export default function SubSelect ({ prependSubs, sub, onChange, size, appendSub
       })}
       name='sub'
       size='sm'
+      {...valueProps}
+      {...props}
+      className={`${className} ${styles.subSelect} ${size === 'large' ? styles.subSelectLarge : size === 'medium' ? styles.subSelectMedium : ''}`}
+      items={subItems}
+    />
+  )
+}
+
+function appendSubWithPlus (newSub) {
+  return newSub.length > 1 ? newSub.join('+') : newSub
+}
+
+// TODO: this is a copy of SubSelect with some changes to handle multiple territories
+//       mainly to test the new MultiSelect component
+// TODO: don't redirect on add territory
+// TODO: make sure that this can be validated and used in post form
+// TODO: prevent re-refresh on add territory
+export function MultiSubSelect ({ prependSubs, sub, onChange, size, appendSubs, filterSubs, className, ...props }) {
+  const router = useRouter()
+  const subs = useSubs({ prependSubs, sub, filterSubs, appendSubs })
+  const valueProps = props.noForm
+    ? {
+        overrideValue: Array.isArray(sub)
+          ? sub.filter(s => s !== 'home')
+          : (sub !== 'home' ? [sub] : [])
+      }
+    : {
+        value: Array.isArray(sub)
+          ? sub.filter(s => s !== 'home')
+          : (sub !== 'home' ? [sub] : [])
+      }
+
+  // If logged out user directly visits a nsfw sub, subs will not contain `sub`, so manually add it
+  // to display the correct sub name in the sub selector
+  const subItems = !sub || subs.find((s) => s === sub) ? subs : [sub].concat(subs)
+
+  return (
+    <MultiSelect
+      onChange={onChange || ((_, e) => {
+        console.log('e', e)
+        const value = e.target.value || []
+        const sub = ['home', 'pick territory'].includes(value) || value.length === 0 ? undefined : value
+        if (sub === 'create') {
+          router.push('/territory')
+          return
+        }
+
+        let asPath
+        // are we currently in a sub (ie not home)
+        if (router.query.sub) {
+          // are we going to a sub or home?
+          const subReplace = sub ? `/~${sub}` : ''
+
+          console.log('router.query.sub', router.query.sub)
+          console.log('sub', sub)
+
+          // if we are going to a sub, replace the current sub with the new one
+          asPath = router.asPath.replace(`/~${router.query.sub}`, sub ? `/~${appendSubWithPlus(sub)}` : subReplace)
+          // if we're going to home, just go there directly
+          if (asPath === '') {
+            router.push('/')
+            return
+          }
+        } else {
+          // we're currently on the home sub
+          // are we in a sub aware route?
+          if (router.pathname.startsWith('/~')) {
+            // if we are, go to the same path but in the sub
+            asPath = `/~${sub}` + router.asPath
+          } else {
+            // otherwise, just go to the sub
+            router.push(sub ? `/~${sub}` : '/')
+            return
+          }
+        }
+        const query = {
+          ...router.query,
+          sub: router.query.sub ? appendSubWithPlus(sub) : sub
+        }
+        delete query.nodata
+        router.push({
+          pathname: router.pathname,
+          query
+        }, asPath)
+      })}
+      name='sub'
+      size='sm'
+      defaultValue='home'
       {...valueProps}
       {...props}
       className={`${className} ${styles.subSelect} ${size === 'large' ? styles.subSelectLarge : size === 'medium' ? styles.subSelectMedium : ''}`}

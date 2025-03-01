@@ -5,7 +5,7 @@ import { useRouter } from 'next/router'
 import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
-import SubSelect from '../sub-select'
+import SubSelect, { MultiSubSelect } from '../sub-select'
 import { USER_ID } from '../../lib/constants'
 import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
@@ -112,6 +112,14 @@ export function NavSelect ({ sub: subName, className, size }) {
         sub={sub} prependSubs={PREPEND_SUBS} appendSubs={APPEND_SUBS} noForm
         groupClassName='mb-0' size={size}
       />
+    </Nav.Item>
+  )
+}
+
+export function MultiNavSelect ({ subs, className, size }) {
+  return (
+    <Nav.Item className={className}>
+      <MultiSubSelect sub={subs} noForm groupClassName='mb-0' size={size} />
     </Nav.Item>
   )
 }

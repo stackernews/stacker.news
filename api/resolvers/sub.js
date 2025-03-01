@@ -11,7 +11,7 @@ export async function getSub (parent, { name }, { models, me }) {
 
   return await models.sub.findUnique({
     where: {
-      name
+      name: name[0]
     },
     ...(me
       ? {

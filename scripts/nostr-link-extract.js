@@ -1,5 +1,7 @@
 const WebSocket = require('ws') // You might need to install this: npm install ws
 const { nip19 } = require('nostr-tools') // Keep this for formatting
+const fs = require('fs')
+const path = require('path')
 
 // ANSI color codes
 const colors = {
@@ -37,33 +39,108 @@ const colors = {
   }
 }
 
+// Default configuration
+let config = {
+  userPubkeys: [],
+  ignorePubkeys: [],
+  timeIntervalHours: 12,
+  verbosity: 'normal', // Can be 'minimal', 'normal', or 'debug'
+  relayUrls: [
+    'wss://relay.nostr.band',
+    'wss://relay.primal.net',
+    'wss://relay.damus.io'
+  ],
+  batchSize: 100,
+  mediaPatterns: [
+    {
+      type: 'extensions',
+      patterns: ['\\.jpg$', '\\.jpeg$', '\\.png$', '\\.gif$', '\\.bmp$', '\\.webp$', '\\.tiff$', '\\.ico$',
+        '\\.mp4$', '\\.webm$', '\\.mov$', '\\.avi$', '\\.mkv$', '\\.flv$', '\\.wmv$',
+        '\\.mp3$', '\\.wav$', '\\.ogg$', '\\.flac$', '\\.aac$', '\\.m4a$']
+    },
+    {
+      type: 'domains',
+      patterns: [
+        'nostr\\.build\\/[ai]\\/\\w+',
+        'i\\.imgur\\.com\\/\\w+',
+        'i\\.ibb\\.co\\/\\w+\\/',
+        'tenor\\.com\\/view\\/',
+        'giphy\\.com\\/gifs\\/',
+        'soundcloud\\.com\\/',
+        'spotify\\.com\\/',
+        'fountain\\.fm\\/'
+      ]
+    }
+  ]
+}
+
 /**
- * Checks if a URL is a media file or hosted on a media platform
+ * Logger utility that respects the configured verbosity level
+ */
+const logger = {
+  // Always show error messages
+  error: (message) => {
+    console.error(`${colors.fg.red}Error: ${message}${colors.reset}`)
+  },
+
+  // Minimal essential info - always show regardless of verbosity
+  info: (message) => {
+    console.log(`${colors.fg.green}${message}${colors.reset}`)
+  },
+
+  // Progress updates - show in normal and debug modes
+  progress: (message) => {
+    if (config.verbosity !== 'minimal') {
+      console.log(`${colors.fg.blue}${message}${colors.reset}`)
+    }
+  },
+
+  // Detailed debug info - only show in debug mode
+  debug: (message) => {
+    if (config.verbosity === 'debug') {
+      console.log(`${colors.fg.gray}${message}${colors.reset}`)
+    }
+  },
+
+  // Results info - formatted differently for clarity
+  result: (message) => {
+    console.log(`${colors.bright}${colors.fg.green}${message}${colors.reset}`)
+  }
+}
+
+/**
+ * Load configuration from a JSON file
+ * @param {String} configPath - Path to the config file
+ * @returns {Object} - Configuration object
+ */
+function loadConfig (configPath) {
+  try {
+    const configData = fs.readFileSync(configPath, 'utf8')
+    const loadedConfig = JSON.parse(configData)
+
+    // Merge with default config to ensure all properties exist
+    return { ...config, ...loadedConfig }
+  } catch (error) {
+    logger.error(`Error loading config file: ${error.message}`)
+    logger.info('Using default configuration')
+    return config
+  }
+}
+
+/**
+ * Checks if a URL is a media file or hosted on a media platform based on configured patterns
  * @param {String} url - URL to check
  * @returns {Boolean} - true if it's likely a media URL
  */
 function isMediaUrl (url) {
-  // Check for common media file extensions
-  const mediaExtensions = /\.(jpg|jpeg|png|gif|bmp|webp|tiff|ico|mp4|webm|mov|avi|mkv|flv|wmv|mp3|wav|ogg|flac|aac|m4a)($|\?)/i
-  if (mediaExtensions.test(url)) return true
-
-  // Check for common media hosting platforms
-  const mediaHostingPatterns = [
-    // Image hosting
-    /nostr\.build\/[ai]\/\w+/i,
-    /i\.imgur\.com\/\w+/i,
-    /i\.ibb\.co\/\w+\//i,
-    // Video hosting
-    /tenor\.com\/view\//i,
-    /giphy\.com\/gifs\//i,
-    // Audio hosting
-    /soundcloud\.com\//i,
-    /spotify\.com\//i
-  ]
-
-  // Check each pattern
-  for (const pattern of mediaHostingPatterns) {
-    if (pattern.test(url)) return true
+  // Check for media patterns from config
+  if (config.mediaPatterns) {
+    for (const patternGroup of config.mediaPatterns) {
+      for (const pattern of patternGroup.patterns) {
+        const regex = new RegExp(pattern, 'i')
+        if (regex.test(url)) return true
+      }
+    }
   }
 
   return false
@@ -77,7 +154,7 @@ function isMediaUrl (url) {
  * @returns {Promise<Array>} - Array of events matching the filter
  */
 async function fetchEvents (relayUrls, filter, timeoutMs = 10000) {
-  console.log(`Fetching events with filter: ${JSON.stringify(filter)}`)
+  logger.debug(`Fetching events with filter: ${JSON.stringify(filter)}`)
   const events = []
 
   for (const url of relayUrls) {
@@ -113,13 +190,13 @@ async function fetchEvents (relayUrls, filter, timeoutMs = 10000) {
                 resolve(localEvents)
               }
             } catch (error) {
-              console.error(`Error parsing message: ${error.message}`)
+              logger.debug(`Error parsing message: ${error.message}`)
             }
           })
         })
 
         ws.on('error', (error) => {
-          console.error(`WebSocket error for ${url}: ${error.message}`)
+          logger.debug(`WebSocket error for ${url}: ${error.message}`)
           clearTimeout(timeout)
           resolve([]) // Resolve with empty array on error
         })
@@ -130,10 +207,10 @@ async function fetchEvents (relayUrls, filter, timeoutMs = 10000) {
         })
       })
 
-      console.log(`Got ${relayEvents.length} events from ${url}`)
+      logger.debug(`Got ${relayEvents.length} events from ${url}`)
       events.push(...relayEvents)
     } catch (error) {
-      console.error(`Error connecting to ${url}: ${error.message}`)
+      logger.debug(`Error connecting to ${url}: ${error.message}`)
     }
   }
 
@@ -155,20 +232,33 @@ async function fetchEvents (relayUrls, filter, timeoutMs = 10000) {
  * @param {Array} userPubkeys - Array of Nostr user public keys
  * @param {Number} timeIntervalHours - Number of hours to look back from now
  * @param {Array} relayUrls - Array of Nostr relay URLs
+ * @param {Array} ignorePubkeys - Array of pubkeys to ignore (optional)
  * @returns {Promise<Array>} - Array of note objects containing external links within the time interval
  */
-async function getNotesWithLinks (userPubkeys, timeIntervalHours, relayUrls) {
+async function getNotesWithLinks (userPubkeys, timeIntervalHours, relayUrls, ignorePubkeys = []) {
   // Calculate the cutoff time in seconds (Nostr uses UNIX timestamp)
   const now = Math.floor(Date.now() / 1000)
   const cutoffTime = now - (timeIntervalHours * 60 * 60)
 
   const allNotesWithLinks = []
   const allFollowedPubkeys = new Set() // To collect all followed pubkeys
+  const ignoreSet = new Set(ignorePubkeys) // Convert ignore list to Set for efficient lookups
 
+  if (ignoreSet.size > 0) {
+    logger.debug(`Ignoring ${ignoreSet.size} author(s) as requested`)
+  }
+
+  logger.info(`Fetching follow lists for ${userPubkeys.length} users...`)
   // First get the followings for each user
   for (const pubkey of userPubkeys) {
     try {
-      console.log(`Fetching follow list for ${pubkey} from ${relayUrls.length} relays...`)
+      // Skip if this pubkey is in the ignore list
+      if (ignoreSet.has(pubkey)) {
+        logger.debug(`Skipping user ${pubkey} as it's in the ignore list`)
+        continue
+      }
+
+      logger.debug(`Fetching follow list for ${pubkey} from ${relayUrls.length} relays...`)
 
       // Get the most recent contact list (kind 3)
       const followListEvents = await fetchEvents(relayUrls, {
@@ -177,7 +267,7 @@ async function getNotesWithLinks (userPubkeys, timeIntervalHours, relayUrls) {
       })
 
       if (followListEvents.length === 0) {
-        console.log(`No follow list found for user ${pubkey}. Verify this pubkey has contacts on these relays.`)
+        logger.debug(`No follow list found for user ${pubkey}. Verify this pubkey has contacts on these relays.`)
         continue
       }
 
@@ -186,16 +276,16 @@ async function getNotesWithLinks (userPubkeys, timeIntervalHours, relayUrls) {
         !latest || event.created_at > latest.created_at ? event : latest, null)
 
       if (!latestFollowList) {
-        console.log(`No valid follow list found for user ${pubkey}`)
+        logger.debug(`No valid follow list found for user ${pubkey}`)
         continue
       }
 
-      console.log(`Found follow list created at: ${new Date(latestFollowList.created_at * 1000).toISOString()}`)
+      logger.debug(`Found follow list created at: ${new Date(latestFollowList.created_at * 1000).toISOString()}`)
 
       // Check if tags property exists
       if (!latestFollowList.tags) {
-        console.log(`No tags found in follow list for user ${pubkey}`)
-        console.log('Follow list data:', JSON.stringify(latestFollowList, null, 2))
+        logger.debug(`No tags found in follow list for user ${pubkey}`)
+        logger.debug('Follow list data:', JSON.stringify(latestFollowList, null, 2))
         continue
       }
 
@@ -203,88 +293,106 @@ async function getNotesWithLinks (userPubkeys, timeIntervalHours, relayUrls) {
       const followedPubkeys = latestFollowList.tags
         .filter(tag => tag[0] === 'p')
         .map(tag => tag[1])
+        .filter(pk => !ignoreSet.has(pk)) // Filter out pubkeys from the ignore list
 
       if (!followedPubkeys || followedPubkeys.length === 0) {
-        console.log(`No followed users found for user ${pubkey}`)
+        logger.debug(`No followed users found for user ${pubkey} (after filtering ignore list)`)
         continue
       }
 
       // Add all followed pubkeys to our set
       followedPubkeys.forEach(pk => allFollowedPubkeys.add(pk))
 
-      console.log(`Added ${followedPubkeys.length} followed users for ${pubkey} (total: ${allFollowedPubkeys.size})`)
+      logger.debug(`Added ${followedPubkeys.length} followed users for ${pubkey} (total: ${allFollowedPubkeys.size})`)
     } catch (error) {
-      console.error(`Error processing user ${pubkey}:`, error)
+      logger.error(`Error processing user ${pubkey}: ${error}`)
     }
   }
 
-  // If we found any followed pubkeys, fetch their notes in a single batch
+  // If we found any followed pubkeys, fetch their notes in batches
   if (allFollowedPubkeys.size > 0) {
-    console.log(`Fetching notes from ${allFollowedPubkeys.size} followed users in a single batch...`)
-
     // Convert Set to Array for the filter
     const followedPubkeysArray = Array.from(allFollowedPubkeys)
+    const batchSize = config.batchSize || 100 // Use config batch size or default to 100
+    const totalBatches = Math.ceil(followedPubkeysArray.length / batchSize)
 
-    // Fetch notes from all followed users at once
-    const notes = await fetchEvents(relayUrls, {
-      kinds: [1],
-      authors: followedPubkeysArray,
-      since: cutoffTime
-    }, 30000) // Use a longer timeout for this larger query
+    logger.progress(`Processing ${followedPubkeysArray.length} followed users in ${totalBatches} batches...`)
 
-    console.log(`Retrieved ${notes.length} total notes from followed users`)
+    // Process in batches
+    for (let batchNum = 0; batchNum < totalBatches; batchNum++) {
+      const start = batchNum * batchSize
+      const end = Math.min(start + batchSize, followedPubkeysArray.length)
+      const batch = followedPubkeysArray.slice(start, end)
 
-    // Filter notes that have URLs (excluding notes with only media URLs)
-    const notesWithUrls = notes.filter(note => {
-      // Extract all URLs from content
-      const urlRegex = /(https?:\/\/[^\s]+)/g
-      const matches = note.content.match(urlRegex) || []
+      logger.progress(`Fetching batch ${batchNum + 1}/${totalBatches} (${batch.length} authors)...`)
 
-      if (matches.length === 0) return false // No URLs at all
+      // Fetch notes from the current batch of users
+      const notes = await fetchEvents(relayUrls, {
+        kinds: [1],
+        authors: batch,
+        since: cutoffTime
+      }, 30000) // Use a longer timeout for this larger query
 
-      // Check if any URL is not a media file
-      const hasNonMediaUrl = matches.some(url => !isMediaUrl(url))
+      logger.debug(`Retrieved ${notes.length} notes from batch ${batchNum + 1}`)
 
-      return hasNonMediaUrl
-    })
+      // Filter notes that have URLs (excluding notes with only media URLs)
+      const notesWithUrls = notes.filter(note => {
+        // Extract all URLs from content
+        const urlRegex = /(https?:\/\/[^\s]+)/g
+        const matches = note.content.match(urlRegex) || []
 
-    console.log(`Found ${notesWithUrls.length} notes containing non-media URLs`)
+        if (matches.length === 0) return false // No URLs at all
 
-    // Get all unique authors from the filtered notes
-    const authorsWithUrls = new Set(notesWithUrls.map(note => note.pubkey))
-    console.log(`Notes with URLs came from ${authorsWithUrls.size} unique authors`)
+        // Check if any URL is not a media file
+        const hasNonMediaUrl = matches.some(url => !isMediaUrl(url))
 
-    // Fetch metadata for all relevant authors in a single batch
-    if (authorsWithUrls.size > 0) {
-      console.log(`Fetching metadata for ${authorsWithUrls.size} authors...`)
-      const allMetadata = await fetchEvents(relayUrls, {
-        kinds: [0],
-        authors: Array.from(authorsWithUrls)
+        return hasNonMediaUrl
       })
 
-      // Create a map of author pubkey to their latest metadata
-      const metadataByAuthor = {}
-      allMetadata.forEach(meta => {
-        if (!metadataByAuthor[meta.pubkey] || meta.created_at > metadataByAuthor[meta.pubkey].created_at) {
-          metadataByAuthor[meta.pubkey] = meta
-        }
-      })
+      logger.debug(`Found ${notesWithUrls.length} notes containing non-media URLs in batch ${batchNum + 1}`)
 
-      // Attach metadata to notes
-      for (const note of notesWithUrls) {
-        if (metadataByAuthor[note.pubkey]) {
-          try {
-            const metadata = JSON.parse(metadataByAuthor[note.pubkey].content)
-            note.userMetadata = metadata
-          } catch (e) {
-            console.error(`Error parsing metadata for ${note.pubkey}: ${e.message}`)
+      // Get all unique authors from the filtered notes in this batch
+      const authorsWithUrls = new Set(notesWithUrls.map(note => note.pubkey))
+
+      // Fetch metadata for all relevant authors in this batch
+      if (authorsWithUrls.size > 0) {
+        logger.debug(`Fetching metadata for ${authorsWithUrls.size} authors from batch ${batchNum + 1}...`)
+        const allMetadata = await fetchEvents(relayUrls, {
+          kinds: [0],
+          authors: Array.from(authorsWithUrls)
+        })
+
+        // Create a map of author pubkey to their latest metadata
+        const metadataByAuthor = {}
+        allMetadata.forEach(meta => {
+          if (!metadataByAuthor[meta.pubkey] || meta.created_at > metadataByAuthor[meta.pubkey].created_at) {
+            metadataByAuthor[meta.pubkey] = meta
+          }
+        })
+
+        // Attach metadata to notes
+        for (const note of notesWithUrls) {
+          if (metadataByAuthor[note.pubkey]) {
+            try {
+              const metadata = JSON.parse(metadataByAuthor[note.pubkey].content)
+              note.userMetadata = metadata
+            } catch (e) {
+              logger.debug(`Error parsing metadata for ${note.pubkey}: ${e.message}`)
+            }
           }
         }
       }
+
+      // Add all notes with URLs from this batch to our results
+      allNotesWithLinks.push(...notesWithUrls)
+
+      // Show incremental progress during batch processing
+      if (allNotesWithLinks.length > 0 && batchNum < totalBatches - 1) {
+        logger.progress(`Found ${allNotesWithLinks.length} notes with links so far...`)
+      }
     }
 
-    // Add all notes with URLs to our results
-    allNotesWithLinks.push(...notesWithUrls)
+    logger.progress(`Completed processing all ${totalBatches} batches`)
   }
 
   return allNotesWithLinks
@@ -368,35 +476,66 @@ function escapeRegExp (string) {
 }
 
 /**
+ * Convert a pubkey from npub to hex format if needed
+ * @param {String} key - Pubkey in either npub or hex format
+ * @returns {String} - Pubkey in hex format
+ */
+function normalizeToHexPubkey (key) {
+  // If it's an npub, decode it
+  if (typeof key === 'string' && key.startsWith('npub1')) {
+    try {
+      const { type, data } = nip19.decode(key)
+      if (type === 'npub') {
+        return data
+      }
+    } catch (e) {
+      logger.error(`Error decoding npub ${key}: ${e.message}`)
+    }
+  }
+  // Otherwise assume it's already in hex format
+  return key
+}
+
+/**
  * Main function to execute the script
  */
 async function main () {
-  // Example usage
-  const userPubkey = '05933d8782d155d10cf8a06f37962f329855188063903d332714fbd881bac46e'
-
-  // List of relays that were working in our test
-  const relayUrls = [
-    'wss://relay.damus.io',
-    'wss://relay.nostr.band',
-    'wss://nos.lol',
-    'wss://nostr.wine',
-    'wss://relay.snort.social',
-    'wss://relay.primal.net'
-  ]
+  // Load configuration from file
+  const configPath = path.join(__dirname, 'nostr-link-extract.config.json')
+  logger.info(`Loading configuration from ${configPath}`)
+  config = loadConfig(configPath)
 
   try {
-    console.log(`${colors.bright}${colors.fg.green}Fetching notes with links...${colors.reset}`)
-    const notesWithLinks = await getNotesWithLinks([userPubkey], 24, relayUrls)
+    logger.info(`Starting Nostr link extraction (time interval: ${config.timeIntervalHours} hours)`)
+
+    // Convert any npub format keys to hex
+    const hexUserPubkeys = config.userPubkeys.map(normalizeToHexPubkey)
+    const hexIgnorePubkeys = config.ignorePubkeys.map(normalizeToHexPubkey)
+
+    // Log the conversion for clarity (helpful for debugging)
+    if (config.userPubkeys.some(key => key.startsWith('npub1'))) {
+      logger.debug('Converted user npubs to hex format for Nostr protocol')
+    }
+    if (config.ignorePubkeys.some(key => key.startsWith('npub1'))) {
+      logger.debug('Converted ignore list npubs to hex format for Nostr protocol')
+    }
+
+    const notesWithLinks = await getNotesWithLinks(
+      hexUserPubkeys,
+      config.timeIntervalHours,
+      config.relayUrls,
+      hexIgnorePubkeys
+    )
 
     if (notesWithLinks.length > 0) {
       const formattedOutput = formatNoteOutput(notesWithLinks)
       console.log(formattedOutput)
-      console.log(`${colors.bright}${colors.fg.green}Total notes with links: ${notesWithLinks.length}${colors.reset}`)
+      logger.result(`Total notes with links: ${notesWithLinks.length}`)
     } else {
-      console.log(`${colors.fg.yellow}No notes with links found in the specified time interval.${colors.reset}`)
+      logger.info('No notes with links found in the specified time interval.')
     }
   } catch (error) {
-    console.error(`${colors.fg.red}Error: ${error}${colors.reset}`)
+    logger.error(`${error}`)
   }
 }
 

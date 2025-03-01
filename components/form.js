@@ -971,6 +971,126 @@ export function Select ({ label, items, info, groupClassName, onChange, noForm, 
   )
 }
 
+// TODO: Remove clutter like handles
+// TODO: Prevent re-render on add territory
+// TODO: Better CSS
+export function MultiSelect ({ label, items, info, groupClassName, onChange, noForm, overrideValue, hint, defaultValue = 'select', ...props }) {
+  const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
+  const formik = noForm ? null : useFormikContext()
+  const invalid = meta.touched && meta.error
+  const [selectedItems, setSelectedItems] = useState(() => field.value || [])
+
+  const shouldUpdateFromOverride = useMemo(() => {
+    return overrideValue && JSON.stringify(overrideValue) !== JSON.stringify(selectedItems)
+  }, [overrideValue, selectedItems])
+
+  useEffect(() => {
+    if (shouldUpdateFromOverride) {
+      !noForm && helpers.setValue(overrideValue)
+      setSelectedItems(overrideValue)
+    }
+  }, [shouldUpdateFromOverride, overrideValue, noForm, helpers])
+
+  const handleItemSelect = useCallback((item) => {
+    if (!selectedItems.includes(item)) {
+      const newSelectedItems = [...selectedItems, item]
+      onChange && onChange(formik, { target: { value: newSelectedItems } })
+      !noForm && setSelectedItems(newSelectedItems)
+      !noForm && helpers.setValue(newSelectedItems)
+    }
+  }, [selectedItems, noForm, helpers, onChange, formik])
+
+  const handleItemRemove = useCallback((item) => {
+    const newSelectedItems = selectedItems.filter((i) => i !== item)
+    onChange && onChange(formik, { target: { value: newSelectedItems } })
+    !noForm && setSelectedItems(newSelectedItems)
+    !noForm && helpers.setValue(newSelectedItems)
+  }, [selectedItems, noForm, helpers, onChange, formik])
+
+  const handleClearAll = useCallback(() => {
+    onChange && onChange(formik, { target: { value: [] } })
+    setSelectedItems([])
+    !noForm && helpers.setValue([])
+  }, [noForm, helpers, onChange, formik])
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <div className='my-1'>
+        <div className={`p-2 ${styles.multiSelectContainer} ${invalid ? 'border-danger' : ''}`}>
+          <div className={styles.multiSelectTags}>
+            {selectedItems && selectedItems.length > 0
+              ? selectedItems.map((item) => (
+                <span key={item} className={`${styles.multiSelectItem}`}>
+                  {item}
+                  <button
+                    type='button'
+                    className={`${styles.multiSelectRemoveButton}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleItemRemove(item)
+                    }}
+                  >
+                    <CloseIcon className={styles.multiSelectRemoveIcon} />
+                  </button>
+                </span>
+              ))
+              : (
+                <span className='text-muted'>{defaultValue}</span>
+                )}
+          </div>
+          <div className={styles.multiSelectActionContainer}>
+            {selectedItems && selectedItems.length > 0 && (
+              <span
+                className={`d-flex align-items-center justify-content-end pointer ${styles.multiSelectRemoveAll}`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleClearAll()
+                }}
+              >
+                <CloseIcon className={styles.multiSelectRemoveAllIcon} />
+              </span>)}
+            <Dropdown className='pointer' as='div'>
+              <Dropdown.Toggle
+                as='span'
+                onPointerDown={e => e.preventDefault()}
+              >
+                <AddIcon className={styles.multiSelectAddIcon} />
+              </Dropdown.Toggle>
+              <Dropdown.Menu style={{ maxHeight: '15rem', overflowY: 'auto' }}>
+                {items.map(item => {
+                  if (item && typeof item === 'object') {
+                    return null
+                  } else {
+                    const isSelected = selectedItems && selectedItems.includes(item)
+                    return (
+                      <Dropdown.Item
+                        key={item}
+                        onClick={() => handleItemSelect(item)}
+                        className='d-flex flex-row justify-content-between'
+                        active={isSelected}
+                        disabled={isSelected}
+                      >
+                        {item}
+                      </Dropdown.Item>
+                    )
+                  }
+                })}
+              </Dropdown.Menu>
+            </Dropdown>
+          </div>
+        </div>
+      </div>
+      <BootstrapForm.Control.Feedback type='invalid'>
+        {meta.touched && meta.error}
+      </BootstrapForm.Control.Feedback>
+      {hint &&
+        <BootstrapForm.Text>
+          {hint}
+        </BootstrapForm.Text>}
+    </FormGroup>
+  )
+}
+
 function DatePickerSkeleton () {
   return (
     <div className='react-datepicker-wrapper'>

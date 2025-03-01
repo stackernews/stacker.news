@@ -13,6 +13,8 @@ export default gql`
     spenderGrowth(when: String, from: String, to: String): [TimeData!]!
     stackingGrowth(when: String, from: String, to: String): [TimeData!]!
     stackerGrowth(when: String, from: String, to: String): [TimeData!]!
+    itemGrowthSubs(when: String, from: String, to: String, sub: String): [TimeData!]!
+    revenueGrowthSubs(when: String, from: String, to: String, sub: String): [TimeData!]!
   }
 
   type TimeData {

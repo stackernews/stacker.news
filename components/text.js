@@ -1,8 +1,7 @@
 import styles from './text.module.css'
 import ReactMarkdown from 'react-markdown'
 import gfm from 'remark-gfm'
-import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
-import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
+import dynamic from 'next/dynamic'
 import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
 import MediaOrLink from './media-or-link'
 import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
@@ -21,7 +20,6 @@ import rehypeSN from '@/lib/rehype-sn'
 import remarkUnicode from '@/lib/remark-unicode'
 import Embed from './embed'
 import remarkMath from 'remark-math'
-import rehypeMathjax from 'rehype-mathjax'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -36,7 +34,6 @@ const rehypeSNStyled = () => rehypeSN({
 })
 
 const remarkPlugins = [gfm, remarkUnicode, [remarkMath, { singleDollarTextMath: false }]]
-const rehypePlugins = [rehypeSNStyled, rehypeMathjax]
 
 export function SearchText ({ text }) {
   return (
@@ -56,6 +53,19 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
   const router = useRouter()
   const [show, setShow] = useState(false)
   const containerRef = useRef(null)
+  const [mathJaxPlugin, setMathJaxPlugin] = useState(null)
+
+  // we only need mathjax if there's math content between $$ tags
+  useEffect(() => {
+    if (/\$\$(.|\n)+\$\$/g.test(children)) {
+      import('rehype-mathjax').then(mod => {
+        setMathJaxPlugin(() => mod.default)
+      }).catch(err => {
+        console.error('error loading mathjax', err)
+        setMathJaxPlugin(null)
+      })
+    }
+  }, [children])
 
   // if we are navigating to a hash, show the full text
   useEffect(() => {
@@ -134,12 +144,12 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
     <ReactMarkdown
       components={components}
       remarkPlugins={remarkPlugins}
-      rehypePlugins={rehypePlugins}
+      rehypePlugins={[rehypeSNStyled, mathJaxPlugin].filter(Boolean)}
       remarkRehypeOptions={{ clobberPrefix: `itemfn-${itemId}-` }}
     >
       {children}
     </ReactMarkdown>
-  ), [components, remarkPlugins, rehypePlugins, children, itemId])
+  ), [components, remarkPlugins, mathJaxPlugin, children, itemId])
 
   const showOverflow = useCallback(() => setShow(true), [setShow])
 
@@ -228,18 +238,59 @@ function Table ({ node, ...props }) {
   )
 }
 
+// prevent layout shifting when the code block is loading
+function CodeSkeleton ({ className, children, ...props }) {
+  return (
+    <div className='rounded' style={{ padding: '0.5em' }}>
+      <code className={`${className}`} {...props}>
+        {children}
+      </code>
+    </div>
+  )
+}
+
 function Code ({ node, inline, className, children, style, ...props }) {
-  return inline
-    ? (
+  const [ReactSyntaxHighlighter, setReactSyntaxHighlighter] = useState(null)
+  const [syntaxTheme, setSyntaxTheme] = useState(null)
+  const language = className?.match(/language-(\w+)/)?.[1] || 'text'
+
+  const loadHighlighter = useCallback(() =>
+    Promise.all([
+      dynamic(() => import('react-syntax-highlighter').then(mod => mod.LightAsync), {
+        ssr: false,
+        loading: () => <CodeSkeleton className={className} {...props}>{children}</CodeSkeleton>
+      }),
+      import('react-syntax-highlighter/dist/cjs/styles/hljs/atom-one-dark').then(mod => mod.default)
+    ]), []
+  )
+
+  useEffect(() => {
+    if (!inline && language !== 'math') { // MathJax should handle math
+      // loading the syntax highlighter and theme only when needed
+      loadHighlighter().then(([highlighter, theme]) => {
+        setReactSyntaxHighlighter(() => highlighter)
+        setSyntaxTheme(() => theme)
+      })
+    }
+  }, [inline])
+
+  if (inline || !ReactSyntaxHighlighter) { // inline code doesn't have a border radius
+    return (
       <code className={className} {...props}>
         {children}
       </code>
-      )
-    : (
-      <SyntaxHighlighter style={atomDark} language='text' PreTag='div' {...props}>
-        {children}
-      </SyntaxHighlighter>
-      )
+    )
+  }
+
+  return (
+    <>
+      {ReactSyntaxHighlighter && syntaxTheme && (
+        <ReactSyntaxHighlighter style={syntaxTheme} language={language} PreTag='div' customStyle={{ borderRadius: '0.3rem' }} {...props}>
+          {children}
+        </ReactSyntaxHighlighter>
+      )}
+    </>
+  )
 }
 
 function P ({ children, node, onlyImages, somethingBefore, somethingAfter, ...props }) {

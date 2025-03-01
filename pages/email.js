@@ -22,7 +22,7 @@ export default function Email () {
     const params = new URLSearchParams()
     if (callback.callbackUrl) params.set('callbackUrl', callback.callbackUrl)
     params.set('token', token)
-    params.set('email', callback.email)
+    params.set('email', callback.email.toLowerCase())
     const url = `/api/auth/callback/email?${params.toString()}`
     router.push(url)
   }, [callback, router])

@@ -9,37 +9,9 @@ import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
 
-  // check if it's an array of subs
-  if (Array.isArray(name) && name.length > 1) {
-    return await models.sub.findMany({
-      where: {
-        name: {
-          in: name
-        }
-      },
-      ...(me
-        ? {
-            include: {
-              MuteSub: {
-                where: {
-                  userId: Number(me?.id)
-                }
-              },
-              SubSubscription: {
-                where: {
-                  userId: Number(me?.id)
-                }
-              }
-            }
-          }
-        : {})
-    })
-  }
-  // handle single territory (backward compatibility)
-  const subName = Array.isArray(name) ? name[0] : name
   return await models.sub.findUnique({
     where: {
-      name: subName
+      name: name[0]
     },
     ...(me
       ? {

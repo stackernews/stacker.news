@@ -189,6 +189,7 @@ textarea.passwordInput {
 .multiSelectAddIcon {
     width: 1.3rem;
     height: 1.3rem;
+    margin-bottom: 0.1rem;
     fill: var(--theme-clickToContextColor) !important;
 }
 

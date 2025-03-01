@@ -170,7 +170,8 @@ export function MultiSubSelect ({ prependSubs, sub, onChange, size, appendSubs, 
           console.log('sub', sub)
 
           // if we are going to a sub, replace the current sub with the new one
-          asPath = router.asPath.replace(`/~${router.query.sub}`, sub ? `/~${appendSubWithPlus(sub)}` : subReplace)
+          asPath = router.asPath.replace(`/~${Array.isArray(router.query.sub) ? router.query.sub.join('+') : router.query.sub}`, sub ? `/~${appendSubWithPlus(sub)}` : subReplace)
+          console.log('asPath', asPath)
           // if we're going to home, just go there directly
           if (asPath === '') {
             router.push('/')

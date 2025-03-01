@@ -950,7 +950,7 @@ export function Select ({ label, items, info, groupClassName, onChange, noForm, 
             if (item && typeof item === 'object') {
               return (
                 <optgroup key={item.label} label={item.label}>
-                  {item.items.map(item => <option key={item}>{item}</option>)}
+                  {item.items?.map(item => <option key={item}>{item}</option>)}
                 </optgroup>
               )
             } else {
@@ -972,8 +972,8 @@ export function Select ({ label, items, info, groupClassName, onChange, noForm, 
 }
 
 // TODO: Remove clutter like handles
-// TODO: Prevent re-render on add territory
 // TODO: Better CSS
+// WIP: Handles are defined like this to have a better reading during development
 export function MultiSelect ({ label, items, info, groupClassName, onChange, noForm, overrideValue, hint, defaultValue = 'select', ...props }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -1017,7 +1017,7 @@ export function MultiSelect ({ label, items, info, groupClassName, onChange, noF
     <FormGroup label={label} className={groupClassName}>
       <div className='my-1'>
         <div className={`p-2 ${styles.multiSelectContainer} ${invalid ? 'border-danger' : ''}`}>
-          <div className={styles.multiSelectTags}>
+          <div className={`${styles.multiSelectTags} flex-wrap`}>
             {selectedItems && selectedItems.length > 0
               ? selectedItems.map((item) => (
                 <span key={item} className={`${styles.multiSelectItem}`}>

@@ -104,8 +104,11 @@ with open(fn, 'r') as f:
 		awards.append(s.split(','))
 
 j = json.loads(sys.argv[1])
-for c in j['event']['commits']:
-	m = re.search('\\(#([0-9]+)\\)$', c['message'].split('\n')[0])
+url = j['event']['pull_request']['_links']['commits']['href']
+r = sess.get(url, headers=headers)
+j = json.loads(r.text)
+for c in j:
+	m = re.search('\\(#([0-9]+)\\)$', c['commit']['message'].split('\n')[0])
 	if m:
 		checkPR(m.group(1))
 		exit(0)

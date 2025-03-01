@@ -279,7 +279,8 @@ const subClause = (sub, num, table = 'Item', me, showNsfw) => {
   // Intentionally show nsfw posts (i.e. no nsfw clause) when viewing a specific nsfw sub
   if (sub) {
     const tables = [...new Set(['Item', table])].map(t => `"${t}".`)
-    return `(${tables.map(t => `${t}"subName" = $${num}::CITEXT`).join(' OR ')})`
+    // support multiple sub names
+    return `(${tables.map(t => `${t}"subName" = ANY($${num}::CITEXT[])`).join(' OR ')})`
   }
 
   if (!me) { return HIDE_NSFW_CLAUSE }
@@ -506,18 +507,25 @@ export default {
             orderBy: orderByClause('random', me, models, type)
           }, decodedCursor.offset, limit, ...subArr)
           break
-        default:
+        default: {
           // sub so we know the default ranking
+          let anyAuctionRanking = false
+
           if (sub) {
-            subFull = await models.sub.findUnique({ where: { name: sub } })
+            if (Array.isArray(sub)) {
+              subFull = await models.sub.findMany({ where: { name: { in: sub } } })
+              anyAuctionRanking = subFull.some(s => s.rankingType === 'AUCTION')
+            } else {
+              subFull = await models.sub.findUnique({ where: { name: sub } })
+              anyAuctionRanking = subFull.rankingType === 'AUCTION'
+            }
           }
 
-          switch (subFull?.rankingType) {
-            case 'AUCTION':
-              items = await itemQueryWithMeta({
-                me,
-                models,
-                query: `
+          if (anyAuctionRanking) {
+            items = await itemQueryWithMeta({
+              me,
+              models,
+              query: `
                   ${SELECT},
                     (boost IS NOT NULL AND boost > 0)::INT AS group_rank,
                     CASE WHEN boost IS NOT NULL AND boost > 0
@@ -535,16 +543,15 @@ export default {
                     ORDER BY group_rank DESC, rank
                   OFFSET $2
                   LIMIT $3`,
-                orderBy: 'ORDER BY group_rank DESC, rank'
-              }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
-              break
-            default:
-              if (decodedCursor.offset === 0) {
-              // get pins for the page and return those separately
-                pins = await itemQueryWithMeta({
-                  me,
-                  models,
-                  query: `
+              orderBy: 'ORDER BY group_rank DESC, rank'
+            }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
+          } else {
+            if (decodedCursor.offset === 0) {
+            // get pins for the page and return those separately
+              pins = await itemQueryWithMeta({
+                me,
+                models,
+                query: `
                   SELECT rank_filter.*
                     FROM (
                       ${SELECT}, position,
@@ -557,73 +564,73 @@ export default {
                       ${whereClause(
                         '"pinId" IS NOT NULL',
                         '"parentId" IS NULL',
-                        sub ? '"subName" = $1' : '"subName" IS NULL',
+                        sub ? '"subName" = ANY ($1::CITEXT[])' : '"subName" IS NULL',
                         muteClause(me))}
                   ) rank_filter WHERE RANK = 1
                   ORDER BY position ASC`,
-                  orderBy: 'ORDER BY position ASC'
-                }, ...subArr)
+                orderBy: 'ORDER BY position ASC'
+              }, ...subArr)
 
-                ad = await getAd(parent, { sub, subArr, showNsfw }, { me, models })
-              }
+              ad = await getAd(parent, { sub, subArr, showNsfw }, { me, models })
+            }
 
+            items = await itemQueryWithMeta({
+              me,
+              models,
+              query: `
+                  ${SELECT}, ${me ? 'GREATEST(g.tf_hot_score, l.tf_hot_score)' : 'g.tf_hot_score'} AS rank
+                  FROM "Item"
+                  LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+                  ${joinZapRankPersonalView(me, models)}
+                  ${whereClause(
+                    // in home (sub undefined), filter out global pinned items since we inject them later
+                    sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
+                    '"Item"."deletedAt" IS NULL',
+                    '"Item"."parentId" IS NULL',
+                    '"Item".outlawed = false',
+                    '"Item".bio = false',
+                    ad ? `"Item".id <> ${ad.id}` : '',
+                    activeOrMine(me),
+                    await filterClause(me, models, type),
+                    subClause(sub, 3, 'Item', me, showNsfw),
+                    muteClause(me))}
+                  ORDER BY rank DESC
+                  OFFSET $1
+                  LIMIT $2`,
+              orderBy: 'ORDER BY rank DESC'
+            }, decodedCursor.offset, limit, ...subArr)
+
+            // XXX this is mostly for subs that are really empty
+            if (items.length < limit) {
               items = await itemQueryWithMeta({
                 me,
                 models,
                 query: `
-                    ${SELECT}, ${me ? 'GREATEST(g.tf_hot_score, l.tf_hot_score)' : 'g.tf_hot_score'} AS rank
+                    ${SELECT}
                     FROM "Item"
                     LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
-                    ${joinZapRankPersonalView(me, models)}
                     ${whereClause(
+                      subClause(sub, 3, 'Item', me, showNsfw),
+                      muteClause(me),
                       // in home (sub undefined), filter out global pinned items since we inject them later
                       sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
                       '"Item"."deletedAt" IS NULL',
                       '"Item"."parentId" IS NULL',
-                      '"Item".outlawed = false',
                       '"Item".bio = false',
                       ad ? `"Item".id <> ${ad.id}` : '',
                       activeOrMine(me),
-                      await filterClause(me, models, type),
-                      subClause(sub, 3, 'Item', me, showNsfw),
-                      muteClause(me))}
-                    ORDER BY rank DESC
+                      await filterClause(me, models, type))}
+                      ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
+                        "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC
                     OFFSET $1
                     LIMIT $2`,
-                orderBy: 'ORDER BY rank DESC'
+                orderBy: `ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
+                  "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
               }, decodedCursor.offset, limit, ...subArr)
-
-              // XXX this is mostly for subs that are really empty
-              if (items.length < limit) {
-                items = await itemQueryWithMeta({
-                  me,
-                  models,
-                  query: `
-                      ${SELECT}
-                      FROM "Item"
-                      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
-                      ${whereClause(
-                        subClause(sub, 3, 'Item', me, showNsfw),
-                        muteClause(me),
-                        // in home (sub undefined), filter out global pinned items since we inject them later
-                        sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
-                        '"Item"."deletedAt" IS NULL',
-                        '"Item"."parentId" IS NULL',
-                        '"Item".bio = false',
-                        ad ? `"Item".id <> ${ad.id}` : '',
-                        activeOrMine(me),
-                        await filterClause(me, models, type))}
-                        ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
-                          "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC
-                      OFFSET $1
-                      LIMIT $2`,
-                  orderBy: `ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
-                    "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
-                }, decodedCursor.offset, limit, ...subArr)
-              }
-              break
+            }
           }
           break
+        }
       }
       return {
         cursor: items.length === limit ? nextCursorEncoded(decodedCursor) : null,

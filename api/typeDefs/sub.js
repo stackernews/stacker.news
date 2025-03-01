@@ -2,7 +2,7 @@ import { gql } from 'graphql-tag'
 
 export default gql`
   extend type Query {
-    sub(name: String): Sub
+    sub(name: [String]): Sub
     subLatestPost(name: String!): String
     subs: [Sub!]!
     topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs

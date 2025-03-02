@@ -1474,14 +1474,6 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     throw new GqlInputError('item does not belong to you')
   }
 
-  const differentSub = subName && old.subName !== subName
-  if (differentSub) {
-    const sub = await models.sub.findUnique({ where: { name: subName } })
-    if (sub.baseCost > old.sub.baseCost) {
-      throw new GqlInputError('cannot change to a more expensive sub')
-    }
-  }
-
   // in case they lied about their existing boost
   await validateSchema(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
 

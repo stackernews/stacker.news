@@ -886,6 +886,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
           )
         }
       })}
+      <InvalidateSessions />
       <ApiKey apiKey={methods.apiKey} enabled={apiKeyEnabled} />
     </>
   )
@@ -1186,5 +1187,31 @@ const TipRandomField = () => {
           />
         </>}
     </>
+  )
+}
+
+const InvalidateSessions = () => {
+  const showModal = useShowModal()
+  const router = useRouter()
+
+  const [invalidateSessions] = useMutation(gql`
+    mutation invalidateSessions {
+      invalidateSessions
+    }`
+  )
+
+  return (
+    <Button
+      variant='danger'
+      onClick={async () => {
+        const { data } = await invalidateSessions()
+        if (data.invalidateSessions) {
+          // TODO: Invalidate Sessions Obstacle
+          showModal(onClose => (router.push('/')))
+        }
+      }}
+    >
+      Invalidate Sessions
+    </Button>
   )
 }

@@ -10,7 +10,7 @@ import { useState } from 'react'
 import { useQuery, gql } from '@apollo/client'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
-import { FeeButtonProvider, postCommentBaseLineItems } from '@/components/fee-button'
+import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from '@/components/fee-button'
 import SubSelect from '@/components/sub-select'
 import useCanEdit from '@/components/use-can-edit'
 import { useMe } from '@/components/me'
@@ -87,7 +87,7 @@ export default function PostEdit ({ ssrData }) {
 
   return (
     <CenterLayout sub={sub}>
-      <FeeButtonProvider baseLineItems={editLineItems(newSubData?.sub)}>
+      <FeeButtonProvider baseLineItems={editLineItems(newSubData?.sub)} useRemoteLineItems={postCommentUseRemoteLineItems()}>
         <FormType item={item} editThreshold={editThreshold}>
           {!item.isJob &&
             <SubSelect

@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, USER_ID, ITEM_SPAM_INTERVAL, ANON_ITEM_SPAM_INTERVAL } from '@/lib/constants'
 import { uploadFees } from '../resolvers/upload'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
@@ -12,11 +12,25 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-async function getBaseCostDifference (oldSubName, newSubName, { models }) {
+async function getSubSwitchFee (oldSubName, newSubName, id, { models, me }) {
   if (oldSubName === newSubName) return 0
-  const oldSub = await models.sub.findUnique({ where: { name: oldSubName }, select: { baseCost: true } })
-  const newSub = await models.sub.findUnique({ where: { name: newSubName }, select: { baseCost: true } })
-  return Math.max(0, (newSub?.baseCost ?? 0) - (oldSub?.baseCost ?? 0))
+
+  const [oldSub, newSub] = await Promise.all([
+    models.sub.findUnique({ where: { name: oldSubName }, select: { baseCost: true } }),
+    models.sub.findUnique({ where: { name: newSubName }, select: { baseCost: true } })
+  ])
+
+  const subDifferenceCost = Math.max(0, (newSub?.baseCost ?? 0) - (oldSub?.baseCost ?? 0))
+  if (subDifferenceCost === 0) return 0
+
+  // calculate spam cost exclusively for sub switch
+  const [{ totalCost }] = await models.$queryRaw`
+  SELECT ${satsToMsats(subDifferenceCost)}::INTEGER
+    * POWER(10, item_spam(NULL, ${me?.id ?? USER_ID.anon}::INTEGER,
+        ${me?.id ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
+    * ${me ? 1 : 100}::INTEGER as "totalCost"`
+
+  return totalCost
 }
 
 export async function getCost ({ subName, id, boost = 0, uploadIds, bio }, { me, models }) {
@@ -24,8 +38,8 @@ export async function getCost ({ subName, id, boost = 0, uploadIds, bio }, { me,
   // or more boost or is switching to a more expensive sub
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
-  const baseCostDifference = await getBaseCostDifference(old.subName, subName, { models })
-  const cost = BigInt(totalFeesMsats) + satsToMsats(boost - old.boost) + satsToMsats(baseCostDifference)
+  const subSwitchFee = await getSubSwitchFee(old.subName, subName, id, { models, me })
+  const cost = BigInt(totalFeesMsats) + satsToMsats(boost - old.boost) + BigInt(subSwitchFee)
 
   if (cost > 0 && old.invoiceActionState && old.invoiceActionState !== 'PAID') {
     throw new Error('creation invoice not paid')

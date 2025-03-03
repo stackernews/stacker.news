@@ -49,10 +49,13 @@ export function SearchText ({ text }) {
 
 // this is one of the slowest components to render
 export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
+  // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
-  const router = useRouter()
+  // should we show the full text?
   const [show, setShow] = useState(false)
   const containerRef = useRef(null)
+
+  const router = useRouter()
   const [mathJaxPlugin, setMathJaxPlugin] = useState(null)
 
   // we only need mathjax if there's math content between $$ tags
@@ -69,9 +72,9 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
 
   // if we are navigating to a hash, show the full text
   useEffect(() => {
-    setShow(router.asPath.includes('#') && !router.asPath.includes('#itemfn-'))
+    setShow(router.asPath.includes('#'))
     const handleRouteChange = (url, { shallow }) => {
-      setShow(url.includes('#') && !url.includes('#itemfn-'))
+      setShow(url.includes('#'))
     }
 
     router.events.on('hashChangeStart', handleRouteChange)

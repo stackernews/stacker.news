@@ -69,9 +69,9 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
 
   // if we are navigating to a hash, show the full text
   useEffect(() => {
-    setShow(router.asPath.includes('#') && !router.asPath.includes('#itemfn-'))
+    setShow(router.asPath.includes('#'))
     const handleRouteChange = (url, { shallow }) => {
-      setShow(url.includes('#') && !url.includes('#itemfn-'))
+      setShow(url.includes('#'))
     }
 
     router.events.on('hashChangeStart', handleRouteChange)

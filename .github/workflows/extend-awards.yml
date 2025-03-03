@@ -8,6 +8,7 @@ on:
 permissions:
   pull-requests: write
   contents: write
+  issues: read
 jobs:
   if_merged:
     if: |

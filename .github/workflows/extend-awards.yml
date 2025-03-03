@@ -7,6 +7,7 @@ on:
       - master
 permissions:
   pull-requests: write
+  contents: write
 jobs:
   if_merged:
     if: |

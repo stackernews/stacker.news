@@ -1,0 +1,32 @@
+name: extend-awards
+run-name: Extending awards
+on:
+  pull_request:
+    types: [ closed ]
+    branches:
+      - master
+jobs:
+  if_merged:
+    if: |
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.ref != 'extend-awards/patch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13' 
+      - run: pip install requests
+      - run: python extend-awards.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: awards.csv
+          branch: extend-awards/patch
+          commit-message: Extending awards.csv
+          title: Extending awards.csv
+          body: A PR was merged that solves an issue and awards.csv should be extended.

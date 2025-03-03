@@ -11,3 +11,5 @@ btcbagehot
 felipe
 benalleng
 rblb
+Scroogey
+SimpleStacker

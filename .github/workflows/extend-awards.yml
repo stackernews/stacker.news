@@ -5,6 +5,7 @@ on:
     types: [ closed ]
     branches:
       - master
+permissions: write-all
 jobs:
   if_merged:
     if: |

@@ -9,7 +9,10 @@ import { formatMsats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib
 import {
   USER_ID, INVOICE_RETENTION_DAYS,
   PAID_ACTION_PAYMENT_METHODS,
-  WALLET_CREATE_INVOICE_TIMEOUT_MS
+  WALLET_CREATE_INVOICE_TIMEOUT_MS,
+  WALLET_RETRY_AFTER_MS,
+  WALLET_RETRY_BEFORE_MS,
+  WALLET_MAX_RETRIES
 } from '@/lib/constants'
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
@@ -456,6 +459,21 @@ const resolvers = {
         cursor: nextCursor,
         entries: logs
       }
+    },
+    failedInvoices: async (parent, args, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+      return await models.$queryRaw`
+        SELECT * FROM "Invoice"
+        WHERE "userId" = ${me.id}
+        AND "actionState" = 'FAILED'
+        -- never retry if user has cancelled the invoice manually
+        AND "userCancel" = false
+        AND "cancelledAt" < now() - ${`${WALLET_RETRY_AFTER_MS} milliseconds`}::interval
+        AND "cancelledAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
+        AND "paymentAttempt" < ${WALLET_MAX_RETRIES}
+        ORDER BY id DESC`
     }
   },
   Wallet: {

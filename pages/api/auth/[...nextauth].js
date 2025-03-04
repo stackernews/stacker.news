@@ -125,15 +125,12 @@ function getCallbacks (req, res) {
         token.sub = Number(token.id)
       }
 
-      // this only runs during a signup/login because response is only defined during signup/login
-      // and will add the multi_auth cookies for the user we just logged in as
-      if (req && res) {
-        req = new NodeNextRequest(req)
-        res = new NodeNextResponse(res)
+      // add multi_auth cookie for user that just logged in
+      if (user && req && res) {
         const secret = process.env.NEXTAUTH_SECRET
         const jwt = await encodeJWT({ token, secret })
         const me = await prisma.user.findUnique({ where: { id: token.id } })
-        setMultiAuthCookies(req, res, { ...me, jwt })
+        setMultiAuthCookies(new NodeNextRequest(req), new NodeNextResponse(res), { ...me, jwt })
       }
 
       res && refreshMultiAuthCookies(req, res)

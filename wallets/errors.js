@@ -62,6 +62,13 @@ export class WalletsNotAvailableError extends WalletConfigurationError {
   }
 }
 
+export class AnonWalletError extends WalletConfigurationError {
+  constructor () {
+    super('anon cannot pay with wallets')
+    this.name = 'AnonWalletError'
+  }
+}
+
 export class WalletAggregateError extends WalletError {
   constructor (errors, invoice) {
     super('WalletAggregateError')

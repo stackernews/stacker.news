@@ -136,7 +136,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         autoComplete='off'
         overrideValue={data?.pageTitleAndUnshorted?.unshorted}
         hint={editThreshold
-          ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
+          ? <div className='text-muted fw-bold font-monospace'><Countdown date={editThreshold} /></div>
           : null}
         onChange={async (formik, e) => {
           const hasTitle = !!(formik?.values.title.trim().length > 0)

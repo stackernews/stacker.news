@@ -72,6 +72,7 @@ const typeDefs = `
     wallet(id: ID!): Wallet
     walletByType(type: String!): Wallet
     walletLogs(type: String, from: String, to: String, cursor: String): WalletLog!
+    failedInvoices: [Invoice!]!
   }
 
   extend type Mutation {

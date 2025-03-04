@@ -3,10 +3,10 @@ import { Select, DatePicker } from './form'
 import { WHENS } from '@/lib/constants'
 import { whenToFrom } from '@/lib/time'
 
-export function UsageHeader ({ pathname = null }) {
+export function UserAnalyticsHeader ({ pathname = null }) {
   const router = useRouter()
 
-  const path = pathname || 'stackers'
+  const path = pathname || 'satistics/graph'
 
   const select = async values => {
     const { when, ...query } = values

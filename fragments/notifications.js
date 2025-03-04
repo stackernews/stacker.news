@@ -112,6 +112,18 @@ export const NOTIFICATIONS = gql`
         ... on Referral {
           id
           sortTime
+          source {
+            __typename
+            ... on Item {
+              ...ItemFullFields
+            }
+            ... on Sub {
+              ...SubFields
+            }
+            ... on User {
+              name
+            }
+          }
         }
         ... on Reply {
           id

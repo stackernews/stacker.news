@@ -6,7 +6,7 @@ import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import dynamic from 'next/dynamic'
 import { numWithUnits } from '@/lib/format'
-import { UsageHeader } from '@/components/usage-header'
+import { UserAnalyticsHeader } from '@/components/user-analytics-header'
 import { SatisticsHeader } from '..'
 import { WhenComposedChartSkeleton, WhenAreaChartSkeleton } from '@/components/charts-skeletons'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
@@ -55,7 +55,7 @@ export default function Satistics ({ ssrData }) {
         <SatisticsHeader />
         <div className='tab-content' id='myTabContent'>
           <div className='tab-pane fade show active text-muted' id='statistics' role='tabpanel' aria-labelledby='statistics-tab'>
-            <UsageHeader pathname='satistics/graphs' />
+            <UserAnalyticsHeader pathname='satistics/graphs' />
             <div className='mt-3'>
               <div className='d-flex row justify-content-between'>
                 <div className='col-md-6 mb-2'>

@@ -3,7 +3,7 @@ import { datePivot } from '@/lib/time'
 import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { createHmac } from '@/api/resolvers/wallet'
 import { Prisma } from '@prisma/client'
-import { createWrappedInvoice, createInvoice as createUserInvoice } from '@/wallets/server'
+import { createWrappedInvoice, createUserInvoice } from '@/wallets/server'
 import { assertBelowMaxPendingInvoices, assertBelowMaxPendingDirectPayments } from './lib/assert'
 
 import * as ITEM_CREATE from './itemCreate'
@@ -264,42 +264,51 @@ async function performDirectAction (actionType, args, incomingContext) {
     throw new NonInvoiceablePeerError()
   }
 
-  let invoiceObject
-
   try {
     await assertBelowMaxPendingDirectPayments(userId, incomingContext)
 
     const description = actionDescription ?? await paidActions[actionType].describe(args, incomingContext)
-    invoiceObject = await createUserInvoice(userId, {
+
+    for await (const { invoice, logger, wallet } of createUserInvoice(userId, {
       msats: cost,
       description,
       expiry: INVOICE_EXPIRE_SECS
-    }, { models, lnd })
-  } catch (e) {
-    console.error('failed to create outside invoice', e)
-    throw new NonInvoiceablePeerError()
-  }
+    }, { models, lnd })) {
+      let hash
+      try {
+        hash = parsePaymentRequest({ request: invoice }).id
+      } catch (e) {
+        console.error('failed to parse invoice', e)
+        logger?.error('failed to parse invoice: ' + e.message, { bolt11: invoice })
+        continue
+      }
 
-  const { invoice, wallet } = invoiceObject
-  const hash = parsePaymentRequest({ request: invoice }).id
-
-  const payment = await models.directPayment.create({
-    data: {
-      comment,
-      lud18Data,
-      desc: noteStr,
-      bolt11: invoice,
-      msats: cost,
-      hash,
-      walletId: wallet.id,
-      receiverId: userId
+      try {
+        return {
+          invoice: await models.directPayment.create({
+            data: {
+              comment,
+              lud18Data,
+              desc: noteStr,
+              bolt11: invoice,
+              msats: cost,
+              hash,
+              walletId: wallet.id,
+              receiverId: userId
+            }
+          }),
+          paymentMethod: 'DIRECT'
+        }
+      } catch (e) {
+        console.error('failed to create direct payment', e)
+        logger?.error('failed to create direct payment: ' + e.message, { bolt11: invoice })
+      }
     }
-  })
-
-  return {
-    invoice: payment,
-    paymentMethod: 'DIRECT'
+  } catch (e) {
+    console.error('failed to create user invoice', e)
   }
+
+  throw new NonInvoiceablePeerError()
 }
 
 export async function retryPaidAction (actionType, args, incomingContext) {
@@ -419,7 +428,7 @@ async function createSNInvoice (actionType, args, context) {
 }
 
 async function createDbInvoice (actionType, args, context) {
-  const { me, models, tx, cost, optimistic, actionId, invoiceArgs, predecessorId } = context
+  const { me, models, tx, cost, optimistic, actionId, invoiceArgs, paymentAttempt, predecessorId } = context
   const { bolt11, wrappedBolt11, preimage, wallet, maxFee } = invoiceArgs
 
   const db = tx ?? models
@@ -445,6 +454,7 @@ async function createDbInvoice (actionType, args, context) {
     actionArgs: args,
     expiresAt,
     actionId,
+    paymentAttempt,
     predecessorId
   }
 

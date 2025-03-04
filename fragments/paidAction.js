@@ -91,8 +91,8 @@ export const RETRY_PAID_ACTION = gql`
   ${PAID_ACTION}
   ${ITEM_PAID_ACTION_FIELDS}
   ${ITEM_ACT_PAID_ACTION_FIELDS}
-  mutation retryPaidAction($invoiceId: Int!) {
-    retryPaidAction(invoiceId: $invoiceId) {
+  mutation retryPaidAction($invoiceId: Int!, $newAttempt: Boolean) {
+    retryPaidAction(invoiceId: $invoiceId, newAttempt: $newAttempt) {
       __typename
       ...PaidActionFields
       ... on ItemPaidAction {

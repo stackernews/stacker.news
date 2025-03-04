@@ -7,8 +7,7 @@ export const anonable = false
 
 export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.P2P,
-  PAID_ACTION_PAYMENT_METHODS.DIRECT,
-  PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
+  PAID_ACTION_PAYMENT_METHODS.DIRECT
 ]
 
 export async function getCost ({ msats }) {

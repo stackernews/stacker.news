@@ -7,7 +7,7 @@ extend type Query {
 }
 
 extend type Mutation {
-  retryPaidAction(invoiceId: Int!): PaidAction!
+  retryPaidAction(invoiceId: Int!, newAttempt: Boolean): PaidAction!
 }
 
 enum PaymentMethod {

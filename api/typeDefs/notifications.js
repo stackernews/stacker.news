@@ -124,9 +124,12 @@ export default gql`
     withdrawl: Withdrawl!
   }
 
+  union ReferralSource = Item | Sub | User
+
   type Referral {
     id: ID!
     sortTime: Date!
+    source: ReferralSource
   }
 
   type SubStatus {

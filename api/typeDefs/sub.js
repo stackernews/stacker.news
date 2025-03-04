@@ -31,7 +31,7 @@ export default gql`
   }
 
   type Sub {
-    name: ID!
+    name: String!
     createdAt: Date!
     userId: Int!
     user: User!

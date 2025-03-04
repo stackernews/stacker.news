@@ -62,3 +62,6 @@ docker/lnbits/data
 
 # lndk
 !docker/lndk/tls-*.pem
+
+# nostr link extract
+scripts/nostr-link-extract.config.json

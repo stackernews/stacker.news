@@ -19,10 +19,16 @@ if (!FETCH_AFTER) {
   usage()
 }
 
+const SN_API_KEY = process.env.SN_API_KEY
+if (!SN_API_KEY) {
+  console.log('SN_API_KEY must be set in environment')
+  process.exit(1)
+}
+
 async function gql (query, variables = {}) {
   const response = await fetch(`${SN_API_URL}/api/graphql`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-api-key': SN_API_KEY },
     body: JSON.stringify({ query, variables })
   })
 
@@ -36,6 +42,31 @@ async function gql (query, variables = {}) {
   }
 
   return json.data
+}
+
+async function assertSettings () {
+  const { me } = await gql(`
+    query me {
+      me {
+        id
+        name
+        privates {
+          wildWestMode
+          satsFilter
+        }
+      }
+    }
+  `)
+
+  console.log(`> logged in as @${me.name}`)
+
+  if (!me.privates.wildWestMode) {
+    throw new Error('wild west mode must be enabled')
+  }
+
+  if (me.privates.satsFilter !== 0) {
+    throw new Error('sats filter must be set to 0')
+  }
 }
 
 function fetchRecentBios () {
@@ -78,7 +109,11 @@ async function populate (bios) {
         bio.user.items = await fetchUserItems(bio.user.name)
         bio.user.credits = sumBy(bio.user.items, 'credits')
         bio.user.sats = sumBy(bio.user.items, 'sats') - bio.user.credits
-        bio.user.satstandard = bio.user.sats / (bio.user.sats + bio.user.credits)
+        if (bio.user.sats > 0 || bio.user.credits > 0) {
+          bio.user.satstandard = bio.user.sats / (bio.user.sats + bio.user.credits)
+        } else {
+          bio.user.satstandard = 0
+        }
         return bio
       }
     )
@@ -154,7 +189,8 @@ async function fetchUserItems (name) {
   return data.items.items
 }
 
-fetchRecentBios()
+assertSettings()
+  .then(fetchRecentBios)
   .then(data => filterBios(data.items.items))
   .then(populate)
   .then(printTable)

@@ -8,7 +8,7 @@ import prisma from '@/api/models'
 import nodemailer from 'nodemailer'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { NodeNextRequest, NodeNextResponse } from 'next/dist/server/base-http/node'
-import { getToken, encode as encodeJWT } from 'next-auth/jwt'
+import { getToken, encode as encodeJWT, decode as decodeJWT } from 'next-auth/jwt'
 import { datePivot } from '@/lib/time'
 import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
@@ -136,6 +136,8 @@ function getCallbacks (req, res) {
         setMultiAuthCookies(req, res, { ...me, jwt })
       }
 
+      res && refreshMultiAuthCookies(req, res)
+
       return token
     },
     async session ({ session, token }) {
@@ -148,20 +150,23 @@ function getCallbacks (req, res) {
   }
 }
 
-function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
-  const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
-  const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
-
+function getCookieOptions () {
   // default expiration for next-auth JWTs is in 1 month
   const expiresAt = datePivot(new Date(), { months: 1 })
   const secure = process.env.NODE_ENV === 'production'
-  const cookieOptions = {
+  return {
     path: '/',
     httpOnly: true,
     secure,
     sameSite: 'lax',
     expires: expiresAt
   }
+}
+
+function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
+  const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
+  const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
+  const cookieOptions = getCookieOptions()
 
   // add JWT to **httpOnly** cookie
   res.appendHeader('Set-Cookie', cookie.serialize(`multi_auth.${id}`, jwt, cookieOptions))
@@ -177,6 +182,28 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
     newMultiAuth = [...oldMultiAuth, ...newMultiAuth]
   }
   res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', b64Encode(newMultiAuth), { ...cookieOptions, httpOnly: false }))
+}
+
+async function refreshMultiAuthCookies (req, res) {
+  const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
+  const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
+  const cookieOptions = getCookieOptions()
+
+  if (!req.cookies.multi_auth) return
+
+  // we decode the multi_auth cookie to get the list of logged-in users
+  const multiAuth = b64Decode(req.cookies.multi_auth)
+  const secret = process.env.NEXTAUTH_SECRET
+
+  // iterate over each logged-in user in multi_auth
+  for (const user of multiAuth) {
+    const token = await decodeJWT({ token: req.cookies[`multi_auth.${user.id}`], secret })
+    const jwt = await encodeJWT({ token, secret })
+    res.appendHeader('Set-Cookie', cookie.serialize(`multi_auth.${user.id}`, jwt, cookieOptions))
+  }
+
+  // keep multi_auth user list cookie up to date
+  res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', b64Encode(multiAuth), { ...cookieOptions, httpOnly: false }))
 }
 
 async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {

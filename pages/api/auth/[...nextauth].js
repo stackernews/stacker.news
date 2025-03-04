@@ -116,14 +116,6 @@ function getCallbacks (req, res) {
             }
           }
         }
-
-        // add multi_auth cookie for user that just logged in
-        if (res) {
-          const secret = process.env.NEXTAUTH_SECRET
-          const jwt = await encodeJWT({ token, secret })
-          const me = await prisma.user.findUnique({ where: { id: token.id } })
-          setMultiAuthCookies(new NodeNextRequest(req), new NodeNextResponse(res), { ...me, jwt })
-        }
       }
 
       if (token?.id) {
@@ -131,6 +123,14 @@ function getCallbacks (req, res) {
         // setting it here allows us to link multiple auth method to an account
         // ... in v3 this linking field was token.user.id
         token.sub = Number(token.id)
+      }
+
+      // add multi_auth cookie for user that just logged in
+      if (user && req && res) {
+        const secret = process.env.NEXTAUTH_SECRET
+        const jwt = await encodeJWT({ token, secret })
+        const me = await prisma.user.findUnique({ where: { id: token.id } })
+        setMultiAuthCookies(new NodeNextRequest(req), new NodeNextResponse(res), { ...me, jwt })
       }
 
       return token

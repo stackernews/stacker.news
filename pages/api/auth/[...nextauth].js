@@ -131,9 +131,10 @@ function getCallbacks (req, res) {
         const jwt = await encodeJWT({ token, secret })
         const me = await prisma.user.findUnique({ where: { id: token.id } })
         setMultiAuthCookies(new NodeNextRequest(req), new NodeNextResponse(res), { ...me, jwt })
+      } else if (req && res) {
+        // refresh multi_auth cookies for all users
+        refreshMultiAuthCookies(req, res)
       }
-
-      res && refreshMultiAuthCookies(req, res)
 
       return token
     },

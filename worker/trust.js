@@ -18,15 +18,12 @@ export async function trust ({ boss, models }) {
 const MAX_DEPTH = 10
 const MAX_TRUST = 1
 const MIN_SUCCESS = 1
-// increasing disgree_mult increases distrust when there's disagreement
-// ... this cancels DISAGREE_MULT number of "successes" for every disagreement
-const DISAGREE_MULT = 10
 // https://en.wikipedia.org/wiki/Normal_distribution#Quantile_function
 const Z_CONFIDENCE = 6.109410204869 // 99.9999999% confidence
 const GLOBAL_ROOT = 616
-const SEED_WEIGHT = 0.25
+const SEED_WEIGHT = 1.0
 const AGAINST_MSAT_MIN = 1000
-const MSAT_MIN = 1000
+const MSAT_MIN = 20001 // 20001 is the minimum for a tip to be counted in trust
 const SIG_DIFF = 0.1 // need to differ by at least 10 percent
 
 /*
@@ -88,16 +85,16 @@ function trustGivenGraph (graph) {
   const std = sqapply(mat, math.std) // math.squeeze(math.std(mat, 1))
   const mean = sqapply(mat, math.mean) // math.squeeze(math.mean(mat, 1))
   const zscore = math.map(mat, (val, idx) => {
-    const zstd = math.subset(std, math.index(idx[0]))
-    const zmean = math.subset(mean, math.index(idx[0]))
+    const zstd = math.subset(std, math.index(idx[0], 0))
+    const zmean = math.subset(mean, math.index(idx[0], 0))
     return zstd ? (val - zmean) / zstd : 0
   })
   console.timeLog('trust', 'minmax')
   const min = sqapply(zscore, math.min) // math.squeeze(math.min(zscore, 1))
   const max = sqapply(zscore, math.max) // math.squeeze(math.max(zscore, 1))
   const mPersonal = math.map(zscore, (val, idx) => {
-    const zmin = math.subset(min, math.index(idx[0]))
-    const zmax = math.subset(max, math.index(idx[0]))
+    const zmin = math.subset(min, math.index(idx[0], 0))
+    const zmax = math.subset(max, math.index(idx[0], 0))
     const zrange = zmax - zmin
     if (val > zmax) return MAX_TRUST
     return zrange ? (val - zmin) / zrange : 0
@@ -123,7 +120,8 @@ async function getGraph (models) {
       WITH user_votes AS (
         SELECT "ItemAct"."userId" AS user_id, users.name AS name, "ItemAct"."itemId" AS item_id, min("ItemAct".created_at) AS act_at,
             users.created_at AS user_at, "ItemAct".act = 'DONT_LIKE_THIS' AS against,
-            count(*) OVER (partition by "ItemAct"."userId") AS user_vote_count
+            count(*) OVER (partition by "ItemAct"."userId") AS user_vote_count,
+            sum("ItemAct".msats) as user_msats
         FROM "ItemAct"
         JOIN "Item" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".act IN ('FEE', 'TIP', 'DONT_LIKE_THIS')
           AND "Item"."parentId" IS NULL AND NOT "Item".bio AND "Item"."userId" <> "ItemAct"."userId"
@@ -136,9 +134,9 @@ async function getGraph (models) {
       ),
       user_pair AS (
         SELECT a.user_id AS a_id, b.user_id AS b_id,
-            count(*) FILTER(WHERE a.act_at > b.act_at AND a.against = b.against) AS before,
-            count(*) FILTER(WHERE b.act_at > a.act_at AND a.against = b.against) AS after,
-            count(*) FILTER(WHERE a.against <> b.against) * ${DISAGREE_MULT} AS disagree,
+            sum(CASE WHEN b.user_msats > a.user_msats THEN a.user_msats / b.user_msats::FLOAT ELSE b.user_msats / a.user_msats::FLOAT END) FILTER(WHERE a.act_at > b.act_at AND a.against = b.against) AS before,
+            sum(CASE WHEN b.user_msats > a.user_msats THEN a.user_msats / b.user_msats::FLOAT ELSE b.user_msats / a.user_msats::FLOAT END) FILTER(WHERE b.act_at > a.act_at AND a.against = b.against) AS after,
+            sum(log(1 + a.user_msats / 10000::float) + log(1 + b.user_msats / 10000::float)) FILTER(WHERE a.against <> b.against) AS disagree,
             b.user_vote_count AS b_total, a.user_vote_count AS a_total
         FROM user_votes a
         JOIN user_votes b ON a.item_id = b.item_id
@@ -180,7 +178,7 @@ async function storeTrust (models, graph, vGlobal, mPersonal) {
   })
 
   math.forEach(mPersonal, (val, [fromIdx, toIdx]) => {
-    const globalVal = vGlobal.get([toIdx])
+    const globalVal = vGlobal.get([toIdx, 0])
     if (isNaN(val) || val - globalVal <= SIG_DIFF) return
     if (personalValues) personalValues += ','
     personalValues += `(${graph[fromIdx].id}, ${graph[toIdx].id}, ${val}::FLOAT)`
@@ -199,6 +197,14 @@ async function storeTrust (models, graph, vGlobal, mPersonal) {
         SELECT id, oid, trust
         FROM (values ${personalValues}) g(id, oid, trust)
         ON CONFLICT ("fromId", "toId") DO UPDATE SET "zapTrust" = EXCLUDED."zapTrust"`
+    ),
+    // select all arcs that don't exist in personalValues and delete them
+    models.$executeRawUnsafe(
+      `DELETE FROM "Arc"
+        WHERE ("fromId", "toId") NOT IN (
+          SELECT id, oid
+          FROM (values ${personalValues}) g(id, oid, trust)
+        )`
     )
   ])
 }

@@ -31,6 +31,10 @@ self.addEventListener('install', () => self.skipWaiting())
 // Also, the offline fallback only works if request matched a route
 setDefaultHandler(new NetworkOnly({
   plugins: [{
+    fetchDidFail: async (args) => {
+      //  tell us why a request failed in dev
+      // process.env.NODE_ENV !== 'production' && console.log('fetch did fail', ...args)
+    },
     fetchDidSucceed: async ({ request, response, event, state }) => {
       if (
         response.ok &&

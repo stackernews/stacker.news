@@ -133,7 +133,7 @@ function getCallbacks (req, res) {
         setMultiAuthCookies(new NodeNextRequest(req), new NodeNextResponse(res), { ...me, jwt })
       } else if (req && res) {
         // refresh multi_auth cookies for all users
-        refreshMultiAuthCookies(req, res)
+        refreshMultiAuthCookies(req, res, token.id)
       }
 
       return token
@@ -161,9 +161,10 @@ function getCookieOptions () {
   }
 }
 
+const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
+const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
+
 function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
-  const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
-  const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
   const cookieOptions = getCookieOptions()
 
   // add JWT to **httpOnly** cookie
@@ -182,26 +183,35 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
   res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', b64Encode(newMultiAuth), { ...cookieOptions, httpOnly: false }))
 }
 
-async function refreshMultiAuthCookies (req, res) {
-  const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
-  const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
+async function refreshMultiAuthCookies (req, res, id) {
   const cookieOptions = getCookieOptions()
 
+  // no multiauth, do nothing
   if (!req.cookies.multi_auth) return
 
   // we decode the multi_auth cookie to get the list of logged-in users
   const multiAuth = b64Decode(req.cookies.multi_auth)
   const secret = process.env.NEXTAUTH_SECRET
 
+  const cookies = []
+
+  // refresh the active user id
+  cookies.push(cookie.serialize('multi_auth.user-id', id, { ...cookieOptions, httpOnly: false }))
+
   // iterate over each logged-in user in multi_auth
   for (const user of multiAuth) {
-    const token = await decodeJWT({ token: req.cookies[`multi_auth.${user.id}`], secret })
-    const jwt = await encodeJWT({ token, secret })
-    res.appendHeader('Set-Cookie', cookie.serialize(`multi_auth.${user.id}`, jwt, cookieOptions))
+    if (req.cookies[`multi_auth.${user.id}`]) {
+      const token = await decodeJWT({ token: req.cookies[`multi_auth.${user.id}`], secret })
+      const jwt = await encodeJWT({ token, secret })
+      cookies.push(cookie.serialize(`multi_auth.${user.id}`, jwt, cookieOptions))
+    }
   }
 
   // keep multi_auth user list cookie up to date
-  res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', b64Encode(multiAuth), { ...cookieOptions, httpOnly: false }))
+  cookies.push(cookie.serialize('multi_auth', b64Encode(multiAuth), { ...cookieOptions, httpOnly: false }))
+
+  // set all the cookies
+  res.setHeader('Set-Cookie', cookies)
 }
 
 async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {

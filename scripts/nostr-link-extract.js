@@ -405,9 +405,12 @@ async function getNotesWithLinks (userPubkeys, timeIntervalHours, relayUrls, ign
  * @returns {String} - Formatted string with note information
  */
 function formatNoteOutput (notes) {
+  // Sort notes by timestamp (newest first)
+  const sortedNotes = [...notes].sort((a, b) => b.created_at - a.created_at)
+
   const output = []
 
-  for (const note of notes) {
+  for (const note of sortedNotes) {
     // Get note ID as npub
     const noteId = nip19.noteEncode(note.id)
     const pubkey = nip19.npubEncode(note.pubkey)

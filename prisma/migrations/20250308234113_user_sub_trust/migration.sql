@@ -1,0 +1,23 @@
+-- AlterTable
+ALTER TABLE "Item" ADD COLUMN     "weightedDownVotesLocal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "weightedVotesLocal" DOUBLE PRECISION NOT NULL DEFAULT 0;
+
+-- CreateTable
+CREATE TABLE "UserSubTrust" (
+    "subName" CITEXT NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "zapPostTrust" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "subZapPostTrust" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "zapCommentTrust" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "subZapCommentTrust" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "UserSubTrust_pkey" PRIMARY KEY ("userId","subName")
+);
+
+-- AddForeignKey
+ALTER TABLE "UserSubTrust" ADD CONSTRAINT "UserSubTrust_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UserSubTrust" ADD CONSTRAINT "UserSubTrust_subName_fkey" FOREIGN KEY ("subName") REFERENCES "Sub"("name") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -1,7 +1,12 @@
+#!/usr/bin/env node
+
+const { execSync } = require('child_process')
+module.paths.push(execSync('npm config get prefix').toString().trim() + '/lib/node_modules')
 const WebSocket = require('ws') // You might need to install this: npm install ws
 const { nip19 } = require('nostr-tools') // Keep this for formatting
 const fs = require('fs')
 const path = require('path')
+const sqlite3 = require('sqlite3').verbose() // Add this at the top with other requires
 
 // ANSI color codes
 const colors = {
@@ -36,6 +41,91 @@ const colors = {
     white: '\x1b[47m',
     gray: '\x1b[100m',
     crimson: '\x1b[48m'
+  }
+}
+
+// Add these new database utility functions after the color definitions but before the config
+const db = {
+  connection: null,
+
+  async init () {
+    return new Promise((resolve, reject) => {
+      const dbPath = path.join(__dirname, 'nostr-links.db')
+      this.connection = new sqlite3.Database(dbPath, (err) => {
+        if (err) {
+          logger.error(`Error opening database: ${err.message}`)
+          reject(err)
+          return
+        }
+
+        this.connection.run(`
+          CREATE TABLE IF NOT EXISTS notes (
+            id TEXT PRIMARY KEY,
+            pubkey TEXT,
+            content TEXT,
+            created_at INTEGER,
+            metadata TEXT,
+            processed_at INTEGER
+          )
+        `, (err) => {
+          if (err) {
+            logger.error(`Error creating table: ${err.message}`)
+            reject(err)
+            return
+          }
+          resolve()
+        })
+      })
+    })
+  },
+
+  async getLatestNoteTimestamp () {
+    return new Promise((resolve, reject) => {
+      this.connection.get(
+        'SELECT MAX(created_at) as latest FROM notes',
+        (err, row) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve(row?.latest || 0)
+        }
+      )
+    })
+  },
+
+  async saveNote (note) {
+    return new Promise((resolve, reject) => {
+      const metadata = note.userMetadata ? JSON.stringify(note.userMetadata) : null
+      this.connection.run(
+        `INSERT OR IGNORE INTO notes (id, pubkey, content, created_at, metadata, processed_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [note.id, note.pubkey, note.content, note.created_at, metadata, Math.floor(Date.now() / 1000)],
+        (err) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve()
+        }
+      )
+    })
+  },
+
+  async close () {
+    return new Promise((resolve, reject) => {
+      if (this.connection) {
+        this.connection.close((err) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve()
+        })
+      } else {
+        resolve()
+      }
+    })
   }
 }
 
@@ -236,9 +326,16 @@ async function fetchEvents (relayUrls, filter, timeoutMs = 10000) {
  * @returns {Promise<Array>} - Array of note objects containing external links within the time interval
  */
 async function getNotesWithLinks (userPubkeys, timeIntervalHours, relayUrls, ignorePubkeys = []) {
+  // Get the latest stored note timestamp
+  const latestStoredTimestamp = await db.getLatestNoteTimestamp()
+
   // Calculate the cutoff time in seconds (Nostr uses UNIX timestamp)
   const now = Math.floor(Date.now() / 1000)
-  const cutoffTime = now - (timeIntervalHours * 60 * 60)
+  // Use the later of: configured time interval or latest stored note
+  const configuredCutoff = now - (timeIntervalHours * 60 * 60)
+  const cutoffTime = Math.max(configuredCutoff, latestStoredTimestamp)
+
+  logger.debug(`Using cutoff time: ${new Date(cutoffTime * 1000).toISOString()}`)
 
   const allNotesWithLinks = []
   const allFollowedPubkeys = new Set() // To collect all followed pubkeys
@@ -395,6 +492,11 @@ async function getNotesWithLinks (userPubkeys, timeIntervalHours, relayUrls, ign
     logger.progress(`Completed processing all ${totalBatches} batches`)
   }
 
+  // After processing notes and before returning, save them to the database
+  for (const note of allNotesWithLinks) {
+    await db.saveNote(note)
+  }
+
   return allNotesWithLinks
 }
 
@@ -503,12 +605,15 @@ function normalizeToHexPubkey (key) {
  * Main function to execute the script
  */
 async function main () {
-  // Load configuration from file
-  const configPath = path.join(__dirname, 'nostr-link-extract.config.json')
-  logger.info(`Loading configuration from ${configPath}`)
-  config = loadConfig(configPath)
+  // Initialize database
+  await db.init()
 
   try {
+    // Load configuration from file
+    const configPath = path.join(__dirname, 'nostr-link-extract.config.json')
+    logger.info(`Loading configuration from ${configPath}`)
+    config = loadConfig(configPath)
+
     logger.info(`Starting Nostr link extraction (time interval: ${config.timeIntervalHours} hours)`)
 
     // Convert any npub format keys to hex
@@ -539,6 +644,9 @@ async function main () {
     }
   } catch (error) {
     logger.error(`${error}`)
+  } finally {
+    // Close database connection
+    await db.close()
   }
 }
 

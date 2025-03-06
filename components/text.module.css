@@ -167,6 +167,7 @@
     width: 100%;
     max-width: 100%;
     height: auto;
+    overflow: hidden;
     max-height: 25vh;
     aspect-ratio: var(--aspect-ratio);
     margin: 0;
@@ -194,9 +195,13 @@
 .p:has(> .mediaContainer) .mediaContainer img,
 .p:has(> .mediaContainer) .mediaContainer video
 {
-    block-size: revert-layer;
     min-width: 30%;
     max-width: stretch;
+}
+
+.p:has(> .mediaContainer) .mediaContainer img
+{
+    block-size: revert-layer;
 }
 
 .p.onlyImages {

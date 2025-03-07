@@ -1,4 +1,4 @@
-Getting semantic search setup in OpenSearch is a multistep process.
+Getting semantic search setup in OpenSearch is currently a multistep, manual process. To configure semantic search, enter the following commands into OpenSearch's REST API. You can do this in Dev Tools in the OpenSearch Dashboard (after starting your SN dev environment, point your browser to localhost:5601). You can also use CURL to send these commands to localhost:9200.
 
 ### step 1: configure the ml plugin
 ```json
@@ -67,7 +67,7 @@ PUT /_ingest/pipeline/nlp-ingest-pipeline
     },
     {
       "text_embedding": {
-        "model_id": "6whlBY0B2sj1ObjeeD5d",
+        "model_id": "<model id>",
         "field_map": {
           "text": "text_embedding",
           "title": "title_embedding"
@@ -305,4 +305,16 @@ GET /item-nlp/_search
   }
 }
 ```
+
+### step 12: configure the development environment to use the nlp pipeline
+
+In `.env.development` make the following changes:
+
+```
+OPENSEARCH_INDEX=item-nlp
+OPENSEARCH_MODEL_ID=<model id>
+```
+
+Note that you won't have to re-do the above steps each time you restart your dev instance. The OpenSearch configuration is saved to a local volume.
+
 

@@ -131,7 +131,6 @@ function Enabled ({ setVaultKey, clearVault }) {
           placeholder=''
           required
           autoFocus
-          as='textarea'
           rows={3}
           qr
         />

@@ -14,7 +14,7 @@ BEGIN
 
     SELECT count(*) INTO repeats
     FROM "Item"
-    JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+    LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
     WHERE (
         (parent_id IS NULL AND "parentId" IS NULL)
         OR
@@ -22,7 +22,7 @@ BEGIN
     )
     AND "Item"."userId" = user_id
     AND "bio" = 'f'
-    AND "Sub"."userId" <> user_id
+    AND ("Sub"."name" IS NULL OR "Sub"."userId" <> user_id)
     AND "Item".created_at > now_utc() - within;
 
     IF parent_id IS NULL THEN

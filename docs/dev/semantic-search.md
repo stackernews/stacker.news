@@ -308,7 +308,7 @@ GET /item-nlp/_search
 
 ### step 12: configure the development environment to use the nlp pipeline
 
-In `.env.development` make the following changes:
+Add the following lines `.env.local`:
 
 ```
 OPENSEARCH_INDEX=item-nlp
@@ -316,5 +316,3 @@ OPENSEARCH_MODEL_ID=<model id>
 ```
 
 Note that you won't have to re-do the above steps each time you restart your dev instance. The OpenSearch configuration is saved to a local volume.
-
-

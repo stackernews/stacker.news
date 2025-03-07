@@ -131,7 +131,6 @@ function Enabled ({ setVaultKey, clearVault }) {
           placeholder=''
           required
           autoFocus
-          rows={3}
           qr
         />
         <div className='mt-3'>

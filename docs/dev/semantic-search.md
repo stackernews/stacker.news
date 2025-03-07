@@ -308,7 +308,7 @@ GET /item-nlp/_search
 
 ### step 12: configure the development environment to use the nlp pipeline
 
-Add the following lines `.env.local`:
+Add the following lines to `.env.local`:
 
 ```
 OPENSEARCH_INDEX=item-nlp

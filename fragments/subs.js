@@ -13,6 +13,7 @@ const STREAK_FIELDS = gql`
   }
 `
 
+// TODO: better place
 export const SUB_FIELDS = gql`
   fragment SubFields on Sub {
     name
@@ -34,6 +35,9 @@ export const SUB_FIELDS = gql`
     meMuteSub
     meSubscription
     nsfw
+    customDomain {
+      domain
+    }
   }`
 
 export const SUB_FULL_FIELDS = gql`

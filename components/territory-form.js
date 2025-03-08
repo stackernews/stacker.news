@@ -274,6 +274,10 @@ export default function TerritoryForm ({ sub }) {
                 name='nsfw'
                 groupClassName='ms-1'
               />
+              <BootstrapForm.Label>personalized domains</BootstrapForm.Label>
+              <div className='mb-3'>WIP {sub?.customDomain?.domain}</div>
+              <BootstrapForm.Label>color scheme</BootstrapForm.Label>
+              <div className='mb-3'>WIP</div>
             </>
 
 }

@@ -79,6 +79,24 @@ export default function SubSelect ({ prependSubs, sub, onChange, size, appendSub
           return
         }
 
+        // Check if we're on a custom domain
+
+        // TODO: main domain should be in the env
+        // If we're on stacker.news and selecting a territory, redirect to territory subdomain
+        const host = window.location.host
+        console.log('host', host)
+        if (host === 'sn.soxa.dev' && sub) {
+          // Get the base domain (e.g., soxa.dev) from environment or config
+          const protocol = window.location.protocol
+
+          // Create the territory subdomain URL
+          const territoryUrl = `${protocol}//${sub}.soxa.dev/?source=stackernews`
+
+          // Redirect to the territory subdomain
+          window.location.href = territoryUrl
+          return
+        }
+
         let asPath
         // are we currently in a sub (ie not home)
         if (router.query.sub) {

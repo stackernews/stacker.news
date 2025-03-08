@@ -9,6 +9,10 @@ export default gql`
     userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
   }
 
+  type CustomDomain {
+    domain: String!
+  }
+
   type Subs {
     cursor: String
     subs: [Sub!]!
@@ -55,7 +59,7 @@ export default gql`
     nposts(when: String, from: String, to: String): Int!
     ncomments(when: String, from: String, to: String): Int!
     meSubscription: Boolean!
-
+    customDomain: CustomDomain
     optional: SubOptional!
   }
 

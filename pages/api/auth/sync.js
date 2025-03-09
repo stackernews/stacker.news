@@ -3,7 +3,8 @@ import { getAuthOptions } from './[...nextauth]'
 import { serialize } from 'cookie'
 import { datePivot } from '@/lib/time'
 
-// TODO: not safe, tokens are visible in the URL
+// TODO: dirty of previous iterations, refactor
+// UNSAFE UNSAFE UNSAFE tokens are visible in the URL
 export default async function handler (req, res) {
   console.log(req.query)
   if (req.query.token) {
@@ -12,6 +13,7 @@ export default async function handler (req, res) {
   } else {
     const { redirectUrl } = req.query
     const session = await getServerSession(req, res, getAuthOptions(req))
+    // TODO: use session to create a verification token
     if (session) {
       console.log('session', session)
       console.log('req.cookies', req.cookies)
@@ -43,12 +45,12 @@ export default async function handler (req, res) {
 }
 
 export async function saveCookie (req, res, tokenData) {
-  const secure = process.env.NODE_ENV === 'development'
   if (!tokenData) {
     return res.status(400).json({ error: 'Missing token' })
   }
 
   try {
+    const secure = process.env.NODE_ENV === 'development'
     const expiresAt = datePivot(new Date(), { months: 1 })
     const cookieOptions = {
       path: '/',

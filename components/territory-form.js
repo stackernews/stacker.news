@@ -84,6 +84,7 @@ export default function TerritoryForm ({ sub }) {
     }
   }, [sub, billing])
 
+  // TODO: Add a custom domain textbox and verification status; validation too
   return (
     <FeeButtonProvider baseLineItems={lineItems}>
       <Form
@@ -274,9 +275,9 @@ export default function TerritoryForm ({ sub }) {
                 name='nsfw'
                 groupClassName='ms-1'
               />
-              <BootstrapForm.Label>personalized domains</BootstrapForm.Label>
-              <div className='mb-3'>WIP {sub?.customDomain?.domain}</div>
-              <BootstrapForm.Label>color scheme</BootstrapForm.Label>
+              <BootstrapForm.Label>personalized domains (TODO textbox/status)</BootstrapForm.Label>
+              <div className='mb-3'>WIP {sub?.customDomain?.domain || 'not set'}</div>
+              <BootstrapForm.Label>color scheme (TODO 5 options)</BootstrapForm.Label>
               <div className='mb-3'>WIP</div>
             </>
 

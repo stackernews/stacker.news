@@ -11,20 +11,14 @@ const SN_REFERRER_NONCE = 'sn_referrer_nonce'
 // key for referred pages
 const SN_REFEREE_LANDING = 'sn_referee_landing'
 
-const TERRITORY_PATHS = [
-  '/',
-  '/~',
-  '/recent',
-  '/random',
-  '/top',
-  '/items'
-]
+const TERRITORY_PATHS = ['/~', '/recent', '/random', '/top', '/post', '/edit']
+const NO_REWRITE_PATHS = ['/api', '/_next', '/_error', '/404', '/500', '/offline', '/static', '/items']
 
 function getDomainMapping () {
   // placeholder for cachedFetcher
   return {
     'forum.pizza.com': { subName: 'pizza' }
-    // placeholder
+    // placeholder for other domains
   }
 }
 
@@ -33,7 +27,9 @@ export function customDomainMiddleware (request, referrerResp) {
   const referer = request.headers.get('referer')
   const url = request.nextUrl.clone()
   const pathname = url.pathname
-  const mainDomain = process.env.NEXT_PUBLIC_URL
+  const mainDomain = process.env.NEXT_PUBLIC_URL + '/'
+  console.log('host', host)
+  console.log('mainDomain', mainDomain)
 
   console.log('referer', referer)
 
@@ -43,31 +39,25 @@ export function customDomainMiddleware (request, referrerResp) {
     return NextResponse.redirect(new URL(pathname, mainDomain))
   }
 
-  // For territory paths, handle them directly on the custom domain
-  if (TERRITORY_PATHS.includes(pathname)) {
-    // Internally rewrite the request to the territory path without changing the URL
-    const internalUrl = new URL(url)
+  if (NO_REWRITE_PATHS.some(p => pathname.startsWith(p)) || pathname.includes('.')) {
+    return NextResponse.next()
+  }
 
-    // If we're at the root path, internally rewrite to the territory path
-    if (pathname === '/' || pathname === '/~') {
-      internalUrl.pathname = `/~${domainInfo.subName}`
-      console.log('Internal rewrite to:', internalUrl.pathname)
+  console.log('pathname', pathname)
+  console.log('query', url.searchParams)
 
-      // NextResponse.rewrite() keeps the URL the same for the user
-      // but internally fetches from the rewritten path
-      return NextResponse.rewrite(internalUrl)
-    }
+  // if the url contains the territory path, remove it
+  if (pathname.startsWith(`/~${domainInfo.subName}`)) {
+    // remove the territory prefix from the path
+    const cleanPath = pathname.replace(`/~${domainInfo.subName}`, '') || '/'
+    console.log('Redirecting to clean path:', cleanPath)
+    return NextResponse.redirect(new URL(cleanPath + url.search, url.origin))
+  }
 
-    // For other territory paths like /recent, /top, etc.
-    // We need to rewrite them to the territory-specific versions
-    if (pathname === '/recent' || pathname === '/top' || pathname === '/random' || pathname === '/items') {
-      internalUrl.pathname = `/~${domainInfo.subName}${pathname}`
-      console.log('Internal rewrite to:', internalUrl.pathname)
-      return NextResponse.rewrite(internalUrl)
-    }
-
-    // Handle auth if needed
-    if (!referer || referer !== mainDomain) {
+  // if territory path, retain custom domain
+  if (pathname === '/' || TERRITORY_PATHS.some(p => pathname.startsWith(p))) {
+    // if coming from main domain, handle auth automatically
+    if (referer && referer === mainDomain) {
       const authResp = customDomainAuthMiddleware(request, url)
       if (authResp && authResp.status !== 200) {
         // copy referrer cookies to auth redirect
@@ -77,7 +67,15 @@ export function customDomainMiddleware (request, referrerResp) {
         return authResp
       }
     }
-    return referrerResp
+
+    const internalUrl = new URL(url)
+
+    // rewrite to the territory path if we're at the root
+    internalUrl.pathname = `/~${domainInfo.subName}${pathname === '/' ? '' : pathname}`
+    console.log('Rewrite to:', internalUrl.pathname)
+
+    // rewrite to the territory path
+    return NextResponse.rewrite(internalUrl)
   }
 
   // redirect to main domain for non-territory paths
@@ -93,7 +91,7 @@ export function customDomainMiddleware (request, referrerResp) {
 }
 
 // TODO: dirty of previous iterations, refactor
-// Not safe, tokens are visible in the URL
+// UNSAFE UNSAFE UNSAFE tokens are visible in the URL
 export function customDomainAuthMiddleware (request, url) {
   const pathname = url.pathname
   const host = request.headers.get('host')
@@ -114,7 +112,6 @@ export function customDomainAuthMiddleware (request, url) {
   const response = NextResponse.next()
 
   if (!hasSession && isCustomDomain) {
-    // Use the original request's host and protocol for the redirect URL
     // TODO: original request url points to localhost, this is a workaround atm
     const protocol = secure ? 'https' : 'http'
     const originalDomain = `${protocol}://${host}`
@@ -206,22 +203,7 @@ function referrerMiddleware (request) {
   return response
 }
 
-export function middleware (request) {
-  const host = request.headers.get('host')
-  const isCustomDomain = host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
-
-  // First run referrer middleware to capture referrer data
-  const referrerResp = referrerMiddleware(request)
-
-  // If we're on a custom domain, handle that next
-  if (isCustomDomain) {
-    return customDomainMiddleware(request, referrerResp)
-  }
-
-  const resp = referrerResp
-
-  // TODO: This doesn't run for custom domains, need to support it
-
+export function applySecurityHeaders (resp) {
   const isDev = process.env.NODE_ENV === 'development'
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
@@ -266,6 +248,22 @@ export function middleware (request) {
   resp.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 
   return resp
+}
+
+export function middleware (request) {
+  const host = request.headers.get('host')
+  const isCustomDomain = host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
+
+  // First run referrer middleware to capture referrer data
+  const referrerResp = referrerMiddleware(request)
+
+  // If we're on a custom domain, handle that next
+  if (isCustomDomain) {
+    const customDomainResp = customDomainMiddleware(request, referrerResp)
+    return applySecurityHeaders(customDomainResp)
+  }
+
+  return applySecurityHeaders(referrerResp)
 }
 
 export const config = {

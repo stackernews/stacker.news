@@ -314,15 +314,19 @@ function LogoutObstacle ({ onClose }) {
 
 export function LogoutDropdownItem ({ handleClose }) {
   const showModal = useShowModal()
+  const { multiAuthError } = useAccounts()
 
   return (
     <>
-      <Dropdown.Item onClick={() => {
-        handleClose?.()
-        showModal(onClose => <SwitchAccountList onClose={onClose} />)
-      }}
-      >switch account
-      </Dropdown.Item>
+      {
+        !multiAuthError &&
+          <Dropdown.Item onClick={() => {
+            handleClose?.()
+            showModal(onClose => <SwitchAccountList onClose={onClose} />)
+          }}
+          >switch account
+          </Dropdown.Item>
+      }
       <Dropdown.Item
         onClick={async () => {
           handleClose?.()
@@ -336,9 +340,9 @@ export function LogoutDropdownItem ({ handleClose }) {
 
 function SwitchAccountButton ({ handleClose }) {
   const showModal = useShowModal()
-  const { accounts } = useAccounts()
+  const { multiAuthError } = useAccounts()
 
-  if (accounts.length === 0) return null
+  if (multiAuthError) return null
 
   return (
     <Button

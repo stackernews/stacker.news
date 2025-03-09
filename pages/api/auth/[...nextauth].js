@@ -124,12 +124,20 @@ function getCallbacks (req, res) {
         token.sub = Number(token.id)
       }
 
-      // add multi_auth cookie for user that just logged in
-      if (user && req && res) {
-        const secret = process.env.NEXTAUTH_SECRET
-        const jwt = await encodeJWT({ token, secret })
-        const me = await prisma.user.findUnique({ where: { id: token.id } })
-        setMultiAuthCookies(req, res, { ...me, jwt })
+      if (req && res) {
+        if (user) {
+          // add multi_auth cookie for user that just logged in
+          const secret = process.env.NEXTAUTH_SECRET
+          const jwt = await encodeJWT({ token, secret })
+          const me = await prisma.user.findUnique({ where: { id: token.id } })
+          setMultiAuthCookies(req, res, { ...me, jwt })
+        } else if (!req.cookies.multi_auth || !req.cookies['multi_auth.user-id']) {
+          // TODO: also check for missing user JWTs
+          // something is wrong, reset multi auth until next login
+          resetMultiAuthCookies(req, res)
+        } else {
+          // TODO: refresh cookies
+        }
       }
 
       return token
@@ -173,6 +181,26 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
     newMultiAuth = [...oldMultiAuth, ...newMultiAuth]
   }
   res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', b64Encode(newMultiAuth), { ...cookieOptions, httpOnly: false }))
+}
+
+function resetMultiAuthCookies (req, res) {
+  const cookieOptions = {
+    path: '/',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    expires: 0,
+    maxAge: 0
+  }
+
+  if (req.cookies.multi_auth) res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', '', { ...cookieOptions, httpOnly: false }))
+  if (req.cookies['multi_auth.user-id']) res.appendHeader('Set-Cookie', cookie.serialize('multi_auth.user-id', '', { ...cookieOptions, httpOnly: false }))
+
+  for (const key of Object.keys(req.cookies)) {
+    // reset all user JWTs
+    if (/^multi_auth\.\d+$/.test(key)) {
+      res.appendHeader('Set-Cookie', cookie.serialize(key, '', { ...cookieOptions, httpOnly: true }))
+    }
+  }
 }
 
 async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {

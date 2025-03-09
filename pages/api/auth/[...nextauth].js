@@ -8,12 +8,10 @@ import prisma from '@/api/models'
 import nodemailer from 'nodemailer'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { getToken, encode as encodeJWT } from 'next-auth/jwt'
-import { datePivot } from '@/lib/time'
 import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
-import * as cookie from 'cookie'
-import { multiAuthMiddleware } from '@/pages/api/graphql'
+import { multiAuthMiddleware, setMultiAuthCookies } from '@/lib/auth'
 import { BECH32_CHARSET } from '@/lib/constants'
 
 /**
@@ -124,8 +122,8 @@ function getCallbacks (req, res) {
         token.sub = Number(token.id)
       }
 
-      // add multi_auth cookie for user that just logged in
       if (user && req && res) {
+        // add multi_auth cookie for user that just logged in
         const secret = process.env.NEXTAUTH_SECRET
         const jwt = await encodeJWT({ token, secret })
         const me = await prisma.user.findUnique({ where: { id: token.id } })
@@ -142,37 +140,6 @@ function getCallbacks (req, res) {
       return session
     }
   }
-}
-
-function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
-  const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
-  const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
-
-  // default expiration for next-auth JWTs is in 1 month
-  const expiresAt = datePivot(new Date(), { months: 1 })
-  const secure = process.env.NODE_ENV === 'production'
-  const cookieOptions = {
-    path: '/',
-    httpOnly: true,
-    secure,
-    sameSite: 'lax',
-    expires: expiresAt
-  }
-
-  // add JWT to **httpOnly** cookie
-  res.appendHeader('Set-Cookie', cookie.serialize(`multi_auth.${id}`, jwt, cookieOptions))
-
-  // switch to user we just added
-  res.appendHeader('Set-Cookie', cookie.serialize('multi_auth.user-id', id, { ...cookieOptions, httpOnly: false }))
-
-  let newMultiAuth = [{ id, name, photoId }]
-  if (req.cookies.multi_auth) {
-    const oldMultiAuth = b64Decode(req.cookies.multi_auth)
-    // make sure we don't add duplicates
-    if (oldMultiAuth.some(({ id: id_ }) => id_ === id)) return
-    newMultiAuth = [...oldMultiAuth, ...newMultiAuth]
-  }
-  res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', b64Encode(newMultiAuth), { ...cookieOptions, httpOnly: false }))
 }
 
 async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
@@ -194,7 +161,7 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
       let user = await prisma.user.findUnique({ where: { [pubkeyColumnName]: pubkey } })
 
       // make following code aware of cookie pointer for account switching
-      req = multiAuthMiddleware(req)
+      req = multiAuthMiddleware(req, res)
       // token will be undefined if we're not logged in at all or if we switched to anon
       const token = await getToken({ req })
       if (!user) {

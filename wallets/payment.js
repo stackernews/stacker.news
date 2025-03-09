@@ -105,7 +105,7 @@ export function useWalletPayment () {
 
     // if we reach this line, no wallet payment succeeded
     throw new WalletPaymentAggregateError([aggregateError], latestInvoice)
-  }, [wallets, invoiceHelper, sendPayment])
+  }, [wallets, invoiceHelper, sendPayment, loggerFactory])
 }
 
 function invoiceController (inv, isInvoice) {

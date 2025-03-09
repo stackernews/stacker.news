@@ -733,7 +733,10 @@ export function NotificationAlert () {
     error
       ? (
         <Alert variant='danger' dismissible onClose={() => setError(null)}>
-          <span>{error.toString()}</span>
+          <span>{navigator?.brave && error.name === 'AbortError'
+            ? 'Push registration failed. Enable "Use Google services for push messaging" in Brave\'s privacy settings and try again.'
+            : error.toString()}
+          </span>
         </Alert>
         )
       : showAlert

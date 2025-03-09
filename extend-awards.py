@@ -1,4 +1,4 @@
-import json, os, re, requests, sys
+import json, os, re, requests
 
 difficulties = {'good-first-issue':20000,'easy':100000,'medium':250000,'medium-hard':500000,'hard':1000000}
 priorities = {'low':0.5,'medium':1.5,'high':2,'urgent':3}
@@ -56,11 +56,8 @@ def countReviews(pr):
 			count += 1
 	return count
 
-def checkPR(pr):
-	i = getIssue(pr)
-	if not 'pull_request' in i or not 'merged_at' in i['pull_request']:
-		print('pr %s is not a merged pull request' % pr)
-		return
+def checkPR(i):
+	pr = str(i['number'])
 	print('pr %s' % pr)
 	n = findIssueInPR(i)
 	if not n:
@@ -103,14 +100,5 @@ with open(fn, 'r') as f:
 		s = s.split('\n')[0]
 		awards.append(s.split(','))
 
-j = json.loads(sys.argv[1])
-url = j['event']['pull_request']['_links']['commits']['href']
-r = sess.get(url, headers=headers)
-j = json.loads(r.text)
-for c in j:
-	m = re.search('\\(#([0-9]+)\\)$', c['commit']['message'].split('\n')[0])
-	if m:
-		checkPR(m.group(1))
-		exit(0)
-print('no PR found in commit')
-
+j = json.loads(os.getenv('GITHUB_CONTEXT'))
+checkPR(j['event']['pull_request'])

@@ -1,4 +1,5 @@
 import { NextResponse, URLPattern } from 'next/server'
+import { cachedFetcher } from '@/lib/fetch'
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
 const profilePattern = new URLPattern({ pathname: '/:name([\\w_]+){/:type(\\w+)}?' })
@@ -14,15 +15,29 @@ const SN_REFEREE_LANDING = 'sn_referee_landing'
 const TERRITORY_PATHS = ['/~', '/recent', '/random', '/top', '/post', '/edit']
 const NO_REWRITE_PATHS = ['/api', '/_next', '/_error', '/404', '/500', '/offline', '/static', '/items']
 
-function getDomainMapping () {
-  // placeholder for cachedFetcher
-  return {
-    'forum.pizza.com': { subName: 'pizza' }
-    // placeholder for other domains
-  }
-}
+// fetch custom domain mappings from our API, caching it for 5 minutes
+const getDomainMappingsCache = cachedFetcher(async function fetchDomainMappings () {
+  const url = `${process.env.NEXT_PUBLIC_URL}/api/domains/map`
+  try {
+    const response = await fetch(url)
+    if (!response.ok) {
+      console.error(`Cannot fetch domain mappings: ${response.status} ${response.statusText}`)
+      return null
+    }
 
-export function customDomainMiddleware (request, referrerResp) {
+    const data = await response.json()
+    return Object.keys(data).length > 0 ? data : null
+  } catch (error) {
+    console.error('Cannot fetch domain mappings:', error)
+    return null
+  }
+}, {
+  cacheExpiry: 300000, // 5 minutes cache
+  forceRefreshThreshold: 600000, // 10 minutes before force refresh
+  keyGenerator: () => 'domain_mappings'
+})
+
+export async function customDomainMiddleware (request, referrerResp) {
   const host = request.headers.get('host')
   const referer = request.headers.get('referer')
   const url = request.nextUrl.clone()
@@ -33,8 +48,8 @@ export function customDomainMiddleware (request, referrerResp) {
 
   console.log('referer', referer)
 
-  const domainMapping = getDomainMapping() // placeholder
-  const domainInfo = domainMapping[host.toLowerCase()]
+  const domainMapping = await getDomainMappingsCache()
+  const domainInfo = domainMapping?.[host.toLowerCase()]
   if (!domainInfo) {
     return NextResponse.redirect(new URL(pathname, mainDomain))
   }
@@ -250,7 +265,7 @@ export function applySecurityHeaders (resp) {
   return resp
 }
 
-export function middleware (request) {
+export async function middleware (request) {
   const host = request.headers.get('host')
   const isCustomDomain = host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
 
@@ -259,7 +274,7 @@ export function middleware (request) {
 
   // If we're on a custom domain, handle that next
   if (isCustomDomain) {
-    const customDomainResp = customDomainMiddleware(request, referrerResp)
+    const customDomainResp = await customDomainMiddleware(request, referrerResp)
     return applySecurityHeaders(customDomainResp)
   }
 

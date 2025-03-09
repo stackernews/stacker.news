@@ -1,5 +1,5 @@
 import { whenRange } from '@/lib/time'
-import { validateSchema, territorySchema } from '@/lib/validate'
+import { validateSchema, validateDomain, territorySchema } from '@/lib/validate'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { viewGroup } from './growth'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
@@ -277,6 +277,35 @@ export default {
       }
 
       return await performPaidAction('TERRITORY_UNARCHIVE', data, { me, models, lnd })
+    },
+    updateCustomDomain: async (parent, { subName, domain }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const sub = await models.sub.findUnique({ where: { name: subName } })
+      if (!sub) {
+        throw new GqlInputError('sub not found')
+      }
+
+      if (sub.userId !== me.id) {
+        throw new GqlInputError('you do not own this sub')
+      }
+      domain = domain.trim()
+      if (domain && !validateDomain(domain)) {
+        throw new GqlInputError('Invalid domain format')
+      }
+
+      if (domain) {
+        const existing = await models.customDomain.findUnique({ where: { subName } })
+        if (existing) {
+          return await models.customDomain.update({ where: { subName }, data: { domain, verificationState: 'PENDING' } })
+        } else {
+          return await models.customDomain.create({ data: { domain, subName, verificationState: 'PENDING' } })
+        }
+      } else {
+        return await models.customDomain.delete({ where: { subName } })
+      }
     }
   },
   Sub: {

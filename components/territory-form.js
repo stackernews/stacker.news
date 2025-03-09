@@ -14,6 +14,7 @@ import { purchasedType } from '@/lib/territory'
 import { SUB } from '@/fragments/subs'
 import { usePaidMutation } from './use-paid-mutation'
 import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/paidAction'
+import TerritoryDomains from './territory-domains'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
@@ -276,25 +277,7 @@ export default function TerritoryForm ({ sub }) {
                 name='nsfw'
                 groupClassName='ms-1'
               />
-              <Input
-                label={
-                  <div className='d-flex align-items-center'>[NOT IMPLEMENTED] custom domain
-                    <Info>
-                      <ol>
-                        <li>TODO Immediate infos on Custom Domains</li>
-                      </ol>
-                    </Info>
-                  </div>
-                }
-                name='customDomain'
-                type='text'
-                required
-                append={
-                  <>
-                    <InputGroup.Text className='text-monospace'>{sub?.customDomain?.verificationState || 'not verified'}</InputGroup.Text>
-                  </>
-                }
-              />
+              <TerritoryDomains sub={sub} />
               {sub?.customDomain?.verificationState === 'VERIFIED' &&
                 <>
                   <BootstrapForm.Label>[NOT IMPLEMENTED] branding</BootstrapForm.Label>

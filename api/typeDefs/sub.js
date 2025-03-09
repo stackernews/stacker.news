@@ -39,6 +39,7 @@ export default gql`
       replyCost: Int!, postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
       moderated: Boolean!, nsfw: Boolean!): SubPaidAction!
+    updateCustomDomain(subName: String!, domain: String!): CustomDomain
   }
 
   type Sub {

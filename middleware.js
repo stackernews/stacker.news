@@ -17,7 +17,7 @@ const NO_REWRITE_PATHS = ['/api', '/_next', '/_error', '/404', '/500', '/offline
 
 // fetch custom domain mappings from our API, caching it for 5 minutes
 const getDomainMappingsCache = cachedFetcher(async function fetchDomainMappings () {
-  const url = `${process.env.NEXT_PUBLIC_URL}/api/domains/map`
+  const url = `${process.env.NEXT_PUBLIC_URL}/api/domains`
   try {
     const response = await fetch(url)
     if (!response.ok) {
@@ -49,6 +49,7 @@ export async function customDomainMiddleware (request, referrerResp) {
   console.log('referer', referer)
 
   const domainMapping = await getDomainMappingsCache()
+  console.log('domainMapping', domainMapping)
   const domainInfo = domainMapping?.[host.toLowerCase()]
   if (!domainInfo) {
     return NextResponse.redirect(new URL(pathname, mainDomain))

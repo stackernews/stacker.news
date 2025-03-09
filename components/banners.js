@@ -123,3 +123,18 @@ export function AuthBanner () {
     </Alert>
   )
 }
+
+export function MultiAuthErrorBanner ({ errors }) {
+  return (
+    <Alert className={`${styles.banner} mt-0`} key='info' variant='danger'>
+      <div className='fw-bold mb-3'>Account switching is currently unavailable</div>
+      We have detected the following issues:
+      <ul>
+        {errors.map((err, i) => (
+          <li key={i}>{err}</li>
+        ))}
+      </ul>
+      To resolve these issues, please sign out and sign in again.
+    </Alert>
+  )
+}

@@ -97,7 +97,8 @@ export default function TerritoryForm ({ sub }) {
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false,
           moderated: sub?.moderated || false,
-          nsfw: sub?.nsfw || false
+          nsfw: sub?.nsfw || false,
+          customDomain: sub?.customDomain?.domain || ''
         }}
         schema={schema}
         onSubmit={onSubmit}
@@ -275,10 +276,32 @@ export default function TerritoryForm ({ sub }) {
                 name='nsfw'
                 groupClassName='ms-1'
               />
-              <BootstrapForm.Label>personalized domains (TODO textbox/status)</BootstrapForm.Label>
-              <div className='mb-3'>WIP {sub?.customDomain?.domain || 'not set'}</div>
-              <BootstrapForm.Label>color scheme (TODO 5 options)</BootstrapForm.Label>
-              <div className='mb-3'>WIP</div>
+              <Input
+                label={
+                  <div className='d-flex align-items-center'>[NOT IMPLEMENTED] custom domain
+                    <Info>
+                      <ol>
+                        <li>TODO Immediate infos on Custom Domains</li>
+                      </ol>
+                    </Info>
+                  </div>
+                }
+                name='customDomain'
+                type='text'
+                required
+                append={
+                  <>
+                    <InputGroup.Text className='text-monospace'>{sub?.customDomain?.verificationState || 'not verified'}</InputGroup.Text>
+                  </>
+                }
+              />
+              {sub?.customDomain?.verificationState === 'VERIFIED' &&
+                <>
+                  <BootstrapForm.Label>[NOT IMPLEMENTED] branding</BootstrapForm.Label>
+                  <div className='mb-3'>WIP</div>
+                  <BootstrapForm.Label>[NOT IMPLEMENTED] color scheme</BootstrapForm.Label>
+                  <div className='mb-3'>WIP</div>
+                </>}
             </>
 
 }

@@ -36,7 +36,14 @@ export const SUB_FIELDS = gql`
     meSubscription
     nsfw
     customDomain {
+      createdAt
+      updatedAt
       domain
+      subName
+      sslEnabled
+      sslCertExpiry
+      verificationState
+      lastVerifiedAt
     }
   }`
 

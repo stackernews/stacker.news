@@ -10,7 +10,14 @@ export default gql`
   }
 
   type CustomDomain {
+    createdAt: Date!
+    updatedAt: Date!
     domain: String!
+    subName: String!
+    sslEnabled: Boolean!
+    sslCertExpiry: Date
+    verificationState: String!
+    lastVerifiedAt: Date
   }
 
   type Subs {

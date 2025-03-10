@@ -30,8 +30,14 @@ export async function getBaseCost ({ models, bio, parentId, subName }) {
 
     const root = parent.root ?? parent
 
-    if (!root.sub) return DEFAULT_ITEM_COST
-    return satsToMsats(root.sub.replyCost)
+    // XXX Prisma does not support case-insensitive joins on CITEXT column
+    // so we fetch the territory in a separate query
+    const sub = await models.sub.findUnique({
+      where: { name: root.subName }
+    })
+
+    if (!sub) return DEFAULT_ITEM_COST
+    return satsToMsats(sub.replyCost)
   }
 
   const sub = await models.sub.findUnique({ where: { name: subName } })

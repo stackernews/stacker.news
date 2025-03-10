@@ -257,7 +257,7 @@ export default function TerritoryForm ({ sub }) {
                       </ol>
                     </Info>
                   </div>
-          }
+                }
                 name='moderated'
                 groupClassName='ms-1'
               />
@@ -273,10 +273,17 @@ export default function TerritoryForm ({ sub }) {
                       </ol>
                     </Info>
                   </div>
-          }
+                }
                 name='nsfw'
                 groupClassName='ms-1'
               />
+            </>
+          }
+        />
+        <AccordianItem
+          header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>personalization</div>}
+          body={
+            <>
               <TerritoryDomains sub={sub} />
               {sub?.customDomain?.verificationState === 'VERIFIED' &&
                 <>
@@ -286,8 +293,7 @@ export default function TerritoryForm ({ sub }) {
                   <div className='mb-3'>WIP</div>
                 </>}
             </>
-
-}
+          }
         />
         <div className='mt-3 d-flex justify-content-end'>
           <FeeButton

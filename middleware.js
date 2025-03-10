@@ -77,12 +77,23 @@ export async function customDomainMiddleware (request, referrerResp) {
       const authResp = customDomainAuthMiddleware(request, url)
       if (authResp && authResp.status !== 200) {
         // copy referrer cookies to auth redirect
-        for (const [key, value] of referrerResp.cookies.getAll()) {
-          authResp.cookies.set(key, value.value, value)
+        console.log('referrerResp', referrerResp)
+        for (const cookie of referrerResp.cookies.getAll()) {
+          authResp.cookies.set(
+            cookie.name,
+            cookie.value,
+            {
+              maxAge: cookie.maxAge,
+              expires: cookie.expires,
+              path: cookie.path
+            }
+          )
         }
         return authResp
       }
     }
+
+    // TODO: preserve referrer cookies in a DRY way
 
     const internalUrl = new URL(url)
 
@@ -98,9 +109,16 @@ export async function customDomainMiddleware (request, referrerResp) {
   // create redirect response but preserve referrer cookies
   const redirectResp = NextResponse.redirect(new URL(pathname, mainDomain))
 
-  // copy referrer cookies
-  for (const [key, value] of referrerResp.cookies.getAll()) {
-    redirectResp.cookies.set(key, value.value, value)
+  for (const cookie of referrerResp.cookies.getAll()) {
+    redirectResp.cookies.set(
+      cookie.name,
+      cookie.value,
+      {
+        maxAge: cookie.maxAge,
+        expires: cookie.expires,
+        path: cookie.path
+      }
+    )
   }
 
   return redirectResp
@@ -278,6 +296,8 @@ export async function middleware (request) {
     const customDomainResp = await customDomainMiddleware(request, referrerResp)
     return applySecurityHeaders(customDomainResp)
   }
+
+  console.log('applying security headers')
 
   return applySecurityHeaders(referrerResp)
 }

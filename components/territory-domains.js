@@ -56,7 +56,7 @@ export default function CustomDomainForm ({ sub }) {
       <div className='d-flex align-items-center gap-2'>
         <Input
           label={
-            <div className='d-flex align-items-center'>
+            <div className='d-flex align-items-center gap-2'>
               <span>domain</span>
               {error && <Info variant='danger'>error</Info>}
               {success && <Info variant='success'>Domain settings updated successfully!</Info>}

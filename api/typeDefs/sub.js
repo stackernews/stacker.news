@@ -9,6 +9,17 @@ export default gql`
     userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
   }
 
+  type CustomDomain {
+    createdAt: Date!
+    updatedAt: Date!
+    domain: String!
+    subName: String!
+    sslEnabled: Boolean!
+    sslCertExpiry: Date
+    verificationState: String!
+    lastVerifiedAt: Date
+  }
+
   type Subs {
     cursor: String
     subs: [Sub!]!
@@ -28,6 +39,7 @@ export default gql`
       replyCost: Int!, postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
       moderated: Boolean!, nsfw: Boolean!): SubPaidAction!
+    updateCustomDomain(subName: String!, domain: String!): CustomDomain
   }
 
   type Sub {
@@ -55,7 +67,7 @@ export default gql`
     nposts(when: String, from: String, to: String): Int!
     ncomments(when: String, from: String, to: String): Int!
     meSubscription: Boolean!
-
+    customDomain: CustomDomain
     optional: SubOptional!
   }
 

@@ -14,6 +14,7 @@ import { purchasedType } from '@/lib/territory'
 import { SUB } from '@/fragments/subs'
 import { usePaidMutation } from './use-paid-mutation'
 import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/paidAction'
+import TerritoryDomains from './territory-domains'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
@@ -84,6 +85,7 @@ export default function TerritoryForm ({ sub }) {
     }
   }, [sub, billing])
 
+  // TODO: Add a custom domain textbox and verification status; validation too
   return (
     <FeeButtonProvider baseLineItems={lineItems}>
       <Form
@@ -96,7 +98,8 @@ export default function TerritoryForm ({ sub }) {
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false,
           moderated: sub?.moderated || false,
-          nsfw: sub?.nsfw || false
+          nsfw: sub?.nsfw || false,
+          customDomain: sub?.customDomain?.domain || ''
         }}
         schema={schema}
         onSubmit={onSubmit}
@@ -254,7 +257,7 @@ export default function TerritoryForm ({ sub }) {
                       </ol>
                     </Info>
                   </div>
-          }
+                }
                 name='moderated'
                 groupClassName='ms-1'
               />
@@ -270,13 +273,27 @@ export default function TerritoryForm ({ sub }) {
                       </ol>
                     </Info>
                   </div>
-          }
+                }
                 name='nsfw'
                 groupClassName='ms-1'
               />
             </>
-
-}
+          }
+        />
+        <AccordianItem
+          header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>personalization</div>}
+          body={
+            <>
+              <TerritoryDomains sub={sub} />
+              {sub?.customDomain?.verificationState === 'VERIFIED' &&
+                <>
+                  <BootstrapForm.Label>[NOT IMPLEMENTED] branding</BootstrapForm.Label>
+                  <div className='mb-3'>WIP</div>
+                  <BootstrapForm.Label>[NOT IMPLEMENTED] color scheme</BootstrapForm.Label>
+                  <div className='mb-3'>WIP</div>
+                </>}
+            </>
+          }
         />
         <div className='mt-3 d-flex justify-content-end'>
           <FeeButton

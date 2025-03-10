@@ -760,6 +760,7 @@ model Sub {
   MuteSub           MuteSub[]
   SubSubscription   SubSubscription[]
   TerritoryTransfer TerritoryTransfer[]
+  customDomain      CustomDomain?
 
   @@index([parentName])
   @@index([createdAt])
@@ -1198,6 +1199,22 @@ model Reminder {
   item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([userId, remindAt], map: "Reminder.userId_reminderAt_index")
+}
+
+model CustomDomain {
+  id                Int       @id @default(autoincrement())
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
+  domain            String    @unique
+  subName           String    @unique @db.Citext
+  sub               Sub       @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  sslEnabled        Boolean   @default(false)
+  sslCertExpiry     DateTime?
+  verificationState String?
+  lastVerifiedAt    DateTime?
+  
+  @@index([domain])
+  @@index([createdAt])
 }
 
 enum EarnType {

@@ -172,8 +172,6 @@ export default {
       }
     },
     search: async (parent, { q, cursor, sort, what, when, from: whenFrom, to: whenTo }, { me, models, search }) => {
-      console.log('!!!! ---- STARTING SEARCH ---- !!!!')
-
       const decodedCursor = decodeCursor(cursor)
       let sitems = null
 
@@ -296,8 +294,6 @@ export default {
         // use hybrid neural search if model id is available, otherwise use only
         // keyword search
         if (process.env.OPENSEARCH_MODEL_ID) {
-          console.log('... hybrid search ...')
-          console.log(process.env.OPENSEARCH_MODEL_ID)
           termQueries.push({
             hybrid: {
               queries: [
@@ -334,13 +330,11 @@ export default {
             }
           })
         } else {
-          console.log('... no hybrid search ...')
           termQueries.push(subquery)
         }
       }
 
       // functions for boosting search rank by recency or popularity
-      console.log(sort)
       switch (sort) {
         case 'comments':
           functions.push({

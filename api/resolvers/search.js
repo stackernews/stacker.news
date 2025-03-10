@@ -172,9 +172,10 @@ export default {
       }
     },
     search: async (parent, { q, cursor, sort, what, when, from: whenFrom, to: whenTo }, { me, models, search }) => {
+      console.log('!!!! ---- STARTING SEARCH ---- !!!!')
+
       const decodedCursor = decodeCursor(cursor)
       let sitems = null
-      let termQueries = []
 
       // short circuit: return empty result if either:
       // 1. no query provided, or
@@ -186,28 +187,71 @@ export default {
         }
       }
 
-      const whatArr = []
+      // build query in parts:
+      //   filters: determine the universe of potential search candidates
+      //   termQueries: queries related to the actual search terms
+      //   functions: rank modifiers to boost by recency or popularity
+      const filters = []
+      const termQueries = []
+      const functions = []
+
+      // filters for item types
       switch (what) {
-        case 'posts':
-          whatArr.push({ bool: { must_not: { exists: { field: 'parentId' } } } })
+        case 'posts': // posts only
+          filters.push({ bool: { must_not: { exists: { field: 'parentId' } } } })
           break
-        case 'comments':
-          whatArr.push({ bool: { must: { exists: { field: 'parentId' } } } })
+        case 'comments': // comments only
+          filters.push({ bool: { must: { exists: { field: 'parentId' } } } })
           break
         case 'bookmarks':
           if (me?.id) {
-            whatArr.push({ match: { bookmarkedBy: me?.id } })
+            filters.push({ match: { bookmarkedBy: me?.id } })
           }
-          break
-        default:
-          break
       }
 
+      // filter for active posts
+      filters.push(
+        me
+          ? {
+              bool: {
+                should: [
+                  { match: { status: 'ACTIVE' } },
+                  { match: { status: 'NOSATS' } },
+                  { match: { userId: me.id } }
+                ]
+              }
+            }
+          : {
+              bool: {
+                should: [
+                  { match: { status: 'ACTIVE' } },
+                  { match: { status: 'NOSATS' } }
+                ]
+              }
+            }
+      )
+
+      // filter for time range
+      const whenRange = when === 'custom'
+        ? {
+            gte: whenFrom,
+            lte: new Date(Math.min(new Date(Number(whenTo)), decodedCursor.time))
+          }
+        : {
+            lte: decodedCursor.time,
+            gte: whenToFrom(when)
+          }
+      filters.push({ range: { createdAt: whenRange } })
+
+      // filter for non negative wvotes
+      filters.push({ range: { wvotes: { gte: 0 } } })
+
+      // decompose the search terms
       const { query: _query, quotes, nym, url, territory } = queryParts(q)
       let query = _query
 
-      const isUrlSearch = url && query.length === 0 // exclusively searching for an url
-
+      // if search contains a url term, modify the query text
+      const isUrlSearch = url && query.length === 0
       if (url) {
         const isFQDN = url.startsWith('url:www.')
         const domain = isFQDN ? url.slice(8) : url.slice(4)
@@ -215,27 +259,19 @@ export default {
         query = (isUrlSearch) ? `${domain} ${fqdn}` : `${query.trim()} ${domain}`
       }
 
+      // if nym, items must contain nym
       if (nym) {
-        whatArr.push({ wildcard: { 'user.name': `*${nym.slice(1).toLowerCase()}*` } })
+        termQueries.push({ wildcard: { 'user.name': `*${nym.slice(1).toLowerCase()}*` } })
       }
 
+      // if territory, item must be from territory
       if (territory) {
-        whatArr.push({ match: { 'sub.name': territory.slice(1) } })
+        termQueries.push({ match: { 'sub.name': territory.slice(1) } })
       }
 
-      termQueries.push({
-        // all terms are matched in fields
-        multi_match: {
-          query,
-          type: 'best_fields',
-          fields: ['title^100', 'text'],
-          minimum_should_match: (isUrlSearch) ? 1 : '100%',
-          boost: 1000
-        }
-      })
-
+      // if quoted phrases, items must contain entire phrase
       for (const quote of quotes) {
-        whatArr.push({
+        termQueries.push({
           multi_match: {
             query: quote,
             type: 'phrase',
@@ -244,84 +280,25 @@ export default {
         })
       }
 
-      // if we search for an exact string only, everything must match
-      // so score purely on sort field
-      let boostMode = query ? 'multiply' : 'replace'
-      let sortField
-      let sortMod = 'log1p'
-      switch (sort) {
-        case 'comments':
-          sortField = 'ncomments'
-          sortMod = 'square'
-          break
-        case 'sats':
-          sortField = 'sats'
-          break
-        case 'recent':
-          sortField = 'createdAt'
-          sortMod = 'square'
-          boostMode = 'replace'
-          break
-        default:
-          sortField = 'wvotes'
-          sortMod = 'none'
-          break
-      }
-
-      const functions = [
-        {
-          field_value_factor: {
-            field: sortField,
-            modifier: sortMod,
-            factor: 1.2
-          }
-        }
-      ]
-
-      if (sort === 'recent' && !isUrlSearch) {
-        // prioritize exact matches
-        termQueries.push({
-          multi_match: {
-            query,
-            type: 'phrase',
-            fields: ['title^100', 'text'],
-            boost: 1000
-          }
-        })
-      } else {
-        // allow fuzzy matching with partial matches
-        termQueries.push({
+      // query for search terms
+      if (query.length) {
+        // keyword based subquery, to be used on its own or in conjunction with a neural
+        // search
+        const subquery = {
           multi_match: {
             query,
             type: 'most_fields',
-            fields: ['title^100', 'text'],
-            fuzziness: 'AUTO',
-            prefix_length: 3,
+            fields: ['title^20', 'text'],
             minimum_should_match: (isUrlSearch) ? 1 : '60%'
           }
-        })
-        functions.push({
-          // small bias toward posts with comments
-          field_value_factor: {
-            field: 'ncomments',
-            modifier: 'ln1p',
-            factor: 1
-          }
-        },
-        {
-          // small bias toward recent posts
-          field_value_factor: {
-            field: 'createdAt',
-            modifier: 'log1p',
-            factor: 1
-          }
-        })
-      }
+        }
 
-      if (query.length) {
-        // if we have a model id and we aren't sort by recent, use neural search
-        if (process.env.OPENSEARCH_MODEL_ID && sort !== 'recent') {
-          termQueries = {
+        // use hybrid neural search if model id is available, otherwise use only
+        // keyword search
+        if (process.env.OPENSEARCH_MODEL_ID) {
+          console.log('... hybrid search ...')
+          console.log(process.env.OPENSEARCH_MODEL_ID)
+          termQueries.push({
             hybrid: {
               queries: [
                 {
@@ -350,26 +327,57 @@ export default {
                 },
                 {
                   bool: {
-                    should: termQueries
+                    should: subquery
                   }
                 }
               ]
             }
-          }
+          })
+        } else {
+          console.log('... no hybrid search ...')
+          termQueries.push(subquery)
         }
-      } else {
-        termQueries = []
       }
 
-      const whenRange = when === 'custom'
-        ? {
-            gte: whenFrom,
-            lte: new Date(Math.min(new Date(Number(whenTo)), decodedCursor.time))
-          }
-        : {
-            lte: decodedCursor.time,
-            gte: whenToFrom(when)
-          }
+      // functions for boosting search rank by recency or popularity
+      console.log(sort)
+      switch (sort) {
+        case 'comments':
+          functions.push({
+            field_value_factor: {
+              field: 'ncomments',
+              modifier: 'none'
+            }
+          })
+          break
+        case 'sats':
+          functions.push({
+            field_value_factor: {
+              field: 'sats',
+              modifier: 'log1p'
+            }
+          })
+          break
+        case 'recent':
+          functions.push({
+            gauss: {
+              createdAt: {
+                origin: 'now',
+                scale: '7d',
+                decay: 0.5
+              }
+            }
+          })
+          break
+        case 'zaprank':
+          functions.push({
+            field_value_factor: {
+              field: 'wvotes',
+              modifier: 'log1p'
+            }
+          })
+          break
+      }
 
       try {
         sitems = await search.search({
@@ -388,39 +396,13 @@ export default {
               function_score: {
                 query: {
                   bool: {
-                    must: termQueries,
-                    filter: [
-                      ...whatArr,
-                      me
-                        ? {
-                            bool: {
-                              should: [
-                                { match: { status: 'ACTIVE' } },
-                                { match: { status: 'NOSATS' } },
-                                { match: { userId: me.id } }
-                              ]
-                            }
-                          }
-                        : {
-                            bool: {
-                              should: [
-                                { match: { status: 'ACTIVE' } },
-                                { match: { status: 'NOSATS' } }
-                              ]
-                            }
-                          },
-                      {
-                        range:
-                        {
-                          createdAt: whenRange
-                        }
-                      },
-                      { range: { wvotes: { gte: 0 } } }
-                    ]
+                    filter: filters,
+                    must: termQueries
                   }
                 },
                 functions,
-                boost_mode: boostMode
+                score_mode: 'multiply',
+                boost_mode: 'multiply'
               }
             },
             highlight: {
@@ -458,7 +440,7 @@ export default {
           ${SELECT}, rank
           FROM "Item"
           JOIN r ON "Item".id = r.id`,
-        orderBy: 'ORDER BY rank ASC'
+        orderBy: 'ORDER BY rank ASC, msats DESC'
       })).map((item, i) => {
         const e = sitems.body.hits.hits[i]
         item.searchTitle = (e.highlight?.title && e.highlight.title[0]) || item.title

@@ -70,45 +70,38 @@ export async function customDomainMiddleware (request, referrerResp) {
     return NextResponse.redirect(new URL(cleanPath + url.search, url.origin))
   }
 
-  // if territory path, retain custom domain
-  if (pathname === '/' || TERRITORY_PATHS.some(p => pathname.startsWith(p))) {
-    // if coming from main domain, handle auth automatically
-    if (referer && referer === mainDomain) {
-      const authResp = customDomainAuthMiddleware(request, url)
-      if (authResp && authResp.status !== 200) {
-        // copy referrer cookies to auth redirect
-        console.log('referrerResp', referrerResp)
-        for (const cookie of referrerResp.cookies.getAll()) {
-          authResp.cookies.set(
-            cookie.name,
-            cookie.value,
-            {
-              maxAge: cookie.maxAge,
-              expires: cookie.expires,
-              path: cookie.path
-            }
-          )
-        }
-        return authResp
+  // if coming from main domain, handle auth automatically
+  if (referer && referer === mainDomain) {
+    const authResp = customDomainAuthMiddleware(request, url)
+    if (authResp && authResp.status !== 200) {
+      // copy referrer cookies to auth redirect
+      console.log('referrerResp', referrerResp)
+      for (const cookie of referrerResp.cookies.getAll()) {
+        authResp.cookies.set(
+          cookie.name,
+          cookie.value,
+          {
+            maxAge: cookie.maxAge,
+            expires: cookie.expires,
+            path: cookie.path
+          }
+        )
       }
+      return authResp
     }
-
-    // TODO: preserve referrer cookies in a DRY way
-
-    const internalUrl = new URL(url)
-
-    // rewrite to the territory path if we're at the root
-    internalUrl.pathname = `/~${domainInfo.subName}${pathname === '/' ? '' : pathname}`
-    console.log('Rewrite to:', internalUrl.pathname)
-
-    // rewrite to the territory path
-    return NextResponse.rewrite(internalUrl)
   }
 
-  // redirect to main domain for non-territory paths
-  // create redirect response but preserve referrer cookies
-  const redirectResp = NextResponse.redirect(new URL(pathname, mainDomain))
+  const internalUrl = new URL(url)
 
+  // rewrite to the territory path if we're at the root
+  if (pathname === '/' || TERRITORY_PATHS.some(p => pathname.startsWith(p))) {
+    internalUrl.pathname = `/~${domainInfo.subName}${pathname === '/' ? '' : pathname}`
+  }
+  console.log('Rewrite to:', internalUrl.pathname)
+
+  // rewrite to the territory path
+  const redirectResp = NextResponse.rewrite(internalUrl)
+  // TODO: preserve referrer cookies in a DRY way
   for (const cookie of referrerResp.cookies.getAll()) {
     redirectResp.cookies.set(
       cookie.name,

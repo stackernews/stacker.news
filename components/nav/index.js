@@ -19,6 +19,7 @@ export default function Navigation ({ sub }) {
     dropNavKey: isCustomDomain
       ? path.split('/').slice(1).join('/')
       : path.split('/').slice(sub ? 2 : 1).join('/'),
+    isCustomDomain,
     sub
   }
 

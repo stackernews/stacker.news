@@ -11,6 +11,7 @@ import {
   ApolloServerPluginLandingPageLocalDefault,
   ApolloServerPluginLandingPageProductionDefault
 } from '@apollo/server/plugin/landingPage/default'
+import { NodeNextRequest } from 'next/dist/server/base-http/node'
 
 const apolloServer = new ApolloServer({
   typeDefs,
@@ -84,6 +85,12 @@ export default startServerAndCreateNextHandler(apolloServer, {
 
 export function multiAuthMiddleware (request) {
   // switch next-auth session cookie with multi_auth cookie if cookie pointer present
+
+  if (!request.cookies) {
+    // required to properly access parsed cookies via request.cookies
+    // and not unparsed via request.headers.cookie
+    request = new NodeNextRequest(request)
+  }
 
   // is there a cookie pointer?
   const cookiePointerName = 'multi_auth.user-id'

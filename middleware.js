@@ -13,7 +13,7 @@ const SN_REFERRER_NONCE = 'sn_referrer_nonce'
 const SN_REFEREE_LANDING = 'sn_referee_landing'
 
 const TERRITORY_PATHS = ['/~', '/recent', '/random', '/top', '/post', '/edit']
-const NO_REWRITE_PATHS = ['/api', '/_next', '/_error', '/404', '/500', '/offline', '/static', '/items']
+const NO_REWRITE_PATHS = ['/api', '/_next', '/_error', '/404', '/500', '/offline', '/static']
 
 // fetch custom domain mappings from our API, caching it for 5 minutes
 const getDomainMappingsCache = cachedFetcher(async function fetchDomainMappings () {
@@ -67,54 +67,28 @@ export async function customDomainMiddleware (request, referrerResp) {
     // remove the territory prefix from the path
     const cleanPath = pathname.replace(`/~${domainInfo.subName}`, '') || '/'
     console.log('Redirecting to clean path:', cleanPath)
-    return NextResponse.redirect(new URL(cleanPath + url.search, url.origin))
+    const redirectResp = NextResponse.redirect(new URL(cleanPath + url.search, url.origin))
+    return applyReferrerCookies(redirectResp, referrerResp)
   }
 
   // if coming from main domain, handle auth automatically
   if (referer && referer === mainDomain) {
     const authResp = customDomainAuthMiddleware(request, url)
     if (authResp && authResp.status !== 200) {
-      // copy referrer cookies to auth redirect
-      console.log('referrerResp', referrerResp)
-      for (const cookie of referrerResp.cookies.getAll()) {
-        authResp.cookies.set(
-          cookie.name,
-          cookie.value,
-          {
-            maxAge: cookie.maxAge,
-            expires: cookie.expires,
-            path: cookie.path
-          }
-        )
-      }
-      return authResp
+      return applyReferrerCookies(authResp, referrerResp)
     }
   }
 
   const internalUrl = new URL(url)
-
   // rewrite to the territory path if we're at the root
   if (pathname === '/' || TERRITORY_PATHS.some(p => pathname.startsWith(p))) {
     internalUrl.pathname = `/~${domainInfo.subName}${pathname === '/' ? '' : pathname}`
   }
   console.log('Rewrite to:', internalUrl.pathname)
-
   // rewrite to the territory path
-  const redirectResp = NextResponse.rewrite(internalUrl)
-  // TODO: preserve referrer cookies in a DRY way
-  for (const cookie of referrerResp.cookies.getAll()) {
-    redirectResp.cookies.set(
-      cookie.name,
-      cookie.value,
-      {
-        maxAge: cookie.maxAge,
-        expires: cookie.expires,
-        path: cookie.path
-      }
-    )
-  }
-
-  return redirectResp
+  const resp = NextResponse.rewrite(internalUrl)
+  // copy referrer cookies to the rewritten response
+  return applyReferrerCookies(resp, referrerResp)
 }
 
 // TODO: dirty of previous iterations, refactor
@@ -174,6 +148,22 @@ function getContentReferrer (request, url) {
     const { name } = territoryPattern.exec(url).pathname.groups
     return `territory-${name}`
   }
+}
+
+function applyReferrerCookies (response, referrer) {
+  for (const cookie of referrer.cookies.getAll()) {
+    response.cookies.set(
+      cookie.name,
+      cookie.value,
+      {
+        maxAge: cookie.maxAge,
+        expires: cookie.expires,
+        path: cookie.path
+      }
+    )
+  }
+  console.log('response.cookies', response.cookies)
+  return response
 }
 
 // we store the referrers in cookies for a future signup event

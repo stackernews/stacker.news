@@ -7,6 +7,7 @@ import Snl from '@/components/snl'
 import { useQuery } from '@apollo/client'
 import PageLoading from '@/components/page-loading'
 import TerritoryHeader from '@/components/territory-header'
+import { WelcomeBanner } from '@/components/banners'
 
 export const getServerSideProps = getGetServerSideProps({
   query: SUB_ITEMS,
@@ -28,6 +29,7 @@ export default function Sub ({ ssrData }) {
         : (
           <>
             <Snl />
+            <WelcomeBanner />
           </>)}
       <Items ssrData={ssrData} variables={variables} />
     </Layout>

@@ -205,6 +205,9 @@ export default {
           if (me?.id) {
             filters.push({ match: { bookmarkedBy: me?.id } })
           }
+          break
+        default:
+          break
       }
 
       // filter for active posts
@@ -340,7 +343,7 @@ export default {
           functions.push({
             field_value_factor: {
               field: 'ncomments',
-              modifier: 'none'
+              modifier: 'log1p'
             }
           })
           break
@@ -370,6 +373,8 @@ export default {
               modifier: 'log1p'
             }
           })
+          break
+        default:
           break
       }
 

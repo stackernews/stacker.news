@@ -46,6 +46,8 @@ async function verifyDomain (domainName, verificationTxt, cname) {
     error: null
   }
 
+  dnsPromises.setServers([process.env.DNS_RESOLVER || '1.1.1.1']) // cloudflare DNS resolver
+
   // TXT Records checking
   // TODO: we should give a randomly generated string to the user and check if it's included in the TXT record
   try {

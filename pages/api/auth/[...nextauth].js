@@ -81,6 +81,9 @@ async function getReferrerData (referrer, landing) {
   return referrerData
 }
 
+const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
+const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
+
 /** @returns {Partial<import('next-auth').CallbacksOptions>} */
 function getCallbacks (req, res) {
   return {
@@ -131,12 +134,21 @@ function getCallbacks (req, res) {
           const jwt = await encodeJWT({ token, secret })
           const me = await prisma.user.findUnique({ where: { id: token.id } })
           setMultiAuthCookies(req, res, { ...me, jwt })
-        } else if (!req.cookies.multi_auth || !req.cookies['multi_auth.user-id']) {
-          // TODO: also check for missing user JWTs
-          // something is wrong, reset multi auth until next login
-          resetMultiAuthCookies(req, res)
         } else {
-          // TODO: refresh cookies
+          let error = !req.cookies.multi_auth || !req.cookies['multi_auth.user-id']
+          if (!error) {
+            const accounts = b64Decode(req.cookies.multi_auth)
+            for (const account of accounts) {
+              error = !req.cookies[`multi_auth.${account.id}`]
+              if (error) break
+            }
+          }
+          if (error) {
+            // something is wrong, reset multi auth until next login
+            resetMultiAuthCookies(req, res)
+          } else {
+            // TODO: refresh cookies
+          }
         }
       }
 
@@ -153,9 +165,6 @@ function getCallbacks (req, res) {
 }
 
 function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
-  const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
-  const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
-
   // default expiration for next-auth JWTs is in 1 month
   const expiresAt = datePivot(new Date(), { months: 1 })
   const secure = process.env.NODE_ENV === 'production'

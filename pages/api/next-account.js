@@ -1,5 +1,5 @@
 import * as cookie from 'cookie'
-import { datePivot } from '../../lib/time'
+import { datePivot } from '@/lib/time'
 
 /**
  * @param  {NextApiRequest}  req

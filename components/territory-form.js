@@ -280,21 +280,6 @@ export default function TerritoryForm ({ sub }) {
             </>
           }
         />
-        <AccordianItem
-          header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>personalization</div>}
-          body={
-            <>
-              <TerritoryDomains sub={sub} />
-              {sub?.customDomain?.verificationState === 'VERIFIED' &&
-                <>
-                  <BootstrapForm.Label>[NOT IMPLEMENTED] branding</BootstrapForm.Label>
-                  <div className='mb-3'>WIP</div>
-                  <BootstrapForm.Label>[NOT IMPLEMENTED] color scheme</BootstrapForm.Label>
-                  <div className='mb-3'>WIP</div>
-                </>}
-            </>
-          }
-        />
         <div className='mt-3 d-flex justify-content-end'>
           <FeeButton
             text={sub ? 'save' : 'found it'}
@@ -303,6 +288,21 @@ export default function TerritoryForm ({ sub }) {
           />
         </div>
       </Form>
+      <AccordianItem
+        header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>personalization</div>}
+        body={
+          <>
+            <TerritoryDomains sub={sub} />
+            {sub?.customDomain?.verificationState === 'VERIFIED' &&
+              <>
+                <BootstrapForm.Label>[NOT IMPLEMENTED] branding</BootstrapForm.Label>
+                <div className='mb-3'>WIP</div>
+                <BootstrapForm.Label>[NOT IMPLEMENTED] color scheme</BootstrapForm.Label>
+                <div className='mb-3'>WIP</div>
+              </>}
+          </>
+        }
+      />
     </FeeButtonProvider>
   )
 }

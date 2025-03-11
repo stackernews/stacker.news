@@ -52,6 +52,7 @@ export async function customDomainMiddleware (request, referrerResp) {
   console.log('domainMapping', domainMapping)
   const domainInfo = domainMapping?.[host.toLowerCase()]
   if (!domainInfo) {
+    console.log('Redirecting to main domain')
     return NextResponse.redirect(new URL(pathname, mainDomain))
   }
 

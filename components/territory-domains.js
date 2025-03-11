@@ -3,17 +3,19 @@ import { Badge } from 'react-bootstrap'
 import { Form, Input, SubmitButton } from './form'
 import { gql, useMutation } from '@apollo/client'
 import Info from './info'
+import { customDomainSchema } from '@/lib/validate'
+import ActionTooltip from './action-tooltip'
 
 const UPDATE_CUSTOM_DOMAIN = gql`
   mutation UpdateCustomDomain($subName: String!, $domain: String!) {
     updateCustomDomain(subName: $subName, domain: $domain) {
       domain
       verificationState
-      lastVerifiedAt
     }
   }
 `
 
+// TODO: verification states should refresh
 export default function CustomDomainForm ({ sub }) {
   const [updateCustomDomain] = useMutation(UPDATE_CUSTOM_DOMAIN)
   const [error, setError] = useState(null)
@@ -45,14 +47,25 @@ export default function CustomDomainForm ({ sub }) {
     }
   }
 
+  const getSSLStatusBadge = (sslEnabled) => {
+    switch (sslEnabled) {
+      case true:
+        return <Badge bg='success'>SSL enabled</Badge>
+      case false:
+        return <Badge bg='danger'>SSL disabled</Badge>
+    }
+  }
+
   return (
     <Form
       initial={{
         domain: sub?.customDomain?.domain || ''
       }}
+      schema={customDomainSchema}
       onSubmit={onSubmit}
       className='mb-2'
     >
+      {/* todo: too many flexes */}
       <div className='d-flex align-items-center gap-2'>
         <Input
           label={
@@ -61,25 +74,25 @@ export default function CustomDomainForm ({ sub }) {
               {error && <Info variant='danger'>error</Info>}
               {success && <Info variant='success'>Domain settings updated successfully!</Info>}
               {sub?.customDomain && (
-                <div className='d-flex align-items-center gap-2'>
-                  {getStatusBadge(sub.customDomain.verificationState)}
-                  <span className='text-muted'>
-                    {sub.customDomain.lastVerifiedAt &&
-                    ` (Last checked: ${new Date(sub.customDomain.lastVerifiedAt).toLocaleString()})`}
-                  </span>
-
-                  {sub.customDomain.verificationState === 'PENDING' && (
-                    <Info>
-                      <h6>Verify your domain</h6>
-                      <p>Add the following DNS records to verify ownership of your domain:</p>
-                      <pre>
-                        CNAME record:
-                        Host: @
-                        Value: stacker.news
-                      </pre>
-                    </Info>
-                  )}
-                </div>
+                <>
+                  <div className='d-flex align-items-center gap-2'>
+                    <ActionTooltip overlayText={new Date(sub.customDomain.lastVerifiedAt).toUTCString()}>
+                      {getStatusBadge(sub.customDomain.verificationState)}
+                    </ActionTooltip>
+                    {getSSLStatusBadge(sub.customDomain.sslEnabled)}
+                    {sub.customDomain.verificationState === 'PENDING' && (
+                      <Info>
+                        <h6>Verify your domain</h6>
+                        <p>Add the following DNS records to verify ownership of your domain:</p>
+                        <pre>
+                          CNAME record:
+                          Host: @
+                          Value: stacker.news
+                        </pre>
+                      </Info>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           }

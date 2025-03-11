@@ -15,7 +15,12 @@ export async function domainVerification () {
         console.log(`${domainName}: TXT ${txtValid ? 'valid' : 'invalid'}, CNAME ${cnameValid ? 'valid' : 'invalid'}`)
 
         // verificationState is based on the results of the TXT and CNAME checks
-        const verificationState = (txtValid && cnameValid) ? 'VERIFIED' : 'FAILED'
+        const verificationResult = txtValid && cnameValid
+        const verificationState = verificationResult // TODO: clean this up, working proof of concept
+          ? 'VERIFIED'
+          : domain.verificationState === 'PENDING' && !verificationResult
+            ? 'PENDING'
+            : 'FAILED'
         await models.customDomain.update({
           where: { id },
           data: { verificationState, lastVerifiedAt: new Date() }
@@ -27,10 +32,11 @@ export async function domainVerification () {
       } catch (error) {
         console.error(`Failed to verify domain ${domainName}:`, error)
 
+        // TODO: DNS inconcistencies can happen, we should retry at least 3 times before marking it as FAILED
         // Update to FAILED on any error
         await models.customDomain.update({
           where: { id },
-          data: { verificationState: 'NOT_VERIFIED', lastVerifiedAt: new Date() }
+          data: { verificationState: 'FAILED', lastVerifiedAt: new Date() }
         })
       }
     }

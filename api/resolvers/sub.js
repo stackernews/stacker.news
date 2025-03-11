@@ -1,10 +1,11 @@
 import { whenRange } from '@/lib/time'
-import { validateSchema, validateDomain, territorySchema } from '@/lib/validate'
+import { validateSchema, customDomainSchema, territorySchema } from '@/lib/validate'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { viewGroup } from './growth'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
 import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { randomBytes } from 'node:crypto'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
@@ -292,16 +293,32 @@ export default {
         throw new GqlInputError('you do not own this sub')
       }
       domain = domain.trim()
-      if (domain && !validateDomain(domain)) {
+      if (domain && !validateSchema(customDomainSchema, { domain })) {
         throw new GqlInputError('Invalid domain format')
       }
+
+      console.log('domain', domain)
+      console.log('sub.customDomain?.domain', sub.customDomain?.domain)
 
       if (domain) {
         const existing = await models.customDomain.findUnique({ where: { subName } })
         if (existing) {
+          if (domain === existing.domain) {
+            throw new GqlInputError('domain already set')
+          }
           return await models.customDomain.update({ where: { subName }, data: { domain, verificationState: 'PENDING' } })
         } else {
-          return await models.customDomain.create({ data: { domain, subName, verificationState: 'PENDING' } })
+          return await models.customDomain.create({
+            data: {
+              domain,
+              verificationState: 'PENDING',
+              cname: 'parallel.soxa.dev',
+              verificationTxt: randomBytes(32).toString('base64'),
+              sub: {
+                connect: { name: subName }
+              }
+            }
+          })
         }
       } else {
         return await models.customDomain.delete({ where: { subName } })

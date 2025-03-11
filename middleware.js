@@ -94,13 +94,12 @@ export async function customDomainMiddleware (request, referrerResp) {
 // TODO: dirty of previous iterations, refactor
 // UNSAFE UNSAFE UNSAFE tokens are visible in the URL
 export function customDomainAuthMiddleware (request, url) {
-  const pathname = url.pathname
   const host = request.headers.get('host')
-  const authDomain = process.env.NEXT_PUBLIC_URL
-  const isCustomDomain = host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
-  const secure = process.env.NODE_ENV === 'development'
+  const mainDomain = process.env.NEXT_PUBLIC_URL
+  const pathname = url.pathname
 
   // check for session both in session token and in multi_auth cookie
+  const secure = process.env.NODE_ENV === 'development' // TODO: change this to production
   const sessionCookieName = secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
   const multiAuthUserId = request.cookies.get('multi_auth.user-id')?.value
 
@@ -112,14 +111,14 @@ export function customDomainAuthMiddleware (request, url) {
   const hasSession = hasActiveSession || hasMultiAuthSession
   const response = NextResponse.next()
 
-  if (!hasSession && isCustomDomain) {
+  if (!hasSession) {
     // TODO: original request url points to localhost, this is a workaround atm
     const protocol = secure ? 'https' : 'http'
     const originalDomain = `${protocol}://${host}`
     const redirectTarget = `${originalDomain}${pathname}`
 
     // Create the auth sync URL with the correct original domain
-    const syncUrl = new URL(`${authDomain}/api/auth/sync`)
+    const syncUrl = new URL(`${mainDomain}/api/auth/sync`)
     syncUrl.searchParams.set('redirectUrl', redirectTarget)
 
     console.log('AUTH: Redirecting to:', syncUrl.toString())

@@ -52,8 +52,6 @@ export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs =
       ...appendSubs])
   }, [data])
 
-  // TODO: can pass custom domain
-
   return subs
 }
 
@@ -80,8 +78,6 @@ export default function SubSelect ({ prependSubs, sub, onChange, size, appendSub
           router.push('/territory')
           return
         }
-
-        // TODO: redirect to the custom domain if it has one
 
         let asPath
         // are we currently in a sub (ie not home)

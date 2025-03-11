@@ -1212,6 +1212,8 @@ model CustomDomain {
   sslCertExpiry     DateTime?
   verificationState String?
   lastVerifiedAt    DateTime?
+  cname             String
+  verificationTxt   String
   
   @@index([domain])
   @@index([createdAt])

@@ -20,21 +20,12 @@ export async function getBaseCost ({ models, bio, parentId, subName }) {
 
   if (parentId) {
     // the subname is stored in the root item of the thread
-    const parent = await models.item.findFirst({
-      where: { id: Number(parentId) },
-      include: {
-        root: { include: { sub: true } },
-        sub: true
-      }
-    })
-
-    const root = parent.root ?? parent
-
-    // XXX Prisma does not support case-insensitive joins on CITEXT column
-    // so we fetch the territory in a separate query
-    const sub = await models.sub.findUnique({
-      where: { name: root.subName }
-    })
+    const [sub] = await models.$queryRaw`
+      SELECT s."replyCost"
+      FROM "Item" i
+      LEFT JOIN "Item" r ON r.id = i."rootId"
+      LEFT JOIN "Sub" s ON s.name = COALESCE(r."subName", i."subName")
+      WHERE i.id = ${Number(parentId)}`
 
     if (!sub) return DEFAULT_ITEM_COST
     return satsToMsats(sub.replyCost)

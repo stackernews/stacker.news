@@ -45,9 +45,9 @@ function commentsOrderByClause (me, models, sort) {
       "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
   } else {
     if (sort === 'top') {
-      return `ORDER BY ${sharedSorts}, ${orderByNumerator({ models, commentScaler: 0 })} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
+      return `ORDER BY ${sharedSorts}, "Item"."hotScore" DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
     } else {
-      return `ORDER BY ${sharedSorts}, ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+      return `ORDER BY ${sharedSorts}, "Item"."hotScore" DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
     }
   }
 }
@@ -153,24 +153,6 @@ const orderByClause = (by, me, models, type) => {
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
   }
-}
-
-export function orderByNumerator ({ models, commentScaler = 0.5, considerBoost = false }) {
-  return `((CASE WHEN "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0 THEN
-              GREATEST("Item"."weightedVotes" - "Item"."weightedDownVotes", POWER("Item"."weightedVotes" - "Item"."weightedDownVotes", 1.2))
-            ELSE
-              "Item"."weightedVotes" - "Item"."weightedDownVotes"
-            END + "Item"."weightedComments"*${commentScaler}) + ${considerBoost ? `("Item".boost / ${BOOST_MULT})` : 0})`
-}
-
-export function joinZapRankPersonalView (me, models) {
-  let join = ` JOIN zap_rank_personal_view g ON g.id = "Item".id AND g."viewerId" = ${GLOBAL_SEED} `
-
-  if (me) {
-    join += ` LEFT JOIN zap_rank_personal_view l ON l.id = g.id AND l."viewerId" = ${me.id} `
-  }
-
-  return join
 }
 
 // this grabs all the stuff we need to display the item list and only
@@ -540,7 +522,7 @@ export default {
               break
             default:
               if (decodedCursor.offset === 0) {
-              // get pins for the page and return those separately
+                // get pins for the page and return those separately
                 pins = await itemQueryWithMeta({
                   me,
                   models,
@@ -571,10 +553,9 @@ export default {
                 me,
                 models,
                 query: `
-                    ${SELECT}, ${me ? 'GREATEST(g.tf_hot_score, l.tf_hot_score)' : 'g.tf_hot_score'} AS rank
+                    ${SELECT}
                     FROM "Item"
                     LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
-                    ${joinZapRankPersonalView(me, models)}
                     ${whereClause(
                       // in home (sub undefined), filter out global pinned items since we inject them later
                       sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
@@ -587,10 +568,11 @@ export default {
                       await filterClause(me, models, type),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
-                    ORDER BY rank DESC
+                    ORDER BY "Item"."hotScore" DESC,
+                      "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC
                     OFFSET $1
                     LIMIT $2`,
-                orderBy: 'ORDER BY rank DESC'
+                orderBy: 'ORDER BY "Item"."hotScore" DESC, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC'
               }, decodedCursor.offset, limit, ...subArr)
 
               // XXX this is mostly for subs that are really empty
@@ -613,11 +595,11 @@ export default {
                         ad ? `"Item".id <> ${ad.id}` : '',
                         activeOrMine(me),
                         await filterClause(me, models, type))}
-                        ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
+                        ORDER BY "Item"."hotScore" DESC,
                           "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC
                       OFFSET $1
                       LIMIT $2`,
-                  orderBy: `ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
+                  orderBy: `ORDER BY "Item"."hotScore" DESC,
                     "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
                 }, decodedCursor.offset, limit, ...subArr)
               }
@@ -1575,5 +1557,5 @@ export const SELECT =
     ltree2text("Item"."path") AS "path"`
 
 function topOrderByWeightedSats (me, models) {
-  return `ORDER BY ${orderByNumerator({ models })} DESC NULLS LAST, "Item".id DESC`
+  return 'ORDER BY "Item"."weightedVotes" - "Item"."weightedDownVotes" DESC, "Item".msats DESC, "Item".id DESC'
 }

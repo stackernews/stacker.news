@@ -2,6 +2,7 @@ import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyZapped } from '@/lib/webPush'
 import { getInvoiceableWallets } from '@/wallets/server'
+import { Prisma } from '@prisma/client'
 
 export const anonable = true
 
@@ -149,8 +150,22 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
   await tx.$queryRaw`
-    WITH zapper AS (
-      SELECT trust FROM users WHERE id = ${itemAct.userId}::INTEGER
+    WITH territory AS (
+      SELECT COALESCE(r."subName", i."subName")::TEXT as "subName"
+      FROM "Item" i
+      LEFT JOIN "Item" r ON r.id = i."rootId"
+      WHERE i.id = ${itemAct.itemId}::INTEGER
+    ), zapper AS (
+      SELECT
+        ${itemAct.item.parentId
+          ? Prisma.sql`"zapCommentTrust"`
+          : Prisma.sql`"zapPostTrust"`} as "zapTrust",
+        ${itemAct.item.parentId
+          ? Prisma.sql`"subZapCommentTrust"`
+          : Prisma.sql`"subZapPostTrust"`} as "subZapTrust"
+      FROM "UserSubTrust" ust
+      JOIN territory ON ust."subName" = territory."subName"
+      WHERE ust."userId" = ${itemAct.userId}::INTEGER
     ), zap AS (
       INSERT INTO "ItemUserAgg" ("userId", "itemId", "zapSats")
       VALUES (${itemAct.userId}::INTEGER, ${itemAct.itemId}::INTEGER, ${sats}::INTEGER)
@@ -161,14 +176,14 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
     )
     UPDATE "Item"
     SET
-      "weightedVotes" = "weightedVotes" + (zapper.trust * zap.log_sats),
+      "weightedVotes" = "weightedVotes" + (COALESCE(zapper."zapTrust", 0) * zap.log_sats),
+      "subWeightedVotes" = "subWeightedVotes" + (COALESCE(zapper."subZapTrust", 0) * zap.log_sats),
       upvotes = upvotes + zap.first_vote,
       msats = "Item".msats + ${msats}::BIGINT,
       mcredits = "Item".mcredits + ${invoice?.invoiceForward ? 0n : msats}::BIGINT,
       "lastZapAt" = now()
     FROM zap, zapper
-    WHERE "Item".id = ${itemAct.itemId}::INTEGER
-    RETURNING "Item".*`
+    WHERE "Item".id = ${itemAct.itemId}::INTEGER`
 
   // record potential bounty payment
   // NOTE: we are at least guaranteed that we see the update "ItemUserAgg" from our tx so we can trust

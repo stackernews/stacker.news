@@ -2,6 +2,18 @@ import * as math from 'mathjs'
 import { USER_ID } from '@/lib/constants'
 import { Prisma } from '@prisma/client'
 
+const GLOBAL_SEEDS = [USER_ID.k00b, USER_ID.ek]
+const MAX_DEPTH = 40
+const MAX_TRUST = 1
+const MIN_SUCCESS = 0
+// https://en.wikipedia.org/wiki/Normal_distribution#Quantile_function
+const Z_CONFIDENCE = 6.109410204869 // 99.9999999% confidence
+const SEED_WEIGHT = 0.83
+const AGAINST_MSAT_MIN = 1000
+const MSAT_MIN = 1001 // 20001 is the minimum for a tip to be counted in trust
+const INDEPENDENCE_THRESHOLD = 50 // how many zappers are needed to consider a sub independent
+const IRRELEVANT_CUMULATIVE_TRUST = 0.001 // if a user has less than this amount of cumulative trust, they are irrelevant
+
 // for each subName, we'll need to get two graphs
 // one for comments and one for posts
 // then we'll need to do two trust calculations on each graph
@@ -25,9 +37,9 @@ export async function trust ({ boss, models }) {
       console.timeLog('trust', `computing global comment trust for ${territory.name}`)
       const vGlobalComment = await trustGivenGraph(commentGraph)
       console.timeLog('trust', `computing sub post trust for ${territory.name}`)
-      const vSubPost = await trustGivenGraph(postGraph, postGraph.length > 200 ? [territory.userId] : seeds)
+      const vSubPost = await trustGivenGraph(postGraph, postGraph.length > INDEPENDENCE_THRESHOLD ? [territory.userId] : seeds)
       console.timeLog('trust', `computing sub comment trust for ${territory.name}`)
-      const vSubComment = await trustGivenGraph(commentGraph, commentGraph.length > 200 ? [territory.userId] : seeds)
+      const vSubComment = await trustGivenGraph(commentGraph, commentGraph.length > INDEPENDENCE_THRESHOLD ? [territory.userId] : seeds)
       console.timeLog('trust', `storing trust for ${territory.name}`)
       const results = reduceVectors(territory.name, {
         zapPostTrust: {
@@ -56,16 +68,6 @@ export async function trust ({ boss, models }) {
   }
   console.timeEnd('trust')
 }
-
-const GLOBAL_SEEDS = [USER_ID.k00b, USER_ID.ek]
-const MAX_DEPTH = 40
-const MAX_TRUST = 1
-const MIN_SUCCESS = 0
-// https://en.wikipedia.org/wiki/Normal_distribution#Quantile_function
-const Z_CONFIDENCE = 6.109410204869 // 99.9999999% confidence
-const SEED_WEIGHT = 0.83
-const AGAINST_MSAT_MIN = 1000
-const MSAT_MIN = 1001 // 20001 is the minimum for a tip to be counted in trust
 
 /*
  Given a graph and start this function returns an object where
@@ -234,10 +236,16 @@ function reduceVectors (subName, fieldGraphVectors) {
   }
 
   // return only the users with trust > 0
-  return Object.values(result).filter(s => Object.keys(fieldGraphVectors).reduce((acc, key) => acc + s[key], 0) > 0)
+  return Object.values(result).filter(s =>
+    Object.keys(fieldGraphVectors).reduce(
+      (acc, key) => acc + (s[key] ?? 0),
+      0
+    ) > IRRELEVANT_CUMULATIVE_TRUST
+  )
 }
 
 async function storeTrust (models, subName, results) {
+  console.timeLog('trust', `storing trust for ${subName} with ${results.length} users`)
   // update the trust of each user in graph
   await models.$transaction([
     models.userSubTrust.deleteMany({

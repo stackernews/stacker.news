@@ -514,87 +514,90 @@ model Message {
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model Item {
-  id                     Int                   @id @default(autoincrement())
-  createdAt              DateTime              @default(now()) @map("created_at")
-  updatedAt              DateTime              @default(now()) @updatedAt @map("updated_at")
-  title                  String?
-  text                   String?
-  url                    String?
-  userId                 Int
-  parentId               Int?
-  path                   Unsupported("ltree")?
-  pinId                  Int?
-  latitude               Float?
-  location               String?
-  longitude              Float?
-  maxBid                 Int?
-  maxSalary              Int?
-  minSalary              Int?
-  remote                 Boolean?
-  subName                String?               @db.Citext
-  statusUpdatedAt        DateTime?
-  status                 Status                @default(ACTIVE)
-  company                String?
-  weightedVotes          Float                 @default(0)
-  weightedVotesLocal     Float                 @default(0)
-  boost                  Int                   @default(0)
-  oldBoost               Int                   @default(0)
-  pollCost               Int?
-  paidImgLink            Boolean               @default(false)
-  commentMsats           BigInt                @default(0)
-  commentMcredits        BigInt                @default(0)
-  lastCommentAt          DateTime?
-  lastZapAt              DateTime?
-  ncomments              Int                   @default(0)
-  nDirectComments        Int                   @default(0)
-  msats                  BigInt                @default(0)
-  mcredits               BigInt                @default(0)
-  cost                   Int                   @default(0)
-  weightedDownVotes      Float                 @default(0)
-  weightedDownVotesLocal Float                 @default(0)
-  bio                    Boolean               @default(false)
-  freebie                Boolean               @default(false)
-  deletedAt              DateTime?
-  otsFile                Bytes?
-  otsHash                String?
-  imgproxyUrls           Json?
-  bounty                 Int?
-  noteId                 String?               @unique(map: "Item.noteId_unique")
-  rootId                 Int?
-  bountyPaidTo           Int[]
-  upvotes                Int                   @default(0)
-  weightedComments       Float                 @default(0)
-  Bookmark               Bookmark[]
-  parent                 Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
-  children               Item[]                @relation("ParentChildren")
-  pin                    Pin?                  @relation(fields: [pinId], references: [id])
-  root                   Item?                 @relation("RootDescendant", fields: [rootId], references: [id])
-  descendants            Item[]                @relation("RootDescendant")
-  sub                    Sub?                  @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
-  user                   User                  @relation("UserItems", fields: [userId], references: [id], onDelete: Cascade)
-  itemActs               ItemAct[]
-  mentions               Mention[]
-  itemReferrers          ItemMention[]         @relation("referrer")
-  itemReferees           ItemMention[]         @relation("referee")
-  pollOptions            PollOption[]
-  PollVote               PollVote[]
-  threadSubscriptions    ThreadSubscription[]
-  User                   User[]
-  itemForwards           ItemForward[]
-  itemUploads            ItemUpload[]
-  uploadId               Int?
-  invoiceId              Int?
-  invoiceActionState     InvoiceActionState?
-  invoicePaidAt          DateTime?
-  outlawed               Boolean               @default(false)
-  apiKey                 Boolean               @default(false)
-  pollExpiresAt          DateTime?
-  Ancestors              Reply[]               @relation("AncestorReplyItem")
-  Replies                Reply[]
-  Reminder               Reminder[]
-  invoice                Invoice?              @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
-  PollBlindVote          PollBlindVote[]
-  ItemUserAgg            ItemUserAgg[]
+  id                   Int                   @id @default(autoincrement())
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @default(now()) @updatedAt @map("updated_at")
+  title                String?
+  text                 String?
+  url                  String?
+  userId               Int
+  parentId             Int?
+  path                 Unsupported("ltree")?
+  pinId                Int?
+  latitude             Float?
+  location             String?
+  longitude            Float?
+  maxBid               Int?
+  maxSalary            Int?
+  minSalary            Int?
+  remote               Boolean?
+  subName              String?               @db.Citext
+  statusUpdatedAt      DateTime?
+  status               Status                @default(ACTIVE)
+  company              String?
+  weightedVotes        Float                 @default(0)
+  subWeightedVotes     Float                 @default(0)
+  boost                Int                   @default(0)
+  oldBoost             Int                   @default(0)
+  pollCost             Int?
+  paidImgLink          Boolean               @default(false)
+  commentMsats         BigInt                @default(0)
+  commentMcredits      BigInt                @default(0)
+  lastCommentAt        DateTime?
+  lastZapAt            DateTime?
+  ncomments            Int                   @default(0)
+  nDirectComments      Int                   @default(0)
+  msats                BigInt                @default(0)
+  mcredits             BigInt                @default(0)
+  cost                 Int                   @default(0)
+  weightedDownVotes    Float                 @default(0)
+  subWeightedDownVotes Float                 @default(0)
+  bio                  Boolean               @default(false)
+  freebie              Boolean               @default(false)
+  deletedAt            DateTime?
+  otsFile              Bytes?
+  otsHash              String?
+  imgproxyUrls         Json?
+  bounty               Int?
+  noteId               String?               @unique(map: "Item.noteId_unique")
+  rootId               Int?
+  bountyPaidTo         Int[]
+  upvotes              Int                   @default(0)
+  weightedComments     Float                 @default(0)
+  Bookmark             Bookmark[]
+  parent               Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
+  children             Item[]                @relation("ParentChildren")
+  pin                  Pin?                  @relation(fields: [pinId], references: [id])
+  root                 Item?                 @relation("RootDescendant", fields: [rootId], references: [id])
+  descendants          Item[]                @relation("RootDescendant")
+  sub                  Sub?                  @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  user                 User                  @relation("UserItems", fields: [userId], references: [id], onDelete: Cascade)
+  itemActs             ItemAct[]
+  mentions             Mention[]
+  itemReferrers        ItemMention[]         @relation("referrer")
+  itemReferees         ItemMention[]         @relation("referee")
+  pollOptions          PollOption[]
+  PollVote             PollVote[]
+  threadSubscriptions  ThreadSubscription[]
+  User                 User[]
+  itemForwards         ItemForward[]
+  itemUploads          ItemUpload[]
+  uploadId             Int?
+  invoiceId            Int?
+  invoiceActionState   InvoiceActionState?
+  invoicePaidAt        DateTime?
+  outlawed             Boolean               @default(false)
+  apiKey               Boolean               @default(false)
+  pollExpiresAt        DateTime?
+  Ancestors            Reply[]               @relation("AncestorReplyItem")
+  Replies              Reply[]
+  Reminder             Reminder[]
+  invoice              Invoice?              @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  PollBlindVote        PollBlindVote[]
+  ItemUserAgg          ItemUserAgg[]
+
+  hotScore    Float @default(0)
+  subHotScore Float @default(0)
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -619,6 +622,8 @@ model Item {
   @@index([url])
   @@index([boost])
   @@index([invoicePaidAt])
+  @@index([hotScore])
+  @@index([subHotScore])
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item

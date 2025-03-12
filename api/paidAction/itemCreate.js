@@ -27,8 +27,8 @@ export async function getBaseCost ({ models, bio, parentId, subName }) {
       LEFT JOIN "Sub" s ON s.name = COALESCE(r."subName", i."subName")
       WHERE i.id = ${Number(parentId)}`
 
-    if (!sub) return DEFAULT_ITEM_COST
-    return satsToMsats(sub.replyCost)
+    if (sub?.replyCost) return satsToMsats(sub.replyCost)
+    return DEFAULT_ITEM_COST
   }
 
   const sub = await models.sub.findUnique({ where: { name: subName } })

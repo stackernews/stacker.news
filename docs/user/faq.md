@@ -8,7 +8,7 @@ sub: meta
 
 _To quickly browse through this FAQ page, click the chapters icon in the top-right corner. This will let you scroll through all chapters or search for a particular topic within this page._
 
-last updated: February 7, 2025
+last updated: March 12, 2025
 
 ---
 
@@ -174,6 +174,26 @@ This can happen for any of the following reasons:
 
 You cannot disable receiving CCs but we might change that in the future. For now, you can donate any CCs you received [here](/rewards).
 
+### If I attach a wallet, do I always pay with sats?
+
+No. We will only try to pay with sats from your wallet when you zap other stackers. In any other case, you're paying us, Stacker News, and we will thus try to first use any CCs you already have. If you don't have enough CCs, we will fallback to your attached wallet.
+
+### Can I pay only the remainder with sats?
+
+No. Payments can currently only be made entirely in CCs or sats.
+
+### Which wallet is used if I attached multiple wallets for send or receive?
+
+All of them! The wallet that is the furthest to the top-right will be attempted first. If it fails, we will attempt the next wallet in order. On desktop, you can drag the wallets around to rearrange their priority. On mobile, you need to click on a wallet and then select where you want the wallet to be.
+
+These sender and receiver fallbacks happen if the payment failed for any reason. The sender will attempt the next wallet if the error was caused by the sender side and the same is true for the receiver.
+
+The only limitation is that we will currently not attempt to pay with CCs at the end once we started to try paying with sats but all wallets failed. This will change in the future.
+
+### Are payments retried in the background?
+
+Yes. We try each payment three times in total with all sender and receiver fallbacks. If a payment still wasn't successful after that, you will receive a notification allowing you to retry the payment manually.
+
 ---
 
 ## Territories
@@ -249,7 +269,7 @@ The info text mentions that you will inherit all existing content.
 
 Other than that, the process to bring back an archived territory is the same as founding a new territory.
 
-### I want to share the costs and revenue of a territory with someone. How do I do that?
+### Can I share the costs and revenue of a territory with someone?
 
 You can't do that yet but this is planned. Currently, territories can only have a single founder.
 

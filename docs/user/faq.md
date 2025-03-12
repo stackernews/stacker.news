@@ -269,7 +269,7 @@ The info text mentions that you will inherit all existing content.
 
 Other than that, the process to bring back an archived territory is the same as founding a new territory.
 
-### I want to share the costs and revenue of a territory with someone. How do I do that?
+### Can I share the costs and revenue of a territory with someone?
 
 You can't do that yet but this is planned. Currently, territories can only have a single founder.
 

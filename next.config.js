@@ -194,6 +194,11 @@ module.exports = withPlausibleProxy()({
         source: '/top/cowboys/:when',
         destination: '/top/cowboys',
         permanent: true
+      },
+      {
+        source: '/~:sub/top/cowboys',
+        destination: '/top/cowboys',
+        permanent: true
       }
     ]
   },

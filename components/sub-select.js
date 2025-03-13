@@ -94,8 +94,13 @@ export default function SubSelect ({ prependSubs, sub, onChange, size, appendSub
           }
         } else {
           // we're currently on the home sub
-          // are we in a sub aware route?
-          if (router.pathname.startsWith('/~')) {
+          // if we're in top/cowboys and a territory is selected,
+          // go to ~sub/top/posts/day
+          if (router.pathname.endsWith('top/cowboys')) {
+            router.push(sub ? `/~${sub}/top/posts/day` : '/top/cowboys')
+            return
+          } else if (router.pathname.startsWith('/~')) {
+            // are we in a sub aware route?
             // if we are, go to the same path but in the sub
             asPath = `/~${sub}` + router.asPath
           } else {

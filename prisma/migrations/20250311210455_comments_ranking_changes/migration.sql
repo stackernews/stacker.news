@@ -1,5 +1,5 @@
 -- add limit and offset
-CREATE OR REPLACE FUNCTION item_comments__with_me_limited(
+CREATE OR REPLACE FUNCTION item_comments_zaprank_with_me_limited(
     _item_id int, _global_seed int, _me_id int, _limit int, _offset int, _grandchild_limit int,
     _level int, _where text, _order_by text)
   RETURNS jsonb
@@ -24,6 +24,7 @@ BEGIN
     || '    (SELECT "Item".*, b.level + 1, ROW_NUMBER() OVER (PARTITION BY "Item"."parentId" ' || _order_by || ') as rn '
     || '    FROM "Item" '
     || '    JOIN base b ON "Item"."parentId" = b.id '
+    || '    LEFT JOIN hot_score_view g ON g.id = "Item".id '
     || '    WHERE b.level < $7 AND (b.level = 1 OR b.rn <= $6)) '
     || ') '
     || 'SELECT "Item".*, '
@@ -111,6 +112,7 @@ BEGIN
         || '        AND "ItemAct"."itemId" = "Item".id '
         || '        GROUP BY "ItemAct"."itemId" '
         || '    ) "ItemAct" ON true '
+        || '    LEFT JOIN hot_score_view g ON g.id = "Item".id '
         || '    WHERE  "Item".path <@ (SELECT path FROM "Item" WHERE id = $1) ' || _where || ' '
     USING _item_id, _level, _where, _order_by, _me_id, _global_seed;
 

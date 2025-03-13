@@ -596,9 +596,6 @@ model Item {
   PollBlindVote        PollBlindVote[]
   ItemUserAgg          ItemUserAgg[]
 
-  hotScore    Float @default(0)
-  subHotScore Float @default(0)
-
   @@index([uploadId])
   @@index([lastZapAt])
   @@index([bio], map: "Item.bio_index")
@@ -622,8 +619,6 @@ model Item {
   @@index([url])
   @@index([boost])
   @@index([invoicePaidAt])
-  @@index([hotScore])
-  @@index([subHotScore])
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item

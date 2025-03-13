@@ -39,16 +39,12 @@ function commentsOrderByClause (me, models, sort) {
       COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC, "Item".id DESC`
   }
 
-  if (me && sort === 'hot') {
+  if (sort === 'hot') {
     return `ORDER BY ${sharedSorts},
-      "personal_hot_score" DESC NULLS LAST,
-      "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+      "hotScore" DESC NULLS LAST,
+      "Item".msats DESC, "Item".id DESC`
   } else {
-    if (sort === 'top') {
-      return `ORDER BY ${sharedSorts}, "Item"."hotScore" DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
-    } else {
-      return `ORDER BY ${sharedSorts}, "Item"."hotScore" DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
-    }
+    return `ORDER BY ${sharedSorts}, "Item"."weightedVotes" - "Item"."weightedDownVotes" DESC NULLS LAST, "Item".msats DESC, "Item".id DESC`
   }
 }
 
@@ -138,14 +134,14 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
   }, ...subArr))?.[0] || null
 }
 
-const orderByClause = (by, me, models, type) => {
+const orderByClause = (by, me, models, type, sub) => {
   switch (by) {
     case 'comments':
       return 'ORDER BY "Item".ncomments DESC'
     case 'sats':
       return 'ORDER BY "Item".msats DESC'
     case 'zaprank':
-      return topOrderByWeightedSats(me, models)
+      return topOrderByWeightedSats(me, models, sub)
     case 'boost':
       return 'ORDER BY "Item".boost DESC'
     case 'random':
@@ -153,6 +149,16 @@ const orderByClause = (by, me, models, type) => {
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
   }
+}
+
+export function joinHotScoreView (me, models) {
+  let join = ' JOIN hot_score_view g ON g.id = "Item".id '
+
+  if (me) {
+    join += ' LEFT JOIN hot_score_view l ON l.id = "Item".id '
+  }
+
+  return join
 }
 
 // this grabs all the stuff we need to display the item list and only
@@ -457,10 +463,10 @@ export default {
                 await filterClause(me, models, type),
                 by === 'boost' && '"Item".boost > 0',
                 muteClause(me))}
-              ${orderByClause(by || 'zaprank', me, models, type)}
+              ${orderByClause(by || 'zaprank', me, models, type, sub)}
               OFFSET $3
               LIMIT $4`,
-            orderBy: orderByClause(by || 'zaprank', me, models, type)
+            orderBy: orderByClause(by || 'zaprank', me, models, type, sub)
           }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
           break
         case 'random':
@@ -522,7 +528,7 @@ export default {
               break
             default:
               if (decodedCursor.offset === 0) {
-                // get pins for the page and return those separately
+              // get pins for the page and return those separately
                 pins = await itemQueryWithMeta({
                   me,
                   models,
@@ -556,6 +562,7 @@ export default {
                     ${SELECT}
                     FROM "Item"
                     LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+                    ${joinHotScoreView(me, models)}
                     ${whereClause(
                       // in home (sub undefined), filter out global pinned items since we inject them later
                       sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
@@ -568,41 +575,11 @@ export default {
                       await filterClause(me, models, type),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
-                    ORDER BY "Item"."hotScore" DESC,
-                      "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC
+                    ORDER BY ${sub ? '"subHotScore"' : '"hotScore"'} DESC, "Item".msats DESC, "Item".id DESC
                     OFFSET $1
                     LIMIT $2`,
-                orderBy: 'ORDER BY "Item"."hotScore" DESC, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC'
+                orderBy: `ORDER BY ${sub ? '"subHotScore"' : '"hotScore"'} DESC, "Item".msats DESC, "Item".id DESC`
               }, decodedCursor.offset, limit, ...subArr)
-
-              // XXX this is mostly for subs that are really empty
-              if (items.length < limit) {
-                items = await itemQueryWithMeta({
-                  me,
-                  models,
-                  query: `
-                      ${SELECT}
-                      FROM "Item"
-                      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
-                      ${whereClause(
-                        subClause(sub, 3, 'Item', me, showNsfw),
-                        muteClause(me),
-                        // in home (sub undefined), filter out global pinned items since we inject them later
-                        sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
-                        '"Item"."deletedAt" IS NULL',
-                        '"Item"."parentId" IS NULL',
-                        '"Item".bio = false',
-                        ad ? `"Item".id <> ${ad.id}` : '',
-                        activeOrMine(me),
-                        await filterClause(me, models, type))}
-                        ORDER BY "Item"."hotScore" DESC,
-                          "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC
-                      OFFSET $1
-                      LIMIT $2`,
-                  orderBy: `ORDER BY "Item"."hotScore" DESC,
-                    "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
-                }, decodedCursor.offset, limit, ...subArr)
-              }
               break
           }
           break
@@ -1556,6 +1533,9 @@ export const SELECT =
   `SELECT "Item".*, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt",
     ltree2text("Item"."path") AS "path"`
 
-function topOrderByWeightedSats (me, models) {
+function topOrderByWeightedSats (me, models, sub) {
+  if (sub) {
+    return 'ORDER BY "Item"."subWeightedVotes" - "Item"."subWeightedDownVotes" DESC, "Item".msats DESC, "Item".id DESC'
+  }
   return 'ORDER BY "Item"."weightedVotes" - "Item"."weightedDownVotes" DESC, "Item".msats DESC, "Item".id DESC'
 }

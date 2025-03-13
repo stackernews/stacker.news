@@ -1,10 +1,10 @@
-import { useState } from 'react'
 import { Badge } from 'react-bootstrap'
 import { Form, Input, SubmitButton } from './form'
 import { gql, useMutation } from '@apollo/client'
 import Info from './info'
 import { customDomainSchema } from '@/lib/validate'
 import ActionTooltip from './action-tooltip'
+import { useToast } from '@/components/toast'
 
 const UPDATE_CUSTOM_DOMAIN = gql`
   mutation UpdateCustomDomain($subName: String!, $domain: String!) {
@@ -17,23 +17,19 @@ const UPDATE_CUSTOM_DOMAIN = gql`
 
 // TODO: verification states should refresh
 export default function CustomDomainForm ({ sub }) {
-  const [updateCustomDomain] = useMutation(UPDATE_CUSTOM_DOMAIN)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(false)
+  const [updateCustomDomain] = useMutation(UPDATE_CUSTOM_DOMAIN, {
+    refetchQueries: ['Sub']
+  })
+  const toaster = useToast()
 
   const onSubmit = async ({ domain }) => {
-    setError(null)
-    setSuccess(false)
-    console.log('domain', domain)
-
-    const { data } = await updateCustomDomain({
+    await updateCustomDomain({
       variables: {
         subName: sub.name,
         domain
       }
     })
-    console.log('success', data)
-    setSuccess(true)
+    toaster.success('domain updated successfully')
   }
 
   const getStatusBadge = (status) => {
@@ -70,9 +66,7 @@ export default function CustomDomainForm ({ sub }) {
         <Input
           label={
             <div className='d-flex align-items-center gap-2'>
-              <span>domain</span>
-              {error && <Info variant='danger'>error</Info>}
-              {success && <Info variant='success'>Domain settings updated successfully!</Info>}
+              <span>custom domain</span>
               {sub?.customDomain && (
                 <>
                   <div className='d-flex align-items-center gap-2'>

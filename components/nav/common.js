@@ -12,7 +12,7 @@ import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
 import { abbrNum } from '../../lib/format'
 import { useServiceWorker } from '../serviceworker'
-import { signOut } from 'next-auth/react'
+import { signIn, signOut } from 'next-auth/react'
 import Badges from '../badge'
 import { randInRange } from '../../lib/rand'
 import { useLightning } from '../lightning'
@@ -248,10 +248,37 @@ export function SignUpButton ({ className = 'py-0', width }) {
 
 export default function LoginButton () {
   const router = useRouter()
-  const handleLogin = useCallback(async pathname => await router.push({
-    pathname,
-    query: { callbackUrl: window.location.origin + router.asPath }
-  }), [router])
+
+  useEffect(() => {
+    if (router.query.type === 'sync') {
+      console.log('signing in with sync')
+      console.log('token', router.query.token)
+      console.log('callbackUrl', router.query.callbackUrl)
+      signIn('sync', { token: router.query.token, callbackUrl: router.query.callbackUrl, redirect: false })
+    }
+  }, [router.query.type, router.query.token, router.query.callbackUrl])
+
+  const handleLogin = useCallback(async () => {
+    // todo: custom domain check
+    const mainDomain = process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
+    const isCustomDomain = window.location.hostname !== mainDomain
+
+    if (isCustomDomain && router.query.type !== 'noAuth') {
+      // TODO: dirty of previous iterations, refactor
+      // redirect to sync endpoint on main domain
+      const protocol = window.location.protocol
+      const mainDomainUrl = `${protocol}//${mainDomain}`
+      const currentUrl = window.location.origin + router.asPath
+
+      window.location.href = `${mainDomainUrl}/api/auth/sync?redirectUrl=${encodeURIComponent(currentUrl)}`
+    } else {
+      // normal login on main domain
+      await router.push({
+        pathname: '/login',
+        query: { callbackUrl: window.location.origin + router.asPath }
+      })
+    }
+  }, [router])
 
   return (
     <Button
@@ -259,7 +286,7 @@ export default function LoginButton () {
       id='login'
       style={{ borderWidth: '2px', width: '150px' }}
       variant='outline-grey-darkmode'
-      onClick={() => handleLogin('/login')}
+      onClick={handleLogin}
     >
       login
     </Button>

@@ -1,8 +1,8 @@
 import * as math from 'mathjs'
 import { USER_ID } from '@/lib/constants'
 import { Prisma } from '@prisma/client'
+import { initialTrust, GLOBAL_SEEDS } from '@/api/paidAction/lib/territory'
 
-const GLOBAL_SEEDS = [USER_ID.k00b, USER_ID.ek]
 const MAX_DEPTH = 40
 const MAX_TRUST = 1
 const MIN_SUCCESS = 0
@@ -41,7 +41,7 @@ export async function trust ({ boss, models }) {
       console.timeLog('trust', `computing sub comment trust for ${territory.name}`)
       const vSubComment = await trustGivenGraph(commentGraph, commentGraph.length > INDEPENDENCE_THRESHOLD ? [territory.userId] : seeds)
       console.timeLog('trust', `storing trust for ${territory.name}`)
-      const results = reduceVectors(territory.name, {
+      let results = reduceVectors(territory.name, {
         zapPostTrust: {
           graph: postGraph,
           vector: vGlobalPost
@@ -59,6 +59,12 @@ export async function trust ({ boss, models }) {
           vector: vSubComment
         }
       })
+
+      if (results.length === 0) {
+        console.timeLog('trust', `no results for ${territory.name} - adding seeds`)
+        results = initialTrust({ name: territory.name, userId: territory.userId })
+      }
+
       await storeTrust(models, territory.name, results)
     } catch (e) {
       console.error(`error computing trust for ${territory.name}:`, e)

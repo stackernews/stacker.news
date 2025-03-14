@@ -1,6 +1,5 @@
 import { getPaymentFailureStatus, getPaymentOrNotSent } from '@/api/lnd'
-import { walletLogger } from '@/api/resolvers/wallet'
-import { formatSats, msatsToSats, toPositiveBigInt } from '@/lib/format'
+import { msatsToSats, toPositiveBigInt } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { notifyWithdrawal } from '@/lib/webPush'
 import { Prisma } from '@prisma/client'
@@ -122,18 +121,11 @@ export async function payingActionConfirmed ({ data: args, models, lnd, boss }) 
 
   if (transitionedWithdrawal) {
     await notifyWithdrawal(transitionedWithdrawal)
-
-    const logger = walletLogger({ models, wallet: transitionedWithdrawal.wallet })
-    logger?.ok(`↙ payment received: ${formatSats(msatsToSats(transitionedWithdrawal.msatsPaid))}`, {
-      // TODO: test this
-      invoiceId: transitionedWithdrawal.invoiceForward.invoice.id
-    })
   }
 }
 
 export async function payingActionFailed ({ data: args, models, lnd, boss }) {
-  let message
-  const transitionedWithdrawal = await transitionWithdrawal('payingActionFailed', {
+  await transitionWithdrawal('payingActionFailed', {
     toStatus: 'UNKNOWN_FAILURE',
     ...args,
     transition: async ({ dbWithdrawal, lndWithdrawal, tx }) => {
@@ -151,8 +143,7 @@ export async function payingActionFailed ({ data: args, models, lnd, boss }) {
       console.log(`user refunded ${msatsToSats(dbWithdrawal.msatsFeePaying + dbWithdrawal.msatsPaying)} sats`)
 
       // update to particular status
-      const { status, message: failureMessage } = getPaymentFailureStatus(lndWithdrawal)
-      message = failureMessage
+      const { status } = getPaymentFailureStatus(lndWithdrawal)
 
       console.log('withdrawal failed with status', status)
       return {
@@ -160,12 +151,4 @@ export async function payingActionFailed ({ data: args, models, lnd, boss }) {
       }
     }
   }, { models, lnd, boss })
-
-  if (transitionedWithdrawal) {
-    const logger = walletLogger({ models, wallet: transitionedWithdrawal.wallet })
-    logger?.error(`incoming payment failed: ${message}`, {
-      // TODO: test this
-      invoiceId: transitionedWithdrawal.invoiceForward.invoice.id
-    })
-  }
 }

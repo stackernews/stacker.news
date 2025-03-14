@@ -232,11 +232,14 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
         }
       })
 
-      const newLogs = data.walletLogs.entries.map(({ createdAt, wallet: walletType, ...log }) => ({
-        ts: +new Date(createdAt),
-        wallet: walletTag(getWalletByType(walletType)),
-        ...log
-      }))
+      const newLogs = data.walletLogs.entries
+        .map(({ createdAt, wallet: walletType, ...log }) => {
+          return {
+            ts: +new Date(createdAt),
+            wallet: walletTag(getWalletByType(walletType)),
+            ...log
+          }
+        })
       const combinedLogs = uniqueSort([...result.data, ...newLogs])
 
       setCursor(data.walletLogs.cursor)

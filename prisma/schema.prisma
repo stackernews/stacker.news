@@ -257,7 +257,6 @@ model WalletLog {
   message   String
   invoiceId Int?
   invoice   Invoice?   @relation(fields: [invoiceId], references: [id])
-  context   Json?      @db.JsonB
 
   @@index([userId, createdAt])
 }

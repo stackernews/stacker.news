@@ -197,7 +197,8 @@ const typeDefs = `
     wallet: ID!
     level: String!
     message: String!
-    context: JSONObject
+    invoice: Invoice
+    withdrawl: Withdrawl
   }
 `
 

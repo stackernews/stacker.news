@@ -1,8 +1,9 @@
+import { formatMsats, satsToMsats } from '@/lib/format'
 import { timeSince } from '@/lib/time'
 import styles from '@/styles/log.module.css'
 import { Fragment, useState } from 'react'
 
-export default function LogMessage ({ showWallet, wallet, level, message, context, ts }) {
+export default function LogMessage ({ showWallet, wallet, level, message, context, invoice, withdrawl, ts }) {
   const [show, setShow] = useState(false)
 
   let className
@@ -19,16 +20,23 @@ export default function LogMessage ({ showWallet, wallet, level, message, contex
       className = 'text-info'
   }
 
-  const filtered = context
-    ? Object.keys(context)
-      .filter(key => !['send', 'recv', 'status'].includes(key))
+  // send logs are still saved on the client and use a context JSON column
+  const ctx = context ?? withdrawl ?? invoice
+  const filtered = ctx
+    ? Object.keys(ctx)
+      .filter(key => !['send', 'recv', 'status', '__typename'].includes(key))
       .reduce((obj, key) => {
-        obj[key] = context[key]
+        const value = ctx[key]
+        obj[key] = value
+        // send logs already save amount as formatted string
+        if (key === 'amount' && typeof value === 'number') {
+          obj[key] = formatMsats(satsToMsats(value))
+        }
         return obj
       }, {})
     : {}
 
-  const hasContext = context && Object.keys(filtered).length > 0
+  const hasContext = ctx && Object.keys(filtered).length > 0
 
   const handleClick = () => {
     if (hasContext) { setShow(show => !show) }

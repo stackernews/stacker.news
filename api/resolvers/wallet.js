@@ -745,6 +745,25 @@ const resolvers = {
       return item
     },
     sats: fact => msatsToSatsDecimal(fact.msats)
+  },
+
+  WalletLogEntry: {
+    invoice: async (entry, args, { models }) => {
+      if (entry.invoiceId) {
+        return await models.invoice.findUnique({ where: { id: entry.invoiceId } })
+      }
+    },
+    withdrawl: async (entry, args, { models }) => {
+      if (entry.invoiceId) {
+        const { withdrawl } = await models.invoiceForward.findUnique({
+          where: { invoiceId: entry.invoiceId },
+          include: {
+            withdrawl: true
+          }
+        })
+        return withdrawl
+      }
+    }
   }
 }
 

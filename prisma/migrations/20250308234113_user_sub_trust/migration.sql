@@ -69,9 +69,9 @@ WHERE "Item".id = subquery."itemId";
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS hot_score_view AS
   SELECT id,
-         ("Item"."weightedVotes" - "Item"."weightedDownVotes" + ("Item"."weightedComments"*0.5) + ("Item".boost / 5000))
+         ("Item"."weightedVotes" - "Item"."weightedDownVotes" + ("Item"."weightedComments"*0.25) + ("Item".boost / 5000))
             / POWER(GREATEST(3, EXTRACT(EPOCH FROM (now() - "Item".created_at))/3600), 1.1) AS hot_score,
-         ("Item"."subWeightedVotes" - "Item"."subWeightedDownVotes" + ("Item"."weightedComments"*0.5) + ("Item".boost / 5000))
+         ("Item"."subWeightedVotes" - "Item"."subWeightedDownVotes" + ("Item"."weightedComments"*0.25) + ("Item".boost / 5000))
             / POWER(GREATEST(3, EXTRACT(EPOCH FROM (now() - "Item".created_at))/3600), 1.1) AS sub_hot_score
   FROM "Item"
   WHERE "Item"."weightedVotes" > 0 OR "Item"."weightedDownVotes" > 0 OR "Item"."subWeightedVotes" > 0

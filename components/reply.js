@@ -71,7 +71,7 @@ export default forwardRef(function Reply ({
         // no lag for itemRepetition
         if (!item.mine && me) {
           cache.updateQuery({
-            query: gql`{ itemRepetition(parentId: "${parentId}") }`
+            query: gql`{ itemRepetition(parentId: "${parentId}", sub: "${sub?.name}") }`
           }, data => {
             return {
               itemRepetition: (data?.itemRepetition || 0) + 1
@@ -162,7 +162,7 @@ export default forwardRef(function Reply ({
         <div className={styles.reply}>
           <FeeButtonProvider
             baseLineItems={postCommentBaseLineItems({ baseCost: sub?.replyCost ?? 1, comment: true, me: !!me })}
-            useRemoteLineItems={postCommentUseRemoteLineItems({ parentId: item.id, me: !!me })}
+            useRemoteLineItems={postCommentUseRemoteLineItems({ parentId: item.id, sub: sub?.name, me: !!me })}
           >
             <Form
               initial={{

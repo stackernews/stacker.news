@@ -368,11 +368,11 @@ function typeClause (type) {
 
 export default {
   Query: {
-    itemRepetition: async (parent, { parentId }, { me, models }) => {
+    itemRepetition: async (parent, { parentId, sub }, { me, models }) => {
       if (!me) return 0
       // how many of the parents starting at parentId belong to me
-      const [{ item_spam: count }] = await models.$queryRawUnsafe(`SELECT item_spam($1::INTEGER, $2::INTEGER, '${ITEM_SPAM_INTERVAL}')`,
-        Number(parentId), Number(me.id))
+      const [{ item_spam: count }] = await models.$queryRawUnsafe(`SELECT item_spam($1::INTEGER, $2::INTEGER, '${ITEM_SPAM_INTERVAL}', $3::TEXT)`,
+        Number(parentId), Number(me.id), sub)
 
       return count
     },

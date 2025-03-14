@@ -173,17 +173,29 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
       SET "zapSats" = "ItemUserAgg"."zapSats" + ${sats}::INTEGER, updated_at = now()
       RETURNING ("zapSats" = ${sats}::INTEGER)::INTEGER as first_vote,
         LOG("zapSats" / GREATEST("zapSats" - ${sats}::INTEGER, 1)::FLOAT) AS log_sats
+    ), item_zapped AS (
+      UPDATE "Item"
+      SET
+        "weightedVotes" = "weightedVotes" + (COALESCE(zapper."zapTrust", 0) * zap.log_sats),
+        "subWeightedVotes" = "subWeightedVotes" + (COALESCE(zapper."subZapTrust", 0) * zap.log_sats),
+        upvotes = upvotes + zap.first_vote,
+        msats = "Item".msats + ${msats}::BIGINT,
+        mcredits = "Item".mcredits + ${invoice?.invoiceForward ? 0n : msats}::BIGINT,
+        "lastZapAt" = now()
+      FROM zap
+      LEFT JOIN zapper ON true
+      WHERE "Item".id = ${itemAct.itemId}::INTEGER
+      RETURNING "Item".*, COALESCE(zapper."zapTrust", 0) * zap.log_sats as "weightedVote"
+    ), ancestors AS (
+      SELECT "Item".*
+      FROM "Item", item_zapped
+      WHERE "Item".path @> item_zapped.path AND "Item".id <> item_zapped.id
+      ORDER BY "Item".id
     )
     UPDATE "Item"
-    SET
-      "weightedVotes" = "weightedVotes" + (COALESCE(zapper."zapTrust", 0) * zap.log_sats),
-      "subWeightedVotes" = "subWeightedVotes" + (COALESCE(zapper."subZapTrust", 0) * zap.log_sats),
-      upvotes = upvotes + zap.first_vote,
-      msats = "Item".msats + ${msats}::BIGINT,
-      mcredits = "Item".mcredits + ${invoice?.invoiceForward ? 0n : msats}::BIGINT,
-      "lastZapAt" = now()
-    FROM zap, zapper
-    WHERE "Item".id = ${itemAct.itemId}::INTEGER`
+    SET "weightedComments" = "Item"."weightedComments" + item_zapped."weightedVote"
+    FROM item_zapped, ancestors
+    WHERE "Item".id = ancestors.id`
 
   // record potential bounty payment
   // NOTE: we are at least guaranteed that we see the update "ItemUserAgg" from our tx so we can trust

@@ -151,21 +151,21 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
   await tx.$queryRaw`
     WITH territory AS (
-      SELECT COALESCE(r."subName", i."subName")::TEXT as "subName"
+      SELECT COALESCE(r."subName", i."subName", 'meta')::TEXT as "subName"
       FROM "Item" i
       LEFT JOIN "Item" r ON r.id = i."rootId"
       WHERE i.id = ${itemAct.itemId}::INTEGER
     ), zapper AS (
       SELECT
-        ${itemAct.item.parentId
+        COALESCE(${itemAct.item.parentId
           ? Prisma.sql`"zapCommentTrust"`
-          : Prisma.sql`"zapPostTrust"`} as "zapTrust",
-        ${itemAct.item.parentId
+          : Prisma.sql`"zapPostTrust"`}, 0) as "zapTrust",
+        COALESCE(${itemAct.item.parentId
           ? Prisma.sql`"subZapCommentTrust"`
-          : Prisma.sql`"subZapPostTrust"`} as "subZapTrust"
-      FROM "UserSubTrust" ust
-      JOIN territory ON ust."subName" = territory."subName"
-      WHERE ust."userId" = ${itemAct.userId}::INTEGER
+          : Prisma.sql`"subZapPostTrust"`}, 0) as "subZapTrust"
+      FROM territory
+      LEFT JOIN "UserSubTrust" ust ON ust."subName" = territory."subName"
+        AND ust."userId" = ${itemAct.userId}::INTEGER
     ), zap AS (
       INSERT INTO "ItemUserAgg" ("userId", "itemId", "zapSats")
       VALUES (${itemAct.userId}::INTEGER, ${itemAct.itemId}::INTEGER, ${sats}::INTEGER)
@@ -176,16 +176,15 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
     ), item_zapped AS (
       UPDATE "Item"
       SET
-        "weightedVotes" = "weightedVotes" + (COALESCE(zapper."zapTrust", 0) * zap.log_sats),
-        "subWeightedVotes" = "subWeightedVotes" + (COALESCE(zapper."subZapTrust", 0) * zap.log_sats),
+        "weightedVotes" = "weightedVotes" + zapper."zapTrust" * zap.log_sats,
+        "subWeightedVotes" = "subWeightedVotes" + zapper."subZapTrust" * zap.log_sats,
         upvotes = upvotes + zap.first_vote,
         msats = "Item".msats + ${msats}::BIGINT,
         mcredits = "Item".mcredits + ${invoice?.invoiceForward ? 0n : msats}::BIGINT,
         "lastZapAt" = now()
-      FROM zap
-      LEFT JOIN zapper ON true
+      FROM zap, zapper
       WHERE "Item".id = ${itemAct.itemId}::INTEGER
-      RETURNING "Item".*, COALESCE(zapper."zapTrust", 0) * zap.log_sats as "weightedVote"
+      RETURNING "Item".*, zapper."zapTrust" * zap.log_sats as "weightedVote"
     ), ancestors AS (
       SELECT "Item".*
       FROM "Item", item_zapped

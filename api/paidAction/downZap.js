@@ -62,21 +62,21 @@ export async function onPaid ({ invoice, actId }, { tx }) {
   // denormalize downzaps
   await tx.$executeRaw`
     WITH territory AS (
-      SELECT COALESCE(r."subName", i."subName")::TEXT as "subName"
+      SELECT COALESCE(r."subName", i."subName", 'meta')::TEXT as "subName"
       FROM "Item" i
       LEFT JOIN "Item" r ON r.id = i."rootId"
       WHERE i.id = ${itemAct.itemId}::INTEGER
     ), zapper AS (
       SELECT
-        ${itemAct.item.parentId
+        COALESCE(${itemAct.item.parentId
           ? Prisma.sql`"zapCommentTrust"`
-          : Prisma.sql`"zapPostTrust"`} as "zapTrust",
-        ${itemAct.item.parentId
+          : Prisma.sql`"zapPostTrust"`}, 0) as "zapTrust",
+        COALESCE(${itemAct.item.parentId
           ? Prisma.sql`"subZapCommentTrust"`
-          : Prisma.sql`"subZapPostTrust"`} as "subZapTrust"
-      FROM "UserSubTrust" ust
-      JOIN territory ON ust."subName" = territory."subName"
-      WHERE ust."userId" = ${itemAct.userId}::INTEGER
+          : Prisma.sql`"subZapPostTrust"`}, 0) as "subZapTrust"
+      FROM territory
+      LEFT JOIN "UserSubTrust" ust ON ust."subName" = territory."subName"
+        AND ust."userId" = ${itemAct.userId}::INTEGER
     ), zap AS (
       INSERT INTO "ItemUserAgg" ("userId", "itemId", "downZapSats")
       VALUES (${itemAct.userId}::INTEGER, ${itemAct.itemId}::INTEGER, ${sats}::INTEGER)
@@ -85,8 +85,8 @@ export async function onPaid ({ invoice, actId }, { tx }) {
       RETURNING LOG("downZapSats" / GREATEST("downZapSats" - ${sats}::INTEGER, 1)::FLOAT) AS log_sats
     )
     UPDATE "Item"
-    SET "weightedDownVotes" = "weightedDownVotes" + (COALESCE(zapper."zapTrust", 0) * zap.log_sats),
-        "subWeightedDownVotes" = "subWeightedDownVotes" + (COALESCE(zapper."subZapTrust", 0) * zap.log_sats)
+    SET "weightedDownVotes" = "weightedDownVotes" + zapper."zapTrust" * zap.log_sats,
+        "subWeightedDownVotes" = "subWeightedDownVotes" + zapper."subZapTrust" * zap.log_sats
     FROM zap, zapper
     WHERE "Item".id = ${itemAct.itemId}::INTEGER`
 }

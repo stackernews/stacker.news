@@ -152,13 +152,7 @@ const orderByClause = (by, me, models, type, sub) => {
 }
 
 export function joinHotScoreView (me, models) {
-  let join = ' JOIN hot_score_view g ON g.id = "Item".id '
-
-  if (me) {
-    join += ' LEFT JOIN hot_score_view l ON l.id = "Item".id '
-  }
-
-  return join
+  return ' JOIN hot_score_view g ON g.id = "Item".id '
 }
 
 // this grabs all the stuff we need to display the item list and only
@@ -559,7 +553,7 @@ export default {
                 me,
                 models,
                 query: `
-                    ${SELECT}
+                    ${SELECT}, g.hot_score AS "hotScore", g.sub_hot_score AS "subHotScore"
                     FROM "Item"
                     LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
                     ${joinHotScoreView(me, models)}

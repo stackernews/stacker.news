@@ -193,7 +193,9 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
       ORDER BY "Item".id
     )
     UPDATE "Item"
-    SET "weightedComments" = "Item"."weightedComments" + item_zapped."weightedVote"
+    SET "weightedComments" = "Item"."weightedComments" + item_zapped."weightedVote",
+      "commentMsats" = "Item"."commentMsats" + ${msats}::BIGINT,
+      "commentMcredits" = "Item"."commentMcredits" + ${invoice?.invoiceForward ? 0n : msats}::BIGINT
     FROM item_zapped, ancestors
     WHERE "Item".id = ancestors.id`
 
@@ -215,17 +217,6 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
     SET "bountyPaidTo" = array_remove(array_append(array_remove("bountyPaidTo", bounty.target), bounty.target), NULL)
     FROM bounty
     WHERE "Item".id = bounty.id AND bounty.paid`
-
-  // update commentMsats on ancestors
-  await tx.$executeRaw`
-      WITH zapped AS (
-        SELECT * FROM "Item" WHERE id = ${itemAct.itemId}::INTEGER
-      )
-      UPDATE "Item"
-      SET "commentMsats" = "Item"."commentMsats" + ${msats}::BIGINT,
-        "commentMcredits" = "Item"."commentMcredits" + ${invoice?.invoiceForward ? 0n : msats}::BIGINT
-      FROM zapped
-      WHERE "Item".path @> zapped.path AND "Item".id <> zapped.id`
 }
 
 export async function nonCriticalSideEffects ({ invoice, actIds }, { models }) {

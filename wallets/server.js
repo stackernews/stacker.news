@@ -14,7 +14,7 @@ import * as webln from '@/wallets/webln'
 import { walletLogger } from '@/api/resolvers/wallet'
 import walletDefs from '@/wallets/server'
 import { parsePaymentRequest } from 'ln-service'
-import { toPositiveBigInt, toPositiveNumber, formatMsats, formatSats, msatsToSats } from '@/lib/format'
+import { toPositiveBigInt, toPositiveNumber, formatSats, msatsToSats } from '@/lib/format'
 import { PAID_ACTION_TERMINAL_STATES, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { canReceive } from './common'
@@ -38,11 +38,8 @@ export async function * createUserInvoice (userId, { msats, description, descrip
     const logger = walletLogger({ wallet, models })
 
     try {
-      logger.info(
-        `↙ incoming payment: ${formatSats(msatsToSats(msats))}`,
-        {
-          amount: formatMsats(msats)
-        })
+      // TODO: add amount to context somehow
+      logger.info(`↙ incoming payment: ${formatSats(msatsToSats(msats))}`)
 
       let invoice
       try {

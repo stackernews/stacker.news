@@ -211,7 +211,22 @@ export const WALLET_LOGS = gql`
           wallet
           level
           message
-          context
+          invoice {
+            amount: satsRequested
+            bolt11
+            payment_hash: hash
+            preimage: confirmedPreimage
+            created_at: createdAt
+            expires_at: expiresAt
+            description: comment
+          }
+          withdrawl {
+            bolt11
+            amount: satsPaid
+            payment_hash: hash
+            preimage: preimage
+            created_at: createdAt
+          }
         }
       }
   }

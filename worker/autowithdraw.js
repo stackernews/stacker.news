@@ -53,7 +53,8 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
         { me: { id }, models, lnd, wallet, logger })
     } catch (err) {
       console.error('failed to create autowithdrawal:', err)
-      logger?.error('incoming payment failed: ' + err.message, { bolt11: invoice })
+      // TODO: this won't work since invoice is bolt11 string
+      logger?.error('incoming payment failed: ' + err.message, { invoiceId: invoice.id })
     }
   }
 

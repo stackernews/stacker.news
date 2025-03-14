@@ -5,7 +5,7 @@ import {
 import crypto, { timingSafeEqual } from 'crypto'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
-import { formatMsats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
+import { msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
 import {
   USER_ID, INVOICE_RETENTION_DAYS,
   PAID_ACTION_PAYMENT_METHODS,
@@ -745,6 +745,25 @@ const resolvers = {
       return item
     },
     sats: fact => msatsToSatsDecimal(fact.msats)
+  },
+
+  WalletLogEntry: {
+    invoice: async (entry, args, { models }) => {
+      if (entry.invoiceId) {
+        return await models.invoice.findUnique({ where: { id: entry.invoiceId } })
+      }
+    },
+    withdrawl: async (entry, args, { models }) => {
+      if (entry.invoiceId) {
+        const { withdrawl } = await models.invoiceForward.findUnique({
+          where: { invoiceId: entry.invoiceId },
+          include: {
+            withdrawl: true
+          }
+        })
+        return withdrawl
+      }
+    }
   }
 }
 
@@ -763,30 +782,16 @@ export const walletLogger = ({ wallet, models }) => {
 
   // server implementation of wallet logger interface on client
   const log = (level) => async (message, context = {}) => {
+    // TODO: context.recv used to be set for the frontend to know
+    // which log messages should be used for recv status
     try {
-      if (context?.bolt11) {
-        // automatically populate context from bolt11 to avoid duplicating this code
-        const decoded = await parsePaymentRequest({ request: context.bolt11 })
-        context = {
-          ...context,
-          amount: formatMsats(decoded.mtokens),
-          payment_hash: decoded.id,
-          created_at: decoded.created_at,
-          expires_at: decoded.expires_at,
-          description: decoded.description,
-          // payments should affect wallet status
-          status: true
-        }
-      }
-      context.recv = true
-
       await models.walletLog.create({
         data: {
           userId: wallet.userId,
           wallet: wallet.type,
           level,
           message,
-          context
+          ...context
         }
       })
     } catch (err) {

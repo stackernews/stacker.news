@@ -279,7 +279,7 @@ export default {
 
       return await performPaidAction('TERRITORY_UNARCHIVE', data, { me, models, lnd })
     },
-    updateCustomDomain: async (parent, { subName, domain }, { me, models }) => {
+    setCustomDomain: async (parent, { subName, domain }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
@@ -292,13 +292,10 @@ export default {
       if (sub.userId !== me.id) {
         throw new GqlInputError('you do not own this sub')
       }
-      domain = domain.trim()
+      domain = domain.trim() // protect against trailing spaces
       if (domain && !validateSchema(customDomainSchema, { domain })) {
         throw new GqlInputError('Invalid domain format')
       }
-
-      console.log('domain', domain)
-      console.log('sub.customDomain?.domain', sub.customDomain?.domain)
 
       if (domain) {
         const existing = await models.customDomain.findUnique({ where: { subName } })
@@ -306,14 +303,16 @@ export default {
           if (domain === existing.domain) {
             throw new GqlInputError('domain already set')
           }
-          return await models.customDomain.update({ where: { subName }, data: { domain, verificationState: 'PENDING' } })
+          return await models.customDomain.update({
+            where: { subName },
+            data: { domain, dnsState: 'PENDING', sslState: 'PENDING' }
+          })
         } else {
           return await models.customDomain.create({
             data: {
               domain,
-              verificationState: 'PENDING',
-              cname: 'parallel.soxa.dev',
-              verificationTxt: randomBytes(32).toString('base64'),
+              cname: 'todo', // TODO: explore other options
+              verificationTxt: randomBytes(32).toString('base64'), // TODO: explore other options
               sub: {
                 connect: { name: subName }
               }

@@ -19,7 +19,8 @@ export default async function handler (req, res) {
         subName: true
       },
       where: {
-        verificationState: 'VERIFIED'
+        dnsState: 'VERIFIED',
+        sslState: 'VERIFIED'
       }
     })
 

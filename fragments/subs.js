@@ -40,10 +40,12 @@ export const SUB_FIELDS = gql`
       updatedAt
       domain
       subName
-      sslEnabled
-      sslCertExpiry
-      verificationState
+      dnsState
+      sslState
+      certificateArn
       lastVerifiedAt
+      cname
+      verificationTxt
     }
   }`
 

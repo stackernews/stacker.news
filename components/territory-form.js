@@ -294,7 +294,7 @@ export default function TerritoryForm ({ sub }) {
           body={
             <>
               <TerritoryDomains sub={sub} />
-              {sub?.customDomain?.verificationState === 'VERIFIED' &&
+              {sub?.customDomain?.dnsState === 'VERIFIED' && sub?.customDomain?.sslState === 'VERIFIED' &&
                 <>
                   <BootstrapForm.Label>[NOT IMPLEMENTED] branding</BootstrapForm.Label>
                   <div className='mb-3'>WIP</div>

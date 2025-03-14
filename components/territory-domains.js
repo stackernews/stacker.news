@@ -6,24 +6,25 @@ import { customDomainSchema } from '@/lib/validate'
 import ActionTooltip from './action-tooltip'
 import { useToast } from '@/components/toast'
 
-const UPDATE_CUSTOM_DOMAIN = gql`
-  mutation UpdateCustomDomain($subName: String!, $domain: String!) {
-    updateCustomDomain(subName: $subName, domain: $domain) {
+const SET_CUSTOM_DOMAIN = gql`
+  mutation SetCustomDomain($subName: String!, $domain: String!) {
+    setCustomDomain(subName: $subName, domain: $domain) {
       domain
-      verificationState
+      dnsState
+      sslState
     }
   }
 `
 
 // TODO: verification states should refresh
 export default function CustomDomainForm ({ sub }) {
-  const [updateCustomDomain] = useMutation(UPDATE_CUSTOM_DOMAIN, {
+  const [setCustomDomain] = useMutation(SET_CUSTOM_DOMAIN, {
     refetchQueries: ['Sub']
   })
   const toaster = useToast()
 
   const onSubmit = async ({ domain }) => {
-    await updateCustomDomain({
+    await setCustomDomain({
       variables: {
         subName: sub.name,
         domain
@@ -35,20 +36,22 @@ export default function CustomDomainForm ({ sub }) {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'VERIFIED':
-        return <Badge bg='success'>verified</Badge>
+        return <Badge bg='success'>DNS verified</Badge>
       case 'PENDING':
-        return <Badge bg='warning'>pending</Badge>
+        return <Badge bg='warning'>DNS pending</Badge>
       case 'FAILED':
-        return <Badge bg='danger'>failed</Badge>
+        return <Badge bg='danger'>DNS failed</Badge>
     }
   }
 
-  const getSSLStatusBadge = (sslEnabled) => {
-    switch (sslEnabled) {
-      case true:
-        return <Badge bg='success'>SSL enabled</Badge>
-      case false:
-        return <Badge bg='danger'>SSL disabled</Badge>
+  const getSSLStatusBadge = (sslState) => {
+    switch (sslState) {
+      case 'VERIFIED':
+        return <Badge bg='success'>SSL verified</Badge>
+      case 'PENDING':
+        return <Badge bg='warning'>SSL pending</Badge>
+      case 'FAILED':
+        return <Badge bg='danger'>SSL failed</Badge>
     }
   }
 
@@ -71,10 +74,10 @@ export default function CustomDomainForm ({ sub }) {
                 <>
                   <div className='d-flex align-items-center gap-2'>
                     <ActionTooltip overlayText={new Date(sub.customDomain.lastVerifiedAt).toUTCString()}>
-                      {getStatusBadge(sub.customDomain.verificationState)}
+                      {getStatusBadge(sub.customDomain.dnsState)}
                     </ActionTooltip>
-                    {getSSLStatusBadge(sub.customDomain.sslEnabled)}
-                    {sub.customDomain.verificationState === 'PENDING' && (
+                    {getSSLStatusBadge(sub.customDomain.sslState)}
+                    {sub.customDomain.dnsState === 'PENDING' && (
                       <Info>
                         <h6>Verify your domain</h6>
                         <p>Add the following DNS records to verify ownership of your domain:</p>
@@ -83,6 +86,12 @@ export default function CustomDomainForm ({ sub }) {
                           Host: @
                           Value: stacker.news
                         </pre>
+                      </Info>
+                    )}
+                    {sub.customDomain.sslState === 'PENDING' && (
+                      <Info>
+                        <h6>SSL certificate pending</h6>
+                        <p>Our system will issue an SSL certificate for your domain.</p>
                       </Info>
                     )}
                   </div>

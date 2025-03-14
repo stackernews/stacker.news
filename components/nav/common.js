@@ -249,11 +249,10 @@ export function SignUpButton ({ className = 'py-0', width }) {
 export default function LoginButton () {
   const router = useRouter()
 
+  // TODO: atp let main domain handle the login UX/UI
+  // decree a better position/way for this
   useEffect(() => {
     if (router.query.type === 'sync') {
-      console.log('signing in with sync')
-      console.log('token', router.query.token)
-      console.log('callbackUrl', router.query.callbackUrl)
       signIn('sync', { token: router.query.token, callbackUrl: router.query.callbackUrl, redirect: false })
     }
   }, [router.query.type, router.query.token, router.query.callbackUrl])

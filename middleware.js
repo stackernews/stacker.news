@@ -268,13 +268,12 @@ export function applySecurityHeaders (resp) {
 }
 
 export async function middleware (request) {
-  const host = request.headers.get('host')
-  const isCustomDomain = host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
-
   // First run referrer middleware to capture referrer data
   const referrerResp = referrerMiddleware(request)
 
   // If we're on a custom domain, handle that next
+  const host = request.headers.get('host')
+  const isCustomDomain = host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
   if (isCustomDomain) {
     const customDomainResp = await customDomainMiddleware(request, referrerResp)
     return applySecurityHeaders(customDomainResp)

@@ -1207,13 +1207,13 @@ model CustomDomain {
   updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
   domain            String    @unique
   subName           String    @unique @db.Citext
-  sub               Sub       @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
-  sslEnabled        Boolean   @default(false)
-  sslCertExpiry     DateTime?
-  verificationState String?
+  dnsState          String    @default("PENDING")
+  sslState          String    @default("PENDING")
+  certificateArn    String
   lastVerifiedAt    DateTime?
   cname             String
   verificationTxt   String
+  sub               Sub       @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
   
   @@index([domain])
   @@index([createdAt])

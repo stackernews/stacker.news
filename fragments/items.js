@@ -108,6 +108,7 @@ export const ITEM_FULL_FIELDS = gql`
         moderated
         meMuteSub
         meSubscription
+        replyCost
       }
     }
     forwards {

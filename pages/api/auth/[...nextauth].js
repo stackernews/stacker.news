@@ -7,7 +7,6 @@ import EmailProvider from 'next-auth/providers/email'
 import prisma from '@/api/models'
 import nodemailer from 'nodemailer'
 import { PrismaAdapter } from '@auth/prisma-adapter'
-import { NodeNextRequest, NodeNextResponse } from 'next/dist/server/base-http/node'
 import { getToken, encode as encodeJWT } from 'next-auth/jwt'
 import { datePivot } from '@/lib/time'
 import { schnorr } from '@noble/curves/secp256k1'
@@ -130,7 +129,7 @@ function getCallbacks (req, res) {
         const secret = process.env.NEXTAUTH_SECRET
         const jwt = await encodeJWT({ token, secret })
         const me = await prisma.user.findUnique({ where: { id: token.id } })
-        setMultiAuthCookies(new NodeNextRequest(req), new NodeNextResponse(res), { ...me, jwt })
+        setMultiAuthCookies(req, res, { ...me, jwt })
       }
 
       return token
@@ -180,8 +179,7 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
   const { k1, pubkey } = credentials
 
   // are we trying to add a new account for switching between?
-  const { body } = req.body
-  const multiAuth = typeof body.multiAuth === 'string' ? body.multiAuth === 'true' : !!body.multiAuth
+  const multiAuth = typeof req.body.multiAuth === 'string' ? req.body.multiAuth === 'true' : !!req.body.multiAuth
 
   try {
     // does the given challenge (k1) exist in our db?
@@ -262,7 +260,7 @@ const getProviders = res => [
       k1: { label: 'k1', type: 'text' }
     },
     authorize: async (credentials, req) => {
-      return await pubkeyAuth(credentials, new NodeNextRequest(req), new NodeNextResponse(res), 'pubkey')
+      return await pubkeyAuth(credentials, req, res, 'pubkey')
     }
   }),
   CredentialsProvider({
@@ -273,7 +271,7 @@ const getProviders = res => [
     },
     authorize: async ({ event }, req) => {
       const credentials = await nostrEventAuth(event)
-      return await pubkeyAuth(credentials, new NodeNextRequest(req), new NodeNextResponse(res), 'nostrAuthPubkey')
+      return await pubkeyAuth(credentials, req, res, 'nostrAuthPubkey')
     }
   }),
   GitHubProvider({

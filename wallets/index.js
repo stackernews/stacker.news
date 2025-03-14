@@ -236,6 +236,7 @@ function RetryHandler ({ children }) {
   const waitForWalletPayment = useWalletPayment()
   const invoiceHelper = useInvoice()
   const [getFailedInvoices] = useLazyQuery(FAILED_INVOICES, { fetchPolicy: 'network-only', nextFetchPolicy: 'network-only' })
+  const { me } = useMe()
 
   const retry = useCallback(async (invoice) => {
     const newInvoice = await invoiceHelper.retry({ ...invoice, newAttempt: true })
@@ -254,6 +255,8 @@ function RetryHandler ({ children }) {
   useEffect(() => {
     // we always retry failed invoices, even if the user has no wallets on any client
     // to make sure that failed payments will always show up in notifications eventually
+
+    if (!me) return
 
     const retryPoll = async () => {
       let failedInvoices
@@ -298,7 +301,7 @@ function RetryHandler ({ children }) {
 
     queuePoll()
     return stopPolling
-  }, [wallets, getFailedInvoices, retry])
+  }, [me?.id, wallets, getFailedInvoices, retry])
 
   return children
 }

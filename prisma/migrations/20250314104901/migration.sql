@@ -1,5 +1,4 @@
 -- exclude posts in own subs from spam detection
-DROP FUNCTION item_spam(parent_id INTEGER, user_id INTEGER, within INTERVAL, subName TEXT);
 CREATE OR REPLACE FUNCTION item_spam(parent_id INTEGER, user_id INTEGER, within INTERVAL, subName TEXT)
 RETURNS INTEGER
 LANGUAGE plpgsql
@@ -10,11 +9,11 @@ DECLARE
 BEGIN
     -- no fee escalation
     IF within = interval '0' THEN
-        RETURN 111;
+        RETURN 0;
     END IF;
 
     IF subName IS NOT NULL AND user_id = (SELECT "Sub"."userId" FROM "Sub" WHERE "Sub"."name" = subName) THEN
-        RETURN 222;
+        RETURN 0;
     END IF;
 
     SELECT count(*) INTO repeats
@@ -31,7 +30,7 @@ BEGIN
     AND "Item".created_at > now_utc() - within;
 
     IF parent_id IS NULL THEN
-        RETURN repeats * 1000 + 333;
+        RETURN repeats;
     END IF;
 
     WITH RECURSIVE base AS (
@@ -47,6 +46,6 @@ BEGIN
         JOIN "Item" ON "Item".id = p."parentId" AND "Item"."userId" = p."userId" AND "Item".created_at > now_utc() - within)
     SELECT count(*) INTO self_replies FROM base;
 
-    RETURN repeats * 1000000 + self_replies * 1000 + 444;
+    RETURN repeats + self_replies;
 END;
 $$;

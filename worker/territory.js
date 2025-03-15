@@ -3,9 +3,10 @@ import performPaidAction from '@/api/paidAction'
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { datePivot } from '@/lib/time'
+import { notifyTerritoryStatusChange, notifyTerritoryRevenue } from '@/lib/webPush'
 
 export async function territoryBilling ({ data: { subName }, boss, models }) {
-  const sub = await models.sub.findUnique({
+  let sub = await models.sub.findUnique({
     where: {
       name: subName
     }
@@ -13,7 +14,7 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
 
   async function territoryStatusUpdate () {
     if (sub.status !== 'STOPPED') {
-      await models.sub.update({
+      sub = await models.sub.update({
         include: { user: true },
         where: {
           name: subName
@@ -24,7 +25,8 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
         }
       })
     }
-
+    // send push notification with the new status
+    await notifyTerritoryStatusChange({ sub })
     // retry billing in one day
     await boss.send('territoryBilling', { subName }, { startAfter: datePivot(new Date(), { days: 1 }) })
   }
@@ -44,6 +46,9 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
       })
     if (!result) {
       throw new Error('not enough fee credits to auto-renew territory')
+    } else if (sub.status === 'GRACE' && result.status === 'ACTIVE') {
+      // if the sub was in grace and we successfully auto-renewed it, send a push notification
+      await notifyTerritoryStatusChange({ sub })
     }
   } catch (e) {
     console.error(e)
@@ -90,4 +95,17 @@ export async function territoryRevenue ({ models }) {
         "stackedMsats" = users."stackedMsats" + "SubActResultTotal".total_msats
       FROM "SubActResultTotal"
       WHERE users.id = "SubActResultTotal"."userId"`
+
+  const territoryRevenue = await models.subAct.findMany({
+    where: {
+      createdAt: { // retrieve revenue calculated in the last hour
+        gte: datePivot(new Date(), { hours: -1 })
+      },
+      type: 'REVENUE'
+    }
+  })
+
+  await Promise.allSettled(
+    territoryRevenue.map(subAct => notifyTerritoryRevenue(subAct))
+  )
 }

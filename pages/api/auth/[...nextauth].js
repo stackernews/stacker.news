@@ -177,6 +177,7 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
 
 async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
   const { k1, pubkey } = credentials
+  const signup = req.headers.cookie?.includes('signup=true')
 
   // are we trying to add a new account for switching between?
   const multiAuth = typeof req.body.multiAuth === 'string' ? req.body.multiAuth === 'true' : !!req.body.multiAuth
@@ -205,8 +206,12 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
         if (token?.id && !multiAuth) {
           user = await prisma.user.update({ where: { id: token.id }, data: { [pubkeyColumnName]: pubkey } })
         } else {
-          // we're not logged in: create new user with that pubkey
-          user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), [pubkeyColumnName]: pubkey } })
+          // create a new user only if we're trying to sign up
+          if (signup) {
+            user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), [pubkeyColumnName]: pubkey } })
+          } else {
+            return null
+          }
         }
       }
 
@@ -314,18 +319,20 @@ export const getAuthOptions = (req, res) => ({
   adapter: {
     ...PrismaAdapter(prisma),
     createUser: data => {
-      // replace email with email hash in new user payload
-      if (data.email) {
-        const { email } = data
-        data.emailHash = hashEmail({ email })
-        delete data.email
-        // data.email used to be used for name of new accounts. since it's missing, let's generate a new name
-        data.name = data.emailHash.substring(0, 10)
-        // sign them up for the newsletter
-        // don't await it, let it run async
-        enrollInNewsletter({ email })
+      if (req.cookies.signup === 'true') {
+        // replace email with email hash in new user payload
+        if (data.email) {
+          const { email } = data
+          data.emailHash = hashEmail({ email })
+          delete data.email
+          // data.email used to be used for name of new accounts. since it's missing, let's generate a new name
+          data.name = data.emailHash.substring(0, 10)
+          // sign them up for the newsletter
+          // don't await it, let it run async
+          enrollInNewsletter({ email })
+        }
+        return prisma.user.create({ data })
       }
-      return prisma.user.create({ data })
     },
     getUserByEmail: async email => {
       const hashedEmail = hashEmail({ email })

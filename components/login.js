@@ -1,7 +1,7 @@
 import { signIn } from 'next-auth/react'
 import styles from './login.module.css'
 import { Form, Input, SubmitButton } from '@/components/form'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import { useRouter } from 'next/router'
 import { LightningAuthWithExplainer } from './lightning-auth'
@@ -53,9 +53,25 @@ export function authErrorMessage (error) {
   return error && (authErrorMessages[error] ?? authErrorMessages.default)
 }
 
-export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer }) {
+export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signup }) {
   const [errorMessage, setErrorMessage] = useState(authErrorMessage(error))
   const router = useRouter()
+
+  const setSignupCookie = (isSignup) => {
+    const cookieOptions = [
+      `signup=${isSignup}`,
+      'path=/',
+      'max-age=300',
+      'SameSite=Lax',
+      process.env.NODE_ENV === 'production' ? 'Secure' : ''
+    ].filter(Boolean).join(';')
+
+    document.cookie = cookieOptions
+  }
+
+  useEffect(() => {
+    setSignupCookie(!!signup)
+  }, [signup])
 
   if (router.query.type === 'lightning') {
     return <LightningAuthWithExplainer callbackUrl={callbackUrl} text={text} multiAuth={multiAuth} />

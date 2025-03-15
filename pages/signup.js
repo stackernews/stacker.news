@@ -27,6 +27,7 @@ export default function SignUp ({ ...props }) {
         Header={() => <SignUpHeader />}
         Footer={() => <SignUpFooter callbackUrl={props.callbackUrl} />}
         text='Sign up'
+        signup
         {...props}
       />
     </StaticLayout>

@@ -1,38 +1,89 @@
 import * as math from 'mathjs'
-import { USER_ID, SN_ADMIN_IDS } from '@/lib/constants'
+import { USER_ID } from '@/lib/constants'
+import { Prisma } from '@prisma/client'
+import { initialTrust, GLOBAL_SEEDS } from '@/api/paidAction/lib/territory'
 
-export async function trust ({ boss, models }) {
-  try {
-    console.time('trust')
-    console.timeLog('trust', 'getting graph')
-    const graph = await getGraph(models)
-    console.timeLog('trust', 'computing trust')
-    const [vGlobal, mPersonal] = await trustGivenGraph(graph)
-    console.timeLog('trust', 'storing trust')
-    await storeTrust(models, graph, vGlobal, mPersonal)
-  } finally {
-    console.timeEnd('trust')
-  }
-}
-
-const MAX_DEPTH = 10
+const MAX_DEPTH = 40
 const MAX_TRUST = 1
-const MIN_SUCCESS = 1
+const MIN_SUCCESS = 0
 // https://en.wikipedia.org/wiki/Normal_distribution#Quantile_function
 const Z_CONFIDENCE = 6.109410204869 // 99.9999999% confidence
-const GLOBAL_ROOT = 616
-const SEED_WEIGHT = 1.0
+const SEED_WEIGHT = 0.83
 const AGAINST_MSAT_MIN = 1000
-const MSAT_MIN = 20001 // 20001 is the minimum for a tip to be counted in trust
-const SIG_DIFF = 0.1 // need to differ by at least 10 percent
+const MSAT_MIN = 1001 // 20001 is the minimum for a tip to be counted in trust
+const INDEPENDENCE_THRESHOLD = 50 // how many zappers are needed to consider a sub independent
+const IRRELEVANT_CUMULATIVE_TRUST = 0.001 // if a user has less than this amount of cumulative trust, they are irrelevant
+
+// for each subName, we'll need to get two graphs
+// one for comments and one for posts
+// then we'll need to do two trust calculations on each graph
+// one with global seeds and one with subName seeds
+export async function trust ({ boss, models }) {
+  console.time('trust')
+  const territories = await models.sub.findMany({
+    where: {
+      status: 'ACTIVE'
+    }
+  })
+  for (const territory of territories) {
+    const seeds = GLOBAL_SEEDS.includes(territory.userId) ? GLOBAL_SEEDS : GLOBAL_SEEDS.concat(territory.userId)
+    try {
+      console.timeLog('trust', `getting post graph for ${territory.name}`)
+      const postGraph = await getGraph(models, territory.name, true, seeds)
+      console.timeLog('trust', `getting comment graph for ${territory.name}`)
+      const commentGraph = await getGraph(models, territory.name, false, seeds)
+      console.timeLog('trust', `computing global post trust for ${territory.name}`)
+      const vGlobalPost = await trustGivenGraph(postGraph)
+      console.timeLog('trust', `computing global comment trust for ${territory.name}`)
+      const vGlobalComment = await trustGivenGraph(commentGraph)
+      console.timeLog('trust', `computing sub post trust for ${territory.name}`)
+      const vSubPost = await trustGivenGraph(postGraph, postGraph.length > INDEPENDENCE_THRESHOLD ? [territory.userId] : seeds)
+      console.timeLog('trust', `computing sub comment trust for ${territory.name}`)
+      const vSubComment = await trustGivenGraph(commentGraph, commentGraph.length > INDEPENDENCE_THRESHOLD ? [territory.userId] : seeds)
+      console.timeLog('trust', `storing trust for ${territory.name}`)
+      let results = reduceVectors(territory.name, {
+        zapPostTrust: {
+          graph: postGraph,
+          vector: vGlobalPost
+        },
+        subZapPostTrust: {
+          graph: postGraph,
+          vector: vSubPost
+        },
+        zapCommentTrust: {
+          graph: commentGraph,
+          vector: vGlobalComment
+        },
+        subZapCommentTrust: {
+          graph: commentGraph,
+          vector: vSubComment
+        }
+      })
+
+      if (results.length === 0) {
+        console.timeLog('trust', `no results for ${territory.name} - adding seeds`)
+        results = initialTrust({ name: territory.name, userId: territory.userId })
+      }
+
+      await storeTrust(models, territory.name, results)
+    } catch (e) {
+      console.error(`error computing trust for ${territory.name}:`, e)
+    } finally {
+      console.timeLog('trust', `finished computing trust for ${territory.name}`)
+    }
+  }
+  console.timeEnd('trust')
+}
 
 /*
  Given a graph and start this function returns an object where
  the keys are the node id and their value is the trust of that node
 */
-function trustGivenGraph (graph) {
+// I'm going to need to send subName, and multiply by a vector instead of a matrix
+function trustGivenGraph (graph, seeds = GLOBAL_SEEDS) {
+  console.timeLog('trust', `creating matrix of size ${graph.length} x ${graph.length}`)
   // empty matrix of proper size nstackers x nstackers
-  let mat = math.zeros(graph.length, graph.length, 'sparse')
+  const mat = math.zeros(graph.length, graph.length, 'sparse')
 
   // create a map of user id to position in matrix
   const posByUserId = {}
@@ -54,54 +105,57 @@ function trustGivenGraph (graph) {
 
   // perform random walk over trust matrix
   // the resulting matrix columns represent the trust a user (col) has for each other user (rows)
-  // XXX this scales N^3 and mathjs is slow
-  let matT = math.transpose(mat)
-  const original = matT.clone()
-  for (let i = 0; i < MAX_DEPTH; i++) {
-    console.timeLog('trust', `matrix multiply ${i}`)
-    matT = math.multiply(original, matT)
-    matT = math.add(math.multiply(1 - SEED_WEIGHT, matT), math.multiply(SEED_WEIGHT, original))
+  const matT = math.transpose(mat)
+  const vTrust = math.zeros(graph.length)
+  for (const seed of seeds) {
+    vTrust.set([posByUserId[seed], 0], 1.0 / seeds.length)
   }
+  let result = vTrust.clone()
+  console.timeLog('trust', 'matrix multiply')
+  for (let i = 0; i < MAX_DEPTH; i++) {
+    result = math.multiply(matT, result)
+    result = math.add(math.multiply(1 - SEED_WEIGHT, result), math.multiply(SEED_WEIGHT, vTrust))
+  }
+  result = math.squeeze(result)
 
   console.timeLog('trust', 'transforming result')
 
-  const seedIdxs = SN_ADMIN_IDS.map(id => posByUserId[id])
-  const isOutlier = (fromIdx, idx) => [...seedIdxs, fromIdx].includes(idx)
-  const sqapply = (mat, fn) => {
-    let idx = 0
-    return math.squeeze(math.apply(mat, 1, d => {
-      const filtered = math.filter(d, (val, fidx) => {
-        return val !== 0 && !isOutlier(idx, fidx[0])
-      })
-      idx++
-      if (filtered.length === 0) return 0
-      return fn(filtered)
-    }))
+  const seedIdxs = seeds.map(id => posByUserId[id])
+  const filterZeroAndSeed = (val, idx) => {
+    return val !== 0 && !seedIdxs.includes(idx[0])
+  }
+  const filterSeed = (val, idx) => {
+    return !seedIdxs.includes(idx[0])
+  }
+  const sqapply = (vec, filterFn, fn) => {
+    // if the vector is smaller than the seeds, don't filter
+    const filtered = vec.size()[0] > seeds.length ? math.filter(vec, filterFn) : vec
+    if (filtered.size()[0] === 0) return 0
+    return fn(filtered)
   }
 
   console.timeLog('trust', 'normalizing')
   console.timeLog('trust', 'stats')
-  mat = math.transpose(matT)
-  const std = sqapply(mat, math.std) // math.squeeze(math.std(mat, 1))
-  const mean = sqapply(mat, math.mean) // math.squeeze(math.mean(mat, 1))
-  const zscore = math.map(mat, (val, idx) => {
-    const zstd = math.subset(std, math.index(idx[0], 0))
-    const zmean = math.subset(mean, math.index(idx[0], 0))
-    return zstd ? (val - zmean) / zstd : 0
+  const std = sqapply(result, filterZeroAndSeed, math.std) // math.squeeze(math.std(mat, 1))
+  const mean = sqapply(result, filterZeroAndSeed, math.mean) // math.squeeze(math.mean(mat, 1))
+  console.timeLog('trust', 'std', std)
+  console.timeLog('trust', 'mean', mean)
+  const zscore = math.map(result, (val) => {
+    if (std === 0) return 0
+    return (val - mean) / std
   })
   console.timeLog('trust', 'minmax')
-  const min = sqapply(zscore, math.min) // math.squeeze(math.min(zscore, 1))
-  const max = sqapply(zscore, math.max) // math.squeeze(math.max(zscore, 1))
-  const mPersonal = math.map(zscore, (val, idx) => {
-    const zmin = math.subset(min, math.index(idx[0], 0))
-    const zmax = math.subset(max, math.index(idx[0], 0))
-    const zrange = zmax - zmin
-    if (val > zmax) return MAX_TRUST
-    return zrange ? (val - zmin) / zrange : 0
+  const min = sqapply(zscore, filterSeed, math.min) // math.squeeze(math.min(zscore, 1))
+  const max = sqapply(zscore, filterSeed, math.max) // math.squeeze(math.max(zscore, 1))
+  console.timeLog('trust', 'min', min)
+  console.timeLog('trust', 'max', max)
+  const normalized = math.map(zscore, (val) => {
+    const zrange = max - min
+    if (val > max) return MAX_TRUST
+    return zrange ? (val - min) / zrange : 0
   })
-  const vGlobal = math.squeeze(math.row(mPersonal, posByUserId[GLOBAL_ROOT]))
 
-  return [vGlobal, mPersonal]
+  return normalized
 }
 
 /*
@@ -111,7 +165,9 @@ function trustGivenGraph (graph) {
     ...
   ]
 */
-async function getGraph (models) {
+// I'm going to want to send subName to this function
+// and whether it's for comments or posts
+async function getGraph (models, subName, postTrust = true, seeds = GLOBAL_SEEDS) {
   return await models.$queryRaw`
     SELECT id, json_agg(json_build_object(
       'node', oid,
@@ -124,10 +180,16 @@ async function getGraph (models) {
             sum("ItemAct".msats) as user_msats
         FROM "ItemAct"
         JOIN "Item" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".act IN ('FEE', 'TIP', 'DONT_LIKE_THIS')
-          AND "Item"."parentId" IS NULL AND NOT "Item".bio AND "Item"."userId" <> "ItemAct"."userId"
+          AND NOT "Item".bio AND "Item"."userId" <> "ItemAct"."userId"
+          AND ${postTrust
+            ? Prisma.sql`"Item"."parentId" IS NULL AND "Item"."subName" = ${subName}::TEXT`
+            : Prisma.sql`
+              "Item"."parentId" IS NOT NULL
+              JOIN "Item" root ON "Item"."rootId" = root.id AND root."subName" = ${subName}::TEXT`
+          }
         JOIN users ON "ItemAct"."userId" = users.id AND users.id <> ${USER_ID.anon}
-        WHERE "ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID'
-        GROUP BY user_id, name, item_id, user_at, against
+        WHERE ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
+        GROUP BY user_id, users.name, item_id, user_at, against
         HAVING CASE WHEN
           "ItemAct".act = 'DONT_LIKE_THIS' THEN sum("ItemAct".msats) > ${AGAINST_MSAT_MIN}
           ELSE sum("ItemAct".msats) > ${MSAT_MIN} END
@@ -136,7 +198,7 @@ async function getGraph (models) {
         SELECT a.user_id AS a_id, b.user_id AS b_id,
             sum(CASE WHEN b.user_msats > a.user_msats THEN a.user_msats / b.user_msats::FLOAT ELSE b.user_msats / a.user_msats::FLOAT END) FILTER(WHERE a.act_at > b.act_at AND a.against = b.against) AS before,
             sum(CASE WHEN b.user_msats > a.user_msats THEN a.user_msats / b.user_msats::FLOAT ELSE b.user_msats / a.user_msats::FLOAT END) FILTER(WHERE b.act_at > a.act_at AND a.against = b.against) AS after,
-            sum(log(1 + a.user_msats / 10000::float) + log(1 + b.user_msats / 10000::float)) FILTER(WHERE a.against <> b.against) AS disagree,
+            count(*) FILTER(WHERE a.against <> b.against) AS disagree,
             b.user_vote_count AS b_total, a.user_vote_count AS a_total
         FROM user_votes a
         JOIN user_votes b ON a.item_id = b.item_id
@@ -149,14 +211,9 @@ async function getGraph (models) {
             confidence(before - disagree, b_total - after, ${Z_CONFIDENCE})
           ELSE 0 END AS trust
         FROM user_pair
-        WHERE NOT (b_id = ANY (${SN_ADMIN_IDS}))
         UNION ALL
-        SELECT a_id AS id, seed_id AS oid, ${MAX_TRUST}::numeric as trust
-        FROM user_pair, unnest(${SN_ADMIN_IDS}::int[]) seed_id
-        GROUP BY a_id, a_total, seed_id
-        UNION ALL
-        SELECT a_id AS id, a_id AS oid, ${MAX_TRUST}::float as trust
-        FROM user_pair
+        SELECT seed_id AS id, seed_id AS oid, 0 AS trust
+        FROM unnest(${seeds}::int[]) seed_id
       )
       SELECT id, oid, trust, sum(trust) OVER (PARTITION BY id) AS total_trust
       FROM trust_pairs
@@ -165,46 +222,45 @@ async function getGraph (models) {
     ORDER BY id ASC`
 }
 
-async function storeTrust (models, graph, vGlobal, mPersonal) {
-  // convert nodeTrust into table literal string
-  let globalValues = ''
-  let personalValues = ''
-  vGlobal.forEach((val, [idx]) => {
-    if (isNaN(val)) return
-    if (globalValues) globalValues += ','
-    globalValues += `(${graph[idx].id}, ${val}::FLOAT)`
-    if (personalValues) personalValues += ','
-    personalValues += `(${GLOBAL_ROOT}, ${graph[idx].id}, ${val}::FLOAT)`
-  })
+function reduceVectors (subName, fieldGraphVectors) {
+  function reduceVector (field, graph, vector, result = {}) {
+    vector.forEach((val, [idx]) => {
+      if (isNaN(val) || val <= 0) return
+      result[graph[idx].id] = {
+        ...result[graph[idx].id],
+        subName,
+        userId: graph[idx].id,
+        [field]: val
+      }
+    })
+    return result
+  }
 
-  math.forEach(mPersonal, (val, [fromIdx, toIdx]) => {
-    const globalVal = vGlobal.get([toIdx, 0])
-    if (isNaN(val) || val - globalVal <= SIG_DIFF) return
-    if (personalValues) personalValues += ','
-    personalValues += `(${graph[fromIdx].id}, ${graph[toIdx].id}, ${val}::FLOAT)`
-  })
+  let result = {}
+  for (const field in fieldGraphVectors) {
+    result = reduceVector(field, fieldGraphVectors[field].graph, fieldGraphVectors[field].vector, result)
+  }
 
+  // return only the users with trust > 0
+  return Object.values(result).filter(s =>
+    Object.keys(fieldGraphVectors).reduce(
+      (acc, key) => acc + (s[key] ?? 0),
+      0
+    ) > IRRELEVANT_CUMULATIVE_TRUST
+  )
+}
+
+async function storeTrust (models, subName, results) {
+  console.timeLog('trust', `storing trust for ${subName} with ${results.length} users`)
   // update the trust of each user in graph
   await models.$transaction([
-    models.$executeRaw`UPDATE users SET trust = 0`,
-    models.$executeRawUnsafe(
-      `UPDATE users
-        SET trust = g.trust
-        FROM (values ${globalValues}) g(id, trust)
-        WHERE users.id = g.id`),
-    models.$executeRawUnsafe(
-      `INSERT INTO "Arc" ("fromId", "toId", "zapTrust")
-        SELECT id, oid, trust
-        FROM (values ${personalValues}) g(id, oid, trust)
-        ON CONFLICT ("fromId", "toId") DO UPDATE SET "zapTrust" = EXCLUDED."zapTrust"`
-    ),
-    // select all arcs that don't exist in personalValues and delete them
-    models.$executeRawUnsafe(
-      `DELETE FROM "Arc"
-        WHERE ("fromId", "toId") NOT IN (
-          SELECT id, oid
-          FROM (values ${personalValues}) g(id, oid, trust)
-        )`
-    )
+    models.userSubTrust.deleteMany({
+      where: {
+        subName
+      }
+    }),
+    models.userSubTrust.createMany({
+      data: results
+    })
   ])
 }

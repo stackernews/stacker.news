@@ -36,7 +36,7 @@ export default function Search ({ sub }) {
       }
 
       if (values.what === '' || values.what === 'all') delete values.what
-      if (values.sort === '' || values.sort === 'zaprank') delete values.sort
+      if (values.sort === '' || values.sort === 'relevance') delete values.sort
       if (values.when === '' || values.when === 'forever') delete values.when
       if (values.when !== 'custom') { delete values.from; delete values.to }
       if (values.from && !values.to) return
@@ -50,7 +50,7 @@ export default function Search ({ sub }) {
 
   const filter = sub !== 'jobs'
   const what = router.pathname.startsWith('/stackers') ? 'stackers' : router.query.what || 'all'
-  const sort = router.query.sort || 'zaprank'
+  const sort = router.query.sort || 'relevance'
   const when = router.query.when || 'forever'
   const whatItemOptions = useMemo(() => (['all', 'posts', 'comments', me ? 'bookmarks' : undefined, 'stackers'].filter(item => !!item)), [me])
 
@@ -100,7 +100,7 @@ export default function Search ({ sub }) {
                         name='sort'
                         size='sm'
                         overrideValue={sort}
-                        items={['zaprank', 'recent', 'comments', 'sats']}
+                        items={['relevance', 'zaprank', 'recent', 'comments', 'sats']}
                       />
                       for
                       <Select

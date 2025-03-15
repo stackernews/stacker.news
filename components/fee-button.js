@@ -37,10 +37,10 @@ export function postCommentBaseLineItems ({ baseCost = 1, comment = false, me })
   }
 }
 
-export function postCommentUseRemoteLineItems ({ parentId } = {}) {
+export function postCommentUseRemoteLineItems ({ sub, parentId } = {}) {
   const query = parentId
-    ? gql`{ itemRepetition(parentId: "${parentId}") }`
-    : gql`{ itemRepetition }`
+    ? gql`{ itemRepetition(parentId: "${parentId}", sub: "${sub}") }`
+    : gql`{ itemRepetition(sub: "${sub}") }`
 
   return function useRemoteLineItems () {
     const [line, setLine] = useState({})

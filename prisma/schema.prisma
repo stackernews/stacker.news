@@ -1207,12 +1207,12 @@ model CustomDomain {
   updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
   domain            String    @unique
   subName           String    @unique @db.Citext
-  dnsState          String    @default("PENDING")
-  sslState          String    @default("PENDING")
-  certificateArn    String
+  dnsState          String?
+  sslState          String?
+  certificateArn    String?
   lastVerifiedAt    DateTime?
-  cname             String
-  verificationTxt   String
+  cname             String?
+  verificationTxt   String?
   sub               Sub       @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
   
   @@index([domain])

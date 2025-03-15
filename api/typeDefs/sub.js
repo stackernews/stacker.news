@@ -14,12 +14,12 @@ export default gql`
     updatedAt: Date!
     domain: String!
     subName: String!
-    dnsState: String!
-    sslState: String!
+    dnsState: String
+    sslState: String
     certificateArn: String
     lastVerifiedAt: Date
-    cname: String!
-    verificationTxt: String!
+    cname: String
+    verificationTxt: String
   }
 
   type Subs {

@@ -5,12 +5,12 @@ CREATE TABLE "CustomDomain" (
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "domain" TEXT NOT NULL,
     "subName" CITEXT NOT NULL,
-    "dnsState" TEXT NOT NULL DEFAULT 'PENDING',
-    "sslState" TEXT NOT NULL DEFAULT 'PENDING',
+    "dnsState" TEXT,
+    "sslState" TEXT,
     "certificateArn" TEXT,
     "lastVerifiedAt" TIMESTAMP(3),
-    "cname" TEXT NOT NULL,
-    "verificationTxt" TEXT NOT NULL,
+    "cname" TEXT,
+    "verificationTxt" TEXT,
 
     CONSTRAINT "CustomDomain_pkey" PRIMARY KEY ("id")
 );

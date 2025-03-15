@@ -81,9 +81,6 @@ async function getReferrerData (referrer, landing) {
   return referrerData
 }
 
-const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
-const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
-
 /** @returns {Partial<import('next-auth').CallbacksOptions>} */
 function getCallbacks (req, res) {
   return {
@@ -127,22 +124,12 @@ function getCallbacks (req, res) {
         token.sub = Number(token.id)
       }
 
-      if (req && res) {
-        if (user) {
-          // add multi_auth cookie for user that just logged in
-          const secret = process.env.NEXTAUTH_SECRET
-          const jwt = await encodeJWT({ token, secret })
-          const me = await prisma.user.findUnique({ where: { id: token.id } })
-          setMultiAuthCookies(req, res, { ...me, jwt })
-        } else {
-          const ok = checkMultiAuthCookies(req, res)
-          if (!ok) {
-            // something is wrong, reset multi auth until next login
-            resetMultiAuthCookies(req, res)
-          } else {
-            // TODO: refresh cookies
-          }
-        }
+      if (user && req && res) {
+        // add multi_auth cookie for user that just logged in
+        const secret = process.env.NEXTAUTH_SECRET
+        const jwt = await encodeJWT({ token, secret })
+        const me = await prisma.user.findUnique({ where: { id: token.id } })
+        setMultiAuthCookies(req, res, { ...me, jwt })
       }
 
       return token
@@ -158,6 +145,9 @@ function getCallbacks (req, res) {
 }
 
 function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
+  const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
+  const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
+
   // default expiration for next-auth JWTs is in 1 month
   const expiresAt = datePivot(new Date(), { months: 1 })
   const secure = process.env.NODE_ENV === 'production'
@@ -185,41 +175,6 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
   res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', b64Encode(newMultiAuth), { ...cookieOptions, httpOnly: false }))
 }
 
-function checkMultiAuthCookies (req, res) {
-  if (!req.cookies.multi_auth || !req.cookies['multi_auth.user-id']) {
-    return false
-  }
-
-  const accounts = b64Decode(req.cookies.multi_auth)
-  for (const account of accounts) {
-    if (!req.cookies[`multi_auth.${account.id}`]) {
-      return false
-    }
-  }
-
-  return true
-}
-
-function resetMultiAuthCookies (req, res) {
-  const cookieOptions = {
-    path: '/',
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    expires: 0,
-    maxAge: 0
-  }
-
-  if (req.cookies.multi_auth) res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', '', { ...cookieOptions, httpOnly: false }))
-  if (req.cookies['multi_auth.user-id']) res.appendHeader('Set-Cookie', cookie.serialize('multi_auth.user-id', '', { ...cookieOptions, httpOnly: false }))
-
-  for (const key of Object.keys(req.cookies)) {
-    // reset all user JWTs
-    if (/^multi_auth\.\d+$/.test(key)) {
-      res.appendHeader('Set-Cookie', cookie.serialize(key, '', { ...cookieOptions, httpOnly: true }))
-    }
-  }
-}
-
 async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
   const { k1, pubkey } = credentials
 
@@ -239,7 +194,7 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
       let user = await prisma.user.findUnique({ where: { [pubkeyColumnName]: pubkey } })
 
       // make following code aware of cookie pointer for account switching
-      req = multiAuthMiddleware(req)
+      req = multiAuthMiddleware(req, res)
       // token will be undefined if we're not logged in at all or if we switched to anon
       const token = await getToken({ req })
       if (!user) {

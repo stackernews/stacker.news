@@ -274,6 +274,38 @@ const getProviders = res => [
       return await pubkeyAuth(credentials, req, res, 'nostrAuthPubkey')
     }
   }),
+  CredentialsProvider({
+    id: 'sync',
+    name: 'Auth Sync',
+    credentials: {
+      token: { label: 'token', type: 'text' }
+    },
+    authorize: async ({ token }, req) => {
+      try {
+        const verificationToken = await prisma.verificationToken.findUnique({ where: { token } })
+        if (!verificationToken) return null
+
+        // has to be a sync token
+        if (!verificationToken.identifier.startsWith('sync:')) return null
+
+        // sync has user id
+        const userId = parseInt(verificationToken.identifier.split(':')[1], 10)
+        if (!userId) return null
+
+        // delete the token to prevent reuse
+        await prisma.verificationToken.delete({
+          where: { id: verificationToken.id }
+        })
+        if (new Date() > verificationToken.expires) return null
+
+        // return the user
+        return await prisma.user.findUnique({ where: { id: userId } })
+      } catch (error) {
+        console.error('auth sync error:', error)
+        return null
+      }
+    }
+  }),
   GitHubProvider({
     clientId: process.env.GITHUB_ID,
     clientSecret: process.env.GITHUB_SECRET,
@@ -431,7 +463,7 @@ export default async (req, res) => {
   await NextAuth(req, res, getAuthOptions(req, res))
 }
 
-function generateRandomString (length = 6, charset = BECH32_CHARSET) {
+export function generateRandomString (length = 6, charset = BECH32_CHARSET) {
   const bytes = randomBytes(length)
   let result = ''
 

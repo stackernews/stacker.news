@@ -135,15 +135,8 @@ function getCallbacks (req, res) {
           const me = await prisma.user.findUnique({ where: { id: token.id } })
           setMultiAuthCookies(req, res, { ...me, jwt })
         } else {
-          let error = !req.cookies.multi_auth || !req.cookies['multi_auth.user-id']
-          if (!error) {
-            const accounts = b64Decode(req.cookies.multi_auth)
-            for (const account of accounts) {
-              error = !req.cookies[`multi_auth.${account.id}`]
-              if (error) break
-            }
-          }
-          if (error) {
+          const ok = checkMultiAuthCookies(req, res)
+          if (!ok) {
             // something is wrong, reset multi auth until next login
             resetMultiAuthCookies(req, res)
           } else {
@@ -190,6 +183,21 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
     newMultiAuth = [...oldMultiAuth, ...newMultiAuth]
   }
   res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', b64Encode(newMultiAuth), { ...cookieOptions, httpOnly: false }))
+}
+
+function checkMultiAuthCookies (req, res) {
+  if (!req.cookies.multi_auth || !req.cookies['multi_auth.user-id']) {
+    return false
+  }
+
+  const accounts = b64Decode(req.cookies.multi_auth)
+  for (const account of accounts) {
+    if (!req.cookies[`multi_auth.${account.id}`]) {
+      return false
+    }
+  }
+
+  return true
 }
 
 function resetMultiAuthCookies (req, res) {

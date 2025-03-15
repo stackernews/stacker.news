@@ -3,7 +3,9 @@ import { deleteReminders, getDeleteAt, getRemindAt } from '@/lib/item'
 import { parseInternalLinks } from '@/lib/url'
 
 export async function getMentions ({ text }, { me, tx }) {
-  const mentionPattern = /\B@[\w_]+/gi
+  // match any "@username" at start of line / with leading whitespace or end of line / with trailing whitespace
+  // ( trailing paths like "@username/all" are also matched with a non-capturing group )
+  const mentionPattern = /(?<=\s|^)@([\w_]+(?:\/[\w_]+)?)(?=\s|$)/gi
   const names = text.match(mentionPattern)?.map(m => m.slice(1))
   if (names?.length > 0) {
     const users = await tx.user.findMany({

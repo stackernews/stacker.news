@@ -27,7 +27,9 @@ ALTER TABLE "UserSubTrust" ADD CONSTRAINT "UserSubTrust_subName_fkey" FOREIGN KE
 -- UserSubTrust is NOT populated, so this is a no-op ... but useful having it written out for migrating manually on deployment
 UPDATE "Item"
 SET "subWeightedVotes" = subquery."subWeightedVotes",
-    "subWeightedDownVotes" = subquery."subWeightedDownVotes"
+    "subWeightedDownVotes" = subquery."subWeightedDownVotes",
+    "weightedVotes" = subquery."weightedVotes",
+    "weightedDownVotes" = subquery."weightedDownVotes"
 FROM (
     WITH sub_votes AS (
         SELECT "ItemAct"."itemId",
@@ -42,6 +44,17 @@ FROM (
                     END, 0)
             ELSE 0
             END AS "subWeightedVotes",
+                        CASE WHEN (SUM("ItemAct"."msats") FILTER (WHERE "ItemAct"."act" IN ('TIP', 'FEE')))::FLOAT > 0
+            THEN COALESCE(
+                LOG(
+                    (SUM("ItemAct"."msats") FILTER (WHERE "ItemAct"."act" IN ('TIP', 'FEE')))::FLOAT / 1000
+                ) * CASE
+                        WHEN "Item"."parentId" IS NULL
+                        THEN "UserSubTrust"."zapPostTrust"
+                        ELSE "UserSubTrust"."zapCommentTrust"
+                    END, 0)
+            ELSE 0
+            END AS "weightedVotes",
             CASE WHEN (SUM("ItemAct"."msats") FILTER (WHERE "ItemAct"."act" IN ('DONT_LIKE_THIS')))::FLOAT > 0
             THEN COALESCE(
                 LOG(
@@ -52,16 +65,30 @@ FROM (
                         ELSE "UserSubTrust"."subZapCommentTrust"
                     END, 0)
             ELSE 0
-            END AS "subWeightedDownVotes"
+            END AS "subWeightedDownVotes",
+            CASE WHEN (SUM("ItemAct"."msats") FILTER (WHERE "ItemAct"."act" IN ('DONT_LIKE_THIS')))::FLOAT > 0
+            THEN COALESCE(
+                LOG(
+                    (SUM("ItemAct"."msats") FILTER (WHERE "ItemAct"."act" IN ('DONT_LIKE_THIS')))::FLOAT / 1000
+                ) * CASE
+                        WHEN "Item"."parentId" IS NULL
+                        THEN "UserSubTrust"."zapPostTrust"
+                        ELSE "UserSubTrust"."zapCommentTrust"
+                    END, 0)
+            ELSE 0
+            END AS "weightedDownVotes"
             FROM "ItemAct"
             JOIN "UserSubTrust" ON "ItemAct"."userId" = "UserSubTrust"."userId"
             JOIN "Item" ON "Item".id = "ItemAct"."itemId"
                 AND "UserSubTrust"."subName" = "Item"."subName"
                 AND "Item"."userId" <> "ItemAct"."userId"
             WHERE "ItemAct".act IN ('TIP', 'FEE', 'DONT_LIKE_THIS')
-            GROUP BY "ItemAct"."itemId", "ItemAct"."userId", "UserSubTrust"."subZapPostTrust", "UserSubTrust"."subZapCommentTrust", "Item"."parentId"
+            GROUP BY "ItemAct"."itemId", "ItemAct"."userId", "UserSubTrust"."subZapPostTrust",
+            "UserSubTrust"."subZapCommentTrust", "UserSubTrust"."zapPostTrust", "UserSubTrust"."zapCommentTrust",
+            "Item"."parentId"
     )
-    SELECT "itemId", SUM("subWeightedVotes") AS "subWeightedVotes", SUM("subWeightedDownVotes") AS "subWeightedDownVotes"
+    SELECT "itemId", SUM("subWeightedVotes") AS "subWeightedVotes", SUM("subWeightedDownVotes") AS "subWeightedDownVotes",
+        SUM("weightedVotes") AS "weightedVotes", SUM("weightedDownVotes") AS "weightedDownVotes"
     FROM sub_votes
     GROUP BY "itemId"
 ) AS subquery

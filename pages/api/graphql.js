@@ -12,6 +12,7 @@ import {
   ApolloServerPluginLandingPageProductionDefault
 } from '@apollo/server/plugin/landingPage/default'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
+import * as cookie from 'cookie'
 
 const apolloServer = new ApolloServer({
   typeDefs,
@@ -68,7 +69,7 @@ export default startServerAndCreateNextHandler(apolloServer, {
         session = { user: { ...sessionFields, apiKey: true } }
       }
     } else {
-      req = multiAuthMiddleware(req)
+      req = multiAuthMiddleware(req, res)
       session = await getServerSession(req, res, getAuthOptions(req))
     }
     return {
@@ -83,7 +84,18 @@ export default startServerAndCreateNextHandler(apolloServer, {
   }
 })
 
-export function multiAuthMiddleware (request) {
+export function multiAuthMiddleware (req, res) {
+  req = switchSessionCookie(req)
+
+  const ok = checkMultiAuthCookies(req, res)
+  if (!ok) {
+    resetMultiAuthCookies(req, res)
+  }
+
+  return req
+}
+
+function switchSessionCookie (request) {
   // switch next-auth session cookie with multi_auth cookie if cookie pointer present
 
   if (!request.cookies) {
@@ -127,4 +139,41 @@ export function multiAuthMiddleware (request) {
   }
 
   return request
+}
+
+const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
+
+function checkMultiAuthCookies (req, res) {
+  if (!req.cookies.multi_auth || !req.cookies['multi_auth.user-id']) {
+    return false
+  }
+
+  const accounts = b64Decode(req.cookies.multi_auth)
+  for (const account of accounts) {
+    if (!req.cookies[`multi_auth.${account.id}`]) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function resetMultiAuthCookies (req, res) {
+  const cookieOptions = {
+    path: '/',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    expires: 0,
+    maxAge: 0
+  }
+
+  if (req.cookies.multi_auth) res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', '', { ...cookieOptions, httpOnly: false }))
+  if (req.cookies['multi_auth.user-id']) res.appendHeader('Set-Cookie', cookie.serialize('multi_auth.user-id', '', { ...cookieOptions, httpOnly: false }))
+
+  for (const key of Object.keys(req.cookies)) {
+    // reset all user JWTs
+    if (/^multi_auth\.\d+$/.test(key)) {
+      res.appendHeader('Set-Cookie', cookie.serialize(key, '', { ...cookieOptions, httpOnly: true }))
+    }
+  }
 }

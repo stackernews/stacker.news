@@ -124,8 +124,8 @@ function getCallbacks (req, res) {
         token.sub = Number(token.id)
       }
 
-      // add multi_auth cookie for user that just logged in
       if (user && req && res) {
+        // add multi_auth cookie for user that just logged in
         const secret = process.env.NEXTAUTH_SECRET
         const jwt = await encodeJWT({ token, secret })
         const me = await prisma.user.findUnique({ where: { id: token.id } })
@@ -194,7 +194,7 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
       let user = await prisma.user.findUnique({ where: { [pubkeyColumnName]: pubkey } })
 
       // make following code aware of cookie pointer for account switching
-      req = multiAuthMiddleware(req)
+      req = multiAuthMiddleware(req, res)
       // token will be undefined if we're not logged in at all or if we switched to anon
       const token = await getToken({ req })
       if (!user) {

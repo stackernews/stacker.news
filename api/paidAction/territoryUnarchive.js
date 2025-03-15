@@ -1,6 +1,7 @@
 import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 import { nextBilling } from '@/lib/territory'
+import { initialTrust } from './lib/territory'
 
 export const anonable = false
 
@@ -65,7 +66,7 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
     }
   })
 
-  return await tx.sub.update({
+  const updatedSub = await tx.sub.update({
     data,
     // optimistic concurrency control
     // make sure none of the relevant fields have changed since we fetched the sub
@@ -76,6 +77,12 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
       }
     }
   })
+
+  await tx.userSubTrust.createMany({
+    data: initialTrust({ name: updatedSub.name, userId: updatedSub.userId })
+  })
+
+  return updatedSub
 }
 
 export async function describe ({ name }, context) {

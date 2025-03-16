@@ -295,7 +295,7 @@ export default function LoginButton () {
 function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const { removeLocalWallets } = useWallets()
-  const { multiAuthSignout } = useAccounts()
+  const { nextAccount } = useAccounts()
   const router = useRouter()
 
   return (
@@ -311,9 +311,9 @@ function LogoutObstacle ({ onClose }) {
         </Button>
         <Button
           onClick={async () => {
-            const switchSuccess = await multiAuthSignout()
-            // only signout if multiAuth did not find a next available account
-            if (switchSuccess) {
+            const next = await nextAccount()
+            // only signout if we did not find a next account
+            if (next) {
               onClose()
               // reload whatever page we're on to avoid any bugs
               router.reload()

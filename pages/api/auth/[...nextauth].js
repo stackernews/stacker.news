@@ -94,6 +94,8 @@ function getCallbacks (req, res) {
      */
     async jwt ({ token, user, account, profile, isNewUser }) {
       if (user) {
+        // reset signup cookie if any
+        res.setHeader('Set-Cookie', cookie.serialize('signup', '', { path: '/', expires: 0, maxAge: 0 }))
         // token won't have an id on it for new logins, we add it
         // note: token is what's kept in the jwt
         token.id = Number(user.id)
@@ -319,7 +321,7 @@ export const getAuthOptions = (req, res) => ({
   adapter: {
     ...PrismaAdapter(prisma),
     createUser: data => {
-      if (req.cookies.signup === 'true') {
+      if (req.cookies.signup === 'true') { // are we signing up?
         // replace email with email hash in new user payload
         if (data.email) {
           const { email } = data

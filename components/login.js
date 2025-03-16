@@ -57,20 +57,17 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
   const [errorMessage, setErrorMessage] = useState(authErrorMessage(error))
   const router = useRouter()
 
-  const setSignupCookie = (isSignup) => {
+  // signup/signin awareness cookie
+  useEffect(() => {
     const cookieOptions = [
-      `signup=${isSignup}`,
+      `signup=${!!signup}`,
       'path=/',
-      'max-age=300',
+      'max-age=' + 60 * 60 * 24, // 24 hours
       'SameSite=Lax',
       process.env.NODE_ENV === 'production' ? 'Secure' : ''
     ].filter(Boolean).join(';')
 
     document.cookie = cookieOptions
-  }
-
-  useEffect(() => {
-    setSignupCookie(!!signup)
   }, [signup])
 
   if (router.query.type === 'lightning') {

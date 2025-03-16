@@ -53,14 +53,14 @@ export function authErrorMessage (error) {
   return error && (authErrorMessages[error] ?? authErrorMessages.default)
 }
 
-export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signup }) {
+export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signin }) {
   const [errorMessage, setErrorMessage] = useState(authErrorMessage(error))
   const router = useRouter()
 
   // signup/signin awareness cookie
   useEffect(() => {
     const cookieOptions = [
-      `signup=${!!signup}`,
+      `signin=${!!signin}`,
       'path=/',
       'max-age=' + 60 * 60 * 24, // 24 hours
       'SameSite=Lax',
@@ -68,7 +68,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
     ].filter(Boolean).join(';')
 
     document.cookie = cookieOptions
-  }, [signup])
+  }, [signin])
 
   if (router.query.type === 'lightning') {
     return <LightningAuthWithExplainer callbackUrl={callbackUrl} text={text} multiAuth={multiAuth} />

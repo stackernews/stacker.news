@@ -33,7 +33,7 @@ export async function createInvoice (
     out: false
   })
 
-  let hostname = url.replace(/^https?:\/\//, '')
+  let hostname = url.replace(/^https?:\/\//, '').replace(/\/+$/, '')
   const agent = getAgent({ hostname })
 
   if (process.env.NODE_ENV !== 'production' && hostname.startsWith('localhost:')) {

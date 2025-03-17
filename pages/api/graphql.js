@@ -68,7 +68,7 @@ export default startServerAndCreateNextHandler(apolloServer, {
         session = { user: { ...sessionFields, apiKey: true } }
       }
     } else {
-      req = multiAuthMiddleware(req, res)
+      req = await multiAuthMiddleware(req, res)
       session = await getServerSession(req, res, getAuthOptions(req))
     }
     return {

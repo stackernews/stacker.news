@@ -312,7 +312,6 @@ export default {
             data: {
               domain,
               dnsState: 'PENDING',
-              cname: 'todo', // TODO: explore other options
               verificationTxt: randomBytes(32).toString('base64'), // TODO: explore other options
               sub: {
                 connect: { name: subName }

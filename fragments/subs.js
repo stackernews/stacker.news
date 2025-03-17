@@ -44,7 +44,8 @@ export const SUB_FIELDS = gql`
       sslState
       certificateArn
       lastVerifiedAt
-      cname
+      verificationCname
+      verificationCnameValue
       verificationTxt
     }
   }`

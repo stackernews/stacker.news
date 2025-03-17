@@ -1,10 +1,22 @@
-import { ACM } from 'aws-sdk'
-// TODO: skeleton
+import AWS from 'aws-sdk'
+// TODO: boilerplate
 
-const region = 'us-east-1' // cloudfront ACM is in us-east-1
-const acm = new ACM({ region })
+AWS.config.update({
+  region: 'us-east-1'
+})
+
+const config = {
+  s3ForcePathStyle: process.env.NODE_ENV === 'development'
+}
 
 export async function requestCertificate (domain) {
+  // for local development, we use the LOCALSTACK_ENDPOINT which
+  // is reachable from the host machine
+  if (process.env.NODE_ENV === 'development') {
+    config.endpoint = process.env.LOCALSTACK_ENDPOINT
+  }
+
+  const acm = new AWS.ACM(config)
   const params = {
     DomainName: domain,
     ValidationMethod: 'DNS',
@@ -20,7 +32,18 @@ export async function requestCertificate (domain) {
   return certificate.CertificateArn
 }
 
-export async function getCertificateStatus (certificateArn) {
+export async function describeCertificate (certificateArn) {
+  // for local development, we use the LOCALSTACK_ENDPOINT which
+  // is reachable from the host machine
+  if (process.env.NODE_ENV === 'development') {
+    config.endpoint = process.env.LOCALSTACK_ENDPOINT
+  }
+  const acm = new AWS.ACM(config)
   const certificate = await acm.describeCertificate({ CertificateArn: certificateArn }).promise()
+  return certificate
+}
+
+export async function getCertificateStatus (certificateArn) {
+  const certificate = await describeCertificate(certificateArn)
   return certificate.Certificate.Status
 }

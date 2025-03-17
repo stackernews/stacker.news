@@ -94,6 +94,7 @@ export async function customDomainMiddleware (request, referrerResp) {
 
 // TODO: dirty of previous iterations, refactor
 // UNSAFE UNSAFE UNSAFE tokens are visible in the URL
+// Redirect to Auth Sync if user is not logged in or has no multi_auth sessions
 export function customDomainAuthMiddleware (request, url) {
   const host = request.headers.get('host')
   const mainDomain = process.env.NEXT_PUBLIC_URL

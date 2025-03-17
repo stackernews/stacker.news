@@ -1221,18 +1221,19 @@ model Reminder {
 }
 
 model CustomDomain {
-  id                Int       @id @default(autoincrement())
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
-  domain            String    @unique
-  subName           String    @unique @db.Citext
-  dnsState          String?
-  sslState          String?
-  certificateArn    String?
-  lastVerifiedAt    DateTime?
-  cname             String?
-  verificationTxt   String?
-  sub               Sub       @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  id                      Int       @id @default(autoincrement())
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at")
+  domain                  String    @unique
+  subName                 String    @unique @db.Citext
+  dnsState                String?
+  sslState                String?
+  certificateArn          String?
+  lastVerifiedAt          DateTime?
+  verificationCname       String?
+  verificationCnameValue  String?
+  verificationTxt         String?
+  sub                     Sub       @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
   
   @@index([domain])
   @@index([createdAt])

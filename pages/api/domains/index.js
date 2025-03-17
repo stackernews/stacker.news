@@ -12,7 +12,7 @@ export default async function handler (req, res) {
   }
 
   try {
-    // fetch all custom domains from the database
+    // fetch all VERIFIED custom domains from the database
     const domains = await prisma.customDomain.findMany({
       select: {
         domain: true,

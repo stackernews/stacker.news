@@ -1,5 +1,5 @@
 import createPrisma from '@/lib/create-prisma'
-import { verifyDomainDNS, issueDomainCertificate, checkCertificateStatus } from '@/lib/domains'
+import { verifyDomainDNS, issueDomainCertificate, checkCertificateStatus, getValidationValues } from '@/lib/domains'
 
 // TODO: Add comments
 export async function domainVerification () {
@@ -9,16 +9,16 @@ export async function domainVerification () {
     const domains = await models.customDomain.findMany()
 
     for (const domain of domains) {
-      const { domain: domainName, dnsState, sslState, certificateArn, verificationTxt, cname, id } = domain
+      const { domain: domainName, dnsState, sslState, certificateArn, verificationTxt, id } = domain
       try {
         const data = { lastVerifiedAt: new Date() }
         // DNS verification
         if (dnsState === 'PENDING' || dnsState === 'FAILED') {
-          const { txtValid, cnameValid } = await verifyDomainDNS(domainName, verificationTxt, cname)
+          const { txtValid, cnameValid } = await verifyDomainDNS(domainName, verificationTxt)
           console.log(`${domainName}: TXT ${txtValid ? 'valid' : 'invalid'}, CNAME ${cnameValid ? 'valid' : 'invalid'}`)
           data.dnsState = txtValid && cnameValid ? 'VERIFIED' : 'FAILED'
         }
-
+        // TODO: make this consequential, don't wait for the next cron to issue the certificate
         // SSL issuing
         if (dnsState === 'VERIFIED' && (!certificateArn || sslState === 'FAILED')) {
           const certificateArn = await issueDomainCertificate(domainName)
@@ -26,6 +26,15 @@ export async function domainVerification () {
           if (certificateArn) {
             const sslState = await checkCertificateStatus(certificateArn)
             console.log(`${domainName}: Issued certificate status: ${sslState}`)
+            if (sslState === 'PENDING') {
+              try {
+                const { cname, value } = await getValidationValues(certificateArn)
+                data.verificationCname = cname
+                data.verificationCnameValue = value
+              } catch (error) {
+                console.error(`Failed to get validation values for domain ${domainName}:`, error)
+              }
+            }
             if (sslState) data.sslState = sslState
             data.certificateArn = certificateArn
           } else {
@@ -42,7 +51,7 @@ export async function domainVerification () {
 
         await models.customDomain.update({ where: { id }, data })
       } catch (error) {
-        // TODO: this considers only DNS verification errors, we should also consider SSL verification errors
+        // TODO: this declares any error as a DNS verification error, we should also consider SSL verification errors
         console.error(`Failed to verify domain ${domainName}:`, error)
 
         // TODO: DNS inconcistencies can happen, we should retry at least 3 times before marking it as FAILED

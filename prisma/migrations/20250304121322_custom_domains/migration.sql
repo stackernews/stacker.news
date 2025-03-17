@@ -9,7 +9,8 @@ CREATE TABLE "CustomDomain" (
     "sslState" TEXT,
     "certificateArn" TEXT,
     "lastVerifiedAt" TIMESTAMP(3),
-    "cname" TEXT,
+    "verificationCname" TEXT,
+    "verificationCnameValue" TEXT,
     "verificationTxt" TEXT,
 
     CONSTRAINT "CustomDomain_pkey" PRIMARY KEY ("id")

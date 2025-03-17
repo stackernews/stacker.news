@@ -1,7 +1,6 @@
 import { Badge } from 'react-bootstrap'
 import { Form, Input, SubmitButton } from './form'
 import { gql, useMutation } from '@apollo/client'
-import Info from './info'
 import { customDomainSchema } from '@/lib/validate'
 import ActionTooltip from './action-tooltip'
 import { useToast } from '@/components/toast'
@@ -77,23 +76,6 @@ export default function CustomDomainForm ({ sub }) {
                       {getStatusBadge(sub.customDomain.dnsState)}
                     </ActionTooltip>
                     {getSSLStatusBadge(sub.customDomain.sslState)}
-                    {sub.customDomain.dnsState === 'PENDING' && (
-                      <Info>
-                        <h6>Verify your domain</h6>
-                        <p>Add the following DNS records to verify ownership of your domain:</p>
-                        <pre>
-                          CNAME record:
-                          Host: @
-                          Value: stacker.news
-                        </pre>
-                      </Info>
-                    )}
-                    {sub.customDomain.sslState === 'PENDING' && (
-                      <Info>
-                        <h6>SSL certificate pending</h6>
-                        <p>Our system will issue an SSL certificate for your domain.</p>
-                      </Info>
-                    )}
                   </div>
                 </>
               )}
@@ -105,6 +87,38 @@ export default function CustomDomainForm ({ sub }) {
         {/* TODO: toaster */}
         <SubmitButton variant='primary' className='mt-3'>save</SubmitButton>
       </div>
+      {(sub.customDomain.dnsState === 'PENDING' || sub.customDomain.dnsState === 'FAILED') && (
+        <>
+          <h6>Verify your domain</h6>
+          <p>Add the following DNS records to verify ownership of your domain:</p>
+          <pre>
+            CNAME:
+            Host: @
+            Value: stacker.news
+          </pre>
+          <pre>
+            TXT:
+            Host: @
+            Value: ${sub.customDomain.verificationTxt}
+          </pre>
+        </>
+      )}
+      {sub.customDomain.sslState === 'PENDING' && (
+        <>
+          <h6>SSL verification pending</h6>
+          <p>We issued an SSL certificate for your domain.</p>
+          <pre>
+            CNAME:
+            Host: ${sub.customDomain.verificationCname}
+            Value: ${sub.customDomain.verificationCnameValue}
+          </pre>
+          <pre>
+            TXT:
+            Host: @
+            Value: ${sub.customDomain.verificationTxt}
+          </pre>
+        </>
+      )}
     </Form>
   )
 }

@@ -18,7 +18,8 @@ export default gql`
     sslState: String
     certificateArn: String
     lastVerifiedAt: Date
-    cname: String
+    verificationCname: String
+    verificationCnameValue: String
     verificationTxt: String
   }
 

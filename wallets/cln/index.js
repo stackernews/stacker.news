@@ -14,7 +14,6 @@ export const fields = [
     placeholder: '55.5.555.55:3010',
     hint: 'tor or clearnet',
     clear: true,
-    serverOnly: true,
     validate: string().socket()
   },
   {
@@ -33,10 +32,13 @@ export const fields = [
     hint: 'must be restricted to method=invoice',
     clear: true,
     serverOnly: true,
+    optional: 'for receiving',
+    requiredWithout: 'runePay',
     validate: string().matches(B64_URL_REGEX, { message: 'invalid rune' })
       .test({
         name: 'rune',
         test: (v, context) => {
+          if (!v) return true
           const decoded = decodeRune(v)
           if (!decoded) return context.createError({ message: 'invalid rune' })
           if (decoded.restrictions.length === 0) {
@@ -48,6 +50,27 @@ export const fields = [
           if (decoded.restrictions[0].alternatives[0] !== 'method=invoice') {
             return context.createError({ message: 'rune must be restricted to method=invoice only' })
           }
+          return true
+        }
+      })
+  },
+  {
+    name: 'runePay',
+    label: 'pay rune',
+    type: 'text',
+    placeholder: 'S34KtUW-6gqS_hD_9cc_PNhfF-NinZyBOCgr1aIrark9NCZtZXRob2Q9aW52b2ljZQ==',
+    hint: 'must allow method=pay',
+    clear: true,
+    clientOnly: true,
+    optional: 'for sending',
+    requiredWithout: 'rune',
+    validate: string().matches(B64_URL_REGEX, { message: 'invalid rune' })
+      .test({
+        name: 'runePay',
+        test: (v, context) => {
+          if (!v) return true
+          const decoded = decodeRune(v)
+          if (!decoded) return context.createError({ message: 'invalid rune' })
           return true
         }
       })

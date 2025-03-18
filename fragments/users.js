@@ -2,6 +2,7 @@ import { gql } from '@apollo/client'
 import { COMMENTS, COMMENTS_ITEM_EXT_FIELDS } from './comments'
 import { ITEM_FIELDS, ITEM_FULL_FIELDS } from './items'
 import { SUB_FULL_FIELDS } from './subs'
+import { VAULT_ENTRY_FIELDS } from './vault'
 
 export const STREAK_FIELDS = gql`
   fragment StreakFields on User {
@@ -15,6 +16,7 @@ export const STREAK_FIELDS = gql`
 
 export const ME = gql`
 ${STREAK_FIELDS}
+${VAULT_ENTRY_FIELDS}
 {
   me {
     id
@@ -54,6 +56,9 @@ ${STREAK_FIELDS}
       walletsUpdatedAt
       proxyReceive
       directReceive
+    }
+    encryptedPrivates {
+      ...VaultEntryFields
     }
     optional {
       isContributor
@@ -120,6 +125,11 @@ export const SETTINGS_FIELDS = gql`
       receiveCreditsBelowSats
       sendCreditsBelowSats
     }
+    encryptedPrivates {
+      key
+      value
+      iv
+    }
   }`
 
 export const SETTINGS = gql`
@@ -134,6 +144,14 @@ export const SET_SETTINGS = gql`
   ${SETTINGS_FIELDS}
   mutation setSettings($settings: SettingsInput!) {
     setSettings(settings: $settings) {
+      ...SettingsFields
+    }
+  }`
+
+export const SET_ENCRYPTED_SETTINGS = gql`
+  ${SETTINGS_FIELDS}
+  mutation setEncryptedSettings($settings: [VaultEntryInput!]!) {
+    setEncryptedSettings(settings: $settings) {
       ...SettingsFields
     }
   }`

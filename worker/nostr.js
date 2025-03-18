@@ -47,6 +47,8 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
     console.log('zap note', e, relays)
     const nostr = Nostr.get()
     const signer = nostr.getSigner({ privKey: process.env.NOSTR_PRIVATE_KEY })
+    await signer.blockUntilReady()
+
     await nostr.publish(e, {
       relays,
       signer,

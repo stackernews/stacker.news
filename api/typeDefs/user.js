@@ -32,6 +32,7 @@ export default gql`
   extend type Mutation {
     setName(name: String!): String
     setSettings(settings: SettingsInput!): User
+    setEncryptedSettings(settings: [VaultEntryInput!]!): User
     setPhoto(photoId: ID!): Int!
     upsertBio(text: String!): ItemPaidAction!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
@@ -66,6 +67,7 @@ export default gql`
 
     optional: UserOptional!
     privates: UserPrivates
+    encryptedPrivates: [VaultEntry!]
 
     meMute: Boolean!
     meSubscriptionPosts: Boolean!

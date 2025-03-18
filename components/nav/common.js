@@ -24,7 +24,9 @@ import { useHasNewNotes } from '../use-has-new-notes'
 import { useWallets } from '@/wallets/index'
 import SwitchAccountList, { useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
+import { useEncryptedPrivates } from '@/components/use-encrypted-privates'
 import { numWithUnits } from '@/lib/format'
+
 export function Brand ({ className }) {
   return (
     <Link href='/' passHref legacyBehavior>
@@ -271,6 +273,8 @@ function LogoutObstacle ({ onClose }) {
   const { removeLocalWallets } = useWallets()
   const { nextAccount } = useAccounts()
   const router = useRouter()
+  const { me } = useMe()
+  const { clearLocalEncryptedPrivates } = useEncryptedPrivates({ me })
 
   return (
     <div className='d-flex m-auto flex-column w-fit-content'>
@@ -301,6 +305,7 @@ function LogoutObstacle ({ onClose }) {
             }
 
             removeLocalWallets()
+            clearLocalEncryptedPrivates()
 
             await signOut({ callbackUrl: '/' })
           }}

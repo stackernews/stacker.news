@@ -50,7 +50,7 @@ export const AccountProvider = ({ children }) => {
     setAccounts(accounts => accounts.filter(({ id }) => id !== userId))
   }, [])
 
-  const multiAuthSignout = useCallback(async () => {
+  const nextAccount = useCallback(async () => {
     const { status } = await fetch('/api/next-account', { credentials: 'include' })
     // if status is 302, this means the server was able to switch us to the next available account
     // and the current account was simply removed from the list of available accounts including the corresponding JWT.
@@ -66,8 +66,8 @@ export const AccountProvider = ({ children }) => {
   }, [])
 
   const value = useMemo(
-    () => ({ accounts, addAccount, removeAccount, meAnon, setMeAnon, multiAuthSignout }),
-    [accounts, addAccount, removeAccount, meAnon, setMeAnon, multiAuthSignout])
+    () => ({ accounts, addAccount, removeAccount, meAnon, setMeAnon, nextAccount }),
+    [accounts, addAccount, removeAccount, meAnon, setMeAnon, nextAccount])
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>
 }
 

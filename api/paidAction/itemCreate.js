@@ -252,15 +252,18 @@ export async function onPaid ({ invoice, id }, context) {
         JOIN users ON "Item"."userId" = users.id
         WHERE "Item".id = ${item.id}::INTEGER
       ), ancestors AS (
+        SELECT "Item".*
+        FROM "Item", comment
+        WHERE "Item".path @> comment.path AND "Item".id <> comment.id
+        ORDER BY "Item".id
+      ), updated_ancestors AS (
         UPDATE "Item"
         SET ncomments = "Item".ncomments + 1,
           "lastCommentAt" = GREATEST("Item"."lastCommentAt", comment.created_at),
-          "weightedComments" = "Item"."weightedComments" +
-            CASE WHEN comment."userId" = "Item"."userId" THEN 0 ELSE comment.trust END,
           "nDirectComments" = "Item"."nDirectComments" +
             CASE WHEN comment."parentId" = "Item".id THEN 1 ELSE 0 END
-        FROM comment
-        WHERE "Item".path @> comment.path AND "Item".id <> comment.id
+        FROM comment, ancestors
+        WHERE "Item".id = ancestors.id
         RETURNING "Item".*
       )
       INSERT INTO "Reply" (created_at, updated_at, "ancestorId", "ancestorUserId", "itemId", "userId", level)

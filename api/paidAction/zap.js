@@ -2,6 +2,7 @@ import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyZapped } from '@/lib/webPush'
 import { getInvoiceableWallets } from '@/wallets/server'
+import { Prisma } from '@prisma/client'
 
 export const anonable = true
 
@@ -149,8 +150,22 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
   await tx.$queryRaw`
-    WITH zapper AS (
-      SELECT trust FROM users WHERE id = ${itemAct.userId}::INTEGER
+    WITH territory AS (
+      SELECT COALESCE(r."subName", i."subName", 'meta')::TEXT as "subName"
+      FROM "Item" i
+      LEFT JOIN "Item" r ON r.id = i."rootId"
+      WHERE i.id = ${itemAct.itemId}::INTEGER
+    ), zapper AS (
+      SELECT
+        COALESCE(${itemAct.item.parentId
+          ? Prisma.sql`"zapCommentTrust"`
+          : Prisma.sql`"zapPostTrust"`}, 0) as "zapTrust",
+        COALESCE(${itemAct.item.parentId
+          ? Prisma.sql`"subZapCommentTrust"`
+          : Prisma.sql`"subZapPostTrust"`}, 0) as "subZapTrust"
+      FROM territory
+      LEFT JOIN "UserSubTrust" ust ON ust."subName" = territory."subName"
+        AND ust."userId" = ${itemAct.userId}::INTEGER
     ), zap AS (
       INSERT INTO "ItemUserAgg" ("userId", "itemId", "zapSats")
       VALUES (${itemAct.userId}::INTEGER, ${itemAct.itemId}::INTEGER, ${sats}::INTEGER)
@@ -158,17 +173,30 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
       SET "zapSats" = "ItemUserAgg"."zapSats" + ${sats}::INTEGER, updated_at = now()
       RETURNING ("zapSats" = ${sats}::INTEGER)::INTEGER as first_vote,
         LOG("zapSats" / GREATEST("zapSats" - ${sats}::INTEGER, 1)::FLOAT) AS log_sats
+    ), item_zapped AS (
+      UPDATE "Item"
+      SET
+        "weightedVotes" = "weightedVotes" + zapper."zapTrust" * zap.log_sats,
+        "subWeightedVotes" = "subWeightedVotes" + zapper."subZapTrust" * zap.log_sats,
+        upvotes = upvotes + zap.first_vote,
+        msats = "Item".msats + ${msats}::BIGINT,
+        mcredits = "Item".mcredits + ${invoice?.invoiceForward ? 0n : msats}::BIGINT,
+        "lastZapAt" = now()
+      FROM zap, zapper
+      WHERE "Item".id = ${itemAct.itemId}::INTEGER
+      RETURNING "Item".*, zapper."zapTrust" * zap.log_sats as "weightedVote"
+    ), ancestors AS (
+      SELECT "Item".*
+      FROM "Item", item_zapped
+      WHERE "Item".path @> item_zapped.path AND "Item".id <> item_zapped.id
+      ORDER BY "Item".id
     )
     UPDATE "Item"
-    SET
-      "weightedVotes" = "weightedVotes" + (zapper.trust * zap.log_sats),
-      upvotes = upvotes + zap.first_vote,
-      msats = "Item".msats + ${msats}::BIGINT,
-      mcredits = "Item".mcredits + ${invoice?.invoiceForward ? 0n : msats}::BIGINT,
-      "lastZapAt" = now()
-    FROM zap, zapper
-    WHERE "Item".id = ${itemAct.itemId}::INTEGER
-    RETURNING "Item".*`
+    SET "weightedComments" = "Item"."weightedComments" + item_zapped."weightedVote",
+      "commentMsats" = "Item"."commentMsats" + ${msats}::BIGINT,
+      "commentMcredits" = "Item"."commentMcredits" + ${invoice?.invoiceForward ? 0n : msats}::BIGINT
+    FROM item_zapped, ancestors
+    WHERE "Item".id = ancestors.id`
 
   // record potential bounty payment
   // NOTE: we are at least guaranteed that we see the update "ItemUserAgg" from our tx so we can trust
@@ -188,17 +216,6 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
     SET "bountyPaidTo" = array_remove(array_append(array_remove("bountyPaidTo", bounty.target), bounty.target), NULL)
     FROM bounty
     WHERE "Item".id = bounty.id AND bounty.paid`
-
-  // update commentMsats on ancestors
-  await tx.$executeRaw`
-      WITH zapped AS (
-        SELECT * FROM "Item" WHERE id = ${itemAct.itemId}::INTEGER
-      )
-      UPDATE "Item"
-      SET "commentMsats" = "Item"."commentMsats" + ${msats}::BIGINT,
-        "commentMcredits" = "Item"."commentMcredits" + ${invoice?.invoiceForward ? 0n : msats}::BIGINT
-      FROM zapped
-      WHERE "Item".path @> zapped.path AND "Item".id <> zapped.id`
 }
 
 export async function nonCriticalSideEffects ({ invoice, actIds }, { models }) {

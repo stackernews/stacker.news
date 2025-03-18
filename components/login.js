@@ -112,6 +112,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
           default:
             return (
               <OverlayTrigger
+                key={provider.id}
                 placement='bottom'
                 overlay={multiAuth ? <Tooltip>not available for account switching yet</Tooltip> : <></>}
                 trigger={['hover', 'focus']}
@@ -119,7 +120,6 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
                 <div className='w-100'>
                   <LoginButton
                     className={`mt-2 ${styles.providerButton}`}
-                    key={provider.id}
                     type={provider.id.toLowerCase()}
                     onClick={() => signIn(provider.id, { callbackUrl, multiAuth })}
                     text={`${text || 'Login'} with`}

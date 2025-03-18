@@ -249,30 +249,52 @@ export default {
 
       // decompose the search terms
       const { query: _query, quotes, nym, url, territory } = queryParts(q)
-      let query = _query
+      const query = _query
 
       // if search contains a url term, modify the query text
-      const isUrlSearch = url && query.length === 0
       if (url) {
-        const isFQDN = url.startsWith('url:www.')
-        const domain = isFQDN ? url.slice(8) : url.slice(4)
-        const fqdn = `www.${domain}`
-        query = (isUrlSearch) ? `${domain} ${fqdn}` : `${query.trim()} ${domain}`
+        const uri = url.slice(4)
+        let uriObj
+        try {
+          uriObj = new URL(uri)
+        } catch {
+          try {
+            uriObj = new URL(`https://${uri}`)
+          } catch {}
+        }
+
+        if (uriObj) {
+          termQueries.push({
+            wildcard: { url: `*${uriObj?.hostname ?? uri}${uriObj?.pathname ?? ''}*` }
+          })
+          termQueries.push({
+            match: { text: `${uriObj?.hostname ?? uri}${uriObj?.pathname ?? ''}` }
+          })
+        }
       }
 
       // if nym, items must contain nym
       if (nym) {
-        termQueries.push({ wildcard: { 'user.name': `*${nym.slice(1).toLowerCase()}*` } })
+        filters.push({ wildcard: { 'user.name': `*${nym.slice(1).toLowerCase()}*` } })
       }
 
       // if territory, item must be from territory
       if (territory) {
-        termQueries.push({ match: { 'sub.name': territory.slice(1) } })
+        filters.push({ match: { 'sub.name': territory.slice(1) } })
       }
 
       // if quoted phrases, items must contain entire phrase
       for (const quote of quotes) {
         termQueries.push({
+          multi_match: {
+            query: quote,
+            type: 'phrase',
+            fields: ['title', 'text']
+          }
+        })
+
+        // force the search to include the quoted phrase
+        filters.push({
           multi_match: {
             query: quote,
             type: 'phrase',
@@ -285,14 +307,36 @@ export default {
       if (query.length) {
         // keyword based subquery, to be used on its own or in conjunction with a neural
         // search
-        const subquery = {
-          multi_match: {
-            query,
-            type: 'most_fields',
-            fields: ['title^20', 'text'],
-            minimum_should_match: (isUrlSearch) ? 1 : '60%'
+        const subquery = [
+          {
+            multi_match: {
+              query,
+              type: 'most_fields',
+              fields: ['title^10', 'text'],
+              fuzziness: 'AUTO',
+              minimum_should_match: 1
+            }
+          },
+          // all match matches higher
+          {
+            multi_match: {
+              query,
+              type: 'most_fields',
+              fields: ['title^10', 'text'],
+              minimum_should_match: '100%',
+              boost: 100
+            }
+          },
+          // phrase match matches higher
+          {
+            multi_match: {
+              query,
+              type: 'phrase',
+              fields: ['title^10', 'text'],
+              boost: 1000
+            }
           }
-        }
+        ]
 
         // use hybrid neural search if model id is available, otherwise use only
         // keyword search
@@ -326,14 +370,15 @@ export default {
                 },
                 {
                   bool: {
-                    should: subquery
+                    should: subquery,
+                    minimum_should_match: 1
                   }
                 }
               ]
             }
           })
         } else {
-          termQueries.push(subquery)
+          termQueries.push(...subquery)
         }
       }
 
@@ -396,7 +441,8 @@ export default {
                 query: {
                   bool: {
                     filter: filters,
-                    must: termQueries
+                    should: termQueries,
+                    minimum_should_match: 1
                   }
                 },
                 functions,

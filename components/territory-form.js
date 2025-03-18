@@ -288,23 +288,24 @@ export default function TerritoryForm ({ sub }) {
           />
         </div>
       </Form>
-      <div className='w-100'>
-        <AccordianItem
-          header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
-          body={
-            <>
-              <TerritoryDomains sub={sub} />
-              {sub?.customDomain?.dnsState === 'VERIFIED' && sub?.customDomain?.sslState === 'VERIFIED' &&
-                <>
-                  <BootstrapForm.Label>[NOT IMPLEMENTED] branding</BootstrapForm.Label>
-                  <div className='mb-3'>WIP</div>
-                  <BootstrapForm.Label>[NOT IMPLEMENTED] color scheme</BootstrapForm.Label>
-                  <div className='mb-3'>WIP</div>
-                </>}
-            </>
-          }
-        />
-      </div>
+      {sub &&
+        <div className='w-100'>
+          <AccordianItem
+            header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
+            body={
+              <>
+                <TerritoryDomains sub={sub} />
+                {sub?.customDomain?.dnsState === 'VERIFIED' && sub?.customDomain?.sslState === 'VERIFIED' &&
+                  <>
+                    <BootstrapForm.Label>[NOT IMPLEMENTED] branding</BootstrapForm.Label>
+                    <div className='mb-3'>WIP</div>
+                    <BootstrapForm.Label>[NOT IMPLEMENTED] color scheme</BootstrapForm.Label>
+                    <div className='mb-3'>WIP</div>
+                  </>}
+              </>
+            }
+          />
+        </div>}
     </FeeButtonProvider>
   )
 }

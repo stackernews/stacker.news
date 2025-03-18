@@ -150,6 +150,9 @@ export default {
         cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         subs
       }
+    },
+    customDomain: async (parent, { subName }, { models }) => {
+      return models.customDomain.findUnique({ where: { subName } })
     }
   },
   Mutation: {

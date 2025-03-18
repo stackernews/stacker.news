@@ -16,6 +16,7 @@ export async function requestCertificate (domain) {
     config.endpoint = process.env.LOCALSTACK_ENDPOINT
   }
 
+  // TODO: Research real values
   const acm = new AWS.ACM(config)
   const params = {
     DomainName: domain,

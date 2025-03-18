@@ -1,9 +1,10 @@
 import { Badge } from 'react-bootstrap'
 import { Form, Input, SubmitButton } from './form'
-import { gql, useMutation } from '@apollo/client'
+import { gql, useMutation, useQuery } from '@apollo/client'
 import { customDomainSchema } from '@/lib/validate'
 import ActionTooltip from './action-tooltip'
 import { useToast } from '@/components/toast'
+import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 
 const SET_CUSTOM_DOMAIN = gql`
   mutation SetCustomDomain($subName: String!, $domain: String!) {
@@ -15,11 +16,38 @@ const SET_CUSTOM_DOMAIN = gql`
   }
 `
 
-// TODO: verification states should refresh
+const GET_CUSTOM_DOMAIN = gql`
+  query CustomDomain($subName: String!) {
+    customDomain(subName: $subName) {
+      domain
+      dnsState
+      sslState
+      verificationCname
+      verificationCnameValue
+      verificationTxt
+      lastVerifiedAt
+    }
+  }
+`
+
+// TODO: clean this up
 export default function CustomDomainForm ({ sub }) {
   const [setCustomDomain] = useMutation(SET_CUSTOM_DOMAIN, {
     refetchQueries: ['Sub']
   })
+  const { data, stopPolling } = useQuery(GET_CUSTOM_DOMAIN, SSR
+    ? {}
+    : {
+        variables: { subName: sub.name },
+        pollInterval: NORMAL_POLL_INTERVAL,
+        skip: !sub || !sub.customDomain,
+        onCompleted: (data) => {
+          if (data?.customDomain?.sslState === 'VERIFIED' &&
+              data?.customDomain?.dnsState === 'VERIFIED') {
+            stopPolling()
+          }
+        }
+      })
   const toaster = useToast()
 
   const onSubmit = async ({ domain }) => {
@@ -57,7 +85,7 @@ export default function CustomDomainForm ({ sub }) {
   return (
     <Form
       initial={{
-        domain: sub?.customDomain?.domain || ''
+        domain: sub.customDomain?.domain || ''
       }}
       schema={customDomainSchema}
       onSubmit={onSubmit}
@@ -69,13 +97,13 @@ export default function CustomDomainForm ({ sub }) {
           label={
             <div className='d-flex align-items-center gap-2'>
               <span>custom domain</span>
-              {sub?.customDomain && (
+              {data?.customDomain && (
                 <>
                   <div className='d-flex align-items-center gap-2'>
-                    <ActionTooltip overlayText={new Date(sub.customDomain.lastVerifiedAt).toUTCString()}>
-                      {getStatusBadge(sub.customDomain.dnsState)}
+                    <ActionTooltip overlayText={new Date(data?.customDomain.lastVerifiedAt).toUTCString()}>
+                      {getStatusBadge(data?.customDomain.dnsState)}
                     </ActionTooltip>
-                    {getSSLStatusBadge(sub.customDomain.sslState)}
+                    {getSSLStatusBadge(data?.customDomain.sslState)}
                   </div>
                 </>
               )}
@@ -87,7 +115,7 @@ export default function CustomDomainForm ({ sub }) {
         {/* TODO: toaster */}
         <SubmitButton variant='primary' className='mt-3'>save</SubmitButton>
       </div>
-      {(sub.customDomain.dnsState === 'PENDING' || sub.customDomain.dnsState === 'FAILED') && (
+      {(data?.customDomain.dnsState === 'PENDING' || data?.customDomain.dnsState === 'FAILED') && (
         <>
           <h6>Verify your domain</h6>
           <p>Add the following DNS records to verify ownership of your domain:</p>
@@ -99,23 +127,18 @@ export default function CustomDomainForm ({ sub }) {
           <pre>
             TXT:
             Host: @
-            Value: ${sub.customDomain.verificationTxt}
+            Value: ${data?.customDomain.verificationTxt}
           </pre>
         </>
       )}
-      {sub.customDomain.sslState === 'PENDING' && (
+      {data?.customDomain.sslState === 'PENDING' && (
         <>
           <h6>SSL verification pending</h6>
-          <p>We issued an SSL certificate for your domain.</p>
+          <p>We issued an SSL certificate for your domain. To validate it, add the following CNAME record:</p>
           <pre>
             CNAME:
-            Host: ${sub.customDomain.verificationCname}
-            Value: ${sub.customDomain.verificationCnameValue}
-          </pre>
-          <pre>
-            TXT:
-            Host: @
-            Value: ${sub.customDomain.verificationTxt}
+            Host: ${data?.customDomain.verificationCname}
+            Value: ${data?.customDomain.verificationCnameValue}
           </pre>
         </>
       )}

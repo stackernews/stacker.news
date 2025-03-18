@@ -96,7 +96,7 @@ export default function SubSelect ({ prependSubs, sub, onChange, size, appendSub
           // we're currently on the home sub
           // if we're in top/cowboys and a territory is selected,
           // go to ~sub/top/posts/day
-          if (router.pathname.endsWith('top/cowboys')) {
+          if (router.pathname.endsWith('/top/cowboys')) {
             router.push(sub ? `/~${sub}/top/posts/day` : '/top/cowboys')
             return
           } else if (router.pathname.startsWith('/~')) {

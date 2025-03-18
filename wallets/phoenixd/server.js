@@ -1,5 +1,6 @@
 import { fetchWithTimeout } from '@/lib/fetch'
 import { msatsToSats } from '@/lib/format'
+import { getAgent } from '@/lib/proxy'
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
 export * from '@/wallets/phoenixd'
@@ -27,9 +28,13 @@ export async function createInvoice (
   body.append('description', description)
   body.append('amountSat', msatsToSats(msats))
 
-  const res = await fetchWithTimeout(url + path, {
+  const hostname = url.replace(/^https?:\/\//, '').replace(/\/+$/, '')
+  const agent = getAgent({ hostname })
+
+  const res = await fetchWithTimeout(`${agent.protocol}//${hostname}${path}`, {
     method: 'POST',
     headers,
+    agent,
     body,
     signal
   })

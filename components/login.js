@@ -62,7 +62,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
     const cookieOptions = [
       `signin=${!!signin}`,
       'path=/',
-      'max-age=' + 60 * 60 * 24, // 24 hours
+      'max-age=' + (signin ? 60 * 60 * 24 : 0), // 24 hours if signin is true, expire the cookie otherwise
       'SameSite=Lax',
       process.env.NODE_ENV === 'production' ? 'Secure' : ''
     ].filter(Boolean).join(';')

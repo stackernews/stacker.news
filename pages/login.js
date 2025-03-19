@@ -81,6 +81,7 @@ export default function LoginPage (props) {
       <Login
         Footer={() => <LoginFooter callbackUrl={props.callbackUrl} />}
         Header={() => <LoginHeader />}
+        signin
         {...props}
       />
     </StaticLayout>

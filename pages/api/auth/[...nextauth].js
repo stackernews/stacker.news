@@ -13,6 +13,7 @@ import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
 import { multiAuthMiddleware, setMultiAuthCookies } from '@/lib/auth'
 import { BECH32_CHARSET } from '@/lib/constants'
+import { NodeNextRequest } from 'next/dist/server/base-http/node'
 
 /**
  * Stores userIds in user table
@@ -92,6 +93,8 @@ function getCallbacks (req, res) {
      */
     async jwt ({ token, user, account, profile, isNewUser }) {
       if (user) {
+        // reset signup cookie if any
+        res.appendHeader('Set-Cookie', cookie.serialize('signin', '', { path: '/', expires: 0, maxAge: 0 }))
         // token won't have an id on it for new logins, we add it
         // note: token is what's kept in the jwt
         token.id = Number(user.id)
@@ -172,7 +175,8 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
         if (token?.id && !multiAuth) {
           user = await prisma.user.update({ where: { id: token.id }, data: { [pubkeyColumnName]: pubkey } })
         } else {
-          // we're not logged in: create new user with that pubkey
+          // create a new user only if we're trying to sign up
+          if (new NodeNextRequest(req).cookies.signin) return null
           user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), [pubkeyColumnName]: pubkey } })
         }
       }
@@ -281,6 +285,7 @@ export const getAuthOptions = (req, res) => ({
   adapter: {
     ...PrismaAdapter(prisma),
     createUser: data => {
+      if (req.cookies.signin) return null
       // replace email with email hash in new user payload
       if (data.email) {
         const { email } = data

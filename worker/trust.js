@@ -174,7 +174,7 @@ async function getGraph (models, subName, postTrust = true, seeds = GLOBAL_SEEDS
       'trust', CASE WHEN total_trust > 0 THEN trust / total_trust::float ELSE 0 END)) AS hops
     FROM (
       WITH user_votes AS (
-        SELECT "ItemAct"."userId" AS user_id, users.name AS name, "ItemAct"."itemId" AS item_id, min("ItemAct".created_at) AS act_at,
+        SELECT "ItemAct"."userId" AS user_id, users.name AS name, "ItemAct"."itemId" AS item_id, max("ItemAct".created_at) AS act_at,
             users.created_at AS user_at, "ItemAct".act = 'DONT_LIKE_THIS' AS against,
             count(*) OVER (partition by "ItemAct"."userId") AS user_vote_count,
             sum("ItemAct".msats) as user_msats

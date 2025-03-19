@@ -2,7 +2,7 @@ import { getPaymentFailureStatus, hodlInvoiceCltvDetails, getPaymentOrNotSent } 
 import { paidActions } from '@/api/paidAction'
 import { walletLogger } from '@/api/resolvers/wallet'
 import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
-import { formatMsats, formatSats, msatsToSats, toPositiveNumber } from '@/lib/format'
+import { formatSats, msatsToSats, toPositiveNumber } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
 import {
@@ -317,17 +317,13 @@ export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...a
   }, { models, lnd, boss })
 
   if (transitionedInvoice) {
-    const { bolt11, msatsPaid } = transitionedInvoice.invoiceForward.withdrawl
+    const withdrawal = transitionedInvoice.invoiceForward.withdrawl
 
     const logger = walletLogger({ wallet: transitionedInvoice.invoiceForward.wallet, models })
     logger.ok(
-      `↙ payment received: ${formatSats(msatsToSats(Number(msatsPaid)))}`,
-      {
-        bolt11,
-        preimage: transitionedInvoice.preimage
-        // we could show the outgoing fee that we paid from the incoming amount to the receiver
-        // but we don't since it might look like the receiver paid the fee but that's not the case.
-        // fee: formatMsats(msatsFeePaid)
+      `↙ payment received: ${formatSats(msatsToSats(Number(withdrawal.msatsPaid)))}`, {
+        invoiceId: transitionedInvoice.id,
+        withdrawalId: withdrawal.id
       })
   }
 
@@ -376,12 +372,11 @@ export async function paidActionFailedForward ({ data: { invoiceId, withdrawal: 
   }, { models, lnd, boss })
 
   if (transitionedInvoice) {
-    const { bolt11, msatsFeePaying } = transitionedInvoice.invoiceForward.withdrawl
-    const logger = walletLogger({ wallet: transitionedInvoice.invoiceForward.wallet, models })
+    const fwd = transitionedInvoice.invoiceForward
+    const logger = walletLogger({ wallet: fwd.wallet, models })
     logger.warn(
       `incoming payment failed: ${message}`, {
-        bolt11,
-        max_fee: formatMsats(msatsFeePaying)
+        withdrawalId: fwd.withdrawl.id
       })
   }
 
@@ -446,7 +441,10 @@ export async function paidActionCanceling ({ data: { invoiceId, ...args }, model
       const { wallet, bolt11 } = transitionedInvoice.invoiceForward
       const logger = walletLogger({ wallet, models })
       const decoded = await parsePaymentRequest({ request: bolt11 })
-      logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, { bolt11 })
+      logger.info(
+        `invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, {
+          invoiceId: transitionedInvoice.id
+        })
     }
   }
 

@@ -14,6 +14,7 @@ export async function expireBoost ({ data: { id }, models }) {
           FROM "ItemAct"
           WHERE act = 'BOOST'
           AND "itemId" = ${Number(id)}::INTEGER
+          AND "invoiceActionState" IS NULL OR "invoiceActionState" = 'PAID'
         )
         UPDATE "Item"
         SET boost = COALESCE(boost.cur_msats, 0) / 1000, "oldBoost" = COALESCE(boost.old_msats, 0) / 1000

@@ -25,6 +25,7 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
     console.error('error decoding callback:', callbackUrl, err)
   }
 
+  // TODO: custom domain mapping
   if (external) {
     callbackUrl = '/'
   }

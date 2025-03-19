@@ -1,11 +1,10 @@
 import { whenRange } from '@/lib/time'
-import { validateSchema, customDomainSchema, territorySchema } from '@/lib/validate'
+import { validateSchema, territorySchema } from '@/lib/validate'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { viewGroup } from './growth'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
 import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
-import { randomBytes } from 'node:crypto'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
@@ -150,9 +149,6 @@ export default {
         cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         subs
       }
-    },
-    customDomain: async (parent, { subName }, { models }) => {
-      return models.customDomain.findUnique({ where: { subName } })
     }
   },
   Mutation: {
@@ -281,50 +277,6 @@ export default {
       }
 
       return await performPaidAction('TERRITORY_UNARCHIVE', data, { me, models, lnd })
-    },
-    setCustomDomain: async (parent, { subName, domain }, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      const sub = await models.sub.findUnique({ where: { name: subName } })
-      if (!sub) {
-        throw new GqlInputError('sub not found')
-      }
-
-      if (sub.userId !== me.id) {
-        throw new GqlInputError('you do not own this sub')
-      }
-      domain = domain.trim() // protect against trailing spaces
-      if (domain && !validateSchema(customDomainSchema, { domain })) {
-        throw new GqlInputError('Invalid domain format')
-      }
-
-      if (domain) {
-        const existing = await models.customDomain.findUnique({ where: { subName } })
-        if (existing) {
-          if (domain === existing.domain) {
-            throw new GqlInputError('domain already set')
-          }
-          return await models.customDomain.update({
-            where: { subName },
-            data: { domain, dnsState: 'PENDING', sslState: 'PENDING' }
-          })
-        } else {
-          return await models.customDomain.create({
-            data: {
-              domain,
-              dnsState: 'PENDING',
-              verificationTxt: randomBytes(32).toString('base64'), // TODO: explore other options
-              sub: {
-                connect: { name: subName }
-              }
-            }
-          })
-        }
-      } else {
-        return await models.customDomain.delete({ where: { subName } })
-      }
     }
   },
   Sub: {

@@ -1,34 +1,11 @@
 import { Badge } from 'react-bootstrap'
 import { Form, Input, SubmitButton } from './form'
-import { gql, useMutation, useQuery } from '@apollo/client'
+import { useMutation, useQuery } from '@apollo/client'
 import { customDomainSchema } from '@/lib/validate'
 import ActionTooltip from './action-tooltip'
 import { useToast } from '@/components/toast'
 import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
-
-const SET_CUSTOM_DOMAIN = gql`
-  mutation SetCustomDomain($subName: String!, $domain: String!) {
-    setCustomDomain(subName: $subName, domain: $domain) {
-      domain
-      dnsState
-      sslState
-    }
-  }
-`
-
-const GET_CUSTOM_DOMAIN = gql`
-  query CustomDomain($subName: String!) {
-    customDomain(subName: $subName) {
-      domain
-      dnsState
-      sslState
-      verificationCname
-      verificationCnameValue
-      verificationTxt
-      lastVerifiedAt
-    }
-  }
-`
+import { GET_CUSTOM_DOMAIN, SET_CUSTOM_DOMAIN } from '@/fragments/domains'
 
 // TODO: clean this up
 export default function CustomDomainForm ({ sub }) {

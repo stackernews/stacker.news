@@ -7,21 +7,6 @@ export default gql`
     subs: [Sub!]!
     topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
     userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
-    customDomain(subName: String!): CustomDomain
-  }
-
-  type CustomDomain {
-    createdAt: Date!
-    updatedAt: Date!
-    domain: String!
-    subName: String!
-    dnsState: String
-    sslState: String
-    certificateArn: String
-    lastVerifiedAt: Date
-    verificationCname: String
-    verificationCnameValue: String
-    verificationTxt: String
   }
 
   type Subs {
@@ -43,7 +28,6 @@ export default gql`
       replyCost: Int!, postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
       moderated: Boolean!, nsfw: Boolean!): SubPaidAction!
-    setCustomDomain(subName: String!, domain: String!): CustomDomain
   }
 
   type Sub {

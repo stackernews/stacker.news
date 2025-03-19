@@ -1,5 +1,6 @@
 import { NextResponse, URLPattern } from 'next/server'
 import { cachedFetcher } from '@/lib/fetch'
+
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
 const profilePattern = new URLPattern({ pathname: '/:name([\\w_]+){/:type(\\w+)}?' })
@@ -13,10 +14,11 @@ const SN_REFERRER_NONCE = 'sn_referrer_nonce'
 const SN_REFEREE_LANDING = 'sn_referee_landing'
 
 const TERRITORY_PATHS = ['/~', '/recent', '/random', '/top', '/post', '/edit']
-const NO_REWRITE_PATHS = ['/api', '/_next', '/_error', '/404', '/500', '/offline', '/static']
+const NO_REWRITE_PATHS = ['/api', '/_next', '/_error', '/404', '/500', '/offline', '/static', '/signup', '/login', '/logout']
 
+// TODO: move this to a separate file
 // fetch custom domain mappings from our API, caching it for 5 minutes
-const getDomainMappingsCache = cachedFetcher(async function fetchDomainMappings () {
+export const getDomainMappingsCache = cachedFetcher(async function fetchDomainMappings () {
   const url = `${process.env.NEXT_PUBLIC_URL}/api/domains`
   try {
     const response = await fetch(url)
@@ -37,6 +39,12 @@ const getDomainMappingsCache = cachedFetcher(async function fetchDomainMappings 
   keyGenerator: () => 'domain_mappings'
 })
 
+// get a domain mapping from the cache
+export async function getDomainMapping (domain) {
+  const domainMappings = await getDomainMappingsCache()
+  return domainMappings?.[domain]
+}
+
 export async function customDomainMiddleware (request, referrerResp) {
   const host = request.headers.get('host')
   const referer = request.headers.get('referer')
@@ -48,14 +56,13 @@ export async function customDomainMiddleware (request, referrerResp) {
 
   console.log('referer', referer)
 
-  const domainMapping = await getDomainMappingsCache()
-  console.log('domainMapping', domainMapping)
-  const domainInfo = domainMapping?.[host.toLowerCase()]
+  const domainInfo = await getDomainMapping(host?.toLowerCase())
   if (!domainInfo) {
     console.log('Redirecting to main domain')
     return NextResponse.redirect(new URL(pathname, mainDomain))
   }
 
+  // todo: obviously this is not the best way to do this
   if (NO_REWRITE_PATHS.some(p => pathname.startsWith(p)) || pathname.includes('.')) {
     return NextResponse.next()
   }

@@ -15,6 +15,7 @@ import { hashEmail } from '@/lib/crypto'
 import * as cookie from 'cookie'
 import { multiAuthMiddleware } from '@/pages/api/graphql'
 import { BECH32_CHARSET } from '@/lib/constants'
+import { NodeNextRequest } from 'next/dist/server/base-http/node'
 
 /**
  * Stores userIds in user table
@@ -95,7 +96,7 @@ function getCallbacks (req, res) {
     async jwt ({ token, user, account, profile, isNewUser }) {
       if (user) {
         // reset signup cookie if any
-        res.setHeader('Set-Cookie', cookie.serialize('signup', '', { path: '/', expires: 0, maxAge: 0 }))
+        res.appendHeader('Set-Cookie', cookie.serialize('signin', '', { path: '/', expires: 0, maxAge: 0 }))
         // token won't have an id on it for new logins, we add it
         // note: token is what's kept in the jwt
         token.id = Number(user.id)
@@ -179,7 +180,6 @@ function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
 
 async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
   const { k1, pubkey } = credentials
-  const signin = req.headers.cookie?.includes('signin=true')
 
   // are we trying to add a new account for switching between?
   const multiAuth = typeof req.body.multiAuth === 'string' ? req.body.multiAuth === 'true' : !!req.body.multiAuth
@@ -209,7 +209,7 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
           user = await prisma.user.update({ where: { id: token.id }, data: { [pubkeyColumnName]: pubkey } })
         } else {
           // create a new user only if we're trying to sign up
-          if (signin) return null
+          if (new NodeNextRequest(req).cookies.signin) return null
           user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), [pubkeyColumnName]: pubkey } })
         }
       }
@@ -318,7 +318,7 @@ export const getAuthOptions = (req, res) => ({
   adapter: {
     ...PrismaAdapter(prisma),
     createUser: data => {
-      if (req.cookies.signin === 'true') return null
+      if (req.cookies.signin) return null
       // replace email with email hash in new user payload
       if (data.email) {
         const { email } = data

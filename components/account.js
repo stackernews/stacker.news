@@ -8,39 +8,30 @@ import { useQuery } from '@apollo/client'
 import { UserListRow } from '@/components/user-list'
 import Link from 'next/link'
 import AddIcon from '@/svgs/add-fill.svg'
+import { MultiAuthErrorBanner } from '@/components/banners'
 
 const AccountContext = createContext()
 
+const CHECK_ERRORS_INTERVAL_MS = 5_000
+
 const b64Decode = str => Buffer.from(str, 'base64').toString('utf-8')
-const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
 
 const maybeSecureCookie = cookie => {
   return window.location.protocol === 'https:' ? cookie + '; Secure' : cookie
 }
 
 export const AccountProvider = ({ children }) => {
-  const { me } = useMe()
   const [accounts, setAccounts] = useState([])
   const [meAnon, setMeAnon] = useState(true)
+  const [errors, setErrors] = useState([])
 
   const updateAccountsFromCookie = useCallback(() => {
-    try {
-      const { multi_auth: multiAuthCookie } = cookie.parse(document.cookie)
-      const accounts = multiAuthCookie
-        ? JSON.parse(b64Decode(multiAuthCookie))
-        : me ? [{ id: Number(me.id), name: me.name, photoId: me.photoId }] : []
-      setAccounts(accounts)
-      // required for backwards compatibility: sync cookie with accounts if no multi auth cookie exists
-      // this is the case for sessions that existed before we deployed account switching
-      if (!multiAuthCookie && !!me) {
-        document.cookie = maybeSecureCookie(`multi_auth=${b64Encode(accounts)}; Path=/`)
-      }
-    } catch (err) {
-      console.error('error parsing cookies:', err)
-    }
+    const { multi_auth: multiAuthCookie } = cookie.parse(document.cookie)
+    const accounts = multiAuthCookie
+      ? JSON.parse(b64Decode(multiAuthCookie))
+      : []
+    setAccounts(accounts)
   }, [])
-
-  useEffect(updateAccountsFromCookie, [])
 
   const addAccount = useCallback(user => {
     setAccounts(accounts => [...accounts, user])
@@ -59,15 +50,43 @@ export const AccountProvider = ({ children }) => {
     return switchSuccess
   }, [updateAccountsFromCookie])
 
-  useEffect(() => {
-    if (SSR) return
-    const { 'multi_auth.user-id': multiAuthUserIdCookie } = cookie.parse(document.cookie)
-    setMeAnon(multiAuthUserIdCookie === 'anonymous')
+  const checkErrors = useCallback(() => {
+    const {
+      multi_auth: multiAuthCookie,
+      'multi_auth.user-id': multiAuthUserIdCookie
+    } = cookie.parse(document.cookie)
+
+    const errors = []
+
+    if (!multiAuthCookie) errors.push('multi_auth cookie not found')
+    if (!multiAuthUserIdCookie) errors.push('multi_auth.user-id cookie not found')
+
+    setErrors(errors)
   }, [])
 
+  useEffect(() => {
+    if (SSR) return
+
+    updateAccountsFromCookie()
+
+    const { 'multi_auth.user-id': multiAuthUserIdCookie } = cookie.parse(document.cookie)
+    setMeAnon(multiAuthUserIdCookie === 'anonymous')
+
+    const interval = setInterval(checkErrors, CHECK_ERRORS_INTERVAL_MS)
+    return () => clearInterval(interval)
+  }, [updateAccountsFromCookie, checkErrors])
+
   const value = useMemo(
-    () => ({ accounts, addAccount, removeAccount, meAnon, setMeAnon, nextAccount }),
-    [accounts, addAccount, removeAccount, meAnon, setMeAnon, nextAccount])
+    () => ({
+      accounts,
+      addAccount,
+      removeAccount,
+      meAnon,
+      setMeAnon,
+      nextAccount,
+      multiAuthErrors: errors
+    }),
+    [accounts, addAccount, removeAccount, meAnon, setMeAnon, nextAccount, errors])
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>
 }
 
@@ -129,8 +148,22 @@ const AccountListRow = ({ account, ...props }) => {
 }
 
 export default function SwitchAccountList () {
-  const { accounts } = useAccounts()
+  const { accounts, multiAuthErrors } = useAccounts()
   const router = useRouter()
+
+  const hasError = multiAuthErrors.length > 0
+
+  if (hasError) {
+    return (
+      <>
+        <div className='my-2'>
+          <div className='d-flex flex-column flex-wrap mt-2 mb-3'>
+            <MultiAuthErrorBanner errors={multiAuthErrors} />
+          </div>
+        </div>
+      </>
+    )
+  }
 
   // can't show hat since the streak is not included in the JWT payload
   return (

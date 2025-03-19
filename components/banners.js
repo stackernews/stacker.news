@@ -6,6 +6,7 @@ import { useMutation } from '@apollo/client'
 import { WELCOME_BANNER_MUTATION } from '@/fragments/users'
 import { useToast } from '@/components/toast'
 import Link from 'next/link'
+import AccordianItem from '@/components/accordian-item'
 
 export function WelcomeBanner ({ Banner }) {
   const { me } = useMe()
@@ -120,6 +121,27 @@ export function AuthBanner () {
   return (
     <Alert className={`${styles.banner} mt-0`} key='info' variant='danger'>
       Please add a second auth method to avoid losing access to your account.
+    </Alert>
+  )
+}
+
+export function MultiAuthErrorBanner ({ errors }) {
+  return (
+    <Alert className={styles.banner} key='info' variant='danger'>
+      <div className='fw-bold mb-3'>Account switching is currently unavailable</div>
+      <AccordianItem
+        className='my-3'
+        header='We have detected the following issues:'
+        headerColor='var(--bs-danger-text-emphasis)'
+        body={
+          <ul>
+            {errors.map((err, i) => (
+              <li key={i}>{err}</li>
+            ))}
+          </ul>
+      }
+      />
+      <div className='mt-3'>To resolve these issues, please sign out and sign in again.</div>
     </Alert>
   )
 }

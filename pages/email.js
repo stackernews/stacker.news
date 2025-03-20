@@ -1,4 +1,5 @@
 import Image from 'react-bootstrap/Image'
+import * as cookie from 'cookie'
 import { StaticLayout } from '@/components/layout'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { useRouter } from 'next/router'
@@ -15,7 +16,7 @@ export default function Email () {
   const [signin, setSignin] = useState(false)
 
   useEffect(() => {
-    setSignin(document.cookie.includes('signin='))
+    setSignin(!!cookie.parse(document.cookie).signin)
     setCallback(JSON.parse(window.sessionStorage.getItem('callback')))
   }, [])
 

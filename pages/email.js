@@ -29,12 +29,12 @@ export default function Email () {
     router.push(url)
   }, [callback, router])
 
-  const buildMessage = useCallback(() => {
+  const buildMessage = () => {
     const email = callback?.email || 'your email address'
     return signin
       ? `if there's a match, a magic code will be sent to ${email}`
       : `a magic code has been sent to ${email}`
-  }, [callback, signin])
+  }
 
   return (
     <StaticLayout>

@@ -12,8 +12,10 @@ export const getServerSideProps = getGetServerSideProps({ query: null })
 export default function Email () {
   const router = useRouter()
   const [callback, setCallback] = useState(null) // callback.email, callback.callbackUrl
+  const [signin, setSignin] = useState(false)
 
   useEffect(() => {
+    setSignin(document.cookie.includes('signin='))
     setCallback(JSON.parse(window.sessionStorage.getItem('callback')))
   }, [])
 
@@ -27,6 +29,13 @@ export default function Email () {
     router.push(url)
   }, [callback, router])
 
+  const buildMessage = useCallback(() => {
+    const email = callback?.email || 'your email address'
+    return signin
+      ? `if there's a match, a magic code will be sent to ${email}`
+      : `a magic code has been sent to ${email}`
+  }, [callback, signin])
+
   return (
     <StaticLayout>
       <div className='p-4 text-center'>
@@ -35,14 +44,14 @@ export default function Email () {
           <Image className='rounded-1 shadow-sm' width='640' height='302' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/cowboy-saloon.gif`} fluid />
         </video>
         <h2 className='pt-4'>Check your email</h2>
-        <h4 className='text-muted pt-2 pb-4'>if there's a match, a magic code will be sent to {callback ? callback.email : 'your email address'}</h4>
-        <MagicCodeForm onSubmit={(token) => pushCallback(token)} disabled={!callback} />
+        <h4 className='text-muted pt-2 pb-4'>{buildMessage()}</h4>
+        <MagicCodeForm onSubmit={(token) => pushCallback(token)} disabled={!callback} signin={signin} />
       </div>
     </StaticLayout>
   )
 }
 
-export const MagicCodeForm = ({ onSubmit, disabled }) => {
+export const MagicCodeForm = ({ onSubmit, disabled, signin }) => {
   return (
     <Form
       initial={{
@@ -64,7 +73,7 @@ export const MagicCodeForm = ({ onSubmit, disabled }) => {
         hideError // hide error message on every input, allow custom error message
         disabled={disabled} // disable the form if no callback is provided
       />
-      <SubmitButton variant='primary' className='px-4' disabled={disabled}>login</SubmitButton>
+      <SubmitButton variant='primary' className='px-4' disabled={disabled}>{signin ? 'login' : 'signup'}</SubmitButton>
     </Form>
   )
 }

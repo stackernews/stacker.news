@@ -100,17 +100,15 @@ const AccountListRow = ({ account, ...props }) => {
   const router = useRouter()
 
   // fetch updated names and photo ids since they might have changed since we were issued the JWTs
-  const [name, setName] = useState(account.name)
-  const [photoId, setPhotoId] = useState(account.photoId)
-  useQuery(USER,
+  const { data, error } = useQuery(USER,
     {
-      variables: { id: account.id },
-      onCompleted ({ user: { name, photoId } }) {
-        if (photoId) setPhotoId(photoId)
-        if (name) setName(name)
-      }
+      variables: { id: account.id }
     }
   )
+  if (error) console.error(`query for user ${account.id} failed:`, error)
+
+  const name = data?.user?.name || account.name
+  const photoId = data?.user?.photoId || account.photoId
 
   const onClick = async (e) => {
     // prevent navigation

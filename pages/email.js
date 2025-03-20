@@ -35,7 +35,7 @@ export default function Email () {
           <Image className='rounded-1 shadow-sm' width='640' height='302' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/cowboy-saloon.gif`} fluid />
         </video>
         <h2 className='pt-4'>Check your email</h2>
-        <h4 className='text-muted pt-2 pb-4'>a magic code has been sent to {callback ? callback.email : 'your email address'}</h4>
+        <h4 className='text-muted pt-2 pb-4'>if there's a match, a magic code will be sent to {callback ? callback.email : 'your email address'}</h4>
         <MagicCodeForm onSubmit={(token) => pushCallback(token)} disabled={!callback} />
       </div>
     </StaticLayout>

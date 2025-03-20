@@ -62,7 +62,11 @@ function DeleteWalletLogsObstacle ({ wallet, setLogs, onClose }) {
   const { deleteLogs } = useWalletLogManager(setLogs)
   const toaster = useToast()
 
-  const prompt = `Do you really want to delete all ${wallet ? '' : 'wallet'} logs ${wallet ? 'of this wallet' : ''}?`
+  let prompt = 'Do you really want to delete all wallet logs?'
+  if (wallet) {
+    prompt = 'Do you really want to delete all logs of this wallet?'
+  }
+
   return (
     <div className='text-center'>
       {prompt}

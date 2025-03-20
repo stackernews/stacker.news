@@ -223,7 +223,7 @@ async function nostrEventAuth (event) {
 }
 
 /** @type {import('next-auth/providers').Provider[]} */
-const getProviders = res => [
+const getProviders = (req, res) => [
   CredentialsProvider({
     id: 'lightning',
     name: 'Lightning',
@@ -275,14 +275,14 @@ const getProviders = res => [
     from: process.env.LOGIN_EMAIL_FROM,
     maxAge: 5 * 60, // expires in 5 minutes
     generateVerificationToken: generateRandomString,
-    sendVerificationRequest
+    sendVerificationRequest: (...args) => sendVerificationRequest(...args, req)
   })
 ]
 
 /** @returns {import('next-auth').AuthOptions} */
 export const getAuthOptions = (req, res) => ({
   callbacks: getCallbacks(req, res),
-  providers: getProviders(res),
+  providers: getProviders(req, res),
   adapter: {
     ...PrismaAdapter(prisma),
     createUser: data => {
@@ -421,7 +421,7 @@ async function sendVerificationRequest ({
   url,
   token,
   provider
-}) {
+}, req) {
   let user = await prisma.user.findUnique({
     where: {
       // Look for the user by hashed email
@@ -442,6 +442,11 @@ async function sendVerificationRequest ({
     const { server, from } = provider
 
     const site = new URL(url).host
+
+    // if we're trying to sign in but no user was found, resolve the promise
+    if (req.cookies.signin && !user) {
+      return resolve()
+    }
 
     nodemailer.createTransport(server).sendMail(
       {

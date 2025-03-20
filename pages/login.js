@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { StaticLayout } from '@/components/layout'
 import Login from '@/components/login'
 import { isExternal } from '@/lib/url'
+import { MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
 
 export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, error = null } }) {
   let session = await getServerSession(req, res, getAuthOptions(req))
@@ -12,7 +13,7 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
   // required to prevent infinite redirect loops if we switch to anon
   // but are on a page that would redirect us to /signup.
   // without this code, /signup would redirect us back to the callbackUrl.
-  if (req.cookies['multi_auth.user-id'] === 'anonymous') {
+  if (req.cookies[MULTI_AUTH_POINTER] === MULTI_AUTH_ANON) {
     session = null
   }
 

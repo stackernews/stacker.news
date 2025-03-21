@@ -11,7 +11,6 @@ const Z_CONFIDENCE = 6.109410204869 // 99.9999999% confidence
 const SEED_WEIGHT = 0.83
 const AGAINST_MSAT_MIN = 1000
 const MSAT_MIN = 1001 // 20001 is the minimum for a tip to be counted in trust
-const INDEPENDENCE_THRESHOLD = 50 // how many zappers are needed to consider a sub independent
 const IRRELEVANT_CUMULATIVE_TRUST = 0.001 // if a user has less than this amount of cumulative trust, they are irrelevant
 
 // for each subName, we'll need to get two graphs
@@ -37,9 +36,9 @@ export async function trust ({ boss, models }) {
       console.timeLog('trust', `computing global comment trust for ${territory.name}`)
       const vGlobalComment = await trustGivenGraph(commentGraph)
       console.timeLog('trust', `computing sub post trust for ${territory.name}`)
-      const vSubPost = await trustGivenGraph(postGraph, postGraph.length > INDEPENDENCE_THRESHOLD ? [territory.userId] : seeds)
+      const vSubPost = await trustGivenGraph(postGraph, [territory.userId])
       console.timeLog('trust', `computing sub comment trust for ${territory.name}`)
-      const vSubComment = await trustGivenGraph(commentGraph, commentGraph.length > INDEPENDENCE_THRESHOLD ? [territory.userId] : seeds)
+      const vSubComment = await trustGivenGraph(commentGraph, [territory.userId])
       console.timeLog('trust', `storing trust for ${territory.name}`)
       let results = reduceVectors(territory.name, {
         zapPostTrust: {

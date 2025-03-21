@@ -239,7 +239,13 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
       const newLogs = data.walletLogs.entries.map(({ createdAt, wallet: walletType, ...log }) => ({
         ts: +new Date(createdAt),
         wallet: walletTag(getWalletByType(walletType)),
-        ...log
+        ...log,
+        // required to resolve recv status
+        context: {
+          recv: true,
+          status: !!log.context?.bolt11 && ['warn', 'error', 'success'].includes(log.level.toLowerCase()),
+          ...log.context
+        }
       }))
       const combinedLogs = uniqueSort([...result.data, ...newLogs])
 

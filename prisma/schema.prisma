@@ -264,14 +264,18 @@ model VaultEntry {
 }
 
 model WalletLog {
-  id        Int        @id @default(autoincrement())
-  createdAt DateTime   @default(now()) @map("created_at")
-  userId    Int
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  wallet    WalletType
-  level     LogLevel
-  message   String
-  context   Json?      @db.JsonB
+  id           Int        @id @default(autoincrement())
+  createdAt    DateTime   @default(now()) @map("created_at")
+  userId       Int
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet       WalletType
+  level        LogLevel
+  message      String
+  invoiceId    Int?
+  invoice      Invoice?   @relation(fields: [invoiceId], references: [id])
+  withdrawalId Int?
+  withdrawal   Withdrawl? @relation(fields: [withdrawalId], references: [id])
+  context      Json?      @db.JsonB
 
   @@index([userId, createdAt])
 }
@@ -971,6 +975,7 @@ model Invoice {
   Upload             Upload[]
   PollVote           PollVote[]
   PollBlindVote      PollBlindVote[]
+  WalletLog          WalletLog[]
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")
@@ -1048,6 +1053,7 @@ model Withdrawl {
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   wallet         Wallet?          @relation(fields: [walletId], references: [id], onDelete: SetNull)
   invoiceForward InvoiceForward?
+  WalletLog      WalletLog[]
 
   @@index([createdAt], map: "Withdrawl.created_at_index")
   @@index([userId], map: "Withdrawl.userId_index")

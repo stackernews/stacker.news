@@ -125,11 +125,8 @@ export async function payingActionConfirmed ({ data: args, models, lnd, boss }) 
 
     const logger = walletLogger({ models, wallet: transitionedWithdrawal.wallet })
     logger?.ok(
-      `↙ payment received: ${formatSats(msatsToSats(transitionedWithdrawal.msatsPaid))}`,
-      {
-        bolt11: transitionedWithdrawal.bolt11,
-        preimage: transitionedWithdrawal.preimage,
-        fee: formatMsats(transitionedWithdrawal.msatsFeePaid)
+      `↙ payment received: ${formatSats(msatsToSats(transitionedWithdrawal.msatsPaid))}`, {
+        withdrawalId: transitionedWithdrawal.id
       })
   }
 }

@@ -276,7 +276,7 @@ const getProviders = res => [
   }),
   CredentialsProvider({
     id: 'sync',
-    name: 'Auth Sync',
+    name: 'Sync',
     credentials: {
       token: { label: 'token', type: 'text' }
     },

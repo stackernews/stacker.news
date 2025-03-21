@@ -249,34 +249,20 @@ export function SignUpButton ({ className = 'py-0', width }) {
 export default function LoginButton () {
   const router = useRouter()
 
-  // TODO: atp let main domain handle the login UX/UI
-  // decree a better position/way for this
+  // TODO: alternative to this, for test only
   useEffect(() => {
+    console.log(router.query)
     if (router.query.type === 'sync') {
       signIn('sync', { token: router.query.token, callbackUrl: router.query.callbackUrl, redirect: false })
     }
-  }, [router.query.type, router.query.token, router.query.callbackUrl])
+  }, [router.query])
 
   const handleLogin = useCallback(async () => {
-    // todo: custom domain check
-    const mainDomain = process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
-    const isCustomDomain = window.location.hostname !== mainDomain
-
-    if (isCustomDomain && router.query.type !== 'noAuth') {
-      // TODO: dirty of previous iterations, refactor
-      // redirect to sync endpoint on main domain
-      const protocol = window.location.protocol
-      const mainDomainUrl = `${protocol}//${mainDomain}`
-      const currentUrl = window.location.origin + router.asPath
-
-      window.location.href = `${mainDomainUrl}/api/auth/sync?redirectUrl=${encodeURIComponent(currentUrl)}`
-    } else {
-      // normal login on main domain
-      await router.push({
-        pathname: '/login',
-        query: { callbackUrl: window.location.origin + router.asPath }
-      })
-    }
+    // normal login on main domain
+    await router.push({
+      pathname: '/login',
+      query: { callbackUrl: window.location.origin + router.asPath }
+    })
   }, [router])
 
   return (
@@ -297,6 +283,11 @@ function LogoutObstacle ({ onClose }) {
   const { removeLocalWallets } = useWallets()
   const { nextAccount } = useAccounts()
   const router = useRouter()
+  const [isCustomDomain, setIsCustomDomain] = useState(false)
+
+  useEffect(() => {
+    setIsCustomDomain(router.host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, ''))
+  }, [router.host])
 
   return (
     <div className='d-flex m-auto flex-column w-fit-content'>
@@ -328,7 +319,7 @@ function LogoutObstacle ({ onClose }) {
 
             removeLocalWallets()
 
-            await signOut({ callbackUrl: '/' })
+            await signOut({ callbackUrl: '/', redirect: !isCustomDomain })
           }}
         >
           logout

@@ -6,7 +6,7 @@ import { StaticLayout } from '@/components/layout'
 import Login from '@/components/login'
 import { isExternal } from '@/lib/url'
 
-export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, error = null } }) {
+export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, error = null, domain } }) {
   let session = await getServerSession(req, res, getAuthOptions(req))
 
   // required to prevent infinite redirect loops if we switch to anon
@@ -25,10 +25,16 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
     console.error('error decoding callback:', callbackUrl, err)
   }
 
-  // TODO: custom domain mapping
   if (external) {
     callbackUrl = '/'
   }
+
+  // TODO: custom domain mapping security
+  if (domain) {
+    callbackUrl = '/api/auth/sync?redirectUrl=https://' + domain
+  }
+
+  console.log('callbackUrl', callbackUrl)
 
   if (session && callbackUrl && !multiAuth) {
     // in the case of auth linking we want to pass the error back to settings

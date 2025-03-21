@@ -21,13 +21,9 @@ export default function Sub ({ ssrData }) {
   if (!data && !ssrData) return <PageLoading />
   const { sub } = data || ssrData
 
-  const path = router.asPath.split('?')[0]
-  // TODO: this works but it can be better
-  const isCustomDomain = sub && !path.includes(`/~${sub?.name}`)
-
   return (
     <Layout sub={sub?.name}>
-      {sub && !isCustomDomain
+      {sub
         ? <TerritoryHeader sub={sub} />
         : (
           <>

@@ -14,7 +14,7 @@ const SN_REFERRER_NONCE = 'sn_referrer_nonce'
 const SN_REFEREE_LANDING = 'sn_referee_landing'
 
 const TERRITORY_PATHS = ['/~', '/recent', '/random', '/top', '/post', '/edit']
-const NO_REWRITE_PATHS = ['/api', '/_next', '/_error', '/404', '/500', '/offline', '/static', '/signup', '/login', '/logout']
+const NO_REWRITE_PATHS = ['/api', '/_next', '/_error', '/404', '/500', '/offline', '/static', '/logout']
 
 // TODO: move this to a separate file
 // fetch custom domain mappings from our API, caching it for 5 minutes
@@ -70,6 +70,14 @@ export async function customDomainMiddleware (request, referrerResp) {
   console.log('pathname', pathname)
   console.log('query', url.searchParams)
 
+  if (pathname === '/login' || pathname === '/signup') {
+    const redirectUrl = new URL(pathname, mainDomain)
+    redirectUrl.searchParams.set('domain', host)
+    redirectUrl.searchParams.set('callbackUrl', url.searchParams.get('callbackUrl'))
+    const redirectResp = NextResponse.redirect(redirectUrl)
+    return applyReferrerCookies(redirectResp, referrerResp)
+  }
+
   // if the url contains the territory path, remove it
   if (pathname.startsWith(`/~${domainInfo.subName}`)) {
     // remove the territory prefix from the path
@@ -80,12 +88,14 @@ export async function customDomainMiddleware (request, referrerResp) {
   }
 
   // if coming from main domain, handle auth automatically
-  if (referer && referer === mainDomain) {
+  // TODO: uncomment and work on this
+
+  /*   if (referer && referer === mainDomain) {
     const authResp = customDomainAuthMiddleware(request, url)
     if (authResp && authResp.status !== 200) {
       return applyReferrerCookies(authResp, referrerResp)
     }
-  }
+  } */
 
   const internalUrl = new URL(url)
   // rewrite to the territory path if we're at the root

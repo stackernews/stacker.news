@@ -767,9 +767,8 @@ const resolvers = {
         }
       }
 
-      if (invoice) {
-        return await logContextFromBolt11(invoice.bolt11)
-      }
+      // XXX never return invoice as context because it might leak sensitive sender details
+      // if (invoice) { ... }
 
       return context
     }

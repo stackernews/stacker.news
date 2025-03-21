@@ -443,6 +443,7 @@ export async function paidActionCanceling ({ data: { invoiceId, ...args }, model
       const decoded = await parsePaymentRequest({ request: bolt11 })
       logger.info(
         `invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, {
+          bolt11,
           invoiceId: transitionedInvoice.id
         })
     }

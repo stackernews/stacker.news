@@ -8,19 +8,15 @@ import { useQuery } from '@apollo/client'
 import { UserListRow } from '@/components/user-list'
 import Link from 'next/link'
 import AddIcon from '@/svgs/add-fill.svg'
-import { MultiAuthErrorBanner } from '@/components/banners'
 import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER } from '@/lib/auth'
 
 const AccountContext = createContext()
-
-const CHECK_ERRORS_INTERVAL_MS = 5_000
 
 const b64Decode = str => Buffer.from(str, 'base64').toString('utf-8')
 
 export const AccountProvider = ({ children }) => {
   const [accounts, setAccounts] = useState([])
   const [meAnon, setMeAnon] = useState(true)
-  const [errors, setErrors] = useState([])
 
   const updateAccountsFromCookie = useCallback(() => {
     const { [MULTI_AUTH_LIST]: listCookie } = cookie.parse(document.cookie)
@@ -47,20 +43,6 @@ export const AccountProvider = ({ children }) => {
     return switchSuccess
   }, [updateAccountsFromCookie])
 
-  const checkErrors = useCallback(() => {
-    const {
-      [MULTI_AUTH_LIST]: listCookie,
-      [MULTI_AUTH_POINTER]: pointerCookie
-    } = cookie.parse(document.cookie)
-
-    const errors = []
-
-    if (!listCookie) errors.push(`${MULTI_AUTH_LIST} cookie not found`)
-    if (!pointerCookie) errors.push(`${MULTI_AUTH_POINTER} cookie not found`)
-
-    setErrors(errors)
-  }, [])
-
   useEffect(() => {
     if (SSR) return
 
@@ -68,10 +50,7 @@ export const AccountProvider = ({ children }) => {
 
     const { [MULTI_AUTH_POINTER]: pointerCookie } = cookie.parse(document.cookie)
     setMeAnon(pointerCookie === 'anonymous')
-
-    const interval = setInterval(checkErrors, CHECK_ERRORS_INTERVAL_MS)
-    return () => clearInterval(interval)
-  }, [updateAccountsFromCookie, checkErrors])
+  }, [updateAccountsFromCookie])
 
   const value = useMemo(
     () => ({
@@ -80,10 +59,9 @@ export const AccountProvider = ({ children }) => {
       removeAccount,
       meAnon,
       setMeAnon,
-      nextAccount,
-      multiAuthErrors: errors
+      nextAccount
     }),
-    [accounts, addAccount, removeAccount, meAnon, setMeAnon, nextAccount, errors])
+    [accounts, addAccount, removeAccount, meAnon, setMeAnon, nextAccount])
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>
 }
 
@@ -144,22 +122,8 @@ const AccountListRow = ({ account, ...props }) => {
 }
 
 export default function SwitchAccountList () {
-  const { accounts, multiAuthErrors } = useAccounts()
+  const { accounts } = useAccounts()
   const router = useRouter()
-
-  const hasError = multiAuthErrors.length > 0
-
-  if (hasError) {
-    return (
-      <>
-        <div className='my-2'>
-          <div className='d-flex flex-column flex-wrap mt-2 mb-3'>
-            <MultiAuthErrorBanner errors={multiAuthErrors} />
-          </div>
-        </div>
-      </>
-    )
-  }
 
   // can't show hat since the streak is not included in the JWT payload
   return (

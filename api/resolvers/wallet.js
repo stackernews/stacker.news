@@ -430,6 +430,10 @@ const resolvers = {
               lte: to ? new Date(Number(to)) : undefined
             }
           },
+          include: {
+            invoice: true,
+            withdrawal: true
+          },
           orderBy: [
             { createdAt: 'desc' },
             { id: 'desc' }
@@ -444,6 +448,10 @@ const resolvers = {
             createdAt: {
               lte: decodedCursor.time
             }
+          },
+          include: {
+            invoice: true,
+            withdrawal: true
           },
           orderBy: [
             { createdAt: 'desc' },
@@ -748,21 +756,19 @@ const resolvers = {
   },
 
   WalletLogEntry: {
-    context: async ({ level, context, invoiceId, withdrawalId }, args, { models }) => {
+    context: async ({ level, context, invoice, withdrawal }, args, { models }) => {
       const isError = ['error', 'warn'].includes(level.toLowerCase())
 
-      if (withdrawalId) {
-        const wdrwl = await models.withdrawl.findUnique({ where: { id: withdrawalId } })
+      if (withdrawal) {
         return {
-          ...await logContextFromBolt11(wdrwl.bolt11),
-          ...(wdrwl.preimage ? { preimage: wdrwl.preimage } : {}),
-          ...(isError ? { max_fee: formatMsats(wdrwl.msatsFeePaying) } : {})
+          ...await logContextFromBolt11(withdrawal.bolt11),
+          ...(withdrawal.preimage ? { preimage: withdrawal.preimage } : {}),
+          ...(isError ? { max_fee: formatMsats(withdrawal.msatsFeePaying) } : {})
         }
       }
 
-      if (invoiceId) {
-        const inv = await models.invoice.findUnique({ where: { id: invoiceId } })
-        return await logContextFromBolt11(inv.bolt11)
+      if (invoice) {
+        return await logContextFromBolt11(invoice.bolt11)
       }
 
       return context

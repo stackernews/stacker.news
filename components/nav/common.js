@@ -12,7 +12,7 @@ import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
 import { abbrNum } from '../../lib/format'
 import { useServiceWorker } from '../serviceworker'
-import { signOut } from 'next-auth/react'
+import { signIn, signOut } from 'next-auth/react'
 import Badges from '../badge'
 import { randInRange } from '../../lib/rand'
 import { useLightning } from '../lightning'
@@ -252,10 +252,22 @@ export function SignUpButton ({ className = 'py-0', width }) {
 
 export default function LoginButton () {
   const router = useRouter()
-  const handleLogin = useCallback(async pathname => await router.push({
-    pathname,
-    query: { callbackUrl: window.location.origin + router.asPath }
-  }), [router])
+
+  // TODO: alternative to this, for test only
+  useEffect(() => {
+    console.log(router.query)
+    if (router.query.type === 'sync') {
+      signIn('sync', { token: router.query.token, callbackUrl: router.query.callbackUrl, redirect: false })
+    }
+  }, [router.query])
+
+  const handleLogin = useCallback(async () => {
+    // normal login on main domain
+    await router.push({
+      pathname: '/login',
+      query: { callbackUrl: window.location.origin + router.asPath }
+    })
+  }, [router])
 
   return (
     <Button
@@ -263,7 +275,7 @@ export default function LoginButton () {
       id='login'
       style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       variant='outline-grey-darkmode'
-      onClick={() => handleLogin('/login')}
+      onClick={handleLogin}
     >
       login
     </Button>
@@ -275,6 +287,11 @@ function LogoutObstacle ({ onClose }) {
   const { removeLocalWallets } = useWallets()
   const { nextAccount } = useAccounts()
   const router = useRouter()
+  const [isCustomDomain, setIsCustomDomain] = useState(false)
+
+  useEffect(() => {
+    setIsCustomDomain(router.host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, ''))
+  }, [router.host])
 
   return (
     <div className='d-flex m-auto flex-column w-fit-content'>
@@ -306,7 +323,7 @@ function LogoutObstacle ({ onClose }) {
 
             removeLocalWallets()
 
-            await signOut({ callbackUrl: '/' })
+            await signOut({ callbackUrl: '/', redirect: !isCustomDomain })
           }}
         >
           logout

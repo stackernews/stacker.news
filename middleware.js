@@ -1,4 +1,5 @@
 import { NextResponse, URLPattern } from 'next/server'
+import { cachedFetcher } from '@/lib/fetch'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -11,6 +12,143 @@ const SN_REFERRER = 'sn_referrer'
 const SN_REFERRER_NONCE = 'sn_referrer_nonce'
 // key for referred pages
 const SN_REFEREE_LANDING = 'sn_referee_landing'
+
+const TERRITORY_PATHS = ['/~', '/recent', '/random', '/top', '/post', '/edit']
+const NO_REWRITE_PATHS = ['/api', '/_next', '/_error', '/404', '/500', '/offline', '/static', '/logout']
+
+// TODO: move this to a separate file
+// fetch custom domain mappings from our API, caching it for 5 minutes
+export const getDomainMappingsCache = cachedFetcher(async function fetchDomainMappings () {
+  const url = `${process.env.NEXT_PUBLIC_URL}/api/domains`
+  try {
+    const response = await fetch(url)
+    if (!response.ok) {
+      console.error(`Cannot fetch domain mappings: ${response.status} ${response.statusText}`)
+      return null
+    }
+
+    const data = await response.json()
+    return Object.keys(data).length > 0 ? data : null
+  } catch (error) {
+    console.error('Cannot fetch domain mappings:', error)
+    return null
+  }
+}, {
+  cacheExpiry: 300000, // 5 minutes cache
+  forceRefreshThreshold: 600000, // 10 minutes before force refresh
+  keyGenerator: () => 'domain_mappings'
+})
+
+// get a domain mapping from the cache
+export async function getDomainMapping (domain) {
+  const domainMappings = await getDomainMappingsCache()
+  return domainMappings?.[domain]
+}
+
+export async function customDomainMiddleware (request, referrerResp) {
+  const host = request.headers.get('host')
+  const referer = request.headers.get('referer')
+  const url = request.nextUrl.clone()
+  const pathname = url.pathname
+  const mainDomain = process.env.NEXT_PUBLIC_URL + '/'
+  console.log('host', host)
+  console.log('mainDomain', mainDomain)
+
+  console.log('referer', referer)
+
+  const domainInfo = await getDomainMapping(host?.toLowerCase())
+  if (!domainInfo) {
+    console.log('Redirecting to main domain')
+    return NextResponse.redirect(new URL(pathname, mainDomain))
+  }
+
+  // todo: obviously this is not the best way to do this
+  if (NO_REWRITE_PATHS.some(p => pathname.startsWith(p)) || pathname.includes('.')) {
+    return NextResponse.next()
+  }
+
+  console.log('pathname', pathname)
+  console.log('query', url.searchParams)
+
+  if (pathname === '/login' || pathname === '/signup') {
+    const redirectUrl = new URL(pathname, mainDomain)
+    redirectUrl.searchParams.set('domain', host)
+    redirectUrl.searchParams.set('callbackUrl', url.searchParams.get('callbackUrl'))
+    const redirectResp = NextResponse.redirect(redirectUrl)
+    return applyReferrerCookies(redirectResp, referrerResp)
+  }
+
+  // if the url contains the territory path, remove it
+  if (pathname.startsWith(`/~${domainInfo.subName}`)) {
+    // remove the territory prefix from the path
+    const cleanPath = pathname.replace(`/~${domainInfo.subName}`, '') || '/'
+    console.log('Redirecting to clean path:', cleanPath)
+    const redirectResp = NextResponse.redirect(new URL(cleanPath + url.search, url.origin))
+    return applyReferrerCookies(redirectResp, referrerResp)
+  }
+
+  // if coming from main domain, handle auth automatically
+  // TODO: uncomment and work on this
+
+  /*   if (referer && referer === mainDomain) {
+    const authResp = customDomainAuthMiddleware(request, url)
+    if (authResp && authResp.status !== 200) {
+      return applyReferrerCookies(authResp, referrerResp)
+    }
+  } */
+
+  const internalUrl = new URL(url)
+  // rewrite to the territory path if we're at the root
+  if (pathname === '/' || TERRITORY_PATHS.some(p => pathname.startsWith(p))) {
+    internalUrl.pathname = `/~${domainInfo.subName}${pathname === '/' ? '' : pathname}`
+  }
+  console.log('Rewrite to:', internalUrl.pathname)
+  // rewrite to the territory path
+  const resp = NextResponse.rewrite(internalUrl)
+  // copy referrer cookies to the rewritten response
+  return applyReferrerCookies(resp, referrerResp)
+}
+
+// TODO: dirty of previous iterations, refactor
+// UNSAFE UNSAFE UNSAFE tokens are visible in the URL
+// Redirect to Auth Sync if user is not logged in or has no multi_auth sessions
+export function customDomainAuthMiddleware (request, url) {
+  const host = request.headers.get('host')
+  const mainDomain = process.env.NEXT_PUBLIC_URL
+  const pathname = url.pathname
+
+  // check for session both in session token and in multi_auth cookie
+  const secure = process.env.NODE_ENV === 'development' // TODO: change this to production
+  const sessionCookieName = secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
+  const multiAuthUserId = request.cookies.get('multi_auth.user-id')?.value
+
+  // 1. We have a session token directly, or
+  // 2. We have a multi_auth user ID and the corresponding multi_auth cookie
+  const hasActiveSession = !!request.cookies.get(sessionCookieName)?.value
+  const hasMultiAuthSession = multiAuthUserId && !!request.cookies.get(`multi_auth.${multiAuthUserId}`)?.value
+
+  const hasSession = hasActiveSession || hasMultiAuthSession
+  const response = NextResponse.next()
+
+  if (!hasSession) {
+    // TODO: original request url points to localhost, this is a workaround atm
+    const protocol = secure ? 'https' : 'http'
+    const originalDomain = `${protocol}://${host}`
+    const redirectTarget = `${originalDomain}${pathname}`
+
+    // Create the auth sync URL with the correct original domain
+    const syncUrl = new URL(`${mainDomain}/api/auth/sync`)
+    syncUrl.searchParams.set('redirectUrl', redirectTarget)
+
+    console.log('AUTH: Redirecting to:', syncUrl.toString())
+    console.log('AUTH: With redirect back to:', redirectTarget)
+    const redirectResponse = NextResponse.redirect(syncUrl)
+    return redirectResponse
+  }
+
+  console.log('No redirect')
+  return response
+}
 
 function getContentReferrer (request, url) {
   if (itemPattern.test(url)) {
@@ -28,6 +166,22 @@ function getContentReferrer (request, url) {
     const { name } = territoryPattern.exec(url).pathname.groups
     return `territory-${name}`
   }
+}
+
+function applyReferrerCookies (response, referrer) {
+  for (const cookie of referrer.cookies.getAll()) {
+    response.cookies.set(
+      cookie.name,
+      cookie.value,
+      {
+        maxAge: cookie.maxAge,
+        expires: cookie.expires,
+        path: cookie.path
+      }
+    )
+  }
+  console.log('response.cookies', response.cookies)
+  return response
 }
 
 // we store the referrers in cookies for a future signup event
@@ -84,9 +238,7 @@ function referrerMiddleware (request) {
   return response
 }
 
-export function middleware (request) {
-  const resp = referrerMiddleware(request)
-
+export function applySecurityHeaders (resp) {
   const isDev = process.env.NODE_ENV === 'development'
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
@@ -131,6 +283,23 @@ export function middleware (request) {
   resp.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 
   return resp
+}
+
+export async function middleware (request) {
+  // First run referrer middleware to capture referrer data
+  const referrerResp = referrerMiddleware(request)
+
+  // If we're on a custom domain, handle that next
+  const host = request.headers.get('host')
+  const isCustomDomain = host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
+  if (isCustomDomain) {
+    const customDomainResp = await customDomainMiddleware(request, referrerResp)
+    return applySecurityHeaders(customDomainResp)
+  }
+
+  console.log('applying security headers')
+
+  return applySecurityHeaders(referrerResp)
 }
 
 export const config = {

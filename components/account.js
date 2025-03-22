@@ -9,16 +9,13 @@ import { UserListRow } from '@/components/user-list'
 import Link from 'next/link'
 import AddIcon from '@/svgs/add-fill.svg'
 import { MultiAuthErrorBanner } from '@/components/banners'
+import { cookieOptions } from '@/lib/auth'
 
 const AccountContext = createContext()
 
 const CHECK_ERRORS_INTERVAL_MS = 5_000
 
 const b64Decode = str => Buffer.from(str, 'base64').toString('utf-8')
-
-const maybeSecureCookie = cookie => {
-  return window.location.protocol === 'https:' ? cookie + '; Secure' : cookie
-}
 
 export const AccountProvider = ({ children }) => {
   const [accounts, setAccounts] = useState([])
@@ -115,7 +112,8 @@ const AccountListRow = ({ account, ...props }) => {
     e.preventDefault()
 
     // update pointer cookie
-    document.cookie = maybeSecureCookie(`multi_auth.user-id=${anonRow ? 'anonymous' : account.id}; Path=/`)
+    const options = cookieOptions({ httpOnly: false })
+    document.cookie = cookie.serialize('multi_auth.user-id', anonRow ? 'anonymous' : account.id, options)
 
     // update state
     if (anonRow) {

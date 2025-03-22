@@ -39,8 +39,7 @@ export async function * createUserInvoice (userId, { msats, description, descrip
 
     try {
       logger.info(
-        `↙ incoming payment: ${formatSats(msatsToSats(msats))}`,
-        {
+        `↙ incoming payment: ${formatSats(msatsToSats(msats))}`, {
           amount: formatMsats(msats)
         })
 

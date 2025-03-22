@@ -10,6 +10,38 @@
             ],
             "port": 9229,
             "outputCapture": "std"
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Docker: Attach to base debugger",
+            "address": "0.0.0.0",
+            "remoteRoot": "/app",
+            "port": 9229
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Docker: Attach to nextjs router server",
+            "address": "0.0.0.0",
+            "remoteRoot": "/app",
+            "port": 9230
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Docker: Attach to nextjs pages server",
+            "address": "0.0.0.0",
+            "remoteRoot": "/app",
+            "port": 9231
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Docker: Attach to nextjs app server",
+            "address": "0.0.0.0",
+            "remoteRoot": "/app",
+            "port": 9232
         }
     ]
 }

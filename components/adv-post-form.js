@@ -37,14 +37,9 @@ export function BoostHelp () {
       <li>The highest boost in a territory over the last 30 days is pinned to the top of the territory</li>
       <li>The highest boost across all territories over the last 30 days is pinned to the top of the homepage</li>
       <li>The minimum boost is {numWithUnits(BOOST_MIN, { abbreviate: false })}</li>
-      <li>Each {numWithUnits(BOOST_MULT, { abbreviate: false })} of boost is equivalent to a zap-vote from a maximally trusted stacker
+      <li>Each {numWithUnits(BOOST_MULT, { abbreviate: false })} of boost is equivalent to a zap-vote from a maximally trusted stacker (very rare)
         <ul>
           <li>e.g. {numWithUnits(BOOST_MULT * 5, { abbreviate: false })} is like five zap-votes from a maximally trusted stacker</li>
-        </ul>
-      </li>
-      <li>The decay of boost "votes" increases at 1.25x the rate of organic votes
-        <ul>
-          <li>i.e. boost votes fall out of ranking faster</li>
         </ul>
       </li>
       <li>boost can take a few minutes to show higher ranking in feed</li>

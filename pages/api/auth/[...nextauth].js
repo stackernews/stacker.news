@@ -8,13 +8,13 @@ import prisma from '@/api/models'
 import nodemailer from 'nodemailer'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { getToken, encode as encodeJWT } from 'next-auth/jwt'
-import { datePivot } from '@/lib/time'
 import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
-import * as cookie from 'cookie'
-import { multiAuthMiddleware } from '@/pages/api/graphql'
+import { multiAuthMiddleware, setMultiAuthCookies } from '@/lib/auth'
 import { BECH32_CHARSET } from '@/lib/constants'
+import { NodeNextRequest } from 'next/dist/server/base-http/node'
+import * as cookie from 'cookie'
 
 /**
  * Stores userIds in user table
@@ -94,6 +94,8 @@ function getCallbacks (req, res) {
      */
     async jwt ({ token, user, account, profile, isNewUser }) {
       if (user) {
+        // reset signup cookie if any
+        res.appendHeader('Set-Cookie', cookie.serialize('signin', '', { path: '/', expires: 0, maxAge: 0 }))
         // token won't have an id on it for new logins, we add it
         // note: token is what's kept in the jwt
         token.id = Number(user.id)
@@ -124,8 +126,8 @@ function getCallbacks (req, res) {
         token.sub = Number(token.id)
       }
 
-      // add multi_auth cookie for user that just logged in
       if (user && req && res) {
+        // add multi_auth cookie for user that just logged in
         const secret = process.env.NEXTAUTH_SECRET
         const jwt = await encodeJWT({ token, secret })
         const me = await prisma.user.findUnique({ where: { id: token.id } })
@@ -142,37 +144,6 @@ function getCallbacks (req, res) {
       return session
     }
   }
-}
-
-function setMultiAuthCookies (req, res, { id, jwt, name, photoId }) {
-  const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
-  const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
-
-  // default expiration for next-auth JWTs is in 1 month
-  const expiresAt = datePivot(new Date(), { months: 1 })
-  const secure = process.env.NODE_ENV === 'production'
-  const cookieOptions = {
-    path: '/',
-    httpOnly: true,
-    secure,
-    sameSite: 'lax',
-    expires: expiresAt
-  }
-
-  // add JWT to **httpOnly** cookie
-  res.appendHeader('Set-Cookie', cookie.serialize(`multi_auth.${id}`, jwt, cookieOptions))
-
-  // switch to user we just added
-  res.appendHeader('Set-Cookie', cookie.serialize('multi_auth.user-id', id, { ...cookieOptions, httpOnly: false }))
-
-  let newMultiAuth = [{ id, name, photoId }]
-  if (req.cookies.multi_auth) {
-    const oldMultiAuth = b64Decode(req.cookies.multi_auth)
-    // make sure we don't add duplicates
-    if (oldMultiAuth.some(({ id: id_ }) => id_ === id)) return
-    newMultiAuth = [...oldMultiAuth, ...newMultiAuth]
-  }
-  res.appendHeader('Set-Cookie', cookie.serialize('multi_auth', b64Encode(newMultiAuth), { ...cookieOptions, httpOnly: false }))
 }
 
 async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
@@ -194,7 +165,7 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
       let user = await prisma.user.findUnique({ where: { [pubkeyColumnName]: pubkey } })
 
       // make following code aware of cookie pointer for account switching
-      req = multiAuthMiddleware(req)
+      req = await multiAuthMiddleware(req, res)
       // token will be undefined if we're not logged in at all or if we switched to anon
       const token = await getToken({ req })
       if (!user) {
@@ -205,7 +176,8 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
         if (token?.id && !multiAuth) {
           user = await prisma.user.update({ where: { id: token.id }, data: { [pubkeyColumnName]: pubkey } })
         } else {
-          // we're not logged in: create new user with that pubkey
+          // create a new user only if we're trying to sign up
+          if (new NodeNextRequest(req).cookies.signin) return null
           user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), [pubkeyColumnName]: pubkey } })
         }
       }
@@ -251,7 +223,7 @@ async function nostrEventAuth (event) {
 }
 
 /** @type {import('next-auth/providers').Provider[]} */
-const getProviders = res => [
+const getProviders = (req, res) => [
   CredentialsProvider({
     id: 'lightning',
     name: 'Lightning',
@@ -335,17 +307,18 @@ const getProviders = res => [
     from: process.env.LOGIN_EMAIL_FROM,
     maxAge: 5 * 60, // expires in 5 minutes
     generateVerificationToken: generateRandomString,
-    sendVerificationRequest
+    sendVerificationRequest: (...args) => sendVerificationRequest(...args, req)
   })
 ]
 
 /** @returns {import('next-auth').AuthOptions} */
 export const getAuthOptions = (req, res) => ({
   callbacks: getCallbacks(req, res),
-  providers: getProviders(res),
+  providers: getProviders(req, res),
   adapter: {
     ...PrismaAdapter(prisma),
     createUser: data => {
+      if (req.cookies.signin) return null
       // replace email with email hash in new user payload
       if (data.email) {
         const { email } = data
@@ -480,7 +453,7 @@ async function sendVerificationRequest ({
   url,
   token,
   provider
-}) {
+}, req) {
   let user = await prisma.user.findUnique({
     where: {
       // Look for the user by hashed email
@@ -501,6 +474,11 @@ async function sendVerificationRequest ({
     const { server, from } = provider
 
     const site = new URL(url).host
+
+    // if we're trying to sign in but no user was found, resolve the promise
+    if (req.cookies.signin && !user) {
+      return resolve()
+    }
 
     nodemailer.createTransport(server).sendMail(
       {
@@ -786,7 +764,7 @@ const newUserHtml = ({ url, token, site, email }) => {
                   <tbody>
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">Stacker News is like Reddit or Hacker News, but it <b>pays you Bitcoin</b>. Instead of giving posts or comments “upvotes,” Stacker News users (aka stackers) send you small amounts of Bitcoin called sats.</div>
+                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">Stacker News is like Reddit or Hacker News, but it <b>pays you Bitcoin</b>. Instead of giving posts or comments "upvotes," Stacker News users (aka stackers) send you small amounts of Bitcoin called sats.</div>
                       </td>
                     </tr>
                     <tr>
@@ -801,7 +779,7 @@ const newUserHtml = ({ url, token, site, email }) => {
                     </tr>
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">If you’re not sure what to share, <a href="${dailyUrl}"><b><i>click here to introduce yourself to the community</i></b></a> with a comment on the daily discussion thread.</div>
+                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">If you're not sure what to share, <a href="${dailyUrl}"><b><i>click here to introduce yourself to the community</i></b></a> with a comment on the daily discussion thread.</div>
                       </td>
                     </tr>
                     <tr>
@@ -811,7 +789,7 @@ const newUserHtml = ({ url, token, site, email }) => {
                     </tr>
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">If anything isn’t clear, comment on the FAQ post and we’ll answer your question.</div>
+                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">If anything isn't clear, comment on the FAQ post and we'll answer your question.</div>
                       </td>
                     </tr>
                     <tr>

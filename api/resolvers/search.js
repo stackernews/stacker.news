@@ -303,85 +303,6 @@ export default {
         })
       }
 
-      // query for search terms
-      if (query.length) {
-        // keyword based subquery, to be used on its own or in conjunction with a neural
-        // search
-        const subquery = [
-          {
-            multi_match: {
-              query,
-              type: 'most_fields',
-              fields: ['title^10', 'text'],
-              fuzziness: 'AUTO',
-              minimum_should_match: 1
-            }
-          },
-          // all match matches higher
-          {
-            multi_match: {
-              query,
-              type: 'most_fields',
-              fields: ['title^10', 'text'],
-              minimum_should_match: '100%',
-              boost: 100
-            }
-          },
-          // phrase match matches higher
-          {
-            multi_match: {
-              query,
-              type: 'phrase',
-              fields: ['title^10', 'text'],
-              boost: 1000
-            }
-          }
-        ]
-
-        // use hybrid neural search if model id is available, otherwise use only
-        // keyword search
-        if (process.env.OPENSEARCH_MODEL_ID) {
-          termQueries.push({
-            hybrid: {
-              queries: [
-                {
-                  bool: {
-                    should: [
-                      {
-                        neural: {
-                          title_embedding: {
-                            query_text: query,
-                            model_id: process.env.OPENSEARCH_MODEL_ID,
-                            k: decodedCursor.offset + LIMIT
-                          }
-                        }
-                      },
-                      {
-                        neural: {
-                          text_embedding: {
-                            query_text: query,
-                            model_id: process.env.OPENSEARCH_MODEL_ID,
-                            k: decodedCursor.offset + LIMIT
-                          }
-                        }
-                      }
-                    ]
-                  }
-                },
-                {
-                  bool: {
-                    should: subquery,
-                    minimum_should_match: 1
-                  }
-                }
-              ]
-            }
-          })
-        } else {
-          termQueries.push(...subquery)
-        }
-      }
-
       // functions for boosting search rank by recency or popularity
       switch (sort) {
         case 'comments':
@@ -423,6 +344,98 @@ export default {
           break
       }
 
+      let osQuery = {
+        function_score: {
+          query: {
+            bool: {
+              filter: filters,
+              should: termQueries,
+              minimum_should_match: termQueries.length > 0 ? 1 : 0
+            }
+          },
+          functions,
+          score_mode: 'multiply',
+          boost_mode: 'multiply'
+        }
+      }
+
+      // query for search terms
+      if (query.length) {
+        // keyword based subquery, to be used on its own or in conjunction with a neural
+        // search
+        const subquery = [
+          {
+            multi_match: {
+              query,
+              type: 'best_fields',
+              fields: ['title^10', 'text'],
+              fuzziness: 'AUTO',
+              minimum_should_match: 1
+            }
+          },
+          // all match matches higher
+          {
+            multi_match: {
+              query,
+              type: 'best_fields',
+              fields: ['title^10', 'text'],
+              minimum_should_match: '100%',
+              boost: 100
+            }
+          },
+          // phrase match matches higher
+          {
+            multi_match: {
+              query,
+              type: 'phrase',
+              fields: ['title^10', 'text'],
+              boost: 1000
+            }
+          }
+        ]
+
+        osQuery.function_score.query.bool.should = [...termQueries, ...subquery]
+        osQuery.function_score.query.bool.minimum_should_match = 1
+
+        // use hybrid neural search if model id is available, otherwise use only
+        // keyword search
+        if (process.env.OPENSEARCH_MODEL_ID) {
+          osQuery = {
+            hybrid: {
+              queries: [
+                {
+                  bool: {
+                    should: [
+                      {
+                        neural: {
+                          title_embedding: {
+                            query_text: query,
+                            model_id: process.env.OPENSEARCH_MODEL_ID,
+                            k: decodedCursor.offset + LIMIT
+                          }
+                        }
+                      },
+                      {
+                        neural: {
+                          text_embedding: {
+                            query_text: query,
+                            model_id: process.env.OPENSEARCH_MODEL_ID,
+                            k: decodedCursor.offset + LIMIT
+                          }
+                        }
+                      }
+                    ],
+                    filter: filters,
+                    minimum_should_match: 1
+                  }
+                },
+                osQuery
+              ]
+            }
+          }
+        }
+      }
+
       try {
         sitems = await search.search({
           index: process.env.OPENSEARCH_INDEX,
@@ -436,20 +449,7 @@ export default {
           },
           from: decodedCursor.offset,
           body: {
-            query: {
-              function_score: {
-                query: {
-                  bool: {
-                    filter: filters,
-                    should: termQueries,
-                    minimum_should_match: 1
-                  }
-                },
-                functions,
-                score_mode: 'multiply',
-                boost_mode: 'multiply'
-              }
-            },
+            query: osQuery,
             highlight: {
               fields: {
                 title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },

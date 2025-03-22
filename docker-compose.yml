@@ -163,7 +163,7 @@ services:
       - "CONNECT=localhost:4566"
     cpu_shares: "${CPU_SHARES_LOW}"
   opensearch:
-    image: opensearchproject/opensearch:2.12.0
+    image: opensearchproject/opensearch:2.17.0
     container_name: opensearch
     profiles:
       - search
@@ -203,7 +203,7 @@ services:
       '
     cpu_shares: "${CPU_SHARES_LOW}"
   os-dashboard:
-    image: opensearchproject/opensearch-dashboards:2.12.0
+    image: opensearchproject/opensearch-dashboards:2.17.0
     container_name: os-dashboard
     restart: unless-stopped
     profiles:
@@ -687,7 +687,7 @@ services:
       - sn_lnd
       - lnd
       - router_lnd
-    restart: unless-stopped 
+    restart: unless-stopped
     command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME} -f label=ofelia.group=payments
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro

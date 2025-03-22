@@ -223,6 +223,9 @@ export function MeDropdown ({ me, dropNavKey }) {
   )
 }
 
+// this is the width of the 'switch account' button if no width is given
+const SWITCH_ACCOUNT_BUTTON_WIDTH = '162px'
+
 export function SignUpButton ({ className = 'py-0', width }) {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
@@ -233,7 +236,8 @@ export function SignUpButton ({ className = 'py-0', width }) {
   return (
     <Button
       className={classNames('align-items-center ps-2 pe-3', className)}
-      style={{ borderWidth: '2px', width: width || '150px' }}
+      // 161px is the width of the 'switch account' button
+      style={{ borderWidth: '2px', width: width || SWITCH_ACCOUNT_BUTTON_WIDTH }}
       id='signup'
       onClick={() => handleLogin('/signup')}
     >
@@ -269,7 +273,7 @@ export default function LoginButton () {
     <Button
       className='align-items-center px-3 py-1'
       id='login'
-      style={{ borderWidth: '2px', width: '150px' }}
+      style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       variant='outline-grey-darkmode'
       onClick={handleLogin}
     >
@@ -361,7 +365,7 @@ function SwitchAccountButton ({ handleClose }) {
     <Button
       className='align-items-center px-3 py-1'
       variant='outline-grey-darkmode'
-      style={{ borderWidth: '2px', width: '150px' }}
+      style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       onClick={() => {
         // login buttons rendered in offcanvas aren't wrapped inside <Dropdown>
         // so we manually close the offcanvas in that case by passing down handleClose here

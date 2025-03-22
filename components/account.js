@@ -8,24 +8,20 @@ import { useQuery } from '@apollo/client'
 import { UserListRow } from '@/components/user-list'
 import Link from 'next/link'
 import AddIcon from '@/svgs/add-fill.svg'
-import { MultiAuthErrorBanner } from '@/components/banners'
-import { cookieOptions } from '@/lib/auth'
+import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER } from '@/lib/auth'
 
 const AccountContext = createContext()
-
-const CHECK_ERRORS_INTERVAL_MS = 5_000
 
 const b64Decode = str => Buffer.from(str, 'base64').toString('utf-8')
 
 export const AccountProvider = ({ children }) => {
   const [accounts, setAccounts] = useState([])
   const [meAnon, setMeAnon] = useState(true)
-  const [errors, setErrors] = useState([])
 
   const updateAccountsFromCookie = useCallback(() => {
-    const { multi_auth: multiAuthCookie } = cookie.parse(document.cookie)
-    const accounts = multiAuthCookie
-      ? JSON.parse(b64Decode(multiAuthCookie))
+    const { [MULTI_AUTH_LIST]: listCookie } = cookie.parse(document.cookie)
+    const accounts = listCookie
+      ? JSON.parse(b64Decode(listCookie))
       : []
     setAccounts(accounts)
   }, [])
@@ -47,31 +43,14 @@ export const AccountProvider = ({ children }) => {
     return switchSuccess
   }, [updateAccountsFromCookie])
 
-  const checkErrors = useCallback(() => {
-    const {
-      multi_auth: multiAuthCookie,
-      'multi_auth.user-id': multiAuthUserIdCookie
-    } = cookie.parse(document.cookie)
-
-    const errors = []
-
-    if (!multiAuthCookie) errors.push('multi_auth cookie not found')
-    if (!multiAuthUserIdCookie) errors.push('multi_auth.user-id cookie not found')
-
-    setErrors(errors)
-  }, [])
-
   useEffect(() => {
     if (SSR) return
 
     updateAccountsFromCookie()
 
-    const { 'multi_auth.user-id': multiAuthUserIdCookie } = cookie.parse(document.cookie)
-    setMeAnon(multiAuthUserIdCookie === 'anonymous')
-
-    const interval = setInterval(checkErrors, CHECK_ERRORS_INTERVAL_MS)
-    return () => clearInterval(interval)
-  }, [updateAccountsFromCookie, checkErrors])
+    const { [MULTI_AUTH_POINTER]: pointerCookie } = cookie.parse(document.cookie)
+    setMeAnon(pointerCookie === 'anonymous')
+  }, [updateAccountsFromCookie])
 
   const value = useMemo(
     () => ({
@@ -80,10 +59,9 @@ export const AccountProvider = ({ children }) => {
       removeAccount,
       meAnon,
       setMeAnon,
-      nextAccount,
-      multiAuthErrors: errors
+      nextAccount
     }),
-    [accounts, addAccount, removeAccount, meAnon, setMeAnon, nextAccount, errors])
+    [accounts, addAccount, removeAccount, meAnon, setMeAnon, nextAccount])
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>
 }
 
@@ -113,7 +91,7 @@ const AccountListRow = ({ account, ...props }) => {
 
     // update pointer cookie
     const options = cookieOptions({ httpOnly: false })
-    document.cookie = cookie.serialize('multi_auth.user-id', anonRow ? 'anonymous' : account.id, options)
+    document.cookie = cookie.serialize(MULTI_AUTH_POINTER, anonRow ? MULTI_AUTH_ANON : account.id, options)
 
     // update state
     if (anonRow) {
@@ -144,22 +122,8 @@ const AccountListRow = ({ account, ...props }) => {
 }
 
 export default function SwitchAccountList () {
-  const { accounts, multiAuthErrors } = useAccounts()
+  const { accounts } = useAccounts()
   const router = useRouter()
-
-  const hasError = multiAuthErrors.length > 0
-
-  if (hasError) {
-    return (
-      <>
-        <div className='my-2'>
-          <div className='d-flex flex-column flex-wrap mt-2 mb-3'>
-            <MultiAuthErrorBanner errors={multiAuthErrors} />
-          </div>
-        </div>
-      </>
-    )
-  }
 
   // can't show hat since the streak is not included in the JWT payload
   return (

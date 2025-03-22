@@ -21,7 +21,7 @@ import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
-import { useWallets } from '@/wallets/index'
+import { useConfiguredWallets, useWallets } from '@/wallets/index'
 import SwitchAccountList, { useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
@@ -164,8 +164,41 @@ export function NavWalletSummary ({ className }) {
   )
 }
 
+export const Indicator = ({ superscript }) => {
+  if (superscript) {
+    return (
+      <span className='d-inline-block p-1'>
+        <span
+          className='position-absolute p-1 bg-secondary'
+          style={{
+            top: '5px',
+            right: '0px',
+            height: '5px',
+            width: '5px'
+          }}
+        >
+          <span className='invisible'>{' '}</span>
+        </span>
+      </span>
+    )
+  }
+
+  return (
+    <div className='p-1 d-inline-block bg-secondary ms-1'>
+      <span className='invisible'>{' '}</span>
+    </div>
+  )
+}
+
 export function MeDropdown ({ me, dropNavKey }) {
   if (!me) return null
+
+  const wallets = useConfiguredWallets()
+
+  const profileIndicator = !me.bioId
+  const walletIndicator = wallets.length === 0
+  const indicator = profileIndicator || walletIndicator
+
   return (
     <div className=''>
       <Dropdown className={styles.dropdown} align='end'>
@@ -173,12 +206,7 @@ export function MeDropdown ({ me, dropNavKey }) {
           <div className='d-flex align-items-center'>
             <Nav.Link eventKey={me.name} as='span' className='p-0 position-relative'>
               {`@${me.name}`}
-              {!me.bioId &&
-                <span className='d-inline-block p-1'>
-                  <span className='position-absolute p-1 bg-secondary' style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}>
-                    <span className='invisible'>{' '}</span>
-                  </span>
-                </span>}
+              {indicator && <Indicator superscript />}
             </Nav.Link>
             <Badges user={me} />
           </div>
@@ -187,17 +215,17 @@ export function MeDropdown ({ me, dropNavKey }) {
           <Link href={'/' + me.name} passHref legacyBehavior>
             <Dropdown.Item active={me.name === dropNavKey}>
               profile
-              {me && !me.bioId &&
-                <div className='p-1 d-inline-block bg-secondary ms-1'>
-                  <span className='invisible'>{' '}</span>
-                </div>}
+              {profileIndicator && <Indicator />}
             </Dropdown.Item>
           </Link>
           <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
             <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
           </Link>
           <Link href='/wallets' passHref legacyBehavior>
-            <Dropdown.Item eventKey='wallets'>wallets</Dropdown.Item>
+            <Dropdown.Item eventKey='wallets'>
+              wallets
+              {walletIndicator && <Indicator />}
+            </Dropdown.Item>
           </Link>
           <Link href='/credits' passHref legacyBehavior>
             <Dropdown.Item eventKey='credits'>credits</Dropdown.Item>

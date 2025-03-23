@@ -276,11 +276,15 @@ export default {
       // if nym, items must contain nym
       if (nym) {
         filters.push({ wildcard: { 'user.name': `*${nym.slice(1).toLowerCase()}*` } })
+        // push same requirement to termQueries to avoid empty should clause
+        termQueries.push({ wildcard: { 'user.name': `*${nym.slice(1).toLowerCase()}*` } })
       }
 
       // if territory, item must be from territory
       if (territory) {
         filters.push({ match: { 'sub.name': territory.slice(1) } })
+        // push same requirement to termQueries to avoid empty should clause
+        termQueries.push({ match: { 'sub.name': territory.slice(1) } })
       }
 
       // if quoted phrases, items must contain entire phrase

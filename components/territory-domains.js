@@ -100,7 +100,7 @@ export default function CustomDomainForm ({ sub }) {
         {/* TODO: toaster */}
         <SubmitButton variant='primary' className='mt-3'>save</SubmitButton>
       </div>
-      {(data?.customDomain.dnsState === 'PENDING' || data?.customDomain.dnsState === 'FAILED') && (
+      {(data?.customDomain?.dnsState === 'PENDING' || data?.customDomain?.dnsState === 'FAILED') && (
         <>
           <h6>Verify your domain</h6>
           <p>Add the following DNS records to verify ownership of your domain:</p>
@@ -116,7 +116,7 @@ export default function CustomDomainForm ({ sub }) {
           </pre>
         </>
       )}
-      {data?.customDomain.sslState === 'PENDING' && (
+      {data?.customDomain?.sslState === 'PENDING' && (
         <>
           <h6>SSL verification pending</h6>
           <p>We issued an SSL certificate for your domain. To validate it, add the following CNAME record:</p>

@@ -12,6 +12,7 @@ CREATE TABLE "CustomDomain" (
     "verificationCname" TEXT,
     "verificationCnameValue" TEXT,
     "verificationTxt" TEXT,
+    "failedAttempts" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "CustomDomain_pkey" PRIMARY KEY ("id")
 );

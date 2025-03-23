@@ -21,5 +21,6 @@ export default gql`
     verificationCname: String
     verificationCnameValue: String
     verificationTxt: String
+    failedAttempts: Int
   }
 `

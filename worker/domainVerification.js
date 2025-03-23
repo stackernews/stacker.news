@@ -48,6 +48,16 @@ export async function domainVerification () {
           if (sslState) data.sslState = sslState
         }
 
+        // Delete domain if it verification has failed 5 times
+        if (data.dnsState === 'FAILED' || data.sslState === 'FAILED') {
+          data.attempts += 1
+          if (data.attempts >= 5) {
+            return models.customDomain.delete({ where: { id: domain.id } })
+          }
+        } else {
+          data.attempts = 0
+        }
+
         await models.customDomain.update({ where: { id: domain.id }, data })
       } catch (error) {
         // TODO: this declares any error as a DNS verification error, we should also consider SSL verification errors

@@ -46,7 +46,7 @@ export async function getDomainMapping (domain) {
   return domainMappings?.[domain]
 }
 
-export async function customDomainMiddleware (request, referrerResp) {
+export async function customDomainMiddleware (request, referrerResp, domain) {
   const host = request.headers.get('host')
   const referer = request.headers.get('referer')
   const url = request.nextUrl.clone()
@@ -56,12 +56,6 @@ export async function customDomainMiddleware (request, referrerResp) {
   console.log('mainDomain', mainDomain)
 
   console.log('referer', referer)
-
-  const domainInfo = await getDomainMapping(host?.toLowerCase())
-  if (!domainInfo) {
-    console.log('Redirecting to main domain')
-    return NextResponse.redirect(new URL(pathname, mainDomain))
-  }
 
   // todo: obviously this is not the best way to do this
   if (NO_REWRITE_PATHS.some(p => pathname.startsWith(p)) || pathname.includes('.')) {
@@ -83,9 +77,9 @@ export async function customDomainMiddleware (request, referrerResp) {
   }
 
   // if the url contains the territory path, remove it
-  if (pathname.startsWith(`/~${domainInfo.subName}`)) {
+  if (pathname.startsWith(`/~${domain.subName}`)) {
     // remove the territory prefix from the path
-    const cleanPath = pathname.replace(`/~${domainInfo.subName}`, '') || '/'
+    const cleanPath = pathname.replace(`/~${domain.subName}`, '') || '/'
     console.log('Redirecting to clean path:', cleanPath)
     const redirectResp = NextResponse.redirect(new URL(cleanPath + url.search, url.origin))
     return applyReferrerCookies(redirectResp, referrerResp)
@@ -104,7 +98,7 @@ export async function customDomainMiddleware (request, referrerResp) {
   const internalUrl = new URL(url)
   // rewrite to the territory path if we're at the root
   if (pathname === '/' || TERRITORY_PATHS.some(p => pathname.startsWith(p))) {
-    internalUrl.pathname = `/~${domainInfo.subName}${pathname === '/' ? '' : pathname}`
+    internalUrl.pathname = `/~${domain.subName}${pathname === '/' ? '' : pathname}`
   }
   console.log('Rewrite to:', internalUrl.pathname)
   // rewrite to the territory path
@@ -299,8 +293,8 @@ export async function middleware (request) {
 
   // If we're on a custom domain, handle that next
   const host = request.headers.get('host')
-  const isCustomDomain = host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
-  if (isCustomDomain) {
+  const isAllowedDomain = await getDomainMapping(host?.toLowerCase())
+  if (isAllowedDomain) {
     const customDomainResp = await customDomainMiddleware(request, referrerResp)
     return applySecurityHeaders(customDomainResp)
   }

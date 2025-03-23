@@ -1233,6 +1233,7 @@ model CustomDomain {
   verificationCname       String?
   verificationCnameValue  String?
   verificationTxt         String?
+  failedAttempts          Int       @default(0)
   sub                     Sub       @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
   
   @@index([domain])

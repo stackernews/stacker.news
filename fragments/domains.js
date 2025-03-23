@@ -19,6 +19,7 @@ export const GET_CUSTOM_DOMAIN_FULL = gql`
   fragment CustomDomainFull on CustomDomain {
     ...CustomDomainFields
     certificateArn
+    failedAttempts
   }
 `
 

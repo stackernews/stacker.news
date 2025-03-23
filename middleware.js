@@ -20,6 +20,7 @@ const NO_REWRITE_PATHS = ['/api', '/_next', '/_error', '/404', '/500', '/offline
 // fetch custom domain mappings from our API, caching it for 5 minutes
 export const getDomainMappingsCache = cachedFetcher(async function fetchDomainMappings () {
   const url = `${process.env.NEXT_PUBLIC_URL}/api/domains`
+  console.log('fetching domain mappings from', url)
   try {
     const response = await fetch(url)
     if (!response.ok) {
@@ -74,6 +75,9 @@ export async function customDomainMiddleware (request, referrerResp) {
     const redirectUrl = new URL(pathname, mainDomain)
     redirectUrl.searchParams.set('domain', host)
     redirectUrl.searchParams.set('callbackUrl', url.searchParams.get('callbackUrl'))
+    if (url.searchParams.get('multiAuth')) {
+      redirectUrl.searchParams.set('multiAuth', url.searchParams.get('multiAuth'))
+    }
     const redirectResp = NextResponse.redirect(redirectUrl)
     return applyReferrerCookies(redirectResp, referrerResp)
   }
@@ -288,6 +292,10 @@ export function applySecurityHeaders (resp) {
 export async function middleware (request) {
   // First run referrer middleware to capture referrer data
   const referrerResp = referrerMiddleware(request)
+  if (referrerResp.headers.get('Location')) {
+    // This is a redirect from the referrer middleware
+    return applySecurityHeaders(referrerResp)
+  }
 
   // If we're on a custom domain, handle that next
   const host = request.headers.get('host')

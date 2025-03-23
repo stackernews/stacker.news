@@ -30,14 +30,6 @@ export const AccountProvider = ({ children }) => {
     setAccounts(accounts)
   }, [])
 
-  const addAccount = useCallback(user => {
-    setAccounts(accounts => [...accounts, user])
-  }, [])
-
-  const removeAccount = useCallback(userId => {
-    setAccounts(accounts => accounts.filter(({ id }) => id !== userId))
-  }, [])
-
   const nextAccount = useCallback(async () => {
     const { status } = await fetch('/api/next-account', { credentials: 'include' })
     // if status is 302, this means the server was able to switch us to the next available account
@@ -76,14 +68,12 @@ export const AccountProvider = ({ children }) => {
   const value = useMemo(
     () => ({
       accounts,
-      addAccount,
-      removeAccount,
       meAnon,
       setMeAnon,
       nextAccount,
       multiAuthErrors: errors
     }),
-    [accounts, addAccount, removeAccount, meAnon, setMeAnon, nextAccount, errors])
+    [accounts, meAnon, setMeAnon, nextAccount])
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>
 }
 

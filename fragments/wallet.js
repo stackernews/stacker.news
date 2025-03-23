@@ -23,6 +23,7 @@ export const INVOICE_FIELDS = gql`
     actionError
     confirmedPreimage
     forwardedSats
+    forwardStatus
   }`
 
 export const INVOICE_FULL = gql`
@@ -53,6 +54,7 @@ export const WITHDRAWL = gql`
       id
       createdAt
       bolt11
+      hash
       satsPaid
       satsFeePaying
       satsFeePaid
@@ -60,6 +62,21 @@ export const WITHDRAWL = gql`
       autoWithdraw
       preimage
       forwardedActionType
+    }
+  }`
+
+export const DIRECT = gql`
+  query Direct($id: ID!) {
+    direct(id: $id) {
+      id
+      createdAt
+      bolt11
+      hash
+      sats
+      preimage
+      comment
+      lud18Data
+      nostr
     }
   }`
 
@@ -203,5 +220,23 @@ export const WALLET_LOGS = gql`
 export const SET_WALLET_PRIORITY = gql`
   mutation SetWalletPriority($id: ID!, $priority: Int!) {
     setWalletPriority(id: $id, priority: $priority)
+  }
+`
+
+export const CANCEL_INVOICE = gql`
+  ${INVOICE_FIELDS}
+  mutation cancelInvoice($hash: String!, $hmac: String, $userCancel: Boolean) {
+    cancelInvoice(hash: $hash, hmac: $hmac, userCancel: $userCancel) {
+      ...InvoiceFields
+    }
+  }
+`
+
+export const FAILED_INVOICES = gql`
+  ${INVOICE_FIELDS}
+  query FailedInvoices {
+    failedInvoices {
+      ...InvoiceFields
+    }
   }
 `

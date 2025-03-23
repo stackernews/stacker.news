@@ -1,3 +1,5 @@
+import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { FetchTimeoutError } from '@/lib/fetch'
 import { msatsToSats } from '@/lib/format'
 import { getAgent } from '@/lib/proxy'
 import { assertContentTypeJson } from '@/lib/url'
@@ -5,13 +7,14 @@ import fetch from 'cross-fetch'
 
 export * from '@/wallets/lnbits'
 
-export async function testCreateInvoice ({ url, invoiceKey }) {
-  return await createInvoice({ msats: 1000, expiry: 1 }, { url, invoiceKey })
+export async function testCreateInvoice ({ url, invoiceKey }, { signal }) {
+  return await createInvoice({ msats: 1000, expiry: 1 }, { url, invoiceKey }, { signal })
 }
 
 export async function createInvoice (
   { msats, description, descriptionHash, expiry },
-  { url, invoiceKey }) {
+  { url, invoiceKey },
+  { signal }) {
   const path = '/api/v1/payments'
 
   const headers = new Headers()
@@ -30,7 +33,7 @@ export async function createInvoice (
     out: false
   })
 
-  let hostname = url.replace(/^https?:\/\//, '')
+  let hostname = url.replace(/^https?:\/\//, '').replace(/\/+$/, '')
   const agent = getAgent({ hostname })
 
   if (process.env.NODE_ENV !== 'production' && hostname.startsWith('localhost:')) {
@@ -38,12 +41,23 @@ export async function createInvoice (
     hostname = 'lnbits:5000'
   }
 
-  const res = await fetch(`${agent.protocol}//${hostname}${path}`, {
-    method: 'POST',
-    headers,
-    agent,
-    body
-  })
+  let res
+  try {
+    res = await fetch(`${agent.protocol}//${hostname}${path}`, {
+      method: 'POST',
+      headers,
+      agent,
+      body,
+      signal
+    })
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      // XXX node-fetch doesn't throw our custom TimeoutError but throws a generic error so we have to handle that manually.
+      // see https://github.com/node-fetch/node-fetch/issues/1462
+      throw new FetchTimeoutError('POST', url, WALLET_CREATE_INVOICE_TIMEOUT_MS)
+    }
+    throw err
+  }
 
   assertContentTypeJson(res)
   if (!res.ok) {

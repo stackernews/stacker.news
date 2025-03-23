@@ -1,15 +1,15 @@
 import { useMe } from '@/components/me'
-import { SET_WALLET_PRIORITY, WALLETS } from '@/fragments/wallet'
-import { SSR } from '@/lib/constants'
-import { useApolloClient, useMutation, useQuery } from '@apollo/client'
+import { FAILED_INVOICES, SET_WALLET_PRIORITY, WALLETS } from '@/fragments/wallet'
+import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { useApolloClient, useLazyQuery, useMutation, useQuery } from '@apollo/client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getStorageKey, getWalletByType, walletPrioritySort, canSend, isConfigured, upsertWalletVariables, siftConfig, saveWalletLocally } from './common'
 import useVault from '@/components/vault/use-vault'
-import { useWalletLogger } from '@/components/wallet-logger'
-import { decode as bolt11Decode } from 'bolt11'
 import walletDefs from '@/wallets/client'
 import { generateMutation } from './graphql'
-import { formatSats } from '@/lib/format'
+import { useWalletPayment } from './payment'
+import useInvoice from '@/components/use-invoice'
+import { WalletConfigurationError } from './errors'
 
 const WalletsContext = createContext({
   wallets: []
@@ -128,7 +128,7 @@ export function WalletsProvider ({ children }) {
       }
     }
 
-    // sort by priority, then add status field
+    // sort by priority
     return Object.values(merged).sort(walletPrioritySort)
   }, [serverWallets, localWallets])
 
@@ -207,7 +207,9 @@ export function WalletsProvider ({ children }) {
         removeLocalWallets
       }}
     >
-      {children}
+      <RetryHandler>
+        {children}
+      </RetryHandler>
     </WalletsContext.Provider>
   )
 }
@@ -218,34 +220,88 @@ export function useWallets () {
 
 export function useWallet (name) {
   const { wallets } = useWallets()
+  return wallets.find(w => w.def.name === name)
+}
 
-  const wallet = useMemo(() => {
-    if (name) {
-      return wallets.find(w => w.def.name === name)
-    }
+export function useSendWallets () {
+  const { wallets } = useWallets()
+  // return all enabled wallets that are available and can send
+  return useMemo(() => wallets
+    .filter(w => !w.def.isAvailable || w.def.isAvailable())
+    .filter(w => w.config?.enabled && canSend(w)), [wallets])
+}
 
-    // return the first enabled wallet that is available and can send
-    return wallets
-      .filter(w => !w.def.isAvailable || w.def.isAvailable())
-      .filter(w => w.config?.enabled && canSend(w))[0]
-  }, [wallets, name])
+function RetryHandler ({ children }) {
+  const wallets = useSendWallets()
+  const waitForWalletPayment = useWalletPayment()
+  const invoiceHelper = useInvoice()
+  const [getFailedInvoices] = useLazyQuery(FAILED_INVOICES, { fetchPolicy: 'network-only', nextFetchPolicy: 'network-only' })
+  const { me } = useMe()
 
-  const { logger } = useWalletLogger(wallet?.def)
+  const retry = useCallback(async (invoice) => {
+    const newInvoice = await invoiceHelper.retry({ ...invoice, newAttempt: true })
 
-  const sendPayment = useCallback(async (bolt11) => {
-    const decoded = bolt11Decode(bolt11)
-    logger.info(`↗ sending payment: ${formatSats(decoded.satoshis)}`, { bolt11 })
     try {
-      const preimage = await wallet.def.sendPayment(bolt11, wallet.config, { logger })
-      logger.ok(`↗ payment sent: ${formatSats(decoded.satoshis)}`, { bolt11, preimage })
+      await waitForWalletPayment(newInvoice)
     } catch (err) {
-      const message = err.message || err.toString?.()
-      logger.error(`payment failed: ${message}`, { bolt11 })
+      if (err instanceof WalletConfigurationError) {
+        // consume attempt by canceling invoice
+        await invoiceHelper.cancel(newInvoice)
+      }
       throw err
     }
-  }, [wallet, logger])
+  }, [invoiceHelper, waitForWalletPayment])
 
-  if (!wallet) return null
+  useEffect(() => {
+    // we always retry failed invoices, even if the user has no wallets on any client
+    // to make sure that failed payments will always show up in notifications eventually
 
-  return { ...wallet, sendPayment }
+    if (!me) return
+
+    const retryPoll = async () => {
+      let failedInvoices
+      try {
+        const { data, error } = await getFailedInvoices()
+        if (error) throw error
+        failedInvoices = data.failedInvoices
+      } catch (err) {
+        console.error('failed to fetch invoices to retry:', err)
+        return
+      }
+
+      for (const inv of failedInvoices) {
+        try {
+          await retry(inv)
+        } catch (err) {
+          // some retries are expected to fail since only one client at a time is allowed to retry
+          // these should show up as 'invoice not found' errors
+          console.error('retry failed:', err)
+        }
+      }
+    }
+
+    let timeout, stopped
+    const queuePoll = () => {
+      timeout = setTimeout(async () => {
+        try {
+          await retryPoll()
+        } catch (err) {
+          // every error should already be handled in retryPoll
+          // but this catch is a safety net to not trigger an unhandled promise rejection
+          console.error('retry poll failed:', err)
+        }
+        if (!stopped) queuePoll()
+      }, NORMAL_POLL_INTERVAL)
+    }
+
+    const stopPolling = () => {
+      stopped = true
+      clearTimeout(timeout)
+    }
+
+    queuePoll()
+    return stopPolling
+  }, [me?.id, wallets, getFailedInvoices, retry])
+
+  return children
 }

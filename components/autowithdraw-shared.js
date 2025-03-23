@@ -2,7 +2,7 @@ import { InputGroup } from 'react-bootstrap'
 import { Input } from './form'
 import { useMe } from './me'
 import { useEffect, useState } from 'react'
-import { isNumber } from '@/lib/validate'
+import { isNumber } from '@/lib/format'
 import Link from 'next/link'
 
 function autoWithdrawThreshold ({ me }) {

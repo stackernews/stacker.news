@@ -1,15 +1,18 @@
 import {
-  payViaPaymentRequest,
   getInvoice as getInvoiceFromLnd, deletePayment, getPayment,
   parsePaymentRequest
 } from 'ln-service'
 import crypto, { timingSafeEqual } from 'crypto'
-import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
-import { formatMsats, formatSats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
+import { formatMsats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
 import {
-  USER_ID, INVOICE_RETENTION_DAYS, LND_PATHFINDING_TIMEOUT_MS
+  USER_ID, INVOICE_RETENTION_DAYS,
+  PAID_ACTION_PAYMENT_METHODS,
+  WALLET_CREATE_INVOICE_TIMEOUT_MS,
+  WALLET_RETRY_AFTER_MS,
+  WALLET_RETRY_BEFORE_MS,
+  WALLET_MAX_RETRIES
 } from '@/lib/constants'
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
@@ -22,8 +25,10 @@ import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets, getOurPubkey } from '../lnd'
 import validateWallet from '@/wallets/validate'
-import { canReceive } from '@/wallets/common'
+import { canReceive, getWalletByType } from '@/wallets/common'
 import performPaidAction from '../paidAction'
+import performPayingAction from '../payingAction'
+import { timeoutSignal, withTimeout } from '@/lib/time'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
@@ -63,9 +68,15 @@ function injectResolvers (resolvers) {
 
       return await upsertWallet({
         wallet,
+        walletDef,
         testCreateInvoice:
           walletDef.testCreateInvoice && validateLightning && canReceive({ def: walletDef, config: data })
-            ? (data) => walletDef.testCreateInvoice(data, { logger, me, models })
+            ? (data) => withTimeout(
+                walletDef.testCreateInvoice(data, {
+                  logger,
+                  signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS)
+                }),
+                WALLET_CREATE_INVOICE_TIMEOUT_MS)
             : null
       }, {
         settings,
@@ -126,11 +137,13 @@ export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
 }
 
 export function createHmac (hash) {
+  if (!hash) throw new GqlInputError('hash required to create hmac')
   const key = Buffer.from(process.env.INVOICE_HMAC_KEY, 'hex')
   return crypto.createHmac('sha256', key).update(Buffer.from(hash, 'hex')).digest('hex')
 }
 
 export function verifyHmac (hash, hmac) {
+  if (!hash || !hmac) throw new GqlInputError('hash or hmac missing')
   const hmac2 = createHmac(hash)
   if (!timingSafeEqual(Buffer.from(hmac), Buffer.from(hmac2))) {
     throw new GqlAuthorizationError('bad hmac')
@@ -190,6 +203,18 @@ const resolvers = {
       })
     },
     withdrawl: getWithdrawl,
+    direct: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      return await models.directPayment.findUnique({
+        where: {
+          id: Number(id),
+          receiverId: me.id
+        }
+      })
+    },
     numBolt11s: async (parent, args, { me, models, lnd }) => {
       if (!me) {
         throw new GqlAuthenticationError()
@@ -250,6 +275,17 @@ const resolvers = {
             WHERE "Withdrawl"."userId" = $1
             AND "Withdrawl".created_at <= $2
             GROUP BY "Withdrawl".id)`
+        )
+        queries.push(
+          `(SELECT id, created_at as "createdAt", msats, 'direct' as type,
+              jsonb_build_object(
+                'bolt11', bolt11,
+                'description', "desc",
+                'invoiceComment', comment,
+                'invoicePayerData', "lud18Data") as other
+            FROM "DirectPayment"
+            WHERE "DirectPayment"."receiverId" = $1
+            AND "DirectPayment".created_at <= $2)`
         )
       }
 
@@ -394,6 +430,10 @@ const resolvers = {
               lte: to ? new Date(Number(to)) : undefined
             }
           },
+          include: {
+            invoice: true,
+            withdrawal: true
+          },
           orderBy: [
             { createdAt: 'desc' },
             { id: 'desc' }
@@ -409,6 +449,10 @@ const resolvers = {
               lte: decodedCursor.time
             }
           },
+          include: {
+            invoice: true,
+            withdrawal: true
+          },
           orderBy: [
             { createdAt: 'desc' },
             { id: 'desc' }
@@ -423,6 +467,21 @@ const resolvers = {
         cursor: nextCursor,
         entries: logs
       }
+    },
+    failedInvoices: async (parent, args, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+      return await models.$queryRaw`
+        SELECT * FROM "Invoice"
+        WHERE "userId" = ${me.id}
+        AND "actionState" = 'FAILED'
+        -- never retry if user has cancelled the invoice manually
+        AND "userCancel" = false
+        AND "cancelledAt" < now() - ${`${WALLET_RETRY_AFTER_MS} milliseconds`}::interval
+        AND "cancelledAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
+        AND "paymentAttempt" < ${WALLET_MAX_RETRIES}
+        ORDER BY id DESC`
     }
   },
   Wallet: {
@@ -436,33 +495,39 @@ const resolvers = {
   WalletDetails: {
     __resolveType: wallet => wallet.__resolveType
   },
+  InvoiceOrDirect: {
+    __resolveType: invoiceOrDirect => invoiceOrDirect.__resolveType
+  },
   Mutation: {
     createInvoice: async (parent, { amount }, { me, models, lnd, headers }) => {
       await validateSchema(amountSchema, { amount })
       await assertGofacYourself({ models, headers })
 
-      const { invoice } = await performPaidAction('RECEIVE', {
+      const { invoice, paymentMethod } = await performPaidAction('RECEIVE', {
         msats: satsToMsats(amount)
       }, { models, lnd, me })
 
-      return invoice
+      return {
+        ...invoice,
+        __resolveType:
+          paymentMethod === PAID_ACTION_PAYMENT_METHODS.DIRECT ? 'Direct' : 'Invoice'
+      }
     },
     createWithdrawl: createWithdrawal,
     sendToLnAddr,
-    cancelInvoice: async (parent, { hash, hmac }, { models, lnd, boss }) => {
-      verifyHmac(hash, hmac)
-      const dbInv = await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
-
-      if (dbInv?.invoiceForward) {
-        const { wallet, bolt11 } = dbInv.invoiceForward
-        const logger = walletLogger({ wallet, models })
-        const decoded = await parsePaymentRequest({ request: bolt11 })
-        logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, { bolt11 })
+    cancelInvoice: async (parent, { hash, hmac, userCancel }, { me, models, lnd, boss }) => {
+      // stackers can cancel their own invoices without hmac
+      if (me && !hmac) {
+        const inv = await models.invoice.findUnique({ where: { hash } })
+        if (!inv) throw new GqlInputError('invoice not found')
+        if (inv.userId !== me.id) throw new GqlInputError('not ur invoice')
+      } else {
+        verifyHmac(hash, hmac)
       }
-
-      return await models.invoice.findFirst({ where: { hash } })
+      await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
+      return await models.invoice.update({ where: { hash }, data: { userCancel: !!userCancel } })
     },
-    dropBolt11: async (parent, { id }, { me, models, lnd }) => {
+    dropBolt11: async (parent, { hash }, { me, models, lnd }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
@@ -470,20 +535,20 @@ const resolvers = {
       const retention = `${INVOICE_RETENTION_DAYS} days`
 
       const [invoice] = await models.$queryRaw`
-      WITH to_be_updated AS (
-        SELECT id, hash, bolt11
-        FROM "Withdrawl"
-        WHERE "userId" = ${me.id}
-        AND id = ${Number(id)}
-        AND now() > created_at + ${retention}::INTERVAL
-        AND hash IS NOT NULL
-        AND status IS NOT NULL
-      ), updated_rows AS (
-        UPDATE "Withdrawl"
-        SET hash = NULL, bolt11 = NULL, preimage = NULL
-        FROM to_be_updated
-        WHERE "Withdrawl".id = to_be_updated.id)
-      SELECT * FROM to_be_updated;`
+        WITH to_be_updated AS (
+          SELECT id, hash, bolt11
+          FROM "Withdrawl"
+          WHERE "userId" = ${me.id}
+          AND hash = ${hash}
+          AND now() > created_at + ${retention}::INTERVAL
+          AND hash IS NOT NULL
+          AND status IS NOT NULL
+        ), updated_rows AS (
+          UPDATE "Withdrawl"
+          SET hash = NULL, bolt11 = NULL, preimage = NULL
+          FROM to_be_updated
+          WHERE "Withdrawl".id = to_be_updated.id)
+        SELECT * FROM to_be_updated;`
 
       if (invoice) {
         try {
@@ -497,7 +562,16 @@ const resolvers = {
           throw new GqlInputError('failed to drop bolt11 from lnd')
         }
       }
-      return { id }
+
+      await models.$queryRaw`
+        UPDATE "DirectPayment"
+        SET hash = NULL, bolt11 = NULL, preimage = NULL
+        WHERE "receiverId" = ${me.id}
+        AND hash = ${hash}
+        AND now() > created_at + ${retention}::INTERVAL
+        AND hash IS NOT NULL`
+
+      return true
     },
     setWalletPriority: async (parent, { id, priority }, { me, models }) => {
       if (!me) {
@@ -520,7 +594,10 @@ const resolvers = {
 
       const logger = walletLogger({ wallet, models })
       await models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
-      logger.info('wallet detached')
+
+      if (canReceive({ def: getWalletByType(wallet.type), config: wallet.wallet })) {
+        logger.info('details for receiving deleted')
+      }
 
       return true
     },
@@ -532,17 +609,20 @@ const resolvers = {
       await models.walletLog.deleteMany({ where: { userId: me.id, wallet } })
 
       return true
+    },
+    buyCredits: async (parent, { credits }, { me, models, lnd }) => {
+      return await performPaidAction('BUY_CREDITS', { credits }, { models, me, lnd })
     }
   },
 
   Withdrawl: {
     satsPaying: w => msatsToSats(w.msatsPaying),
     satsPaid: w => msatsToSats(w.msatsPaid),
-    satsFeePaying: w => w.invoiceForward?.length > 0 ? 0 : msatsToSats(w.msatsFeePaying),
-    satsFeePaid: w => w.invoiceForward?.length > 0 ? 0 : msatsToSats(w.msatsFeePaid),
+    satsFeePaying: w => w.invoiceForward ? 0 : msatsToSats(w.msatsFeePaying),
+    satsFeePaid: w => w.invoiceForward ? 0 : msatsToSats(w.msatsFeePaid),
     // we never want to fetch the sensitive data full monty in nested resolvers
     forwardedActionType: async (withdrawl, args, { models }) => {
-      return (await models.invoiceForward.findFirst({
+      return (await models.invoiceForward.findUnique({
         where: { withdrawlId: Number(withdrawl.id) },
         include: {
           invoice: true
@@ -551,7 +631,7 @@ const resolvers = {
     },
     preimage: async (withdrawl, args, { lnd }) => {
       try {
-        if (withdrawl.status === 'CONFIRMED') {
+        if (withdrawl.status === 'CONFIRMED' && withdrawl.hash) {
           return withdrawl.preimage ?? (await getPayment({ id: withdrawl.hash, lnd })).payment.secret
         }
       } catch (err) {
@@ -559,11 +639,31 @@ const resolvers = {
       }
     }
   },
+  Direct: {
+    nostr: async (direct, args, { models }) => {
+      try {
+        return JSON.parse(direct.desc)
+      } catch (err) {
+      }
+
+      return null
+    },
+    sats: direct => msatsToSats(direct.msats)
+  },
 
   Invoice: {
     satsReceived: i => msatsToSats(i.msatsReceived),
     satsRequested: i => msatsToSats(i.msatsRequested),
     // we never want to fetch the sensitive data full monty in nested resolvers
+    forwardStatus: async (invoice, args, { models }) => {
+      const forward = await models.invoiceForward.findUnique({
+        where: { invoiceId: Number(invoice.id) },
+        include: {
+          withdrawl: true
+        }
+      })
+      return forward?.withdrawl?.status
+    },
     forwardedSats: async (invoice, args, { models }) => {
       const msats = (await models.invoiceForward.findUnique({
         where: { invoiceId: Number(invoice.id) },
@@ -572,6 +672,9 @@ const resolvers = {
         }
       }))?.withdrawl?.msatsPaid
       return msats ? msatsToSats(msats) : null
+    },
+    invoiceForward: async (invoice, args, { models }) => {
+      return !!invoice.invoiceForward || !!(await models.invoiceForward.findUnique({ where: { invoiceId: Number(invoice.id) } }))
     },
     nostr: async (invoice, args, { models }) => {
       try {
@@ -650,10 +753,41 @@ const resolvers = {
       return item
     },
     sats: fact => msatsToSatsDecimal(fact.msats)
+  },
+
+  WalletLogEntry: {
+    context: async ({ level, context, invoice, withdrawal }, args, { models }) => {
+      const isError = ['error', 'warn'].includes(level.toLowerCase())
+
+      if (withdrawal) {
+        return {
+          ...await logContextFromBolt11(withdrawal.bolt11),
+          ...(withdrawal.preimage ? { preimage: withdrawal.preimage } : {}),
+          ...(isError ? { max_fee: formatMsats(withdrawal.msatsFeePaying) } : {})
+        }
+      }
+
+      // XXX never return invoice as context because it might leak sensitive sender details
+      // if (invoice) { ... }
+
+      return context
+    }
   }
 }
 
 export default injectResolvers(resolvers)
+
+const logContextFromBolt11 = async (bolt11) => {
+  const decoded = await parsePaymentRequest({ request: bolt11 })
+  return {
+    bolt11,
+    amount: formatMsats(decoded.mtokens),
+    payment_hash: decoded.id,
+    created_at: decoded.created_at,
+    expires_at: decoded.expires_at,
+    description: decoded.description
+  }
+}
 
 export const walletLogger = ({ wallet, models }) => {
   // no-op logger if wallet is not provided
@@ -667,23 +801,17 @@ export const walletLogger = ({ wallet, models }) => {
   }
 
   // server implementation of wallet logger interface on client
-  const log = (level) => async (message, context = {}) => {
+  const log = (level) => async (message, ctx = {}) => {
     try {
-      if (context?.bolt11) {
+      let { invoiceId, withdrawalId, ...context } = ctx
+
+      if (context.bolt11) {
         // automatically populate context from bolt11 to avoid duplicating this code
-        const decoded = await parsePaymentRequest({ request: context.bolt11 })
         context = {
           ...context,
-          amount: formatMsats(decoded.mtokens),
-          payment_hash: decoded.id,
-          created_at: decoded.created_at,
-          expires_at: decoded.expires_at,
-          description: decoded.description,
-          // payments should affect wallet status
-          status: true
+          ...await logContextFromBolt11(context.bolt11)
         }
       }
-      context.recv = true
 
       await models.walletLog.create({
         data: {
@@ -691,7 +819,9 @@ export const walletLogger = ({ wallet, models }) => {
           wallet: wallet.type,
           level,
           message,
-          context
+          context,
+          invoiceId,
+          withdrawalId
         }
       })
     } catch (err) {
@@ -708,7 +838,7 @@ export const walletLogger = ({ wallet, models }) => {
 }
 
 async function upsertWallet (
-  { wallet, testCreateInvoice }, { settings, data, vaultEntries }, { logger, me, models }) {
+  { wallet, walletDef, testCreateInvoice }, { settings, data, vaultEntries }, { logger, me, models }) {
   if (!me) {
     throw new GqlAuthenticationError()
   }
@@ -724,7 +854,7 @@ async function upsertWallet (
     }
   }
 
-  const { id, enabled, priority, ...walletData } = data
+  const { id, enabled, priority, ...recvConfig } = data
 
   const txs = []
 
@@ -744,13 +874,13 @@ async function upsertWallet (
         data: {
           enabled,
           priority,
-          // client only wallets has no walletData
-          ...(Object.keys(walletData).length > 0
+          // client only wallets have no receive config and thus don't have their own table
+          ...(Object.keys(recvConfig).length > 0
             ? {
                 [wallet.field]: {
-                  update: {
-                    where: { walletId: Number(id) },
-                    data: walletData
+                  upsert: {
+                    create: recvConfig,
+                    update: recvConfig
                   }
                 }
               }
@@ -789,8 +919,8 @@ async function upsertWallet (
           priority,
           userId: me.id,
           type: wallet.type,
-          // client only wallets has no walletData
-          ...(Object.keys(walletData).length > 0 ? { [wallet.field]: { create: walletData } } : {}),
+          // client only wallets have no receive config and thus don't have their own table
+          ...(Object.keys(recvConfig).length > 0 ? { [wallet.field]: { create: recvConfig } } : {}),
           ...(vaultEntries
             ? {
                 vaultEntries: {
@@ -814,24 +944,26 @@ async function upsertWallet (
     )
   }
 
-  txs.push(
-    models.walletLog.createMany({
-      data: {
-        userId: me.id,
-        wallet: wallet.type,
-        level: 'SUCCESS',
-        message: id ? 'wallet details updated' : 'wallet attached'
-      }
-    }),
-    models.walletLog.create({
-      data: {
-        userId: me.id,
-        wallet: wallet.type,
-        level: enabled ? 'SUCCESS' : 'INFO',
-        message: enabled ? 'wallet enabled' : 'wallet disabled'
-      }
-    })
-  )
+  if (canReceive({ def: walletDef, config: recvConfig })) {
+    txs.push(
+      models.walletLog.createMany({
+        data: {
+          userId: me.id,
+          wallet: wallet.type,
+          level: 'SUCCESS',
+          message: id ? 'details for receiving updated' : 'details for receiving saved'
+        }
+      }),
+      models.walletLog.create({
+        data: {
+          userId: me.id,
+          wallet: wallet.type,
+          level: enabled ? 'SUCCESS' : 'INFO',
+          message: enabled ? 'receiving enabled' : 'receiving disabled'
+        }
+      })
+    )
+  }
 
   const [upsertedWallet] = await models.$transaction(txs)
   return upsertedWallet
@@ -876,10 +1008,6 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     throw new GqlInputError('invoice amount is too large')
   }
 
-  const msatsFee = Number(maxFee) * 1000
-
-  const user = await models.user.findUnique({ where: { id: me.id } })
-
   // check if there's an invoice with same hash that has an invoiceForward
   // we can't allow this because it creates two outgoing payments from our node
   // with the same hash
@@ -891,23 +1019,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     throw new GqlInputError('SN cannot pay an invoice that SN is proxying')
   }
 
-  const autoWithdraw = !!wallet?.id
-  // create withdrawl transactionally (id, bolt11, amount, fee)
-  const [withdrawl] = await serialize(
-    models.$queryRaw`SELECT * FROM create_withdrawl(${decoded.id}, ${invoice},
-      ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name}, ${autoWithdraw}, ${wallet?.id}::INTEGER)`,
-    { models }
-  )
-
-  payViaPaymentRequest({
-    lnd,
-    request: invoice,
-    // can't use max_fee_mtokens https://github.com/alexbosworth/ln-service/issues/141
-    max_fee: Number(maxFee),
-    pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS
-  }).catch(console.error)
-
-  return withdrawl
+  return await performPayingAction({ bolt11: invoice, maxFee, walletId: wallet?.id }, { me, models, lnd })
 }
 
 export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },

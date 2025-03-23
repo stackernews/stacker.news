@@ -1,7 +1,7 @@
 import { signIn } from 'next-auth/react'
 import styles from './login.module.css'
 import { Form, Input, SubmitButton } from '@/components/form'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import { useRouter } from 'next/router'
 import { LightningAuthWithExplainer } from './lightning-auth'
@@ -9,6 +9,9 @@ import { NostrAuthWithExplainer } from './nostr-auth'
 import LoginButton from './login-button'
 import { emailSchema } from '@/lib/validate'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
+import { datePivot } from '@/lib/time'
+import * as cookie from 'cookie'
+import { cookieOptions } from '@/lib/auth'
 
 export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
   const disabled = multiAuth
@@ -20,6 +23,7 @@ export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
       }}
       schema={emailSchema}
       onSubmit={async ({ email }) => {
+        window.sessionStorage.setItem('callback', JSON.stringify({ email, callbackUrl }))
         signIn('email', { email, callbackUrl, multiAuth })
       }}
     >
@@ -41,10 +45,10 @@ const authErrorMessages = {
   OAuthCallback: 'Error handling OAuth response. Try again or choose a different method.',
   OAuthCreateAccount: 'Could not create OAuth account. Try again or choose a different method.',
   EmailCreateAccount: 'Could not create Email account. Try again or choose a different method.',
-  Callback: 'Error in callback handler. Try again or choose a different method.',
+  Callback: 'Could not authenticate. Try again or choose a different method.',
   OAuthAccountNotLinked: 'This auth method is linked to another account. To link to this account first unlink the other account.',
   EmailSignin: 'Failed to send email. Make sure you entered your email address correctly.',
-  CredentialsSignin: 'Auth failed. Try again or choose a different method.',
+  CredentialsSignin: 'Could not authenticate. Try again or choose a different method.',
   default: 'Auth failed. Try again or choose a different method.'
 }
 
@@ -52,9 +56,21 @@ export function authErrorMessage (error) {
   return error && (authErrorMessages[error] ?? authErrorMessages.default)
 }
 
-export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer }) {
+export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signin }) {
   const [errorMessage, setErrorMessage] = useState(authErrorMessage(error))
   const router = useRouter()
+
+  // signup/signin awareness cookie
+  useEffect(() => {
+    // expire cookie if we're on /signup instead of /login
+    // since the server will only check if the cookie is set, not its value
+    const options = cookieOptions({
+      expires: signin ? datePivot(new Date(), { hours: 24 }) : 0,
+      maxAge: signin ? 86400 : 0,
+      httpOnly: false
+    })
+    document.cookie = cookie.serialize('signin', signin, options)
+  }, [signin])
 
   if (router.query.type === 'lightning') {
     return <LightningAuthWithExplainer callbackUrl={callbackUrl} text={text} multiAuth={multiAuth} />
@@ -111,6 +127,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
           default:
             return (
               <OverlayTrigger
+                key={provider.id}
                 placement='bottom'
                 overlay={multiAuth ? <Tooltip>not available for account switching yet</Tooltip> : <></>}
                 trigger={['hover', 'focus']}
@@ -118,7 +135,6 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
                 <div className='w-100'>
                   <LoginButton
                     className={`mt-2 ${styles.providerButton}`}
-                    key={provider.id}
                     type={provider.id.toLowerCase()}
                     onClick={() => signIn(provider.id, { callbackUrl, multiAuth })}
                     text={`${text || 'Login'} with`}

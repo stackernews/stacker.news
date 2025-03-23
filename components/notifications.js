@@ -43,6 +43,8 @@ import { useToast } from './toast'
 import classNames from 'classnames'
 import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
+import CCInfo from './info/cc'
+import { useMe } from './me'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -283,7 +285,7 @@ function Invitification ({ n }) {
     <>
       <NoteHeader color='secondary'>
         your invite has been redeemed by
-        {numWithUnits(n.invite.invitees.length, {
+        {' ' + numWithUnits(n.invite.invitees.length, {
           abbreviate: false,
           unitSingular: 'stacker',
           unitPlural: 'stackers'
@@ -344,7 +346,7 @@ function getPayerSig (lud18Data) {
 
 function InvoicePaid ({ n }) {
   const payerSig = getPayerSig(n.invoice.lud18Data)
-  let actionString = 'desposited to your account'
+  let actionString = 'deposited to your account'
   let sats = n.earnedSats
   if (n.invoice.forwardedSats) {
     actionString = 'sent directly to your attached wallet'
@@ -370,6 +372,29 @@ function useActRetry ({ invoice }) {
     invoice.item.root?.bounty === invoice.satsRequested && invoice.item.root?.mine
       ? payBountyCacheMods
       : {}
+
+  const update = (cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.invoice) return
+    cache.modify({
+      id: `ItemAct:${invoice.itemAct?.id}`,
+      fields: {
+        // this is a bit of a hack just to update the reference to the new invoice
+        invoice: () => cache.writeFragment({
+          id: `Invoice:${response.invoice.id}`,
+          fragment: gql`
+            fragment _ on Invoice {
+              bolt11
+            }
+          `,
+          data: { bolt11: response.invoice.bolt11 }
+        })
+      }
+    })
+    paidActionCacheMods?.update?.(cache, { data })
+    bountyCacheMods?.update?.(cache, { data })
+  }
+
   return useAct({
     query: RETRY_PAID_ACTION,
     onPayError: (e, cache, { data }) => {
@@ -380,27 +405,8 @@ function useActRetry ({ invoice }) {
       paidActionCacheMods?.onPaid?.(cache, { data })
       bountyCacheMods?.onPaid?.(cache, { data })
     },
-    update: (cache, { data }) => {
-      const response = Object.values(data)[0]
-      if (!response?.invoice) return
-      cache.modify({
-        id: `ItemAct:${invoice.itemAct?.id}`,
-        fields: {
-          // this is a bit of a hack just to update the reference to the new invoice
-          invoice: () => cache.writeFragment({
-            id: `Invoice:${response.invoice.id}`,
-            fragment: gql`
-              fragment _ on Invoice {
-                bolt11
-              }
-            `,
-            data: { bolt11: response.invoice.bolt11 }
-          })
-        }
-      })
-      paidActionCacheMods?.update?.(cache, { data })
-      bountyCacheMods?.update?.(cache, { data })
-    }
+    update,
+    updateOnFallback: update
   })
 }
 
@@ -497,13 +503,23 @@ function Invoicification ({ n: { invoice, sortTime } }) {
 }
 
 function WithdrawlPaid ({ n }) {
-  let actionString = n.withdrawl.autoWithdraw ? 'sent to your attached wallet' : 'withdrawn from your account'
+  let amount = n.earnedSats + n.withdrawl.satsFeePaid
+  let actionString = 'withdrawn from your account'
+
+  if (n.withdrawl.autoWithdraw) {
+    actionString = 'sent to your attached wallet'
+  }
+
   if (n.withdrawl.forwardedActionType === 'ZAP') {
+    // don't expose receivers to routing fees they aren't paying
+    amount = n.earnedSats
     actionString = 'zapped directly to your attached wallet'
   }
+
   return (
     <div className='fw-bold text-info'>
-      <Check className='fill-info me-1' />{numWithUnits(n.earnedSats + n.withdrawl.satsFeePaid, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
+      <Check className='fill-info me-1' />
+      {numWithUnits(amount, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
       {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       {(n.withdrawl.forwardedActionType === 'ZAP' && <Badge className={styles.badge} bg={null}>p2p</Badge>) ||
@@ -513,17 +529,51 @@ function WithdrawlPaid ({ n }) {
 }
 
 function Referral ({ n }) {
+  const { me } = useMe()
+  let referralSource = 'of you'
+  switch (n.source?.__typename) {
+    case 'Item':
+      referralSource = (Number(me?.id) === Number(n.source.user?.id) ? 'of your' : 'you shared this') + ' ' + (n.source.title ? 'post' : 'comment')
+      break
+    case 'Sub':
+      referralSource = (Number(me?.id) === Number(n.source.userId) ? 'of your' : 'you shared the') + ' ~' + n.source.name + ' territory'
+      break
+    case 'User':
+      referralSource = (me?.name === n.source.name ? 'of your profile' : `you shared ${n.source.name}'s profile`)
+      break
+  }
   return (
-    <small className='fw-bold text-success'>
-      <UserAdd className='fill-success me-2' height={21} width={21} style={{ transform: 'rotateY(180deg)' }} />someone joined SN because of you
-      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-    </small>
+    <>
+      <small className='fw-bold text-success'>
+        <UserAdd className='fill-success me-1' height={21} width={21} style={{ transform: 'rotateY(180deg)' }} />someone joined SN because {referralSource}
+        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      </small>
+      {n.source?.__typename === 'Item' && <NoteItem itemClassName='pt-2' item={n.source} />}
+    </>
   )
+}
+
+function stackedText (item) {
+  let text = ''
+  if (item.sats - item.credits > 0) {
+    text += `${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
+
+    if (item.credits > 0) {
+      text += ' and '
+    }
+  }
+  if (item.credits > 0) {
+    text += `${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
+  }
+
+  return text
 }
 
 function Votification ({ n }) {
   let forwardedSats = 0
   let ForwardedUsers = null
+  let stackedTextString
+  let forwardedTextString
   if (n.item.forwards?.length) {
     forwardedSats = Math.floor(n.earnedSats * n.item.forwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
     ForwardedUsers = () => n.item.forwards.map((fwd, i) =>
@@ -533,16 +583,25 @@ function Votification ({ n }) {
         </Link>
         {i !== n.item.forwards.length - 1 && ' '}
       </span>)
+    stackedTextString = numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
+    forwardedTextString = numWithUnits(forwardedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
+  } else {
+    stackedTextString = stackedText(n.item)
   }
   return (
     <>
       <NoteHeader color='success'>
-        your {n.item.title ? 'post' : 'reply'} stacked {numWithUnits(n.earnedSats, { abbreviate: false })}
-        {n.item.forwards?.length > 0 &&
-          <>
-            {' '}and forwarded {numWithUnits(forwardedSats, { abbreviate: false })} to{' '}
-            <ForwardedUsers />
-          </>}
+        <span className='d-inline-flex'>
+          <span>
+            your {n.item.title ? 'post' : 'reply'} stacked {stackedTextString}
+            {n.item.forwards?.length > 0 &&
+              <>
+                {' '}and forwarded {forwardedTextString} to{' '}
+                <ForwardedUsers />
+              </>}
+          </span>
+          {n.item.credits > 0 && <CCInfo size={16} />}
+        </span>
       </NoteHeader>
       <NoteItem item={n.item} />
     </>
@@ -553,7 +612,10 @@ function ForwardedVotification ({ n }) {
   return (
     <>
       <NoteHeader color='success'>
-        you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false })} from
+        <span className='d-inline-flex'>
+          you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}
+          <CCInfo size={16} />
+        </span>
       </NoteHeader>
       <NoteItem item={n.item} />
     </>
@@ -671,7 +733,10 @@ export function NotificationAlert () {
     error
       ? (
         <Alert variant='danger' dismissible onClose={() => setError(null)}>
-          <span>{error.toString()}</span>
+          <span>{navigator?.brave && error.name === 'AbortError'
+            ? 'Push registration failed. Enable "Use Google services for push messaging" in Brave\'s privacy settings and try again.'
+            : error.toString()}
+          </span>
         </Alert>
         )
       : showAlert

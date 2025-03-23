@@ -13,7 +13,7 @@ import { usePaidMutation } from './use-paid-mutation'
 import { ACT_MUTATION } from '@/fragments/paidAction'
 import { meAnonSats } from '@/lib/apollo'
 import { BoostItemInput } from './adv-post-form'
-import { useWallet } from '@/wallets/index'
+import { useSendWallets } from '@/wallets/index'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -89,7 +89,7 @@ function BoostForm ({ step, onSubmit, children, item, oValue, inputRef, act = 'B
 export default function ItemAct ({ onClose, item, act = 'TIP', step, children, abortSignal }) {
   const inputRef = useRef(null)
   const { me } = useMe()
-  const wallet = useWallet()
+  const wallets = useSendWallets()
   const [oValue, setOValue] = useState()
 
   useEffect(() => {
@@ -117,7 +117,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       if (!me) setItemMeAnonSats({ id: item.id, amount })
     }
 
-    const closeImmediately = !!wallet || me?.privates?.sats > Number(amount)
+    const closeImmediately = wallets.length > 0 || me?.privates?.sats > Number(amount)
     if (closeImmediately) {
       onPaid()
     }
@@ -126,7 +126,8 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       variables: {
         id: item.id,
         sats: Number(amount),
-        act
+        act,
+        hasSendWallet: wallets.length > 0
       },
       optimisticResponse: me
         ? {
@@ -143,7 +144,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
     })
     if (error) throw error
     addCustomTip(Number(amount))
-  }, [me, actor, !!wallet, act, item.id, onClose, abortSignal, strike])
+  }, [me, actor, wallets.length, act, item.id, onClose, abortSignal, strike])
 
   return act === 'BOOST'
     ? <BoostForm step={step} onSubmit={onSubmit} item={item} inputRef={inputRef} act={act}>{children}</BoostForm>
@@ -179,9 +180,11 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       </Form>)
 }
 
-function modifyActCache (cache, { result, invoice }) {
+function modifyActCache (cache, { result, invoice }, me) {
   if (!result) return
-  const { id, sats, path, act } = result
+  const { id, sats, act } = result
+  const p2p = invoice?.invoiceForward
+
   cache.modify({
     id: `Item:${id}`,
     fields: {
@@ -191,11 +194,23 @@ function modifyActCache (cache, { result, invoice }) {
         }
         return existingSats
       },
+      credits (existingCredits = 0) {
+        if (act === 'TIP' && !p2p) {
+          return existingCredits + sats
+        }
+        return existingCredits
+      },
       meSats: (existingSats = 0) => {
-        if (act === 'TIP') {
+        if (act === 'TIP' && me) {
           return existingSats + sats
         }
         return existingSats
+      },
+      meCredits: (existingCredits = 0) => {
+        if (act === 'TIP' && !p2p && me) {
+          return existingCredits + sats
+        }
+        return existingCredits
       },
       meDontLikeSats: (existingSats = 0) => {
         if (act === 'DONT_LIKE_THIS') {
@@ -209,8 +224,17 @@ function modifyActCache (cache, { result, invoice }) {
         }
         return existingBoost
       }
-    }
+    },
+    optimistic: true
   })
+}
+
+// doing this onPaid fixes issue #1695 because optimistically updating all ancestors
+// conflicts with the writeQuery on navigation from SSR
+function updateAncestors (cache, { result, invoice }) {
+  if (!result) return
+  const { id, sats, act, path } = result
+  const p2p = invoice?.invoiceForward
 
   if (act === 'TIP') {
     // update all ancestors
@@ -219,27 +243,41 @@ function modifyActCache (cache, { result, invoice }) {
       cache.modify({
         id: `Item:${aId}`,
         fields: {
+          commentCredits (existingCommentCredits = 0) {
+            if (p2p) {
+              return existingCommentCredits
+            }
+            return existingCommentCredits + sats
+          },
           commentSats (existingCommentSats = 0) {
             return existingCommentSats + sats
           }
-        }
+        },
+        optimistic: true
       })
     })
   }
 }
 
 export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
+  const { me } = useMe()
   // because the mutation name we use varies,
   // we need to extract the result/invoice from the response
   const getPaidActionResult = data => Object.values(data)[0]
+  const wallets = useSendWallets()
 
   const [act] = usePaidMutation(query, {
-    waitFor: inv => inv?.satsReceived > 0,
+    waitFor: inv =>
+      // if we have attached wallets, we might be paying a wrapped invoice in which case we need to make sure
+      // we don't prematurely consider the payment as successful (important for receiver fallbacks)
+      wallets.length > 0
+        ? inv?.actionState === 'PAID'
+        : inv?.satsReceived > 0,
     ...options,
     update: (cache, { data }) => {
       const response = getPaidActionResult(data)
       if (!response) return
-      modifyActCache(cache, response)
+      modifyActCache(cache, response, me)
       options?.update?.(cache, { data })
     },
     onPayError: (e, cache, { data }) => {
@@ -247,12 +285,13 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
       if (!response || !response.result) return
       const { result: { sats } } = response
       const negate = { ...response, result: { ...response.result, sats: -1 * sats } }
-      modifyActCache(cache, negate)
+      modifyActCache(cache, negate, me)
       options?.onPayError?.(e, cache, { data })
     },
     onPaid: (cache, { data }) => {
       const response = getPaidActionResult(data)
       if (!response) return
+      updateAncestors(cache, response)
       options?.onPaid?.(cache, { data })
     }
   })
@@ -260,7 +299,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
 }
 
 export function useZap () {
-  const wallet = useWallet()
+  const wallets = useSendWallets()
   const act = useAct()
   const strike = useLightning()
   const toaster = useToast()
@@ -271,24 +310,25 @@ export function useZap () {
     // add current sats to next tip since idempotent zaps use desired total zap not difference
     const sats = nextTip(meSats, { ...me?.privates })
 
-    const variables = { id: item.id, sats, act: 'TIP' }
+    const variables = { id: item.id, sats, act: 'TIP', hasSendWallet: wallets.length > 0 }
     const optimisticResponse = { act: { __typename: 'ItemActPaidAction', result: { path: item.path, ...variables } } }
 
     try {
       await abortSignal.pause({ me, amount: sats })
       strike()
       // batch zaps if wallet is enabled or using fee credits so they can be executed serially in a single request
-      const { error } = await act({ variables, optimisticResponse, context: { batch: !!wallet || me?.privates?.sats > sats } })
+      const { error } = await act({ variables, optimisticResponse, context: { batch: wallets.length > 0 || me?.privates?.sats > sats } })
       if (error) throw error
     } catch (error) {
       if (error instanceof ActCanceledError) {
         return
       }
 
-      const reason = error?.message || error?.toString?.()
-      toaster.danger(reason)
+      // TODO: we should selectively toast based on error type
+      // but right now this toast is noisy for optimistic zaps
+      console.error(error)
     }
-  }, [act, toaster, strike, !!wallet])
+  }, [act, toaster, strike, wallets.length])
 }
 
 export class ActCanceledError extends Error {

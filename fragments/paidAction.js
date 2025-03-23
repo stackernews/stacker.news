@@ -11,6 +11,7 @@ export const PAID_ACTION = gql`
   fragment PaidActionFields on PaidAction {
     invoice {
       ...InvoiceFields
+      invoiceForward
     }
     paymentMethod
   }`
@@ -24,7 +25,9 @@ const ITEM_PAID_ACTION_FIELDS = gql`
       reminderScheduledAt
       ...CommentFields
       comments {
-        ...CommentsRecursive
+        comments {
+          ...CommentsRecursive
+        }
       }
     }
   }`
@@ -88,8 +91,8 @@ export const RETRY_PAID_ACTION = gql`
   ${PAID_ACTION}
   ${ITEM_PAID_ACTION_FIELDS}
   ${ITEM_ACT_PAID_ACTION_FIELDS}
-  mutation retryPaidAction($invoiceId: Int!) {
-    retryPaidAction(invoiceId: $invoiceId) {
+  mutation retryPaidAction($invoiceId: Int!, $newAttempt: Boolean) {
+    retryPaidAction(invoiceId: $invoiceId, newAttempt: $newAttempt) {
       __typename
       ...PaidActionFields
       ... on ItemPaidAction {
@@ -117,11 +120,22 @@ export const DONATE = gql`
     }
   }`
 
+export const BUY_CREDITS = gql`
+  ${PAID_ACTION}
+  mutation buyCredits($credits: Int!) {
+    buyCredits(credits: $credits) {
+      result {
+        credits
+      }
+      ...PaidActionFields
+    }
+  }`
+
 export const ACT_MUTATION = gql`
   ${PAID_ACTION}
   ${ITEM_ACT_PAID_ACTION_FIELDS}
-  mutation act($id: ID!, $sats: Int!, $act: String) {
-    act(id: $id, sats: $sats, act: $act) {
+  mutation act($id: ID!, $sats: Int!, $act: String, $hasSendWallet: Boolean) {
+    act(id: $id, sats: $sats, act: $act, hasSendWallet: $hasSendWallet) {
       ...ItemActPaidActionFields
       ...PaidActionFields
     }
@@ -250,10 +264,10 @@ export const UPDATE_COMMENT = gql`
 export const UPSERT_SUB = gql`
   ${PAID_ACTION}
   mutation upsertSub($oldName: String, $name: String!, $desc: String, $baseCost: Int!,
-    $postTypes: [String!]!, $billingType: String!,
+    $replyCost: Int!, $postTypes: [String!]!, $billingType: String!,
     $billingAutoRenew: Boolean!, $moderated: Boolean!, $nsfw: Boolean!) {
       upsertSub(oldName: $oldName, name: $name, desc: $desc, baseCost: $baseCost,
-        postTypes: $postTypes, billingType: $billingType,
+        replyCost: $replyCost, postTypes: $postTypes, billingType: $billingType,
         billingAutoRenew: $billingAutoRenew, moderated: $moderated, nsfw: $nsfw) {
       result {
         name
@@ -265,10 +279,10 @@ export const UPSERT_SUB = gql`
 export const UNARCHIVE_TERRITORY = gql`
   ${PAID_ACTION}
   mutation unarchiveTerritory($name: String!, $desc: String, $baseCost: Int!,
-    $postTypes: [String!]!, $billingType: String!,
+    $replyCost: Int!, $postTypes: [String!]!, $billingType: String!,
     $billingAutoRenew: Boolean!, $moderated: Boolean!, $nsfw: Boolean!) {
       unarchiveTerritory(name: $name, desc: $desc, baseCost: $baseCost,
-        postTypes: $postTypes, billingType: $billingType,
+        replyCost: $replyCost, postTypes: $postTypes, billingType: $billingType,
         billingAutoRenew: $billingAutoRenew, moderated: $moderated, nsfw: $nsfw) {
       result {
         name

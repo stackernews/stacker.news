@@ -21,7 +21,12 @@ export const fields = [
     name: 'rune',
     label: 'invoice only rune',
     help: {
-      text: 'We only accept runes that *only* allow `method=invoice`.\nRun this to generate one:\n\n```lightning-cli createrune restrictions=\'["method=invoice"]\'```'
+      text: 'We only accept runes that *only* allow `method=invoice`.\n\n' +
+      'Run this if you are on v23.08 to generate one:\n\n' +
+      '```lightning-cli createrune restrictions=\'["method=invoice"]\'```\n\n' +
+      'Or this if you are on v24.11 or later:\n\n' +
+      '```lightning-cli createrune restrictions=\'[["method=invoice"]]\'```\n\n' +
+      '[see `createrune` documentation](https://docs.corelightning.org/reference/lightning-createrune#restriction-format)'
     },
     type: 'text',
     placeholder: 'S34KtUW-6gqS_hD_9cc_PNhfF-NinZyBOCgr1aIrark9NCZtZXRob2Q9aW52b2ljZQ==',

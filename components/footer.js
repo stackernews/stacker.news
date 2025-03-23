@@ -173,7 +173,7 @@ export default function Footer ({ links = true }) {
               <Rewards />
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
-              <Link href='/stackers/day' className='nav-link p-0 p-0 d-inline-flex'>
+              <Link href='/stackers/all/day' className='nav-link p-0 p-0 d-inline-flex'>
                 analytics
               </Link>
               <span className='mx-2 text-muted'> \ </span>
@@ -206,10 +206,6 @@ export default function Footer ({ links = true }) {
               <span className='mx-2 text-muted'> \ </span>
               <Link href='/story' className='nav-link p-0 p-0 d-inline-flex'>
                 story
-              </Link>
-              <span className='mx-2 text-muted'> \ </span>
-              <Link href='/changes' className='nav-link p-0 p-0 d-inline-flex'>
-                changes
               </Link>
               <span className='mx-2 text-muted'> \ </span>
               <OverlayTrigger trigger='click' placement='top' overlay={LegalPopover} rootClose>

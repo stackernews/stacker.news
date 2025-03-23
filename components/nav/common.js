@@ -6,12 +6,11 @@ import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
-import { USER_ID, BALANCE_LIMIT_MSATS } from '../../lib/constants'
+import { USER_ID } from '../../lib/constants'
 import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
-import HiddenWalletSummary from '../hidden-wallet-summary'
-import { abbrNum, msatsToSats } from '../../lib/format'
+import { abbrNum } from '../../lib/format'
 import { useServiceWorker } from '../serviceworker'
 import { signOut } from 'next-auth/react'
 import Badges from '../badge'
@@ -25,7 +24,7 @@ import { useHasNewNotes } from '../use-has-new-notes'
 import { useWallets } from '@/wallets/index'
 import SwitchAccountList, { useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
-
+import { numWithUnits } from '@/lib/format'
 export function Brand ({ className }) {
   return (
     <Link href='/' passHref legacyBehavior>
@@ -140,21 +139,24 @@ export function NavNotifications ({ className }) {
 
 export function WalletSummary () {
   const { me } = useMe()
-  if (!me) return null
-  if (me.privates?.hideWalletBalance) {
-    return <HiddenWalletSummary abbreviate fixedWidth />
-  }
-  return `${abbrNum(me.privates?.sats)}`
+  if (!me || me.privates?.sats === 0) return null
+  return (
+    <span
+      className='text-monospace'
+      title={`${numWithUnits(me.privates?.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`}
+    >
+      {`${abbrNum(me.privates?.sats)}`}
+    </span>
+  )
 }
 
 export function NavWalletSummary ({ className }) {
   const { me } = useMe()
-  const walletLimitReached = me?.privates?.sats >= msatsToSats(BALANCE_LIMIT_MSATS)
 
   return (
     <Nav.Item className={className}>
-      <Link href='/wallet' passHref legacyBehavior>
-        <Nav.Link eventKey='wallet' className={`${walletLimitReached ? 'text-warning' : 'text-success'} text-monospace px-0 text-nowrap`}>
+      <Link href='/credits' passHref legacyBehavior>
+        <Nav.Link eventKey='credits' className='text-success text-monospace px-0 text-nowrap'>
           <WalletSummary me={me} />
         </Nav.Link>
       </Link>
@@ -194,8 +196,11 @@ export function MeDropdown ({ me, dropNavKey }) {
           <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
             <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
           </Link>
-          <Link href='/wallet' passHref legacyBehavior>
-            <Dropdown.Item eventKey='wallet'>wallet</Dropdown.Item>
+          <Link href='/wallets' passHref legacyBehavior>
+            <Dropdown.Item eventKey='wallets'>wallets</Dropdown.Item>
+          </Link>
+          <Link href='/credits' passHref legacyBehavior>
+            <Dropdown.Item eventKey='credits'>credits</Dropdown.Item>
           </Link>
           <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
             <Dropdown.Item eventKey='satistics'>satistics</Dropdown.Item>
@@ -218,6 +223,9 @@ export function MeDropdown ({ me, dropNavKey }) {
   )
 }
 
+// this is the width of the 'switch account' button if no width is given
+const SWITCH_ACCOUNT_BUTTON_WIDTH = '162px'
+
 export function SignUpButton ({ className = 'py-0', width }) {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
@@ -227,8 +235,9 @@ export function SignUpButton ({ className = 'py-0', width }) {
 
   return (
     <Button
-      className={classNames('align-items-center ps-2 py-1 pe-3', className)}
-      style={{ borderWidth: '2px', width: width || '150px' }}
+      className={classNames('align-items-center ps-2 pe-3', className)}
+      // 161px is the width of the 'switch account' button
+      style={{ borderWidth: '2px', width: width || SWITCH_ACCOUNT_BUTTON_WIDTH }}
       id='signup'
       onClick={() => handleLogin('/signup')}
     >
@@ -252,7 +261,7 @@ export default function LoginButton () {
     <Button
       className='align-items-center px-3 py-1'
       id='login'
-      style={{ borderWidth: '2px', width: '150px' }}
+      style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       variant='outline-grey-darkmode'
       onClick={() => handleLogin('/login')}
     >
@@ -264,7 +273,7 @@ export default function LoginButton () {
 function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const { removeLocalWallets } = useWallets()
-  const { multiAuthSignout } = useAccounts()
+  const { nextAccount } = useAccounts()
   const router = useRouter()
 
   return (
@@ -280,9 +289,9 @@ function LogoutObstacle ({ onClose }) {
         </Button>
         <Button
           onClick={async () => {
-            const switchSuccess = await multiAuthSignout()
-            // only signout if multiAuth did not find a next available account
-            if (switchSuccess) {
+            const next = await nextAccount()
+            // only signout if we did not find a next account
+            if (next) {
               onClose()
               // reload whatever page we're on to avoid any bugs
               router.reload()
@@ -339,7 +348,7 @@ function SwitchAccountButton ({ handleClose }) {
     <Button
       className='align-items-center px-3 py-1'
       variant='outline-grey-darkmode'
-      style={{ borderWidth: '2px', width: '150px' }}
+      style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       onClick={() => {
         // login buttons rendered in offcanvas aren't wrapped inside <Dropdown>
         // so we manually close the offcanvas in that case by passing down handleClose here
@@ -359,7 +368,7 @@ export function LoginButtons ({ handleClose }) {
         <LoginButton />
       </Dropdown.Item>
       <Dropdown.Item className='py-1'>
-        <SignUpButton />
+        <SignUpButton className='py-1' />
       </Dropdown.Item>
       <Dropdown.Item className='py-1'>
         <SwitchAccountButton handleClose={handleClose} />

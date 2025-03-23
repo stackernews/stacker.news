@@ -3,8 +3,8 @@ import { datePivot } from '@/lib/time'
 import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { createHmac } from '@/api/resolvers/wallet'
 import { Prisma } from '@prisma/client'
-import { createWrappedInvoice } from '@/wallets/server'
-import { assertBelowMaxPendingInvoices } from './lib/assert'
+import { createWrappedInvoice, createUserInvoice } from '@/wallets/server'
+import { assertBelowMaxPendingInvoices, assertBelowMaxPendingDirectPayments } from './lib/assert'
 
 import * as ITEM_CREATE from './itemCreate'
 import * as ITEM_UPDATE from './itemUpdate'
@@ -18,6 +18,8 @@ import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
 import * as DONATE from './donate'
 import * as BOOST from './boost'
 import * as RECEIVE from './receive'
+import * as BUY_CREDITS from './buyCredits'
+import * as INVITE_GIFT from './inviteGift'
 
 export const paidActions = {
   ITEM_CREATE,
@@ -31,7 +33,9 @@ export const paidActions = {
   TERRITORY_BILLING,
   TERRITORY_UNARCHIVE,
   DONATE,
-  RECEIVE
+  RECEIVE,
+  BUY_CREDITS,
+  INVITE_GIFT
 }
 
 export default async function performPaidAction (actionType, args, incomingContext) {
@@ -52,7 +56,7 @@ export default async function performPaidAction (actionType, args, incomingConte
     // treat context as immutable
     const contextWithMe = {
       ...incomingContext,
-      me: me ? await models.user.findUnique({ where: { id: me.id } }) : undefined
+      me: me ? await models.user.findUnique({ where: { id: parseInt(me.id) } }) : undefined
     }
     const context = {
       ...contextWithMe,
@@ -94,18 +98,31 @@ export default async function performPaidAction (actionType, args, incomingConte
 
       // additional payment methods that logged in users can use
       if (me) {
-        if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT) {
+        if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT ||
+          paymentMethod === PAID_ACTION_PAYMENT_METHODS.REWARD_SATS) {
           try {
             return await performNoInvoiceAction(actionType, args, contextWithPaymentMethod)
           } catch (e) {
             // if we fail with fee credits or reward sats, but not because of insufficient funds, bail
             console.error(`${paymentMethod} action failed`, e)
-            if (!e.message.includes('\\"users\\" violates check constraint \\"msats_positive\\"')) {
+            if (!e.message.includes('\\"users\\" violates check constraint \\"msats_positive\\"') &&
+              !e.message.includes('\\"users\\" violates check constraint \\"mcredits_positive\\"')) {
               throw e
             }
           }
         } else if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC) {
           return await performOptimisticAction(actionType, args, contextWithPaymentMethod)
+        } else if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.DIRECT) {
+          try {
+            return await performDirectAction(actionType, args, contextWithPaymentMethod)
+          } catch (e) {
+            if (e instanceof NonInvoiceablePeerError) {
+              console.log('peer cannot be invoiced, skipping')
+              continue
+            }
+            console.error(`${paymentMethod} action failed`, e)
+            throw e
+          }
         }
       }
     }
@@ -127,6 +144,13 @@ async function performNoInvoiceAction (actionType, args, incomingContext) {
     const context = { ...incomingContext, tx }
 
     if (paymentMethod === 'FEE_CREDIT') {
+      await tx.user.update({
+        where: {
+          id: me?.id ?? USER_ID.anon
+        },
+        data: { mcredits: { decrement: cost } }
+      })
+    } else if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.REWARD_SATS) {
       await tx.user.update({
         where: {
           id: me?.id ?? USER_ID.anon
@@ -229,6 +253,64 @@ async function performP2PAction (actionType, args, incomingContext) {
     : await beginPessimisticAction(actionType, args, context)
 }
 
+// we don't need to use the module for perform-ing outside actions
+// because we can't track the state of outside invoices we aren't paid/paying
+async function performDirectAction (actionType, args, incomingContext) {
+  const { models, lnd, cost } = incomingContext
+  const { comment, lud18Data, noteStr, description: actionDescription } = args
+
+  const userId = await paidActions[actionType]?.getInvoiceablePeer?.(args, incomingContext)
+  if (!userId) {
+    throw new NonInvoiceablePeerError()
+  }
+
+  try {
+    await assertBelowMaxPendingDirectPayments(userId, incomingContext)
+
+    const description = actionDescription ?? await paidActions[actionType].describe(args, incomingContext)
+
+    for await (const { invoice, logger, wallet } of createUserInvoice(userId, {
+      msats: cost,
+      description,
+      expiry: INVOICE_EXPIRE_SECS
+    }, { models, lnd })) {
+      let hash
+      try {
+        hash = parsePaymentRequest({ request: invoice }).id
+      } catch (e) {
+        console.error('failed to parse invoice', e)
+        logger?.error('failed to parse invoice: ' + e.message, { bolt11: invoice })
+        continue
+      }
+
+      try {
+        return {
+          invoice: await models.directPayment.create({
+            data: {
+              comment,
+              lud18Data,
+              desc: noteStr,
+              bolt11: invoice,
+              msats: cost,
+              hash,
+              walletId: wallet.id,
+              receiverId: userId
+            }
+          }),
+          paymentMethod: 'DIRECT'
+        }
+      } catch (e) {
+        console.error('failed to create direct payment', e)
+        logger?.error('failed to create direct payment: ' + e.message, { bolt11: invoice })
+      }
+    }
+  } catch (e) {
+    console.error('failed to create user invoice', e)
+  }
+
+  throw new NonInvoiceablePeerError()
+}
+
 export async function retryPaidAction (actionType, args, incomingContext) {
   const { models, me } = incomingContext
   const { invoice: failedInvoice } = args
@@ -244,28 +326,48 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     throw new Error(`retryPaidAction - must be logged in ${actionType}`)
   }
 
-  if (!action.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC)) {
-    throw new Error(`retryPaidAction - action does not support optimism ${actionType}`)
-  }
-
-  if (!action.retry) {
-    throw new Error(`retryPaidAction - action does not support retrying ${actionType}`)
-  }
-
   if (!failedInvoice) {
     throw new Error(`retryPaidAction - missing invoice ${actionType}`)
   }
 
-  const { msatsRequested, actionId } = failedInvoice
+  const { msatsRequested, actionId, actionArgs, actionOptimistic } = failedInvoice
   const retryContext = {
     ...incomingContext,
-    optimistic: true,
-    me: await models.user.findUnique({ where: { id: me.id } }),
+    optimistic: actionOptimistic,
+    me: await models.user.findUnique({ where: { id: parseInt(me.id) } }),
     cost: BigInt(msatsRequested),
-    actionId
+    actionId,
+    predecessorId: failedInvoice.id
   }
 
-  const invoiceArgs = await createSNInvoice(actionType, args, retryContext)
+  let invoiceArgs
+  const invoiceForward = await models.invoiceForward.findUnique({
+    where: {
+      invoiceId: failedInvoice.id
+    },
+    include: {
+      wallet: true
+    }
+  })
+
+  if (invoiceForward) {
+    // this is a wrapped invoice, we need to retry it with receiver fallbacks
+    try {
+      const { userId } = invoiceForward.wallet
+      // this will return an invoice from the first receiver wallet that didn't fail yet and throw if none is available
+      const { invoice: bolt11, wrappedInvoice: wrappedBolt11, wallet, maxFee } = await createWrappedInvoice(userId, {
+        msats: failedInvoice.msatsRequested,
+        feePercent: await action.getSybilFeePercent?.(actionArgs, retryContext),
+        description: await action.describe?.(actionArgs, retryContext),
+        expiry: INVOICE_EXPIRE_SECS
+      }, retryContext)
+      invoiceArgs = { bolt11, wrappedBolt11, wallet, maxFee }
+    } catch (err) {
+      console.log('failed to retry wrapped invoice, falling back to SN:', err)
+    }
+  }
+
+  invoiceArgs ??= await createSNInvoice(actionType, actionArgs, retryContext)
 
   return await models.$transaction(async tx => {
     const context = { ...retryContext, tx, invoiceArgs }
@@ -282,12 +384,12 @@ export async function retryPaidAction (actionType, args, incomingContext) {
     })
 
     // create a new invoice
-    const invoice = await createDbInvoice(actionType, args, context)
+    const invoice = await createDbInvoice(actionType, actionArgs, context)
 
     return {
-      result: await action.retry({ invoiceId: failedInvoice.id, newInvoiceId: invoice.id }, context),
+      result: await action.retry?.({ invoiceId: failedInvoice.id, newInvoiceId: invoice.id }, context),
       invoice,
-      paymentMethod: 'OPTIMISTIC'
+      paymentMethod: actionOptimistic ? 'OPTIMISTIC' : 'PESSIMISTIC'
     }
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 }
@@ -326,7 +428,7 @@ async function createSNInvoice (actionType, args, context) {
 }
 
 async function createDbInvoice (actionType, args, context) {
-  const { me, models, tx, cost, optimistic, actionId, invoiceArgs } = context
+  const { me, models, tx, cost, optimistic, actionId, invoiceArgs, paymentAttempt, predecessorId } = context
   const { bolt11, wrappedBolt11, preimage, wallet, maxFee } = invoiceArgs
 
   const db = tx ?? models
@@ -351,7 +453,9 @@ async function createDbInvoice (actionType, args, context) {
     actionOptimistic: optimistic,
     actionArgs: args,
     expiresAt,
-    actionId
+    actionId,
+    paymentAttempt,
+    predecessorId
   }
 
   let invoice
@@ -377,11 +481,11 @@ async function createDbInvoice (actionType, args, context) {
 
   // insert a job to check the invoice after it's set to expire
   await db.$executeRaw`
-      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein, priority)
+      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil, priority)
       VALUES ('checkInvoice',
         jsonb_build_object('hash', ${invoice.hash}::TEXT), 21, true,
           ${expiresAt}::TIMESTAMP WITH TIME ZONE,
-          ${expiresAt}::TIMESTAMP WITH TIME ZONE - now() + interval '10m', 100)`
+          ${expiresAt}::TIMESTAMP WITH TIME ZONE + interval '10m', 100)`
 
   // the HMAC is only returned during invoice creation
   // this makes sure that only the person who created this invoice

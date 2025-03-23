@@ -60,7 +60,7 @@ export default gql`
       hash: String, hmac: String): ItemPaidAction!
     updateNoteId(id: ID!, noteId: String!): Item!
     upsertComment(id: ID, text: String!, parentId: ID, boost: Int, hash: String, hmac: String): ItemPaidAction!
-    act(id: ID!, sats: Int, act: String, idempotent: Boolean): ItemActPaidAction!
+    act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): ItemActPaidAction!
     pollVote(id: ID!): PollVotePaidAction!
     toggleOutlaw(id: ID!): Item!
   }
@@ -107,6 +107,7 @@ export default gql`
     id: ID!
     createdAt: Date!
     updatedAt: Date!
+    invoicePaidAt: Date
     deletedAt: Date
     deleteScheduledAt: Date
     reminderScheduledAt: Date
@@ -127,10 +128,13 @@ export default gql`
     bountyPaidTo: [Int]
     noteId: String
     sats: Int!
+    credits: Int!
     commentSats: Int!
+    commentCredits: Int!
     lastCommentAt: Date
     upvotes: Int!
     meSats: Int!
+    meCredits: Int!
     meDontLikeSats: Int!
     meBookmark: Boolean!
     meSubscription: Boolean!
@@ -141,7 +145,8 @@ export default gql`
     bio: Boolean!
     paidImgLink: Boolean
     ncomments: Int!
-    comments(sort: String): [Item!]!
+    nDirectComments: Int!
+    comments(sort: String, cursor: String): Comments!
     path: String
     position: Int
     prior: Int
@@ -154,7 +159,7 @@ export default gql`
     remote: Boolean
     sub: Sub
     subName: String
-    status: String
+    status: String!
     uploadId: Int
     otsHash: String
     parentOtsHash: String

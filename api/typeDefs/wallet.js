@@ -64,6 +64,7 @@ const typeDefs = `
   extend type Query {
     invoice(id: ID!): Invoice!
     withdrawl(id: ID!): Withdrawl!
+    direct(id: ID!): Direct!
     numBolt11s: Int!
     connectAddress: String!
     walletHistory(cursor: String, inc: String): History
@@ -71,17 +72,27 @@ const typeDefs = `
     wallet(id: ID!): Wallet
     walletByType(type: String!): Wallet
     walletLogs(type: String, from: String, to: String, cursor: String): WalletLog!
+    failedInvoices: [Invoice!]!
   }
 
   extend type Mutation {
-    createInvoice(amount: Int!): Invoice!
+    createInvoice(amount: Int!): InvoiceOrDirect!
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
-    cancelInvoice(hash: String!, hmac: String!): Invoice!
-    dropBolt11(id: ID): Withdrawl
+    cancelInvoice(hash: String!, hmac: String, userCancel: Boolean): Invoice!
+    dropBolt11(hash: String!): Boolean
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(wallet: String): Boolean
     setWalletPriority(id: ID!, priority: Int!): Boolean
+    buyCredits(credits: Int!): BuyCreditsPaidAction!
+  }
+
+  type BuyCreditsResult {
+    credits: Int!
+  }
+
+  interface InvoiceOrDirect {
+    id: ID!
   }
 
   type Wallet {
@@ -101,7 +112,7 @@ const typeDefs = `
     autoWithdrawMaxFeeTotal: Int!
   }
 
-  type Invoice {
+  type Invoice implements InvoiceOrDirect {
     id: ID!
     createdAt: Date!
     hash: String!
@@ -121,9 +132,11 @@ const typeDefs = `
     actionState: String
     actionType: String
     actionError: String
+    invoiceForward: Boolean
     item: Item
     itemAct: ItemAct
     forwardedSats: Int
+    forwardStatus: String
   }
 
   type Withdrawl {
@@ -139,6 +152,18 @@ const typeDefs = `
     autoWithdraw: Boolean!
     preimage: String
     forwardedActionType: String
+  }
+
+  type Direct implements InvoiceOrDirect {
+    id: ID!
+    createdAt: Date!
+    bolt11: String
+    hash: String
+    sats: Int
+    preimage: String
+    nostr: JSONObject
+    comment: String
+    lud18Data: JSONObject
   }
 
   type Fact {

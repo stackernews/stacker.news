@@ -8,7 +8,7 @@ import Bolt11Info from './bolt11-info'
 import { useQuery } from '@apollo/client'
 import { INVOICE } from '@/fragments/wallet'
 import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
-import { NoAttachedWalletError } from '@/wallets/errors'
+import { WalletConfigurationError, WalletPaymentAggregateError } from '@/wallets/errors'
 import ItemJob from './item-job'
 import Item from './item'
 import { CommentFlat } from './comment'
@@ -19,7 +19,7 @@ import styles from './invoice.module.css'
 
 export default function Invoice ({
   id, query = INVOICE, modal, onPayment, onExpired, onCanceled, info, successVerb = 'deposited',
-  heldVerb = 'settling', useWallet = true, walletError, poll, waitFor, ...props
+  heldVerb = 'settling', walletError, poll, waitFor, ...props
 }) {
   const { data, error } = useQuery(query, SSR
     ? {}
@@ -79,15 +79,12 @@ export default function Invoice ({
         {invoice.forwardedSats && <Badge className={styles.badge} bg={null}>p2p</Badge>}
       </>
     )
-    useWallet = false
   } else if (expired) {
     variant = 'failed'
     status = 'expired'
-    useWallet = false
   } else if (invoice.cancelled) {
     variant = 'failed'
     status = 'cancelled'
-    useWallet = false
   } else if (invoice.isHeld) {
     variant = 'pending'
     status = (
@@ -95,7 +92,6 @@ export default function Invoice ({
         <Moon className='spin fill-grey me-2' /> {heldVerb}
       </div>
     )
-    useWallet = false
   } else {
     variant = 'pending'
     status = (
@@ -103,56 +99,60 @@ export default function Invoice ({
     )
   }
 
-  const { nostr, comment, lud18Data, bolt11, confirmedPreimage } = invoice
+  const { bolt11, confirmedPreimage } = invoice
 
   return (
     <>
-      {walletError && !(walletError instanceof NoAttachedWalletError) &&
-        <div className='text-center fw-bold text-info mb-3' style={{ lineHeight: 1.25 }}>
-          Paying from attached wallet failed:
-          <code> {walletError.message}</code>
-        </div>}
+      <WalletError error={walletError} />
       <Qr
-        useWallet={useWallet} value={invoice.bolt11}
+        value={invoice.bolt11}
         description={numWithUnits(invoice.satsRequested, { abbreviate: false })}
         statusVariant={variant} status={status}
       />
       {!modal &&
         <>
           {info && <div className='text-muted fst-italic text-center'>{info}</div>}
-          <div className='w-100'>
-            {nostr
-              ? <AccordianItem
-                  header='Nostr Zap Request'
-                  body={
-                    <pre>
-                      <code>
-                        {JSON.stringify(nostr, null, 2)}
-                      </code>
-                    </pre>
-            }
-                />
-              : null}
-          </div>
-          {lud18Data &&
-            <div className='w-100'>
-              <AccordianItem
-                header='sender information'
-                body={<PayerData data={lud18Data} className='text-muted ms-3' />}
-                className='mb-3'
-              />
-            </div>}
-          {comment &&
-            <div className='w-100'>
-              <AccordianItem
-                header='sender comments'
-                body={<span className='text-muted ms-3'>{comment}</span>}
-                className='mb-3'
-              />
-            </div>}
+          <InvoiceExtras {...invoice} />
           <Bolt11Info bolt11={bolt11} preimage={confirmedPreimage} />
           {invoice?.item && <ActionInfo invoice={invoice} />}
         </>}
+    </>
+  )
+}
+
+export function InvoiceExtras ({ nostr, lud18Data, comment }) {
+  return (
+    <>
+      <div className='w-100'>
+        {nostr
+          ? <AccordianItem
+              header='Nostr Zap Request'
+              body={
+                <pre>
+                  <code>
+                    {JSON.stringify(nostr, null, 2)}
+                  </code>
+                </pre>
+            }
+            />
+          : null}
+      </div>
+      {lud18Data &&
+        <div className='w-100'>
+          <AccordianItem
+            header='sender information'
+            body={<PayerData data={lud18Data} className='text-muted ms-3' />}
+            className='mb-3'
+          />
+        </div>}
+      {comment &&
+        <div className='w-100'>
+          <AccordianItem
+            header='sender comments'
+            body={<span className='text-muted ms-3'>{comment}</span>}
+            className='mb-3'
+          />
+        </div>}
     </>
   )
 }
@@ -198,6 +198,26 @@ function ActionInfo ({ invoice }) {
       {(invoice.item?.isJob && <ItemJob item={invoice?.item} />) ||
        (invoice.item?.title && <Item item={invoice?.item} />) ||
          <CommentFlat item={invoice.item} includeParent noReply truncate />}
+    </div>
+  )
+}
+
+function WalletError ({ error }) {
+  if (!error || error instanceof WalletConfigurationError) return null
+
+  if (!(error instanceof WalletPaymentAggregateError)) {
+    console.error('unexpected wallet error:', error)
+    return null
+  }
+
+  return (
+    <div className='text-center fw-bold text-info mb-3' style={{ lineHeight: 1.25 }}>
+      <div className='text-info mb-2'>Paying from attached wallets failed:</div>
+      {error.errors.map((e, i) => (
+        <div key={i}>
+          <code>{e.wallet}: {e.reason || e.message}</code>
+        </div>
+      ))}
     </div>
   )
 }

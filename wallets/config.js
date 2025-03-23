@@ -2,20 +2,23 @@ import { useMe } from '@/components/me'
 import useVault from '@/components/vault/use-vault'
 import { useCallback } from 'react'
 import { canReceive, canSend, getStorageKey, saveWalletLocally, siftConfig, upsertWalletVariables } from './common'
-import { useMutation } from '@apollo/client'
+import { gql, useMutation } from '@apollo/client'
 import { generateMutation } from './graphql'
 import { REMOVE_WALLET } from '@/fragments/wallet'
-import { useWalletLogger } from '@/components/wallet-logger'
+import { useWalletLogger } from '@/wallets/logger'
 import { useWallets } from '.'
 import validateWallet from './validate'
+import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
+import { timeoutSignal, withTimeout } from '@/lib/time'
 
 export function useWalletConfigurator (wallet) {
   const { me } = useMe()
   const { reloadLocalWallets } = useWallets()
   const { encrypt, isActive } = useVault()
-  const { logger } = useWalletLogger(wallet?.def)
+  const logger = useWalletLogger(wallet)
   const [upsertWallet] = useMutation(generateMutation(wallet?.def))
   const [removeWallet] = useMutation(REMOVE_WALLET)
+  const [disableFreebies] = useMutation(gql`mutation { disableFreebies }`)
 
   const _saveToServer = useCallback(async (serverConfig, clientConfig, validateLightning) => {
     const variables = await upsertWalletVariables(
@@ -37,17 +40,28 @@ export function useWalletConfigurator (wallet) {
     let serverConfig = serverWithShared
 
     if (canSend({ def: wallet.def, config: clientConfig })) {
-      let transformedConfig = await validateWallet(wallet.def, clientWithShared, { skipGenerated: true })
-      if (transformedConfig) {
-        clientConfig = Object.assign(clientConfig, transformedConfig)
-      }
-      if (wallet.def.testSendPayment && validateLightning) {
-        transformedConfig = await wallet.def.testSendPayment(clientConfig, { me, logger })
+      try {
+        let transformedConfig = await validateWallet(wallet.def, clientWithShared, { skipGenerated: true })
         if (transformedConfig) {
           clientConfig = Object.assign(clientConfig, transformedConfig)
         }
-        // validate again to ensure generated fields are valid
-        await validateWallet(wallet.def, clientConfig)
+        if (wallet.def.testSendPayment && validateLightning) {
+          transformedConfig = await withTimeout(
+            wallet.def.testSendPayment(clientConfig, {
+              logger,
+              signal: timeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS)
+            }),
+            WALLET_SEND_PAYMENT_TIMEOUT_MS
+          )
+          if (transformedConfig) {
+            clientConfig = Object.assign(clientConfig, transformedConfig)
+          }
+          // validate again to ensure generated fields are valid
+          await validateWallet(wallet.def, clientConfig)
+        }
+      } catch (err) {
+        logger.error(err.message)
+        throw err
       }
     } else if (canReceive({ def: wallet.def, config: serverConfig })) {
       const transformedConfig = await validateWallet(wallet.def, serverConfig)
@@ -59,7 +73,7 @@ export function useWalletConfigurator (wallet) {
     }
 
     return { clientConfig, serverConfig }
-  }, [wallet])
+  }, [wallet, logger])
 
   const _detachFromServer = useCallback(async () => {
     await removeWallet({ variables: { id: wallet.config.id } })
@@ -71,34 +85,54 @@ export function useWalletConfigurator (wallet) {
   }, [me?.id, wallet.def.name, reloadLocalWallets])
 
   const save = useCallback(async (newConfig, validateLightning = true) => {
-    const { clientConfig, serverConfig } = await _validate(newConfig, validateLightning)
+    const { clientWithShared: oldClientConfig } = siftConfig(wallet.def.fields, wallet.config)
+    const { clientConfig: newClientConfig, serverConfig: newServerConfig } = await _validate(newConfig, validateLightning)
+
+    const oldCanSend = canSend({ def: wallet.def, config: oldClientConfig })
+    const newCanSend = canSend({ def: wallet.def, config: newClientConfig })
 
     // if vault is active, encrypt and send to server regardless of wallet type
     if (isActive) {
-      await _saveToServer(serverConfig, clientConfig, validateLightning)
+      await _saveToServer(newServerConfig, newClientConfig, validateLightning)
       await _detachFromLocal()
     } else {
-      if (canSend({ def: wallet.def, config: clientConfig })) {
-        await _saveToLocal(clientConfig)
+      if (newCanSend) {
+        await _saveToLocal(newClientConfig)
       } else {
         // if it previously had a client config, remove it
         await _detachFromLocal()
       }
-      if (canReceive({ def: wallet.def, config: serverConfig })) {
-        await _saveToServer(serverConfig, clientConfig, validateLightning)
+      if (canReceive({ def: wallet.def, config: newServerConfig })) {
+        await _saveToServer(newServerConfig, newClientConfig, validateLightning)
       } else if (wallet.config.id) {
         // we previously had a server config
         if (wallet.vaultEntries.length > 0) {
           // we previously had a server config with vault entries, save it
-          await _saveToServer(serverConfig, clientConfig, validateLightning)
+          await _saveToServer(newServerConfig, newClientConfig, validateLightning)
         } else {
           // we previously had a server config without vault entries, remove it
           await _detachFromServer()
         }
       }
     }
-  }, [isActive, wallet.def, _saveToServer, _saveToLocal, _validate,
-    _detachFromLocal, _detachFromServer])
+
+    if (newCanSend) {
+      disableFreebies().catch(console.error)
+      if (oldCanSend) {
+        logger.ok('details for sending updated')
+      } else {
+        logger.ok('details for sending saved')
+      }
+      if (newConfig.enabled) {
+        logger.ok('sending enabled')
+      } else {
+        logger.info('sending disabled')
+      }
+    } else if (oldCanSend) {
+      logger.info('details for sending deleted')
+    }
+  }, [isActive, wallet.def, wallet.config, _saveToServer, _saveToLocal, _validate,
+    _detachFromLocal, _detachFromServer, disableFreebies])
 
   const detach = useCallback(async () => {
     if (isActive) {
@@ -112,7 +146,9 @@ export function useWalletConfigurator (wallet) {
       // if vault is not active and has a client config, delete from local storage
       await _detachFromLocal()
     }
-  }, [isActive, _detachFromServer, _detachFromLocal])
+
+    logger.info('details for sending deleted')
+  }, [logger, isActive, _detachFromServer, _detachFromLocal])
 
   return { save, detach }
 }

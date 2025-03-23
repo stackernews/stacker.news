@@ -16,7 +16,6 @@ import { useToast } from '@/components/toast'
 import { useLightning } from '@/components/lightning'
 import { ListUsers } from '@/components/user-list'
 import { Col, Row } from 'react-bootstrap'
-import { proportions } from '@/lib/madness'
 import { useData } from '@/components/use-data'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
 import { useMemo } from 'react'
@@ -50,6 +49,7 @@ ${ITEM_FULL_FIELDS}
         photoId
         ncomments
         nposts
+        proportion
 
         optional {
           streak
@@ -83,7 +83,7 @@ export const getServerSideProps = getGetServerSideProps({ query: REWARDS_FULL })
 export function RewardLine ({ total, time }) {
   return (
     <>
-      <span tyle={{ whiteSpace: 'nowrap' }}>
+      <span style={{ whiteSpace: 'nowrap' }}>
         {numWithUnits(total)} in rewards
       </span>
       {time &&
@@ -117,9 +117,10 @@ export default function Rewards ({ ssrData }) {
 
   if (!dat) return <PageLoading />
 
-  function EstimatedReward ({ rank }) {
-    const referrerReward = Math.floor(total * proportions[rank - 1] * 0.2)
-    const reward = Math.floor(total * proportions[rank - 1]) - referrerReward
+  function EstimatedReward ({ rank, user }) {
+    if (!user) return null
+    const referrerReward = Math.max(Math.floor(total * user.proportion * 0.2), 0)
+    const reward = Math.max(Math.floor(total * user.proportion) - referrerReward, 0)
 
     return (
       <div className='text-muted fst-italic'>
@@ -137,7 +138,7 @@ export default function Rewards ({ ssrData }) {
           <div className='fw-bold text-muted pb-2'>
             top boost this month
           </div>
-          <ListItem item={ad} />
+          <ListItem item={ad} ad />
         </div>}
       <Row className='pb-3'>
         <Col lg={leaderboard?.users && 5}>

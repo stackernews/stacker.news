@@ -9,6 +9,8 @@ import Invite from '@/components/invite'
 import { inviteSchema } from '@/lib/validate'
 import { SSR } from '@/lib/constants'
 import { getGetServerSideProps } from '@/api/ssrApollo'
+import Info from '@/components/info'
+import Text from '@/components/text'
 
 // force SSR to include CSP nonces
 export const getServerSideProps = getGetServerSideProps({ query: null })
@@ -17,8 +19,8 @@ function InviteForm () {
   const [createInvite] = useMutation(
     gql`
       ${INVITE_FIELDS}
-      mutation createInvite($gift: Int!, $limit: Int) {
-        createInvite(gift: $gift, limit: $limit) {
+      mutation createInvite($id: String, $gift: Int!, $limit: Int!, $description: String) {
+        createInvite(id: $id, gift: $gift, limit: $limit, description: $description) {
           ...InviteFields
         }
       }`, {
@@ -39,20 +41,28 @@ function InviteForm () {
     }
   )
 
+  const initialValues = {
+    id: '',
+    gift: 1000,
+    limit: 1,
+    description: ''
+  }
+
   return (
     <Form
-      initial={{
-        gift: 100,
-        limit: 1
-      }}
+      initial={initialValues}
       schema={inviteSchema}
-      onSubmit={async ({ limit, gift }) => {
+      onSubmit={async ({ id, gift, limit, description }, { resetForm }) => {
         const { error } = await createInvite({
           variables: {
-            gift: Number(gift), limit: limit ? Number(limit) : limit
+            id: id || undefined,
+            gift: Number(gift),
+            limit: Number(limit),
+            description: description || undefined
           }
         })
         if (error) throw error
+        resetForm({ values: initialValues })
       }}
     >
       <Input
@@ -62,11 +72,44 @@ function InviteForm () {
         required
       />
       <Input
-        label={<>invitee limit <small className='text-muted ms-2'>optional</small></>}
+        label='invitee limit'
         name='limit'
       />
-
-      <SubmitButton variant='secondary'>create</SubmitButton>
+      <AccordianItem
+        headerColor='#6c757d' header='advanced' body={
+          <>
+            <Input
+              prepend={<InputGroup.Text className='text-muted'>{`${process.env.NEXT_PUBLIC_URL}/invites/`}</InputGroup.Text>}
+              label={<>invite code <small className='text-muted ms-2'>optional</small></>}
+              hint='leave blank for a random code that is hard to guess'
+              name='id'
+              autoComplete='off'
+            />
+            <Input
+              label={
+                <>
+                  <div className='d-flex align-items-center'>
+                    description <small className='text-muted ms-2'>optional</small>
+                    <Info>
+                      <Text>
+                        A brief description to keep track of the invite purpose, such as "Shared in group chat".
+                        This description is private and visible only to you.
+                      </Text>
+                    </Info>
+                  </div>
+                </>
+              }
+              name='description'
+              autoComplete='off'
+            />
+          </>
+      }
+      />
+      <SubmitButton
+        className='mt-4'
+        variant='secondary'
+      >create
+      </SubmitButton>
     </Form>
   )
 }

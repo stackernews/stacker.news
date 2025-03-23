@@ -4,9 +4,10 @@ import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString, lnurlPayDescrip
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
 import { LNURLP_COMMENT_MAX_LENGTH, MAX_INVOICE_DESCRIPTION_LENGTH } from '@/lib/constants'
-import { validateSchema, lud18PayerDataSchema, toPositiveBigInt } from '@/lib/validate'
+import { toPositiveBigInt } from '@/lib/format'
 import assertGofacYourself from '@/api/resolvers/ofac'
 import performPaidAction from '@/api/paidAction'
+import { validateSchema, lud18PayerDataSchema } from '@/lib/validate'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -91,10 +92,10 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     return res.status(200).json({
       pr: invoice.bolt11,
       routes: [],
-      verify: `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${invoice.hash}`
+      verify: invoice.hash ? `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${invoice.hash}` : undefined
     })
   } catch (error) {
     console.log(error)
-    res.status(400).json({ status: 'ERROR', reason: 'could not generate invoice' })
+    res.status(400).json({ status: 'ERROR', reason: 'could not generate invoice to customer\'s attached wallet' })
   }
 }

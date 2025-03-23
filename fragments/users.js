@@ -37,7 +37,9 @@ ${STREAK_FIELDS}
       imgproxyOnly
       showImagesAndVideos
       nostrCrossposting
+      nsfwMode
       sats
+      credits
       tipDefault
       tipRandom
       tipRandomMin
@@ -51,6 +53,7 @@ ${STREAK_FIELDS}
       vaultKeyHash
       walletsUpdatedAt
       proxyReceive
+      directReceive
     }
     optional {
       isContributor
@@ -113,6 +116,9 @@ export const SETTINGS_FIELDS = gql`
       }
       apiKeyEnabled
       proxyReceive
+      directReceive
+      receiveCreditsBelowSats
+      sendCreditsBelowSats
     }
   }`
 
@@ -251,7 +257,7 @@ export const TOP_USERS = gql`
         photoId
         ncomments(when: $when, from: $from, to: $to)
         nposts(when: $when, from: $from, to: $to)
-
+        proportion
         optional {
           stacked(when: $when, from: $from, to: $to)
           spent(when: $when, from: $from, to: $to)
@@ -291,17 +297,20 @@ export const USER_FULL = gql`
   ${USER_FIELDS}
   ${ITEM_FULL_FIELDS}
   ${COMMENTS}
-  query User($name: String!, $sort: String) {
+  query User($name: String!, $sort: String, $cursor: String) {
     user(name: $name) {
       ...UserFields
       bio {
         ...ItemFullFields
-        comments(sort: $sort) {
-          ...CommentsRecursive
+        comments(sort: $sort, cursor: $cursor) {
+          cursor
+          comments {
+            ...CommentsRecursive
+          }
         }
       }
-  }
-}`
+    }
+  }`
 
 export const USER = gql`
   ${USER_FIELDS}

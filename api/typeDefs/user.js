@@ -49,7 +49,7 @@ export default gql`
   type User {
     id: ID!
     createdAt: Date!
-    name: String
+    name: String!
     nitems(when: String, from: String, to: String): Int!
     nposts(when: String, from: String, to: String): Int!
     nterritories(when: String, from: String, to: String): Int!
@@ -58,6 +58,11 @@ export default gql`
     bioId: Int
     photoId: Int
     since: Int
+
+    """
+    this is only returned when we sort stackers by value
+    """
+    proportion: Float
 
     optional: UserOptional!
     privates: UserPrivates
@@ -108,6 +113,9 @@ export default gql`
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
     proxyReceive: Boolean
+    directReceive: Boolean
+    receiveCreditsBelowSats: Int!
+    sendCreditsBelowSats: Int!
   }
 
   type AuthMethods {
@@ -124,6 +132,7 @@ export default gql`
     extremely sensitive
     """
     sats: Int!
+    credits: Int!
     authMethods: AuthMethods!
     lnAddr: String
 
@@ -187,6 +196,9 @@ export default gql`
     vaultKeyHash: String
     walletsUpdatedAt: Date
     proxyReceive: Boolean
+    directReceive: Boolean
+    receiveCreditsBelowSats: Int!
+    sendCreditsBelowSats: Int!
   }
 
   type UserOptional {

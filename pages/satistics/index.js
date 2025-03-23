@@ -24,7 +24,7 @@ export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY,
 
 function satusClass (status) {
   if (!status) {
-    return ''
+    return 'text-reset'
   }
 
   switch (status) {
@@ -264,7 +264,7 @@ export default function Satistics ({ ssrData }) {
           <div className={styles.rows}>
             <div className={[styles.type, styles.head].join(' ')}>type</div>
             <div className={[styles.detail, styles.head].join(' ')}>detail</div>
-            <div className={[styles.sats, styles.head].join(' ')}>sats</div>
+            <div className={[styles.sats, styles.head].join(' ')}>sats/credits</div>
             {facts.map(f => <Fact key={f.type + f.id} fact={f} />)}
           </div>
         </div>

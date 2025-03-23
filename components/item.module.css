@@ -164,6 +164,8 @@ a.link:visited {
     display: grid;
     grid-template-columns: auto auto;
     column-gap: 1rem;
+    line-height: 1.25;
+    row-gap: 0.75rem;
 }
 
 /* .itemJob .hunk {

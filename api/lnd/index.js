@@ -1,7 +1,9 @@
 import { cachedFetcher } from '@/lib/fetch'
-import { toPositiveNumber } from '@/lib/validate'
+import { toPositiveNumber } from '@/lib/format'
 import { authenticatedLndGrpc } from '@/lib/lnd'
-import { getIdentity, getHeight, getWalletInfo, getNode } from 'ln-service'
+import { getIdentity, getHeight, getWalletInfo, getNode, getPayment, parsePaymentRequest } from 'ln-service'
+import { datePivot } from '@/lib/time'
+import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 
 const lnd = global.lnd || authenticatedLndGrpc({
   cert: process.env.LND_CERT,
@@ -21,11 +23,34 @@ getWalletInfo({ lnd }, (err, result) => {
 })
 
 export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, request, timeout }) {
+  // if the payment request includes us as route hint, we needd to use the destination and amount
+  // otherwise, this will fail with a self-payment error
+  if (request) {
+    const inv = parsePaymentRequest({ request })
+    const ourPubkey = await getOurPubkey({ lnd })
+    if (Array.isArray(inv.routes)) {
+      for (const route of inv.routes) {
+        if (Array.isArray(route)) {
+          for (const hop of route) {
+            if (hop.public_key === ourPubkey) {
+              console.log('estimateRouteFee ignoring self-payment route')
+              request = false
+              break
+            }
+          }
+        }
+      }
+    }
+  }
+
   return await new Promise((resolve, reject) => {
     const params = {}
+
     if (request) {
+      console.log('estimateRouteFee using payment request')
       params.payment_request = request
     } else {
+      console.log('estimateRouteFee using destination and amount')
       params.dest = Buffer.from(destination, 'hex')
       params.amt_sat = tokens ? toPositiveNumber(tokens) : toPositiveNumber(BigInt(mtokens) / BigInt(1e3))
     }
@@ -88,22 +113,22 @@ export function getPaymentFailureStatus (withdrawal) {
     throw new Error('withdrawal is not failed')
   }
 
-  if (withdrawal?.failed.is_insufficient_balance) {
+  if (withdrawal?.failed?.is_insufficient_balance) {
     return {
       status: 'INSUFFICIENT_BALANCE',
       message: 'you didn\'t have enough sats'
     }
-  } else if (withdrawal?.failed.is_invalid_payment) {
+  } else if (withdrawal?.failed?.is_invalid_payment) {
     return {
       status: 'INVALID_PAYMENT',
       message: 'invalid payment'
     }
-  } else if (withdrawal?.failed.is_pathfinding_timeout) {
+  } else if (withdrawal?.failed?.is_pathfinding_timeout) {
     return {
       status: 'PATHFINDING_TIMEOUT',
       message: 'no route found'
     }
-  } else if (withdrawal?.failed.is_route_not_found) {
+  } else if (withdrawal?.failed?.is_route_not_found) {
     return {
       status: 'ROUTE_NOT_FOUND',
       message: 'no route found'
@@ -159,5 +184,19 @@ export const getNodeSockets = cachedFetcher(async function fetchNodeSockets ({ l
     return publicKey
   }
 })
+
+export async function getPaymentOrNotSent ({ id, lnd, createdAt }) {
+  try {
+    return await getPayment({ id, lnd })
+  } catch (err) {
+    if (err[1] === 'SentPaymentNotFound' &&
+      createdAt < datePivot(new Date(), { milliseconds: -LND_PATHFINDING_TIMEOUT_MS * 2 })) {
+      // if the payment is older than 2x timeout, but not found in LND, we can assume it errored before lnd stored it
+      return { notSent: true, is_failed: true }
+    } else {
+      throw err
+    }
+  }
+}
 
 export default lnd

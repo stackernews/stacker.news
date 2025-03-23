@@ -3,7 +3,6 @@ import styles from './reply.module.css'
 import { COMMENTS } from '@/fragments/comments'
 import { useMe } from './me'
 import { forwardRef, useCallback, useEffect, useState, useRef, useMemo } from 'react'
-import Link from 'next/link'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import { commentsViewedAfterComment } from '@/lib/new-comments'
 import { commentSchema } from '@/lib/validate'
@@ -11,25 +10,9 @@ import { ItemButtonBar } from './post'
 import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
-import { commentSubTreeRootId } from '@/lib/item'
 import { CREATE_COMMENT } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
-
-export function ReplyOnAnotherPage ({ item }) {
-  const rootId = commentSubTreeRootId(item)
-
-  let text = 'reply on another page'
-  if (item.ncomments > 0) {
-    text = 'view replies'
-  }
-
-  return (
-    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='d-block py-3 fw-bold text-muted'>
-      {text}
-    </Link>
-  )
-}
 
 export default forwardRef(function Reply ({
   item,
@@ -55,9 +38,9 @@ export default forwardRef(function Reply ({
 
   const placeholder = useMemo(() => {
     return [
-      'comment for currency?',
+      'comment for currency',
       'fractions of a penny for your thoughts?',
-      'put your money where your mouth is?'
+      'put your money where your mouth is'
     ][parentId % 3]
   }, [parentId])
 
@@ -70,15 +53,19 @@ export default forwardRef(function Reply ({
         cache.modify({
           id: `Item:${parentId}`,
           fields: {
-            comments (existingCommentRefs = []) {
+            comments (existingComments = {}) {
               const newCommentRef = cache.writeFragment({
                 data: result,
                 fragment: COMMENTS,
                 fragmentName: 'CommentsRecursive'
               })
-              return [newCommentRef, ...existingCommentRefs]
+              return {
+                cursor: existingComments.cursor,
+                comments: [newCommentRef, ...(existingComments?.comments || [])]
+              }
             }
-          }
+          },
+          optimistic: true
         })
 
         // no lag for itemRepetition
@@ -102,7 +89,8 @@ export default forwardRef(function Reply ({
               ncomments (existingNComments = 0) {
                 return existingNComments + 1
               }
-            }
+            },
+            optimistic: true
           })
         })
 
@@ -113,7 +101,7 @@ export default forwardRef(function Reply ({
       }
     },
     onSuccessfulSubmit: (data, { resetForm }) => {
-      resetForm({ text: '' })
+      resetForm({ values: { text: '' } })
       setReply(replyOpen || false)
     },
     navigateOnSubmit: false
@@ -173,7 +161,7 @@ export default forwardRef(function Reply ({
       {reply &&
         <div className={styles.reply}>
           <FeeButtonProvider
-            baseLineItems={postCommentBaseLineItems({ baseCost: 1, comment: true, me: !!me })}
+            baseLineItems={postCommentBaseLineItems({ baseCost: sub?.replyCost ?? 1, comment: true, me: !!me })}
             useRemoteLineItems={postCommentUseRemoteLineItems({ parentId: item.id, me: !!me })}
           >
             <Form

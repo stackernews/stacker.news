@@ -2,7 +2,7 @@ import { useRouter } from 'next/router'
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import styles from './pull-to-refresh.module.css'
 
-const REFRESH_THRESHOLD = 50
+const REFRESH_THRESHOLD = 150
 
 export default function PullToRefresh ({ children, className }) {
   const router = useRouter()
@@ -72,7 +72,10 @@ export default function PullToRefresh ({ children, className }) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <p className={`${styles.pullMessage}`} style={{ top: `${Math.max(-20, Math.min(-20 + pullDistance / 2, 5))}px` }}>
+      <p
+        className={`${styles.pullMessage}`}
+        style={{ opacity: pullDistance > 0 ? 1 : 0, top: `${Math.max(-20, Math.min(-20 + pullDistance / 2, 5))}px` }}
+      >
         {pullMessage}
       </p>
       {children}

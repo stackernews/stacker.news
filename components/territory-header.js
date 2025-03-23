@@ -31,6 +31,17 @@ export function TerritoryDetails ({ sub, children }) {
   )
 }
 
+export function TerritoryInfoSkeleton ({ children, className }) {
+  return (
+    <div className={`${styles.item} ${styles.skeleton} ${className}`}>
+      <div className={styles.hunk}>
+        <div className={`${styles.name} clouds text-reset`} />
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export function TerritoryInfo ({ sub }) {
   return (
     <>
@@ -46,9 +57,16 @@ export function TerritoryInfo ({ sub }) {
           <span> on </span>
           <span className='fw-bold'>{new Date(sub.createdAt).toDateString()}</span>
         </div>
-        <div className='text-muted'>
-          <span>post cost </span>
-          <span className='fw-bold'>{numWithUnits(sub.baseCost)}</span>
+        <div className='d-flex'>
+          <div className='text-muted'>
+            <span>post cost </span>
+            <span className='fw-bold'>{numWithUnits(sub.baseCost)}</span>
+          </div>
+          <span className='px-1'> \ </span>
+          <div className='text-muted'>
+            <span>reply cost </span>
+            <span className='fw-bold'>{numWithUnits(sub.replyCost)}</span>
+          </div>
         </div>
         <TerritoryBillingLine sub={sub} />
       </CardFooter>

@@ -20,7 +20,6 @@ import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
 import { numWithUnits } from '@/lib/format'
 import textAreaCaret from 'textarea-caret'
-import ReactDatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import useDebounceCallback, { debounce } from './use-debounce-callback'
 import { FileUpload } from './file-upload'
@@ -38,9 +37,10 @@ import QrIcon from '@/svgs/qr-code-line.svg'
 import QrScanIcon from '@/svgs/qr-scan-line.svg'
 import { useShowModal } from './modal'
 import { QRCodeSVG } from 'qrcode.react'
-import { Scanner } from '@yudiel/react-qr-scanner'
+import dynamic from 'next/dynamic'
 import { qrImageSettings } from './qr'
 import { useIsClient } from './use-client'
+import PageLoading from './page-loading'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -360,12 +360,22 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
               onUpload={file => {
                 const uploadMarker = `![Uploading ${file.name}…]()`
                 const text = innerRef.current.value
-                const cursorPosition = innerRef.current.selectionStart || text.length
+                const cursorPosition = innerRef.current.selectionStart
                 let preMarker = text.slice(0, cursorPosition)
-                const postMarker = text.slice(cursorPosition)
+                let postMarker = text.slice(cursorPosition)
                 // when uploading multiple files at once, we want to make sure the upload markers are separated by blank lines
-                if (preMarker && !/\n+\s*$/.test(preMarker)) {
-                  preMarker += '\n\n'
+                if (preMarker) {
+                  // Count existing newlines at the end of preMarker
+                  const existingNewlines = preMarker.match(/[\n]+$/)?.[0].length || 0
+                  // Add only the needed newlines to reach 2
+                  preMarker += '\n'.repeat(Math.max(0, 2 - existingNewlines))
+                }
+                // if there's text after the cursor, we want to make sure the upload marker is separated by a blank line
+                if (postMarker) {
+                  // Count existing newlines at the start of postMarker
+                  const existingNewlines = postMarker.match(/^[\n]*/)?.[0].length || 0
+                  // Add only the needed newlines to reach 2
+                  postMarker = '\n'.repeat(Math.max(0, 2 - existingNewlines)) + postMarker
                 }
                 const newText = preMarker + uploadMarker + postMarker
                 helpers.setValue(newText)
@@ -476,7 +486,7 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue,
-  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength,
+  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength, hideError,
   ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
@@ -564,7 +574,7 @@ function InputInner ({
           onKeyDown={onKeyDownInner}
           onChange={onChangeInner}
           onBlur={onBlurInner}
-          isInvalid={invalid}
+          isInvalid={!hideError && invalid} // if hideError is true, handle error showing separately
           isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
         />
         {(isClient && clear && field.value && !props.readOnly) &&
@@ -961,6 +971,19 @@ export function Select ({ label, items, info, groupClassName, onChange, noForm, 
   )
 }
 
+function DatePickerSkeleton () {
+  return (
+    <div className='react-datepicker-wrapper'>
+      <input className='form-control clouds fade-out p-0 px-2 mb-0' />
+    </div>
+  )
+}
+
+const ReactDatePicker = dynamic(() => import('react-datepicker').then(mod => mod.default), {
+  ssr: false,
+  loading: () => <DatePickerSkeleton />
+})
+
 export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to, className, ...props }) {
   const formik = noForm ? null : useFormikContext()
   const [,, fromHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: fromName })
@@ -1028,19 +1051,23 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
   }
 
   return (
-    <ReactDatePicker
-      className={`form-control text-center ${className}`}
-      selectsRange
-      maxDate={new Date()}
-      minDate={new Date('2021-05-01')}
-      {...props}
-      selected={new Date(innerFrom)}
-      startDate={new Date(innerFrom)}
-      endDate={innerTo ? new Date(innerTo) : undefined}
-      dateFormat={dateFormat}
-      onChangeRaw={onChangeRawHandler}
-      onChange={innerOnChange}
-    />
+    <>
+      {ReactDatePicker && (
+        <ReactDatePicker
+          className={`form-control text-center ${className}`}
+          selectsRange
+          maxDate={new Date()}
+          minDate={new Date('2021-05-01')}
+          {...props}
+          selected={new Date(innerFrom)}
+          startDate={new Date(innerFrom)}
+          endDate={innerTo ? new Date(innerTo) : undefined}
+          dateFormat={dateFormat}
+          onChangeRaw={onChangeRawHandler}
+          onChange={innerOnChange}
+        />
+      )}
+    </>
   )
 }
 
@@ -1060,19 +1087,27 @@ export function DateTimeInput ({ label, groupClassName, name, ...props }) {
 
 function DateTimePicker ({ name, className, ...props }) {
   const [field, , helpers] = useField({ ...props, name })
+  const ReactDatePicker = dynamic(() => import('react-datepicker').then(mod => mod.default), {
+    ssr: false,
+    loading: () => <span>loading date picker</span>
+  })
   return (
-    <ReactDatePicker
-      {...field}
-      {...props}
-      showTimeSelect
-      dateFormat='Pp'
-      className={`form-control ${className}`}
-      selected={(field.value && new Date(field.value)) || null}
-      value={(field.value && new Date(field.value)) || null}
-      onChange={(val) => {
-        helpers.setValue(val)
-      }}
-    />
+    <>
+      {ReactDatePicker && (
+        <ReactDatePicker
+          {...field}
+          {...props}
+          showTimeSelect
+          dateFormat='Pp'
+          className={`form-control ${className}`}
+          selected={(field.value && new Date(field.value)) || null}
+          value={(field.value && new Date(field.value)) || null}
+          onChange={(val) => {
+            helpers.setValue(val)
+          }}
+        />
+      )}
+    </>
   )
 }
 
@@ -1139,6 +1174,10 @@ function QrPassword ({ value }) {
 function PasswordScanner ({ onScan, text }) {
   const showModal = useShowModal()
   const toaster = useToast()
+  const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner), {
+    ssr: false,
+    loading: () => <PageLoading />
+  })
 
   return (
     <InputGroup.Text
@@ -1148,26 +1187,28 @@ function PasswordScanner ({ onScan, text }) {
           return (
             <div>
               {text && <h5 className='line-height-md mb-4 text-center'>{text}</h5>}
-              <Scanner
-                formats={['qr_code']}
-                onScan={([{ rawValue: result }]) => {
-                  onScan(result)
-                  onClose()
-                }}
-                styles={{
-                  video: {
-                    aspectRatio: '1 / 1'
-                  }
-                }}
-                onError={(error) => {
-                  if (error instanceof DOMException) {
-                    console.log(error)
-                  } else {
-                    toaster.danger('qr scan: ' + error?.message || error?.toString?.())
-                  }
-                  onClose()
-                }}
-              />
+              {Scanner && (
+                <Scanner
+                  formats={['qr_code']}
+                  onScan={([{ rawValue: result }]) => {
+                    onScan(result)
+                    onClose()
+                  }}
+                  styles={{
+                    video: {
+                      aspectRatio: '1 / 1'
+                    }
+                  }}
+                  onError={(error) => {
+                    if (error instanceof DOMException) {
+                      console.log(error)
+                    } else {
+                      toaster.danger('qr scan: ' + error?.message || error?.toString?.())
+                    }
+                    onClose()
+                  }}
+                />
+              )}
             </div>
           )
         })
@@ -1228,6 +1269,119 @@ export function PasswordInput ({ newPass, qr, copy, readOnly, append, value: ini
           </div>)
         : undefined}
     />
+  )
+}
+
+export function MultiInput ({
+  name, label, groupClassName, length = 4, charLength = 1, upperCase, showSequence,
+  onChange, autoFocus, hideError, inputType = 'text',
+  ...props
+}) {
+  const [inputs, setInputs] = useState(new Array(length).fill(''))
+  const inputRefs = useRef(new Array(length).fill(null))
+  const [, meta, helpers] = useField({ name })
+
+  useEffect(() => {
+    autoFocus && inputRefs.current[0].focus() // focus the first input if autoFocus is true
+  }, [autoFocus])
+
+  const updateInputs = useCallback((newInputs) => {
+    setInputs(newInputs)
+    const combinedValue = newInputs.join('') // join the inputs to get the value
+    helpers.setValue(combinedValue) // set the value to the formik field
+    onChange?.(combinedValue)
+  }, [onChange, helpers])
+
+  const handleChange = useCallback((formik, e, index) => { // formik is not used but it's required to get the value
+    const value = e.target.value.slice(-charLength)
+    const processedValue = upperCase ? value.toUpperCase() : value // convert the input to uppercase if upperCase is tru
+
+    const newInputs = [...inputs]
+    newInputs[index] = processedValue
+    updateInputs(newInputs)
+
+    // focus the next input if the current input is filled
+    if (processedValue.length === charLength && index < length - 1) {
+      inputRefs.current[index + 1].focus()
+    }
+  }, [inputs, charLength, upperCase, onChange, length])
+
+  const handlePaste = useCallback((e) => {
+    e.preventDefault()
+    const pastedValues = e.clipboardData.getData('text').slice(0, length)
+    const processedValues = upperCase ? pastedValues.toUpperCase() : pastedValues
+    const chars = processedValues.split('')
+
+    const newInputs = [...inputs]
+    chars.forEach((char, i) => {
+      newInputs[i] = char.slice(0, charLength)
+    })
+
+    updateInputs(newInputs)
+    inputRefs.current[length - 1]?.focus() // simulating the paste by focusing the last input
+  }, [inputs, length, charLength, upperCase, updateInputs])
+
+  const handleKeyDown = useCallback((e, index) => {
+    switch (e.key) {
+      case 'Backspace': {
+        e.preventDefault()
+        const newInputs = [...inputs]
+        // if current input is empty move focus to the previous input else clear the current input
+        const targetIndex = inputs[index] === '' && index > 0 ? index - 1 : index
+        newInputs[targetIndex] = ''
+        updateInputs(newInputs)
+        inputRefs.current[targetIndex]?.focus()
+        break
+      }
+      case 'ArrowLeft': {
+        if (index > 0) { // focus the previous input if it's not the first input
+          e.preventDefault()
+          inputRefs.current[index - 1]?.focus()
+        }
+        break
+      }
+      case 'ArrowRight': {
+        if (index < length - 1) { // focus the next input if it's not the last input
+          e.preventDefault()
+          inputRefs.current[index + 1]?.focus()
+        }
+        break
+      }
+    }
+  }, [inputs, length, updateInputs])
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <div className='d-flex flex-row justify-content-center gap-2'>
+        {inputs.map((value, index) => (
+          <InputInner
+            inputGroupClassName='w-auto'
+            name={name}
+            key={index}
+            type={inputType}
+            value={value}
+            innerRef={(el) => { inputRefs.current[index] = el }}
+            onChange={(formik, e) => handleChange(formik, e, index)}
+            onKeyDown={e => handleKeyDown(e, index)}
+            onPaste={e => handlePaste(e, index)}
+            style={{
+              textAlign: 'center',
+              maxWidth: `${charLength * 44}px` // adjusts the max width of the input based on the charLength
+            }}
+            prepend={showSequence && <InputGroup.Text>{index + 1}</InputGroup.Text>} // show the index of the input
+            hideError
+            {...props}
+          />
+        ))}
+      </div>
+      <div>
+        {hideError && meta.touched && meta.error && ( // custom error message is showed if hideError is true
+          <BootstrapForm.Control.Feedback type='invalid' className='d-block'>
+            {meta.error}
+          </BootstrapForm.Control.Feedback>
+        )}
+      </div>
+    </FormGroup>
   )
 }
 

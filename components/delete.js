@@ -30,7 +30,8 @@ export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
             url: () => deleteItem.url,
             pollCost: () => deleteItem.pollCost,
             deletedAt: () => deleteItem.deletedAt
-          }
+          },
+          optimistic: true
         })
       }
     }

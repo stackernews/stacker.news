@@ -1,11 +1,13 @@
 import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 import { nextBilling } from '@/lib/territory'
+import { initialTrust } from './lib/territory'
 
 export const anonable = false
 
 export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.REWARD_SATS,
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
@@ -35,6 +37,7 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
 
   if (sub.userId !== me.id) {
     await tx.territoryTransfer.create({ data: { subName: name, oldUserId: sub.userId, newUserId: me.id } })
+    await tx.subSubscription.delete({ where: { userId_subName: { userId: sub.userId, subName: name } } })
   }
 
   await tx.subAct.create({
@@ -46,7 +49,24 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
     }
   })
 
-  return await tx.sub.update({
+  await tx.subSubscription.upsert({
+    where: {
+      userId_subName: {
+        userId: me.id,
+        subName: name
+      }
+    },
+    update: {
+      userId: me.id,
+      subName: name
+    },
+    create: {
+      userId: me.id,
+      subName: name
+    }
+  })
+
+  const updatedSub = await tx.sub.update({
     data,
     // optimistic concurrency control
     // make sure none of the relevant fields have changed since we fetched the sub
@@ -57,6 +77,12 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
       }
     }
   })
+
+  await tx.userSubTrust.createMany({
+    data: initialTrust({ name: updatedSub.name, userId: updatedSub.userId })
+  })
+
+  return updatedSub
 }
 
 export async function describe ({ name }, context) {

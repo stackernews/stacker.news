@@ -18,6 +18,7 @@ export const ITEM_FIELDS = gql`
     id
     parentId
     createdAt
+    invoicePaidAt
     deletedAt
     title
     url
@@ -34,10 +35,12 @@ export const ITEM_FIELDS = gql`
       meMuteSub
       meSubscription
       nsfw
+      replyCost
     }
     otsHash
     position
     sats
+    credits
     meAnonSats @client
     boost
     bounty
@@ -46,6 +49,7 @@ export const ITEM_FIELDS = gql`
     path
     upvotes
     meSats
+    meCredits
     meDontLikeSats
     meBookmark
     meSubscription
@@ -54,7 +58,9 @@ export const ITEM_FIELDS = gql`
     freebie
     bio
     ncomments
+    nDirectComments
     commentSats
+    commentCredits
     lastCommentAt
     isJob
     status
@@ -90,6 +96,7 @@ export const ITEM_FULL_FIELDS = gql`
       bountyPaidTo
       subName
       mine
+      ncomments
       user {
         id
         name
@@ -101,6 +108,7 @@ export const ITEM_FULL_FIELDS = gql`
         moderated
         meMuteSub
         meSubscription
+        replyCost
       }
     }
     forwards {
@@ -162,13 +170,16 @@ export const ITEM_FULL = gql`
   ${ITEM_FULL_FIELDS}
   ${POLL_FIELDS}
   ${COMMENTS}
-  query Item($id: ID!, $sort: String) {
+  query Item($id: ID!, $sort: String, $cursor: String) {
     item(id: $id) {
       ...ItemFullFields
       prior
       ...PollFields
-      comments(sort: $sort) {
-        ...CommentsRecursive
+      comments(sort: $sort, cursor: $cursor) {
+        cursor
+        comments {
+          ...CommentsRecursive
+        }
       }
     }
   }`

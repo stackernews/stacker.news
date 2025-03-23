@@ -1,21 +1,14 @@
-import { nwcCall, supportedMethods } from '@/wallets/nwc'
+import { supportedMethods, nwcTryRun } from '@/wallets/nwc'
 export * from '@/wallets/nwc'
 
-export async function testSendPayment ({ nwcUrl }, { logger }) {
-  const timeout = 15_000
-
-  const supported = await supportedMethods(nwcUrl, { logger, timeout })
+export async function testSendPayment ({ nwcUrl }, { signal }) {
+  const supported = await supportedMethods(nwcUrl, { signal })
   if (!supported.includes('pay_invoice')) {
     throw new Error('pay_invoice not supported')
   }
 }
 
-export async function sendPayment (bolt11, { nwcUrl }, { logger }) {
-  const result = await nwcCall({
-    nwcUrl,
-    method: 'pay_invoice',
-    params: { invoice: bolt11 }
-  },
-  { logger })
+export async function sendPayment (bolt11, { nwcUrl }, { signal }) {
+  const result = await nwcTryRun(nwc => nwc.payInvoice(bolt11), { nwcUrl }, { signal })
   return result.preimage
 }

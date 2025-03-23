@@ -92,18 +92,20 @@ stateDiagram-v2
 
 ### Table of existing paid actions and their supported flows
 
-| action            | fee credits | optimistic | pessimistic | anonable | qr payable | p2p wrapped | side effects |
-| ----------------- | ----------- | ---------- | ----------- | -------- | ---------- | ----------- | ------------ |
-| zaps              | x           | x          | x           | x        | x          | x           | x            |
-| posts             | x           | x          | x           | x        | x          |             | x            |
-| comments          | x           | x          | x           | x        | x          |             | x            |
-| downzaps          | x           | x          |             |          | x          |             | x            |
-| poll votes        | x           | x          |             |          | x          |             |              |
-| territory actions | x           |            | x           |          | x          |             |              |
-| donations         | x           |            | x           | x        | x          |             |              |
-| update posts      | x           |            | x           |          | x          |             | x            |
-| update comments   | x           |            | x           |          | x          |             | x            |
-| receive           |             | x          |             | x        | x          | x           | x            |
+| action            | fee credits | optimistic | pessimistic | anonable | qr payable | p2p wrapped | side effects | reward sats | p2p direct |
+| ----------------- | ----------- | ---------- | ----------- | -------- | ---------- | ----------- | ------------ | ----------- | ---------- |
+| zaps              | x           | x          | x           | x        | x          | x           | x            |             |            |
+| posts             | x           | x          | x           | x        | x          |             | x            | x           |            |
+| comments          | x           | x          | x           | x        | x          |             | x            | x           |            |
+| downzaps          | x           | x          |             |          | x          |             | x            | x           |            |
+| poll votes        | x           | x          |             |          | x          |             |              | x           |            |
+| territory actions | x           |            | x           |          | x          |             |              | x           |            |
+| donations         | x           |            | x           | x        | x          |             |              | x           |            |
+| update posts      | x           |            | x           |          | x          |             | x            | x           |            |
+| update comments   | x           |            | x           |          | x          |             | x            | x           |            |
+| receive           |             | x          |             |          | x          | x           | x            |             | x          |
+| buy fee credits   |             |            | x           |          | x          |             |              | x           |            |
+| invite gift       | x           |            |             |          |            |             | x            | x           |            |
 
 ## Not-custodial zaps (ie p2p wrapped payments)
 Zaps, and possibly other future actions, can be performed peer to peer and non-custodially. This means that the payment is made directly from the client to the recipient, without the server taking custody of the funds. Currently, in order to trigger this behavior, the recipient must have a receiving wallet attached and the sender must have insufficient funds in their custodial wallet to perform the requested zap.
@@ -191,6 +193,12 @@ All functions have the following signature: `function(args: Object, context: Obj
 - `tx`: the current transaction (for anything that needs to be done atomically with the payment)
 - `models`: the current prisma client (for anything that doesn't need to be done atomically with the payment)
 - `lnd`: the current lnd client
+
+## Recording Cowboy Credits
+
+To avoid adding sats and credits together everywhere to show an aggregate sat value, in most cases we denormalize a `sats` field that carries the "sats value", the combined sats + credits of something, and a `credits` field that carries only the earned `credits`. For example, the `Item` table has an `msats` field that carries the sum of the `mcredits` and `msats` earned and a `mcredits` field that carries the value of the `mcredits` earned. So, the sats value an item earned is `item.msats` BUT the real sats earned is `item.msats - item.mcredits`.
+
+The ONLY exception to this are for the `users` table where we store a stacker's rewards sats and credits balances separately.
 
 ## `IMPORTANT: transaction isolation`
 

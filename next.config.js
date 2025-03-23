@@ -189,6 +189,26 @@ module.exports = withPlausibleProxy()({
         source: '/statistics',
         destination: '/satistics?inc=invoice,withdrawal',
         permanent: true
+      },
+      {
+        source: '/top/cowboys/:when',
+        destination: '/top/cowboys',
+        permanent: true
+      },
+      {
+        source: '/~:sub/top/cowboys',
+        destination: '/top/cowboys',
+        permanent: true
+      },
+      {
+        source: '/~:sub/top/stackers/:when*',
+        destination: '/top/stackers/:when*',
+        permanent: true
+      },
+      {
+        source: '/~:sub/top/territories/:when*',
+        destination: '/top/territories/:when*',
+        permanent: true
       }
     ]
   },
@@ -215,6 +235,7 @@ module.exports = withPlausibleProxy()({
             'process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL),
             'process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL),
             'process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL),
+            'process.env.SANCTIONED_COUNTRY_CODES': JSON.stringify(process.env.SANCTIONED_COUNTRY_CODES),
             'process.env.NEXT_IS_EXPORT_WORKER': 'true'
           })
         ]

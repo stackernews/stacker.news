@@ -25,7 +25,7 @@ export async function domainVerification () {
           if (certificateArn) {
             const sslState = await checkCertificateStatus(certificateArn)
             console.log(`${data.domain}: Issued certificate status: ${sslState}`)
-            if (sslState === 'PENDING') {
+            if (sslState !== 'VERIFIED') {
               try {
                 const { cname, value } = await getValidationValues(certificateArn)
                 data.verificationCname = cname
@@ -42,7 +42,7 @@ export async function domainVerification () {
         }
 
         // SSL checking
-        if (data.dnsState === 'VERIFIED' && data.sslState === 'PENDING') {
+        if (data.dnsState === 'VERIFIED' && data.sslState !== 'VERIFIED') {
           const sslState = await checkCertificateStatus(data.certificateArn)
           console.log(`${data.domain}: Certificate status: ${sslState}`)
           if (sslState) data.sslState = sslState

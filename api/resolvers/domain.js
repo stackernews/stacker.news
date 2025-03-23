@@ -29,28 +29,33 @@ export default {
 
       if (domain) {
         const existing = await models.customDomain.findUnique({ where: { subName } })
-        if (existing) {
-          if (domain === existing.domain) {
-            throw new GqlInputError('domain already set')
-          }
-          return await models.customDomain.update({
-            where: { subName },
-            data: { domain, dnsState: 'PENDING', sslState: 'PENDING' }
-          })
-        } else {
-          return await models.customDomain.create({
-            data: {
-              domain,
-              dnsState: 'PENDING',
-              verificationTxt: randomBytes(32).toString('base64'), // TODO: explore other options
-              sub: {
-                connect: { name: subName }
-              }
-            }
-          })
+        if (existing && existing.domain === domain) {
+          throw new GqlInputError('domain already set')
         }
+        return await models.customDomain.upsert({
+          where: { subName },
+          update: {
+            domain,
+            dnsState: 'PENDING',
+            sslState: 'WAITING',
+            certificateArn: null
+          },
+          create: {
+            domain,
+            dnsState: 'PENDING',
+            verificationTxt: randomBytes(32).toString('base64'),
+            sub: {
+              connect: { name: subName }
+            }
+          }
+        })
       } else {
-        return await models.customDomain.delete({ where: { subName } })
+        try {
+          return await models.customDomain.delete({ where: { subName } })
+        } catch (error) {
+          console.error(error)
+          throw new GqlInputError('failed to delete domain')
+        }
       }
     }
   }

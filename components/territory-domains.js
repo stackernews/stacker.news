@@ -6,35 +6,41 @@ import ActionTooltip from './action-tooltip'
 import { useToast } from '@/components/toast'
 import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { GET_CUSTOM_DOMAIN, SET_CUSTOM_DOMAIN } from '@/fragments/domains'
+import { useEffect } from 'react'
 
-// TODO: clean this up
+// TODO: clean this up, might not need all this refreshing
 export default function CustomDomainForm ({ sub }) {
-  const [setCustomDomain] = useMutation(SET_CUSTOM_DOMAIN, {
-    refetchQueries: ['Sub']
-  })
-  const { data, stopPolling } = useQuery(GET_CUSTOM_DOMAIN, SSR
+  const [setCustomDomain] = useMutation(SET_CUSTOM_DOMAIN)
+
+  const { data, startPolling, stopPolling, refetch } = useQuery(GET_CUSTOM_DOMAIN, SSR
     ? {}
     : {
         variables: { subName: sub.name },
-        pollInterval: NORMAL_POLL_INTERVAL,
-        skip: !sub || !sub.customDomain,
-        onCompleted: (data) => {
-          if (data?.customDomain?.sslState === 'VERIFIED' &&
-              data?.customDomain?.dnsState === 'VERIFIED') {
-            stopPolling()
-          }
-        }
+        pollInterval: NORMAL_POLL_INTERVAL
       })
   const toaster = useToast()
 
+  useEffect(() => {
+    if (data?.customDomain?.sslState === 'VERIFIED' &&
+        data?.customDomain?.dnsState === 'VERIFIED') {
+      stopPolling()
+    }
+  }, [data, stopPolling])
+
   const onSubmit = async ({ domain }) => {
-    await setCustomDomain({
-      variables: {
-        subName: sub.name,
-        domain
-      }
-    })
-    toaster.success('domain updated successfully')
+    try {
+      await setCustomDomain({
+        variables: {
+          subName: sub.name,
+          domain
+        }
+      })
+      refetch()
+      startPolling(NORMAL_POLL_INTERVAL)
+      toaster.success('domain updated successfully')
+    } catch (error) {
+      toaster.error('failed to update domain', { error })
+    }
   }
 
   const getStatusBadge = (status) => {
@@ -56,6 +62,8 @@ export default function CustomDomainForm ({ sub }) {
         return <Badge bg='warning'>SSL pending</Badge>
       case 'FAILED':
         return <Badge bg='danger'>SSL failed</Badge>
+      case 'WAITING':
+        return <Badge bg='info'>SSL waiting</Badge>
     }
   }
 

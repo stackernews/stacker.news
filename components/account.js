@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import * as cookie from 'cookie'
-import { useMe } from '@/components/me'
 import { USER_ID, SSR } from '@/lib/constants'
 import { USER } from '@/fragments/users'
 import { useQuery } from '@apollo/client'
@@ -19,8 +18,8 @@ const b64Decode = str => Buffer.from(str, 'base64').toString('utf-8')
 
 export const AccountProvider = ({ children }) => {
   const [accounts, setAccounts] = useState([])
-  const [meAnon, setMeAnon] = useState(true)
   const [errors, setErrors] = useState([])
+  const [selected, setSelected] = useState(null)
 
   const updateAccountsFromCookie = useCallback(() => {
     const { [MULTI_AUTH_LIST]: listCookie } = cookie.parse(document.cookie)
@@ -59,7 +58,7 @@ export const AccountProvider = ({ children }) => {
     updateAccountsFromCookie()
 
     const { [MULTI_AUTH_POINTER]: pointerCookie } = cookie.parse(document.cookie)
-    setMeAnon(pointerCookie === 'anonymous')
+    setSelected(pointerCookie === MULTI_AUTH_ANON ? USER_ID.anon : Number(pointerCookie))
 
     const interval = setInterval(checkErrors, CHECK_ERRORS_INTERVAL_MS)
     return () => clearInterval(interval)
@@ -68,22 +67,18 @@ export const AccountProvider = ({ children }) => {
   const value = useMemo(
     () => ({
       accounts,
-      meAnon,
-      setMeAnon,
+      selected,
       nextAccount,
       multiAuthErrors: errors
     }),
-    [accounts, meAnon, setMeAnon, nextAccount])
+    [accounts, selected, nextAccount])
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>
 }
 
 export const useAccounts = () => useContext(AccountContext)
 
 const AccountListRow = ({ account, ...props }) => {
-  const { meAnon, setMeAnon } = useAccounts()
-  const { me, refreshMe } = useMe()
-  const anonRow = account.id === USER_ID.anon
-  const selected = (meAnon && anonRow) || Number(me?.id) === Number(account.id)
+  const { selected } = useAccounts()
   const router = useRouter()
 
   // fetch updated names and photo ids since they might have changed since we were issued the JWTs
@@ -103,18 +98,8 @@ const AccountListRow = ({ account, ...props }) => {
 
     // update pointer cookie
     const options = cookieOptions({ httpOnly: false })
-    document.cookie = cookie.serialize(MULTI_AUTH_POINTER, anonRow ? MULTI_AUTH_ANON : account.id, options)
-
-    // update state
-    if (anonRow) {
-      // order is important to prevent flashes of no session
-      setMeAnon(true)
-      await refreshMe()
-    } else {
-      await refreshMe()
-      // order is important to prevent flashes of inconsistent data in switch account dialog
-      setMeAnon(account.id === USER_ID.anon)
-    }
+    const anon = account.id === USER_ID.anon
+    document.cookie = cookie.serialize(MULTI_AUTH_POINTER, anon ? MULTI_AUTH_ANON : account.id, options)
 
     // reload whatever page we're on to avoid any bugs due to missing authorization etc.
     router.reload()
@@ -127,7 +112,7 @@ const AccountListRow = ({ account, ...props }) => {
         className='d-flex align-items-center me-2'
         {...props}
         onNymClick={onClick}
-        selected={selected}
+        selected={selected === account.id}
       />
     </div>
   )

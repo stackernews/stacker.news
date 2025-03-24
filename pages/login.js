@@ -32,7 +32,12 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
 
   // TODO: custom domain mapping security
   if (domain) {
-    callbackUrl = '/api/auth/sync' + (multiAuth ? '?multiAuth=true' : '') + '&redirectUrl=https://' + domain
+    const params = new URLSearchParams()
+    params.set('redirectUrl', 'https://' + encodeURIComponent(domain))
+    if (multiAuth) {
+      params.set('multiAuth', multiAuth)
+    }
+    callbackUrl = '/api/auth/sync?' + params.toString()
   }
 
   console.log('callbackUrl', callbackUrl)

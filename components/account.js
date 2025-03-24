@@ -9,7 +9,7 @@ import { UserListRow } from '@/components/user-list'
 import Link from 'next/link'
 import AddIcon from '@/svgs/add-fill.svg'
 import { MultiAuthErrorBanner } from '@/components/banners'
-import { cookieOptions } from '@/lib/auth'
+import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER } from '@/lib/auth'
 import { signIn } from 'next-auth/react'
 
 const AccountContext = createContext()
@@ -34,19 +34,11 @@ export const AccountProvider = ({ children }) => {
   }, [])
 
   const updateAccountsFromCookie = useCallback(() => {
-    const { multi_auth: multiAuthCookie } = cookie.parse(document.cookie)
-    const accounts = multiAuthCookie
-      ? JSON.parse(b64Decode(multiAuthCookie))
+    const { [MULTI_AUTH_LIST]: listCookie } = cookie.parse(document.cookie)
+    const accounts = listCookie
+      ? JSON.parse(b64Decode(listCookie))
       : []
     setAccounts(accounts)
-  }, [])
-
-  const addAccount = useCallback(user => {
-    setAccounts(accounts => [...accounts, user])
-  }, [])
-
-  const removeAccount = useCallback(userId => {
-    setAccounts(accounts => accounts.filter(({ id }) => id !== userId))
   }, [])
 
   const nextAccount = useCallback(async () => {
@@ -60,14 +52,14 @@ export const AccountProvider = ({ children }) => {
 
   const checkErrors = useCallback(() => {
     const {
-      multi_auth: multiAuthCookie,
-      'multi_auth.user-id': multiAuthUserIdCookie
+      [MULTI_AUTH_LIST]: listCookie,
+      [MULTI_AUTH_POINTER]: pointerCookie
     } = cookie.parse(document.cookie)
 
     const errors = []
 
-    if (!multiAuthCookie) errors.push('multi_auth cookie not found')
-    if (!multiAuthUserIdCookie) errors.push('multi_auth.user-id cookie not found')
+    if (!listCookie) errors.push(`${MULTI_AUTH_LIST} cookie not found`)
+    if (!pointerCookie) errors.push(`${MULTI_AUTH_POINTER} cookie not found`)
 
     setErrors(errors)
   }, [])
@@ -77,8 +69,8 @@ export const AccountProvider = ({ children }) => {
 
     updateAccountsFromCookie()
 
-    const { 'multi_auth.user-id': multiAuthUserIdCookie } = cookie.parse(document.cookie)
-    setMeAnon(multiAuthUserIdCookie === 'anonymous')
+    const { [MULTI_AUTH_POINTER]: pointerCookie } = cookie.parse(document.cookie)
+    setMeAnon(pointerCookie === 'anonymous')
 
     const interval = setInterval(checkErrors, CHECK_ERRORS_INTERVAL_MS)
     return () => clearInterval(interval)
@@ -87,14 +79,12 @@ export const AccountProvider = ({ children }) => {
   const value = useMemo(
     () => ({
       accounts,
-      addAccount,
-      removeAccount,
       meAnon,
       setMeAnon,
       nextAccount,
       multiAuthErrors: errors
     }),
-    [accounts, addAccount, removeAccount, meAnon, setMeAnon, nextAccount, errors])
+    [accounts, meAnon, setMeAnon, nextAccount])
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>
 }
 
@@ -124,7 +114,7 @@ const AccountListRow = ({ account, ...props }) => {
 
     // update pointer cookie
     const options = cookieOptions({ httpOnly: false })
-    document.cookie = cookie.serialize('multi_auth.user-id', anonRow ? 'anonymous' : account.id, options)
+    document.cookie = cookie.serialize(MULTI_AUTH_POINTER, anonRow ? MULTI_AUTH_ANON : account.id, options)
 
     // update state
     if (anonRow) {

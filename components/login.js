@@ -9,6 +9,9 @@ import { NostrAuthWithExplainer } from './nostr-auth'
 import LoginButton from './login-button'
 import { emailSchema } from '@/lib/validate'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
+import { datePivot } from '@/lib/time'
+import * as cookie from 'cookie'
+import { cookieOptions } from '@/lib/auth'
 
 export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
   const disabled = multiAuth
@@ -59,15 +62,14 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
 
   // signup/signin awareness cookie
   useEffect(() => {
-    const cookieOptions = [
-      `signin=${!!signin}`,
-      'path=/',
-      'max-age=' + (signin ? 60 * 60 * 24 : 0), // 24 hours if signin is true, expire the cookie otherwise
-      'SameSite=Lax',
-      process.env.NODE_ENV === 'production' ? 'Secure' : ''
-    ].filter(Boolean).join(';')
-
-    document.cookie = cookieOptions
+    // expire cookie if we're on /signup instead of /login
+    // since the server will only check if the cookie is set, not its value
+    const options = cookieOptions({
+      expires: signin ? datePivot(new Date(), { hours: 24 }) : 0,
+      maxAge: signin ? 86400 : 0,
+      httpOnly: false
+    })
+    document.cookie = cookie.serialize('signin', signin, options)
   }, [signin])
 
   if (router.query.type === 'lightning') {

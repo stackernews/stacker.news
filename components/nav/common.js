@@ -22,9 +22,10 @@ import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
 import { useWallets } from '@/wallets/index'
-import SwitchAccountList, { useAccounts } from '@/components/account'
+import SwitchAccountList, { nextAccount, useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
+
 export function Brand ({ className }) {
   return (
     <Link href='/' passHref legacyBehavior>
@@ -273,7 +274,6 @@ export default function LoginButton () {
 function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const { removeLocalWallets } = useWallets()
-  const { nextAccount } = useAccounts()
   const router = useRouter()
 
   return (
@@ -340,7 +340,7 @@ export function LogoutDropdownItem ({ handleClose }) {
 
 function SwitchAccountButton ({ handleClose }) {
   const showModal = useShowModal()
-  const { accounts } = useAccounts()
+  const accounts = useAccounts()
 
   if (accounts.length === 0) return null
 

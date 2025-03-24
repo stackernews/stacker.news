@@ -295,7 +295,7 @@ export async function middleware (request) {
   const host = request.headers.get('host')
   const isAllowedDomain = await getDomainMapping(host?.toLowerCase())
   if (isAllowedDomain) {
-    const customDomainResp = await customDomainMiddleware(request, referrerResp)
+    const customDomainResp = await customDomainMiddleware(request, referrerResp, isAllowedDomain)
     return applySecurityHeaders(customDomainResp)
   }
 

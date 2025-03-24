@@ -23,6 +23,7 @@ import { HasNewNotesProvider } from '@/components/use-has-new-notes'
 import { WebLnProvider } from '@/wallets/webln/client'
 import { AccountProvider } from '@/components/account'
 import { WalletsProvider } from '@/wallets/index'
+import { DomainProvider } from '@/components/territory-domains'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
@@ -99,7 +100,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
     If we are on the client, we populate the apollo cache with the
     ssr data
   */
-  const { apollo, ssrData, me, price, blockHeight, chainFee, ...otherProps } = props
+  const { apollo, ssrData, me, price, blockHeight, chainFee, customDomain, ...otherProps } = props
   useEffect(() => {
     writeQuery(client, apollo, ssrData)
   }, [client, apollo, ssrData])
@@ -111,38 +112,40 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
       </Head>
       <ErrorBoundary>
         <PlausibleProvider domain='stacker.news' trackOutboundLinks>
-          <ApolloProvider client={client}>
-            <MeProvider me={me}>
-              <WalletsProvider>
-                <HasNewNotesProvider>
-                  <LoggerProvider>
-                    <WebLnProvider>
-                      <ServiceWorkerProvider>
-                        <AccountProvider>
-                          <PriceProvider price={price}>
-                            <LightningProvider>
-                              <ToastProvider>
-                                <ShowModalProvider>
-                                  <BlockHeightProvider blockHeight={blockHeight}>
-                                    <ChainFeeProvider chainFee={chainFee}>
-                                      <ErrorBoundary>
-                                        <Component ssrData={ssrData} {...otherProps} />
-                                        {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
-                                      </ErrorBoundary>
-                                    </ChainFeeProvider>
-                                  </BlockHeightProvider>
-                                </ShowModalProvider>
-                              </ToastProvider>
-                            </LightningProvider>
-                          </PriceProvider>
-                        </AccountProvider>
-                      </ServiceWorkerProvider>
-                    </WebLnProvider>
-                  </LoggerProvider>
-                </HasNewNotesProvider>
-              </WalletsProvider>
-            </MeProvider>
-          </ApolloProvider>
+          <DomainProvider isCustomDomain={customDomain}>
+            <ApolloProvider client={client}>
+              <MeProvider me={me}>
+                <WalletsProvider>
+                  <HasNewNotesProvider>
+                    <LoggerProvider>
+                      <WebLnProvider>
+                        <ServiceWorkerProvider>
+                          <AccountProvider>
+                            <PriceProvider price={price}>
+                              <LightningProvider>
+                                <ToastProvider>
+                                  <ShowModalProvider>
+                                    <BlockHeightProvider blockHeight={blockHeight}>
+                                      <ChainFeeProvider chainFee={chainFee}>
+                                        <ErrorBoundary>
+                                          <Component ssrData={ssrData} {...otherProps} />
+                                          {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
+                                        </ErrorBoundary>
+                                      </ChainFeeProvider>
+                                    </BlockHeightProvider>
+                                  </ShowModalProvider>
+                                </ToastProvider>
+                              </LightningProvider>
+                            </PriceProvider>
+                          </AccountProvider>
+                        </ServiceWorkerProvider>
+                      </WebLnProvider>
+                    </LoggerProvider>
+                  </HasNewNotesProvider>
+                </WalletsProvider>
+              </MeProvider>
+            </ApolloProvider>
+          </DomainProvider>
         </PlausibleProvider>
       </ErrorBoundary>
     </>

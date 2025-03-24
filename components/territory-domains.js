@@ -6,7 +6,22 @@ import ActionTooltip from './action-tooltip'
 import { useToast } from '@/components/toast'
 import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { GET_CUSTOM_DOMAIN, SET_CUSTOM_DOMAIN } from '@/fragments/domains'
-import { useEffect } from 'react'
+import { useEffect, createContext, useContext } from 'react'
+
+// domain context
+const DomainContext = createContext({
+  isCustomDomain: false
+})
+
+export const DomainProvider = ({ isCustomDomain, children }) => {
+  return (
+    <DomainContext.Provider value={{ isCustomDomain }}>
+      {children}
+    </DomainContext.Provider>
+  )
+}
+
+export const useDomain = () => useContext(DomainContext)
 
 // TODO: clean this up, might not need all this refreshing
 export default function CustomDomainForm ({ sub }) {

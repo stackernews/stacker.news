@@ -3,12 +3,13 @@ import DesktopHeader from './desktop/header'
 import MobileHeader from './mobile/header'
 import StickyBar from './sticky-bar'
 import { PriceCarouselProvider } from './price-carousel'
+import { useDomain } from '@/components/territory-domains'
 
 export default function Navigation ({ sub }) {
   const router = useRouter()
+  const { isCustomDomain } = useDomain()
+
   const path = router.asPath.split('?')[0]
-  // TODO: this works but it can be better
-  const isCustomDomain = sub && !path.includes(`/~${sub}`)
   const props = {
     prefix: sub ? `/~${sub}` : '',
     path,

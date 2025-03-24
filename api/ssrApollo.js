@@ -151,6 +151,8 @@ export function getGetServerSideProps (
 
     const client = await getSSRApolloClient({ req, res })
 
+    const customDomain = req.headers.host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
+
     let { data: { me } } = await client.query({ query: ME })
 
     // required to redirect to /signup on page reload
@@ -215,6 +217,7 @@ export function getGetServerSideProps (
     return {
       props: {
         ...props,
+        customDomain,
         me,
         price,
         blockHeight,

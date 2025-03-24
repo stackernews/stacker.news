@@ -25,6 +25,8 @@ import { useWallets } from '@/wallets/index'
 import SwitchAccountList, { useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
+import { useDomain } from '@/components/territory-domains'
+
 export function Brand ({ className }) {
   return (
     <Link href='/' passHref legacyBehavior>
@@ -287,11 +289,7 @@ function LogoutObstacle ({ onClose }) {
   const { removeLocalWallets } = useWallets()
   const { nextAccount } = useAccounts()
   const router = useRouter()
-  const [isCustomDomain, setIsCustomDomain] = useState(false)
-
-  useEffect(() => {
-    setIsCustomDomain(router.host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, ''))
-  }, [router.host])
+  const { isCustomDomain } = useDomain()
 
   return (
     <div className='d-flex m-auto flex-column w-fit-content'>

@@ -28,7 +28,11 @@ services:
     restart: unless-stopped
     healthcheck:
       <<: *healthcheck
-      test: ["CMD-SHELL", "PGPASSWORD=${POSTGRES_PASSWORD} pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1 && psql -U ${POSTGRES_USER} ${POSTGRES_DB} -c 'SELECT 1 FROM users LIMIT 1'"]
+      test:
+        [
+          "CMD-SHELL",
+          "PGPASSWORD=${POSTGRES_PASSWORD} pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1 && psql -U ${POSTGRES_USER} ${POSTGRES_DB} -c 'SELECT 1 FROM users LIMIT 1'",
+        ]
     expose:
       - "5432"
     ports:
@@ -110,8 +114,8 @@ services:
     restart: unless-stopped
     depends_on:
       <<:
-         - *depends_on_db
-         - *depends_on_app
+        - *depends_on_db
+        - *depends_on_app
     env_file: *env_file
     volumes:
       - ./:/app
@@ -126,7 +130,7 @@ services:
       - images
     healthcheck:
       <<: *healthcheck
-      test: [ "CMD", "imgproxy", "health" ]
+      test: ["CMD", "imgproxy", "health"]
     restart: unless-stopped
     env_file: *env_file
     ports:
@@ -156,9 +160,9 @@ services:
     expose:
       - "4566"
     volumes:
-      - 's3:/var/lib/localstack'
-      - './docker/s3/init-s3.sh:/etc/localstack/init/ready.d/init-s3.sh'
-      - './docker/s3/cors.json:/etc/localstack/init/ready.d/cors.json'
+      - "s3:/var/lib/localstack"
+      - "./docker/s3/init-s3.sh:/etc/localstack/init/ready.d/init-s3.sh"
+      - "./docker/s3/cors.json:/etc/localstack/init/ready.d/cors.json"
     labels:
       - "CONNECT=localhost:4566"
     cpu_shares: "${CPU_SHARES_LOW}"
@@ -169,11 +173,15 @@ services:
       - search
     healthcheck:
       <<: *healthcheck
-      test: ["CMD-SHELL", "curl -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD} --silent --fail localhost:9200/_cluster/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD} --silent --fail localhost:9200/_cluster/health || exit 1",
+        ]
     restart: unless-stopped
     env_file: *env_file
     environment:
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=mVchg1T5oA9wudUh
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD}
       - plugins.security.disabled=true
       - discovery.type=single-node
     ports:
@@ -232,31 +240,35 @@ services:
       - payments
     healthcheck:
       <<: *healthcheck
-      test: ["CMD-SHELL", "bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} getblockchaininfo"]
+      test:
+        [
+          "CMD-SHELL",
+          "bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} getblockchaininfo",
+        ]
     command:
-      - 'bitcoind'
-      - '-server=1'
-      - '-regtest=1'
-      - '-rpcauth=${RPC_USER}:${RPC_AUTH}'
-      - '-debug=1'
-      - '-zmqpubrawblock=tcp://0.0.0.0:${ZMQ_BLOCK_PORT}'
-      - '-zmqpubrawtx=tcp://0.0.0.0:${ZMQ_TX_PORT}'
-      - '-zmqpubhashblock=tcp://bitcoin:${ZMQ_HASHBLOCK_PORT}'
-      - '-txindex=1'
-      - '-dnsseed=0'
-      - '-upnp=0'
-      - '-rpcbind=0.0.0.0'
-      - '-rpcallowip=0.0.0.0/0'
-      - '-whitelist=0.0.0.0/0'
-      - '-rpcport=${RPC_PORT}'
-      - '-deprecatedrpc=signrawtransaction'
-      - '-rest'
-      - '-listen=1'
-      - '-listenonion=0'
-      - '-fallbackfee=0.0002'
-      - '-blockfilterindex=1'
-      - '-peerblockfilters=1'
-      - '-maxmempool=5'
+      - "bitcoind"
+      - "-server=1"
+      - "-regtest=1"
+      - "-rpcauth=${RPC_USER}:${RPC_AUTH}"
+      - "-debug=1"
+      - "-zmqpubrawblock=tcp://0.0.0.0:${ZMQ_BLOCK_PORT}"
+      - "-zmqpubrawtx=tcp://0.0.0.0:${ZMQ_TX_PORT}"
+      - "-zmqpubhashblock=tcp://bitcoin:${ZMQ_HASHBLOCK_PORT}"
+      - "-txindex=1"
+      - "-dnsseed=0"
+      - "-upnp=0"
+      - "-rpcbind=0.0.0.0"
+      - "-rpcallowip=0.0.0.0/0"
+      - "-whitelist=0.0.0.0/0"
+      - "-rpcport=${RPC_PORT}"
+      - "-deprecatedrpc=signrawtransaction"
+      - "-rest"
+      - "-listen=1"
+      - "-listenonion=0"
+      - "-fallbackfee=0.0002"
+      - "-blockfilterindex=1"
+      - "-peerblockfilters=1"
+      - "-maxmempool=5"
     expose:
       - "${RPC_PORT}"
       - "${P2P_PORT}"
@@ -326,33 +338,33 @@ services:
     depends_on: *depends_on_bitcoin
     env_file: *env_file
     command:
-      - 'lnd'
-      - '--noseedbackup'
-      - '--trickledelay=5000'
-      - '--alias=sn_lnd'
-      - '--externalip=sn_lnd'
-      - '--tlsextradomain=sn_lnd'
-      - '--tlsextradomain=host.docker.internal'
-      - '--listen=0.0.0.0:9735'
-      - '--rpclisten=0.0.0.0:10009'
-      - '--restlisten=0.0.0.0:8080'
-      - '--bitcoin.active'
-      - '--bitcoin.regtest'
-      - '--bitcoin.node=bitcoind'
-      - '--bitcoind.rpchost=bitcoin'
-      - '--bitcoind.rpcuser=${RPC_USER}'
-      - '--bitcoind.rpcpass=${RPC_PASS}'
-      - '--bitcoind.zmqpubrawblock=tcp://bitcoin:${ZMQ_BLOCK_PORT}'
-      - '--bitcoind.zmqpubrawtx=tcp://bitcoin:${ZMQ_TX_PORT}'
-      - '--protocol.wumbo-channels'
-      - '--maxchansize=1000000000'
-      - '--allow-circular-route'
-      - '--bitcoin.defaultchanconfs=1'
-      - '--maxpendingchannels=10'
-      - '--gossip.sub-batch-delay=1s'
-      - '--protocol.custom-message=513'
-      - '--protocol.custom-nodeann=39'
-      - '--protocol.custom-init=39'
+      - "lnd"
+      - "--noseedbackup"
+      - "--trickledelay=5000"
+      - "--alias=sn_lnd"
+      - "--externalip=sn_lnd"
+      - "--tlsextradomain=sn_lnd"
+      - "--tlsextradomain=host.docker.internal"
+      - "--listen=0.0.0.0:9735"
+      - "--rpclisten=0.0.0.0:10009"
+      - "--restlisten=0.0.0.0:8080"
+      - "--bitcoin.active"
+      - "--bitcoin.regtest"
+      - "--bitcoin.node=bitcoind"
+      - "--bitcoind.rpchost=bitcoin"
+      - "--bitcoind.rpcuser=${RPC_USER}"
+      - "--bitcoind.rpcpass=${RPC_PASS}"
+      - "--bitcoind.zmqpubrawblock=tcp://bitcoin:${ZMQ_BLOCK_PORT}"
+      - "--bitcoind.zmqpubrawtx=tcp://bitcoin:${ZMQ_TX_PORT}"
+      - "--protocol.wumbo-channels"
+      - "--maxchansize=1000000000"
+      - "--allow-circular-route"
+      - "--bitcoin.defaultchanconfs=1"
+      - "--maxpendingchannels=10"
+      - "--gossip.sub-batch-delay=1s"
+      - "--protocol.custom-message=513"
+      - "--protocol.custom-nodeann=39"
+      - "--protocol.custom-init=39"
     expose:
       - "9735"
     ports:
@@ -390,12 +402,12 @@ services:
         restart: true
     env_file: *env_file
     command:
-      - 'lndk'
-      - '--grpc-host=0.0.0.0'
-      - '--address=https://sn_lnd:10009'
-      - '--cert-path=/home/lnd/.lnd/tls.cert'
-      - '--tls-ip=sn_lndk'
-      - '--macaroon-path=/home/lnd/.lnd/data/chain/bitcoin/regtest/admin.macaroon'
+      - "lndk"
+      - "--grpc-host=0.0.0.0"
+      - "--address=https://sn_lnd:10009"
+      - "--cert-path=/home/lnd/.lnd/tls.cert"
+      - "--tls-ip=sn_lndk"
+      - "--macaroon-path=/home/lnd/.lnd/data/chain/bitcoin/regtest/admin.macaroon"
     ports:
       - "${SN_LNDK_GRPC_PORT}:7000"
     volumes:
@@ -424,31 +436,31 @@ services:
     env_file: *env_file
     entrypoint: /tor-entrypoint
     command:
-      - 'lnd'
-      - '--noseedbackup'
-      - '--trickledelay=5000'
-      - '--alias=lnd'
-      - '--externalip=lnd'
-      - '--tlsextradomain=lnd'
-      - '--tlsextradomain=host.docker.internal'
-      - '--tlsextradomain=$${ONION_DOMAIN}'
-      - '--listen=0.0.0.0:9735'
-      - '--rpclisten=0.0.0.0:10009'
-      - '--rpcmiddleware.enable'
-      - '--restlisten=0.0.0.0:8080'
-      - '--bitcoin.active'
-      - '--bitcoin.regtest'
-      - '--bitcoin.node=bitcoind'
-      - '--bitcoind.rpchost=bitcoin'
-      - '--bitcoind.rpcuser=${RPC_USER}'
-      - '--bitcoind.rpcpass=${RPC_PASS}'
-      - '--bitcoind.zmqpubrawblock=tcp://bitcoin:${ZMQ_BLOCK_PORT}'
-      - '--bitcoind.zmqpubrawtx=tcp://bitcoin:${ZMQ_TX_PORT}'
-      - '--protocol.wumbo-channels'
-      - '--maxchansize=1000000000'
-      - '--allow-circular-route'
-      - '--bitcoin.defaultchanconfs=1'
-      - '--maxpendingchannels=10'
+      - "lnd"
+      - "--noseedbackup"
+      - "--trickledelay=5000"
+      - "--alias=lnd"
+      - "--externalip=lnd"
+      - "--tlsextradomain=lnd"
+      - "--tlsextradomain=host.docker.internal"
+      - "--tlsextradomain=$${ONION_DOMAIN}"
+      - "--listen=0.0.0.0:9735"
+      - "--rpclisten=0.0.0.0:10009"
+      - "--rpcmiddleware.enable"
+      - "--restlisten=0.0.0.0:8080"
+      - "--bitcoin.active"
+      - "--bitcoin.regtest"
+      - "--bitcoin.node=bitcoind"
+      - "--bitcoind.rpchost=bitcoin"
+      - "--bitcoind.rpcuser=${RPC_USER}"
+      - "--bitcoind.rpcpass=${RPC_PASS}"
+      - "--bitcoind.zmqpubrawblock=tcp://bitcoin:${ZMQ_BLOCK_PORT}"
+      - "--bitcoind.zmqpubrawtx=tcp://bitcoin:${ZMQ_TX_PORT}"
+      - "--protocol.wumbo-channels"
+      - "--maxchansize=1000000000"
+      - "--allow-circular-route"
+      - "--bitcoin.defaultchanconfs=1"
+      - "--maxpendingchannels=10"
     expose:
       - "9735"
       - "10009"
@@ -495,19 +507,19 @@ services:
     ports:
       - "8443:8443"
     command:
-      - 'litd'
-      - '--httpslisten=0.0.0.0:8444'
-      - '--insecure-httplisten=0.0.0.0:8443'
-      - '--uipassword=password'
-      - '--lnd-mode=remote'
-      - '--network=regtest'
-      - '--remote.lit-debuglevel=debug'
-      - '--remote.lnd.rpcserver=lnd:10009'
-      - '--remote.lnd.macaroonpath=/lnd/data/chain/bitcoin/regtest/admin.macaroon'
-      - '--remote.lnd.tlscertpath=/lnd/tls.cert'
-      - '--autopilot.disable'
-      - '--pool.auctionserver=test.pool.lightning.finance:12010'
-      - '--loop.server.host=test.swap.lightning.today:11010'
+      - "litd"
+      - "--httpslisten=0.0.0.0:8444"
+      - "--insecure-httplisten=0.0.0.0:8443"
+      - "--uipassword=password"
+      - "--lnd-mode=remote"
+      - "--network=regtest"
+      - "--remote.lit-debuglevel=debug"
+      - "--remote.lnd.rpcserver=lnd:10009"
+      - "--remote.lnd.macaroonpath=/lnd/data/chain/bitcoin/regtest/admin.macaroon"
+      - "--remote.lnd.tlscertpath=/lnd/tls.cert"
+      - "--autopilot.disable"
+      - "--pool.auctionserver=test.pool.lightning.finance:12010"
+      - "--loop.server.host=test.swap.lightning.today:11010"
     labels:
       CONNECT: "localhost:8443"
       CLI: "litcli"
@@ -522,7 +534,11 @@ services:
       - wallets
     healthcheck:
       <<: *healthcheck
-      test: ["CMD-SHELL", "su clightning -c 'lightning-cli --network=regtest getinfo'"]
+      test:
+        [
+          "CMD-SHELL",
+          "su clightning -c 'lightning-cli --network=regtest getinfo'",
+        ]
     depends_on:
       tor:
         condition: service_healthy
@@ -530,17 +546,17 @@ services:
       <<: *depends_on_bitcoin
     env_file: *env_file
     command:
-      - 'lightningd'
-      - '--addr=0.0.0.0:9735'
-      - '--announce-addr=cln:9735'
-      - '--network=regtest'
-      - '--alias=cln'
-      - '--bitcoin-rpcconnect=bitcoin'
-      - '--bitcoin-rpcuser=${RPC_USER}'
-      - '--bitcoin-rpcpassword=${RPC_PASS}'
-      - '--large-channels'
-      - '--rest-port=3010'
-      - '--rest-host=0.0.0.0'
+      - "lightningd"
+      - "--addr=0.0.0.0:9735"
+      - "--announce-addr=cln:9735"
+      - "--network=regtest"
+      - "--alias=cln"
+      - "--bitcoin-rpcconnect=bitcoin"
+      - "--bitcoin-rpcuser=${RPC_USER}"
+      - "--bitcoin-rpcpassword=${RPC_PASS}"
+      - "--large-channels"
+      - "--rest-port=3010"
+      - "--rest-host=0.0.0.0"
     expose:
       - "9735"
     ports:
@@ -580,8 +596,7 @@ services:
       <<: *depends_on_bitcoin
     environment:
       <<: *env_file
-      JAVA_OPTS:
-        -Declair.printToConsole
+      JAVA_OPTS: -Declair.printToConsole
         -Dakka.loglevel=DEBUG
         -Declair.server.port=9735
         -Declair.server.public-ips.0=eclair
@@ -640,31 +655,31 @@ services:
     depends_on: *depends_on_bitcoin
     env_file: *env_file
     command:
-      - 'lnd'
-      - '--noseedbackup'
-      - '--trickledelay=5000'
-      - '--alias=router_lnd'
-      - '--externalip=router_lnd'
-      - '--tlsextradomain=router_lnd'
-      - '--tlsextradomain=host.docker.internal'
-      - '--listen=0.0.0.0:9735'
-      - '--rpclisten=0.0.0.0:10009'
-      - '--restlisten=0.0.0.0:8080'
-      - '--bitcoin.active'
-      - '--bitcoin.regtest'
-      - '--bitcoin.node=bitcoind'
-      - '--bitcoind.rpchost=bitcoin'
-      - '--bitcoind.rpcuser=${RPC_USER}'
-      - '--bitcoind.rpcpass=${RPC_PASS}'
-      - '--bitcoind.zmqpubrawblock=tcp://bitcoin:${ZMQ_BLOCK_PORT}'
-      - '--bitcoind.zmqpubrawtx=tcp://bitcoin:${ZMQ_TX_PORT}'
-      - '--protocol.wumbo-channels'
-      - '--bitcoin.basefee=1000'
-      - '--bitcoin.feerate=0'
-      - '--maxchansize=1000000000'
-      - '--allow-circular-route'
-      - '--bitcoin.defaultchanconfs=1'
-      - '--maxpendingchannels=10'
+      - "lnd"
+      - "--noseedbackup"
+      - "--trickledelay=5000"
+      - "--alias=router_lnd"
+      - "--externalip=router_lnd"
+      - "--tlsextradomain=router_lnd"
+      - "--tlsextradomain=host.docker.internal"
+      - "--listen=0.0.0.0:9735"
+      - "--rpclisten=0.0.0.0:10009"
+      - "--restlisten=0.0.0.0:8080"
+      - "--bitcoin.active"
+      - "--bitcoin.regtest"
+      - "--bitcoin.node=bitcoind"
+      - "--bitcoind.rpchost=bitcoin"
+      - "--bitcoind.rpcuser=${RPC_USER}"
+      - "--bitcoind.rpcpass=${RPC_PASS}"
+      - "--bitcoind.zmqpubrawblock=tcp://bitcoin:${ZMQ_BLOCK_PORT}"
+      - "--bitcoind.zmqpubrawtx=tcp://bitcoin:${ZMQ_TX_PORT}"
+      - "--protocol.wumbo-channels"
+      - "--bitcoin.basefee=1000"
+      - "--bitcoin.feerate=0"
+      - "--maxchansize=1000000000"
+      - "--allow-circular-route"
+      - "--bitcoin.defaultchanconfs=1"
+      - "--maxpendingchannels=10"
     expose:
       - "9735"
     ports:
@@ -739,23 +754,23 @@ services:
     environment:
       - RUST_LOG=info
     entrypoint:
-      - './nostr-wallet-connect-lnd'
-      - '--relay'
-      - 'wss://relay.primal.net'
-      - '--macaroon-file'
-      - '/app/.lnd/data/chain/bitcoin/regtest/admin.macaroon'
-      - '--cert-file'
-      - '/app/.lnd/tls.cert'
-      - '--lnd-host'
-      - 'lnd'
-      - '--lnd-port'
-      - '10009'
-      - '--max-amount'
-      - '0'
-      - '--daily-limit'
-      - '0'
-      - '--keys-file'
-      - 'keys-file.json'
+      - "./nostr-wallet-connect-lnd"
+      - "--relay"
+      - "wss://relay.primal.net"
+      - "--macaroon-file"
+      - "/app/.lnd/data/chain/bitcoin/regtest/admin.macaroon"
+      - "--cert-file"
+      - "/app/.lnd/tls.cert"
+      - "--lnd-host"
+      - "lnd"
+      - "--lnd-port"
+      - "10009"
+      - "--max-amount"
+      - "0"
+      - "--daily-limit"
+      - "0"
+      - "--keys-file"
+      - "keys-file.json"
     cpu_shares: "${CPU_SHARES_LOW}"
   nwc_recv:
     image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master
@@ -773,23 +788,23 @@ services:
     environment:
       - RUST_LOG=info
     entrypoint:
-      - './nostr-wallet-connect-lnd'
-      - '--relay'
-      - 'wss://relay.primal.net'
-      - '--invoice-macaroon-file'
-      - '/app/.lnd/data/chain/bitcoin/regtest/invoice.macaroon'
-      - '--cert-file'
-      - '/app/.lnd/tls.cert'
-      - '--lnd-host'
-      - 'lnd'
-      - '--lnd-port'
-      - '10009'
-      - '--max-amount'
-      - '0'
-      - '--daily-limit'
-      - '0'
-      - '--keys-file'
-      - 'keys-file.json'
+      - "./nostr-wallet-connect-lnd"
+      - "--relay"
+      - "wss://relay.primal.net"
+      - "--invoice-macaroon-file"
+      - "/app/.lnd/data/chain/bitcoin/regtest/invoice.macaroon"
+      - "--cert-file"
+      - "/app/.lnd/tls.cert"
+      - "--lnd-host"
+      - "lnd"
+      - "--lnd-port"
+      - "10009"
+      - "--max-amount"
+      - "0"
+      - "--daily-limit"
+      - "0"
+      - "--keys-file"
+      - "keys-file.json"
     cpu_shares: "${CPU_SHARES_LOW}"
   lnbits:
     build:

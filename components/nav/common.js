@@ -12,7 +12,7 @@ import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
 import { abbrNum } from '../../lib/format'
 import { useServiceWorker } from '../serviceworker'
-import { signIn, signOut } from 'next-auth/react'
+import { signOut } from 'next-auth/react'
 import Badges from '../badge'
 import { randInRange } from '../../lib/rand'
 import { useLightning } from '../lightning'
@@ -254,14 +254,6 @@ export function SignUpButton ({ className = 'py-0', width }) {
 
 export default function LoginButton () {
   const router = useRouter()
-
-  // TODO: alternative to this, for test only
-  useEffect(() => {
-    console.log(router.query)
-    if (router.query.type === 'sync') {
-      signIn('sync', { token: router.query.token, callbackUrl: router.query.callbackUrl, redirect: false })
-    }
-  }, [router.query])
 
   const handleLogin = useCallback(async () => {
     // normal login on main domain

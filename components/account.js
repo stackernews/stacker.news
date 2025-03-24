@@ -10,6 +10,7 @@ import Link from 'next/link'
 import AddIcon from '@/svgs/add-fill.svg'
 import { MultiAuthErrorBanner } from '@/components/banners'
 import { cookieOptions } from '@/lib/auth'
+import { signIn } from 'next-auth/react'
 
 const AccountContext = createContext()
 
@@ -21,6 +22,16 @@ export const AccountProvider = ({ children }) => {
   const [accounts, setAccounts] = useState([])
   const [meAnon, setMeAnon] = useState(true)
   const [errors, setErrors] = useState([])
+  const router = useRouter()
+
+  // TODO: alternative to this, for test only
+  useEffect(() => {
+    console.log(router.query)
+    if (router.query.type === 'sync') {
+      console.log('signing in with sync')
+      signIn('sync', { token: router.query.token, callbackUrl: router.query.callbackUrl, multiAuth: router.query.multiAuth, redirect: false })
+    }
+  }, [])
 
   const updateAccountsFromCookie = useCallback(() => {
     const { multi_auth: multiAuthCookie } = cookie.parse(document.cookie)

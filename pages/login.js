@@ -6,7 +6,7 @@ import { StaticLayout } from '@/components/layout'
 import Login from '@/components/login'
 import { isExternal } from '@/lib/url'
 
-export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, error = null, domain } }) {
+export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, error = null, domain = null } }) {
   let session = await getServerSession(req, res, getAuthOptions(req))
 
   // required to prevent infinite redirect loops if we switch to anon
@@ -31,7 +31,7 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
 
   // TODO: custom domain mapping security
   if (domain) {
-    callbackUrl = '/api/auth/sync?redirectUrl=https://' + domain
+    callbackUrl = '/api/auth/sync' + (multiAuth ? '?multiAuth=true' : '') + '&redirectUrl=https://' + domain
   }
 
   console.log('callbackUrl', callbackUrl)
@@ -65,9 +65,9 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
   }
 }
 
-function LoginFooter ({ callbackUrl }) {
+function LoginFooter ({ callbackUrl, multiAuth }) {
   return (
-    <small className='fw-bold text-muted pt-4'>New to town? <Link href={{ pathname: '/signup', query: { callbackUrl } }}>sign up</Link></small>
+    <small className='fw-bold text-muted pt-4'>New to town? <Link href={{ pathname: '/signup', query: { multiAuth, callbackUrl } }}>sign up</Link></small>
   )
 }
 
@@ -86,7 +86,7 @@ export default function LoginPage (props) {
   return (
     <StaticLayout footerLinks={false}>
       <Login
-        Footer={() => <LoginFooter callbackUrl={props.callbackUrl} />}
+        Footer={() => <LoginFooter callbackUrl={props.callbackUrl} multiAuth={props.multiAuth} />}
         Header={() => <LoginHeader />}
         signin
         {...props}

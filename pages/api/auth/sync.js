@@ -3,7 +3,7 @@ import { getAuthOptions, generateRandomString } from './[...nextauth]'
 import prisma from '@/api/models'
 
 export default async function handler (req, res) {
-  const { redirectUrl } = req.query
+  const { redirectUrl, multiAuth } = req.query
   if (!redirectUrl) {
     return res.status(400).json({ error: 'Missing redirectUrl parameter' })
   }
@@ -29,6 +29,9 @@ export default async function handler (req, res) {
     const customDomainCallback = new URL('/?type=sync', redirectUrl)
     customDomainCallback.searchParams.set('token', token)
     customDomainCallback.searchParams.set('callbackUrl', redirectUrl)
+    if (multiAuth) {
+      customDomainCallback.searchParams.set('multiAuth', multiAuth)
+    }
 
     return res.redirect(customDomainCallback.toString())
   } catch (error) {

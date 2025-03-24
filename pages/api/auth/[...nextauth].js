@@ -128,6 +128,7 @@ function getCallbacks (req, res) {
 
       if (user && req && res) {
         // add multi_auth cookie for user that just logged in
+        console.log('adding multi_auth cookie')
         const secret = process.env.NEXTAUTH_SECRET
         const jwt = await encodeJWT({ token, secret })
         const me = await prisma.user.findUnique({ where: { id: token.id } })
@@ -222,6 +223,31 @@ async function nostrEventAuth (event) {
   return { k1, pubkey }
 }
 
+const syncAuth = async (token, req, res) => {
+  try {
+    const verificationToken = await prisma.verificationToken.findUnique({ where: { token } })
+    if (!verificationToken) return null
+
+    // has to be a sync token
+    if (!verificationToken.identifier.startsWith('sync:')) return null
+
+    // sync has user id
+    const userId = parseInt(verificationToken.identifier.split(':')[1], 10)
+    if (!userId) return null
+
+    // delete the token to prevent reuse
+    await prisma.verificationToken.delete({
+      where: { id: verificationToken.id }
+    })
+    if (new Date() > verificationToken.expires) return null
+
+    return await prisma.user.findUnique({ where: { id: userId } })
+  } catch (error) {
+    console.error('auth sync error:', error)
+    return null
+  }
+}
+
 /** @type {import('next-auth/providers').Provider[]} */
 const getProviders = (req, res) => [
   CredentialsProvider({
@@ -253,29 +279,7 @@ const getProviders = (req, res) => [
       token: { label: 'token', type: 'text' }
     },
     authorize: async ({ token }, req) => {
-      try {
-        const verificationToken = await prisma.verificationToken.findUnique({ where: { token } })
-        if (!verificationToken) return null
-
-        // has to be a sync token
-        if (!verificationToken.identifier.startsWith('sync:')) return null
-
-        // sync has user id
-        const userId = parseInt(verificationToken.identifier.split(':')[1], 10)
-        if (!userId) return null
-
-        // delete the token to prevent reuse
-        await prisma.verificationToken.delete({
-          where: { id: verificationToken.id }
-        })
-        if (new Date() > verificationToken.expires) return null
-
-        // return the user
-        return await prisma.user.findUnique({ where: { id: userId } })
-      } catch (error) {
-        console.error('auth sync error:', error)
-        return null
-      }
+      return await syncAuth(token, req, res)
     }
   }),
   GitHubProvider({

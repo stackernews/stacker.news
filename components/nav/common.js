@@ -254,14 +254,10 @@ export function SignUpButton ({ className = 'py-0', width }) {
 
 export default function LoginButton () {
   const router = useRouter()
-
-  const handleLogin = useCallback(async () => {
-    // normal login on main domain
-    await router.push({
-      pathname: '/login',
-      query: { callbackUrl: window.location.origin + router.asPath }
-    })
-  }, [router])
+  const handleLogin = useCallback(async pathname => await router.push({
+    pathname,
+    query: { callbackUrl: window.location.origin + router.asPath }
+  }), [router])
 
   return (
     <Button
@@ -269,7 +265,7 @@ export default function LoginButton () {
       id='login'
       style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       variant='outline-grey-darkmode'
-      onClick={handleLogin}
+      onClick={() => handleLogin('/login')}
     >
       login
     </Button>

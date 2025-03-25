@@ -1,16 +1,23 @@
 import Nostr from '@/lib/nostr'
 import { TwitterApi } from 'twitter-api-v2'
-
-// Initialize Twitter client
-const client = new TwitterApi({
-  appKey: process.env.TWITTER_POSTER_API_KEY,
-  appSecret: process.env.TWITTER_POSTER_API_KEY_SECRET,
-  accessToken: process.env.TWITTER_POSTER_ACCESS_TOKEN,
-  accessSecret: process.env.TWITTER_POSTER_ACCESS_TOKEN_SECRET
-})
+import { msatsToSats, numWithUnits } from '@/lib/format'
 
 async function postToTwitter ({ message }) {
+  if (!process.env.TWITTER_POSTER_API_KEY ||
+    !process.env.TWITTER_POSTER_API_KEY_SECRET ||
+    !process.env.TWITTER_POSTER_ACCESS_TOKEN ||
+    !process.env.TWITTER_POSTER_ACCESS_TOKEN_SECRET) {
+    console.log('Twitter poster not configured')
+    return
+  }
+
   try {
+    const client = new TwitterApi({
+      appKey: process.env.TWITTER_POSTER_API_KEY,
+      appSecret: process.env.TWITTER_POSTER_API_KEY_SECRET,
+      accessToken: process.env.TWITTER_POSTER_ACCESS_TOKEN,
+      accessSecret: process.env.TWITTER_POSTER_ACCESS_TOKEN_SECRET
+    })
     await client.appLogin()
     await client.v2.tweet(message)
     console.log('Successfully posted to Twitter')
@@ -31,8 +38,13 @@ const RELAYS = [
 ]
 
 async function postToNostr ({ message }) {
+  if (!process.env.NOSTR_PRIVATE_KEY) {
+    console.log('Nostr poster not configured')
+    return
+  }
+
   const nostr = Nostr.get()
-  const signer = nostr.getSigner({ privKey: process.env.NOSTR_POSTER_PRIVATE_KEY })
+  const signer = nostr.getSigner({ privKey: process.env.NOSTR_PRIVATE_KEY })
   try {
     await nostr.publish({
       created_at: Math.floor(new Date().getTime() / 1000),
@@ -49,7 +61,49 @@ async function postToNostr ({ message }) {
   }
 }
 
-export async function postToSocial () {
-  // await postToTwitter({ message: 'Hello, world! ... testing' })
-  // await postToNostr({ message: 'Hello, world! ... testing' })
+async function getHottestItem ({ models }) {
+  const item = await models.$queryRaw`
+    SELECT "Item".*, users.name as "userName"
+    FROM "Item"
+    JOIN hot_score_view ON "Item"."id" = hot_score_view.id
+    JOIN users ON "Item"."userId" = users.id
+    LEFT JOIN "AutoSocialPost" ON "Item"."id" = "AutoSocialPost"."itemId"
+    WHERE "AutoSocialPost"."id" IS NULL
+    AND "Item"."parentId" IS NULL
+    AND NOT "Item".bio
+    AND "Item"."deletedAt" IS NULL
+    ORDER BY "hot_score_view"."hot_score" DESC
+    LIMIT 1`
+
+  if (item.length === 0) {
+    console.log('No item to post')
+    return null
+  }
+
+  await models.AutoSocialPost.create({
+    data: {
+      itemId: item[0].id
+    }
+  })
+
+  return item[0]
+}
+
+async function itemToMessage ({ item }) {
+  return `${item.title}
+
+By ${item.userName} to ~${item.subName}
+${numWithUnits(msatsToSats(item.msats), { abbreviate: false })} so far
+
+https://stacker.news/items/${item.id}/r/sn`
+}
+
+export async function postToSocial ({ models }) {
+  const item = await getHottestItem({ models })
+  if (item) {
+    const message = await itemToMessage({ item })
+    console.log('Message:', message)
+    await postToTwitter({ message })
+    await postToNostr({ message })
+  }
 }

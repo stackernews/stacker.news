@@ -8,7 +8,7 @@ sub: meta
 
 _To quickly browse through this FAQ page, click the chapters icon in the top-right corner. This will let you scroll through all chapters or search for a particular topic within this page._
 
-last updated: March 12, 2025
+last updated: March 25, 2025
 
 ---
 
@@ -405,12 +405,6 @@ Your global trust score is basically how much stackers trust you on average.
 ### Can I see my trust scores?
 
 No. All trust scores are private. We might make them public in the future but for now, they are kept private to protect the integrity of ranking and rewards.
-
-### Is my feed personalized?
-
-Yes. If someone zapped a post or comment before you, your trust in them to show you content you like increases. This means content that these early zappers zapped will rank higher in your feed.
-
-A common misconception is that we show you more content of the stackers you zapped. This is not the case. Think of it this way: if you and a friend like the same band, you would ask that friend to show you more similar music and not ask the band to never change their music and produce more of it.
 
 ---
 

@@ -33,10 +33,11 @@ export default function CustomDomainForm ({ sub }) {
     : { variables: { subName: sub.name } })
   const toaster = useToast()
 
+  const { domain, sslState, dnsState, lastVerifiedAt } = data?.customDomain || {}
+
   // Stop polling when the domain is verified
   useEffect(() => {
-    if (data?.customDomain?.sslState === 'VERIFIED' &&
-        data?.customDomain?.dnsState === 'VERIFIED') {
+    if (sslState === 'VERIFIED' && dnsState === 'VERIFIED') {
       stopPolling()
     }
   }, [data, stopPolling])
@@ -44,6 +45,7 @@ export default function CustomDomainForm ({ sub }) {
   // Update the custom domain
   const onSubmit = async ({ domain }) => {
     try {
+      stopPolling()
       await setCustomDomain({
         variables: {
           subName: sub.name,
@@ -54,7 +56,7 @@ export default function CustomDomainForm ({ sub }) {
       startPolling(NORMAL_POLL_INTERVAL)
       toaster.success('domain updated successfully')
     } catch (error) {
-      toaster.error('failed to update domain', { error })
+      toaster.danger('failed to update domain', { error })
     }
   }
 
@@ -69,8 +71,8 @@ export default function CustomDomainForm ({ sub }) {
     }
   }
 
-  const getSSLStatusBadge = (sslState) => {
-    switch (sslState) {
+  const getSSLStatusBadge = (status) => {
+    switch (status) {
       case 'VERIFIED':
         return <Badge bg='success'>SSL verified</Badge>
       case 'PENDING':
@@ -84,9 +86,7 @@ export default function CustomDomainForm ({ sub }) {
 
   return (
     <Form
-      initial={{
-        domain: sub.customDomain?.domain || '' // TODO: use the domain from GET_CUSTOM_DOMAIN
-      }}
+      initial={{ domain: domain || sub.customDomain?.domain }}
       schema={customDomainSchema}
       onSubmit={onSubmit}
       className='mb-2'
@@ -97,11 +97,11 @@ export default function CustomDomainForm ({ sub }) {
           label={
             <div className='d-flex align-items-center gap-2'>
               <span>custom domain</span>
-              {data?.customDomain && (
-                <ActionTooltip overlayText={new Date(data?.customDomain.lastVerifiedAt).toUTCString()}>
+              {domain && (
+                <ActionTooltip overlayText={lastVerifiedAt ? new Date(lastVerifiedAt).toLocaleString() : ''}>
                   <div className='d-flex align-items-center gap-2'>
-                    {getStatusBadge(data?.customDomain.dnsState)}
-                    {getSSLStatusBadge(data?.customDomain.sslState)}
+                    {getStatusBadge(dnsState)}
+                    {getSSLStatusBadge(sslState)}
                   </div>
                 </ActionTooltip>
               )}
@@ -113,7 +113,7 @@ export default function CustomDomainForm ({ sub }) {
         <SubmitButton variant='primary' className='mt-3'>save</SubmitButton>
       </div>
       {/* TODO: move this to a separate sub component */}
-      {(data?.customDomain?.dnsState === 'PENDING' || data?.customDomain?.dnsState === 'FAILED') && (
+      {(dnsState && dnsState !== 'VERIFIED') && (
         <>
           <h6>Verify your domain</h6>
           <p>Add the following DNS records to verify ownership of your domain:</p>
@@ -129,7 +129,7 @@ export default function CustomDomainForm ({ sub }) {
           </pre>
         </>
       )}
-      {data?.customDomain?.sslState === 'PENDING' && (
+      {sslState === 'PENDING' && (
         <>
           <h6>SSL verification pending</h6>
           <p>We issued an SSL certificate for your domain. To validate it, add the following CNAME record:</p>

@@ -223,6 +223,7 @@ async function nostrEventAuth (event) {
   return { k1, pubkey }
 }
 
+// Authentication Provider for syncing a user's session to a custom domain
 const syncAuth = async (token, req, res) => {
   try {
     const verificationToken = await prisma.verificationToken.findUnique({ where: { token } })

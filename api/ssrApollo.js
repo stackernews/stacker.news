@@ -152,6 +152,7 @@ export function getGetServerSideProps (
 
     const client = await getSSRApolloClient({ req, res })
 
+    // custom domain SSR check
     const customDomain = req.headers.host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
 
     let { data: { me } } = await client.query({ query: ME })

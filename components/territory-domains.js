@@ -8,7 +8,7 @@ import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { GET_CUSTOM_DOMAIN, SET_CUSTOM_DOMAIN } from '@/fragments/domains'
 import { useEffect, createContext, useContext } from 'react'
 
-// domain context
+// Domain context for custom domains
 const DomainContext = createContext({
   isCustomDomain: false
 })
@@ -27,14 +27,13 @@ export const useDomain = () => useContext(DomainContext)
 export default function CustomDomainForm ({ sub }) {
   const [setCustomDomain] = useMutation(SET_CUSTOM_DOMAIN)
 
+  // Get the custom domain and poll for changes
   const { data, startPolling, stopPolling, refetch } = useQuery(GET_CUSTOM_DOMAIN, SSR
     ? {}
-    : {
-        variables: { subName: sub.name },
-        pollInterval: NORMAL_POLL_INTERVAL
-      })
+    : { variables: { subName: sub.name } })
   const toaster = useToast()
 
+  // Stop polling when the domain is verified
   useEffect(() => {
     if (data?.customDomain?.sslState === 'VERIFIED' &&
         data?.customDomain?.dnsState === 'VERIFIED') {
@@ -42,6 +41,7 @@ export default function CustomDomainForm ({ sub }) {
     }
   }, [data, stopPolling])
 
+  // Update the custom domain
   const onSubmit = async ({ domain }) => {
     try {
       await setCustomDomain({
@@ -85,36 +85,34 @@ export default function CustomDomainForm ({ sub }) {
   return (
     <Form
       initial={{
-        domain: sub.customDomain?.domain || ''
+        domain: sub.customDomain?.domain || '' // TODO: use the domain from GET_CUSTOM_DOMAIN
       }}
       schema={customDomainSchema}
       onSubmit={onSubmit}
       className='mb-2'
     >
-      {/* todo: too many flexes */}
+      {/* TODO: too many flexes */}
       <div className='d-flex align-items-center gap-2'>
         <Input
           label={
             <div className='d-flex align-items-center gap-2'>
               <span>custom domain</span>
               {data?.customDomain && (
-                <>
+                <ActionTooltip overlayText={new Date(data?.customDomain.lastVerifiedAt).toUTCString()}>
                   <div className='d-flex align-items-center gap-2'>
-                    <ActionTooltip overlayText={new Date(data?.customDomain.lastVerifiedAt).toUTCString()}>
-                      {getStatusBadge(data?.customDomain.dnsState)}
-                    </ActionTooltip>
+                    {getStatusBadge(data?.customDomain.dnsState)}
                     {getSSLStatusBadge(data?.customDomain.sslState)}
                   </div>
-                </>
+                </ActionTooltip>
               )}
             </div>
           }
           name='domain'
           placeholder='example.com'
         />
-        {/* TODO: toaster */}
         <SubmitButton variant='primary' className='mt-3'>save</SubmitButton>
       </div>
+      {/* TODO: move this to a separate sub component */}
       {(data?.customDomain?.dnsState === 'PENDING' || data?.customDomain?.dnsState === 'FAILED') && (
         <>
           <h6>Verify your domain</h6>

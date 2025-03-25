@@ -12,15 +12,14 @@ const SN_REFERRER = 'sn_referrer'
 const SN_REFERRER_NONCE = 'sn_referrer_nonce'
 // key for referred pages
 const SN_REFEREE_LANDING = 'sn_referee_landing'
-
+// rewrite to ~subname paths
 const TERRITORY_PATHS = ['/~', '/recent', '/random', '/top', '/post', '/edit']
-const NO_REWRITE_PATHS = ['/api', '/_next', '/_error', '/404', '/500', '/offline', '/static', '/logout']
 
 // TODO: move this to a separate file
 // fetch custom domain mappings from our API, caching it for 5 minutes
 export const getDomainMappingsCache = cachedFetcher(async function fetchDomainMappings () {
   const url = `${process.env.NEXT_PUBLIC_URL}/api/domains`
-  console.log('fetching domain mappings from', url)
+  console.log('fetching domain mappings from', url) // TEST
   try {
     const response = await fetch(url)
     if (!response.ok) {
@@ -46,43 +45,43 @@ export async function getDomainMapping (domain) {
   return domainMappings?.[domain]
 }
 
+// Redirects and rewrites for custom domains
 export async function customDomainMiddleware (request, referrerResp, domain) {
   const host = request.headers.get('host')
   const referer = request.headers.get('referer')
   const url = request.nextUrl.clone()
   const pathname = url.pathname
   const mainDomain = process.env.NEXT_PUBLIC_URL + '/'
+
+  // TEST
   console.log('host', host)
   console.log('mainDomain', mainDomain)
-
   console.log('referer', referer)
-
-  // todo: obviously this is not the best way to do this
-  if (NO_REWRITE_PATHS.some(p => pathname.startsWith(p)) || pathname.includes('.')) {
-    return NextResponse.next()
-  }
-
   console.log('pathname', pathname)
   console.log('query', url.searchParams)
 
+  // Auth sync redirects with domain and optional callbackUrl and multiAuth params
   if (pathname === '/login' || pathname === '/signup') {
     const redirectUrl = new URL(pathname, mainDomain)
     redirectUrl.searchParams.set('domain', host)
-    redirectUrl.searchParams.set('callbackUrl', url.searchParams.get('callbackUrl'))
+    if (url.searchParams.get('callbackUrl')) {
+      redirectUrl.searchParams.set('callbackUrl', url.searchParams.get('callbackUrl'))
+    }
     if (url.searchParams.get('multiAuth')) {
       redirectUrl.searchParams.set('multiAuth', url.searchParams.get('multiAuth'))
     }
     const redirectResp = NextResponse.redirect(redirectUrl)
-    return applyReferrerCookies(redirectResp, referrerResp)
+    return applyReferrerCookies(redirectResp, referrerResp) // apply referrer cookies to the redirect
   }
 
-  // if the url contains the territory path, remove it
+  // If trying to access a ~subname path, rewrite to /
   if (pathname.startsWith(`/~${domain.subName}`)) {
     // remove the territory prefix from the path
     const cleanPath = pathname.replace(`/~${domain.subName}`, '') || '/'
+    // TEST
     console.log('Redirecting to clean path:', cleanPath)
     const redirectResp = NextResponse.redirect(new URL(cleanPath + url.search, url.origin))
-    return applyReferrerCookies(redirectResp, referrerResp)
+    return applyReferrerCookies(redirectResp, referrerResp) // apply referrer cookies to the redirect
   }
 
   // if coming from main domain, handle auth automatically
@@ -95,18 +94,20 @@ export async function customDomainMiddleware (request, referrerResp, domain) {
     }
   } */
 
-  const internalUrl = new URL(url)
-  // rewrite to the territory path if we're at the root
+  // If we're at the root or a territory path, rewrite to the territory path
   if (pathname === '/' || TERRITORY_PATHS.some(p => pathname.startsWith(p))) {
+    const internalUrl = new URL(url)
     internalUrl.pathname = `/~${domain.subName}${pathname === '/' ? '' : pathname}`
+    console.log('Rewrite to:', internalUrl.pathname)
+    // rewrite to the territory path
+    const resp = NextResponse.rewrite(internalUrl)
+    return applyReferrerCookies(resp, referrerResp) // apply referrer cookies to the rewrite
   }
-  console.log('Rewrite to:', internalUrl.pathname)
-  // rewrite to the territory path
-  const resp = NextResponse.rewrite(internalUrl)
-  // copy referrer cookies to the rewritten response
-  return applyReferrerCookies(resp, referrerResp)
+
+  return NextResponse.next() // continue if we don't need to rewrite or redirect
 }
 
+// UNUSED
 // TODO: dirty of previous iterations, refactor
 // UNSAFE UNSAFE UNSAFE tokens are visible in the URL
 // Redirect to Auth Sync if user is not logged in or has no multi_auth sessions

@@ -1,6 +1,8 @@
 import createPrisma from '@/lib/create-prisma'
 import { verifyDomainDNS, issueDomainCertificate, checkCertificateStatus, getValidationValues } from '@/lib/domains'
 
+// This worker verifies the DNS and SSL certificates for domains that are pending or failed
+// It will also delete domains that have failed to verify 5 times
 export async function domainVerification () {
   const models = createPrisma({ connectionParams: { connection_limit: 1 } })
 

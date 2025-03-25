@@ -92,7 +92,7 @@ async function getHottestItem ({ models }) {
 async function itemToMessage ({ item }) {
   return `${item.title}
 
-By ${item.userName} to ~${item.subName}
+by ${item.userName} to ~${item.subName}
 ${numWithUnits(msatsToSats(item.msats), { abbreviate: false })} so far
 
 https://stacker.news/items/${item.id}/r/sn`

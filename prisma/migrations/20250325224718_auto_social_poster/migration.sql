@@ -23,7 +23,7 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
 BEGIN
-    -- 10 minutes after midnight
+    -- every 60th minute
     INSERT INTO pgboss.schedule (name, cron, timezone)
     VALUES ('socialPoster', '*/60 * * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
     return 0;

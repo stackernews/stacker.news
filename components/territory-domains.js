@@ -7,6 +7,8 @@ import { useToast } from '@/components/toast'
 import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { GET_CUSTOM_DOMAIN, SET_CUSTOM_DOMAIN } from '@/fragments/domains'
 import { useEffect, createContext, useContext } from 'react'
+import { useRouter } from 'next/router'
+import { signIn } from 'next-auth/react'
 
 // Domain context for custom domains
 const DomainContext = createContext({
@@ -14,6 +16,18 @@ const DomainContext = createContext({
 })
 
 export const DomainProvider = ({ isCustomDomain, children }) => {
+  const router = useRouter()
+
+  // TODO: alternative to this, for test only
+  // auth sync
+  useEffect(() => {
+    console.log(router.query)
+    if (router.query.type === 'sync') {
+      console.log('signing in with sync')
+      signIn('sync', { token: router.query.token, callbackUrl: router.query.callbackUrl, multiAuth: router.query.multiAuth, redirect: false })
+    }
+  }, [router.query.type])
+
   return (
     <DomainContext.Provider value={{ isCustomDomain }}>
       {children}

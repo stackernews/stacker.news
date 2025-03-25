@@ -286,10 +286,6 @@ The stats for each territory are the following:
 
 You can filter the same stats by different periods in [top territories](/top/territories/day).
 
-### TODO: How can I add a custom domain to a territory?
-
-TODO
-
 ---
 
 ## Zaps

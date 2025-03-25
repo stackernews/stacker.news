@@ -8,7 +8,6 @@ import { UserListRow } from '@/components/user-list'
 import Link from 'next/link'
 import AddIcon from '@/svgs/add-fill.svg'
 import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER } from '@/lib/auth'
-import { signIn } from 'next-auth/react'
 
 const AccountContext = createContext()
 
@@ -17,16 +16,6 @@ const b64Decode = str => Buffer.from(str, 'base64').toString('utf-8')
 export const AccountProvider = ({ children }) => {
   const [accounts, setAccounts] = useState([])
   const [selected, setSelected] = useState(null)
-  const router = useRouter()
-
-  // TODO: alternative to this, for test only
-  useEffect(() => {
-    console.log(router.query)
-    if (router.query.type === 'sync') {
-      console.log('signing in with sync')
-      signIn('sync', { token: router.query.token, callbackUrl: router.query.callbackUrl, multiAuth: router.query.multiAuth, redirect: false })
-    }
-  }, [])
 
   const updateAccountsFromCookie = useCallback(() => {
     const { [MULTI_AUTH_LIST]: listCookie } = cookie.parse(document.cookie)

@@ -21,7 +21,6 @@ import { ChainFeeProvider } from '@/components/chain-fee.js'
 import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
 import { WebLnProvider } from '@/wallets/webln/client'
-import { AccountProvider } from '@/components/account'
 import { WalletsProvider } from '@/wallets/index'
 import { DomainProvider } from '@/components/territory-domains'
 
@@ -120,24 +119,22 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                     <LoggerProvider>
                       <WebLnProvider>
                         <ServiceWorkerProvider>
-                          <AccountProvider>
-                            <PriceProvider price={price}>
-                              <LightningProvider>
-                                <ToastProvider>
-                                  <ShowModalProvider>
-                                    <BlockHeightProvider blockHeight={blockHeight}>
-                                      <ChainFeeProvider chainFee={chainFee}>
-                                        <ErrorBoundary>
-                                          <Component ssrData={ssrData} {...otherProps} />
-                                          {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
-                                        </ErrorBoundary>
-                                      </ChainFeeProvider>
-                                    </BlockHeightProvider>
-                                  </ShowModalProvider>
-                                </ToastProvider>
-                              </LightningProvider>
-                            </PriceProvider>
-                          </AccountProvider>
+                          <PriceProvider price={price}>
+                            <LightningProvider>
+                              <ToastProvider>
+                                <ShowModalProvider>
+                                  <BlockHeightProvider blockHeight={blockHeight}>
+                                    <ChainFeeProvider chainFee={chainFee}>
+                                      <ErrorBoundary>
+                                        <Component ssrData={ssrData} {...otherProps} />
+                                        {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
+                                      </ErrorBoundary>
+                                    </ChainFeeProvider>
+                                  </BlockHeightProvider>
+                                </ShowModalProvider>
+                              </ToastProvider>
+                            </LightningProvider>
+                          </PriceProvider>
                         </ServiceWorkerProvider>
                       </WebLnProvider>
                     </LoggerProvider>

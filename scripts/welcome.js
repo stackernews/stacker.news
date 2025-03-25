@@ -25,6 +25,8 @@ if (!SN_API_KEY) {
   process.exit(1)
 }
 
+const LIMIT = 21
+
 async function gql (query, variables = {}) {
   const response = await fetch(`${SN_API_URL}/api/graphql`, {
     method: 'POST',
@@ -73,8 +75,8 @@ function fetchRecentBios () {
   // fetch all recent bios. we assume here there won't be more than 21
   // since the last bio we already included in a post as defined by FETCH_AFTER.
   return gql(
-    `query NewBios {
-      items(sort: "recent", type: "bios", limit: 21) {
+    `query NewBios($limit: Limit!) {
+      items(sort: "recent", type: "bios", limit: $limit) {
         items {
           id
           title
@@ -89,7 +91,7 @@ function fetchRecentBios () {
           }
         }
       }
-    }`
+    }`, { limit: LIMIT }
   )
 }
 

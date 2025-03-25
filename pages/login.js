@@ -31,16 +31,15 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
   }
 
   // TODO: custom domain mapping security
+  // If we're coming from a custom domain, set as callbackUrl the auth sync endpoint
   if (domain) {
     const params = new URLSearchParams()
     params.set('redirectUrl', 'https://' + encodeURIComponent(domain))
-    if (multiAuth) {
+    if (multiAuth) { // take care of multiAuth if requested
       params.set('multiAuth', multiAuth)
     }
     callbackUrl = '/api/auth/sync?' + params.toString()
   }
-
-  console.log('callbackUrl', callbackUrl)
 
   if (session && callbackUrl && !multiAuth) {
     // in the case of auth linking we want to pass the error back to settings
@@ -72,8 +71,14 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
 }
 
 function LoginFooter ({ callbackUrl, multiAuth }) {
+  const query = {
+    callbackUrl
+  }
+  if (multiAuth) { // multiAuth can be optional
+    query.multiAuth = multiAuth
+  }
   return (
-    <small className='fw-bold text-muted pt-4'>New to town? <Link href={{ pathname: '/signup', query: { multiAuth, callbackUrl } }}>sign up</Link></small>
+    <small className='fw-bold text-muted pt-4'>New to town? <Link href={{ pathname: '/signup', query }}>sign up</Link></small>
   )
 }
 

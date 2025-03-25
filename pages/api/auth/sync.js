@@ -2,17 +2,20 @@ import { getServerSession } from 'next-auth/next'
 import { getAuthOptions, generateRandomString } from './[...nextauth]'
 import prisma from '@/api/models'
 
+// API Endpoint for syncing a user's session to a custom domain
 export default async function handler (req, res) {
   const { redirectUrl, multiAuth } = req.query
   if (!redirectUrl) {
     return res.status(400).json({ error: 'Missing redirectUrl parameter' })
   }
 
-  const session = await getServerSession(req, res, getAuthOptions(req, res))
+  const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN
 
+  // get the user's session
+  const session = await getServerSession(req, res, getAuthOptions(req, res))
   if (!session) {
-    // TODO: redirect to login page, this goes to login overlapping other paths
-    return res.redirect(redirectUrl + '/login?callbackUrl=' + encodeURIComponent(redirectUrl))
+    // redirect to the login page, middleware will handle the rest
+    return res.redirect(mainDomain + '/login?callbackUrl=' + encodeURIComponent(redirectUrl))
   }
 
   try {
@@ -26,6 +29,7 @@ export default async function handler (req, res) {
       }
     })
 
+    // Account Provider will handle this sync request
     const customDomainCallback = new URL('/?type=sync', redirectUrl)
     customDomainCallback.searchParams.set('token', token)
     customDomainCallback.searchParams.set('callbackUrl', redirectUrl)
@@ -33,6 +37,7 @@ export default async function handler (req, res) {
       customDomainCallback.searchParams.set('multiAuth', multiAuth)
     }
 
+    // redirect to the custom domain callback
     return res.redirect(customDomainCallback.toString())
   } catch (error) {
     console.error('Error generating token:', error)

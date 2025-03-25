@@ -1,6 +1,7 @@
 import prisma from '@/api/models'
 
 // TODO: Authentication for this?
+// API Endpoint for getting all VERIFIED custom domains, used by a cachedFetcher
 export default async function handler (req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET')

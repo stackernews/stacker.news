@@ -7,6 +7,7 @@ import AnonIcon from '@/svgs/spy-fill.svg'
 import styles from './footer.module.css'
 import canvasStyles from './offcanvas.module.css'
 import classNames from 'classnames'
+import { useConfiguredWallets } from '@/wallets'
 
 export default function OffCanvas ({ me, dropNavKey }) {
   const [show, setShow] = useState(false)
@@ -25,7 +26,10 @@ export default function OffCanvas ({ me, dropNavKey }) {
       )
     : <span className='text-muted pointer'><AnonIcon onClick={onClick} width='22' height='22' /></span>
 
+  const wallets = useConfiguredWallets()
+
   const profileIndicator = me && !me.bioId
+  const walletIndicator = wallets.length === 0
 
   return (
     <>
@@ -59,7 +63,10 @@ export default function OffCanvas ({ me, dropNavKey }) {
                     <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
                   </Link>
                   <Link href='/wallets' passHref legacyBehavior>
-                    <Dropdown.Item eventKey='wallets'>wallets</Dropdown.Item>
+                    <Dropdown.Item eventKey='wallets'>
+                      wallets
+                      {walletIndicator && <Indicator />}
+                    </Dropdown.Item>
                   </Link>
                   <Link href='/credits' passHref legacyBehavior>
                     <Dropdown.Item eventKey='credits'>credits</Dropdown.Item>

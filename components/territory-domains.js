@@ -6,7 +6,7 @@ import ActionTooltip from './action-tooltip'
 import { useToast } from '@/components/toast'
 import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { GET_CUSTOM_DOMAIN, SET_CUSTOM_DOMAIN } from '@/fragments/domains'
-import { useEffect, createContext, useContext } from 'react'
+import { useEffect, createContext, useContext, useState } from 'react'
 import { useRouter } from 'next/router'
 import { signIn } from 'next-auth/react'
 
@@ -15,8 +15,18 @@ const DomainContext = createContext({
   isCustomDomain: false
 })
 
-export const DomainProvider = ({ isCustomDomain, children }) => {
+export const DomainProvider = ({ isCustomDomain: initialIsCustomDomain, children }) => {
   const router = useRouter()
+  const [isCustomDomain, setIsCustomDomain] = useState(initialIsCustomDomain)
+
+  useEffect(() => {
+    // client side navigation
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname
+      const isCustom = hostname !== new URL(process.env.NEXT_PUBLIC_URL).hostname
+      setIsCustomDomain(isCustom)
+    }
+  }, [router.asPath])
 
   // TODO: alternative to this, for test only
   // auth sync

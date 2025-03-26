@@ -132,35 +132,35 @@ export default function CustomDomainForm ({ sub }) {
             </div>
           }
           name='domain'
-          placeholder='example.com'
+          placeholder='www.example.com'
         />
         <SubmitButton variant='primary' className='mt-3'>save</SubmitButton>
       </div>
       {/* TODO: move this to a separate sub component */}
       {(dnsState && dnsState !== 'VERIFIED') && (
         <>
-          <h6>Verify your domain</h6>
+          <h5>Step 1: Verify your domain</h5>
           <p>Add the following DNS records to verify ownership of your domain:</p>
-          <pre>
-            CNAME:
-            Host: @
-            Value: stacker.news
-          </pre>
-          <pre>
-            TXT:
-            Host: @
-            Value: ${data?.customDomain.verificationTxt}
-          </pre>
+          <h6>CNAME</h6>
+          <p>
+            Host: <pre>{domain || 'www'}</pre>
+            Value: <pre>stacker.news</pre>
+          </p>
+          <h6>TXT</h6>
+          <p>
+            Host: <pre>{domain || 'www'}</pre>
+            Value: <pre>{data?.customDomain.verificationTxt}</pre>
+          </p>
         </>
       )}
       {sslState === 'PENDING' && (
         <>
-          <h6>SSL verification pending</h6>
+          <h5>Step 2: Prepare your domain for SSL</h5>
           <p>We issued an SSL certificate for your domain. To validate it, add the following CNAME record:</p>
           <pre>
             CNAME:
-            Host: ${data?.customDomain.verificationCname}
-            Value: ${data?.customDomain.verificationCnameValue}
+            Host: ${data?.customDomain.verificationCname || 'waiting for SSL certificate'}
+            Value: ${data?.customDomain.verificationCnameValue || 'waiting for SSL certificate'}
           </pre>
         </>
       )}

@@ -38,13 +38,13 @@ const RELAYS = [
 ]
 
 async function postToNostr ({ message }) {
-  if (!process.env.NOSTR_PRIVATE_KEY) {
+  if (!process.env.NOSTR_POSTER_PRIVATE_KEY) {
     console.log('Nostr poster not configured')
     return
   }
 
   const nostr = Nostr.get()
-  const signer = nostr.getSigner({ privKey: process.env.NOSTR_PRIVATE_KEY })
+  const signer = nostr.getSigner({ privKey: process.env.NOSTR_POSTER_PRIVATE_KEY })
   try {
     await nostr.publish({
       created_at: Math.floor(new Date().getTime() / 1000),

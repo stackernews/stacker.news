@@ -92,10 +92,10 @@ async function getHottestItem ({ models }) {
 async function itemToMessage ({ item }) {
   return `${item.title}
 
-by ${item.userName} to ~${item.subName}
-${numWithUnits(msatsToSats(item.msats), { abbreviate: false })} so far
+by ${item.userName} in ~${item.subName}
+${numWithUnits(msatsToSats(item.msats), { abbreviate: false })} and ${numWithUnits(item.ncomments, { abbreviate: false, unitSingular: 'comment', unitPlural: 'comments' })} so far
 
-https://stacker.news/items/${item.id}/r/sn`
+https://stacker.news/items/${item.id}`
 }
 
 export async function postToSocial ({ models }) {

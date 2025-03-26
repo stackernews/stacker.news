@@ -700,7 +700,7 @@ function Reminder ({ n }) {
   return (
     <>
       <NoteHeader color='info'>
-        you asked to be reminded of this {n.item.title ? 'post' : 'comment'}
+        you requested this reminder
       </NoteHeader>
       <NoteItem item={n.item} />
     </>

@@ -1,5 +1,4 @@
 import React from 'react'
-import Button from 'react-bootstrap/Button'
 import styles from './pay-bounty.module.css'
 import ActionTooltip from './action-tooltip'
 import { useMe } from './me'
@@ -10,6 +9,7 @@ import { ActCanceledError, useAct } from './item-act'
 import { useLightning } from './lightning'
 import { useToast } from './toast'
 import { useSendWallets } from '@/wallets/index'
+import { Form, SubmitButton } from './form'
 
 export const payBountyCacheMods = {
   onPaid: (cache, { data }) => {
@@ -90,11 +90,12 @@ export default function PayBounty ({ children, item }) {
               <div className='text-center fw-bold text-muted'>
                 Pay this bounty to {item.user.name}?
               </div>
-              <div className='text-center'>
-                <Button className='mt-4' variant='primary' onClick={() => handlePayBounty(onClose)}>
-                  pay <small>{numWithUnits(root.bounty)}</small>
-                </Button>
-              </div>
+              {/* initial={{ id: item.id }} is a hack to allow SubmitButton to be used as a button */}
+              <Form className='text-center' onSubmit={() => handlePayBounty(onClose)} initial={{ id: item.id }}>
+                <SubmitButton className='mt-4' variant='primary' submittingText='paying...' appendText={numWithUnits(root.bounty)}>
+                  pay
+                </SubmitButton>
+              </Form>
             </>
           ))
         }}

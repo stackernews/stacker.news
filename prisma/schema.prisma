@@ -599,6 +599,7 @@ model Item {
   invoice              Invoice?              @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   PollBlindVote        PollBlindVote[]
   ItemUserAgg          ItemUserAgg[]
+  AutoSocialPost       AutoSocialPost[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -646,6 +647,18 @@ model ItemUserAgg {
   @@unique([itemId, userId])
   @@index([itemId])
   @@index([userId])
+  @@index([createdAt])
+}
+
+// record auto social posts so we can avoid duplicates
+model AutoSocialPost {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  itemId    Int
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
   @@index([createdAt])
 }
 

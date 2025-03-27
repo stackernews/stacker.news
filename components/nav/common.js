@@ -166,8 +166,32 @@ export function NavWalletSummary ({ className }) {
   )
 }
 
+export const Indicator = ({ superscript }) => {
+  if (superscript) {
+    return (
+      <span className='d-inline-block p-1'>
+        <span
+          className='position-absolute p-1 bg-secondary'
+          style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}
+        >
+          <span className='invisible'>{' '}</span>
+        </span>
+      </span>
+    )
+  }
+
+  return (
+    <div className='p-1 d-inline-block bg-secondary ms-1'>
+      <span className='invisible'>{' '}</span>
+    </div>
+  )
+}
+
 export function MeDropdown ({ me, dropNavKey }) {
   if (!me) return null
+
+  const profileIndicator = !me.bioId
+
   return (
     <div className=''>
       <Dropdown className={styles.dropdown} align='end'>
@@ -175,12 +199,7 @@ export function MeDropdown ({ me, dropNavKey }) {
           <div className='d-flex align-items-center'>
             <Nav.Link eventKey={me.name} as='span' className='p-0 position-relative'>
               {`@${me.name}`}
-              {!me.bioId &&
-                <span className='d-inline-block p-1'>
-                  <span className='position-absolute p-1 bg-secondary' style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}>
-                    <span className='invisible'>{' '}</span>
-                  </span>
-                </span>}
+              {profileIndicator && <Indicator superscript />}
             </Nav.Link>
             <Badges user={me} />
           </div>
@@ -189,10 +208,7 @@ export function MeDropdown ({ me, dropNavKey }) {
           <Link href={'/' + me.name} passHref legacyBehavior>
             <Dropdown.Item active={me.name === dropNavKey}>
               profile
-              {me && !me.bioId &&
-                <div className='p-1 d-inline-block bg-secondary ms-1'>
-                  <span className='invisible'>{' '}</span>
-                </div>}
+              {profileIndicator && <Indicator />}
             </Dropdown.Item>
           </Link>
           <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>

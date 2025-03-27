@@ -183,7 +183,7 @@ No. Payments can currently only be made entirely in CCs or sats.
 
 ### Which wallet is used if I attached multiple wallets for send or receive?
 
-All of them! The wallet that is the furthest to the top-right will be attempted first. If it fails, we will attempt the next wallet in order. On desktop, you can drag the wallets around to rearrange their priority. On mobile, you need to click on a wallet and then select where you want the wallet to be.
+All of them! The wallet that is the furthest to the top-left will be attempted first. If it fails, we will attempt the next wallet in order. On desktop, you can drag the wallets around to rearrange their priority. On mobile, you need to click on a wallet and then select where you want the wallet to be.
 
 These sender and receiver fallbacks happen if the payment failed for any reason. The sender will attempt the next wallet if the error was caused by the sender side and the same is true for the receiver.
 

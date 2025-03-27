@@ -69,6 +69,12 @@ export function TerritoryInfo ({ sub }) {
             <span className='fw-bold'>{numWithUnits(sub.replyCost)}</span>
           </div>
         </div>
+        {sub.customDomain && (
+          <div className='text-muted'>
+            <span>website </span>
+            <Link className='fw-bold' href={`https://${sub.customDomain.domain}`}>{sub.customDomain.domain}</Link>
+          </div>
+        )}
         <TerritoryBillingLine sub={sub} />
       </CardFooter>
     </>

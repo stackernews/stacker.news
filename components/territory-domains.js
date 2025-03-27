@@ -47,7 +47,7 @@ export const DomainProvider = ({ isCustomDomain: initialIsCustomDomain, children
 
 export const useDomain = () => useContext(DomainContext)
 
-// TODO: clean this up, might not need all this refreshing
+// TODO: clean this up, might not need all this refreshing, plus all this polling is not done correctly
 export default function CustomDomainForm ({ sub }) {
   const [setCustomDomain] = useMutation(SET_CUSTOM_DOMAIN)
 
@@ -63,6 +63,8 @@ export default function CustomDomainForm ({ sub }) {
   useEffect(() => {
     if (sslState === 'VERIFIED' && dnsState === 'VERIFIED') {
       stopPolling()
+    } else {
+      startPolling(NORMAL_POLL_INTERVAL)
     }
   }, [data, stopPolling])
 
@@ -157,11 +159,11 @@ export default function CustomDomainForm ({ sub }) {
         <>
           <h5>Step 2: Prepare your domain for SSL</h5>
           <p>We issued an SSL certificate for your domain. To validate it, add the following CNAME record:</p>
-          <pre>
-            CNAME:
-            Host: ${data?.customDomain.verificationCname || 'waiting for SSL certificate'}
-            Value: ${data?.customDomain.verificationCnameValue || 'waiting for SSL certificate'}
-          </pre>
+          <h6>CNAME</h6>
+          <p>
+            Host: <pre>{data?.customDomain.verificationCname || 'waiting for SSL certificate'}</pre>
+            Value: <pre>{data?.customDomain.verificationCnameValue || 'waiting for SSL certificate'}</pre>
+          </p>
         </>
       )}
     </Form>

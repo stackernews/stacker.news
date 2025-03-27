@@ -44,6 +44,7 @@ import classNames from 'classnames'
 import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
+import { useMe } from './me'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -528,11 +529,27 @@ function WithdrawlPaid ({ n }) {
 }
 
 function Referral ({ n }) {
+  const { me } = useMe()
+  let referralSource = 'of you'
+  switch (n.source?.__typename) {
+    case 'Item':
+      referralSource = (Number(me?.id) === Number(n.source.user?.id) ? 'of your' : 'you shared this') + ' ' + (n.source.title ? 'post' : 'comment')
+      break
+    case 'Sub':
+      referralSource = (Number(me?.id) === Number(n.source.userId) ? 'of your' : 'you shared the') + ' ~' + n.source.name + ' territory'
+      break
+    case 'User':
+      referralSource = (me?.name === n.source.name ? 'of your profile' : `you shared ${n.source.name}'s profile`)
+      break
+  }
   return (
-    <small className='fw-bold text-success'>
-      <UserAdd className='fill-success me-2' height={21} width={21} style={{ transform: 'rotateY(180deg)' }} />someone joined SN because of you
-      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-    </small>
+    <>
+      <small className='fw-bold text-success'>
+        <UserAdd className='fill-success me-1' height={21} width={21} style={{ transform: 'rotateY(180deg)' }} />someone joined SN because {referralSource}
+        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      </small>
+      {n.source?.__typename === 'Item' && <NoteItem itemClassName='pt-2' item={n.source} />}
+    </>
   )
 }
 
@@ -683,7 +700,7 @@ function Reminder ({ n }) {
   return (
     <>
       <NoteHeader color='info'>
-        you asked to be reminded of this {n.item.title ? 'post' : 'comment'}
+        you requested this reminder
       </NoteHeader>
       <NoteItem item={n.item} />
     </>
@@ -716,7 +733,10 @@ export function NotificationAlert () {
     error
       ? (
         <Alert variant='danger' dismissible onClose={() => setError(null)}>
-          <span>{error.toString()}</span>
+          <span>{navigator?.brave && error.name === 'AbortError'
+            ? 'Push registration failed. Enable "Use Google services for push messaging" in Brave\'s privacy settings and try again.'
+            : error.toString()}
+          </span>
         </Alert>
         )
       : showAlert

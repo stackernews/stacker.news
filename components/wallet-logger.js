@@ -62,7 +62,11 @@ function DeleteWalletLogsObstacle ({ wallet, setLogs, onClose }) {
   const { deleteLogs } = useWalletLogManager(setLogs)
   const toaster = useToast()
 
-  const prompt = `Do you really want to delete all ${wallet ? '' : 'wallet'} logs ${wallet ? 'of this wallet' : ''}?`
+  let prompt = 'Do you really want to delete all wallet logs?'
+  if (wallet) {
+    prompt = 'Do you really want to delete all logs of this wallet?'
+  }
+
   return (
     <div className='text-center'>
       {prompt}
@@ -235,7 +239,13 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
       const newLogs = data.walletLogs.entries.map(({ createdAt, wallet: walletType, ...log }) => ({
         ts: +new Date(createdAt),
         wallet: walletTag(getWalletByType(walletType)),
-        ...log
+        ...log,
+        // required to resolve recv status
+        context: {
+          recv: true,
+          status: !!log.context?.bolt11 && ['warn', 'error', 'success'].includes(log.level.toLowerCase()),
+          ...log.context
+        }
       }))
       const combinedLogs = uniqueSort([...result.data, ...newLogs])
 

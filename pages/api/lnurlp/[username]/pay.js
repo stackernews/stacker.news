@@ -78,7 +78,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     }
 
     // generate invoice
-    const { invoice } = await performPaidAction('RECEIVE', {
+    const { invoice, paymentMethod } = await performPaidAction('RECEIVE', {
       msats: toPositiveBigInt(amount),
       description,
       descriptionHash,
@@ -92,10 +92,10 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     return res.status(200).json({
       pr: invoice.bolt11,
       routes: [],
-      verify: invoice.hash ? `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${invoice.hash}` : undefined
+      verify: paymentMethod !== 'DIRECT' && invoice.hash ? `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${invoice.hash}` : undefined
     })
   } catch (error) {
     console.log(error)
-    res.status(400).json({ status: 'ERROR', reason: 'could not generate invoice' })
+    res.status(400).json({ status: 'ERROR', reason: 'could not generate invoice to customer\'s attached wallet' })
   }
 }

@@ -9,7 +9,10 @@ import { formatMsats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib
 import {
   USER_ID, INVOICE_RETENTION_DAYS,
   PAID_ACTION_PAYMENT_METHODS,
-  WALLET_CREATE_INVOICE_TIMEOUT_MS
+  WALLET_CREATE_INVOICE_TIMEOUT_MS,
+  WALLET_RETRY_AFTER_MS,
+  WALLET_RETRY_BEFORE_MS,
+  WALLET_MAX_RETRIES
 } from '@/lib/constants'
 import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
@@ -427,6 +430,10 @@ const resolvers = {
               lte: to ? new Date(Number(to)) : undefined
             }
           },
+          include: {
+            invoice: true,
+            withdrawal: true
+          },
           orderBy: [
             { createdAt: 'desc' },
             { id: 'desc' }
@@ -442,6 +449,10 @@ const resolvers = {
               lte: decodedCursor.time
             }
           },
+          include: {
+            invoice: true,
+            withdrawal: true
+          },
           orderBy: [
             { createdAt: 'desc' },
             { id: 'desc' }
@@ -456,6 +467,21 @@ const resolvers = {
         cursor: nextCursor,
         entries: logs
       }
+    },
+    failedInvoices: async (parent, args, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+      return await models.$queryRaw`
+        SELECT * FROM "Invoice"
+        WHERE "userId" = ${me.id}
+        AND "actionState" = 'FAILED'
+        -- never retry if user has cancelled the invoice manually
+        AND "userCancel" = false
+        AND "cancelledAt" < now() - ${`${WALLET_RETRY_AFTER_MS} milliseconds`}::interval
+        AND "cancelledAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
+        AND "paymentAttempt" < ${WALLET_MAX_RETRIES}
+        ORDER BY id DESC`
     }
   },
   Wallet: {
@@ -727,10 +753,41 @@ const resolvers = {
       return item
     },
     sats: fact => msatsToSatsDecimal(fact.msats)
+  },
+
+  WalletLogEntry: {
+    context: async ({ level, context, invoice, withdrawal }, args, { models }) => {
+      const isError = ['error', 'warn'].includes(level.toLowerCase())
+
+      if (withdrawal) {
+        return {
+          ...await logContextFromBolt11(withdrawal.bolt11),
+          ...(withdrawal.preimage ? { preimage: withdrawal.preimage } : {}),
+          ...(isError ? { max_fee: formatMsats(withdrawal.msatsFeePaying) } : {})
+        }
+      }
+
+      // XXX never return invoice as context because it might leak sensitive sender details
+      // if (invoice) { ... }
+
+      return context
+    }
   }
 }
 
 export default injectResolvers(resolvers)
+
+const logContextFromBolt11 = async (bolt11) => {
+  const decoded = await parsePaymentRequest({ request: bolt11 })
+  return {
+    bolt11,
+    amount: formatMsats(decoded.mtokens),
+    payment_hash: decoded.id,
+    created_at: decoded.created_at,
+    expires_at: decoded.expires_at,
+    description: decoded.description
+  }
+}
 
 export const walletLogger = ({ wallet, models }) => {
   // no-op logger if wallet is not provided
@@ -744,23 +801,17 @@ export const walletLogger = ({ wallet, models }) => {
   }
 
   // server implementation of wallet logger interface on client
-  const log = (level) => async (message, context = {}) => {
+  const log = (level) => async (message, ctx = {}) => {
     try {
-      if (context?.bolt11) {
+      let { invoiceId, withdrawalId, ...context } = ctx
+
+      if (context.bolt11) {
         // automatically populate context from bolt11 to avoid duplicating this code
-        const decoded = await parsePaymentRequest({ request: context.bolt11 })
         context = {
           ...context,
-          amount: formatMsats(decoded.mtokens),
-          payment_hash: decoded.id,
-          created_at: decoded.created_at,
-          expires_at: decoded.expires_at,
-          description: decoded.description,
-          // payments should affect wallet status
-          status: true
+          ...await logContextFromBolt11(context.bolt11)
         }
       }
-      context.recv = true
 
       await models.walletLog.create({
         data: {
@@ -768,7 +819,9 @@ export const walletLogger = ({ wallet, models }) => {
           wallet: wallet.type,
           level,
           message,
-          context
+          context,
+          invoiceId,
+          withdrawalId
         }
       })
     } catch (err) {

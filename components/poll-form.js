@@ -58,7 +58,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         max={MAX_POLL_NUM_CHOICES}
         min={2}
         hint={editThreshold
-          ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
+          ? <div className='text-muted fw-bold font-monospace'><Countdown date={editThreshold} /></div>
           : null}
         maxLength={MAX_POLL_CHOICE_LENGTH}
       />

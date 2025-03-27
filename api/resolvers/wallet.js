@@ -789,9 +789,9 @@ const logContextFromBolt11 = async (bolt11) => {
   }
 }
 
-export const walletLogger = ({ wallet, models }) => {
-  // no-op logger if wallet is not provided
-  if (!wallet) {
+export const walletLogger = ({ wallet, models, me }) => {
+  // no-op logger if no wallet or user provided
+  if (!wallet && !me) {
     return {
       ok: () => {},
       info: () => {},
@@ -815,8 +815,9 @@ export const walletLogger = ({ wallet, models }) => {
 
       await models.walletLog.create({
         data: {
-          userId: wallet.userId,
-          wallet: wallet.type,
+          userId: wallet?.userId ?? me.id,
+          // system logs have no wallet
+          wallet: wallet?.type,
           level,
           message,
           context,

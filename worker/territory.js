@@ -44,8 +44,12 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
         lnd,
         forcePaymentMethod: PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT
       })
+    console.log('result', result)
     if (!result) {
       throw new Error('not enough fee credits to auto-renew territory')
+    } else if (sub.status === 'GRACE' && result.status === 'ACTIVE') {
+      // if the sub was in grace and we successfully auto-renewed it, send a push notification
+      await notifyTerritoryStatusChange({ sub })
     }
   } catch (e) {
     console.error(e)
@@ -57,7 +61,7 @@ export async function territoryRevenue ({ models }) {
   // this is safe nonserializable because it only acts on old data that won't
   // be affected by concurrent updates ... and the update takes a lock on the
   // users table
-  const territoryRevenue = await models.$executeRaw`
+  await models.$executeRaw`
       WITH revenue AS (
         SELECT coalesce(sum(msats), 0) as revenue, "subName", "userId"
         FROM (
@@ -91,12 +95,18 @@ export async function territoryRevenue ({ models }) {
       SET msats = users.msats + "SubActResultTotal".total_msats,
         "stackedMsats" = users."stackedMsats" + "SubActResultTotal".total_msats
       FROM "SubActResultTotal"
-      WHERE users.id = "SubActResultTotal"."userId"
-      RETURNING (SELECT * FROM "SubActResult")`
+      WHERE users.id = "SubActResultTotal"."userId"`
 
-  if (territoryRevenue.length > 0) {
-    await Promise.allSettled(
-      territoryRevenue.map(subAct => notifyTerritoryRevenue(subAct))
-    )
-  }
+  const territoryRevenue = await models.subAct.findMany({
+    where: {
+      createdAt: { // retrieve revenue calculated in the last hour
+        gte: datePivot(new Date(), { hours: -1 })
+      },
+      type: 'REVENUE'
+    }
+  })
+
+  await Promise.allSettled(
+    territoryRevenue.map(subAct => notifyTerritoryRevenue(subAct))
+  )
 }

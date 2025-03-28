@@ -4,23 +4,12 @@ import CowboyHatIcon from '@/svgs/cowboy.svg'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import { numWithUnits } from '@/lib/format'
 import { USER_ID } from '@/lib/constants'
-import GunIcon from '@/svgs/revolver.svg'
-import HorseIcon from '@/svgs/horse.svg'
 import classNames from 'classnames'
 
 const BADGES = [
   {
     icon: CowboyHatIcon,
     streakName: 'streak'
-  },
-  {
-    icon: HorseIcon,
-    streakName: 'horseStreak'
-  },
-  {
-    icon: GunIcon,
-    streakName: 'gunStreak',
-    sizeDelta: 2
   }
 ]
 
@@ -53,7 +42,7 @@ export default function Badges ({ user, badge, className = 'ms-1', badgeClassNam
   )
 }
 
-function SNBadge ({ user, badge, streakName, badgeClassName, IconForBadge, height = 16, width = 16, sizeDelta = 0 }) {
+function SNBadge ({ user, badge, streakName, badgeClassName, IconForBadge, height = 16, width = 16 }) {
   const streak = user.optional[streakName]
   if (streak === null) {
     return null
@@ -65,7 +54,7 @@ function SNBadge ({ user, badge, streakName, badgeClassName, IconForBadge, heigh
         ? `${numWithUnits(streak, { abbreviate: false, unitSingular: 'day', unitPlural: 'days' })}`
         : 'new'}
     >
-      <span><IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} /></span>
+      <span><IconForBadge className={badgeClassName} height={height} width={width} /></span>
     </BadgeTooltip>
   )
 }

@@ -1082,19 +1082,33 @@ export default {
 
       return user.streak
     },
-    gunStreak: async (user, args, { models }) => {
+    hasSendWallet: async (user, args, { models }) => {
       if (user.hideCowboyHat) {
-        return null
+        return false
       }
 
-      return user.gunStreak
+      const vaultEntry = await models.vaultEntry.findFirst({
+        where: {
+          userId: user.id,
+          wallet: {
+            enabled: true
+          }
+        }
+      })
+      return !!vaultEntry
     },
-    horseStreak: async (user, args, { models }) => {
+    hasRecvWallet: async (user, args, { models }) => {
       if (user.hideCowboyHat) {
-        return null
+        return false
       }
 
-      return user.horseStreak
+      const wallet = await models.wallet.findFirst({
+        where: {
+          userId: user.id,
+          enabled: true
+        }
+      })
+      return !!wallet
     },
     maxStreak: async (user, args, { models }) => {
       if (user.hideCowboyHat) {

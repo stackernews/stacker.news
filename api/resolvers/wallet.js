@@ -481,6 +481,13 @@ const resolvers = {
         AND "cancelledAt" < now() - ${`${WALLET_RETRY_AFTER_MS} milliseconds`}::interval
         AND "cancelledAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
         AND "paymentAttempt" < ${WALLET_MAX_RETRIES}
+        AND (
+          "actionType" = 'ITEM_CREATE' OR
+          "actionType" = 'ZAP' OR
+          "actionType" = 'DOWN_ZAP' OR
+          "actionType" = 'POLL_VOTE' OR
+          "actionType" = 'BOOST'
+        )
         ORDER BY id DESC`
     }
   },

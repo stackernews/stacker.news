@@ -6,9 +6,9 @@ import { SUB_FULL_FIELDS } from './subs'
 export const STREAK_FIELDS = gql`
   fragment StreakFields on User {
     optional {
-    streak
-    gunStreak
-      horseStreak
+      streak
+      hasSendWallet
+      hasRecvWallet
     }
   }
 `

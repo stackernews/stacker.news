@@ -4,16 +4,20 @@ import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString, lnurlPayDescrip
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
 import { LNURLP_COMMENT_MAX_LENGTH, MAX_INVOICE_DESCRIPTION_LENGTH } from '@/lib/constants'
-import { toPositiveBigInt } from '@/lib/format'
+import { formatMsats, toPositiveBigInt } from '@/lib/format'
 import assertGofacYourself from '@/api/resolvers/ofac'
 import performPaidAction from '@/api/paidAction'
 import { validateSchema, lud18PayerDataSchema } from '@/lib/validate'
+import { walletLogger } from '@/api/resolvers/wallet'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
   if (!user) {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
+
+  const logger = walletLogger({ models, me: user })
+  logger.info('LNURL-pay callback', { amount: formatMsats(amount), nostr, comment })
 
   try {
     await assertGofacYourself({ models, headers })
@@ -96,6 +100,8 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     })
   } catch (error) {
     console.log(error)
+    // TODO: stackers probably don't know what lnurlp means
+    logger.error(`LNURL-pay failed: ${error.message}`)
     res.status(400).json({ status: 'ERROR', reason: 'could not generate invoice to customer\'s attached wallet' })
   }
 }

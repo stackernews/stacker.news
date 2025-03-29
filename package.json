@@ -20,7 +20,7 @@
     "@graphql-tools/schema": "^10.0.6",
     "@lightninglabs/lnc-web": "^0.3.2-alpha",
     "@noble/curves": "^1.6.0",
-    "@nostr-dev-kit/ndk": "^2.10.5",
+    "@nostr-dev-kit/ndk": "^2.12.2",
     "@opensearch-project/opensearch": "^2.12.0",
     "@prisma/client": "^5.20.0",
     "@slack/web-api": "^7.6.0",

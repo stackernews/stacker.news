@@ -66,3 +66,5 @@ docker/lnbits/data
 # nostr link extract
 scripts/nostr-link-extract.config.json
 scripts/nostr-links.db
+scripts/twitter-link-extract.config.json
+scripts/twitter-links.db

@@ -11,6 +11,7 @@ import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
+import { canReceive, getWalletByType } from '@/wallets/common'
 
 const contributors = new Set()
 
@@ -1082,19 +1083,37 @@ export default {
 
       return user.streak
     },
-    gunStreak: async (user, args, { models }) => {
+    hasSendWallet: async (user, args, { models }) => {
       if (user.hideCowboyHat) {
-        return null
+        return false
       }
 
-      return user.gunStreak
+      const vaultEntry = await models.vaultEntry.findFirst({
+        where: {
+          userId: user.id,
+          wallet: {
+            enabled: true
+          }
+        }
+      })
+      return !!vaultEntry
     },
-    horseStreak: async (user, args, { models }) => {
+    hasRecvWallet: async (user, args, { models }) => {
       if (user.hideCowboyHat) {
-        return null
+        return false
       }
 
-      return user.horseStreak
+      const wallets = await models.wallet.findMany({
+        where: {
+          userId: user.id,
+          enabled: true
+        }
+      })
+
+      return wallets.some(({ type, wallet: config }) => {
+        const def = getWalletByType(type)
+        return canReceive({ def, config })
+      })
     },
     maxStreak: async (user, args, { models }) => {
       if (user.hideCowboyHat) {

@@ -12,6 +12,7 @@ import { gql, useMutation } from '@apollo/client'
 import { useToast } from './toast'
 import ActionDropdown from './action-dropdown'
 import { TerritoryTransferDropdownItem } from './territory-transfer'
+import { useDomain } from './domains/territory-domains'
 
 export function TerritoryDetails ({ sub, children }) {
   return (
@@ -68,6 +69,12 @@ export function TerritoryInfo ({ sub }) {
             <span className='fw-bold'>{numWithUnits(sub.replyCost)}</span>
           </div>
         </div>
+        {sub.customDomain && (
+          <div className='text-muted'>
+            <span>website </span>
+            <Link className='fw-bold' href={`https://${sub.customDomain.domain}`}>{sub.customDomain.domain}</Link>
+          </div>
+        )}
         <TerritoryBillingLine sub={sub} />
       </CardFooter>
     </>
@@ -77,6 +84,7 @@ export function TerritoryInfo ({ sub }) {
 export default function TerritoryHeader ({ sub }) {
   const { me } = useMe()
   const toaster = useToast()
+  const { isCustomDomain } = useDomain()
 
   const [toggleMuteSub] = useMutation(
     gql`
@@ -95,6 +103,7 @@ export default function TerritoryHeader ({ sub }) {
   )
 
   const isMine = Number(sub.userId) === Number(me?.id)
+  if (isCustomDomain && !isMine) return null
 
   return (
     <>

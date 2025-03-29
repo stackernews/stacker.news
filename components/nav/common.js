@@ -25,6 +25,7 @@ import { useWallets } from '@/wallets/index'
 import SwitchAccountList, { nextAccount, useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
+import { useDomain } from '@/components/domains/territory-domains'
 
 export function Brand ({ className }) {
   return (
@@ -291,6 +292,7 @@ function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const { removeLocalWallets } = useWallets()
   const router = useRouter()
+  const { isCustomDomain } = useDomain()
 
   return (
     <div className='d-flex m-auto flex-column w-fit-content'>
@@ -322,7 +324,7 @@ function LogoutObstacle ({ onClose }) {
 
             removeLocalWallets()
 
-            await signOut({ callbackUrl: '/' })
+            await signOut({ callbackUrl: '/', redirect: !isCustomDomain })
           }}
         >
           logout

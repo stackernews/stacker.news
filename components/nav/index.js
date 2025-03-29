@@ -3,16 +3,24 @@ import DesktopHeader from './desktop/header'
 import MobileHeader from './mobile/header'
 import StickyBar from './sticky-bar'
 import { PriceCarouselProvider } from './price-carousel'
+import { useDomain } from '@/components/domains/territory-domains'
 
 export default function Navigation ({ sub }) {
   const router = useRouter()
+  const { isCustomDomain } = useDomain()
+
   const path = router.asPath.split('?')[0]
   const props = {
     prefix: sub ? `/~${sub}` : '',
     path,
     pathname: router.pathname,
-    topNavKey: path.split('/')[sub ? 2 : 1] ?? '',
-    dropNavKey: path.split('/').slice(sub ? 2 : 1).join('/'),
+    topNavKey: isCustomDomain
+      ? path.split('/')[1] ?? ''
+      : path.split('/')[sub ? 2 : 1] ?? '',
+    dropNavKey: isCustomDomain
+      ? path.split('/').slice(1).join('/')
+      : path.split('/').slice(sub ? 2 : 1).join('/'),
+    isCustomDomain,
     sub
   }
 

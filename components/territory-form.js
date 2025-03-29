@@ -14,11 +14,16 @@ import { purchasedType } from '@/lib/territory'
 import { SUB } from '@/fragments/subs'
 import { usePaidMutation } from './use-paid-mutation'
 import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/paidAction'
+import TerritoryDomains, { useDomain } from './domains/territory-domains'
+import Link from 'next/link'
+import BrandingForm from './domains/branding/branding-form'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
   const client = useApolloClient()
   const { me } = useMe()
+  const { isCustomDomain } = useDomain()
+
   const [upsertSub] = usePaidMutation(UPSERT_SUB)
   const [unarchiveTerritory] = usePaidMutation(UNARCHIVE_TERRITORY)
 
@@ -84,6 +89,7 @@ export default function TerritoryForm ({ sub }) {
     }
   }, [sub, billing])
 
+  // TODO: Add a custom domain textbox and verification status; validation too
   return (
     <FeeButtonProvider baseLineItems={lineItems}>
       <Form
@@ -254,7 +260,7 @@ export default function TerritoryForm ({ sub }) {
                       </ol>
                     </Info>
                   </div>
-          }
+                }
                 name='moderated'
                 groupClassName='ms-1'
               />
@@ -270,13 +276,12 @@ export default function TerritoryForm ({ sub }) {
                       </ol>
                     </Info>
                   </div>
-          }
+                }
                 name='nsfw'
                 groupClassName='ms-1'
               />
             </>
-
-}
+          }
         />
         <div className='mt-3 d-flex justify-content-end'>
           <FeeButton
@@ -286,6 +291,21 @@ export default function TerritoryForm ({ sub }) {
           />
         </div>
       </Form>
+      {sub && !isCustomDomain &&
+        <div className='w-100'>
+          <AccordianItem
+            header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
+            body={
+              <>
+                <TerritoryDomains sub={sub} />
+                {/* TODO: doesn't follow the custom domain state */}
+                {sub?.customDomain?.dnsState === 'VERIFIED' && sub?.customDomain?.sslState === 'VERIFIED' &&
+                  <BrandingForm sub={sub} />}
+              </>
+            }
+          />
+        </div>}
+      {sub && isCustomDomain && <Link className='text-muted w-100' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain settings on stacker.news</Link>}
     </FeeButtonProvider>
   )
 }

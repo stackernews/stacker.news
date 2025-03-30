@@ -11,6 +11,7 @@ import { ME } from '@/fragments/users'
 import { PRICE } from '@/fragments/price'
 import { BLOCK_HEIGHT } from '@/fragments/blockHeight'
 import { CHAIN_FEE } from '@/fragments/chainFee'
+import { GET_CUSTOM_BRANDING } from '@/fragments/brandings'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
 import { NOFOLLOW_LIMIT } from '@/lib/constants'
@@ -152,8 +153,20 @@ export function getGetServerSideProps (
 
     const client = await getSSRApolloClient({ req, res })
 
+    // TODO: doesn't seem the best place for this
+    let branding = null
+
     // custom domain SSR check
-    const customDomain = req.headers.host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
+    const customDomain = {
+      // TODO: pass domain
+      isCustomDomain: req.headers.host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, ''),
+      subName: req.headers['x-stacker-news-subname'] || null
+    }
+    if (customDomain?.isCustomDomain && customDomain?.subName) {
+      // TODO: cleanup
+      const { data: { customBranding } } = await client.query({ query: GET_CUSTOM_BRANDING, variables: { subName: customDomain?.subName } })
+      branding = customBranding
+    }
 
     let { data: { me } } = await client.query({ query: ME })
 
@@ -220,6 +233,7 @@ export function getGetServerSideProps (
       props: {
         ...props,
         customDomain,
+        branding,
         me,
         price,
         blockHeight,

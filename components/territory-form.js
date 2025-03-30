@@ -16,13 +16,12 @@ import { usePaidMutation } from './use-paid-mutation'
 import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/paidAction'
 import TerritoryDomains, { useDomain } from './domains/territory-domains'
 import Link from 'next/link'
-import BrandingForm from './domains/branding/branding-form'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
   const client = useApolloClient()
   const { me } = useMe()
-  const { isCustomDomain } = useDomain()
+  const { customDomain: { isCustomDomain } } = useDomain()
 
   const [upsertSub] = usePaidMutation(UPSERT_SUB)
   const [unarchiveTerritory] = usePaidMutation(UNARCHIVE_TERRITORY)
@@ -295,14 +294,7 @@ export default function TerritoryForm ({ sub }) {
         <div className='w-100'>
           <AccordianItem
             header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
-            body={
-              <>
-                <TerritoryDomains sub={sub} />
-                {/* TODO: doesn't follow the custom domain state */}
-                {sub?.customDomain?.dnsState === 'VERIFIED' && sub?.customDomain?.sslState === 'VERIFIED' &&
-                  <BrandingForm sub={sub} />}
-              </>
-            }
+            body={<TerritoryDomains sub={sub} />}
           />
         </div>}
       {sub && isCustomDomain && <Link className='text-muted w-100' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain settings on stacker.news</Link>}

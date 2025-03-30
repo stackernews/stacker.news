@@ -60,6 +60,9 @@ export async function customDomainMiddleware (request, referrerResp, domain) {
   console.log('pathname', pathname)
   console.log('query', url.searchParams)
 
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-stacker-news-subname', domain.subName)
+
   // Auth sync redirects with domain and optional callbackUrl and multiAuth params
   if (pathname === '/login' || pathname === '/signup') {
     const redirectUrl = new URL(pathname, mainDomain)
@@ -70,7 +73,9 @@ export async function customDomainMiddleware (request, referrerResp, domain) {
     if (url.searchParams.get('multiAuth')) {
       redirectUrl.searchParams.set('multiAuth', url.searchParams.get('multiAuth'))
     }
-    const redirectResp = NextResponse.redirect(redirectUrl)
+    const redirectResp = NextResponse.redirect(redirectUrl, {
+      headers: requestHeaders
+    })
     return applyReferrerCookies(redirectResp, referrerResp) // apply referrer cookies to the redirect
   }
 
@@ -80,7 +85,9 @@ export async function customDomainMiddleware (request, referrerResp, domain) {
     const cleanPath = pathname.replace(`/~${domain.subName}`, '') || '/'
     // TEST
     console.log('Redirecting to clean path:', cleanPath)
-    const redirectResp = NextResponse.redirect(new URL(cleanPath + url.search, url.origin))
+    const redirectResp = NextResponse.redirect(new URL(cleanPath + url.search, url.origin), {
+      headers: requestHeaders
+    })
     return applyReferrerCookies(redirectResp, referrerResp) // apply referrer cookies to the redirect
   }
 
@@ -100,11 +107,17 @@ export async function customDomainMiddleware (request, referrerResp, domain) {
     internalUrl.pathname = `/~${domain.subName}${pathname === '/' ? '' : pathname}`
     console.log('Rewrite to:', internalUrl.pathname)
     // rewrite to the territory path
-    const resp = NextResponse.rewrite(internalUrl)
+    const resp = NextResponse.rewrite(internalUrl, {
+      headers: requestHeaders
+    })
     return applyReferrerCookies(resp, referrerResp) // apply referrer cookies to the rewrite
   }
 
-  return NextResponse.next() // continue if we don't need to rewrite or redirect
+  return NextResponse.next({ // continue if we don't need to rewrite or redirect
+    request: {
+      headers: requestHeaders
+    }
+  })
 }
 
 // UNUSED

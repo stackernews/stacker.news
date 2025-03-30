@@ -100,7 +100,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
     If we are on the client, we populate the apollo cache with the
     ssr data
   */
-  const { apollo, ssrData, me, price, blockHeight, chainFee, customDomain, ...otherProps } = props
+  const { apollo, ssrData, me, price, blockHeight, chainFee, customDomain, branding, ...otherProps } = props
   useEffect(() => {
     writeQuery(client, apollo, ssrData)
   }, [client, apollo, ssrData])
@@ -112,9 +112,9 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
       </Head>
       <ErrorBoundary>
         <PlausibleProvider domain='stacker.news' trackOutboundLinks>
-          <DomainProvider isCustomDomain={customDomain}>
+          <DomainProvider customDomain={customDomain}>
             <ApolloProvider client={client}>
-              <BrandingProvider>
+              <BrandingProvider customBranding={branding}>
                 <MeProvider me={me}>
                   <WalletsProvider>
                     <HasNewNotesProvider>

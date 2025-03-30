@@ -7,7 +7,7 @@ import { useDomain } from '@/components/domains/territory-domains'
 
 export function SeoSearch ({ sub }) {
   const router = useRouter()
-  const { isCustomDomain } = useDomain()
+  const { customDomain: { isCustomDomain } } = useDomain()
   const { title } = isCustomDomain ? useBranding() : { title: 'stacker news' }
   const subStr = sub && !isCustomDomain ? ` ~${sub}` : ''
   const snStr = `${router.query.q || 'search'} \\ ${title}${subStr}`
@@ -43,7 +43,7 @@ export function SeoSearch ({ sub }) {
 
 export default function Seo ({ sub, item, user }) {
   const router = useRouter()
-  const { isCustomDomain } = useDomain()
+  const { customDomain: { isCustomDomain } } = useDomain()
   const { title } = isCustomDomain ? useBranding() : { title: 'stacker news' }
   const pathNoQuery = router.asPath.split('?')[0]
   const defaultTitle = pathNoQuery.slice(1)

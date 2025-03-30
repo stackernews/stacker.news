@@ -292,7 +292,7 @@ function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const { removeLocalWallets } = useWallets()
   const router = useRouter()
-  const { isCustomDomain } = useDomain()
+  const { customDomain: { isCustomDomain } } = useDomain()
 
   return (
     <div className='d-flex m-auto flex-column w-fit-content'>

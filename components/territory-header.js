@@ -84,7 +84,7 @@ export function TerritoryInfo ({ sub }) {
 export default function TerritoryHeader ({ sub }) {
   const { me } = useMe()
   const toaster = useToast()
-  const { isCustomDomain } = useDomain()
+  const { customDomain: { isCustomDomain } } = useDomain()
 
   const [toggleMuteSub] = useMutation(
     gql`

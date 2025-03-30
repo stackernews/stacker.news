@@ -9,24 +9,32 @@ import { GET_CUSTOM_DOMAIN, SET_CUSTOM_DOMAIN } from '@/fragments/domains'
 import { useEffect, createContext, useContext, useState } from 'react'
 import { useRouter } from 'next/router'
 import { signIn } from 'next-auth/react'
+import BrandingForm from '@/components/domains/branding/branding-form'
 
 // Domain context for custom domains
 const DomainContext = createContext({
-  isCustomDomain: false
+  customDomain: {
+    isCustomDomain: false,
+    subName: null
+  }
 })
 
-export const DomainProvider = ({ isCustomDomain: initialIsCustomDomain, children }) => {
+export const DomainProvider = ({ customDomain: initialCustomDomain, children }) => {
   const router = useRouter()
-  const [isCustomDomain, setIsCustomDomain] = useState(initialIsCustomDomain)
+  const [customDomain, setCustomDomain] = useState(initialCustomDomain)
 
   useEffect(() => {
     // client side navigation
     if (typeof window !== 'undefined') {
       const hostname = window.location.hostname
-      const isCustom = hostname !== new URL(process.env.NEXT_PUBLIC_URL).hostname
-      setIsCustomDomain(isCustom)
+      setCustomDomain({
+        isCustomDomain: hostname !== new URL(process.env.NEXT_PUBLIC_URL).hostname,
+        subName: router.query.sub
+      })
     }
   }, [router.asPath])
+
+  console.log('customDomain', customDomain)
 
   // TODO: alternative to this, for test only
   // auth sync
@@ -39,7 +47,7 @@ export const DomainProvider = ({ isCustomDomain: initialIsCustomDomain, children
   }, [router.query.type])
 
   return (
-    <DomainContext.Provider value={{ isCustomDomain }}>
+    <DomainContext.Provider value={{ customDomain }}>
       {children}
     </DomainContext.Provider>
   )
@@ -181,6 +189,8 @@ export default function CustomDomainForm ({ sub }) {
         </div>
       </Form>
       <DomainGuidelines customDomain={data?.customDomain} />
+      {dnsState === 'VERIFIED' && sslState === 'VERIFIED' &&
+        <BrandingForm sub={sub} />}
     </>
   )
 }

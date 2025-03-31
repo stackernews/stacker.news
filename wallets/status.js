@@ -1,6 +1,13 @@
-import { canReceive, canSend, isConfigured, Status } from '@/wallets/common'
+import { canReceive, canSend, isConfigured } from '@/wallets/common'
 import { useWalletLogs } from '@/wallets/logger'
 import styles from '@/styles/wallet.module.css'
+
+export const Status = {
+  Enabled: 'Enabled',
+  Disabled: 'Disabled',
+  Error: 'Error',
+  Warning: 'Warning'
+}
 
 export function useWalletStatus (wallet) {
   const { logs } = useWalletLogs(wallet)

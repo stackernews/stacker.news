@@ -14,7 +14,7 @@ const BrandingContext = createContext(defaultBranding)
 
 export const BrandingProvider = ({ children, customBranding }) => {
   return (
-    <BrandingContext.Provider value={customBranding}>
+    <BrandingContext.Provider value={customBranding || defaultBranding}>
       {customBranding && (
         <>
           <Head>

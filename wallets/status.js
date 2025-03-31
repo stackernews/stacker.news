@@ -1,5 +1,5 @@
 import { canReceive, canSend, isConfigured, Status } from '@/wallets/common'
-import { useWalletLogs } from '@/components/wallet-logger'
+import { useWalletLogs } from '@/wallets/logger'
 import styles from '@/styles/wallet.module.css'
 
 export function useWalletStatus (wallet) {

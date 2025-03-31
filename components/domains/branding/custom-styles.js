@@ -9,6 +9,7 @@ export default function CustomStyles () {
       // dynamic colors
       document.documentElement.style.setProperty('--bs-primary', branding.primaryColor)
       document.documentElement.style.setProperty('--bs-secondary', branding.secondaryColor)
+      document.documentElement.style.setProperty('--theme-primary', branding.primaryColor)
 
       // hex to rgb for compat
       document.documentElement.style.setProperty('--bs-primary-rgb', hexToRgb(branding.primaryColor))

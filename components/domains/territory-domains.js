@@ -29,7 +29,7 @@ export const DomainProvider = ({ customDomain: initialCustomDomain, children }) 
       const hostname = window.location.hostname
       setCustomDomain({
         isCustomDomain: hostname !== new URL(process.env.NEXT_PUBLIC_URL).hostname,
-        subName: router.query.sub
+        subName: router.query.sub || initialCustomDomain?.subName
       })
     }
   }, [router.asPath])

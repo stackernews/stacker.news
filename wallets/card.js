@@ -7,9 +7,9 @@ import { Status, isConfigured } from '@/wallets/common'
 import DraggableIcon from '@/svgs/draggable.svg'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
-import { useWalletImage } from '@/components/wallet-image'
-import { useWalletStatus, statusToClass } from '@/components/wallet-status'
-import { useWalletSupport } from '@/components/wallet-support'
+import { useWalletImage } from '@/wallets/image'
+import { useWalletStatus, statusToClass } from '@/wallets/status'
+import { useWalletSupport } from '@/wallets/support'
 
 export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnter, onDragEnd, onTouchStart, sourceIndex, targetIndex, index }) {
   const image = useWalletImage(wallet)

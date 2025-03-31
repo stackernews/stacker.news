@@ -108,39 +108,39 @@ export default function Wallet ({ ssrData }) {
               checked={filter.send}
             />
           </div>
-          {wallets
-            .filter(w => {
-              return (!filter.send || (filter.send && supportsSend(w))) &&
-              (!filter.receive || (filter.receive && supportsReceive(w)))
-            })
-            .map((w, i) => {
-              const draggable = isClient && w.config?.enabled
+          {
+            wallets
+              .filter(w => {
+                return (!filter.send || (filter.send && supportsSend(w))) &&
+                (!filter.receive || (filter.receive && supportsReceive(w)))
+              })
+              .map((w, i) => {
+                const draggable = isClient && w.config?.enabled
 
-              return (
-                <div
-                  key={w.def.name}
-                  className={
-                    !draggable
-                      ? ''
-                      : (`${sourceIndex === i ? styles.drag : ''} ${draggable && targetIndex === i ? styles.drop : ''}`)
-                    }
-                  suppressHydrationWarning
-                >
-                  <WalletCard
-                    wallet={w}
-                    draggable={draggable}
-                    onDragStart={draggable ? onDragStart(i) : undefined}
-                    onTouchStart={draggable ? onTouchStart(i) : undefined}
-                    onDragEnter={draggable ? onDragEnter(i) : undefined}
-                    sourceIndex={sourceIndex}
-                    targetIndex={targetIndex}
-                    index={i}
-                  />
-                </div>
-              )
+                return (
+                  <div
+                    key={w.def.name}
+                    className={
+                      !draggable
+                        ? ''
+                        : (`${sourceIndex === i ? styles.drag : ''} ${draggable && targetIndex === i ? styles.drop : ''}`)
+                      }
+                    suppressHydrationWarning
+                  >
+                    <WalletCard
+                      wallet={w}
+                      draggable={draggable}
+                      onDragStart={draggable ? onDragStart(i) : undefined}
+                      onTouchStart={draggable ? onTouchStart(i) : undefined}
+                      onDragEnter={draggable ? onDragEnter(i) : undefined}
+                      sourceIndex={sourceIndex}
+                      targetIndex={targetIndex}
+                      index={i}
+                    />
+                  </div>
+                )
+              })
             }
-            )}
-
         </div>
       </div>
     </Layout>

@@ -163,7 +163,8 @@ export async function nonCriticalSideEffects ({ invoice, id }, { models }) {
     where: invoice ? { invoiceId: invoice.id } : { id: parseInt(id) },
     include: {
       mentions: true,
-      itemReferrers: { include: { refereeItem: true } }
+      itemReferrers: { include: { refereeItem: true } },
+      user: true
     }
   })
   // compare timestamps to only notify if mention or item referral was just created to avoid duplicates on edits

@@ -1,4 +1,4 @@
-import { lightningAddressValidator } from '@/lib/validate'
+import { externalLightningAddressValidator } from '@/lib/validate'
 
 export const name = 'lightning-address'
 export const shortName = 'lnAddr'
@@ -12,11 +12,7 @@ export const fields = [
     type: 'text',
     autoComplete: 'off',
     serverOnly: true,
-    validate: lightningAddressValidator.test({
-      name: 'address',
-      test: addr => !addr.toLowerCase().endsWith('@stacker.news'),
-      message: 'lightning address must be external'
-    })
+    validate: externalLightningAddressValidator
   }
 ]
 

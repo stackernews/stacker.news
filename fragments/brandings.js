@@ -4,8 +4,7 @@ export const GET_CUSTOM_BRANDING = gql`
   query CustomBranding($subName: String!) {
     customBranding(subName: $subName) {
       title
-      primaryColor
-      secondaryColor
+      colors
       logoId
       faviconId
       subName
@@ -16,8 +15,7 @@ export const GET_CUSTOM_BRANDING = gql`
 export const GET_CUSTOM_BRANDING_FIELDS = gql`
   fragment CustomBrandingFields on CustomBranding {
     title
-    primaryColor
-    secondaryColor
+    colors
     logoId
     faviconId
     subName

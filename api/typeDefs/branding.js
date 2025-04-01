@@ -11,8 +11,7 @@ export default gql`
 
   type CustomBranding {
     title: String
-    primaryColor: String
-    secondaryColor: String
+    colors: JSONObject
     logoId: Int
     faviconId: Int
     subName: String
@@ -20,8 +19,7 @@ export default gql`
 
   input CustomBrandingInput {
     title: String
-    primaryColor: String
-    secondaryColor: String
+    colors: JSONObject
     logoId: Int
     faviconId: Int
     subName: String

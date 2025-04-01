@@ -21,7 +21,7 @@ export default {
         throw new GqlInputError('you do not own this sub')
       }
 
-      const { title, primaryColor, secondaryColor, logoId, faviconId } = branding
+      const { title, colors, logoId, faviconId } = branding
 
       if (logoId) {
         const logo = await models.upload.findUnique({ where: { id: logoId } })
@@ -43,15 +43,13 @@ export default {
         where: { subName },
         update: {
           title: title || subName,
-          primaryColor: primaryColor || '#FADA5E',
-          secondaryColor: secondaryColor || '#F6911D',
+          colors,
           ...(logoId && { logo: { connect: { id: logoId } } }),
           ...(faviconId && { favicon: { connect: { id: faviconId } } })
         },
         create: {
           title: title || subName,
-          primaryColor: primaryColor || '#FADA5E',
-          secondaryColor: secondaryColor || '#F6911D',
+          colors,
           ...(logoId && { logo: { connect: { id: logoId } } }),
           ...(faviconId && { favicon: { connect: { id: faviconId } } }),
           sub: { connect: { name: subName } }

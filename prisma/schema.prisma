@@ -1265,8 +1265,7 @@ model CustomDomain {
 model CustomBranding {
   id                      Int       @id @default(autoincrement())
   title                   String?
-  primaryColor            String?
-  secondaryColor          String?
+  colors                  Json?     @default("{}")
   logoId                  Int?
   logo                    Upload?   @relation("LogoUpload", fields: [logoId], references: [id])
   faviconId               Int?

@@ -41,7 +41,8 @@ export const DomainProvider = ({ customDomain: ssrCustomDomain, children }) => {
   }, [router.query.type])
 
   const branding = customDomain?.branding || null
-
+  const colors = branding?.colors || null
+  console.log('colors', colors)
   return (
     <DomainContext.Provider value={{ customDomain }}>
       {branding && (
@@ -50,7 +51,7 @@ export const DomainProvider = ({ customDomain: ssrCustomDomain, children }) => {
             {branding?.title && <title>{branding?.title}</title>}
             {branding?.favicon && <link rel='icon' href={branding.favicon} />}
           </Head>
-          {branding?.primaryColor && <CustomStyles branding={branding} />}
+          {colors && <CustomStyles branding={branding} />}
         </>
       )}
       {children}
@@ -202,35 +203,43 @@ export default function CustomDomainForm ({ sub }) {
 
 export function CustomStyles ({ branding }) {
   useEffect(() => {
-    if (branding && branding.primaryColor) {
-      // TODO: mvp placeholder transition
-      document.documentElement.style.setProperty('--bs-transition', 'all 0.3s ease')
+    const colors = branding?.colors || null
+    if (colors) {
       const styleElement = document.createElement('style')
       styleElement.textContent = `
+        :root {
+          --bs-transition: all 0.3s ease;
+          --bs-primary: ${colors.primary};
+          --bs-secondary: ${colors.secondary};
+          --bs-info: ${colors.info};
+          --bs-success: ${colors.success};
+          --bs-danger: ${colors.danger};
+          --bs-primary-rgb: ${hexToRgb(colors.primary)};
+          --bs-secondary-rgb: ${hexToRgb(colors.secondary)};
+          --bs-info-rgb: ${hexToRgb(colors.info)};
+          --bs-success-rgb: ${hexToRgb(colors.success)};
+          --bs-danger-rgb: ${hexToRgb(colors.danger)};
+        }
+
+        .navbar-brand svg {
+          transition: var(--bs-transition);
+          fill: var(--bs-primary);
+        }
+
         .btn-primary, .btn-secondary,
         .bg-primary, .bg-secondary,
         .text-primary, .text-secondary,
-        .border-primary, .border-secondary,
-        svg,
+        .border-primary, .border-secondary
         [class*="btn-outline-primary"], [class*="btn-outline-secondary"],
         [style*="--bs-primary"], [style*="--bs-secondary"] {
           transition: var(--bs-transition);
         }
       `
       document.head.appendChild(styleElement)
-      // dynamic colors
-      document.documentElement.style.setProperty('--bs-primary', branding.primaryColor)
-      document.documentElement.style.setProperty('--bs-secondary', branding.secondaryColor)
-      // hex to rgb for compat
-      document.documentElement.style.setProperty('--bs-primary-rgb', hexToRgb(branding.primaryColor))
-      document.documentElement.style.setProperty('--bs-secondary-rgb', hexToRgb(branding.secondaryColor))
+
+      // Cleanup function
       return () => {
-        // TODO: not sure if this is a good practice: reset to default values when component unmounts
-        document.documentElement.style.removeProperty('transition')
-        document.documentElement.style.removeProperty('--bs-primary')
-        document.documentElement.style.removeProperty('--bs-secondary')
-        document.documentElement.style.removeProperty('--bs-primary-rgb')
-        document.documentElement.style.removeProperty('--bs-secondary-rgb')
+        document.head.removeChild(styleElement)
       }
     }
   }, [branding])

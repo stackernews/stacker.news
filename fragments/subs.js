@@ -50,8 +50,7 @@ export const SUB_FIELDS = gql`
     }
     customBranding {
       title
-      primaryColor
-      secondaryColor
+      colors
       logoId
       faviconId
     }

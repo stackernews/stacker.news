@@ -2,8 +2,7 @@
 CREATE TABLE "CustomBranding" (
     "id" SERIAL NOT NULL,
     "title" TEXT,
-    "primaryColor" TEXT,
-    "secondaryColor" TEXT,
+    "colors" JSONB DEFAULT '{}',
     "logoId" INTEGER,
     "faviconId" INTEGER,
     "subName" CITEXT NOT NULL,

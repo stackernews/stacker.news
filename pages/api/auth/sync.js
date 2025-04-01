@@ -13,7 +13,7 @@ export default async function handler (req, res) {
   let customDomain
   try {
     customDomain = new URL(redirectUrl)
-    const domain = await models.customDomain.findUnique({ where: { domain: customDomain.host, sslState: 'verified' } })
+    const domain = await models.customDomain.findUnique({ where: { domain: customDomain.host, sslState: 'VERIFIED' } })
     if (!domain) {
       return res.status(400).json({ status: 'ERROR', reason: 'custom domain not found' })
     }

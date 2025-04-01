@@ -16,29 +16,24 @@ import Head from 'next/head'
 const DomainContext = createContext({
   customDomain: {
     domain: null,
-    subName: null
+    subName: null,
+    branding: null
   }
 })
 
-export const DomainProvider = ({ customDomain: initialCustomDomain, children }) => {
+export const DomainProvider = ({ customDomain: ssrCustomDomain, children }) => {
   const router = useRouter()
-  const [customDomain, setCustomDomain] = useState(initialCustomDomain)
+  const [customDomain, setCustomDomain] = useState(ssrCustomDomain || null)
 
   useEffect(() => {
-    // client side navigation
-    if (typeof window !== 'undefined' && !initialCustomDomain) {
-      const hostname = window.location.hostname
-      setCustomDomain({
-        domain: hostname,
-        subName: router.query.sub || null
-      })
+    if (ssrCustomDomain && !customDomain) {
+      setCustomDomain(ssrCustomDomain)
     }
-  }, [router.asPath])
+  }, [ssrCustomDomain])
 
   // TODO: alternative to this, for test only
   // auth sync
   useEffect(() => {
-    console.log(router.query)
     if (router.query.type === 'sync') {
       console.log('signing in with sync')
       signIn('sync', { token: router.query.token, callbackUrl: router.query.callbackUrl, multiAuth: router.query.multiAuth, redirect: false })

@@ -6,9 +6,10 @@ import { useDomain } from '@/components/territory-domains'
 
 export function SeoSearch ({ sub }) {
   const router = useRouter()
-  const { customDomain: { domain, branding } } = useDomain()
+  const { customDomain } = useDomain()
+  const branding = customDomain?.branding || null
   const title = branding?.title || 'stacker news'
-  const subStr = sub && !domain ? ` ~${sub}` : ''
+  const subStr = sub && !customDomain ? ` ~${sub}` : ''
   const snStr = `${router.query.q || 'search'} \\ ${title}${subStr}`
   const desc = `SN${subStr} search: ${router.query.q || ''}`
 
@@ -42,11 +43,12 @@ export function SeoSearch ({ sub }) {
 
 export default function Seo ({ sub, item, user }) {
   const router = useRouter()
-  const { customDomain: { domain, branding } } = useDomain()
+  const { customDomain } = useDomain()
+  const branding = customDomain?.branding || null
   const title = branding?.title || 'stacker news'
   const pathNoQuery = router.asPath.split('?')[0]
   const defaultTitle = pathNoQuery.slice(1)
-  const snStr = `${title}${sub && !domain ? ` ~${sub}` : ''}`
+  const snStr = `${title}${sub && !customDomain ? ` ~${sub}` : ''}`
   let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}${title}`
   let desc = "It's like Hacker News but we pay you Bitcoin."
   if (item) {

@@ -84,9 +84,7 @@ export function TerritoryInfo ({ sub }) {
 export default function TerritoryHeader ({ sub }) {
   const { me } = useMe()
   const toaster = useToast()
-  const { customDomain: { domain } } = useDomain()
-
-  const isCustomDomain = !!domain
+  const { customDomain } = useDomain()
 
   const [toggleMuteSub] = useMutation(
     gql`
@@ -105,7 +103,7 @@ export default function TerritoryHeader ({ sub }) {
   )
 
   const isMine = Number(sub.userId) === Number(me?.id)
-  if (isCustomDomain && !isMine) return null
+  if (customDomain && !isMine) return null
 
   return (
     <>

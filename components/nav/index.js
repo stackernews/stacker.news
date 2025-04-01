@@ -7,20 +7,20 @@ import { useDomain } from '@/components/territory-domains'
 
 export default function Navigation ({ sub }) {
   const router = useRouter()
-  const { customDomain: { domain } } = useDomain()
+  const { customDomain } = useDomain()
 
   const path = router.asPath.split('?')[0]
   const props = {
     prefix: sub ? `/~${sub}` : '',
     path,
     pathname: router.pathname,
-    topNavKey: domain
+    topNavKey: customDomain
       ? path.split('/')[1] ?? ''
       : path.split('/')[sub ? 2 : 1] ?? '',
-    dropNavKey: domain
+    dropNavKey: customDomain
       ? path.split('/').slice(1).join('/')
       : path.split('/').slice(sub ? 2 : 1).join('/'),
-    domain,
+    customDomain,
     sub
   }
 

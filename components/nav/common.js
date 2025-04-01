@@ -292,9 +292,7 @@ function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const { removeLocalWallets } = useWallets()
   const router = useRouter()
-  const { customDomain: { domain } } = useDomain()
-
-  const isCustomDomain = !!domain
+  const { customDomain } = useDomain()
 
   return (
     <div className='d-flex m-auto flex-column w-fit-content'>
@@ -326,7 +324,7 @@ function LogoutObstacle ({ onClose }) {
 
             removeLocalWallets()
 
-            await signOut({ callbackUrl: '/', redirect: !isCustomDomain })
+            await signOut({ callbackUrl: '/', redirect: !customDomain })
           }}
         >
           logout

@@ -509,7 +509,7 @@ export default {
                     ${whereClause(
                       '"parentId" IS NULL',
                       '"Item"."deletedAt" IS NULL',
-                      '"Item"."status" = \'ACTIVE\'',
+                      activeOrMine(me),
                       'created_at <= $1',
                       '"pinId" IS NULL',
                       subClause(sub, 4)

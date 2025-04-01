@@ -34,6 +34,7 @@ ${STREAK_FIELDS}
       hideFromTopUsers
       hideWalletBalance
       hideWelcomeBanner
+      hideWalletPrompt
       imgproxyOnly
       showImagesAndVideos
       nostrCrossposting
@@ -165,6 +166,11 @@ export const USER_SUGGESTIONS = gql`
     userSuggestions(q: $q, limit: $limit) {
       name
     }
+  }`
+
+export const HIDE_WALLET_PROMPT_MUTATION = gql`
+  mutation hideWalletPrompt {
+    hideWalletPrompt
   }`
 
 export const USER_SEARCH = gql`

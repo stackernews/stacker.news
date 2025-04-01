@@ -38,6 +38,7 @@ export default gql`
     unlinkAuth(authType: String!): AuthMethods!
     linkUnverifiedEmail(email: String!): Boolean
     hideWelcomeBanner: Boolean
+    hideWalletPrompt: Boolean
     subscribeUserPosts(id: ID): User
     subscribeUserComments(id: ID): User
     toggleMute(id: ID): User
@@ -141,6 +142,7 @@ export default gql`
     """
     lastCheckedJobs: String
     hideWelcomeBanner: Boolean!
+    hideWalletPrompt: Boolean!
     tipPopover: Boolean!
     upvotePopover: Boolean!
     hasInvites: Boolean!

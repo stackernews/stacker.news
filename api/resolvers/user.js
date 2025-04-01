@@ -899,6 +899,14 @@ export default {
 
       await models.user.update({ where: { id: me.id }, data: { hideWelcomeBanner: true } })
       return true
+    },
+    hideWalletPrompt: async (parent, data, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      await models.user.update({ where: { id: me.id }, data: { hideWalletPrompt: true } })
+      return true
     }
   },
 

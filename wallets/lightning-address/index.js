@@ -15,7 +15,7 @@ export const fields = [
     validate: lightningAddressValidator.test({
       name: 'address',
       test: addr => !addr.toLowerCase().endsWith('@stacker.news'),
-      message: 'automated withdrawals must be external'
+      message: 'lightning address must be external'
     })
   }
 ]

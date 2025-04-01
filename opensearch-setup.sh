@@ -384,10 +384,3 @@ cat ".env.local"
 echo ""
 echo "item-nlp has been successfully built."
 echo "Restart SN containers to start using hybrid search."
-
-
-
-
-
-
-

@@ -2,14 +2,13 @@ import { NextSeo } from 'next-seo'
 import { useRouter } from 'next/router'
 import removeMd from 'remove-markdown'
 import { numWithUnits } from '@/lib/format'
-import { useBranding } from '@/components/domains/branding'
-import { useDomain } from '@/components/domains/territory-domains'
+import { useDomain } from '@/components/territory-domains'
 
 export function SeoSearch ({ sub }) {
   const router = useRouter()
-  const { customDomain: { isCustomDomain } } = useDomain()
-  const { title } = isCustomDomain ? useBranding() : { title: 'stacker news' }
-  const subStr = sub && !isCustomDomain ? ` ~${sub}` : ''
+  const { customDomain: { domain, branding } } = useDomain()
+  const title = branding?.title || 'stacker news'
+  const subStr = sub && !domain ? ` ~${sub}` : ''
   const snStr = `${router.query.q || 'search'} \\ ${title}${subStr}`
   const desc = `SN${subStr} search: ${router.query.q || ''}`
 
@@ -43,11 +42,11 @@ export function SeoSearch ({ sub }) {
 
 export default function Seo ({ sub, item, user }) {
   const router = useRouter()
-  const { customDomain: { isCustomDomain } } = useDomain()
-  const { title } = isCustomDomain ? useBranding() : { title: 'stacker news' }
+  const { customDomain: { domain, branding } } = useDomain()
+  const title = branding?.title || 'stacker news'
   const pathNoQuery = router.asPath.split('?')[0]
   const defaultTitle = pathNoQuery.slice(1)
-  const snStr = `${title}${sub && !isCustomDomain ? ` ~${sub}` : ''}`
+  const snStr = `${title}${sub && !domain ? ` ~${sub}` : ''}`
   let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}${title}`
   let desc = "It's like Hacker News but we pay you Bitcoin."
   if (item) {

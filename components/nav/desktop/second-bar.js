@@ -3,7 +3,8 @@ import { NavSelect, PostItem, Sorts, hasNavSelect } from '../common'
 import styles from '../../header.module.css'
 
 export default function SecondBar (props) {
-  const { prefix, topNavKey, isCustomDomain, sub } = props
+  const { prefix, topNavKey, domain, sub } = props
+  const isCustomDomain = !!domain
   if (!hasNavSelect(props)) return null
   return (
     <Navbar className='pt-0 pb-2'>

@@ -14,14 +14,16 @@ import { purchasedType } from '@/lib/territory'
 import { SUB } from '@/fragments/subs'
 import { usePaidMutation } from './use-paid-mutation'
 import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/paidAction'
-import TerritoryDomains, { useDomain } from './domains/territory-domains'
+import TerritoryDomains, { useDomain } from './territory-domains'
 import Link from 'next/link'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
   const client = useApolloClient()
   const { me } = useMe()
-  const { customDomain: { isCustomDomain } } = useDomain()
+  const { customDomain: { domain } } = useDomain()
+
+  const isCustomDomain = !!domain
 
   const [upsertSub] = usePaidMutation(UPSERT_SUB)
   const [unarchiveTerritory] = usePaidMutation(UNARCHIVE_TERRITORY)

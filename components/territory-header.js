@@ -12,7 +12,7 @@ import { gql, useMutation } from '@apollo/client'
 import { useToast } from './toast'
 import ActionDropdown from './action-dropdown'
 import { TerritoryTransferDropdownItem } from './territory-transfer'
-import { useDomain } from './domains/territory-domains'
+import { useDomain } from './territory-domains'
 
 export function TerritoryDetails ({ sub, children }) {
   return (
@@ -84,7 +84,9 @@ export function TerritoryInfo ({ sub }) {
 export default function TerritoryHeader ({ sub }) {
   const { me } = useMe()
   const toaster = useToast()
-  const { customDomain: { isCustomDomain } } = useDomain()
+  const { customDomain: { domain } } = useDomain()
+
+  const isCustomDomain = !!domain
 
   const [toggleMuteSub] = useMutation(
     gql`

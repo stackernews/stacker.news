@@ -1,20 +1,21 @@
 import { Badge } from 'react-bootstrap'
-import { Form, Input, SubmitButton } from '../form'
+import { Form, Input, SubmitButton } from './form'
 import { useMutation, useQuery } from '@apollo/client'
 import { customDomainSchema } from '@/lib/validate'
-import ActionTooltip from '../action-tooltip'
+import ActionTooltip from './action-tooltip'
 import { useToast } from '@/components/toast'
 import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { GET_CUSTOM_DOMAIN, SET_CUSTOM_DOMAIN } from '@/fragments/domains'
 import { useEffect, createContext, useContext, useState } from 'react'
 import { useRouter } from 'next/router'
 import { signIn } from 'next-auth/react'
-import BrandingForm from '@/components/domains/branding/branding-form'
+import BrandingForm from '@/components/territory-branding-form'
+import Head from 'next/head'
 
 // Domain context for custom domains
 const DomainContext = createContext({
   customDomain: {
-    isCustomDomain: false,
+    domain: null,
     subName: null
   }
 })
@@ -25,16 +26,14 @@ export const DomainProvider = ({ customDomain: initialCustomDomain, children }) 
 
   useEffect(() => {
     // client side navigation
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !initialCustomDomain) {
       const hostname = window.location.hostname
       setCustomDomain({
-        isCustomDomain: hostname !== new URL(process.env.NEXT_PUBLIC_URL).hostname,
-        subName: router.query.sub || initialCustomDomain?.subName
+        domain: hostname,
+        subName: router.query.sub || null
       })
     }
   }, [router.asPath])
-
-  console.log('customDomain', customDomain)
 
   // TODO: alternative to this, for test only
   // auth sync
@@ -46,8 +45,19 @@ export const DomainProvider = ({ customDomain: initialCustomDomain, children }) 
     }
   }, [router.query.type])
 
+  const branding = customDomain?.branding || null
+
   return (
     <DomainContext.Provider value={{ customDomain }}>
+      {branding && (
+        <>
+          <Head>
+            {branding?.title && <title>{branding?.title}</title>}
+            {branding?.favicon && <link rel='icon' href={branding.favicon} />}
+          </Head>
+          {branding?.primaryColor && <CustomStyles branding={branding} />}
+        </>
+      )}
       {children}
     </DomainContext.Provider>
   )
@@ -193,4 +203,49 @@ export default function CustomDomainForm ({ sub }) {
         <BrandingForm sub={sub} />}
     </>
   )
+}
+
+export function CustomStyles ({ branding }) {
+  useEffect(() => {
+    if (branding && branding.primaryColor) {
+      // TODO: mvp placeholder transition
+      document.documentElement.style.setProperty('--bs-transition', 'all 0.3s ease')
+      const styleElement = document.createElement('style')
+      styleElement.textContent = `
+        .btn-primary, .btn-secondary,
+        .bg-primary, .bg-secondary,
+        .text-primary, .text-secondary,
+        .border-primary, .border-secondary,
+        svg,
+        [class*="btn-outline-primary"], [class*="btn-outline-secondary"],
+        [style*="--bs-primary"], [style*="--bs-secondary"] {
+          transition: var(--bs-transition);
+        }
+      `
+      document.head.appendChild(styleElement)
+      // dynamic colors
+      document.documentElement.style.setProperty('--bs-primary', branding.primaryColor)
+      document.documentElement.style.setProperty('--bs-secondary', branding.secondaryColor)
+      // hex to rgb for compat
+      document.documentElement.style.setProperty('--bs-primary-rgb', hexToRgb(branding.primaryColor))
+      document.documentElement.style.setProperty('--bs-secondary-rgb', hexToRgb(branding.secondaryColor))
+      return () => {
+        // TODO: not sure if this is a good practice: reset to default values when component unmounts
+        document.documentElement.style.removeProperty('transition')
+        document.documentElement.style.removeProperty('--bs-primary')
+        document.documentElement.style.removeProperty('--bs-secondary')
+        document.documentElement.style.removeProperty('--bs-primary-rgb')
+        document.documentElement.style.removeProperty('--bs-secondary-rgb')
+      }
+    }
+  }, [branding])
+}
+
+// hex to rgb for compat
+function hexToRgb (hex) {
+  hex = hex.replace('#', '')
+  const r = parseInt(hex.substring(0, 2), 16)
+  const g = parseInt(hex.substring(2, 4), 16)
+  const b = parseInt(hex.substring(4, 6), 16)
+  return `${r}, ${g}, ${b}`
 }

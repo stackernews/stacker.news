@@ -153,19 +153,16 @@ export function getGetServerSideProps (
 
     const client = await getSSRApolloClient({ req, res })
 
-    // TODO: doesn't seem the best place for this
-    let branding = null
-
-    // custom domain SSR check
-    const customDomain = {
-      // TODO: pass domain
-      isCustomDomain: req.headers.host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, ''),
-      subName: req.headers['x-stacker-news-subname'] || null
-    }
-    if (customDomain?.isCustomDomain && customDomain?.subName) {
-      // TODO: cleanup
-      const { data: { customBranding } } = await client.query({ query: GET_CUSTOM_BRANDING, variables: { subName: customDomain?.subName } })
-      branding = customBranding
+    const isCustomDomain = req.headers.host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
+    const subName = req.headers['x-stacker-news-subname'] || null
+    let customDomain = null
+    if (isCustomDomain && subName) {
+      const { data: { customBranding } } = await client.query({ query: GET_CUSTOM_BRANDING, variables: { subName } })
+      customDomain = {
+        domain: req.headers.host,
+        subName,
+        branding: customBranding || null
+      }
     }
 
     let { data: { me } } = await client.query({ query: ME })
@@ -233,7 +230,6 @@ export function getGetServerSideProps (
       props: {
         ...props,
         customDomain,
-        branding,
         me,
         price,
         blockHeight,

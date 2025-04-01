@@ -1,6 +1,6 @@
-import { Form, SubmitButton, ColorPicker, Input } from '../../form'
+import { Form, SubmitButton, ColorPicker, Input } from './form'
 import { useMutation } from '@apollo/client'
-import { useToast } from '../../toast'
+import { useToast } from './toast'
 import { brandingSchema } from '@/lib/validate'
 import { SET_CUSTOM_BRANDING } from '@/fragments/brandings'
 
@@ -37,7 +37,7 @@ export default function BrandingForm ({ sub }) {
   return (
     <Form
       initial={initialValues}
-      schema={brandingSchema}
+      schema={brandingSchema} // TODO: branding schema
       onSubmit={onSubmit}
     >
       <Input label='title' name='title' />

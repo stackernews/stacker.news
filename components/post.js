@@ -110,7 +110,7 @@ export function PostForm ({ type, sub, children }) {
           noForm
           size='medium'
           sub={sub?.name}
-          info={sub && <TerritoryInfo sub={sub} />}
+          info={sub && <TerritoryInfo sub={sub} includeLink />}
           hint={sub?.moderated && 'this territory is moderated'}
         />
         <div>
@@ -176,7 +176,7 @@ export default function Post ({ sub }) {
             className='d-flex'
             size='medium'
             label='territory'
-            info={sub && <TerritoryInfo sub={sub} />}
+            info={sub && <TerritoryInfo sub={sub} includeLink />}
             hint={sub?.moderated && 'this territory is moderated'}
           />}
       </PostForm>

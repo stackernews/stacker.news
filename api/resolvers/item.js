@@ -509,7 +509,7 @@ export default {
                     ${whereClause(
                       '"parentId" IS NULL',
                       '"Item"."deletedAt" IS NULL',
-                      '"Item"."status" = \'ACTIVE\'',
+                      activeOrMine(me),
                       'created_at <= $1',
                       '"pinId" IS NULL',
                       subClause(sub, 4)
@@ -1449,7 +1449,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     throw new GqlInputError('item can no longer be edited')
   }
 
-  if (item.url && !isJob(item)) {
+  if (item.url && !isJob({ subName, ...item })) {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }

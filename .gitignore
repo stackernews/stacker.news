@@ -68,3 +68,6 @@ scripts/nostr-link-extract.config.json
 scripts/nostr-links.db
 scripts/twitter-link-extract.config.json
 scripts/twitter-links.db
+
+# pay-awards
+scripts/pay-awards.config.json

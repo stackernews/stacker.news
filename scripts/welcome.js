@@ -71,10 +71,10 @@ async function assertSettings () {
   }
 }
 
-function fetchRecentBios () {
+async function fetchRecentBios () {
   // fetch all recent bios. we assume here there won't be more than 21
   // since the last bio we already included in a post as defined by FETCH_AFTER.
-  return gql(
+  const { items: { items: bios } } = await gql(
     `query NewBios($limit: Limit!) {
       items(sort: "recent", type: "bios", limit: $limit) {
         items {
@@ -93,9 +93,8 @@ function fetchRecentBios () {
       }
     }`, { limit: LIMIT }
   )
-}
 
-function filterBios (bios) {
+  // assert that we fetched enough bios
   const newBios = bios.filter(b => b.id > FETCH_AFTER)
   if (newBios.length === bios.length) {
     throw new Error('last bio not found. increase limit')
@@ -190,7 +189,6 @@ const util = {
 
 assertSettings()
   .then(fetchRecentBios)
-  .then(data => filterBios(data.items.items))
   .then(populate)
   .then(printTable)
   .catch(console.error)

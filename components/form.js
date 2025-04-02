@@ -41,6 +41,7 @@ import dynamic from 'next/dynamic'
 import { qrImageSettings } from './qr'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
+import Avatar from './avatar'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -1403,6 +1404,22 @@ export function ColorPicker ({ label, groupClassName, name, ...props }) {
           if (props.onChange) {
             props.onChange(formik, e)
           }
+        }}
+      />
+    </FormGroup>
+  )
+}
+
+export function BrandingUpload ({ label, groupClassName, name, ...props }) {
+  const [, , helpers] = useField({ ...props, name })
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <Avatar
+        onSuccess={(id) => {
+          // This is called when the upload is successful
+          // We'll update the form value for logoId
+          helpers.setValue(id)
         }}
       />
     </FormGroup>

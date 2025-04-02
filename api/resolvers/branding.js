@@ -23,15 +23,18 @@ export default {
 
       const { title, colors, logoId, faviconId } = branding
 
-      if (logoId) {
-        const logo = await models.upload.findUnique({ where: { id: logoId } })
+      const parsedLogoId = parseInt(logoId)
+      const parsedFaviconId = parseInt(faviconId)
+
+      if (parsedLogoId) {
+        const logo = await models.upload.findUnique({ where: { id: parsedLogoId } })
         if (!logo) {
           throw new GqlInputError('logo not found')
         }
       }
 
-      if (faviconId) {
-        const favicon = await models.upload.findUnique({ where: { id: faviconId } })
+      if (parsedFaviconId) {
+        const favicon = await models.upload.findUnique({ where: { id: parsedFaviconId } })
         if (!favicon) {
           throw new GqlInputError('favicon not found')
         }
@@ -44,14 +47,14 @@ export default {
         update: {
           title: title || subName,
           colors,
-          ...(logoId && { logo: { connect: { id: logoId } } }),
-          ...(faviconId && { favicon: { connect: { id: faviconId } } })
+          ...(parsedLogoId && { logo: { connect: { id: parsedLogoId } } }),
+          ...(parsedFaviconId && { favicon: { connect: { id: parsedFaviconId } } })
         },
         create: {
           title: title || subName,
           colors,
-          ...(logoId && { logo: { connect: { id: logoId } } }),
-          ...(faviconId && { favicon: { connect: { id: faviconId } } }),
+          ...(parsedLogoId && { logo: { connect: { id: parsedLogoId } } }),
+          ...(parsedFaviconId && { favicon: { connect: { id: parsedFaviconId } } }),
           sub: { connect: { name: subName } }
         }
       })

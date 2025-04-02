@@ -12,16 +12,16 @@ export default gql`
   type CustomBranding {
     title: String
     colors: JSONObject
-    logoId: Int
-    faviconId: Int
+    logoId: String
+    faviconId: String
     subName: String
   }
 
   input CustomBrandingInput {
     title: String
     colors: JSONObject
-    logoId: Int
-    faviconId: Int
+    logoId: String
+    faviconId: String
     subName: String
   }
 `

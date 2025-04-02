@@ -28,10 +28,22 @@ import { numWithUnits } from '@/lib/format'
 import { useDomain } from '@/components/territory-domains'
 
 export function Brand ({ className }) {
+  const { customDomain } = useDomain()
+  const branding = customDomain?.branding || {}
   return (
     <Link href='/' passHref legacyBehavior>
       <Navbar.Brand className={classNames(styles.brand, className)}>
-        <SnIcon width={36} height={36} />
+        {branding.logoId
+          ? (
+            <img
+              src={`${process.env.NEXT_PUBLIC_MEDIA_URL}/${branding.logoId}`}
+              alt='Logo'
+              style={{ width: '36px', height: '36px', borderRadius: '.25rem' }}
+            />
+            )
+          : (
+            <SnIcon width={36} height={36} />
+            )}
       </Navbar.Brand>
     </Link>
   )
@@ -120,11 +132,19 @@ export function NavSelect ({ sub: subName, className, size }) {
 
 export function NavNotifications ({ className }) {
   const hasNewNotes = useHasNewNotes()
-
+  const { customDomain } = useDomain()
+  const branding = customDomain?.branding || {}
   return (
     <>
       <Head>
-        <link rel='shortcut icon' href={hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
+        <link
+          rel='shortcut icon'
+          href={hasNewNotes && !customDomain
+            ? '/favicon-notify.png'
+            : branding?.faviconId
+              ? `${process.env.NEXT_PUBLIC_MEDIA_URL}/${branding.faviconId}`
+              : '/favicon.png'}
+        />
       </Head>
       <Link href='/notifications' passHref legacyBehavior>
         <Nav.Link eventKey='notifications' className={classNames('position-relative', className)}>

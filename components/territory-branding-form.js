@@ -1,7 +1,7 @@
-import { Form, SubmitButton, ColorPicker, Input } from './form'
+import { Form, SubmitButton, ColorPicker, Input, BrandingUpload } from './form'
 import { useMutation } from '@apollo/client'
 import { useToast } from './toast'
-import { brandingSchema } from '@/lib/validate'
+import { customBrandingSchema } from '@/lib/validate'
 import { SET_CUSTOM_BRANDING } from '@/fragments/brandings'
 import AccordianItem from './accordian-item'
 
@@ -36,6 +36,8 @@ export default function BrandingForm ({ sub }) {
     }
   }
 
+  console.log(`${process.env.NEXT_PUBLIC_MEDIA_URL}/${sub.customBranding.logoId}`)
+
   const initialValues = {
     title: sub?.customBranding?.title || sub?.subName,
     primary: sub?.customBranding?.colors?.primary || '#FADA5E',
@@ -51,7 +53,7 @@ export default function BrandingForm ({ sub }) {
   return (
     <Form
       initial={initialValues}
-      schema={brandingSchema} // TODO: branding schema
+      schema={customBrandingSchema}
       onSubmit={onSubmit}
     >
       <Input label='title' name='title' />
@@ -66,6 +68,39 @@ export default function BrandingForm ({ sub }) {
             <ColorPicker groupClassName='col-4' label='info color' name='info' />
             <ColorPicker groupClassName='col-4' label='success color' name='success' />
             <ColorPicker groupClassName='col-4' label='danger color' name='danger' />
+          </div>
+        }
+      />
+      <AccordianItem
+        header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>logo and favicon</div>}
+        body={
+          <div className='row'>
+            <div className='col-2'>
+              <label className='form-label'>logo</label>
+              <div style={{ position: 'relative', width: '100px', height: '100px', border: '1px solid #dee2e6', borderRadius: '5px', overflow: 'hidden' }}>
+                {sub?.customBranding?.logoId && (
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_MEDIA_URL}/${sub.customBranding.logoId}`}
+                    alt='Logo'
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                )}
+                <BrandingUpload name='logoId' />
+              </div>
+            </div>
+            <div className='col-2'>
+              <label className='form-label'>favicon</label>
+              <div style={{ position: 'relative', width: '100px', height: '100px', border: '1px solid #dee2e6', borderRadius: '5px', overflow: 'hidden' }}>
+                {sub?.customBranding?.faviconId && (
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_MEDIA_URL}/${sub.customBranding.faviconId}`}
+                    alt='Favicon'
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                )}
+                <BrandingUpload name='faviconId' />
+              </div>
+            </div>
           </div>
         }
       />

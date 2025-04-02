@@ -1,5 +1,5 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
-import { toPositiveBigInt, numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
+import { toPositiveBigInt, numWithUnits, msatsToSats } from '@/lib/format'
 import { notifyDeposit } from '@/lib/webPush'
 import { getInvoiceableWallets } from '@/wallets/server'
 
@@ -20,10 +20,6 @@ export async function getInvoiceablePeer (_, { me, models, cost, paymentMethod }
 
   const wallets = await getInvoiceableWallets(me.id, { models })
   if (wallets.length === 0) {
-    return null
-  }
-
-  if (cost < satsToMsats(me.receiveCreditsBelowSats)) {
     return null
   }
 

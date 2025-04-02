@@ -25,7 +25,7 @@ if (!SN_API_KEY) {
   process.exit(1)
 }
 
-const LIMIT = 21
+const LIMIT = 50
 
 async function gql (query, variables = {}) {
   const response = await fetch(`${SN_API_URL}/api/graphql`, {
@@ -71,6 +71,30 @@ async function assertSettings () {
   }
 }
 
+async function fetchData () {
+  return await Promise.all([
+    fetchLatestWelcomePost(),
+    fetchRecentBios()
+  ])
+}
+
+async function fetchLatestWelcomePost () {
+  const { items: { items } } = await gql(
+    `query LatestWelcomePost {
+      items(name: "ek", sort: "user", type: "posts", limit: 50) {
+        items {
+          id
+          title
+          text
+        }
+      }
+    }`)
+
+  const regex = /Baby Stacker Corner/i
+  for (const item of items) if (regex.test(item.title)) return item
+  throw new Error('latest welcome post not found')
+}
+
 async function fetchRecentBios () {
   // fetch all recent bios. we assume here there won't be more than 21
   // since the last bio we already included in a post as defined by FETCH_AFTER.
@@ -102,26 +126,56 @@ async function fetchRecentBios () {
   return newBios
 }
 
-async function populate (bios) {
-  return await Promise.all(
-    bios.map(
-      async bio => {
-        bio.user.since = await util.fetchItem(bio.user.since)
-        bio.user.items = await util.fetchUserItems(bio.user.name)
-        bio.user.credits = util.sumBy(bio.user.items, 'credits')
-        bio.user.sats = util.sumBy(bio.user.items, 'sats') - bio.user.credits
-        if (bio.user.sats > 0 || bio.user.credits > 0) {
-          bio.user.satstandard = bio.user.sats / (bio.user.sats + bio.user.credits)
-        } else {
-          bio.user.satstandard = 0
+async function populate (data) {
+  const [welcomePost, bios] = data
+  return await Promise.all([
+    welcomePost,
+    Promise.all(
+      bios.map(
+        async bio => {
+          bio.user.since = await util.fetchItem(bio.user.since)
+          bio.user.items = await util.fetchUserItems(bio.user.name)
+          bio.user.credits = util.sumBy(bio.user.items, 'credits')
+          bio.user.sats = util.sumBy(bio.user.items, 'sats') - bio.user.credits
+          if (bio.user.sats > 0 || bio.user.credits > 0) {
+            bio.user.satstandard = bio.user.sats / (bio.user.sats + bio.user.credits)
+          } else {
+            bio.user.satstandard = 0
+          }
+          return bio
         }
-        return bio
-      }
+      )
     )
-  )
+  ])
 }
 
-async function printTable (bios) {
+function printIntro (data) {
+  const [welcomePost, bios] = data
+
+  console.log(`> latest welcome post: ${welcomePost.title}`)
+  const nr = Number(welcomePost.title.match(/\d+/)[0])
+
+  console.log(`\n# Baby Stacker Corner #${nr + 1}\n`)
+
+  let series = welcomePost.text.split('\n').filter(line => line.startsWith('whole series:'))[0]
+  series += `, [#${nr}](${util.itemLink(welcomePost.id)})\n`
+  console.log(series)
+
+  console.log(`${bios.length} new stackers have found their way to Stacker News this week!\n`)
+  console.log('Questions for the new stackers:')
+  console.log('- How did you find out about SN?')
+  console.log('- How difficult was it to get started? Any feedback?')
+  console.log('- How much experience do you have with lightning?')
+  console.log('- Have you read the [FAQ](https://stacker.news/faq) already?')
+  console.log('- Have you realized that you need to attach a wallet to receive sats?')
+  console.log('- How was your first week on SN?\n')
+
+  return data
+}
+
+async function printTable (data) {
+  const [, bios] = data
+
   console.log('| nym | bio (stacking since) | items | sats/ccs stacked | sat standard |')
   console.log('| --- | -------------------- | ----- | ---------------- | ------------ |')
 
@@ -141,11 +195,21 @@ async function printTable (bios) {
     console.log(`| @${user.name} | ${col2} | ${user.nitems} | ${user.sats}/${user.credits} | ${user.satstandard.toFixed(2)} |`)
   }
 
-  console.log(`${bios.length} rows`)
-
-  return bios
+  return data
 }
 
+function printOutro (data) {
+  console.log('\n_sat standard = ratio of received sats vs credits (`sats/(sats+credits)`)_\n')
+
+  console.log('Questions for the old stackers:')
+  console.log('- Anyone in there who you want to point out?')
+  console.log('- Do you know better questions I could ask the new stackers or you?\n')
+
+  console.log('<<< INSERT MEME HERE >>>')
+  console.log('inspiration: https://imgflip.com/memetemplates?sort=top-new')
+
+  return data
+}
 const util = {
   formatDate (date) {
     return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -188,7 +252,9 @@ const util = {
 }
 
 assertSettings()
-  .then(fetchRecentBios)
+  .then(fetchData)
+  .then(printIntro)
   .then(populate)
   .then(printTable)
+  .then(printOutro)
   .catch(console.error)

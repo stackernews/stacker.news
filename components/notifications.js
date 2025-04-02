@@ -14,8 +14,6 @@ import UserAdd from '@/svgs/user-add-fill.svg'
 import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import BaldIcon from '@/svgs/bald.svg'
-import GunIcon from '@/svgs/revolver.svg'
-import HorseIcon from '@/svgs/horse.svg'
 import { RootProvider } from './root'
 import Alert from 'react-bootstrap/Alert'
 import styles from './notifications.module.css'
@@ -41,8 +39,6 @@ import { useRetryCreateItem } from './use-item-submit'
 import { payBountyCacheMods } from './pay-bounty'
 import { useToast } from './toast'
 import classNames from 'classnames'
-import HolsterIcon from '@/svgs/holster.svg'
-import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
 
@@ -189,9 +185,7 @@ function Streak ({ n }) {
     return FOUND_BLURBS[type][index]
   }
 
-  const Icon = n.days
-    ? n.type === 'GUN' ? HolsterIcon : n.type === 'HORSE' ? SaddleIcon : BaldIcon
-    : n.type === 'GUN' ? GunIcon : n.type === 'HORSE' ? HorseIcon : CowboyHatIcon
+  const Icon = n.days ? BaldIcon : CowboyHatIcon
 
   return (
     <div className='d-flex'>

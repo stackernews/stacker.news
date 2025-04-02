@@ -107,10 +107,10 @@ async function populate (bios) {
   return await Promise.all(
     bios.map(
       async bio => {
-        bio.user.since = await fetchItem(bio.user.since)
-        bio.user.items = await fetchUserItems(bio.user.name)
-        bio.user.credits = sumBy(bio.user.items, 'credits')
-        bio.user.sats = sumBy(bio.user.items, 'sats') - bio.user.credits
+        bio.user.since = await util.fetchItem(bio.user.since)
+        bio.user.items = await util.fetchUserItems(bio.user.name)
+        bio.user.credits = util.sumBy(bio.user.items, 'credits')
+        bio.user.sats = util.sumBy(bio.user.items, 'sats') - bio.user.credits
         if (bio.user.sats > 0 || bio.user.credits > 0) {
           bio.user.satstandard = bio.user.sats / (bio.user.sats + bio.user.credits)
         } else {
@@ -129,14 +129,14 @@ async function printTable (bios) {
   for (const bio of bios) {
     const { user } = bio
 
-    const bioCreatedAt = formatDate(bio.createdAt)
-    let col2 = dateLink(bio)
+    const bioCreatedAt = util.formatDate(bio.createdAt)
+    let col2 = util.dateLink(bio)
     if (Number(bio.id) !== user.since.id) {
-      const sinceCreatedAt = formatDate(user.since.createdAt)
+      const sinceCreatedAt = util.formatDate(user.since.createdAt)
       // stacking since might not be the same item as the bio
       // but it can still have been created on the same day
       if (bioCreatedAt !== sinceCreatedAt) {
-        col2 += ` (${dateLink(user.since)})`
+        col2 += ` (${util.dateLink(user.since)})`
       }
     }
     console.log(`| @${user.name} | ${col2} | ${user.nitems} | ${user.sats}/${user.credits} | ${user.satstandard.toFixed(2)} |`)
@@ -147,48 +147,45 @@ async function printTable (bios) {
   return bios
 }
 
-function formatDate (date) {
-  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
-function sumBy (arr, key) {
-  return arr.reduce((acc, item) => acc + item[key], 0)
-}
-
-function itemLink (id) {
-  return `https://stacker.news/items/${id}`
-}
-
-function dateLink (item) {
-  return `[${formatDate(item.createdAt)}](${itemLink(item.id)})`
-}
-
-async function fetchItem (id) {
-  const data = await gql(`
-    query Item($id: ID!) {
-      item(id: $id) {
-        id
-        createdAt
-      }
-    }`, { id }
-  )
-  return data.item
-}
-
-async function fetchUserItems (name) {
-  const data = await gql(`
-    query UserItems($name: String!) {
-      items(sort: "user", type: "all", limit: 999, name: $name) {
-        items {
+const util = {
+  formatDate (date) {
+    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  },
+  sumBy (arr, key) {
+    return arr.reduce((acc, item) => acc + item[key], 0)
+  },
+  itemLink (id) {
+    return `https://stacker.news/items/${id}`
+  },
+  dateLink (item) {
+    return `[${this.formatDate(item.createdAt)}](${this.itemLink(item.id)})`
+  },
+  async fetchItem (id) {
+    const data = await gql(`
+      query Item($id: ID!) {
+        item(id: $id) {
           id
           createdAt
-          sats
-          credits
         }
-      }
-    }`, { name }
-  )
-  return data.items.items
+      }`, { id }
+    )
+    return data.item
+  },
+  async fetchUserItems (name) {
+    const data = await gql(`
+      query UserItems($name: String!) {
+        items(sort: "user", type: "all", limit: 999, name: $name) {
+          items {
+            id
+            createdAt
+            sats
+            credits
+          }
+        }
+      }`, { name }
+    )
+    return data.items.items
+  }
 }
 
 assertSettings()

@@ -77,6 +77,8 @@ model User {
   streak                    Int?
   gunStreak                 Int?
   horseStreak               Int?
+  hasSendWallet             Boolean              @default(false)
+  hasRecvWallet             Boolean              @default(false)
   subs                      String[]
   hideCowboyHat             Boolean              @default(false)
   Bookmarks                 Bookmark[]

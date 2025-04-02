@@ -17,7 +17,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
   }
 
   const logger = walletLogger({ models, me: user })
-  logger.info('LNURL-pay callback', { amount: formatMsats(amount), nostr, comment })
+  logger.info(`${user.name}@stacker.news payment attempt`, { amount: formatMsats(amount), nostr, comment })
 
   try {
     await assertGofacYourself({ models, headers })
@@ -100,8 +100,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     })
   } catch (error) {
     console.log(error)
-    // TODO: stackers probably don't know what lnurlp means
-    logger.error(`LNURL-pay failed: ${error.message}`)
+    logger.error(`${user.name}@stacker.news payment failed: ${error.message}`)
     res.status(400).json({ status: 'ERROR', reason: 'could not generate invoice to customer\'s attached wallet' })
   }
 }

@@ -12,6 +12,8 @@ import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
 import { useRouter } from 'next/router'
 import { supportsReceive, supportsSend } from '@/wallets/common'
+import { useWalletIndicator } from '@/components/wallet-indicator'
+import { Button } from 'react-bootstrap'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -82,6 +84,24 @@ export default function Wallet ({ ssrData }) {
       router.replace({ query: { ...router.query, [key]: e.target.checked } }, undefined, { shallow: true })
     }
   }, [router])
+
+  const indicator = useWalletIndicator()
+  const [showWallets, setShowWallets] = useState(!indicator)
+
+  if (indicator && !showWallets) {
+    return (
+      <Layout>
+        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
+          <Button
+            onClick={() => setShowWallets(true)}
+            size='md' variant='secondary'
+          >attach wallet
+          </Button>
+          <small className='d-block mt-3 text-muted'>attach a wallet to send and receive sats</small>
+        </div>
+      </Layout>
+    )
+  }
 
   return (
     <Layout>

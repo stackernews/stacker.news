@@ -33,9 +33,10 @@ async function getWallet ({ url, adminKey, invoiceKey }, { signal }) {
   headers.append('Content-Type', 'application/json')
   headers.append('X-Api-Key', adminKey || invoiceKey)
 
-  const res = await fetchWithTimeout(url + path, { method: 'GET', headers, signal })
+  const method = 'GET'
+  const res = await fetchWithTimeout(url + path, { method, headers, signal })
 
-  assertContentTypeJson(res)
+  assertContentTypeJson(res, { method })
   if (!res.ok) {
     const errBody = await res.json()
     throw new Error(errBody.detail)
@@ -55,9 +56,10 @@ async function postPayment (bolt11, { url, adminKey }, { signal }) {
 
   const body = JSON.stringify({ bolt11, out: true })
 
-  const res = await fetchWithTimeout(url + path, { method: 'POST', headers, body, signal })
+  const method = 'POST'
+  const res = await fetchWithTimeout(url + path, { method, headers, body, signal })
 
-  assertContentTypeJson(res)
+  assertContentTypeJson(res, { method })
   if (!res.ok) {
     const errBody = await res.json()
     throw new Error(errBody.detail)
@@ -75,9 +77,10 @@ async function getPayment (paymentHash, { url, adminKey }, { signal }) {
   headers.append('Content-Type', 'application/json')
   headers.append('X-Api-Key', adminKey)
 
-  const res = await fetchWithTimeout(url + path, { method: 'GET', headers, signal })
+  const method = 'GET'
+  const res = await fetchWithTimeout(url + path, { method, headers, signal })
 
-  assertContentTypeJson(res)
+  assertContentTypeJson(res, { method })
   if (!res.ok) {
     const errBody = await res.json()
     throw new Error(errBody.detail)

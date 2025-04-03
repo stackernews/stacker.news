@@ -31,16 +31,17 @@ export async function createInvoice (
   const hostname = url.replace(/^https?:\/\//, '').replace(/\/+$/, '')
   const agent = getAgent({ hostname })
 
+  const method = 'POST'
   const res = await fetchWithTimeout(`${agent.protocol}//${hostname}${path}`, {
-    method: 'POST',
+    method,
     headers,
     agent,
     body,
     signal
   })
 
-  assertResponseOk(res)
-  assertContentTypeJson(res)
+  assertResponseOk(res, { method })
+  assertContentTypeJson(res, { method })
 
   const payment = await res.json()
   return payment.serialized

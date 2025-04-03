@@ -22,15 +22,16 @@ export async function sendPayment (bolt11, { url, primaryPassword }, { signal })
   const body = new URLSearchParams()
   body.append('invoice', bolt11)
 
+  const method = 'POST'
   const res = await fetchWithTimeout(url + path, {
-    method: 'POST',
+    method,
     headers,
     body,
     signal
   })
 
-  assertResponseOk(res)
-  assertContentTypeJson(res)
+  assertResponseOk(res, { method })
+  assertContentTypeJson(res, { method })
 
   const payment = await res.json()
   const preimage = payment.paymentPreimage

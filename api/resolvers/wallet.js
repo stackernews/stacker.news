@@ -854,7 +854,10 @@ async function upsertWallet (
 
   if (testCreateInvoice) {
     try {
-      await testCreateInvoice(data)
+      const pr = await testCreateInvoice(data)
+      if (!pr || typeof pr !== 'string' || !pr.startsWith('lnbc')) {
+        throw new Error('not a valid payment request')
+      }
     } catch (err) {
       const message = 'failed to create test invoice: ' + (err.message || err.toString?.())
       logger.error(message)

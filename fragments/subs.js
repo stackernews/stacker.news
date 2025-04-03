@@ -47,6 +47,7 @@ export const SUB_FIELDS = gql`
       verificationCname
       verificationCnameValue
       verificationTxt
+      status
     }
     customBranding {
       title

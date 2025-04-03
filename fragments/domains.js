@@ -9,6 +9,7 @@ export const GET_CUSTOM_DOMAIN = gql`
       verificationCname
       verificationCnameValue
       verificationTxt
+      status
       lastVerifiedAt
     }
   }

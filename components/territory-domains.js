@@ -96,7 +96,7 @@ export function DomainLabel ({ customDomain, isPolling }) {
           <div className='d-flex align-items-center gap-2'>
             {getStatusBadge(dnsState)}
             {getSSLStatusBadge(sslState)}
-            {isPolling && <Moon className='spin fill-grey' />}
+            {isPolling && <Moon className='spin fill-grey' style={{ width: '1rem', height: '1rem' }} />}
           </div>
         </ActionTooltip>
       )}

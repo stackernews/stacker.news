@@ -10,7 +10,7 @@ export async function routineDomainVerification () {
     const domains = await models.customDomain.findMany({
       where: {
         NOT: {
-          AND: [{ dnsState: 'VERIFIED' }, { sslState: 'VERIFIED' }]
+          AND: [{ dnsState: 'VERIFIED' }, { sslState: 'VERIFIED' }, { status: 'HOLD' }]
         }
       },
       orderBy: {
@@ -24,8 +24,9 @@ export async function routineDomainVerification () {
       } catch (error) {
         console.error(`Failed to verify domain ${domain.domain}:`, error)
         domain.failedAttempts += 1
-        if (domain.failedAttempts >= 5) {
-          await models.customDomain.delete({ where: { id: domain.id } })
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+        if (domain.failedAttempts >= 5 && domain.updatedAt < oneDayAgo) {
+          await models.customDomain.update({ where: { id: domain.id }, data: { status: 'HOLD' } })
         }
       }
     }))
@@ -42,10 +43,17 @@ export async function immediateDomainVerification ({ data: { domainId }, boss })
   const domain = await models.customDomain.findUnique({ where: { id: domainId } })
   console.log('domain', domain)
   const result = await verifyDomain(domain, models)
-  if (result) {
-    if (result.dnsState !== 'VERIFIED' || result.sslState !== 'VERIFIED') {
-      await boss.send('immediateDomainVerification', { domainId }, { startAfter: new Date(Date.now() + 30 * 1000) })
-    }
+
+  let startAfter = new Date(Date.now() + 30 * 1000)
+  if (result?.failedAttempts < 5) {
+    // every 30 seconds
+    startAfter = new Date(Date.now() + 30 * 1000)
+  } else {
+    // every 10 minutes
+    startAfter = new Date(Date.now() + 10 * 60 * 1000)
+  }
+  if (result?.status !== 'HOLD') {
+    await boss.send('immediateDomainVerification', { domainId }, { startAfter })
   }
 }
 
@@ -67,15 +75,15 @@ async function verifyDomain (domain, models) {
 
   if (data.dnsState === 'FAILED' || data.sslState === 'FAILED') {
     data.failedAttempts += 1
-    if (data.failedAttempts >= 5) {
-      return await models.customDomain.delete({ where: { id: domain.id } })
+    data.updatedAt = new Date()
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    // todo: change this
+    if (data.failedAttempts > 10 && data.updatedAt < oneDayAgo) {
+      data.status = 'HOLD'
     }
-  } else {
-    data.failedAttempts = 0
   }
 
-  await models.customDomain.update({ where: { id: domain.id }, data })
-  return data
+  return await models.customDomain.update({ where: { id: domain.id }, data })
 }
 
 async function verifyDNS (data) {

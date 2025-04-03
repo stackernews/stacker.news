@@ -38,11 +38,14 @@ export default {
             domain,
             dnsState: 'PENDING',
             sslState: 'WAITING',
+            status: 'PENDING',
             certificateArn: null
           },
           create: {
             domain,
             dnsState: 'PENDING',
+            sslState: 'WAITING',
+            status: 'PENDING',
             verificationTxt: randomBytes(32).toString('base64'),
             sub: {
               connect: { name: subName }
@@ -50,7 +53,7 @@ export default {
           }
         })
 
-        // schedule domain verification in 5 seconds, then every 30 seconds
+        // schedule domain verification in 5 seconds, worker will do the rest
         await models.$executeRaw`INSERT INTO pgboss.job (name, data)
           VALUES ('immediateDomainVerification', jsonb_build_object('domainId', ${updatedDomain.id}::INTEGER))`
         return updatedDomain

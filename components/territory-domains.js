@@ -11,6 +11,7 @@ import { useRouter } from 'next/router'
 import { signIn } from 'next-auth/react'
 import BrandingForm from '@/components/territory-branding-form'
 import Head from 'next/head'
+import Moon from '@/svgs/moon-fill.svg'
 
 // Domain context for custom domains
 const DomainContext = createContext({
@@ -85,7 +86,7 @@ const getSSLStatusBadge = (status) => {
   }
 }
 
-export function DomainLabel ({ customDomain }) {
+export function DomainLabel ({ customDomain, isPolling }) {
   const { domain, dnsState, sslState, lastVerifiedAt } = customDomain || {}
   return (
     <div className='d-flex align-items-center gap-2'>
@@ -95,6 +96,7 @@ export function DomainLabel ({ customDomain }) {
           <div className='d-flex align-items-center gap-2'>
             {getStatusBadge(dnsState)}
             {getSSLStatusBadge(sslState)}
+            {isPolling && <Moon className='spin fill-grey' />}
           </div>
         </ActionTooltip>
       )}
@@ -139,6 +141,7 @@ export function DomainGuidelines ({ customDomain }) {
 
 // TODO: clean this up, might not need all this refreshing, plus all this polling is not done correctly
 export default function CustomDomainForm ({ sub }) {
+  const [isPolling, setIsPolling] = useState(false)
   const [setCustomDomain] = useMutation(SET_CUSTOM_DOMAIN)
 
   // Get the custom domain and poll for changes
@@ -153,7 +156,9 @@ export default function CustomDomainForm ({ sub }) {
   useEffect(() => {
     if (sslState === 'VERIFIED' && dnsState === 'VERIFIED') {
       stopPolling()
+      setIsPolling(false)
     } else {
+      setIsPolling(true)
       startPolling(NORMAL_POLL_INTERVAL)
     }
   }, [data, stopPolling])
@@ -162,6 +167,7 @@ export default function CustomDomainForm ({ sub }) {
   const onSubmit = async ({ domain }) => {
     try {
       stopPolling()
+      setIsPolling(false)
       await setCustomDomain({
         variables: {
           subName: sub.name,
@@ -169,6 +175,7 @@ export default function CustomDomainForm ({ sub }) {
         }
       })
       refetch()
+      setIsPolling(true)
       startPolling(NORMAL_POLL_INTERVAL)
       toaster.success('domain updated successfully')
     } catch (error) {
@@ -187,7 +194,7 @@ export default function CustomDomainForm ({ sub }) {
         {/* TODO: too many flexes */}
         <div className='d-flex align-items-center gap-2'>
           <Input
-            label={<DomainLabel customDomain={data?.customDomain} />}
+            label={<DomainLabel customDomain={data?.customDomain} isPolling={isPolling} />}
             name='domain'
             placeholder='www.example.com'
           />

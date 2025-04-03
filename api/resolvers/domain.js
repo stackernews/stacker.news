@@ -32,7 +32,7 @@ export default {
         if (existing && existing.domain === domain) {
           throw new GqlInputError('domain already set')
         }
-        return await models.customDomain.upsert({
+        const updatedDomain = await models.customDomain.upsert({
           where: { subName },
           update: {
             domain,
@@ -49,6 +49,11 @@ export default {
             }
           }
         })
+
+        // schedule domain verification in 5 seconds, then every 30 seconds
+        await models.$executeRaw`INSERT INTO pgboss.job (name, data)
+          VALUES ('immediateDomainVerification', jsonb_build_object('domainId', ${updatedDomain.id}::INTEGER))`
+        return updatedDomain
       } else {
         try {
           return await models.customDomain.delete({ where: { subName } })

@@ -1416,11 +1416,7 @@ export function BrandingUpload ({ label, groupClassName, name, ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
       <Avatar
-        onSuccess={(id) => {
-          // This is called when the upload is successful
-          // We'll update the form value for logoId
-          helpers.setValue(id)
-        }}
+        onSuccess={(id) => helpers.setValue(id)}
       />
     </FormGroup>
   )

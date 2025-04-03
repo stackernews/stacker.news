@@ -3,7 +3,7 @@ import { verifyDomainDNS, issueDomainCertificate, checkCertificateStatus, getVal
 
 // This worker verifies the DNS and SSL certificates for domains that are pending or failed
 // It will also delete domains that have failed to verify 5 times
-export async function domainVerification () {
+export async function routineDomainVerification () {
   const models = createPrisma({ connectionParams: { connection_limit: 1 } })
 
   try {
@@ -18,83 +18,102 @@ export async function domainVerification () {
       }
     })
 
-    for (const domain of domains) {
+    await Promise.all(domains.map(async (domain) => {
       try {
-        // set lastVerifiedAt to now
-        const data = { ...domain, lastVerifiedAt: new Date() }
-
-        // DNS verification on pending or failed domains
-        if (data.dnsState !== 'VERIFIED') {
-          const { txtValid, cnameValid } = await verifyDomainDNS(data.domain, data.verificationTxt)
-          console.log(`${data.domain}: TXT ${txtValid ? 'valid' : 'invalid'}, CNAME ${cnameValid ? 'valid' : 'invalid'}`)
-
-          // update dnsState to VERIFIED if both TXT and CNAME are valid, otherwise set to FAILED
-          data.dnsState = txtValid && cnameValid ? 'VERIFIED' : 'FAILED'
-        }
-
-        // issue SSL certificate for verified domains, if we didn't already or we failed to issue it
-        if (data.dnsState === 'VERIFIED' && (!data.certificateArn || data.sslState === 'FAILED')) {
-          // use ACM to issue a certificate for the domain
-          const certificateArn = await issueDomainCertificate(data.domain)
-          console.log(`${data.domain}: Certificate issued: ${certificateArn}`)
-          if (certificateArn) {
-            // get the status of the certificate
-            const sslState = await checkCertificateStatus(certificateArn)
-            console.log(`${data.domain}: Issued certificate status: ${sslState}`)
-            // if we didn't validate already, obtain the ACM CNAME values for the certificate validation
-            if (sslState !== 'VERIFIED') {
-              try {
-                // obtain the ACM CNAME values for the certificate validation
-                // ACM will use these values to verify the domain
-                const { cname, value } = await getValidationValues(certificateArn)
-                data.verificationCname = cname
-                data.verificationCnameValue = value
-              } catch (error) {
-                console.error(`Failed to get validation values for domain ${data.domain}:`, error)
-              }
-            }
-            // update the sslState with the status of the certificate
-            if (sslState) data.sslState = sslState
-            data.certificateArn = certificateArn
-          } else {
-            // if we failed to issue the certificate, set the sslState to FAILED
-            data.sslState = 'FAILED'
-          }
-        }
-
-        // update the status of the certificate while pending
-        if (data.dnsState === 'VERIFIED' && data.sslState !== 'VERIFIED') {
-          const sslState = await checkCertificateStatus(data.certificateArn)
-          console.log(`${data.domain}: Certificate status: ${sslState}`)
-          if (sslState) data.sslState = sslState
-        }
-
-        // delete domain if any verification has failed 5 times
-        if (data.dnsState === 'FAILED' || data.sslState === 'FAILED') {
-          data.failedAttempts += 1
-          if (data.failedAttempts >= 5) {
-            return models.customDomain.delete({ where: { id: domain.id } })
-          }
-        } else {
-          data.failedAttempts = 0
-        }
-
-        // update the domain with the new status
-        await models.customDomain.update({ where: { id: domain.id }, data })
+        await verifyDomain(domain, models)
       } catch (error) {
         console.error(`Failed to verify domain ${domain.domain}:`, error)
-        // Update to FAILED on any error
-        await models.customDomain.update({
-          where: { id: domain.id },
-          data: {
-            dnsState: 'FAILED',
-            lastVerifiedAt: new Date(),
-            failedAttempts: domain.failedAttempts + 1
-          }
-        })
+        domain.failedAttempts += 1
+        if (domain.failedAttempts >= 5) {
+          await models.customDomain.delete({ where: { id: domain.id } })
+        }
       }
-    }
+    }))
   } catch (error) {
     console.error('cannot verify domains:', error)
+  } finally {
+    await models.$disconnect()
   }
+}
+
+export async function immediateDomainVerification ({ data: { domainId }, boss }) {
+  const models = createPrisma({ connectionParams: { connection_limit: 1 } })
+  console.log('immediateDomainVerification', domainId)
+  const domain = await models.customDomain.findUnique({ where: { id: domainId } })
+  console.log('domain', domain)
+  const result = await verifyDomain(domain, models)
+  if (result) {
+    if (result.dnsState !== 'VERIFIED' || result.sslState !== 'VERIFIED') {
+      await boss.send('immediateDomainVerification', { domainId }, { startAfter: new Date(Date.now() + 30 * 1000) })
+    }
+  }
+}
+
+async function verifyDomain (domain, models) {
+  // track verification
+  const data = { ...domain, lastVerifiedAt: new Date() }
+
+  if (data.dnsState !== 'VERIFIED') {
+    await verifyDNS(data)
+  }
+
+  if (data.dnsState === 'VERIFIED' && (!data.certificateArn || data.sslState === 'FAILED')) {
+    await issueCertificate(data)
+  }
+
+  if (data.dnsState === 'VERIFIED' && data.sslState !== 'VERIFIED') {
+    await updateCertificateStatus(data)
+  }
+
+  if (data.dnsState === 'FAILED' || data.sslState === 'FAILED') {
+    data.failedAttempts += 1
+    if (data.failedAttempts >= 5) {
+      return await models.customDomain.delete({ where: { id: domain.id } })
+    }
+  } else {
+    data.failedAttempts = 0
+  }
+
+  await models.customDomain.update({ where: { id: domain.id }, data })
+  return data
+}
+
+async function verifyDNS (data) {
+  const { txtValid, cnameValid } = await verifyDomainDNS(data.domain, data.verificationTxt)
+  console.log(`${data.domain}: TXT ${txtValid ? 'valid' : 'invalid'}, CNAME ${cnameValid ? 'valid' : 'invalid'}`)
+
+  data.dnsState = txtValid && cnameValid ? 'VERIFIED' : 'FAILED'
+  return data
+}
+
+async function issueCertificate (data) {
+  const certificateArn = await issueDomainCertificate(data.domain)
+  console.log(`${data.domain}: Certificate issued: ${certificateArn}`)
+
+  if (certificateArn) {
+    const sslState = await checkCertificateStatus(certificateArn)
+    console.log(`${data.domain}: Issued certificate status: ${sslState}`)
+    if (sslState !== 'VERIFIED') {
+      try {
+        const { cname, value } = await getValidationValues(certificateArn)
+        data.verificationCname = cname
+        data.verificationCnameValue = value
+      } catch (error) {
+        console.error(`Failed to get validation values for domain ${data.domain}:`, error)
+      }
+    }
+    if (sslState) data.sslState = sslState
+    data.certificateArn = certificateArn
+  } else {
+    data.sslState = 'FAILED'
+  }
+
+  return data
+}
+
+async function updateCertificateStatus (data) {
+  const sslState = await checkCertificateStatus(data.certificateArn)
+  console.log(`${data.domain}: Certificate status: ${sslState}`)
+  if (sslState) data.sslState = sslState
+  return data
 }

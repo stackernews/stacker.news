@@ -38,9 +38,9 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
 BEGIN
-    -- every 5 minutes
+    -- every 10 minutes
     INSERT INTO pgboss.schedule (name, cron, timezone)
-    VALUES ('domainVerification', '*/5 * * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
+    VALUES ('routineDomainVerification', '*/10 * * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
     return 0;
 EXCEPTION WHEN OTHERS THEN
     return 0;

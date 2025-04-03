@@ -223,6 +223,11 @@ export function useWallet (name) {
   return wallets.find(w => w.def.name === name)
 }
 
+export function useConfiguredWallets () {
+  const { wallets } = useWallets()
+  return useMemo(() => wallets.filter(w => isConfigured(w)), [wallets])
+}
+
 export function useSendWallets () {
   const { wallets } = useWallets()
   // return all enabled wallets that are available and can send

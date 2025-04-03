@@ -226,7 +226,7 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
         to = null
       }
 
-      const { data } = await getWalletLogs({
+      const { data, error } = await getWalletLogs({
         variables: {
           type: walletDef?.walletType,
           from,
@@ -236,9 +236,14 @@ export function useWalletLogs (wallet, initialPage = 1, logsPerPage = 10) {
         }
       })
 
+      if (error) {
+        console.error('failed to query wallet logs:', error)
+        return { data: [], hasMore: false }
+      }
+
       const newLogs = data.walletLogs.entries.map(({ createdAt, wallet: walletType, ...log }) => ({
         ts: +new Date(createdAt),
-        wallet: walletTag(getWalletByType(walletType)),
+        wallet: walletType ? walletTag(getWalletByType(walletType)) : 'system',
         ...log,
         // required to resolve recv status
         context: {

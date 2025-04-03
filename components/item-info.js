@@ -282,7 +282,7 @@ function InfoDropdownItem ({ item }) {
   )
 }
 
-function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
+export function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
   const { me } = useMe()
   const toaster = useToast()
   const retryCreateItem = useRetryCreateItem({ id: item.id })

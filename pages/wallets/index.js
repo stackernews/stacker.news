@@ -12,6 +12,8 @@ import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
 import { useRouter } from 'next/router'
 import { supportsReceive, supportsSend } from '@/wallets/common'
+import { useWalletIndicator } from '@/components/wallet-indicator'
+import { Button } from 'react-bootstrap'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -83,6 +85,24 @@ export default function Wallet ({ ssrData }) {
     }
   }, [router])
 
+  const indicator = useWalletIndicator()
+  const [showWallets, setShowWallets] = useState(!indicator)
+
+  if (indicator && !showWallets) {
+    return (
+      <Layout>
+        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
+          <Button
+            onClick={() => setShowWallets(true)}
+            size='md' variant='secondary'
+          >attach wallet
+          </Button>
+          <small className='d-block mt-3 text-muted'>attach a wallet to send and receive sats</small>
+        </div>
+      </Layout>
+    )
+  }
+
   return (
     <Layout>
       <div className='py-5 w-100'>
@@ -108,39 +128,39 @@ export default function Wallet ({ ssrData }) {
               checked={filter.send}
             />
           </div>
-          {wallets
-            .filter(w => {
-              return (!filter.send || (filter.send && supportsSend(w))) &&
-              (!filter.receive || (filter.receive && supportsReceive(w)))
-            })
-            .map((w, i) => {
-              const draggable = isClient && w.config?.enabled
+          {
+            wallets
+              .filter(w => {
+                return (!filter.send || (filter.send && supportsSend(w))) &&
+                (!filter.receive || (filter.receive && supportsReceive(w)))
+              })
+              .map((w, i) => {
+                const draggable = isClient && w.config?.enabled
 
-              return (
-                <div
-                  key={w.def.name}
-                  className={
-                    !draggable
-                      ? ''
-                      : (`${sourceIndex === i ? styles.drag : ''} ${draggable && targetIndex === i ? styles.drop : ''}`)
-                    }
-                  suppressHydrationWarning
-                >
-                  <WalletCard
-                    wallet={w}
-                    draggable={draggable}
-                    onDragStart={draggable ? onDragStart(i) : undefined}
-                    onTouchStart={draggable ? onTouchStart(i) : undefined}
-                    onDragEnter={draggable ? onDragEnter(i) : undefined}
-                    sourceIndex={sourceIndex}
-                    targetIndex={targetIndex}
-                    index={i}
-                  />
-                </div>
-              )
+                return (
+                  <div
+                    key={w.def.name}
+                    className={
+                      !draggable
+                        ? ''
+                        : (`${sourceIndex === i ? styles.drag : ''} ${draggable && targetIndex === i ? styles.drop : ''}`)
+                      }
+                    suppressHydrationWarning
+                  >
+                    <WalletCard
+                      wallet={w}
+                      draggable={draggable}
+                      onDragStart={draggable ? onDragStart(i) : undefined}
+                      onTouchStart={draggable ? onTouchStart(i) : undefined}
+                      onDragEnter={draggable ? onDragEnter(i) : undefined}
+                      sourceIndex={sourceIndex}
+                      targetIndex={targetIndex}
+                      index={i}
+                    />
+                  </div>
+                )
+              })
             }
-            )}
-
         </div>
       </div>
     </Layout>

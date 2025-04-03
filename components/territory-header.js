@@ -43,9 +43,10 @@ export function TerritoryInfoSkeleton ({ children, className }) {
   )
 }
 
-export function TerritoryInfo ({ sub }) {
+export function TerritoryInfo ({ sub, includeLink }) {
   return (
     <>
+      {includeLink && <Link href={`/~${sub.name}`}>{sub.name}</Link>}
       <div className='py-2'>
         <Text>{sub.desc}</Text>
       </div>

@@ -194,7 +194,7 @@ const typeDefs = `
   type WalletLogEntry {
     id: ID!
     createdAt: Date!
-    wallet: ID!
+    wallet: ID
     level: String!
     message: String!
     context: JSONObject

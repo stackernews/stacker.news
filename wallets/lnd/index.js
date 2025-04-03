@@ -49,6 +49,6 @@ export const fields = [
 
 export const card = {
   title: 'LND',
-  subtitle: 'autowithdraw to your Lightning Labs node',
+  subtitle: 'receive zaps to your Lightning Labs node',
   image: { src: '/wallets/lnd.png' }
 }

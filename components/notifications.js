@@ -112,12 +112,14 @@ function NoteHeader ({ color, children, big }) {
 function NoteItem ({ item, ...props }) {
   return (
     <div>
-      {item.title
-        ? <Item item={item} itemClassName='pt-0' {...props} />
-        : (
-          <RootProvider root={item.root}>
-            <Comment item={item} noReply includeParent clickToContext {...props} />
-          </RootProvider>)}
+      {item.isJob
+        ? <ItemJob item={item} {...props} />
+        : item.title
+          ? <Item item={item} itemClassName='pt-0' {...props} />
+          : (
+            <RootProvider root={item.root}>
+              <Comment item={item} noReply includeParent clickToContext {...props} />
+            </RootProvider>)}
     </div>
   )
 }

@@ -451,6 +451,8 @@ model Upload {
   user               User                @relation("Uploads", fields: [userId], references: [id], onDelete: Cascade)
   User               User[]
   ItemUpload         ItemUpload[]
+  logoBranding       CustomBranding[]    @relation("LogoUpload")
+  faviconBranding    CustomBranding[]    @relation("FaviconUpload")
 
   @@index([createdAt], map: "Upload.created_at_index")
   @@index([userId], map: "Upload.userId_index")
@@ -796,6 +798,8 @@ model Sub {
   SubSubscription   SubSubscription[]
   TerritoryTransfer TerritoryTransfer[]
   UserSubTrust      UserSubTrust[]
+  customDomain      CustomDomain?
+  customBranding    CustomBranding?
 
   @@index([parentName])
   @@index([createdAt])
@@ -1236,6 +1240,34 @@ model Reminder {
   item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([userId, remindAt], map: "Reminder.userId_reminderAt_index")
+}
+
+model CustomDomain {
+  id                      Int       @id @default(autoincrement())
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at")
+  domain                  String    @unique
+  subName                 String    @unique @db.Citext
+  status                  String    @default("PENDING")
+  failedAttempts          Int       @default(0)
+  lastVerifiedAt          DateTime?
+  verification            Json      @default("{}")
+  sub                     Sub       @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  
+  @@index([domain])
+  @@index([createdAt])
+}
+
+model CustomBranding {
+  id                      Int       @id @default(autoincrement())
+  title                   String?
+  colors                  Json?     @default("{}")
+  logoId                  Int?
+  logo                    Upload?   @relation("LogoUpload", fields: [logoId], references: [id])
+  faviconId               Int?
+  favicon                 Upload?   @relation("FaviconUpload", fields: [faviconId], references: [id])
+  subName                 String    @unique @db.Citext
+  sub                     Sub       @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
 }
 
 enum EarnType {

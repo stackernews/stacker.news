@@ -11,6 +11,7 @@ import { ME } from '@/fragments/users'
 import { PRICE } from '@/fragments/price'
 import { BLOCK_HEIGHT } from '@/fragments/blockHeight'
 import { CHAIN_FEE } from '@/fragments/chainFee'
+import { GET_CUSTOM_BRANDING } from '@/fragments/brandings'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
 import { NOFOLLOW_LIMIT } from '@/lib/constants'
@@ -152,6 +153,18 @@ export function getGetServerSideProps (
 
     const client = await getSSRApolloClient({ req, res })
 
+    const isCustomDomain = req.headers.host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
+    const subName = req.headers['x-stacker-news-subname'] || null
+    let customDomain = null
+    if (isCustomDomain && subName) {
+      const { data: { customBranding } } = await client.query({ query: GET_CUSTOM_BRANDING, variables: { subName } })
+      customDomain = {
+        domain: req.headers.host,
+        subName,
+        branding: customBranding || null
+      }
+    }
+
     let { data: { me } } = await client.query({ query: ME })
 
     // required to redirect to /signup on page reload
@@ -216,6 +229,7 @@ export function getGetServerSideProps (
     return {
       props: {
         ...props,
+        customDomain,
         me,
         price,
         blockHeight,

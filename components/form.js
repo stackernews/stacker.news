@@ -41,6 +41,7 @@ import dynamic from 'next/dynamic'
 import { qrImageSettings } from './qr'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
+import Avatar from './avatar'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -1381,6 +1382,42 @@ export function MultiInput ({
           </BootstrapForm.Control.Feedback>
         )}
       </div>
+    </FormGroup>
+  )
+}
+
+export function ColorPicker ({ label, groupClassName, name, ...props }) {
+  const [field, , helpers] = useField({ ...props, name })
+
+  useEffect(() => {
+    helpers.setValue(field.value)
+  }, [field.value])
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <ClientInput
+        type='color'
+        {...field}
+        {...props}
+        onChange={(formik, e) => {
+          field.onChange(e)
+          if (props.onChange) {
+            props.onChange(formik, e)
+          }
+        }}
+      />
+    </FormGroup>
+  )
+}
+
+export function BrandingUpload ({ label, groupClassName, name, ...props }) {
+  const [, , helpers] = useField({ ...props, name })
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <Avatar
+        onSuccess={(id) => helpers.setValue(id)}
+      />
     </FormGroup>
   )
 }

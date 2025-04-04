@@ -91,7 +91,7 @@ async function issueCertificate (data) {
 }
 
 async function updateCertificateStatus (data) {
-  const sslState = await checkCertificateStatus(data.certificateArn)
+  const sslState = await checkCertificateStatus(data.verification.ssl.arn)
   console.log(`${data.domain}: Certificate status: ${sslState}`)
   if (sslState) data.verification.ssl.state = sslState
   return data

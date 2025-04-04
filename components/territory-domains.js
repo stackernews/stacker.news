@@ -86,7 +86,7 @@ const getSSLStatusBadge = (status) => {
   }
 }
 
-export function DomainLabel ({ customDomain, isPolling }) {
+export function DomainLabel ({ customDomain, polling }) {
   const { domain, status, verification, lastVerifiedAt } = customDomain || {}
   return (
     <div className='d-flex align-items-center gap-2'>
@@ -100,7 +100,7 @@ export function DomainLabel ({ customDomain, isPolling }) {
                 {getSSLStatusBadge(verification?.ssl?.state)}
               </>
             )}
-            {isPolling && <Moon className='spin fill-grey' style={{ width: '1rem', height: '1rem' }} />}
+            {polling && <Moon className='spin fill-grey' style={{ width: '1rem', height: '1rem' }} />}
           </div>
         </ActionTooltip>
       )}
@@ -145,33 +145,29 @@ export function DomainGuidelines ({ customDomain }) {
 
 // TODO: clean this up, might not need all this refreshing, plus all this polling is not done correctly
 export default function CustomDomainForm ({ sub }) {
-  const [isPolling, setIsPolling] = useState(false)
   const [setCustomDomain] = useMutation(SET_CUSTOM_DOMAIN)
 
   // Get the custom domain and poll for changes
-  const { data, startPolling, stopPolling, refetch } = useQuery(GET_CUSTOM_DOMAIN, SSR
+  const { data, refetch } = useQuery(GET_CUSTOM_DOMAIN, SSR
     ? {}
-    : { variables: { subName: sub.name } })
+    : {
+        variables: { subName: sub.name },
+        pollInterval: NORMAL_POLL_INTERVAL,
+        nextFetchPolicy: 'cache-and-network',
+        onCompleted: ({ customDomain }) => {
+          if (customDomain?.status !== 'PENDING') {
+            return { pollInterval: 0 }
+          }
+        }
+      })
   const toaster = useToast()
 
   const { domain, status } = data?.customDomain || {}
-
-  // Stop polling when the domain is verified
-  useEffect(() => {
-    if (status !== 'PENDING') {
-      stopPolling()
-      setIsPolling(false)
-    } else {
-      setIsPolling(true)
-      startPolling(NORMAL_POLL_INTERVAL)
-    }
-  }, [data, stopPolling])
+  const polling = status === 'PENDING'
 
   // Update the custom domain
   const onSubmit = async ({ domain }) => {
     try {
-      stopPolling()
-      setIsPolling(false)
       await setCustomDomain({
         variables: {
           subName: sub.name,
@@ -179,8 +175,6 @@ export default function CustomDomainForm ({ sub }) {
         }
       })
       refetch()
-      setIsPolling(true)
-      startPolling(NORMAL_POLL_INTERVAL)
       toaster.success('domain updated successfully')
     } catch (error) {
       toaster.danger('failed to update domain', { error })
@@ -198,7 +192,7 @@ export default function CustomDomainForm ({ sub }) {
         {/* TODO: too many flexes */}
         <div className='d-flex align-items-center gap-2'>
           <Input
-            label={<DomainLabel customDomain={data?.customDomain} isPolling={isPolling} />}
+            label={<DomainLabel customDomain={data?.customDomain} polling={polling} />}
             name='domain'
             placeholder='www.example.com'
           />

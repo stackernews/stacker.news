@@ -14,14 +14,27 @@ export default gql`
     updatedAt: Date!
     domain: String!
     subName: String!
-    dnsState: String
-    sslState: String
-    certificateArn: String
     lastVerifiedAt: Date
-    verificationCname: String
-    verificationCnameValue: String
-    verificationTxt: String
     failedAttempts: Int
     status: String
+    verification: CustomDomainVerification
+  }
+
+  type CustomDomainVerification {
+    dns: CustomDomainVerificationDNS
+    ssl: CustomDomainVerificationSSL
+  }
+
+  type CustomDomainVerificationDNS {
+    state: String
+    cname: String
+    txt: String
+  }
+
+  type CustomDomainVerificationSSL {
+    state: String
+    arn: String
+    cname: String
+    value: String
   }
 `

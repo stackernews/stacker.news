@@ -29,24 +29,44 @@ export default {
 
       if (domain) {
         const existing = await models.customDomain.findUnique({ where: { subName } })
-        if (existing && existing.domain === domain) {
+        if (existing && existing.domain === domain && existing.status !== 'HOLD') {
           throw new GqlInputError('domain already set')
         }
         const updatedDomain = await models.customDomain.upsert({
           where: { subName },
           update: {
             domain,
-            dnsState: 'PENDING',
-            sslState: 'WAITING',
             status: 'PENDING',
-            certificateArn: null
+            verification: {
+              dns: {
+                state: 'PENDING',
+                cname: 'stacker.news',
+                txt: randomBytes(32).toString('base64')
+              },
+              ssl: {
+                state: 'WAITING',
+                arn: null,
+                cname: null,
+                value: null
+              }
+            }
           },
           create: {
             domain,
-            dnsState: 'PENDING',
-            sslState: 'WAITING',
             status: 'PENDING',
-            verificationTxt: randomBytes(32).toString('base64'),
+            verification: {
+              dns: {
+                state: 'PENDING',
+                cname: 'stacker.news',
+                txt: randomBytes(32).toString('base64')
+              },
+              ssl: {
+                state: 'WAITING',
+                arn: null,
+                cname: null,
+                value: null
+              }
+            },
             sub: {
               connect: { name: subName }
             }
@@ -55,7 +75,7 @@ export default {
 
         // schedule domain verification in 5 seconds, worker will do the rest
         await models.$executeRaw`INSERT INTO pgboss.job (name, data)
-          VALUES ('immediateDomainVerification', jsonb_build_object('domainId', ${updatedDomain.id}::INTEGER))`
+          VALUES ('domainVerification', jsonb_build_object('domainId', ${updatedDomain.id}::INTEGER))`
         return updatedDomain
       } else {
         try {

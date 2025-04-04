@@ -87,15 +87,19 @@ const getSSLStatusBadge = (status) => {
 }
 
 export function DomainLabel ({ customDomain, isPolling }) {
-  const { domain, dnsState, sslState, lastVerifiedAt } = customDomain || {}
+  const { domain, status, verification, lastVerifiedAt } = customDomain || {}
   return (
     <div className='d-flex align-items-center gap-2'>
       <span>custom domain</span>
       {domain && (
         <ActionTooltip overlayText={lastVerifiedAt ? new Date(lastVerifiedAt).toLocaleString() : ''}>
           <div className='d-flex align-items-center gap-2'>
-            {getStatusBadge(dnsState)}
-            {getSSLStatusBadge(sslState)}
+            {status !== 'HOLD' && (
+              <>
+                {getStatusBadge(verification?.dns?.state)}
+                {getSSLStatusBadge(verification?.ssl?.state)}
+              </>
+            )}
             {isPolling && <Moon className='spin fill-grey' style={{ width: '1rem', height: '1rem' }} />}
           </div>
         </ActionTooltip>
@@ -105,10 +109,10 @@ export function DomainLabel ({ customDomain, isPolling }) {
 }
 
 export function DomainGuidelines ({ customDomain }) {
-  const { domain, dnsState, sslState, verificationTxt, verificationCname, verificationCnameValue } = customDomain || {}
+  const { domain, verification } = customDomain || {}
   return (
     <>
-      {(dnsState && dnsState !== 'VERIFIED') && (
+      {(verification?.dns?.state && verification?.dns?.state !== 'VERIFIED') && (
         <>
           <h5>Step 1: Verify your domain</h5>
           <p>Add the following DNS records to verify ownership of your domain:</p>
@@ -120,18 +124,18 @@ export function DomainGuidelines ({ customDomain }) {
           <h6>TXT</h6>
           <p>
             Host: <pre>{domain || 'www'}</pre>
-            Value: <pre>{verificationTxt}</pre>
+            Value: <pre>{verification?.dns?.txt}</pre>
           </p>
         </>
       )}
-      {sslState === 'PENDING' && (
+      {verification?.ssl?.state === 'PENDING' && (
         <>
           <h5>Step 2: Prepare your domain for SSL</h5>
           <p>We issued an SSL certificate for your domain. To validate it, add the following CNAME record:</p>
           <h6>CNAME</h6>
           <p>
-            Host: <pre>{verificationCname || 'waiting for SSL certificate'}</pre>
-            Value: <pre>{verificationCnameValue || 'waiting for SSL certificate'}</pre>
+            Host: <pre>{verification?.ssl?.cname || 'waiting for SSL certificate'}</pre>
+            Value: <pre>{verification?.ssl?.value || 'waiting for SSL certificate'}</pre>
           </p>
         </>
       )}
@@ -150,11 +154,11 @@ export default function CustomDomainForm ({ sub }) {
     : { variables: { subName: sub.name } })
   const toaster = useToast()
 
-  const { domain, sslState, dnsState } = data?.customDomain || {}
+  const { domain, status } = data?.customDomain || {}
 
   // Stop polling when the domain is verified
   useEffect(() => {
-    if (sslState === 'VERIFIED' && dnsState === 'VERIFIED') {
+    if (status !== 'PENDING') {
       stopPolling()
       setIsPolling(false)
     } else {
@@ -202,7 +206,7 @@ export default function CustomDomainForm ({ sub }) {
         </div>
       </Form>
       <DomainGuidelines customDomain={data?.customDomain} />
-      {dnsState === 'VERIFIED' && sslState === 'VERIFIED' &&
+      {status === 'ACTIVE' &&
         <BrandingForm sub={sub} />}
     </>
   )

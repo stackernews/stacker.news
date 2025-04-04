@@ -5,18 +5,28 @@ CREATE TABLE "CustomDomain" (
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "domain" TEXT NOT NULL,
     "subName" CITEXT NOT NULL,
-    "dnsState" TEXT,
-    "sslState" TEXT,
-    "certificateArn" TEXT,
-    "lastVerifiedAt" TIMESTAMP(3),
-    "verificationCname" TEXT,
-    "verificationCnameValue" TEXT,
-    "verificationTxt" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
     "failedAttempts" INTEGER NOT NULL DEFAULT 0,
-    "status" TEXT,
+    "lastVerifiedAt" TIMESTAMP(3),
+    "verification" JSONB NOT NULL DEFAULT '{}',
 
     CONSTRAINT "CustomDomain_pkey" PRIMARY KEY ("id")
 );
+
+-- verification jsonb schema
+-- {
+--     "dns": {
+--         "state": "VERIFIED",
+--         "cname": "stacker.news",
+--         "txt": b64 encoded txt value
+--     },
+--     "ssl": {
+--         "state": "VERIFIED",
+--         "cname": acm issued cname,
+--         "value": acm issued cname value,
+--         "arn": "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"
+--     }
+-- }
 
 -- CreateIndex
 CREATE UNIQUE INDEX "CustomDomain_domain_key" ON "CustomDomain"("domain");
@@ -32,21 +42,3 @@ CREATE INDEX "CustomDomain_created_at_idx" ON "CustomDomain"("created_at");
 
 -- AddForeignKey
 ALTER TABLE "CustomDomain" ADD CONSTRAINT "CustomDomain_subName_fkey" FOREIGN KEY ("subName") REFERENCES "Sub"("name") ON DELETE CASCADE ON UPDATE CASCADE;
-
-CREATE OR REPLACE FUNCTION schedule_domain_verification_job()
-RETURNS INTEGER
-LANGUAGE plpgsql
-AS $$
-DECLARE
-BEGIN
-    -- every 10 minutes
-    INSERT INTO pgboss.schedule (name, cron, timezone)
-    VALUES ('routineDomainVerification', '*/10 * * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
-    return 0;
-EXCEPTION WHEN OTHERS THEN
-    return 0;
-END;
-$$;
-
-SELECT schedule_domain_verification_job();
-DROP FUNCTION IF EXISTS schedule_domain_verification_job;

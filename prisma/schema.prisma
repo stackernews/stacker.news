@@ -1248,15 +1248,10 @@ model CustomDomain {
   updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at")
   domain                  String    @unique
   subName                 String    @unique @db.Citext
-  dnsState                String?
-  sslState                String?
-  certificateArn          String?
-  lastVerifiedAt          DateTime?
-  verificationCname       String?
-  verificationCnameValue  String?
-  verificationTxt         String?
+  status                  String    @default("PENDING")
   failedAttempts          Int       @default(0)
-  status                  String?
+  lastVerifiedAt          DateTime?
+  verification            Json      @default("{}")
   sub                     Sub       @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
   
   @@index([domain])

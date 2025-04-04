@@ -40,14 +40,21 @@ export const SUB_FIELDS = gql`
       updatedAt
       domain
       subName
-      dnsState
-      sslState
-      certificateArn
       lastVerifiedAt
-      verificationCname
-      verificationCnameValue
-      verificationTxt
       status
+      verification {
+        dns {
+          state
+          cname
+          txt
+        }
+        ssl {
+          state
+          arn
+          cname
+          value
+        }
+      }
     }
     customBranding {
       title

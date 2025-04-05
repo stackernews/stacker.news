@@ -15,7 +15,6 @@ import {
   FULL_COMMENTS_THRESHOLD
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
-import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
@@ -611,13 +610,13 @@ export default {
     },
     dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))
-      let { hostname, pathname } = urlObj
+      const { hostname, pathname } = urlObj
 
-      // remove subdomain from hostname
-      const parseResult = parse(urlObj.hostname)
-      if (parseResult?.subdomain?.length > 0) {
-        hostname = hostname.replace(`${parseResult.subdomain}.`, '')
-      }
+      // DON'T remove subdomain — keep the full hostname
+      // const parseResult = parse(urlObj.hostname)
+      // if (parseResult?.subdomain?.length > 0) {
+      //   hostname = hostname.replace(`${parseResult.subdomain}.`, '')
+      // }
       // hostname with optional protocol, subdomain, and port
       const hostnameRegex = `^(http(s)?:\\/\\/)?(\\w+\\.)?${(hostname + '(:[0-9]+)?').replace(/\./g, '\\.')}`
       // pathname with trailing slash and escaped special characters

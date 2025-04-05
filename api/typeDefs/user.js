@@ -209,6 +209,8 @@ export default gql`
     spent(when: String, from: String, to: String): Int
     referrals(when: String, from: String, to: String): Int
     streak: Int
+    gunStreak: Int
+    horseStreak: Int
     hasSendWallet: Boolean
     hasRecvWallet: Boolean
     maxStreak: Int

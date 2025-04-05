@@ -660,11 +660,11 @@ export default {
       const urlObj = new URL(ensureProtocol(url))
       let { hostname, pathname } = urlObj
 
-      // remove subdomain from hostname
-      const parseResult = parse(urlObj.hostname)
-      if (parseResult?.subdomain?.length > 0) {
-        hostname = hostname.replace(`${parseResult.subdomain}.`, '')
-      }
+      // DON'T remove subdomain — keep the full hostname
+      // const parseResult = parse(urlObj.hostname)
+      // if (parseResult?.subdomain?.length > 0) {
+      //   hostname = hostname.replace(`${parseResult.subdomain}.`, '')
+      // }
       // hostname with optional protocol, subdomain, and port
       const hostnameRegex = `^(http(s)?:\\/\\/)?(\\w+\\.)?${(hostname + '(:[0-9]+)?').replace(/\./g, '\\.')}`
       // pathname with trailing slash and escaped special characters

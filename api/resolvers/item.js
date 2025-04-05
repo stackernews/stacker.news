@@ -15,7 +15,6 @@ import {
   FULL_COMMENTS_THRESHOLD
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
-import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
@@ -658,7 +657,7 @@ export default {
     },
     dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))
-      let { hostname, pathname } = urlObj
+      const { hostname, pathname } = urlObj
 
       // DON'T remove subdomain — keep the full hostname
       // const parseResult = parse(urlObj.hostname)

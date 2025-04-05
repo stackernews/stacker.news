@@ -2,14 +2,12 @@ import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
 import { Prisma } from '@prisma/client'
 
 const COWBOY_HAT_STREAK_THRESHOLD = 100
-const GUN_STREAK_THRESHOLD = 1000
-const HORSE_STREAK_THRESHOLD = 1000
 
 export async function computeStreaks ({ models }) {
   // get all eligible users in the last day
   // if the user doesn't have an active streak, add one
   // if they have an active streak but didn't maintain it, end it
-  for (const type of ['COWBOY_HAT', 'GUN', 'HORSE']) {
+  for (const type of ['COWBOY_HAT']) {
     const endingStreaks = await models.$queryRaw`
       WITH day_streaks (id) AS (
         ${getStreakQuery(type)}
@@ -93,31 +91,6 @@ function getStreakQuery (type, userId) {
     ? Prisma.sql`(now() AT TIME ZONE 'America/Chicago')::date`
     : Prisma.sql`(now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date`
 
-  if (type === 'GUN') {
-    return Prisma.sql`
-      SELECT "Invoice"."userId"
-        FROM "Invoice"
-        JOIN "InvoiceForward" ON "Invoice".id = "InvoiceForward"."invoiceId"
-        WHERE ("Invoice"."created_at" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= ${dayFragment}
-        AND "Invoice"."actionState" = 'PAID' AND "Invoice"."actionType" = 'ZAP'
-        ${userId ? Prisma.sql`AND "Invoice"."userId" = ${userId}` : Prisma.empty}
-        GROUP BY "Invoice"."userId"
-        HAVING sum(floor("Invoice"."msatsReceived"/1000)) >= ${GUN_STREAK_THRESHOLD}`
-  }
-
-  if (type === 'HORSE') {
-    return Prisma.sql`
-      SELECT "Withdrawl"."userId"
-        FROM "Withdrawl"
-        JOIN "InvoiceForward" ON "Withdrawl".id = "InvoiceForward"."withdrawlId"
-        JOIN "Invoice" ON "InvoiceForward"."invoiceId" = "Invoice".id
-        WHERE ("Withdrawl"."created_at" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= ${dayFragment}
-        AND "Invoice"."actionState" = 'PAID' AND "Invoice"."actionType" = 'ZAP'
-        ${userId ? Prisma.sql`AND "Withdrawl"."userId" = ${userId}` : Prisma.empty}
-        GROUP BY "Withdrawl"."userId"
-        HAVING sum(floor("Invoice"."msatsReceived"/1000)) >= ${HORSE_STREAK_THRESHOLD}`
-  }
-
   return Prisma.sql`
       SELECT "userId"
         FROM
@@ -145,25 +118,9 @@ function getStreakQuery (type, userId) {
 }
 
 function isStreakActive (type, user) {
-  if (type === 'GUN') {
-    return typeof user.gunStreak === 'number'
-  }
-
-  if (type === 'HORSE') {
-    return typeof user.horseStreak === 'number'
-  }
-
   return typeof user.streak === 'number'
 }
 
 function getStreakColumn (type) {
-  if (type === 'GUN') {
-    return Prisma.sql`"gunStreak"`
-  }
-
-  if (type === 'HORSE') {
-    return Prisma.sql`"horseStreak"`
-  }
-
   return Prisma.sql`"streak"`
 }

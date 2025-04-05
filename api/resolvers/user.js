@@ -1082,19 +1082,17 @@ export default {
 
       return user.streak
     },
-    gunStreak: async (user, args, { models }) => {
+    hasSendWallet: async (user, args, { models }) => {
       if (user.hideCowboyHat) {
-        return null
+        return false
       }
-
-      return user.gunStreak
+      return user.hasSendWallet
     },
-    horseStreak: async (user, args, { models }) => {
+    hasRecvWallet: async (user, args, { models }) => {
       if (user.hideCowboyHat) {
-        return null
+        return false
       }
-
-      return user.horseStreak
+      return user.hasRecvWallet
     },
     maxStreak: async (user, args, { models }) => {
       if (user.hideCowboyHat) {

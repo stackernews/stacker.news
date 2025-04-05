@@ -18,7 +18,18 @@ import { useSendWallets } from '@/wallets/index'
 const defaultTips = [100, 1000, 10_000, 100_000]
 
 const Tips = ({ setOValue }) => {
-  const tips = [...getCustomTips(), ...defaultTips].sort((a, b) => a - b)
+  // const tips = [...getCustomTips(), ...defaultTips].sort((a, b) => a - b)
+  const customTips = getCustomTips()
+  let tips
+  if (customTips.length >= 7) {
+    // enough custom tips to fully replace
+    tips = customTips.slice(0, 7)
+  } else {
+    // fill the rest with defaults (but avoid duplicates)
+    const remainingDefaults = defaultTips.filter(d => !customTips.includes(d))
+    tips = [...customTips, ...remainingDefaults].slice(0, 7)
+  }
+  tips.sort((a, b) => a - b)
   return tips.map((num, i) =>
     <Button
       size='sm'
@@ -37,10 +48,9 @@ const Tips = ({ setOValue }) => {
 const getCustomTips = () => JSON.parse(window.localStorage.getItem('custom-tips')) || []
 
 const addCustomTip = (amount) => {
-  if (defaultTips.includes(amount)) return
   let customTips = Array.from(new Set([amount, ...getCustomTips()]))
-  if (customTips.length > 3) {
-    customTips = customTips.slice(0, 3)
+  if (customTips.length > 7) {
+    customTips = customTips.slice(0, 7)
   }
   window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }

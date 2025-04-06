@@ -87,6 +87,16 @@ EOF
   exit 1
 fi
 
+# Check if KW_INDEX is still indexing
+kw_count=$(curl -s -X GET "$OS_URL/$KW_INDEX/_count" | jq -r '.count')
+sleep 2
+kw_count_2=$(curl -s -X GET "$OS_URL/$KW_INDEX/_count" | jq -r '.count')
+if [ "$kw_count_2" != "$kw_count" ] || [ "$kw_count_2" -lt 5000 ]; then
+  echo "It appears that $KW_INDEX is not done indexing."
+  echo "Please wait until it finishes indexing, then try again."
+  exit 0
+fi
+
 # Configure the ML plugin
 echo -ne "Configuring the ML plugin... "
 curl \
@@ -330,15 +340,6 @@ if [[ "$response" =~ ^[Nn]$ ]]; then
   exit 0
 fi
 
-# Check if KW_INDEX is still indexing
-sleep 2
-kw_count_2=$(curl -s -X GET "$OS_URL/$KW_INDEX/_count" | jq -r '.count')
-if [ "$kw_count_2" != "$kw_count" ] || [ "$kw_count_2" -lt 5000 ]; then
-  echo "It appears that $KW_INDEX is not done indexing."
-  echo "Please wait until it finishes indexing, then try again."
-  exit 0
-fi
-
 # Re-index the data
 task_id=$(curl -s \
   -X POST "$OS_URL/_reindex?wait_for_completion=false" \
@@ -389,8 +390,8 @@ echo "done."
 cat <<EOF
 To enable semantic search, you should restart your containers:
 
-> sndev stop
-> sndev start
+> ./sndev stop
+> ./sndev start
 
 Do NOT rebuild the stackernews_os volume or you will have to run this
 process again.

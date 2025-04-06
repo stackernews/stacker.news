@@ -1,4 +1,27 @@
-Getting semantic search setup in OpenSearch is currently a multistep, manual process. To configure semantic search, enter the following commands into OpenSearch's REST API. You can do this in Dev Tools in the OpenSearch Dashboard (after starting your SN dev environment, point your browser to localhost:5601). You can also use CURL to send these commands to localhost:9200.
+## Automated setup
+
+To enable semantic search that uses text embeddings, run `./nlp-setup`. 
+
+Before running `./nlp-setup`, ensure the following are true:
+
+- search is enabled in `COMPOSE_PROFILES`:
+
+    ```.env
+    COMPOSE_PROFILES=...,search,...
+    ```
+- The default opensearch index (default name=`item`) is created and done indexing. This should happen the first time you run `./sndev start`, but it may take a few minutes for indexing to complete.
+
+After `nlp-setup` is done, restart your containers to enable semantic search:
+
+```
+> ./sndev stop
+> ./sndev start
+```
+
+
+## Manual setup
+
+You can also set up and configure semantic search manually. To do so, enter the following commands into OpenSearch's REST API. You can do this in Dev Tools in the OpenSearch Dashboard (after starting your SN dev environment, point your browser to localhost:5601). You can also use CURL to send these commands to localhost:9200.
 
 ### step 1: configure the ml plugin
 ```json

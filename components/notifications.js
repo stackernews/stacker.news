@@ -14,6 +14,8 @@ import UserAdd from '@/svgs/user-add-fill.svg'
 import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import BaldIcon from '@/svgs/bald.svg'
+import GunIcon from '@/svgs/revolver.svg'
+import HorseIcon from '@/svgs/horse.svg'
 import { RootProvider } from './root'
 import Alert from 'react-bootstrap/Alert'
 import styles from './notifications.module.css'
@@ -39,6 +41,8 @@ import { useRetryCreateItem } from './use-item-submit'
 import { payBountyCacheMods } from './pay-bounty'
 import { useToast } from './toast'
 import classNames from 'classnames'
+import HolsterIcon from '@/svgs/holster.svg'
+import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
 
@@ -172,20 +176,30 @@ const defaultOnClick = n => {
 
 function Streak ({ n }) {
   function blurb (n) {
-    const type = n.type ?? 'COWBOY_HAT'
-    const index = Number(n.id) % Math.min(FOUND_BLURBS[type].length, LOST_BLURBS[type].length)
+    const id = Number(n.id.split('-')[0])
+    const type = n.id.includes('-HORSE')
+      ? 'HORSE'
+      : (n.id.includes('-GUN') ? 'GUN' : 'COWBOY_HAT')
+    const index = Number(id) % Math.min(FOUND_BLURBS[type].length, LOST_BLURBS[type].length)
+
     if (n.days) {
-      return `After ${numWithUnits(n.days, {
-        abbreviate: false,
-        unitSingular: 'day',
-         unitPlural: 'days'
-      })}, ` + LOST_BLURBS[type][index]
+      let body = LOST_BLURBS[type][index]
+      if (type === 'COWBOY_HAT') {
+        body = `After ${numWithUnits(n.days, {
+          abbreviate: false,
+          unitSingular: 'day',
+          unitPlural: 'days'
+        })}, ` + body
+      }
+      return body
     }
 
     return FOUND_BLURBS[type][index]
   }
 
-  const Icon = n.days ? BaldIcon : CowboyHatIcon
+  const Icon = n.days
+    ? n.type === 'GUN' ? HolsterIcon : n.type === 'HORSE' ? SaddleIcon : BaldIcon
+    : n.type === 'GUN' ? GunIcon : n.type === 'HORSE' ? HorseIcon : CowboyHatIcon
 
   return (
     <div className='d-flex'>

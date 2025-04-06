@@ -320,9 +320,31 @@ export default {
           FROM "Streak"
           WHERE "userId" = $1
           AND updated_at < $2
+          AND type = 'COWBOY_HAT'
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT})`
         )
+        for (const type of ['HORSE', 'GUN']) {
+          queries.push(
+            `(SELECT (id::text || '-${type}-FOUND')::text AS id, "startedAt" AS "sortTime", 0 as "earnedSats", 'Streak' AS type
+            FROM "Streak"
+            WHERE "userId" = $1
+            AND updated_at < $2
+            AND type = '${type}'::"StreakType"
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+          )
+          queries.push(
+            `(SELECT (id::text || '-${type}-LOST')::text AS id, "endedAt" AS "sortTime", 0 as "earnedSats", 'Streak' AS type
+            FROM "Streak"
+            WHERE "userId" = $1
+            AND updated_at < $2
+            AND "endedAt" IS NOT NULL
+            AND type = '${type}'::"StreakType"
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+          )
+        }
       }
 
       queries.push(
@@ -502,21 +524,28 @@ export default {
   },
   Streak: {
     days: async (n, args, { models }) => {
-      const res = await models.$queryRaw`
-        SELECT "endedAt" - "startedAt" AS days
-        FROM "Streak"
-        WHERE id = ${Number(n.id)} AND "endedAt" IS NOT NULL
-      `
+      const id = Number(n.id.split('-')[0])
+      const type = n.id.includes('-HORSE')
+        ? 'HORSE'
+        : (n.id.includes('-GUN') ? 'GUN' : 'COWBOY_HAT')
 
-      return res.length ? res[0].days : null
+      if (type === 'COWBOY_HAT') {
+        const res = await models.$queryRaw`
+          SELECT "endedAt"::date - "startedAt"::date AS days
+          FROM "Streak"
+          WHERE id = ${id} AND "endedAt" IS NOT NULL
+        `
+        return res.length ? res[0].days : null
+      }
+
+      const lost = n.id.includes('-LOST')
+      return lost ? 1 : 0
     },
     type: async (n, args, { models }) => {
-      const res = await models.$queryRaw`
-        SELECT "type"
-        FROM "Streak"
-        WHERE id = ${Number(n.id)}
-      `
-      return res.length ? res[0].type : null
+      const type = n.id.includes('-HORSE')
+        ? 'HORSE'
+        : (n.id.includes('-GUN') ? 'GUN' : 'COWBOY_HAT')
+      return type
     }
   },
   Earn: {

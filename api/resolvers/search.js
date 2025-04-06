@@ -406,6 +406,7 @@ export default {
         if (process.env.OPENSEARCH_MODEL_ID) {
           osQuery = {
             hybrid: {
+              pagination_depth: 50,
               queries: [
                 {
                   bool: {

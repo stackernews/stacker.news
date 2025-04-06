@@ -1,10 +1,11 @@
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { Select } from './form'
 import { EXTRA_LONG_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { SUBS } from '@/fragments/subs'
 import { useQuery } from '@apollo/client'
-import { useEffect, useState } from 'react'
 import styles from './sub-select.module.css'
+import { useMe } from './me'
 
 export function SubSelectInitial ({ sub }) {
   const router = useRouter()
@@ -15,20 +16,32 @@ export function SubSelectInitial ({ sub }) {
   }
 }
 
-export function useSubs ({ prependSubs = [], sub, filterSubs = () => true, appendSubs = [] }) {
-  const { data } = useQuery(SUBS, SSR
+const DEFAULT_PREPEND_SUBS = []
+const DEFAULT_APPEND_SUBS = []
+const DEFAULT_FILTER_SUBS = () => true
+
+export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs = DEFAULT_FILTER_SUBS, appendSubs = DEFAULT_APPEND_SUBS }) {
+  const { data, refetch } = useQuery(SUBS, SSR
     ? {}
     : {
         pollInterval: EXTRA_LONG_POLL_INTERVAL,
         nextFetchPolicy: 'cache-and-network'
       })
 
+  const { me } = useMe()
+
+  useEffect(() => {
+    refetch()
+  }, [me?.privates?.nsfwMode])
+
   const [subs, setSubs] = useState([
     ...prependSubs.filter(s => s !== sub),
     ...(sub ? [sub] : []),
     ...appendSubs.filter(s => s !== sub)])
+
   useEffect(() => {
     if (!data) return
+
     const joined = data.subs.filter(filterSubs).filter(s => !s.meMuteSub).map(s => s.name)
     const muted = data.subs.filter(filterSubs).filter(s => s.meMuteSub).map(s => s.name)
     const mutedSection = muted.length ? [{ label: 'muted', items: muted }] : []
@@ -81,8 +94,19 @@ export default function SubSelect ({ prependSubs, sub, onChange, size, appendSub
           }
         } else {
           // we're currently on the home sub
-          // are we in a sub aware route?
-          if (router.pathname.startsWith('/~')) {
+          // if in /top/cowboys, /top/territories, or /top/stackers
+          // and a territory is selected, go to /~sub/top/posts/day
+          if (router.pathname.startsWith('/~/top/cowboys')) {
+            router.push(sub ? `/~${sub}/top/posts/day` : '/top/cowboys')
+            return
+          } else if (router.pathname.startsWith('/~/top/stackers')) {
+            router.push(sub ? `/~${sub}/top/posts/day` : 'top/stackers/day')
+            return
+          } else if (router.pathname.startsWith('/~/top/territories')) {
+            router.push(sub ? `/~${sub}/top/posts/day` : '/top/territories/day')
+            return
+          } else if (router.pathname.startsWith('/~')) {
+            // are we in a sub aware route?
             // if we are, go to the same path but in the sub
             asPath = `/~${sub}` + router.asPath
           } else {

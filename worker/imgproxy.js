@@ -1,7 +1,9 @@
 import { createHmac } from 'node:crypto'
-import { extractUrls } from '@/lib/md.js'
-import { isJob } from '@/lib/item.js'
+import { extractUrls } from '@/lib/md'
+import { isJob } from '@/lib/item'
 import path from 'node:path'
+import { decodeProxyUrl } from '@/lib/url'
+import { fetchWithTimeout } from '@/lib/fetch'
 
 const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
   (process.env.NEXT_PUBLIC_IMGPROXY_URL && process.env.IMGPROXY_SALT && process.env.IMGPROXY_KEY)
@@ -45,13 +47,6 @@ function matchUrl (matchers, url) {
     console.log(url, err)
     return false
   }
-}
-
-function decodeOriginalUrl (imgproxyUrl) {
-  const parts = imgproxyUrl.split('/')
-  const b64Url = parts[parts.length - 1]
-  const originalUrl = Buffer.from(b64Url, 'base64url').toString('utf-8')
-  return originalUrl
 }
 
 export async function imgproxy ({ data: { id, forceFetch = false }, models }) {
@@ -100,18 +95,17 @@ export const createImgproxyUrls = async (id, text, { models, forceFetch }) => {
     if (url.startsWith(IMGPROXY_URL)) {
       console.log('[imgproxy] id:', id, '-- proxy url, decoding original url:', url)
       // backwards compatibility: we used to replace image urls with imgproxy urls
-      url = decodeOriginalUrl(url)
+      url = decodeProxyUrl(url)
       console.log('[imgproxy] id:', id, '-- original url:', url)
     }
-    if (!(await isImageURL(fetchUrl, { forceFetch }))) {
+    if (!(await isMediaURL(fetchUrl, { forceFetch }))) {
       console.log('[imgproxy] id:', id, '-- not image url:', url)
       continue
     }
     imgproxyUrls[url] = {}
     try {
-      imgproxyUrls[url] = {
-        dimensions: await getDimensions(fetchUrl)
-      }
+      imgproxyUrls[url] = await getMetadata(fetchUrl)
+      console.log('[imgproxy] id:', id, '-- dimensions:', imgproxyUrls[url])
     } catch (err) {
       console.log('[imgproxy] id:', id, '-- error getting dimensions (possibly not running imgproxy pro)', err)
     }
@@ -124,12 +118,13 @@ export const createImgproxyUrls = async (id, text, { models, forceFetch }) => {
   return imgproxyUrls
 }
 
-const getDimensions = async (url) => {
-  const options = '/d:1'
+const getMetadata = async (url) => {
+  // video metadata, dimensions, format
+  const options = '/vm:1/d:1/f:1'
   const imgproxyUrl = new URL(createImgproxyPath({ url, options, pathname: '/info' }), IMGPROXY_URL).toString()
   const res = await fetch(imgproxyUrl)
-  const { width, height } = await res.json()
-  return { width, height }
+  const { width, height, format, video_streams: videoStreams } = await res.json()
+  return { dimensions: { width, height }, format, video: !!videoStreams?.length }
 }
 
 const createImgproxyPath = ({ url, pathname = '/', options }) => {
@@ -139,20 +134,7 @@ const createImgproxyPath = ({ url, pathname = '/', options }) => {
   return path.join(pathname, signature, target)
 }
 
-async function fetchWithTimeout (resource, { timeout = 1000, ...options } = {}) {
-  const controller = new AbortController()
-  const id = setTimeout(() => controller.abort(), timeout)
-
-  const response = await fetch(resource, {
-    ...options,
-    signal: controller.signal
-  })
-  clearTimeout(id)
-
-  return response
-}
-
-const isImageURL = async (url, { forceFetch }) => {
+const isMediaURL = async (url, { forceFetch }) => {
   if (cache.has(url)) return cache.get(url)
 
   if (!forceFetch && matchUrl(imageUrlMatchers, url)) {
@@ -162,21 +144,21 @@ const isImageURL = async (url, { forceFetch }) => {
     return false
   }
 
-  let isImage
+  let isMedia
 
   // first run HEAD with small timeout
   try {
     // https://stackoverflow.com/a/68118683
     const res = await fetchWithTimeout(url, { timeout: 1000, method: 'HEAD' })
     const buf = await res.blob()
-    isImage = buf.type.startsWith('image/')
+    isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
   } catch (err) {
     console.log(url, err)
   }
 
   // For HEAD requests, positives are most likely true positives.
   // However, negatives may be false negatives
-  if (isImage) {
+  if (isMedia) {
     cache.set(url, true)
     return true
   }
@@ -185,13 +167,13 @@ const isImageURL = async (url, { forceFetch }) => {
   try {
     const res = await fetchWithTimeout(url, { timeout: 10000 })
     const buf = await res.blob()
-    isImage = buf.type.startsWith('image/')
+    isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
   } catch (err) {
     console.log(url, err)
   }
 
-  cache.set(url, isImage)
-  return isImage
+  cache.set(url, isMedia)
+  return isMedia
 }
 
 const hexDecode = (hex) => Buffer.from(hex, 'hex')

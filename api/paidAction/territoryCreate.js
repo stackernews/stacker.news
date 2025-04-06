@@ -1,9 +1,15 @@
-import { TERRITORY_PERIOD_COST } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 import { nextBilling } from '@/lib/territory'
+import { initialTrust } from './lib/territory'
+
 export const anonable = false
-export const supportsPessimism = true
-export const supportsOptimism = false
+
+export const paymentMethods = [
+  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.REWARD_SATS,
+  PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
+]
 
 export async function getCost ({ billingType }) {
   return satsToMsats(TERRITORY_PERIOD_COST(billingType))
@@ -15,7 +21,7 @@ export async function perform ({ invoiceId, ...data }, { me, cost, tx }) {
   const billedLastAt = new Date()
   const billPaidUntil = nextBilling(billedLastAt, billingType)
 
-  return await tx.sub.create({
+  const sub = await tx.sub.create({
     data: {
       ...data,
       billedLastAt,
@@ -37,6 +43,12 @@ export async function perform ({ invoiceId, ...data }, { me, cost, tx }) {
       }
     }
   })
+
+  await tx.userSubTrust.createMany({
+    data: initialTrust({ name: sub.name, userId: sub.userId })
+  })
+
+  return sub
 }
 
 export async function describe ({ name }) {

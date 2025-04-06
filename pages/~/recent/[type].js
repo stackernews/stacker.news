@@ -9,8 +9,22 @@ import { useQuery } from '@apollo/client'
 import PageLoading from '@/components/page-loading'
 
 const staticVariables = { sort: 'recent' }
-const variablesFunc = vars =>
-  ({ includeComments: COMMENT_TYPE_QUERY.includes(vars.type), ...staticVariables, ...vars })
+
+function variablesFunc (vars) {
+  let type = vars?.type || ''
+
+  if (type === 'bounties' && vars?.active) {
+    type = 'bounties_active'
+  }
+
+  return ({
+    includeComments: COMMENT_TYPE_QUERY.includes(vars.type),
+    ...staticVariables,
+    ...vars,
+    type
+  })
+}
+
 export const getServerSideProps = getGetServerSideProps({
   query: SUB_ITEMS,
   variables: variablesFunc,

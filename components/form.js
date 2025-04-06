@@ -9,7 +9,7 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import Nav from 'react-bootstrap/Nav'
 import Row from 'react-bootstrap/Row'
 import Markdown from '@/svgs/markdown-line.svg'
-import AddImageIcon from '@/svgs/image-add-line.svg'
+import AddFileIcon from '@/svgs/file-upload-line.svg'
 import styles from './form.module.css'
 import Text from '@/components/text'
 import AddIcon from '@/svgs/add-fill.svg'
@@ -20,10 +20,9 @@ import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
 import { numWithUnits } from '@/lib/format'
 import textAreaCaret from 'textarea-caret'
-import ReactDatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import useDebounceCallback, { debounce } from './use-debounce-callback'
-import { ImageUpload } from './image'
+import { FileUpload } from './file-upload'
 import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 import { whenRange } from '@/lib/time'
 import { useFeeButton } from './fee-button'
@@ -33,6 +32,15 @@ import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
 import { useMe } from './me'
 import classNames from 'classnames'
+import Clipboard from '@/svgs/clipboard-line.svg'
+import QrIcon from '@/svgs/qr-code-line.svg'
+import QrScanIcon from '@/svgs/qr-scan-line.svg'
+import { useShowModal } from './modal'
+import { QRCodeSVG } from 'qrcode.react'
+import dynamic from 'next/dynamic'
+import { qrImageSettings } from './qr'
+import { useIsClient } from './use-client'
+import PageLoading from './page-loading'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -42,7 +50,7 @@ export class SessionRequiredError extends Error {
 }
 
 export function SubmitButton ({
-  children, variant, value, onClick, disabled, appendText, submittingText,
+  children, variant, valueName = 'submit', value, onClick, disabled, appendText, submittingText,
   className, ...props
 }) {
   const formik = useFormikContext()
@@ -53,12 +61,12 @@ export function SubmitButton ({
   return (
     <Button
       variant={variant || 'main'}
-      className={classNames(formik.isSubmitting && styles.pending, className)}
+      className={classNames(formik.isSubmitting && 'pulse', className)}
       type='submit'
       disabled={disabled}
       onClick={value
         ? e => {
-          formik.setFieldValue('submit', value)
+          formik.setFieldValue(valueName, value)
           onClick && onClick(e)
         }
         : onClick}
@@ -69,31 +77,41 @@ export function SubmitButton ({
   )
 }
 
-export function CopyInput (props) {
+function CopyButton ({ value, icon, ...props }) {
   const toaster = useToast()
   const [copied, setCopied] = useState(false)
 
-  const handleClick = async () => {
+  const handleClick = useCallback(async () => {
     try {
-      await copy(props.placeholder)
+      await copy(value)
       toaster.success('copied')
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch (err) {
       toaster.danger('failed to copy')
     }
+  }, [toaster, value])
+
+  if (icon) {
+    return (
+      <InputGroup.Text style={{ cursor: 'pointer' }} onClick={handleClick}>
+        <Clipboard height={20} width={20} />
+      </InputGroup.Text>
+    )
   }
 
   return (
+    <Button className={styles.appendButton} {...props} onClick={handleClick}>
+      {copied ? <Thumb width={18} height={18} /> : 'copy'}
+    </Button>
+  )
+}
+
+export function CopyInput (props) {
+  return (
     <Input
-      onClick={handleClick}
       append={
-        <Button
-          className={styles.appendButton}
-          size={props.size}
-          onClick={handleClick}
-        >{copied ? <Thumb width={18} height={18} /> : 'copy'}
-        </Button>
+        <CopyButton value={props.placeholder} size={props.size} />
       }
       {...props}
     />
@@ -113,6 +131,14 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
+// fix https://github.com/stackernews/stacker.news/issues/1522
+// see https://github.com/facebook/react/issues/11488#issuecomment-558874287
+function setNativeValue (textarea, value) {
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set
+  setter?.call(textarea, value)
+  textarea.dispatchEvent(new Event('input', { bubbles: true, value }))
+}
+
 export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta, helpers] = useField(props)
@@ -122,12 +148,12 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const previousTab = useRef(tab)
   const { merge, setDisabled: setSubmitDisabled } = useFeeButton()
 
-  const [updateImageFeesInfo] = useLazyQuery(gql`
-    query imageFeesInfo($s3Keys: [Int]!) {
-      imageFeesInfo(s3Keys: $s3Keys) {
+  const [updateUploadFees] = useLazyQuery(gql`
+    query uploadFees($s3Keys: [Int]!) {
+      uploadFees(s3Keys: $s3Keys) {
         totalFees
         nUnpaid
-        imageFee
+        uploadFees
         bytes24h
       }
     }`, {
@@ -136,13 +162,14 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     onError: (err) => {
       console.error(err)
     },
-    onCompleted: ({ imageFeesInfo }) => {
+    onCompleted: ({ uploadFees }) => {
       merge({
-        imageFee: {
-          term: `+ ${numWithUnits(imageFeesInfo.totalFees, { abbreviate: false })}`,
-          label: 'image fee',
-          modifier: cost => cost + imageFeesInfo.totalFees,
-          omit: !imageFeesInfo.totalFees
+        uploadFees: {
+          term: `+ ${numWithUnits(uploadFees.totalFees, { abbreviate: false })}`,
+          label: 'upload fee',
+          op: '+',
+          modifier: cost => cost + uploadFees.totalFees,
+          omit: !uploadFees.totalFees
         }
       })
     }
@@ -184,17 +211,17 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     innerRef.current.focus()
   }, [mention, meta?.value, helpers?.setValue])
 
-  const imageFeesUpdate = useDebounceCallback(
+  const uploadFeesUpdate = useDebounceCallback(
     (text) => {
       const s3Keys = text ? [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])) : []
-      updateImageFeesInfo({ variables: { s3Keys } })
-    }, 1000, [updateImageFeesInfo])
+      updateUploadFees({ variables: { s3Keys } })
+    }, 1000, [updateUploadFees])
 
   const onChangeInner = useCallback((formik, e) => {
     if (onChange) onChange(formik, e)
     // check for mention editing
     const { value, selectionStart } = e.target
-    imageFeesUpdate(value)
+    uploadFeesUpdate(value)
 
     if (!value || selectionStart === undefined) {
       setMention(undefined)
@@ -233,7 +260,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     } else {
       setMention(undefined)
     }
-  }, [onChange, setMention, imageFeesUpdate])
+  }, [onChange, setMention, uploadFeesUpdate])
 
   const onKeyDownInner = useCallback((userSuggestOnKeyDown) => {
     return (e) => {
@@ -253,6 +280,11 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
           // some browsers might use CTRL+I to do something else so prevent that behavior too
           e.preventDefault()
           insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+        }
+        if (e.key === 'u') {
+          // some browsers might use CTRL+U to do something else so prevent that behavior too
+          e.preventDefault()
+          imageUploadRef.current?.click()
         }
         if (e.key === 'Tab' && e.altKey) {
           e.preventDefault()
@@ -321,19 +353,29 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
             <Nav.Link className={styles.previewTab} eventKey='preview' disabled={!meta.value}>preview</Nav.Link>
           </Nav.Item>
           <span className='ms-auto text-muted d-flex align-items-center'>
-            <ImageUpload
+            <FileUpload
               multiple
               ref={imageUploadRef}
               className='d-flex align-items-center me-1'
               onUpload={file => {
                 const uploadMarker = `![Uploading ${file.name}…]()`
                 const text = innerRef.current.value
-                const cursorPosition = innerRef.current.selectionStart || text.length
+                const cursorPosition = innerRef.current.selectionStart
                 let preMarker = text.slice(0, cursorPosition)
-                const postMarker = text.slice(cursorPosition)
+                let postMarker = text.slice(cursorPosition)
                 // when uploading multiple files at once, we want to make sure the upload markers are separated by blank lines
-                if (preMarker && !/\n+\s*$/.test(preMarker)) {
-                  preMarker += '\n\n'
+                if (preMarker) {
+                  // Count existing newlines at the end of preMarker
+                  const existingNewlines = preMarker.match(/[\n]+$/)?.[0].length || 0
+                  // Add only the needed newlines to reach 2
+                  preMarker += '\n'.repeat(Math.max(0, 2 - existingNewlines))
+                }
+                // if there's text after the cursor, we want to make sure the upload marker is separated by a blank line
+                if (postMarker) {
+                  // Count existing newlines at the start of postMarker
+                  const existingNewlines = postMarker.match(/^[\n]*/)?.[0].length || 0
+                  // Add only the needed newlines to reach 2
+                  postMarker = '\n'.repeat(Math.max(0, 2 - existingNewlines)) + postMarker
                 }
                 const newText = preMarker + uploadMarker + postMarker
                 helpers.setValue(newText)
@@ -343,8 +385,9 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
                 let text = innerRef.current.value
                 text = text.replace(`![Uploading ${name}…]()`, `![](${url})`)
                 helpers.setValue(text)
+                setNativeValue(innerRef.current, text)
                 const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
-                updateImageFeesInfo({ variables: { s3Keys } })
+                updateUploadFees({ variables: { s3Keys } })
                 setSubmitDisabled?.(false)
               }}
               onError={({ name }) => {
@@ -354,8 +397,8 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
                 setSubmitDisabled?.(false)
               }}
             >
-              <AddImageIcon width={18} height={18} />
-            </ImageUpload>
+              <AddFileIcon width={18} height={18} />
+            </FileUpload>
             <a
               className='d-flex align-items-center'
               href='https://guides.github.com/features/mastering-markdown/' target='_blank' rel='noreferrer'
@@ -387,7 +430,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
         {tab !== 'write' &&
           <div className='form-group'>
             <div className={`${styles.text} form-control`}>
-              <Text topLevel={topLevel} noFragments tab={tab}>{meta.value}</Text>
+              <Text topLevel={topLevel} tab={tab}>{meta.value}</Text>
             </div>
           </div>}
       </div>
@@ -443,12 +486,13 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue,
-  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength,
+  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength, hideError,
   ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
   const storageKeyPrefix = useContext(StorageKeyPrefixContext)
+  const isClient = useIsClient()
 
   const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + props.name : undefined
 
@@ -484,6 +528,7 @@ function InputInner ({
       if (storageKey) {
         window.localStorage.setItem(storageKey, overrideValue)
       }
+      onChange && onChange(formik, { target: { value: overrideValue } })
     } else if (storageKey) {
       const draft = window.localStorage.getItem(storageKey)
       if (draft) {
@@ -529,10 +574,10 @@ function InputInner ({
           onKeyDown={onKeyDownInner}
           onChange={onChangeInner}
           onBlur={onBlurInner}
-          isInvalid={invalid}
+          isInvalid={!hideError && invalid} // if hideError is true, handle error showing separately
           isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
         />
-        {(clear && field.value) &&
+        {(isClient && clear && field.value && !props.readOnly) &&
           <Button
             variant={null}
             onClick={(e) => {
@@ -705,10 +750,11 @@ export function InputUserSuggest ({
   )
 }
 
-export function Input ({ label, groupClassName, ...props }) {
+export function Input ({ label, groupClassName, under, ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
       <InputInner {...props} />
+      {under}
     </FormGroup>
   )
 }
@@ -802,13 +848,13 @@ export function CheckboxGroup ({ label, groupClassName, children, ...props }) {
 const StorageKeyPrefixContext = createContext()
 
 export function Form ({
-  initial, schema, onSubmit, children, initialError, validateImmediately,
-  storageKeyPrefix, validateOnChange = true, requireSession, innerRef,
+  initial, validate, schema, onSubmit, children, initialError, validateImmediately,
+  storageKeyPrefix, validateOnChange = true, requireSession, innerRef, enableReinitialize,
   ...props
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
-  const me = useMe()
+  const { me } = useMe()
 
   useEffect(() => {
     if (initialError && !initialErrorToasted.current) {
@@ -855,7 +901,9 @@ export function Form ({
   return (
     <Formik
       initialValues={initial}
+      enableReinitialize={enableReinitialize}
       validateOnChange={validateOnChange}
+      validate={validate}
       validationSchema={schema}
       initialTouched={validateImmediately && initial}
       validateOnBlur={false}
@@ -922,6 +970,19 @@ export function Select ({ label, items, info, groupClassName, onChange, noForm, 
     </FormGroup>
   )
 }
+
+function DatePickerSkeleton () {
+  return (
+    <div className='react-datepicker-wrapper'>
+      <input className='form-control clouds fade-out p-0 px-2 mb-0' />
+    </div>
+  )
+}
+
+const ReactDatePicker = dynamic(() => import('react-datepicker').then(mod => mod.default), {
+  ssr: false,
+  loading: () => <DatePickerSkeleton />
+})
 
 export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to, className, ...props }) {
   const formik = noForm ? null : useFormikContext()
@@ -990,19 +1051,23 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
   }
 
   return (
-    <ReactDatePicker
-      className={`form-control text-center ${className}`}
-      selectsRange
-      maxDate={new Date()}
-      minDate={new Date('2021-05-01')}
-      {...props}
-      selected={new Date(innerFrom)}
-      startDate={new Date(innerFrom)}
-      endDate={innerTo ? new Date(innerTo) : undefined}
-      dateFormat={dateFormat}
-      onChangeRaw={onChangeRawHandler}
-      onChange={innerOnChange}
-    />
+    <>
+      {ReactDatePicker && (
+        <ReactDatePicker
+          className={`form-control text-center ${className}`}
+          selectsRange
+          maxDate={new Date()}
+          minDate={new Date('2021-05-01')}
+          {...props}
+          selected={new Date(innerFrom)}
+          startDate={new Date(innerFrom)}
+          endDate={innerTo ? new Date(innerTo) : undefined}
+          dateFormat={dateFormat}
+          onChangeRaw={onChangeRawHandler}
+          onChange={innerOnChange}
+        />
+      )}
+    </>
   )
 }
 
@@ -1022,19 +1087,27 @@ export function DateTimeInput ({ label, groupClassName, name, ...props }) {
 
 function DateTimePicker ({ name, className, ...props }) {
   const [field, , helpers] = useField({ ...props, name })
+  const ReactDatePicker = dynamic(() => import('react-datepicker').then(mod => mod.default), {
+    ssr: false,
+    loading: () => <span>loading date picker</span>
+  })
   return (
-    <ReactDatePicker
-      {...field}
-      {...props}
-      showTimeSelect
-      dateFormat='Pp'
-      className={`form-control ${className}`}
-      selected={(field.value && new Date(field.value)) || null}
-      value={(field.value && new Date(field.value)) || null}
-      onChange={(val) => {
-        helpers.setValue(val)
-      }}
-    />
+    <>
+      {ReactDatePicker && (
+        <ReactDatePicker
+          {...field}
+          {...props}
+          showTimeSelect
+          dateFormat='Pp'
+          className={`form-control ${className}`}
+          selected={(field.value && new Date(field.value)) || null}
+          value={(field.value && new Date(field.value)) || null}
+          onChange={(val) => {
+            helpers.setValue(val)
+          }}
+        />
+      )}
+    </>
   )
 }
 
@@ -1044,7 +1117,7 @@ function Client (Component) {
     // where the initial value is not available on first render.
     // Example: value is stored in localStorage which is fetched
     // after first render using an useEffect hook.
-    const [,, helpers] = useField(props)
+    const [,, helpers] = props.noForm ? [{}, {}, {}] : useField(props)
 
     useEffect(() => {
       initialValue && helpers.setValue(initialValue)
@@ -1062,25 +1135,253 @@ function PasswordHider ({ onClick, showPass }) {
     >
       {!showPass
         ? <Eye
-            fill='var(--bs-body-color)' height={20} width={20}
+            fill='var(--bs-body-color)' height={16} width={16}
           />
         : <EyeClose
-            fill='var(--bs-body-color)' height={20} width={20}
+            fill='var(--bs-body-color)' height={16} width={16}
           />}
     </InputGroup.Text>
   )
 }
 
-export function PasswordInput ({ newPass, ...props }) {
-  const [showPass, setShowPass] = useState(false)
+function QrPassword ({ value }) {
+  const showModal = useShowModal()
+  const toaster = useToast()
 
+  const showQr = useCallback(() => {
+    showModal(close => (
+      <div>
+        <p className='line-height-md text-muted'>Import this passphrase into another device by navigating to device sync settings and scanning this QR code</p>
+        <div className='d-block p-3 mx-auto' style={{ background: 'white', maxWidth: '300px' }}>
+          <QRCodeSVG className='h-auto mw-100' value={value} size={300} imageSettings={qrImageSettings} />
+        </div>
+      </div>
+    ))
+  }, [toaster, value, showModal])
+
+  return (
+    <>
+      <InputGroup.Text
+        style={{ cursor: 'pointer' }}
+        onClick={showQr}
+      >
+        <QrIcon height={16} width={16} />
+      </InputGroup.Text>
+    </>
+  )
+}
+
+function PasswordScanner ({ onScan, text }) {
+  const showModal = useShowModal()
+  const toaster = useToast()
+  const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner), {
+    ssr: false,
+    loading: () => <PageLoading />
+  })
+
+  return (
+    <InputGroup.Text
+      style={{ cursor: 'pointer' }}
+      onClick={() => {
+        showModal(onClose => {
+          return (
+            <div>
+              {text && <h5 className='line-height-md mb-4 text-center'>{text}</h5>}
+              {Scanner && (
+                <Scanner
+                  formats={['qr_code']}
+                  onScan={([{ rawValue: result }]) => {
+                    onScan(result)
+                    onClose()
+                  }}
+                  styles={{
+                    video: {
+                      aspectRatio: '1 / 1'
+                    }
+                  }}
+                  onError={(error) => {
+                    if (error instanceof DOMException) {
+                      console.log(error)
+                    } else {
+                      toaster.danger('qr scan: ' + error?.message || error?.toString?.())
+                    }
+                    onClose()
+                  }}
+                />
+              )}
+            </div>
+          )
+        })
+      }}
+    >
+      <QrScanIcon
+        height={20} width={20} fill='var(--bs-body-color)'
+      />
+    </InputGroup.Text>
+  )
+}
+
+export function PasswordInput ({ newPass, qr, copy, readOnly, append, value: initialValue, ...props }) {
+  const [showPass, setShowPass] = useState(false)
+  const [value, setValue] = useState(initialValue)
+  const [field,, helpers] = props.noForm ? [{ value }, {}, { setValue }] : useField(props)
+
+  const Append = useMemo(() => {
+    return (
+      <>
+        <PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />
+        {copy && (
+          <CopyButton icon value={field?.value} />
+        )}
+        {qr && (readOnly
+          ? <QrPassword value={field?.value} />
+          : <PasswordScanner
+              text="Where'd you learn to square dance?"
+              onScan={v => helpers.setValue(v)}
+            />)}
+        {append}
+      </>
+    )
+  }, [showPass, copy, field?.value, helpers.setValue, qr, readOnly, append])
+
+  const style = props.style ? { ...props.style } : {}
+  if (props.as === 'textarea') {
+    if (!showPass) {
+      style.WebkitTextSecurity = 'disc'
+    } else {
+      if (style.WebkitTextSecurity) delete style.WebkitTextSecurity
+    }
+  }
   return (
     <ClientInput
       {...props}
+      style={style}
+      className={styles.passwordInput}
       type={showPass ? 'text' : 'password'}
       autoComplete={newPass ? 'new-password' : 'current-password'}
-      append={<PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />}
+      readOnly={readOnly}
+      append={props.as === 'textarea' ? undefined : Append}
+      value={field?.value}
+      under={props.as === 'textarea'
+        ? (
+          <div className='mt-2 d-flex justify-content-end' style={{ gap: '8px' }}>
+            {Append}
+          </div>)
+        : undefined}
     />
+  )
+}
+
+export function MultiInput ({
+  name, label, groupClassName, length = 4, charLength = 1, upperCase, showSequence,
+  onChange, autoFocus, hideError, inputType = 'text',
+  ...props
+}) {
+  const [inputs, setInputs] = useState(new Array(length).fill(''))
+  const inputRefs = useRef(new Array(length).fill(null))
+  const [, meta, helpers] = useField({ name })
+
+  useEffect(() => {
+    autoFocus && inputRefs.current[0].focus() // focus the first input if autoFocus is true
+  }, [autoFocus])
+
+  const updateInputs = useCallback((newInputs) => {
+    setInputs(newInputs)
+    const combinedValue = newInputs.join('') // join the inputs to get the value
+    helpers.setValue(combinedValue) // set the value to the formik field
+    onChange?.(combinedValue)
+  }, [onChange, helpers])
+
+  const handleChange = useCallback((formik, e, index) => { // formik is not used but it's required to get the value
+    const value = e.target.value.slice(-charLength)
+    const processedValue = upperCase ? value.toUpperCase() : value // convert the input to uppercase if upperCase is tru
+
+    const newInputs = [...inputs]
+    newInputs[index] = processedValue
+    updateInputs(newInputs)
+
+    // focus the next input if the current input is filled
+    if (processedValue.length === charLength && index < length - 1) {
+      inputRefs.current[index + 1].focus()
+    }
+  }, [inputs, charLength, upperCase, onChange, length])
+
+  const handlePaste = useCallback((e) => {
+    e.preventDefault()
+    const pastedValues = e.clipboardData.getData('text').slice(0, length)
+    const processedValues = upperCase ? pastedValues.toUpperCase() : pastedValues
+    const chars = processedValues.split('')
+
+    const newInputs = [...inputs]
+    chars.forEach((char, i) => {
+      newInputs[i] = char.slice(0, charLength)
+    })
+
+    updateInputs(newInputs)
+    inputRefs.current[length - 1]?.focus() // simulating the paste by focusing the last input
+  }, [inputs, length, charLength, upperCase, updateInputs])
+
+  const handleKeyDown = useCallback((e, index) => {
+    switch (e.key) {
+      case 'Backspace': {
+        e.preventDefault()
+        const newInputs = [...inputs]
+        // if current input is empty move focus to the previous input else clear the current input
+        const targetIndex = inputs[index] === '' && index > 0 ? index - 1 : index
+        newInputs[targetIndex] = ''
+        updateInputs(newInputs)
+        inputRefs.current[targetIndex]?.focus()
+        break
+      }
+      case 'ArrowLeft': {
+        if (index > 0) { // focus the previous input if it's not the first input
+          e.preventDefault()
+          inputRefs.current[index - 1]?.focus()
+        }
+        break
+      }
+      case 'ArrowRight': {
+        if (index < length - 1) { // focus the next input if it's not the last input
+          e.preventDefault()
+          inputRefs.current[index + 1]?.focus()
+        }
+        break
+      }
+    }
+  }, [inputs, length, updateInputs])
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <div className='d-flex flex-row justify-content-center gap-2'>
+        {inputs.map((value, index) => (
+          <InputInner
+            inputGroupClassName='w-auto'
+            name={name}
+            key={index}
+            type={inputType}
+            value={value}
+            innerRef={(el) => { inputRefs.current[index] = el }}
+            onChange={(formik, e) => handleChange(formik, e, index)}
+            onKeyDown={e => handleKeyDown(e, index)}
+            onPaste={e => handlePaste(e, index)}
+            style={{
+              textAlign: 'center',
+              maxWidth: `${charLength * 44}px` // adjusts the max width of the input based on the charLength
+            }}
+            prepend={showSequence && <InputGroup.Text>{index + 1}</InputGroup.Text>} // show the index of the input
+            hideError
+            {...props}
+          />
+        ))}
+      </div>
+      <div>
+        {hideError && meta.touched && meta.error && ( // custom error message is showed if hideError is true
+          <BootstrapForm.Control.Feedback type='invalid' className='d-block'>
+            {meta.error}
+          </BootstrapForm.Control.Feedback>
+        )}
+      </div>
+    </FormGroup>
   )
 }
 

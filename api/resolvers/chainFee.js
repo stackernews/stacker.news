@@ -1,36 +1,26 @@
-const cache = new Map()
-const expiresIn = 1000 * 30 // 30 seconds in milliseconds
+import { cachedFetcher } from '@/lib/fetch'
 
-async function fetchChainFeeRate () {
+const getChainFeeRate = cachedFetcher(async function fetchChainFeeRate () {
   const url = 'https://mempool.space/api/v1/fees/recommended'
-  const chainFee = await fetch(url)
-    .then((res) => res.json())
-    .then((body) => body.hourFee)
-    .catch((err) => {
-      console.error('fetchChainFee', err)
-      return 0
-    })
-
-  cache.set('fee', { fee: chainFee, createdAt: Date.now() })
-  return chainFee
-}
-
-async function getChainFeeRate () {
-  if (cache.has('fee')) {
-    const { fee, createdAt } = cache.get('fee')
-    const expired = createdAt + expiresIn < Date.now()
-    if (expired) fetchChainFeeRate().catch(console.error) // update cache
-    return fee
-  } else {
-    fetchChainFeeRate().catch(console.error)
+  try {
+    const res = await fetch(url)
+    const body = await res.json()
+    return body.hourFee
+  } catch (err) {
+    console.error('fetchChainFee', err)
+    return 0
   }
-  return 0
-}
+}, {
+  maxSize: 1,
+  cacheExpiry: 60 * 1000, // 1 minute
+  forceRefreshThreshold: 0, // never force refresh
+  keyGenerator: () => 'getChainFeeRate'
+})
 
 export default {
   Query: {
     chainFee: async (parent, opts, ctx) => {
-      return await getChainFeeRate()
+      return await getChainFeeRate() || 0
     }
   }
 }

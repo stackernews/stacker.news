@@ -1,36 +1,49 @@
+// environment variables are loaded from files and imports run before the rest of the code
+import './loadenv'
 import PgBoss from 'pg-boss'
-import nextEnv from '@next/env'
-import createPrisma from '@/lib/create-prisma.js'
+import createPrisma from '@/lib/create-prisma'
 import {
-  autoDropBolt11s, checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
+  checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
+  checkWithdrawal,
   finalizeHodlInvoice, subscribeToWallet
-} from './wallet.js'
-import { repin } from './repin.js'
-import { trust } from './trust.js'
-import { auction } from './auction.js'
-import { earn } from './earn.js'
-import apolloClient from '@apollo/client'
-import { indexItem, indexAllItems } from './search.js'
-import { timestampItem } from './ots.js'
-import { computeStreaks, checkStreak } from './streak.js'
-import { nip57 } from './nostr.js'
+} from './wallet'
+import { repin } from './repin'
+import { trust } from './trust'
+import { earn, earnRefill } from './earn'
+import { ApolloClient, HttpLink, InMemoryCache } from '@apollo/client'
+import { indexItem, indexAllItems } from './search'
+import { timestampItem } from './ots'
+import { computeStreaks, checkStreak } from './streak'
+import { nip57 } from './nostr'
 import fetch from 'cross-fetch'
-import { authenticatedLndGrpc } from 'ln-service'
-import { views, rankViews } from './views.js'
-import { imgproxy } from './imgproxy.js'
-import { deleteItem } from './ephemeralItems.js'
-import { deleteUnusedImages } from './deleteUnusedImages.js'
-import { territoryBilling, territoryRevenue } from './territory.js'
-import { ofac } from './ofac.js'
-import { autoWithdraw } from './autowithdraw.js'
-import { saltAndHashEmails } from './saltAndHashEmails.js'
-import { remindUser } from './reminder.js'
-import { holdAction, settleAction, settleActionError } from './paidAction.js'
+import { authenticatedLndGrpc } from '@/lib/lnd'
+import { views, rankViews } from './views'
+import { imgproxy } from './imgproxy'
+import { deleteItem } from './ephemeralItems'
+import { deleteUnusedImages } from './deleteUnusedImages'
+import { territoryBilling, territoryRevenue } from './territory'
+import { ofac } from './ofac'
+import { autoWithdraw } from './autowithdraw'
+import { saltAndHashEmails } from './saltAndHashEmails'
+import { remindUser } from './reminder'
+import {
+  paidActionPaid, paidActionForwarding, paidActionForwarded,
+  paidActionFailedForward, paidActionHeld, paidActionFailed,
+  paidActionCanceling
+} from './paidAction'
+import { thisDay } from './thisDay'
+import { isServiceEnabled } from '@/lib/sndev'
+import { payWeeklyPostBounty, weeklyPost } from './weeklyPosts'
+import { expireBoost } from './expireBoost'
+import { payingActionConfirmed, payingActionFailed } from './payingAction'
+import { autoDropBolt11s } from './autoDropBolt11'
+import { postToSocial } from './socialPoster'
 
-const { loadEnvConfig } = nextEnv
-const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
-
-loadEnvConfig('.', process.env.NODE_ENV === 'development')
+// WebSocket polyfill
+import ws from 'isomorphic-ws'
+if (typeof WebSocket === 'undefined') {
+  global.WebSocket = ws
+}
 
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)
@@ -81,36 +94,56 @@ async function work () {
 
   await boss.start()
 
-  await subscribeToWallet(args)
-  await boss.work('finalizeHodlInvoice', jobWrapper(finalizeHodlInvoice))
-  await boss.work('checkPendingDeposits', jobWrapper(checkPendingDeposits))
-  await boss.work('checkPendingWithdrawals', jobWrapper(checkPendingWithdrawals))
-  await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
-  await boss.work('autoWithdraw', jobWrapper(autoWithdraw))
+  if (isServiceEnabled('payments')) {
+    await subscribeToWallet(args)
+    await boss.work('finalizeHodlInvoice', jobWrapper(finalizeHodlInvoice))
+    await boss.work('checkPendingDeposits', jobWrapper(checkPendingDeposits))
+    await boss.work('checkPendingWithdrawals', jobWrapper(checkPendingWithdrawals))
+    await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
+    await boss.work('autoWithdraw', jobWrapper(autoWithdraw))
+    await boss.work('checkInvoice', jobWrapper(checkInvoice))
+    await boss.work('checkWithdrawal', jobWrapper(checkWithdrawal))
+    // paidAction jobs
+    await boss.work('paidActionForwarding', jobWrapper(paidActionForwarding))
+    await boss.work('paidActionForwarded', jobWrapper(paidActionForwarded))
+    await boss.work('paidActionFailedForward', jobWrapper(paidActionFailedForward))
+    await boss.work('paidActionHeld', jobWrapper(paidActionHeld))
+    await boss.work('paidActionCanceling', jobWrapper(paidActionCanceling))
+    await boss.work('paidActionFailed', jobWrapper(paidActionFailed))
+    await boss.work('paidActionPaid', jobWrapper(paidActionPaid))
+    // payingAction jobs
+    await boss.work('payingActionFailed', jobWrapper(payingActionFailed))
+    await boss.work('payingActionConfirmed', jobWrapper(payingActionConfirmed))
+  }
+  if (isServiceEnabled('search')) {
+    await boss.work('indexItem', jobWrapper(indexItem))
+    await boss.work('indexAllItems', jobWrapper(indexAllItems))
+  }
+  if (isServiceEnabled('images')) {
+    await boss.work('imgproxy', jobWrapper(imgproxy))
+    await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
+  }
+  await boss.work('expireBoost', jobWrapper(expireBoost))
+  await boss.work('weeklyPost-*', jobWrapper(weeklyPost))
+  await boss.work('payWeeklyPostBounty', jobWrapper(payWeeklyPostBounty))
   await boss.work('repin-*', jobWrapper(repin))
   await boss.work('trust', jobWrapper(trust))
   await boss.work('timestampItem', jobWrapper(timestampItem))
-  await boss.work('indexItem', jobWrapper(indexItem))
-  await boss.work('indexAllItems', jobWrapper(indexAllItems))
-  await boss.work('auction', jobWrapper(auction))
   await boss.work('earn', jobWrapper(earn))
+  await boss.work('earnRefill', jobWrapper(earnRefill))
   await boss.work('streak', jobWrapper(computeStreaks))
   await boss.work('checkStreak', jobWrapper(checkStreak))
   await boss.work('nip57', jobWrapper(nip57))
   await boss.work('views-*', jobWrapper(views))
   await boss.work('rankViews', jobWrapper(rankViews))
-  await boss.work('imgproxy', jobWrapper(imgproxy))
   await boss.work('deleteItem', jobWrapper(deleteItem))
-  await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
   await boss.work('territoryBilling', jobWrapper(territoryBilling))
   await boss.work('territoryRevenue', jobWrapper(territoryRevenue))
   await boss.work('ofac', jobWrapper(ofac))
   await boss.work('saltAndHashEmails', jobWrapper(saltAndHashEmails))
   await boss.work('reminder', jobWrapper(remindUser))
-  await boss.work('settleActionError', jobWrapper(settleActionError))
-  await boss.work('settleAction', jobWrapper(settleAction))
-  await boss.work('holdAction', jobWrapper(holdAction))
-  await boss.work('checkInvoice', jobWrapper(checkInvoice))
+  await boss.work('thisDay', jobWrapper(thisDay))
+  await boss.work('socialPoster', jobWrapper(postToSocial))
 
   console.log('working jobs')
 }

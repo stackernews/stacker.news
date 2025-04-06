@@ -1,24 +1,34 @@
-import { USER_ID } from '@/lib/constants'
-import { imageFeesInfo } from '../resolvers/image'
+import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
+import { uploadFees } from '../resolvers/upload'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import { satsToMsats } from '@/lib/format'
 
-export const anonable = false
-export const supportsPessimism = true
-export const supportsOptimism = false
+export const anonable = true
 
-export async function getCost ({ id, boost = 0, uploadIds }, { me, models }) {
+export const paymentMethods = [
+  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.REWARD_SATS,
+  PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
+]
+
+export async function getCost ({ id, boost = 0, uploadIds, bio }, { me, models }) {
   // the only reason updating items costs anything is when it has new uploads
   // or more boost
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
-  const { totalFeesMsats } = await imageFeesInfo(uploadIds, { models, me })
-  return BigInt(totalFeesMsats) + satsToMsats(boost - (old.boost || 0))
+  const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
+  const cost = BigInt(totalFeesMsats) + satsToMsats(boost - old.boost)
+
+  if (cost > 0 && old.invoiceActionState && old.invoiceActionState !== 'PAID') {
+    throw new Error('creation invoice not paid')
+  }
+
+  return cost
 }
 
 export async function perform (args, context) {
-  const { id, boost = 0, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], invoiceId, ...data } = args
-  const { tx, me, models } = context
+  const { id, boost = 0, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], ...data } = args
+  const { tx, me } = context
   const old = await tx.item.findUnique({
     where: { id: parseInt(id) },
     include: {
@@ -30,9 +40,10 @@ export async function perform (args, context) {
     }
   })
 
-  const boostMsats = satsToMsats(boost - (old.boost || 0))
+  const newBoost = boost - old.boost
   const itemActs = []
-  if (boostMsats > 0) {
+  if (newBoost > 0) {
+    const boostMsats = satsToMsats(newBoost)
     itemActs.push({
       msats: boostMsats, act: 'BOOST', userId: me?.id || USER_ID.anon
     })
@@ -54,15 +65,15 @@ export async function perform (args, context) {
     data: { paid: true }
   })
 
-  const item = await tx.item.update({
-    where: { id: parseInt(id) },
-    include: {
-      mentions: true,
-      itemReferrers: { include: { refereeItem: true } }
-    },
+  // we put boost in the where clause because we don't want to update the boost
+  // if it has changed concurrently
+  await tx.item.update({
+    where: { id: parseInt(id), boost: old.boost },
     data: {
       ...data,
-      boost,
+      boost: {
+        increment: newBoost
+      },
       pollOptions: {
         createMany: {
           data: pollOptions?.map(option => ({ option }))
@@ -126,11 +137,36 @@ export async function perform (args, context) {
     }
   })
 
-  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
-    VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true, now() + interval '5 seconds')`
+  await tx.$executeRaw`
+    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
+    VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true,
+              now() + interval '5 seconds', now() + interval '1 day')`
+
+  if (newBoost > 0) {
+    await tx.$executeRaw`
+      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
+      VALUES ('expireBoost', jsonb_build_object('id', ${id}::INTEGER), 21, true,
+                now() + interval '30 days', now() + interval '40 days')`
+  }
 
   await performBotBehavior(args, context)
 
+  // ltree is unsupported in Prisma, so we have to query it manually (FUCK!)
+  return (await tx.$queryRaw`
+    SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
+    FROM "Item" WHERE id = ${parseInt(id)}::INTEGER`
+  )[0]
+}
+
+export async function nonCriticalSideEffects ({ invoice, id }, { models }) {
+  const item = await models.item.findFirst({
+    where: invoice ? { invoiceId: invoice.id } : { id: parseInt(id) },
+    include: {
+      mentions: true,
+      itemReferrers: { include: { refereeItem: true } },
+      user: true
+    }
+  })
   // compare timestamps to only notify if mention or item referral was just created to avoid duplicates on edits
   for (const { userId, createdAt } of item.mentions) {
     if (item.updatedAt.getTime() !== createdAt.getTime()) continue
@@ -140,12 +176,6 @@ export async function perform (args, context) {
     if (item.updatedAt.getTime() !== createdAt.getTime()) continue
     notifyItemMention({ models, referrerItem: item, refereeItem }).catch(console.error)
   }
-
-  // ltree is unsupported in Prisma, so we have to query it manually (FUCK!)
-  return (await tx.$queryRaw`
-    SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
-    FROM "Item" WHERE id = ${parseInt(id)}::INTEGER`
-  )[0]
 }
 
 export async function describe ({ id, parentId }, context) {

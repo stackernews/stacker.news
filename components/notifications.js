@@ -14,6 +14,8 @@ import UserAdd from '@/svgs/user-add-fill.svg'
 import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import BaldIcon from '@/svgs/bald.svg'
+import GunIcon from '@/svgs/revolver.svg'
+import HorseIcon from '@/svgs/horse.svg'
 import { RootProvider } from './root'
 import Alert from 'react-bootstrap/Alert'
 import styles from './notifications.module.css'
@@ -38,6 +40,11 @@ import { paidActionCacheMods } from './use-paid-mutation'
 import { useRetryCreateItem } from './use-item-submit'
 import { payBountyCacheMods } from './pay-bounty'
 import { useToast } from './toast'
+import classNames from 'classnames'
+import HolsterIcon from '@/svgs/holster.svg'
+import SaddleIcon from '@/svgs/saddle.svg'
+import CCInfo from './info/cc'
+import { useMe } from './me'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -102,15 +109,17 @@ function NoteHeader ({ color, children, big }) {
   )
 }
 
-function NoteItem ({ item }) {
+function NoteItem ({ item, ...props }) {
   return (
     <div>
-      {item.title
-        ? <Item item={item} itemClassName='pt-0' />
-        : (
-          <RootProvider root={item.root}>
-            <Comment item={item} noReply includeParent clickToContext />
-          </RootProvider>)}
+      {item.isJob
+        ? <ItemJob item={item} {...props} />
+        : item.title
+          ? <Item item={item} itemClassName='pt-0' {...props} />
+          : (
+            <RootProvider root={item.root}>
+              <Comment item={item} noReply includeParent clickToContext {...props} />
+            </RootProvider>)}
     </div>
   )
 }
@@ -167,23 +176,28 @@ const defaultOnClick = n => {
 
 function Streak ({ n }) {
   function blurb (n) {
-    const index = Number(n.id) % Math.min(FOUND_BLURBS.length, LOST_BLURBS.length)
+    const type = n.type ?? 'COWBOY_HAT'
+    const index = Number(n.id) % Math.min(FOUND_BLURBS[type].length, LOST_BLURBS[type].length)
     if (n.days) {
       return `After ${numWithUnits(n.days, {
         abbreviate: false,
         unitSingular: 'day',
          unitPlural: 'days'
-      })}, ` + LOST_BLURBS[index]
+      })}, ` + LOST_BLURBS[type][index]
     }
 
-    return FOUND_BLURBS[index]
+    return FOUND_BLURBS[type][index]
   }
+
+  const Icon = n.days
+    ? n.type === 'GUN' ? HolsterIcon : n.type === 'HORSE' ? SaddleIcon : BaldIcon
+    : n.type === 'GUN' ? GunIcon : n.type === 'HORSE' ? HorseIcon : CowboyHatIcon
 
   return (
     <div className='d-flex'>
-      <div style={{ fontSize: '2rem' }}>{n.days ? <BaldIcon className='fill-grey' height={40} width={40} /> : <CowboyHatIcon className='fill-grey' height={40} width={40} />}</div>
+      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
-        <span className='fw-bold'>you {n.days ? 'lost your' : 'found a'} cowboy hat</span>
+        <span className='fw-bold'>you {n.days ? 'lost your' : 'found a'} {n.type.toLowerCase().replace('_', ' ')}</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
       </div>
     </div>
@@ -242,12 +256,12 @@ function RevenueNotification ({ n }) {
   return (
     <div className='d-flex'>
       <BountyIcon className='align-self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px' }} />
-      <div className=' pb-1'>
-        <div className='fw-bold text-success'>
+      <div className='ms-2'>
+        <NoteHeader color='success' big>
           you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in territory revenue<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-        </div>
+        </NoteHeader>
         <div style={{ lineHeight: '140%' }}>
-          As the founder of territory <Link href={`/~${n.subName}`}>~{n.subName}</Link>, you receive 50% of the revenue it generates and the other 50% go to <Link href='/rewards'>rewards</Link>.
+          As the founder of territory <Link href={`/~${n.subName}`}>~{n.subName}</Link>, you receive 70% of the post, comment, boost, and zap fees. The other 30% go to <Link href='/rewards'>rewards</Link>.
         </div>
       </div>
     </div>
@@ -273,7 +287,7 @@ function Invitification ({ n }) {
     <>
       <NoteHeader color='secondary'>
         your invite has been redeemed by
-        {numWithUnits(n.invite.invitees.length, {
+        {' ' + numWithUnits(n.invite.invitees.length, {
           abbreviate: false,
           unitSingular: 'stacker',
           unitPlural: 'stackers'
@@ -316,10 +330,10 @@ function NostrZap ({ n }) {
   )
 }
 
-function InvoicePaid ({ n }) {
+function getPayerSig (lud18Data) {
   let payerSig
-  if (n.invoice.lud18Data) {
-    const { name, identifier, email, pubkey } = n.invoice.lud18Data
+  if (lud18Data) {
+    const { name, identifier, email, pubkey } = lud18Data
     const id = identifier || email || pubkey
     payerSig = '- '
     if (name) {
@@ -329,10 +343,23 @@ function InvoicePaid ({ n }) {
 
     if (id) payerSig += id
   }
+  return payerSig
+}
+
+function InvoicePaid ({ n }) {
+  const payerSig = getPayerSig(n.invoice.lud18Data)
+  let actionString = 'deposited to your account'
+  let sats = n.earnedSats
+  if (n.invoice.forwardedSats) {
+    actionString = 'sent directly to your attached wallet'
+    sats = n.invoice.forwardedSats
+  }
+
   return (
     <div className='fw-bold text-info'>
-      <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} deposited in your account
+      <Check className='fill-info me-1' />{numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      {n.invoice.forwardedSats && <Badge className={styles.badge} bg={null}>p2p</Badge>}
       {n.invoice.comment &&
         <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'>
           <Text>{n.invoice.comment}</Text>
@@ -343,7 +370,33 @@ function InvoicePaid ({ n }) {
 }
 
 function useActRetry ({ invoice }) {
-  const bountyCacheMods = invoice.item?.bounty ? payBountyCacheMods() : {}
+  const bountyCacheMods =
+    invoice.item.root?.bounty === invoice.satsRequested && invoice.item.root?.mine
+      ? payBountyCacheMods
+      : {}
+
+  const update = (cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.invoice) return
+    cache.modify({
+      id: `ItemAct:${invoice.itemAct?.id}`,
+      fields: {
+        // this is a bit of a hack just to update the reference to the new invoice
+        invoice: () => cache.writeFragment({
+          id: `Invoice:${response.invoice.id}`,
+          fragment: gql`
+            fragment _ on Invoice {
+              bolt11
+            }
+          `,
+          data: { bolt11: response.invoice.bolt11 }
+        })
+      }
+    })
+    paidActionCacheMods?.update?.(cache, { data })
+    bountyCacheMods?.update?.(cache, { data })
+  }
+
   return useAct({
     query: RETRY_PAID_ACTION,
     onPayError: (e, cache, { data }) => {
@@ -354,27 +407,8 @@ function useActRetry ({ invoice }) {
       paidActionCacheMods?.onPaid?.(cache, { data })
       bountyCacheMods?.onPaid?.(cache, { data })
     },
-    update: (cache, { data }) => {
-      const response = Object.values(data)[0]
-      if (!response?.invoice) return
-      cache.modify({
-        id: `ItemAct:${invoice.itemAct?.id}`,
-        fields: {
-          // this is a bit of a hack just to update the reference to the new invoice
-          invoice: () => cache.writeFragment({
-            id: `Invoice:${response.invoice.id}`,
-            fragment: gql`
-              fragment _ on Invoice {
-                bolt11
-              }
-            `,
-            data: { bolt11: response.invoice.bolt11 }
-          })
-        }
-      })
-      paidActionCacheMods?.update?.(cache, { data })
-      bountyCacheMods?.update?.(cache, { data })
-    }
+    update,
+    updateOnFallback: update
   })
 }
 
@@ -383,6 +417,7 @@ function Invoicification ({ n: { invoice, sortTime } }) {
   const actRetry = useActRetry({ invoice })
   const retryCreateItem = useRetryCreateItem({ id: invoice.item?.id })
   const retryPollVote = usePollVote({ query: RETRY_PAID_ACTION, itemId: invoice.item?.id })
+  const [disableRetry, setDisableRetry] = useState(false)
   // XXX if we navigate to an invoice after it is retried in notifications
   // the cache will clear invoice.item and will error on window.back
   // alternatively, we could/should
@@ -406,9 +441,18 @@ function Invoicification ({ n: { invoice, sortTime } }) {
     invoiceId = invoice.item.poll?.meInvoiceId
     invoiceActionState = invoice.item.poll?.meInvoiceActionState
   } else {
-    actionString = `${invoice.actionType === 'ZAP'
-      ? invoice.item.root?.bounty ? 'bounty payment' : 'zap'
-      : 'downzap'} on ${itemType} `
+    if (invoice.actionType === 'ZAP') {
+      if (invoice.item.root?.bounty === invoice.satsRequested && invoice.item.root?.mine) {
+        actionString = 'bounty payment'
+      } else {
+        actionString = 'zap'
+      }
+    } else if (invoice.actionType === 'DOWN_ZAP') {
+      actionString = 'downzap'
+    } else if (invoice.actionType === 'BOOST') {
+      actionString = 'boost'
+    }
+    actionString = `${actionString} on ${itemType} `
     retry = actRetry;
     ({ id: invoiceId, actionState: invoiceActionState } = invoice.itemAct.invoice)
   }
@@ -434,14 +478,19 @@ function Invoicification ({ n: { invoice, sortTime } }) {
         <span className='ms-1 text-muted fw-light'> {numWithUnits(invoice.satsRequested)}</span>
         <span className={invoiceActionState === 'FAILED' ? 'visible' : 'invisible'}>
           <Button
-            size='sm' variant='outline-warning ms-2 border-1 rounded py-0'
+            size='sm' variant={classNames('outline-warning ms-2 border-1 rounded py-0', disableRetry && 'pulse')}
             style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}
+            disabled={disableRetry}
             onClick={async () => {
+              if (disableRetry) return
+              setDisableRetry(true)
               try {
                 const { error } = await retry({ variables: { invoiceId: parseInt(invoiceId) } })
                 if (error) throw error
               } catch (error) {
                 toaster.danger(error?.message || error?.toString?.())
+              } finally {
+                setDisableRetry(false)
               }
             }}
           >
@@ -450,33 +499,83 @@ function Invoicification ({ n: { invoice, sortTime } }) {
           <span className='text-muted ms-2 fw-normal' suppressHydrationWarning>{timeSince(new Date(sortTime))}</span>
         </span>
       </NoteHeader>
-      <NoteItem item={invoice.item} />
+      <NoteItem item={invoice.item} setDisableRetry={setDisableRetry} disableRetry={disableRetry} />
     </div>
   )
 }
 
 function WithdrawlPaid ({ n }) {
+  let amount = n.earnedSats + n.withdrawl.satsFeePaid
+  let actionString = 'withdrawn from your account'
+
+  if (n.withdrawl.autoWithdraw) {
+    actionString = 'sent to your attached wallet'
+  }
+
+  if (n.withdrawl.forwardedActionType === 'ZAP') {
+    // don't expose receivers to routing fees they aren't paying
+    amount = n.earnedSats
+    actionString = 'zapped directly to your attached wallet'
+  }
+
   return (
     <div className='fw-bold text-info'>
-      <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} withdrawn from your account
+      <Check className='fill-info me-1' />
+      {numWithUnits(amount, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
+      {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      {n.withdrawl.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>}
+      {(n.withdrawl.forwardedActionType === 'ZAP' && <Badge className={styles.badge} bg={null}>p2p</Badge>) ||
+        (n.withdrawl.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>)}
     </div>
   )
 }
 
 function Referral ({ n }) {
+  const { me } = useMe()
+  let referralSource = 'of you'
+  switch (n.source?.__typename) {
+    case 'Item':
+      referralSource = (Number(me?.id) === Number(n.source.user?.id) ? 'of your' : 'you shared this') + ' ' + (n.source.title ? 'post' : 'comment')
+      break
+    case 'Sub':
+      referralSource = (Number(me?.id) === Number(n.source.userId) ? 'of your' : 'you shared the') + ' ~' + n.source.name + ' territory'
+      break
+    case 'User':
+      referralSource = (me?.name === n.source.name ? 'of your profile' : `you shared ${n.source.name}'s profile`)
+      break
+  }
   return (
-    <small className='fw-bold text-success'>
-      <UserAdd className='fill-success me-2' height={21} width={21} style={{ transform: 'rotateY(180deg)' }} />someone joined SN because of you
-      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-    </small>
+    <>
+      <small className='fw-bold text-success'>
+        <UserAdd className='fill-success me-1' height={21} width={21} style={{ transform: 'rotateY(180deg)' }} />someone joined SN because {referralSource}
+        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      </small>
+      {n.source?.__typename === 'Item' && <NoteItem itemClassName='pt-2' item={n.source} />}
+    </>
   )
+}
+
+function stackedText (item) {
+  let text = ''
+  if (item.sats - item.credits > 0) {
+    text += `${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
+
+    if (item.credits > 0) {
+      text += ' and '
+    }
+  }
+  if (item.credits > 0) {
+    text += `${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
+  }
+
+  return text
 }
 
 function Votification ({ n }) {
   let forwardedSats = 0
   let ForwardedUsers = null
+  let stackedTextString
+  let forwardedTextString
   if (n.item.forwards?.length) {
     forwardedSats = Math.floor(n.earnedSats * n.item.forwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
     ForwardedUsers = () => n.item.forwards.map((fwd, i) =>
@@ -486,16 +585,25 @@ function Votification ({ n }) {
         </Link>
         {i !== n.item.forwards.length - 1 && ' '}
       </span>)
+    stackedTextString = numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
+    forwardedTextString = numWithUnits(forwardedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
+  } else {
+    stackedTextString = stackedText(n.item)
   }
   return (
     <>
       <NoteHeader color='success'>
-        your {n.item.title ? 'post' : 'reply'} stacked {numWithUnits(n.earnedSats, { abbreviate: false })}
-        {n.item.forwards?.length > 0 &&
-          <>
-            {' '}and forwarded {numWithUnits(forwardedSats, { abbreviate: false })} to{' '}
-            <ForwardedUsers />
-          </>}
+        <span className='d-inline-flex'>
+          <span>
+            your {n.item.title ? 'post' : 'reply'} stacked {stackedTextString}
+            {n.item.forwards?.length > 0 &&
+              <>
+                {' '}and forwarded {forwardedTextString} to{' '}
+                <ForwardedUsers />
+              </>}
+          </span>
+          {n.item.credits > 0 && <CCInfo size={16} />}
+        </span>
       </NoteHeader>
       <NoteItem item={n.item} />
     </>
@@ -506,7 +614,10 @@ function ForwardedVotification ({ n }) {
   return (
     <>
       <NoteHeader color='success'>
-        you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false })} from
+        <span className='d-inline-flex'>
+          you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}
+          <CCInfo size={16} />
+        </span>
       </NoteHeader>
       <NoteItem item={n.item} />
     </>
@@ -591,7 +702,7 @@ function Reminder ({ n }) {
   return (
     <>
       <NoteHeader color='info'>
-        you asked to be reminded of this {n.item.title ? 'post' : 'comment'}
+        you requested this reminder
       </NoteHeader>
       <NoteItem item={n.item} />
     </>
@@ -624,7 +735,10 @@ export function NotificationAlert () {
     error
       ? (
         <Alert variant='danger' dismissible onClose={() => setError(null)}>
-          <span>{error.toString()}</span>
+          <span>{navigator?.brave && error.name === 'AbortError'
+            ? 'Push registration failed. Enable "Use Google services for push messaging" in Brave\'s privacy settings and try again.'
+            : error.toString()}
+          </span>
         </Alert>
         )
       : showAlert

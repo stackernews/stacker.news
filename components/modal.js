@@ -36,14 +36,29 @@ export default function useModal () {
     forceUpdate()
   }, [])
 
+  const setOptions = useCallback(options => {
+    const current = getCurrentContent()
+    if (current) {
+      current.options = { ...current.options, ...options }
+      forceUpdate()
+    }
+  }, [getCurrentContent, forceUpdate])
+
   // this is called on every navigation due to below useEffect
-  const onClose = useCallback(() => {
+  const onClose = useCallback((options) => {
+    if (options?.back) {
+      for (let i = 0; i < options.back; i++) {
+        onBack()
+      }
+      return
+    }
+
     while (modalStack.current.length) {
       getCurrentContent()?.options?.onClose?.()
       modalStack.current.pop()
     }
     forceUpdate()
-  }, [])
+  }, [onBack])
 
   const router = useRouter()
   useEffect(() => {
@@ -70,7 +85,7 @@ export default function useModal () {
 
     return (
       <Modal
-        onHide={keepOpen ? null : onClose} show={!!content}
+        onHide={keepOpen ? undefined : onClose} show={!!content}
         className={className}
         dialogClassName={className}
         contentClassName={className}
@@ -82,7 +97,7 @@ export default function useModal () {
                 {overflow}
               </ActionDropdown>
             </div>}
-          {modalStack.current.length > 1 ? <div className='modal-btn modal-back' onClick={onBack}><BackArrow width={18} height={18} className='fill-white' /></div> : null}
+          {modalStack.current.length > 1 ? <div className='modal-btn modal-back' onClick={onBack}><BackArrow width={18} height={18} /></div> : null}
           <div className={'modal-btn modal-close ' + className} onClick={onClose}>X</div>
         </div>
         <Modal.Body className={className}>
@@ -94,7 +109,8 @@ export default function useModal () {
 
   const showModal = useCallback(
     (getContent, options) => {
-      const ref = { node: getContent(onClose), options }
+      document.activeElement?.blur()
+      const ref = { node: getContent(onClose, setOptions), options }
       if (options?.replaceModal) {
         modalStack.current = [ref]
       } else {

@@ -7,11 +7,13 @@ extend type Query {
 }
 
 extend type Mutation {
-  retryPaidAction(invoiceId: Int!): PaidAction!
+  retryPaidAction(invoiceId: Int!, newAttempt: Boolean): PaidAction!
 }
 
 enum PaymentMethod {
+  REWARD_SATS
   FEE_CREDIT
+  ZERO_COST
   OPTIMISTIC
   PESSIMISTIC
 }
@@ -51,4 +53,9 @@ type DonatePaidAction implements PaidAction {
   paymentMethod: PaymentMethod!
 }
 
+type BuyCreditsPaidAction implements PaidAction {
+  result: BuyCreditsResult
+  invoice: Invoice
+  paymentMethod: PaymentMethod!
+}
 `

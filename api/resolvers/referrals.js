@@ -1,12 +1,12 @@
-import { GraphQLError } from 'graphql'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import { viewGroup } from './growth'
+import { GqlAuthenticationError } from '@/lib/error'
 
 export default {
   Query: {
     referrals: async (parent, { when, from, to }, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const range = whenRange(when, from, to)

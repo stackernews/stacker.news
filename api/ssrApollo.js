@@ -13,6 +13,9 @@ import { BLOCK_HEIGHT } from '@/fragments/blockHeight'
 import { CHAIN_FEE } from '@/fragments/chainFee'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
+import { NOFOLLOW_LIMIT } from '@/lib/constants'
+import { satsToMsats } from '@/lib/format'
+import { MULTI_AUTH_ANON, MULTI_AUTH_LIST } from '@/lib/auth'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
   const session = req && await getServerSession(req, res, getAuthOptions(req))
@@ -40,17 +43,17 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
       watchQuery: {
         fetchPolicy: 'no-cache',
         nextFetchPolicy: 'no-cache',
-        canonizeResults: true,
         ssr: true
       },
       query: {
         fetchPolicy: 'no-cache',
         nextFetchPolicy: 'no-cache',
-        canonizeResults: true,
         ssr: true
       }
     }
   })
+
+  await client.clearStore()
   return client
 }
 
@@ -64,7 +67,17 @@ function oneDayReferral (request, { me }) {
     let prismaPromise, getData
 
     if (referrer.startsWith('item-')) {
-      prismaPromise = models.item.findUnique({ where: { id: parseInt(referrer.slice(5)) } })
+      prismaPromise = models.item.findUnique({
+        where: {
+          id: parseInt(referrer.slice(5)),
+          msats: {
+            gt: satsToMsats(NOFOLLOW_LIMIT)
+          },
+          weightedVotes: {
+            gt: 0
+          }
+        }
+      })
       getData = item => ({
         referrerId: item.userId,
         refereeId: parseInt(me.id),
@@ -139,10 +152,20 @@ export function getGetServerSideProps (
 
     const client = await getSSRApolloClient({ req, res })
 
-    const { data: { me } } = await client.query({ query: ME })
+    let { data: { me } } = await client.query({ query: ME })
+
+    // required to redirect to /signup on page reload
+    // if we switched to anon and authentication is required
+    if (req.cookies[MULTI_AUTH_LIST] === MULTI_AUTH_ANON) {
+      me = null
+    }
 
     if (authRequired && !me) {
-      const callback = process.env.NEXT_PUBLIC_URL + req.url
+      let callback = process.env.NEXT_PUBLIC_URL + req.url
+      // On client-side routing, the callback is a NextJS URL
+      // so we need to remove the NextJS stuff.
+      // Example: /_next/data/development/territory.json
+      callback = callback.replace(/\/_next\/data\/\w+\//, '/').replace(/\.json$/, '')
       return {
         redirect: {
           destination: `/signup?callbackUrl=${encodeURIComponent(callback)}`
@@ -174,6 +197,7 @@ export function getGetServerSideProps (
       }
 
       if (error || !data || (notFound && notFound(data, vars, me))) {
+        error && console.error(error)
         res.writeHead(302, {
           Location: '/404'
         }).end()

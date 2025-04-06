@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Text from './text'
 import { numWithUnits } from '@/lib/format'
 import styles from './item.module.css'
-import Hat from './hat'
+import Badges from './badge'
 import { useMe } from './me'
 import Share from './share'
 import { gql, useMutation } from '@apollo/client'
@@ -31,9 +31,21 @@ export function TerritoryDetails ({ sub, children }) {
   )
 }
 
-export function TerritoryInfo ({ sub }) {
+export function TerritoryInfoSkeleton ({ children, className }) {
+  return (
+    <div className={`${styles.item} ${styles.skeleton} ${className}`}>
+      <div className={styles.hunk}>
+        <div className={`${styles.name} clouds text-reset`} />
+        {children}
+      </div>
+    </div>
+  )
+}
+
+export function TerritoryInfo ({ sub, includeLink }) {
   return (
     <>
+      {includeLink && <Link href={`/~${sub.name}`}>{sub.name}</Link>}
       <div className='py-2'>
         <Text>{sub.desc}</Text>
       </div>
@@ -41,14 +53,21 @@ export function TerritoryInfo ({ sub }) {
         <div className='text-muted'>
           <span>founded by </span>
           <Link href={`/${sub.user.name}`}>
-            @{sub.user.name}<span> </span><Hat className='fill-grey' user={sub.user} height={12} width={12} />
+            @{sub.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={sub.user} />
           </Link>
           <span> on </span>
           <span className='fw-bold'>{new Date(sub.createdAt).toDateString()}</span>
         </div>
-        <div className='text-muted'>
-          <span>post cost </span>
-          <span className='fw-bold'>{numWithUnits(sub.baseCost)}</span>
+        <div className='d-flex'>
+          <div className='text-muted'>
+            <span>post cost </span>
+            <span className='fw-bold'>{numWithUnits(sub.baseCost)}</span>
+          </div>
+          <span className='px-1'> \ </span>
+          <div className='text-muted'>
+            <span>reply cost </span>
+            <span className='fw-bold'>{numWithUnits(sub.replyCost)}</span>
+          </div>
         </div>
         <TerritoryBillingLine sub={sub} />
       </CardFooter>
@@ -57,7 +76,7 @@ export function TerritoryInfo ({ sub }) {
 }
 
 export default function TerritoryHeader ({ sub }) {
-  const me = useMe()
+  const { me } = useMe()
   const toaster = useToast()
 
   const [toggleMuteSub] = useMutation(

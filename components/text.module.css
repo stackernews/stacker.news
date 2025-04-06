@@ -6,13 +6,19 @@
     overflow-y: hidden;
     position: relative;
     max-height: 200vh;
+    --grid-gap: 0.5rem;
 }
 
+.text.topLevel {
+    --grid-gap: 0.75rem;
+}
 
 .text :global(.footnotes) {
     font-size: smaller;
     color: #8b949e;
     border-top: 1px solid #30363d;
+    margin-top: calc(var(--grid-gap)* 0.5);
+    padding-top: 0 !important;
 }
 
   /* Hide the section label for visual users. */
@@ -34,6 +40,12 @@
 
 .text :global([data-footnote-ref])::after {
     content: ']';
+}
+
+.text :global(sup:has([data-footnote-ref])) {
+    top: 0;
+    font-size: 100%;
+    vertical-align: baseline;
 }
 
 .textUncontained {
@@ -98,77 +110,133 @@
 }
 
 .text hr {
-    border-top: 1px solid var(--theme-clickToContextColor);
+    border-top: 3px solid var(--theme-quoteBar);
+}
+
+.text.topLevel {
+    --grid-gap: 0.75rem;
 }
 
 .text .p {
     display: block;
-    margin-bottom: .5rem;
     white-space: pre-wrap;
     word-break: break-word;
+    padding-top: calc(var(--grid-gap) * 0.5);
+    padding-bottom: calc(var(--grid-gap) * 0.5);
 }
 
-.text pre {
-    margin-bottom: .5rem;
+.text>*:not(.heading) {
+    padding-top: calc(var(--grid-gap) * 0.5);
+    padding-bottom: calc(var(--grid-gap) * 0.5);
+}
+
+.text pre, .text blockquote {
+    margin-top: calc(var(--grid-gap) * 0.5);
+    margin-bottom: calc(var(--grid-gap) * 0.5);
 }
 
 .text pre>div {
     margin: 0 !important;
 }
 
-.text>*:last-child {
+.text>*:last-child:not(.textShowFull) {
+    padding-bottom: 0 !important;
     margin-bottom: 0 !important;
 }
 
-.text blockquote:last-child {
-    margin-bottom: 0 !important;
+.text>*:first-child {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
 }
 
-.text blockquote:has(+ :not(blockquote)) {
-    margin-bottom: .5rem;
+.text blockquote, .text.topLevel blockquote  {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
 }
 
-.text img {
-    --height: 35vh;
-    --width: 100%;
+.text blockquote *:first-child, .text.topLevel blockquote *:first-child {
+    padding-top: 0;
+}
+
+.text blockquote *:last-child, .text.topLevel blockquote *:last-child {
+    padding-bottom: 0;
+}
+
+.mediaContainer {
     display: block;
-    margin-top: .5rem;
-    margin-bottom: .5rem;
-    width: auto;
-    max-width: min(var(--width), 100%);
-    cursor: zoom-in;
+    width: 100%;
+    max-width: 100%;
     height: auto;
-    max-height: min(var(--height), 25vh);
+    overflow: hidden;
+    max-height: 25vh;
+    aspect-ratio: var(--aspect-ratio);
+    margin: 0;
+}
+
+.mediaContainer.hasTextSiblingsBefore {
+    margin-top: var(--grid-gap);
+}
+
+.mediaContainer.hasTextSiblingsAfter {
+    margin-bottom: var(--grid-gap);
+}
+
+.p:has(> .mediaContainer) .mediaContainer
+{
+    display: flex;
+    max-width: 100%;
+}
+
+.p:has(> .mediaContainer) .mediaContainer.loaded
+{
+    width: min-content;
+}
+
+.p:has(> .mediaContainer) .mediaContainer img,
+.p:has(> .mediaContainer) .mediaContainer video
+{
+    min-width: 30%;
+    max-width: stretch;
+}
+
+.p:has(> .mediaContainer) .mediaContainer img
+{
+    block-size: revert-layer;
+}
+
+.p.onlyImages {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--grid-gap);
+}
+
+.p.onlyImages:not(.somethingBefore) {
+    padding-top: 0;
+}
+
+.p.onlyImages:not(.somethingAfter) {
+    padding-bottom: 0;
+}
+
+.mediaContainer img, .mediaContainer video {
+    display: block;
     object-fit: contain;
-    object-position: left top;
-    min-width: 50%;
+    width: auto;
+    max-height: inherit;
+    height: 100%;
+    max-width: 100%;
     aspect-ratio: var(--aspect-ratio);
 }
 
-.text img.topLevel {
-    margin-top: .75rem;
-    margin-bottom: .75rem;
-    max-height: min(var(--height), 35vh);
+.mediaContainer img {
+    cursor: zoom-in;
+    min-width: 30%;
+    object-position: left top;
 }
 
-img.fullScreen {
-    cursor: zoom-out !important;
-    max-height: 100%;
-    max-width: 100vw;
-    min-width: 0;
-    min-height: 0;
-    align-self: center;
-    justify-self: center;
-}
-
-.fullScreenContainer {
-    --bs-columns: 1;
-    --bs-rows: 1;
-    display: grid;
-    width: 100%;
-    height: 100%;
-    align-content: center;
-    justify-content: center;
+.topLevel .mediaContainer, :global(.topLevel) .mediaContainer {
+    max-height: 35vh;
 }
 
 .text table {
@@ -176,29 +244,19 @@ img.fullScreen {
 }
 
 .text blockquote {
-    border-left: 2px solid var(--theme-quoteBar);
+    border-left: 3px solid var(--theme-quoteBar);
     padding-left: .75rem;
-    margin-bottom: 0;
 }
 
-.text li+li {
+.text li {
     margin-top: .25rem;
 }
 
 .text ul,
 .text ol {
   margin-top: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 0rem;
   padding-left: 2rem;
-}
-
-.text ul:last-child, .text ol:last-child {
-    margin-bottom: 0;
-}
-
-.text li > .p {
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
 }
 
 .text ol ol,
@@ -213,28 +271,59 @@ img.fullScreen {
   list-style-type: lower-alpha;
 }
 
-.text h1 {
-    font-size: 1.6rem;
-}
-
-.text h2 {
-    font-size: 1.45rem;
-}
-
-.text h3 {
-    font-size: 1.3rem;
-}
-
-.text h4 {
-    font-size: 1.15rem;
-}
-
-.text h5 {
+.text h1, .text h2, .text h3, .text h4, .text h5, .text h6 {
+    margin-top: 0.75rem;
+    margin-bottom: 0.5rem;
     font-size: 1rem;
 }
 
-.text h6 {
-    font-size: .85rem;
+.text h1 a, .text h2 a, .text h3 a, .text h4 a, .text h5 a, .text h6 a {
+    text-decoration: none;
+    --bs-text-opacity: 1;
+    color: inherit !important;
+}
+
+.topLevel.text h1 {
+    font-size: 1.6rem;
+}
+
+.topLevel.text h2 {
+    font-size: 1.45rem;
+}
+
+.topLevel.text h3 {
+    font-size: 1.3rem;
+}
+
+.topLevel.text h4 {
+    font-size: 1.15rem;
+}
+
+
+/* Utility classes used in rehype plugins in md.js */
+.subscript {
+    vertical-align: sub;
+    font-size: smaller;
+}
+
+.superscript {
+    vertical-align: super;
+    font-size: smaller;
+}
+
+.twitterContainer, .nostrContainer, .videoWrapper, .wavlakeWrapper, .spotifyWrapper {
+    margin-top: calc(var(--grid-gap) * 0.5);
+    margin-bottom: calc(var(--grid-gap) * 0.5);
+    background-color: var(--theme-bg);
+}
+
+.videoWrapper {
+    max-width: 320px;
+}
+
+.topLevel .videoWrapper, :global(.topLevel) .videoWrapper {
+    max-width: 640px;
+    margin: 0.75rem 0;
 }
 
 .videoContainer {
@@ -253,14 +342,103 @@ img.fullScreen {
     left: 0;
 }
 
-
-/* Utility classes used in rehype plugins in md.js */
-.subscript {
-    vertical-align: sub;
-    font-size: smaller;
+.twitterContainer, .nostrContainer {
+    position: relative;
+    overflow: hidden;
 }
 
-.superscript {
-    vertical-align: super;
-    font-size: smaller;
+.twitterContainer iframe, .nostrContainer iframe {
+    border-radius: 13px;
+}
+
+.nostrContainer {
+    margin-right: 15px;
+}
+
+.videoWrapper:not(:first-child) {
+    margin-top: .75rem;
+}
+
+.twitterContained {
+    height: 150px;
+    overflow: hidden;
+}
+
+.topLevel .twitterContained, :global(.topLevel) .twitterContained {
+    height: 200px;
+}
+
+.twitterShowFull {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    border-radius: 0;
+    line-height: 1.2;
+    padding: .75rem 1rem;
+}
+
+.tweetsSkeleton {
+    display: flex;
+    flex-flow: row wrap;
+    max-width: 350px;
+    width: 100%;
+    padding-right: 12px;
+}
+
+.topLevel .tweetsSkeleton, :global(.topLevel) .tweetsSkeleton {
+    max-width: 550px;
+}
+
+.tweetSkeleton {
+    width: 100%;
+}
+
+.tweetSkeleton {
+    border: 0.05rem solid var(--theme-borderColor);
+    border-radius: 12px;
+    height: 150px;
+    padding: 1.5rem;
+}
+
+.topLevel .tweetSkeleton, :global(.topLevel) .tweetSkeleton {
+    height: 200px;
+}
+
+.tweetSkeleton .img {
+    height: 48px;
+    width: 48px;
+    border-radius: 50%;
+}
+
+.tweetSkeleton .content1,
+.tweetSkeleton .content2 {
+    height: 50%;
+    margin-top: 1rem;
+}
+
+.tweetSkeleton .line {
+    height: 25%;
+    margin: 0.5rem 0;
+    width: 100%;
+    border-radius: .4rem;
+}
+
+.tweetSkeleton .line:last-child {
+    width: 75%;
+}
+
+.wavlakeWrapper {
+    width: 100%;
+    height: 380px;
+    max-width: 480px;
+    border-radius: 1.65rem;
+    overflow: hidden;
+}
+
+.spotifyWrapper {
+    width: 100%;
+    height: 152px;
+    max-width: 480px;
+    border-radius: 13px;
+    overflow: hidden;
 }

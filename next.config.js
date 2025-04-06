@@ -50,7 +50,10 @@ module.exports = withPlausibleProxy()({
   env: {
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
     NEXT_PUBLIC_LND_CONNECT_ADDRESS: process.env.LND_CONNECT_ADDRESS,
-    NEXT_PUBLIC_ASSET_PREFIX: isProd ? 'https://a.stacker.news' : ''
+    NEXT_PUBLIC_ASSET_PREFIX: isProd ? 'https://a.stacker.news' : '',
+    // in prod, we build in /var/app/staging and then cp and deploy in /var/app/current
+    // so we need to resolve the relative path to the lightning module
+    LIGHTNING_MODULE_PATH: require('path').relative(process.cwd(), require.resolve('lightning'))
   },
   compress: false,
   experimental: {
@@ -177,7 +180,7 @@ module.exports = withPlausibleProxy()({
         source: '/~:sub/:slug*',
         destination: '/~/:slug*?sub=:sub'
       },
-      ...['/', '/post', '/rss', '/recent/:slug*', '/top/:slug*'].map(source => ({ source, destination: '/~' + source }))
+      ...['/', '/post', '/rss', '/random', '/recent/:slug*', '/top/:slug*'].map(source => ({ source, destination: '/~' + source }))
     ]
   },
   async redirects () {
@@ -185,6 +188,26 @@ module.exports = withPlausibleProxy()({
       {
         source: '/statistics',
         destination: '/satistics?inc=invoice,withdrawal',
+        permanent: true
+      },
+      {
+        source: '/top/cowboys/:when',
+        destination: '/top/cowboys',
+        permanent: true
+      },
+      {
+        source: '/~:sub/top/cowboys',
+        destination: '/top/cowboys',
+        permanent: true
+      },
+      {
+        source: '/~:sub/top/stackers/:when*',
+        destination: '/top/stackers/:when*',
+        permanent: true
+      },
+      {
+        source: '/~:sub/top/territories/:when*',
+        destination: '/top/territories/:when*',
         permanent: true
       }
     ]
@@ -212,6 +235,7 @@ module.exports = withPlausibleProxy()({
             'process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL),
             'process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL),
             'process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL),
+            'process.env.SANCTIONED_COUNTRY_CODES': JSON.stringify(process.env.SANCTIONED_COUNTRY_CODES),
             'process.env.NEXT_IS_EXPORT_WORKER': 'true'
           })
         ]

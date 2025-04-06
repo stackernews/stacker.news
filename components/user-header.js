@@ -4,20 +4,20 @@ import Image from 'react-bootstrap/Image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import Nav from 'react-bootstrap/Nav'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Form, Input, SubmitButton } from './form'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import styles from './user-header.module.css'
 import { useMe } from './me'
 import { NAME_MUTATION } from '@/fragments/users'
-import QRCode from 'qrcode.react'
+import { QRCodeSVG } from 'qrcode.react'
 import LightningIcon from '@/svgs/bolt.svg'
 import { encodeLNUrl } from '@/lib/lnurl'
 import Avatar from './avatar'
 import { userSchema } from '@/lib/validate'
 import { useShowModal } from './modal'
 import { numWithUnits } from '@/lib/format'
-import Hat from './hat'
+import Badges from './badge'
 import SubscribeUserDropdownItem from './subscribeUser'
 import ActionDropdown from './action-dropdown'
 import CodeIcon from '@/svgs/terminal-box-fill.svg'
@@ -175,10 +175,10 @@ function NymEdit ({ user, setEditting }) {
 }
 
 function NymView ({ user, isMe, setEditting }) {
-  const me = useMe()
+  const { me } = useMe()
   return (
     <div className='d-flex align-items-center mb-2'>
-      <div className={styles.username}>@{user.name}<Hat className='' user={user} badge /></div>
+      <div className={styles.username}>@{user.name}<Badges className='ms-2' user={user} badgeClassName='fill-grey' /></div>
       {isMe &&
         <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
       {!isMe && me && <NymActionDropdown user={user} />}
@@ -199,7 +199,13 @@ export function NymActionDropdown ({ user, className = 'ms-2' }) {
 }
 
 function HeaderNym ({ user, isMe }) {
+  const router = useRouter()
   const [editting, setEditting] = useState(false)
+
+  // if route changes, reset editting state
+  useEffect(() => {
+    setEditting(false)
+  }, [router.asPath])
 
   return editting
     ? <NymEdit user={user} setEditting={setEditting} />
@@ -237,7 +243,7 @@ function SocialLink ({ name, id }) {
 }
 
 function HeaderHeader ({ user }) {
-  const me = useMe()
+  const { me } = useMe()
 
   const showModal = useShowModal()
   const toaster = useToast()
@@ -268,7 +274,7 @@ function HeaderHeader ({ user }) {
             showModal(({ onClose }) => (
               <>
                 <a className='d-flex m-auto p-3' style={{ background: 'white', maxWidth: 'fit-content' }} href={`lightning:${lnurlp}`}>
-                  <QRCode className='d-flex m-auto' value={lnurlp} renderAs='svg' size={300} />
+                  <QRCodeSVG className='d-flex m-auto' value={lnurlp} size={300} />
                 </a>
                 <div className='text-center fw-bold text-muted mt-3'>click or scan</div>
               </>

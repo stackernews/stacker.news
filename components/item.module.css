@@ -46,6 +46,12 @@ a.title:visited {
     margin-bottom: .15rem;
 }
 
+.badge {
+    vertical-align: middle;
+    margin-top: -1px;
+    margin-left: 0.1rem;
+}
+
 .newComment {
     color: var(--theme-grey) !important;
     background: var(--theme-clickToContextColor) !important;
@@ -152,6 +158,14 @@ a.link:visited {
 .grid {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
+}
+
+.details {
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: 1rem;
+    line-height: 1.25;
+    row-gap: 0.75rem;
 }
 
 /* .itemJob .hunk {

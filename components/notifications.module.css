@@ -3,6 +3,10 @@
     border: solid 1px var(--theme-note-fresh);
     border-bottom: 0;
     border-top: 0;
+    margin-left: -0.5rem;
+    padding-left: 0.5rem;
+    margin-right: -0.5rem;
+    padding-right: 0.5rem;
 }
 
 .fresh:not(.fresh ~ .fresh) {

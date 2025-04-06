@@ -18,7 +18,7 @@ export default gql`
     total: Int!
     time: Date!
     sources: [NameValue!]!
-    leaderboard: UsersNullable
+    ad: Item
   }
 
   type Reward {

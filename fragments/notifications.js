@@ -86,6 +86,7 @@ export const NOTIFICATIONS = gql`
           id
           sortTime
           days
+          type
         }
         ... on Earn {
           id
@@ -111,6 +112,18 @@ export const NOTIFICATIONS = gql`
         ... on Referral {
           id
           sortTime
+          source {
+            __typename
+            ... on Item {
+              ...ItemFullFields
+            }
+            ... on Sub {
+              ...SubFields
+            }
+            ... on User {
+              name
+            }
+          }
         }
         ... on Reply {
           id
@@ -173,6 +186,8 @@ export const NOTIFICATIONS = gql`
             nostr
             comment
             lud18Data
+            actionType
+            forwardedSats
           }
         }
         ... on Invoicification {
@@ -184,6 +199,8 @@ export const NOTIFICATIONS = gql`
           earnedSats
           withdrawl {
             autoWithdraw
+            satsFeePaid
+            forwardedActionType
           }
         }
         ... on Reminder {

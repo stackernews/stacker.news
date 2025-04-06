@@ -1,16 +1,16 @@
 import { readFile } from 'fs/promises'
 import { join, resolve } from 'path'
-import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
-import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '@/lib/validate'
+import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
-import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES } from '@/lib/constants'
+import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 import { viewGroup } from './growth'
-import { timeUnitForRange, whenRange } from '@/lib/time'
+import { datePivot, timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
+import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 
 const contributors = new Set()
 
@@ -66,11 +66,12 @@ export async function topUsers (parent, { cursor, when, by, from, to, limit = LI
     case 'comments': column = 'ncomments'; break
     case 'referrals': column = 'referrals'; break
     case 'stacking': column = 'stacked'; break
+    case 'value':
     default: column = 'proportion'; break
   }
 
   const users = (await models.$queryRawUnsafe(`
-    SELECT *
+    SELECT * ${column === 'proportion' ? ', proportion' : ''}
     FROM
       (SELECT users.*,
         COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
@@ -125,13 +126,14 @@ export default {
     },
     settings: async (parent, args, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       return await models.user.findUnique({ where: { id: me.id } })
     },
-    user: async (parent, { name }, { models }) => {
-      return await models.user.findUnique({ where: { name } })
+    user: async (parent, { id, name }, { models }) => {
+      if (id) id = Number(id)
+      return await models.user.findUnique({ where: { id, name } })
     },
     users: async (parent, args, { models }) =>
       await models.user.findMany(),
@@ -144,7 +146,7 @@ export default {
     },
     mySubscribedUsers: async (parent, { cursor }, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('You must be logged in to view subscribed users', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const decodedCursor = decodeCursor(cursor)
@@ -165,7 +167,7 @@ export default {
     },
     myMutedUsers: async (parent, { cursor }, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('You must be logged in to view muted users', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const decodedCursor = decodeCursor(cursor)
@@ -283,6 +285,7 @@ export default {
             '"ThreadSubscription"."userId" = $1',
             'r.created_at > $2',
             'r.created_at >= "ThreadSubscription".created_at',
+            'r."userId" <> $1',
             activeOrMine(me),
             await filterClause(me, models),
             muteClause(me),
@@ -394,22 +397,6 @@ export default {
         }
       }
 
-      const job = await models.item.findFirst({
-        where: {
-          maxBid: {
-            not: null
-          },
-          userId: me.id,
-          statusUpdatedAt: {
-            gt: lastChecked
-          }
-        }
-      })
-      if (job && job.statusUpdatedAt > job.createdAt) {
-        foundNotes()
-        return true
-      }
-
       if (user.noteEarning) {
         const earn = await models.earn.findFirst({
           where: {
@@ -435,8 +422,16 @@ export default {
             confirmedAt: {
               gt: lastChecked
             },
-            isHeld: null,
-            actionType: null
+            OR: [
+              {
+                isHeld: null,
+                actionType: null
+              },
+              {
+                actionType: 'RECEIVE',
+                actionState: 'PAID'
+              }
+            ]
           }
         })
         if (invoice) {
@@ -450,9 +445,13 @@ export default {
           where: {
             userId: me.id,
             status: 'CONFIRMED',
+            hash: {
+              not: null
+            },
             updatedAt: {
               gt: lastChecked
-            }
+            },
+            invoiceForward: { is: null }
           }
         })
         if (wdrwl) {
@@ -544,11 +543,46 @@ export default {
           actionType: {
             in: INVOICE_ACTION_NOTIFICATION_TYPES
           },
-          actionState: 'FAILED'
+          actionState: 'FAILED',
+          OR: [
+            {
+              paymentAttempt: {
+                gte: WALLET_MAX_RETRIES
+              }
+            },
+            {
+              userCancel: true
+            }
+          ]
         }
       })
 
       if (invoiceActionFailed) {
+        foundNotes()
+        return true
+      }
+
+      const invoiceActionFailed2 = await models.invoice.findFirst({
+        where: {
+          userId: me.id,
+          updatedAt: {
+            gt: datePivot(lastChecked, { milliseconds: -WALLET_RETRY_BEFORE_MS })
+          },
+          actionType: {
+            in: INVOICE_ACTION_NOTIFICATION_TYPES
+          },
+          actionState: 'FAILED',
+          paymentAttempt: {
+            lt: WALLET_MAX_RETRIES
+          },
+          userCancel: false,
+          cancelledAt: {
+            lte: datePivot(new Date(), { milliseconds: -WALLET_RETRY_BEFORE_MS })
+          }
+        }
+      })
+
+      if (invoiceActionFailed2) {
         foundNotes()
         return true
       }
@@ -621,29 +655,49 @@ export default {
   },
 
   Mutation: {
-    setName: async (parent, data, { me, models }) => {
+    disableFreebies: async (parent, args, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
-      await ssValidate(userSchema, data, { models })
+      // disable freebies if it hasn't been set yet
+      try {
+        await models.user.update({
+          where: { id: me.id, disableFreebies: null },
+          data: { disableFreebies: true }
+        })
+      } catch (err) {
+        // ignore 'record not found' errors
+        if (err.code !== 'P2025') {
+          throw err
+        }
+      }
+
+      return true
+    },
+    setName: async (parent, data, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      await validateSchema(userSchema, data, { models })
 
       try {
         await models.user.update({ where: { id: me.id }, data })
         return data.name
       } catch (error) {
         if (error.code === 'P2002') {
-          throw new GraphQLError('name taken', { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError('name taken')
         }
         throw error
       }
     },
     setSettings: async (parent, { settings: { nostrRelays, ...data } }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
-      await ssValidate(settingsSchema, { nostrRelays, ...data })
+      await validateSchema(settingsSchema, { nostrRelays, ...data })
 
       if (nostrRelays?.length) {
         const connectOrCreate = []
@@ -666,7 +720,7 @@ export default {
     },
     setWalkthrough: async (parent, { upvotePopover, tipPopover }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       await models.user.update({ where: { id: me.id }, data: { upvotePopover, tipPopover } })
@@ -675,7 +729,7 @@ export default {
     },
     setPhoto: async (parent, { photoId }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       await models.user.update({
@@ -685,31 +739,29 @@ export default {
 
       return Number(photoId)
     },
-    upsertBio: async (parent, { bio }, { me, models }) => {
+    upsertBio: async (parent, { text }, { me, models, lnd }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
-      await ssValidate(bioSchema, { bio })
+      await validateSchema(bioSchema, { text })
 
       const user = await models.user.findUnique({ where: { id: me.id } })
 
       if (user.bioId) {
-        await updateItem(parent, { id: user.bioId, text: bio, title: `@${user.name}'s bio` }, { me, models })
+        return await updateItem(parent, { id: user.bioId, bio: true, text, title: `@${user.name}'s bio` }, { me, models, lnd })
       } else {
-        await createItem(parent, { bio: true, text: bio, title: `@${user.name}'s bio` }, { me, models })
+        return await createItem(parent, { bio: true, text, title: `@${user.name}'s bio` }, { me, models, lnd })
       }
-
-      return await models.user.findUnique({ where: { id: me.id } })
     },
     generateApiKey: async (parent, { id }, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const user = await models.user.findUnique({ where: { id: me.id } })
       if (!user.apiKeyEnabled) {
-        throw new GraphQLError('you are not allowed to generate api keys', { extensions: { code: 'FORBIDDEN' } })
+        throw new GqlAuthorizationError('you are not allowed to generate api keys')
       }
 
       // I trust postgres CSPRNG more than the one from JS
@@ -724,14 +776,14 @@ export default {
     },
     deleteApiKey: async (parent, { id }, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       return await models.user.update({ where: { id: me.id }, data: { apiKeyHash: null } })
     },
     unlinkAuth: async (parent, { authType }, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
       assertApiKeyNotPermitted({ me })
 
@@ -740,7 +792,7 @@ export default {
         user = await models.user.findUnique({ where: { id: me.id } })
         const account = await models.account.findFirst({ where: { userId: me.id, provider: authType } })
         if (!account) {
-          throw new GraphQLError('no such account', { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError('no such account')
         }
         await models.account.delete({ where: { id: account.id } })
         if (authType === 'twitter') {
@@ -755,18 +807,18 @@ export default {
       } else if (authType === 'email') {
         user = await models.user.update({ where: { id: me.id }, data: { email: null, emailVerified: null, emailHash: null } })
       } else {
-        throw new GraphQLError('no such account', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('no such account')
       }
 
       return await authMethods(user, undefined, { models, me })
     },
     linkUnverifiedEmail: async (parent, { email }, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
       assertApiKeyNotPermitted({ me })
 
-      await ssValidate(emailSchema, { email })
+      await validateSchema(emailSchema, { email })
 
       try {
         await models.user.update({
@@ -775,7 +827,7 @@ export default {
         })
       } catch (error) {
         if (error.code === 'P2002') {
-          throw new GraphQLError('email taken', { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError('email taken')
         }
         throw error
       }
@@ -788,12 +840,12 @@ export default {
       const muted = await isMuted({ models, muterId: me?.id, mutedId: id })
       if (existing) {
         if (muted && !existing.postsSubscribedAt) {
-          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError("you can't subscribe to a stacker that you've muted")
         }
         await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { postsSubscribedAt: existing.postsSubscribedAt ? null : new Date() } })
       } else {
         if (muted) {
-          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError("you can't subscribe to a stacker that you've muted")
         }
         await models.userSubscription.create({ data: { ...lookupData, postsSubscribedAt: new Date() } })
       }
@@ -805,12 +857,12 @@ export default {
       const muted = await isMuted({ models, muterId: me?.id, mutedId: id })
       if (existing) {
         if (muted && !existing.commentsSubscribedAt) {
-          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError("you can't subscribe to a stacker that you've muted")
         }
         await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { commentsSubscribedAt: existing.commentsSubscribedAt ? null : new Date() } })
       } else {
         if (muted) {
-          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError("you can't subscribe to a stacker that you've muted")
         }
         await models.userSubscription.create({ data: { ...lookupData, commentsSubscribedAt: new Date() } })
       }
@@ -833,7 +885,7 @@ export default {
           }
         })
         if (subscription?.postsSubscribedAt || subscription?.commentsSubscribedAt) {
-          throw new GraphQLError("you can't mute a stacker to whom you've subscribed", { extensions: { code: 'BAD_INPUT' } })
+          throw new GqlInputError("you can't mute a stacker to whom you've subscribed")
         }
         await models.mute.create({ data: { ...lookupData } })
       }
@@ -841,7 +893,7 @@ export default {
     },
     hideWelcomeBanner: async (parent, data, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       await models.user.update({ where: { id: me.id }, data: { hideWelcomeBanner: true } })
@@ -898,7 +950,8 @@ export default {
       // get the user's first item
       const item = await models.item.findFirst({
         where: {
-          userId: user.id
+          userId: user.id,
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         },
         orderBy: {
           createdAt: 'asc'
@@ -918,7 +971,8 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },
@@ -935,7 +989,8 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },
@@ -952,7 +1007,8 @@ export default {
           createdAt: {
             gte,
             lte
-          }
+          },
+          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
         }
       })
     },
@@ -983,7 +1039,13 @@ export default {
       if (!me || me.id !== user.id) {
         return 0
       }
-      return msatsToSats(user.msats)
+      return msatsToSats(user.msats + user.mcredits)
+    },
+    credits: async (user, args, { models, me }) => {
+      if (!me || me.id !== user.id) {
+        return 0
+      }
+      return msatsToSats(user.mcredits)
     },
     authMethods,
     hasInvites: async (user, args, { models }) => {
@@ -1003,6 +1065,12 @@ export default {
       })
 
       return relays?.map(r => r.nostrRelayAddr)
+    },
+    tipRandom: async (user, args, { me }) => {
+      if (!me || me.id !== user.id) {
+        return false
+      }
+      return !!user.tipRandomMin && !!user.tipRandomMax
     }
   },
 
@@ -1013,6 +1081,20 @@ export default {
       }
 
       return user.streak
+    },
+    gunStreak: async (user, args, { models }) => {
+      if (user.hideCowboyHat) {
+        return null
+      }
+
+      return user.gunStreak
+    },
+    horseStreak: async (user, args, { models }) => {
+      if (user.hideCowboyHat) {
+        return null
+      }
+
+      return user.horseStreak
     },
     maxStreak: async (user, args, { models }) => {
       if (user.hideCowboyHat) {
@@ -1045,7 +1127,7 @@ export default {
 
       if (!when || when === 'forever') {
         // forever
-        return (user.stackedMsats && msatsToSats(user.stackedMsats)) || 0
+        return ((user.stackedMsats && msatsToSats(user.stackedMsats)) || 0)
       }
 
       const range = whenRange(when, from, to)

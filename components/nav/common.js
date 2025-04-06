@@ -6,15 +6,14 @@ import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
-import { USER_ID, BALANCE_LIMIT_MSATS, Wallet } from '../../lib/constants'
+import { USER_ID } from '../../lib/constants'
 import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
-import HiddenWalletSummary from '../hidden-wallet-summary'
-import { abbrNum, msatsToSats } from '../../lib/format'
+import { abbrNum } from '../../lib/format'
 import { useServiceWorker } from '../serviceworker'
 import { signOut } from 'next-auth/react'
-import Hat from '../hat'
+import Badges from '../badge'
 import { randInRange } from '../../lib/rand'
 import { useLightning } from '../lightning'
 import LightningIcon from '../../svgs/bolt.svg'
@@ -22,8 +21,11 @@ import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
-import { useWalletLogger } from '../logger'
-import { useWebLNConfigurator } from '../webln'
+import { useWallets } from '@/wallets/index'
+import { useWalletIndicator } from '@/components/wallet-indicator'
+import SwitchAccountList, { nextAccount, useAccounts } from '@/components/account'
+import { useShowModal } from '@/components/modal'
+import { numWithUnits } from '@/lib/format'
 
 export function Brand ({ className }) {
   return (
@@ -138,22 +140,25 @@ export function NavNotifications ({ className }) {
 }
 
 export function WalletSummary () {
-  const me = useMe()
-  if (!me) return null
-  if (me.privates?.hideWalletBalance) {
-    return <HiddenWalletSummary abbreviate fixedWidth />
-  }
-  return `${abbrNum(me.privates?.sats)}`
+  const { me } = useMe()
+  if (!me || me.privates?.sats === 0) return null
+  return (
+    <span
+      className='text-monospace'
+      title={`${numWithUnits(me.privates?.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`}
+    >
+      {`${abbrNum(me.privates?.sats)}`}
+    </span>
+  )
 }
 
 export function NavWalletSummary ({ className }) {
-  const me = useMe()
-  const walletLimitReached = me?.privates?.sats >= msatsToSats(BALANCE_LIMIT_MSATS)
+  const { me } = useMe()
 
   return (
     <Nav.Item className={className}>
-      <Link href='/wallet' passHref legacyBehavior>
-        <Nav.Link eventKey='wallet' className={`${walletLimitReached ? 'text-warning' : 'text-success'} text-monospace px-0 text-nowrap`}>
+      <Link href='/credits' passHref legacyBehavior>
+        <Nav.Link eventKey='credits' className='text-success text-monospace px-0 text-nowrap'>
           <WalletSummary me={me} />
         </Nav.Link>
       </Link>
@@ -161,31 +166,64 @@ export function NavWalletSummary ({ className }) {
   )
 }
 
+export const Indicator = ({ superscript }) => {
+  if (superscript) {
+    return (
+      <span className='d-inline-block p-1'>
+        <span
+          className='position-absolute p-1 bg-secondary'
+          style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}
+        >
+          <span className='invisible'>{' '}</span>
+        </span>
+      </span>
+    )
+  }
+
+  return (
+    <div className='p-1 d-inline-block bg-secondary ms-1'>
+      <span className='invisible'>{' '}</span>
+    </div>
+  )
+}
+
 export function MeDropdown ({ me, dropNavKey }) {
   if (!me) return null
+
+  const profileIndicator = !me.bioId
+  const walletIndicator = useWalletIndicator()
+  const indicator = profileIndicator || walletIndicator
+
   return (
-    <div className='position-relative'>
+    <div className=''>
       <Dropdown className={styles.dropdown} align='end'>
         <Dropdown.Toggle className='nav-link nav-item fw-normal' id='profile' variant='custom'>
-          <Nav.Link eventKey={me.name} as='span' className='p-0'>
-            {`@${me.name}`}<Hat user={me} />
-          </Nav.Link>
+          <div className='d-flex align-items-center'>
+            <Nav.Link eventKey={me.name} as='span' className='p-0 position-relative'>
+              {`@${me.name}`}
+              {indicator && <Indicator superscript />}
+            </Nav.Link>
+            <Badges user={me} />
+          </div>
         </Dropdown.Toggle>
         <Dropdown.Menu>
           <Link href={'/' + me.name} passHref legacyBehavior>
             <Dropdown.Item active={me.name === dropNavKey}>
               profile
-              {me && !me.bioId &&
-                <div className='p-1 d-inline-block bg-secondary ms-1'>
-                  <span className='invisible'>{' '}</span>
-                </div>}
+              {profileIndicator && <Indicator />}
             </Dropdown.Item>
           </Link>
           <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
             <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
           </Link>
-          <Link href='/wallet' passHref legacyBehavior>
-            <Dropdown.Item eventKey='wallet'>wallet</Dropdown.Item>
+          <Link href='/wallets' passHref legacyBehavior>
+            <Dropdown.Item eventKey='wallets'>
+              wallets
+              {walletIndicator && <Indicator />}
+            </Dropdown.Item>
+          </Link>
+          <Link href='/credits' passHref legacyBehavior>
+            <Dropdown.Item eventKey='credits'>credits</Dropdown.Item>
           </Link>
           <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
             <Dropdown.Item eventKey='satistics'>satistics</Dropdown.Item>
@@ -204,15 +242,14 @@ export function MeDropdown ({ me, dropNavKey }) {
           <LogoutDropdownItem />
         </Dropdown.Menu>
       </Dropdown>
-      {!me.bioId &&
-        <span className='position-absolute p-1 bg-secondary' style={{ top: '5px', right: '0px' }}>
-          <span className='invisible'>{' '}</span>
-        </span>}
     </div>
   )
 }
 
-export function SignUpButton ({ className = 'py-0' }) {
+// this is the width of the 'switch account' button if no width is given
+const SWITCH_ACCOUNT_BUTTON_WIDTH = '162px'
+
+export function SignUpButton ({ className = 'py-0', width }) {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
     pathname,
@@ -222,7 +259,8 @@ export function SignUpButton ({ className = 'py-0' }) {
   return (
     <Button
       className={classNames('align-items-center ps-2 pe-3', className)}
-      style={{ borderWidth: '2px', width: '112px' }}
+      // 161px is the width of the 'switch account' button
+      style={{ borderWidth: '2px', width: width || SWITCH_ACCOUNT_BUTTON_WIDTH }}
       id='signup'
       onClick={() => handleLogin('/signup')}
     >
@@ -235,7 +273,7 @@ export function SignUpButton ({ className = 'py-0' }) {
   )
 }
 
-export default function LoginButton ({ className }) {
+export default function LoginButton () {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
     pathname,
@@ -244,9 +282,9 @@ export default function LoginButton ({ className }) {
 
   return (
     <Button
-      className='align-items-center px-3 py-1 mb-2'
+      className='align-items-center px-3 py-1'
       id='login'
-      style={{ borderWidth: '2px', width: '112px' }}
+      style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       variant='outline-grey-darkmode'
       onClick={() => handleLogin('/login')}
     >
@@ -255,36 +293,108 @@ export default function LoginButton ({ className }) {
   )
 }
 
-export function LogoutDropdownItem () {
+function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
-  const webLN = useWebLNConfigurator()
-  const { deleteLogs } = useWalletLogger()
+  const { removeLocalWallets } = useWallets()
+  const router = useRouter()
+
   return (
-    <Dropdown.Item
-      onClick={async () => {
-        // order is important because we need to be logged in to delete push subscription on server
-        const pushSubscription = await swRegistration?.pushManager.getSubscription()
-        if (pushSubscription) {
-          await togglePushSubscription().catch(console.error)
-        }
-        // detach wallets
-        await webLN.clearConfig().catch(console.error)
-        // delete client wallet logs to prevent leak of private data if a shared device was used
-        await deleteLogs(Wallet.NWC).catch(console.error)
-        await deleteLogs(Wallet.LNbits).catch(console.error)
-        await deleteLogs(Wallet.LNC).catch(console.error)
-        await signOut({ callbackUrl: '/' })
-      }}
-    >logout
-    </Dropdown.Item>
+    <div className='d-flex m-auto flex-column w-fit-content'>
+      <h4 className='mb-3'>I reckon you want to logout?</h4>
+      <div className='mt-2 d-flex justify-content-between'>
+        <Button
+          className='me-2'
+          variant='grey-medium'
+          onClick={onClose}
+        >
+          cancel
+        </Button>
+        <Button
+          onClick={async () => {
+            const next = await nextAccount()
+            // only signout if we did not find a next account
+            if (next) {
+              onClose()
+              // reload whatever page we're on to avoid any bugs
+              router.reload()
+              return
+            }
+
+            // order is important because we need to be logged in to delete push subscription on server
+            const pushSubscription = await swRegistration?.pushManager.getSubscription()
+            if (pushSubscription) {
+              await togglePushSubscription().catch(console.error)
+            }
+
+            removeLocalWallets()
+
+            await signOut({ callbackUrl: '/' })
+          }}
+        >
+          logout
+        </Button>
+      </div>
+    </div>
   )
 }
 
-export function LoginButtons () {
+export function LogoutDropdownItem ({ handleClose }) {
+  const showModal = useShowModal()
+
   return (
     <>
-      <LoginButton />
-      <SignUpButton className='py-1' />
+      <Dropdown.Item onClick={() => {
+        handleClose?.()
+        showModal(onClose => <SwitchAccountList onClose={onClose} />)
+      }}
+      >switch account
+      </Dropdown.Item>
+      <Dropdown.Item
+        onClick={async () => {
+          handleClose?.()
+          showModal(onClose => (<LogoutObstacle onClose={onClose} />))
+        }}
+      >logout
+      </Dropdown.Item>
+    </>
+  )
+}
+
+function SwitchAccountButton ({ handleClose }) {
+  const showModal = useShowModal()
+  const accounts = useAccounts()
+
+  if (accounts.length === 0) return null
+
+  return (
+    <Button
+      className='align-items-center px-3 py-1'
+      variant='outline-grey-darkmode'
+      style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
+      onClick={() => {
+        // login buttons rendered in offcanvas aren't wrapped inside <Dropdown>
+        // so we manually close the offcanvas in that case by passing down handleClose here
+        handleClose?.()
+        showModal(onClose => <SwitchAccountList onClose={onClose} />)
+      }}
+    >
+      switch account
+    </Button>
+  )
+}
+
+export function LoginButtons ({ handleClose }) {
+  return (
+    <>
+      <Dropdown.Item className='py-1'>
+        <LoginButton />
+      </Dropdown.Item>
+      <Dropdown.Item className='py-1'>
+        <SignUpButton className='py-1' />
+      </Dropdown.Item>
+      <Dropdown.Item className='py-1'>
+        <SwitchAccountButton handleClose={handleClose} />
+      </Dropdown.Item>
     </>
   )
 }
@@ -304,10 +414,10 @@ export function AnonDropdown ({ path }) {
 
   return (
     <div className='position-relative'>
-      <Dropdown className={styles.dropdown} align='end'>
+      <Dropdown className={styles.dropdown} align='end' autoClose>
         <Dropdown.Toggle className='nav-link nav-item' id='profile' variant='custom'>
           <Nav.Link eventKey='anon' as='span' className='p-0 fw-normal'>
-            @anon<Hat user={{ id: USER_ID.anon }} />
+            @anon<Badges user={{ id: USER_ID.anon }} />
           </Nav.Link>
         </Dropdown.Toggle>
         <Dropdown.Menu className='p-3'>
@@ -331,22 +441,24 @@ export function Sorts ({ sub, prefix, className }) {
           <Nav.Link eventKey='recent' className={styles.navLink}>recent</Nav.Link>
         </Link>
       </Nav.Item>
-      {/* <Nav.Item className={className}>
-        <Link href={prefix + '/random'} passHref legacyBehavior>
-          <Nav.Link eventKey='random' className={styles.navLink}>random</Nav.Link>
-        </Link>
-      </Nav.Item> */}
       {sub !== 'jobs' &&
-        <Nav.Item className={className}>
-          <Link
-            href={{
-              pathname: '/~/top/[type]/[when]',
-              query: { type: 'posts', when: 'day', sub }
-            }} as={prefix + '/top/posts/day'} passHref legacyBehavior
-          >
-            <Nav.Link eventKey='top' className={styles.navLink}>top</Nav.Link>
-          </Link>
-        </Nav.Item>}
+        <>
+          <Nav.Item className={className}>
+            <Link href={prefix + '/random'} passHref legacyBehavior>
+              <Nav.Link eventKey='random' className={styles.navLink}>random</Nav.Link>
+            </Link>
+          </Nav.Item>
+          <Nav.Item className={className}>
+            <Link
+              href={{
+                pathname: '/~/top/[type]/[when]',
+                query: { type: 'posts', when: 'day', sub }
+              }} as={prefix + '/top/posts/day'} passHref legacyBehavior
+            >
+              <Nav.Link eventKey='top' className={styles.navLink}>top</Nav.Link>
+            </Link>
+          </Nav.Item>
+        </>}
     </>
   )
 }

@@ -1,4 +1,8 @@
-x-env_file: &env_file .env.development
+x-env_file: &env_file
+  - path: .env.development
+    required: true
+  - path: .env.local
+    required: false
 x-healthcheck: &healthcheck
   interval: 10s
   timeout: 10s
@@ -35,6 +39,21 @@ services:
       - db:/var/lib/postgresql/data
     labels:
       CONNECT: "localhost:5431"
+    cpu_shares: "${CPU_SHARES_IMPORTANT}"
+  tor:
+    build:
+      context: ./docker/tor
+    container_name: tor
+    profiles:
+      - payments
+    restart: unless-stopped
+    volumes:
+      - tordata:/tordata/
+    cpu_shares: "${CPU_SHARES_LOW}"
+    env_file: *env_file
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD-SHELL", "bash /tor.sh check"]
   app:
     container_name: app
     stdin_open: true
@@ -58,6 +77,7 @@ services:
       - ./:/app
     labels:
       CONNECT: "localhost:3000"
+    cpu_shares: "${CPU_SHARES_IMPORTANT}"
   capture:
     container_name: capture
     build:
@@ -79,6 +99,7 @@ services:
       - "5678:5678"
     labels:
       CONNECT: "localhost:5678"
+    cpu_shares: "${CPU_SHARES_LOW}"
   worker:
     container_name: worker
     build:
@@ -97,6 +118,7 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - npm run worker:dev
+    cpu_shares: "${CPU_SHARES_IMPORTANT}"
   imgproxy:
     container_name: imgproxy
     image: darthsim/imgproxy:v3.23.0
@@ -113,6 +135,7 @@ services:
       - "8080"
     labels:
       - "CONNECT=localhost:3001"
+    cpu_shares: "${CPU_SHARES_LOW}"
   s3:
     container_name: s3
     image: localstack/localstack:s3-latest
@@ -138,8 +161,9 @@ services:
       - './docker/s3/cors.json:/etc/localstack/init/ready.d/cors.json'
     labels:
       - "CONNECT=localhost:4566"
+    cpu_shares: "${CPU_SHARES_LOW}"
   opensearch:
-    image: opensearchproject/opensearch:2.12.0
+    image: opensearchproject/opensearch:2.17.0
     container_name: opensearch
     profiles:
       - search
@@ -149,7 +173,9 @@ services:
     restart: unless-stopped
     env_file: *env_file
     environment:
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=mVchg1T5oA9wudUh
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD}
+      - plugins.security.disabled=true
+      - discovery.type=single-node
     ports:
       - 9200:9200 # REST API
       - 9600:9600 # Performance Analyzer
@@ -175,8 +201,9 @@ services:
         echo "OpenSearch index created."
         fg
       '
+    cpu_shares: "${CPU_SHARES_LOW}"
   os-dashboard:
-    image: opensearchproject/opensearch-dashboards:2.12.0
+    image: opensearchproject/opensearch-dashboards:2.17.0
     container_name: os-dashboard
     restart: unless-stopped
     profiles:
@@ -196,8 +223,9 @@ services:
       - opensearch
     labels:
       CONNECT: "localhost:5601"
+    cpu_shares: "${CPU_SHARES_LOW}"
   bitcoin:
-    image: polarlightning/bitcoind:26.0
+    image: polarlightning/bitcoind:27.0
     container_name: bitcoin
     restart: unless-stopped
     profiles:
@@ -213,18 +241,22 @@ services:
       - '-debug=1'
       - '-zmqpubrawblock=tcp://0.0.0.0:${ZMQ_BLOCK_PORT}'
       - '-zmqpubrawtx=tcp://0.0.0.0:${ZMQ_TX_PORT}'
+      - '-zmqpubhashblock=tcp://bitcoin:${ZMQ_HASHBLOCK_PORT}'
       - '-txindex=1'
       - '-dnsseed=0'
       - '-upnp=0'
       - '-rpcbind=0.0.0.0'
       - '-rpcallowip=0.0.0.0/0'
+      - '-whitelist=0.0.0.0/0'
       - '-rpcport=${RPC_PORT}'
+      - '-deprecatedrpc=signrawtransaction'
       - '-rest'
       - '-listen=1'
       - '-listenonion=0'
       - '-fallbackfee=0.0002'
       - '-blockfilterindex=1'
       - '-peerblockfilters=1'
+      - '-maxmempool=5'
     expose:
       - "${RPC_PORT}"
       - "${P2P_PORT}"
@@ -233,25 +265,52 @@ services:
     volumes:
       - bitcoin:/home/bitcoin/.bitcoin
     labels:
+      CLI: "bitcoin-cli"
+      CLI_ARGS: "-chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS}"
       ofelia.enabled: "true"
+      ofelia.group: "payments"
       ofelia.job-exec.minecron.schedule: "@every 1m"
       ofelia.job-exec.minecron.command: >
         bash -c '
-          blockcount=$$(bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} getblockcount 2>/dev/null)
+          bitcoin-cli () {
+            command bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} "$$@"
+          }
+          blockcount=$$(bitcoin-cli getblockcount 2>/dev/null)
+
+          nodes=(${SN_LND_ADDR} ${LND_ADDR} ${CLN_ADDR} ${ROUTER_LND_ADDR} ${ECLAIR_ADDR})
+
           if (( blockcount <= 0 )); then
-            echo "Mining 10 blocks to sn_lnd, stacker_lnd, stacker_cln..."
-            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 100 ${LND_ADDR}
-            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 100 ${STACKER_LND_ADDR}
-            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 100 ${STACKER_CLN_ADDR}
+            echo "Creating wallet and address..."
+            bitcoin-cli createwallet ""
+            nodes+=($$(bitcoin-cli getnewaddress))
+            echo "Mining 100 blocks to sn_lnd, lnd, cln, router_lnd, eclair..."
+            for addr in  "$${nodes[@]}"; do
+              bitcoin-cli generatetoaddress 100 $$addr
+              echo "Mining 100 blocks to a random address..."
+              bitcoin-cli generatetoaddress 100 $$(bitcoin-cli getnewaddress)
+            done
           else
-            echo "Mining a block to sn_lnd... ${LND_ADDR}"
-            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${LND_ADDR}
-            echo "Mining a block to stacker_lnd... ${STACKER_LND_ADDR}"
-            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${STACKER_LND_ADDR}
-            echo "Mining a block to stacker_cln... ${STACKER_CLN_ADDR}"
-            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${STACKER_CLN_ADDR}
+            echo "generating txs for fee rate estimation..."
+            while true
+            do
+              i=0
+              range=$$(( $$RANDOM % 11 + 20 ))
+              while [ $$i -lt $$range ]
+              do
+                address=$$(bitcoin-cli getnewaddress)
+                bitcoin-cli -named sendtoaddress address=$$address amount=0.01 fee_rate=$$(( $$RANDOM % 25 + 1 ))
+                ((++i))
+              done
+              echo "generating block..."
+              bitcoin-cli generatetoaddress 1 "$${nodes[ $$RANDOM % $${#nodes[@]} ]}"
+              if [[ $$(bitcoin-cli estimatesmartfee 6) =~ "\\"feerate\\":" ]]; then
+                echo "fee estimation succeeded..."
+                break
+              fi
+            done
           fi
         '
+    cpu_shares: "${CPU_SHARES_MODERATE}"
   sn_lnd:
     build:
       context: ./docker/lnd
@@ -290,47 +349,89 @@ services:
       - '--allow-circular-route'
       - '--bitcoin.defaultchanconfs=1'
       - '--maxpendingchannels=10'
+      - '--gossip.sub-batch-delay=1s'
+      - '--protocol.custom-message=513'
+      - '--protocol.custom-nodeann=39'
+      - '--protocol.custom-init=39'
     expose:
       - "9735"
     ports:
-      - "${LND_REST_PORT}:8080"
-      - "${LND_GRPC_PORT}:10009"
+      - "${SN_LND_REST_PORT}:8080"
+      - "${SN_LND_GRPC_PORT}:10009"
     volumes:
       - sn_lnd:/home/lnd/.lnd
     labels:
+      CLI: "lncli"
+      CLI_USER: "lnd"
       ofelia.enabled: "true"
+      ofelia.group: "payments"
       ofelia.job-exec.sn_channel_cron.schedule: "@every 1m"
       ofelia.job-exec.sn_channel_cron.command: >
         su lnd -c bash -c "
           if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
             exit 0
           else
-            lncli openchannel --node_key=$STACKER_LND_PUBKEY --connect stacker_lnd:9735 --sat_per_vbyte 1 \\
+            lncli openchannel --node_key=$ROUTER_LND_PUBKEY --connect router_lnd:9735 --sat_per_vbyte 1 \\
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
         "
-  stacker_lnd:
+    cpu_shares: "${CPU_SHARES_MODERATE}"
+  sn_lndk:
+    platform: linux/x86_64
+    build:
+      context: ./docker/lndk
+    container_name: sn_lndk
+    restart: unless-stopped
+    profiles:
+      - wallets
+    depends_on:
+      sn_lnd:
+        condition: service_healthy
+        restart: true
+    env_file: *env_file
+    command:
+      - 'lndk'
+      - '--grpc-host=0.0.0.0'
+      - '--address=https://sn_lnd:10009'
+      - '--cert-path=/home/lnd/.lnd/tls.cert'
+      - '--tls-ip=sn_lndk'
+      - '--macaroon-path=/home/lnd/.lnd/data/chain/bitcoin/regtest/admin.macaroon'
+    ports:
+      - "${SN_LNDK_GRPC_PORT}:7000"
+    volumes:
+      - sn_lnd:/home/lnd/.lnd
+    labels:
+      CLI: "lndk-cli --macaroon-path=/home/lnd/.lnd/data/chain/bitcoin/regtest/admin.macaroon"
+      CLI_USER: "lndk"
+    cpu_shares: "${CPU_SHARES_MODERATE}"
+  lnd:
     build:
       context: ./docker/lnd
       args:
         - LN_NODE_FOR=stacker
-    container_name: stacker_lnd
+    container_name: lnd
     restart: unless-stopped
     profiles:
       - payments
     healthcheck:
       <<: *healthcheck
       test: ["CMD-SHELL", "lncli", "getinfo"]
-    depends_on: *depends_on_bitcoin
+    depends_on:
+      tor:
+        condition: service_healthy
+        restart: true
+      <<: *depends_on_bitcoin
     env_file: *env_file
+    entrypoint: /tor-entrypoint
     command:
       - 'lnd'
       - '--noseedbackup'
       - '--trickledelay=5000'
-      - '--alias=stacker_lnd'
-      - '--externalip=stacker_lnd'
-      - '--tlsextradomain=stacker_lnd'
+      - '--alias=lnd'
+      - '--externalip=lnd'
+      - '--tlsextradomain=lnd'
       - '--tlsextradomain=host.docker.internal'
+      - '--tlsextradomain=$${ONION_DOMAIN}'
       - '--listen=0.0.0.0:9735'
       - '--rpclisten=0.0.0.0:10009'
       - '--rpcmiddleware.enable'
@@ -352,22 +453,29 @@ services:
       - "9735"
       - "10009"
     ports:
-      - "${STACKER_LND_REST_PORT}:8080"
-      - "${STACKER_LND_GRPC_PORT}:10009"
+      - "${LND_REST_PORT}:8080"
+      - "${LND_GRPC_PORT}:10009"
     volumes:
-      - stacker_lnd:/home/lnd/.lnd
+      - lnd:/home/lnd/.lnd
+      - tordata:/home/lnd/.tor
     labels:
+      TORDIR: "/home/lnd/.tor"
+      CERTDIR: "/home/lnd/.lnd"
+      CLI: "lncli"
+      CLI_USER: "lnd"
       ofelia.enabled: "true"
-      ofelia.job-exec.stacker_lnd_channel_cron.schedule: "@every 1m"
-      ofelia.job-exec.stacker_lnd_channel_cron.command: >
+      ofelia.group: "payments"
+      ofelia.job-exec.lnd_channel_cron.schedule: "@every 1m"
+      ofelia.job-exec.lnd_channel_cron.command: >
         su lnd -c bash -c "
           if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
             exit 0
           else
-            lncli openchannel --node_key=$LND_PUBKEY --connect sn_lnd:9735 --sat_per_vbyte 1 \\
+            lncli openchannel --node_key=$ROUTER_LND_PUBKEY --connect router_lnd:9735 --sat_per_vbyte 1 \\
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
         "
+    cpu_shares: "${CPU_SHARES_MODERATE}"
   litd:
     container_name: litd
     build:
@@ -379,11 +487,11 @@ services:
       <<: *healthcheck
       test: ["CMD", "curl", "-f", "http://localhost:8443"]
     depends_on:
-      stacker_lnd:
+      lnd:
         condition: service_healthy
         restart: true
     volumes:
-      - stacker_lnd:/lnd
+      - lnd:/lnd
     ports:
       - "8443:8443"
     command:
@@ -394,7 +502,7 @@ services:
       - '--lnd-mode=remote'
       - '--network=regtest'
       - '--remote.lit-debuglevel=debug'
-      - '--remote.lnd.rpcserver=stacker_lnd:10009'
+      - '--remote.lnd.rpcserver=lnd:10009'
       - '--remote.lnd.macaroonpath=/lnd/data/chain/bitcoin/regtest/admin.macaroon'
       - '--remote.lnd.tlscertpath=/lnd/tls.cert'
       - '--autopilot.disable'
@@ -402,48 +510,173 @@ services:
       - '--loop.server.host=test.swap.lightning.today:11010'
     labels:
       CONNECT: "localhost:8443"
-  stacker_cln:
+      CLI: "litcli"
+      CLI_ARGS: "-n regtest --rpcserver localhost:8444"
+    cpu_shares: "${CPU_SHARES_MODERATE}"
+  cln:
     build:
       context: ./docker/cln
-    container_name: stacker_cln
+    container_name: cln
     restart: unless-stopped
     profiles:
-      - payments
+      - wallets
     healthcheck:
       <<: *healthcheck
       test: ["CMD-SHELL", "su clightning -c 'lightning-cli --network=regtest getinfo'"]
-    depends_on: *depends_on_bitcoin
+    depends_on:
+      tor:
+        condition: service_healthy
+        restart: true
+      <<: *depends_on_bitcoin
     env_file: *env_file
     command:
       - 'lightningd'
+      - '--addr=0.0.0.0:9735'
+      - '--announce-addr=cln:9735'
       - '--network=regtest'
-      - '--alias=stacker_cln'
+      - '--alias=cln'
       - '--bitcoin-rpcconnect=bitcoin'
       - '--bitcoin-rpcuser=${RPC_USER}'
       - '--bitcoin-rpcpassword=${RPC_PASS}'
       - '--large-channels'
       - '--rest-port=3010'
       - '--rest-host=0.0.0.0'
-      - '--log-file=/home/clightning/.lightning/debug.log'
     expose:
       - "9735"
     ports:
-      - "${STACKER_CLN_REST_PORT}:3010"
+      - "${CLN_REST_PORT}:3010"
     volumes:
-      - stacker_cln:/home/clightning/.lightning
+      - cln:/home/clightning/.lightning
+      - tordata:/home/clightning/.tor
     labels:
+      TORDIR: "/home/clightning/.tor"
+      CLI: "lightning-cli"
+      CLI_USER: "clightning"
+      CLI_ARGS: "--regtest"
       ofelia.enabled: "true"
-      ofelia.job-exec.stacker_cln_channel_cron.schedule: "@every 1m"
-      ofelia.job-exec.stacker_cln_channel_cron.command: >
+      ofelia.group: "wallets"
+      ofelia.job-exec.cln_channel_cron.schedule: "@every 1m"
+      ofelia.job-exec.cln_channel_cron.command: >
         su clightning -c bash -c "
+          lightning-cli --regtest connect $ROUTER_LND_PUBKEY@router_lnd:9735
           if [ $$(lightning-cli --regtest getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
             exit 0
           else
-            lightning-cli --regtest connect $LND_PUBKEY@sn_lnd:9735
-            lightning-cli --regtest fundchannel id=$LND_PUBKEY feerate=1000perkb \\
+            lightning-cli --regtest fundchannel id=$ROUTER_LND_PUBKEY feerate=1000perkb \\
               amount=1000000000 push_msat=500000000000 minconf=0
           fi
         "
+    cpu_shares: "${CPU_SHARES_MODERATE}"
+  eclair:
+    build:
+      context: ./docker/eclair
+      args:
+        - LN_NODE_FOR=stacker
+    container_name: eclair
+    profiles:
+      - wallets
+    restart: unless-stopped
+    depends_on:
+      <<: *depends_on_bitcoin
+    environment:
+      <<: *env_file
+      JAVA_OPTS:
+        -Declair.printToConsole
+        -Dakka.loglevel=DEBUG
+        -Declair.server.port=9735
+        -Declair.server.public-ips.0=eclair
+        -Declair.api.binding-ip=0.0.0.0
+        -Declair.api.enabled=true
+        -Declair.api.port=8080
+        -Declair.api.password=pass
+        -Declair.node-alias=eclair
+        -Declair.chain=regtest
+        -Declair.bitcoind.host=bitcoin
+        -Declair.bitcoind.rpcport=${RPC_PORT}
+        -Declair.bitcoind.rpcuser=${RPC_USER}
+        -Declair.bitcoind.rpcpassword=${RPC_PASS}
+        -Declair.bitcoind.zmqblock=tcp://bitcoin:${ZMQ_HASHBLOCK_PORT}
+        -Declair.bitcoind.zmqtx=tcp://bitcoin:${ZMQ_TX_PORT}
+        -Declair.bitcoind.batch-watcher-requests=false
+        -Declair.features.option_onion_messages=optional
+        -Declair.features.option_route_blinding=optional
+        -Declair.features.keysend=optional
+        -Declair.channel.accept-incoming-static-remote-key-channels=true
+        -Declair.tip-jar.description=bolt12
+        -Declair.tip-jar.default-amount-msat=100000000
+        -Declair.tip-jar.max-final-expiry-delta=1000
+    volumes:
+      - eclair:/data
+    expose:
+      - "9735"
+    labels:
+      CLI: "eclair-cli"
+      CLI_USER: "root"
+      CLI_ARGS: "-p pass"
+      ofelia.enabled: "true"
+      ofelia.group: "wallets"
+      ofelia.job-exec.eclair_channel_cron.schedule: "@every 1m"
+      ofelia.job-exec.eclair_channel_cron.command: >
+        bash -c "
+          if [ $$(eclair-cli -p pass channels | jq 'length') -ge 3 ]; then
+            exit 0
+          else
+            eclair-cli -p pass connect --uri=$SN_LND_PUBKEY@sn_lnd:9735
+            eclair-cli -p pass open --nodeId=$SN_LND_PUBKEY --fundingFeerateSatByte=1 --fundingSatoshis=1000000 --pushMsat=500000000 --announceChannel=true
+          fi
+        "
+  router_lnd:
+    build:
+      context: ./docker/lnd
+      args:
+        - LN_NODE_FOR=router
+    container_name: router_lnd
+    restart: unless-stopped
+    profiles:
+      - payments
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD-SHELL", "lncli", "getinfo"]
+    depends_on: *depends_on_bitcoin
+    env_file: *env_file
+    command:
+      - 'lnd'
+      - '--noseedbackup'
+      - '--trickledelay=5000'
+      - '--alias=router_lnd'
+      - '--externalip=router_lnd'
+      - '--tlsextradomain=router_lnd'
+      - '--tlsextradomain=host.docker.internal'
+      - '--listen=0.0.0.0:9735'
+      - '--rpclisten=0.0.0.0:10009'
+      - '--restlisten=0.0.0.0:8080'
+      - '--bitcoin.active'
+      - '--bitcoin.regtest'
+      - '--bitcoin.node=bitcoind'
+      - '--bitcoind.rpchost=bitcoin'
+      - '--bitcoind.rpcuser=${RPC_USER}'
+      - '--bitcoind.rpcpass=${RPC_PASS}'
+      - '--bitcoind.zmqpubrawblock=tcp://bitcoin:${ZMQ_BLOCK_PORT}'
+      - '--bitcoind.zmqpubrawtx=tcp://bitcoin:${ZMQ_TX_PORT}'
+      - '--protocol.wumbo-channels'
+      - '--bitcoin.basefee=1000'
+      - '--bitcoin.feerate=0'
+      - '--maxchansize=1000000000'
+      - '--allow-circular-route'
+      - '--bitcoin.defaultchanconfs=1'
+      - '--maxpendingchannels=10'
+    expose:
+      - "9735"
+    ports:
+      - "${ROUTER_LND_REST_PORT}:8080"
+      - "${ROUTER_LND_GRPC_PORT}:10009"
+    volumes:
+      - router_lnd:/home/lnd/.lnd
+    labels:
+      CLI: "lncli"
+      CLI_USER: "lnd"
+      ofelia.group: "payments"
+    cpu_shares: "${CPU_SHARES_MODERATE}"
   channdler:
     image: mcuadros/ofelia:latest
     container_name: channdler
@@ -452,12 +685,27 @@ services:
     depends_on:
       - bitcoin
       - sn_lnd
-      - stacker_lnd
-      - stacker_cln
+      - lnd
+      - router_lnd
     restart: unless-stopped
-    command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}
+    command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME} -f label=ofelia.group=payments
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    cpu_shares: "${CPU_SHARES_LOW}"
+  walletscron:
+    image: mcuadros/ofelia:latest
+    container_name: walletscron
+    profiles:
+      - wallets
+    depends_on:
+      - router_lnd
+      - eclair
+      - cln
+    restart: unless-stopped
+    command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME} -f label=ofelia.group=wallets
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    cpu_shares: "${CPU_SHARES_LOW}"
   mailhog:
     image: mailhog/mailhog:latest
     container_name: mailhog
@@ -474,39 +722,78 @@ services:
       - app
     labels:
       CONNECT: "localhost:8025"
-  nwc:
-    build:
-      context: ./docker/nwc
-    container_name: nwc
+    cpu_shares: "${CPU_SHARES_LOW}"
+  nwc_send:
+    image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master
+    container_name: nwc_send
     profiles:
       - wallets
     restart: unless-stopped
     depends_on:
-      stacker_lnd:
+      lnd:
         condition: service_healthy
         restart: true
     volumes:
-      - ./docker/lnd/stacker:/root/.lnd
+      - nwc_send:/app
+      - lnd:/app/.lnd
     environment:
       - RUST_LOG=info
     entrypoint:
-      - 'nostr-wallet-connect-lnd'
+      - './nostr-wallet-connect-lnd'
       - '--relay'
-      - 'wss://relay.damus.io'
+      - 'wss://relay.primal.net'
       - '--macaroon-file'
-      - '/root/.lnd/regtest/admin.macaroon'
+      - '/app/.lnd/data/chain/bitcoin/regtest/admin.macaroon'
       - '--cert-file'
-      - '/root/.lnd/tls.cert'
+      - '/app/.lnd/tls.cert'
       - '--lnd-host'
-      - 'stacker_lnd'
+      - 'lnd'
       - '--lnd-port'
       - '10009'
       - '--max-amount'
       - '0'
       - '--daily-limit'
       - '0'
+      - '--keys-file'
+      - 'keys-file.json'
+    cpu_shares: "${CPU_SHARES_LOW}"
+  nwc_recv:
+    image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master
+    container_name: nwc_recv
+    profiles:
+      - wallets
+    restart: unless-stopped
+    depends_on:
+      lnd:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - nwc_recv:/app
+      - lnd:/app/.lnd
+    environment:
+      - RUST_LOG=info
+    entrypoint:
+      - './nostr-wallet-connect-lnd'
+      - '--relay'
+      - 'wss://relay.primal.net'
+      - '--invoice-macaroon-file'
+      - '/app/.lnd/data/chain/bitcoin/regtest/invoice.macaroon'
+      - '--cert-file'
+      - '/app/.lnd/tls.cert'
+      - '--lnd-host'
+      - 'lnd'
+      - '--lnd-port'
+      - '10009'
+      - '--max-amount'
+      - '0'
+      - '--daily-limit'
+      - '0'
+      - '--keys-file'
+      - 'keys-file.json'
+    cpu_shares: "${CPU_SHARES_LOW}"
   lnbits:
-    image: lnbits/lnbits:0.12.5
+    build:
+      context: ./docker/lnbits
     container_name: lnbits
     profiles:
       - wallets
@@ -514,20 +801,36 @@ services:
     ports:
       - "${LNBITS_WEB_PORT}:5000"
     depends_on:
-      - stacker_lnd
+      tor:
+        condition: service_healthy
+        restart: true
+      lnd:
+        condition: service_healthy
+        restart: true
     environment:
+      - LNBITS_ADMIN_UI=true
       - LNBITS_BACKEND_WALLET_CLASS=LndWallet
-      - LND_GRPC_ENDPOINT=stacker_lnd
+      - LND_GRPC_ENDPOINT=lnd
       - LND_GRPC_PORT=10009
       - LND_GRPC_CERT=/app/.lnd/tls.cert
-      - LND_GRPC_MACAROON=/app/.lnd/regtest/admin.macaroon
+      - LND_GRPC_MACAROON=/app/.lnd/data/chain/bitcoin/regtest/admin.macaroon
     volumes:
-      - ./docker/lnd/stacker:/app/.lnd
+      - lnd:/app/.lnd
+      - tordata:/app/.tor
+    labels:
+      CONNECT: "localhost:${LNBITS_WEB_PORT}"
+      TORDIR: "/app/.tor"
+    cpu_shares: "${CPU_SHARES_LOW}"
 volumes:
   db:
   os:
   bitcoin:
   sn_lnd:
-  stacker_lnd:
-  stacker_cln:
+  lnd:
+  cln:
+  router_lnd:
   s3:
+  nwc_send:
+  nwc_recv:
+  tordata:
+  eclair:

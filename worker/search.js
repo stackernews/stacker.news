@@ -1,5 +1,5 @@
 import { gql } from 'graphql-tag'
-import search from '@/api/search/index.js'
+import search from '@/api/search/index'
 import removeMd from 'remove-markdown'
 
 const ITEM_SEARCH_FIELDS = gql`
@@ -22,15 +22,16 @@ const ITEM_SEARCH_FIELDS = gql`
       subName
     }
     status
-    maxBid
     company
     location
     remote
     upvotes
     sats
+    credits
     boost
     lastCommentAt
     commentSats
+    commentCredits
     path
     ncomments
   }`
@@ -115,6 +116,11 @@ export async function indexItem ({ data: { id, updatedAt }, apollo, models }) {
           }
         }`
   })
+
+  if (!item) {
+    console.log('item not found', id)
+    return
+  }
 
   // 2. index it with external version based on updatedAt
   await _indexItem(item, { models, updatedAt })

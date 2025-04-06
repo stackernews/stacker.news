@@ -8,10 +8,14 @@ export const MeContext = React.createContext({
 })
 
 export function MeProvider ({ me, children }) {
-  const { data } = useQuery(ME, SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
+  const { data, refetch } = useQuery(ME, SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
+  // this makes sure that we always use the fetched data if it's null.
+  // without this, we would always fallback to the `me` object
+  // which was passed during page load which (visually) breaks switching to anon
+  const futureMe = data?.me ?? (data?.me === null ? null : me)
 
   return (
-    <MeContext.Provider value={data?.me || me}>
+    <MeContext.Provider value={{ me: futureMe, refreshMe: refetch }}>
       {children}
     </MeContext.Provider>
   )

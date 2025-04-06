@@ -8,8 +8,16 @@ export default gql`
     dupes(url: String!): [Item!]
     related(cursor: String, title: String, id: ID, minMatch: String, limit: Limit): Items
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
-    auctionPosition(sub: String, id: ID, bid: Int!): Int!
+    auctionPosition(sub: String, id: ID, boost: Int): Int!
+    boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
+  }
+
+  type BoostPositions {
+    home: Boolean!
+    sub: Boolean!
+    homeMaxBoost: Int!
+    subMaxBoost: Int!
   }
 
   type TitleUnshorted {
@@ -35,15 +43,24 @@ export default gql`
     pinItem(id: ID): Item
     subscribeItem(id: ID): Item
     deleteItem(id: ID): Item
-    upsertLink(id: ID, sub: String, title: String!, url: String!, text: String, boost: Int, forward: [ItemForwardInput]): ItemPaidAction!
-    upsertDiscussion(id: ID, sub: String, title: String!, text: String, boost: Int, forward: [ItemForwardInput]): ItemPaidAction!
-    upsertBounty(id: ID, sub: String, title: String!, text: String, bounty: Int, boost: Int, forward: [ItemForwardInput]): ItemPaidAction!
-    upsertJob(id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
-      text: String!, url: String!, maxBid: Int!, status: String, logo: Int): ItemPaidAction!
-    upsertPoll(id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], pollExpiresAt: Date): ItemPaidAction!
+    upsertLink(
+      id: ID, sub: String, title: String!, url: String!, text: String, boost: Int, forward: [ItemForwardInput],
+      hash: String, hmac: String): ItemPaidAction!
+    upsertDiscussion(
+      id: ID, sub: String, title: String!, text: String, boost: Int, forward: [ItemForwardInput],
+      hash: String, hmac: String): ItemPaidAction!
+    upsertBounty(
+      id: ID, sub: String, title: String!, text: String, bounty: Int, boost: Int, forward: [ItemForwardInput],
+      hash: String, hmac: String): ItemPaidAction!
+    upsertJob(
+      id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
+      text: String!, url: String!, boost: Int, status: String, logo: Int): ItemPaidAction!
+    upsertPoll(
+      id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], pollExpiresAt: Date,
+      hash: String, hmac: String): ItemPaidAction!
     updateNoteId(id: ID!, noteId: String!): Item!
-    upsertComment(id:ID, text: String!, parentId: ID): ItemPaidAction!
-    act(id: ID!, sats: Int, act: String, idempotent: Boolean): ItemActPaidAction!
+    upsertComment(id: ID, text: String!, parentId: ID, boost: Int, hash: String, hmac: String): ItemPaidAction!
+    act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): ItemActPaidAction!
     pollVote(id: ID!): PollVotePaidAction!
     toggleOutlaw(id: ID!): Item!
   }
@@ -70,6 +87,7 @@ export default gql`
     cursor: String
     items: [Item!]!
     pins: [Item!]
+    ad: Item
   }
 
   type Comments {
@@ -89,6 +107,7 @@ export default gql`
     id: ID!
     createdAt: Date!
     updatedAt: Date!
+    invoicePaidAt: Date
     deletedAt: Date
     deleteScheduledAt: Date
     reminderScheduledAt: Date
@@ -109,10 +128,13 @@ export default gql`
     bountyPaidTo: [Int]
     noteId: String
     sats: Int!
+    credits: Int!
     commentSats: Int!
+    commentCredits: Int!
     lastCommentAt: Date
     upvotes: Int!
     meSats: Int!
+    meCredits: Int!
     meDontLikeSats: Int!
     meBookmark: Boolean!
     meSubscription: Boolean!
@@ -123,11 +145,11 @@ export default gql`
     bio: Boolean!
     paidImgLink: Boolean
     ncomments: Int!
-    comments(sort: String): [Item!]!
+    nDirectComments: Int!
+    comments(sort: String, cursor: String): Comments!
     path: String
     position: Int
     prior: Int
-    maxBid: Int
     isJob: Boolean!
     pollCost: Int
     poll: Poll
@@ -137,7 +159,7 @@ export default gql`
     remote: Boolean
     sub: Sub
     subName: String
-    status: String
+    status: String!
     uploadId: Int
     otsHash: String
     parentOtsHash: String
@@ -146,6 +168,7 @@ export default gql`
     rel: String
     apiKey: Boolean
     invoice: Invoice
+    cost: Int!
   }
 
   input ItemForwardInput {

@@ -151,17 +151,18 @@ export const ServiceWorkerProvider = ({ children }) => {
     const channel = new MessageChannel()
     navigator?.serviceWorker?.controller?.postMessage({ action: ACTION_PORT }, [channel.port2])
     channel.port1.onmessage = (event) => {
-      if (event.data.action === RESUBSCRIBE) {
+      if (event.data.action === RESUBSCRIBE && permission.notification === 'granted') {
         return subscribeToPushNotifications()
       }
     }
     // since (a lot of) browsers don't support the pushsubscriptionchange event,
     // we sync with server manually by checking on every page reload if the push subscription changed.
     // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
+    navigator?.serviceWorker?.controller?.postMessage?.({ action: STORE_OS, os: detectOS() })
+    logger.info('sent STORE_OS to service worker: ', detectOS())
     navigator?.serviceWorker?.controller?.postMessage?.({ action: SYNC_SUBSCRIPTION })
     logger.info('sent SYNC_SUBSCRIPTION to service worker')
-    navigator?.serviceWorker?.controller?.postMessage?.({ action: STORE_OS, os: detectOS() })
-  }, [registration])
+  }, [registration, permission.notification])
 
   const contextValue = useMemo(() => ({
     registration,

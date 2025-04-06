@@ -11,11 +11,13 @@ import {
   ApolloServerPluginLandingPageLocalDefault,
   ApolloServerPluginLandingPageProductionDefault
 } from '@apollo/server/plugin/landingPage/default'
+import { multiAuthMiddleware } from '@/lib/auth'
 
 const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
   introspection: true,
+  allowBatchedHttpRequests: true,
   plugins: [{
     requestDidStart (initialRequestContext) {
       return {
@@ -66,6 +68,7 @@ export default startServerAndCreateNextHandler(apolloServer, {
         session = { user: { ...sessionFields, apiKey: true } }
       }
     } else {
+      req = await multiAuthMiddleware(req, res)
       session = await getServerSession(req, res, getAuthOptions(req))
     }
     return {

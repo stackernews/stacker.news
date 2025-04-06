@@ -18,7 +18,7 @@ felipebueno,pr,#948,,,,,,100k,felipe@stacker.news,2024-03-26
 benalleng,pr,#972,#923,good-first-issue,,,,20k,BenAllenG@stacker.news,2024-03-26
 SatsAllDay,issue,#972,#923,good-first-issue,,,,2k,weareallsatoshi@getalby.com,2024-03-26
 felipebueno,pr,#974,#884,good-first-issue,,,,20k,felipe@stacker.news,2024-03-26
-h0dlr,issue,#974,#884,good-first-issue,,,,2k,0xe14b9b5981c729a3@ln.tips,2024-04-04
+h0dlr,issue,#974,#884,good-first-issue,,,,2k,HODLR@stacker.news,2024-04-04
 benalleng,pr,#975,,,,,,20k,BenAllenG@stacker.news,2024-03-26
 SatsAllDay,security,#980,GHSA-qg4g-m4xq-695p,,,,,100k,weareallsatoshi@getalby.com,2024-03-28
 SatsAllDay,code review,#980,GHSA-qg4g-m4xq-695p,medium,,,,25k,weareallsatoshi@getalby.com,2024-03-28
@@ -115,3 +115,93 @@ cointastical,issue,#1223,#107,medium,,2,,20k,cointastical@stacker.news,2024-06-2
 kravhen,pr,#1215,#253,medium,,2,upgraded to medium,200k,nichro@getalby.com,2024-06-28
 dillon-co,pr,#1140,#633,hard,,,requested advance,500k,bolt11,2024-07-02
 takitakitanana,issue,,#1257,good-first-issue,,,,2k,takitakitanana@stacker.news,2024-07-11
+SatsAllDay,pr,#1263,#1112,medium,,,1,225k,weareallsatoshi@getalby.com,2024-07-31
+OneOneSeven117,issue,#1272,#1268,easy,,,,10k,OneOneSeven@stacker.news,2024-07-31
+aniskhalfallah,pr,#1264,#1226,good-first-issue,,,,20k,aniskhalfallah@stacker.news,2024-07-31
+Gudnessuche,issue,#1264,#1226,good-first-issue,,,,2k,everythingsatoshi@getalby.com,2024-08-10
+aniskhalfallah,pr,#1289,,easy,,,,100k,aniskhalfallah@blink.sv,2024-08-12
+riccardobl,pr,#1293,#1142,medium,high,,,500k,rblb@getalby.com,2024-08-18
+tsmith123,pr,#1306,#832,medium,,,,250k,stickymarch60@walletofsatoshi.com,2024-08-20
+riccardobl,pr,#1311,#864,medium,high,,pending unrelated refactor,500k,rblb@getalby.com,2024-08-27
+brugeman,issue,#1311,#864,medium,high,,,50k,brugeman@stacker.news,2024-08-27
+riccardobl,pr,#1342,#1141,hard,high,,pending unrelated rearchitecture,1m,rblb@getalby.com,2024-09-09
+SatsAllDay,issue,#1368,#1331,medium,,,,25k,weareallsatoshi@getalby.com,2024-09-16
+benalleng,helpfulness,#1368,#1170,medium,,,did a lot of it in #1175,25k,BenAllenG@stacker.news,2024-09-16
+humble-GOAT,issue,#1412,#1407,good-first-issue,,,,2k,humble_GOAT@stacker.news,2024-09-18
+felipebueno,issue,#1425,#986,medium,,,,25k,felipebueno@getalby.com,2024-09-26
+riccardobl,pr,#1373,#1304,hard,high,,,2m,bolt11,2024-10-01
+tsmith123,pr,#1428,#1397,easy,,1,superceded,90k,stickymarch60@walletofsatoshi.com,2024-10-02
+toyota-corolla0,pr,#1449,,good-first-issue,,,,20k,toyota_corolla0@stacker.news,2024-10-02
+toyota-corolla0,pr,#1455,#1437,good-first-issue,,,,20k,toyota_corolla0@stacker.news,2024-10-02
+SouthKoreaLN,issue,#1436,,easy,,,,10k,south_korea_ln@stacker.news,2024-10-02
+TonyGiorgio,issue,#1462,,easy,urgent,,,30k,TonyGiorgio@stacker.news,2024-10-07
+hkarani,issue,#1369,#1458,good-first-issue,,,,2k,asterisk32@stacker.news,2024-10-21
+toyota-corolla0,pr,#1369,#1458,good-first-issue,,,,20k,toyota_corolla0@stacker.news,2024-10-20
+Soxasora,pr,#1593,#1569,good-first-issue,,,,20k,soxasora@blink.sv,2024-11-19
+Soxasora,pr,#1599,#1258,medium,,,,250k,soxasora@blink.sv,2024-11-19
+aegroto,pr,#1585,#1522,easy,high,,1,180k,aegroto@blink.sv,2024-11-19
+sig47,issue,#1585,#1522,easy,high,,1,18k,siggy47@stacker.news,2024-11-19
+aegroto,pr,#1583,#1572,easy,,,2,80k,aegroto@blink.sv,2024-11-19
+Soxasora,pr,#1617,#1616,easy,,,,100k,soxasora@blink.sv,2024-11-20
+Soxasora,issue,#1617,#1616,easy,,,,10k,soxasora@blink.sv,2024-11-20
+AndreaDiazCorreia,helpfulness,#1605,#1566,good-first-issue,,,tried in pr,2k,andrea@lawallet.ar,2024-11-20
+Soxasora,pr,#1653,,medium,,,determined unecessary,250k,soxasora@blink.sv,2024-12-07
+Soxasora,pr,#1659,#1657,easy,,,,100k,soxasora@blink.sv,2024-12-07
+sig47,issue,#1659,#1657,easy,,,,10k,siggy47@stacker.news,2024-12-07
+Gudnessuche,issue,#1662,#1661,good-first-issue,,,,2k,everythingsatoshi@getalby.com,2024-12-07
+aegroto,pr,#1589,#1586,easy,,,,100k,aegroto@blink.sv,2024-12-07
+aegroto,issue,#1589,#1586,easy,,,,10k,aegroto@blink.sv,2024-12-07
+aegroto,pr,#1619,#914,easy,,,,100k,aegroto@blink.sv,2024-12-07
+felipebueno,pr,#1620,,medium,,,1,225k,felipebueno@getalby.com,2024-12-09
+Soxasora,pr,#1647,#1645,easy,,,,100k,soxasora@blink.sv,2024-12-07
+Soxasora,pr,#1667,#1568,easy,,,,100k,soxasora@blink.sv,2024-12-07
+aegroto,pr,#1633,#1471,easy,,,1,90k,aegroto@blink.sv,2024-12-07
+Darth-Coin,issue,#1649,#1421,medium,,,,25k,darthcoin@stacker.news,2024-12-07
+Soxasora,pr,#1685,,medium,,,,250k,soxasora@blink.sv,2024-12-07
+aegroto,pr,#1606,#1242,medium,,,,250k,aegroto@blink.sv,2024-12-07
+sfr0xyz,issue,#1696,#1196,good-first-issue,,,,2k,sefiro@getalby.com,2024-12-10
+Soxasora,pr,#1794,#756,hard,urgent,,includes #411,3m,bolt11,2025-01-09
+Soxasora,pr,#1786,#363,easy,,,,100k,bolt11,2025-01-09
+Soxasora,pr,#1768,#1186,medium-hard,,,,500k,bolt11,2025-01-09
+Soxasora,pr,#1750,#1035,medium,,,,250k,bolt11,2025-01-09
+SatsAllDay,issue,#1794,#411,hard,high,,,200k,weareallsatoshi@getalby.com,2025-01-20
+felipebueno,issue,#1786,#363,easy,,,,10k,felipebueno@blink.sv,2025-01-27
+cyphercosmo,pr,#1745,#1648,good-first-issue,,,2,16k,cyphercosmo@getalby.com,2025-01-27
+Radentor,issue,#1768,#1186,medium-hard,,,,50k,revisedbird84@walletofsatoshi.com,2025-01-27
+Soxasora,pr,#1841,#1692,good-first-issue,,,,20k,soxasora@blink.sv,2025-01-27
+Soxasora,pr,#1839,#1790,easy,,,1,90k,soxasora@blink.sv,2025-01-27
+Soxasora,pr,#1820,#1819,easy,,,1,90k,soxasora@blink.sv,2025-01-27
+SatsAllDay,issue,#1820,#1819,easy,,,1,9k,weareallsatoshi@getalby.com,2025-01-27
+Soxasora,pr,#1814,#1736,easy,,,,100k,soxasora@blink.sv,2025-01-27
+jason-me,pr,#1857,,easy,,,,100k,rrbtc@vlt.ge,2025-02-08
+ed-kung,pr,#1901,#323,good-first-issue,,,,20k,simplestacker@getalby.com,2025-02-14
+Scroogey-SN,pr,#1911,#1905,good-first-issue,,,1,18k,Scroogey@coinos.io,2025-03-10
+Scroogey-SN,pr,#1928,#1924,good-first-issue,,,,20k,Scroogey@coinos.io,2025-03-10
+dtonon,issue,#1928,#1924,good-first-issue,,,,2k,???,???
+ed-kung,pr,#1926,#1914,medium-hard,,,,500k,simplestacker@getalby.com,2025-03-10
+ed-kung,issue,#1926,#1914,medium-hard,,,,50k,simplestacker@getalby.com,2025-03-10
+ed-kung,pr,#1926,#1927,easy,,,,100k,simplestacker@getalby.com,2025-03-10
+ed-kung,issue,#1926,#1927,easy,,,,10k,simplestacker@getalby.com,2025-03-10
+ed-kung,issue,#1913,#1890,good-first-issue,,,,2k,simplestacker@getalby.com,2025-03-10
+Scroogey-SN,pr,#1930,#1167,good-first-issue,,,,20k,Scroogey@coinos.io,2025-03-10
+itsrealfake,issue,#1930,#1167,good-first-issue,,,,2k,smallimagination100035@getalby.com,2025-04-02
+Scroogey-SN,pr,#1948,#1849,medium,urgent,,,750k,Scroogey@coinos.io,2025-03-10
+felipebueno,issue,#1947,#1945,good-first-issue,,,,2k,felipebueno@blink.sv,2025-03-10
+ed-kung,pr,#1952,#1951,easy,,,,100k,simplestacker@getalby.com,2025-03-10
+ed-kung,issue,#1952,#1951,easy,,,,10k,simplestacker@getalby.com,2025-03-10
+Scroogey-SN,pr,#1973,#1959,good-first-issue,,,,20k,Scroogey@coinos.io,2025-04-02
+benthecarman,issue,#1953,#1950,good-first-issue,,,,2k,???,???
+ed-kung,pr,#2012,#2004,easy,,,,100k,simplestacker@getalby.com,2025-04-02
+ed-kung,issue,#2012,#2004,easy,,,,10k,simplestacker@getalby.com,2025-04-02
+ed-kung,pr,#1993,#1982,good-first-issue,,,,20k,simplestacker@getalby.com,2025-04-02
+rideandslide,issue,#1993,#1982,good-first-issue,,,,2k,koiora@getalby.com,2025-04-02
+ed-kung,pr,#1972,#1254,good-first-issue,,,,20k,simplestacker@getalby.com,2025-04-02
+SatsAllDay,issue,#1972,#1254,good-first-issue,,,,2k,weareallsatoshi@getalby.com,2025-04-02
+ed-kung,pr,#1962,#1343,good-first-issue,,,,20k,simplestacker@getalby.com,2025-04-02
+ed-kung,pr,#1962,#1217,good-first-issue,,,,20k,simplestacker@getalby.com,2025-04-02
+ed-kung,pr,#1962,#866,easy,,,,100k,simplestacker@getalby.com,2025-04-02
+felipebueno,issue,#1962,#866,easy,,,,10k,felipebueno@blink.sv,2025-04-02
+cointastical,issue,#1962,#1217,good-first-issue,,,,2k,???,???
+Scroogey-SN,pr,#1975,#1964,good-first-issue,,,,20k,Scroogey@coinos.io,2025-04-02
+rideandslide,issue,#1986,#1985,good-first-issue,,,,2k,koiora@getalby.com,2025-04-02
+kristapsk,issue,#1976,#841,good-first-issue,,,,2k,???,???

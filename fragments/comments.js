@@ -1,27 +1,40 @@
 import { gql } from '@apollo/client'
 
+// we can't import from users because of circular dependency
+const STREAK_FIELDS = gql`
+  fragment StreakFields on User {
+    optional {
+    streak
+    gunStreak
+      horseStreak
+    }
+  }
+`
+
 export const COMMENT_FIELDS = gql`
+  ${STREAK_FIELDS}
   fragment CommentFields on Item {
     id
     position
     parentId
     createdAt
+    invoicePaidAt
     deletedAt
     text
     user {
       id
       name
-      optional {
-        streak
-      }
       meMute
+      ...StreakFields
     }
     sats
+    credits
     meAnonSats @client
     upvotes
     freedFreebie
     boost
     meSats
+    meCredits
     meDontLikeSats
     meBookmark
     meSubscription
@@ -29,9 +42,11 @@ export const COMMENT_FIELDS = gql`
     freebie
     path
     commentSats
+    commentCredits
     mine
     otsHash
     ncomments
+    nDirectComments
     imgproxyUrls
     rel
     apiKey
@@ -40,16 +55,19 @@ export const COMMENT_FIELDS = gql`
       actionState
       confirmedAt
     }
+    cost
   }
 `
 
 export const COMMENTS_ITEM_EXT_FIELDS = gql`
+  ${STREAK_FIELDS}
   fragment CommentItemExtFields on Item {
     text
     root {
       id
       title
       bounty
+      ncomments
       bountyPaidTo
       subName
       sub {
@@ -60,10 +78,8 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
       }
       user {
         name
-        optional {
-          streak
-        }
         id
+        ...StreakFields
       }
     }
   }`
@@ -75,19 +91,23 @@ export const COMMENTS = gql`
   fragment CommentsRecursive on Item {
     ...CommentFields
     comments {
-      ...CommentFields
       comments {
         ...CommentFields
         comments {
-          ...CommentFields
           comments {
             ...CommentFields
             comments {
-              ...CommentFields
               comments {
                 ...CommentFields
                 comments {
-                  ...CommentFields
+                  comments {
+                    ...CommentFields
+                    comments {
+                      comments {
+                        ...CommentFields
+                      }
+                    }
+                  }
                 }
               }
             }

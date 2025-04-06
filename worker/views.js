@@ -1,4 +1,4 @@
-import createPrisma from '@/lib/create-prisma.js'
+import createPrisma from '@/lib/create-prisma'
 
 const viewPrefixes = ['reg_growth', 'spender_growth', 'item_growth', 'spending_growth',
   'stackers_growth', 'stacking_growth', 'user_stats', 'sub_stats']
@@ -32,7 +32,7 @@ export async function rankViews () {
   const models = createPrisma({ connectionParams: { connection_limit: 1 } })
 
   try {
-    for (const view of ['zap_rank_personal_view']) {
+    for (const view of ['hot_score_view']) {
       await models.$queryRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`)
     }
   } finally {

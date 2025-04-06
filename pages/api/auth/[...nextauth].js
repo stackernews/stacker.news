@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GitHubProvider from 'next-auth/providers/github'
@@ -7,11 +7,14 @@ import EmailProvider from 'next-auth/providers/email'
 import prisma from '@/api/models'
 import nodemailer from 'nodemailer'
 import { PrismaAdapter } from '@auth/prisma-adapter'
-import { getToken } from 'next-auth/jwt'
-import { NodeNextRequest } from 'next/dist/server/base-http/node'
+import { getToken, encode as encodeJWT } from 'next-auth/jwt'
 import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
+import { multiAuthMiddleware, setMultiAuthCookies } from '@/lib/auth'
+import { BECH32_CHARSET } from '@/lib/constants'
+import { NodeNextRequest } from 'next/dist/server/base-http/node'
+import * as cookie from 'cookie'
 
 /**
  * Stores userIds in user table
@@ -36,24 +39,50 @@ function getEventCallbacks () {
   }
 }
 
-async function getReferrerId (referrer) {
+async function getReferrerFromCookie (referrer) {
+  let referrerId
+  let type
+  let typeId
   try {
     if (referrer.startsWith('item-')) {
-      return (await prisma.item.findUnique({ where: { id: parseInt(referrer.slice(5)) } }))?.userId
+      const item = await prisma.item.findUnique({ where: { id: parseInt(referrer.slice(5)) } })
+      type = item?.parentId ? 'COMMENT' : 'POST'
+      referrerId = item?.userId
+      typeId = item?.id
     } else if (referrer.startsWith('profile-')) {
-      return (await prisma.user.findUnique({ where: { name: referrer.slice(8) } }))?.id
+      const user = await prisma.user.findUnique({ where: { name: referrer.slice(8) } })
+      type = 'PROFILE'
+      referrerId = user?.id
+      typeId = user?.id
     } else if (referrer.startsWith('territory-')) {
-      return (await prisma.sub.findUnique({ where: { name: referrer.slice(10) } }))?.userId
+      type = 'TERRITORY'
+      typeId = referrer.slice(10)
+      const sub = await prisma.sub.findUnique({ where: { name: typeId } })
+      referrerId = sub?.userId
     } else {
-      return (await prisma.user.findUnique({ where: { name: referrer } }))?.id
+      return {
+        referrerId: (await prisma.user.findUnique({ where: { name: referrer } }))?.id
+      }
     }
   } catch (error) {
     console.error('error getting referrer id', error)
+    return
   }
+  return { referrerId, type, typeId: String(typeId) }
+}
+
+async function getReferrerData (referrer, landing) {
+  const referrerData = await getReferrerFromCookie(referrer)
+  if (landing) {
+    const landingData = await getReferrerFromCookie(landing)
+    // explicit referrer takes precedence over landing referrer
+    return { ...landingData, ...referrerData }
+  }
+  return referrerData
 }
 
 /** @returns {Partial<import('next-auth').CallbacksOptions>} */
-function getCallbacks (req) {
+function getCallbacks (req, res) {
   return {
     /**
      * @param  {object}  token     Decrypted JSON Web Token
@@ -65,6 +94,8 @@ function getCallbacks (req) {
      */
     async jwt ({ token, user, account, profile, isNewUser }) {
       if (user) {
+        // reset signup cookie if any
+        res.appendHeader('Set-Cookie', cookie.serialize('signin', '', { path: '/', expires: 0, maxAge: 0 }))
         // token won't have an id on it for new logins, we add it
         // note: token is what's kept in the jwt
         token.id = Number(user.id)
@@ -73,10 +104,17 @@ function getCallbacks (req) {
         // isNewUser doesn't work for nostr/lightning auth because we create the user before nextauth can
         // this means users can update their referrer if they don't have one, which is fine
         if (req.cookies.sn_referrer && user?.id) {
-          const referrerId = await getReferrerId(req.cookies.sn_referrer)
-          if (referrerId && referrerId !== parseInt(user?.id)) {
-            await prisma.user.updateMany({ where: { id: user.id, referrerId: null }, data: { referrerId } })
-            notifyReferral(referrerId)
+          const referrerData = await getReferrerData(req.cookies.sn_referrer, req.cookies.sn_referee_landing)
+          if (referrerData?.referrerId && referrerData.referrerId !== parseInt(user?.id)) {
+            // if user doesn't have a referrer, record it in the db
+            const { count } = await prisma.user.updateMany({ where: { id: user.id, referrerId: null }, data: { referrerId: referrerData.referrerId } })
+            if (count > 0) {
+              // if user has an associated landing, record it in the db
+              if (referrerData.type && referrerData.typeId) {
+                await prisma.oneDayReferral.create({ data: { ...referrerData, refereeId: user.id, landing: true } })
+              }
+              notifyReferral(referrerData.referrerId)
+            }
           }
         }
       }
@@ -86,6 +124,14 @@ function getCallbacks (req) {
         // setting it here allows us to link multiple auth method to an account
         // ... in v3 this linking field was token.user.id
         token.sub = Number(token.id)
+      }
+
+      if (user && req && res) {
+        // add multi_auth cookie for user that just logged in
+        const secret = process.env.NEXTAUTH_SECRET
+        const jwt = await encodeJWT({ token, secret })
+        const me = await prisma.user.findUnique({ where: { id: token.id } })
+        setMultiAuthCookies(req, res, { ...me, jwt })
       }
 
       return token
@@ -100,23 +146,40 @@ function getCallbacks (req) {
   }
 }
 
-async function pubkeyAuth (credentials, req, pubkeyColumnName) {
+async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
   const { k1, pubkey } = credentials
+
+  // are we trying to add a new account for switching between?
+  const multiAuth = typeof req.body.multiAuth === 'string' ? req.body.multiAuth === 'true' : !!req.body.multiAuth
+
   try {
+    // does the given challenge (k1) exist in our db?
     const lnauth = await prisma.lnAuth.findUnique({ where: { k1 } })
+
+    // delete challenge to prevent replay attacks
     await prisma.lnAuth.delete({ where: { k1 } })
+
+    // does the given pubkey match the one for which we verified the signature?
     if (lnauth.pubkey === pubkey) {
+      // does the pubkey already exist in our db?
       let user = await prisma.user.findUnique({ where: { [pubkeyColumnName]: pubkey } })
+
+      // make following code aware of cookie pointer for account switching
+      req = await multiAuthMiddleware(req, res)
+      // token will be undefined if we're not logged in at all or if we switched to anon
       const token = await getToken({ req })
       if (!user) {
-        // if we are logged in, update rather than create
-        if (token?.id) {
+        // we have not seen this pubkey before
+
+        // only update our pubkey if we're logged in (token exists)
+        // and we're not currently trying to add a new account
+        if (token?.id && !multiAuth) {
           user = await prisma.user.update({ where: { id: token.id }, data: { [pubkeyColumnName]: pubkey } })
         } else {
+          // create a new user only if we're trying to sign up
+          if (new NodeNextRequest(req).cookies.signin) return null
           user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), [pubkeyColumnName]: pubkey } })
         }
-      } else if (token && token?.id !== user.id) {
-        return null
       }
 
       return user
@@ -160,7 +223,7 @@ async function nostrEventAuth (event) {
 }
 
 /** @type {import('next-auth/providers').Provider[]} */
-const providers = [
+const getProviders = (req, res) => [
   CredentialsProvider({
     id: 'lightning',
     name: 'Lightning',
@@ -168,7 +231,9 @@ const providers = [
       pubkey: { label: 'publickey', type: 'text' },
       k1: { label: 'k1', type: 'text' }
     },
-    authorize: async (credentials, req) => await pubkeyAuth(credentials, new NodeNextRequest(req), 'pubkey')
+    authorize: async (credentials, req) => {
+      return await pubkeyAuth(credentials, req, res, 'pubkey')
+    }
   }),
   CredentialsProvider({
     id: 'nostr',
@@ -178,7 +243,7 @@ const providers = [
     },
     authorize: async ({ event }, req) => {
       const credentials = await nostrEventAuth(event)
-      return await pubkeyAuth(credentials, new NodeNextRequest(req), 'nostrAuthPubkey')
+      return await pubkeyAuth(credentials, req, res, 'nostrAuthPubkey')
     }
   }),
   GitHubProvider({
@@ -208,17 +273,20 @@ const providers = [
   EmailProvider({
     server: process.env.LOGIN_EMAIL_SERVER,
     from: process.env.LOGIN_EMAIL_FROM,
-    sendVerificationRequest
+    maxAge: 5 * 60, // expires in 5 minutes
+    generateVerificationToken: generateRandomString,
+    sendVerificationRequest: (...args) => sendVerificationRequest(...args, req)
   })
 ]
 
 /** @returns {import('next-auth').AuthOptions} */
-export const getAuthOptions = req => ({
-  callbacks: getCallbacks(req),
-  providers,
+export const getAuthOptions = (req, res) => ({
+  callbacks: getCallbacks(req, res),
+  providers: getProviders(req, res),
   adapter: {
     ...PrismaAdapter(prisma),
     createUser: data => {
+      if (req.cookies.signin) return null
       // replace email with email hash in new user payload
       if (data.email) {
         const { email } = data
@@ -257,6 +325,40 @@ export const getAuthOptions = req => ({
         user.email = email
       }
       return user
+    },
+    useVerificationToken: async ({ identifier, token }) => {
+      // we need to find the most recent verification request for this email/identifier
+      const verificationRequest = await prisma.verificationToken.findFirst({
+        where: {
+          identifier,
+          attempts: {
+            lt: 2 // count starts at 0
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      })
+
+      if (!verificationRequest) throw new Error('No verification request found')
+
+      if (verificationRequest.token === token) { // if correct delete the token and continue
+        await prisma.verificationToken.delete({
+          where: { id: verificationRequest.id }
+        })
+        return verificationRequest
+      }
+
+      await prisma.verificationToken.update({
+        where: { id: verificationRequest.id },
+        data: { attempts: { increment: 1 } }
+      })
+
+      await prisma.verificationToken.deleteMany({
+        where: { id: verificationRequest.id, attempts: { gte: 2 } }
+      })
+
+      return null
     }
   },
   session: {
@@ -299,14 +401,27 @@ async function enrollInNewsletter ({ email }) {
 }
 
 export default async (req, res) => {
-  await NextAuth(req, res, getAuthOptions(req))
+  await NextAuth(req, res, getAuthOptions(req, res))
+}
+
+function generateRandomString (length = 6, charset = BECH32_CHARSET) {
+  const bytes = randomBytes(length)
+  let result = ''
+
+  // Map each byte to a character in the charset
+  for (let i = 0; i < length; i++) {
+    result += charset[bytes[i] % charset.length]
+  }
+
+  return result
 }
 
 async function sendVerificationRequest ({
   identifier: email,
   url,
+  token,
   provider
-}) {
+}, req) {
   let user = await prisma.user.findUnique({
     where: {
       // Look for the user by hashed email
@@ -328,13 +443,18 @@ async function sendVerificationRequest ({
 
     const site = new URL(url).host
 
+    // if we're trying to sign in but no user was found, resolve the promise
+    if (req.cookies.signin && !user) {
+      return resolve()
+    }
+
     nodemailer.createTransport(server).sendMail(
       {
         to: email,
         from,
         subject: `login to ${site}`,
-        text: text({ url, site, email }),
-        html: user ? html({ url, site, email }) : newUserHtml({ url, site, email })
+        text: text({ url, token, site, email }),
+        html: user ? html({ url, token, site, email }) : newUserHtml({ url, token, site, email })
       },
       (error) => {
         if (error) {
@@ -347,7 +467,7 @@ async function sendVerificationRequest ({
 }
 
 // Email HTML body
-const html = ({ url, site, email }) => {
+const html = ({ url, token, site, email }) => {
   // Insert invisible space into domains and email address to prevent both the
   // email address and the domain from being turned into a hyperlink by email
   // clients like Outlook and Apple mail, as this is confusing because it seems
@@ -359,8 +479,6 @@ const html = ({ url, site, email }) => {
   const backgroundColor = '#f5f5f5'
   const textColor = '#212529'
   const mainBackgroundColor = '#ffffff'
-  const buttonBackgroundColor = '#FADA5E'
-  const buttonTextColor = '#212529'
 
   // Uses tables for layout and inline CSS due to email client limitations
   return `
@@ -375,26 +493,32 @@ const html = ({ url, site, email }) => {
   <table width="100%" border="0" cellspacing="20" cellpadding="0" style="background: ${mainBackgroundColor}; max-width: 600px; margin: auto; border-radius: 10px;">
     <tr>
       <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-        login as <strong>${escapedEmail}</strong>
+        login with <strong>${escapedEmail}</strong>
       </td>
     </tr>
     <tr>
       <td align="center" style="padding: 20px 0;">
         <table border="0" cellspacing="0" cellpadding="0">
           <tr>
-            <td align="center" style="border-radius: 5px;" bgcolor="${buttonBackgroundColor}"><a href="${url}" target="_blank" style="font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${buttonTextColor}; text-decoration: none; text-decoration: none;border-radius: 5px; padding: 10px 20px; border: 1px solid ${buttonBackgroundColor}; display: inline-block; font-weight: bold;">login</a></td>
+            <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
+              copy this magic code
+            </td>
+            <tr><td height="10px"></td></tr>
+            <td align="center" style="padding: 10px 0px 0px 0px; font-size: 36px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
+              <strong>${token}</strong>
+            </td>
           </tr>
         </table>
       </td>
     </tr>
     <tr>
-      <td align="center" style="padding: 0px 0px 10px 0px; font-size: 16px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-        Or copy and paste this link: <a href="#" style="text-decoration:none; color:${textColor}">${url}</a>
+      <td align="center" style="font-size:0px;padding:0px 20px;word-break:break-word;">
+        <div style="font-family:Arial, sans-serif;font-size:11px;line-height:22px;text-align:center;color:#55575d;">Expires in 5 minutes</div>
       </td>
     </tr>
     <tr>
-      <td align="center" style="padding: 0px 0px 10px 0px; font-size: 10px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-        If you did not request this email you can safely ignore it.
+      <td align="center" style="font-size:0px;padding:0px 20px;word-break:break-word;">
+        <div style="font-family:Arial, sans-serif;font-size:11px;line-height:22px;text-align:center;color:#55575d;">If you did not request this email you can safely ignore it.</div>
       </td>
     </tr>
   </table>
@@ -403,28 +527,21 @@ const html = ({ url, site, email }) => {
 }
 
 // Email text body –fallback for email clients that don't render HTML
-const text = ({ url, site }) => `Sign in to ${site}\n${url}\n\n`
+const text = ({ url, token, site }) => `Sign in to ${site}\ncopy this code: ${token}\n\n\nExpires in 5 minutes`
 
-const newUserHtml = ({ url, site, email }) => {
+const newUserHtml = ({ url, token, site, email }) => {
   const escapedEmail = `${email.replace(/\./g, '&#8203;.')}`
 
-  const replaceCb = (path) => {
-    const urlObj = new URL(url)
-    urlObj.searchParams.set('callbackUrl', path)
-    return urlObj.href
-  }
-
-  const dailyUrl = replaceCb('/daily')
-  const guideUrl = replaceCb('/guide')
-  const faqUrl = replaceCb('/faq')
-  const topUrl = replaceCb('/top/stackers/forever')
-  const postUrl = replaceCb('/post')
+  const dailyUrl = new URL('/daily', process.env.NEXT_PUBLIC_URL).href
+  const guideUrl = new URL('/guide', process.env.NEXT_PUBLIC_URL).href
+  const faqUrl = new URL('/faq', process.env.NEXT_PUBLIC_URL).href
+  const topUrl = new URL('/top/stackers/forever', process.env.NEXT_PUBLIC_URL).href
+  const postUrl = new URL('/post', process.env.NEXT_PUBLIC_URL).href
 
   // Some simple styling options
   const backgroundColor = '#f5f5f5'
   const textColor = '#212529'
   const mainBackgroundColor = '#ffffff'
-  const buttonBackgroundColor = '#FADA5E'
 
   return `
 <!doctype html>
@@ -542,7 +659,7 @@ const newUserHtml = ({ url, site, email }) => {
                   <tbody>
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:16px;line-height:22px;text-align:left;color:#000000;">If you know how Stacker News works, click the login button below.</div>
+                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:16px;line-height:22px;text-align:left;color:#000000;">If you know how Stacker News works, copy the magic code below.</div>
                       </td>
                     </tr>
                     <tr>
@@ -571,25 +688,27 @@ const newUserHtml = ({ url, site, email }) => {
                   <tbody>
                     <tr>
                       <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:18px;line-height:1;text-align:center;color:#000000;">login as <b>${escapedEmail}</b></div>
+                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:18px;line-height:1;text-align:center;color:#000000;">login with <b>${escapedEmail}</b></div>
                       </td>
                     </tr>
                     <tr>
-                      <td align="center" vertical-align="middle" style="font-size:0px;padding:10px 25px;padding-top:20px;padding-bottom:30px;word-break:break-word;">
-                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:separate;line-height:100%;">
+                      <td align="center" style="padding: 20px 0;">
+                        <table border="0" cellspacing="0" cellpadding="0">
                           <tr>
-                            <td align="center" bgcolor="${buttonBackgroundColor}" role="presentation" style="border:none;border-radius:5px;cursor:auto;mso-padding-alt:15px 40px;background:${buttonBackgroundColor};" valign="middle">
-                              <a href="${url}" style="display:inline-block;background:${buttonBackgroundColor};color:${textColor};font-family:Helvetica, Arial, sans-serif;font-size:22px;font-weight:normal;line-height:120%;margin:0;text-decoration:none;text-transform:none;padding:15px 40px;mso-padding-alt:0px;border-radius:5px;" target="_blank">
-                                <mj-text align="center" font-family="Helvetica, Arial, sans-serif" font-size="20px"><b font-family="Helvetica, Arial, sans-serif">login</b></mj-text>
-                              </a>
+                            <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
+                              copy this magic code
+                            </td>
+                            <tr><td height="10px"></td></tr>
+                            <td align="center" style="padding: 10px 0px 0px 0px; font-size: 36px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
+                              <strong>${token}</strong>
                             </td>
                           </tr>
                         </table>
                       </td>
                     </tr>
                     <tr>
-                      <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:24px;text-align:center;color:#000000;">Or copy and paste this link: <a href="#" style="text-decoration:none; color:#787878">${url}</a></div>
+                      <td align="center" style="font-size:0px;padding:0px 20px;word-break:break-word;">
+                        <div style="font-family:Arial, sans-serif;font-size:11px;line-height:22px;text-align:center;color:#55575d;">Expires in 5 minutes</div>
                       </td>
                     </tr>
                   </tbody>
@@ -613,7 +732,7 @@ const newUserHtml = ({ url, site, email }) => {
                   <tbody>
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">Stacker News is like Reddit or Hacker News, but it <b>pays you Bitcoin</b>. Instead of giving posts or comments “upvotes,” Stacker News users (aka stackers) send you small amounts of Bitcoin called sats.</div>
+                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">Stacker News is like Reddit or Hacker News, but it <b>pays you Bitcoin</b>. Instead of giving posts or comments "upvotes," Stacker News users (aka stackers) send you small amounts of Bitcoin called sats.</div>
                       </td>
                     </tr>
                     <tr>
@@ -628,7 +747,7 @@ const newUserHtml = ({ url, site, email }) => {
                     </tr>
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">If you’re not sure what to share, <a href="${dailyUrl}"><b><i>click here to introduce yourself to the community</i></b></a> with a comment on the daily discussion thread.</div>
+                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">If you're not sure what to share, <a href="${dailyUrl}"><b><i>click here to introduce yourself to the community</i></b></a> with a comment on the daily discussion thread.</div>
                       </td>
                     </tr>
                     <tr>
@@ -638,12 +757,12 @@ const newUserHtml = ({ url, site, email }) => {
                     </tr>
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">If anything isn’t clear, comment on the FAQ post and we’ll answer your question.</div>
+                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">If anything isn't clear, comment on the FAQ post and we'll answer your question.</div>
                       </td>
                     </tr>
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">Zap,<br /> Stacker News</div>
+                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#000000;">Yeehaw,<br /> Stacker News</div>
                       </td>
                     </tr>
                   </tbody>
@@ -667,7 +786,7 @@ const newUserHtml = ({ url, site, email }) => {
                   <tbody>
                     <tr>
                       <td align="center" style="font-size:0px;padding:0px 25px 0px 25px;word-break:break-word;">
-                        <div style="font-family:Arial, sans-serif;font-size:14px;line-height:28px;text-align:center;color:#55575d;">P.S. Stacker News loves you!</div>
+                        <div style="font-family:Arial, sans-serif;font-size:14px;line-height:28px;text-align:center;color:#55575d;">P.S. We're thrilled you're joinin' the posse!</div>
                       </td>
                     </tr>
                   </tbody>

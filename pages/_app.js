@@ -7,7 +7,7 @@ import { PriceProvider } from '@/components/price'
 import { BlockHeightProvider } from '@/components/block-height'
 import Head from 'next/head'
 import { useRouter } from 'next/dist/client/router'
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { ShowModalProvider } from '@/components/modal'
 import ErrorBoundary from '@/components/error-boundary'
 import { LightningProvider } from '@/components/lightning'
@@ -18,9 +18,10 @@ import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 import { LoggerProvider } from '@/components/logger'
 import { ChainFeeProvider } from '@/components/chain-fee.js'
-import { WebLNProvider } from '@/components/webln'
 import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
+import { WebLnProvider } from '@/wallets/webln/client'
+import { WalletsProvider } from '@/wallets/index'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
@@ -44,9 +45,17 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
   const client = getApolloClient()
   const router = useRouter()
 
+  const shouldShowProgressBar = useCallback((newPathname, shallow) => {
+    return !shallow || newPathname !== router.pathname
+  }, [router.pathname])
+
   useEffect(() => {
-    const nprogressStart = (_, { shallow }) => !shallow && NProgress.start()
-    const nprogressDone = (_, { shallow }) => !shallow && NProgress.done()
+    const nprogressStart = (newPathname, { shallow }) => {
+      shouldShowProgressBar(newPathname, shallow) && NProgress.start()
+    }
+    const nprogressDone = (newPathname, { shallow }) => {
+      NProgress.done()
+    }
 
     router.events.on('routeChangeStart', nprogressStart)
     router.events.on('routeChangeComplete', nprogressDone)
@@ -75,7 +84,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
       router.events.off('routeChangeComplete', nprogressDone)
       router.events.off('routeChangeError', nprogressDone)
     }
-  }, [router.asPath, props?.apollo])
+  }, [router.asPath, props?.apollo, shouldShowProgressBar])
 
   useEffect(() => {
     // hack to disable ios pwa prompt for https://github.com/stackernews/stacker.news/issues/953
@@ -103,30 +112,32 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
         <PlausibleProvider domain='stacker.news' trackOutboundLinks>
           <ApolloProvider client={client}>
             <MeProvider me={me}>
-              <HasNewNotesProvider>
-                <LoggerProvider>
-                  <ServiceWorkerProvider>
-                    <PriceProvider price={price}>
-                      <LightningProvider>
-                        <ToastProvider>
-                          <WebLNProvider>
-                            <ShowModalProvider>
-                              <BlockHeightProvider blockHeight={blockHeight}>
-                                <ChainFeeProvider chainFee={chainFee}>
-                                  <ErrorBoundary>
-                                    <Component ssrData={ssrData} {...otherProps} />
-                                    {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
-                                  </ErrorBoundary>
-                                </ChainFeeProvider>
-                              </BlockHeightProvider>
-                            </ShowModalProvider>
-                          </WebLNProvider>
-                        </ToastProvider>
-                      </LightningProvider>
-                    </PriceProvider>
-                  </ServiceWorkerProvider>
-                </LoggerProvider>
-              </HasNewNotesProvider>
+              <WalletsProvider>
+                <HasNewNotesProvider>
+                  <LoggerProvider>
+                    <WebLnProvider>
+                      <ServiceWorkerProvider>
+                        <PriceProvider price={price}>
+                          <LightningProvider>
+                            <ToastProvider>
+                              <ShowModalProvider>
+                                <BlockHeightProvider blockHeight={blockHeight}>
+                                  <ChainFeeProvider chainFee={chainFee}>
+                                    <ErrorBoundary>
+                                      <Component ssrData={ssrData} {...otherProps} />
+                                      {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
+                                    </ErrorBoundary>
+                                  </ChainFeeProvider>
+                                </BlockHeightProvider>
+                              </ShowModalProvider>
+                            </ToastProvider>
+                          </LightningProvider>
+                        </PriceProvider>
+                      </ServiceWorkerProvider>
+                    </WebLnProvider>
+                  </LoggerProvider>
+                </HasNewNotesProvider>
+              </WalletsProvider>
             </MeProvider>
           </ApolloProvider>
         </PlausibleProvider>

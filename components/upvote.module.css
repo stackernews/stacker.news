@@ -5,6 +5,30 @@
     -webkit-touch-callout: none;
 }
 
+.boost {
+    fill: var(--theme-clickToContextColor);
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+@media (hover: hover) {
+    .upvote:hover {
+        fill: var(--hover-fill) !important;
+        filter: var(--hover-filter) !important;
+    }
+
+    .boost:hover {
+        fill: var(--hover-fill) !important;
+        filter: var(--hover-filter) !important;
+    }
+}
+
+.boost.boosted {
+    fill: var(--fill);
+    filter: var(--filter);
+}
+
 .upvoteWrapper {
     position: relative;
     padding-right: .2rem;
@@ -13,8 +37,7 @@
 }
 
 .noSelfTips {
-    fill: transparent !important;
-    filter: none !important;
+    visibility: hidden;
 }
 
 .upvoteWrapper:not(.noSelfTips):hover {
@@ -22,8 +45,8 @@
 }
 
 .upvote.voted {
-    fill: #F6911D;
-    filter: drop-shadow(0 0 6px #f6911d90);
+    fill: var(--fill);
+    filter: var(--filter);
 }
 
 .cover {
@@ -37,6 +60,7 @@
 }
 
 .pending {
+    fill: var(--hover-fill);
     animation-name: pulse;
     animation-iteration-count: infinite;
     animation-timing-function: linear;

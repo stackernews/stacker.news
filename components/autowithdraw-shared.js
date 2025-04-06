@@ -1,23 +1,24 @@
 import { InputGroup } from 'react-bootstrap'
-import { Checkbox, Input } from './form'
+import { Input } from './form'
 import { useMe } from './me'
 import { useEffect, useState } from 'react'
-import { isNumber } from 'mathjs'
+import { isNumber } from '@/lib/format'
+import Link from 'next/link'
 
 function autoWithdrawThreshold ({ me }) {
   return isNumber(me?.privates?.autoWithdrawThreshold) ? me?.privates?.autoWithdrawThreshold : 10000
 }
 
-export function autowithdrawInitial ({ me, priority = false }) {
+export function autowithdrawInitial ({ me }) {
   return {
-    priority,
     autoWithdrawThreshold: autoWithdrawThreshold({ me }),
-    autoWithdrawMaxFeePercent: isNumber(me?.privates?.autoWithdrawMaxFeePercent) ? me?.privates?.autoWithdrawMaxFeePercent : 1
+    autoWithdrawMaxFeePercent: isNumber(me?.privates?.autoWithdrawMaxFeePercent) ? me?.privates?.autoWithdrawMaxFeePercent : 1,
+    autoWithdrawMaxFeeTotal: isNumber(me?.privates?.autoWithdrawMaxFeeTotal) ? me?.privates?.autoWithdrawMaxFeeTotal : 1
   }
 }
 
-export function AutowithdrawSettings ({ priority }) {
-  const me = useMe()
+export function AutowithdrawSettings () {
+  const { me } = useMe()
   const threshold = autoWithdrawThreshold({ me })
 
   const [sendThreshold, setSendThreshold] = useState(Math.max(Math.floor(threshold / 10), 1))
@@ -28,11 +29,6 @@ export function AutowithdrawSettings ({ priority }) {
 
   return (
     <>
-      <Checkbox
-        label='make default autowithdraw method'
-        id='priority'
-        name='priority'
-      />
       <div className='my-4 border border-3 rounded'>
         <div className='p-3'>
           <h3 className='text-center text-muted'>desired balance</h3>
@@ -46,12 +42,31 @@ export function AutowithdrawSettings ({ priority }) {
             }}
             hint={isNumber(sendThreshold) ? `will attempt auto-withdraw when your balance exceeds ${sendThreshold * 11} sats` : undefined}
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+            required
           />
+          <h3 className='text-center text-muted pt-3'>network fees</h3>
+          <h6 className='text-center pb-3'>
+            we'll use whichever setting is higher during{' '}
+            <Link
+              target='_blank'
+              href='https://docs.lightning.engineering/the-lightning-network/pathfinding'
+              rel='noreferrer'
+            >pathfinding
+            </Link>
+          </h6>
           <Input
-            label='max fee'
+            label='max fee rate'
             name='autoWithdrawMaxFeePercent'
             hint='max fee as percent of withdrawal amount'
             append={<InputGroup.Text>%</InputGroup.Text>}
+            required
+          />
+          <Input
+            label='max fee total'
+            name='autoWithdrawMaxFeeTotal'
+            hint='max fee for any withdrawal amount'
+            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+            required
           />
         </div>
       </div>

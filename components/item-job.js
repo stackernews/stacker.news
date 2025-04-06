@@ -1,6 +1,5 @@
 import { string } from 'yup'
 import Toc from './table-of-contents'
-import Badge from 'react-bootstrap/Badge'
 import Button from 'react-bootstrap/Button'
 import Image from 'react-bootstrap/Image'
 import { SearchTitle } from './item'
@@ -9,10 +8,14 @@ import Link from 'next/link'
 import { timeSince } from '@/lib/time'
 import EmailIcon from '@/svgs/mail-open-line.svg'
 import Share from './share'
-import Hat from './hat'
+import Badges from './badge'
 import { MEDIA_URL } from '@/lib/constants'
+import { abbrNum } from '@/lib/format'
+import { Badge } from 'react-bootstrap'
+import SubPopover from './sub-popover'
+import { PaymentInfo } from './item-info'
 
-export default function ItemJob ({ item, toc, rank, children }) {
+export default function ItemJob ({ item, toc, rank, children, disableRetry, setDisableRetry }) {
   const isEmail = string().email().isValidSync(item.url)
 
   return (
@@ -50,26 +53,34 @@ export default function ItemJob ({ item, toc, rank, children }) {
               </>}
             <wbr />
             <span> \ </span>
+            {item.boost > 0 && <span>{abbrNum(item.boost)} boost \ </span>}
             <span>
               <Link href={`/${item.user.name}`} className='d-inline-flex align-items-center'>
-                @{item.user.name}<Hat className='ms-1 fill-grey' user={item.user} height={12} width={12} />
+                @{item.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={item.user} />
               </Link>
               <span> </span>
               <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
                 {timeSince(new Date(item.createdAt))}
               </Link>
             </span>
-            {item.mine &&
+            {item.subName &&
+              <SubPopover sub={item.subName}>
+                <Link href={`/~${item.subName}`}>
+                  {' '}<Badge className={styles.newComment} bg={null}>{item.subName}</Badge>
+                </Link>
+              </SubPopover>}
+            {item.status === 'STOPPED' &&
+              <>{' '}<Badge bg='info' className={styles.badge}>stopped</Badge></>}
+            {item.mine && !item.deletedAt &&
               (
                 <>
                   <wbr />
                   <span> \ </span>
-                  <Link href={`/items/${item.id}/edit`} className='text-reset'>
+                  <Link href={`/items/${item.id}/edit`} className='text-reset fw-bold'>
                     edit
                   </Link>
-                  {item.status !== 'ACTIVE' && <span className='ms-1 fw-bold text-boost'> {item.status}</span>}
+                  <PaymentInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
                 </>)}
-            {item.maxBid > 0 && item.status === 'ACTIVE' && <Badge className={`${styles.newComment} ms-1`}>PROMOTED</Badge>}
           </div>
         </div>
         {toc &&

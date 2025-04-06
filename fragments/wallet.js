@@ -1,5 +1,6 @@
 import { gql } from '@apollo/client'
 import { ITEM_FULL_FIELDS } from './items'
+import { VAULT_ENTRY_FIELDS } from './vault'
 
 export const INVOICE_FIELDS = gql`
   fragment InvoiceFields on Invoice {
@@ -10,16 +11,19 @@ export const INVOICE_FIELDS = gql`
     satsRequested
     satsReceived
     cancelled
+    cancelledAt
     confirmedAt
     expiresAt
     nostr
     isHeld
     comment
     lud18Data
-    confirmedPreimage
     actionState
     actionType
     actionError
+    confirmedPreimage
+    forwardedSats
+    forwardStatus
   }`
 
 export const INVOICE_FULL = gql`
@@ -50,12 +54,29 @@ export const WITHDRAWL = gql`
       id
       createdAt
       bolt11
+      hash
       satsPaid
       satsFeePaying
       satsFeePaid
       status
       autoWithdraw
       preimage
+      forwardedActionType
+    }
+  }`
+
+export const DIRECT = gql`
+  query Direct($id: ID!) {
+    direct(id: $id) {
+      id
+      createdAt
+      bolt11
+      hash
+      sats
+      preimage
+      comment
+      lud18Data
+      nostr
     }
   }`
 
@@ -100,106 +121,122 @@ export const SEND_TO_LNADDR = gql`
     }
 }`
 
-export const UPSERT_WALLET_LNADDR =
-gql`
-mutation upsertWalletLNAddr($id: ID, $address: String!, $settings: AutowithdrawSettings!) {
-  upsertWalletLNAddr(id: $id, address: $address, settings: $settings)
-}
-`
-
-export const UPSERT_WALLET_LND =
-gql`
-mutation upsertWalletLND($id: ID, $socket: String!, $macaroon: String!, $cert: String, $settings: AutowithdrawSettings!) {
-  upsertWalletLND(id: $id, socket: $socket, macaroon: $macaroon, cert: $cert, settings: $settings)
-}
-`
-
-export const UPSERT_WALLET_CLN =
-gql`
-mutation upsertWalletCLN($id: ID, $socket: String!, $rune: String!, $cert: String, $settings: AutowithdrawSettings!) {
-  upsertWalletCLN(id: $id, socket: $socket, rune: $rune, cert: $cert, settings: $settings)
-}
-`
-
 export const REMOVE_WALLET =
 gql`
 mutation removeWallet($id: ID!) {
   removeWallet(id: $id)
 }
 `
-
-export const WALLET = gql`
-  query Wallet($id: ID!) {
-    wallet(id: $id) {
-      id
-      createdAt
-      priority
-      type
-      wallet {
-        __typename
-        ... on WalletLNAddr {
-          address
-        }
-        ... on WalletLND {
-          socket
-          macaroon
-          cert
-        }
-        ... on WalletCLN {
-          socket
-          rune
-          cert
-        }
+// XXX [WALLET] this needs to be updated if another server wallet is added
+export const WALLET_FIELDS = gql`
+  ${VAULT_ENTRY_FIELDS}
+  fragment WalletFields on Wallet {
+    id
+    priority
+    type
+    updatedAt
+    enabled
+    vaultEntries {
+      ...VaultEntryFields
+    }
+    wallet {
+      __typename
+      ... on WalletLightningAddress {
+        address
+      }
+      ... on WalletLnd {
+        socket
+        macaroon
+        cert
+      }
+      ... on WalletCln {
+        socket
+        rune
+        cert
+      }
+      ... on WalletLnbits {
+        url
+        invoiceKey
+      }
+      ... on WalletNwc {
+        nwcUrlRecv
+      }
+      ... on WalletPhoenixd {
+        url
+        secondaryPassword
+      }
+      ... on WalletBlink {
+        apiKeyRecv
+        currencyRecv
       }
     }
   }
 `
 
+export const WALLET = gql`
+  ${WALLET_FIELDS}
+  query Wallet($id: ID!) {
+    wallet(id: $id) {
+      ...WalletFields
+    }
+  }
+`
+
+// XXX [WALLET] this needs to be updated if another server wallet is added
 export const WALLET_BY_TYPE = gql`
+  ${WALLET_FIELDS}
   query WalletByType($type: String!) {
     walletByType(type: $type) {
-      id
-      createdAt
-      priority
-      type
-      wallet {
-        __typename
-        ... on WalletLNAddr {
-          address
-        }
-        ... on WalletLND {
-          socket
-          macaroon
-          cert
-        }
-        ... on WalletCLN {
-          socket
-          rune
-          cert
-        }
-      }
+      ...WalletFields
     }
   }
 `
 
 export const WALLETS = gql`
+  ${WALLET_FIELDS}
   query Wallets {
     wallets {
-      id
-      priority
-      type
+      ...WalletFields
     }
   }
 `
 
 export const WALLET_LOGS = gql`
-  query WalletLogs {
-    walletLogs {
-      id
-      createdAt
-      wallet
-      level
-      message
+  query WalletLogs($type: String, $from: String, $to: String, $cursor: String) {
+    walletLogs(type: $type, from: $from, to: $to, cursor: $cursor) {
+        cursor
+        entries {
+          id
+          createdAt
+          wallet
+          level
+          message
+          context
+        }
+      }
+  }
+`
+
+export const SET_WALLET_PRIORITY = gql`
+  mutation SetWalletPriority($id: ID!, $priority: Int!) {
+    setWalletPriority(id: $id, priority: $priority)
+  }
+`
+
+export const CANCEL_INVOICE = gql`
+  ${INVOICE_FIELDS}
+  mutation cancelInvoice($hash: String!, $hmac: String, $userCancel: Boolean) {
+    cancelInvoice(hash: $hash, hmac: $hmac, userCancel: $userCancel) {
+      ...InvoiceFields
+    }
+  }
+`
+
+export const FAILED_INVOICES = gql`
+  ${INVOICE_FIELDS}
+  query FailedInvoices {
+    failedInvoices {
+      ...InvoiceFields
     }
   }
 `

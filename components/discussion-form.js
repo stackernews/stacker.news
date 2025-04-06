@@ -22,7 +22,7 @@ export function DiscussionForm ({
 }) {
   const router = useRouter()
   const client = useApolloClient()
-  const me = useMe()
+  const { me } = useMe()
   const onSubmit = useItemSubmit(UPSERT_DISCUSSION, { item, sub })
   const schema = discussionSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
@@ -76,10 +76,10 @@ export function DiscussionForm ({
         name='text'
         minRows={6}
         hint={editThreshold
-          ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
+          ? <div className='text-muted fw-bold font-monospace'><Countdown date={editThreshold} /></div>
           : null}
       />
-      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} />
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />
       <ItemButtonBar itemId={item?.id} />
       {!item &&
         <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>

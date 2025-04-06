@@ -2,6 +2,38 @@
 
 Paid actions are actions that require payments to perform. Given that we support several payment flows, some of which require more than one round of communication either with LND or the client, and several paid actions, we have this plugin-like interface to easily add new paid actions.
 
+<details>
+    <summary>internals</summary>
+
+All paid action progress, regardless of flow, is managed using a state machine that's transitioned by the invoice progress and payment progress (in the case of p2p paid action). Below is the full state machine for paid actions:
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING
+    PENDING --> PAID
+    PENDING --> CANCELING
+    PENDING --> FAILED
+    PAID --> [*]
+    CANCELING --> FAILED
+    FAILED --> RETRYING
+    FAILED --> [*]
+    RETRYING --> [*]
+    [*] --> PENDING_HELD
+    PENDING_HELD --> HELD
+    PENDING_HELD --> FORWARDING
+    PENDING_HELD --> CANCELING
+    PENDING_HELD --> FAILED
+    HELD --> PAID
+    HELD --> CANCELING
+    HELD --> FAILED
+    FORWARDING --> FORWARDED
+    FORWARDING --> FAILED_FORWARD
+    FORWARDED --> PAID
+    FAILED_FORWARD --> CANCELING
+    FAILED_FORWARD --> FAILED
+```
+</details>
+
 ## Payment Flows
 
 There are three payment flows:
@@ -17,11 +49,20 @@ For paid actions that support it, if the stacker doesn't have enough fee credits
 <details>
   <summary>Internals</summary>
 
-   Internally, optimistic flows make use of a state machine that's transitioned by the invoice payment progress. All optimistic actions start in a `PENDING` state and have the following transitions:
+Internally, optimistic flows make use of a state machine that's transitioned by the invoice payment progress.
 
-- `PENDING` -> `PAID`: when the invoice is paid
-- `PENDING` -> `FAILED`: when the invoice expires or is cancelled
-- `FAILED` -> `RETRYING`: when the invoice for the action is replaced with a new invoice
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING
+    PENDING --> PAID
+    PENDING --> CANCELING
+    PENDING --> FAILED
+    PAID --> [*]
+    CANCELING --> FAILED
+    FAILED --> RETRYING
+    FAILED --> [*]
+    RETRYING --> [*]
+```
 </details>
 
 ### Pessimistic
@@ -32,27 +73,68 @@ Internally, pessimistic flows use hold invoices. If the action doesn't succeed, 
 <details>
   <summary>Internals</summary>
 
-   Internally, pessimistic flows make use of a state machine that's transitioned by the invoice payment progress much like optimistic flows, but with extra steps. All pessimistic actions start in a `PENDING_HELD` state and has the following transitions:
+Internally, pessimistic flows make use of a state machine that's transitioned by the invoice payment progress much like optimistic flows, but with extra steps.
 
-- `PENDING_HELD` -> `HELD`: when the invoice is paid and the action's `perform` is run and the invoice is settled
-- `HELD` -> `PAID`: when the action's `onPaid` is called
-- `PENDING_HELD` -> `FAILED`: when the invoice for the action expires or is cancelled
-- `HELD` -> `FAILED`: when the action fails after the invoice is paid
+```mermaid
+stateDiagram-v2
+    PAID --> [*]
+    CANCELING --> FAILED
+    FAILED --> [*]
+    [*] --> PENDING_HELD
+    PENDING_HELD --> HELD
+    PENDING_HELD --> CANCELING
+    PENDING_HELD --> FAILED
+    HELD --> PAID
+    HELD --> CANCELING
+    HELD --> FAILED
+```
 </details>
 
 ### Table of existing paid actions and their supported flows
 
-| action            | fee credits | optimistic | pessimistic | anonable | qr payable | p2p wrapped | side effects |
-| ----------------- | ----------- | ---------- | ----------- | -------- | ---------- | ----------- | ------------ |
-| zaps              | x           | x          | x           | x        | x          | x           | x            |
-| posts             | x           | x          | x           | x        | x          |             | x            |
-| comments          | x           | x          | x           | x        | x          |             | x            |
-| downzaps          | x           | x          |             |          | x          |             | x            |
-| poll votes        | x           | x          |             |          | x          |             |              |
-| territory actions | x           |            | x           |          | x          |             |              |
-| donations         | x           |            | x           | x        | x          |             |              |
-| update posts      | x           |            | x           |          | x          |             | x            |
-| update comments   | x           |            | x           |          | x          |             | x            |
+| action            | fee credits | optimistic | pessimistic | anonable | qr payable | p2p wrapped | side effects | reward sats | p2p direct |
+| ----------------- | ----------- | ---------- | ----------- | -------- | ---------- | ----------- | ------------ | ----------- | ---------- |
+| zaps              | x           | x          | x           | x        | x          | x           | x            |             |            |
+| posts             | x           | x          | x           | x        | x          |             | x            | x           |            |
+| comments          | x           | x          | x           | x        | x          |             | x            | x           |            |
+| downzaps          | x           | x          |             |          | x          |             | x            | x           |            |
+| poll votes        | x           | x          |             |          | x          |             |              | x           |            |
+| territory actions | x           |            | x           |          | x          |             |              | x           |            |
+| donations         | x           |            | x           | x        | x          |             |              | x           |            |
+| update posts      | x           |            | x           |          | x          |             | x            | x           |            |
+| update comments   | x           |            | x           |          | x          |             | x            | x           |            |
+| receive           |             | x          |             |          | x          | x           | x            |             | x          |
+| buy fee credits   |             |            | x           |          | x          |             |              | x           |            |
+| invite gift       | x           |            |             |          |            |             | x            | x           |            |
+
+## Not-custodial zaps (ie p2p wrapped payments)
+Zaps, and possibly other future actions, can be performed peer to peer and non-custodially. This means that the payment is made directly from the client to the recipient, without the server taking custody of the funds. Currently, in order to trigger this behavior, the recipient must have a receiving wallet attached and the sender must have insufficient funds in their custodial wallet to perform the requested zap.
+
+This works by requesting an invoice from the recipient's wallet and reusing the payment hash in a hold invoice paid to SN (to collect the sybil fee) which we serve to the sender. When the sender pays this wrapped invoice, we forward our own money to the recipient, who then reveals the preimage to us, allowing us to settle the wrapped invoice and claim the sender's funds. This effectively does what a lightning node does when forwarding a payment but allows us to do it at the application layer.
+
+<details>
+  <summary>Internals</summary>
+
+   Internally, p2p wrapped payments make use of the same paid action state machine but it's transitioned by both the incoming invoice payment progress *and* the outgoing invoice payment progress.
+
+```mermaid
+stateDiagram-v2
+    PAID --> [*]
+    CANCELING --> FAILED
+    FAILED --> RETRYING
+    FAILED --> [*]
+    RETRYING --> [*]
+    [*] --> PENDING_HELD
+    PENDING_HELD --> FORWARDING
+    PENDING_HELD --> CANCELING
+    PENDING_HELD --> FAILED
+    FORWARDING --> FORWARDED
+    FORWARDING --> FAILED_FORWARD
+    FORWARDED --> PAID
+    FAILED_FORWARD --> CANCELING
+    FAILED_FORWARD --> FAILED
+```
+</details>
 
 ## Paid Action Interface
 
@@ -60,10 +142,16 @@ Each paid action is implemented in its own file in the `paidAction` directory. E
 
 ### Boolean flags
 - `anonable`: can be performed anonymously
-- `supportsPessimism`: supports a pessimistic payment flow
-- `supportsOptimism`: supports an optimistic payment flow
 
-#### Functions
+### Payment methods
+- `paymentMethods`: an array of payment methods that the action supports ordered from most preferred to least preferred
+    - P2P: a p2p payment made directly from the client to the recipient
+        - after wrapping the invoice, anonymous users will follow a PESSIMISTIC flow to pay the invoice and logged in users will follow an OPTIMISTIC flow
+    - FEE_CREDIT: a payment made from the user's fee credit balance
+    - OPTIMISTIC: an optimistic payment flow
+    - PESSIMISTIC: a pessimistic payment flow
+
+### Functions
 
 All functions have the following signature: `function(args: Object, context: Object): Promise`
 
@@ -75,7 +163,11 @@ All functions have the following signature: `function(args: Object, context: Obj
        - it can optionally store in the invoice with the `invoiceId` the `actionId` to be able to link the action with the invoice regardless of retries
 - `onPaid`: called when the action is paid
     - if the action does not support optimism, this function is optional
-    - this function should be used to mark the rows created in `perform` as `PAID` and perform any other side effects of the action (like notifications or denormalizations)
+    - this function should be used to mark the rows created in `perform` as `PAID` and perform critical side effects of the action (like denormalizations)
+- `nonCriticalSideEffects`: called after the action is paid to run any side effects whose failure does not affect the action's execution
+    - this function is always optional
+    - it's passed the result of the action (or the action's paid invoice) and the current context
+    - this is where things like push notifications should be handled
 - `onFail`: called when the action fails
     - if the action does not support optimism, this function is optional
     - this function should be used to mark the rows created in `perform` as `FAILED`
@@ -84,8 +176,11 @@ All functions have the following signature: `function(args: Object, context: Obj
     - this function is called when an optimistic action is retried
     - it's passed the original `invoiceId` and the `newInvoiceId`
     - this function should update the rows created in `perform` to contain the new `newInvoiceId` and remark the row as `PENDING`
+- `getInvoiceablePeer`: returns the userId of the peer that's capable of generating an invoice so they can be paid for the action
+    - this is only used for p2p wrapped zaps currently
 - `describe`: returns a description as a string of the action
     - for actions that require generating an invoice, and for stackers that don't hide invoice descriptions, this is used in the invoice description
+- `getSybilFeePercent` (required if `getInvoiceablePeer` is implemented): returns the action sybil fee percent as a `BigInt` (eg. 30n for 30%)
 
 #### Function arguments
 
@@ -94,9 +189,16 @@ All functions have the following signature: `function(args: Object, context: Obj
 `context` contains the following fields:
 - `me`: the user performing the action (undefined if anonymous)
 - `cost`: the cost of the action in msats as a `BigInt`
+- `sybilFeePercent`: the sybil fee percent as a `BigInt` (eg. 30n for 30%)
 - `tx`: the current transaction (for anything that needs to be done atomically with the payment)
 - `models`: the current prisma client (for anything that doesn't need to be done atomically with the payment)
 - `lnd`: the current lnd client
+
+## Recording Cowboy Credits
+
+To avoid adding sats and credits together everywhere to show an aggregate sat value, in most cases we denormalize a `sats` field that carries the "sats value", the combined sats + credits of something, and a `credits` field that carries only the earned `credits`. For example, the `Item` table has an `msats` field that carries the sum of the `mcredits` and `msats` earned and a `mcredits` field that carries the value of the `mcredits` earned. So, the sats value an item earned is `item.msats` BUT the real sats earned is `item.msats - item.mcredits`.
+
+The ONLY exception to this are for the `users` table where we store a stacker's rewards sats and credits balances separately.
 
 ## `IMPORTANT: transaction isolation`
 
@@ -148,7 +250,7 @@ COMMIT;
 -- item_zaps.sats is 100, but we would expect it to be 200
 ```
 
-Note that row level locks wouldn't help in this case, because we can't lock the rows that the transactions doesn't know to exist yet.
+Note that row level locks wouldn't help in this case, because we can't lock the rows that the transactions don't know to exist yet.
 
 #### Subqueries are still incorrect
 
@@ -202,3 +304,68 @@ From the [postgres docs](https://www.postgresql.org/docs/current/transaction-iso
 
 From the [postgres source docs](https://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/backend/executor/README#l350):
 > It is also possible that there are relations in the query that are not to be locked (they are neither the UPDATE/DELETE/MERGE target nor specified to be locked in SELECT FOR UPDATE/SHARE).  When re-running the test query ***we want to use the same rows*** from these relations that were joined to the locked rows.
+
+## `IMPORTANT: deadlocks`
+
+Deadlocks can occur when two transactions are waiting for each other to release locks. This can happen when two transactions lock rows in different orders whether explicit or implicit.
+
+If both transactions lock the rows in the same order, the deadlock is avoided.
+
+### Incorrect
+
+```sql
+-- transaction 1
+BEGIN;
+UPDATE users set msats = msats + 1 WHERE id = 1;
+-- transaction 2
+BEGIN;
+UPDATE users set msats = msats + 1 WHERE id = 2;
+-- transaction 1 (blocks here until transaction 2 commits)
+UPDATE users set msats = msats + 1 WHERE id = 2;
+-- transaction 2 (blocks here until transaction 1 commits)
+UPDATE users set msats = msats + 1 WHERE id = 1;
+-- deadlock occurs because neither transaction can proceed to here
+```
+
+In practice, this most often occurs when selecting multiple rows for update in different orders. Recently, we had a deadlock when spliting zaps to multiple users. The solution was to select the rows for update in the same order.
+
+### Incorrect
+
+```sql
+WITH forwardees AS (
+    SELECT "userId", (($1::BIGINT * pct) / 100)::BIGINT AS msats
+    FROM "ItemForward"
+    WHERE "itemId" = $2::INTEGER
+),
+UPDATE users
+    SET
+    msats = users.msats + forwardees.msats,
+    "stackedMsats" = users."stackedMsats" + forwardees.msats
+    FROM forwardees
+    WHERE users.id = forwardees."userId";
+```
+
+If forwardees are selected in a different order in two concurrent transactions, e.g. (1,2) in tx 1 and (2,1) in tx 2, a deadlock can occur. To avoid this, always select rows for update in the same order.
+
+### Correct
+
+We fixed the deadlock by selecting the forwardees in the same order in these transactions.
+
+```sql
+WITH forwardees AS (
+    SELECT "userId", (($1::BIGINT * pct) / 100)::BIGINT AS msats
+    FROM "ItemForward"
+    WHERE "itemId" = $2::INTEGER
+    ORDER BY "userId" ASC
+),
+UPDATE users
+    SET
+    msats = users.msats + forwardees.msats,
+    "stackedMsats" = users."stackedMsats" + forwardees.msats
+    FROM forwardees
+    WHERE users.id = forwardees."userId";
+```
+
+### More resources
+
+- https://www.postgresql.org/docs/current/explicit-locking.html#LOCKING-DEADLOCKS

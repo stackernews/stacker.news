@@ -1,17 +1,16 @@
-import { getInvoice } from 'ln-service'
-import { Relay, signId, calculateId, getPublicKey } from 'nostr'
+import Nostr from '@/lib/nostr'
 
 const nostrOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
 export async function nip57 ({ data: { hash }, boss, lnd, models }) {
-  let inv, lnInv
+  let inv
   try {
-    lnInv = await getInvoice({ id: hash, lnd })
     inv = await models.invoice.findUnique({
       where: {
         hash
       }
     })
+    if (!inv || !inv.confirmedAt) return
   } catch (err) {
     console.log(err)
     // on lnd related errors, we manually retry which so we don't exponentially backoff
@@ -34,47 +33,25 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
     const tags = [ptag]
     if (etag) tags.push(etag)
     if (atag) tags.push(atag)
-    tags.push(['bolt11', lnInv.request])
+    tags.push(['bolt11', inv.bolt11])
     tags.push(['description', inv.desc])
-    tags.push(['preimage', lnInv.secret])
+    tags.push(['preimage', inv.preimage])
 
     const e = {
       kind: 9735,
-      pubkey: getPublicKey(process.env.NOSTR_PRIVATE_KEY),
-      created_at: Math.floor(new Date(lnInv.confirmed_at).getTime() / 1000),
+      created_at: Math.floor(new Date(inv.confirmedAt).getTime() / 1000),
       content: '',
       tags
     }
-    e.id = await calculateId(e)
-    e.sig = await signId(process.env.NOSTR_PRIVATE_KEY, e.id)
 
     console.log('zap note', e, relays)
-    await Promise.allSettled(
-      relays.map(r => new Promise((resolve, reject) => {
-        const timeout = 1000
-        const relay = Relay(r)
-
-        function timedout () {
-          relay.close()
-          console.log('failed to send to', r)
-          reject(new Error('relay timeout'))
-        }
-
-        let timer = setTimeout(timedout, timeout)
-
-        relay.on('open', () => {
-          clearTimeout(timer)
-          timer = setTimeout(timedout, timeout)
-          relay.send(['EVENT', e])
-        })
-
-        relay.on('ok', () => {
-          clearTimeout(timer)
-          relay.close()
-          console.log('sent zap to', r)
-          resolve()
-        })
-      })))
+    const nostr = Nostr.get()
+    const signer = nostr.getSigner({ privKey: process.env.NOSTR_PRIVATE_KEY })
+    await nostr.publish(e, {
+      relays,
+      signer,
+      timeout: 1000
+    })
   } catch (e) {
     console.log(e)
   }

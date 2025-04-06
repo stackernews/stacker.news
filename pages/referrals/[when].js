@@ -33,7 +33,7 @@ export const getServerSideProps = getGetServerSideProps({ query: REFERRALS, auth
 
 export default function Referrals ({ ssrData }) {
   const router = useRouter()
-  const me = useMe()
+  const { me } = useMe()
 
   const select = async values => {
     const { when, ...query } = values

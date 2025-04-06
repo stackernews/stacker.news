@@ -18,7 +18,7 @@ import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/paidAction'
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
   const client = useApolloClient()
-  const me = useMe()
+  const { me } = useMe()
   const [upsertSub] = usePaidMutation(UPSERT_SUB)
   const [unarchiveTerritory] = usePaidMutation(UNARCHIVE_TERRITORY)
 
@@ -77,6 +77,7 @@ export default function TerritoryForm ({ sub }) {
       lines.paid = {
         term: `- ${abbrNum(alreadyBilled)} sats`,
         label: 'already paid',
+        op: '-',
         modifier: cost => cost - alreadyBilled
       }
       return lines
@@ -90,8 +91,8 @@ export default function TerritoryForm ({ sub }) {
           name: sub?.name || '',
           desc: sub?.desc || '',
           baseCost: sub?.baseCost || 10,
+          replyCost: sub?.replyCost || 1,
           postTypes: sub?.postTypes || POST_TYPES,
-          allowFreebies: typeof sub?.allowFreebies === 'undefined' ? true : sub?.allowFreebies,
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false,
           moderated: sub?.moderated || false,
@@ -114,7 +115,7 @@ export default function TerritoryForm ({ sub }) {
           warn={archived && (
             <div className='d-flex align-items-center'>this territory is archived
               <Info>
-                <ul className='fw-bold'>
+                <ul>
                   <li>This territory got archived because the previous founder did not pay for the upkeep</li>
                   <li>You can proceed but will inherit the old content</li>
                 </ul>
@@ -133,14 +134,8 @@ export default function TerritoryForm ({ sub }) {
           label='post cost'
           name='baseCost'
           type='number'
-          groupClassName='mb-2'
           required
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-        />
-        <Checkbox
-          label='allow free posts'
-          name='allowFreebies'
-          groupClassName='ms-1'
         />
         <CheckboxGroup label='post types' name='postTypes'>
           <Row>
@@ -203,7 +198,7 @@ export default function TerritoryForm ({ sub }) {
             >
               <Checkbox
                 type='radio'
-                label='100k sats/month'
+                label={`${abbrNum(TERRITORY_PERIOD_COST('MONTHLY'))} sats/month`}
                 value='MONTHLY'
                 name='billingType'
                 id='monthly-checkbox'
@@ -212,7 +207,7 @@ export default function TerritoryForm ({ sub }) {
               />
               <Checkbox
                 type='radio'
-                label='1m sats/year'
+                label={`${abbrNum(TERRITORY_PERIOD_COST('YEARLY'))} sats/year`}
                 value='YEARLY'
                 name='billingType'
                 id='yearly-checkbox'
@@ -221,7 +216,7 @@ export default function TerritoryForm ({ sub }) {
               />
               <Checkbox
                 type='radio'
-                label='3m sats once'
+                label={`${abbrNum(TERRITORY_PERIOD_COST('ONCE'))} sats once`}
                 value='ONCE'
                 name='billingType'
                 id='once-checkbox'
@@ -240,6 +235,13 @@ export default function TerritoryForm ({ sub }) {
           header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
           body={
             <>
+              <Input
+                label='reply cost'
+                name='replyCost'
+                type='number'
+                required
+                append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+              />
               <BootstrapForm.Label>moderation</BootstrapForm.Label>
               <Checkbox
                 inline

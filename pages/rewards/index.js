@@ -14,21 +14,22 @@ import dynamic from 'next/dynamic'
 import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useLightning } from '@/components/lightning'
-import { ListUsers } from '@/components/user-list'
 import { Col, Row } from 'react-bootstrap'
-import { proportions } from '@/lib/madness'
 import { useData } from '@/components/use-data'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
 import { useMemo } from 'react'
 import { CompactLongCountdown } from '@/components/countdown'
 import { usePaidMutation } from '@/components/use-paid-mutation'
 import { DONATE } from '@/fragments/paidAction'
+import { ITEM_FULL_FIELDS } from '@/fragments/items'
+import { ListItem } from '@/components/items'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <GrowthPieChartSkeleton />
 })
 
 const REWARDS_FULL = gql`
+${ITEM_FULL_FIELDS}
 {
   rewards {
     total
@@ -37,21 +38,8 @@ const REWARDS_FULL = gql`
       name
       value
     }
-    leaderboard {
-      users {
-        id
-        name
-        photoId
-        ncomments
-        nposts
-
-        optional {
-          streak
-          stacked
-          spent
-          referrals
-        }
-      }
+    ad {
+      ...ItemFullFields
     }
   }
 }
@@ -75,7 +63,7 @@ export const getServerSideProps = getGetServerSideProps({ query: REWARDS_FULL })
 export function RewardLine ({ total, time }) {
   return (
     <>
-      <span tyle={{ whiteSpace: 'nowrap' }}>
+      <span style={{ whiteSpace: 'nowrap' }}>
         {numWithUnits(total)} in rewards
       </span>
       {time &&
@@ -90,14 +78,14 @@ export function RewardLine ({ total, time }) {
 }
 
 export default function Rewards ({ ssrData }) {
-  // only poll for updates to rewards and not leaderboard
+  // only poll for updates to rewards
   const { data: rewardsData } = useQuery(
     REWARDS,
     SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
   const { data } = useQuery(REWARDS_FULL)
   const dat = useData(data, ssrData)
 
-  let { rewards: [{ total, sources, time, leaderboard }] } = useMemo(() => {
+  let { rewards: [{ total, sources, time, ad }] } = useMemo(() => {
     return dat || { rewards: [{}] }
   }, [dat])
 
@@ -109,29 +97,17 @@ export default function Rewards ({ ssrData }) {
 
   if (!dat) return <PageLoading />
 
-  function EstimatedReward ({ rank }) {
-    const referrerReward = Math.floor(total * proportions[rank - 1] * 0.2)
-    const reward = Math.floor(total * proportions[rank - 1]) - referrerReward
-
-    return (
-      <div className='text-muted fst-italic'>
-        <small>
-          <span>estimated reward: {numWithUnits(reward)} <small className='fw-light'>(+ {numWithUnits(referrerReward)} to referrers)</small></span>
-        </small>
-      </div>
-    )
-  }
-
   return (
     <Layout footerLinks>
-      <h4 className='pt-3 align-self-center text-reset'>
-        <small className='text-muted'>rewards are sponsored by ...</small>
-        <Link className='text-reset ms-2' href='/items/141924' style={{ lineHeight: 1.5, textDecoration: 'underline' }}>
-          SN is hiring
-        </Link>
-      </h4>
+      {ad &&
+        <div className='pt-3 align-self-center' style={{ maxWidth: '500px', width: '100%' }}>
+          <div className='fw-bold text-muted pb-2'>
+            top boost this month
+          </div>
+          <ListItem item={ad} ad />
+        </div>}
       <Row className='pb-3'>
-        <Col lg={leaderboard?.users && 5}>
+        <Col>
           <div
             className='d-flex flex-column sticky-lg-top py-5'
           >
@@ -149,13 +125,6 @@ export default function Rewards ({ ssrData }) {
             <DonateButton />
           </div>
         </Col>
-        {leaderboard?.users &&
-          <Col lg={7}>
-            <h2 className='pt-5 text-center text-muted'>leaderboard</h2>
-            <div className='d-flex justify-content-center pt-4'>
-              <ListUsers users={leaderboard.users} rank Embellish={EstimatedReward} />
-            </div>
-          </Col>}
       </Row>
     </Layout>
   )

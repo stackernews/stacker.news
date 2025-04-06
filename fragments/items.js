@@ -1,21 +1,32 @@
 import { gql } from '@apollo/client'
 import { COMMENTS } from './comments'
 
+// we can't import from users because of circular dependency
+const STREAK_FIELDS = gql`
+  fragment StreakFields on User {
+    optional {
+    streak
+    gunStreak
+      horseStreak
+    }
+  }
+`
+
 export const ITEM_FIELDS = gql`
+  ${STREAK_FIELDS}
   fragment ItemFields on Item {
     id
     parentId
     createdAt
+    invoicePaidAt
     deletedAt
     title
     url
     user {
       id
       name
-      optional {
-        streak
-      }
       meMute
+      ...StreakFields
     }
     sub {
       name
@@ -24,10 +35,12 @@ export const ITEM_FIELDS = gql`
       meMuteSub
       meSubscription
       nsfw
+      replyCost
     }
     otsHash
     position
     sats
+    credits
     meAnonSats @client
     boost
     bounty
@@ -36,6 +49,7 @@ export const ITEM_FIELDS = gql`
     path
     upvotes
     meSats
+    meCredits
     meDontLikeSats
     meBookmark
     meSubscription
@@ -44,17 +58,18 @@ export const ITEM_FIELDS = gql`
     freebie
     bio
     ncomments
+    nDirectComments
     commentSats
+    commentCredits
     lastCommentAt
-    maxBid
     isJob
+    status
     company
     location
     remote
     subName
     pollCost
     pollExpiresAt
-    status
     uploadId
     mine
     imgproxyUrls
@@ -65,10 +80,12 @@ export const ITEM_FIELDS = gql`
       actionState
       confirmedAt
     }
+    cost
   }`
 
 export const ITEM_FULL_FIELDS = gql`
   ${ITEM_FIELDS}
+  ${STREAK_FIELDS}
   fragment ItemFullFields on Item {
     ...ItemFields
     text
@@ -78,12 +95,12 @@ export const ITEM_FULL_FIELDS = gql`
       bounty
       bountyPaidTo
       subName
+      mine
+      ncomments
       user {
         id
         name
-        optional {
-          streak
-        }
+        ...StreakFields
       }
       sub {
         name
@@ -91,6 +108,7 @@ export const ITEM_FULL_FIELDS = gql`
         moderated
         meMuteSub
         meSubscription
+        replyCost
       }
     }
     forwards {
@@ -152,13 +170,16 @@ export const ITEM_FULL = gql`
   ${ITEM_FULL_FIELDS}
   ${POLL_FIELDS}
   ${COMMENTS}
-  query Item($id: ID!, $sort: String) {
+  query Item($id: ID!, $sort: String, $cursor: String) {
     item(id: $id) {
       ...ItemFullFields
       prior
       ...PollFields
-      comments(sort: $sort) {
-        ...CommentsRecursive
+      comments(sort: $sort, cursor: $cursor) {
+        cursor
+        comments {
+          ...CommentsRecursive
+        }
       }
     }
   }`

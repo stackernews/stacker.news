@@ -4,7 +4,7 @@ import LightningIcon from '@/svgs/bolt.svg'
 import NostrIcon from '@/svgs/nostr.svg'
 import Button from 'react-bootstrap/Button'
 
-export default function LoginButton ({ text, type, className, onClick }) {
+export default function LoginButton ({ text, type, className, onClick, disabled }) {
   let Icon, variant
   switch (type) {
     case 'twitter':
@@ -29,7 +29,7 @@ export default function LoginButton ({ text, type, className, onClick }) {
   const name = type.charAt(0).toUpperCase() + type.substr(1).toLowerCase()
 
   return (
-    <Button className={className} variant={variant} onClick={onClick}>
+    <Button className={className} variant={variant} onClick={onClick} disabled={disabled}>
       <Icon
         width={20}
         height={20} className='me-3'

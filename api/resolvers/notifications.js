@@ -1,17 +1,18 @@
-import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
 import { getItem, filterClause, whereClause, muteClause, activeOrMine } from './item'
 import { getInvoice, getWithdrawl } from './wallet'
-import { pushSubscriptionSchema, ssValidate } from '@/lib/validate'
+import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
 import { replyToSubscription } from '@/lib/webPush'
 import { getSub } from './sub'
+import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 
 export default {
   Query: {
     notifications: async (parent, { cursor, inc }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const meFull = await models.user.findUnique({ where: { id: me.id } })
@@ -179,17 +180,6 @@ export default {
         )`
       )
 
-      queries.push(
-        `(SELECT "Item".id::text, "Item"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
-          'JobChanged' AS type
-          FROM "Item"
-          WHERE "Item"."userId" = $1
-          AND "maxBid" IS NOT NULL
-          AND "statusUpdatedAt" < $2 AND "statusUpdatedAt" <> created_at
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
-      )
-
       // territory transfers
       queries.push(
         `(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL as "earnedSats",
@@ -228,14 +218,20 @@ export default {
 
       if (meFull.noteDeposits) {
         queries.push(
-          `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime", FLOOR("msatsReceived" / 1000) as "earnedSats",
+          `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime",
+              FLOOR("Invoice"."msatsReceived" / 1000) as "earnedSats",
             'InvoicePaid' AS type
             FROM "Invoice"
             WHERE "Invoice"."userId" = $1
-            AND "confirmedAt" IS NOT NULL
-            AND "isHeld" IS NULL
-            AND "actionState" IS NULL
-            AND created_at < $2
+            AND "Invoice"."confirmedAt" IS NOT NULL
+            AND "Invoice"."created_at" < $2
+            AND (
+              ("Invoice"."isHeld" IS NULL AND "Invoice"."actionType" IS NULL)
+              OR (
+                "Invoice"."actionType" = 'RECEIVE'
+                AND "Invoice"."actionState" = 'PAID'
+              )
+            )
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -243,12 +239,17 @@ export default {
 
       if (meFull.noteWithdrawals) {
         queries.push(
-          `(SELECT "Withdrawl".id::text, "Withdrawl".created_at AS "sortTime", FLOOR("msatsPaid" / 1000) as "earnedSats",
+          `(SELECT "Withdrawl".id::text, MAX(COALESCE("Invoice"."confirmedAt", "Withdrawl".created_at)) AS "sortTime",
+            FLOOR(MAX("Withdrawl"."msatsPaid" / 1000)) as "earnedSats",
             'WithdrawlPaid' AS type
             FROM "Withdrawl"
+            LEFT JOIN "InvoiceForward" ON "InvoiceForward"."withdrawlId" = "Withdrawl".id
+            LEFT JOIN "Invoice" ON "InvoiceForward"."invoiceId" = "Invoice".id
             WHERE "Withdrawl"."userId" = $1
-            AND status = 'CONFIRMED'
-            AND created_at < $2
+            AND "Withdrawl".status = 'CONFIRMED'
+            AND "Withdrawl".created_at < $2
+            AND "InvoiceForward"."id" IS NULL
+            GROUP BY "Withdrawl".id
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -345,16 +346,31 @@ export default {
       )
 
       queries.push(
-        `(SELECT "Invoice".id::text, "Invoice"."updated_at" AS "sortTime", NULL as "earnedSats", 'Invoicification' AS type
+        `(SELECT "Invoice".id::text,
+          CASE
+            WHEN
+              "Invoice"."paymentAttempt" < ${WALLET_MAX_RETRIES}
+              AND "Invoice"."userCancel" = false
+              AND "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
+            THEN "Invoice"."cancelledAt" + interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
+            ELSE "Invoice"."updated_at"
+          END AS "sortTime", NULL as "earnedSats", 'Invoicification' AS type
         FROM "Invoice"
         WHERE "Invoice"."userId" = $1
         AND "Invoice"."updated_at" < $2
         AND "Invoice"."actionState" = 'FAILED'
         AND (
+          -- this is the inverse of the filter for automated retries
+          "Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES}
+          OR "Invoice"."userCancel" = true
+          OR "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
+        )
+        AND (
           "Invoice"."actionType" = 'ITEM_CREATE' OR
           "Invoice"."actionType" = 'ZAP' OR
           "Invoice"."actionType" = 'DOWN_ZAP' OR
-          "Invoice"."actionType" = 'POLL_VOTE'
+          "Invoice"."actionType" = 'POLL_VOTE' OR
+          "Invoice"."actionType" = 'BOOST'
         )
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT})`
@@ -382,10 +398,10 @@ export default {
   Mutation: {
     savePushSubscription: async (parent, { endpoint, p256dh, auth, oldEndpoint }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
-      await ssValidate(pushSubscriptionSchema, { endpoint, p256dh, auth })
+      await validateSchema(pushSubscriptionSchema, { endpoint, p256dh, auth })
 
       let dbPushSubscription
       if (oldEndpoint) {
@@ -406,12 +422,12 @@ export default {
     },
     deletePushSubscription: async (parent, { endpoint }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GqlAuthenticationError()
       }
 
       const subscription = await models.pushSubscription.findFirst({ where: { endpoint, userId: Number(me.id) } })
       if (!subscription) {
-        throw new GraphQLError('endpoint not found', { extensions: { code: 'BAD_INPUT' } })
+        throw new GqlInputError('endpoint not found')
       }
       const deletedSubscription = await models.pushSubscription.delete({ where: { id: subscription.id } })
       console.log(`[webPush] deleted subscription ${deletedSubscription.id} of user ${deletedSubscription.userId} due to client request`)
@@ -466,6 +482,24 @@ export default {
       return subAct.subName
     }
   },
+  ReferralSource: {
+    __resolveType: async (n, args, { models }) => n.type
+  },
+  Referral: {
+    source: async (n, args, { models, me }) => {
+      // retrieve the referee landing record
+      const referral = await models.oneDayReferral.findFirst({ where: { refereeId: Number(n.id), landing: true } })
+      if (!referral) return null // if no landing record, it will return a generic referral
+
+      switch (referral.type) {
+        case 'POST':
+        case 'COMMENT': return { ...await getItem(n, { id: referral.typeId }, { models, me }), type: 'Item' }
+        case 'TERRITORY': return { ...await getSub(n, { name: referral.typeId }, { models, me }), type: 'Sub' }
+        case 'PROFILE': return { ...await models.user.findUnique({ where: { id: Number(referral.typeId) }, select: { name: true } }), type: 'User' }
+        default: return null
+      }
+    }
+  },
   Streak: {
     days: async (n, args, { models }) => {
       const res = await models.$queryRaw`
@@ -475,6 +509,14 @@ export default {
       `
 
       return res.length ? res[0].days : null
+    },
+    type: async (n, args, { models }) => {
+      const res = await models.$queryRaw`
+        SELECT "type"
+        FROM "Streak"
+        WHERE id = ${Number(n.id)}
+      `
+      return res.length ? res[0].type : null
     }
   },
   Earn: {

@@ -5,7 +5,7 @@
 </p>
 
 
-- Stacker News makes internet communities that pay you Bitcoin
+- Stacker News is trying to fix online communities with economics
 - What You See is What We Ship (look ma, I invented an initialism)
 - 100% FOSS
 - We pay bitcoin for PRs, issues, documentation, code reviews and more
@@ -30,7 +30,9 @@ Go to [localhost:3000](http://localhost:3000).
 - Clone the repo
    - ssh: `git clone git@github.com:stackernews/stacker.news.git`
    - https: `git clone https://github.com/stackernews/stacker.news.git`
-- Install [docker](https://docs.docker.com/get-docker/)
+- Install [docker](https://docs.docker.com/compose/install/)
+    - If you're running MacOS or Windows, I ***highly recommend***  using [OrbStack](https://orbstack.dev/) instead of Docker Desktop
+- Please make sure that at least 10 GB of free space is available, otherwise you may encounter issues while setting up the development environment.
 
 <br>
 
@@ -63,64 +65,55 @@ USAGE
   $ sndev help [COMMAND]
 
 COMMANDS
-  help            show help
+  help                    show help
 
   env:
-    start         start env
-    stop          stop env
-    restart       restart env
-    status        status of env
-    logs          logs from env
-    delete        delete env
+    start                 start env
+    stop                  stop env
+    restart               restart env
+    status                status of env
+    logs                  logs from env
+    delete                delete env
 
   sn:
-    login         login as a nym
+    login                 login as a nym
+    set_balance           set the balance of a nym
 
-  lnd:
-    fund          pay a bolt11 for funding
-    withdraw      create a bolt11 for withdrawal
-
-  cln:
-    cln_fund      pay a bolt11 for funding with CLN
-    cln_withdraw  create a bolt11 for withdrawal with CLN
+  lightning:
+    fund                   pay a bolt11 for funding
+    withdraw               create a bolt11 for withdrawal
 
   db:
-    psql          open psql on db
-    prisma        run prisma commands
+    psql                   open psql on db
+    prisma                 run prisma commands
 
   dev:
-    pr            fetch and checkout a pr
-    lint          run linters
+    pr                     fetch and checkout a pr
+    lint                   run linters
+    test                   run tests
 
   other:
-    compose         docker compose passthrough
-    sn_lndcli       lncli passthrough on sn_lnd
-    stacker_lndcli  lncli passthrough on stacker_lnd
-    stacker_clncli  lightning-cli passthrough on stacker_cln
-
+    cli                    service cli passthrough
+    open                   open service GUI in browser
+    onion                  service onion address
+    cert                   service tls cert
+    compose                docker compose passthrough
 ```
 
 ### Modifying services
 
 #### Running specific services
 
-By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments|wallets|email|capture`. To only run mininal services without images, search, email, wallets, or payments:
+By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` in a `.env.local` file to one or more of `minimal,images,search,payments,wallets,email,capture`. To only run mininal necessary without things like payments in `.env.local`:
 
-```sh
-$ COMPOSE_PROFILES=minimal ./sndev start
-```
-
-Or, as I would recommend:
-
-```sh
-$ export COMPOSE_PROFILES=minimal
-$ ./sndev start
+```.env
+COMPOSE_PROFILES=minimal
 ```
 
 To run with images and payments services:
 
-```sh
-$ COMPOSE_PROFILES=images,payments ./sndev start
+```.env
+COMPOSE_PROFILES=images,payments
 ```
 
 #### Merging compose files
@@ -233,6 +226,7 @@ _Due to Rule 3, make sure that you mark your PR as a draft when you create it an
 
 | tag               | multiplier |
 | ----------------- | ---------- |
+| `priority:low`    | 0.5        |
 | `priority:medium` | 1.5        |
 | `priority:high`   | 2          |
 | `priority:urgent` | 3          |
@@ -370,9 +364,11 @@ You can connect to the local database via `./sndev psql`. [psql](https://www.pos
 
 <br>
 
-## Running lncli on the local lnd nodes
+## Running cli on local lightning nodes
 
-You can run `lncli` on the local lnd nodes via `./sndev sn_lncli` and `./sndev stacker_lncli`. The node for your local SN instance is `sn_lnd` and the node serving as any external node, like a stacker's node or external wallet, is `stacker_lnd`.
+You can run `lncli` on the local lnd nodes via `./sndev cli lnd` and `./sndev cli sn_lnd`. The node for your local SN instance is `sn_lnd` and the node serving as any external node, like a stacker's node or external wallet, is `lnd`.
+
+You can run `lightning-cli` on the local cln node via `./sndev cli cln` which serves as an external node or wallet.
 
 <br>
 
@@ -431,7 +427,7 @@ GITHUB_SECRET=<Client secret>
 
 ## Enabling web push notifications
 
-To enable Web Push locally, you will need to set the `VAPID_*` env vars. `VAPID_MAILTO` needs to be an email address using the `mailto:` scheme. For `NEXT_PUBLIC_VAPID_KEY` and `VAPID_PRIVKEY`, you can run `npx web-push generate-vapid-keys`.
+To enable Web Push locally, you will need to set the `VAPID_*` env vars. `VAPID_MAILTO` needs to be an email address using the `mailto:` scheme. For `NEXT_PUBLIC_VAPID_PUBKEY` and `VAPID_PRIVKEY`, you can run `npx web-push generate-vapid-keys`.
 
 <br>
 
@@ -459,7 +455,9 @@ In addition, we run other critical services the above services interact with lik
 
 ## Wallet transaction safety
 
-To ensure stackers balances are kept sane, all wallet updates are run in [serializable transactions](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE) at the database level. Because early versions of prisma had relatively poor support for transactions most wallet touching code is written in [plpgsql](https://www.postgresql.org/docs/current/plpgsql.html) stored procedures and can be found in the `prisma/migrations` folder.
+To ensure stackers balances are kept sane, some wallet updates are run in [serializable transactions](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE) at the database level. Because early versions of prisma had relatively poor support for transactions most wallet touching code is written in [plpgsql](https://www.postgresql.org/docs/current/plpgsql.html) stored procedures and can be found in the `prisma/migrations` folder.
+
+*UPDATE*: Most wallet updates are now run in [read committed](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED) transactions. See `api/paidAction/README.md` for more information.
 
 <br>
 

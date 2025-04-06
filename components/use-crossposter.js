@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useToast } from './toast'
 import { Button } from 'react-bootstrap'
-import { DEFAULT_CROSSPOSTING_RELAYS, crosspost, callWithTimeout } from '@/lib/nostr'
+import Nostr, { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
@@ -119,7 +119,7 @@ export default function useCrossposter () {
         removeToast()
       }
 
-      const removeToast = toaster.danger(
+      const removeToast = toaster.warning(
         <>
           Crossposting failed for {failedRelays.join(', ')} <br />
           <Button
@@ -138,14 +138,15 @@ export default function useCrossposter () {
           </Button>
         </>,
         {
-          onCancel: () => handleSkip()
+          onClose: () => handleSkip(),
+          autohide: false
         }
       )
     })
   }
 
   const crosspostError = (errorMessage) => {
-    return toaster.danger(`Error crossposting: ${errorMessage}`)
+    return toaster.warning(`crossposting failed: ${errorMessage}`)
   }
 
   async function handleEventCreation (item) {
@@ -201,8 +202,9 @@ export default function useCrossposter () {
     if (!event) return { allSuccessful, noteId }
 
     do {
+      const nostr = new Nostr()
       try {
-        const result = await crosspost(event, failedRelays || relays)
+        const result = await nostr.crosspost(event, { relays: failedRelays || relays })
 
         if (result.error) {
           failedRelays = []
@@ -230,6 +232,8 @@ export default function useCrossposter () {
         // wait 2 seconds to show error then break
         await new Promise(resolve => setTimeout(resolve, 2000))
         return { allSuccessful, noteId }
+      } finally {
+        nostr.close()
       }
     } while (failedRelays.length > 0)
 
@@ -237,13 +241,6 @@ export default function useCrossposter () {
   }
 
   const handleCrosspost = useCallback(async (itemId) => {
-    try {
-      const pubkey = await callWithTimeout(() => window.nostr.getPublicKey(), 10000)
-      if (!pubkey) throw new Error('failed to get pubkey')
-    } catch (e) {
-      throw new Error(`Nostr extension error: ${e.message}`)
-    }
-
     let noteId
 
     try {

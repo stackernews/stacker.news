@@ -87,15 +87,15 @@ const SocialsPopover = (
 const ChatPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
-      <a
+      {/* <a
         href='https://tribes.sphinx.chat/t/stackerzchat' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
       >
         sphinx
       </a>
-      <span className='mx-2 text-muted'> \ </span>
+      <span className='mx-2 text-muted'> \ </span> */}
       <a
-        href='https://t.me/stackernews' className='nav-link p-0 d-inline-flex'
+        href='https://t.me/k00bideh' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
       >
         telegram
@@ -173,7 +173,7 @@ export default function Footer ({ links = true }) {
               <Rewards />
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
-              <Link href='/stackers/day' className='nav-link p-0 p-0 d-inline-flex'>
+              <Link href='/stackers/all/day' className='nav-link p-0 p-0 d-inline-flex'>
                 analytics
               </Link>
               <span className='mx-2 text-muted'> \ </span>
@@ -206,10 +206,6 @@ export default function Footer ({ links = true }) {
               <span className='mx-2 text-muted'> \ </span>
               <Link href='/story' className='nav-link p-0 p-0 d-inline-flex'>
                 story
-              </Link>
-              <span className='mx-2 text-muted'> \ </span>
-              <Link href='/changes' className='nav-link p-0 p-0 d-inline-flex'>
-                changes
               </Link>
               <span className='mx-2 text-muted'> \ </span>
               <OverlayTrigger trigger='click' placement='top' overlay={LegalPopover} rootClose>

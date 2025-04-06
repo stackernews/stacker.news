@@ -220,6 +220,10 @@ $zindex-sticky: 900;
   scroll-margin-top: 60px;
 }
 
+.ms-xs {
+  margin-left: 0.125rem;
+}
+
 .text-monospace {
   font-family: monospace;
 }
@@ -241,6 +245,18 @@ $zindex-sticky: 900;
   display: none;
 }
 
+.w-fit-content {
+  width: fit-content;
+}
+
+.line-height-sm {
+  line-height: 1.25;
+}
+
+.line-height-md {
+  line-height: 1.5;
+}
+
 @media (display-mode: standalone) {
   .standalone {
     display: flex
@@ -249,6 +265,28 @@ $zindex-sticky: 900;
 
 .justify-self-center {
   justify-self: center;
+}
+
+.pulse {
+  animation-name: pulse;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+  animation-duration: 0.66s;
+  animation-direction: alternate;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 42%;
+  }
+}
+
+svg {
+  fill: var(--bs-body-color);
+}
+
+.fill-primary {
+  fill: var(--bs-primary);
 }
 
 .text-primary svg {
@@ -772,6 +810,10 @@ div[contenteditable]:focus,
   fill: white;
 }
 
+.fill-dark {
+  fill: #212529;
+}
+
 .fill-success {
   fill: var(--bs-success);
 }
@@ -902,6 +944,10 @@ div[contenteditable]:focus,
   animation: flipX 2s linear infinite;
 }
 
+.topLevel {
+  --grid-gap: 0.75rem;
+}
+
 @keyframes flipY {
   from {
     transform: rotateY(0deg);
@@ -937,6 +983,17 @@ div[contenteditable]:focus,
   .popover-body {
     color: var(--bs-body-color);
   }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 
 .react-datepicker-wrapper {

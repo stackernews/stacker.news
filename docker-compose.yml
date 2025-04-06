@@ -115,9 +115,6 @@ services:
     env_file: *env_file
     volumes:
       - ./:/app
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - npm run worker:dev
     cpu_shares: "${CPU_SHARES_IMPORTANT}"
   imgproxy:
     container_name: imgproxy
@@ -163,8 +160,8 @@ services:
       - "CONNECT=localhost:4566"
     cpu_shares: "${CPU_SHARES_LOW}"
   opensearch:
-    image: opensearchproject/opensearch:2.17.0
     container_name: opensearch
+    build: ./docker/opensearch
     profiles:
       - search
     healthcheck:
@@ -176,6 +173,7 @@ services:
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD}
       - plugins.security.disabled=true
       - discovery.type=single-node
+      - "_JAVA_OPTIONS=-Xms2g -Xmx2g"
     ports:
       - 9200:9200 # REST API
       - 9600:9600 # Performance Analyzer

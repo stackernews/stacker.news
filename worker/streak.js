@@ -42,7 +42,7 @@ export async function computeStreaks ({ models }) {
       UPDATE users SET "streak" = NULL FROM ending_streaks WHERE ending_streaks.id = users.id
     ), user_update_extend_streaks AS (
       UPDATE users
-      SET "streak" = (now() AT TIME ZONE 'America/Chicago')::date - extending_streaks.started_at
+      SET "streak" = (now() AT TIME ZONE 'America/Chicago')::date - extending_streaks.started_at::date
       FROM extending_streaks WHERE extending_streaks.id = users.id
     )
     UPDATE "Streak"

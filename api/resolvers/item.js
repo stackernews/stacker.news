@@ -611,7 +611,7 @@ export default {
     },
     dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))
-      const { hostname, pathname } = urlObj
+      let { hostname, pathname } = urlObj
 
       const parseResult = parse(urlObj.hostname)
       if (parseResult?.subdomain?.length > 0) {

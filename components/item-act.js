@@ -40,10 +40,7 @@ const Tips = ({ setOValue }) => {
 const getCustomTips = () => JSON.parse(window.localStorage.getItem('custom-tips')) || []
 
 const addCustomTip = (amount) => {
-  let customTips = Array.from(new Set([amount, ...getCustomTips()]))
-  if (customTips.length > 7) {
-    customTips = customTips.slice(0, 7)
-  }
+  const customTips = Array.from(new Set([amount, ...getCustomTips()])).slice(0, 7)
   window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }
 

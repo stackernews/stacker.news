@@ -7,9 +7,9 @@ usage() {
   cat <<EOF
 Usage: nlp-setup [OPTIONS] [KW_INDEX] [NLP_INDEX]
 
-This script will setup a model and index in opensearch to enable semantic 
-search. It assumes the existence of a default, keyword based index that has 
-already been fully indexed. It then creates a new index for semantic search 
+This script will setup a model and index in opensearch to enable semantic
+search. It assumes the existence of a default, keyword based index that has
+already been fully indexed. It then creates a new index for semantic search
 and re-indexes it using the items from the old index.
 
 It then sets:
@@ -19,7 +19,7 @@ OPENSEARCH_MODEL_ID=<MODEL_ID>
 
 in .env.local.
 
-After running this script, you will need to remove and rebuild your containers 
+After running this script, you will need to remove and rebuild your containers
 using "sndev stop" and "sndev start", in order to enable semantic search.
 
 Options:
@@ -51,7 +51,7 @@ KW_INDEX="${1:-item}"
 NLP_INDEX="${2:-item-nlp}"
 
 # ---------------------------------------
-# Main script 
+# Main script
 # ---------------------------------------
 OS_URL="http://localhost:9200"
 MODEL_NAME="huggingface/sentence-transformers/all-mpnet-base-v2"
@@ -62,7 +62,7 @@ set -e
 COMPOSE_PROFILES=$(docker exec app printenv COMPOSE_PROFILES)
 if [[ ! "$COMPOSE_PROFILES" == *"search"* ]]; then
   cat <<EOF
-Please ensure that COMPOSE_PROFILES contains search, then restart the 
+Please ensure that COMPOSE_PROFILES contains search, then restart the
 containers and try again.
 EOF
   exit 1
@@ -76,12 +76,12 @@ if [ "$response" -eq 200 ]; then
 else
   echo "no."
   cat <<EOF
-An index named $KW_INDEX must exist in your stackernews_os volume. 
+An index named $KW_INDEX must exist in your stackernews_os volume.
 
 If you just started up the container, wait a while and try again.
 
 Otherwise, you may need to delete and rebuild the opensearch container and
-stackernews_os volume. Check the value of OPENSEARCH_INDEX in your env 
+stackernews_os volume. Check the value of OPENSEARCH_INDEX in your env
 variables.
 EOF
   exit 1
@@ -137,7 +137,7 @@ else
          "description": "A model group for local models"
        }' | jq -r '.model_group_id')
 fi
-echo "model_group_id=$model_group_id"    
+echo "model_group_id=$model_group_id"
 
 # Check if the model is registered and register if not
 echo -ne "Checking if the NLP model is registered... "
@@ -166,7 +166,7 @@ else
     -d '{
       "name": "'"$MODEL_NAME"'",
       "version": "1.0.1",
-      "model_group_id": "'"$model_group_id"'",         
+      "model_group_id": "'"$model_group_id"'",
       "model_format": "TORCH_SCRIPT"
     }' | jq -r '.task_id')
   echo "Downloading and registering the model (task_id=$task_id)"
@@ -256,10 +256,10 @@ curl -s -o /dev/null \
   -X PUT "$OS_URL/_search/pipeline/nlp-search-pipeline" \
   -H "Content-Type: application/json" \
   -d '{
-    "description": "Pre and post processor for hybrid search", 
+    "description": "Pre and post processor for hybrid search",
     "request_processors": [{
       "neural_query_enricher": {
-        "description": "Sets the default model ID at index and field levels (which doesnt actually work)", 
+        "description": "Sets the default model ID at index and field levels (which doesnt actually work)",
         "default_model_id": "'"$model_id"'"
       }
     }],
@@ -331,7 +331,7 @@ fi
 kw_count=$(curl -s -X GET "$OS_URL/$KW_INDEX/_count" | jq -r '.count')
 nlp_count=$(curl -s -X GET "$OS_URL/$NLP_INDEX/_count" | jq -r '.count')
 
-echo "Ready to begin re-indexing. It may take a while (~10 min)." 
+echo "Ready to begin re-indexing. It may take a while (~10 min)."
 echo "Indexed items in $KW_INDEX: $kw_count"
 echo "Indexed items in $NLP_INDEX: $nlp_count"
 read -p "Do you want to begin re-indexing? (y/n) " response
@@ -390,8 +390,7 @@ echo "done."
 cat <<EOF
 To enable semantic search, you should restart your containers:
 
-> ./sndev stop
-> ./sndev start
+> ./sndev restart
 
 Do NOT rebuild the stackernews_os volume or you will have to run this
 process again.

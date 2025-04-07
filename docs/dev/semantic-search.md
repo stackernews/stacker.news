@@ -1,8 +1,8 @@
 ## Automated setup
 
-To enable semantic search that uses text embeddings, run `./nlp-setup`. 
+To enable semantic search that uses text embeddings, run `./scripts/nlp-setup`.
 
-Before running `./nlp-setup`, ensure the following are true:
+Before running `./scripts/nlp-setup`, ensure the following are true:
 
 - search is enabled in `COMPOSE_PROFILES`:
 
@@ -14,8 +14,7 @@ Before running `./nlp-setup`, ensure the following are true:
 After `nlp-setup` is done, restart your containers to enable semantic search:
 
 ```
-> ./sndev stop
-> ./sndev start
+> ./sndev restart
 ```
 
 

@@ -195,15 +195,16 @@
 .p:has(> .mediaContainer) .mediaContainer img,
 .p:has(> .mediaContainer) .mediaContainer video
 {
-    block-size: revert-layer;
+    min-width: 30%;
     max-width: stretch;
 }
 
-.p.onlyImages {
-    display: block;
+.p:has(> .mediaContainer) .mediaContainer img
+{
+    block-size: revert-layer;
 }
 
-.p.onlyImages:has(> .mediaContainer.loaded) {
+.p.onlyImages {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;

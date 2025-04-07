@@ -33,7 +33,7 @@ export async function createInvoice (
     out: false
   })
 
-  let hostname = url.replace(/^https?:\/\//, '')
+  let hostname = url.replace(/^https?:\/\//, '').replace(/\/+$/, '')
   const agent = getAgent({ hostname })
 
   if (process.env.NODE_ENV !== 'production' && hostname.startsWith('localhost:')) {
@@ -42,9 +42,10 @@ export async function createInvoice (
   }
 
   let res
+  const method = 'POST'
   try {
     res = await fetch(`${agent.protocol}//${hostname}${path}`, {
-      method: 'POST',
+      method,
       headers,
       agent,
       body,
@@ -54,12 +55,12 @@ export async function createInvoice (
     if (err.name === 'AbortError') {
       // XXX node-fetch doesn't throw our custom TimeoutError but throws a generic error so we have to handle that manually.
       // see https://github.com/node-fetch/node-fetch/issues/1462
-      throw new FetchTimeoutError('POST', url, WALLET_CREATE_INVOICE_TIMEOUT_MS)
+      throw new FetchTimeoutError(method, url, WALLET_CREATE_INVOICE_TIMEOUT_MS)
     }
     throw err
   }
 
-  assertContentTypeJson(res)
+  assertContentTypeJson(res, { method })
   if (!res.ok) {
     const errBody = await res.json()
     throw new Error(errBody.detail)

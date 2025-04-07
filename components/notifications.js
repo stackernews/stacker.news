@@ -112,12 +112,14 @@ function NoteHeader ({ color, children, big }) {
 function NoteItem ({ item, ...props }) {
   return (
     <div>
-      {item.title
-        ? <Item item={item} itemClassName='pt-0' {...props} />
-        : (
-          <RootProvider root={item.root}>
-            <Comment item={item} noReply includeParent clickToContext {...props} />
-          </RootProvider>)}
+      {item.isJob
+        ? <ItemJob item={item} {...props} />
+        : item.title
+          ? <Item item={item} itemClassName='pt-0' {...props} />
+          : (
+            <RootProvider root={item.root}>
+              <Comment item={item} noReply includeParent clickToContext {...props} />
+            </RootProvider>)}
     </div>
   )
 }
@@ -700,7 +702,7 @@ function Reminder ({ n }) {
   return (
     <>
       <NoteHeader color='info'>
-        you asked to be reminded of this {n.item.title ? 'post' : 'comment'}
+        you requested this reminder
       </NoteHeader>
       <NoteItem item={n.item} />
     </>
@@ -733,7 +735,10 @@ export function NotificationAlert () {
     error
       ? (
         <Alert variant='danger' dismissible onClose={() => setError(null)}>
-          <span>{error.toString()}</span>
+          <span>{navigator?.brave && error.name === 'AbortError'
+            ? 'Push registration failed. Enable "Use Google services for push messaging" in Brave\'s privacy settings and try again.'
+            : error.toString()}
+          </span>
         </Alert>
         )
       : showAlert

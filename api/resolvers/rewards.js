@@ -1,6 +1,5 @@
 import { amountSchema, validateSchema } from '@/lib/validate'
 import { getAd, getItem } from './item'
-import { topUsers } from './user'
 import performPaidAction from '../paidAction'
 import { GqlInputError } from '@/lib/error'
 
@@ -152,13 +151,6 @@ export default {
     }
   },
   Rewards: {
-    leaderboard: async (parent, args, { models, ...context }) => {
-      // get to and from using postgres because it's easier to do there
-      const [{ to, from }] = await models.$queryRaw`
-        SELECT date_trunc('day',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago' as from,
-               (date_trunc('day',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago') + interval '1 day - 1 second' as to`
-      return await topUsers(parent, { when: 'custom', to: new Date(to).getTime().toString(), from: new Date(from).getTime().toString(), limit: 500 }, { models, ...context })
-    },
     total: async (parent, args, { models }) => {
       if (!parent.total) {
         return 0

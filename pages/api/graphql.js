@@ -11,6 +11,7 @@ import {
   ApolloServerPluginLandingPageLocalDefault,
   ApolloServerPluginLandingPageProductionDefault
 } from '@apollo/server/plugin/landingPage/default'
+import { multiAuthMiddleware } from '@/lib/auth'
 
 const apolloServer = new ApolloServer({
   typeDefs,
@@ -67,7 +68,7 @@ export default startServerAndCreateNextHandler(apolloServer, {
         session = { user: { ...sessionFields, apiKey: true } }
       }
     } else {
-      req = multiAuthMiddleware(req)
+      req = await multiAuthMiddleware(req, res)
       session = await getServerSession(req, res, getAuthOptions(req))
     }
     return {
@@ -81,43 +82,3 @@ export default startServerAndCreateNextHandler(apolloServer, {
     }
   }
 })
-
-export function multiAuthMiddleware (request) {
-  // switch next-auth session cookie with multi_auth cookie if cookie pointer present
-
-  // is there a cookie pointer?
-  const cookiePointerName = 'multi_auth.user-id'
-  const hasCookiePointer = !!request.cookies[cookiePointerName]
-
-  const secure = process.env.NODE_ENV === 'production'
-
-  // is there a session?
-  const sessionCookieName = secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
-  const hasSession = !!request.cookies[sessionCookieName]
-
-  if (!hasCookiePointer || !hasSession) {
-    // no session or no cookie pointer. do nothing.
-    return request
-  }
-
-  const userId = request.cookies[cookiePointerName]
-  if (userId === 'anonymous') {
-    // user switched to anon. only delete session cookie.
-    delete request.cookies[sessionCookieName]
-    return request
-  }
-
-  const userJWT = request.cookies[`multi_auth.${userId}`]
-  if (!userJWT) {
-    // no JWT for account switching found
-    return request
-  }
-
-  if (userJWT) {
-    // use JWT found in cookie pointed to by cookie pointer
-    request.cookies[sessionCookieName] = userJWT
-    return request
-  }
-
-  return request
-}

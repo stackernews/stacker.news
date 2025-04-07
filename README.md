@@ -5,7 +5,7 @@
 </p>
 
 
-- Stacker News makes internet communities that pay you Bitcoin
+- Stacker News is trying to fix online communities with economics
 - What You See is What We Ship (look ma, I invented an initialism)
 - 100% FOSS
 - We pay bitcoin for PRs, issues, documentation, code reviews and more
@@ -131,6 +131,24 @@ services:
 
 You can read more about [docker compose override files](https://docs.docker.com/compose/multiple-compose-files/merge/).
 
+#### Enabling semantic search
+
+To enable semantic search that uses text embeddings, run `./scripts/nlp-setup`.
+
+Before running `./scripts/nlp-setup`, ensure the following are true:
+
+- search is enabled in `COMPOSE_PROFILES`:
+
+    ```.env
+    COMPOSE_PROFILES=...,search,...
+    ```
+- The default opensearch index (default name=`item`) is created and done indexing. This should happen the first time you run `./sndev start`, but it may take a few minutes for indexing to complete.
+
+After `nlp-setup` is done, restart your containers to enable semantic search:
+
+```
+> ./sndev restart
+```
 
 
 <br>

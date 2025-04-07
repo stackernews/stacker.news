@@ -15,7 +15,6 @@ import { lnAddrSchema, withdrawlSchema } from '@/lib/validate'
 import { useShowModal } from '@/components/modal'
 import { useField } from 'formik'
 import { useToast } from '@/components/toast'
-import { Scanner } from '@yudiel/react-qr-scanner'
 import { decode } from 'bolt11'
 import CameraIcon from '@/svgs/camera-line.svg'
 import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
@@ -24,6 +23,8 @@ import useDebounceCallback from '@/components/use-debounce-callback'
 import { lnAddrOptions } from '@/lib/lnurl'
 import AccordianItem from '@/components/accordian-item'
 import { numWithUnits } from '@/lib/format'
+import PageLoading from '@/components/page-loading'
+import dynamic from 'next/dynamic'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -153,39 +154,47 @@ function InvoiceScanner ({ fieldName }) {
   const showModal = useShowModal()
   const [,, helpers] = useField(fieldName)
   const toaster = useToast()
+  const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner), {
+    ssr: false,
+    loading: () => <PageLoading />
+  })
+
   return (
     <InputGroup.Text
       style={{ cursor: 'pointer' }}
       onClick={() => {
         showModal(onClose => {
           return (
-            <Scanner
-              formats={['qr_code']}
-              onScan={([{ rawValue: result }]) => {
-                result = result.toLowerCase()
-                if (result.split('lightning=')[1]) {
-                  helpers.setValue(result.split('lightning=')[1].split(/[&?]/)[0])
-                } else if (decode(result.replace(/^lightning:/, ''))) {
-                  helpers.setValue(result.replace(/^lightning:/, ''))
-                } else {
-                  throw new Error('Not a proper lightning payment request')
-                }
-                onClose()
-              }}
-              styles={{
-                video: {
-                  aspectRatio: '1 / 1'
-                }
-              }}
-              onError={(error) => {
-                if (error instanceof DOMException) {
-                  console.log(error)
-                } else {
-                  toaster.danger('qr scan: ' + error?.message || error?.toString?.())
-                }
-                onClose()
-              }}
-            />
+            <>
+              {Scanner && (
+                <Scanner
+                  formats={['qr_code']}
+                  onScan={([{ rawValue: result }]) => {
+                    result = result.toLowerCase()
+                    if (result.split('lightning=')[1]) {
+                      helpers.setValue(result.split('lightning=')[1].split(/[&?]/)[0])
+                    } else if (decode(result.replace(/^lightning:/, ''))) {
+                      helpers.setValue(result.replace(/^lightning:/, ''))
+                    } else {
+                      throw new Error('Not a proper lightning payment request')
+                    }
+                    onClose()
+                  }}
+                  styles={{
+                    video: {
+                      aspectRatio: '1 / 1'
+                    }
+                  }}
+                  onError={(error) => {
+                    if (error instanceof DOMException) {
+                      console.log(error)
+                    } else {
+                      toaster.danger('qr scan: ' + error?.message || error?.toString?.())
+                    }
+                    onClose()
+                  }}
+                />)}
+            </>
           )
         })
       }}

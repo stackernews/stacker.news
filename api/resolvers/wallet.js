@@ -430,6 +430,10 @@ const resolvers = {
               lte: to ? new Date(Number(to)) : undefined
             }
           },
+          include: {
+            invoice: true,
+            withdrawal: true
+          },
           orderBy: [
             { createdAt: 'desc' },
             { id: 'desc' }
@@ -444,6 +448,10 @@ const resolvers = {
             createdAt: {
               lte: decodedCursor.time
             }
+          },
+          include: {
+            invoice: true,
+            withdrawal: true
           },
           orderBy: [
             { createdAt: 'desc' },
@@ -473,6 +481,13 @@ const resolvers = {
         AND "cancelledAt" < now() - ${`${WALLET_RETRY_AFTER_MS} milliseconds`}::interval
         AND "cancelledAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
         AND "paymentAttempt" < ${WALLET_MAX_RETRIES}
+        AND (
+          "actionType" = 'ITEM_CREATE' OR
+          "actionType" = 'ZAP' OR
+          "actionType" = 'DOWN_ZAP' OR
+          "actionType" = 'POLL_VOTE' OR
+          "actionType" = 'BOOST'
+        )
         ORDER BY id DESC`
     }
   },
@@ -745,14 +760,45 @@ const resolvers = {
       return item
     },
     sats: fact => msatsToSatsDecimal(fact.msats)
+  },
+
+  WalletLogEntry: {
+    context: async ({ level, context, invoice, withdrawal }, args, { models }) => {
+      const isError = ['error', 'warn'].includes(level.toLowerCase())
+
+      if (withdrawal) {
+        return {
+          ...await logContextFromBolt11(withdrawal.bolt11),
+          ...(withdrawal.preimage ? { preimage: withdrawal.preimage } : {}),
+          ...(isError ? { max_fee: formatMsats(withdrawal.msatsFeePaying) } : {})
+        }
+      }
+
+      // XXX never return invoice as context because it might leak sensitive sender details
+      // if (invoice) { ... }
+
+      return context
+    }
   }
 }
 
 export default injectResolvers(resolvers)
 
-export const walletLogger = ({ wallet, models }) => {
-  // no-op logger if wallet is not provided
-  if (!wallet) {
+const logContextFromBolt11 = async (bolt11) => {
+  const decoded = await parsePaymentRequest({ request: bolt11 })
+  return {
+    bolt11,
+    amount: formatMsats(decoded.mtokens),
+    payment_hash: decoded.id,
+    created_at: decoded.created_at,
+    expires_at: decoded.expires_at,
+    description: decoded.description
+  }
+}
+
+export const walletLogger = ({ wallet, models, me }) => {
+  // no-op logger if no wallet or user provided
+  if (!wallet && !me) {
     return {
       ok: () => {},
       info: () => {},
@@ -762,31 +808,28 @@ export const walletLogger = ({ wallet, models }) => {
   }
 
   // server implementation of wallet logger interface on client
-  const log = (level) => async (message, context = {}) => {
+  const log = (level) => async (message, ctx = {}) => {
     try {
-      if (context?.bolt11) {
+      let { invoiceId, withdrawalId, ...context } = ctx
+
+      if (context.bolt11) {
         // automatically populate context from bolt11 to avoid duplicating this code
-        const decoded = await parsePaymentRequest({ request: context.bolt11 })
         context = {
           ...context,
-          amount: formatMsats(decoded.mtokens),
-          payment_hash: decoded.id,
-          created_at: decoded.created_at,
-          expires_at: decoded.expires_at,
-          description: decoded.description,
-          // payments should affect wallet status
-          status: true
+          ...await logContextFromBolt11(context.bolt11)
         }
       }
-      context.recv = true
 
       await models.walletLog.create({
         data: {
-          userId: wallet.userId,
-          wallet: wallet.type,
+          userId: wallet?.userId ?? me.id,
+          // system logs have no wallet
+          wallet: wallet?.type,
           level,
           message,
-          context
+          context,
+          invoiceId,
+          withdrawalId
         }
       })
     } catch (err) {
@@ -811,7 +854,10 @@ async function upsertWallet (
 
   if (testCreateInvoice) {
     try {
-      await testCreateInvoice(data)
+      const pr = await testCreateInvoice(data)
+      if (!pr || typeof pr !== 'string' || !pr.startsWith('lnbc')) {
+        throw new GqlInputError('not a valid payment request')
+      }
     } catch (err) {
       const message = 'failed to create test invoice: ' + (err.message || err.toString?.())
       logger.error(message)

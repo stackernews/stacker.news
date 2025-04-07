@@ -4,22 +4,29 @@ import { formatSats } from '@/lib/format'
 import useInvoice from '@/components/use-invoice'
 import { FAST_POLL_INTERVAL, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
-  WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
+  AnonWalletError, WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
   WalletNotEnabledError, WalletSendNotConfiguredError, WalletPaymentError, WalletError, WalletReceiverError
 } from '@/wallets/errors'
 import { canSend } from './common'
 import { useWalletLoggerFactory } from './logger'
 import { timeoutSignal, withTimeout } from '@/lib/time'
+import { useMe } from '@/components/me'
 
 export function useWalletPayment () {
   const wallets = useSendWallets()
   const sendPayment = useSendPayment()
   const loggerFactory = useWalletLoggerFactory()
   const invoiceHelper = useInvoice()
+  const { me } = useMe()
 
   return useCallback(async (invoice, { waitFor, updateOnFallback } = {}) => {
     let aggregateError = new WalletAggregateError([])
     let latestInvoice = invoice
+
+    // anon user cannot pay with wallets
+    if (!me) {
+      throw new AnonWalletError()
+    }
 
     // throw a special error that caller can handle separately if no payment was attempted
     if (wallets.length === 0) {
@@ -98,7 +105,7 @@ export function useWalletPayment () {
 
     // if we reach this line, no wallet payment succeeded
     throw new WalletPaymentAggregateError([aggregateError], latestInvoice)
-  }, [wallets, invoiceHelper, sendPayment])
+  }, [wallets, invoiceHelper, sendPayment, loggerFactory])
 }
 
 function invoiceController (inv, isInvoice) {

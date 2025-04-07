@@ -4,7 +4,7 @@ import Image from 'react-bootstrap/Image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import Nav from 'react-bootstrap/Nav'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Form, Input, SubmitButton } from './form'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import styles from './user-header.module.css'
@@ -199,7 +199,13 @@ export function NymActionDropdown ({ user, className = 'ms-2' }) {
 }
 
 function HeaderNym ({ user, isMe }) {
+  const router = useRouter()
   const [editting, setEditting] = useState(false)
+
+  // if route changes, reset editting state
+  useEffect(() => {
+    setEditting(false)
+  }, [router.asPath])
 
   return editting
     ? <NymEdit user={user} setEditting={setEditting} />

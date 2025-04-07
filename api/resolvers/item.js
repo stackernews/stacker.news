@@ -38,16 +38,12 @@ function commentsOrderByClause (me, models, sort) {
       COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC, "Item".id DESC`
   }
 
-  if (me && sort === 'hot') {
+  if (sort === 'hot') {
     return `ORDER BY ${sharedSorts},
-      "personal_hot_score" DESC NULLS LAST,
-      "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
+      "hotScore" DESC NULLS LAST,
+      "Item".msats DESC, "Item".id DESC`
   } else {
-    if (sort === 'top') {
-      return `ORDER BY ${sharedSorts}, ${orderByNumerator({ models, commentScaler: 0 })} DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC,  "Item".id DESC`
-    } else {
-      return `ORDER BY ${sharedSorts}, ${orderByNumerator({ models, commentScaler: 0, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
-    }
+    return `ORDER BY ${sharedSorts}, "Item"."weightedVotes" - "Item"."weightedDownVotes" DESC NULLS LAST, "Item".msats DESC, "Item".id DESC`
   }
 }
 
@@ -137,14 +133,14 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
   }, ...subArr))?.[0] || null
 }
 
-const orderByClause = (by, me, models, type) => {
+const orderByClause = (by, me, models, type, sub) => {
   switch (by) {
     case 'comments':
       return 'ORDER BY "Item".ncomments DESC'
     case 'sats':
       return 'ORDER BY "Item".msats DESC'
     case 'zaprank':
-      return topOrderByWeightedSats(me, models)
+      return topOrderByWeightedSats(me, models, sub)
     case 'boost':
       return 'ORDER BY "Item".boost DESC'
     case 'random':
@@ -154,22 +150,8 @@ const orderByClause = (by, me, models, type) => {
   }
 }
 
-export function orderByNumerator ({ models, commentScaler = 0.5, considerBoost = false }) {
-  return `((CASE WHEN "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0 THEN
-              GREATEST("Item"."weightedVotes" - "Item"."weightedDownVotes", POWER("Item"."weightedVotes" - "Item"."weightedDownVotes", 1.2))
-            ELSE
-              "Item"."weightedVotes" - "Item"."weightedDownVotes"
-            END + "Item"."weightedComments"*${commentScaler}) + ${considerBoost ? `("Item".boost / ${BOOST_MULT})` : 0})`
-}
-
-export function joinZapRankPersonalView (me, models) {
-  let join = ` JOIN zap_rank_personal_view g ON g.id = "Item".id AND g."viewerId" = ${GLOBAL_SEED} `
-
-  if (me) {
-    join += ` LEFT JOIN zap_rank_personal_view l ON l.id = g.id AND l."viewerId" = ${me.id} `
-  }
-
-  return join
+export function joinHotScoreView (me, models) {
+  return ' JOIN hot_score_view g ON g.id = "Item".id '
 }
 
 // this grabs all the stuff we need to display the item list and only
@@ -474,10 +456,10 @@ export default {
                 await filterClause(me, models, type),
                 by === 'boost' && '"Item".boost > 0',
                 muteClause(me))}
-              ${orderByClause(by || 'zaprank', me, models, type)}
+              ${orderByClause(by || 'zaprank', me, models, type, sub)}
               OFFSET $3
               LIMIT $4`,
-            orderBy: orderByClause(by || 'zaprank', me, models, type)
+            orderBy: orderByClause(by || 'zaprank', me, models, type, sub)
           }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
           break
         case 'random':
@@ -526,7 +508,7 @@ export default {
                     ${whereClause(
                       '"parentId" IS NULL',
                       '"Item"."deletedAt" IS NULL',
-                      '"Item"."status" = \'ACTIVE\'',
+                      activeOrMine(me),
                       'created_at <= $1',
                       '"pinId" IS NULL',
                       subClause(sub, 4)
@@ -570,10 +552,10 @@ export default {
                 me,
                 models,
                 query: `
-                    ${SELECT}, ${me ? 'GREATEST(g.tf_hot_score, l.tf_hot_score)' : 'g.tf_hot_score'} AS rank
+                    ${SELECT}, g.hot_score AS "hotScore", g.sub_hot_score AS "subHotScore"
                     FROM "Item"
                     LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
-                    ${joinZapRankPersonalView(me, models)}
+                    ${joinHotScoreView(me, models)}
                     ${whereClause(
                       // in home (sub undefined), filter out global pinned items since we inject them later
                       sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
@@ -586,40 +568,11 @@ export default {
                       await filterClause(me, models, type),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
-                    ORDER BY rank DESC
+                    ORDER BY ${sub ? '"subHotScore"' : '"hotScore"'} DESC, "Item".msats DESC, "Item".id DESC
                     OFFSET $1
                     LIMIT $2`,
-                orderBy: 'ORDER BY rank DESC'
+                orderBy: `ORDER BY ${sub ? '"subHotScore"' : '"hotScore"'} DESC, "Item".msats DESC, "Item".id DESC`
               }, decodedCursor.offset, limit, ...subArr)
-
-              // XXX this is mostly for subs that are really empty
-              if (items.length < limit) {
-                items = await itemQueryWithMeta({
-                  me,
-                  models,
-                  query: `
-                      ${SELECT}
-                      FROM "Item"
-                      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
-                      ${whereClause(
-                        subClause(sub, 3, 'Item', me, showNsfw),
-                        muteClause(me),
-                        // in home (sub undefined), filter out global pinned items since we inject them later
-                        sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
-                        '"Item"."deletedAt" IS NULL',
-                        '"Item"."parentId" IS NULL',
-                        '"Item".bio = false',
-                        ad ? `"Item".id <> ${ad.id}` : '',
-                        activeOrMine(me),
-                        await filterClause(me, models, type))}
-                        ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
-                          "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC
-                      OFFSET $1
-                      LIMIT $2`,
-                  orderBy: `ORDER BY ${orderByNumerator({ models, considerBoost: true })}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST,
-                    "Item".msats DESC, ("Item".cost > 0) DESC, "Item".id DESC`
-                }, decodedCursor.offset, limit, ...subArr)
-              }
               break
           }
           break
@@ -1495,7 +1448,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     throw new GqlInputError('item can no longer be edited')
   }
 
-  if (item.url && !isJob(item)) {
+  if (item.url && !isJob({ subName, ...item })) {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }
@@ -1573,6 +1526,9 @@ export const SELECT =
   `SELECT "Item".*, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt",
     ltree2text("Item"."path") AS "path"`
 
-function topOrderByWeightedSats (me, models) {
-  return `ORDER BY ${orderByNumerator({ models })} DESC NULLS LAST, "Item".id DESC`
+function topOrderByWeightedSats (me, models, sub) {
+  if (sub) {
+    return 'ORDER BY "Item"."subWeightedVotes" - "Item"."subWeightedDownVotes" DESC, "Item".msats DESC, "Item".id DESC'
+  }
+  return 'ORDER BY "Item"."weightedVotes" - "Item"."weightedDownVotes" DESC, "Item".msats DESC, "Item".id DESC'
 }

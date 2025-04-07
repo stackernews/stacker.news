@@ -22,9 +22,11 @@ import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
 import { useWallets } from '@/wallets/index'
-import SwitchAccountList, { useAccounts } from '@/components/account'
+import { useWalletIndicator } from '@/components/wallet-indicator'
+import SwitchAccountList, { nextAccount, useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
+
 export function Brand ({ className }) {
   return (
     <Link href='/' passHref legacyBehavior>
@@ -164,8 +166,34 @@ export function NavWalletSummary ({ className }) {
   )
 }
 
+export const Indicator = ({ superscript }) => {
+  if (superscript) {
+    return (
+      <span className='d-inline-block p-1'>
+        <span
+          className='position-absolute p-1 bg-secondary'
+          style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}
+        >
+          <span className='invisible'>{' '}</span>
+        </span>
+      </span>
+    )
+  }
+
+  return (
+    <div className='p-1 d-inline-block bg-secondary ms-1'>
+      <span className='invisible'>{' '}</span>
+    </div>
+  )
+}
+
 export function MeDropdown ({ me, dropNavKey }) {
   if (!me) return null
+
+  const profileIndicator = !me.bioId
+  const walletIndicator = useWalletIndicator()
+  const indicator = profileIndicator || walletIndicator
+
   return (
     <div className=''>
       <Dropdown className={styles.dropdown} align='end'>
@@ -173,12 +201,7 @@ export function MeDropdown ({ me, dropNavKey }) {
           <div className='d-flex align-items-center'>
             <Nav.Link eventKey={me.name} as='span' className='p-0 position-relative'>
               {`@${me.name}`}
-              {!me.bioId &&
-                <span className='d-inline-block p-1'>
-                  <span className='position-absolute p-1 bg-secondary' style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}>
-                    <span className='invisible'>{' '}</span>
-                  </span>
-                </span>}
+              {indicator && <Indicator superscript />}
             </Nav.Link>
             <Badges user={me} />
           </div>
@@ -187,17 +210,17 @@ export function MeDropdown ({ me, dropNavKey }) {
           <Link href={'/' + me.name} passHref legacyBehavior>
             <Dropdown.Item active={me.name === dropNavKey}>
               profile
-              {me && !me.bioId &&
-                <div className='p-1 d-inline-block bg-secondary ms-1'>
-                  <span className='invisible'>{' '}</span>
-                </div>}
+              {profileIndicator && <Indicator />}
             </Dropdown.Item>
           </Link>
           <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
             <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
           </Link>
           <Link href='/wallets' passHref legacyBehavior>
-            <Dropdown.Item eventKey='wallets'>wallets</Dropdown.Item>
+            <Dropdown.Item eventKey='wallets'>
+              wallets
+              {walletIndicator && <Indicator />}
+            </Dropdown.Item>
           </Link>
           <Link href='/credits' passHref legacyBehavior>
             <Dropdown.Item eventKey='credits'>credits</Dropdown.Item>
@@ -223,6 +246,9 @@ export function MeDropdown ({ me, dropNavKey }) {
   )
 }
 
+// this is the width of the 'switch account' button if no width is given
+const SWITCH_ACCOUNT_BUTTON_WIDTH = '162px'
+
 export function SignUpButton ({ className = 'py-0', width }) {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
@@ -233,7 +259,8 @@ export function SignUpButton ({ className = 'py-0', width }) {
   return (
     <Button
       className={classNames('align-items-center ps-2 pe-3', className)}
-      style={{ borderWidth: '2px', width: width || '150px' }}
+      // 161px is the width of the 'switch account' button
+      style={{ borderWidth: '2px', width: width || SWITCH_ACCOUNT_BUTTON_WIDTH }}
       id='signup'
       onClick={() => handleLogin('/signup')}
     >
@@ -257,7 +284,7 @@ export default function LoginButton () {
     <Button
       className='align-items-center px-3 py-1'
       id='login'
-      style={{ borderWidth: '2px', width: '150px' }}
+      style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       variant='outline-grey-darkmode'
       onClick={() => handleLogin('/login')}
     >
@@ -269,7 +296,6 @@ export default function LoginButton () {
 function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const { removeLocalWallets } = useWallets()
-  const { multiAuthSignout } = useAccounts()
   const router = useRouter()
 
   return (
@@ -285,9 +311,9 @@ function LogoutObstacle ({ onClose }) {
         </Button>
         <Button
           onClick={async () => {
-            const switchSuccess = await multiAuthSignout()
-            // only signout if multiAuth did not find a next available account
-            if (switchSuccess) {
+            const next = await nextAccount()
+            // only signout if we did not find a next account
+            if (next) {
               onClose()
               // reload whatever page we're on to avoid any bugs
               router.reload()
@@ -336,7 +362,7 @@ export function LogoutDropdownItem ({ handleClose }) {
 
 function SwitchAccountButton ({ handleClose }) {
   const showModal = useShowModal()
-  const { accounts } = useAccounts()
+  const accounts = useAccounts()
 
   if (accounts.length === 0) return null
 
@@ -344,7 +370,7 @@ function SwitchAccountButton ({ handleClose }) {
     <Button
       className='align-items-center px-3 py-1'
       variant='outline-grey-darkmode'
-      style={{ borderWidth: '2px', width: '150px' }}
+      style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       onClick={() => {
         // login buttons rendered in offcanvas aren't wrapped inside <Dropdown>
         // so we manually close the offcanvas in that case by passing down handleClose here

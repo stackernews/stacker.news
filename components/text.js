@@ -20,7 +20,6 @@ import rehypeSN from '@/lib/rehype-sn'
 import remarkUnicode from '@/lib/remark-unicode'
 import Embed from './embed'
 import remarkMath from 'remark-math'
-import rehypeMathjax from 'rehype-mathjax'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -35,7 +34,6 @@ const rehypeSNStyled = () => rehypeSN({
 })
 
 const remarkPlugins = [gfm, remarkUnicode, [remarkMath, { singleDollarTextMath: false }]]
-const rehypePlugins = [rehypeSNStyled, rehypeMathjax]
 
 export function SearchText ({ text }) {
   return (
@@ -51,16 +49,32 @@ export function SearchText ({ text }) {
 
 // this is one of the slowest components to render
 export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
+  // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
-  const router = useRouter()
+  // should we show the full text?
   const [show, setShow] = useState(false)
   const containerRef = useRef(null)
 
+  const router = useRouter()
+  const [mathJaxPlugin, setMathJaxPlugin] = useState(null)
+
+  // we only need mathjax if there's math content between $$ tags
+  useEffect(() => {
+    if (/\$\$(.|\n)+\$\$/g.test(children)) {
+      import('rehype-mathjax').then(mod => {
+        setMathJaxPlugin(() => mod.default)
+      }).catch(err => {
+        console.error('error loading mathjax', err)
+        setMathJaxPlugin(null)
+      })
+    }
+  }, [children])
+
   // if we are navigating to a hash, show the full text
   useEffect(() => {
-    setShow(router.asPath.includes('#') && !router.asPath.includes('#itemfn-'))
+    setShow(router.asPath.includes('#'))
     const handleRouteChange = (url, { shallow }) => {
-      setShow(url.includes('#') && !url.includes('#itemfn-'))
+      setShow(url.includes('#'))
     }
 
     router.events.on('hashChangeStart', handleRouteChange)
@@ -133,12 +147,12 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
     <ReactMarkdown
       components={components}
       remarkPlugins={remarkPlugins}
-      rehypePlugins={rehypePlugins}
+      rehypePlugins={[rehypeSNStyled, mathJaxPlugin].filter(Boolean)}
       remarkRehypeOptions={{ clobberPrefix: `itemfn-${itemId}-` }}
     >
       {children}
     </ReactMarkdown>
-  ), [components, remarkPlugins, rehypePlugins, children, itemId])
+  ), [components, remarkPlugins, mathJaxPlugin, children, itemId])
 
   const showOverflow = useCallback(() => setShow(true), [setShow])
 
@@ -227,19 +241,34 @@ function Table ({ node, ...props }) {
   )
 }
 
+// prevent layout shifting when the code block is loading
+function CodeSkeleton ({ className, children, ...props }) {
+  return (
+    <div className='rounded' style={{ padding: '0.5em' }}>
+      <code className={`${className}`} {...props}>
+        {children}
+      </code>
+    </div>
+  )
+}
+
 function Code ({ node, inline, className, children, style, ...props }) {
   const [ReactSyntaxHighlighter, setReactSyntaxHighlighter] = useState(null)
   const [syntaxTheme, setSyntaxTheme] = useState(null)
+  const language = className?.match(/language-(\w+)/)?.[1] || 'text'
 
   const loadHighlighter = useCallback(() =>
     Promise.all([
-      dynamic(() => import('react-syntax-highlighter').then(mod => mod.LightAsync), { ssr: false }),
+      dynamic(() => import('react-syntax-highlighter').then(mod => mod.LightAsync), {
+        ssr: false,
+        loading: () => <CodeSkeleton className={className} {...props}>{children}</CodeSkeleton>
+      }),
       import('react-syntax-highlighter/dist/cjs/styles/hljs/atom-one-dark').then(mod => mod.default)
     ]), []
   )
 
   useEffect(() => {
-    if (!inline) {
+    if (!inline && language !== 'math') { // MathJax should handle math
       // loading the syntax highlighter and theme only when needed
       loadHighlighter().then(([highlighter, theme]) => {
         setReactSyntaxHighlighter(() => highlighter)
@@ -248,7 +277,7 @@ function Code ({ node, inline, className, children, style, ...props }) {
     }
   }, [inline])
 
-  if (inline || !ReactSyntaxHighlighter || !syntaxTheme) {
+  if (inline || !ReactSyntaxHighlighter) { // inline code doesn't have a border radius
     return (
       <code className={className} {...props}>
         {children}
@@ -256,12 +285,14 @@ function Code ({ node, inline, className, children, style, ...props }) {
     )
   }
 
-  const language = className?.match(/language-(\w+)/)?.[1] || 'text'
-
   return (
-    <ReactSyntaxHighlighter style={syntaxTheme} language={language} PreTag='div' customStyle={{ borderRadius: '0.3rem' }} {...props}>
-      {children}
-    </ReactSyntaxHighlighter>
+    <>
+      {ReactSyntaxHighlighter && syntaxTheme && (
+        <ReactSyntaxHighlighter style={syntaxTheme} language={language} PreTag='div' customStyle={{ borderRadius: '0.3rem' }} {...props}>
+          {children}
+        </ReactSyntaxHighlighter>
+      )}
+    </>
   )
 }
 

@@ -27,10 +27,11 @@ export const createInvoice = async (
   }
 
   // call callback with amount and conditionally comment
-  const res = await fetchWithTimeout(callbackUrl.toString(), { signal })
+  const method = 'GET'
+  const res = await fetchWithTimeout(callbackUrl.toString(), { method, signal })
 
-  assertResponseOk(res)
-  assertContentTypeJson(res)
+  assertResponseOk(res, { method })
+  assertContentTypeJson(res, { method })
 
   const body = await res.json()
   if (body.status === 'ERROR') {

@@ -25,6 +25,7 @@ import assertApiKeyNotPermitted from './apiKey'
 import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
+import { parse } from 'tldts'
 
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
@@ -610,13 +611,12 @@ export default {
     },
     dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))
-      const { hostname, pathname } = urlObj
+      let { hostname, pathname } = urlObj
 
-      // DON'T remove subdomain — keep the full hostname
-      // const parseResult = parse(urlObj.hostname)
-      // if (parseResult?.subdomain?.length > 0) {
-      //   hostname = hostname.replace(`${parseResult.subdomain}.`, '')
-      // }
+      const parseResult = parse(urlObj.hostname)
+      if (parseResult?.subdomain?.length > 0) {
+        hostname = hostname.replace(`${parseResult.subdomain}.`, '')
+      }
       // hostname with optional protocol, subdomain, and port
       const hostnameRegex = `^(http(s)?:\\/\\/)?(\\w+\\.)?${(hostname + '(:[0-9]+)?').replace(/\./g, '\\.')}`
       // pathname with trailing slash and escaped special characters
@@ -638,6 +638,9 @@ export default {
       } else if (urlObj.hostname === 'yewtu.be') {
         const matches = url.match(/(https?:\/\/)?yewtu\.be.*(v=|embed\/)(?<id>[_0-9a-z-]+)/i)
         similar = `^(http(s)?:\\/\\/)?yewtu\\.be\\/(watch\\?v\\=|embed\\/)${matches?.groups?.id}&?`
+      } else {
+        // only allow ending of mismatching search params
+        similar += '(?:\\?.*)?$'
       }
 
       return await itemQueryWithMeta({

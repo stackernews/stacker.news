@@ -54,8 +54,6 @@ export default {
         throw new GqlInputError('invalid branding')
       }
 
-      // TODO: validation, even of logo and favicon.
-
       return await models.customBranding.upsert({
         where: { subName },
         update: {

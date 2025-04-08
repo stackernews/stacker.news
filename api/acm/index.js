@@ -1,22 +1,17 @@
 import AWS from 'aws-sdk'
-// TODO: boilerplate
 
 AWS.config.update({
   region: 'us-east-1'
 })
 
-const config = {
-  s3ForcePathStyle: process.env.NODE_ENV === 'development'
-}
+const config = {}
 
 export async function requestCertificate (domain) {
-  // for local development, we use the LOCALSTACK_ENDPOINT which
-  // is reachable from the host machine
+  // for local development, we use the LOCALSTACK_ENDPOINT
   if (process.env.NODE_ENV === 'development') {
     config.endpoint = process.env.LOCALSTACK_ENDPOINT
   }
 
-  // TODO: Research real values
   const acm = new AWS.ACM(config)
   const params = {
     DomainName: domain,
@@ -24,7 +19,7 @@ export async function requestCertificate (domain) {
     Tags: [
       {
         Key: 'ManagedBy',
-        Value: 'stackernews'
+        Value: 'stacker.news'
       }
     ]
   }
@@ -34,8 +29,6 @@ export async function requestCertificate (domain) {
 }
 
 export async function describeCertificate (certificateArn) {
-  // for local development, we use the LOCALSTACK_ENDPOINT which
-  // is reachable from the host machine
   if (process.env.NODE_ENV === 'development') {
     config.endpoint = process.env.LOCALSTACK_ENDPOINT
   }

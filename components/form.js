@@ -23,7 +23,7 @@ import textAreaCaret from 'textarea-caret'
 import 'react-datepicker/dist/react-datepicker.css'
 import useDebounceCallback, { debounce } from './use-debounce-callback'
 import { FileUpload } from './file-upload'
-import { AWS_S3_URL_REGEXP } from '@/lib/constants'
+import { AWS_S3_URL_REGEXP, MEDIA_URL } from '@/lib/constants'
 import { whenRange } from '@/lib/time'
 import { useFeeButton } from './fee-button'
 import Thumb from '@/svgs/thumb-up-fill.svg'
@@ -1411,12 +1411,23 @@ export function ColorPicker ({ label, groupClassName, name, ...props }) {
 }
 
 export function BrandingUpload ({ label, groupClassName, name, ...props }) {
-  const [, , helpers] = useField({ ...props, name })
+  const [field, , helpers] = useField({ ...props, name })
+  const [tempId, setTempId] = useState(field.value)
+
+  const handleSuccess = useCallback((id) => {
+    setTempId(id)
+    helpers.setValue(id)
+  }, [helpers])
 
   return (
     <FormGroup label={label} className={groupClassName}>
+      <img
+        src={tempId ? `${MEDIA_URL}/${tempId}` : '/favicon.png'}
+        alt={name}
+        style={{ objectFit: 'contain', position: 'relative', width: '100%', height: '100%' }}
+      />
       <Avatar
-        onSuccess={(id) => helpers.setValue(id)}
+        onSuccess={handleSuccess}
       />
     </FormGroup>
   )

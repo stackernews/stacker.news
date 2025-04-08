@@ -351,6 +351,9 @@ function LogoutObstacle ({ onClose }) {
             removeLocalWallets()
 
             await signOut({ callbackUrl: '/', redirect: !customDomain })
+            if (customDomain) {
+              onClose()
+            }
           }}
         >
           logout

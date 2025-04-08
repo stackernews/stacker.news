@@ -1,4 +1,5 @@
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { validateSchema, customBrandingSchema } from '@/lib/validate'
 
 export default {
   Query: {
@@ -38,6 +39,19 @@ export default {
         if (!favicon) {
           throw new GqlInputError('favicon not found')
         }
+      }
+
+      if (!validateSchema(customBrandingSchema, {
+        title,
+        primary: colors.primary,
+        secondary: colors.secondary,
+        info: colors.info,
+        success: colors.success,
+        danger: colors.danger,
+        logoId,
+        faviconId
+      })) {
+        throw new GqlInputError('invalid branding')
       }
 
       // TODO: validation, even of logo and favicon.

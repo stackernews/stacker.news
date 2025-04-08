@@ -3,6 +3,7 @@ import { gql } from 'graphql-tag'
 export default gql`
   extend type Query {
     customDomain(subName: String!): CustomDomain
+    domainMapping(domain: String!): DomainMapping
   }
 
   extend type Mutation {
@@ -18,6 +19,11 @@ export default gql`
     failedAttempts: Int
     status: String
     verification: CustomDomainVerification
+  }
+  
+  type DomainMapping {
+    domain: String!
+    subName: String!
   }
 
   type CustomDomainVerification {

@@ -1,5 +1,5 @@
 import { NextResponse, URLPattern } from 'next/server'
-import { cachedFetcher } from '@/lib/fetch'
+import { domainLogger, getDomainMappingsCache } from '@/lib/domains'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -15,30 +15,6 @@ const SN_REFEREE_LANDING = 'sn_referee_landing'
 // rewrite to ~subname paths
 const TERRITORY_PATHS = ['/~', '/recent', '/random', '/top', '/post', '/edit']
 
-// TODO: move this to a separate file
-// fetch custom domain mappings from our API, caching it for 5 minutes
-export const getDomainMappingsCache = cachedFetcher(async function fetchDomainMappings () {
-  const url = `${process.env.NEXT_PUBLIC_URL}/api/domains`
-  console.log('fetching domain mappings from', url) // TEST
-  try {
-    const response = await fetch(url)
-    if (!response.ok) {
-      console.error(`Cannot fetch domain mappings: ${response.status} ${response.statusText}`)
-      return null
-    }
-
-    const data = await response.json()
-    return Object.keys(data).length > 0 ? data : null
-  } catch (error) {
-    console.error('Cannot fetch domain mappings:', error)
-    return null
-  }
-}, {
-  cacheExpiry: 300000, // 5 minutes cache
-  forceRefreshThreshold: 600000, // 10 minutes before force refresh
-  keyGenerator: () => 'domain_mappings'
-})
-
 // get a domain mapping from the cache
 export async function getDomainMapping (domain) {
   const domainMappings = await getDomainMappingsCache()
@@ -48,17 +24,15 @@ export async function getDomainMapping (domain) {
 // Redirects and rewrites for custom domains
 export async function customDomainMiddleware (request, referrerResp, domain) {
   const host = request.headers.get('host')
-  const referer = request.headers.get('referer')
   const url = request.nextUrl.clone()
   const pathname = url.pathname
-  const mainDomain = process.env.NEXT_PUBLIC_URL + '/'
+  const mainDomain = process.env.NEXT_PUBLIC_URL
 
   // TEST
-  console.log('host', host)
-  console.log('mainDomain', mainDomain)
-  console.log('referer', referer)
-  console.log('pathname', pathname)
-  console.log('query', url.searchParams)
+  domainLogger().log('host', host)
+  domainLogger().log('mainDomain', mainDomain)
+  domainLogger().log('pathname', pathname)
+  domainLogger().log('query', url.searchParams)
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-stacker-news-subname', domain.subName)
@@ -83,29 +57,18 @@ export async function customDomainMiddleware (request, referrerResp, domain) {
   if (pathname.startsWith(`/~${domain.subName}`)) {
     // remove the territory prefix from the path
     const cleanPath = pathname.replace(`/~${domain.subName}`, '') || '/'
-    // TEST
-    console.log('Redirecting to clean path:', cleanPath)
+    domainLogger().log('Redirecting to clean path:', cleanPath)
     const redirectResp = NextResponse.redirect(new URL(cleanPath + url.search, url.origin), {
       headers: requestHeaders
     })
     return applyReferrerCookies(redirectResp, referrerResp) // apply referrer cookies to the redirect
   }
 
-  // if coming from main domain, handle auth automatically
-  // TODO: uncomment and work on this
-
-  /*   if (referer && referer === mainDomain) {
-    const authResp = customDomainAuthMiddleware(request, url)
-    if (authResp && authResp.status !== 200) {
-      return applyReferrerCookies(authResp, referrerResp)
-    }
-  } */
-
   // If we're at the root or a territory path, rewrite to the territory path
   if (pathname === '/' || TERRITORY_PATHS.some(p => pathname.startsWith(p))) {
     const internalUrl = new URL(url)
     internalUrl.pathname = `/~${domain.subName}${pathname === '/' ? '' : pathname}`
-    console.log('Rewrite to:', internalUrl.pathname)
+    domainLogger().log('Rewrite to:', internalUrl.pathname)
     // rewrite to the territory path
     const resp = NextResponse.rewrite(internalUrl, {
       headers: requestHeaders
@@ -118,48 +81,6 @@ export async function customDomainMiddleware (request, referrerResp, domain) {
       headers: requestHeaders
     }
   })
-}
-
-// UNUSED
-// TODO: dirty of previous iterations, refactor
-// UNSAFE UNSAFE UNSAFE tokens are visible in the URL
-// Redirect to Auth Sync if user is not logged in or has no multi_auth sessions
-export function customDomainAuthMiddleware (request, url) {
-  const host = request.headers.get('host')
-  const mainDomain = process.env.NEXT_PUBLIC_URL
-  const pathname = url.pathname
-
-  // check for session both in session token and in multi_auth cookie
-  const secure = process.env.NODE_ENV === 'development' // TODO: change this to production
-  const sessionCookieName = secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
-  const multiAuthUserId = request.cookies.get('multi_auth.user-id')?.value
-
-  // 1. We have a session token directly, or
-  // 2. We have a multi_auth user ID and the corresponding multi_auth cookie
-  const hasActiveSession = !!request.cookies.get(sessionCookieName)?.value
-  const hasMultiAuthSession = multiAuthUserId && !!request.cookies.get(`multi_auth.${multiAuthUserId}`)?.value
-
-  const hasSession = hasActiveSession || hasMultiAuthSession
-  const response = NextResponse.next()
-
-  if (!hasSession) {
-    // TODO: original request url points to localhost, this is a workaround atm
-    const protocol = secure ? 'https' : 'http'
-    const originalDomain = `${protocol}://${host}`
-    const redirectTarget = `${originalDomain}${pathname}`
-
-    // Create the auth sync URL with the correct original domain
-    const syncUrl = new URL(`${mainDomain}/api/auth/sync`)
-    syncUrl.searchParams.set('redirectUrl', redirectTarget)
-
-    console.log('AUTH: Redirecting to:', syncUrl.toString())
-    console.log('AUTH: With redirect back to:', redirectTarget)
-    const redirectResponse = NextResponse.redirect(syncUrl)
-    return redirectResponse
-  }
-
-  console.log('No redirect')
-  return response
 }
 
 function getContentReferrer (request, url) {
@@ -192,7 +113,7 @@ function applyReferrerCookies (response, referrer) {
       }
     )
   }
-  console.log('response.cookies', response.cookies)
+  domainLogger().log('response.cookies', response.cookies)
   return response
 }
 
@@ -309,11 +230,10 @@ export async function middleware (request) {
   const host = request.headers.get('host')
   const isAllowedDomain = await getDomainMapping(host?.toLowerCase())
   if (isAllowedDomain) {
+    domainLogger().log('detected allowed custom domain', isAllowedDomain)
     const customDomainResp = await customDomainMiddleware(request, referrerResp, isAllowedDomain)
     return applySecurityHeaders(customDomainResp)
   }
-
-  console.log('applying security headers')
 
   return applySecurityHeaders(referrerResp)
 }

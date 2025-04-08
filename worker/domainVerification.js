@@ -1,5 +1,5 @@
 import createPrisma from '@/lib/create-prisma'
-import { verifyDomainDNS, issueDomainCertificate, checkCertificateStatus, getValidationValues } from '@/lib/domains'
+import { verifyDomainDNS, issueDomainCertificate, checkCertificateStatus, getValidationValues } from '@/lib/domain-verification'
 
 // This worker verifies the DNS and SSL certificates for domains that are pending or failed
 export async function domainVerification ({ data: { domainId }, boss }) {

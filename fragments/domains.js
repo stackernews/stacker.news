@@ -23,6 +23,15 @@ export const GET_CUSTOM_DOMAIN = gql`
   }
 `
 
+export const GET_DOMAIN_MAPPING = gql`
+  query DomainMapping($domain: String!) {
+    domainMapping(domain: $domain) {
+      domain
+      subName
+    }
+  }
+`
+
 export const GET_CUSTOM_DOMAIN_FULL = gql`
   ${GET_CUSTOM_DOMAIN}
   fragment CustomDomainFull on CustomDomain {

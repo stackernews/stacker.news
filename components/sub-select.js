@@ -6,6 +6,7 @@ import { SUBS } from '@/fragments/subs'
 import { useQuery } from '@apollo/client'
 import styles from './sub-select.module.css'
 import { useMe } from './me'
+import { useDomain } from './territory-domains'
 
 export function SubSelectInitial ({ sub }) {
   const router = useRouter()
@@ -21,6 +22,8 @@ const DEFAULT_APPEND_SUBS = []
 const DEFAULT_FILTER_SUBS = () => true
 
 export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs = DEFAULT_FILTER_SUBS, appendSubs = DEFAULT_APPEND_SUBS }) {
+  const { customDomain } = useDomain()
+  if (customDomain) return [customDomain.subName]
   const { data, refetch } = useQuery(SUBS, SSR
     ? {}
     : {

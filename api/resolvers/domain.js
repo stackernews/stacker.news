@@ -1,11 +1,16 @@
 import { validateSchema, customDomainSchema } from '@/lib/validate'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { randomBytes } from 'node:crypto'
+import { getDomainMappingsCache } from '@/lib/domains'
 
 export default {
   Query: {
     customDomain: async (parent, { subName }, { models }) => {
       return models.customDomain.findUnique({ where: { subName } })
+    },
+    domainMapping: async (parent, { domain }, { models }) => {
+      const domainMappings = await getDomainMappingsCache()
+      return domainMappings?.[domain]
     }
   },
   Mutation: {

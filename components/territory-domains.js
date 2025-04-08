@@ -43,7 +43,7 @@ export const DomainProvider = ({ customDomain: ssrCustomDomain, children }) => {
 
   const branding = customDomain?.branding || null
   const colors = branding?.colors || null
-  console.log('colors', colors)
+
   return (
     <DomainContext.Provider value={{ customDomain }}>
       {branding && (

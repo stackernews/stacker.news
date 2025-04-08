@@ -11,7 +11,6 @@ export default function BrandingForm ({ sub }) {
   const toaster = useToast()
 
   const onSubmit = async (values) => {
-    console.log(values)
     try {
       await setCustomBranding({
         variables: {
@@ -37,13 +36,15 @@ export default function BrandingForm ({ sub }) {
     }
   }
 
+  const subColors = sub?.customBranding?.colors || {}
+
   const initialValues = {
     title: sub?.customBranding?.title || sub?.subName,
-    primary: sub?.customBranding?.colors?.primary || '#FADA5E',
-    secondary: sub?.customBranding?.colors?.secondary || '#F6911D',
-    info: sub?.customBranding?.colors?.info || '#007cbe',
-    success: sub?.customBranding?.colors?.success || '#5c8001',
-    danger: sub?.customBranding?.colors?.danger || '#c03221',
+    primary: subColors?.primary || '#FADA5E',
+    secondary: subColors?.secondary || '#F6911D',
+    info: subColors?.info || '#007cbe',
+    success: subColors?.success || '#5c8001',
+    danger: subColors?.danger || '#c03221',
     logoId: sub?.customBranding?.logoId || null,
     faviconId: sub?.customBranding?.faviconId || null
   }

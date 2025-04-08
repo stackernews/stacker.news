@@ -268,6 +268,9 @@ export default {
             wildcard: { url: `*${uriObj?.hostname ?? uri}${uriObj?.pathname ?? ''}*` }
           })
           termQueries.push({
+            match: { url: `${uriObj?.hostname ?? uri}${uriObj?.pathname ?? ''}` }
+          })
+          termQueries.push({
             match: { text: `${uriObj?.hostname ?? uri}${uriObj?.pathname ?? ''}` }
           })
         }

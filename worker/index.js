@@ -4,7 +4,7 @@ import PgBoss from 'pg-boss'
 import createPrisma from '@/lib/create-prisma'
 import {
   checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
-  checkWithdrawal,
+  checkWithdrawal, checkWallet,
   finalizeHodlInvoice, subscribeToWallet
 } from './wallet'
 import { repin } from './repin'
@@ -41,7 +41,6 @@ import { postToSocial } from './socialPoster'
 
 // WebSocket polyfill
 import ws from 'isomorphic-ws'
-import { pushNotification } from './pushNotification'
 if (typeof WebSocket === 'undefined') {
   global.WebSocket = ws
 }
@@ -145,7 +144,7 @@ async function work () {
   await boss.work('reminder', jobWrapper(remindUser))
   await boss.work('thisDay', jobWrapper(thisDay))
   await boss.work('socialPoster', jobWrapper(postToSocial))
-  await boss.work('pushNotification', jobWrapper(pushNotification))
+  await boss.work('checkWallet', jobWrapper(checkWallet))
 
   console.log('working jobs')
 }

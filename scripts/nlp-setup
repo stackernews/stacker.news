@@ -182,7 +182,6 @@ else
     echo -ne "\rPlease wait (~1 min)... ${elapsed}s "
     sleep 1
   done
-  sleep 2
   echo "done."
   model_id=$(echo "$response" | jq -r '.model_id')
 fi
@@ -202,7 +201,6 @@ else
     -X POST "$OS_URL/_plugins/_ml/models/$model_id/_deploy" \
     -H "Content-Type: application/json" | jq -r '.task_id')
   echo "Deploying the model (task_id=$task_id)"
-  sleep 2
   start_time=$(date +%s)
   while [ $state != "DEPLOYED" ]
   do

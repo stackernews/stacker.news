@@ -30,6 +30,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         text: item?.text || '',
         options: initialOptions || ['', ''],
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
+        randPollOptions: item?.poll?.randPollOptions || false,
         pollExpiresAt: item ? item.pollExpiresAt : datePivot(new Date(), { hours: 25 }),
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })

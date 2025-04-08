@@ -14,6 +14,13 @@ export default function Poll ({ item }) {
   const { me } = useMe()
   const pollVote = usePollVote({ query: POLL_VOTE, itemId: item.id })
   const toaster = useToast()
+  const shuffleOptions = (options) => {
+    return options
+      .map(value => ({ value, sort: Math.random() }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ value }) => value)
+  }
+  const pollOptions = item.poll.randPollOptions ? shuffleOptions(item.poll.options) : item.poll.options
 
   const PollButton = ({ v }) => {
     return (
@@ -75,7 +82,7 @@ export default function Poll ({ item }) {
   const pollCount = item.poll.count
   return (
     <div className={styles.pollBox}>
-      {item.poll.options.map(v =>
+      {pollOptions.map(v =>
         showPollButton
           ? <PollButton key={v.id} v={v} />
           : <PollResult

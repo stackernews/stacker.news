@@ -289,7 +289,7 @@ export async function checkPendingWithdrawals (args) {
 
 export async function checkWallet ({ data: { userId }, models }) {
   // This function runs when a row was inserted, updated or deleted from the wallet table
-  // and is given the userId of the user that the wallet belongs (or belonged in the case of deletion) to
+  // and is given the id of the user that the wallet belongs/belonged to
   const wallets = await models.wallet.findMany({
     where: {
       userId,

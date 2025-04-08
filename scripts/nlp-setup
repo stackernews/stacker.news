@@ -327,6 +327,16 @@ else
   echo "done."
 fi
 
+# Set hybrid search as default search pipeline
+echo -ne "Setting hybrid search as default search pipeline... "
+curl -s -o /dev/null \
+  -X PUT "$OS_URL/$NLP_INDEX/_settings" \
+  -H "Content-Type: application/json" \
+  -d '{
+     "index.search.default_pipeline": "nlp-search-pipeline"
+  }'
+echo "done."
+
 # Ask user if they want to begin reindexing
 kw_count=$(curl -s -X GET "$OS_URL/$KW_INDEX/_count" | jq -r '.count')
 nlp_count=$(curl -s -X GET "$OS_URL/$NLP_INDEX/_count" | jq -r '.count')

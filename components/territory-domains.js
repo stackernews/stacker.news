@@ -26,18 +26,19 @@ export const DomainProvider = ({ customDomain: ssrCustomDomain, children }) => {
   const router = useRouter()
   const [customDomain, setCustomDomain] = useState(ssrCustomDomain || null)
 
+  // maintain the custom domain state across re-renders
   useEffect(() => {
     if (ssrCustomDomain && !customDomain) {
       setCustomDomain(ssrCustomDomain)
     }
   }, [ssrCustomDomain])
 
-  // TODO: alternative to this, for test only
-  // auth sync
+  // temporary auth sync
   useEffect(() => {
     if (router.query.type === 'sync') {
       console.log('signing in with sync')
       signIn('sync', { token: router.query.token, callbackUrl: router.query.callbackUrl, multiAuth: router.query.multiAuth, redirect: false })
+      router.push(router.query.callbackUrl) // next auth redirect only supports the main domain
     }
   }, [router.query.type])
 
@@ -143,7 +144,6 @@ export function DomainGuidelines ({ customDomain }) {
   )
 }
 
-// TODO: clean this up, might not need all this refreshing, plus all this polling is not done correctly
 export default function CustomDomainForm ({ sub }) {
   const [setCustomDomain] = useMutation(SET_CUSTOM_DOMAIN)
 
@@ -184,12 +184,11 @@ export default function CustomDomainForm ({ sub }) {
   return (
     <>
       <Form
-        initial={{ domain: domain || sub.customDomain?.domain }}
+        initial={{ domain }}
         schema={customDomainSchema}
         onSubmit={onSubmit}
         className='mb-2'
       >
-        {/* TODO: too many flexes */}
         <div className='d-flex align-items-center gap-2'>
           <Input
             label={<DomainLabel customDomain={data?.customDomain} polling={polling} />}

@@ -35,20 +35,20 @@ export default function BrandingForm ({ sub }) {
     }
   }
 
-  const subColors = sub?.customBranding?.colors || {}
+  const customBranding = sub?.customBranding || {}
+  const subColors = customBranding?.colors || {}
 
   const initialValues = {
-    title: sub?.customBranding?.title || sub?.subName,
+    title: customBranding?.title || sub?.name,
     primary: subColors?.primary || '#FADA5E',
     secondary: subColors?.secondary || '#F6911D',
     info: subColors?.info || '#007cbe',
     success: subColors?.success || '#5c8001',
     danger: subColors?.danger || '#c03221',
-    logoId: sub?.customBranding?.logoId || null,
-    faviconId: sub?.customBranding?.faviconId || null
+    logoId: customBranding?.logoId || null,
+    faviconId: customBranding?.faviconId || null
   }
 
-  // TODO: cleanup
   return (
     <Form
       initial={initialValues}

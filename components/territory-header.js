@@ -70,7 +70,7 @@ export function TerritoryInfo ({ sub, includeLink }) {
             <span className='fw-bold'>{numWithUnits(sub.replyCost)}</span>
           </div>
         </div>
-        {sub.customDomain && (
+        {sub.customDomain?.status === 'ACTIVE' && (
           <div className='text-muted'>
             <span>website </span>
             <Link className='fw-bold' href={`https://${sub.customDomain.domain}`}>{sub.customDomain.domain}</Link>

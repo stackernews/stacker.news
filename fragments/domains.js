@@ -1,24 +1,38 @@
 import { gql } from 'graphql-tag'
 
+export const CUSTOM_DOMAIN_FIELDS = gql`
+  fragment CustomDomainFields on CustomDomain {
+    domain
+    status
+  }
+`
+
+export const CUSTOM_DOMAIN_FULL_FIELDS = gql`
+  ${CUSTOM_DOMAIN_FIELDS}
+  fragment CustomDomainFullFields on CustomDomain {
+    ...CustomDomainFields
+    lastVerifiedAt
+    verification {
+      dns {
+        state
+        cname
+        txt
+      }
+      ssl {
+        state
+        arn
+        cname
+        value
+      }
+    }
+  }
+`
+
 export const GET_CUSTOM_DOMAIN = gql`
+  ${CUSTOM_DOMAIN_FULL_FIELDS}
   query CustomDomain($subName: String!) {
     customDomain(subName: $subName) {
-      domain
-      status
-      lastVerifiedAt
-      verification {
-        dns {
-          state
-          cname
-          txt
-        }
-        ssl {
-          state
-          arn
-          cname
-          value
-        }
-      }
+      ...CustomDomainFullFields
     }
   }
 `
@@ -29,14 +43,6 @@ export const GET_DOMAIN_MAPPING = gql`
       domain
       subName
     }
-  }
-`
-
-export const GET_CUSTOM_DOMAIN_FULL = gql`
-  ${GET_CUSTOM_DOMAIN}
-  fragment CustomDomainFull on CustomDomain {
-    ...CustomDomainFields
-    failedAttempts
   }
 `
 

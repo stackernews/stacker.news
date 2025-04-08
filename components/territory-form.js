@@ -88,7 +88,6 @@ export default function TerritoryForm ({ sub }) {
     }
   }, [sub, billing])
 
-  // TODO: Add a custom domain textbox and verification status; validation too
   return (
     <FeeButtonProvider baseLineItems={lineItems}>
       <Form

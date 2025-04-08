@@ -352,7 +352,7 @@ function LogoutObstacle ({ onClose }) {
 
             await signOut({ callbackUrl: '/', redirect: !customDomain })
             if (customDomain) {
-              onClose()
+              router.push('/') // next auth redirect only supports the main domain
             }
           }}
         >

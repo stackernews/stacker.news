@@ -82,7 +82,7 @@ export async function checkStreak ({ data: { id, type = 'COWBOY_HAT' }, models }
   if (!streak) return
 
   // new streak started for user
-  notifyNewStreak(id, streak)
+  notifyNewStreak(id, streak.type)
 }
 
 function getStreakQuery (type, userId) {

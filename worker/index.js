@@ -41,6 +41,7 @@ import { postToSocial } from './socialPoster'
 
 // WebSocket polyfill
 import ws from 'isomorphic-ws'
+import { pushNotification } from './pushNotification'
 if (typeof WebSocket === 'undefined') {
   global.WebSocket = ws
 }
@@ -144,6 +145,7 @@ async function work () {
   await boss.work('reminder', jobWrapper(remindUser))
   await boss.work('thisDay', jobWrapper(thisDay))
   await boss.work('socialPoster', jobWrapper(postToSocial))
+  await boss.work('pushNotification', jobWrapper(pushNotification))
 
   console.log('working jobs')
 }

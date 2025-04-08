@@ -1152,6 +1152,13 @@ export default {
 
       poll.options = options
       poll.count = options.reduce((t, o) => t + o.count, 0)
+      const pollSettings = await models.item.findFirst({
+        where: {
+          id: item.id
+        },
+        select: { randPollOptions: true }
+      })
+      poll.randPollOptions = pollSettings?.randPollOptions || false
 
       return poll
     },

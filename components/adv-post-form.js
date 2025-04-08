@@ -311,6 +311,16 @@ export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) 
             }
               name='crosspost'
             />}
+          {me && itemType === 'poll' &&
+            <Checkbox
+              label={
+                <div className='d-flex align-items-center'>randomize order of poll choices
+                </div>
+            }
+              name='randPollOptions'
+              checked={formik?.values.randPollOptions}
+              onChange={formik.handleChange}
+            />}
         </>
       }
     />

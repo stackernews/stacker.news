@@ -5,20 +5,31 @@ import { verifyDomainDNS, issueDomainCertificate, checkCertificateStatus, getVal
 export async function domainVerification ({ data: { domainId }, boss }) {
   const models = createPrisma({ connectionParams: { connection_limit: 1 } })
   console.log('domainVerification', domainId)
-  const domain = await models.customDomain.findUnique({ where: { id: domainId } })
-  console.log('domain', domain)
-  const result = await verifyDomain(domain, models)
+  try {
+    const domain = await models.customDomain.findUnique({ where: { id: domainId } })
 
-  let startAfter = null
-  if (result?.failedAttempts < 5) {
-    // every 30 seconds
-    startAfter = new Date(Date.now() + 30 * 1000)
-  } else {
-    // every 10 minutes
-    startAfter = new Date(Date.now() + 10 * 60 * 1000)
-  }
-  if (result?.status === 'PENDING') {
-    await boss.send('domainVerification', { domainId }, { startAfter })
+    if (!domain) {
+      throw new Error(`domain with ID ${domainId} not found`)
+    }
+
+    const result = await verifyDomain(domain, models)
+
+    if (result?.status === 'ACTIVE') {
+      console.log(`domain ${domain.domain} verified`)
+      return
+    }
+
+    if (result?.status === 'HOLD') {
+      console.log(`domain ${domain.domain} is on hold after too many failed attempts`)
+      return
+    }
+
+    if (result?.status === 'PENDING') {
+      throw new Error(`domain ${domain.domain} is still pending verification, will retry`)
+    }
+  } catch (error) {
+    console.error(`couldn't verify domain with ID ${domainId}: ${error.message}`)
+    throw error
   }
 }
 
@@ -26,6 +37,7 @@ async function verifyDomain (domain, models) {
   // track verification
   const data = { ...domain, lastVerifiedAt: new Date() }
   data.verification = data.verification || { dns: {}, ssl: {} }
+  data.failedAttempts = data.failedAttempts || 0
 
   if (data.verification?.dns?.state !== 'VERIFIED') {
     await verifyDNS(data)
@@ -43,7 +55,7 @@ async function verifyDomain (domain, models) {
     data.failedAttempts += 1
     data.updatedAt = new Date()
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    // todo: change this
+    // TODO: discussion
     if (data.failedAttempts > 10 && data.updatedAt < oneDayAgo) {
       data.status = 'HOLD'
     }
@@ -52,6 +64,7 @@ async function verifyDomain (domain, models) {
   if (data.verification?.dns?.state === 'VERIFIED' && data.verification?.ssl?.state === 'VERIFIED') {
     data.status = 'ACTIVE'
   }
+
   return await models.customDomain.update({ where: { id: domain.id }, data })
 }
 

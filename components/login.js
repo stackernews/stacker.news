@@ -124,7 +124,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
                 text={`${text || 'Login'} with`}
               />
             )
-          case 'Sync': // TODO: remove this
+          case 'Sync':
             return null
           default:
             return (

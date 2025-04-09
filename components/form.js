@@ -1424,7 +1424,9 @@ export function BrandingUpload ({ label, groupClassName, name, ...props }) {
       <img
         src={tempId ? `${MEDIA_URL}/${tempId}` : '/favicon.png'}
         alt={name}
-        style={{ objectFit: 'contain', position: 'relative', width: '100%', height: '100%' }}
+        width={100}
+        height={100}
+        style={{ objectFit: 'contain', position: 'relative' }}
       />
       <Avatar
         onSuccess={handleSuccess}

@@ -10,9 +10,10 @@ export default async function handler (req, res) {
   }
 
   // redirectUrl parse
+  const decodedRedirectUrl = decodeURIComponent(redirectUrl)
   let customDomain
   try {
-    customDomain = new URL(redirectUrl)
+    customDomain = new URL(decodedRedirectUrl)
     const domain = await models.customDomain.findUnique({ where: { domain: customDomain.host, status: 'ACTIVE' } })
     if (!domain) {
       return res.status(400).json({ status: 'ERROR', reason: 'custom domain not found' })
@@ -27,7 +28,7 @@ export default async function handler (req, res) {
   const session = await getServerSession(req, res, getAuthOptions(req, res))
   if (!session) {
     // redirect to the login page, middleware will handle the rest
-    return res.redirect(mainDomain + '/login?callbackUrl=' + encodeURIComponent(redirectUrl))
+    return res.redirect(mainDomain + '/login?callbackUrl=' + encodeURIComponent(decodedRedirectUrl))
   }
 
   try {
@@ -48,9 +49,9 @@ export default async function handler (req, res) {
     }
 
     // domain provider will handle this sync request
-    const customDomainCallback = new URL('/?type=sync', redirectUrl)
+    const customDomainCallback = new URL('/?type=sync', decodedRedirectUrl)
     customDomainCallback.searchParams.set('token', token)
-    customDomainCallback.searchParams.set('callbackUrl', redirectUrl)
+    customDomainCallback.searchParams.set('callbackUrl', decodedRedirectUrl)
     if (multiAuth) {
       customDomainCallback.searchParams.set('multiAuth', multiAuth)
     }

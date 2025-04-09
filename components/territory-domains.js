@@ -184,7 +184,7 @@ export default function CustomDomainForm ({ sub }) {
   return (
     <>
       <Form
-        initial={{ domain }}
+        initial={{ domain: domain || sub?.customDomain?.domain }}
         schema={customDomainSchema}
         onSubmit={onSubmit}
         className='mb-2'

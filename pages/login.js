@@ -21,7 +21,7 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
   // let undefined urls through without redirect ... otherwise this interferes with multiple auth linking
   let external = true
   try {
-    external = isExternal(decodeURIComponent(callbackUrl))
+    external = isExternal(decodeURIComponent(callbackUrl)) && !domain
   } catch (err) {
     console.error('error decoding callback:', callbackUrl, err)
   }
@@ -30,11 +30,10 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
     callbackUrl = '/'
   }
 
-  // TODO: custom domain mapping security
   // If we're coming from a custom domain, set as callbackUrl the auth sync endpoint
   if (domain) {
     const params = new URLSearchParams()
-    params.set('redirectUrl', 'https://' + encodeURIComponent(domain))
+    params.set('redirectUrl', encodeURIComponent(callbackUrl))
     if (multiAuth) { // take care of multiAuth if requested
       params.set('multiAuth', multiAuth)
     }

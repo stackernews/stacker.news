@@ -526,10 +526,10 @@ export default {
   CowboyHat: {
     days: async (n, args, { models }) => {
       const res = await models.$queryRaw`
-          SELECT "endedAt"::date - "startedAt"::date AS days
-          FROM "Streak"
-          WHERE id = ${Number(n.id)} AND "endedAt" IS NOT NULL
-        `
+        SELECT "endedAt"::date - "startedAt"::date AS days
+        FROM "Streak"
+        WHERE id = ${Number(n.id)} AND "endedAt" IS NOT NULL
+      `
       return res.length ? res[0].days : null
     }
   },

@@ -288,8 +288,6 @@ export async function checkPendingWithdrawals (args) {
 }
 
 export async function checkWallet ({ data: { userId }, models }) {
-  // This function runs when a row was inserted, updated or deleted from the wallet table
-  // and is given the id of the user that the wallet belongs/belonged to
   const wallets = await models.wallet.findMany({
     where: {
       userId,
@@ -352,7 +350,7 @@ export async function checkWallet ({ data: { userId }, models }) {
     if (streakId) pushNotifications.push(() => notifyStreakLost(userId, { type: 'GUN', id: streakId }))
   }
 
-  // run all push notifications at end to make sure we don't
+  // run all push notifications at the end to make sure we don't
   // accidentally send duplicate push notifications because of a job retry
   await Promise.all(pushNotifications.map(notify => notify())).catch(console.error)
 }

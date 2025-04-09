@@ -14,10 +14,7 @@ BEGIN
     user_id := CASE WHEN TG_OP = 'DELETE' THEN OLD."userId" ELSE NEW."userId" END;
 
     INSERT INTO pgboss.job (name, data, retrylimit, startafter, keepuntil)
-    VALUES (
-        'checkWallet',
-        jsonb_build_object('userId', user_id),
-        21, now(), now() + interval '5 minutes');
+    VALUES ('checkWallet', jsonb_build_object('userId', user_id), 21, now(), now() + interval '5 minutes');
 
     RETURN NULL;
 END;

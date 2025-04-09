@@ -176,31 +176,16 @@ services:
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD}
       - plugins.security.disabled=true
       - discovery.type=single-node
+      - "_JAVA_OPTIONS=-Xms2g -Xmx2g -XX:UseSVE=0"
     ports:
       - 9200:9200 # REST API
       - 9600:9600 # Performance Analyzer
     volumes:
       - os:/usr/share/opensearch/data
+      - ./docker/opensearch/init-opensearch.sh:/usr/share/opensearch/init-opensearch.sh
     labels:
       CONNECT: "localhost:9200"
-    command: >
-      bash -c '
-        set -m
-        /usr/share/opensearch/opensearch-docker-entrypoint.sh &
-        until curl -sS "http://localhost:9200/_cat/health?h=status" -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD} | grep -q "green\|yellow"; do
-          echo "Waiting for OpenSearch to start..."
-          sleep 1
-        done
-        echo "OpenSearch started."
-        curl \
-          -H "Content-Type: application/json" \
-          -X PUT \
-          -d '{"mappings":{"properties":{"text":{"type":"text","analyzer":"english","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"title":{"type":"text","analyzer":"english","fields":{"keyword":{"type":"keyword","ignore_above":256}}}}}}' \
-          "http://localhost:9200/item" \
-          -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
-        echo "OpenSearch index created."
-        fg
-      '
+    command: ["bash", "/usr/share/opensearch/init-opensearch.sh"]
     cpu_shares: "${CPU_SHARES_LOW}"
   os-dashboard:
     image: opensearchproject/opensearch-dashboards:2.17.0

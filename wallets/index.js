@@ -196,17 +196,16 @@ export function WalletsProvider ({ children }) {
 
   // provides priority sorted wallets to children, a function to reload local wallets,
   // and a function to set priorities
+  const value = useMemo(() => ({
+    wallets,
+    reloadLocalWallets,
+    setPriorities,
+    onVaultKeySet: syncLocalWallets,
+    beforeDisconnectVault: unsyncLocalWallets,
+    removeLocalWallets
+  }), [wallets, reloadLocalWallets, setPriorities, syncLocalWallets, unsyncLocalWallets, removeLocalWallets])
   return (
-    <WalletsContext.Provider
-      value={{
-        wallets,
-        reloadLocalWallets,
-        setPriorities,
-        onVaultKeySet: syncLocalWallets,
-        beforeDisconnectVault: unsyncLocalWallets,
-        removeLocalWallets
-      }}
-    >
+    <WalletsContext.Provider value={value}>
       <RetryHandler>
         {children}
       </RetryHandler>

@@ -79,12 +79,13 @@ export default {
         })
 
         // schedule domain verification in 5 seconds, apply exponential backoff and keep it for 2 days
+        // 12 retries, 42 seconds of delay between retries will fit 48 hours of trying for DNS propagation
         await models.$executeRaw`INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, retrydelay, startafter, keepuntil)
           VALUES ('domainVerification',
                   jsonb_build_object('domainId', ${updatedDomain.id}::INTEGER),
-                  21,
+                  12,
                   true,
-                  '30', -- 30 seconds of delay between retries
+                  '42', -- 42 seconds of delay between retries
                   now() + interval '5 seconds',
                   now() + interval '2 days')`
 

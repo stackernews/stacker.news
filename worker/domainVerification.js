@@ -53,11 +53,10 @@ async function verifyDomain (domain, models) {
 
   if (data.verification?.dns?.state === 'FAILED' || data.verification?.ssl?.state === 'FAILED') {
     data.failedAttempts += 1
-    data.updatedAt = new Date()
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    // TODO: discussion
-    if (data.failedAttempts > 10 && data.updatedAt < oneDayAgo) {
+    // exponential backoff at the 11th attempt is roughly 48 hours
+    if (data.failedAttempts > 11) {
       data.status = 'HOLD'
+      data.failedAttempts = 0
     }
   }
 

@@ -70,10 +70,8 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
 }
 
 function LoginFooter ({ callbackUrl, multiAuth }) {
-  const query = {
-    callbackUrl
-  }
-  if (multiAuth) { // multiAuth can be optional
+  const query = { callbackUrl }
+  if (multiAuth) {
     query.multiAuth = multiAuth
   }
   return (

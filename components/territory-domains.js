@@ -36,8 +36,12 @@ export const DomainProvider = ({ customDomain: ssrCustomDomain, children }) => {
   // temporary auth sync
   useEffect(() => {
     if (router.query.type === 'sync') {
-      console.log('signing in with sync')
-      signIn('sync', { token: router.query.token, callbackUrl: router.query.callbackUrl, multiAuth: router.query.multiAuth, redirect: false })
+      console.log('signing in with sync', router.query)
+      signIn('sync', {
+        token: router.query.token,
+        multiAuth: router.query.multiAuth,
+        redirect: false
+      })
       router.push(router.query.callbackUrl) // next auth redirect only supports the main domain
     }
   }, [router.query.type])

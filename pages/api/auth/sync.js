@@ -14,6 +14,7 @@ export default async function handler (req, res) {
   let customDomain
   try {
     customDomain = new URL(decodedRedirectUrl)
+    // not cached because we're handling sensitive data
     const domain = await models.customDomain.findUnique({ where: { domain: customDomain.host, status: 'ACTIVE' } })
     if (!domain) {
       return res.status(400).json({ status: 'ERROR', reason: 'custom domain not found' })

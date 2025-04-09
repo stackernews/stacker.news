@@ -8,6 +8,7 @@ import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
 import gql from 'graphql-tag'
 import { USER_ID } from '@/lib/constants'
 import { useMe } from './me'
+import { useWalletRecvPrompt, WalletPromptClosed } from '@/wallets/prompt'
 
 // this is intented to be compatible with upsert item mutations
 // so that it can be reused for all post types and comments and we don't have
@@ -22,9 +23,17 @@ export default function useItemSubmit (mutation,
   const crossposter = useCrossposter()
   const [upsertItem] = usePaidMutation(mutation)
   const { me } = useMe()
+  const walletPrompt = useWalletRecvPrompt()
 
   return useCallback(
     async ({ boost, crosspost, title, options, bounty, status, ...values }, { resetForm }) => {
+      try {
+        await walletPrompt()
+      } catch (err) {
+        if (err instanceof WalletPromptClosed) return
+        throw err
+      }
+
       if (options) {
         // remove existing poll options since else they will be appended as duplicates
         options = options.slice(item?.poll?.options?.length || 0).filter(o => o.trim().length > 0)
@@ -93,7 +102,7 @@ export default function useItemSubmit (mutation,
         }
       }
     }, [me, upsertItem, router, crossposter, item, sub, onSuccessfulSubmit,
-      navigateOnSubmit, extraValues, paidMutationOptions]
+      navigateOnSubmit, extraValues, paidMutationOptions, walletPrompt]
   )
 }
 

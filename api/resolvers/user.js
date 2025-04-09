@@ -1100,7 +1100,7 @@ export default {
       }
 
       const [{ max }] = await models.$queryRaw`
-        SELECT MAX(COALESCE("endedAt", (now() AT TIME ZONE 'America/Chicago')::date) - "startedAt")
+        SELECT MAX(COALESCE("endedAt"::date, (now() AT TIME ZONE 'America/Chicago')::date) - "startedAt"::date)
         FROM "Streak" WHERE "userId" = ${user.id}`
       return max
     },

@@ -75,13 +75,6 @@ export default gql`
     tipComments: Int!
   }
 
-  type Streak {
-    id: ID!
-    sortTime: Date!
-    days: Int
-    type: String!
-  }
-
   type Earn {
     id: ID!
     earnedSats: Int!
@@ -156,11 +149,37 @@ export default gql`
     sortTime: Date!
   }
 
+  type CowboyHat {
+    id: ID!
+    sortTime: Date!
+    days: Int
+  }
+
+  type NewHorse {
+    id: ID!
+    sortTime: Date!
+  }
+
+  type LostHorse {
+    id: ID!
+    sortTime: Date!
+  }
+
+  type NewGun {
+    id: ID!
+    sortTime: Date!
+  }
+
+  type LostGun {
+    id: ID!
+    sortTime: Date!
+  }
+
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
-    | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus
+    | FollowActivity | ForwardedVotification | Revenue | SubStatus
     | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | Invoicification
-    | ReferralReward
+    | ReferralReward | CowboyHat | NewHorse | LostHorse | NewGun | LostGun
 
   type Notifications {
     lastChecked: Date

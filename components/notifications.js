@@ -58,7 +58,9 @@ function Notification ({ n, fresh }) {
         (type === 'InvoicePaid' && (n.invoice.nostr ? <NostrZap n={n} /> : <InvoicePaid n={n} />)) ||
         (type === 'WithdrawlPaid' && <WithdrawlPaid n={n} />) ||
         (type === 'Referral' && <Referral n={n} />) ||
-        (type === 'Streak' && <Streak n={n} />) ||
+        (type === 'CowboyHat' && <CowboyHat n={n} />) ||
+        (['NewHorse', 'LostHorse'].includes(type) && <Horse n={n} />) ||
+        (['NewGun', 'LostGun'].includes(type) && <Gun n={n} />) ||
         (type === 'Votification' && <Votification n={n} />) ||
         (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
@@ -165,7 +167,7 @@ const defaultOnClick = n => {
   if (type === 'WithdrawlPaid') return { href: `/withdrawals/${n.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'ReferralReward') return { href: '/referrals/month' }
-  if (type === 'Streak') return {}
+  if (['CowboyHat', 'NewHorse', 'LostHorse', 'NewGun', 'LostGun'].includes(type)) return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
 
   if (!n.item) return {}
@@ -174,38 +176,64 @@ const defaultOnClick = n => {
   return itemLink(n.item)
 }
 
-function Streak ({ n }) {
-  function blurb (n) {
-    const id = Number(n.id.split('-')[0])
-    const type = n.id.includes('-HORSE')
-      ? 'HORSE'
-      : (n.id.includes('-GUN') ? 'GUN' : 'COWBOY_HAT')
-    const index = Number(id) % Math.min(FOUND_BLURBS[type].length, LOST_BLURBS[type].length)
+function blurb (n) {
+  const type = n.__typename === 'CowboyHat'
+    ? 'COWBOY_HAT'
+    : (n.__typename.includes('Horse') ? 'HORSE' : 'GUN')
+  const index = Number(n.id) % Math.min(FOUND_BLURBS[type].length, LOST_BLURBS[type].length)
+  const lost = n.days || n.__typename.includes('Lost')
+  return lost ? LOST_BLURBS[type][index] : FOUND_BLURBS[type][index]
+}
 
-    if (n.days) {
-      let body = LOST_BLURBS[type][index]
-      if (type === 'COWBOY_HAT') {
-        body = `After ${numWithUnits(n.days, {
-          abbreviate: false,
-          unitSingular: 'day',
-          unitPlural: 'days'
-        })}, ` + body
-      }
-      return body
-    }
+function CowboyHat ({ n }) {
+  const Icon = n.days ? BaldIcon : CowboyHatIcon
 
-    return FOUND_BLURBS[type][index]
+  let body = ''
+  if (n.days) {
+    body = `After ${numWithUnits(n.days, {
+      abbreviate: false,
+      unitSingular: 'day',
+      unitPlural: 'days'
+    })}, `
   }
 
-  const Icon = n.days
-    ? n.type === 'GUN' ? HolsterIcon : n.type === 'HORSE' ? SaddleIcon : BaldIcon
-    : n.type === 'GUN' ? GunIcon : n.type === 'HORSE' ? HorseIcon : CowboyHatIcon
+  body += `you ${n.days ? 'lost your' : 'found a'} cowboy hat`
 
   return (
     <div className='d-flex'>
       <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
-        <span className='fw-bold'>you {n.days ? 'lost your' : 'found a'} {n.type.toLowerCase().replace('_', ' ')}</span>
+        <span className='fw-bold'>{body}</span>
+        <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
+      </div>
+    </div>
+  )
+}
+
+function Horse ({ n }) {
+  const found = n.__typename.includes('New')
+  const Icon = found ? HorseIcon : SaddleIcon
+
+  return (
+    <div className='d-flex'>
+      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div className='ms-1 p-1'>
+        <span className='fw-bold'>you {found ? 'found a' : 'lost your'} horse</span>
+        <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
+      </div>
+    </div>
+  )
+}
+
+function Gun ({ n }) {
+  const found = n.__typename.includes('New')
+  const Icon = found ? GunIcon : HolsterIcon
+
+  return (
+    <div className='d-flex'>
+      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div className='ms-1 p-1'>
+        <span className='fw-bold'>you {found ? 'found a' : 'lost your'} gun</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
       </div>
     </div>

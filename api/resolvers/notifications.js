@@ -316,7 +316,7 @@ export default {
 
       if (meFull.noteCowboyHat) {
         queries.push(
-          `(SELECT id::text, updated_at AS "sortTime", 0 as "earnedSats", 'Streak' AS type
+          `(SELECT id::text, updated_at AS "sortTime", 0 as "earnedSats", 'CowboyHat' AS type
           FROM "Streak"
           WHERE "userId" = $1
           AND updated_at < $2
@@ -325,8 +325,9 @@ export default {
           LIMIT ${LIMIT})`
         )
         for (const type of ['HORSE', 'GUN']) {
+          const gqlType = type.charAt(0) + type.slice(1).toLowerCase()
           queries.push(
-            `(SELECT (id::text || '-${type}-FOUND')::text AS id, "startedAt" AS "sortTime", 0 as "earnedSats", 'Streak' AS type
+            `(SELECT id::text, "startedAt" AS "sortTime", 0 as "earnedSats", 'New${gqlType}' AS type
             FROM "Streak"
             WHERE "userId" = $1
             AND updated_at < $2
@@ -335,7 +336,7 @@ export default {
             LIMIT ${LIMIT})`
           )
           queries.push(
-            `(SELECT (id::text || '-${type}-LOST')::text AS id, "endedAt" AS "sortTime", 0 as "earnedSats", 'Streak' AS type
+            `(SELECT id::text AS id, "endedAt" AS "sortTime", 0 as "earnedSats", 'Lost${gqlType}' AS type
             FROM "Streak"
             WHERE "userId" = $1
             AND updated_at < $2
@@ -522,30 +523,14 @@ export default {
       }
     }
   },
-  Streak: {
+  CowboyHat: {
     days: async (n, args, { models }) => {
-      const id = Number(n.id.split('-')[0])
-      const type = n.id.includes('-HORSE')
-        ? 'HORSE'
-        : (n.id.includes('-GUN') ? 'GUN' : 'COWBOY_HAT')
-
-      if (type === 'COWBOY_HAT') {
-        const res = await models.$queryRaw`
+      const res = await models.$queryRaw`
           SELECT "endedAt"::date - "startedAt"::date AS days
           FROM "Streak"
-          WHERE id = ${id} AND "endedAt" IS NOT NULL
+          WHERE id = ${Number(n.id)} AND "endedAt" IS NOT NULL
         `
-        return res.length ? res[0].days : null
-      }
-
-      const lost = n.id.includes('-LOST')
-      return lost ? 1 : 0
-    },
-    type: async (n, args, { models }) => {
-      const type = n.id.includes('-HORSE')
-        ? 'HORSE'
-        : (n.id.includes('-GUN') ? 'GUN' : 'COWBOY_HAT')
-      return type
+      return res.length ? res[0].days : null
     }
   },
   Earn: {

@@ -82,11 +82,26 @@ export const NOTIFICATIONS = gql`
             text
           }
         }
-        ... on Streak {
+        ... on CowboyHat {
           id
           sortTime
           days
-          type
+        }
+        ... on NewHorse {
+          id
+          sortTime
+        }
+        ... on LostHorse {
+          id
+          sortTime
+        }
+        ... on NewGun {
+          id
+          sortTime
+        }
+        ... on LostGun {
+          id
+          sortTime
         }
         ... on Earn {
           id

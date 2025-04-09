@@ -177,8 +177,8 @@ const THIS_DAY = gql`
           id
           optional {
             streak
-            gunStreak
-            horseStreak
+            hasSendWallet
+            hasRecvWallet
           }
         }
         ncomments(when: "custom", from: $from, to: $to)

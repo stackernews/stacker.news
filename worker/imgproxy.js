@@ -202,7 +202,9 @@ export async function processCrop ({ photoId, cropData }) {
     `/rs:fill:${size}:${size}`
   ].join('')
 
-  const url = process.env.NEXT_PUBLIC_MEDIA_URL + `/${photoId}`
+  const uploadsUrl = process.env.MEDIA_URL_DOCKER || process.env.NEXT_PUBLIC_MEDIA_URL
+  const url = uploadsUrl + `/${photoId}`
+  console.log('[imgproxy - cropjob] id:', photoId, '-- url:', url)
 
   const pathname = '/'
   const path = createImgproxyPath({ url, pathname, options })

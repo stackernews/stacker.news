@@ -3,7 +3,7 @@ import Layout from '@/components/layout'
 import styles from '@/styles/wallet.module.css'
 import Link from 'next/link'
 import { useWallets } from '@/wallets/index'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useIsClient } from '@/components/use-client'
 import WalletCard from '@/components/wallet-card'
 import { useToast } from '@/components/toast'
@@ -87,6 +87,7 @@ export default function Wallet ({ ssrData }) {
 
   const indicator = useWalletIndicator()
   const [showWallets, setShowWallets] = useState(!indicator)
+  useEffect(() => { setShowWallets(!indicator) }, [indicator])
 
   if (indicator && !showWallets) {
     return (

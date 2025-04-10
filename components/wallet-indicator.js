@@ -1,6 +1,6 @@
 import { useConfiguredWallets } from '@/wallets'
 
 export function useWalletIndicator () {
-  const wallets = useConfiguredWallets()
-  return wallets.length === 0
+  const { wallets, loading } = useConfiguredWallets()
+  return !loading && wallets.length === 0
 }

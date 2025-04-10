@@ -3,8 +3,9 @@ import styles from '../../header.module.css'
 import { Back, NavPrice, NavSelect, NavWalletSummary, SignUpButton, hasNavSelect } from '../common'
 import { useMe } from '@/components/me'
 
-export default function TopBar ({ prefix, sub, path, pathname, topNavKey, dropNavKey }) {
+export default function TopBar ({ prefix, sub, path, pathname, topNavKey, dropNavKey, customDomain }) {
   const { me } = useMe()
+  if (hasNavSelect({ path, pathname }) && customDomain) return null
   return (
     <Navbar>
       <Nav

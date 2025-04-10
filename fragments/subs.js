@@ -1,6 +1,8 @@
 import { gql } from '@apollo/client'
 import { ITEM_FIELDS, ITEM_FULL_FIELDS } from './items'
 import { COMMENTS_ITEM_EXT_FIELDS } from './comments'
+import { CUSTOM_DOMAIN_FIELDS } from './domains'
+import { CUSTOM_BRANDING_FIELDS } from './brandings'
 
 // we can't import from users because of circular dependency
 const STREAK_FIELDS = gql`
@@ -13,7 +15,10 @@ const STREAK_FIELDS = gql`
   }
 `
 
+// TODO: better place
 export const SUB_FIELDS = gql`
+  ${CUSTOM_DOMAIN_FIELDS}
+  ${CUSTOM_BRANDING_FIELDS}
   fragment SubFields on Sub {
     name
     createdAt
@@ -34,6 +39,12 @@ export const SUB_FIELDS = gql`
     meMuteSub
     meSubscription
     nsfw
+    customDomain {
+      ...CustomDomainFields
+    }
+    customBranding {
+      ...CustomBrandingFields
+    }
   }`
 
 export const SUB_FULL_FIELDS = gql`

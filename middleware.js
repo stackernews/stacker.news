@@ -1,4 +1,5 @@
 import { NextResponse, URLPattern } from 'next/server'
+import { domainLogger, getDomainMappingsCache } from '@/lib/domains'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -11,6 +12,76 @@ const SN_REFERRER = 'sn_referrer'
 const SN_REFERRER_NONCE = 'sn_referrer_nonce'
 // key for referred pages
 const SN_REFEREE_LANDING = 'sn_referee_landing'
+// rewrite to ~subname paths
+const TERRITORY_PATHS = ['/~', '/recent', '/random', '/top', '/post', '/edit']
+
+// get a domain mapping from the cache
+export async function getDomainMapping (domain) {
+  const domainMappings = await getDomainMappingsCache()
+  return domainMappings?.[domain]
+}
+
+// Redirects and rewrites for custom domains
+export async function customDomainMiddleware (request, referrerResp, domain) {
+  const host = request.headers.get('host')
+  const url = request.nextUrl.clone()
+  const pathname = url.pathname
+  const mainDomain = process.env.NEXT_PUBLIC_URL
+
+  // TEST
+  domainLogger().log('host', host)
+  domainLogger().log('mainDomain', mainDomain)
+  domainLogger().log('pathname', pathname)
+  domainLogger().log('query', url.searchParams)
+
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-stacker-news-subname', domain.subName)
+
+  // Auth sync redirects with domain and optional callbackUrl and multiAuth params
+  if (pathname === '/login' || pathname === '/signup') {
+    const redirectUrl = new URL(pathname, mainDomain)
+    redirectUrl.searchParams.set('domain', host)
+    if (url.searchParams.get('callbackUrl')) {
+      redirectUrl.searchParams.set('callbackUrl', url.searchParams.get('callbackUrl'))
+    }
+    if (url.searchParams.get('multiAuth')) {
+      redirectUrl.searchParams.set('multiAuth', url.searchParams.get('multiAuth'))
+    }
+    const redirectResp = NextResponse.redirect(redirectUrl, {
+      headers: requestHeaders
+    })
+    return applyReferrerCookies(redirectResp, referrerResp) // apply referrer cookies to the redirect
+  }
+
+  // If trying to access a ~subname path, rewrite to /
+  if (pathname.startsWith(`/~${domain.subName}`)) {
+    // remove the territory prefix from the path
+    const cleanPath = pathname.replace(`/~${domain.subName}`, '') || '/'
+    domainLogger().log('Redirecting to clean path:', cleanPath)
+    const redirectResp = NextResponse.redirect(new URL(cleanPath + url.search, url.origin), {
+      headers: requestHeaders
+    })
+    return applyReferrerCookies(redirectResp, referrerResp) // apply referrer cookies to the redirect
+  }
+
+  // If we're at the root or a territory path, rewrite to the territory path
+  if (pathname === '/' || TERRITORY_PATHS.some(p => pathname.startsWith(p))) {
+    const internalUrl = new URL(url)
+    internalUrl.pathname = `/~${domain.subName}${pathname === '/' ? '' : pathname}`
+    domainLogger().log('Rewrite to:', internalUrl.pathname)
+    // rewrite to the territory path
+    const resp = NextResponse.rewrite(internalUrl, {
+      headers: requestHeaders
+    })
+    return applyReferrerCookies(resp, referrerResp) // apply referrer cookies to the rewrite
+  }
+
+  return NextResponse.next({ // continue if we don't need to rewrite or redirect
+    request: {
+      headers: requestHeaders
+    }
+  })
+}
 
 function getContentReferrer (request, url) {
   if (itemPattern.test(url)) {
@@ -28,6 +99,22 @@ function getContentReferrer (request, url) {
     const { name } = territoryPattern.exec(url).pathname.groups
     return `territory-${name}`
   }
+}
+
+function applyReferrerCookies (response, referrer) {
+  for (const cookie of referrer.cookies.getAll()) {
+    response.cookies.set(
+      cookie.name,
+      cookie.value,
+      {
+        maxAge: cookie.maxAge,
+        expires: cookie.expires,
+        path: cookie.path
+      }
+    )
+  }
+  domainLogger().log('response.cookies', response.cookies)
+  return response
 }
 
 // we store the referrers in cookies for a future signup event
@@ -84,9 +171,7 @@ function referrerMiddleware (request) {
   return response
 }
 
-export function middleware (request) {
-  const resp = referrerMiddleware(request)
-
+export function applySecurityHeaders (resp) {
   const isDev = process.env.NODE_ENV === 'development'
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
@@ -131,6 +216,26 @@ export function middleware (request) {
   resp.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 
   return resp
+}
+
+export async function middleware (request) {
+  // First run referrer middleware to capture referrer data
+  const referrerResp = referrerMiddleware(request)
+  if (referrerResp.headers.get('Location')) {
+    // This is a redirect from the referrer middleware
+    return applySecurityHeaders(referrerResp)
+  }
+
+  // If we're on a custom domain, handle that next
+  const host = request.headers.get('host')
+  const isAllowedDomain = await getDomainMapping(host?.toLowerCase())
+  if (isAllowedDomain) {
+    domainLogger().log('detected allowed custom domain', isAllowedDomain)
+    const customDomainResp = await customDomainMiddleware(request, referrerResp, isAllowedDomain)
+    return applySecurityHeaders(customDomainResp)
+  }
+
+  return applySecurityHeaders(referrerResp)
 }
 
 export const config = {

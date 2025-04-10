@@ -211,6 +211,8 @@ export default gql`
     streak: Int
     gunStreak: Int
     horseStreak: Int
+    hasSendWallet: Boolean
+    hasRecvWallet: Boolean
     maxStreak: Int
     isContributor: Boolean
     githubId: String

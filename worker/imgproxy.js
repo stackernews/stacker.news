@@ -194,7 +194,7 @@ export async function processCrop ({ photoId, cropData }) {
   const centerX = x + width / scale
   const centerY = y + height / scale
 
-  const size = 200 // 256px avatar size
+  const size = 200 // 200px avatar size
 
   const options = [
     `/crop:${cropWidth}:${cropHeight}`,

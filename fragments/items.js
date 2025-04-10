@@ -152,6 +152,7 @@ export const POLL_FIELDS = gql`
         option
         count
       }
+      randPollOptions
     }
   }`
 

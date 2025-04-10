@@ -1095,19 +1095,17 @@ export default {
 
       return user.streak
     },
-    gunStreak: async (user, args, { models }) => {
+    hasSendWallet: async (user, args, { models }) => {
       if (user.hideCowboyHat) {
-        return null
+        return false
       }
-
-      return user.gunStreak
+      return user.hasSendWallet
     },
-    horseStreak: async (user, args, { models }) => {
+    hasRecvWallet: async (user, args, { models }) => {
       if (user.hideCowboyHat) {
-        return null
+        return false
       }
-
-      return user.horseStreak
+      return user.hasRecvWallet
     },
     maxStreak: async (user, args, { models }) => {
       if (user.hideCowboyHat) {
@@ -1115,7 +1113,7 @@ export default {
       }
 
       const [{ max }] = await models.$queryRaw`
-        SELECT MAX(COALESCE("endedAt", (now() AT TIME ZONE 'America/Chicago')::date) - "startedAt")
+        SELECT MAX(COALESCE("endedAt"::date, (now() AT TIME ZONE 'America/Chicago')::date) - "startedAt"::date)
         FROM "Streak" WHERE "userId" = ${user.id}`
       return max
     },

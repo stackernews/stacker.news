@@ -2,59 +2,56 @@ import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
 import { Prisma } from '@prisma/client'
 
 const COWBOY_HAT_STREAK_THRESHOLD = 100
-const GUN_STREAK_THRESHOLD = 1000
-const HORSE_STREAK_THRESHOLD = 1000
 
 export async function computeStreaks ({ models }) {
   // get all eligible users in the last day
   // if the user doesn't have an active streak, add one
   // if they have an active streak but didn't maintain it, end it
-  for (const type of ['COWBOY_HAT', 'GUN', 'HORSE']) {
-    const endingStreaks = await models.$queryRaw`
-      WITH day_streaks (id) AS (
-        ${getStreakQuery(type)}
-      ), existing_streaks (id, started_at) AS (
-        SELECT "userId", "startedAt"
-        FROM "Streak"
-        WHERE "Streak"."endedAt" IS NULL
-        AND "type" = ${type}::"StreakType"
-      ), new_streaks (id) AS (
-        SELECT day_streaks.id
-        FROM day_streaks
-        LEFT JOIN existing_streaks ON existing_streaks.id = day_streaks.id
-        WHERE existing_streaks.id IS NULL
-      ), ending_streaks (id) AS (
-        SELECT existing_streaks.id
-        FROM existing_streaks
-        LEFT JOIN day_streaks ON existing_streaks.id = day_streaks.id
-        WHERE day_streaks.id IS NULL
-      ), extending_streaks (id, started_at) AS (
-        SELECT existing_streaks.id, existing_streaks.started_at
-        FROM existing_streaks
-        JOIN day_streaks ON existing_streaks.id = day_streaks.id
-      ),
-      -- a bunch of mutations
-      streak_insert AS (
-        INSERT INTO "Streak" ("userId", "startedAt", "type", created_at, updated_at)
-        SELECT id, (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date, ${type}::"StreakType", now_utc(), now_utc()
-        FROM new_streaks
-      ), user_update_new_streaks AS (
-        UPDATE users SET ${getStreakColumn(type)} = 1 FROM new_streaks WHERE new_streaks.id = users.id
-      ), user_update_end_streaks AS (
-        UPDATE users SET ${getStreakColumn(type)} = NULL FROM ending_streaks WHERE ending_streaks.id = users.id
-      ), user_update_extend_streaks AS (
-        UPDATE users
-        SET ${getStreakColumn(type)} = (now() AT TIME ZONE 'America/Chicago')::date - extending_streaks.started_at
-        FROM extending_streaks WHERE extending_streaks.id = users.id
-      )
-      UPDATE "Streak"
-      SET "endedAt" = (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date, updated_at = now_utc()
-      FROM ending_streaks
-      WHERE ending_streaks.id = "Streak"."userId" AND "endedAt" IS NULL AND "type" = ${type}::"StreakType"
-      RETURNING "Streak".*`
+  const type = 'COWBOY_HAT'
+  const endingStreaks = await models.$queryRaw`
+    WITH day_streaks (id) AS (
+      ${getStreakQuery(type)}
+    ), existing_streaks (id, started_at) AS (
+      SELECT "userId", "startedAt"
+      FROM "Streak"
+      WHERE "Streak"."endedAt" IS NULL
+      AND "type" = ${type}::"StreakType"
+    ), new_streaks (id) AS (
+      SELECT day_streaks.id
+      FROM day_streaks
+      LEFT JOIN existing_streaks ON existing_streaks.id = day_streaks.id
+      WHERE existing_streaks.id IS NULL
+    ), ending_streaks (id) AS (
+      SELECT existing_streaks.id
+      FROM existing_streaks
+      LEFT JOIN day_streaks ON existing_streaks.id = day_streaks.id
+      WHERE day_streaks.id IS NULL
+    ), extending_streaks (id, started_at) AS (
+      SELECT existing_streaks.id, existing_streaks.started_at
+      FROM existing_streaks
+      JOIN day_streaks ON existing_streaks.id = day_streaks.id
+    ),
+    -- a bunch of mutations
+    streak_insert AS (
+      INSERT INTO "Streak" ("userId", "startedAt", "type", created_at, updated_at)
+      SELECT id, (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date, ${type}::"StreakType", now_utc(), now_utc()
+      FROM new_streaks
+    ), user_update_new_streaks AS (
+      UPDATE users SET "streak" = 1 FROM new_streaks WHERE new_streaks.id = users.id
+    ), user_update_end_streaks AS (
+      UPDATE users SET "streak" = NULL FROM ending_streaks WHERE ending_streaks.id = users.id
+    ), user_update_extend_streaks AS (
+      UPDATE users
+      SET "streak" = (now() AT TIME ZONE 'America/Chicago')::date - extending_streaks.started_at::date
+      FROM extending_streaks WHERE extending_streaks.id = users.id
+    )
+    UPDATE "Streak"
+    SET "endedAt" = (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date, updated_at = now_utc()
+    FROM ending_streaks
+    WHERE ending_streaks.id = "Streak"."userId" AND "endedAt" IS NULL AND "type" = ${type}::"StreakType"
+    RETURNING "Streak".*`
 
-    Promise.allSettled(endingStreaks.map(streak => notifyStreakLost(streak.userId, streak)))
-  }
+  Promise.allSettled(endingStreaks.map(streak => notifyStreakLost(streak.userId, streak)))
 }
 
 export async function checkStreak ({ data: { id, type = 'COWBOY_HAT' }, models }) {
@@ -75,7 +72,7 @@ export async function checkStreak ({ data: { id, type = 'COWBOY_HAT' }, models }
     WITH streak_started (id) AS (
         ${getStreakQuery(type, id)}
     ), user_start_streak AS (
-      UPDATE users SET ${getStreakColumn(type)} = 0 FROM streak_started WHERE streak_started.id = users.id
+      UPDATE users SET "streak" = 0 FROM streak_started WHERE streak_started.id = users.id
     )
     INSERT INTO "Streak" ("userId", "startedAt", "type", created_at, updated_at)
     SELECT id, (now() AT TIME ZONE 'America/Chicago')::date, ${type}::"StreakType", now_utc(), now_utc()
@@ -92,31 +89,6 @@ function getStreakQuery (type, userId) {
   const dayFragment = userId
     ? Prisma.sql`(now() AT TIME ZONE 'America/Chicago')::date`
     : Prisma.sql`(now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date`
-
-  if (type === 'GUN') {
-    return Prisma.sql`
-      SELECT "Invoice"."userId"
-        FROM "Invoice"
-        JOIN "InvoiceForward" ON "Invoice".id = "InvoiceForward"."invoiceId"
-        WHERE ("Invoice"."created_at" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= ${dayFragment}
-        AND "Invoice"."actionState" = 'PAID' AND "Invoice"."actionType" = 'ZAP'
-        ${userId ? Prisma.sql`AND "Invoice"."userId" = ${userId}` : Prisma.empty}
-        GROUP BY "Invoice"."userId"
-        HAVING sum(floor("Invoice"."msatsReceived"/1000)) >= ${GUN_STREAK_THRESHOLD}`
-  }
-
-  if (type === 'HORSE') {
-    return Prisma.sql`
-      SELECT "Withdrawl"."userId"
-        FROM "Withdrawl"
-        JOIN "InvoiceForward" ON "Withdrawl".id = "InvoiceForward"."withdrawlId"
-        JOIN "Invoice" ON "InvoiceForward"."invoiceId" = "Invoice".id
-        WHERE ("Withdrawl"."created_at" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= ${dayFragment}
-        AND "Invoice"."actionState" = 'PAID' AND "Invoice"."actionType" = 'ZAP'
-        ${userId ? Prisma.sql`AND "Withdrawl"."userId" = ${userId}` : Prisma.empty}
-        GROUP BY "Withdrawl"."userId"
-        HAVING sum(floor("Invoice"."msatsReceived"/1000)) >= ${HORSE_STREAK_THRESHOLD}`
-  }
 
   return Prisma.sql`
       SELECT "userId"
@@ -145,25 +117,5 @@ function getStreakQuery (type, userId) {
 }
 
 function isStreakActive (type, user) {
-  if (type === 'GUN') {
-    return typeof user.gunStreak === 'number'
-  }
-
-  if (type === 'HORSE') {
-    return typeof user.horseStreak === 'number'
-  }
-
   return typeof user.streak === 'number'
-}
-
-function getStreakColumn (type) {
-  if (type === 'GUN') {
-    return Prisma.sql`"gunStreak"`
-  }
-
-  if (type === 'HORSE') {
-    return Prisma.sql`"horseStreak"`
-  }
-
-  return Prisma.sql`"streak"`
 }

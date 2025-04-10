@@ -15,7 +15,6 @@ import {
   FULL_COMMENTS_THRESHOLD
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
-import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
@@ -26,6 +25,7 @@ import assertApiKeyNotPermitted from './apiKey'
 import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
+import { parse } from 'tldts'
 
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
@@ -613,7 +613,6 @@ export default {
       const urlObj = new URL(ensureProtocol(url))
       let { hostname, pathname } = urlObj
 
-      // remove subdomain from hostname
       const parseResult = parse(urlObj.hostname)
       if (parseResult?.subdomain?.length > 0) {
         hostname = hostname.replace(`${parseResult.subdomain}.`, '')
@@ -639,6 +638,9 @@ export default {
       } else if (urlObj.hostname === 'yewtu.be') {
         const matches = url.match(/(https?:\/\/)?yewtu\.be.*(v=|embed\/)(?<id>[_0-9a-z-]+)/i)
         similar = `^(http(s)?:\\/\\/)?yewtu\\.be\\/(watch\\?v\\=|embed\\/)${matches?.groups?.id}&?`
+      } else {
+        // only allow ending of mismatching search params
+        similar += '(?:\\?.*)?$'
       }
 
       return await itemQueryWithMeta({

@@ -58,12 +58,12 @@ export function authErrorMessage (error, signin) {
 
   // workaround for signin/signup awareness due to missing support from next-auth
   const message = error && (authErrorMessages[error] ?? authErrorMessages.default)
-  if (signin && (error === 'Callback' || error === 'CredentialsSignin')) {
+  if (signin) {
     return (
       <>
-        We couldn't find an account with these credentials.
+        {message}
         <br />
-        Did you want to <Link className='fw-bold' href='/signup'>sign up</Link> instead?
+        If you are new to Stacker News, please <Link className='fw-bold' href='/signup'>sign up</Link> first.
       </>
     )
   }

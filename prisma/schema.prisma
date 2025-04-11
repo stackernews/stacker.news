@@ -240,6 +240,7 @@ model Wallet {
   walletNWC              WalletNWC?
   walletPhoenixd         WalletPhoenixd?
   walletBlink            WalletBlink?
+  walletLNC              WalletLNC?
 
   vaultEntries   VaultEntry[]     @relation("VaultEntries")
   withdrawals    Withdrawl[]
@@ -249,6 +250,24 @@ model Wallet {
   @@unique([userId, type])
   @@index([userId])
   @@index([priority])
+}
+
+model Vault {
+  id        Int      @id @default(autoincrement())
+  iv        String   @db.Text
+  value     String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  walletLNbits           WalletLNbits?
+  walletNWC              WalletNWC?
+  walletBlinkApiKey      WalletBlink?    @relation("blinkApiKeySend")
+  walletBlinkCurrency    WalletBlink?    @relation("blinkCurrencySend")
+  walletPhoenixd         WalletPhoenixd?
+  walletLNCPairingPhrase WalletLNC?      @relation("lncPairingPhrase")
+  walletLNCRemoteKey     WalletLNC?      @relation("lncRemoteKey")
+  walletLNCServerHost    WalletLNC?      @relation("lncServerHost")
+  walletLNCLocalKey      WalletLNC?      @relation("lncLocalKey")
 }
 
 model VaultEntry {
@@ -323,25 +342,33 @@ model WalletLNbits {
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
   url        String
   invoiceKey String?
+  adminKeyId Int?     @unique
+  adminKey   Vault?   @relation(fields: [adminKeyId], references: [id])
 }
 
 model WalletNWC {
-  id         Int      @id @default(autoincrement())
-  walletId   Int      @unique
-  wallet     Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
-  nwcUrlRecv String?
-}
-
-model WalletBlink {
   id           Int      @id @default(autoincrement())
   walletId     Int      @unique
   wallet       Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
-  apiKeyRecv   String?
-  currencyRecv String?
+  nwcUrlRecv   String?
+  nwcUrlId Int?     @unique
+  nwcUrl   Vault?   @relation(fields: [nwcUrlId], references: [id])
+}
+
+model WalletBlink {
+  id             Int      @id @default(autoincrement())
+  walletId       Int      @unique
+  wallet         Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+  apiKeyRecv     String?
+  currencyRecv   String?
+  apiKeyId   Int?     @unique
+  apiKey     Vault?   @relation("blinkApiKeySend", fields: [apiKeyId], references: [id])
+  currencyId Int?     @unique
+  currency   Vault?   @relation("blinkCurrencySend", fields: [currencyId], references: [id])
 }
 
 model WalletPhoenixd {
@@ -352,6 +379,24 @@ model WalletPhoenixd {
   updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
   url               String
   secondaryPassword String?
+  primaryPasswordId Int?     @unique
+  primaryPassword   Vault?   @relation(fields: [primaryPasswordId], references: [id])
+}
+
+model WalletLNC {
+  id              Int      @id @default(autoincrement())
+  walletId        Int      @unique
+  wallet          Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+  pairingPhraseId Int?     @unique
+  pairingPhrase   Vault?   @relation("lncPairingPhrase", fields: [pairingPhraseId], references: [id])
+  localKeyId      Int?     @unique
+  localKey        Vault?   @relation("lncLocalKey", fields: [localKeyId], references: [id])
+  remoteKeyId     Int?     @unique
+  remoteKey       Vault?   @relation("lncRemoteKey", fields: [remoteKeyId], references: [id])
+  serverHostId    Int?     @unique
+  serverHost      Vault?   @relation("lncServerHost", fields: [serverHostId], references: [id])
 }
 
 model Mute {

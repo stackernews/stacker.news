@@ -182,6 +182,7 @@ export default function Comment ({
                 >reply from someone you muted
                 </span>)
               : <ItemInfo
+                  full={topLevel}
                   item={item}
                   commentsText='replies'
                   commentTextSingular='reply'

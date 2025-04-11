@@ -89,11 +89,14 @@ export default function ItemInfo ({
   const myPost = (me && root && Number(me.id) === Number(root.user.id))
   const rootReply = item.path.split('.').length === 2
   const canPin = (isPost && mySub) || (myPost && rootReply)
+  const isPinnedPost = isPost && item.position && (pinnable || !item.subName)
+  const isPinnedSubReply = !isPost && item.position && !item.subName
+  const isAd = !item.parentId && Number(item.user?.id) === USER_ID.ad
   const meSats = (me ? item.meSats : item.meAnonSats) || 0
 
   return (
     <div className={className || `${styles.other}`}>
-      {!(item.position && (pinnable || !item.subName)) && !(!item.parentId && Number(item.user?.id) === USER_ID.ad) &&
+      {!isPinnedPost && !(isPinnedSubReply && !full) && !isAd &&
         <>
           <span title={itemTitle(item)}>
             {numWithUnits(item.sats)}

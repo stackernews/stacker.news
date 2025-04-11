@@ -56,8 +56,8 @@ const authErrorMessages = {
 export function authErrorMessage (error, signin) {
   if (!error) return null
 
-  // workaround for signin/signup awareness due to missing support from next-auth
   const message = error && (authErrorMessages[error] ?? authErrorMessages.default)
+  // workaround for signin/signup awareness due to missing support from next-auth
   if (signin) {
     return (
       <>

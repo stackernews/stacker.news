@@ -12,6 +12,7 @@ import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { datePivot } from '@/lib/time'
 import * as cookie from 'cookie'
 import { cookieOptions } from '@/lib/auth'
+import Link from 'next/link'
 
 export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
   const disabled = multiAuth
@@ -52,12 +53,26 @@ const authErrorMessages = {
   default: 'Auth failed. Try again or choose a different method.'
 }
 
-export function authErrorMessage (error) {
-  return error && (authErrorMessages[error] ?? authErrorMessages.default)
+export function authErrorMessage (error, signin) {
+  if (!error) return null
+
+  // workaround for signin/signup awareness due to missing support from next-auth
+  const message = error && (authErrorMessages[error] ?? authErrorMessages.default)
+  if (signin && (error === 'Callback' || error === 'CredentialsSignin')) {
+    return (
+      <>
+        We couldn't find an account with these credentials.
+        <br />
+        Did you want to <Link className='fw-bold' href='/signup'>sign up</Link> instead?
+      </>
+    )
+  }
+
+  return message
 }
 
 export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signin }) {
-  const [errorMessage, setErrorMessage] = useState(authErrorMessage(error))
+  const [errorMessage, setErrorMessage] = useState(authErrorMessage(error, signin))
   const router = useRouter()
 
   // signup/signin awareness cookie

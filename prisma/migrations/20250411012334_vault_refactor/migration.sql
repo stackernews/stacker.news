@@ -1,0 +1,177 @@
+/*
+  Warnings:
+
+  - A unique constraint covering the columns `[apiKeySendId]` on the table `WalletBlink` will be added. If there are existing duplicate values, this will fail.
+  - A unique constraint covering the columns `[currencySendId]` on the table `WalletBlink` will be added. If there are existing duplicate values, this will fail.
+  - A unique constraint covering the columns `[adminKeyId]` on the table `WalletLNbits` will be added. If there are existing duplicate values, this will fail.
+  - A unique constraint covering the columns `[nwcUrlSendId]` on the table `WalletNWC` will be added. If there are existing duplicate values, this will fail.
+  - A unique constraint covering the columns `[primaryPasswordId]` on the table `WalletPhoenixd` will be added. If there are existing duplicate values, this will fail.
+
+*/
+-- AlterTable
+ALTER TABLE "WalletBlink" ADD COLUMN     "apiKeySendId" INTEGER,
+ADD COLUMN     "currencySendId" INTEGER;
+
+-- AlterTable
+ALTER TABLE "WalletLNbits" ADD COLUMN     "adminKeyId" INTEGER;
+
+-- AlterTable
+ALTER TABLE "WalletNWC" ADD COLUMN     "nwcUrlSendId" INTEGER;
+
+-- AlterTable
+ALTER TABLE "WalletPhoenixd" ADD COLUMN     "primaryPasswordId" INTEGER;
+
+-- CreateTable
+CREATE TABLE "Vault" (
+    "id" SERIAL NOT NULL,
+    "iv" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Vault_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "WalletLNC" (
+    "id" SERIAL NOT NULL,
+    "walletId" INTEGER NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "pairingPhraseId" INTEGER,
+    "localKeyId" INTEGER,
+    "remoteKeyId" INTEGER,
+    "serverHostId" INTEGER,
+
+    CONSTRAINT "WalletLNC_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletBlink_apiKeySendId_key" ON "WalletBlink"("apiKeySendId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletBlink_currencySendId_key" ON "WalletBlink"("currencySendId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletLNbits_adminKeyId_key" ON "WalletLNbits"("adminKeyId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletNWC_nwcUrlSendId_key" ON "WalletNWC"("nwcUrlSendId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletPhoenixd_primaryPasswordId_key" ON "WalletPhoenixd"("primaryPasswordId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletLNC_walletId_key" ON "WalletLNC"("walletId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletLNC_pairingPhraseId_key" ON "WalletLNC"("pairingPhraseId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletLNC_localKeyId_key" ON "WalletLNC"("localKeyId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletLNC_remoteKeyId_key" ON "WalletLNC"("remoteKeyId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletLNC_serverHostId_key" ON "WalletLNC"("serverHostId");
+
+-- AddForeignKey
+ALTER TABLE "WalletLNbits" ADD CONSTRAINT "WalletLNbits_adminKeyId_fkey" FOREIGN KEY ("adminKeyId") REFERENCES "Vault"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WalletNWC" ADD CONSTRAINT "WalletNWC_nwcUrlSendId_fkey" FOREIGN KEY ("nwcUrlSendId") REFERENCES "Vault"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WalletBlink" ADD CONSTRAINT "WalletBlink_apiKeySendId_fkey" FOREIGN KEY ("apiKeySendId") REFERENCES "Vault"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WalletBlink" ADD CONSTRAINT "WalletBlink_currencySendId_fkey" FOREIGN KEY ("currencySendId") REFERENCES "Vault"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WalletPhoenixd" ADD CONSTRAINT "WalletPhoenixd_primaryPasswordId_fkey" FOREIGN KEY ("primaryPasswordId") REFERENCES "Vault"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WalletLNC" ADD CONSTRAINT "WalletLNC_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WalletLNC" ADD CONSTRAINT "WalletLNC_pairingPhraseId_fkey" FOREIGN KEY ("pairingPhraseId") REFERENCES "Vault"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WalletLNC" ADD CONSTRAINT "WalletLNC_localKeyId_fkey" FOREIGN KEY ("localKeyId") REFERENCES "Vault"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WalletLNC" ADD CONSTRAINT "WalletLNC_remoteKeyId_fkey" FOREIGN KEY ("remoteKeyId") REFERENCES "Vault"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WalletLNC" ADD CONSTRAINT "WalletLNC_serverHostId_fkey" FOREIGN KEY ("serverHostId") REFERENCES "Vault"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+CREATE OR REPLACE FUNCTION migrate_wallet_vault()
+RETURNS void AS
+$$
+DECLARE
+    vaultEntry "VaultEntry"%ROWTYPE;
+BEGIN
+    FOR vaultEntry IN SELECT * FROM "VaultEntry" LOOP
+        DECLARE
+            vaultId INT;
+            walletType "WalletType";
+        BEGIN
+            INSERT INTO "Vault" ("iv", "value")
+            VALUES (vaultEntry."iv", vaultEntry."value")
+            RETURNING id INTO vaultId;
+
+            SELECT type INTO walletType
+            FROM "Wallet"
+            WHERE id = vaultEntry."walletId";
+
+            CASE walletType
+                WHEN 'LNBITS' THEN
+                    UPDATE "WalletLNbits"
+                    SET "adminKeyId" = vaultId
+                    WHERE "walletId" = vaultEntry."walletId";
+                WHEN 'NWC' THEN
+                    UPDATE "WalletNWC"
+                    SET "nwcUrlSendId" = vaultId
+                    WHERE "walletId" = vaultEntry."walletId";
+                WHEN 'BLINK' THEN
+                    IF vaultEntry."key" = 'apiKey' THEN
+                        UPDATE "WalletBlink"
+                        SET "apiKeySendId" = vaultId
+                        WHERE "walletId" = vaultEntry."walletId";
+                    ELSE
+                        UPDATE "WalletBlink"
+                        SET "currencySendId" = vaultId
+                        WHERE "walletId" = vaultEntry."walletId";
+                    END IF;
+                WHEN 'PHOENIXD' THEN
+                    UPDATE "WalletPhoenixd"
+                    SET "primaryPasswordId" = vaultId
+                    WHERE "walletId" = vaultEntry."walletId";
+                WHEN 'LNC' THEN
+                    IF vaultEntry."key" = 'pairingPhrase' THEN
+                        UPDATE "WalletLNC"
+                        SET "pairingPhraseId" = vaultId
+                        WHERE "walletId" = vaultEntry."walletId";
+                    ELSIF vaultEntry."key" = 'localKey' THEN
+                        UPDATE "WalletLNC"
+                        SET "localKeyId" = vaultId
+                        WHERE "walletId" = vaultEntry."walletId";
+                    ELSIF vaultEntry."key" = 'remoteKey' THEN
+                        UPDATE "WalletLNC"
+                        SET "remoteKeyId" = vaultId
+                        WHERE "walletId" = vaultEntry."walletId";
+                    ELSIF vaultEntry."key" = 'serverHost' THEN
+                        UPDATE "WalletLNC"
+                        SET "serverHostId" = vaultId
+                        WHERE "walletId" = vaultEntry."walletId";
+                    END IF;
+              END CASE;
+        END;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT migrate_wallet_vault();
+DROP FUNCTION migrate_wallet_vault();

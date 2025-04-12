@@ -9,4 +9,4 @@ ALTER TABLE "Item" ADD CONSTRAINT "Item_unique_time_constraint"
     md5(COALESCE("text", '')) WITH =,
     tsrange(created_at, created_at + INTERVAL '10 minutes') WITH &&
   )
-  WHERE (created_at > '2024-12-30' AND text <> '*deleted by author*');
+  WHERE (created_at > '2024-12-30' AND "deletedAt" IS NULL);

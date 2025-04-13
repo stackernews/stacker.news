@@ -153,6 +153,7 @@ model User {
   DirectPaymentSent         DirectPayment[]      @relation("DirectPaymentSent")
   UserSubTrust              UserSubTrust[]
   PayIn                     PayIn[]
+  PayOut                    PayOut[]
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -1072,6 +1073,7 @@ model Withdrawl {
   wallet         Wallet?          @relation(fields: [walletId], references: [id], onDelete: SetNull)
   invoiceForward InvoiceForward?
   WalletLog      WalletLog[]
+  PayOut         PayOut?
 
   @@index([createdAt], map: "Withdrawl.created_at_index")
   @@index([userId], map: "Withdrawl.userId_index")
@@ -1318,6 +1320,7 @@ enum PayInType {
 }
 
 enum PayInState {
+  PENDING_INVOICE_CREATION
   PENDING
   PENDING_HELD
   HELD
@@ -1327,46 +1330,63 @@ enum PayInState {
   FORWARDED
   FAILED_FORWARD
   CANCELING
+  RETRYING
+}
+
+enum PayInFailureReason {
+  INVOICE_CREATION_FAILED
+  USER_CANCELLED
+  SYSTEM_CANCELLED
+  INVOICE_EXPIRED
+  EXECUTION_FAILED
 }
 
 model PayIn {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
-  cost      Int
+  mcost     BigInt
 
-  payInType  PayInType
-  payInState PayInState
-  userId     Int
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payInType           PayInType
+  payInState          PayInState
+  payInFailureReason  PayInFailureReason? // TODO: add check constraint
+  payInStateChangedAt DateTime? // TODO: set with a trigger
+  predecessorId       Int?                @unique
+  predecessor         PayIn?              @relation("PayInPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade)
 
-  mcreditsAfter BigInt
-  msatsAfter    BigInt
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  PayMethod      PayMethod[]
-  PessimisticEnv PessimisticEnv[]
-  PayOut         PayOut[]
+  msatsBefore    BigInt?
+  mcreditsBefore BigInt?
+
+  pessimisticEnv       PessimisticEnv?
+  payInCustodialTokens PayInCustodialToken[]
+  payOuts              PayOut[]
+  successor            PayIn?                @relation("PayInPredecessor")
 
   @@index([userId])
   @@index([payInType])
+  @@index([predecessorId])
+  @@index([payInStateChangedAt])
 }
 
-enum PayInMethodType {
-  COWBOY_CREDITS
-  REWARD_SATS
+enum CustodialTokenType {
+  CREDITS
+  SATS
 }
 
-model PayMethod {
-  id            Int             @id @default(autoincrement())
-  payId         Int
-  payIn         PayIn           @relation(fields: [payId], references: [id], onDelete: Cascade)
-  msats         BigInt
-  payMethodType PayInMethodType
+model PayInCustodialToken {
+  id                 Int                @id @default(autoincrement())
+  payInId            Int
+  payIn              PayIn              @relation(fields: [payInId], references: [id], onDelete: Cascade)
+  mtokens            BigInt
+  custodialTokenType CustodialTokenType
 }
 
 model PessimisticEnv {
   id      Int   @id @default(autoincrement())
-  payInId Int
+  payInId Int   @unique
   payIn   PayIn @relation(fields: [payInId], references: [id], onDelete: Cascade)
 
   args   Json?   @db.JsonB
@@ -1387,12 +1407,18 @@ model PayOut {
   id         Int        @id @default(autoincrement())
   createdAt  DateTime   @default(now()) @map("created_at")
   updatedAt  DateTime   @default(now()) @updatedAt @map("updated_at")
-  userId     Int
-  payInId    Int
-  payIn      PayIn      @relation(fields: [payInId], references: [id], onDelete: Cascade)
-  msats      BigInt
   payOutType PayOutType
 
-  msatsAfter    BigInt
-  mcreditsAfter BigInt
+  userId  Int?
+  user    User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payInId Int
+  payIn   PayIn @relation(fields: [payInId], references: [id], onDelete: Cascade)
+
+  mtokens            BigInt
+  custodialTokenType CustodialTokenType?
+  withdrawlId        Int?                @unique
+  withdrawl          Withdrawl?          @relation(fields: [withdrawlId], references: [id], onDelete: Cascade)
+
+  msatsBefore    BigInt?
+  mcreditsBefore BigInt?
 }

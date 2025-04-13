@@ -1,4 +1,4 @@
-import Nostr from '@/lib/nostr'
+import Nostr, { getNostrProfile } from '@/lib/nostr'
 import { TwitterApi } from 'twitter-api-v2'
 import { msatsToSats, numWithUnits } from '@/lib/format'
 
@@ -92,10 +92,10 @@ async function getHottestItem ({ models }) {
   return item[0]
 }
 
-async function itemToMessage ({ item }) {
+async function itemToMessage ({ item, postAuthorNostrProfile }) {
   return `${item.title}
 
-by ${item.userName} in ~${item.subName}
+by ${postAuthorNostrProfile ? `nostr:${postAuthorNostrProfile}` : `${item.userName}`} in ~${item.subName}
 ${numWithUnits(msatsToSats(item.msats), { abbreviate: false })} and ${numWithUnits(item.ncomments, { abbreviate: false, unitSingular: 'comment', unitPlural: 'comments' })} so far
 
 https://stacker.news/items/${item.id}`
@@ -103,10 +103,21 @@ https://stacker.news/items/${item.id}`
 
 export async function postToSocial ({ models }) {
   const item = await getHottestItem({ models })
-  if (item) {
-    const message = await itemToMessage({ item })
-    console.log('Message:', message)
-    await postToTwitter({ message })
-    await postToNostr({ message })
-  }
+  if (!item) return
+
+  const postAuthor = await models.user.findUnique({
+    where: { id: item.userId, hideNostr: false },
+    select: { nostrPubkey: true, nostrAuthPubkey: true }
+  })
+
+  const nostrKey = postAuthor?.nostrPubkey || postAuthor?.nostrAuthPubkey
+  const postAuthorNostrProfile = nostrKey ? getNostrProfile(nostrKey) : null
+
+  const twitterMessage = await itemToMessage({ item, postAuthorNostrProfile: null })
+  const nostrMessage = await itemToMessage({ item, postAuthorNostrProfile })
+  console.log('Twitter Message:', twitterMessage)
+  console.log('Nostr Message:', nostrMessage)
+
+  await postToTwitter({ message: twitterMessage })
+  await postToNostr({ message: nostrMessage })
 }

@@ -47,6 +47,16 @@ CREATE TABLE "WalletLNC" (
     CONSTRAINT "WalletLNC_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "WalletWebLN" (
+    "id" SERIAL NOT NULL,
+    "walletId" INTEGER NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "WalletWebLN_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "WalletBlink_apiKeyId_key" ON "WalletBlink"("apiKeyId");
 
@@ -76,6 +86,9 @@ CREATE UNIQUE INDEX "WalletLNC_remoteKeyId_key" ON "WalletLNC"("remoteKeyId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "WalletLNC_serverHostId_key" ON "WalletLNC"("serverHostId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletWebLN_walletId_key" ON "WalletWebLN"("walletId");
 
 -- AddForeignKey
 ALTER TABLE "WalletLNbits" ADD CONSTRAINT "WalletLNbits_adminKeyId_fkey" FOREIGN KEY ("adminKeyId") REFERENCES "Vault"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -107,6 +120,16 @@ ALTER TABLE "WalletLNC" ADD CONSTRAINT "WalletLNC_remoteKeyId_fkey" FOREIGN KEY 
 -- AddForeignKey
 ALTER TABLE "WalletLNC" ADD CONSTRAINT "WalletLNC_serverHostId_fkey" FOREIGN KEY ("serverHostId") REFERENCES "Vault"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
+-- AddForeignKey
+ALTER TABLE "WalletWebLN" ADD CONSTRAINT "WalletWebLN_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+CREATE TRIGGER wallet_lnc_as_jsonb
+AFTER INSERT OR UPDATE ON "WalletLNC"
+FOR EACH ROW EXECUTE PROCEDURE wallet_wallet_type_as_jsonb();
+
+CREATE TRIGGER wallet_webln_as_jsonb
+AFTER INSERT OR UPDATE ON "WalletWebLN"
+FOR EACH ROW EXECUTE PROCEDURE wallet_wallet_type_as_jsonb();
 
 CREATE OR REPLACE FUNCTION migrate_wallet_vault()
 RETURNS void AS
@@ -114,6 +137,9 @@ $$
 DECLARE
     vaultEntry "VaultEntry"%ROWTYPE;
 BEGIN
+    INSERT INTO "WalletWebLN"("walletId") SELECT id FROM "Wallet" WHERE type = 'WEBLN';
+    INSERT INTO "WalletLNC"("walletId") SELECT id from "Wallet" WHERE type = 'LNC';
+
     FOR vaultEntry IN SELECT * FROM "VaultEntry" LOOP
         DECLARE
             vaultId INT;

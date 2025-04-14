@@ -1,11 +1,24 @@
 import { E_VAULT_KEY_EXISTS, GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { getWalletByType } from '@/wallets/common'
+import { deleteVault, hasVault, vaultNewSchematoTypedef, vaultPrismaFragments } from '@/wallets/vault'
 
 export default {
   Query: {
     getVaultEntries: async (parent, args, { me, models }) => {
       if (!me) throw new GqlAuthenticationError()
 
-      return await models.vaultEntry.findMany({ where: { userId: me.id } })
+      const { include } = vaultPrismaFragments()
+      const wallets = await models.wallet.findMany({
+        where: { userId: me.id },
+        include
+      })
+
+      const vaultEntries = []
+      for (const wallet of wallets) {
+        vaultEntries.push(...vaultNewSchematoTypedef(wallet).vaultEntries)
+      }
+
+      return vaultEntries
     }
   },
   Mutation: {
@@ -29,12 +42,22 @@ export default {
         }))
       }
 
-      for (const entry of entries) {
-        txs.push(models.vaultEntry.update({
-          where: { userId_key: { userId: me.id, key: entry.key } },
-          data: { value: entry.value, iv: entry.iv }
-        }))
+      const wallets = await models.wallet.findMany({ where: { userId: me.id } })
+      for (const wallet of wallets) {
+        const def = getWalletByType(wallet.type)
+        const vaultFrags = vaultPrismaFragments({ ...wallet, vaultEntries: entries })
+        txs.push(
+          models.wallet.update({
+            where: { id: wallet.id },
+            data: {
+              [def.walletField]: {
+                update: vaultFrags.upsert
+              }
+            }
+          })
+        )
       }
+
       await models.$transaction(txs)
       return true
     },
@@ -45,7 +68,10 @@ export default {
         where: { id: me.id },
         data: { vaultKeyHash: '' }
       }))
-      txs.push(models.vaultEntry.deleteMany({ where: { userId: me.id } }))
+
+      const wallets = await models.wallet.findMany({ where: { userId: me.id } })
+      txs.push(...wallets.filter(hasVault).map(wallet => deleteVault(models, wallet)))
+
       await models.$transaction(txs)
       return true
     }

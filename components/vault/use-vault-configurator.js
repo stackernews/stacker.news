@@ -34,7 +34,7 @@ export function useVaultConfigurator ({ onVaultKeySet, beforeDisconnectVault } =
 
   const disconnectVault = useCallback(async () => {
     console.log('disconnecting vault')
-    beforeDisconnectVault?.()
+    await beforeDisconnectVault?.()
     await remove('key')
     keyReactiveVar(null)
   }, [remove, keyReactiveVar, beforeDisconnectVault])

@@ -11,14 +11,25 @@ import RefreshIcon from '@/svgs/refresh-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/components/toast'
 import { useWallets } from '@/wallets/index'
+import { useEncryptedPrivates } from '@/components/use-encrypted-privates'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function DeviceSync ({ ssrData }) {
   const { me } = useMe()
-  const { onVaultKeySet, beforeDisconnectVault } = useWallets()
+  const { onVaultKeySet: walletOnVaultKeySet, beforeDisconnectVault: walletBeforeDisconnectVault } = useWallets()
+  const { onVaultKeySet: userOnVaultKeySet, beforeDisconnectVault: userBeforeDisconnectVault } = useEncryptedPrivates({ me })
   const { key, setVaultKey, clearVault, disconnectVault } =
-    useVaultConfigurator({ onVaultKeySet, beforeDisconnectVault })
+    useVaultConfigurator({
+      onVaultKeySet: async (encrypt) => {
+        walletOnVaultKeySet(encrypt).catch(console.error)
+        userOnVaultKeySet(encrypt).catch(console.error)
+      },
+      beforeDisconnectVault: async () => {
+        walletBeforeDisconnectVault()
+        userBeforeDisconnectVault().catch(console.error)
+      }
+    })
   const [passphrase, setPassphrase] = useState()
 
   const setSeedPassphrase = useCallback(async (passphrase) => {

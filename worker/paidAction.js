@@ -170,14 +170,6 @@ export async function paidActionPaid ({ data: { invoiceId, ...args }, models, ln
       await tx.$executeRaw`
         INSERT INTO pgboss.job (name, data)
         VALUES ('checkStreak', jsonb_build_object('id', ${dbInvoice.userId}, 'type', 'COWBOY_HAT'))`
-      if (dbInvoice.invoiceForward) {
-        // only paid forwards are eligible for a gun streak
-        await tx.$executeRaw`
-          INSERT INTO pgboss.job (name, data)
-          VALUES
-            ('checkStreak', jsonb_build_object('id', ${dbInvoice.userId}, 'type', 'GUN')),
-            ('checkStreak', jsonb_build_object('id', ${dbInvoice.invoiceForward.withdrawl.userId}, 'type', 'HORSE'))`
-      }
 
       return updateFields
     },

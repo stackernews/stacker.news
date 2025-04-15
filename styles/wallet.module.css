@@ -126,3 +126,27 @@
   background-color: var(--theme-toolbarHover) !important;
   border: 1px solid var(--theme-toolbarActive);
 }
+
+.separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--theme-grey);
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.separator::before,
+.separator::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--theme-grey);
+}
+
+.separator:not(:empty)::before {
+  margin-right: .25em;
+}
+
+.separator:not(:empty)::after {
+  margin-left: .25em;
+}

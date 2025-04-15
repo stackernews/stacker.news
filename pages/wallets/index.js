@@ -3,16 +3,16 @@ import Layout from '@/components/layout'
 import styles from '@/styles/wallet.module.css'
 import Link from 'next/link'
 import { useWallets } from '@/wallets/index'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useIsClient } from '@/components/use-client'
-import WalletCard from '@/components/wallet-card'
+import WalletCard from '@/wallets/card'
 import { useToast } from '@/components/toast'
 import BootstrapForm from 'react-bootstrap/Form'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
 import { useRouter } from 'next/router'
 import { supportsReceive, supportsSend } from '@/wallets/common'
-import { useWalletIndicator } from '@/components/wallet-indicator'
+import { useWalletIndicator } from '@/wallets/indicator'
 import { Button } from 'react-bootstrap'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
@@ -87,6 +87,7 @@ export default function Wallet ({ ssrData }) {
 
   const indicator = useWalletIndicator()
   const [showWallets, setShowWallets] = useState(!indicator)
+  useEffect(() => { setShowWallets(!indicator) }, [indicator])
 
   if (indicator && !showWallets) {
     return (

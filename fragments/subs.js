@@ -6,9 +6,9 @@ import { COMMENTS_ITEM_EXT_FIELDS } from './comments'
 const STREAK_FIELDS = gql`
   fragment StreakFields on User {
     optional {
-    streak
-    gunStreak
-      horseStreak
+      streak
+      hasSendWallet
+      hasRecvWallet
     }
   }
 `

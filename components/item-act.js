@@ -327,7 +327,7 @@ export function useZap () {
       // but right now this toast is noisy for optimistic zaps
       console.error(error)
     }
-  }, [act, toaster, strike, wallets.length])
+  }, [act, toaster, strike, wallets])
 }
 
 export class ActCanceledError extends Error {

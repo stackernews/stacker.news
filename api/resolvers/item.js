@@ -26,6 +26,7 @@ import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
+import { shuffleArray } from '@/lib/rand'
 
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
@@ -1150,7 +1151,8 @@ export default {
         poll.meVoted = false
       }
 
-      poll.options = options
+      poll.randPollOptions = item?.randPollOptions
+      poll.options = poll.randPollOptions ? shuffleArray(options) : options
       poll.count = options.reduce((t, o) => t + o.count, 0)
 
       return poll

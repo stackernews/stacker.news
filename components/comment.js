@@ -165,11 +165,13 @@ export default function Comment ({
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.outlawed && !me?.privates?.wildWestMode
           ? <Skull className={styles.dontLike} width={24} height={24} />
-          : item.mine
-            ? <Boost item={item} className={styles.upvote} />
-            : item.meDontLikeSats > item.meSats
-              ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
-              : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} collapsed={collapse === 'yep'} />}
+          : pin
+            ? <Pin width={22} height={22} className={styles.pin} />
+            : item.mine
+              ? <Boost item={item} className={styles.upvote} />
+              : item.meDontLikeSats > item.meSats
+                ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
+                : <UpVote item={item} className={styles.upvote} collapsed={collapse === 'yep'} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             {item.user?.meMute && !includeParent && collapse === 'yep'
@@ -182,6 +184,7 @@ export default function Comment ({
                 >reply from someone you muted
                 </span>)
               : <ItemInfo
+                  full={topLevel}
                   item={item}
                   commentsText='replies'
                   commentTextSingular='reply'

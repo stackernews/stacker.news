@@ -1,7 +1,5 @@
-import { useState, useLayoutEffect } from 'react'
 import Button from 'react-bootstrap/Button'
 import { fixedDecimal, numWithUnits } from '@/lib/format'
-import { shuffleArray } from '@/lib/rand'
 import { timeLeft } from '@/lib/time'
 import { useMe } from './me'
 import styles from './poll.module.css'
@@ -16,13 +14,6 @@ export default function Poll ({ item }) {
   const { me } = useMe()
   const pollVote = usePollVote({ query: POLL_VOTE, itemId: item.id })
   const toaster = useToast()
-  const [pollOptions, setPollOptions] = useState(item.poll.options)
-
-  useLayoutEffect(() => {
-    if (item.poll.randPollOptions) {
-      setPollOptions(shuffleArray(item.poll.options))
-    }
-  }, [])
 
   const PollButton = ({ v }) => {
     return (
@@ -84,7 +75,7 @@ export default function Poll ({ item }) {
   const pollCount = item.poll.count
   return (
     <div className={styles.pollBox}>
-      {pollOptions.map(v =>
+      {item.poll.options.map(v =>
         showPollButton
           ? <PollButton key={v.id} v={v} />
           : <PollResult

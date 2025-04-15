@@ -1,4 +1,4 @@
-import { DateTimeInput, Form, Input, MarkdownInput, VariableInput } from '@/components/form'
+import { Checkbox, DateTimeInput, Form, Input, MarkdownInput, VariableInput } from '@/components/form'
 import { useApolloClient } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
@@ -69,6 +69,11 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           label='poll expiration'
           name='pollExpiresAt'
           className='pr-4'
+          groupClassName='mb-0'
+        />
+        <Checkbox
+          label={<div className='d-flex align-items-center'>randomize order of poll choices</div>}
+          name='randPollOptions'
         />
       </AdvPostForm>
       <ItemButtonBar itemId={item?.id} />

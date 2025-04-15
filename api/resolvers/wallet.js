@@ -154,37 +154,6 @@ export function verifyHmac (hash, hmac) {
 const resolvers = {
   Query: {
     invoice: getInvoice,
-    wallet: async (parent, { id }, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      return await models.wallet.findUnique({
-        where: {
-          userId: me.id,
-          id: Number(id)
-        },
-        include: {
-          vaultEntries: true
-        }
-      })
-    },
-    walletByType: async (parent, { type }, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      const wallet = await models.wallet.findFirst({
-        where: {
-          userId: me.id,
-          type
-        },
-        include: {
-          vaultEntries: true
-        }
-      })
-      return wallet
-    },
     wallets: async (parent, args, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()

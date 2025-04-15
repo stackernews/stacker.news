@@ -69,8 +69,6 @@ const typeDefs = `
     connectAddress: String!
     walletHistory(cursor: String, inc: String): History
     wallets(includeReceivers: Boolean, includeSenders: Boolean, onlyEnabled: Boolean, prioritySort: String): [Wallet!]!
-    wallet(id: ID!): Wallet
-    walletByType(type: String!): Wallet
     walletLogs(type: String, from: String, to: String, cursor: String): WalletLog!
     failedInvoices: [Invoice!]!
   }

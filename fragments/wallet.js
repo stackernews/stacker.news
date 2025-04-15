@@ -173,25 +173,6 @@ export const WALLET_FIELDS = gql`
   }
 `
 
-export const WALLET = gql`
-  ${WALLET_FIELDS}
-  query Wallet($id: ID!) {
-    wallet(id: $id) {
-      ...WalletFields
-    }
-  }
-`
-
-// XXX [WALLET] this needs to be updated if another server wallet is added
-export const WALLET_BY_TYPE = gql`
-  ${WALLET_FIELDS}
-  query WalletByType($type: String!) {
-    walletByType(type: $type) {
-      ...WalletFields
-    }
-  }
-`
-
 export const WALLETS = gql`
   ${WALLET_FIELDS}
   query Wallets {

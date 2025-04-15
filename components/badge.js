@@ -31,18 +31,18 @@ export default function Badges ({ user, badge, className = 'ms-1', badgeClassNam
     })
   }
 
+  if (user.optional.hasRecvWallet) {
+    badges.push({
+      icon: HorseIcon,
+      overlayText: 'can receive sats'
+    })
+  }
+
   if (user.optional.hasSendWallet) {
     badges.push({
       icon: GunIcon,
       sizeDelta: 2,
       overlayText: 'can send sats'
-    })
-  }
-
-  if (user.optional.hasRecvWallet) {
-    badges.push({
-      icon: HorseIcon,
-      overlayText: 'can receive sats'
     })
   }
 

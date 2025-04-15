@@ -603,6 +603,7 @@ model Item {
   PollBlindVote        PollBlindVote[]
   ItemUserAgg          ItemUserAgg[]
   AutoSocialPost       AutoSocialPost[]
+  randPollOptions      Boolean               @default(false)
 
   @@index([uploadId])
   @@index([lastZapAt])

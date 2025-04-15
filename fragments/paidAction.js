@@ -192,10 +192,10 @@ export const UPSERT_POLL = gql`
   ${PAID_ACTION}
   mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
     $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $pollExpiresAt: Date,
-    ${HASH_HMAC_INPUT_1}) {
+    $randPollOptions: Boolean, ${HASH_HMAC_INPUT_1}) {
     upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
       options: $options, boost: $boost, forward: $forward, pollExpiresAt: $pollExpiresAt,
-      ${HASH_HMAC_INPUT_2}) {
+      randPollOptions: $randPollOptions, ${HASH_HMAC_INPUT_2}) {
       result {
         id
         deleteScheduledAt

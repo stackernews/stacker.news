@@ -208,5 +208,7 @@ export async function processCrop ({ photoId, cropData }) {
 
   const pathname = '/'
   const path = createImgproxyPath({ url, pathname, options })
-  return new URL(path, IMGPROXY_URL).toString()
+  const publicImgproxyUrl = process.env.NEXT_PUBLIC_IMGPROXY_URL
+
+  return new URL(path, publicImgproxyUrl).toString()
 }

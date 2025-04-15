@@ -11,6 +11,7 @@ import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
+import { processCrop } from '@/worker/imgproxy'
 
 const contributors = new Set()
 
@@ -726,6 +727,18 @@ export default {
       await models.user.update({ where: { id: me.id }, data: { upvotePopover, tipPopover } })
 
       return true
+    },
+    cropPhoto: async (parent, { photoId, cropData }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const croppedUrl = await processCrop({ photoId: Number(photoId), cropData })
+      if (!croppedUrl) {
+        throw new GqlInputError('can\'t crop photo')
+      }
+
+      return croppedUrl
     },
     setPhoto: async (parent, { photoId }, { me, models }) => {
       if (!me) {

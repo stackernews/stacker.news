@@ -1,6 +1,6 @@
 import { Button } from 'react-bootstrap'
-import CancelButton from './cancel-button'
-import { SubmitButton } from './form'
+import CancelButton from '@/components/cancel-button'
+import { SubmitButton } from '@/components/form'
 import { isConfigured } from '@/wallets/common'
 
 export default function WalletButtonBar ({

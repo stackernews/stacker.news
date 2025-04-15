@@ -18,7 +18,10 @@ import { useSendWallets } from '@/wallets/index'
 const defaultTips = [100, 1000, 10_000, 100_000]
 
 const Tips = ({ setOValue }) => {
-  const tips = [...getCustomTips(), ...defaultTips].sort((a, b) => a - b)
+  const customTips = getCustomTips()
+  const defaultNoCustom = defaultTips.filter(d => !customTips.includes(d))
+  const tips = [...customTips, ...defaultNoCustom].slice(0, 7).sort((a, b) => a - b)
+
   return tips.map((num, i) =>
     <Button
       size='sm'
@@ -37,11 +40,7 @@ const Tips = ({ setOValue }) => {
 const getCustomTips = () => JSON.parse(window.localStorage.getItem('custom-tips')) || []
 
 const addCustomTip = (amount) => {
-  if (defaultTips.includes(amount)) return
-  let customTips = Array.from(new Set([amount, ...getCustomTips()]))
-  if (customTips.length > 3) {
-    customTips = customTips.slice(0, 3)
-  }
+  const customTips = Array.from(new Set([amount, ...getCustomTips()])).slice(0, 7)
   window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }
 
@@ -328,7 +327,7 @@ export function useZap () {
       // but right now this toast is noisy for optimistic zaps
       console.error(error)
     }
-  }, [act, toaster, strike, wallets.length])
+  }, [act, toaster, strike, wallets])
 }
 
 export class ActCanceledError extends Error {

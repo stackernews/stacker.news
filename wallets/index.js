@@ -67,6 +67,7 @@ export function WalletsProvider ({ children }) {
   const [setWalletPriority] = useMutation(SET_WALLET_PRIORITY)
   const [serverWallets, setServerWallets] = useState([])
   const client = useApolloClient()
+  const [loading, setLoading] = useState(true)
 
   const { data, refetch } = useQuery(WALLETS,
     SSR ? {} : { nextFetchPolicy: 'cache-and-network' })
@@ -102,6 +103,7 @@ export function WalletsProvider ({ children }) {
       }
 
       setServerWallets(wallets)
+      setLoading(false)
     }
     loadWallets()
   }, [data?.wallets, decrypt, isActive])
@@ -196,17 +198,17 @@ export function WalletsProvider ({ children }) {
 
   // provides priority sorted wallets to children, a function to reload local wallets,
   // and a function to set priorities
+  const value = useMemo(() => ({
+    wallets,
+    loading,
+    reloadLocalWallets,
+    setPriorities,
+    onVaultKeySet: syncLocalWallets,
+    beforeDisconnectVault: unsyncLocalWallets,
+    removeLocalWallets
+  }), [wallets, loading, reloadLocalWallets, setPriorities, syncLocalWallets, unsyncLocalWallets, removeLocalWallets])
   return (
-    <WalletsContext.Provider
-      value={{
-        wallets,
-        reloadLocalWallets,
-        setPriorities,
-        onVaultKeySet: syncLocalWallets,
-        beforeDisconnectVault: unsyncLocalWallets,
-        removeLocalWallets
-      }}
-    >
+    <WalletsContext.Provider value={value}>
       <RetryHandler>
         {children}
       </RetryHandler>
@@ -224,8 +226,11 @@ export function useWallet (name) {
 }
 
 export function useConfiguredWallets () {
-  const { wallets } = useWallets()
-  return useMemo(() => wallets.filter(w => isConfigured(w)), [wallets])
+  const { wallets, loading } = useWallets()
+  return useMemo(() => ({
+    wallets: wallets.filter(w => isConfigured(w)),
+    loading
+  }), [wallets, loading])
 }
 
 export function useSendWallets () {

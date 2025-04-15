@@ -168,7 +168,7 @@ How this validation is implemented depends heavily on the wallet. For example, f
 
 This function must throw an error if the configuration was found to be invalid.
 
-The `context` argument is an object. It makes the wallet logger for this wallet as returned by `useWalletLogger` available under `context.logger`. See [components/wallet-logger.js](../components/wallet-logger.js).
+The `context` argument is an object. It makes the wallet logger for this wallet as returned by `useWalletLogger` available under `context.logger`. See [wallets/logger.js](../wallets/logger.js).
 
 - `sendPayment: async (bolt11: string, config, context) => Promise<string>`
 

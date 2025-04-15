@@ -185,3 +185,30 @@ const sign = (target) => {
   hmac.update(target)
   return hmac.digest('base64url')
 }
+
+export async function processCrop ({ photoId, cropData }) {
+  const { x, y, width, height, originalWidth, originalHeight, scale } = cropData
+  const cropWidth = Math.round(originalWidth * width)
+  const cropHeight = Math.round(originalHeight * height)
+
+  const centerX = x + width / scale
+  const centerY = y + height / scale
+
+  const size = 200 // 200px avatar size
+
+  const options = [
+    `/crop:${cropWidth}:${cropHeight}`,
+    `/gravity:fp:${centerX}:${centerY}`,
+    `/rs:fill:${size}:${size}`
+  ].join('')
+
+  const uploadsUrl = process.env.MEDIA_URL_DOCKER || process.env.NEXT_PUBLIC_MEDIA_URL
+  const url = uploadsUrl + `/${photoId}`
+  console.log('[imgproxy - cropjob] id:', photoId, '-- url:', url)
+
+  const pathname = '/'
+  const path = createImgproxyPath({ url, pathname, options })
+  const publicImgproxyUrl = process.env.NEXT_PUBLIC_IMGPROXY_URL
+
+  return new URL(path, publicImgproxyUrl).toString()
+}

@@ -28,8 +28,10 @@ import { hexToBech32 } from '@/lib/nostr'
 import NostrIcon from '@/svgs/nostr.svg'
 import GithubIcon from '@/svgs/github-fill.svg'
 import TwitterIcon from '@/svgs/twitter-fill.svg'
-import { UNKNOWN_LINK_REL, MEDIA_URL } from '@/lib/constants'
+import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import ItemPopover from './item-popover'
+
+const MEDIA_URL = process.env.NEXT_PUBLIC_MEDIA_URL || `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}`
 
 export default function UserHeader ({ user }) {
   const router = useRouter()

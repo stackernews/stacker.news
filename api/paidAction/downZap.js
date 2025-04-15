@@ -62,7 +62,7 @@ export async function onPaid ({ invoice, actId }, { tx }) {
   // denormalize downzaps
   await tx.$executeRaw`
     WITH territory AS (
-      SELECT COALESCE(r."subName", i."subName", 'meta')::TEXT as "subName"
+      SELECT COALESCE(r."subName", i."subName", 'meta')::CITEXT as "subName"
       FROM "Item" i
       LEFT JOIN "Item" r ON r.id = i."rootId"
       WHERE i.id = ${itemAct.itemId}::INTEGER

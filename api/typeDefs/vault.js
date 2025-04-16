@@ -18,8 +18,7 @@ export default gql`
   }
 
   extend type Query {
-    getVaultEntry(key: String!): VaultEntry
-    getVaultEntries(keysFilter: [String!]): [VaultEntry!]!
+    getVaultEntries: [VaultEntry!]!
   }
 
   extend type Mutation {

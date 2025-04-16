@@ -213,6 +213,7 @@ enum WalletType {
   BLINK
   LNC
   WEBLN
+  ZEBEDEE
 }
 
 model Wallet {

@@ -21,6 +21,20 @@ The primary job consists of several steps:
   - a script (see below) is executed, which appends lines to [awards.csv](awards.csv) if needed
   - [create-pull-request](https://github.com/peter-evans/create-pull-request) looks for modified files and creates (or updates) a PR
 
+### Branch Existence Check
+
+The workflow includes functionality to check if the branch `extend-awards/patch` already exists. This ensures that if a PR is already open for extending `awards.csv`, the workflow will add a commit to the existing branch instead of creating a new PR. The steps are as follows:
+
+1. **Check if the branch exists**:
+   - The workflow fetches the branch `extend-awards/patch` from the remote repository.
+   - If the branch exists, an environment variable `exists=true` is set; otherwise, `exists=false`.
+
+2. **Handle existing branch**:
+   - If the branch exists (`exists=true`), the workflow checks out the branch, configures the Github bot user, and commits the changes directly to the branch.
+   - If the branch does not exist (`exists=false`), the workflow creates a new branch and opens a new PR using the `create-pull-request` action.
+
+This ensures that changes are consolidated into a single PR when possible. 
+
 ## Script
 
 The script is [extend-awards.py](extend-awards.py).
@@ -41,7 +55,7 @@ Finally, it appends zero, one, or two lines to the awards.csv file.
 
 ## Diagnostics
 
-In the GitHub web interface under 'Actions' each invokation of the action can be viewed, including environment and [output and errors](https://en.wikipedia.org/wiki/Standard_streams) of the script. First, the specific invokation is selected, then the job 'if_merged', then the step 'Run python extend-awards.py'. The environment is found by expanding the inner 'Run python extended-awards.py' on the first line.
+In the GitHub web interface under 'Actions' each invocation of the action can be viewed, including environment and [output and errors](https://en.wikipedia.org/wiki/Standard_streams) of the script. First, the specific invocation is selected, then the job 'if_merged', then the step 'Run python extend-awards.py'. The environment is found by expanding the inner 'Run python extended-awards.py' on the first line.
 
 The normal output includes details about the issue number found, the amount calculation, or the reason for not appending lines.
 

@@ -202,3 +202,7 @@ $$ LANGUAGE plpgsql;
 
 SELECT migrate_wallet_vault();
 DROP FUNCTION migrate_wallet_vault();
+
+ALTER TABLE "VaultEntry" DROP CONSTRAINT "VaultEntry_userId_fkey";
+ALTER TABLE "VaultEntry" DROP CONSTRAINT "VaultEntry_walletId_fkey";
+DROP TABLE "VaultEntry";

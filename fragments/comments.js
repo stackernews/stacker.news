@@ -140,6 +140,11 @@ export const GET_NEW_COMMENTS = gql`
     newComments(rootId: $rootId, after: $after) {
       comments {
         ...CommentFields
+        comments {
+          comments {
+            ...CommentFields
+          }
+        }
       }
     }
   }

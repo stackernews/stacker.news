@@ -359,7 +359,7 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, S
 
         const updatedComments = {
           ...item.comments,
-          comments: dedupeComments(item, newComments)
+          comments: dedupeComments(item.comments, newComments)
         }
         // first merge in new comments, then clear newComments for the item
         const mergedItem = {
@@ -368,44 +368,47 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, S
           newComments: []
         }
         // then recursively clear newComments for all nested comments
-        const clearAllNew = (comment) => {
-          return {
-            ...comment,
-            newComments: [],
-            comments: comment.comments
-              ? {
-                  ...comment.comments,
-                  comments: comment.comments.comments.map(child => clearAllNew(child))
-                }
-              : comment.comments
-          }
-        }
-        const finalItem = clearAllNew(mergedItem)
+        const finalItem = clearNewComments(mergedItem)
         return { item: finalItem }
       })
     } else {
-      client.cache.updateFragment({
+      const updatedData = client.cache.updateFragment({
         id: `Item:${itemId}`,
         fragment: COMMENT_WITH_NEW,
         fragmentName: 'CommentWithNew'
       }, (data) => {
         if (!data) return data
 
+        console.log('previous data', data)
+
         return {
           ...data,
-          comments: dedupeComments(data, newComments),
+          comments: dedupeComments(data.comments, newComments),
           newComments: []
         }
       })
+      console.log('new data', updatedData)
     }
     setLoading(false)
   }
 
-  const dedupeComments = (item, newComments) => {
-    const existingComments = item?.comments?.comments || []
-    const filtered = newComments.filter(newComment => !existingComments.some(existingComment => existingComment.id === newComment.id))
-    const updatedComments = [...filtered, ...existingComments]
-    return updatedComments
+  const dedupeComments = (existingComments = [], newComments = []) => {
+    const existingIds = new Set(existingComments.comments?.map(c => c.id))
+    const filteredNew = newComments.filter(c => !existingIds.has(c.id))
+    return [...filteredNew, ...existingComments.comments]
+  }
+
+  const clearNewComments = comment => {
+    return {
+      ...comment,
+      newComments: [],
+      comments: comment?.comments?.comments
+        ? {
+            ...comment.comments,
+            comments: comment.comments.comments.map(clearNewComments)
+          }
+        : comment.comments
+    }
   }
 
   if (loading && Skeleton) {
@@ -414,7 +417,7 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, S
 
   return (
     <span onClick={showNewComments}>
-      <div className={!topLevel ? styles.comments : ''}>
+      <div className={!topLevel ? styles.comments : 'pb-2'}>
         <div className={`d-block fw-bold ${styles.comment} pb-2 ps-3 d-flex align-items-center gap-2 pointer`}>
           {newComments.length} new {newComments.length === 1 ? 'reply' : 'replies'}
           <div className={styles.newCommentDot} />

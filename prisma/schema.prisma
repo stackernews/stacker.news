@@ -146,7 +146,6 @@ model User {
   oneDayReferrees           OneDayReferral[]     @relation("OneDayReferral_referrees")
   vaultKeyHash              String               @default("")
   walletsUpdatedAt          DateTime?
-  vaultEntries              VaultEntry[]         @relation("VaultEntries")
   proxyReceive              Boolean              @default(true)
   directReceive             Boolean              @default(true)
   DirectPaymentReceived     DirectPayment[]      @relation("DirectPaymentReceived")
@@ -243,7 +242,6 @@ model Wallet {
   walletLNC              WalletLNC?
   walletWebLN            WalletWebLN?
 
-  vaultEntries   VaultEntry[]     @relation("VaultEntries")
   withdrawals    Withdrawl[]
   InvoiceForward InvoiceForward[]
   DirectPayment  DirectPayment[]
@@ -269,22 +267,6 @@ model Vault {
   walletLNCRemoteKey     WalletLNC?      @relation("lncRemoteKey")
   walletLNCServerHost    WalletLNC?      @relation("lncServerHost")
   walletLNCLocalKey      WalletLNC?      @relation("lncLocalKey")
-}
-
-model VaultEntry {
-  id        Int      @id @default(autoincrement())
-  key       String   @db.Text
-  iv        String   @db.Text
-  value     String   @db.Text
-  userId    Int
-  walletId  Int?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, name: "VaultEntries")
-  wallet    Wallet?  @relation(fields: [walletId], references: [id], onDelete: Cascade, name: "VaultEntries")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
-
-  @@unique([userId, key])
-  @@index([walletId])
 }
 
 model WalletLog {

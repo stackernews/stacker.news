@@ -123,29 +123,57 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
     // don't load the video at all if user doesn't want these
     if (!showMedia || isVideo || isImage) return
 
-    // check if it's a video by trying to load it
-    const video = document.createElement('video')
-    video.onloadedmetadata = () => {
-      setIsVideo(true)
-      setIsImage(false)
+    // first try to check the media type by fetching the head
+    // if that fails, fall back to old method for compatibility
+    const checkMediaType = async (src) => {
+      if (src) {
+        fetch(src, { method: 'HEAD' })
+          .then(res => {
+            const contentType = res.headers.get('content-type')
+            if (!contentType) return
+
+            if (contentType.startsWith('video/')) {
+              setIsVideo(true)
+              setIsImage(false)
+            } else if (contentType.startsWith('image/')) {
+              setIsImage(true)
+              setIsVideo(false)
+            } else {
+              console.error('content-type ambiguous', contentType)
+              throw new Error('content-type ambiguous')
+            }
+          })
+          .catch(() => {
+            // check if it's a video by trying to load it
+            const video = document.createElement('video')
+            video.onloadedmetadata = () => {
+              setIsVideo(true)
+              setIsImage(false)
+            }
+            video.onerror = () => {
+              // hack
+              // if it's not a video it will throw an error, so we can assume it's an image
+              const img = new window.Image()
+              img.src = src
+              img.decode().then(() => { // decoding beforehand to prevent wrong image cropping
+                setIsImage(true)
+              }).catch((e) => {
+                console.error('Cannot decode image', e)
+              })
+            }
+            video.src = src
+          })
+      }
     }
-    video.onerror = () => {
-      // hack
-      // if it's not a video it will throw an error, so we can assume it's an image
-      const img = new window.Image()
-      img.src = src
-      img.decode().then(() => { // decoding beforehand to prevent wrong image cropping
-        setIsImage(true)
-      }).catch((e) => {
-        console.error('Cannot decode image', e)
-      })
-    }
-    video.src = src
+
+    checkMediaType(src)
 
     return () => {
-      video.onloadedmetadata = null
-      video.onerror = null
-      video.src = ''
+      if (video) {
+        video.onloadedmetadata = null
+        video.onerror = null
+        video.src = ''
+      }
     }
   }, [src, setIsImage, setIsVideo, showMedia, isImage])
 

@@ -1,5 +1,5 @@
 import { Fragment, useMemo } from 'react'
-import Comment, { CommentSkeleton } from './comment'
+import Comment, { CommentSkeleton, ShowNewComments } from './comment'
 import styles from './header.module.css'
 import Nav from 'react-bootstrap/Nav'
 import Navbar from 'react-bootstrap/Navbar'
@@ -8,6 +8,7 @@ import { defaultCommentSort } from '@/lib/item'
 import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
+import { useLiveComments } from './use-live-comments'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
   const router = useRouter()
@@ -64,9 +65,11 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 
 export default function Comments ({
   parentId, pinned, bio, parentCreatedAt,
-  commentSats, comments, commentsCursor, fetchMoreComments, ncomments, ...props
+  commentSats, comments, commentsCursor, fetchMoreComments, ncomments, newComments, lastCommentAt, ...props
 }) {
   const router = useRouter()
+  // update item.newComments in cache
+  useLiveComments(parentId, lastCommentAt || parentCreatedAt)
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
 
@@ -102,6 +105,9 @@ export default function Comments ({
           count={comments?.length}
           Skeleton={CommentsSkeleton}
         />}
+      {newComments?.length > 0 && (
+        <ShowNewComments updateQuery newComments={newComments} itemId={parentId} />
+      )}
     </>
   )
 }

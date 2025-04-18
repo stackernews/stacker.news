@@ -28,6 +28,8 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
+import { ITEM_FULL } from '@/fragments/items'
+import { COMMENT_WITH_NEW } from '@/fragments/comments'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -111,8 +113,11 @@ export default function Comment ({
   const router = useRouter()
   const root = useRoot()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
-
   const { cache } = useApolloClient()
+
+  useEffect(() => {
+    console.log('item', item)
+  }, [item])
 
   useEffect(() => {
     const comment = cache.readFragment({
@@ -275,6 +280,9 @@ export default function Comment ({
                   : null}
                 {/* TODO: add link to more comments if they're limited */}
               </div>
+              {item.newComments?.length > 0 && (
+                <ShowNewComments newComments={item.newComments} itemId={item.id} />
+              )}
             </div>
             )
       )}
@@ -336,5 +344,60 @@ export function CommentSkeleton ({ skeletonChildren }) {
         </div>
       </div>
     </div>
+  )
+}
+
+export function ShowNewComments ({ newComments = [], itemId, updateQuery = false }) {
+  const client = useApolloClient()
+
+  const showNewComments = () => {
+    if (updateQuery) {
+      client.cache.updateQuery({
+        query: ITEM_FULL,
+        variables: { id: itemId }
+      }, (data) => {
+        if (!data) return data
+        const { item } = data
+        return {
+          item: {
+            ...item,
+            comments: dedupeComments(item, newComments),
+            newComments: []
+          }
+        }
+      })
+    } else {
+      client.cache.updateFragment({
+        id: `Item:${itemId}`,
+        fragment: COMMENT_WITH_NEW,
+        fragmentName: 'CommentWithNew'
+      }, (data) => {
+        if (!data) return data
+
+        return {
+          ...data,
+          comments: dedupeComments(data, newComments),
+          newComments: []
+        }
+      })
+    }
+  }
+
+  const dedupeComments = (item) => {
+    const existingComments = item?.comments?.comments || []
+    const filtered = newComments.filter(newComment => !existingComments.some(existingComment => existingComment.id === newComment.id))
+    const updatedComments = [...filtered, ...existingComments]
+    return updatedComments
+  }
+
+  return (
+    <span onClick={showNewComments}>
+      <div className={styles.comments}>
+        <div className={`d-block fw-bold ${styles.comment} pb-2 ps-3 d-flex align-items-center gap-2 pointer`}>
+          {newComments.length} new {newComments.length === 1 ? 'reply' : 'replies'}
+          <div className={styles.newCommentDot} />
+        </div>
+      </div>
+    </span>
   )
 }

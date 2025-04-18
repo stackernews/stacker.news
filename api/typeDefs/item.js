@@ -11,6 +11,7 @@ export default gql`
     auctionPosition(sub: String, id: ID, boost: Int): Int!
     boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
+    newComments(rootId: ID, after: Date): NewComments
   }
 
   type BoostPositions {
@@ -96,6 +97,10 @@ export default gql`
     comments: [Item!]!
   }
 
+  type NewComments {
+    comments: [Item]
+  }
+
   enum InvoiceActionState {
     PENDING
     PENDING_HELD
@@ -148,6 +153,7 @@ export default gql`
     ncomments: Int!
     nDirectComments: Int!
     comments(sort: String, cursor: String): Comments!
+    newComments(rootId: ID, after: Date): NewComments
     path: String
     position: Int
     prior: Int

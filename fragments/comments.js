@@ -47,6 +47,7 @@ export const COMMENT_FIELDS = gql`
     otsHash
     ncomments
     nDirectComments
+    newComments @client
     imgproxyUrls
     rel
     apiKey
@@ -116,3 +117,30 @@ export const COMMENTS = gql`
       }
     }
   }`
+
+export const COMMENT_WITH_NEW = gql`
+  ${COMMENT_FIELDS}
+  ${COMMENTS}
+  
+  fragment CommentWithNew on Item {
+    ...CommentFields
+    comments {
+      comments {
+        ...CommentsRecursive
+      }
+    }
+    newComments @client
+  }
+`
+
+export const GET_NEW_COMMENTS = gql`
+  ${COMMENT_FIELDS}
+
+  query GetNewComments($rootId: ID, $after: Date) {
+    newComments(rootId: $rootId, after: $after) {
+      comments {
+        ...CommentFields
+      }
+    }
+  }
+`

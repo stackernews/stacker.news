@@ -38,20 +38,8 @@ function injectResolvers (resolvers) {
     resolvers.Mutation[resolverName] = async (parent, { settings, validateLightning, vaultEntries, ...data }, { me, models }) => {
       console.log('resolving', resolverName, { settings, validateLightning, vaultEntries, ...data })
 
-      let existingVaultEntries
-      if (typeof vaultEntries === 'undefined' && data.id) {
-        // this mutation was sent from an unsynced client
-        // to pass validation, we need to add the existing vault entries for validation
-        // in case the client is removing the receiving config
-        existingVaultEntries = await models.vaultEntry.findMany({
-          where: {
-            walletId: Number(data.id)
-          }
-        })
-      }
-
       const validData = await validateWallet(walletDef,
-        { ...data, ...settings, vaultEntries: vaultEntries ?? existingVaultEntries },
+        { ...data, ...settings },
         { serverSide: true })
       if (validData) {
         data && Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })

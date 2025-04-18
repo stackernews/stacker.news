@@ -139,6 +139,8 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
                 text={`${text || 'Login'} with`}
               />
             )
+          case 'Sync':
+            return null
           default:
             return (
               <OverlayTrigger

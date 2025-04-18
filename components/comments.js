@@ -91,6 +91,9 @@ export default function Comments ({
             }}
           />
         : null}
+      {newComments?.length > 0 && (
+        <ShowNewComments topLevel newComments={newComments} itemId={parentId} Skeleton={CommentsSkeleton} />
+      )}
       {pins.map(item => (
         <Fragment key={item.id}>
           <Comment depth={1} item={item} {...props} pin />
@@ -105,9 +108,6 @@ export default function Comments ({
           count={comments?.length}
           Skeleton={CommentsSkeleton}
         />}
-      {newComments?.length > 0 && (
-        <ShowNewComments updateQuery newComments={newComments} itemId={parentId} />
-      )}
     </>
   )
 }

@@ -7,14 +7,12 @@ import { useState } from 'react'
 export function useLiveComments (rootId, after) {
   const client = useApolloClient()
   const [lastChecked, setLastChecked] = useState(after)
-  const { data, error } = useQuery(GET_NEW_COMMENTS, SSR
+  const { data } = useQuery(GET_NEW_COMMENTS, SSR
     ? {}
     : {
         pollInterval: 10000,
         variables: { rootId, after: lastChecked }
       })
-
-  console.log('error', error)
 
   if (data && data.newComments) {
     saveNewComments(client, rootId, data.newComments.comments)
@@ -28,7 +26,6 @@ export function useLiveComments (rootId, after) {
 }
 
 export function saveNewComments (client, rootId, newComments) {
-  console.log('newComments', newComments)
   for (const comment of newComments) {
     console.log('comment', comment)
     const parentId = comment.parentId
@@ -72,11 +69,8 @@ function dedupeComment (item, newComment) {
   const existingNewComments = item.newComments || []
   const alreadyInNewComments = existingNewComments.some(c => c.id === newComment.id)
   const updatedNewComments = alreadyInNewComments ? existingNewComments : [...existingNewComments, newComment]
-  console.log(item)
   const filteredComments = updatedNewComments.filter((comment) => !item.comments?.comments?.some(c => c.id === comment.id))
-  const final = { ...item, newComments: filteredComments }
-  console.log('final', final)
-  return final
+  return { ...item, newComments: filteredComments }
 }
 
 function getLastCommentCreatedAt (comments) {

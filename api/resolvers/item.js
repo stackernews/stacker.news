@@ -729,13 +729,6 @@ export default {
       }
     },
     newComments: async (parent, { rootId, after }, { models, me }) => {
-      console.log('rootId', rootId)
-      console.log('after', after)
-      const item = await models.item.findUnique({ where: { id: Number(rootId) } })
-      if (!item) {
-        throw new GqlInputError('item not found')
-      }
-
       const comments = await itemQueryWithMeta({
         me,
         models,
@@ -748,11 +741,7 @@ export default {
           ORDER BY "Item"."created_at" ASC`
       }, Number(rootId), after)
 
-      console.log('comments', comments)
-
-      return {
-        comments
-      }
+      return { comments }
     }
   },
 

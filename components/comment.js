@@ -116,10 +116,6 @@ export default function Comment ({
   const { cache } = useApolloClient()
 
   useEffect(() => {
-    console.log('item', item)
-  }, [item])
-
-  useEffect(() => {
     const comment = cache.readFragment({
       id: `Item:${router.query.commentId}`,
       fragment: gql`
@@ -347,24 +343,45 @@ export function CommentSkeleton ({ skeletonChildren }) {
   )
 }
 
-export function ShowNewComments ({ newComments = [], itemId, updateQuery = false }) {
+export function ShowNewComments ({ newComments = [], itemId, topLevel = false, Skeleton }) {
   const client = useApolloClient()
+  const [loading, setLoading] = useState(false)
 
   const showNewComments = () => {
-    if (updateQuery) {
+    setLoading(true)
+    if (topLevel) {
       client.cache.updateQuery({
         query: ITEM_FULL,
         variables: { id: itemId }
       }, (data) => {
         if (!data) return data
         const { item } = data
-        return {
-          item: {
-            ...item,
-            comments: dedupeComments(item, newComments),
-            newComments: []
+
+        const updatedComments = {
+          ...item.comments,
+          comments: dedupeComments(item, newComments)
+        }
+        // first merge in new comments, then clear newComments for the item
+        const mergedItem = {
+          ...item,
+          comments: updatedComments,
+          newComments: []
+        }
+        // then recursively clear newComments for all nested comments
+        const clearAllNew = (comment) => {
+          return {
+            ...comment,
+            newComments: [],
+            comments: comment.comments
+              ? {
+                  ...comment.comments,
+                  comments: comment.comments.comments.map(child => clearAllNew(child))
+                }
+              : comment.comments
           }
         }
+        const finalItem = clearAllNew(mergedItem)
+        return { item: finalItem }
       })
     } else {
       client.cache.updateFragment({
@@ -381,18 +398,23 @@ export function ShowNewComments ({ newComments = [], itemId, updateQuery = false
         }
       })
     }
+    setLoading(false)
   }
 
-  const dedupeComments = (item) => {
+  const dedupeComments = (item, newComments) => {
     const existingComments = item?.comments?.comments || []
     const filtered = newComments.filter(newComment => !existingComments.some(existingComment => existingComment.id === newComment.id))
     const updatedComments = [...filtered, ...existingComments]
     return updatedComments
   }
 
+  if (loading && Skeleton) {
+    return <Skeleton skeletonChildren={newComments.length} />
+  }
+
   return (
     <span onClick={showNewComments}>
-      <div className={styles.comments}>
+      <div className={!topLevel ? styles.comments : ''}>
         <div className={`d-block fw-bold ${styles.comment} pb-2 ps-3 d-flex align-items-center gap-2 pointer`}>
           {newComments.length} new {newComments.length === 1 ? 'reply' : 'replies'}
           <div className={styles.newCommentDot} />

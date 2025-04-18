@@ -1,38 +1,10 @@
 import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { Prisma } from '@prisma/client'
-
-import * as ITEM_CREATE from './itemCreate'
-import * as ITEM_UPDATE from './itemUpdate'
-import * as ZAP from './zap'
-import * as DOWN_ZAP from './downZap'
-import * as POLL_VOTE from './pollVote'
-import * as TERRITORY_CREATE from './territoryCreate'
-import * as TERRITORY_UPDATE from './territoryUpdate'
-import * as TERRITORY_BILLING from './territoryBilling'
-import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
-import * as DONATE from './donate'
-import * as BOOST from './boost'
-import * as PROXY_PAYMENT from './receive'
-import * as BUY_CREDITS from './buyCredits'
-import * as INVITE_GIFT from './inviteGift'
-
-export const payInTypeModules = {
-  BUY_CREDITS,
-  ITEM_CREATE,
-  ITEM_UPDATE,
-  ZAP,
-  DOWN_ZAP,
-  BOOST,
-  DONATE,
-  POLL_VOTE,
-  INVITE_GIFT,
-  TERRITORY_CREATE,
-  TERRITORY_UPDATE,
-  TERRITORY_BILLING,
-  TERRITORY_UNARCHIVE,
-  PROXY_PAYMENT
-  // REWARDS
-}
+import { wrapBolt11 } from '@/wallets/server'
+import { createHodlInvoice, createInvoice, parsePaymentRequest } from 'ln-service'
+import { datePivot } from '@/lib/time'
+import lnd from '../lnd'
+import payInTypeModules from './types'
 
 export default async function payIn (payInType, payInArgs, context) {
   try {
@@ -62,15 +34,6 @@ export default async function payIn (payInType, payInArgs, context) {
   } finally {
     console.groupEnd()
   }
-}
-
-export async function payInRetry (payInId, { models, me }) {
-  const payIn = await models.payIn.findUnique({ where: { id: payInId, payInState: 'FAILED' } })
-  if (!payIn) {
-    throw new Error('PayIn not found')
-  }
-  // TODO: add predecessorId to payInSuccessor
-  // if payInFailureReason is INVOICE_CREATION_FAILED, we need to force custodial tokens
 }
 
 async function getPayInCustodialTokens (tx, mCustodialCost, { me, models }) {
@@ -115,53 +78,69 @@ async function getPayInCustodialTokens (tx, mCustodialCost, { me, models }) {
   return payInAssets
 }
 
+async function isPessimistic (payIn, { me }) {
+  const payInModule = payInTypeModules[payIn.payInType]
+  return !me || !payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC)
+}
+
 async function payInPerform (payIn, payInArgs, { me, models }) {
   const payInModule = payInTypeModules[payIn.payInType]
 
-  const payOuts = await payInModule.getPayOuts(models, payIn, payInArgs, { me })
-  // if there isn't a custodial token for a payOut, it's a p2p payOut
-  const mCostP2P = payOuts.find(payOut => !payOut.custodialTokenType)?.mtokens ?? 0n
+  const { payOutCustodialTokens, payOutBolt11 } = await payInModule.getPayOuts(models, payIn, payInArgs, { me })
   // we deduct the p2p payOut from what can be paid with custodial tokens
-  const mCustodialCost = payIn.mcost - mCostP2P
+  const mCustodialCost = payIn.mcost - (payOutBolt11?.msats ?? 0n)
 
   const result = await models.$transaction(async tx => {
     const payInCustodialTokens = await getPayInCustodialTokens(tx, mCustodialCost, { me, models })
-    const mCustodialPaying = payInCustodialTokens.reduce((acc, token) => acc + token.mtokens, 0n)
+    const mCustodialPaid = payInCustodialTokens.reduce((acc, token) => acc + token.mtokens, 0n)
 
     // TODO: what if remainingCost < 1000n or not a multiple of 1000n?
     // the remaining cost will be paid with an invoice
-    const remainingCost = mCustodialCost - mCustodialPaying + mCostP2P
+    const mCostRemaining = mCustodialCost - mCustodialPaid + (payOutBolt11?.msats ?? 0n)
 
     const payInResult = await tx.payIn.create({
       data: {
         payInType: payIn.payInType,
         mcost: payIn.mcost,
-        payInState: remainingCost > 0n ? 'PENDING_INVOICE_CREATION' : 'PAID',
+        payInState: 'PENDING_INVOICE_CREATION',
         payInStateChangedAt: new Date(), // TODO: set with a trigger
         userId: payIn.userId,
+        pessimisticEnv: {
+          create: mCostRemaining > 0n && isPessimistic(payIn, { me }) ? { args: payInArgs } : null
+        },
         payInCustodialTokens: {
           createMany: {
             data: payInCustodialTokens
           }
+        },
+        payOutCustodialTokens: {
+          createMany: {
+            data: payOutCustodialTokens
+          }
+        },
+        payOutBolt11: {
+          create: payOutBolt11
         }
       },
       include: {
-        payInCustodialTokens: true
+        payInCustodialTokens: true,
+        user: true
       }
     })
 
     // if it's pessimistic, we don't perform the action until the invoice is held
-    if (remainingCost > 0n && (!me || !payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC))) {
+    if (payInResult.pessimisticEnv) {
       return {
         payIn: payInResult,
-        remainingCost
+        mCostRemaining
       }
     }
 
     // if it's optimistic or already paid, we perform the action
     const result = await payInModule.perform(tx, payInResult, payInArgs, { models, me })
-    // if there's remaining cost, we return the result but don't run onPaid or payOuts
-    if (remainingCost > 0n) {
+
+    // if there's remaining cost, we return the result but don't run onPaid
+    if (mCostRemaining > 0n) {
       // transactionally insert a job to check if the required invoice is added
       // we can't do it before because we don't know the amount of the invoice
       // and we want to refund the custodial tokens if the invoice creation fails
@@ -171,7 +150,7 @@ async function payInPerform (payIn, payInArgs, { me, models }) {
       return {
         payIn: payInResult,
         result,
-        remainingCost
+        mCostRemaining
       }
     }
 
@@ -180,29 +159,24 @@ async function payInPerform (payIn, payInArgs, { me, models }) {
     return {
       payIn: payInResult,
       result,
-      remainingCost: 0n
+      mCostRemaining: 0n
     }
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 
-  if (result.remainingCost > 0n) {
+  if (result.mCostRemaining > 0n) {
     try {
-      let invoice = null
-      if (mCostP2P > 0n) {
-        // TODO: if creating a p2p invoice fails, we'll want to fallback to paying with custodial tokens or creating a normal invoice
-        // I think we'll want to fail the payIn, refund them, then retry with forced custodial tokens
-        invoice = await payInAddP2PInvoice(result.remainingCost, result.payIn, payInArgs, { models, me })
-      } else {
-        invoice = await payInAddInvoice(result.remainingCost, result.payIn, payInArgs, { models, me })
-      }
       return {
-        payIn: result.payIn,
-        result,
-        invoice
+        payIn: await payInAddInvoice(result.mCostRemaining, result.payIn, payInArgs, { models, me }),
+        result: result.result
       }
     } catch (e) {
-      // if we fail to add an invoice, we transition the payIn to failed
-      models.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-        VALUES ('payInCancel', jsonb_build_object('id', ${result.payIn.id}::INTEGER), now() + interval '30 seconds', 1000)`.catch(console.error)
+      await models.$transaction(async tx => {
+        await tx.payIn.update({
+          where: { id: payIn.id, payInState: 'PENDING_INVOICE_CREATION' },
+          data: { payInState: 'FAILED', payInFailureReason: 'INVOICE_CREATION_FAILED', payInStateChangedAt: new Date() }
+        })
+        await onFail(tx, payIn, payInArgs, { models, me })
+      })
       console.error('payInAddInvoice failed', e)
       throw e
     }
@@ -211,32 +185,54 @@ async function payInPerform (payIn, payInArgs, { me, models }) {
   return result.result
 }
 
-// in the case of a zap getPayOuts will return
-async function payInAddInvoice (remainingCost, payIn, payInArgs, { models, me }) {
-  // TODO: add invoice
-  return null
+const INVOICE_EXPIRE_SECS = 600
+
+async function createBolt11 (mCostRemaining, payIn, payInArgs, { models, me }) {
+  const createLNDinvoice = payIn.pessimisticEnv ? createHodlInvoice : createInvoice
+  const expiresAt = datePivot(new Date(), { seconds: INVOICE_EXPIRE_SECS })
+  const invoice = await createLNDinvoice({
+    description: payIn.user?.hideInvoiceDesc ? undefined : await payInTypeModules[payIn.payInType].describe(payIn, payInArgs, { models, me }),
+    mtokens: String(mCostRemaining),
+    expires_at: expiresAt,
+    lnd
+  })
+  return invoice.request
 }
 
-async function payInAddP2PInvoice (remainingCost, payIn, payInArgs, { models, me }) {
-  try {
-    // TODO: add p2p invoice
-  } catch (e) {
-    console.error('payInAddP2PInvoice failed', e)
-    try {
-      await models.$transaction(async tx => {
-        await tx.payIn.update({
-          where: { id: payIn.id },
-          data: { payInState: 'FAILED', payInFailureReason: 'INVOICE_CREATION_FAILED', payInStateChangedAt: new Date() }
-        })
-        await onFail(tx, payIn, payInArgs, { models, me })
-      })
-      // probably need to check if we've timed out already, in which case we should skip the retry
-      await payInRetry(payIn.id, { models, me })
-    } catch (e) {
-      console.error('payInAddP2PInvoice failed to update payIn', e)
-    }
+// in the case of a zap getPayOuts will return
+async function payInAddInvoice (mCostRemaining, payIn, payInArgs, { models, me }) {
+  let bolt11 = null
+  let payInState = null
+  if (payIn.payOutBolt11) {
+    bolt11 = await wrapBolt11({ msats: mCostRemaining, bolt11: payIn.payOutBolt11.bolt11, expiry: INVOICE_EXPIRE_SECS }, { models, me })
+    payInState = 'PENDING_HELD'
+  } else {
+    bolt11 = await createBolt11(mCostRemaining, payIn, payInArgs, { models, me })
+    payInState = payIn.pessimisticEnv ? 'PENDING_HELD' : 'PENDING'
   }
-  return null
+
+  const decodedBolt11 = parsePaymentRequest({ request: bolt11 })
+  const expiresAt = new Date(decodedBolt11.expires_at)
+  const msatsRequested = BigInt(decodedBolt11.mtokens)
+
+  return await models.payIn.update({
+    where: { id: payIn.id, payInState: 'PENDING_INVOICE_CREATION' },
+    data: {
+      payInState,
+      payInStateChangedAt: new Date(),
+      payInBolt11: {
+        create: {
+          hash: decodedBolt11.id,
+          bolt11,
+          msatsRequested,
+          expiresAt
+        }
+      }
+    },
+    include: {
+      payInBolt11: true
+    }
+  })
 }
 
 export async function onFail (tx, payIn, payInArgs, { me }) {

@@ -1,6 +1,6 @@
 import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
-import { uploadFees } from '../resolvers/upload'
-import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
+import { uploadFees } from '../../resolvers/upload'
+import { getItemMentions, getMentions, performBotBehavior } from '../lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import { satsToMsats } from '@/lib/format'
 

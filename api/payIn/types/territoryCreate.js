@@ -1,7 +1,7 @@
 import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 import { nextBilling } from '@/lib/territory'
-import { initialTrust } from './lib/territory'
+import { initialTrust } from '../lib/territory'
 
 export const anonable = false
 

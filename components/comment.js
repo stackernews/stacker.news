@@ -113,6 +113,7 @@ export default function Comment ({
   const router = useRouter()
   const root = useRoot()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
+
   const { cache } = useApolloClient()
 
   useEffect(() => {
@@ -387,7 +388,10 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, S
   const dedupeComments = (existingComments = [], newComments = []) => {
     const existingIds = new Set(existingComments.comments?.map(c => c.id))
     const filteredNew = newComments.filter(c => !existingIds.has(c.id))
-    return [...filteredNew, ...existingComments.comments]
+    return {
+      ...existingComments,
+      comments: [...filteredNew, ...(existingComments.comments || [])]
+    }
   }
 
   return (

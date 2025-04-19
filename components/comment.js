@@ -344,7 +344,7 @@ export function CommentSkeleton ({ skeletonChildren }) {
   )
 }
 
-export function ShowNewComments ({ newComments = [], itemId, topLevel = false, Skeleton }) {
+export function ShowNewComments ({ newComments = [], itemId, topLevel = false }) {
   const client = useApolloClient()
 
   const showNewComments = () => {
@@ -356,7 +356,6 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, S
         if (!data) return data
         const { item } = data
 
-        console.log('item', item)
         return {
           item: {
             ...item,
@@ -366,14 +365,12 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, S
         }
       })
     } else {
-      const updatedData = client.cache.updateFragment({
+      client.cache.updateFragment({
         id: `Item:${itemId}`,
         fragment: COMMENT_WITH_NEW,
         fragmentName: 'CommentWithNew'
       }, (data) => {
         if (!data) return data
-
-        console.log('previous data', data)
 
         return {
           ...data,
@@ -381,7 +378,6 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, S
           newComments: []
         }
       })
-      console.log('new data', updatedData)
     }
   }
 

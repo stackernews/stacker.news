@@ -27,45 +27,36 @@ export function useLiveComments (rootId, after) {
 
 export function saveNewComments (client, rootId, newComments) {
   for (const comment of newComments) {
-    console.log('comment', comment)
-    const parentId = comment.parentId
-    if (Number(parentId) === Number(rootId)) {
-      console.log('parentId', parentId)
+    const { parentId } = comment
+    const topLevel = Number(parentId) === Number(rootId)
+
+    // if the comment is a top level comment, update the item
+    if (topLevel) {
       client.cache.updateQuery({
         query: ITEM_FULL,
         variables: { id: rootId }
       }, (data) => {
-        console.log('data', data)
         if (!data) return data
-        console.log('dataTopLevel', data)
-
-        const { item } = data
-
-        return { item: dedupeComment(item, comment) }
+        // we return the entire item, not just the newComments
+        return { item: dedupeComment(data?.item, comment) }
       })
     } else {
-      console.log('not top level', parentId)
+      // if the comment is a reply, update the parent comment
       client.cache.updateFragment({
         id: `Item:${parentId}`,
         fragment: COMMENT_WITH_NEW,
         fragmentName: 'CommentWithNew'
       }, (data) => {
         if (!data) return data
-
-        console.log('data', data)
-
+        // here we return the parent comment with the new comment added
         return dedupeComment(data, comment)
       })
-      console.log('fragment', client.cache.readFragment({
-        id: `Item:${parentId}`,
-        fragment: COMMENT_WITH_NEW,
-        fragmentName: 'CommentWithNew'
-      }))
     }
   }
 }
 
 function dedupeComment (item, newComment) {
+  // get the existing comment ids for faster lookup
   const existingCommentIds = new Set(
     (item.comments?.comments || []).map(c => c.id)
   )

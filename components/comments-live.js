@@ -66,11 +66,24 @@ export function saveNewComments (client, rootId, newComments) {
 }
 
 function dedupeComment (item, newComment) {
+  const existingCommentIds = new Set(
+    (item.comments?.comments || []).map(c => c.id)
+  )
   const existingNewComments = item.newComments || []
-  const alreadyInNewComments = existingNewComments.some(c => c.id === newComment.id)
-  const updatedNewComments = alreadyInNewComments ? existingNewComments : [...existingNewComments, newComment]
-  const filteredComments = updatedNewComments.filter((comment) => !item.comments?.comments?.some(c => c.id === comment.id))
-  return { ...item, newComments: filteredComments }
+
+  // is the incoming new comment already in item's new comments?
+  if (existingNewComments.some(c => c.id === newComment.id)) {
+    return item
+  }
+
+  // if the incoming new comment is not in item's new comments, add it
+  // sanity check: and if somehow the incoming new comment is in
+  // item's new comments, remove it
+  const updatedNewComments = !existingCommentIds.has(newComment.id)
+    ? [...existingNewComments, newComment]
+    : existingNewComments.filter(c => c.id !== newComment.id)
+
+  return { ...item, newComments: updatedNewComments }
 }
 
 function getLastCommentCreatedAt (comments) {

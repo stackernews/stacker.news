@@ -398,7 +398,7 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, S
     <span onClick={showNewComments}>
       <div className={!topLevel ? styles.comments : 'pb-2'}>
         <div className={`d-block fw-bold ${styles.comment} pb-2 ps-3 d-flex align-items-center gap-2 pointer`}>
-          {newComments.length} new {newComments.length === 1 ? 'reply' : 'replies'}
+          load new comments
           <div className={styles.newCommentDot} />
         </div>
       </div>

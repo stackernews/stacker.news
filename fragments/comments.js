@@ -134,17 +134,12 @@ export const COMMENT_WITH_NEW = gql`
 `
 
 export const GET_NEW_COMMENTS = gql`
-  ${COMMENT_FIELDS}
-
+  ${COMMENTS}
+  
   query GetNewComments($rootId: ID, $after: Date) {
     newComments(rootId: $rootId, after: $after) {
       comments {
-        ...CommentFields
-        comments {
-          comments {
-            ...CommentFields
-          }
-        }
+        ...CommentsRecursive
       }
     }
   }

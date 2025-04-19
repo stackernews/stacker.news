@@ -345,10 +345,8 @@ export function CommentSkeleton ({ skeletonChildren }) {
 
 export function ShowNewComments ({ newComments = [], itemId, topLevel = false, Skeleton }) {
   const client = useApolloClient()
-  const [loading, setLoading] = useState(false)
 
   const showNewComments = () => {
-    setLoading(true)
     if (topLevel) {
       client.cache.updateQuery({
         query: ITEM_FULL,
@@ -357,19 +355,14 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, S
         if (!data) return data
         const { item } = data
 
-        const updatedComments = {
-          ...item.comments,
-          comments: dedupeComments(item.comments, newComments)
+        console.log('item', item)
+        return {
+          item: {
+            ...item,
+            comments: dedupeComments(item.comments, newComments),
+            newComments: []
+          }
         }
-        // first merge in new comments, then clear newComments for the item
-        const mergedItem = {
-          ...item,
-          comments: updatedComments,
-          newComments: []
-        }
-        // then recursively clear newComments for all nested comments
-        const finalItem = clearNewComments(mergedItem)
-        return { item: finalItem }
       })
     } else {
       const updatedData = client.cache.updateFragment({
@@ -389,30 +382,12 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, S
       })
       console.log('new data', updatedData)
     }
-    setLoading(false)
   }
 
   const dedupeComments = (existingComments = [], newComments = []) => {
     const existingIds = new Set(existingComments.comments?.map(c => c.id))
     const filteredNew = newComments.filter(c => !existingIds.has(c.id))
     return [...filteredNew, ...existingComments.comments]
-  }
-
-  const clearNewComments = comment => {
-    return {
-      ...comment,
-      newComments: [],
-      comments: comment?.comments?.comments
-        ? {
-            ...comment.comments,
-            comments: comment.comments.comments.map(clearNewComments)
-          }
-        : comment.comments
-    }
-  }
-
-  if (loading && Skeleton) {
-    return <Skeleton skeletonChildren={newComments.length} />
   }
 
   return (

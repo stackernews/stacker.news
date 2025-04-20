@@ -297,7 +297,7 @@ export async function checkWallet ({ data: { userId }, models }) {
         userId,
         enabled: true
       },
-      include: vaultPrismaFragments().include
+      include: vaultPrismaFragments.include()
     })
 
     const { hasRecvWallet: oldHasRecvWallet, hasSendWallet: oldHasSendWallet } = await tx.user.findUnique({ where: { id: userId } })

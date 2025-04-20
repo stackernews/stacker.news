@@ -2,91 +2,73 @@ import { getWalletByType } from '@/wallets/common'
 import walletDefs from '@/wallets/client'
 import { get } from '@/lib/object'
 
-// returns fragments for the Prisma Client API
-// input is a wallet row from the db with the new schema
-export function vaultPrismaFragments (wallet) {
-  let initial = {
-    // fragment to use with models.wallet.update or models.wallet.create
-    // to include vault rows in the result via new schema
-    include: vaultPrismaFragmentInclude(wallet)
-  }
+export const vaultPrismaFragments = {
+  create: createFragment,
+  upsert: upsertFragment,
+  deleteMissing: deleteMissingFragment,
+  deleteAll: deleteAllFragment,
+  include: includeFragment
+}
 
-  if (!wallet) {
-    return initial
-  }
+function createFragment (wallet) {
+  return wallet.vaultEntries?.reduce((acc, { key, iv, value }) => ({
+    ...acc,
+    [key]: {
+      create: { iv, value }
+    }
+  }), {})
+}
 
+function upsertFragment (wallet) {
+  return wallet.vaultEntries?.reduce((acc, { key, iv, value }) => ({
+    ...acc,
+    [key]: {
+      upsert: {
+        create: { iv, value },
+        update: { iv, value }
+      }
+    }
+  }), {})
+}
+
+function deleteMissingFragment (wallet) {
+  const del = deleteAllFragment(wallet)
+  for (const { key: name } of wallet.vaultEntries) {
+    delete del[name]
+  }
+  return del
+}
+
+function deleteAllFragment (wallet) {
   const def = getWalletByType(wallet.type)
-  // template for delete fragments
-  const del = vaultFieldNames(def).reduce((acc, name) => ({
+  const names = vaultFieldNames(def)
+  return names.reduce((acc, name) => ({
     ...acc,
     [name]: { delete: true }
   }), {})
-
-  initial = {
-    ...initial,
-    create: {},
-    upsert: {},
-    deleteMissing: del,
-    // XXX we need to create a copy so we don't also mutate this object inside reduce via the delete keyword
-    deleteAll: { ...del }
-  }
-
-  if (!wallet.vaultEntries) {
-    return initial
-  }
-
-  return wallet.vaultEntries.reduce((acc, { key, iv, value }) => {
-    delete acc.deleteMissing[key]
-    return {
-      // fragment to use within [walletField].create or [walletField].upsert.create
-      // to create vault rows for a new wallet
-      create: {
-        ...acc.create,
-        [key]: {
-          create: { iv, value }
-        }
-      },
-      // fragment to use within [walletField].update or [walletField].upsert.update
-      // to upsert vault of wallet
-      upsert: {
-        ...acc.upsert,
-        [key]: {
-          upsert: {
-            create: { iv, value },
-            update: { iv, value }
-          }
-        }
-      },
-      // fragments to use within [walletField].update to delete the missing vault rows
-      // that would not be updated via the upsert fragment
-      deleteMissing: acc.deleteMissing,
-      // fragment to use when we want to delete the full vault of a wallet
-      deleteAll: acc.deleteAll,
-      // pass-through fragment since it was already created before calling reduce
-      include: acc.include
-    }
-  }, initial)
 }
 
-function vaultPrismaFragmentInclude (wallet) {
-  const include = {}
-
-  for (const def of walletDefs) {
+function includeFragment (wallet) {
+  const include = walletDefs.reduce((acc, def) => {
     const names = vaultFieldNames(def)
-    if (names.length === 0) continue
+    if (names.length === 0) return acc
 
-    include[def.walletField] = {
-      include: names.reduce((acc, name) => ({
-        ...acc,
-        [name]: true
-      }), {})
-    }
-
-    if (wallet && wallet.type === def.walletType) {
-      return {
-        [def.walletField]: include[def.walletField]
+    return {
+      ...acc,
+      [def.walletField]: {
+        include: names.reduce((acc2, name) => ({
+          ...acc2,
+          [name]: true
+        }), {})
       }
     }
+  }, {})
+
+  if (wallet) {
+    const def = getWalletByType(wallet.type)
+    const names = vaultFieldNames(def)
+    if (names.length === 0) return {}
+    return { [def.walletField]: include[def.walletField] }
   }
 
   return include
@@ -119,11 +101,10 @@ export function vaultNewSchematoTypedef (wallet) {
 }
 
 export function deleteVault (models, wallet) {
-  const vaultFrags = vaultPrismaFragments(wallet)
   const def = getWalletByType(wallet.type)
   return models[def.walletField].update({
     where: { walletId: wallet.id },
-    data: vaultFrags.deleteAll
+    data: vaultPrismaFragments.deleteAll(wallet)
   })
 }
 

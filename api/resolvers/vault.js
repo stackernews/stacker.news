@@ -7,10 +7,9 @@ export default {
     getVaultEntries: async (parent, args, { me, models }) => {
       if (!me) throw new GqlAuthenticationError()
 
-      const { include } = vaultPrismaFragments()
       const wallets = await models.wallet.findMany({
         where: { userId: me.id },
-        include
+        include: vaultPrismaFragments.include()
       })
 
       const vaultEntries = []
@@ -45,13 +44,12 @@ export default {
       const wallets = await models.wallet.findMany({ where: { userId: me.id } })
       for (const wallet of wallets) {
         const def = getWalletByType(wallet.type)
-        const vaultFrags = vaultPrismaFragments({ ...wallet, vaultEntries: entries })
         txs.push(
           models.wallet.update({
             where: { id: wallet.id },
             data: {
               [def.walletField]: {
-                update: vaultFrags.upsert
+                update: vaultPrismaFragments.upsert({ ...wallet, vaultEntries: entries })
               }
             }
           })

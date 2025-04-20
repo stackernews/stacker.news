@@ -49,7 +49,7 @@ function injectResolvers (resolvers) {
           where: {
             id: Number(data.id)
           },
-          include: vaultPrismaFragments().include
+          include: vaultPrismaFragments.include()
         })
         existingVaultEntries = vaultNewSchematoTypedef(wallet).vaultEntries
       }
@@ -164,7 +164,7 @@ const resolvers = {
       }
 
       const wallets = await models.wallet.findMany({
-        include: vaultPrismaFragments().include,
+        include: vaultPrismaFragments.include(),
         where: {
           userId: me.id
         },
@@ -846,7 +846,7 @@ async function upsertWallet (
 
   const txs = []
 
-  const vaultFrags = vaultPrismaFragments({ ...wallet, vaultEntries })
+  const walletWithVault = { ...wallet, vaultEntries }
 
   if (id) {
     const dbWallet = await models.wallet.findUnique({
@@ -861,26 +861,26 @@ async function upsertWallet (
           priority,
           [wallet.field]: {
             upsert: {
-              create: { ...recvConfig, ...vaultFrags?.create },
-              update: { ...recvConfig, ...vaultFrags?.upsert }
+              create: { ...recvConfig, ...vaultPrismaFragments.create(walletWithVault) },
+              update: { ...recvConfig, ...vaultPrismaFragments.upsert(walletWithVault) }
             },
             // XXX the check is required because the update would fail if there is no row to delete ...
-            update: hasVault(dbWallet) ? vaultFrags?.deleteMissing : undefined
+            update: hasVault(dbWallet) ? vaultPrismaFragments.deleteMissing(walletWithVault) : undefined
           }
         },
-        include: vaultFrags?.include
+        include: vaultPrismaFragments.include(walletWithVault)
       })
     )
   } else {
     txs.push(
       models.wallet.create({
-        include: vaultFrags?.include,
+        include: vaultPrismaFragments.include(walletWithVault),
         data: {
           enabled,
           priority,
           userId: me.id,
           type: wallet.type,
-          [wallet.field]: { create: { ...recvConfig, ...vaultFrags?.create } }
+          [wallet.field]: { create: { ...recvConfig, ...vaultPrismaFragments.create(walletWithVault) } }
         }
       })
     )

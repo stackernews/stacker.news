@@ -44,7 +44,6 @@ function injectResolvers (resolvers) {
         // this mutation was sent from an unsynced client
         // to pass validation, we need to add the existing vault entries for validation
         // in case the client is removing the receiving config
-        // TODO: replace this usage because of new schema
         const wallet = await models.wallet.findUnique({
           where: {
             id: Number(data.id)

@@ -29,15 +29,27 @@ export default gql`
     users: [User!]!
   }
 
+  input CropData {
+    x: Float!
+    y: Float!
+    width: Float!
+    height: Float!
+    originalWidth: Int!
+    originalHeight: Int!
+    scale: Float!
+  }
+
   extend type Mutation {
     setName(name: String!): String
     setSettings(settings: SettingsInput!): User
+    cropPhoto(photoId: ID!, cropData: CropData): String!
     setPhoto(photoId: ID!): Int!
     upsertBio(text: String!): ItemPaidAction!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
     unlinkAuth(authType: String!): AuthMethods!
     linkUnverifiedEmail(email: String!): Boolean
     hideWelcomeBanner: Boolean
+    hideWalletRecvPrompt: Boolean
     subscribeUserPosts(id: ID): User
     subscribeUserComments(id: ID): User
     toggleMute(id: ID): User
@@ -141,6 +153,7 @@ export default gql`
     """
     lastCheckedJobs: String
     hideWelcomeBanner: Boolean!
+    hideWalletRecvPrompt: Boolean!
     tipPopover: Boolean!
     upvotePopover: Boolean!
     hasInvites: Boolean!

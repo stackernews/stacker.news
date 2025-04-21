@@ -116,6 +116,7 @@ model User {
   followers                 UserSubscription[]   @relation("follower")
   followees                 UserSubscription[]   @relation("followee")
   hideWelcomeBanner         Boolean              @default(false)
+  hideWalletRecvPrompt      Boolean              @default(false)
   diagnostics               Boolean              @default(false)
   hideIsContributor         Boolean              @default(false)
   lnAddr                    String?
@@ -602,6 +603,7 @@ model Item {
   PollBlindVote        PollBlindVote[]
   ItemUserAgg          ItemUserAgg[]
   AutoSocialPost       AutoSocialPost[]
+  randPollOptions      Boolean               @default(false)
 
   @@index([uploadId])
   @@index([lastZapAt])

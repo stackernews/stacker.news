@@ -519,6 +519,7 @@ model Invite {
   @@index([userId], map: "Invite.userId_index")
 }
 
+// TODO: remove this model, it's not used
 model Message {
   id     Int    @id @default(autoincrement())
   text   String
@@ -857,6 +858,7 @@ model Pin {
   Item      Item[]
 }
 
+// TODO: this is defunct, migrate to a daily referral reward
 model ReferralAct {
   id         Int      @id @default(autoincrement())
   createdAt  DateTime @default(now()) @map("created_at")
@@ -1050,10 +1052,9 @@ model InvoiceForward {
   invoiceId   Int  @unique
   withdrawlId Int? @unique
 
-  invoice      Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  wallet       Wallet         @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  withdrawl    Withdrawl?     @relation(fields: [withdrawlId], references: [id], onDelete: SetNull)
-  PayOutBolt11 PayOutBolt11[]
+  invoice   Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  wallet    Wallet     @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  withdrawl Withdrawl? @relation(fields: [withdrawlId], references: [id], onDelete: SetNull)
 
   @@index([invoiceId])
   @@index([walletId])
@@ -1328,6 +1329,9 @@ enum PayInType {
 
 enum PayInState {
   PENDING_INVOICE_CREATION
+  PENDING_WITHDRAWAL
+  WITHDRAWAL_PAID
+  WITHDRAWAL_FAILED
   PENDING
   PENDING_HELD
   HELD
@@ -1336,7 +1340,7 @@ enum PayInState {
   FORWARDING
   FORWARDED
   FAILED_FORWARD
-  CANCELING
+  CANCELLED
   RETRYING
 }
 
@@ -1344,6 +1348,11 @@ enum PayInFailureReason {
   INVOICE_CREATION_FAILED
   INVOICE_WRAPPING_FAILED_HIGH_PREDICTED_FEE
   INVOICE_WRAPPING_FAILED_HIGH_PREDICTED_EXPIRY
+  INVOICE_FORWARDING_CLTV_DELTA_TOO_LOW
+  INVOICE_FORWARDING_FAILED
+  HELD_INVOICE_UNEXPECTED_ERROR
+  HELD_INVOICE_SETTLED_TOO_SLOW
+  WITHDRAWAL_FAILED
   USER_CANCELLED
   SYSTEM_CANCELLED
   INVOICE_EXPIRED
@@ -1407,10 +1416,14 @@ model PessimisticEnv {
 enum PayOutType {
   TERRITORY_REVENUE
   REWARDS_POOL
-  PROXY_PAYMENT_RECEIVE
-  ZAP_RECEIVE
-  REWARDS_RECEIVE
-  INVITE_GIFT_RECEIVE
+  ROUTING_FEE
+  ROUTING_FEE_REFUND
+  PROXY_PAYMENT
+  ZAP
+  REWARD
+  INVITE_GIFT
+  WITHDRAWAL
+  AUTO_WITHDRAWAL
 }
 
 model PayOutCustodialToken {
@@ -1425,7 +1438,7 @@ model PayOutCustodialToken {
   payIn   PayIn @relation(fields: [payInId], references: [id], onDelete: Cascade)
 
   mtokens            BigInt
-  custodialTokenType CustodialTokenType?
+  custodialTokenType CustodialTokenType
 
   msatsBefore    BigInt?
   mcreditsBefore BigInt?
@@ -1457,26 +1470,22 @@ model PayInBolt11 {
 }
 
 model PayOutBolt11 {
-  id               Int              @id @default(autoincrement())
-  createdAt        DateTime         @default(now()) @map("created_at")
-  updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at")
-  payOutType       PayOutType
-  userId           Int
-  hash             String?
-  preimage         String?
-  bolt11           String?
-  msats            BigInt
-  msatsFeePaying   BigInt
-  msatsFeePaid     BigInt?
-  status           WithdrawlStatus?
-  walletId         Int?
-  payInId          Int              @unique
-  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  wallet           Wallet?          @relation(fields: [walletId], references: [id], onDelete: SetNull)
-  payIn            PayIn            @relation(fields: [payInId], references: [id])
-  WalletLog        WalletLog[]
-  InvoiceForward   InvoiceForward?  @relation(fields: [invoiceForwardId], references: [id])
-  invoiceForwardId Int?
+  id         Int              @id @default(autoincrement())
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @default(now()) @updatedAt @map("updated_at")
+  payOutType PayOutType
+  userId     Int
+  hash       String?
+  preimage   String?
+  bolt11     String?
+  msats      BigInt
+  status     WithdrawlStatus?
+  walletId   Int?
+  payInId    Int              @unique
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet     Wallet?          @relation(fields: [walletId], references: [id], onDelete: SetNull)
+  payIn      PayIn            @relation(fields: [payInId], references: [id])
+  WalletLog  WalletLog[]
 
   @@index([createdAt])
   @@index([userId])

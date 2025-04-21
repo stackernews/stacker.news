@@ -917,8 +917,6 @@ async function upsertWallet (
   }
 
   const [upsertedWallet] = await models.$transaction(txs)
-
-  // migrate from old schema to new schema for vault
   return vaultNewSchematoTypedef(upsertedWallet)
 }
 

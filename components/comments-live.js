@@ -4,7 +4,7 @@ import { GET_NEW_COMMENTS, COMMENT_WITH_NEW } from '../fragments/comments'
 import { ITEM_FULL } from '../fragments/items'
 import { useState } from 'react'
 
-export function useLiveComments (rootId, after) {
+export default function useLiveComments (rootId, after) {
   const client = useApolloClient()
   const [lastChecked, setLastChecked] = useState(after)
   const { data } = useQuery(GET_NEW_COMMENTS, SSR
@@ -25,7 +25,7 @@ export function useLiveComments (rootId, after) {
   return null
 }
 
-export function saveNewComments (client, rootId, newComments) {
+function saveNewComments (client, rootId, newComments) {
   for (const comment of newComments) {
     const { parentId } = comment
     const topLevel = Number(parentId) === Number(rootId)

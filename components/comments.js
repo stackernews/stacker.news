@@ -8,7 +8,7 @@ import { defaultCommentSort } from '@/lib/item'
 import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
-import { useLiveComments } from './comments-live'
+import useLiveComments from './comments-live'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
   const router = useRouter()
@@ -69,6 +69,7 @@ export default function Comments ({
 }) {
   const router = useRouter()
   // update item.newComments in cache
+  // TODO use UserActivation to poll only when the user is actively on page
   useLiveComments(parentId, lastCommentAt || parentCreatedAt)
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])

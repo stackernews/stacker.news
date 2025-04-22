@@ -1,5 +1,5 @@
-import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
-import { satsToMsats } from '@/lib/format'
+import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
+import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 
 export const anonable = true
 
@@ -9,21 +9,21 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getCost ({ sats }) {
+export async function getCost (models, { sats }, { me }) {
   return satsToMsats(sats)
 }
 
-export async function perform ({ sats }, { me, tx }) {
-  await tx.donation.create({
-    data: {
-      sats,
-      userId: me?.id ?? USER_ID.anon
-    }
-  })
-
-  return { sats }
+export async function getPayOuts (models, { sats }, { me }) {
+  return {
+    payOutCustodialTokens: [
+      { payOutType: 'REWARDS_POOL', userId: null, mtokens: satsToMsats(sats), custodialTokenType: 'SATS' }
+    ]
+  }
 }
 
-export async function describe (args, context) {
-  return 'SN: donate to rewards pool'
+// TODO: Donation table does not need to exist anymore
+
+export async function describe (models, payInId, { me }) {
+  const payIn = await models.payIn.findUnique({ where: { id: payInId } })
+  return `SN: donate ${numWithUnits(msatsToSats(payIn.mcost), { abbreviate: false })} to rewards pool`
 }

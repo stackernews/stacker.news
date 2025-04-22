@@ -12,6 +12,7 @@ import * as BOOST from './types/boost'
 import * as PROXY_PAYMENT from './types/receive'
 import * as BUY_CREDITS from './types/buyCredits'
 import * as INVITE_GIFT from './types/inviteGift'
+import * as WITHDRAWAL from './types/withdrawal'
 
 export default {
   BUY_CREDITS,
@@ -27,6 +28,6 @@ export default {
   TERRITORY_UPDATE,
   TERRITORY_BILLING,
   TERRITORY_UNARCHIVE,
-  PROXY_PAYMENT
-  // REWARDS
+  PROXY_PAYMENT,
+  WITHDRAWAL
 }

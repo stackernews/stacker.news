@@ -1,5 +1,5 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
-import { msatsToSats, satsToMsats } from '@/lib/format'
+import { msatsToSats, satsToMsats, numWithUnits } from '@/lib/format'
 import { Prisma } from '@prisma/client'
 
 export const anonable = false
@@ -10,53 +10,40 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
 ]
 
-export async function getCost ({ sats }) {
+export async function getCost (models, { sats }, { me }) {
   return satsToMsats(sats)
 }
 
-export async function perform ({ invoiceId, sats, id: itemId }, { me, cost, tx }) {
+export async function getPayOuts (models, payIn, { sats, id: itemId }, { me }) {
+  const item = await models.item.findUnique({ where: { id: parseInt(itemId) }, include: { sub: true } })
+
+  const revenueMsats = satsToMsats(sats * item.sub.rewardsPct / 100)
+  const rewardMsats = satsToMsats(sats - revenueMsats)
+
+  return {
+    payOutCustodialTokens: [
+      { payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardMsats, custodialTokenType: 'SATS' },
+      { payOutType: 'TERRITORY_REVENUE', userId: item.sub.userId, mtokens: revenueMsats, custodialTokenType: 'SATS' }
+    ]
+  }
+}
+
+export async function onPending (tx, payInId, { sats, id: itemId }, { me }) {
   itemId = parseInt(itemId)
 
-  let invoiceData = {}
-  if (invoiceId) {
-    invoiceData = { invoiceId, invoiceActionState: 'PENDING' }
-    // store a reference to the item in the invoice
-    await tx.invoice.update({
-      where: { id: invoiceId },
-      data: { actionId: itemId }
-    })
-  }
-
-  const itemAct = await tx.itemAct.create({
-    data: { msats: cost, itemId, userId: me.id, act: 'DONT_LIKE_THIS', ...invoiceData }
+  await tx.itemAct.create({
+    data: { itemId, payInId }
   })
-
-  const [{ path }] = await tx.$queryRaw`SELECT ltree2text(path) as path FROM "Item" WHERE id = ${itemId}::INTEGER`
-  return { id: itemId, sats, act: 'DONT_LIKE_THIS', path, actId: itemAct.id }
 }
 
-export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
-  await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
-  const [{ id, path }] = await tx.$queryRaw`
-    SELECT "Item".id, ltree2text(path) as path
-    FROM "Item"
-    JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId"
-    WHERE "ItemAct"."invoiceId" = ${newInvoiceId}::INTEGER`
-  return { id, sats: msatsToSats(cost), act: 'DONT_LIKE_THIS', path }
+export async function onRetry (tx, oldPayInId, newPayInId) {
+  await tx.itemAct.update({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
 }
 
-export async function onPaid ({ invoice, actId }, { tx }) {
-  let itemAct
-  if (invoice) {
-    await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
-    itemAct = await tx.itemAct.findFirst({ where: { invoiceId: invoice.id }, include: { item: true } })
-  } else if (actId) {
-    itemAct = await tx.itemAct.findUnique({ where: { id: actId }, include: { item: true } })
-  } else {
-    throw new Error('No invoice or actId')
-  }
+export async function onPaid (tx, payInId) {
+  const itemAct = await tx.itemAct.findUnique({ where: { payInId }, include: { payIn: true, item: true } })
 
-  const msats = BigInt(itemAct.msats)
+  const msats = BigInt(itemAct.payIn.mcost)
   const sats = msatsToSats(msats)
 
   // denormalize downzaps
@@ -76,10 +63,10 @@ export async function onPaid ({ invoice, actId }, { tx }) {
           : Prisma.sql`"subZapPostTrust"`}, 0) as "subZapTrust"
       FROM territory
       LEFT JOIN "UserSubTrust" ust ON ust."subName" = territory."subName"
-        AND ust."userId" = ${itemAct.userId}::INTEGER
+        AND ust."userId" = ${itemAct.payIn.userId}::INTEGER
     ), zap AS (
       INSERT INTO "ItemUserAgg" ("userId", "itemId", "downZapSats")
-      VALUES (${itemAct.userId}::INTEGER, ${itemAct.itemId}::INTEGER, ${sats}::INTEGER)
+      VALUES (${itemAct.payIn.userId}::INTEGER, ${itemAct.itemId}::INTEGER, ${sats}::INTEGER)
       ON CONFLICT ("itemId", "userId") DO UPDATE
       SET "downZapSats" = "ItemUserAgg"."downZapSats" + ${sats}::INTEGER, updated_at = now()
       RETURNING LOG("downZapSats" / GREATEST("downZapSats" - ${sats}::INTEGER, 1)::FLOAT) AS log_sats
@@ -91,10 +78,7 @@ export async function onPaid ({ invoice, actId }, { tx }) {
     WHERE "Item".id = ${itemAct.itemId}::INTEGER`
 }
 
-export async function onFail ({ invoice }, { tx }) {
-  await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
-}
-
-export async function describe ({ id: itemId, sats }, { cost, actionId }) {
-  return `SN: downzap of ${sats ?? msatsToSats(cost)} sats to #${itemId ?? actionId}`
+export async function describe (models, payInId, { me }) {
+  const itemAct = await models.itemAct.findUnique({ where: { payInId }, include: { payIn: true, item: true } })
+  return `SN: downzap #${itemAct.itemId} for ${numWithUnits(msatsToSats(itemAct.payIn.mcost), { abbreviate: false })}`
 }

@@ -1325,6 +1325,7 @@ enum PayInType {
   TERRITORY_UNARCHIVE
   PROXY_PAYMENT
   REWARDS
+  WITHDRAWAL
 }
 
 enum PayInState {
@@ -1370,7 +1371,7 @@ model PayIn {
   payInFailureReason  PayInFailureReason? // TODO: add check constraint
   payInStateChangedAt DateTime? // TODO: set with a trigger
   predecessorId       Int?                @unique
-  predecessor         PayIn?              @relation("PayInPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade)
+  benefactorId        Int?
 
   userId Int?
   user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1380,9 +1381,13 @@ model PayIn {
 
   pessimisticEnv        PessimisticEnv?
   payInCustodialTokens  PayInCustodialToken[]
-  successor             PayIn?                 @relation("PayInPredecessor")
   payOutCustodialTokens PayOutCustodialToken[]
   payOutBolt11          PayOutBolt11?
+
+  successor     PayIn?  @relation("PayInPredecessor")
+  predecessor   PayIn?  @relation("PayInPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade)
+  benefactor    PayIn?  @relation("PayInBenefactor", fields: [benefactorId], references: [id], onDelete: Cascade)
+  beneficiaries PayIn[] @relation("PayInBenefactor")
 
   @@index([userId])
   @@index([payInType])
@@ -1423,7 +1428,7 @@ enum PayOutType {
   REWARD
   INVITE_GIFT
   WITHDRAWAL
-  AUTO_WITHDRAWAL
+  SYSTEM_REVENUE
 }
 
 model PayOutCustodialToken {
@@ -1463,6 +1468,10 @@ model PayInBolt11 {
   User           User?     @relation(fields: [userId], references: [id])
   userId         Int?
 
+  lud18Data PayInBolt11Lud18?
+  nostrNote PayInBolt11NostrNote?
+  comment   PayInBolt11Comment?
+
   @@index([createdAt])
   @@index([confirmedIndex])
   @@index([confirmedAt])
@@ -1492,4 +1501,29 @@ model PayOutBolt11 {
   @@index([hash])
   @@index([walletId])
   @@index([status])
+}
+
+model PayInBolt11Lud18 {
+  id            Int         @id @default(autoincrement())
+  payInBolt11Id Int         @unique
+  payInBolt11   PayInBolt11 @relation(fields: [payInBolt11Id], references: [id])
+
+  name       String?
+  identifier String?
+  email      String?
+  pubkey     String?
+}
+
+model PayInBolt11NostrNote {
+  id            Int         @id @default(autoincrement())
+  payInBolt11Id Int         @unique
+  payInBolt11   PayInBolt11 @relation(fields: [payInBolt11Id], references: [id])
+  note          Json
+}
+
+model PayInBolt11Comment {
+  id            Int         @id @default(autoincrement())
+  payInBolt11Id Int         @unique
+  payInBolt11   PayInBolt11 @relation(fields: [payInBolt11Id], references: [id])
+  comment       String
 }

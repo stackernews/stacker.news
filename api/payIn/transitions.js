@@ -202,11 +202,6 @@ export async function payInPaid ({ data: { payInId, ...args }, models, lnd, boss
 
       await onPaid(tx, payIn.id)
 
-      // most paid actions are eligible for a cowboy hat streak
-      await tx.$executeRaw`
-        INSERT INTO pgboss.job (name, data)
-        VALUES ('checkStreak', jsonb_build_object('id', ${payIn.userId}, 'type', 'COWBOY_HAT'))`
-
       return {
         payInBolt11: {
           update: {

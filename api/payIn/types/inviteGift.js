@@ -9,7 +9,7 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.REWARD_SATS
 ]
 
-export async function getCost ({ id }, { models, me }) {
+export async function getCost (models, { id }, { me }) {
   const invite = await models.invite.findUnique({ where: { id, userId: me.id, revoked: false } })
   if (!invite) {
     throw new Error('invite not found')
@@ -17,7 +17,7 @@ export async function getCost ({ id }, { models, me }) {
   return satsToMsats(invite.gift)
 }
 
-export async function perform ({ id, userId }, { me, cost, tx }) {
+export async function onPending (tx, payInId, { id, userId }, { me }) {
   const invite = await tx.invite.findUnique({
     where: { id, userId: me.id, revoked: false }
   })
@@ -38,14 +38,14 @@ export async function perform ({ id, userId }, { me, cost, tx }) {
     },
     data: {
       mcredits: {
-        increment: cost
+        increment: satsToMsats(invite.gift)
       },
       inviteId: id,
       referrerId: me.id
     }
   })
 
-  return await tx.invite.update({
+  await tx.invite.update({
     where: { id, userId: me.id, revoked: false, ...(invite.limit ? { giftedCount: { lt: invite.limit } } : {}) },
     data: {
       giftedCount: {
@@ -55,6 +55,6 @@ export async function perform ({ id, userId }, { me, cost, tx }) {
   })
 }
 
-export async function nonCriticalSideEffects (_, { me }) {
+export async function nonCriticalSideEffects (models, payInId, { me }) {
   notifyInvite(me.id)
 }

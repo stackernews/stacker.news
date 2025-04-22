@@ -2,7 +2,7 @@ import { USER_ID } from '@/lib/constants'
 import { deleteReminders, getDeleteAt, getRemindAt } from '@/lib/item'
 import { parseInternalLinks } from '@/lib/url'
 
-export async function getMentions ({ text }, { me, tx }) {
+export async function getMentions (tx, { text }, { me }) {
   const mentionPattern = /\B@[\w_]+/gi
   const names = text.match(mentionPattern)?.map(m => m.slice(1))
   if (names?.length > 0) {
@@ -21,7 +21,7 @@ export async function getMentions ({ text }, { me, tx }) {
   return []
 }
 
-export const getItemMentions = async ({ text }, { me, tx }) => {
+export const getItemMentions = async (tx, { text }, { me }) => {
   const linkPattern = new RegExp(`${process.env.NEXT_PUBLIC_URL}/items/\\d+[a-zA-Z0-9/?=]*`, 'gi')
   const refs = text.match(linkPattern)?.map(m => {
     try {
@@ -45,7 +45,7 @@ export const getItemMentions = async ({ text }, { me, tx }) => {
   return []
 }
 
-export async function performBotBehavior ({ text, id }, { me, tx }) {
+export async function performBotBehavior (tx, { text, id }, { me }) {
   // delete any existing deleteItem or reminder jobs for this item
   const userId = me?.id || USER_ID.anon
   id = Number(id)

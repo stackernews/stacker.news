@@ -10,7 +10,7 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getCost ({ name }, { models }) {
+export async function getCost (models, { name }) {
   const sub = await models.sub.findUnique({
     where: {
       name
@@ -20,7 +20,17 @@ export async function getCost ({ name }, { models }) {
   return satsToMsats(TERRITORY_PERIOD_COST(sub.billingType))
 }
 
-export async function perform ({ name }, { cost, tx }) {
+export async function getPayOuts (models, payIn, { name }) {
+  return {
+    payOutCustodialTokens: [
+      { payOutType: 'SYSTEM_REVENUE', userId: null, mtokens: payIn.mcost, custodialTokenType: 'SATS' }
+    ]
+  }
+}
+
+export async function onPaid (tx, payInId, { me }) {
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
+  const { args: { name } } = payIn.pessimisticEnv
   const sub = await tx.sub.findUnique({
     where: {
       name
@@ -59,15 +69,14 @@ export async function perform ({ name }, { cost, tx }) {
       status: 'ACTIVE',
       SubAct: {
         create: {
-          msats: cost,
-          type: 'BILLING',
-          userId: sub.userId
+          payInId
         }
       }
     }
   })
 }
 
-export async function describe ({ name }) {
-  return `SN: billing for territory ${name}`
+export async function describe (models, payInId, { me }) {
+  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { subAct: true } })
+  return `SN: billing for territory ${payIn.subAct.subName}`
 }

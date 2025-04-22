@@ -1,7 +1,7 @@
 import { ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers, notifyThreadSubscribers } from '@/lib/webPush'
 import { getItemMentions, getMentions, performBotBehavior } from '../lib/item'
-import { msatsToSats, satsToMsats } from '@/lib/format'
+import { satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
 
 export const anonable = true
@@ -15,7 +15,7 @@ export const paymentMethods = [
 
 export const DEFAULT_ITEM_COST = 1000n
 
-export async function getBaseCost ({ models, bio, parentId, subName }) {
+export async function getBaseCost (models, { bio, parentId, subName }) {
   if (bio) return DEFAULT_ITEM_COST
 
   if (parentId) {
@@ -35,8 +35,8 @@ export async function getBaseCost ({ models, bio, parentId, subName }) {
   return satsToMsats(sub.baseCost)
 }
 
-export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio }, { models, me }) {
-  const baseCost = await getBaseCost({ models, bio, parentId, subName })
+export async function getCost (models, { subName, parentId, uploadIds, boost = 0, bio }, { me }) {
+  const baseCost = await getBaseCost(models, { bio, parentId, subName })
 
   // cost = baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + upload fees + boost
   const [{ cost }] = await models.$queryRaw`
@@ -56,10 +56,23 @@ export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio },
   return freebie ? BigInt(0) : BigInt(cost)
 }
 
-export async function perform (args, context) {
+export async function getPayOuts (models, payIn, { subName, parentId, uploadIds, boost = 0, bio }, { me }) {
+  const sub = await models.sub.findUnique({ where: { name: subName } })
+  const revenueMsats = payIn.mcost * BigInt(sub.rewardsPct) / 100n
+  const rewardMsats = payIn.mcost - revenueMsats
+
+  return {
+    payOutCustodialTokens: [
+      { payOutType: 'TERRITORY_REVENUE', userId: sub.userId, mtokens: revenueMsats, custodialTokenType: 'SATS' },
+      { payOutType: 'REWARD_POOL', userId: null, mtokens: rewardMsats, custodialTokenType: 'SATS' }
+    ]
+  }
+}
+
+// TODO: I've removed consideration of boost needing to be its own payIn because it complicates requirements
+// TODO: uploads should just have an itemId
+export async function onPending (tx, payInId, args, { me }) {
   const { invoiceId, parentId, uploadIds = [], forwardUsers = [], options: pollOptions = [], boost = 0, ...data } = args
-  const { tx, me, cost } = context
-  const boostMsats = satsToMsats(boost)
 
   const deletedUploads = []
   for (const uploadId of uploadIds) {
@@ -71,30 +84,8 @@ export async function perform (args, context) {
     throw new Error(`upload(s) ${deletedUploads.join(', ')} are expired, consider reuploading.`)
   }
 
-  let invoiceData = {}
-  if (invoiceId) {
-    invoiceData = { invoiceId, invoiceActionState: 'PENDING' }
-    await tx.upload.updateMany({
-      where: { id: { in: uploadIds } },
-      data: invoiceData
-    })
-  }
-
-  const itemActs = []
-  if (boostMsats > 0) {
-    itemActs.push({
-      msats: boostMsats, act: 'BOOST', userId: data.userId, ...invoiceData
-    })
-  }
-  if (cost > 0) {
-    itemActs.push({
-      msats: cost - boostMsats, act: 'FEE', userId: data.userId, ...invoiceData
-    })
-    data.cost = msatsToSats(cost - boostMsats)
-  }
-
-  const mentions = await getMentions(args, context)
-  const itemMentions = await getItemMentions(args, context)
+  const mentions = await getMentions(tx, args, { me })
+  const itemMentions = await getItemMentions(tx, args, { me })
 
   // start with median vote
   if (me) {
@@ -110,7 +101,7 @@ export async function perform (args, context) {
   const itemData = {
     parentId: parentId ? parseInt(parentId) : null,
     ...data,
-    ...invoiceData,
+    payInId,
     boost,
     threadSubscriptions: {
       createMany: {
@@ -132,11 +123,6 @@ export async function perform (args, context) {
     },
     itemUploads: {
       create: uploadIds.map(id => ({ uploadId: id }))
-    },
-    itemActs: {
-      createMany: {
-        data: itemActs
-      }
     },
     mentions: {
       createMany: {
@@ -171,63 +157,17 @@ export async function perform (args, context) {
     }
   }
 
-  // store a reference to the item in the invoice
-  if (invoiceId) {
-    await tx.invoice.update({
-      where: { id: invoiceId },
-      data: { actionId: item.id }
-    })
-  }
-
-  await performBotBehavior(item, context)
-
-  // ltree is unsupported in Prisma, so we have to query it manually (FUCK!)
-  return (await tx.$queryRaw`
-    SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
-    FROM "Item" WHERE id = ${item.id}::INTEGER`
-  )[0]
+  await performBotBehavior(tx, item, { me })
 }
 
-export async function retry ({ invoiceId, newInvoiceId }, { tx }) {
-  await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
-  await tx.item.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
-  await tx.upload.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
-  return (await tx.$queryRaw`
-    SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
-    FROM "Item" WHERE "invoiceId" = ${newInvoiceId}::INTEGER`
-  )[0]
+export async function onRetry (tx, oldPayInId, newPayInId) {
+  await tx.item.updateMany({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
 }
 
-export async function onPaid ({ invoice, id }, context) {
-  const { tx } = context
-  let item
-
-  if (invoice) {
-    item = await tx.item.findFirst({
-      where: { invoiceId: invoice.id },
-      include: {
-        user: true
-      }
-    })
-    await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
-    await tx.item.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID', invoicePaidAt: new Date() } })
-    await tx.upload.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID', paid: true } })
-  } else if (id) {
-    item = await tx.item.findUnique({
-      where: { id },
-      include: {
-        user: true,
-        itemUploads: { include: { upload: true } }
-      }
-    })
-    await tx.upload.updateMany({
-      where: { id: { in: item.itemUploads.map(({ uploadId }) => uploadId) } },
-      data: {
-        paid: true
-      }
-    })
-  } else {
-    throw new Error('No item found')
+export async function onPaid (tx, payInId) {
+  const item = await tx.item.findUnique({ where: { payInId } })
+  if (!item) {
+    throw new Error('Item not found')
   }
 
   await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
@@ -236,15 +176,8 @@ export async function onPaid ({ invoice, id }, context) {
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', ${item.id}::INTEGER), 21, true, now() + interval '5 seconds')`
 
-  if (item.boost > 0) {
-    await tx.$executeRaw`
-    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
-    VALUES ('expireBoost', jsonb_build_object('id', ${item.id}::INTEGER), 21, true,
-              now() + interval '30 days', now() + interval '40 days')`
-  }
-
   if (item.parentId) {
-    // denormalize ncomments, lastCommentAt, and "weightedComments" for ancestors, and insert into reply table
+    // denormalize ncomments, lastCommentAt for ancestors, and insert into reply table
     await tx.$executeRaw`
       WITH comment AS (
         SELECT "Item".*, users.trust
@@ -273,9 +206,9 @@ export async function onPaid ({ invoice, id }, context) {
   }
 }
 
-export async function nonCriticalSideEffects ({ invoice, id }, { models }) {
-  const item = await models.item.findFirst({
-    where: invoice ? { invoiceId: invoice.id } : { id: parseInt(id) },
+export async function nonCriticalSideEffects (models, payInId, { me }) {
+  const item = await models.item.findUnique({
+    where: { payInId },
     include: {
       mentions: true,
       itemReferrers: { include: { refereeItem: true } },
@@ -298,12 +231,7 @@ export async function nonCriticalSideEffects ({ invoice, id }, { models }) {
   notifyTerritorySubscribers({ models, item }).catch(console.error)
 }
 
-export async function onFail ({ invoice }, { tx }) {
-  await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
-  await tx.item.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
-  await tx.upload.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
-}
-
-export async function describe ({ parentId }, context) {
-  return `SN: create ${parentId ? `reply to #${parentId}` : 'item'}`
+export async function describe (models, payInId, { me }) {
+  const item = await models.item.findUnique({ where: { payInId } })
+  return `SN: create ${item.parentId ? `reply to #${item.parentId}` : 'item'}`
 }

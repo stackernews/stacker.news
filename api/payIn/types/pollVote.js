@@ -9,7 +9,7 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
 ]
 
-export async function getCost ({ id }, { me, models }) {
+export async function getCost (models, { id }, { me }) {
   const pollOption = await models.pollOption.findUnique({
     where: { id: parseInt(id) },
     include: { item: true }
@@ -17,54 +17,31 @@ export async function getCost ({ id }, { me, models }) {
   return satsToMsats(pollOption.item.pollCost)
 }
 
-export async function perform ({ invoiceId, id }, { me, cost, tx }) {
+export async function onPending (tx, payInId, { id }, { me }) {
   const pollOption = await tx.pollOption.findUnique({
     where: { id: parseInt(id) }
   })
   const itemId = parseInt(pollOption.itemId)
 
-  let invoiceData = {}
-  if (invoiceId) {
-    invoiceData = { invoiceId, invoiceActionState: 'PENDING' }
-    // store a reference to the item in the invoice
-    await tx.invoice.update({
-      where: { id: invoiceId },
-      data: { actionId: itemId }
-    })
-  }
-
   // the unique index on userId, itemId will prevent double voting
-  await tx.itemAct.create({ data: { msats: cost, itemId, userId: me.id, act: 'POLL', ...invoiceData } })
-  await tx.pollBlindVote.create({ data: { userId: me.id, itemId, ...invoiceData } })
-  await tx.pollVote.create({ data: { pollOptionId: pollOption.id, itemId, ...invoiceData } })
+  await tx.pollBlindVote.create({ data: { userId: me.id, itemId, payInId } })
+  await tx.pollVote.create({ data: { pollOptionId: pollOption.id, itemId, payInId } })
 
   return { id }
 }
 
-export async function retry ({ invoiceId, newInvoiceId }, { tx }) {
-  await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
-  await tx.pollBlindVote.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
-  await tx.pollVote.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
-
-  const { pollOptionId } = await tx.pollVote.findFirst({ where: { invoiceId: newInvoiceId } })
-  return { id: pollOptionId }
+export async function onRetry (tx, oldPayInId, newPayInId) {
+  await tx.itemAct.updateMany({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
+  await tx.pollBlindVote.updateMany({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
+  await tx.pollVote.updateMany({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
 }
 
-export async function onPaid ({ invoice }, { tx }) {
-  if (!invoice) return
-
-  await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
-  await tx.pollBlindVote.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
+export async function onPaid (tx, payInId) {
   // anonymize the vote
-  await tx.pollVote.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceId: null, invoiceActionState: null } })
+  await tx.pollVote.updateMany({ where: { payInId }, data: { payInId: null } })
 }
 
-export async function onFail ({ invoice }, { tx }) {
-  await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
-  await tx.pollBlindVote.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
-  await tx.pollVote.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
-}
-
-export async function describe ({ id }, { actionId }) {
-  return `SN: vote on poll #${id ?? actionId}`
+export async function describe (models, payInId, { me }) {
+  const pollOption = await models.pollOption.findUnique({ where: { payInId } })
+  return `SN: vote on poll #${pollOption.itemId}`
 }

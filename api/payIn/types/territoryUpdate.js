@@ -11,7 +11,7 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getCost ({ oldName, billingType }, { models }) {
+export async function getCost (models, { oldName, billingType }, { me }) {
   const oldSub = await models.sub.findUnique({
     where: {
       name: oldName
@@ -26,7 +26,9 @@ export async function getCost ({ oldName, billingType }, { models }) {
   return satsToMsats(cost)
 }
 
-export async function perform ({ oldName, invoiceId, ...data }, { me, cost, tx }) {
+export async function onPaid (tx, payInId, { me }) {
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
+  const { args: { oldName, invoiceId, ...data } } = payIn.pessimisticEnv
   const oldSub = await tx.sub.findUnique({
     where: {
       name: oldName
@@ -52,13 +54,11 @@ export async function perform ({ oldName, invoiceId, ...data }, { me, cost, tx }
     data.status = 'ACTIVE'
   }
 
-  if (cost > 0n) {
+  if (payIn.mcost > 0n) {
     await tx.subAct.create({
       data: {
-        userId: me.id,
-        subName: oldName,
-        msats: cost,
-        type: 'BILLING'
+        payInId,
+        subName: oldName
       }
     })
   }
@@ -78,6 +78,8 @@ export async function perform ({ oldName, invoiceId, ...data }, { me, cost, tx }
   })
 }
 
-export async function describe ({ name }, context) {
-  return `SN: update territory billing ${name}`
+export async function describe (models, payInId, { me }) {
+  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
+  const { args: { oldName } } = payIn.pessimisticEnv
+  return `SN: update territory billing ${oldName}`
 }

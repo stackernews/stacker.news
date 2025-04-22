@@ -1,5 +1,5 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
-import { msatsToSats, satsToMsats } from '@/lib/format'
+import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 
 export const anonable = false
 
@@ -9,55 +9,53 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
 ]
 
-export async function getCost ({ sats }) {
+export async function getCost (models, { sats }, { me }) {
   return satsToMsats(sats)
 }
 
-export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, cost, tx }) {
-  itemId = parseInt(itemId)
+export async function getPayOuts (models, payIn, { sats, id }, { me }) {
+  const item = await models.item.findUnique({ where: { id }, include: { sub: true } })
 
-  let invoiceData = {}
-  if (invoiceId) {
-    invoiceData = { invoiceId, invoiceActionState: 'PENDING' }
-    // store a reference to the item in the invoice
-    await tx.invoice.update({
-      where: { id: invoiceId },
-      data: { actionId: itemId }
-    })
-  }
+  const revenueMsats = satsToMsats(sats * item.sub.rewardsPct / 100)
+  const rewardMsats = satsToMsats(sats - revenueMsats)
 
-  const act = await tx.itemAct.create({ data: { msats: cost, itemId, userId: me.id, act: 'BOOST', ...invoiceData } })
-
-  const [{ path }] = await tx.$queryRaw`
-    SELECT ltree2text(path) as path FROM "Item" WHERE id = ${itemId}::INTEGER`
-  return { id: itemId, sats, act: 'BOOST', path, actId: act.id }
-}
-
-export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
-  await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
-  const [{ id, path }] = await tx.$queryRaw`
-    SELECT "Item".id, ltree2text(path) as path
-    FROM "Item"
-    JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId"
-    WHERE "ItemAct"."invoiceId" = ${newInvoiceId}::INTEGER`
-  return { id, sats: msatsToSats(cost), act: 'BOOST', path }
-}
-
-export async function onPaid ({ invoice, actId }, { tx }) {
-  let itemAct
-  if (invoice) {
-    await tx.itemAct.updateMany({
-      where: { invoiceId: invoice.id },
-      data: {
-        invoiceActionState: 'PAID'
+  return {
+    payOutCustodialTokens: [
+      {
+        payOutType: 'TERRITORY_REVENUE',
+        userId: item.sub.userId,
+        mtokens: revenueMsats,
+        custodialTokenType: 'SATS'
+      },
+      {
+        payOutType: 'REWARD_POOL',
+        userId: null,
+        mtokens: rewardMsats,
+        custodialTokenType: 'SATS'
       }
-    })
-    itemAct = await tx.itemAct.findFirst({ where: { invoiceId: invoice.id } })
-  } else if (actId) {
-    itemAct = await tx.itemAct.findFirst({ where: { id: actId } })
-  } else {
-    throw new Error('No invoice or actId')
+    ]
   }
+}
+
+// TODO: continue with renaming perform to onPending?
+// TODO: migrate ItemAct to this simple model of itemId and payInId?
+export async function onPending (tx, payInId, { sats, id }, { me }) {
+  const itemId = parseInt(id)
+
+  return await tx.itemAct.create({
+    data: {
+      itemId,
+      payInId
+    }
+  })
+}
+
+export async function onRetry (tx, oldPayInId, newPayInId) {
+  await tx.itemAct.update({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
+}
+
+export async function onPaid (tx, payInId) {
+  const itemAct = await tx.itemAct.findUnique({ where: { payInId }, include: { item: true } })
 
   // increment boost on item
   await tx.item.update({
@@ -67,16 +65,23 @@ export async function onPaid ({ invoice, actId }, { tx }) {
     }
   })
 
+  // TODO: migrate SubAct to this simple model of subName and payInId?
+  // ??? is this the right place for this?
+  await tx.subAct.create({
+    data: {
+      subName: itemAct.item.subName,
+      payInId
+    }
+  })
+
+  // TODO: expireBoost job needs to be updated to use payIn
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
     VALUES ('expireBoost', jsonb_build_object('id', ${itemAct.itemId}::INTEGER), 21, true,
               now() + interval '30 days', now() + interval '40 days')`
 }
 
-export async function onFail ({ invoice }, { tx }) {
-  await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
-}
-
-export async function describe ({ id: itemId, sats }, { actionId, cost }) {
-  return `SN: boost ${sats ?? msatsToSats(cost)} sats to #${itemId ?? actionId}`
+export async function describe (models, payInId, { me }) {
+  const itemAct = await models.itemAct.findUnique({ where: { payInId }, include: { item: true } })
+  return `SN: boost #${itemAct.itemId} by ${numWithUnits(msatsToSats(itemAct.msats), { abbreviate: false })}`
 }

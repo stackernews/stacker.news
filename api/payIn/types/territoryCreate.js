@@ -11,12 +11,21 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getCost ({ billingType }) {
+export async function getCost (models, { billingType }, { me }) {
   return satsToMsats(TERRITORY_PERIOD_COST(billingType))
 }
 
-export async function perform ({ invoiceId, ...data }, { me, cost, tx }) {
-  const { billingType } = data
+export async function getPayOuts (models, payIn, { name }) {
+  return {
+    payOutCustodialTokens: [
+      { payOutType: 'SYSTEM_REVENUE', userId: null, mtokens: payIn.mcost, custodialTokenType: 'SATS' }
+    ]
+  }
+}
+
+export async function onPaid (tx, payInId, { me }) {
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
+  const { billingType, ...data } = payIn.pessimisticEnv.args
   const billingCost = TERRITORY_PERIOD_COST(billingType)
   const billedLastAt = new Date()
   const billPaidUntil = nextBilling(billedLastAt, billingType)
@@ -31,9 +40,7 @@ export async function perform ({ invoiceId, ...data }, { me, cost, tx }) {
       userId: me.id,
       SubAct: {
         create: {
-          msats: cost,
-          type: 'BILLING',
-          userId: me.id
+          payInId
         }
       },
       SubSubscription: {
@@ -51,6 +58,8 @@ export async function perform ({ invoiceId, ...data }, { me, cost, tx }) {
   return sub
 }
 
-export async function describe ({ name }) {
+export async function describe (models, payInId, { me }) {
+  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
+  const { args: { name } } = payIn.pessimisticEnv
   return `SN: create territory ${name}`
 }

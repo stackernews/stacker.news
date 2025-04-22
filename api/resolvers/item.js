@@ -697,7 +697,11 @@ export default {
         status: 'ACTIVE',
         deletedAt: null,
         outlawed: false,
-        parentId: null
+        parentId: null,
+        OR: [
+          { invoiceActionState: 'PAID' },
+          { invoiceActionState: { is: null } }
+        ]
       }
       if (id) {
         where.id = { not: Number(id) }

@@ -697,7 +697,11 @@ export default {
         status: 'ACTIVE',
         deletedAt: null,
         outlawed: false,
-        parentId: null
+        parentId: null,
+        OR: [
+          { invoiceActionState: 'PAID' },
+          { invoiceActionState: { is: null } }
+        ]
       }
       if (id) {
         where.id = { not: Number(id) }
@@ -834,8 +838,16 @@ export default {
       const data = { itemId: Number(id), userId: me.id }
       const old = await models.threadSubscription.findUnique({ where: { userId_itemId: data } })
       if (old) {
-        await models.threadSubscription.delete({ where: { userId_itemId: data } })
-      } else await models.threadSubscription.create({ data })
+        await models.$executeRaw`
+          DELETE FROM "ThreadSubscription" ts
+          USING "Item" i
+          WHERE ts."userId" = ${me.id}
+          AND i.path <@ (SELECT path FROM "Item" WHERE id = ${Number(id)})
+          AND ts."itemId" = i.id
+        `
+      } else {
+        await models.threadSubscription.create({ data })
+      }
       return { id }
     },
     deleteItem: async (parent, { id }, { me, models }) => {

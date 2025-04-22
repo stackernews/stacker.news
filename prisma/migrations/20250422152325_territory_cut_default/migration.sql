@@ -13,7 +13,7 @@ WITH "SubActRevenue" AS (
     SELECT "SubActRevenue"."subName", "SubActRevenue"."userId", "SubActRevenue"."msats", 'REVENUE'
     FROM "SubActRevenue"
 )
-UPDATE users SET msats = users.msats + "FounderRevenue"."msats"
+UPDATE users SET msats = users.msats + "FounderRevenue"."msats", "stackedMsats" = users."stackedMsats" + "FounderRevenue"."msats"
 FROM "FounderRevenue"
 WHERE "FounderRevenue"."userId" = "users"."id";
 

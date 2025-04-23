@@ -25,27 +25,20 @@ export default {
     updateVaultKey: async (parent, { entries, hash }, { me, models }) => {
       if (!me) throw new GqlAuthenticationError()
       if (!hash) throw new GqlInputError('hash required')
-      const txs = []
 
       const { vaultKeyHash: oldKeyHash } = await models.user.findUnique({ where: { id: me.id } })
       if (oldKeyHash) {
-        if (oldKeyHash !== hash) {
-          throw new GqlInputError('vault key already set', E_VAULT_KEY_EXISTS)
-        } else {
+        if (oldKeyHash === hash) {
           return true
         }
-      } else {
-        txs.push(models.user.update({
-          where: { id: me.id },
-          data: { vaultKeyHash: hash }
-        }))
+        throw new GqlInputError('vault key already set', E_VAULT_KEY_EXISTS)
       }
 
-      const wallets = await models.wallet.findMany({ where: { userId: me.id } })
-      for (const wallet of wallets) {
-        const def = getWalletByType(wallet.type)
-        txs.push(
-          models.wallet.update({
+      return await models.$transaction(async tx => {
+        const wallets = await tx.wallet.findMany({ where: { userId: me.id } })
+        for (const wallet of wallets) {
+          const def = getWalletByType(wallet.type)
+          await tx.wallet.update({
             where: { id: wallet.id },
             data: {
               [def.walletField]: {
@@ -53,11 +46,16 @@ export default {
               }
             }
           })
-        )
-      }
+        }
 
-      await models.$transaction(txs)
-      return true
+        // optimistic concurrency control: make sure the user's vault key didn't change while we were updating the wallets
+        await tx.user.update({
+          where: { id: me.id, vaultKeyHash: oldKeyHash },
+          data: { vaultKeyHash: hash }
+        })
+
+        return true
+      })
     },
     clearVault: async (parent, args, { me, models }) => {
       if (!me) throw new GqlAuthenticationError()

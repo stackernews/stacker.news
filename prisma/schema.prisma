@@ -77,6 +77,8 @@ model User {
   streak                    Int?
   gunStreak                 Int?
   horseStreak               Int?
+  hasSendWallet             Boolean              @default(false)
+  hasRecvWallet             Boolean              @default(false)
   subs                      String[]
   hideCowboyHat             Boolean              @default(false)
   Bookmarks                 Bookmark[]
@@ -114,6 +116,7 @@ model User {
   followers                 UserSubscription[]   @relation("follower")
   followees                 UserSubscription[]   @relation("followee")
   hideWelcomeBanner         Boolean              @default(false)
+  hideWalletRecvPrompt      Boolean              @default(false)
   diagnostics               Boolean              @default(false)
   hideIsContributor         Boolean              @default(false)
   lnAddr                    String?
@@ -383,8 +386,8 @@ model Streak {
   id        Int        @id @default(autoincrement())
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @default(now()) @updatedAt @map("updated_at")
-  startedAt DateTime   @db.Date
-  endedAt   DateTime?  @db.Date
+  startedAt DateTime
+  endedAt   DateTime?
   userId    Int
   type      StreakType @default(COWBOY_HAT)
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -602,6 +605,7 @@ model Item {
   PollBlindVote        PollBlindVote[]
   ItemUserAgg          ItemUserAgg[]
   AutoSocialPost       AutoSocialPost[]
+  randPollOptions      Boolean               @default(false)
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -776,7 +780,7 @@ model Sub {
   allowFreebies    Boolean     @default(true)
   baseCost         Int         @default(1)
   replyCost        Int         @default(1)
-  rewardsPct       Int         @default(50)
+  rewardsPct       Int         @default(30)
   desc             String?
   status           Status      @default(ACTIVE)
   statusUpdatedAt  DateTime?

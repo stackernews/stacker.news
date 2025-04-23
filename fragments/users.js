@@ -6,9 +6,9 @@ import { SUB_FULL_FIELDS } from './subs'
 export const STREAK_FIELDS = gql`
   fragment StreakFields on User {
     optional {
-    streak
-    gunStreak
-      horseStreak
+      streak
+      hasSendWallet
+      hasRecvWallet
     }
   }
 `
@@ -34,6 +34,7 @@ ${STREAK_FIELDS}
       hideFromTopUsers
       hideWalletBalance
       hideWelcomeBanner
+      hideWalletRecvPrompt
       imgproxyOnly
       showImagesAndVideos
       nostrCrossposting
@@ -165,6 +166,11 @@ export const USER_SUGGESTIONS = gql`
     userSuggestions(q: $q, limit: $limit) {
       name
     }
+  }`
+
+export const HIDE_WALLET_RECV_PROMPT_MUTATION = gql`
+  mutation hideWalletRecvPrompt {
+    hideWalletRecvPrompt
   }`
 
 export const USER_SEARCH = gql`

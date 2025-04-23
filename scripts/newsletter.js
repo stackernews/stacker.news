@@ -34,8 +34,8 @@ query TopCowboys($cursor: String) {
       name
       optional {
         streak
-        gunStreak
-        horseStreak
+        hasSendWallet
+        hasRecvWallet
       }
     }
     cursor

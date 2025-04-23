@@ -1,6 +1,6 @@
 import { CenterLayout } from '@/components/layout'
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { WalletLogs } from '@/components/wallet-logger'
+import { WalletLogs } from '@/wallets/logger'
 
 export const getServerSideProps = getGetServerSideProps({ query: null })
 

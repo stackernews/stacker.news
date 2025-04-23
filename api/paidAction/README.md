@@ -205,7 +205,7 @@ The ONLY exception to this are for the `users` table where we store a stacker's 
 We use a `read committed` isolation level for actions. This means paid actions need to be mindful of concurrency issues. Specifically, reading data from the database and then writing it back in `read committed` is a common source of consistency bugs (aka serialization anamolies).
 
 ### This is a big deal
-1. If you read from the database and intend to use that data to write to the database, and it's possible that a concurrent transaction could change the data you've read (it usually is), you need to be prepared to handle that.
+1. If you read from the database and intend to use that data to write to the database, and it's possible that a concurrent transaction could change the data you've read (it usually is), you need to be prepared to handle that (see [_phantom reads_](https://www.postgresql.org/docs/16/transaction-iso.html)).
 2. This applies to **ALL**, and I really mean **ALL**, read data regardless of how you read the data within the `read committed` transaction:
    - independent statements
    - `WITH` queries (CTEs) in the same statement

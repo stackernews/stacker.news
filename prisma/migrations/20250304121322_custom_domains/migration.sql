@@ -3,7 +3,7 @@ CREATE TABLE "CustomDomain" (
     "id" SERIAL NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "domain" TEXT NOT NULL,
+    "domain" CITEXT NOT NULL,
     "subName" CITEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'PENDING',
     "failedAttempts" INTEGER NOT NULL DEFAULT 0,

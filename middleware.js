@@ -234,11 +234,12 @@ export async function middleware (request) {
   const mainDomain = new URL(process.env.NEXT_PUBLIC_URL).host
   if (domain !== mainDomain) {
     // get the subName from the domain mappings cache
-    const { subName } = await getDomainMappingsCache()?.[domain?.toLowerCase()]
-    if (subName) {
-      domainLogger().log('detected allowed custom domain for: ', subName)
+    const cachedDomainMappings = await getDomainMappingsCache()
+    const domainMapping = cachedDomainMappings?.[domain?.toLowerCase()]
+    if (domainMapping) {
+      domainLogger().log('detected allowed custom domain for: ', domainMapping.subName)
       // handle the custom domain
-      const customDomainResp = await customDomainMiddleware(request, referrerResp, mainDomain, domain, subName)
+      const customDomainResp = await customDomainMiddleware(request, referrerResp, mainDomain, domain, domainMapping.subName)
       return applySecurityHeaders(customDomainResp)
     }
   }

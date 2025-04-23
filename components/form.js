@@ -16,6 +16,7 @@ import AddIcon from '@/svgs/add-fill.svg'
 import CloseIcon from '@/svgs/close-line.svg'
 import { gql, useLazyQuery } from '@apollo/client'
 import { USER_SUGGESTIONS } from '@/fragments/users'
+import { SUB_SUGGESTIONS } from '@/fragments/subs'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
 import { numWithUnits } from '@/lib/format'
@@ -211,6 +212,19 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     innerRef.current.focus()
   }, [mention, meta?.value, helpers?.setValue])
 
+  const [territory, setTerritory] = useState()
+  const insertTerritory = useCallback((name) => {
+    if (territory?.start === undefined || territory?.end === undefined) return
+    const { start, end } = territory
+    setTerritory(undefined)
+    const first = `${meta?.value.substring(0, start)}~${name}`
+    const second = meta?.value.substring(end)
+    const updatedValue = `${first}${second}`
+    helpers.setValue(updatedValue)
+    setSelectionRange({ start: first.length, end: first.length })
+    innerRef.current.focus()
+  }, [territory, meta?.value, helpers?.setValue])
+
   const uploadFeesUpdate = useDebounceCallback(
     (text) => {
       const s3Keys = text ? [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])) : []
@@ -219,18 +233,19 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
 
   const onChangeInner = useCallback((formik, e) => {
     if (onChange) onChange(formik, e)
-    // check for mention editing
+    // check for mention editing and territory suggestions
     const { value, selectionStart } = e.target
     uploadFeesUpdate(value)
 
     if (!value || selectionStart === undefined) {
       setMention(undefined)
+      setTerritory(undefined)
       return
     }
 
     let priorSpace = -1
     for (let i = selectionStart - 1; i >= 0; i--) {
-      if (/[^\w@]/.test(value[i])) {
+      if (/[^\w@~]/.test(value[i])) {
         priorSpace = i
         break
       }
@@ -257,12 +272,27 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
           left: `${left}px`
         }
       })
+      setTerritory(undefined)
+    } else if (/^~\w*$/.test(currentSegment)) {
+      const { top, left } = textAreaCaret(e.target, e.target.selectionStart)
+      setTerritory({
+        query: currentSegment,
+        start: priorSpace + 1,
+        end: nextSpace,
+        style: {
+          position: 'absolute',
+          top: `${top + Number(window.getComputedStyle(e.target).lineHeight.replace('px', ''))}px`,
+          left: `${left}px`
+        }
+      })
+      setMention(undefined)
     } else {
       setMention(undefined)
+      setTerritory(undefined)
     }
-  }, [onChange, setMention, uploadFeesUpdate])
+  }, [onChange, setMention, setTerritory, uploadFeesUpdate])
 
-  const onKeyDownInner = useCallback((userSuggestOnKeyDown) => {
+  const onKeyDownInner = useCallback((userSuggestOnKeyDown, territorySuggestOnKeyDown) => {
     return (e) => {
       const metaOrCtrl = e.metaKey || e.ctrlKey
       if (metaOrCtrl) {
@@ -293,12 +323,16 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
       }
 
       if (!metaOrCtrl) {
-        userSuggestOnKeyDown(e)
+        if (mention) {
+          userSuggestOnKeyDown(e)
+        } else if (territory) {
+          territorySuggestOnKeyDown(e)
+        }
       }
 
       if (onKeyDown) onKeyDown(e)
     }
-  }, [innerRef, helpers?.setValue, setSelectionRange, onKeyDown])
+  }, [innerRef, helpers?.setValue, setSelectionRange, onKeyDown, mention, territory])
 
   const onPaste = useCallback((event) => {
     const items = event.clipboardData.items
@@ -412,19 +446,29 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
             query={mention?.query}
             onSelect={insertMention}
             dropdownStyle={mention?.style}
-          >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions }) => (
-            <InputInner
-              innerRef={innerRef}
-              {...props}
-              onChange={onChangeInner}
-              onKeyDown={onKeyDownInner(userSuggestOnKeyDown)}
-              onBlur={() => setTimeout(resetSuggestions, 500)}
-              onDragEnter={onDragEnter}
-              onDragLeave={onDragLeave}
-              onDrop={onDrop}
-              onPaste={onPaste}
-              className={dragStyle === 'over' ? styles.dragOver : ''}
-            />)}
+          >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions: resetUserSuggestions }) => (
+            <TerritorySuggest
+              query={territory?.query}
+              onSelect={insertTerritory}
+              dropdownStyle={territory?.style}
+            >{({ onKeyDown: territorySuggestOnKeyDown, resetSuggestions: resetTerritorySuggestions }) => (
+              <InputInner
+                innerRef={innerRef}
+                {...props}
+                onChange={onChangeInner}
+                onKeyDown={onKeyDownInner(userSuggestOnKeyDown, territorySuggestOnKeyDown)}
+                onBlur={() => {
+                  setTimeout(resetUserSuggestions, 500)
+                  setTimeout(resetTerritorySuggestions, 500)
+                }}
+                onDragEnter={onDragEnter}
+                onDragLeave={onDragLeave}
+                onDrop={onDrop}
+                onPaste={onPaste}
+                className={dragStyle === 'over' ? styles.dragOver : ''}
+              />)}
+            </TerritorySuggest>
+          )}
           </UserSuggest>
         </div>
         {tab !== 'write' &&
@@ -633,7 +677,12 @@ export function UserSuggest ({
   })
 
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
-  const resetSuggestions = useCallback(() => setSuggestions(INITIAL_SUGGESTIONS), [])
+  const [isMouseDown, setIsMouseDown] = useState(false)
+  const resetSuggestions = useCallback(() => {
+    if (!isMouseDown) {
+      setSuggestions(INITIAL_SUGGESTIONS)
+    }
+  }, [isMouseDown])
 
   useEffect(() => {
     if (query !== undefined) {
@@ -688,20 +737,150 @@ export function UserSuggest ({
       default:
         break
     }
-  }, [onSelect, resetSuggestions, suggestions])
+  }, [onSelect, resetSuggestions, suggestions, selectWithTab])
+
+  const handleMouseDown = useCallback(() => {
+    setIsMouseDown(true)
+  }, [])
+
+  const handleMouseUp = useCallback(() => {
+    setIsMouseDown(false)
+  }, [])
+
+  useEffect(() => {
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [handleMouseUp])
 
   return (
     <>
       {children?.({ onKeyDown, resetSuggestions })}
       <Dropdown show={suggestions.array.length > 0} style={dropdownStyle}>
-        <Dropdown.Menu className={styles.suggestionsMenu}>
+        <Dropdown.Menu onMouseDown={handleMouseDown} className={styles.suggestionsMenu}>
           {suggestions.array.map((v, i) =>
             <Dropdown.Item
               key={v.name}
               active={suggestions.index === i}
               onClick={() => {
                 onSelect(v.name)
-                resetSuggestions()
+                setSuggestions(INITIAL_SUGGESTIONS)
+              }}
+            >
+              {v.name}
+            </Dropdown.Item>)}
+        </Dropdown.Menu>
+      </Dropdown>
+    </>
+  )
+}
+
+export function TerritorySuggest ({
+  query, onSelect, dropdownStyle, children,
+  transformSub = sub => sub, selectWithTab = true, filterSubs = () => true
+}) {
+  const [getSuggestions] = useLazyQuery(SUB_SUGGESTIONS, {
+    onCompleted: data => {
+      query !== undefined && setSuggestions({
+        array: data.subSuggestions
+          .filter((...args) => filterSubs(query, ...args))
+          .map(transformSub),
+        index: 0
+      })
+    }
+  })
+
+  const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
+  const [isMouseDown, setIsMouseDown] = useState(false)
+  const resetSuggestions = useCallback(() => {
+    if (!isMouseDown) {
+      setSuggestions(INITIAL_SUGGESTIONS)
+    }
+  }, [isMouseDown])
+
+  useEffect(() => {
+    if (query !== undefined) {
+      // remove the leading ~ and any trailing spaces
+      const q = query?.replace(/^[~ ]+|[ ]+$/g, '')
+      getSuggestions({ variables: { q, limit: 5 } })
+    } else {
+      resetSuggestions()
+    }
+  }, [query, resetSuggestions, getSuggestions])
+
+  const onKeyDown = useCallback(e => {
+    switch (e.code) {
+      case 'ArrowUp':
+        if (suggestions.array.length === 0) {
+          break
+        }
+        e.preventDefault()
+        setSuggestions(suggestions =>
+          ({
+            ...suggestions,
+            index: Math.max(suggestions.index - 1, 0)
+          }))
+        break
+      case 'ArrowDown':
+        if (suggestions.array.length === 0) {
+          break
+        }
+        e.preventDefault()
+        setSuggestions(suggestions =>
+          ({
+            ...suggestions,
+            index: Math.min(suggestions.index + 1, suggestions.array.length - 1)
+          }))
+        break
+      case 'Tab':
+      case 'Enter':
+        if (e.code === 'Tab' && !selectWithTab) {
+          break
+        }
+        if (suggestions.array?.length === 0) {
+          break
+        }
+        e.preventDefault()
+        onSelect(suggestions.array[suggestions.index].name)
+        resetSuggestions()
+        break
+      case 'Escape':
+        e.preventDefault()
+        resetSuggestions()
+        break
+      default:
+        break
+    }
+  }, [onSelect, resetSuggestions, suggestions, selectWithTab])
+
+  const handleMouseDown = useCallback(() => {
+    setIsMouseDown(true)
+  }, [])
+
+  const handleMouseUp = useCallback(() => {
+    setIsMouseDown(false)
+  }, [])
+
+  useEffect(() => {
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [handleMouseUp])
+
+  return (
+    <>
+      {children?.({ onKeyDown, resetSuggestions })}
+      <Dropdown show={suggestions.array.length > 0} style={dropdownStyle}>
+        <Dropdown.Menu onMouseDown={handleMouseDown} className={styles.suggestionsMenu}>
+          {suggestions.array.map((v, i) =>
+            <Dropdown.Item
+              key={v.name}
+              active={suggestions.index === i}
+              onClick={() => {
+                onSelect(v.name)
+                setSuggestions(INITIAL_SUGGESTIONS)
               }}
             >
               {v.name}
@@ -746,6 +925,44 @@ export function InputUserSuggest ({
           />
         )}
       </UserSuggest>
+    </FormGroup>
+  )
+}
+
+export function InputTerritorySuggest ({
+  label, groupClassName, transformSub, filterSubs,
+  selectWithTab, onChange, transformQuery, ...props
+}) {
+  const [ovalue, setOValue] = useState()
+  const [query, setQuery] = useState()
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <TerritorySuggest
+        transformSub={transformSub}
+        filterSubs={filterSubs}
+        selectWithTab={selectWithTab}
+        onSelect={(v) => {
+          // HACK ... ovalue does not trigger onChange
+          onChange && onChange(undefined, { target: { value: v } })
+          setOValue(v)
+        }}
+        query={query}
+      >
+        {({ onKeyDown, resetSuggestions }) => (
+          <InputInner
+            {...props}
+            autoComplete='off'
+            onChange={(formik, e) => {
+              onChange && onChange(formik, e)
+              setOValue(e.target.value)
+              setQuery(e.target.value.replace(/^[~ ]+|[ ]+$/g, ''))
+            }}
+            overrideValue={ovalue}
+            onKeyDown={onKeyDown}
+            onBlur={() => setTimeout(resetSuggestions, 500)}
+          />
+        )}
+      </TerritorySuggest>
     </FormGroup>
   )
 }

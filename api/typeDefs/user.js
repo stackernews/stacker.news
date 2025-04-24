@@ -116,6 +116,7 @@ export default gql`
     noteJobIndicator: Boolean!
     noteMentions: Boolean!
     noteItemMentions: Boolean!
+    noteDailyStacked: Boolean!
     nsfwMode: Boolean!
     tipDefault: Int!
     tipRandomMin: Int
@@ -194,6 +195,7 @@ export default gql`
     noteJobIndicator: Boolean!
     noteMentions: Boolean!
     noteItemMentions: Boolean!
+    noteDailyStacked: Boolean!
     nsfwMode: Boolean!
     tipDefault: Int!
     tipRandom: Boolean!

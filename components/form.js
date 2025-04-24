@@ -663,9 +663,10 @@ function InputInner ({
 const INITIAL_SUGGESTIONS = { array: [], index: 0 }
 
 export function BaseSuggest ({
-  query, onSelect, dropdownStyle, children,
+  query, onSelect, dropdownStyle,
   transformItem = item => item, selectWithTab = true, filterItems = () => true,
-  getSuggestionsQuery, queryName, itemsField
+  getSuggestionsQuery, queryName, itemsField,
+  children
 }) {
   const [getSuggestions] = useLazyQuery(getSuggestionsQuery, {
     onCompleted: data => {
@@ -755,40 +756,44 @@ export function BaseSuggest ({
 }
 
 export function UserSuggest ({
-  query, onSelect, dropdownStyle, children,
-  transformUser = user => user, selectWithTab = true, filterUsers = () => true
+  query, onSelect, dropdownStyle,
+  transformUser = user => user, selectWithTab = true, filterUsers = () => true,
+  children
 }) {
   return (
     <BaseSuggest
       query={query}
       onSelect={onSelect}
       dropdownStyle={dropdownStyle}
-      children={children}
       transformItem={transformUser}
       selectWithTab={selectWithTab}
       filterItems={filterUsers}
       getSuggestionsQuery={USER_SUGGESTIONS}
-      itemsField="userSuggestions"
-    />
+      itemsField='userSuggestions'
+    >
+      {children}
+    </BaseSuggest>
   )
 }
 
 export function TerritorySuggest ({
-  query, onSelect, dropdownStyle, children,
-  transformSub = sub => sub, selectWithTab = true, filterSubs = () => true
+  query, onSelect, dropdownStyle,
+  transformSub = sub => sub, selectWithTab = true, filterSubs = () => true,
+  children
 }) {
   return (
     <BaseSuggest
       query={query}
       onSelect={onSelect}
       dropdownStyle={dropdownStyle}
-      children={children}
       transformItem={transformSub}
       selectWithTab={selectWithTab}
       filterItems={filterSubs}
       getSuggestionsQuery={SUB_SUGGESTIONS}
-      itemsField="subSuggestions"
-    />
+      itemsField='subSuggestions'
+    >
+      {children}
+    </BaseSuggest>
   )
 }
 

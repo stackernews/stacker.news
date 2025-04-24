@@ -612,6 +612,7 @@ model Item {
   ItemUserAgg          ItemUserAgg[]
   AutoSocialPost       AutoSocialPost[]
   randPollOptions      Boolean               @default(false)
+  ItemPayIn            ItemPayIn[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -799,15 +800,17 @@ model Sub {
   moderatedCount   Int         @default(0)
   nsfw             Boolean     @default(false)
 
-  parent            Sub?                @relation("ParentChildren", fields: [parentName], references: [name])
-  children          Sub[]               @relation("ParentChildren")
-  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Item              Item[]
-  SubAct            SubAct[]
-  MuteSub           MuteSub[]
-  SubSubscription   SubSubscription[]
-  TerritoryTransfer TerritoryTransfer[]
-  UserSubTrust      UserSubTrust[]
+  parent                  Sub?                      @relation("ParentChildren", fields: [parentName], references: [name])
+  children                Sub[]                     @relation("ParentChildren")
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Item                    Item[]
+  SubAct                  SubAct[]
+  MuteSub                 MuteSub[]
+  SubSubscription         SubSubscription[]
+  TerritoryTransfer       TerritoryTransfer[]
+  UserSubTrust            UserSubTrust[]
+  SubPayIn                SubPayIn[]
+  SubPayOutCustodialToken SubPayOutCustodialToken[]
 
   @@index([parentName])
   @@index([createdAt])
@@ -1330,6 +1333,7 @@ enum PayInType {
 
 enum PayInState {
   PENDING_INVOICE_CREATION
+  PENDING_INVOICE_WRAP
   PENDING_WITHDRAWAL
   WITHDRAWAL_PAID
   WITHDRAWAL_FAILED
@@ -1360,6 +1364,30 @@ enum PayInFailureReason {
   EXECUTION_FAILED
 }
 
+model ItemPayIn {
+  id      Int   @id @default(autoincrement())
+  itemId  Int
+  item    Item  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  payInId Int   @unique
+  payIn   PayIn @relation(fields: [payInId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, payInId])
+  @@index([itemId])
+  @@index([payInId])
+}
+
+model SubPayIn {
+  id      Int    @id @default(autoincrement())
+  subName String @db.Citext
+  sub     Sub    @relation(fields: [subName], references: [name], onDelete: Cascade)
+  payInId Int    @unique
+  payIn   PayIn  @relation(fields: [payInId], references: [id], onDelete: Cascade)
+
+  @@unique([subName, payInId])
+  @@index([subName])
+  @@index([payInId])
+}
+
 model PayIn {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now()) @map("created_at")
@@ -1384,10 +1412,12 @@ model PayIn {
   payOutCustodialTokens PayOutCustodialToken[]
   payOutBolt11          PayOutBolt11?
 
-  successor     PayIn?  @relation("PayInPredecessor")
-  predecessor   PayIn?  @relation("PayInPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade)
-  benefactor    PayIn?  @relation("PayInBenefactor", fields: [benefactorId], references: [id], onDelete: Cascade)
-  beneficiaries PayIn[] @relation("PayInBenefactor")
+  successor     PayIn?      @relation("PayInPredecessor")
+  predecessor   PayIn?      @relation("PayInPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade)
+  benefactor    PayIn?      @relation("PayInBenefactor", fields: [benefactorId], references: [id], onDelete: Cascade)
+  beneficiaries PayIn[]     @relation("PayInBenefactor")
+  ItemPayIn     ItemPayIn[]
+  SubPayIn      SubPayIn[]
 
   @@index([userId])
   @@index([payInType])
@@ -1413,9 +1443,8 @@ model PessimisticEnv {
   payInId Int   @unique
   payIn   PayIn @relation(fields: [payInId], references: [id], onDelete: Cascade)
 
-  args   Json?   @db.JsonB
-  result Json?   @db.JsonB
-  error  String?
+  args  Json?   @db.JsonB
+  error String?
 }
 
 enum PayOutType {
@@ -1429,6 +1458,18 @@ enum PayOutType {
   INVITE_GIFT
   WITHDRAWAL
   SYSTEM_REVENUE
+}
+
+model SubPayOutCustodialToken {
+  id                     Int                  @id @default(autoincrement())
+  subName                String               @db.Citext
+  sub                    Sub                  @relation(fields: [subName], references: [name], onDelete: Cascade)
+  payOutCustodialTokenId Int
+  payOutCustodialToken   PayOutCustodialToken @relation(fields: [payOutCustodialTokenId], references: [id], onDelete: Cascade)
+
+  @@unique([subName, payOutCustodialTokenId])
+  @@index([subName])
+  @@index([payOutCustodialTokenId])
 }
 
 model PayOutCustodialToken {
@@ -1445,8 +1486,9 @@ model PayOutCustodialToken {
   mtokens            BigInt
   custodialTokenType CustodialTokenType
 
-  msatsBefore    BigInt?
-  mcreditsBefore BigInt?
+  msatsBefore             BigInt?
+  mcreditsBefore          BigInt?
+  SubPayOutCustodialToken SubPayOutCustodialToken[]
 }
 
 model PayInBolt11 {

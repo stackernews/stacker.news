@@ -15,7 +15,7 @@ const FINALIZE_OPTIONS = { retryLimit: 2 ** 31 - 1, retryBackoff: false, retryDe
 async function transitionPayIn (jobName, { payInId, fromStates, toState, transitionFunc, errorFunc, invoice, withdrawal }, { models, boss, lnd }) {
   let payIn
   try {
-    const include = { payInBolt11: true, payOutBolt11: true, pessimisticEnv: true, payOutCustodialTokens: true }
+    const include = { payInBolt11: true, payOutBolt11: true, pessimisticEnv: true, payOutCustodialTokens: true, beneficiaries: true }
     const currentPayIn = await models.payIn.findUnique({ where: { id: payInId }, include })
 
     if (PAY_IN_TERMINAL_STATES.includes(currentPayIn.payInState)) {
@@ -39,8 +39,22 @@ async function transitionPayIn (jobName, { payInId, fromStates, toState, transit
 
     const transitionedPayIn = await models.$transaction(async tx => {
       payIn = await tx.payIn.update({
-        where: { id: payInId, payInState: { in: fromStates } },
-        data: { payInState: toState, payInStateChangedAt: new Date() },
+        where: {
+          id: payInId,
+          payInState: { in: fromStates }
+        },
+        data: {
+          payInState: toState,
+          payInStateChangedAt: new Date(),
+          beneficiaries: {
+            updateMany: {
+              data: {
+                payInState: toState,
+                payInStateChangedAt: new Date()
+              }
+            }
+          }
+        },
         include
       })
 
@@ -505,7 +519,7 @@ export async function payInFailed ({ data: { payInId, ...args }, models, lnd, bo
   return await transitionPayIn('payInFailed', {
     payInId,
     // any of these states can transition to FAILED
-    fromState: ['PENDING', 'PENDING_HELD', 'HELD', 'FAILED_FORWARD', 'CANCELLED', 'PENDING_INVOICE_CREATION'],
+    fromState: ['PENDING', 'PENDING_HELD', 'HELD', 'FAILED_FORWARD', 'CANCELLED', 'PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'],
     toState: 'FAILED',
     transition: async ({ tx, payIn, lndPayInBolt11 }) => {
       let payInBolt11

@@ -11,14 +11,14 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getCost (models, { billingType }, { me }) {
-  return satsToMsats(TERRITORY_PERIOD_COST(billingType))
-}
-
-export async function getPayOuts (models, payIn, { name }) {
+export async function getInitial (models, { billingType }, { me }) {
+  const mcost = satsToMsats(TERRITORY_PERIOD_COST(billingType))
   return {
+    payInType: 'TERRITORY_UNARCHIVE',
+    userId: me?.id,
+    mcost,
     payOutCustodialTokens: [
-      { payOutType: 'SYSTEM_REVENUE', userId: null, mtokens: payIn.mcost, custodialTokenType: 'SATS' }
+      { payOutType: 'SYSTEM_REVENUE', userId: null, mtokens: mcost, custodialTokenType: 'SATS' }
     ]
   }
 }
@@ -44,18 +44,16 @@ export async function onPaid (tx, payInId, { me }) {
   data.billPaidUntil = nextBilling(data.billedLastAt, data.billingType)
   data.status = 'ACTIVE'
   data.userId = me.id
+  data.subPayIn = {
+    create: {
+      payInId
+    }
+  }
 
   if (sub.userId !== me.id) {
     await tx.territoryTransfer.create({ data: { subName: name, oldUserId: sub.userId, newUserId: me.id } })
     await tx.subSubscription.delete({ where: { userId_subName: { userId: sub.userId, subName: name } } })
   }
-
-  await tx.subAct.create({
-    data: {
-      payInId,
-      subName: name
-    }
-  })
 
   await tx.subSubscription.upsert({
     where: {
@@ -89,12 +87,9 @@ export async function onPaid (tx, payInId, { me }) {
   await tx.userSubTrust.createMany({
     data: initialTrust({ name: updatedSub.name, userId: updatedSub.userId })
   })
-
-  return updatedSub
 }
 
-export async function describe (models, payInId, { me }) {
-  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
-  const { args: { name } } = payIn.pessimisticEnv
-  return `SN: unarchive territory ${name}`
+export async function describe (models, payInId) {
+  const { sub } = await models.subPayIn.findUnique({ where: { payInId }, include: { sub: true } })
+  return `SN: unarchive territory ${sub.name}`
 }

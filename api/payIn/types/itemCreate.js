@@ -3,6 +3,7 @@ import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySub
 import { getItemMentions, getMentions, performBotBehavior } from '../lib/item'
 import { satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
+import * as BOOST from './boost'
 
 export const anonable = true
 
@@ -13,9 +14,9 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export const DEFAULT_ITEM_COST = 1000n
+const DEFAULT_ITEM_COST = 1000n
 
-export async function getBaseCost (models, { bio, parentId, subName }) {
+async function getBaseCost (models, { bio, parentId, subName }) {
   if (bio) return DEFAULT_ITEM_COST
 
   if (parentId) {
@@ -35,7 +36,7 @@ export async function getBaseCost (models, { bio, parentId, subName }) {
   return satsToMsats(sub.baseCost)
 }
 
-export async function getCost (models, { subName, parentId, uploadIds, boost = 0, bio }, { me }) {
+async function getCost (models, { subName, parentId, uploadIds, boost = 0, bio }, { me }) {
   const baseCost = await getBaseCost(models, { bio, parentId, subName })
 
   // cost = baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + upload fees + boost
@@ -45,33 +46,50 @@ export async function getCost (models, { subName, parentId, uploadIds, boost = 0
           ${me?.id && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
       * ${me ? 1 : 100}::INTEGER
       + (SELECT "nUnpaid" * "uploadFeesMsats"
-          FROM upload_fees(${me?.id || USER_ID.anon}::INTEGER, ${uploadIds}::INTEGER[]))
-      + ${satsToMsats(boost)}::INTEGER as cost`
+          FROM upload_fees(${me?.id || USER_ID.anon}::INTEGER, ${uploadIds}::INTEGER[])) as cost`
 
   // sub allows freebies (or is a bio or a comment), cost is less than baseCost, not anon,
   // cost must be greater than user's balance, and user has not disabled freebies
   const freebie = (parentId || bio) && cost <= baseCost && !!me &&
-    me?.msats < cost && !me?.disableFreebies && me?.mcredits < cost
+    me?.msats < cost && !me?.disableFreebies && me?.mcredits < cost && boost <= 0
 
   return freebie ? BigInt(0) : BigInt(cost)
 }
 
-export async function getPayOuts (models, payIn, { subName, parentId, uploadIds, boost = 0, bio }, { me }) {
-  const sub = await models.sub.findUnique({ where: { name: subName } })
-  const revenueMsats = payIn.mcost * BigInt(sub.rewardsPct) / 100n
-  const rewardMsats = payIn.mcost - revenueMsats
+export async function getInitial (models, args, { me }) {
+  const mcost = await getCost(models, args, { me })
+  const sub = await models.sub.findUnique({ where: { name: args.subName } })
+  const revenueMsats = mcost * BigInt(sub.rewardsPct) / 100n
+  const rewardMsats = mcost - revenueMsats
 
-  return {
-    payOutCustodialTokens: [
-      { payOutType: 'TERRITORY_REVENUE', userId: sub.userId, mtokens: revenueMsats, custodialTokenType: 'SATS' },
-      { payOutType: 'REWARD_POOL', userId: null, mtokens: rewardMsats, custodialTokenType: 'SATS' }
+  let beneficiaries
+  if (args.boost > 0) {
+    beneficiaries = [
+      await BOOST.getInitial(models, { sats: args.boost, sub }, { me })
     ]
+  }
+  return {
+    payInType: 'ITEM_CREATE',
+    userId: me?.id,
+    mcost,
+    payOutCustodialTokens: [
+      {
+        payOutType: 'TERRITORY_REVENUE',
+        userId: sub.userId,
+        mtokens: revenueMsats,
+        custodialTokenType: 'SATS',
+        subPayOutCustodialToken: {
+          subName: sub.name
+        }
+      },
+      { payOutType: 'REWARD_POOL', userId: null, mtokens: rewardMsats, custodialTokenType: 'SATS' }
+    ],
+    beneficiaries
   }
 }
 
-// TODO: I've removed consideration of boost needing to be its own payIn because it complicates requirements
 // TODO: uploads should just have an itemId
-export async function onPending (tx, payInId, args, { me }) {
+export async function onBegin (tx, payInId, args, { me }) {
   const { invoiceId, parentId, uploadIds = [], forwardUsers = [], options: pollOptions = [], boost = 0, ...data } = args
 
   const deletedUploads = []
@@ -88,7 +106,7 @@ export async function onPending (tx, payInId, args, { me }) {
   const itemMentions = await getItemMentions(tx, args, { me })
 
   // start with median vote
-  if (me) {
+  if (me !== USER_ID.anon) {
     const [row] = await tx.$queryRaw`SELECT
       COALESCE(percentile_cont(0.5) WITHIN GROUP(
         ORDER BY "weightedVotes" - "weightedDownVotes"), 0)
@@ -101,8 +119,11 @@ export async function onPending (tx, payInId, args, { me }) {
   const itemData = {
     parentId: parentId ? parseInt(parentId) : null,
     ...data,
-    payInId,
-    boost,
+    itemPayIn: {
+      create: {
+        payInId
+      }
+    },
     threadSubscriptions: {
       createMany: {
         data: [
@@ -158,14 +179,20 @@ export async function onPending (tx, payInId, args, { me }) {
   }
 
   await performBotBehavior(tx, item, { me })
+
+  const { beneficiaries } = await tx.payIn.findUnique({ where: { id: payInId }, include: { beneficiaries: true } })
+  for (const beneficiary of beneficiaries) {
+    await BOOST.onBegin(tx, beneficiary.id, { sats: boost, id: item.id }, { me })
+  }
 }
 
+// TODO: caller of onRetry needs to update beneficiaries
 export async function onRetry (tx, oldPayInId, newPayInId) {
-  await tx.item.updateMany({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
+  await tx.itemPayIn.updateMany({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
 }
 
 export async function onPaid (tx, payInId) {
-  const item = await tx.item.findUnique({ where: { payInId } })
+  const { item } = await tx.itemPayIn.findUnique({ where: { payInId }, include: { item: true } })
   if (!item) {
     throw new Error('Item not found')
   }
@@ -206,13 +233,17 @@ export async function onPaid (tx, payInId) {
   }
 }
 
-export async function nonCriticalSideEffects (models, payInId, { me }) {
-  const item = await models.item.findUnique({
+export async function onPaidSideEffects (models, payInId, { me }) {
+  const { item } = await models.itemPayIn.findUnique({
     where: { payInId },
     include: {
-      mentions: true,
-      itemReferrers: { include: { refereeItem: true } },
-      user: true
+      item: {
+        include: {
+          mentions: true,
+          itemReferrers: { include: { refereeItem: true } },
+          user: true
+        }
+      }
     }
   })
 
@@ -229,6 +260,11 @@ export async function nonCriticalSideEffects (models, payInId, { me }) {
 
   notifyUserSubscribers({ models, item }).catch(console.error)
   notifyTerritorySubscribers({ models, item }).catch(console.error)
+
+  const { beneficiaries } = await models.payIn.findUnique({ where: { id: payInId }, include: { beneficiaries: true } })
+  for (const beneficiary of beneficiaries) {
+    await BOOST.onPaidSideEffects(models, beneficiary.id)
+  }
 }
 
 export async function describe (models, payInId, { me }) {

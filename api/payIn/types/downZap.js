@@ -10,11 +10,7 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
 ]
 
-export async function getCost (models, { sats }, { me }) {
-  return satsToMsats(sats)
-}
-
-export async function getPayOuts (models, payIn, { sats, id: itemId }, { me }) {
+async function getPayOuts (models, payIn, { sats, id: itemId }, { me }) {
   const item = await models.item.findUnique({ where: { id: parseInt(itemId) }, include: { sub: true } })
 
   const revenueMsats = satsToMsats(sats * item.sub.rewardsPct / 100)
@@ -23,21 +19,37 @@ export async function getPayOuts (models, payIn, { sats, id: itemId }, { me }) {
   return {
     payOutCustodialTokens: [
       { payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardMsats, custodialTokenType: 'SATS' },
-      { payOutType: 'TERRITORY_REVENUE', userId: item.sub.userId, mtokens: revenueMsats, custodialTokenType: 'SATS' }
+      {
+        payOutType: 'TERRITORY_REVENUE',
+        userId: item.sub.userId,
+        mtokens: revenueMsats,
+        custodialTokenType: 'SATS',
+        subPayOutCustodialToken: {
+          subName: item.sub.name
+        }
+      }
     ]
   }
 }
 
-export async function onPending (tx, payInId, { sats, id: itemId }, { me }) {
+export async function getInitial (models, { sats, id: itemId }, { me }) {
+  return {
+    payInType: 'DOWNZAP',
+    userId: me?.id,
+    mcost: satsToMsats(sats),
+    ...(await getPayOuts(models, { sats, id: itemId }, { me }))
+  }
+}
+export async function onBegin (tx, payInId, { sats, id: itemId }, { me }) {
   itemId = parseInt(itemId)
 
-  await tx.itemAct.create({
+  await tx.itemPayIn.create({
     data: { itemId, payInId }
   })
 }
 
 export async function onRetry (tx, oldPayInId, newPayInId) {
-  await tx.itemAct.update({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
+  await tx.itemPayIn.update({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
 }
 
 export async function onPaid (tx, payInId) {

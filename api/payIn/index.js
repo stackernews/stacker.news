@@ -1,11 +1,20 @@
-import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
+import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, USER_ID } from '@/lib/constants'
 import { Prisma } from '@prisma/client'
-import { wrapBolt11 } from '@/wallets/server'
-import { createHodlInvoice, createInvoice, parsePaymentRequest, payViaPaymentRequest } from 'ln-service'
-import { datePivot } from '@/lib/time'
+import { payViaPaymentRequest } from 'ln-service'
 import lnd from '../lnd'
 import payInTypeModules from './types'
 import { msatsToSats } from '@/lib/format'
+import { getPayInCustodialTokens } from './lib/payInCustodialTokens'
+import { getPayInBolt11, getPayInBolt11Wrap } from './lib/payInBolt11'
+import { isInvoiceable, isP2P, isPessimistic, isWithdrawal } from './lib/is'
+import { payInPrismaCreate } from './lib/payInPrismaCreate'
+const PAY_IN_INCLUDE = {
+  payInCustodialTokens: true,
+  payOutBolt11: true,
+  pessimisticEnv: true,
+  user: true,
+  payOutCustodialTokens: true
+}
 
 export default async function payIn (payInType, payInArgs, { models, me }) {
   try {
@@ -21,17 +30,10 @@ export default async function payIn (payInType, payInArgs, { models, me }) {
       throw new Error('You must be logged in to perform this action')
     }
 
-    // payIn = getInitialPayIn(models, payInArgs, { me })
-    // onInitialize(models, payIn, payInArgs, { me })
-    // then depending on payIn.payInState, we do what's required
+    me ??= { id: USER_ID.anon }
 
-    const payIn = {
-      payInType,
-      userId: me?.id ?? USER_ID.anon,
-      mcost: await payInModule.getCost(models, payInArgs, { me })
-    }
-
-    return await payInPerform(models, payIn, payInArgs, { me })
+    const payIn = await payInModule.getInitial(models, payInArgs, { me })
+    return await begin(models, payIn, payInArgs, { me })
   } catch (e) {
     console.error('performPaidAction failed', e)
     throw e
@@ -40,250 +42,129 @@ export default async function payIn (payInType, payInArgs, { models, me }) {
   }
 }
 
-async function payInPerform (models, payIn, payInArgs, { me }) {
-  const payInModule = payInTypeModules[payIn.payInType]
+async function begin (models, payInInitial, payInArgs, { me }) {
+  const payInModule = payInTypeModules[payInInitial.payInType]
 
-  const { payOutCustodialTokens, payOutBolt11 } = await payInModule.getPayOuts(models, payIn, payInArgs, { me })
-  const mP2PCost = isP2P(payIn) ? (payOutBolt11?.msats ?? 0n) : 0n
-  const mCustodialCost = payIn.mcost - mP2PCost
+  const { payOutBolt11, beneficiaries } = payInInitial
+  const mP2PCost = isP2P(payInInitial) ? (payOutBolt11?.msats ?? 0n) : 0n
+  const mCustodialCost = payInInitial.mcost + beneficiaries.reduce((acc, b) => acc + b.mcost, 0n) - mP2PCost
 
-  const result = await models.$transaction(async tx => {
-    const payInCustodialTokens = await getPayInCustodialTokens(tx, mCustodialCost, payIn, { me, models })
+  const { payIn, mCostRemaining } = await models.$transaction(async tx => {
+    const payInCustodialTokens = await getPayInCustodialTokens(tx, mCustodialCost, payInInitial, { me })
     const mCustodialPaid = payInCustodialTokens.reduce((acc, token) => acc + token.mtokens, 0n)
 
+    // TODO: how to deal with < 1000msats?
     const mCostRemaining = mCustodialCost - mCustodialPaid + mP2PCost
 
     let payInState = null
     if (mCostRemaining > 0n) {
-      if (!isInvoiceable(payIn)) {
+      if (!isInvoiceable(payInInitial)) {
         throw new Error('Insufficient funds')
       }
-      payInState = 'PENDING_INVOICE_CREATION'
-    } else if (isWithdrawal(payIn)) {
+      if (mP2PCost > 0n) {
+        payInState = 'PENDING_INVOICE_WRAP'
+      } else {
+        payInState = 'PENDING_INVOICE_CREATION'
+      }
+    } else if (isWithdrawal(payInInitial)) {
       payInState = 'PENDING_WITHDRAWAL'
     } else {
       payInState = 'PAID'
     }
 
-    const payInResult = await tx.payIn.create({
+    const payIn = await tx.payIn.create({
       data: {
-        payInType: payIn.payInType,
-        mcost: payIn.mcost,
-        payInState,
-        payInStateChangedAt: new Date(),
-        userId: payIn.userId,
+        ...payInPrismaCreate({
+          ...payInInitial,
+          payInState,
+          payInStateChangedAt: new Date()
+        }),
         pessimisticEnv: {
-          create: mCostRemaining > 0n && isPessimistic(payIn, { me }) ? { args: payInArgs } : null
-        },
-        payInCustodialTokens: {
-          createMany: {
-            data: payInCustodialTokens
-          }
-        },
-        payOutCustodialTokens: {
-          createMany: {
-            data: payOutCustodialTokens
-          }
-        },
-        payOutBolt11: {
-          create: payOutBolt11
+          create: isPessimistic(payInInitial, { me }) ? { args: payInArgs } : undefined
         }
       },
-      include: {
-        payInCustodialTokens: true,
-        user: true,
-        payOutBolt11: true,
-        payOutCustodialTokens: true
-      }
+      include: PAY_IN_INCLUDE
     })
 
     // if it's pessimistic, we don't perform the action until the invoice is held
-    if (payInResult.pessimisticEnv) {
+    if (payIn.pessimisticEnv) {
       return {
-        payIn: payInResult,
+        payIn,
         mCostRemaining
       }
     }
 
     // if it's optimistic or already paid, we perform the action
-    const result = await payInModule.onPending?.(tx, payInResult.id, payInArgs, { models, me })
+    await payInModule.onBegin?.(tx, payIn.id, payInArgs, { models, me })
 
     // if it's already paid, we run onPaid and do payOuts in the same transaction
-    if (payInResult.payInState === 'PAID') {
-      await onPaid(tx, payInResult.id, { models, me })
-      // run non critical side effects in the background
-      // now that everything is paid
-      payInModule.nonCriticalSideEffects?.(payInResult.id, { models }).catch(console.error)
+    if (payIn.payInState === 'PAID') {
+      await onPaid(tx, payIn.id, { me })
+      // run non critical side effects
+      payInModule.onPaidSideEffects?.(models, payIn.id).catch(console.error)
       return {
-        payIn: payInResult,
-        result,
+        payIn,
         mCostRemaining: 0n
       }
     }
 
-    // transactionally insert a job to check if the required invoice/withdrawal is added
-    // we can't do it before because we don't know the amount of the invoice
-    // and we want to refund the custodial tokens if the invoice creation fails
-    // TODO: consider timeouts of wrapped invoice creation ... ie 30 seconds might not be enough
-    await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-        VALUES ('checkPayIn', jsonb_build_object('id', ${payInResult.id}::INTEGER), now() + interval '10 seconds', 1000)`
+    // TODO: create a periodic job that checks if the invoice/withdrawal creation failed
+    // It will need to consider timeouts of wrapped invoice creation very carefully
     return {
-      payIn: payInResult,
-      result,
+      payIn,
       mCostRemaining
     }
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 
-  if (result.payIn.payInState === 'PENDING_INVOICE_CREATION') {
-    try {
-      return {
-        payIn: await payInAddInvoice(result.mCostRemaining, result.payIn, { models, me }),
-        result: result.result
-      }
-    } catch (e) {
-      models.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-        VALUES ('payInFailed', jsonb_build_object('id', ${result.payIn.id}::INTEGER), now(), 1000)`.catch(console.error)
-      console.error('payInAddInvoice failed', e)
-      throw e
-    }
-  } else if (result.payIn.payInState === 'PENDING_WITHDRAWAL') {
-    const { mtokens } = result.payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
+  try {
+    return await afterBegin(models, { payIn, mCostRemaining }, payInArgs, { me })
+  } catch (e) {
+    models.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
+        VALUES ('payInFailed', jsonb_build_object('id', ${payIn.id}::INTEGER), now(), 1000)`.catch(console.error)
+    throw e
+  }
+}
+
+async function afterBegin (models, { payIn, mCostRemaining }, payInArgs, { me }) {
+  if (payIn.payInState === 'PENDING_INVOICE_CREATION') {
+    const payInBolt11 = await getPayInBolt11(models, { mCostRemaining, payIn }, { me })
+    return await models.payIn.update({
+      where: { id: payIn.id },
+      data: {
+        payInState: payIn.pessimisticEnv ? 'PENDING_HELD' : 'PENDING',
+        payInStateChangedAt: new Date(),
+        payInBolt11: { create: payInBolt11 }
+      },
+      include: PAY_IN_INCLUDE
+    })
+  } else if (payIn.payInState === 'PENDING_INVOICE_WRAP') {
+    const payInBolt11 = await getPayInBolt11Wrap(models, { mCostRemaining, payIn }, { me })
+    return await models.payIn.update({
+      where: { id: payIn.id },
+      data: {
+        payInState: 'PENDING_HELD',
+        payInStateChangedAt: new Date(),
+        payInBolt11: { create: payInBolt11 }
+      },
+      include: PAY_IN_INCLUDE
+    })
+  } else if (payIn.payInState === 'PENDING_WITHDRAWAL') {
+    const { mtokens } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
     payViaPaymentRequest({
       lnd,
-      request: result.payIn.payOutBolt11.bolt11,
+      request: payIn.payOutBolt11.bolt11,
       max_fee: msatsToSats(mtokens),
       pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
       confidence: LND_PATHFINDING_TIME_PREF_PPM
     }).catch(console.error)
-  }
-
-  return result.result
-}
-
-async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me, models }) {
-  if (!me || mCustodialCost <= 0n) {
-    return []
-  }
-
-  const payInAssets = []
-  if (isPayableWithCredits(payIn)) {
-    const { mcreditsSpent, mcreditsBefore } = await tx.$queryRaw`
-      UPDATE users
-      SET mcredits = CASE
-        WHEN mcredits >= ${mCustodialCost} THEN mcredits - ${mCustodialCost}
-        ELSE mcredits - ((mcredits / 1000) * 1000)
-      END
-      FROM (SELECT id, mcredits FROM users WHERE id = ${me.id} FOR UPDATE) before
-      WHERE users.id = before.id
-      RETURNING mcredits - before.mcredits as mcreditsSpent, before.mcredits as mcreditsBefore`
-    if (mcreditsSpent > 0n) {
-      payInAssets.push({
-        payInAssetType: 'CREDITS',
-        masset: mcreditsSpent,
-        massetBefore: mcreditsBefore
-      })
-    }
-    mCustodialCost -= mcreditsSpent
-  }
-
-  const { msatsSpent, msatsBefore } = await tx.$queryRaw`
-    UPDATE users
-    SET msats = CASE
-      WHEN msats >= ${mCustodialCost} THEN msats - ${mCustodialCost}
-      ELSE msats - ((msats / 1000) * 1000)
-    END
-    FROM (SELECT id, msats FROM users WHERE id = ${me.id} FOR UPDATE) before
-    WHERE users.id = before.id
-    RETURNING msats - before.msats as msatsSpent, before.msats as msatsBefore`
-  if (msatsSpent > 0n) {
-    payInAssets.push({
-      payInAssetType: 'SATS',
-      masset: msatsSpent,
-      massetBefore: msatsBefore
-    })
-  }
-
-  return payInAssets
-}
-
-async function isPessimistic (payIn, { me }) {
-  const payInModule = payInTypeModules[payIn.payInType]
-  return !me || !payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC)
-}
-
-async function isPayableWithCredits (payIn) {
-  const payInModule = payInTypeModules[payIn.payInType]
-  return payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT)
-}
-
-async function isInvoiceable (payIn) {
-  const payInModule = payInTypeModules[payIn.payInType]
-  return payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC) ||
-    payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC) ||
-    payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.P2P)
-}
-
-async function isP2P (payIn) {
-  const payInModule = payInTypeModules[payIn.payInType]
-  return payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.P2P)
-}
-
-async function isWithdrawal (payIn) {
-  return payIn.payInType === 'WITHDRAWAL'
-}
-
-const INVOICE_EXPIRE_SECS = 600
-
-async function createBolt11 (mCostRemaining, payIn, { models, me }) {
-  const createLNDinvoice = payIn.pessimisticEnv ? createHodlInvoice : createInvoice
-  const expiresAt = datePivot(new Date(), { seconds: INVOICE_EXPIRE_SECS })
-  const invoice = await createLNDinvoice({
-    description: payIn.user?.hideInvoiceDesc ? undefined : await payInTypeModules[payIn.payInType].describe(models, payIn.id, { me }),
-    mtokens: String(mCostRemaining),
-    expires_at: expiresAt,
-    lnd
-  })
-  return invoice.request
-}
-
-// TODO: throw errors that give us PayInFailureReason
-async function payInAddInvoice (mCostRemaining, payIn, { models, me }) {
-  let bolt11 = null
-  let payInState = null
-  if (payIn.payOutBolt11) {
-    bolt11 = await wrapBolt11({ msats: mCostRemaining, bolt11: payIn.payOutBolt11.bolt11, expiry: INVOICE_EXPIRE_SECS }, { models, me })
-    payInState = 'PENDING_HELD'
+    return payIn
   } else {
-    bolt11 = await createBolt11(mCostRemaining, payIn, { models, me })
-    payInState = payIn.pessimisticEnv ? 'PENDING_HELD' : 'PENDING'
+    throw new Error('Invalid payIn begin state')
   }
-
-  const decodedBolt11 = parsePaymentRequest({ request: bolt11 })
-  const expiresAt = new Date(decodedBolt11.expires_at)
-  const msatsRequested = BigInt(decodedBolt11.mtokens)
-
-  return await models.payIn.update({
-    where: { id: payIn.id, payInState: 'PENDING_INVOICE_CREATION' },
-    data: {
-      payInState,
-      payInStateChangedAt: new Date(),
-      payInBolt11: {
-        create: {
-          hash: decodedBolt11.id,
-          bolt11,
-          msatsRequested,
-          expiresAt
-        }
-      }
-    },
-    include: {
-      payInBolt11: true
-    }
-  })
 }
 
-export async function onFail (tx, payInId, { me }) {
-  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { payInCustodialTokens: true } })
+export async function onFail (tx, payInId) {
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { payInCustodialTokens: true, beneficiaries: true } })
   if (!payIn) {
     throw new Error('PayIn not found')
   }
@@ -296,11 +177,15 @@ export async function onFail (tx, payInId, { me }) {
         mcredits = mcredits + ${payInCustodialToken.custodialTokenType === 'CREDITS' ? payInCustodialToken.mtokens : 0}
       WHERE id = ${payIn.userId}`
   }
-  await payInTypeModules[payIn.payInType].onFail?.(tx, payInId, { me })
+
+  await payInTypeModules[payIn.payInType].onFail?.(tx, payInId)
+  for (const beneficiary of payIn.beneficiaries) {
+    await onFail(tx, beneficiary.id)
+  }
 }
 
 export async function onPaid (tx, payInId) {
-  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { payOutCustodialTokens: true, payOutBolt11: true } })
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { payOutCustodialTokens: true, payOutBolt11: true, beneficiaries: true } })
   if (!payIn) {
     throw new Error('PayIn not found')
   }
@@ -344,4 +229,7 @@ export async function onPaid (tx, payInId) {
 
   const payInModule = payInTypeModules[payIn.payInType]
   await payInModule.onPaid?.(tx, payInId)
+  for (const beneficiary of payIn.beneficiaries) {
+    await onPaid(tx, beneficiary.id)
+  }
 }

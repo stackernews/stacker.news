@@ -9,23 +9,29 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
 ]
 
-export async function getCost (models, { sats }, { me }) {
-  return satsToMsats(sats)
-}
+async function getPayOuts (models, { sats, id, sub }, { me }) {
+  if (id) {
+    sub = (await models.item.findUnique({ where: { id }, include: { sub: true } })).sub
+  }
 
-export async function getPayOuts (models, payIn, { sats, id }, { me }) {
-  const item = await models.item.findUnique({ where: { id }, include: { sub: true } })
+  if (!sub) {
+    throw new Error('Sub not found')
+  }
 
-  const revenueMsats = satsToMsats(sats * item.sub.rewardsPct / 100)
+  const revenueMsats = satsToMsats(sats * sub.rewardsPct / 100)
   const rewardMsats = satsToMsats(sats - revenueMsats)
 
+  // TODO: this won't work for beneficiaries on itemCreate
   return {
     payOutCustodialTokens: [
       {
         payOutType: 'TERRITORY_REVENUE',
-        userId: item.sub.userId,
+        userId: sub.userId,
         mtokens: revenueMsats,
-        custodialTokenType: 'SATS'
+        custodialTokenType: 'SATS',
+        subPayOutCustodialToken: {
+          subName: sub.name
+        }
       },
       {
         payOutType: 'REWARD_POOL',
@@ -37,51 +43,49 @@ export async function getPayOuts (models, payIn, { sats, id }, { me }) {
   }
 }
 
-// TODO: continue with renaming perform to onPending?
-// TODO: migrate ItemAct to this simple model of itemId and payInId?
-export async function onPending (tx, payInId, { sats, id }, { me }) {
-  const itemId = parseInt(id)
+export async function getInitial (models, payInArgs, { me }) {
+  const { sats } = payInArgs
+  const payIn = {
+    payInType: 'BOOST',
+    userId: me?.id,
+    mcost: satsToMsats(sats)
+  }
 
-  return await tx.itemAct.create({
+  return { ...payIn, ...(await getPayOuts(models, payInArgs, { me })) }
+}
+
+export async function onBegin (tx, payInId, { sats, id }, { me }) {
+  await tx.itemPayIn.create({
     data: {
-      itemId,
+      itemId: parseInt(id),
       payInId
     }
   })
 }
 
 export async function onRetry (tx, oldPayInId, newPayInId) {
-  await tx.itemAct.update({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
+  await tx.itemPayIn.update({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
 }
 
 export async function onPaid (tx, payInId) {
-  const itemAct = await tx.itemAct.findUnique({ where: { payInId }, include: { item: true } })
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { itemPayIn: true } })
 
   // increment boost on item
   await tx.item.update({
-    where: { id: itemAct.itemId },
+    where: { id: payIn.itemPayIn.itemId },
     data: {
-      boost: { increment: msatsToSats(itemAct.msats) }
-    }
-  })
-
-  // TODO: migrate SubAct to this simple model of subName and payInId?
-  // ??? is this the right place for this?
-  await tx.subAct.create({
-    data: {
-      subName: itemAct.item.subName,
-      payInId
+      boost: { increment: msatsToSats(payIn.mcost) }
     }
   })
 
   // TODO: expireBoost job needs to be updated to use payIn
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
-    VALUES ('expireBoost', jsonb_build_object('id', ${itemAct.itemId}::INTEGER), 21, true,
+    VALUES ('expireBoost', jsonb_build_object('id', ${payIn.itemPayIn.itemId}::INTEGER), 21, true,
               now() + interval '30 days', now() + interval '40 days')`
 }
 
 export async function describe (models, payInId, { me }) {
-  const itemAct = await models.itemAct.findUnique({ where: { payInId }, include: { item: true } })
-  return `SN: boost #${itemAct.itemId} by ${numWithUnits(msatsToSats(itemAct.msats), { abbreviate: false })}`
+  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { itemPayIn: true } })
+  return `SN: boost #${payIn.itemPayIn.itemId} by ${numWithUnits(msatsToSats(payIn.mcost), { abbreviate: false })}`
 }

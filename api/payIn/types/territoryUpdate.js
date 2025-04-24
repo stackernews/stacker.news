@@ -11,19 +11,21 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getCost (models, { oldName, billingType }, { me }) {
+export async function getInitial (models, { oldName, billingType }, { me }) {
   const oldSub = await models.sub.findUnique({
     where: {
       name: oldName
     }
   })
 
-  const cost = proratedBillingCost(oldSub, billingType)
-  if (!cost) {
-    return 0n
-  }
+  const mcost = satsToMsats(proratedBillingCost(oldSub, billingType) ?? 0)
 
-  return satsToMsats(cost)
+  return {
+    payInType: 'TERRITORY_UPDATE',
+    userId: me?.id,
+    mcost,
+    payOutCustodialTokens: [{ payOutType: 'SYSTEM_REVENUE', userId: null, mtokens: mcost, custodialTokenType: 'SATS' }]
+  }
 }
 
 export async function onPaid (tx, payInId, { me }) {
@@ -36,6 +38,11 @@ export async function onPaid (tx, payInId, { me }) {
   })
 
   data.billingCost = TERRITORY_PERIOD_COST(data.billingType)
+  data.subPayIn = {
+    create: {
+      payInId
+    }
+  }
 
   // we never want to bill them again if they are changing to ONCE
   if (data.billingType === 'ONCE') {
@@ -54,15 +61,6 @@ export async function onPaid (tx, payInId, { me }) {
     data.status = 'ACTIVE'
   }
 
-  if (payIn.mcost > 0n) {
-    await tx.subAct.create({
-      data: {
-        payInId,
-        subName: oldName
-      }
-    })
-  }
-
   return await tx.sub.update({
     data,
     where: {
@@ -78,8 +76,7 @@ export async function onPaid (tx, payInId, { me }) {
   })
 }
 
-export async function describe (models, payInId, { me }) {
-  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
-  const { args: { oldName } } = payIn.pessimisticEnv
-  return `SN: update territory billing ${oldName}`
+export async function describe (models, payInId) {
+  const { sub } = await models.subPayIn.findUnique({ where: { payInId }, include: { sub: true } })
+  return `SN: update territory billing ${sub.name}`
 }

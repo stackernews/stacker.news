@@ -1,8 +1,9 @@
-import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyZapped } from '@/lib/webPush'
-import { getInvoiceableWallets } from '@/wallets/server'
+import { createUserInvoice, getInvoiceableWallets } from '@/wallets/server'
 import { Prisma } from '@prisma/client'
+import { parsePaymentRequest } from 'ln-service'
 
 export const anonable = true
 
@@ -14,15 +15,12 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getCost ({ sats }) {
-  return satsToMsats(sats)
-}
-
-export async function getInvoiceablePeer ({ id, sats, hasSendWallet }, { models, me, cost }) {
+export async function getInvoiceablePeer (models, { id, sats, hasSendWallet }, { me }) {
+  const zapper = await models.user.findUnique({ where: { id: me.id } })
   // if the zap is dust, or if me doesn't have a send wallet but has enough sats/credits to pay for it
   // then we don't invoice the peer
-  if (sats < me?.sendCreditsBelowSats ||
-    (me && !hasSendWallet && (me.mcredits >= cost || me.msats >= cost))) {
+  if (sats < zapper?.sendCreditsBelowSats ||
+    (me && !hasSendWallet && (zapper.mcredits + zapper.msats >= satsToMsats(sats)))) {
     return null
   }
 
@@ -52,45 +50,55 @@ export async function getInvoiceablePeer ({ id, sats, hasSendWallet }, { models,
   return null
 }
 
-export async function getSybilFeePercent () {
-  return 30n
-}
+// 70% to the receiver, 21% to the territory founder, 6% to rewards pool, 3% to routing fee
+export async function getInitial (models, payInArgs, { me }) {
+  const mcost = satsToMsats(payInArgs.sats)
+  const routingFeeMtokens = mcost * 3n / 100n
+  const rewardsPoolMtokens = mcost * 6n / 100n
+  const zapMtokens = mcost - routingFeeMtokens - rewardsPoolMtokens
+  const payOutCustodialTokens = [
+    { payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' },
+    { payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardsPoolMtokens, custodialTokenType: 'SATS' }
+  ]
 
-export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, cost, sybilFeePercent, tx }) {
-  const feeMsats = cost * sybilFeePercent / 100n
-  const zapMsats = cost - feeMsats
-  itemId = parseInt(itemId)
-
-  let invoiceData = {}
-  if (invoiceId) {
-    invoiceData = { invoiceId, invoiceActionState: 'PENDING' }
-    // store a reference to the item in the invoice
-    await tx.invoice.update({
-      where: { id: invoiceId },
-      data: { actionId: itemId }
-    })
+  let payOutBolt11
+  const invoiceablePeer = await getInvoiceablePeer(models, payInArgs, { me })
+  if (invoiceablePeer) {
+    const { invoice: bolt11, wallet } = await createUserInvoice(me.id, { msats: zapMtokens }, { models })
+    const invoice = await parsePaymentRequest({ request: bolt11 })
+    payOutBolt11 = {
+      payOutType: 'ZAP',
+      msats: BigInt(invoice.mtokens),
+      bolt11: invoice.bolt11,
+      hash: invoice.hash,
+      userId: invoiceablePeer,
+      walletId: wallet.id
+    }
+  } else {
+    const item = await models.item.findUnique({ where: { id: parseInt(payInArgs.id) } })
+    payOutCustodialTokens.push({ payOutType: 'ZAP', userId: item.userId, mtokens: zapMtokens, custodialTokenType: 'SATS' })
   }
 
-  const acts = await tx.itemAct.createManyAndReturn({
-    data: [
-      { msats: feeMsats, itemId, userId: me?.id ?? USER_ID.anon, act: 'FEE', ...invoiceData },
-      { msats: zapMsats, itemId, userId: me?.id ?? USER_ID.anon, act: 'TIP', ...invoiceData }
-    ]
-  })
-
-  const [{ path }] = await tx.$queryRaw`
-    SELECT ltree2text(path) as path FROM "Item" WHERE id = ${itemId}::INTEGER`
-  return { id: itemId, sats, act: 'TIP', path, actIds: acts.map(act => act.id) }
+  return {
+    payInType: 'ZAP',
+    userId: me.id,
+    mcost,
+    payOutCustodialTokens,
+    payOutBolt11
+  }
 }
 
-export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
-  await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
-  const [{ id, path }] = await tx.$queryRaw`
-    SELECT "Item".id, ltree2text(path) as path
-    FROM "Item"
-    JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId"
-    WHERE "ItemAct"."invoiceId" = ${newInvoiceId}::INTEGER`
-  return { id, sats: msatsToSats(cost), act: 'TIP', path }
+export async function onBegin (tx, payInId, { sats, id }, { me }) {
+  await tx.itemPayIn.create({
+    data: {
+      itemId: parseInt(id),
+      payInId
+    }
+  })
+}
+
+export async function onRetry (tx, oldPayInId, newPayInId) {
+  await tx.itemAct.update({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
 }
 
 export async function onPaid ({ invoice, actIds }, { tx }) {

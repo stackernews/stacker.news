@@ -11,14 +11,14 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getCost (models, { billingType }, { me }) {
-  return satsToMsats(TERRITORY_PERIOD_COST(billingType))
-}
-
-export async function getPayOuts (models, payIn, { name }) {
+export async function getInitial (models, { billingType }, { me }) {
+  const mcost = satsToMsats(TERRITORY_PERIOD_COST(billingType))
   return {
+    payInType: 'TERRITORY_CREATE',
+    userId: me?.id,
+    mcost,
     payOutCustodialTokens: [
-      { payOutType: 'SYSTEM_REVENUE', userId: null, mtokens: payIn.mcost, custodialTokenType: 'SATS' }
+      { payOutType: 'SYSTEM_REVENUE', userId: null, mtokens: mcost, custodialTokenType: 'SATS' }
     ]
   }
 }
@@ -38,7 +38,7 @@ export async function onPaid (tx, payInId, { me }) {
       billingCost,
       rankingType: 'WOT',
       userId: me.id,
-      SubAct: {
+      subPayIn: {
         create: {
           payInId
         }
@@ -54,12 +54,9 @@ export async function onPaid (tx, payInId, { me }) {
   await tx.userSubTrust.createMany({
     data: initialTrust({ name: sub.name, userId: sub.userId })
   })
-
-  return sub
 }
 
-export async function describe (models, payInId, { me }) {
-  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
-  const { args: { name } } = payIn.pessimisticEnv
-  return `SN: create territory ${name}`
+export async function describe (models, payInId) {
+  const { sub } = await models.subPayIn.findUnique({ where: { payInId }, include: { sub: true } })
+  return `SN: create territory ${sub.name}`
 }

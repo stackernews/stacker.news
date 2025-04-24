@@ -8,12 +8,11 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getCost (models, { credits }, { me }) {
-  return satsToMsats(credits)
-}
-
-export async function getPayOuts (models, { credits }, { me }) {
+export async function getInitial (models, { credits }, { me }) {
   return {
+    payInType: 'BUY_CREDITS',
+    userId: me?.id,
+    mcost: satsToMsats(credits),
     payOutCustodialTokens: [
       {
         payOutType: 'CREDITS',

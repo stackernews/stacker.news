@@ -9,19 +9,16 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getCost (models, { sats }, { me }) {
-  return satsToMsats(sats)
-}
-
-export async function getPayOuts (models, { sats }, { me }) {
+export async function getInitial (models, { sats }, { me }) {
   return {
+    payInType: 'DONATE',
+    userId: me?.id,
+    mcost: satsToMsats(sats),
     payOutCustodialTokens: [
       { payOutType: 'REWARDS_POOL', userId: null, mtokens: satsToMsats(sats), custodialTokenType: 'SATS' }
     ]
   }
 }
-
-// TODO: Donation table does not need to exist anymore
 
 export async function describe (models, payInId, { me }) {
   const payIn = await models.payIn.findUnique({ where: { id: payInId } })

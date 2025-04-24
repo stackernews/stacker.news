@@ -9,15 +9,38 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
 ]
 
-export async function getCost (models, { id }, { me }) {
+export async function getInitial (models, { id }, { me }) {
   const pollOption = await models.pollOption.findUnique({
     where: { id: parseInt(id) },
-    include: { item: true }
+    include: { item: { include: { sub: true } } }
   })
-  return satsToMsats(pollOption.item.pollCost)
+
+  const mcost = satsToMsats(pollOption.item.pollCost)
+  const revenueMsats = mcost * BigInt(pollOption.item.sub.rewardsPct) / 100n
+  const rewardMsats = mcost - revenueMsats
+
+  return {
+    payInType: 'POLL_VOTE',
+    userId: me?.id,
+    mcost,
+    payOutCustodialTokens: [{
+      payOutType: 'TERRITORY_REVENUE',
+      userId: pollOption.item.sub.userId,
+      mtokens: revenueMsats,
+      custodialTokenType: 'SATS',
+      subPayOutCustodialToken: {
+        subName: pollOption.item.sub.name
+      }
+    }, {
+      payOutType: 'REWARD_POOL',
+      userId: null,
+      mtokens: rewardMsats,
+      custodialTokenType: 'SATS'
+    }]
+  }
 }
 
-export async function onPending (tx, payInId, { id }, { me }) {
+export async function onBegin (tx, payInId, { id }, { me }) {
   const pollOption = await tx.pollOption.findUnique({
     where: { id: parseInt(id) }
   })

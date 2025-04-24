@@ -10,20 +10,21 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getCost (models, { name }) {
+export async function getInitial (models, { name }, { me }) {
   const sub = await models.sub.findUnique({
     where: {
       name
     }
   })
 
-  return satsToMsats(TERRITORY_PERIOD_COST(sub.billingType))
-}
+  const mcost = satsToMsats(TERRITORY_PERIOD_COST(sub.billingType))
 
-export async function getPayOuts (models, payIn, { name }) {
   return {
+    payInType: 'TERRITORY_BILLING',
+    userId: me?.id,
+    mcost,
     payOutCustodialTokens: [
-      { payOutType: 'SYSTEM_REVENUE', userId: null, mtokens: payIn.mcost, custodialTokenType: 'SATS' }
+      { payOutType: 'SYSTEM_REVENUE', userId: null, mtokens: mcost, custodialTokenType: 'SATS' }
     ]
   }
 }
@@ -53,7 +54,7 @@ export async function onPaid (tx, payInId, { me }) {
 
   const billPaidUntil = nextBilling(billedLastAt, sub.billingType)
 
-  return await tx.sub.update({
+  await tx.sub.update({
     // optimistic concurrency control
     // make sure the sub hasn't changed since we fetched it
     where: {
@@ -67,7 +68,7 @@ export async function onPaid (tx, payInId, { me }) {
       billPaidUntil,
       billingCost,
       status: 'ACTIVE',
-      SubAct: {
+      subPayIn: {
         create: {
           payInId
         }
@@ -76,7 +77,7 @@ export async function onPaid (tx, payInId, { me }) {
   })
 }
 
-export async function describe (models, payInId, { me }) {
-  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { subAct: true } })
-  return `SN: billing for territory ${payIn.subAct.subName}`
+export async function describe (models, payInId) {
+  const { sub } = await models.subPayIn.findUnique({ where: { payInId }, include: { sub: true } })
+  return `SN: billing for territory ${sub.name}`
 }

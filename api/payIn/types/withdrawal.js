@@ -8,14 +8,12 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.REWARD_SATS
 ]
 
-export async function getCost (models, { bolt11, maxFee, walletId }) {
-  const invoice = parsePaymentRequest({ request: bolt11 })
-  return BigInt(invoice.mtokens) + satsToMsats(maxFee)
-}
-
-export async function getPayOuts (models, payIn, { bolt11, maxFee, walletId }, { me }) {
+export async function getInitial (models, { bolt11, maxFee, walletId }, { me }) {
   const invoice = parsePaymentRequest({ request: bolt11 })
   return {
+    payInType: 'WITHDRAWAL',
+    userId: me?.id,
+    mcost: BigInt(invoice.mtokens) + satsToMsats(maxFee),
     payOutBolt11: {
       payOutType: 'WITHDRAWAL',
       msats: BigInt(invoice.mtokens),

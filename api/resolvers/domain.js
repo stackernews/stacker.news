@@ -37,41 +37,32 @@ export default {
         if (existing && existing.domain === domain && existing.status !== 'HOLD') {
           throw new GqlInputError('domain already set')
         }
+
+        const initializeDomain = {
+          domain,
+          status: 'PENDING',
+          verification: {
+            dns: {
+              state: 'PENDING',
+              cname: 'stacker.news',
+              txt: randomBytes(32).toString('base64')
+            },
+            ssl: {
+              state: 'WAITING',
+              arn: null,
+              cname: null,
+              value: null
+            }
+          }
+        }
+
         const updatedDomain = await models.customDomain.upsert({
           where: { subName },
           update: {
-            domain,
-            status: 'PENDING',
-            verification: {
-              dns: {
-                state: 'PENDING',
-                cname: 'stacker.news',
-                txt: randomBytes(32).toString('base64')
-              },
-              ssl: {
-                state: 'WAITING',
-                arn: null,
-                cname: null,
-                value: null
-              }
-            }
+            ...initializeDomain
           },
           create: {
-            domain,
-            status: 'PENDING',
-            verification: {
-              dns: {
-                state: 'PENDING',
-                cname: 'stacker.news',
-                txt: randomBytes(32).toString('base64')
-              },
-              ssl: {
-                state: 'WAITING',
-                arn: null,
-                cname: null,
-                value: null
-              }
-            },
+            ...initializeDomain,
             sub: {
               connect: { name: subName }
             }

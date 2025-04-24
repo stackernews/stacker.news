@@ -74,10 +74,8 @@ const getStatusBadge = (status) => {
   switch (status) {
     case 'VERIFIED':
       return <Badge bg='success'>DNS verified</Badge>
-    case 'PENDING':
+    default:
       return <Badge bg='warning'>DNS pending</Badge>
-    case 'FAILED':
-      return <Badge bg='danger'>DNS failed</Badge>
   }
 }
 
@@ -85,12 +83,10 @@ const getSSLStatusBadge = (status) => {
   switch (status) {
     case 'VERIFIED':
       return <Badge bg='success'>SSL verified</Badge>
-    case 'PENDING':
-      return <Badge bg='warning'>SSL pending</Badge>
-    case 'FAILED':
-      return <Badge bg='danger'>SSL failed</Badge>
     case 'WAITING':
       return <Badge bg='info'>SSL waiting</Badge>
+    default:
+      return <Badge bg='warning'>SSL pending</Badge>
   }
 }
 
@@ -172,7 +168,7 @@ const DomainGuidelines = ({ customDomain }) => {
           {dnsRecord(domain || 'www', verification?.dns?.cname)}
           <hr />
           <h6>TXT</h6>
-          {dnsRecord(domain || 'www', verification?.dns?.txt)}
+          {dnsRecord(`_snverify.${domain}`, verification?.dns?.txt)}
         </div>
       )}
       {verification?.ssl?.state === 'PENDING' && (

@@ -51,7 +51,7 @@ async function verifyDomain (domain, models) {
     await updateCertificateStatus(data)
   }
 
-  if (data.verification?.dns?.state === 'FAILED' || data.verification?.ssl?.state === 'FAILED') {
+  if (data.verification?.dns?.state === 'PENDING' || data.verification?.ssl?.state === 'PENDING') {
     data.failedAttempts += 1
     // exponential backoff at the 11th attempt is roughly 48 hours
     if (data.failedAttempts > 11) {
@@ -71,7 +71,7 @@ async function verifyDNS (data) {
   const { txtValid, cnameValid } = await verifyDomainDNS(data.domain, data.verification.dns.txt)
   console.log(`${data.domain}: TXT ${txtValid ? 'valid' : 'invalid'}, CNAME ${cnameValid ? 'valid' : 'invalid'}`)
 
-  data.verification.dns.state = txtValid && cnameValid ? 'VERIFIED' : 'FAILED'
+  data.verification.dns.state = txtValid && cnameValid ? 'VERIFIED' : 'PENDING'
   return data
 }
 
@@ -96,7 +96,7 @@ async function issueCertificate (data) {
       }
     }
   } else {
-    data.verification.ssl.state = 'FAILED'
+    data.verification.ssl.state = 'PENDING'
   }
 
   return data

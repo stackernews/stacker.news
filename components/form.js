@@ -661,39 +661,33 @@ function InputInner ({
 }
 
 const INITIAL_SUGGESTIONS = { array: [], index: 0 }
-export function UserSuggest ({
+
+export function BaseSuggest ({
   query, onSelect, dropdownStyle, children,
-  transformUser = user => user, selectWithTab = true, filterUsers = () => true
+  transformItem = item => item, selectWithTab = true, filterItems = () => true,
+  getSuggestionsQuery, queryName, itemsField
 }) {
-  const [getSuggestions] = useLazyQuery(USER_SUGGESTIONS, {
+  const [getSuggestions] = useLazyQuery(getSuggestionsQuery, {
     onCompleted: data => {
       query !== undefined && setSuggestions({
-        array: data.userSuggestions
-          .filter((...args) => filterUsers(query, ...args))
-          .map(transformUser),
+        array: data[itemsField]
+          .filter((...args) => filterItems(query, ...args))
+          .map(transformItem),
         index: 0
       })
     }
   })
-
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
-  const [isMouseDown, setIsMouseDown] = useState(false)
-  const resetSuggestions = useCallback(() => {
-    if (!isMouseDown) {
-      setSuggestions(INITIAL_SUGGESTIONS)
-    }
-  }, [isMouseDown])
-
+  const resetSuggestions = useCallback(() => setSuggestions(INITIAL_SUGGESTIONS), [])
   useEffect(() => {
     if (query !== undefined) {
-      // remove both the leading @ and any @domain after nym
-      const q = query?.replace(/^[@ ]+|[ ]+$/g, '').replace(/@[^\s]*$/, '')
+      // remove the leading character and any trailing spaces
+      const q = query?.replace(/^[@ ~]+|[ ]+$/g, '')
       getSuggestions({ variables: { q, limit: 5 } })
     } else {
       resetSuggestions()
     }
   }, [query, resetSuggestions, getSuggestions])
-
   const onKeyDown = useCallback(e => {
     switch (e.code) {
       case 'ArrowUp':
@@ -737,35 +731,19 @@ export function UserSuggest ({
       default:
         break
     }
-  }, [onSelect, resetSuggestions, suggestions, selectWithTab])
-
-  const handleMouseDown = useCallback(() => {
-    setIsMouseDown(true)
-  }, [])
-
-  const handleMouseUp = useCallback(() => {
-    setIsMouseDown(false)
-  }, [])
-
-  useEffect(() => {
-    document.addEventListener('mouseup', handleMouseUp)
-    return () => {
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [handleMouseUp])
-
+  }, [onSelect, resetSuggestions, suggestions])
   return (
     <>
       {children?.({ onKeyDown, resetSuggestions })}
       <Dropdown show={suggestions.array.length > 0} style={dropdownStyle}>
-        <Dropdown.Menu onMouseDown={handleMouseDown} className={styles.suggestionsMenu}>
+        <Dropdown.Menu className={styles.suggestionsMenu}>
           {suggestions.array.map((v, i) =>
             <Dropdown.Item
               key={v.name}
               active={suggestions.index === i}
               onClick={() => {
                 onSelect(v.name)
-                setSuggestions(INITIAL_SUGGESTIONS)
+                resetSuggestions()
               }}
             >
               {v.name}
@@ -773,6 +751,25 @@ export function UserSuggest ({
         </Dropdown.Menu>
       </Dropdown>
     </>
+  )
+}
+
+export function UserSuggest ({
+  query, onSelect, dropdownStyle, children,
+  transformUser = user => user, selectWithTab = true, filterUsers = () => true
+}) {
+  return (
+    <BaseSuggest
+      query={query}
+      onSelect={onSelect}
+      dropdownStyle={dropdownStyle}
+      children={children}
+      transformItem={transformUser}
+      selectWithTab={selectWithTab}
+      filterItems={filterUsers}
+      getSuggestionsQuery={USER_SUGGESTIONS}
+      itemsField="userSuggestions"
+    />
   )
 }
 
@@ -780,114 +777,56 @@ export function TerritorySuggest ({
   query, onSelect, dropdownStyle, children,
   transformSub = sub => sub, selectWithTab = true, filterSubs = () => true
 }) {
-  const [getSuggestions] = useLazyQuery(SUB_SUGGESTIONS, {
-    onCompleted: data => {
-      query !== undefined && setSuggestions({
-        array: data.subSuggestions
-          .filter((...args) => filterSubs(query, ...args))
-          .map(transformSub),
-        index: 0
-      })
-    }
-  })
-
-  const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
-  const [isMouseDown, setIsMouseDown] = useState(false)
-  const resetSuggestions = useCallback(() => {
-    if (!isMouseDown) {
-      setSuggestions(INITIAL_SUGGESTIONS)
-    }
-  }, [isMouseDown])
-
-  useEffect(() => {
-    if (query !== undefined) {
-      // remove the leading ~ and any trailing spaces
-      const q = query?.replace(/^[~ ]+|[ ]+$/g, '')
-      getSuggestions({ variables: { q, limit: 5 } })
-    } else {
-      resetSuggestions()
-    }
-  }, [query, resetSuggestions, getSuggestions])
-
-  const onKeyDown = useCallback(e => {
-    switch (e.code) {
-      case 'ArrowUp':
-        if (suggestions.array.length === 0) {
-          break
-        }
-        e.preventDefault()
-        setSuggestions(suggestions =>
-          ({
-            ...suggestions,
-            index: Math.max(suggestions.index - 1, 0)
-          }))
-        break
-      case 'ArrowDown':
-        if (suggestions.array.length === 0) {
-          break
-        }
-        e.preventDefault()
-        setSuggestions(suggestions =>
-          ({
-            ...suggestions,
-            index: Math.min(suggestions.index + 1, suggestions.array.length - 1)
-          }))
-        break
-      case 'Tab':
-      case 'Enter':
-        if (e.code === 'Tab' && !selectWithTab) {
-          break
-        }
-        if (suggestions.array?.length === 0) {
-          break
-        }
-        e.preventDefault()
-        onSelect(suggestions.array[suggestions.index].name)
-        resetSuggestions()
-        break
-      case 'Escape':
-        e.preventDefault()
-        resetSuggestions()
-        break
-      default:
-        break
-    }
-  }, [onSelect, resetSuggestions, suggestions, selectWithTab])
-
-  const handleMouseDown = useCallback(() => {
-    setIsMouseDown(true)
-  }, [])
-
-  const handleMouseUp = useCallback(() => {
-    setIsMouseDown(false)
-  }, [])
-
-  useEffect(() => {
-    document.addEventListener('mouseup', handleMouseUp)
-    return () => {
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [handleMouseUp])
-
   return (
-    <>
-      {children?.({ onKeyDown, resetSuggestions })}
-      <Dropdown show={suggestions.array.length > 0} style={dropdownStyle}>
-        <Dropdown.Menu onMouseDown={handleMouseDown} className={styles.suggestionsMenu}>
-          {suggestions.array.map((v, i) =>
-            <Dropdown.Item
-              key={v.name}
-              active={suggestions.index === i}
-              onClick={() => {
-                onSelect(v.name)
-                setSuggestions(INITIAL_SUGGESTIONS)
-              }}
-            >
-              {v.name}
-            </Dropdown.Item>)}
-        </Dropdown.Menu>
-      </Dropdown>
-    </>
+    <BaseSuggest
+      query={query}
+      onSelect={onSelect}
+      dropdownStyle={dropdownStyle}
+      children={children}
+      transformItem={transformSub}
+      selectWithTab={selectWithTab}
+      filterItems={filterSubs}
+      getSuggestionsQuery={SUB_SUGGESTIONS}
+      itemsField="subSuggestions"
+    />
+  )
+}
+
+function BaseInputSuggest ({
+  label, groupClassName, transformItem, filterItems,
+  selectWithTab, onChange, transformQuery, SuggestComponent, prefixRegex, ...props
+}) {
+  const [ovalue, setOValue] = useState()
+  const [query, setQuery] = useState()
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <SuggestComponent
+        transformItem={transformItem}
+        filterItems={filterItems}
+        selectWithTab={selectWithTab}
+        onSelect={(v) => {
+          // HACK ... ovalue does not trigger onChange
+          onChange && onChange(undefined, { target: { value: v } })
+          setOValue(v)
+        }}
+        query={query}
+      >
+        {({ onKeyDown, resetSuggestions }) => (
+          <InputInner
+            {...props}
+            autoComplete='off'
+            onChange={(formik, e) => {
+              onChange && onChange(formik, e)
+              setOValue(e.target.value)
+              setQuery(e.target.value.replace(prefixRegex, ''))
+            }}
+            overrideValue={ovalue}
+            onKeyDown={onKeyDown}
+            onBlur={() => setTimeout(resetSuggestions, 500)}
+          />
+        )}
+      </SuggestComponent>
+    </FormGroup>
   )
 }
 
@@ -895,37 +834,19 @@ export function InputUserSuggest ({
   label, groupClassName, transformUser, filterUsers,
   selectWithTab, onChange, transformQuery, ...props
 }) {
-  const [ovalue, setOValue] = useState()
-  const [query, setQuery] = useState()
   return (
-    <FormGroup label={label} className={groupClassName}>
-      <UserSuggest
-        transformUser={transformUser}
-        filterUsers={filterUsers}
-        selectWithTab={selectWithTab}
-        onSelect={(v) => {
-          // HACK ... ovalue does not trigger onChange
-          onChange && onChange(undefined, { target: { value: v } })
-          setOValue(v)
-        }}
-        query={query}
-      >
-        {({ onKeyDown, resetSuggestions }) => (
-          <InputInner
-            {...props}
-            autoComplete='off'
-            onChange={(formik, e) => {
-              onChange && onChange(formik, e)
-              setOValue(e.target.value)
-              setQuery(e.target.value.replace(/^[@ ]+|[ ]+$/g, ''))
-            }}
-            overrideValue={ovalue}
-            onKeyDown={onKeyDown}
-            onBlur={() => setTimeout(resetSuggestions, 500)}
-          />
-        )}
-      </UserSuggest>
-    </FormGroup>
+    <BaseInputSuggest
+      label={label}
+      groupClassName={groupClassName}
+      transformItem={transformUser}
+      filterItems={filterUsers}
+      selectWithTab={selectWithTab}
+      onChange={onChange}
+      transformQuery={transformQuery}
+      SuggestComponent={UserSuggest}
+      prefixRegex={/^[@ ]+|[ ]+$/g}
+      {...props}
+    />
   )
 }
 
@@ -933,37 +854,19 @@ export function InputTerritorySuggest ({
   label, groupClassName, transformSub, filterSubs,
   selectWithTab, onChange, transformQuery, ...props
 }) {
-  const [ovalue, setOValue] = useState()
-  const [query, setQuery] = useState()
   return (
-    <FormGroup label={label} className={groupClassName}>
-      <TerritorySuggest
-        transformSub={transformSub}
-        filterSubs={filterSubs}
-        selectWithTab={selectWithTab}
-        onSelect={(v) => {
-          // HACK ... ovalue does not trigger onChange
-          onChange && onChange(undefined, { target: { value: v } })
-          setOValue(v)
-        }}
-        query={query}
-      >
-        {({ onKeyDown, resetSuggestions }) => (
-          <InputInner
-            {...props}
-            autoComplete='off'
-            onChange={(formik, e) => {
-              onChange && onChange(formik, e)
-              setOValue(e.target.value)
-              setQuery(e.target.value.replace(/^[~ ]+|[ ]+$/g, ''))
-            }}
-            overrideValue={ovalue}
-            onKeyDown={onKeyDown}
-            onBlur={() => setTimeout(resetSuggestions, 500)}
-          />
-        )}
-      </TerritorySuggest>
-    </FormGroup>
+    <BaseInputSuggest
+      label={label}
+      groupClassName={groupClassName}
+      transformItem={transformSub}
+      filterItems={filterSubs}
+      selectWithTab={selectWithTab}
+      onChange={onChange}
+      transformQuery={transformQuery}
+      SuggestComponent={TerritorySuggest}
+      prefixRegex={/^[~ ]+|[ ]+$/g}
+      {...props}
+    />
   )
 }
 

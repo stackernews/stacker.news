@@ -307,6 +307,25 @@ export default {
             minimum_should_match: 1
           }
         })
+
+        // Add queries for quotes to termQueries to make them highlightable
+        termQueries.push({
+          match_phrase: {
+            title: {
+              query: quote,
+              boost: 100
+            }
+          }
+        })
+
+        termQueries.push({
+          match_phrase: {
+            text: {
+              query: quote,
+              boost: 100
+            }
+          }
+        })
       }
 
       // functions for boosting search rank by recency or popularity

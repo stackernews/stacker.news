@@ -2,7 +2,6 @@ import { Badge } from 'react-bootstrap'
 import { Form, Input, SubmitButton, CopyButton } from './form'
 import { useMutation, useQuery } from '@apollo/client'
 import { customDomainSchema } from '@/lib/validate'
-import ActionTooltip from './action-tooltip'
 import { useToast } from '@/components/toast'
 import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { GET_CUSTOM_DOMAIN, SET_CUSTOM_DOMAIN } from '@/fragments/domains'
@@ -97,24 +96,27 @@ const DomainLabel = ({ customDomain, polling }) => {
     <div className='d-flex align-items-center gap-2'>
       <span>custom domain</span>
       {domain && (
-        <ActionTooltip overlayText={lastVerifiedAt ? new Date(lastVerifiedAt).toLocaleString() : ''}>
-          <div className='d-flex align-items-center gap-2'>
-            {status !== 'HOLD'
-              ? (
-                <>
-                  {getStatusBadge(verification?.dns?.state)}
-                  {getSSLStatusBadge(verification?.ssl?.state)}
-                </>
-                )
-              : (<Badge bg='secondary'>HOLD</Badge>)}
-            {status === 'HOLD' && (
-              <SubmitButton variant='link' className='p-0'>
-                <RefreshLine className={styles.refresh} style={{ width: '1rem', height: '1rem' }} />
-              </SubmitButton>
-            )}
-            {polling && <Moon className='spin fill-grey' style={{ width: '1rem', height: '1rem' }} />}
-          </div>
-        </ActionTooltip>
+        <div className='d-flex align-items-center gap-2'>
+          {status !== 'HOLD'
+            ? (
+              <>
+                {getStatusBadge(verification?.dns?.state)}
+                {getSSLStatusBadge(verification?.ssl?.state)}
+              </>
+              )
+            : (<Badge bg='secondary'>HOLD</Badge>)}
+          {status === 'HOLD' && (
+            <SubmitButton variant='link' className='p-0'>
+              <RefreshLine className={styles.refresh} style={{ width: '1rem', height: '1rem' }} />
+            </SubmitButton>
+          )}
+          {polling && <Moon className='spin fill-grey' style={{ width: '1rem', height: '1rem' }} />}
+        </div>
+      )}
+      {lastVerifiedAt && status !== 'ACTIVE' && (
+        <span className='text-muted'>
+          <small>last verified {new Date(lastVerifiedAt).toLocaleString()}</small>
+        </span>
       )}
     </div>
   )
@@ -123,40 +125,42 @@ const DomainLabel = ({ customDomain, polling }) => {
 const DomainGuidelines = ({ customDomain }) => {
   const { domain, verification } = customDomain || {}
 
-  const dnsRecord = (host, value) => (
-    <div className='d-flex align-items-center gap-2'>
-      <span className={`${styles.record}`}>
-        <small className='fw-bold text-muted d-flex align-items-center gap-1 position-relative'>
-          host
-          <CopyButton
-            value={host}
-            append={
-              <ClipboardLine
-                className={`${styles.clipboard}`}
-                style={{ width: '1rem', height: '1rem' }}
-              />
-            }
-          />
-        </small>
-        <pre>{host}</pre>
-      </span>
-      <span className={`${styles.record}`}>
-        <small className='fw-bold text-muted d-flex align-items-center gap-1 position-relative'>
-          value
-          <CopyButton
-            value={value}
-            append={
-              <ClipboardLine
-                className={`${styles.clipboard}`}
-                style={{ width: '1rem', height: '1rem' }}
-              />
-            }
-          />
-        </small>
-        <pre>{value}</pre>
-      </span>
-    </div>
-  )
+  const dnsRecord = ({ host, value }) => {
+    return (
+      <div className='d-flex align-items-center gap-2'>
+        <span className={`${styles.record}`}>
+          <small className='fw-bold text-muted d-flex align-items-center gap-1 position-relative'>
+            host
+            <CopyButton
+              value={host}
+              append={
+                <ClipboardLine
+                  className={`${styles.clipboard}`}
+                  style={{ width: '1rem', height: '1rem' }}
+                />
+              }
+            />
+          </small>
+          <pre>{host}</pre>
+        </span>
+        <span className={`${styles.record}`}>
+          <small className='fw-bold text-muted d-flex align-items-center gap-1 position-relative'>
+            value
+            <CopyButton
+              value={value}
+              append={
+                <ClipboardLine
+                  className={`${styles.clipboard}`}
+                  style={{ width: '1rem', height: '1rem' }}
+                />
+              }
+            />
+          </small>
+          <pre>{value}</pre>
+        </span>
+      </div>
+    )
+  }
 
   return (
     <div className='d-flex'>
@@ -165,10 +169,10 @@ const DomainGuidelines = ({ customDomain }) => {
           <h5>Step 1: Verify your domain</h5>
           <p>Add the following DNS records to verify ownership of your domain:</p>
           <h6>CNAME</h6>
-          {dnsRecord(domain || 'www', verification?.dns?.cname)}
+          {dnsRecord({ host: domain || 'www', value: verification?.dns?.cname })}
           <hr />
           <h6>TXT</h6>
-          {dnsRecord(`_snverify.${domain}`, verification?.dns?.txt)}
+          {dnsRecord({ host: `_snverify.${domain}`, value: verification?.dns?.txt })}
         </div>
       )}
       {verification?.ssl?.state === 'PENDING' && (
@@ -176,7 +180,7 @@ const DomainGuidelines = ({ customDomain }) => {
           <h5>Step 2: Prepare your domain for SSL</h5>
           <p>We issued an SSL certificate for your domain. To validate it, add the following CNAME record:</p>
           <h6>CNAME</h6>
-          {dnsRecord(verification?.ssl?.cname || 'waiting for SSL certificate', verification?.ssl?.value || 'waiting for SSL certificate')}
+          {dnsRecord({ host: verification?.ssl?.cname || 'waiting for SSL certificate', value: verification?.ssl?.value || 'waiting for SSL certificate' })}
         </div>
       )}
     </div>
@@ -220,7 +224,7 @@ export default function CustomDomainForm ({ sub }) {
         toaster.success('domain removed successfully')
       }
     } catch (error) {
-      toaster.danger('failed to update domain', { error })
+      toaster.danger(error.message)
     }
   }
 
@@ -234,6 +238,7 @@ export default function CustomDomainForm ({ sub }) {
       >
         <div className='d-flex align-items-center gap-2'>
           <Input
+            groupClassName='w-100'
             label={<DomainLabel customDomain={data?.customDomain} polling={polling} />}
             name='domain'
             placeholder='www.example.com'

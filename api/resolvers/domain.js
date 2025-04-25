@@ -44,8 +44,7 @@ export default {
           verification: {
             dns: {
               state: 'PENDING',
-              cname: 'stacker.news',
-              txt: randomBytes(32).toString('base64')
+              cname: 'stacker.news'
             },
             ssl: {
               state: 'WAITING',
@@ -63,6 +62,13 @@ export default {
           },
           create: {
             ...initializeDomain,
+            verification: {
+              ...initializeDomain.verification,
+              dns: {
+                ...initializeDomain.verification.dns,
+                txt: randomBytes(32).toString('base64')
+              }
+            },
             sub: {
               connect: { name: subName }
             }

@@ -259,12 +259,6 @@ a.link:visited {
     fill: var(--theme-grey);
     width: 1rem;
     height: 1rem;
-    opacity: 0;
-    transition: opacity 0.1s ease, fill 0.1s ease;
-}
-
-.record:hover .clipboard {
-    opacity: 1;
 }
 
 .clipboard:hover {

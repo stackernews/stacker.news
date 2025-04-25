@@ -45,22 +45,15 @@ async function getPayOuts (models, { sats, id, sub }, { me }) {
 
 export async function getInitial (models, payInArgs, { me }) {
   const { sats } = payInArgs
-  const payIn = {
+  return {
     payInType: 'BOOST',
     userId: me?.id,
-    mcost: satsToMsats(sats)
+    mcost: satsToMsats(sats),
+    itemPayIn: {
+      itemId: parseInt(payInArgs.id)
+    },
+    ...(await getPayOuts(models, payInArgs, { me }))
   }
-
-  return { ...payIn, ...(await getPayOuts(models, payInArgs, { me })) }
-}
-
-export async function onBegin (tx, payInId, { sats, id }, { me }) {
-  await tx.itemPayIn.create({
-    data: {
-      itemId: parseInt(id),
-      payInId
-    }
-  })
 }
 
 export async function onRetry (tx, oldPayInId, newPayInId) {

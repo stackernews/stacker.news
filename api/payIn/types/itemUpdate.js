@@ -45,6 +45,9 @@ export async function getInitial (models, { id, boost = 0, uploadIds, bio }, { m
       { payOutType: 'TERRITORY_REVENUE', userId: old.sub.userId, mtokens: revenueMsats, custodialTokenType: 'SATS' },
       { payOutType: 'REWARD_POOL', userId: null, mtokens: rewardMsats, custodialTokenType: 'SATS' }
     ],
+    itemPayIn: {
+      itemId: parseInt(id)
+    },
     beneficiaries
   }
 }
@@ -83,11 +86,6 @@ export async function onPaid (tx, payInId, { me }) {
     where: { id: parseInt(id) },
     data: {
       ...data,
-      itemPayIn: {
-        create: {
-          payInId
-        }
-      },
       pollOptions: {
         createMany: {
           data: pollOptions?.map(option => ({ option }))

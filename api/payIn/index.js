@@ -4,9 +4,9 @@ import { payViaPaymentRequest } from 'ln-service'
 import lnd from '../lnd'
 import payInTypeModules from './types'
 import { msatsToSats } from '@/lib/format'
-import { getPayInCustodialTokens } from './lib/payInCustodialTokens'
+import { getCostBreakdown, getPayInCustodialTokens } from './lib/payInCustodialTokens'
 import { getPayInBolt11, getPayInBolt11Wrap } from './lib/payInBolt11'
-import { isInvoiceable, isP2P, isPessimistic, isWithdrawal } from './lib/is'
+import { isInvoiceable, isPessimistic, isWithdrawal } from './lib/is'
 import { payInPrismaCreate } from './lib/payInPrismaCreate'
 const PAY_IN_INCLUDE = {
   payInCustodialTokens: true,
@@ -44,10 +44,7 @@ export default async function payIn (payInType, payInArgs, { models, me }) {
 
 async function begin (models, payInInitial, payInArgs, { me }) {
   const payInModule = payInTypeModules[payInInitial.payInType]
-
-  const { payOutBolt11, beneficiaries } = payInInitial
-  const mP2PCost = isP2P(payInInitial) ? (payOutBolt11?.msats ?? 0n) : 0n
-  const mCustodialCost = payInInitial.mcost + beneficiaries.reduce((acc, b) => acc + b.mcost, 0n) - mP2PCost
+  const { mP2PCost, mCustodialCost } = getCostBreakdown(payInInitial)
 
   const { payIn, mCostRemaining } = await models.$transaction(async tx => {
     const payInCustodialTokens = await getPayInCustodialTokens(tx, mCustodialCost, payInInitial, { me })

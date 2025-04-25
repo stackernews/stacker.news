@@ -1,4 +1,4 @@
-import { isPayableWithCredits } from './is'
+import { isP2P, isPayableWithCredits } from './is'
 import { USER_ID } from '@/lib/constants'
 
 export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }) {
@@ -45,4 +45,15 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
   }
 
   return payInAssets
+}
+
+export async function getCostBreakdown (payIn) {
+  const { payOutBolt11, beneficiaries } = payIn
+  const mP2PCost = isP2P(payIn) ? (payOutBolt11?.msats ?? 0n) : 0n
+  const mCustodialCost = payIn.mcost + beneficiaries.reduce((acc, b) => acc + b.mcost, 0n) - mP2PCost
+
+  return {
+    mP2PCost,
+    mCustodialCost
+  }
 }

@@ -36,25 +36,19 @@ export async function getInitial (models, { id }, { me }) {
       userId: null,
       mtokens: rewardMsats,
       custodialTokenType: 'SATS'
-    }]
+    }],
+    pollBlindVote: {
+      itemId: pollOption.itemId,
+      userId: me.id
+    },
+    pollVote: {
+      pollOptionId: pollOption.id,
+      itemId: pollOption.itemId
+    }
   }
 }
 
-export async function onBegin (tx, payInId, { id }, { me }) {
-  const pollOption = await tx.pollOption.findUnique({
-    where: { id: parseInt(id) }
-  })
-  const itemId = parseInt(pollOption.itemId)
-
-  // the unique index on userId, itemId will prevent double voting
-  await tx.pollBlindVote.create({ data: { userId: me.id, itemId, payInId } })
-  await tx.pollVote.create({ data: { pollOptionId: pollOption.id, itemId, payInId } })
-
-  return { id }
-}
-
 export async function onRetry (tx, oldPayInId, newPayInId) {
-  await tx.itemAct.updateMany({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
   await tx.pollBlindVote.updateMany({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
   await tx.pollVote.updateMany({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
 }

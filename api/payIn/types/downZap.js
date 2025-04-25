@@ -37,15 +37,11 @@ export async function getInitial (models, { sats, id: itemId }, { me }) {
     payInType: 'DOWNZAP',
     userId: me?.id,
     mcost: satsToMsats(sats),
+    itemPayIn: {
+      itemId: parseInt(itemId)
+    },
     ...(await getPayOuts(models, { sats, id: itemId }, { me }))
   }
-}
-export async function onBegin (tx, payInId, { sats, id: itemId }, { me }) {
-  itemId = parseInt(itemId)
-
-  await tx.itemPayIn.create({
-    data: { itemId, payInId }
-  })
 }
 
 export async function onRetry (tx, oldPayInId, newPayInId) {

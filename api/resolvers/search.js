@@ -283,20 +283,28 @@ export default {
 
       // if quoted phrases, items must contain entire phrase
       for (const quote of quotes) {
-        termQueries.push({
-          multi_match: {
-            query: quote,
-            type: 'phrase',
-            fields: ['title', 'text']
-          }
-        })
-
-        // force the search to include the quoted phrase
         filters.push({
-          multi_match: {
-            query: quote,
-            type: 'phrase',
-            fields: ['title', 'text']
+          bool: {
+            should: [
+              {
+                wildcard: {
+                  // Target the non-analyzed keyword field for case-sensitive search
+                  'title.keyword': {
+                    // Use wildcards to find the phrase anywhere within the field
+                    value: `*${quote}*`
+                  }
+                }
+              },
+              {
+                wildcard: {
+                  'text.keyword': {
+                    value: `*${quote}*`
+                  }
+                }
+              }
+            ],
+            // The document must match the phrase in at least one of the fields.
+            minimum_should_match: 1
           }
         })
       }

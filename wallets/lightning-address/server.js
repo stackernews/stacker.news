@@ -6,7 +6,8 @@ import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 export * from '@/wallets/lightning-address'
 
 export const testCreateInvoice = async ({ address }, { signal }) => {
-  return await createInvoice({ msats: 1000 }, { address }, { signal })
+  const { min } = await lnAddrOptions(address, { signal })
+  return await createInvoice({ msats: 1_000 * min }, { address }, { signal })
 }
 
 export const createInvoice = async (

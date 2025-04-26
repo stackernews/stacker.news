@@ -4,19 +4,11 @@ import { payViaPaymentRequest } from 'ln-service'
 import lnd from '../lnd'
 import payInTypeModules from './types'
 import { msatsToSats } from '@/lib/format'
-import { getCostBreakdown, getPayInCustodialTokens } from './lib/payInCustodialTokens'
-import { getPayInBolt11, getPayInBolt11Wrap } from './lib/payInBolt11'
-import { isInvoiceable, isPessimistic, isWithdrawal } from './lib/is'
-import { payInPrismaCreate } from './lib/payInPrismaCreate'
-const PAY_IN_INCLUDE = {
-  payInCustodialTokens: true,
-  payOutBolt11: true,
-  pessimisticEnv: true,
-  user: true,
-  payOutCustodialTokens: true
-}
+import { payInCreatePayInBolt11, payInCreatePayInBolt11Wrap } from './lib/payInBolt11'
+import { isPessimistic, isWithdrawal } from './lib/is'
+import { payInCloneAndCreate, payInCreate } from './lib/payInCreate'
 
-export default async function payIn (payInType, payInArgs, { models, me }) {
+export default async function pay (payInType, payInArgs, { models, me }) {
   try {
     const payInModule = payInTypeModules[payInType]
 
@@ -30,6 +22,7 @@ export default async function payIn (payInType, payInArgs, { models, me }) {
       throw new Error('You must be logged in to perform this action')
     }
 
+    // need to double check all old usage of !me for detecting anon users
     me ??= { id: USER_ID.anon }
 
     const payIn = await payInModule.getInitial(models, payInArgs, { me })
@@ -44,44 +37,9 @@ export default async function payIn (payInType, payInArgs, { models, me }) {
 
 async function begin (models, payInInitial, payInArgs, { me }) {
   const payInModule = payInTypeModules[payInInitial.payInType]
-  const { mP2PCost, mCustodialCost } = getCostBreakdown(payInInitial)
 
   const { payIn, mCostRemaining } = await models.$transaction(async tx => {
-    const payInCustodialTokens = await getPayInCustodialTokens(tx, mCustodialCost, payInInitial, { me })
-    const mCustodialPaid = payInCustodialTokens.reduce((acc, token) => acc + token.mtokens, 0n)
-
-    // TODO: how to deal with < 1000msats?
-    const mCostRemaining = mCustodialCost - mCustodialPaid + mP2PCost
-
-    let payInState = null
-    if (mCostRemaining > 0n) {
-      if (!isInvoiceable(payInInitial)) {
-        throw new Error('Insufficient funds')
-      }
-      if (mP2PCost > 0n) {
-        payInState = 'PENDING_INVOICE_WRAP'
-      } else {
-        payInState = 'PENDING_INVOICE_CREATION'
-      }
-    } else if (isWithdrawal(payInInitial)) {
-      payInState = 'PENDING_WITHDRAWAL'
-    } else {
-      payInState = 'PAID'
-    }
-
-    const payIn = await tx.payIn.create({
-      data: {
-        ...payInPrismaCreate({
-          ...payInInitial,
-          payInState,
-          payInStateChangedAt: new Date()
-        }),
-        pessimisticEnv: {
-          create: isPessimistic(payInInitial, { me }) ? { args: payInArgs } : undefined
-        }
-      },
-      include: PAY_IN_INCLUDE
-    })
+    const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, { me })
 
     // if it's pessimistic, we don't perform the action until the invoice is held
     if (payIn.pessimisticEnv) {
@@ -97,8 +55,6 @@ async function begin (models, payInInitial, payInArgs, { me }) {
     // if it's already paid, we run onPaid and do payOuts in the same transaction
     if (payIn.payInState === 'PAID') {
       await onPaid(tx, payIn.id, { me })
-      // run non critical side effects
-      payInModule.onPaidSideEffects?.(models, payIn.id).catch(console.error)
       return {
         payIn,
         mCostRemaining: 0n
@@ -113,50 +69,35 @@ async function begin (models, payInInitial, payInArgs, { me }) {
     }
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 
+  return await afterBegin(models, { payIn, mCostRemaining }, { me })
+}
+
+async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
   try {
-    return await afterBegin(models, { payIn, mCostRemaining }, payInArgs, { me })
+    if (payIn.payInState === 'PAID') {
+      // run non critical side effects
+      payInTypeModules[payIn.payInType].onPaidSideEffects?.(models, payIn.id).catch(console.error)
+    } else if (payIn.payInState === 'PENDING_INVOICE_CREATION') {
+      return await payInCreatePayInBolt11(models, { mCostRemaining, payIn }, { me })
+    } else if (payIn.payInState === 'PENDING_INVOICE_WRAP') {
+      return await payInCreatePayInBolt11Wrap(models, { mCostRemaining, payIn }, { me })
+    } else if (payIn.payInState === 'PENDING_WITHDRAWAL') {
+      const { mtokens } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
+      payViaPaymentRequest({
+        lnd,
+        request: payIn.payOutBolt11.bolt11,
+        max_fee: msatsToSats(mtokens),
+        pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
+        confidence: LND_PATHFINDING_TIME_PREF_PPM
+      }).catch(console.error)
+      return payIn
+    } else {
+      throw new Error('Invalid payIn begin state')
+    }
   } catch (e) {
     models.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
         VALUES ('payInFailed', jsonb_build_object('id', ${payIn.id}::INTEGER), now(), 1000)`.catch(console.error)
     throw e
-  }
-}
-
-async function afterBegin (models, { payIn, mCostRemaining }, payInArgs, { me }) {
-  if (payIn.payInState === 'PENDING_INVOICE_CREATION') {
-    const payInBolt11 = await getPayInBolt11(models, { mCostRemaining, payIn }, { me })
-    return await models.payIn.update({
-      where: { id: payIn.id },
-      data: {
-        payInState: payIn.pessimisticEnv ? 'PENDING_HELD' : 'PENDING',
-        payInStateChangedAt: new Date(),
-        payInBolt11: { create: payInBolt11 }
-      },
-      include: PAY_IN_INCLUDE
-    })
-  } else if (payIn.payInState === 'PENDING_INVOICE_WRAP') {
-    const payInBolt11 = await getPayInBolt11Wrap(models, { mCostRemaining, payIn }, { me })
-    return await models.payIn.update({
-      where: { id: payIn.id },
-      data: {
-        payInState: 'PENDING_HELD',
-        payInStateChangedAt: new Date(),
-        payInBolt11: { create: payInBolt11 }
-      },
-      include: PAY_IN_INCLUDE
-    })
-  } else if (payIn.payInState === 'PENDING_WITHDRAWAL') {
-    const { mtokens } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
-    payViaPaymentRequest({
-      lnd,
-      request: payIn.payOutBolt11.bolt11,
-      max_fee: msatsToSats(mtokens),
-      pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
-      confidence: LND_PATHFINDING_TIME_PREF_PPM
-    }).catch(console.error)
-    return payIn
-  } else {
-    throw new Error('Invalid payIn begin state')
   }
 }
 
@@ -228,5 +169,78 @@ export async function onPaid (tx, payInId) {
   await payInModule.onPaid?.(tx, payInId)
   for (const beneficiary of payIn.beneficiaries) {
     await onPaid(tx, beneficiary.id)
+  }
+}
+
+export async function retry (payInId, { models, me }) {
+  const include = { payOutCustodialTokens: true, payOutBolt11: true }
+  const where = { id: payInId, userId: me.id, payInState: 'FAILED', successorId: { is: null } }
+
+  const payInFailed = await models.payIn.findUnique({
+    where,
+    include: { ...include, beneficiaries: { include } }
+  })
+  if (!payInFailed) {
+    throw new Error('PayIn not found')
+  }
+  if (isWithdrawal(payInFailed)) {
+    throw new Error('Withdrawal payIns cannot be retried')
+  }
+  if (isPessimistic(payInFailed, { me })) {
+    throw new Error('Pessimistic payIns cannot be retried')
+  }
+
+  const { payIn, mCostRemaining } = await models.$transaction(async tx => {
+    const { payIn, mCostRemaining } = await payInCloneAndCreate(tx, payInFailed, { me })
+
+    // use an optimistic lock on successorId on the payIn
+    await tx.payIn.update({
+      where,
+      data: {
+        successorId: payIn.id
+      }
+    })
+
+    // run the onRetry hook for the payIn and its beneficiaries
+    await payInTypeModules[payInFailed.payInType].onRetry?.(tx, payInFailed.id, payIn.id)
+    for (const beneficiary of payIn.beneficiaries) {
+      await payInTypeModules[beneficiary.payInType].onRetry?.(tx, beneficiary.id, payIn.id)
+    }
+
+    // if it's already paid, we run onPaid and do payOuts in the same transaction
+    if (payIn.payInState === 'PAID') {
+      await onPaid(tx, payIn.id, { me })
+      return {
+        payIn,
+        mCostRemaining: 0n
+      }
+    }
+
+    return {
+      payIn,
+      mCostRemaining
+    }
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
+
+  return await afterRetry(models, { payIn, mCostRemaining }, { me })
+}
+
+async function afterRetry (models, { payIn, mCostRemaining, payInFailureReason }, { me }) {
+  try {
+    if (payIn.payInState === 'PAID') {
+      // run non critical side effects
+      payInTypeModules[payIn.payInType].onPaidSideEffects?.(models, payIn.id).catch(console.error)
+    } else if (payIn.payInState === 'PENDING_INVOICE_CREATION_RETRY') {
+      return await payInCreatePayInBolt11(models, { mCostRemaining, payIn }, { me })
+    } else if (payIn.payInState === 'PENDING_INVOICE_WRAP_RETRY') {
+      // TODO: replace payOutBolt11 with a new one, depending on the failure reason
+      return await payInCreatePayInBolt11Wrap(models, { mCostRemaining, payIn }, { me })
+    } else {
+      throw new Error('Invalid payIn begin state')
+    }
+  } catch (e) {
+    models.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
+        VALUES ('payInFailed', jsonb_build_object('id', ${payIn.id}::INTEGER), now(), 1000)`.catch(console.error)
+    throw e
   }
 }

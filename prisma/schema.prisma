@@ -1311,6 +1311,7 @@ enum LogLevel {
 }
 
 // payIn playground
+// TODO: add constraints on all sat value fields
 
 enum PayInType {
   BUY_CREDITS
@@ -1333,7 +1334,9 @@ enum PayInType {
 
 enum PayInState {
   PENDING_INVOICE_CREATION
+  PENDING_INVOICE_CREATION_RETRY
   PENDING_INVOICE_WRAP
+  PENDING_INVOICE_WRAP_RETRY
   PENDING_WITHDRAWAL
   WITHDRAWAL_PAID
   WITHDRAWAL_FAILED
@@ -1346,13 +1349,13 @@ enum PayInState {
   FORWARDED
   FAILED_FORWARD
   CANCELLED
-  RETRYING
 }
 
 enum PayInFailureReason {
   INVOICE_CREATION_FAILED
   INVOICE_WRAPPING_FAILED_HIGH_PREDICTED_FEE
   INVOICE_WRAPPING_FAILED_HIGH_PREDICTED_EXPIRY
+  INVOICE_WRAPPING_FAILED_UNKNOWN
   INVOICE_FORWARDING_CLTV_DELTA_TOO_LOW
   INVOICE_FORWARDING_FAILED
   HELD_INVOICE_UNEXPECTED_ERROR
@@ -1397,8 +1400,9 @@ model PayIn {
   payInType           PayInType
   payInState          PayInState
   payInFailureReason  PayInFailureReason? // TODO: add check constraint
-  payInStateChangedAt DateTime? // TODO: set with a trigger
-  predecessorId       Int?                @unique
+  payInStateChangedAt DateTime? // TODO: set with a trigger?
+  genesisId           Int?
+  successorId         Int?                @unique
   benefactorId        Int?
 
   userId Int?
@@ -1412,16 +1416,18 @@ model PayIn {
   payOutCustodialTokens PayOutCustodialToken[]
   payOutBolt11          PayOutBolt11?
 
-  successor     PayIn?      @relation("PayInPredecessor")
-  predecessor   PayIn?      @relation("PayInPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade)
+  genesis       PayIn?      @relation("PayInGenesis", fields: [genesisId], references: [id], onDelete: Cascade)
+  successor     PayIn?      @relation("PayInSuccessor", fields: [successorId], references: [id], onDelete: Cascade)
+  predecessor   PayIn?      @relation("PayInSuccessor")
   benefactor    PayIn?      @relation("PayInBenefactor", fields: [benefactorId], references: [id], onDelete: Cascade)
   beneficiaries PayIn[]     @relation("PayInBenefactor")
-  ItemPayIn     ItemPayIn[]
-  SubPayIn      SubPayIn[]
+  itemPayIns    ItemPayIn[]
+  subPayIns     SubPayIn[]
+  progeny       PayIn[]     @relation("PayInGenesis")
 
   @@index([userId])
   @@index([payInType])
-  @@index([predecessorId])
+  @@index([successorId])
   @@index([payInStateChangedAt])
 }
 

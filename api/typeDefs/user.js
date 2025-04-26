@@ -226,6 +226,7 @@ export default gql`
     horseStreak: Int
     hasSendWallet: Boolean
     hasRecvWallet: Boolean
+    hideWalletRecvPrompt: Boolean
     maxStreak: Int
     isContributor: Boolean
     githubId: String

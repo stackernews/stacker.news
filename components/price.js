@@ -65,8 +65,8 @@ export default function Price ({ className }) {
   if (selection === 'yep') {
     if (!price || price < 0) return null
     return (
-      <AccessibleButton id='yep-hint' description='Show 1 satoshi equals 1 satoshi' className={compClassName} onClick={handleClick} variant='link'>
-        {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
+      <AccessibleButton id='yep-hint' description='Show 1 bitcoinoshi equals 1 bitcoinoshi' className={compClassName} onClick={handleClick} variant='link'>
+        {fixedDecimal(100000000 / price, 0) + ` bitcoins/${fiatSymbol}`}
       </AccessibleButton>
     )
   }
@@ -101,7 +101,7 @@ export default function Price ({ className }) {
     if (chainFee <= 0) return null
     return (
       <AccessibleButton id='chainFee-hint' description='Show time until halving' className={compClassName} onClick={handleClick} variant='link'>
-        {chainFee} sat/vB
+        {chainFee} bitcoin/vB
       </AccessibleButton>
     )
   }
@@ -109,7 +109,7 @@ export default function Price ({ className }) {
   if (selection === 'fiat') {
     if (!price || price < 0) return null
     return (
-      <AccessibleButton id='fiat-hint' description='Show price in satoshis per fiat unit' className={compClassName} onClick={handleClick} variant='link'>
+      <AccessibleButton id='fiat-hint' description='Show price in bitcoinoshis per fiat unit' className={compClassName} onClick={handleClick} variant='link'>
         {fiatSymbol + fixedDecimal(price, 0)}
       </AccessibleButton>
     )

@@ -262,7 +262,7 @@ export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) 
           {children}
           <BoostItemInput item={item} sub={sub} />
           <VariableInput
-            label='forward sats to'
+            label='forward bitcoins to'
             name='forward'
             min={0}
             max={MAX_FORWARDS}

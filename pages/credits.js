@@ -10,7 +10,7 @@ import { BUY_CREDITS } from '@/fragments/paidAction'
 import { amountSchema } from '@/lib/validate'
 import classNames from 'classnames'
 import { Button, Col, InputGroup, Row } from 'react-bootstrap'
-import RewardSatsInfo from '@/components/info/reward-sats'
+import RewardSatsInfo from '@/components/info/reward-bitcoins'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 

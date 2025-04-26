@@ -44,7 +44,7 @@ function WithdrawForm () {
     <div className='w-100 d-flex flex-column align-items-center py-5'>
       <h2 className='text-start ms-1 ms-md-3'>
         <div className='text-monospace'>
-          {numWithUnits(me?.privates?.sats - me?.privates?.credits, { abbreviate: false, format: true, unitSingular: 'sats', unitPlural: 'sats' })}
+          {numWithUnits(me?.privates?.sats - me?.privates?.credits, { abbreviate: false, format: true, unitSingular: 'bitcoins', unitPlural: 'bitcoins' })}
         </div>
       </h2>
       <Nav

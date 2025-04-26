@@ -17,7 +17,7 @@ export default function Poll ({ item }) {
 
   const PollButton = ({ v }) => {
     return (
-      <ActionTooltip placement='left' notForm overlayText='1 sat'>
+      <ActionTooltip placement='left' notForm overlayText='1 bitcoin'>
         <Button
           variant='outline-info' className={styles.pollButton}
           onClick={me

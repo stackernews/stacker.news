@@ -23,14 +23,14 @@ export async function earn ({ name }) {
     // https://www.prisma.io/docs/concepts/components/prisma-client/raw-database-access#raw-query-type-mapping
     // so check it before coercing to Number
     if (!sumDecimal || sumDecimal.lessThanOrEqualTo(0)) {
-      console.log('done', name, 'no sats to award today')
+      console.log('done', name, 'no bitcoins to award today')
       return
     }
 
     // extra sanity check on rewards ... if it's more than upper bound, we
     // probably have a bug somewhere or we've grown A LOT
     if (sumDecimal.greaterThan(TOTAL_UPPER_BOUND_MSATS)) {
-      console.log('done', name, 'error: too many sats to award today', sumDecimal)
+      console.log('done', name, 'error: too many bitcoins to award today', sumDecimal)
       return
     }
 

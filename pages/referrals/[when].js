@@ -52,7 +52,7 @@ export default function Referrals ({ ssrData }) {
 
   const { referrals } = data || ssrData
   const totalSats = referrals.reduce(
-    (total, a) => total + a.data?.filter(d => d.name.endsWith('sats')).reduce(
+    (total, a) => total + a.data?.filter(d => d.name.endsWith('bitcoins')).reduce(
       (acc, d) => acc + d.value,
       0),
     0)
@@ -94,7 +94,7 @@ export default function Referrals ({ ssrData }) {
       </div>
       <WhenComposedChart
         data={referrals}
-        areaNames={['referral sats', 'one day referral sats']}
+        areaNames={['referral bitcoins', 'one day referral bitcoins']}
         barNames={['referrals', 'one day referrals']}
         barAxis='right'
         barStackId={1}

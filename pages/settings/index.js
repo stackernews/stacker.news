@@ -286,12 +286,12 @@ export default function Settings ({ ssrData }) {
           />
           <div className='form-label'>notify me when ...</div>
           <Checkbox
-            label='I stack sats from posts and comments'
+            label='I stack bitcoins from posts and comments'
             name='noteItemSats'
             groupClassName='mb-0'
           />
           <Checkbox
-            label='I get forwarded sats from a post'
+            label='I get forwarded bitcoins from a post'
             name='noteForwardedSats'
             groupClassName='mb-0'
           />
@@ -311,12 +311,12 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label='sats are deposited in my account'
+            label='bitcoins are deposited in my account'
             name='noteDeposits'
             groupClassName='mb-0'
           />
           <Checkbox
-            label='sats are withdrawn from my account'
+            label='bitcoins are withdrawn from my account'
             name='noteWithdrawals'
             groupClassName='mb-0'
           />

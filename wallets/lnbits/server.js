@@ -27,7 +27,7 @@ export async function createInvoice (
 
   const body = JSON.stringify({
     amount: sats,
-    unit: 'sat',
+    unit: 'bitcoin',
     expiry,
     memo: description,
     out: false

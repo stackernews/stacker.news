@@ -20,7 +20,7 @@ Stacker News is a forum similar to Reddit or Hacker News. Unlike on Reddit or Ha
 
 ### What are satoshis?
 
-A satoshi is the smallest denomination of bitcoin. Just like there are 100 pennies in 1 dollar, there are 100,000,000 satoshis in 1 bitcoin. Satoshis are commonly abbreviated as "sats".
+A satoshi is the smallest denomination of bitcoin. Just like there are 100 pennies in 1 dollar, there are 100,000,000 satoshis in 1 bitcoin. Satoshis are commonly abbreviated as "bitcoins".
 
 On Stacker News, all bitcoin payments are denominated in sats and use the Lightning Network.
 
@@ -312,7 +312,7 @@ Yes. The ranking of an item is affected by:
 - the trust of the zappers
 - the time elapsed since the creation of the item
 
-Zapping an item with more sats gives you more influence on an item's ranking. However, the relationship between sats contributed and a stacker's influence on item ranking is not linear, it's logarithmic: the effect a stacker's zap has on an item's ranking is `trust*log10(total zap amount)`. This basically means that 10 sats equal 1 vote, 100 sats 2, 1000 sats 3, and so on ... all values in between and above 0 are valid as well.
+Zapping an item with more sats gives you more influence on an item's ranking. However, the relationship between bitcoins contributed and a stacker's influence on item ranking is not linear, it's logarithmic: the effect a stacker's zap has on an item's ranking is `trust*log10(total zap amount)`. This basically means that 10 sats equal 1 vote, 100 sats 2, 1000 sats 3, and so on ... all values in between and above 0 are valid as well.
 
 To make this feature sybil-resistant, SN takes 30% of zaps and re-distributes them to territory founders and the SN community as part of the daily rewards.
 

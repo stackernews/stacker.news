@@ -115,7 +115,7 @@ export default function Rewards ({ ssrData }) {
               <div>
                 <RewardLine total={total} time={time} />
               </div>
-              <Link href='/faq#how-do-i-earn-sats-on-stacker-news' className='text-info fw-normal'>
+              <Link href='/faq#how-do-i-earn-bitcoins-on-stacker-news' className='text-info fw-normal'>
                 <small><small><small>learn about rewards</small></small></small>
               </Link>
             </h3>

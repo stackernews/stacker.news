@@ -414,7 +414,7 @@ async function createSNInvoice (actionType, args, context) {
 
   if (cost < 1000n) {
     // sanity check
-    throw new Error('The cost of the action must be at least 1 sat')
+    throw new Error('The cost of the action must be at least 1 bitcoin')
   }
 
   const expiresAt = datePivot(new Date(), { seconds: INVOICE_EXPIRE_SECS })
@@ -435,7 +435,7 @@ async function createDbInvoice (actionType, args, context) {
 
   if (cost < 1000n) {
     // sanity check
-    throw new Error('The cost of the action must be at least 1 sat')
+    throw new Error('The cost of the action must be at least 1 bitcoin')
   }
 
   const servedBolt11 = wrappedBolt11 ?? bolt11

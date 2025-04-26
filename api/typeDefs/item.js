@@ -27,6 +27,7 @@ export default gql`
 
   type ItemActResult {
     id: ID!
+    """@deprecated use bitcoin"""
     sats: Int!
     path: String
     act: String!
@@ -60,6 +61,7 @@ export default gql`
       randPollOptions: Boolean, hash: String, hmac: String): ItemPaidAction!
     updateNoteId(id: ID!, noteId: String!): Item!
     upsertComment(id: ID, text: String!, parentId: ID, boost: Int, hash: String, hmac: String): ItemPaidAction!
+    """@deprecated use bitcoin"""
     act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): ItemActPaidAction!
     pollVote(id: ID!): PollVotePaidAction!
     toggleOutlaw(id: ID!): Item!
@@ -105,6 +107,8 @@ export default gql`
   }
 
   type Item {
+    """BIP-177: renamed sats to bitcoin"""
+    bitcoin: Int!
     id: ID!
     createdAt: Date!
     updatedAt: Date!
@@ -128,6 +132,7 @@ export default gql`
     bounty: Int
     bountyPaidTo: [Int]
     noteId: String
+    """@deprecated use bitcoin"""
     sats: Int!
     credits: Int!
     commentSats: Int!

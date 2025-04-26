@@ -61,7 +61,7 @@ function Satus ({ status, className }) {
       color = 'muted'
       break
     case 'INSUFFICIENT_BALANCE':
-      desc = "you didn't have enough sats"
+      desc = "you didn't have enough bitcoins"
       break
     case 'INVALID_PAYMENT':
       desc = 'invalid payment'

@@ -113,7 +113,7 @@ export function FeeButtonProvider ({ baseLineItems = DEFAULT_BASE_LINE_ITEMS, us
   const value = useMemo(() => {
     const lines = { ...baseLineItems, ...lineItems, ...remoteLineItems }
     const total = Object.values(lines).sort(sortHelper).reduce((acc, { modifier }) => modifier(acc), 0)
-    // freebies: there's only a base cost and we don't have enough sats
+    // freebies: there's only a base cost and we don't have enough bitcoins
     const free = total === lines.baseCost?.modifier(0) && lines.baseCost?.allowFreebies && me?.privates?.sats < total && me?.privates?.credits < total && !me?.privates?.disableFreebies
     return {
       lines,
@@ -140,10 +140,10 @@ export function useFeeButton () {
 function FreebieDialog () {
   return (
     <>
-      <div className='fw-bold'>you don't have enough sats, so this one is on us</div>
+      <div className='fw-bold'>you don't have enough bitcoins, so this one is on us</div>
       <ul className='mt-2'>
         <li>Free items have limited visibility until other stackers zap them.</li>
-        <li>To get fully visible right away, fund your account with a few sats or earn some on Stacker News.</li>
+        <li>To get fully visible right away, fund your account with a few bitcoins or earn some on Stacker News.</li>
       </ul>
     </>
   )
@@ -161,7 +161,7 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
 
   return (
     <div className={styles.feeButton}>
-      <ActionTooltip overlayText={!free && total === 1 ? '1 sat' : feeText}>
+      <ActionTooltip overlayText={!free && total === 1 ? '1 bitcoin' : feeText}>
         <ChildButton
           variant={variant} disabled={disabled}
           appendText={feeText}
@@ -210,7 +210,7 @@ function AnonInfo () {
               <ol className='my-3'>
                 <li>You'll pay by invoice</li>
                 <li>Your content will be content-joined (get it?!) under the <Link href='/anon' target='_blank'>@anon</Link> account</li>
-                <li>Any sats your content earns will go toward <Link href='/rewards' target='_blank'>rewards</Link></li>
+                <li>Any bitcoins your content earns will go toward <Link href='/rewards' target='_blank'>rewards</Link></li>
                 <li>We won't be able to notify you when you receive replies</li>
               </ol>
               <small className='text-center fst-italic text-muted'>btw if you don't need to be anonymous, posting is cheaper with an account</small>

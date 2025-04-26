@@ -311,10 +311,10 @@ export default {
             }
           })
           break
-        case 'sats':
+        case 'bitcoins':
           functions.push({
             field_value_factor: {
-              field: 'sats',
+              field: 'bitcoins',
               modifier: 'log1p'
             }
           })

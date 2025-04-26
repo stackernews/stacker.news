@@ -393,7 +393,7 @@ function InvoicePaid ({ n }) {
 
   return (
     <div className='fw-bold text-info'>
-      <Check className='fill-info me-1' />{numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} {actionString}
+      <Check className='fill-info me-1' />{numWithUnits(sats, { abbreviate: false, unitSingular: 'bitcoin was', unitPlural: 'bitcoins were' })} {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       {n.invoice.forwardedSats && <Badge className={styles.badge} bg={null}>p2p</Badge>}
       {n.invoice.comment &&
@@ -557,7 +557,7 @@ function WithdrawlPaid ({ n }) {
   return (
     <div className='fw-bold text-info'>
       <Check className='fill-info me-1' />
-      {numWithUnits(amount, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
+      {numWithUnits(amount, { abbreviate: false, unitSingular: 'bitcoin was ', unitPlural: 'bitcoins were ' })}
       {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       {(n.withdrawl.forwardedActionType === 'ZAP' && <Badge className={styles.badge} bg={null}>p2p</Badge>) ||
@@ -689,7 +689,7 @@ function JobChanged ({ n }) {
         {n.item.status === 'ACTIVE'
           ? 'your job is active again'
           : (n.item.status === 'NOSATS'
-              ? 'your job promotion ran out of sats'
+              ? 'your job promotion ran out of bitcoins'
               : 'your job has been stopped')}
       </NoteHeader>
       <ItemJob item={n.item} />

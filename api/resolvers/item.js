@@ -1061,6 +1061,8 @@ export default {
     }
   },
   Item: {
+    // BIP-177 field alias
+    bitcoin: (item) => item.sats,
     invoicePaidAt: async (item, args, { models }) => {
       return item.invoicePaidAtUTC ?? item.invoicePaidAt
     },

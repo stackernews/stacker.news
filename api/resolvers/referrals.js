@@ -16,8 +16,8 @@ export default {
         json_build_array(
           json_build_object('name', 'referrals', 'value', COALESCE(SUM(referrals), 0)),
           json_build_object('name', 'one day referrals', 'value', COALESCE(SUM(one_day_referrals), 0)),
-          json_build_object('name', 'referral sats', 'value', FLOOR(COALESCE(SUM(msats_referrals), 0) / 1000.0)),
-          json_build_object('name', 'one day referral sats', 'value', FLOOR(COALESCE(SUM(msats_one_day_referrals), 0) / 1000.0))
+          json_build_object('name', 'referral bitcoins', 'value', FLOOR(COALESCE(SUM(msats_referrals), 0) / 1000.0)),
+          json_build_object('name', 'one day referral bitcoins', 'value', FLOOR(COALESCE(SUM(msats_one_day_referrals), 0) / 1000.0))
         ) AS data
           FROM ${viewGroup(range, 'user_stats')}
           WHERE id = ${me.id}

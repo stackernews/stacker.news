@@ -131,9 +131,9 @@ const mergeNotification = (event, sw, payload, currentNotifications, tag, nid) =
     }
   } else if (SUM_SATS_TAGS.includes(compareTag)) {
     if (compareTag === 'DEPOSIT') {
-      title = `${numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} deposited in your account`
+      title = `${numWithUnits(sats, { abbreviate: false, unitSingular: 'bitcoin was', unitPlural: 'bitcoins were' })} deposited in your account`
     } else if (compareTag === 'WITHDRAWAL') {
-      title = `${numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} withdrawn from your account`
+      title = `${numWithUnits(sats, { abbreviate: false, unitSingular: 'bitcoin was', unitPlural: 'bitcoins were' })} withdrawn from your account`
     }
   }
   // logger.info(`[sw:push] ${nid} - calculated title: ${title}`)

@@ -34,7 +34,7 @@ export default function Badges ({ user, badge, className = 'ms-1', badgeClassNam
   if (user.optional.hasRecvWallet) {
     badges.push({
       icon: HorseIcon,
-      overlayText: 'can receive sats'
+      overlayText: 'can receive bitcoins'
     })
   }
 
@@ -42,7 +42,7 @@ export default function Badges ({ user, badge, className = 'ms-1', badgeClassNam
     badges.push({
       icon: GunIcon,
       sizeDelta: 2,
-      overlayText: 'can send sats'
+      overlayText: 'can send bitcoins'
     })
   }
 

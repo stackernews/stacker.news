@@ -79,7 +79,7 @@ export function MadnessBanner ({ handleClose }) {
         ? (
           <div>
             <div>
-              We're giving away 3 million sats to the top Stacker News contributors in March. <Alert.Link href='/rewards'>See the leaderboard!</Alert.Link>
+              We're giving away 3 million bitcoins to the top Stacker News contributors in March. <Alert.Link href='/rewards'>See the leaderboard!</Alert.Link>
             </div>
             <div>
               How does Million Sat Madness work? <Alert.Link href='/items/444168'>Click here</Alert.Link>.
@@ -89,7 +89,7 @@ export function MadnessBanner ({ handleClose }) {
         : (
           <div>
             <div>
-              We're giving away 3 million sats to the top Stacker News contributors in March. <Alert.Link href='/signup'>Sign up!</Alert.Link>
+              We're giving away 3 million bitcoins to the top Stacker News contributors in March. <Alert.Link href='/signup'>Sign up!</Alert.Link>
             </div>
             <div>
               Need help? Check out our <Alert.Link href='/faq'>FAQs</Alert.Link>.

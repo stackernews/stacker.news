@@ -67,7 +67,7 @@ async function assertSettings () {
   }
 
   if (me.privates.satsFilter !== 0) {
-    throw new Error('sats filter must be set to 0')
+    throw new Error('bitcoins filter must be set to 0')
   }
 }
 
@@ -136,7 +136,7 @@ async function populate (data) {
           bio.user.since = await util.fetchItem(bio.user.since)
           bio.user.items = await util.fetchUserItems(bio.user.name)
           bio.user.credits = util.sumBy(bio.user.items, 'credits')
-          bio.user.sats = util.sumBy(bio.user.items, 'sats') - bio.user.credits
+          bio.user.sats = util.sumBy(bio.user.items, 'bitcoins') - bio.user.credits
           if (bio.user.sats > 0 || bio.user.credits > 0) {
             bio.user.satstandard = bio.user.sats / (bio.user.sats + bio.user.credits)
           } else {
@@ -167,7 +167,7 @@ function printIntro (data) {
   console.log('- How difficult was it to get started? Any feedback?')
   console.log('- How much experience do you have with lightning?')
   console.log('- Have you read the [FAQ](https://stacker.news/faq) already?')
-  console.log('- Have you realized that you need to attach a wallet to receive sats?')
+  console.log('- Have you realized that you need to attach a wallet to receive bitcoins?')
   console.log('- How was your first week on SN?\n')
 
   return data
@@ -176,7 +176,7 @@ function printIntro (data) {
 async function printTable (data) {
   const [, bios] = data
 
-  console.log('| nym | bio (stacking since) | items | sats/ccs stacked | sat standard |')
+  console.log('| nym | bio (stacking since) | items | bitcoins/ccs stacked | bitcoin standard |')
   console.log('| --- | -------------------- | ----- | ---------------- | ------------ |')
 
   for (const bio of bios) {
@@ -199,7 +199,7 @@ async function printTable (data) {
 }
 
 function printOutro (data) {
-  console.log('\n_sat standard = ratio of received sats vs credits (`sats/(sats+credits)`)_\n')
+  console.log('\n_sat standard = ratio of received bitcoins vs credits (`bitcoins/(bitcoins+credits)`)_\n')
 
   console.log('Questions for the old stackers:')
   console.log('- Anyone in there who you want to point out?')

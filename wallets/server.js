@@ -12,7 +12,6 @@ import * as lnc from '@/wallets/lnc'
 import * as webln from '@/wallets/webln'
 
 import { walletLogger } from '@/api/resolvers/wallet'
-import walletDefs from '@/wallets/server'
 import { parsePaymentRequest } from 'ln-service'
 import { toPositiveBigInt, toPositiveNumber, formatMsats, formatSats, msatsToSats } from '@/lib/format'
 import { PAID_ACTION_TERMINAL_STATES, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
@@ -20,7 +19,8 @@ import { timeoutSignal, withTimeout } from '@/lib/time'
 import { canReceive } from './common'
 import wrapInvoice from './wrap'
 
-export default [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
+const walletDefs = [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
+export default walletDefs
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 

@@ -1,110 +1,142 @@
 import createPrisma from '@/lib/create-prisma'
 import { verifyDomainDNS, issueDomainCertificate, checkCertificateStatus, getValidationValues } from '@/lib/domain-verification'
 
-// This worker verifies the DNS and SSL certificates for domains that are pending or failed
 export async function domainVerification ({ data: { domainId }, boss }) {
+  // establish connection to database
   const models = createPrisma({ connectionParams: { connection_limit: 1 } })
-  console.log('domainVerification', domainId)
   try {
+    // get domain from database
     const domain = await models.customDomain.findUnique({ where: { id: domainId } })
-
+    // if we can't find the domain, bail without scheduling a retry
     if (!domain) {
       throw new Error(`domain with ID ${domainId} not found`)
     }
 
-    const result = await verifyDomain(domain, models)
+    // start verification process
+    const result = await verifyDomain(domain, boss)
 
-    if (result?.status === 'ACTIVE') {
-      console.log(`domain ${domain.domain} verified`)
-      return
-    }
+    // update the domain with the result
+    await models.customDomain.update({
+      where: { id: domainId },
+      data: { ...domain, ...result }
+    })
 
-    if (result?.status === 'HOLD') {
-      console.log(`domain ${domain.domain} is on hold after too many failed attempts`)
-      return
-    }
-
-    if (result?.status === 'PENDING') {
-      throw new Error(`domain ${domain.domain} is still pending verification, will retry`)
+    // if the result is PENDING it means we still have to verify the domain
+    // if it's not PENDING, we stop the verification process.
+    if (result.status === 'PENDING') {
+      // we still need to verify the domain, schedule the job to run again in 5 minutes
+      const jobId = await boss.send('domainVerification', { domainId }, {
+        startAfter: 1000 * 60 * 5 // start the job after 5 minutes
+      })
+      console.log(`domain ${domain.domain} is still pending verification, created job with ID ${jobId} to run in 5 minutes`)
     }
   } catch (error) {
     console.error(`couldn't verify domain with ID ${domainId}: ${error.message}`)
-    throw error
   }
 }
 
-async function verifyDomain (domain, models) {
-  // track verification
-  const data = { ...domain, lastVerifiedAt: new Date() }
-  data.verification = data.verification || { dns: {}, ssl: {} }
-  data.failedAttempts = data.failedAttempts || 0
+async function verifyDomain (domain) {
+  const lastVerifiedAt = new Date()
+  const verification = domain.verification || { dns: {}, ssl: {} }
+  let status = domain.status || 'PENDING'
 
-  if (data.verification?.dns?.state !== 'VERIFIED') {
-    await verifyDNS(data)
-  }
+  // step 1: verify DNS [CNAME and TXT]
+  // if DNS is not already verified
+  let dnsState = verification.dns.state || 'PENDING'
+  if (dnsState !== 'VERIFIED') {
+    dnsState = await verifyDNS(domain.domain, verification.dns.txt)
 
-  if (data.verification?.dns?.state === 'VERIFIED' && (!data.verification?.ssl?.arn || data.verification?.ssl?.state === 'FAILED')) {
-    await issueCertificate(data)
-  }
-
-  if (data.verification?.dns?.state === 'VERIFIED' && data.verification?.ssl?.state !== 'VERIFIED' && data.verification?.ssl?.arn) {
-    await updateCertificateStatus(data)
-  }
-
-  if (data.verification?.dns?.state === 'PENDING' || data.verification?.ssl?.state === 'PENDING') {
-    data.failedAttempts += 1
-    // exponential backoff at the 11th attempt is roughly 48 hours
-    if (data.failedAttempts > 11) {
-      data.status = 'HOLD'
-      data.failedAttempts = 0
+    // log the result, throw an error if we couldn't verify the DNS
+    switch (dnsState) {
+      case 'VERIFIED':
+        console.log(`DNS verification for ${domain.domain} is ${dnsState}, proceeding to SSL verification`)
+        break
+      case 'PENDING':
+        console.log(`DNS verification for ${domain.domain} is ${dnsState}, will retry DNS verification in 5 minutes`)
+        break
+      default:
+        dnsState = 'PENDING'
+        console.log(`couldn't verify DNS for ${domain.domain}, will retry DNS verification in 5 minutes`)
     }
   }
 
-  if (data.verification?.dns?.state === 'VERIFIED' && data.verification?.ssl?.state === 'VERIFIED') {
-    data.status = 'ACTIVE'
+  // step 2: certificate issuance
+  // if DNS is verified and we don't have a SSL certificate, issue one
+  let sslArn = verification.ssl.arn || null
+  let sslState = verification.ssl.state || 'PENDING'
+  if (dnsState === 'VERIFIED' && !sslArn) {
+    sslArn = await issueDomainCertificate(domain.domain)
+    if (sslArn) {
+      console.log(`SSL certificate issued for ${domain.domain} with ARN ${sslArn}, will verify with ACM in 5 minutes`)
+    } else {
+      console.log(`couldn't issue SSL certificate for ${domain.domain}, will retry certificate issuance in 5 minutes`)
+    }
   }
 
-  return await models.customDomain.update({ where: { id: domain.id }, data })
-}
+  // step 3: get validation values from ACM
+  // if we have a certificate and we don't already have the validation values
+  let acmValidationCname = verification.ssl.cname || null
+  let acmValidationValue = verification.ssl.value || null
+  if (sslArn && !acmValidationCname && !acmValidationValue) {
+    const { cname, value } = await getValidationValues(sslArn)
+    acmValidationCname = cname
+    acmValidationValue = value
+    if (acmValidationCname && acmValidationValue) {
+      console.log(`Validation values retrieved for ${domain.domain}, will check ACM validation status`)
+    } else {
+      console.log(`couldn't retrieve validation values for ${domain.domain}, will retry to request validation values from ACM in 5 minutes`)
+    }
+  }
 
-async function verifyDNS (data) {
-  const { txtValid, cnameValid } = await verifyDomainDNS(data.domain, data.verification.dns.txt)
-  console.log(`${data.domain}: TXT ${txtValid ? 'valid' : 'invalid'}, CNAME ${cnameValid ? 'valid' : 'invalid'}`)
+  // step 4: check if the certificate is validated by ACM
+  // if DNS is verified and we have a SSL certificate
+  // it can happen that we just issued the certificate and it's not yet validated by ACM
+  if (dnsState === 'VERIFIED' && sslArn && sslState !== 'VERIFIED') {
+    sslState = await checkCertificateStatus(sslArn)
+    switch (sslState) {
+      case 'VERIFIED':
+        console.log(`SSL certificate for ${domain.domain} is ${sslState}, verification routine complete`)
+        break
+      case 'PENDING':
+        console.log(`SSL certificate for ${domain.domain} is ${sslState}, will check again with ACM in 5 minutes`)
+        break
+      default:
+        sslState = 'PENDING'
+        console.log(`couldn't verify SSL certificate for ${domain.domain}, will retry certificate validation with ACM in 5 minutes`)
+    }
+  }
 
-  data.verification.dns.state = txtValid && cnameValid ? 'VERIFIED' : 'PENDING'
-  return data
-}
+  // step 5: update the status of the domain
+  // if the domain is fully verified, set the status to active
+  if (dnsState === 'VERIFIED' && sslState === 'VERIFIED') {
+    status = 'ACTIVE'
+  }
+  // if the domain has failed in some way and it's been 48 hours, put it on hold
+  if (status !== 'ACTIVE' && domain.createdAt < new Date(Date.now() - 1000 * 60 * 60 * 24 * 2)) {
+    status = 'HOLD'
+  }
 
-async function issueCertificate (data) {
-  const certificateArn = await issueDomainCertificate(data.domain)
-  console.log(`${data.domain}: Certificate issued: ${certificateArn}`)
-
-  if (certificateArn) {
-    const sslState = await checkCertificateStatus(certificateArn)
-    console.log(`${data.domain}: Issued certificate status: ${sslState}`)
-
-    if (sslState) data.verification.ssl.state = sslState
-    data.verification.ssl.arn = certificateArn
-
-    if (sslState !== 'VERIFIED') {
-      try {
-        const { cname, value } = await getValidationValues(certificateArn)
-        data.verification.ssl.cname = cname
-        data.verification.ssl.value = value
-      } catch (error) {
-        console.error(`Failed to get validation values for domain ${data.domain}:`, error)
+  return {
+    lastVerifiedAt,
+    status,
+    verification: {
+      dns: {
+        state: dnsState
+      },
+      ssl: {
+        arn: sslArn,
+        state: sslState,
+        cname: acmValidationCname,
+        value: acmValidationValue
       }
     }
-  } else {
-    data.verification.ssl.state = 'PENDING'
   }
-
-  return data
 }
 
-async function updateCertificateStatus (data) {
-  const sslState = await checkCertificateStatus(data.verification.ssl.arn)
-  console.log(`${data.domain}: Certificate status: ${sslState}`)
-  if (sslState) data.verification.ssl.state = sslState
-  return data
+async function verifyDNS (cname, txt) {
+  const { cnameValid, txtValid } = await verifyDomainDNS(cname, txt)
+  console.log(`${cname}: CNAME ${cnameValid ? 'valid' : 'invalid'}, TXT ${txtValid ? 'valid' : 'invalid'}`)
+
+  const dnsState = cnameValid && txtValid ? 'VERIFIED' : 'PENDING'
+  return dnsState
 }

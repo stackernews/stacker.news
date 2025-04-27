@@ -27,9 +27,10 @@ export default {
       if (sub.userId !== me.id) {
         throw new GqlInputError('you do not own this sub')
       }
+
       domain = domain.trim() // protect against trailing spaces
       if (domain && !validateSchema(customDomainSchema, { domain })) {
-        throw new GqlInputError('Invalid domain format')
+        throw new GqlInputError('invalid domain format')
       }
 
       if (domain) {
@@ -44,7 +45,9 @@ export default {
           verification: {
             dns: {
               state: 'PENDING',
-              cname: 'stacker.news'
+              cname: 'stacker.news',
+              // generate a random txt record only if it's a new domain
+              txt: existing?.domain === domain ? existing.verification.dns.txt : randomBytes(32).toString('base64')
             },
             ssl: {
               state: 'WAITING',
@@ -62,28 +65,17 @@ export default {
           },
           create: {
             ...initializeDomain,
-            verification: {
-              ...initializeDomain.verification,
-              dns: {
-                ...initializeDomain.verification.dns,
-                txt: randomBytes(32).toString('base64')
-              }
-            },
             sub: {
               connect: { name: subName }
             }
           }
         })
 
-        // schedule domain verification in 5 seconds, apply exponential backoff and keep it for 2 days
-        // 12 retries, 42 seconds of delay between retries will fit 48 hours of trying for DNS propagation
-        await models.$executeRaw`INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, retrydelay, startafter, keepuntil)
+        // schedule domain verification in 30 seconds
+        await models.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, keepuntil)
           VALUES ('domainVerification',
                   jsonb_build_object('domainId', ${updatedDomain.id}::INTEGER),
-                  12,
-                  true,
-                  '42', -- 42 seconds of delay between retries
-                  now() + interval '5 seconds',
+                  now() + interval '30 seconds',
                   now() + interval '2 days')`
 
         return updatedDomain

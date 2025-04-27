@@ -33,21 +33,25 @@ export default {
         throw new GqlInputError('invalid domain format')
       }
 
+      const existing = await models.customDomain.findUnique({ where: { subName } })
+
       if (domain) {
-        const existing = await models.customDomain.findUnique({ where: { subName } })
         if (existing && existing.domain === domain && existing.status !== 'HOLD') {
           throw new GqlInputError('domain already set')
         }
 
         const initializeDomain = {
           domain,
+          createdAt: new Date(),
           status: 'PENDING',
           verification: {
             dns: {
               state: 'PENDING',
               cname: 'stacker.news',
               // generate a random txt record only if it's a new domain
-              txt: existing?.domain === domain ? existing.verification.dns.txt : randomBytes(32).toString('base64')
+              txt: existing?.domain === domain && existing.verification.dns.txt
+                ? existing.verification.dns.txt
+                : randomBytes(32).toString('base64')
             },
             ssl: {
               state: 'WAITING',
@@ -72,15 +76,24 @@ export default {
         })
 
         // schedule domain verification in 30 seconds
-        await models.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, keepuntil)
-          VALUES ('domainVerification',
-                  jsonb_build_object('domainId', ${updatedDomain.id}::INTEGER),
-                  now() + interval '30 seconds',
-                  now() + interval '2 days')`
+        await models.$executeRaw`
+        INSERT INTO pgboss.job (name, data, retrylimit, retrydelay, startafter, keepuntil)
+        VALUES ('domainVerification',
+                jsonb_build_object('domainId', ${updatedDomain.id}::INTEGER),
+                3,
+                30,
+                now() + interval '30 seconds',
+                now() + interval '2 days')`
 
         return updatedDomain
       } else {
         try {
+          // delete any existing domain verification jobs
+          await models.$queryRaw`
+          DELETE FROM pgboss.job
+          WHERE name = 'domainVerification'
+                AND data->>'domainId' = ${existing.id}::TEXT`
+
           return await models.customDomain.delete({ where: { subName } })
         } catch (error) {
           console.error(error)

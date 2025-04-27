@@ -41,3 +41,13 @@ export async function getCertificateStatus (certificateArn) {
   const certificate = await describeCertificate(certificateArn)
   return certificate.Certificate.Status
 }
+
+export async function deleteCertificate (certificateArn) {
+  if (process.env.NODE_ENV === 'development') {
+    config.endpoint = process.env.LOCALSTACK_ENDPOINT
+  }
+  const acm = new AWS.ACM(config)
+  const result = await acm.deleteCertificate({ CertificateArn: certificateArn }).promise()
+  console.log(`delete certificate attempt for ${certificateArn}, result: ${JSON.stringify(result)}`)
+  return result
+}

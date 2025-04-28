@@ -10,6 +10,7 @@ import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './comments-live'
 import ActionTooltip from './action-tooltip'
+import classNames from 'classnames'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, livePolling }) {
   const router = useRouter()
@@ -30,13 +31,21 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
         <Nav.Item className='text-muted'>
           {numWithUnits(commentSats)}
         </Nav.Item>
-        {livePolling && (
-          <Nav.Item className='ps-2'>
-            <ActionTooltip notForm overlayText='live comment section'>
-              <div className={styles.newCommentDot} />
-            </ActionTooltip>
-          </Nav.Item>
-        )}
+        {livePolling
+          ? (
+            <Nav.Item className='ps-2'>
+              <ActionTooltip notForm overlayText='comments are live'>
+                <div className={styles.newCommentDot} />
+              </ActionTooltip>
+            </Nav.Item>
+            )
+          : (
+            <Nav.Item className='ps-2'>
+              <ActionTooltip notForm overlayText='refresh to see new comments'>
+                <div className={classNames(styles.newCommentDot, styles.paused)} />
+              </ActionTooltip>
+            </Nav.Item>
+            )}
         <div className='ms-auto d-flex'>
           <Nav.Item>
             <Nav.Link
@@ -77,7 +86,6 @@ export default function Comments ({
 }) {
   const router = useRouter()
   // update item.newComments in cache
-  // TODO use UserActivation to poll only when the user is actively on page
   const { polling: livePolling } = useLiveComments(parentId, lastCommentAt || parentCreatedAt)
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
@@ -101,7 +109,7 @@ export default function Comments ({
           />
         : null}
       {newComments?.length > 0 && (
-        <ShowNewComments topLevel newComments={newComments} itemId={parentId} Skeleton={CommentsSkeleton} />
+        <ShowNewComments topLevel newComments={newComments} itemId={parentId} />
       )}
       {pins.map(item => (
         <Fragment key={item.id}>

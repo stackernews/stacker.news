@@ -11,23 +11,28 @@ export default function useLiveComments (rootId, after) {
   const [engagedAt] = useState(new Date())
 
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const checkActivity = () => {
+      const now = new Date()
+      const timeSinceEngaged = now.getTime() - engagedAt.getTime()
       const isActive = document.visibilityState === 'visible'
-      setPolling(isActive)
+
+      // poll only if the user is active and has been active in the last 30 minutes
+      if (timeSinceEngaged < 1000 * 30 * 60) {
+        setPolling(isActive)
+      } else {
+        setPolling(false)
+      }
     }
 
-    const now = new Date()
-    const timeSinceEngaged = now.getTime() - engagedAt.getTime()
+    // check activity every minute
+    const interval = setInterval(checkActivity, 1000 * 60)
 
-    // poll only if the user is active and has been active in the last 30 minutes
-    if (timeSinceEngaged < 1000 * 60 * 30) {
-      document.addEventListener('visibilitychange', handleVisibilityChange)
+    // check activity also on visibility change
+    document.addEventListener('visibilitychange', checkActivity)
 
-      return () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange)
-      }
-    } else {
-      setPolling(false)
+    return () => {
+      document.removeEventListener('visibilitychange', checkActivity)
+      clearInterval(interval)
     }
   }, [engagedAt])
 

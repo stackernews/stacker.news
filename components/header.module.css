@@ -111,13 +111,17 @@
     z-index: 1000;
 }
 
-
 .newCommentDot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
     background-color: var(--bs-primary);
     animation: pulse 2s infinite;
+}
+
+.newCommentDot.paused {
+    background-color: var(--bs-grey-darkmode);
+    animation: none;
 }
 
 @keyframes pulse {

@@ -8,7 +8,14 @@ export default function useLiveComments (rootId, after) {
   const client = useApolloClient()
   const [lastChecked, setLastChecked] = useState(after)
   const [polling, setPolling] = useState(true)
-  const [engagedAt] = useState(new Date())
+  const [engagedAt, setEngagedAt] = useState(new Date())
+
+  // reset engagedAt when polling is toggled
+  useEffect(() => {
+    if (polling) {
+      setEngagedAt(new Date())
+    }
+  }, [polling])
 
   useEffect(() => {
     const checkActivity = () => {
@@ -17,7 +24,7 @@ export default function useLiveComments (rootId, after) {
       const isActive = document.visibilityState === 'visible'
 
       // poll only if the user is active and has been active in the last 30 minutes
-      if (timeSinceEngaged < 1000 * 30 * 60) {
+      if (timeSinceEngaged < 1000 * 60 * 30) {
         setPolling(isActive)
       } else {
         setPolling(false)
@@ -26,7 +33,6 @@ export default function useLiveComments (rootId, after) {
 
     // check activity every minute
     const interval = setInterval(checkActivity, 1000 * 60)
-
     // check activity also on visibility change
     document.addEventListener('visibilitychange', checkActivity)
 
@@ -51,7 +57,7 @@ export default function useLiveComments (rootId, after) {
     }
   }
 
-  return { polling }
+  return { polling, setPolling }
 }
 
 function saveNewComments (client, rootId, newComments) {

@@ -12,7 +12,7 @@ import useLiveComments from './comments-live'
 import ActionTooltip from './action-tooltip'
 import classNames from 'classnames'
 
-export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, livePolling }) {
+export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, livePolling, setLivePolling }) {
   const router = useRouter()
   const sort = router.query.sort || defaultCommentSort(pinned, bio, parentCreatedAt)
 
@@ -41,8 +41,12 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
             )
           : (
             <Nav.Item className='ps-2'>
-              <ActionTooltip notForm overlayText='refresh to see new comments'>
-                <div className={classNames(styles.newCommentDot, styles.paused)} />
+              <ActionTooltip notForm overlayText='click to resume live comments'>
+                <div
+                  className={classNames(styles.newCommentDot, styles.paused)}
+                  onClick={() => setLivePolling(true)}
+                  style={{ cursor: 'pointer' }}
+                />
               </ActionTooltip>
             </Nav.Item>
             )}
@@ -86,7 +90,7 @@ export default function Comments ({
 }) {
   const router = useRouter()
   // update item.newComments in cache
-  const { polling: livePolling } = useLiveComments(parentId, lastCommentAt || parentCreatedAt)
+  const { polling: livePolling, setPolling: setLivePolling } = useLiveComments(parentId, lastCommentAt || parentCreatedAt)
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
 
@@ -95,7 +99,7 @@ export default function Comments ({
       {comments?.length > 0
         ? <CommentsHeader
             commentSats={commentSats} parentCreatedAt={parentCreatedAt}
-            pinned={pinned} bio={bio} livePolling={livePolling} handleSort={sort => {
+            pinned={pinned} bio={bio} livePolling={livePolling} setLivePolling={setLivePolling} handleSort={sort => {
               const { commentsViewedAt, commentId, ...query } = router.query
               delete query.nodata
               router.push({

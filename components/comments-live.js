@@ -2,15 +2,38 @@ import { useQuery, useApolloClient } from '@apollo/client'
 import { SSR } from '../lib/constants'
 import { GET_NEW_COMMENTS, COMMENT_WITH_NEW } from '../fragments/comments'
 import { ITEM_FULL } from '../fragments/items'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function useLiveComments (rootId, after) {
   const client = useApolloClient()
   const [lastChecked, setLastChecked] = useState(after)
+  const [polling, setPolling] = useState(true)
+  const engagedAt = new Date()
+
+  useEffect(() => {
+    if (engagedAt) {
+      const now = new Date()
+      const timeSinceEngaged = now.getTime() - engagedAt.getTime()
+      // poll only if the user is active and has been active in the last 30 minutes
+      if (timeSinceEngaged < 1000 * 60 * 30) {
+        document.addEventListener('visibilitychange', () => {
+          const isActive = document.visibilityState === 'visible'
+          setPolling(isActive)
+        })
+
+        return () => {
+          document.removeEventListener('visibilitychange', () => {})
+        }
+      } else {
+        setPolling(false)
+      }
+    }
+  }, [])
+
   const { data } = useQuery(GET_NEW_COMMENTS, SSR
     ? {}
     : {
-        pollInterval: 10000,
+        pollInterval: polling ? 10000 : null,
         variables: { rootId, after: lastChecked }
       })
 
@@ -22,7 +45,7 @@ export default function useLiveComments (rootId, after) {
     }
   }
 
-  return null
+  return { polling }
 }
 
 function saveNewComments (client, rootId, newComments) {

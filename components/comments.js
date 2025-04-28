@@ -10,7 +10,7 @@ import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './comments-live'
 
-export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
+export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, livePolling }) {
   const router = useRouter()
   const sort = router.query.sort || defaultCommentSort(pinned, bio, parentCreatedAt)
 
@@ -29,6 +29,11 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
         <Nav.Item className='text-muted'>
           {numWithUnits(commentSats)}
         </Nav.Item>
+        {livePolling && (
+          <Nav.Item className='ps-2'>
+            <div className={styles.newCommentDot} />
+          </Nav.Item>
+        )}
         <div className='ms-auto d-flex'>
           <Nav.Item>
             <Nav.Link
@@ -70,7 +75,7 @@ export default function Comments ({
   const router = useRouter()
   // update item.newComments in cache
   // TODO use UserActivation to poll only when the user is actively on page
-  useLiveComments(parentId, lastCommentAt || parentCreatedAt)
+  const { polling: livePolling } = useLiveComments(parentId, lastCommentAt || parentCreatedAt)
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
 
@@ -79,7 +84,7 @@ export default function Comments ({
       {comments?.length > 0
         ? <CommentsHeader
             commentSats={commentSats} parentCreatedAt={parentCreatedAt}
-            pinned={pinned} bio={bio} handleSort={sort => {
+            pinned={pinned} bio={bio} livePolling={livePolling} handleSort={sort => {
               const { commentsViewedAt, commentId, ...query } = router.query
               delete query.nodata
               router.push({

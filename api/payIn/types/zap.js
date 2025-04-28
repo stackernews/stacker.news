@@ -204,15 +204,18 @@ export async function onPaidSideEffects (models, payInId) {
   })
   // avoid duplicate notifications with the same zap amount
   // by checking if there are any other pending acts on the item
-  const pendingActs = await models.itemAct.count({
+  const pendingZaps = await models.itemPayIn.count({
     where: {
       itemId: payIn.itemPayIn.itemId,
       createdAt: {
         gt: payIn.createdAt
+      },
+      payIn: {
+        payInType: 'ZAP'
       }
     }
   })
-  if (pendingActs === 0) notifyZapped({ models, item: payIn.itemPayIn.item }).catch(console.error)
+  if (pendingZaps === 0) notifyZapped({ models, item: payIn.itemPayIn.item }).catch(console.error)
 }
 
 export async function describe (models, payInId, { me }) {

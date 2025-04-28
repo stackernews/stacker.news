@@ -1,6 +1,7 @@
+import { assertBelowMaxPendingPayInBolt11s } from './assert'
 import { isInvoiceable, isPessimistic } from './is'
 import { getCostBreakdown, getPayInCustodialTokens } from './payInCustodialTokens'
-import { payInClone, payInPrismaCreate } from './payInPrisma'
+import { payInPrismaCreate } from './payInPrisma'
 
 export const PAY_IN_INCLUDE = {
   payInCustodialTokens: true,
@@ -10,19 +11,12 @@ export const PAY_IN_INCLUDE = {
   payOutCustodialTokens: true
 }
 
-export async function payInCloneAndCreate (tx, payIn, { me }) {
-  return await _payInCreate(tx, payInClone(payIn), { me },
-    { pendingWrapState: 'PENDING_INVOICE_WRAP_RETRY', pendingCreationState: 'PENDING_INVOICE_CREATION_RETRY' })
-}
-
-export async function payInCreate (tx, payIn, { me }) {
-  return await _payInCreate(tx, payIn, { me },
-    { pendingWrapState: 'PENDING_INVOICE_WRAP', pendingCreationState: 'PENDING_INVOICE_CREATION' })
-}
-
-async function _payInCreate (tx, payInProspect, { me }, { pendingWrapState, pendingCreationState }) {
+export async function payInCreate (tx, payInProspect, { me }) {
   const { mCostRemaining, mP2PCost, payInCustodialTokens } = await getPayInCosts(tx, payInProspect, { me })
-  const payInState = await getPayInState(payInProspect, { mCostRemaining, mP2PCost }, { pendingWrapState, pendingCreationState })
+  const payInState = await getPayInState(payInProspect, { mCostRemaining, mP2PCost })
+  if (payInState !== 'PAID') {
+    await assertBelowMaxPendingPayInBolt11s(tx, payInProspect.userId)
+  }
   const payIn = await tx.payIn.create({
     data: {
       ...payInPrismaCreate({
@@ -55,15 +49,15 @@ async function getPayInCosts (tx, payIn, { me }) {
   }
 }
 
-async function getPayInState (payIn, { mCostRemaining, mP2PCost }, { pendingWrapState, pendingCreationState }) {
+async function getPayInState (payIn, { mCostRemaining, mP2PCost }) {
   if (mCostRemaining > 0n) {
     if (!isInvoiceable(payIn)) {
       throw new Error('Insufficient funds')
     }
     if (mP2PCost > 0n) {
-      return pendingWrapState
+      return 'PENDING_INVOICE_WRAP'
     } else {
-      return pendingCreationState
+      return 'PENDING_INVOICE_CREATION'
     }
   }
   return 'PAID'

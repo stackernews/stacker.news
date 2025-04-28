@@ -6,7 +6,9 @@ import payInTypeModules from './types'
 import { msatsToSats } from '@/lib/format'
 import { payInCreatePayInBolt11, payInCreatePayInBolt11Wrap } from './lib/payInBolt11'
 import { isPessimistic, isWithdrawal } from './lib/is'
-import { payInCloneAndCreate, payInCreate } from './lib/payInCreate'
+import { PAY_IN_INCLUDE, payInCreate } from './lib/payInCreate'
+import { payOutBolt11Replacement } from './lib/payOutBolt11'
+import { payInClone } from './lib/payInPrisma'
 
 export default async function pay (payInType, payInArgs, { models, me }) {
   try {
@@ -73,14 +75,35 @@ async function begin (models, payInInitial, payInArgs, { me }) {
 }
 
 async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
+  async function afterInvoiceCreation ({ payInState, payInBolt11 }) {
+    return await models.payIn.update({
+      where: { id: payIn.id },
+      data: {
+        payInState,
+        payInStateChangedAt: new Date(),
+        payInBolt11: {
+          create: payInBolt11
+        }
+      },
+      include: PAY_IN_INCLUDE
+    })
+  }
+
   try {
     if (payIn.payInState === 'PAID') {
-      // run non critical side effects
       payInTypeModules[payIn.payInType].onPaidSideEffects?.(models, payIn.id).catch(console.error)
     } else if (payIn.payInState === 'PENDING_INVOICE_CREATION') {
-      return await payInCreatePayInBolt11(models, { mCostRemaining, payIn }, { me })
+      const payInBolt11 = await payInCreatePayInBolt11(models, payIn, { msats: mCostRemaining })
+      return await afterInvoiceCreation({
+        payInState: payIn.pessimisticEnv ? 'PENDING_HELD' : 'PENDING',
+        payInBolt11
+      })
     } else if (payIn.payInState === 'PENDING_INVOICE_WRAP') {
-      return await payInCreatePayInBolt11Wrap(models, { mCostRemaining, payIn }, { me })
+      const payInBolt11 = await payInCreatePayInBolt11Wrap(models, payIn, { msats: mCostRemaining })
+      return await afterInvoiceCreation({
+        payInState: 'PENDING_HELD',
+        payInBolt11
+      })
     } else if (payIn.payInState === 'PENDING_WITHDRAWAL') {
       const { mtokens } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
       payViaPaymentRequest({
@@ -90,7 +113,6 @@ async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
         pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
         confidence: LND_PATHFINDING_TIME_PREF_PPM
       }).catch(console.error)
-      return payIn
     } else {
       throw new Error('Invalid payIn begin state')
     }
@@ -99,6 +121,8 @@ async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
         VALUES ('payInFailed', jsonb_build_object('id', ${payIn.id}::INTEGER), now(), 1000)`.catch(console.error)
     throw e
   }
+
+  return payIn
 }
 
 export async function onFail (tx, payInId) {
@@ -190,8 +214,13 @@ export async function retry (payInId, { models, me }) {
     throw new Error('Pessimistic payIns cannot be retried')
   }
 
+  let payOutBolt11
+  if (payInFailed.payOutBolt11) {
+    payOutBolt11 = await payOutBolt11Replacement(models, payInFailed)
+  }
+
   const { payIn, mCostRemaining } = await models.$transaction(async tx => {
-    const { payIn, mCostRemaining } = await payInCloneAndCreate(tx, payInFailed, { me })
+    const { payIn, mCostRemaining } = await payInCreate(tx, payInClone({ ...payInFailed, payOutBolt11 }), { me })
 
     // use an optimistic lock on successorId on the payIn
     await tx.payIn.update({
@@ -202,7 +231,7 @@ export async function retry (payInId, { models, me }) {
     })
 
     // run the onRetry hook for the payIn and its beneficiaries
-    await payInTypeModules[payInFailed.payInType].onRetry?.(tx, payInFailed.id, payIn.id)
+    await payInTypeModules[payIn.payInType].onRetry?.(tx, payInFailed.id, payIn.id)
     for (const beneficiary of payIn.beneficiaries) {
       await payInTypeModules[beneficiary.payInType].onRetry?.(tx, beneficiary.id, payIn.id)
     }
@@ -222,25 +251,5 @@ export async function retry (payInId, { models, me }) {
     }
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 
-  return await afterRetry(models, { payIn, mCostRemaining }, { me })
-}
-
-async function afterRetry (models, { payIn, mCostRemaining, payInFailureReason }, { me }) {
-  try {
-    if (payIn.payInState === 'PAID') {
-      // run non critical side effects
-      payInTypeModules[payIn.payInType].onPaidSideEffects?.(models, payIn.id).catch(console.error)
-    } else if (payIn.payInState === 'PENDING_INVOICE_CREATION_RETRY') {
-      return await payInCreatePayInBolt11(models, { mCostRemaining, payIn }, { me })
-    } else if (payIn.payInState === 'PENDING_INVOICE_WRAP_RETRY') {
-      // TODO: replace payOutBolt11 with a new one, depending on the failure reason
-      return await payInCreatePayInBolt11Wrap(models, { mCostRemaining, payIn }, { me })
-    } else {
-      throw new Error('Invalid payIn begin state')
-    }
-  } catch (e) {
-    models.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-        VALUES ('payInFailed', jsonb_build_object('id', ${payIn.id}::INTEGER), now(), 1000)`.catch(console.error)
-    throw e
-  }
+  return await afterBegin(models, { payIn, mCostRemaining }, { me })
 }

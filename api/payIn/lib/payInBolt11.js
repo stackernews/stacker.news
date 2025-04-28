@@ -3,7 +3,6 @@ import { createHodlInvoice, createInvoice, parsePaymentRequest } from 'ln-servic
 import lnd from '@/api/lnd'
 import { wrapBolt11 } from '@/wallets/server'
 import { payInTypeModules } from '../types'
-import { PAY_IN_INCLUDE } from './payInCreate'
 
 const INVOICE_EXPIRE_SECS = 600
 
@@ -20,38 +19,20 @@ function payInBolt11FromBolt11 (bolt11) {
 }
 
 // TODO: throw errors that give us PayInFailureReason
-export async function payInCreatePayInBolt11 (models, { mCostRemaining, payIn }, { me }) {
+export async function payInCreatePayInBolt11 (models, payIn, { msats }) {
   const createLNDinvoice = payIn.pessimisticEnv ? createHodlInvoice : createInvoice
   const expiresAt = datePivot(new Date(), { seconds: INVOICE_EXPIRE_SECS })
   const invoice = await createLNDinvoice({
-    description: payIn.user?.hideInvoiceDesc ? undefined : await payInTypeModules[payIn.payInType].describe(models, payIn.id, { me }),
-    mtokens: String(mCostRemaining),
+    description: payIn.user?.hideInvoiceDesc ? undefined : await payInTypeModules[payIn.payInType].describe(models, payIn.id),
+    mtokens: String(msats),
     expires_at: expiresAt,
     lnd
   })
 
-  const payInBolt11 = payInBolt11FromBolt11(invoice.request)
-  return await models.payIn.update({
-    where: { id: payIn.id },
-    data: {
-      payInState: payIn.pessimisticEnv ? 'PENDING_HELD' : 'PENDING',
-      payInStateChangedAt: new Date(),
-      payInBolt11: { create: payInBolt11 }
-    },
-    include: PAY_IN_INCLUDE
-  })
+  return payInBolt11FromBolt11(invoice.request)
 }
 
-export async function payInCreatePayInBolt11Wrap (models, { mCostRemaining, payIn }, { me }) {
-  const bolt11 = await wrapBolt11({ msats: mCostRemaining, bolt11: payIn.payOutBolt11.bolt11, expiry: INVOICE_EXPIRE_SECS }, { models, me })
-  const payInBolt11 = payInBolt11FromBolt11(bolt11)
-  return models.payIn.update({
-    where: { id: payIn.id },
-    data: {
-      payInState: 'PENDING_HELD',
-      payInStateChangedAt: new Date(),
-      payInBolt11: { create: payInBolt11 },
-      include: PAY_IN_INCLUDE
-    }
-  })
+export async function payInCreatePayInBolt11Wrap (models, payIn, { msats }) {
+  const bolt11 = await wrapBolt11({ msats, bolt11: payIn.payOutBolt11.bolt11, expiry: INVOICE_EXPIRE_SECS }, { models })
+  return payInBolt11FromBolt11(bolt11)
 }

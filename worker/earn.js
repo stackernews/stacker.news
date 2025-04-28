@@ -150,14 +150,6 @@ export async function earn ({ name }) {
           type: 'FOREVER_REFERRAL',
           rank: earner.rank
         }, { models }))
-
-        const userN = notifications[earner.foreverReferrerId] || {}
-        const prevMsats = userN.msats || 0
-        const msats = foreverReferrerEarnings + prevMsats
-        notifications[earner.foreverReferrerId] = {
-          ...userN,
-          FOREVER_REFERRAL: msats
-        }
       } else if (earner.oneDayReferrerId) {
         // if the person doesn't have a forever referrer yet, they give double to their one day referrer
         oneDayReferrerEarnings += foreverReferrerEarnings
@@ -171,14 +163,6 @@ export async function earn ({ name }) {
           type: 'ONE_DAY_REFERRAL',
           rank: earner.rank
         }, { models }))
-
-        const userN = notifications[earner.oneDayReferrerId] || {}
-        const prevMsats = userN.msats || 0
-        const msats = oneDayReferrerEarnings + prevMsats
-        notifications[earner.oneDayReferrerId] = {
-          ...userN,
-          ONE_DAY_REFERRAL: msats
-        }
       }
     }
 

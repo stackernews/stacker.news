@@ -8,27 +8,28 @@ export default function useLiveComments (rootId, after) {
   const client = useApolloClient()
   const [lastChecked, setLastChecked] = useState(after)
   const [polling, setPolling] = useState(true)
-  const engagedAt = new Date()
+  const [engagedAt] = useState(new Date())
 
   useEffect(() => {
-    if (engagedAt) {
-      const now = new Date()
-      const timeSinceEngaged = now.getTime() - engagedAt.getTime()
-      // poll only if the user is active and has been active in the last 30 minutes
-      if (timeSinceEngaged < 1000 * 60 * 30) {
-        document.addEventListener('visibilitychange', () => {
-          const isActive = document.visibilityState === 'visible'
-          setPolling(isActive)
-        })
-
-        return () => {
-          document.removeEventListener('visibilitychange', () => {})
-        }
-      } else {
-        setPolling(false)
-      }
+    const handleVisibilityChange = () => {
+      const isActive = document.visibilityState === 'visible'
+      setPolling(isActive)
     }
-  }, [])
+
+    const now = new Date()
+    const timeSinceEngaged = now.getTime() - engagedAt.getTime()
+
+    // poll only if the user is active and has been active in the last 30 minutes
+    if (timeSinceEngaged < 1000 * 60 * 30) {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+    } else {
+      setPolling(false)
+    }
+  }, [engagedAt])
 
   const { data } = useQuery(GET_NEW_COMMENTS, SSR
     ? {}

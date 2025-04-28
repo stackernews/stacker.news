@@ -60,7 +60,7 @@ export async function territoryRevenue ({ models }) {
   // this is safe nonserializable because it only acts on old data that won't
   // be affected by concurrent updates ... and the update takes a lock on the
   // users table
-  await models.$executeRaw`
+  const territoryRevenue = await models.$executeRaw`
       WITH revenue AS (
         SELECT coalesce(sum(msats), 0) as revenue, "subName", "userId"
         FROM (
@@ -94,18 +94,12 @@ export async function territoryRevenue ({ models }) {
       SET msats = users.msats + "SubActResultTotal".total_msats,
         "stackedMsats" = users."stackedMsats" + "SubActResultTotal".total_msats
       FROM "SubActResultTotal"
-      WHERE users.id = "SubActResultTotal"."userId"`
+      WHERE users.id = "SubActResultTotal"."userId"
+      RETURNING (SELECT * FROM "SubActResult")`
 
-  const territoryRevenue = await models.subAct.findMany({
-    where: {
-      createdAt: { // retrieve revenue calculated in the last hour
-        gte: datePivot(new Date(), { hours: -1 })
-      },
-      type: 'REVENUE'
-    }
-  })
-
-  await Promise.allSettled(
-    territoryRevenue.map(subAct => notifyTerritoryRevenue(subAct))
-  )
+  if (territoryRevenue.length > 0) {
+    await Promise.allSettled(
+      territoryRevenue.map(subAct => notifyTerritoryRevenue(subAct))
+    )
+  }
 }

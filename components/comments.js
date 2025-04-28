@@ -9,6 +9,7 @@ import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './comments-live'
+import ActionTooltip from './action-tooltip'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, livePolling }) {
   const router = useRouter()
@@ -31,7 +32,9 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
         </Nav.Item>
         {livePolling && (
           <Nav.Item className='ps-2'>
-            <div className={styles.newCommentDot} />
+            <ActionTooltip notForm overlayText='live comment section'>
+              <div className={styles.newCommentDot} />
+            </ActionTooltip>
           </Nav.Item>
         )}
         <div className='ms-auto d-flex'>

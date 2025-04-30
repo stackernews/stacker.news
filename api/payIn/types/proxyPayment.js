@@ -1,8 +1,7 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { toPositiveBigInt, numWithUnits, msatsToSats } from '@/lib/format'
 import { notifyDeposit } from '@/lib/webPush'
-import { createUserInvoice } from '@/wallets/server'
-import { parsePaymentRequest } from 'ln-service'
+import { payOutBolt11Prospect } from '../lib/payOutBolt11'
 export const anonable = false
 
 export const paymentMethods = [
@@ -16,8 +15,7 @@ export async function getInitial (models, { msats }, { me }) {
   const rewardsPoolMtokens = mcost * 7n / 100n
   const proxyPaymentMtokens = mcost - routingFeeMtokens - rewardsPoolMtokens
 
-  const { invoice: bolt11, wallet } = await createUserInvoice(me.id, { msats: proxyPaymentMtokens }, { models })
-  const invoice = await parsePaymentRequest({ request: bolt11 })
+  const payOutBolt11 = await payOutBolt11Prospect(models, { userId: me.id, payOutType: 'PROXY_PAYMENT', msats: proxyPaymentMtokens })
 
   return {
     payInType: 'PROXY_PAYMENT',
@@ -27,14 +25,7 @@ export async function getInitial (models, { msats }, { me }) {
       { payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' },
       { payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardsPoolMtokens, custodialTokenType: 'SATS' }
     ],
-    payOutBolt11: {
-      payOutType: 'PROXY_PAYMENT',
-      hash: invoice.id,
-      bolt11,
-      msats: proxyPaymentMtokens,
-      userId: me.id,
-      walletId: wallet.id
-    }
+    payOutBolt11
   }
 }
 

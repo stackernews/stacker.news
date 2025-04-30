@@ -9,11 +9,15 @@ import { toPositiveNumber, formatSats, msatsToSats, toPositiveBigInt, formatMsat
 import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/wrap'
 import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { notifyWithdrawal } from '@/lib/webPush'
+import { PayInFailureReasonError } from './errors'
 const PAY_IN_TERMINAL_STATES = ['PAID', 'FAILED']
 const FINALIZE_OPTIONS = { retryLimit: 2 ** 31 - 1, retryBackoff: false, retryDelay: 5, priority: 1000 }
 
-async function transitionPayIn (jobName, { payInId, fromStates, toState, transitionFunc, errorFunc, invoice, withdrawal }, { models, boss, lnd }) {
+async function transitionPayIn (jobName, data,
+  { payInId, fromStates, toState, transitionFunc, cancelOnError },
+  { invoice, withdrawal, models, boss, lnd }) {
   let payIn
+
   try {
     const include = { payInBolt11: true, payOutBolt11: true, pessimisticEnv: true, payOutCustodialTokens: true, beneficiaries: true }
     const currentPayIn = await models.payIn.findUnique({ where: { id: payInId }, include })
@@ -96,31 +100,36 @@ async function transitionPayIn (jobName, { payInId, fromStates, toState, transit
     }
 
     console.error('unexpected error', error)
-    errorFunc?.(error, payIn.id, { models, boss })
-    await boss.send(
-      jobName,
-      { payInId },
-      { startAfter: datePivot(new Date(), { seconds: 30 }), priority: 1000 })
+    if (cancelOnError) {
+      models.pessimisticEnv.updateMany({
+        where: { payInId },
+        data: {
+          error: error.message
+        }
+      }).catch(e => console.error('failed to store payIn error', e))
+      const reason = error instanceof PayInFailureReasonError
+        ? error.payInFailureReason
+        : 'EXECUTION_FAILED'
+      boss.send('payInCancel', { payInId, payInFailureReason: reason }, FINALIZE_OPTIONS)
+        .catch(e => console.error('failed to cancel payIn', e))
+    } else {
+      // retry the job
+      boss.send(
+        jobName,
+        data,
+        { startAfter: datePivot(new Date(), { seconds: 30 }), priority: 1000 })
+        .catch(e => console.error('failed to retry payIn', e))
+    }
+
     console.error(`${jobName} failed for payIn ${payInId}: ${error}`)
     throw error
   }
 }
 
-// if we experience an unexpected error when holding an invoice, we need aggressively attempt to cancel it
-// store the error in the invoice, nonblocking and outside of this tx, finalizing immediately
-function errorFunc (error, payInId, { models, boss }) {
-  models.pessimisticEnv.update({
-    where: { payInId },
-    data: {
-      error: error.message
-    }
-  }).catch(e => console.error('failed to store payIn error', e))
-  boss.send('payInCancel', { payInId, payInFailureReason: 'HELD_INVOICE_UNEXPECTED_ERROR' }, FINALIZE_OPTIONS)
-    .catch(e => console.error('failed to cancel payIn', e))
-}
+export async function payInWithdrawalPaid ({ data, models, ...args }) {
+  const { payInId } = data
 
-export async function payInWithdrawalPaid ({ data: { payInId, ...args }, models, lnd, boss }) {
-  const transitionedPayIn = await transitionPayIn('payInWithdrawalPaid', {
+  const transitionedPayIn = await transitionPayIn('payInWithdrawalPaid', data, {
     payInId,
     fromState: 'PENDING_WITHDRAWAL',
     toState: 'WITHDRAWAL_PAID',
@@ -155,9 +164,8 @@ export async function payInWithdrawalPaid ({ data: { payInId, ...args }, models,
           }
         }
       }
-    },
-    ...args
-  }, { models, lnd, boss })
+    }
+  }, { models, ...args })
 
   if (transitionedPayIn) {
     await notifyWithdrawal(transitionedPayIn)
@@ -169,9 +177,10 @@ export async function payInWithdrawalPaid ({ data: { payInId, ...args }, models,
   }
 }
 
-export async function payInWithdrawalFailed ({ data: { payInId, ...args }, models, lnd, boss }) {
+export async function payInWithdrawalFailed ({ data, models, ...args }) {
+  const { payInId } = data
   let message
-  const transitionedPayIn = await transitionPayIn('payInWithdrawalFailed', {
+  const transitionedPayIn = await transitionPayIn('payInWithdrawalFailed', data, {
     payInId,
     fromState: 'PENDING_WITHDRAWAL',
     toState: 'WITHDRAWAL_FAILED',
@@ -192,7 +201,7 @@ export async function payInWithdrawalFailed ({ data: { payInId, ...args }, model
         }
       }
     }
-  })
+  }, { models, ...args })
 
   if (transitionedPayIn) {
     const { mtokens } = transitionedPayIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
@@ -204,8 +213,9 @@ export async function payInWithdrawalFailed ({ data: { payInId, ...args }, model
   }
 }
 
-export async function payInPaid ({ data: { payInId, ...args }, models, lnd, boss }) {
-  const transitionedPayIn = await transitionPayIn('payInPaid', {
+export async function payInPaid ({ data, models, ...args }) {
+  const { payInId } = data
+  const transitionedPayIn = await transitionPayIn('payInPaid', data, {
     payInId,
     fromState: ['HELD', 'PENDING', 'FORWARDED'],
     toState: 'PAID',
@@ -225,9 +235,8 @@ export async function payInPaid ({ data: { payInId, ...args }, models, lnd, boss
           }
         }
       }
-    },
-    ...args
-  }, { models, lnd, boss })
+    }
+  }, { models, ...args })
 
   if (transitionedPayIn) {
     // run non critical side effects in the background
@@ -239,8 +248,9 @@ export async function payInPaid ({ data: { payInId, ...args }, models, lnd, boss
 }
 
 // this performs forward creating the outgoing payment
-export async function payInForwarding ({ data: { payInId, ...args }, models, lnd, boss }) {
-  const transitionedPayIn = await transitionPayIn('payInForwarding', {
+export async function payInForwarding ({ data, models, boss, lnd, ...args }) {
+  const { payInId } = data
+  const transitionedPayIn = await transitionPayIn('payInForwarding', data, {
     payInId,
     fromState: 'PENDING_HELD',
     toState: 'FORWARDING',
@@ -260,9 +270,7 @@ export async function payInForwarding ({ data: { payInId, ...args }, models, lnd
       if (maxTimeoutDelta - toPositiveNumber(invoice.cltv_delta) < 0) {
         // the payment will certainly fail, so we can
         // cancel and allow transition from PENDING[_HELD] -> FAILED
-        boss.send('payInCancel', { payInId, payInFailureReason: 'INVOICE_FORWARDING_CLTV_DELTA_TOO_LOW' }, FINALIZE_OPTIONS)
-          .catch(e => console.error('failed to cancel payIn', e))
-        throw new Error('invoice has insufficient cltv delta for forward')
+        throw new PayInFailureReasonError('invoice has insufficient cltv delta for forward', 'INVOICE_FORWARDING_CLTV_DELTA_TOO_LOW')
       }
 
       // if this is a pessimistic action, we want to perform it now
@@ -271,7 +279,7 @@ export async function payInForwarding ({ data: { payInId, ...args }, models, lnd
       if (payIn.pessimisticEnv) {
         pessimisticEnv = {
           update: {
-            result: await payInTypeModules[payIn.payInType].perform(tx, payIn.id, payIn.pessimisticEnv.args)
+            result: await payInTypeModules[payIn.payInType].onBegin?.(tx, payIn.id, payIn.pessimisticEnv.args)
           }
         }
       }
@@ -287,9 +295,8 @@ export async function payInForwarding ({ data: { payInId, ...args }, models, lnd
         pessimisticEnv
       }
     },
-    errorFunc,
-    ...args
-  }, { models, lnd, boss })
+    cancelOnError: true
+  }, { models, boss, lnd, ...args })
 
   // only pay if we successfully transitioned which can only happen once
   // we can't do this inside the transaction because it isn't necessarily idempotent
@@ -315,22 +322,22 @@ export async function payInForwarding ({ data: { payInId, ...args }, models, lnd
 }
 
 // this finalizes the forward by settling the incoming invoice after the outgoing payment is confirmed
-export async function payInForwarded ({ data: { payInId, withdrawal, ...args }, models, lnd, boss }) {
-  const transitionedPayIn = await transitionPayIn('payInForwarded', {
+export async function payInForwarded ({ data, models, lnd, boss, ...args }) {
+  const { payInId } = data
+  const transitionedPayIn = await transitionPayIn('payInForwarded', data, {
     payInId,
     fromState: 'FORWARDING',
     toState: 'FORWARDED',
-    transition: async ({ tx, payIn, lndPayInBolt11 }) => {
+    transition: async ({ tx, payIn, lndPayInBolt11, lndPayOutBolt11 }) => {
       if (!(lndPayInBolt11.is_held || lndPayInBolt11.is_confirmed)) {
         throw new Error('invoice is not held')
       }
 
-      const { hash, createdAt } = payIn.payOutBolt11
-      const { payment, is_confirmed: isConfirmed } = withdrawal ??
-        await getPaymentOrNotSent({ id: hash, lnd, createdAt })
-      if (!isConfirmed) {
+      if (!lndPayOutBolt11.is_confirmed) {
         throw new Error('payment is not confirmed')
       }
+
+      const { payment } = lndPayOutBolt11
 
       // settle the invoice, allowing us to transition to PAID
       await settleHodlInvoice({ secret: payment.secret, lnd })
@@ -365,9 +372,8 @@ export async function payInForwarded ({ data: { payInId, withdrawal, ...args }, 
           ]
         }
       }
-    },
-    ...args
-  }, { models, lnd, boss })
+    }
+  }, { models, lnd, boss, ...args })
 
   if (transitionedPayIn) {
     const withdrawal = transitionedPayIn.payOutBolt11
@@ -383,29 +389,27 @@ export async function payInForwarded ({ data: { payInId, withdrawal, ...args }, 
 }
 
 // when the pending forward fails, we need to cancel the incoming invoice
-export async function payInFailedForward ({ data: { payInId, withdrawal: pWithdrawal, ...args }, models, lnd, boss }) {
+export async function payInFailedForward ({ data, models, lnd, boss, ...args }) {
+  const { payInId } = data
   let message
-  const transitionedPayIn = await transitionPayIn('payInFailedForward', {
+  const transitionedPayIn = await transitionPayIn('payInFailedForward', data, {
     payInId,
     fromState: 'FORWARDING',
     toState: 'FAILED_FORWARD',
-    transition: async ({ tx, payIn, lndPayInBolt11 }) => {
+    transition: async ({ tx, payIn, lndPayInBolt11, lndPayOutBolt11 }) => {
       if (!(lndPayInBolt11.is_held || lndPayInBolt11.is_cancelled)) {
         throw new Error('invoice is not held')
       }
 
-      const { hash, createdAt } = payIn.payOutBolt11
-      const withdrawal = pWithdrawal ?? await getPaymentOrNotSent({ id: hash, lnd, createdAt })
-
-      if (!(withdrawal?.is_failed || withdrawal?.notSent)) {
-        throw new Error('payment has not failed')
+      if (!(lndPayOutBolt11.is_failed || lndPayOutBolt11.notSent)) {
+        throw new Error('payment is not failed')
       }
 
       // cancel to transition to FAILED ... this is really important we do not transition unless this call succeeds
       // which once it does succeed will ensure we will try to cancel the held invoice until it actually cancels
       await boss.send('payInCancel', { payInId, payInFailureReason: 'INVOICE_FORWARDING_FAILED' }, FINALIZE_OPTIONS)
 
-      const { status, message: failureMessage } = getPaymentFailureStatus(withdrawal)
+      const { status, message: failureMessage } = getPaymentFailureStatus(lndPayOutBolt11)
       message = failureMessage
 
       return {
@@ -415,9 +419,8 @@ export async function payInFailedForward ({ data: { payInId, withdrawal: pWithdr
           }
         }
       }
-    },
-    ...args
-  }, { models, lnd, boss })
+    }
+  }, { models, lnd, boss, ...args })
 
   if (transitionedPayIn) {
     const fwd = transitionedPayIn.payOutBolt11
@@ -458,7 +461,7 @@ export async function payInHeld ({ data: { payInId, ...args }, models, lnd, boss
       if (payIn.pessimisticEnv) {
         pessimisticEnv = {
           update: {
-            result: await payInTypeModules[payIn.payInType].perform(tx, payIn.id, payIn.pessimisticEnv.args)
+            result: await payInTypeModules[payIn.payInType].onBegin?.(tx, payIn.id, payIn.pessimisticEnv.args)
           }
         }
       }
@@ -475,13 +478,13 @@ export async function payInHeld ({ data: { payInId, ...args }, models, lnd, boss
         pessimisticEnv
       }
     },
-    errorFunc,
-    ...args
+    cancelOnError: true
   }, { models, lnd, boss })
 }
 
-export async function payInCancel ({ data: { payInId, payInFailureReason, ...args }, models, lnd, boss }) {
-  const transitionedPayIn = await transitionPayIn('payInCancel', {
+export async function payInCancel ({ data, models, lnd, boss, ...args }) {
+  const { payInId, payInFailureReason } = data
+  const transitionedPayIn = await transitionPayIn('payInCancel', data, {
     payInId,
     fromState: ['HELD', 'PENDING', 'PENDING_HELD', 'FAILED_FORWARD'],
     toState: 'CANCELLED',
@@ -495,9 +498,8 @@ export async function payInCancel ({ data: { payInId, payInFailureReason, ...arg
       return {
         payInFailureReason: payInFailureReason ?? 'SYSTEM_CANCELLED'
       }
-    },
-    ...args
-  }, { models, lnd, boss })
+    }
+  }, { models, lnd, boss, ...args })
 
   if (transitionedPayIn) {
     if (transitionedPayIn.payOutBolt11) {
@@ -515,8 +517,9 @@ export async function payInCancel ({ data: { payInId, payInFailureReason, ...arg
   return transitionedPayIn
 }
 
-export async function payInFailed ({ data: { payInId, ...args }, models, lnd, boss }) {
-  return await transitionPayIn('payInFailed', {
+export async function payInFailed ({ data, models, lnd, boss, ...args }) {
+  const { payInId, payInFailureReason } = data
+  return await transitionPayIn('payInFailed', data, {
     payInId,
     // any of these states can transition to FAILED
     fromState: ['PENDING', 'PENDING_HELD', 'HELD', 'FAILED_FORWARD', 'CANCELLED', 'PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'],
@@ -536,15 +539,12 @@ export async function payInFailed ({ data: { payInId, ...args }, models, lnd, bo
 
       await onFail(tx, payIn.id)
 
-      const payInFailureReason = !lndPayInBolt11
-        ? 'INVOICE_CREATION_FAILED'
-        : (payIn.payInFailureReason ?? 'INVOICE_EXPIRED')
+      const reason = payInFailureReason ?? payIn.payInFailureReason ?? 'UNKNOWN_FAILURE'
 
       return {
-        payInFailureReason,
+        payInFailureReason: reason,
         payInBolt11
       }
-    },
-    ...args
-  }, { models, lnd, boss })
+    }
+  }, { models, lnd, boss, ...args })
 }

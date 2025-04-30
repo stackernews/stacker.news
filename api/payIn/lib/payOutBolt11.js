@@ -1,11 +1,10 @@
 import { parsePaymentRequest } from 'ln-service'
 import { PAY_IN_RECEIVER_FAILURE_REASONS } from './is'
-import walletDefs, { createUserInvoice } from '@/wallets/server'
+import { createBolt11FromWallets } from '@/wallets/server'
 import { Prisma } from '@prisma/client'
-import { canReceive } from '@/wallets/common'
 
-async function getLeastFailedWallet (models, { genesisId, userId }) {
-  const leastFailedWallets = await models.$queryRaw`
+async function getLeastFailedWallets (models, { genesisId, userId }) {
+  return await models.$queryRaw`
     WITH "failedWallets" AS (
       SELECT count(*) as "failedCount", "PayOutBolt11"."walletId"
       FROM "PayIn"
@@ -18,25 +17,42 @@ async function getLeastFailedWallet (models, { genesisId, userId }) {
     FROM "Wallet"
     LEFT JOIN "failedWallets" ON "failedWallets"."walletId" = "Wallet"."id"
     ORDER BY "failedWallets"."failedCount" ASC, "Wallet"."priority" ASC`
-
-  const walletsWithDefs = leastFailedWallets.map(wallet => {
-    const w = walletDefs.find(w => w.walletType === wallet.type)
-    return { wallet, def: w }
-  }).filter(({ def, wallet }) => canReceive({ def, config: wallet.wallet }))
-
-  return walletsWithDefs.map(({ wallet }) => wallet)
 }
 
-export async function payOutBolt11Replacement (models, payIn) {
-  const { payOutBolt11: { userId, msats }, genesisId } = payIn
-  const wallets = await getLeastFailedWallet(models, { genesisId, userId })
+async function getWallets (models, { userId }) {
+  return await models.wallet.findMany({
+    where: {
+      userId,
+      enabled: true
+    },
+    include: {
+      user: true
+    }
+  })
+}
 
-  const { invoice: bolt11, wallet } = await createUserInvoice(userId, { msats, wallets }, { models })
+export async function payOutBolt11Replacement (models, genesisId, { userId, msats, payOutType }) {
+  const wallets = await getLeastFailedWallets(models, { genesisId, userId })
+  const { bolt11, wallet } = await createBolt11FromWallets(wallets, { msats }, { models })
+
   const invoice = await parsePaymentRequest({ request: bolt11 })
-
   return {
-    payOutType: 'ZAP',
-    msats,
+    payOutType,
+    msats: BigInt(invoice.mtokens),
+    bolt11,
+    hash: invoice.hash,
+    userId,
+    walletId: wallet.id
+  }
+}
+
+export async function payOutBolt11Prospect (models, { userId, payOutType, msats }) {
+  const wallets = await getWallets(models, { userId })
+  const { bolt11, wallet } = await createBolt11FromWallets(wallets, { msats }, { models })
+  const invoice = await parsePaymentRequest({ request: bolt11 })
+  return {
+    payOutType,
+    msats: BigInt(invoice.mtokens),
     bolt11,
     hash: invoice.hash,
     userId,

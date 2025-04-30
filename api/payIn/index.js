@@ -4,11 +4,12 @@ import { payViaPaymentRequest } from 'ln-service'
 import lnd from '../lnd'
 import payInTypeModules from './types'
 import { msatsToSats } from '@/lib/format'
-import { payInCreatePayInBolt11, payInCreatePayInBolt11Wrap } from './lib/payInBolt11'
+import { payInBolt11Prospect, payInBolt11WrapProspect } from './lib/payInBolt11'
 import { isPessimistic, isWithdrawal } from './lib/is'
 import { PAY_IN_INCLUDE, payInCreate } from './lib/payInCreate'
 import { payOutBolt11Replacement } from './lib/payOutBolt11'
 import { payInClone } from './lib/payInPrisma'
+import { PayInFailureReasonError } from './errors'
 
 export default async function pay (payInType, payInArgs, { models, me }) {
   try {
@@ -63,8 +64,8 @@ async function begin (models, payInInitial, payInArgs, { me }) {
       }
     }
 
-    // TODO: create a periodic job that checks if the invoice/withdrawal creation failed
-    // It will need to consider timeouts of wrapped invoice creation very carefully
+    tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
+      VALUES ('checkPayIn', jsonb_build_object('payInId', ${payIn.id}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
     return {
       payIn,
       mCostRemaining
@@ -77,7 +78,10 @@ async function begin (models, payInInitial, payInArgs, { me }) {
 async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
   async function afterInvoiceCreation ({ payInState, payInBolt11 }) {
     return await models.payIn.update({
-      where: { id: payIn.id },
+      where: {
+        id: payIn.id,
+        payInState: { in: ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'] }
+      },
       data: {
         payInState,
         payInStateChangedAt: new Date(),
@@ -93,13 +97,13 @@ async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
     if (payIn.payInState === 'PAID') {
       payInTypeModules[payIn.payInType].onPaidSideEffects?.(models, payIn.id).catch(console.error)
     } else if (payIn.payInState === 'PENDING_INVOICE_CREATION') {
-      const payInBolt11 = await payInCreatePayInBolt11(models, payIn, { msats: mCostRemaining })
+      const payInBolt11 = await payInBolt11Prospect(models, payIn, { msats: mCostRemaining })
       return await afterInvoiceCreation({
         payInState: payIn.pessimisticEnv ? 'PENDING_HELD' : 'PENDING',
         payInBolt11
       })
     } else if (payIn.payInState === 'PENDING_INVOICE_WRAP') {
-      const payInBolt11 = await payInCreatePayInBolt11Wrap(models, payIn, { msats: mCostRemaining })
+      const payInBolt11 = await payInBolt11WrapProspect(models, payIn, { msats: mCostRemaining })
       return await afterInvoiceCreation({
         payInState: 'PENDING_HELD',
         payInBolt11
@@ -117,8 +121,12 @@ async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
       throw new Error('Invalid payIn begin state')
     }
   } catch (e) {
+    let payInFailureReason = 'EXECUTION_FAILED'
+    if (e instanceof PayInFailureReasonError) {
+      payInFailureReason = e.payInFailureReason
+    }
     models.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-        VALUES ('payInFailed', jsonb_build_object('id', ${payIn.id}::INTEGER), now(), 1000)`.catch(console.error)
+        VALUES ('payInFailed', jsonb_build_object('payInId', ${payIn.id}::INTEGER, 'payInFailureReason', ${payInFailureReason}), now(), 1000)`.catch(console.error)
     throw e
   }
 
@@ -216,7 +224,7 @@ export async function retry (payInId, { models, me }) {
 
   let payOutBolt11
   if (payInFailed.payOutBolt11) {
-    payOutBolt11 = await payOutBolt11Replacement(models, payInFailed)
+    payOutBolt11 = await payOutBolt11Replacement(models, payInFailed.genesisId ?? payInFailed.id, payInFailed.payOutBolt11)
   }
 
   const { payIn, mCostRemaining } = await models.$transaction(async tx => {

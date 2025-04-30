@@ -1,9 +1,8 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyZapped } from '@/lib/webPush'
-import { createUserInvoice, getInvoiceableWallets } from '@/wallets/server'
 import { Prisma } from '@prisma/client'
-import { parsePaymentRequest } from 'ln-service'
+import { payOutBolt11Prospect } from '../lib/payOutBolt11'
 
 export const anonable = true
 
@@ -15,13 +14,13 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-async function getInvoiceablePeer (models, { id, sats, hasSendWallet }, { me }) {
+async function tryP2P (models, { id, sats, hasSendWallet }, { me }) {
   const zapper = await models.user.findUnique({ where: { id: me.id } })
   // if the zap is dust, or if me doesn't have a send wallet but has enough sats/credits to pay for it
   // then we don't invoice the peer
   if (sats < zapper?.sendCreditsBelowSats ||
     (me && !hasSendWallet && (zapper.mcredits + zapper.msats >= satsToMsats(sats)))) {
-    return null
+    return false
   }
 
   const item = await models.item.findUnique({
@@ -32,22 +31,12 @@ async function getInvoiceablePeer (models, { id, sats, hasSendWallet }, { me }) 
     }
   })
 
-  // bios don't get sats
-  if (item.bio) {
-    return null
+  // bios, forwards, or dust don't get sats
+  if (item.bio || item.itemForwards.length > 0 || sats < item.user.receiveCreditsBelowSats) {
+    return false
   }
 
-  const wallets = await getInvoiceableWallets(item.userId, { models })
-
-  // request peer invoice if they have an attached wallet and have not forwarded the item
-  // and the receiver doesn't want to receive credits
-  if (wallets.length > 0 &&
-    item.itemForwards.length === 0 &&
-    sats >= item.user.receiveCreditsBelowSats) {
-    return item.userId
-  }
-
-  return null
+  return true
 }
 
 // 70% to the receiver(s), 21% to the territory founder, the rest depends on if it's P2P or not
@@ -55,56 +44,63 @@ export async function getInitial (models, payInArgs, { me }) {
   const { sub, itemForwards, userId } = await models.item.findUnique({ where: { id: parseInt(payInArgs.id) }, include: { sub: true, itemForwards: true, user: true } })
   const mcost = satsToMsats(payInArgs.sats)
   const founderMtokens = mcost * 21n / 100n
-  const payOutCustodialTokens = [{
-    payOutType: 'TERRITORY_REVENUE',
-    userId: sub.userId,
-    mtokens: founderMtokens,
-    custodialTokenType: 'SATS'
-  }]
 
-  let payOutBolt11
-  const invoiceablePeer = await getInvoiceablePeer(models, payInArgs, { me })
-  if (invoiceablePeer) {
-    const routingFeeMtokens = mcost * 3n / 100n
-    const rewardsPoolMtokens = mcost * 6n / 100n
-    const zapMtokens = mcost - routingFeeMtokens - rewardsPoolMtokens
-    const { invoice: bolt11, wallet } = await createUserInvoice(me.id, { msats: zapMtokens }, { models })
-    const invoice = await parsePaymentRequest({ request: bolt11 })
-
-    // 6% to rewards pool, 3% to routing fee
-    payOutCustodialTokens.push(
-      { payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' },
-      { payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardsPoolMtokens, custodialTokenType: 'SATS' })
-    payOutBolt11 = {
-      payOutType: 'ZAP',
-      msats: BigInt(invoice.mtokens),
-      bolt11,
-      hash: invoice.hash,
-      userId: invoiceablePeer,
-      walletId: wallet.id
-    }
-  } else {
-    // 9% to rewards pool
-    const rewardsPoolMtokens = mcost * 9n / 100n
-    const zapMtokens = mcost - rewardsPoolMtokens - founderMtokens
-    if (itemForwards.length > 0) {
-      for (const f of itemForwards) {
-        payOutCustodialTokens.push({ payOutType: 'ZAP', userId: f.userId, mtokens: zapMtokens * BigInt(f.pct) / 100n, custodialTokenType: 'CREDITS' })
-      }
-    }
-    const remainingZapMtokens = zapMtokens - payOutCustodialTokens.filter(t => t.payOutType === 'ZAP').reduce((acc, t) => acc + t.mtokens, 0n)
-    payOutCustodialTokens.push({ payOutType: 'ZAP', userId, mtokens: remainingZapMtokens, custodialTokenType: 'CREDITS' })
-  }
-
-  return {
+  const result = {
     payInType: 'ZAP',
     userId: me.id,
     mcost,
-    payOutCustodialTokens,
-    payOutBolt11,
+    payOutCustodialTokens: [{
+      payOutType: 'TERRITORY_REVENUE',
+      userId: sub.userId,
+      mtokens: founderMtokens,
+      custodialTokenType: 'SATS'
+    }],
+    payOutBolt11: null,
     itemPayIn: {
       itemId: parseInt(payInArgs.id)
     }
+  }
+
+  const p2p = await tryP2P(models, payInArgs, { me })
+  if (p2p) {
+    try {
+      // 6% to rewards pool, 3% to routing fee
+      const routingFeeMtokens = mcost * 3n / 100n
+      const rewardsPoolMtokens = mcost * 6n / 100n
+      const zapMtokens = mcost - routingFeeMtokens - rewardsPoolMtokens
+
+      return {
+        ...result,
+        payOutCustodialTokens: [
+          ...result.payOutCustodialTokens,
+          { payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' },
+          { payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardsPoolMtokens, custodialTokenType: 'SATS' }
+        ],
+        payOutBolt11: await payOutBolt11Prospect(models, { userId, payOutType: 'ZAP', msats: zapMtokens })
+      }
+    } catch (err) {
+      console.error('failed to create user invoice:', err)
+    }
+  }
+
+  // 9% to rewards pool
+  const rewardsPoolMtokens = mcost * 9n / 100n
+  const zapMtokens = mcost - rewardsPoolMtokens - founderMtokens
+  const payOutCustodialTokens = []
+  if (itemForwards.length > 0) {
+    for (const f of itemForwards) {
+      payOutCustodialTokens.push({ payOutType: 'ZAP', userId: f.userId, mtokens: zapMtokens * BigInt(f.pct) / 100n, custodialTokenType: 'CREDITS' })
+    }
+  }
+  const remainingZapMtokens = zapMtokens - payOutCustodialTokens.filter(t => t.payOutType === 'ZAP').reduce((acc, t) => acc + t.mtokens, 0n)
+  payOutCustodialTokens.push({ payOutType: 'ZAP', userId, mtokens: remainingZapMtokens, custodialTokenType: 'CREDITS' })
+
+  return {
+    ...result,
+    payOutCustodialTokens: [
+      ...result.payOutCustodialTokens,
+      ...payOutCustodialTokens
+    ]
   }
 }
 

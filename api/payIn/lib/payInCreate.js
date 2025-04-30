@@ -1,5 +1,5 @@
 import { assertBelowMaxPendingPayInBolt11s } from './assert'
-import { isInvoiceable, isPessimistic } from './is'
+import { isInvoiceable, isPessimistic, isWithdrawal } from './is'
 import { getCostBreakdown, getPayInCustodialTokens } from './payInCustodialTokens'
 import { payInPrismaCreate } from './payInPrisma'
 
@@ -14,7 +14,7 @@ export const PAY_IN_INCLUDE = {
 export async function payInCreate (tx, payInProspect, { me }) {
   const { mCostRemaining, mP2PCost, payInCustodialTokens } = await getPayInCosts(tx, payInProspect, { me })
   const payInState = await getPayInState(payInProspect, { mCostRemaining, mP2PCost })
-  if (payInState !== 'PAID') {
+  if (!isWithdrawal(payInProspect) && payInState !== 'PAID') {
     await assertBelowMaxPendingPayInBolt11s(tx, payInProspect.userId)
   }
   const payIn = await tx.payIn.create({
@@ -54,11 +54,17 @@ async function getPayInState (payIn, { mCostRemaining, mP2PCost }) {
     if (!isInvoiceable(payIn)) {
       throw new Error('Insufficient funds')
     }
+
     if (mP2PCost > 0n) {
       return 'PENDING_INVOICE_WRAP'
     } else {
       return 'PENDING_INVOICE_CREATION'
     }
   }
+
+  if (isWithdrawal(payIn)) {
+    return 'PENDING_WITHDRAWAL'
+  }
+
   return 'PAID'
 }

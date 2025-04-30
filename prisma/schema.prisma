@@ -1330,6 +1330,7 @@ enum PayInType {
   PROXY_PAYMENT
   REWARDS
   WITHDRAWAL
+  AUTO_WITHDRAWAL
 }
 
 enum PayInState {
@@ -1363,6 +1364,7 @@ enum PayInFailureReason {
   SYSTEM_CANCELLED
   INVOICE_EXPIRED
   EXECUTION_FAILED
+  UNKNOWN_FAILURE
 }
 
 model ItemPayIn {

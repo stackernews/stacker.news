@@ -32,7 +32,7 @@ export function isP2P (payIn) {
 }
 
 export function isWithdrawal (payIn) {
-  return payIn.payInType === 'WITHDRAWAL'
+  return payIn.payInType === 'WITHDRAWAL' || payIn.payInType === 'AUTO_WITHDRAWAL'
 }
 
 export function isReceiverFailure (payInFailureReason) {

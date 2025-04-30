@@ -6,7 +6,7 @@ import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 export * from '@/wallets/lightning-address'
 
 export const testCreateInvoice = async ({ address }, { signal }) => {
-  return await createInvoice({ msats: 1000 }, { address }, { signal })
+  return await createInvoice({ msats: undefined }, { address }, { signal })
 }
 
 export const createInvoice = async (
@@ -14,10 +14,14 @@ export const createInvoice = async (
   { address },
   { signal }
 ) => {
-  const { callback, commentAllowed } = await lnAddrOptions(address, { signal })
+  const { min, callback, commentAllowed } = await lnAddrOptions(address, { signal })
   const callbackUrl = new URL(callback)
 
   // most lnurl providers suck nards so we have to floor to nearest sat
+  if (!msats) {
+    // use min sendable amount by default
+    msats = 1_000 * min
+  }
   msats = msatsSatsFloor(msats)
 
   callbackUrl.searchParams.append('amount', msats)

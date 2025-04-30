@@ -1092,6 +1092,9 @@ export default {
         return false
       }
       return !!user.tipRandomMin && !!user.tipRandomMax
+    },
+    hideWalletRecvPrompt: async (user, args, { models }) => {
+      return user.hideWalletRecvPrompt || user.hasRecvWallet
     }
   },
 

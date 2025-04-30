@@ -1,6 +1,5 @@
 import { getWalletByType } from '@/wallets/common'
 import walletDefs from '@/wallets/client'
-import { get } from '@/lib/object'
 
 export const vaultPrismaFragments = {
   create: createFragment,
@@ -90,7 +89,7 @@ export function vaultNewSchematoTypedef (wallet) {
 
   const newVaultEntries = []
   for (const name of vaultFieldNames(def)) {
-    const newVaultEntry = get(wallet, `${def.walletField}.${name}`)
+    const newVaultEntry = wallet?.[def.walletField]?.[name]
     if (newVaultEntry) newVaultEntries.push({ ...newVaultEntry, key: name })
   }
 
@@ -111,5 +110,5 @@ export function deleteVault (models, wallet) {
 export function hasVault (wallet) {
   const def = getWalletByType(wallet.type)
   const vaultNames = vaultFieldNames(def)
-  return vaultNames.some(name => get(wallet, `wallet.${name}Id`))
+  return vaultNames.some(name => wallet.wallet?.[`${name}Id`])
 }

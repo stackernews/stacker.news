@@ -38,6 +38,7 @@ import { expireBoost } from './expireBoost'
 import { payingActionConfirmed, payingActionFailed } from './payingAction'
 import { autoDropBolt11s } from './autoDropBolt11'
 import { postToSocial } from './socialPoster'
+import { domainVerification } from './domainVerification.js'
 
 // WebSocket polyfill
 import ws from 'isomorphic-ws'
@@ -123,6 +124,7 @@ async function work () {
     await boss.work('imgproxy', jobWrapper(imgproxy))
     await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
   }
+  await boss.work('domainVerification', jobWrapper(domainVerification))
   await boss.work('expireBoost', jobWrapper(expireBoost))
   await boss.work('weeklyPost-*', jobWrapper(weeklyPost))
   await boss.work('payWeeklyPostBounty', jobWrapper(payWeeklyPostBounty))

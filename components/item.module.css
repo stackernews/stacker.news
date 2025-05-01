@@ -247,3 +247,31 @@ a.link:visited {
 .skeleton .otherItemLonger {
     width: 60px;
 }
+
+.record {
+    display: flex;
+    flex-direction: column;
+    margin-right: 0.5rem;
+}
+
+.clipboard {
+    cursor: pointer;
+    fill: var(--theme-grey);
+    width: 1rem;
+    height: 1rem;
+}
+
+.clipboard:hover {
+    fill: var(--bs-primary);
+}
+
+.refresh {
+    cursor: pointer;
+    fill: var(--theme-grey);
+    width: 1rem;
+    height: 1rem;
+}
+
+.refresh:hover {
+    fill: var(--bs-primary);
+}

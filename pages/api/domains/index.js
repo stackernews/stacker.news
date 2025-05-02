@@ -14,9 +14,9 @@ export default async function handler (req, res) {
 
   try {
     // fetch all VERIFIED custom domains from the database
-    const domains = await prisma.customDomain.findMany({
+    const domains = await prisma.domain.findMany({
       select: {
-        domain: true,
+        domainName: true,
         subName: true
       },
       where: {
@@ -26,7 +26,7 @@ export default async function handler (req, res) {
 
     // map domains to a key-value pair
     const domainMappings = domains.reduce((acc, domain) => {
-      acc[domain.domain.toLowerCase()] = {
+      acc[domain.domainName.toLowerCase()] = {
         subName: domain.subName
       }
       return acc

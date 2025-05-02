@@ -21,7 +21,7 @@ export default function TerritoryForm ({ sub }) {
   const router = useRouter()
   const client = useApolloClient()
   const { me } = useMe()
-  const { customDomain } = useDomain()
+  const { domain } = useDomain()
   const [upsertSub] = usePaidMutation(UPSERT_SUB)
   const [unarchiveTerritory] = usePaidMutation(UNARCHIVE_TERRITORY)
 
@@ -289,14 +289,14 @@ export default function TerritoryForm ({ sub }) {
           />
         </div>
       </Form>
-      {sub && !customDomain &&
+      {sub && !domain &&
         <div className='w-100'>
           <AccordianItem
             header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
             body={<TerritoryDomains sub={sub} />}
           />
         </div>}
-      {sub && customDomain && <Link className='text-muted w-100' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain settings on stacker.news</Link>}
+      {sub && domain && <Link className='text-muted w-100' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain settings on stacker.news</Link>}
     </FeeButtonProvider>
   )
 }

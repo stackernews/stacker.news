@@ -2,40 +2,44 @@ import { gql } from 'graphql-tag'
 
 export default gql`
   extend type Query {
-    customDomain(subName: String!): CustomDomain
-    domainMapping(domain: String!): DomainMapping
+    domain(subName: String!): Domain
+    domainMapping(domainName: String!): DomainMapping
   }
+
   extend type Mutation {
-    setCustomDomain(subName: String!, domain: String!): CustomDomain
+    setDomain(subName: String!, domainName: String!): Domain
   }
-  type CustomDomain {
+
+  type Domain {
     createdAt: Date!
     updatedAt: Date!
-    domain: String!
+    domainName: String!
     subName: String!
-    lastVerifiedAt: Date
-    failedAttempts: Int
     status: String
-    verification: CustomDomainVerification
+    verifications: [DomainVerification]
+  }
+
+  type DomainVerification {
+    createdAt: Date!
+    updatedAt: Date!
+    domainId: Int!
+    type: DomainVerificationType
+    state: String
+    host: String
+    value: String
+    sslArn: String
+    result: String
+    lastCheckedAt: Date
+  }
+
+  enum DomainVerificationType {
+    TXT
+    CNAME
+    SSL
   }
   
   type DomainMapping {
-    domain: String!
+    domainName: String!
     subName: String!
-  }
-  type CustomDomainVerification {
-    dns: CustomDomainVerificationDNS
-    ssl: CustomDomainVerificationSSL
-  }
-  type CustomDomainVerificationDNS {
-    state: String
-    cname: String
-    txt: String
-  }
-  type CustomDomainVerificationSSL {
-    state: String
-    arn: String
-    cname: String
-    value: String
   }
 `

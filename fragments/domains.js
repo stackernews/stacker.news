@@ -1,38 +1,28 @@
 import { gql } from 'graphql-tag'
 
-export const CUSTOM_DOMAIN_FIELDS = gql`
-  fragment CustomDomainFields on CustomDomain {
-    domain
+export const DOMAIN_FIELDS = gql`
+  fragment DomainFields on Domain {
+    domainName
     status
+    subName
   }
 `
 
-export const CUSTOM_DOMAIN_FULL_FIELDS = gql`
-  ${CUSTOM_DOMAIN_FIELDS}
-  fragment CustomDomainFullFields on CustomDomain {
-    ...CustomDomainFields
-    lastVerifiedAt
-    verification {
-      dns {
-        state
-        cname
-        txt
-      }
-      ssl {
-        state
-        arn
-        cname
-        value
-      }
+export const DOMAIN_FULL_FIELDS = gql`
+  ${DOMAIN_FIELDS}
+  fragment DomainFullFields on Domain {
+    ...DomainFields
+    verifications {
+      ...DomainVerificationFields
     }
   }
 `
 
-export const GET_CUSTOM_DOMAIN = gql`
-  ${CUSTOM_DOMAIN_FULL_FIELDS}
-  query CustomDomain($subName: String!) {
-    customDomain(subName: $subName) {
-      ...CustomDomainFullFields
+export const GET_DOMAIN = gql`
+  ${DOMAIN_FULL_FIELDS}
+  query Domain($subName: String!) {
+    domain(subName: $subName) {
+      ...DomainFullFields
     }
   }
 `
@@ -46,23 +36,24 @@ export const GET_DOMAIN_MAPPING = gql`
   }
 `
 
-export const SET_CUSTOM_DOMAIN = gql`
-  mutation SetCustomDomain($subName: String!, $domain: String!) {
-    setCustomDomain(subName: $subName, domain: $domain) {
-      domain
-      verification {
-        dns {
-          state
-          cname
-          txt
-        }
-        ssl {
-          state
-          arn
-          cname
-          value
-        }
-      }
+export const SET_DOMAIN = gql`
+  mutation SetDomain($subName: String!, $domainName: String!) {
+    setDomain(subName: $subName, domainName: $domainName) {
+      domainName
     }
+  }
+`
+
+export const DOMAIN_VERIFICATION_FIELDS = gql`
+  fragment DomainVerificationFields on DomainVerification {
+    createdAt
+    updatedAt
+    domainId
+    type
+    state
+    host
+    value
+    sslArn
+    lastCheckedAt
   }
 `

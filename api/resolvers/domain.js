@@ -5,16 +5,16 @@ import { getDomainMapping } from '@/lib/domains'
 
 export default {
   Query: {
-    customDomain: async (parent, { subName }, { models }) => {
-      return models.customDomain.findUnique({ where: { subName } })
+    domain: async (parent, { subName }, { models }) => {
+      return models.domain.findUnique({ where: { subName }, include: { verifications: true } })
     },
-    domainMapping: async (parent, { domain }, { models }) => {
-      const mapping = await getDomainMapping(domain)
+    domainMapping: async (parent, { domainName }, { models }) => {
+      const mapping = await getDomainMapping(domainName)
       return mapping
     }
   },
   Mutation: {
-    setCustomDomain: async (parent, { subName, domain }, { me, models }) => {
+    setDomain: async (parent, { subName, domainName }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
@@ -28,45 +28,27 @@ export default {
         throw new GqlInputError('you do not own this sub')
       }
 
-      domain = domain.trim() // protect against trailing spaces
-      if (domain && !validateSchema(customDomainSchema, { domain })) {
+      domainName = domainName.trim() // protect against trailing spaces
+      if (domainName && !validateSchema(customDomainSchema, { domainName })) {
         throw new GqlInputError('invalid domain format')
       }
 
-      const existing = await models.customDomain.findUnique({ where: { subName } })
+      const existing = await models.domain.findUnique({ where: { subName } })
 
-      if (domain) {
-        if (existing && existing.domain === domain && existing.status !== 'HOLD') {
+      if (domainName) {
+        if (existing && existing.domainName === domainName && existing.status !== 'HOLD') {
           throw new GqlInputError('domain already set')
         }
 
         const initializeDomain = {
-          domain,
-          createdAt: new Date(),
-          status: 'PENDING',
-          verification: {
-            dns: {
-              state: 'PENDING',
-              cname: 'stacker.news',
-              // generate a random txt record only if it's a new domain
-              txt: existing?.domain === domain && existing.verification.dns.txt
-                ? existing.verification.dns.txt
-                : randomBytes(32).toString('base64')
-            },
-            ssl: {
-              state: 'WAITING',
-              arn: null,
-              cname: null,
-              value: null
-            }
-          }
+          domainName,
+          updatedAt: new Date(),
+          status: 'PENDING'
         }
 
-        const updatedDomain = await models.customDomain.upsert({
+        const updatedDomain = await models.domain.upsert({
           where: { subName },
-          update: {
-            ...initializeDomain
-          },
+          update: initializeDomain,
           create: {
             ...initializeDomain,
             sub: {
@@ -74,6 +56,55 @@ export default {
             }
           }
         })
+
+        const existingVerifications = await models.domainVerification.findMany({
+          where: { domainId: updatedDomain.id }
+        })
+
+        const existingVerificationMap = Object.fromEntries(existingVerifications.map(v => [v.type, v]))
+
+        const verifications = {
+          CNAME: {
+            domainId: updatedDomain.id,
+            type: 'CNAME',
+            state: 'PENDING',
+            host: domainName,
+            value: 'stacker.news'
+          },
+          TXT: {
+            domainId: updatedDomain.id,
+            type: 'TXT',
+            state: 'PENDING',
+            host: '_snverify.' + domainName,
+            value: existing.status === 'HOLD' ? existingVerificationMap.TXT?.value : randomBytes(32).toString('base64')
+          },
+          SSL: {
+            domainId: updatedDomain.id,
+            type: 'SSL',
+            state: 'WAITING',
+            host: null,
+            value: null,
+            sslArn: null
+          }
+        }
+
+        const initializeVerifications = Object.entries(verifications).map(([type, verification]) =>
+          models.domainVerification.upsert({
+            where: {
+              domainId_type: {
+                domainId: updatedDomain.id,
+                type
+              }
+            },
+            update: verification,
+            create: {
+              ...verification,
+              domain: { connect: { id: updatedDomain.id } }
+            }
+          })
+        )
+
+        await Promise.all(initializeVerifications)
 
         // schedule domain verification in 30 seconds
         await models.$executeRaw`
@@ -94,7 +125,7 @@ export default {
           WHERE name = 'domainVerification'
                 AND data->>'domainId' = ${existing.id}::TEXT`
 
-          return await models.customDomain.delete({ where: { subName } })
+          return await models.domain.delete({ where: { subName } })
         } catch (error) {
           console.error(error)
           throw new GqlInputError('failed to delete domain')

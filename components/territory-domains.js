@@ -4,7 +4,7 @@ import { useMutation, useQuery } from '@apollo/client'
 import { customDomainSchema } from '@/lib/validate'
 import { useToast } from '@/components/toast'
 import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
-import { GET_CUSTOM_DOMAIN, SET_CUSTOM_DOMAIN } from '@/fragments/domains'
+import { GET_DOMAIN, SET_DOMAIN } from '@/fragments/domains'
 import { useEffect, createContext, useContext, useState } from 'react'
 import Moon from '@/svgs/moon-fill.svg'
 import ClipboardLine from '@/svgs/clipboard-line.svg'
@@ -13,26 +13,26 @@ import styles from './item.module.css'
 
 // Domain context for custom domains
 const DomainContext = createContext({
-  customDomain: {
-    domain: null,
+  domain: {
+    domainName: null,
     subName: null
   }
 })
 
-export const DomainProvider = ({ customDomain: ssrCustomDomain, children }) => {
-  const [customDomain, setCustomDomain] = useState(ssrCustomDomain || null)
+export const DomainProvider = ({ domain: ssrDomain, children }) => {
+  const [domain, setDomain] = useState(ssrDomain || null)
 
   // maintain the custom domain state across re-renders
   useEffect(() => {
-    if (ssrCustomDomain && !customDomain) {
-      setCustomDomain(ssrCustomDomain)
+    if (ssrDomain && !domain) {
+      setDomain(ssrDomain)
     }
-  }, [ssrCustomDomain])
+  }, [ssrDomain])
 
   // TODO: Placeholder for Auth Sync
 
   return (
-    <DomainContext.Provider value={{ customDomain }}>
+    <DomainContext.Provider value={{ domain }}>
       {/* TODO: Placeholder for Branding */}
       {children}
     </DomainContext.Provider>
@@ -61,13 +61,13 @@ const getSSLStatusBadge = (status) => {
   }
 }
 
-const DomainLabel = ({ customDomain, polling }) => {
-  const { domain, status, verification, lastVerifiedAt } = customDomain || {}
+const DomainLabel = ({ domain, polling }) => {
+  const { domainName, status, verification, lastVerifiedAt } = domain || {}
 
   return (
     <div className='d-flex align-items-center gap-2'>
       <span>custom domain</span>
-      {domain && (
+      {domainName && (
         <div className='d-flex align-items-center gap-2'>
           {status !== 'HOLD'
             ? (
@@ -94,8 +94,8 @@ const DomainLabel = ({ customDomain, polling }) => {
   )
 }
 
-const DomainGuidelines = ({ customDomain }) => {
-  const { domain, verification } = customDomain || {}
+const DomainGuidelines = ({ domain }) => {
+  const { domainName, verification } = domain || {}
 
   const dnsRecord = ({ host, value }) => {
     return (
@@ -141,10 +141,10 @@ const DomainGuidelines = ({ customDomain }) => {
           <h5>Step 1: Verify your domain</h5>
           <p>Add the following DNS records to verify ownership of your domain:</p>
           <h6>CNAME</h6>
-          {dnsRecord({ host: domain || 'www', value: verification?.dns?.cname })}
+          {dnsRecord({ host: domainName || 'www', value: verification?.dns?.cname })}
           <hr />
           <h6>TXT</h6>
-          {dnsRecord({ host: `_snverify.${domain}`, value: verification?.dns?.txt })}
+          {dnsRecord({ host: `_snverify.${domainName}`, value: verification?.dns?.txt })}
         </div>
       )}
       {verification?.ssl?.state === 'PENDING' && (
@@ -160,33 +160,33 @@ const DomainGuidelines = ({ customDomain }) => {
 }
 
 export default function CustomDomainForm ({ sub }) {
-  const [setCustomDomain] = useMutation(SET_CUSTOM_DOMAIN)
+  const [setDomain] = useMutation(SET_DOMAIN)
 
   // Get the custom domain and poll for changes
-  const { data, refetch } = useQuery(GET_CUSTOM_DOMAIN, SSR
+  const { data, refetch } = useQuery(GET_DOMAIN, SSR
     ? {}
     : {
         variables: { subName: sub.name },
         pollInterval: NORMAL_POLL_INTERVAL,
         nextFetchPolicy: 'cache-and-network',
-        onCompleted: ({ customDomain }) => {
-          if (customDomain?.status !== 'PENDING') {
+        onCompleted: ({ domain }) => {
+          if (domain?.status !== 'PENDING') {
             return { pollInterval: 0 }
           }
         }
       })
   const toaster = useToast()
 
-  const { domain, status } = data?.customDomain || {}
+  const { domainName, status } = data?.domain || {}
   const polling = status === 'PENDING'
 
   // Update the custom domain
   const onSubmit = async ({ domain }) => {
     try {
-      await setCustomDomain({
+      await setDomain({
         variables: {
           subName: sub.name,
-          domain
+          domainName
         }
       })
       refetch()
@@ -203,7 +203,7 @@ export default function CustomDomainForm ({ sub }) {
   return (
     <>
       <Form
-        initial={{ domain: domain || sub?.customDomain?.domain }}
+        initial={{ domainName: domainName || sub?.domain?.domainName }}
         schema={customDomainSchema}
         onSubmit={onSubmit}
         className='mb-2'
@@ -211,14 +211,14 @@ export default function CustomDomainForm ({ sub }) {
         <div className='d-flex align-items-center gap-2'>
           <Input
             groupClassName='w-100'
-            label={<DomainLabel customDomain={data?.customDomain} polling={polling} />}
-            name='domain'
+            label={<DomainLabel domain={data?.domain} polling={polling} />}
+            name='domainName'
             placeholder='www.example.com'
           />
           <SubmitButton variant='primary' className='mt-3'>save</SubmitButton>
         </div>
       </Form>
-      <DomainGuidelines customDomain={data?.customDomain} />
+      <DomainGuidelines domain={data?.domain} />
     </>
   )
 }

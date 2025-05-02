@@ -800,7 +800,7 @@ model Sub {
   SubSubscription   SubSubscription[]
   TerritoryTransfer TerritoryTransfer[]
   UserSubTrust      UserSubTrust[]
-  customDomain      CustomDomain?
+  domain            Domain?
 
   @@index([parentName])
   @@index([createdAt])
@@ -1243,20 +1243,44 @@ model Reminder {
   @@index([userId, remindAt], map: "Reminder.userId_reminderAt_index")
 }
 
-model CustomDomain {
-  id                      Int       @id @default(autoincrement())
-  createdAt               DateTime  @default(now()) @map("created_at")
-  updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at")
-  domain                  String    @unique @db.Citext
-  subName                 String    @unique @db.Citext
-  status                  String    @default("PENDING")
-  failedAttempts          Int       @default(0)
-  lastVerifiedAt          DateTime?
-  verification            Json      @default("{}")
-  sub                     Sub       @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
-  
-  @@index([domain])
+model Domain {
+  id                      Int                     @id @default(autoincrement())
+  createdAt               DateTime                @default(now()) @map("created_at")
+  updatedAt               DateTime                @default(now()) @updatedAt @map("updated_at")
+  domainName              String                  @unique @db.Citext
+  subName                 String                  @unique @db.Citext
+  status                  String                  @default("PENDING")
+  sub                     Sub                     @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  verifications           DomainVerification[]
+
+  @@index([domainName])
   @@index([createdAt])
+  @@index([subName])
+}
+
+model DomainVerification {
+  id                      Int                       @id @default(autoincrement())
+  createdAt               DateTime                  @default(now()) @map("created_at")
+  updatedAt               DateTime                  @default(now()) @updatedAt @map("updated_at")
+  domainId                Int
+  type                    DomainVerificationType
+  state                   String                    @default("PENDING")
+  host                    String?                   @db.Citext // hosts are case insensitive, RFC 1035
+  value                   String?
+  sslArn                  String?
+  result                  String?
+  lastCheckedAt           DateTime?
+
+  domain                  Domain                    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@unique([domainId, type])
+  @@index([domainId])
+}
+
+enum DomainVerificationType {
+  TXT
+  CNAME
+  SSL
 }
 
 enum EarnType {

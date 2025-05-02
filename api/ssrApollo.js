@@ -154,10 +154,10 @@ export function getGetServerSideProps (
 
     const isCustomDomain = req.headers.host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
     const subName = req.headers['x-stacker-news-subname'] || null
-    let customDomain = null
+    let domain = null
     if (isCustomDomain && subName) {
-      customDomain = {
-        domain: req.headers.host,
+      domain = {
+        domainName: req.headers.host,
         subName
         // TODO: custom branding
       }
@@ -227,7 +227,7 @@ export function getGetServerSideProps (
     return {
       props: {
         ...props,
-        customDomain,
+        domain,
         me,
         price,
         blockHeight,

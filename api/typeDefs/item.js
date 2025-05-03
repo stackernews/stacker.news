@@ -10,7 +10,7 @@ export default gql`
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
     auctionPosition(sub: String, id: ID, boost: Int): Int!
     boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
-    itemRepetition(parentId: ID): Int!
+    itemRepetition(parentId: ID, sub: String): Int!
   }
 
   type BoostPositions {

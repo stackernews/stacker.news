@@ -6,7 +6,14 @@ import { getDomainMapping } from '@/lib/domains'
 export default {
   Query: {
     domain: async (parent, { subName }, { models }) => {
-      return models.domain.findUnique({ where: { subName }, include: { verifications: true } })
+      return models.domain.findUnique({
+        where: { subName },
+        include: {
+          records: true,
+          attempts: true,
+          certificate: true
+        }
+      })
     },
     domainMapping: async (parent, { domainName }, { models }) => {
       const mapping = await getDomainMapping(domainName)
@@ -57,56 +64,51 @@ export default {
           }
         })
 
-        const existingVerifications = await models.domainVerification.findMany({
-          where: { domainId: updatedDomain.id }
-        })
+        // Get existing records if any
+        const existingRecords = existing
+          ? await models.domainVerificationRecord.findMany({
+            where: { domainId: existing.id }
+          })
+          : []
 
-        const existingVerificationMap = Object.fromEntries(existingVerifications.map(v => [v.type, v]))
+        const existingRecordMap = Object.fromEntries(existingRecords.map(r => [r.type, r]))
 
-        const verifications = {
-          CNAME: {
+        // Setup verification records
+        const verificationRecords = [
+          {
             domainId: updatedDomain.id,
             type: 'CNAME',
-            state: 'PENDING',
-            host: domainName,
-            value: 'stacker.news'
+            recordName: domainName,
+            recordValue: 'stacker.news'
           },
-          TXT: {
+          {
             domainId: updatedDomain.id,
             type: 'TXT',
-            state: 'PENDING',
-            host: '_snverify.' + domainName,
-            value: existing.status === 'HOLD' ? existingVerificationMap.TXT?.value : randomBytes(32).toString('base64')
-          },
-          SSL: {
-            domainId: updatedDomain.id,
-            type: 'SSL',
-            state: 'WAITING',
-            host: null,
-            value: null,
-            sslArn: null
+            recordName: '_snverify.' + domainName,
+            recordValue: existing && existing.status === 'HOLD' && existingRecordMap.TXT
+              ? existingRecordMap.TXT.recordValue
+              : randomBytes(32).toString('base64')
           }
-        }
+        ]
 
-        const initializeVerifications = Object.entries(verifications).map(([type, verification]) =>
-          models.domainVerification.upsert({
+        // Create or update verification records
+        const recordPromises = verificationRecords.map(record =>
+          models.domainVerificationRecord.upsert({
             where: {
-              domainId_type: {
+              domainId_type_recordName: {
                 domainId: updatedDomain.id,
-                type
+                type: record.type,
+                recordName: record.recordName
               }
             },
-            update: verification,
-            create: {
-              ...verification,
-              domain: { connect: { id: updatedDomain.id } }
-            }
+            update: record,
+            create: record
           })
         )
 
-        await Promise.all(initializeVerifications)
+        await Promise.all(recordPromises)
 
-        // schedule domain verification in 30 seconds
+        // Schedule domain verification in 30 seconds
         await models.$executeRaw`
         INSERT INTO pgboss.job (name, data, retrylimit, retrydelay, startafter, keepuntil)
         VALUES ('domainVerification',
@@ -119,13 +121,16 @@ export default {
         return updatedDomain
       } else {
         try {
-          // delete any existing domain verification jobs
-          await models.$queryRaw`
-          DELETE FROM pgboss.job
-          WHERE name = 'domainVerification'
-                AND data->>'domainId' = ${existing.id}::TEXT`
+          // Delete any existing domain verification jobs
+          if (existing) {
+            await models.$queryRaw`
+            DELETE FROM pgboss.job
+            WHERE name = 'domainVerification'
+                  AND data->>'domainId' = ${existing.id}::TEXT`
 
-          return await models.domain.delete({ where: { subName } })
+            return await models.domain.delete({ where: { subName } })
+          }
+          return null
         } catch (error) {
           console.error(error)
           throw new GqlInputError('failed to delete domain')

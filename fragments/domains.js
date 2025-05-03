@@ -8,12 +8,47 @@ export const DOMAIN_FIELDS = gql`
   }
 `
 
+export const DOMAIN_VERIFICATION_RECORD_FIELDS = gql`
+  fragment DomainVerificationRecordFields on DomainVerificationRecord {
+    id
+    type
+    recordName
+    recordValue
+  }
+`
+
+export const DOMAIN_VERIFICATION_ATTEMPT_FIELDS = gql`
+  fragment DomainVerificationAttemptFields on DomainVerificationAttempt {
+    id
+    status
+    message
+    createdAt
+  }
+`
+
+export const DOMAIN_CERTIFICATE_FIELDS = gql`
+  fragment DomainCertificateFields on DomainCertificate {
+    id
+    certificateArn
+    status
+  }
+`
+
 export const DOMAIN_FULL_FIELDS = gql`
   ${DOMAIN_FIELDS}
+  ${DOMAIN_VERIFICATION_RECORD_FIELDS}
+  ${DOMAIN_VERIFICATION_ATTEMPT_FIELDS}
+  ${DOMAIN_CERTIFICATE_FIELDS}
   fragment DomainFullFields on Domain {
     ...DomainFields
-    verifications {
-      ...DomainVerificationFields
+    records {
+      ...DomainVerificationRecordFields
+    }
+    attempts {
+      ...DomainVerificationAttemptFields
+    }
+    certificate {
+      ...DomainCertificateFields
     }
   }
 `
@@ -28,9 +63,9 @@ export const GET_DOMAIN = gql`
 `
 
 export const GET_DOMAIN_MAPPING = gql`
-  query DomainMapping($domain: String!) {
-    domainMapping(domain: $domain) {
-      domain
+  query DomainMapping($domainName: String!) {
+    domainMapping(domainName: $domainName) {
+      domainName
       subName
     }
   }
@@ -41,19 +76,5 @@ export const SET_DOMAIN = gql`
     setDomain(subName: $subName, domainName: $domainName) {
       domainName
     }
-  }
-`
-
-export const DOMAIN_VERIFICATION_FIELDS = gql`
-  fragment DomainVerificationFields on DomainVerification {
-    createdAt
-    updatedAt
-    domainId
-    type
-    state
-    host
-    value
-    sslArn
-    lastCheckedAt
   }
 `

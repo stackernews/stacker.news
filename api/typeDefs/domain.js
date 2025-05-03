@@ -11,31 +11,73 @@ export default gql`
   }
 
   type Domain {
+    id: Int!
     createdAt: Date!
     updatedAt: Date!
     domainName: String!
     subName: String!
-    status: String
-    verifications: [DomainVerification]
+    status: DomainStatus
+    records: [DomainVerificationRecord]
+    attempts: [DomainVerificationAttempt]
+    certificate: DomainCertificate
   }
 
-  type DomainVerification {
+  type DomainVerificationRecord {
+    id: Int!
     createdAt: Date!
     updatedAt: Date!
     domainId: Int!
     type: DomainVerificationType
-    state: String
-    host: String
-    value: String
-    sslArn: String
-    result: String
-    lastCheckedAt: Date
+    recordName: String!
+    recordValue: String!
+    attempts: [DomainVerificationAttempt]
+  }
+
+  type DomainVerificationAttempt {
+    id: Int!
+    createdAt: Date!
+    updatedAt: Date!
+    domainId: Int!
+    verificationRecordId: Int!
+    status: DomainVerificationStatus
+    message: String
+  }
+
+  type DomainCertificate {
+    id: Int!
+    createdAt: Date!
+    updatedAt: Date!
+    domainId: Int!
+    certificateArn: String!
+    status: DomainCertificateStatus
+  }
+
+  enum DomainStatus {
+    PENDING
+    ACTIVE
+    HOLD
   }
 
   enum DomainVerificationType {
     TXT
     CNAME
     SSL
+  }
+
+  enum DomainVerificationStatus {
+    PENDING
+    VERIFIED
+    FAILED
+  }
+
+  enum DomainCertificateStatus {
+    PENDING_VALIDATION
+    ISSUED
+    INACTIVE
+    EXPIRED
+    REVOKED
+    FAILED
+    VALIDATION_TIMED_OUT
   }
   
   type DomainMapping {

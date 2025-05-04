@@ -1,25 +1,36 @@
 import createPrisma from '@/lib/create-prisma'
-import { verifyDomainDNS, issueDomainCertificate, checkCertificateStatus, getValidationValues, deleteCertificate } from '@/lib/domain-verification'
+import { verifyDNSRecord, issueDomainCertificate, checkCertificateStatus, getValidationValues, deleteCertificate } from '@/lib/domain-verification'
 
 export async function domainVerification ({ id: jobId, data: { domainId }, boss }) {
   // establish connection to database
   const models = createPrisma({ connectionParams: { connection_limit: 1 } })
   try {
     // get domain from database
-    const domain = await models.customDomain.findUnique({ where: { id: domainId } })
+    const domain = await models.domain.findUnique({
+      where: { id: domainId },
+      include: {
+        records: true,
+        attempts: true,
+        certificate: true
+      }
+    })
+
+    console.log(`domainVerification: ${JSON.stringify(domain)}`)
+
     // if we can't find the domain, bail without scheduling a retry
     if (!domain) {
-      throw new Error(`domain with ID ${domainId} not found`)
+      console.log(`domain with ID ${domainId} not found`)
+      return
     }
 
     // start verification process
-    const result = await verifyDomain(domain)
+    const result = await verifyDomain(domain, models)
     console.log(`domain verification result: ${JSON.stringify(result)}`)
 
     // update the domain with the result
-    await models.customDomain.update({
+    await models.domain.update({
       where: { id: domainId },
-      data: result
+      data: { status: result.status }
     })
 
     // if the result is PENDING it means we still have to verify the domain
@@ -31,7 +42,7 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
         retryLimit: 3,
         retryDelay: 30 // on critical errors, retry every 5 minutes
       })
-      console.log(`domain ${domain.domain} is still pending verification, created job with ID ${jobId} to run in 5 minutes`)
+      console.log(`domain ${domain.domainName} is still pending verification, created job with ID ${jobId} to run in 5 minutes`)
     }
   } catch (error) {
     console.error(`couldn't verify domain with ID ${domainId}: ${error.message}`)
@@ -39,10 +50,12 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
     // get the job details to get the retry count
     const jobDetails = await boss.getJobById(jobId)
     console.log(`job details: ${JSON.stringify(jobDetails)}`)
+
     // if we couldn't verify the domain, put it on hold if it exists and delete any related verification jobs
     if (jobDetails?.retrycount >= 3) {
-      console.log(`couldn't verify domain with ID ${domainId} for the third time, putting it on hold if it exists and deleting any related domain verification jobs`)
-      await models.customDomain.update({ where: { id: domainId }, data: { status: 'HOLD' } })
+      console.log(`couldn't verify domain with ID ${domainId} for the third time, putting it on HOLD if it exists and deleting any related domain verification jobs`)
+      await models.domain.update({ where: { id: domainId }, data: { status: 'HOLD' } })
+
       // delete any related domain verification jobs
       await models.$queryRaw`
       DELETE FROM pgboss.job
@@ -54,115 +67,156 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
   }
 }
 
-async function verifyDomain (domain) {
-  const lastVerifiedAt = new Date()
-  const verification = domain.verification || { dns: {}, ssl: {} }
-  let status = domain.status || 'PENDING'
+async function verifyDomain (domain, models) {
+  const records = domain.records || []
 
-  // step 1: verify DNS [CNAME and TXT]
-  // if DNS is not already verified
-  let dnsState = verification.dns.state || 'PENDING'
-  if (dnsState !== 'VERIFIED') {
-    dnsState = await verifyDNS(domain.domain, verification.dns.txt)
+  // map the records to a dictionary
+  const recordMap = records.reduce((acc, record) => {
+    acc[record.type] = record
+    return acc
+  }, {})
 
-    // log the result, throw an error if we couldn't verify the DNS
-    switch (dnsState) {
-      case 'VERIFIED':
-        console.log(`DNS verification for ${domain.domain} is ${dnsState}, proceeding to SSL verification`)
-        break
-      case 'PENDING':
-        console.log(`DNS verification for ${domain.domain} is ${dnsState}, will retry DNS verification in 5 minutes`)
-        break
-      default:
-        dnsState = 'PENDING'
-        console.log(`couldn't verify DNS for ${domain.domain}, will retry DNS verification in 5 minutes`)
+  // step 1: verify CNAME
+  const cnameRecord = recordMap.CNAME || null
+  const txtRecord = recordMap.TXT || null
+
+  let cnameResult = null
+  let txtResult = null
+
+  if (cnameRecord) {
+    cnameResult = await verifyRecord('CNAME', cnameRecord, domain, models)
+    console.log(`cname verification result: ${JSON.stringify(cnameResult)}`)
+  }
+
+  // step 2: verify TXT
+  if (txtRecord) {
+    txtResult = await verifyRecord('TXT', txtRecord, domain, models)
+    console.log(`txt verification result: ${JSON.stringify(txtResult)}`)
+  }
+
+  // if both CNAME and TXT are verified, we can consider the DNS stage complete
+  const dnsVerified = cnameResult?.status === 'VERIFIED' && txtResult?.status === 'VERIFIED'
+  if (!dnsVerified) {
+    console.log(`DNS verification has failed, please check the CNAME and TXT records for ${domain.domainName}`)
+    return {
+      status: 'PENDING',
+      message: `DNS verification has failed, CNAME: ${cnameResult?.message}, TXT: ${txtResult?.message}`
     }
   }
 
-  // step 2: certificate issuance
-  // if DNS is verified and we don't have a SSL certificate, issue one
-  let sslArn = verification.ssl.arn || null
-  let sslState = verification.ssl.state || 'PENDING'
-  if (dnsState === 'VERIFIED' && !sslArn) {
-    sslArn = await issueDomainCertificate(domain.domain)
-    if (sslArn) {
-      console.log(`SSL certificate issued for ${domain.domain} with ARN ${sslArn}, will verify with ACM`)
+  // if the DNS stage is complete, we can issue the certificate
+  // step 3: issue the certificate if it doesn't exist
+  if (!domain.certificate) {
+    const certificateArn = await issueDomainCertificate(domain.domain)
+    const certificateStatus = await checkCertificateStatus(certificateArn)
+
+    if (certificateArn) {
+      await models.domainCertificate.create({
+        data: {
+          domain: { connect: { id: domain.id } },
+          certificateArn,
+          status: certificateStatus
+        }
+      })
+
+      const validationValues = await getValidationValues(certificateArn)
+      if (validationValues) {
+        await models.domainVerificationRecord.create({
+          data: {
+            domain: { connect: { id: domain.id } },
+            type: 'SSL',
+            recordName: validationValues.cname,
+            recordValue: validationValues.value
+          }
+        })
+      } else {
+        console.log(`couldn't get validation values for certificate ${certificateArn}, will retry in 5 minutes`)
+        return {
+          status: 'PENDING',
+          message: `couldn't get validation values for certificate ${certificateArn}, will retry in 5 minutes`
+        }
+      }
     } else {
-      console.log(`couldn't issue SSL certificate for ${domain.domain}, will retry certificate issuance in 5 minutes`)
+      console.log(`couldn't issue certificate for ${domain.domainName}, will retry in 5 minutes`)
+      return {
+        status: 'PENDING',
+        message: `couldn't issue certificate for ${domain.domainName}, will retry in 5 minutes`
+      }
     }
   }
 
-  // step 3: get validation values from ACM
-  // if we have a certificate and we don't already have the validation values
-  let acmValidationCname = verification.ssl.cname || null
-  let acmValidationValue = verification.ssl.value || null
-  if (sslArn && !acmValidationCname && !acmValidationValue) {
-    const values = await getValidationValues(sslArn)
-    acmValidationCname = values?.cname || null
-    acmValidationValue = values?.value || null
-    if (acmValidationCname && acmValidationValue) {
-      console.log(`Validation values retrieved for ${domain.domain}, will check ACM validation status`)
-    } else {
-      console.log(`couldn't retrieve validation values for ${domain.domain}, will retry to request validation values from ACM in 5 minutes`)
+  const sslRecord = recordMap.SSL || null
+  let sslVerified = false
+
+  // step 3b: check if the certificate is validated by ACM
+  if (domain.certificate && sslRecord) {
+    const result = await verifyACMValidation(domain, models)
+    console.log(`ACM validation result: ${JSON.stringify(result)}`)
+    if (result.status === 'PENDING') {
+      console.log(`ACM validation has failed, please check the SSL record for ${domain.domainName}`)
+      return {
+        status: 'PENDING',
+        message: result.message
+      }
     }
+    sslVerified = result.status === 'VERIFIED'
   }
 
-  // step 4: check if the certificate is validated by ACM
-  // if DNS is verified and we have a SSL certificate
-  // it can happen that we just issued the certificate and it's not yet validated by ACM
-  if (sslArn && sslState !== 'VERIFIED') {
-    sslState = await checkCertificateStatus(sslArn)
-    switch (sslState) {
-      case 'VERIFIED':
-        console.log(`SSL certificate for ${domain.domain} is ${sslState}, verification routine complete`)
-        break
-      case 'PENDING':
-        console.log(`SSL certificate for ${domain.domain} is ${sslState}, will check again with ACM in 5 minutes`)
-        break
-      default:
-        sslState = 'PENDING'
-        console.log(`couldn't verify SSL certificate for ${domain.domain}, will retry certificate validation with ACM in 5 minutes`)
+  if (dnsVerified && sslVerified) {
+    return {
+      status: 'ACTIVE',
+      message: `Domain ${domain.domainName} has been successfully verified`
     }
-  }
-
-  // step 5: update the status of the domain
-  // if the domain is fully verified, set the status to active
-  if (dnsState === 'VERIFIED' && sslState === 'VERIFIED') {
-    status = 'ACTIVE'
-  }
-  // if the domain has failed in some way and it's been 48 hours, put it on hold
-  if (status !== 'ACTIVE' && domain.createdAt < new Date(Date.now() - 1000 * 60 * 60 * 24 * 2)) {
-    status = 'HOLD'
-    // we stopped domain verification, delete the certificate as it will expire after 72 hours anyway
-    if (sslArn) {
-      console.log(`domain ${domain.domain} is on hold, deleting certificate as it will expire after 72 hours`)
-      const result = await deleteCertificate(sslArn)
-      console.log(`delete certificate attempt for ${domain.domain}, result: ${JSON.stringify(result)}`)
+  } else if (domain.createdAt > new Date(Date.now() - 1000 * 60 * 60 * 24 * 2)) {
+    // if the domain has been on hold for more than 48 hours, delete the certificate, it would expire anyway
+    await deleteCertificate(domain.certificate.certificateArn)
+    return {
+      status: 'HOLD',
+      message: `Domain ${domain.domainName} has been on hold because we couldn't verify it in 48 hours`
     }
   }
 
   return {
-    lastVerifiedAt,
-    status,
-    verification: {
-      dns: {
-        ...verification.dns,
-        state: dnsState
-      },
-      ssl: {
-        arn: sslArn,
-        state: sslState,
-        cname: acmValidationCname,
-        value: acmValidationValue
-      }
-    }
+    status: 'PENDING',
+    message: `Domain ${domain.domainName} is still pending verification`
   }
 }
 
-async function verifyDNS (cname, txt) {
-  const { cnameValid, txtValid } = await verifyDomainDNS(cname, txt)
-  console.log(`${cname}: CNAME ${cnameValid ? 'valid' : 'invalid'}, TXT ${txtValid ? 'valid' : 'invalid'}`)
+async function verifyRecord (type, record, domain, models) {
+  const result = await verifyDNSRecord(type, record.recordName, record.recordValue)
+  const newStatus = result.valid ? 'VERIFIED' : 'PENDING'
+  const message = result.valid ? `${type} record verified` : result.error
 
-  const dnsState = cnameValid && txtValid ? 'VERIFIED' : 'PENDING'
-  return dnsState
+  return await models.domainVerificationAttempt.create({
+    data: {
+      domain: { connect: { id: domain.id } },
+      verificationRecord: { connect: { id: record.id } },
+      status: newStatus,
+      message
+    }
+  })
+}
+
+async function verifyACMValidation (domain, models) {
+  const certificateStatus = await checkCertificateStatus(domain.certificate.certificateArn)
+  const message = certificateStatus === 'VERIFIED' ? 'Certificate verified' : 'Certificate not verified'
+
+  if (certificateStatus !== domain.certificate.status) {
+    console.log(`certificate status for ${domain.domainName} has changed from ${domain.certificate.status} to ${certificateStatus}`)
+    await models.domainCertificate.update({
+      where: { id: domain.certificate.id },
+      data: { status: certificateStatus }
+    })
+  }
+
+  const newStatus = certificateStatus === 'ISSUED' ? 'VERIFIED' : 'PENDING'
+
+  return await models.domainVerificationAttempt.create({
+    data: {
+      domain: { connect: { id: domain.id } },
+      verificationRecord: { connect: { id: domain.certificate.id } },
+      status: newStatus,
+      message
+    }
+  })
 }

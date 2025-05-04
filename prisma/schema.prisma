@@ -1281,10 +1281,12 @@ model DomainVerificationRecord {
   id             Int                          @id @default(autoincrement())
   createdAt      DateTime                     @default(now()) @map("created_at")
   updatedAt      DateTime                     @default(now()) @updatedAt @map("updated_at")
+  lastCheckedAt  DateTime?
   domainId       Int
   type           DomainVerificationType
   recordName     String
   recordValue    String
+  status         DomainVerificationStatus     @default(PENDING)
   attempts       DomainVerificationAttempt[]
 
   domain         Domain                       @relation(fields: [domainId], references: [id], onDelete: Cascade)

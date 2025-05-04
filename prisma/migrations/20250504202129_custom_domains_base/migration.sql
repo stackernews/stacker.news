@@ -40,10 +40,12 @@ CREATE TABLE "DomainVerificationRecord" (
     "id" SERIAL NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastCheckedAt" TIMESTAMP(3),
     "domainId" INTEGER NOT NULL,
     "type" "DomainVerificationType" NOT NULL,
     "recordName" TEXT NOT NULL,
     "recordValue" TEXT NOT NULL,
+    "status" "DomainVerificationStatus" NOT NULL DEFAULT 'PENDING',
 
     CONSTRAINT "DomainVerificationRecord_pkey" PRIMARY KEY ("id")
 );
@@ -107,3 +109,20 @@ ALTER TABLE "DomainVerificationRecord" ADD CONSTRAINT "DomainVerificationRecord_
 
 -- AddForeignKey
 ALTER TABLE "DomainCertificate" ADD CONSTRAINT "DomainCertificate_domainId_fkey" FOREIGN KEY ("domainId") REFERENCES "Domain"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+CREATE OR REPLACE FUNCTION update_record_status_from_attempt()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE "DomainVerificationRecord"
+  SET status = NEW.status,
+      last_checked_at = NEW.created_at
+  WHERE id = NEW."verificationRecordId";
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_record_status
+AFTER INSERT ON "DomainVerificationAttempt"
+FOR EACH ROW
+EXECUTE FUNCTION update_record_status_from_attempt();

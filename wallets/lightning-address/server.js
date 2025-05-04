@@ -22,6 +22,9 @@ export const createInvoice = async (
     msats = 1_000 * min
   }
 
+  // create invoices with a minimum amount of 1 sat
+  msats = Math.max(msats, 1_000)
+
   // most lnurl providers suck nards so we have to floor to nearest sat
   msats = msatsSatsFloor(msats)
 

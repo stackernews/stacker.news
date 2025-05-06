@@ -2,7 +2,7 @@
 CREATE TYPE "DomainVerificationType" AS ENUM ('TXT', 'CNAME', 'SSL');
 
 -- CreateEnum
-CREATE TYPE "DomainVerificationStatus" AS ENUM ('PENDING', 'VERIFIED', 'FAILED');
+CREATE TYPE "DomainVerificationStatus" AS ENUM ('PENDING', 'VERIFIED', 'FAILED', 'ACTIVE', 'HOLD');
 
 -- CreateEnum
 CREATE TYPE "DomainCertificateStatus" AS ENUM ('PENDING_VALIDATION', 'ISSUED', 'INACTIVE', 'EXPIRED', 'REVOKED', 'FAILED', 'VALIDATION_TIMED_OUT');
@@ -107,6 +107,7 @@ ALTER TABLE "DomainVerificationRecord" ADD CONSTRAINT "DomainVerificationRecord_
 -- AddForeignKey
 ALTER TABLE "DomainCertificate" ADD CONSTRAINT "DomainCertificate_domainId_fkey" FOREIGN KEY ("domainId") REFERENCES "Domain"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+-- Update the record status from the attempt
 CREATE OR REPLACE FUNCTION update_record_status_from_attempt()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -123,3 +124,29 @@ CREATE TRIGGER trigger_update_record_status
 AFTER INSERT ON "DomainVerificationAttempt"
 FOR EACH ROW
 EXECUTE FUNCTION update_record_status_from_attempt();
+
+-- HOLD the domain and delete the certificate when the sub is stopped
+-- this is to prevent the domain from being used by another sub
+-- when the sub is resumed, the domain can be verified again and another certificate can be issued
+
+-- !QUIRK: If someone else takes over the sub, the new guy needs to delete the domain
+CREATE OR REPLACE FUNCTION hold_domain_and_delete_certificate()
+RETURNS TRIGGER AS $$
+DECLARE
+  domain_id INTEGER;
+BEGIN
+  IF NEW.status = 'STOPPED' THEN
+    SELECT id INTO domain_id FROM "Domain" WHERE "subName" = NEW.name;
+    UPDATE "Domain" SET "status" = 'HOLD' WHERE "id" = domain_id;
+    DELETE FROM "DomainCertificate" WHERE "domainId" = domain_id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_hold_domain_and_delete_certificate
+AFTER UPDATE ON "Sub"
+FOR EACH ROW
+WHEN (NEW.status = 'STOPPED') AND EXISTS (SELECT 1 FROM "Domain" WHERE "subName" = NEW.name)
+EXECUTE FUNCTION hold_domain_and_delete_certificate();

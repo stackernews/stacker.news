@@ -53,6 +53,7 @@ docker-compose.*.yml
 *.sql
 !/prisma/migrations/*/*.sql
 !/docker/db/seed.sql
+!/docker/db/wallet-seed.sql
 
 # nostr wallet connect
 scripts/nwc-keys.json

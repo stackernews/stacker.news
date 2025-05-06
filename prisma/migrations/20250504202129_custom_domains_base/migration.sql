@@ -28,7 +28,7 @@ CREATE TABLE "DomainVerificationAttempt" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "domainId" INTEGER NOT NULL,
-    "verificationRecordId" INTEGER NOT NULL,
+    "verificationRecordId" INTEGER,
     "status" "DomainVerificationStatus" NOT NULL DEFAULT 'PENDING',
     "message" TEXT,
 
@@ -40,7 +40,7 @@ CREATE TABLE "DomainVerificationRecord" (
     "id" SERIAL NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "lastCheckedAt" TIMESTAMP(3),
+    "last_checked_at" TIMESTAMP(3),
     "domainId" INTEGER NOT NULL,
     "type" "DomainVerificationType" NOT NULL,
     "recordName" TEXT NOT NULL,

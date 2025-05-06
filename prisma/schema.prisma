@@ -1244,14 +1244,14 @@ model Reminder {
 }
 
 model Domain {
-  id                      Int                     @id @default(autoincrement())
-  createdAt               DateTime                @default(now()) @map("created_at")
-  updatedAt               DateTime                @default(now()) @updatedAt @map("updated_at")
-  domainName              String                  @unique @db.Citext
-  subName                 String                  @unique @db.Citext
-  status                  DomainStatus            @default(PENDING)
+  id                      Int                         @id @default(autoincrement())
+  createdAt               DateTime                    @default(now()) @map("created_at")
+  updatedAt               DateTime                    @default(now()) @updatedAt @map("updated_at")
+  domainName              String                      @unique @db.Citext
+  subName                 String                      @unique @db.Citext
+  status                  DomainStatus                @default(PENDING)
 
-  sub                     Sub                     @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  sub                     Sub                         @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
   attempts                DomainVerificationAttempt[]
   records                 DomainVerificationRecord[]
   certificate             DomainCertificate?
@@ -1266,12 +1266,12 @@ model DomainVerificationAttempt {
   createdAt               DateTime                  @default(now()) @map("created_at")
   updatedAt               DateTime                  @default(now()) @updatedAt @map("updated_at")
   domainId                Int
-  verificationRecordId    Int
+  verificationRecordId    Int?
   status                  DomainVerificationStatus  @default(PENDING)
   message                 String?
 
   domain                  Domain                    @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  verificationRecord      DomainVerificationRecord  @relation(fields: [verificationRecordId], references: [id], onDelete: Cascade)
+  verificationRecord      DomainVerificationRecord? @relation(fields: [verificationRecordId], references: [id], onDelete: Cascade)
 
   @@index([domainId])
   @@index([verificationRecordId])
@@ -1281,7 +1281,7 @@ model DomainVerificationRecord {
   id             Int                          @id @default(autoincrement())
   createdAt      DateTime                     @default(now()) @map("created_at")
   updatedAt      DateTime                     @default(now()) @updatedAt @map("updated_at")
-  lastCheckedAt  DateTime?
+  lastCheckedAt  DateTime?                    @map("last_checked_at")
   domainId       Int
   type           DomainVerificationType
   recordName     String
@@ -1296,14 +1296,14 @@ model DomainVerificationRecord {
 }
 
 model DomainCertificate {
-  id        Int       @id @default(autoincrement())
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
-  domainId  Int
-  certificateArn String @unique
-  status DomainCertificateStatus
+  id              Int                       @id @default(autoincrement())
+  createdAt       DateTime                  @default(now()) @map("created_at")
+  updatedAt       DateTime                  @default(now()) @updatedAt @map("updated_at")
+  domainId        Int
+  certificateArn  String                    @unique
+  status          DomainCertificateStatus
 
-  domain    Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  domain          Domain                    @relation(fields: [domainId], references: [id], onDelete: Cascade)
 
   @@unique([domainId])
 }

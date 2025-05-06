@@ -181,7 +181,7 @@ export default function CustomDomainForm ({ sub }) {
   const polling = status === 'PENDING'
 
   // Update the custom domain
-  const onSubmit = async ({ domain }) => {
+  const onSubmit = async ({ domainName }) => {
     try {
       await setDomain({
         variables: {
@@ -190,7 +190,7 @@ export default function CustomDomainForm ({ sub }) {
         }
       })
       refetch()
-      if (domain) {
+      if (domainName) {
         toaster.success('started domain verification')
       } else {
         toaster.success('domain removed successfully')

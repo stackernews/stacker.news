@@ -26,10 +26,12 @@ export default gql`
     id: Int!
     createdAt: Date!
     updatedAt: Date!
+    lastCheckedAt: Date
     domainId: Int!
     type: DomainVerificationType
     recordName: String!
     recordValue: String!
+    status: DomainVerificationStatus
     attempts: [DomainVerificationAttempt]
   }
 
@@ -38,7 +40,7 @@ export default gql`
     createdAt: Date!
     updatedAt: Date!
     domainId: Int!
-    verificationRecordId: Int!
+    verificationRecordId: Int
     status: DomainVerificationStatus
     message: String
   }

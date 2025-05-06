@@ -1249,7 +1249,7 @@ model Domain {
   updatedAt               DateTime                    @default(now()) @updatedAt @map("updated_at")
   domainName              String                      @unique @db.Citext
   subName                 String                      @unique @db.Citext
-  status                  DomainStatus                @default(PENDING)
+  status                  DomainVerificationStatus    @default(PENDING)
 
   sub                     Sub                         @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
   attempts                DomainVerificationAttempt[]
@@ -1308,8 +1308,10 @@ model DomainCertificate {
   @@unique([domainId])
 }
 
-enum DomainStatus {
+enum DomainVerificationStatus {
   PENDING
+  VERIFIED
+  FAILED
   ACTIVE
   HOLD
 }
@@ -1318,12 +1320,6 @@ enum DomainVerificationType {
   TXT
   CNAME
   SSL
-}
-
-enum DomainVerificationStatus {
-  PENDING
-  VERIFIED
-  FAILED
 }
 
 enum DomainCertificateStatus {

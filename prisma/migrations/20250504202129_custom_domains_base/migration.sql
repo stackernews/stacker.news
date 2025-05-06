@@ -1,7 +1,4 @@
 -- CreateEnum
-CREATE TYPE "DomainStatus" AS ENUM ('PENDING', 'ACTIVE', 'HOLD');
-
--- CreateEnum
 CREATE TYPE "DomainVerificationType" AS ENUM ('TXT', 'CNAME', 'SSL');
 
 -- CreateEnum
@@ -17,7 +14,7 @@ CREATE TABLE "Domain" (
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "domainName" CITEXT NOT NULL,
     "subName" CITEXT NOT NULL,
-    "status" "DomainStatus" NOT NULL DEFAULT 'PENDING',
+    "status" "DomainVerificationStatus" NOT NULL DEFAULT 'PENDING',
 
     CONSTRAINT "Domain_pkey" PRIMARY KEY ("id")
 );

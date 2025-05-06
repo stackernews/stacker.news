@@ -41,39 +41,35 @@ export const DomainProvider = ({ domain: ssrDomain, children }) => {
 
 export const useDomain = () => useContext(DomainContext)
 
-const getStatusBadge = (status) => {
-  switch (status) {
-    case 'VERIFIED':
-      return <Badge bg='success'>DNS verified</Badge>
-    default:
-      return <Badge bg='warning'>DNS pending</Badge>
+const getDNSStatusBadge = (cnameStatus, txtStatus) => {
+  if (cnameStatus === 'VERIFIED' && txtStatus === 'VERIFIED') {
+    return <Badge bg='success'>DNS verified</Badge>
   }
+  return <Badge bg='warning'>DNS pending</Badge>
 }
 
 const getSSLStatusBadge = (status) => {
   switch (status) {
     case 'VERIFIED':
       return <Badge bg='success'>SSL verified</Badge>
-    case 'WAITING':
-      return <Badge bg='info'>SSL waiting</Badge>
     default:
       return <Badge bg='warning'>SSL pending</Badge>
   }
 }
 
 const DomainLabel = ({ domain, polling }) => {
-  const { domainName, status, verification, lastVerifiedAt } = domain || {}
+  const { status, records } = domain || {}
 
   return (
     <div className='d-flex align-items-center gap-2'>
       <span>custom domain</span>
-      {domainName && (
+      {domain && (
         <div className='d-flex align-items-center gap-2'>
           {status !== 'HOLD'
             ? (
               <>
-                {getStatusBadge(verification?.dns?.state)}
-                {getSSLStatusBadge(verification?.ssl?.state)}
+                {getDNSStatusBadge(records?.CNAME?.status, records?.TXT?.status)}
+                {getSSLStatusBadge(records?.SSL?.status)}
               </>
               )
             : (<Badge bg='secondary'>HOLD</Badge>)}
@@ -85,26 +81,21 @@ const DomainLabel = ({ domain, polling }) => {
           {polling && <Moon className='spin fill-grey' style={{ width: '1rem', height: '1rem' }} />}
         </div>
       )}
-      {lastVerifiedAt && status !== 'ACTIVE' && (
-        <span className='text-muted'>
-          <small>last verified {new Date(lastVerifiedAt).toLocaleString()}</small>
-        </span>
-      )}
     </div>
   )
 }
 
 const DomainGuidelines = ({ domain }) => {
-  const { domainName, verification } = domain || {}
+  const { records } = domain || {}
 
-  const dnsRecord = ({ host, value }) => {
+  const dnsRecord = ({ record }) => {
     return (
       <div className='d-flex align-items-center gap-2'>
         <span className={`${styles.record}`}>
           <small className='fw-bold text-muted d-flex align-items-center gap-1 position-relative'>
             host
             <CopyButton
-              value={host}
+              value={record?.recordName}
               append={
                 <ClipboardLine
                   className={`${styles.clipboard}`}
@@ -113,13 +104,13 @@ const DomainGuidelines = ({ domain }) => {
               }
             />
           </small>
-          <pre>{host}</pre>
+          <pre>{record?.recordName}</pre>
         </span>
         <span className={`${styles.record}`}>
           <small className='fw-bold text-muted d-flex align-items-center gap-1 position-relative'>
             value
             <CopyButton
-              value={value}
+              value={record?.recordValue}
               append={
                 <ClipboardLine
                   className={`${styles.clipboard}`}
@@ -128,7 +119,7 @@ const DomainGuidelines = ({ domain }) => {
               }
             />
           </small>
-          <pre>{value}</pre>
+          <pre>{record?.recordValue}</pre>
         </span>
       </div>
     )
@@ -136,23 +127,23 @@ const DomainGuidelines = ({ domain }) => {
 
   return (
     <div className='d-flex'>
-      {(verification?.dns?.state && verification?.dns?.state !== 'VERIFIED') && (
+      {(records?.CNAME?.status === 'PENDING' || records?.TXT?.status === 'PENDING') && (
         <div className='d-flex flex-column gap-2'>
           <h5>Step 1: Verify your domain</h5>
           <p>Add the following DNS records to verify ownership of your domain:</p>
           <h6>CNAME</h6>
-          {dnsRecord({ host: domainName || 'www', value: verification?.dns?.cname })}
+          {dnsRecord({ record: records?.CNAME })}
           <hr />
           <h6>TXT</h6>
-          {dnsRecord({ host: `_snverify.${domainName}`, value: verification?.dns?.txt })}
+          {dnsRecord({ record: records?.TXT })}
         </div>
       )}
-      {verification?.ssl?.state === 'PENDING' && (
+      {records?.SSL?.status === 'PENDING' && (
         <div className=''>
           <h5>Step 2: Prepare your domain for SSL</h5>
           <p>We issued an SSL certificate for your domain. To validate it, add the following CNAME record:</p>
           <h6>CNAME</h6>
-          {dnsRecord({ host: verification?.ssl?.cname || 'waiting for SSL certificate', value: verification?.ssl?.value || 'waiting for SSL certificate' })}
+          {dnsRecord({ record: records?.SSL })}
         </div>
       )}
     </div>
@@ -218,7 +209,9 @@ export default function CustomDomainForm ({ sub }) {
           <SubmitButton variant='primary' className='mt-3'>save</SubmitButton>
         </div>
       </Form>
-      <DomainGuidelines domain={data?.domain} />
+      {data?.domain && data?.domain?.status !== 'ACTIVE' && (
+        <DomainGuidelines domain={data?.domain} />
+      )}
     </>
   )
 }

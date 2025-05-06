@@ -137,5 +137,22 @@ export default {
         }
       }
     }
+  },
+  Domain: {
+    records: async (domain) => {
+      if (!domain.records) return []
+
+      return Object.fromEntries(domain.records.map(record => [record.type, record]))
+    },
+    attempts: async (parent, { subName }, { models }) => {
+      return models.domainVerificationAttempt.findMany({
+        where: { domainId: parent.id }
+      })
+    },
+    certificate: async (parent, { subName }, { models }) => {
+      return models.domainCertificate.findUnique({
+        where: { domainId: parent.id }
+      })
+    }
   }
 }

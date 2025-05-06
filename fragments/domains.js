@@ -14,6 +14,23 @@ export const DOMAIN_VERIFICATION_RECORD_FIELDS = gql`
     type
     recordName
     recordValue
+    status
+    lastCheckedAt
+  }
+`
+
+export const DOMAIN_VERIFICATION_RECORD_MAP_FIELDS = gql`
+  ${DOMAIN_VERIFICATION_RECORD_FIELDS}
+  fragment DomainVerificationRecordMapFields on DomainVerificationRecordMap {
+    CNAME {
+      ...DomainVerificationRecordFields
+    }
+    TXT {
+      ...DomainVerificationRecordFields
+    }
+    SSL {
+      ...DomainVerificationRecordFields
+    }
   }
 `
 
@@ -36,13 +53,13 @@ export const DOMAIN_CERTIFICATE_FIELDS = gql`
 
 export const DOMAIN_FULL_FIELDS = gql`
   ${DOMAIN_FIELDS}
-  ${DOMAIN_VERIFICATION_RECORD_FIELDS}
+  ${DOMAIN_VERIFICATION_RECORD_MAP_FIELDS}
   ${DOMAIN_VERIFICATION_ATTEMPT_FIELDS}
   ${DOMAIN_CERTIFICATE_FIELDS}
   fragment DomainFullFields on Domain {
     ...DomainFields
     records {
-      ...DomainVerificationRecordFields
+      ...DomainVerificationRecordMapFields
     }
     attempts {
       ...DomainVerificationAttemptFields

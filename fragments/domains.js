@@ -37,6 +37,7 @@ export const DOMAIN_VERIFICATION_RECORD_MAP_FIELDS = gql`
 export const DOMAIN_VERIFICATION_ATTEMPT_FIELDS = gql`
   fragment DomainVerificationAttemptFields on DomainVerificationAttempt {
     id
+    stage
     status
     message
     createdAt

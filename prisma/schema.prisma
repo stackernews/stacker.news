@@ -1267,6 +1267,7 @@ model DomainVerificationAttempt {
   updatedAt               DateTime                  @default(now()) @updatedAt @map("updated_at")
   domainId                Int
   verificationRecordId    Int?
+  stage                   DomainVerificationStage   @default(GENERAL)
   status                  DomainVerificationStatus  @default(PENDING)
   message                 String?
 
@@ -1283,7 +1284,7 @@ model DomainVerificationRecord {
   updatedAt      DateTime                     @default(now()) @updatedAt @map("updated_at")
   lastCheckedAt  DateTime?                    @map("last_checked_at")
   domainId       Int
-  type           DomainVerificationType
+  type           DomainRecordType
   recordName     String
   recordValue    String
   status         DomainVerificationStatus     @default(PENDING)
@@ -1316,7 +1317,17 @@ enum DomainVerificationStatus {
   HOLD
 }
 
-enum DomainVerificationType {
+enum DomainVerificationStage {
+  GENERAL
+  CNAME
+  TXT
+  ACM_REQUEST_CERTIFICATE
+  ACM_REQUEST_VALIDATION_VALUES
+  ACM_VALIDATION
+  VERIFICATION_COMPLETE
+}
+
+enum DomainRecordType {
   TXT
   CNAME
   SSL

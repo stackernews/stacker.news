@@ -1,5 +1,8 @@
 -- CreateEnum
-CREATE TYPE "DomainVerificationType" AS ENUM ('TXT', 'CNAME', 'SSL');
+CREATE TYPE "DomainVerificationStage" AS ENUM ('GENERAL', 'CNAME', 'TXT', 'ACM_REQUEST_CERTIFICATE', 'ACM_REQUEST_VALIDATION_VALUES', 'ACM_VALIDATION', 'VERIFICATION_COMPLETE');
+
+-- CreateEnum
+CREATE TYPE "DomainRecordType" AS ENUM ('TXT', 'CNAME', 'SSL');
 
 -- CreateEnum
 CREATE TYPE "DomainVerificationStatus" AS ENUM ('PENDING', 'VERIFIED', 'FAILED', 'ACTIVE', 'HOLD');
@@ -26,6 +29,7 @@ CREATE TABLE "DomainVerificationAttempt" (
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "domainId" INTEGER NOT NULL,
     "verificationRecordId" INTEGER,
+    "stage" "DomainVerificationStage" NOT NULL DEFAULT 'GENERAL',
     "status" "DomainVerificationStatus" NOT NULL DEFAULT 'PENDING',
     "message" TEXT,
 
@@ -39,7 +43,7 @@ CREATE TABLE "DomainVerificationRecord" (
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "last_checked_at" TIMESTAMP(3),
     "domainId" INTEGER NOT NULL,
-    "type" "DomainVerificationType" NOT NULL,
+    "type" "DomainRecordType" NOT NULL,
     "recordName" TEXT NOT NULL,
     "recordValue" TEXT NOT NULL,
     "status" "DomainVerificationStatus" NOT NULL DEFAULT 'PENDING',
@@ -135,10 +139,11 @@ RETURNS TRIGGER AS $$
 DECLARE
   domain_id INTEGER;
 BEGIN
-  IF NEW.status = 'STOPPED' THEN
-    SELECT id INTO domain_id FROM "Domain" WHERE "subName" = NEW.name;
-    UPDATE "Domain" SET "status" = 'HOLD' WHERE "id" = domain_id;
-    DELETE FROM "DomainCertificate" WHERE "domainId" = domain_id;
+  UPDATE "Domain" SET "status" = 'HOLD' WHERE "subName" = NEW.name
+    RETURNING id INTO domain_id;
+
+  IF domain_id IS NOT NULL THEN
+      DELETE FROM "DomainCertificate" WHERE "domainId" = domain_id;
   END IF;
 
   RETURN NEW;
@@ -148,5 +153,5 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trigger_hold_domain_and_delete_certificate
 AFTER UPDATE ON "Sub"
 FOR EACH ROW
-WHEN (NEW.status = 'STOPPED') AND EXISTS (SELECT 1 FROM "Domain" WHERE "subName" = NEW.name)
+WHEN (NEW.status = 'STOPPED')
 EXECUTE FUNCTION hold_domain_and_delete_certificate();

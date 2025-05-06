@@ -38,7 +38,7 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
     })
 
     // log the general verification attempt
-    await logAttempt({ domain, models, status: result.status, message: result.message })
+    await logAttempt({ domain, models, stage: 'VERIFICATION_COMPLETE', status: result.status, message: result.message })
 
     // if the result is PENDING it means we still have to verify the domain
     // if it's not PENDING, we stop the verification process.
@@ -118,7 +118,7 @@ async function verifyDomain (domain, models) {
     const sslVerified = await checkACMValidation(domain, models, recordMap.SSL)
     if (!sslVerified) return { status, message: 'ACM validation has failed.' }
   } catch (error) {
-    await logAttempt({ domain, models, status, message: 'ACM services error: ' + error.message })
+    await logAttempt({ domain, models, stage: 'GENERAL', status, message: 'ACM services error: ' + error.message })
     throw error
   }
 
@@ -146,7 +146,7 @@ async function verifyRecord (type, record, domain, models) {
   const message = result.valid ? `${type} record verified` : result.error || `${type} record is not valid`
 
   // log the record verification attempt
-  await logAttempt({ domain, models, record, status, message })
+  await logAttempt({ domain, models, record, stage: type, status, message })
   return status === 'VERIFIED'
 }
 
@@ -174,7 +174,7 @@ async function requestCertificate (domain, models) {
   }
 
   const status = certificateArn ? 'PENDING' : 'FAILED'
-  await logAttempt({ domain, models, status, message })
+  await logAttempt({ domain, models, stage: 'ACM_REQUEST_CERTIFICATE', status, message })
   return certificateArn
 }
 
@@ -199,7 +199,7 @@ async function getACMValidationValues (domain, models, certificateArn) {
   }
 
   const status = validationValues ? 'PENDING' : 'FAILED'
-  await logAttempt({ domain, models, status, message })
+  await logAttempt({ domain, models, stage: 'ACM_REQUEST_VALIDATION_VALUES', status, message })
   return status !== 'FAILED'
 }
 
@@ -221,13 +221,14 @@ async function checkACMValidation (domain, models, record) {
   }
 
   const status = certificateStatus === 'ISSUED' ? 'VERIFIED' : 'PENDING'
-  await logAttempt({ domain, models, record, status, message })
+  await logAttempt({ domain, models, record, stage: 'ACM_VALIDATION', status, message })
   return status === 'VERIFIED'
 }
 
-async function logAttempt ({ domain, models, record, status, message }) {
+async function logAttempt ({ domain, models, record, stage, status, message }) {
   const data = {
     domain: { connect: { id: domain.id } },
+    stage,
     status,
     message
   }

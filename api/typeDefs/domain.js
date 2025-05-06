@@ -47,6 +47,7 @@ export default gql`
     updatedAt: Date!
     domainId: Int!
     verificationRecordId: Int
+    stage: DomainVerificationStage
     status: DomainVerificationStatus
     message: String
   }
@@ -60,7 +61,17 @@ export default gql`
     status: DomainCertificateStatus
   }
 
-  enum DomainVerificationType {
+  enum DomainVerificationStage {
+    GENERAL
+    CNAME
+    TXT
+    ACM_REQUEST_CERTIFICATE
+    ACM_REQUEST_VALIDATION_VALUES
+    ACM_VALIDATION
+    VERIFICATION_COMPLETE
+  }
+
+  enum DomainRecordType {
     TXT
     CNAME
     SSL

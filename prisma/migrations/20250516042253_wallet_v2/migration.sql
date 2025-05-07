@@ -514,3 +514,278 @@ CREATE TRIGGER wallet_check_support
     BEFORE INSERT OR UPDATE ON "WalletRecvLNDGRPC"
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('RECEIVE');
+
+CREATE OR REPLACE FUNCTION wallet_v2_migration()
+RETURNS void AS
+$$
+DECLARE
+    row RECORD;
+BEGIN
+    FOR row IN
+        SELECT w1.*, w2."userId", w2."priority", w2."enabled"
+        FROM "WalletLNbits" w1
+        JOIN "Wallet" w2 ON w1."walletId" = w2.id
+    LOOP
+        DECLARE
+            userWalletId INT;
+        BEGIN
+            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
+            SELECT row."userId", w.id, row."priority", row."enabled"
+            FROM "WalletV2" w
+            WHERE w.name = 'LNBITS'
+            RETURNING id INTO userWalletId;
+
+            IF row."adminKeyId" IS NOT NULL THEN
+                INSERT INTO "WalletSendLNbits" ("walletId", "url", "apiKeyId")
+                VALUES (userWalletId, row."url", row."adminKeyId");
+            END IF;
+
+            IF row."invoiceKey" IS NOT NULL THEN
+                INSERT INTO "WalletRecvLNbits" ("walletId", "url", "apiKey")
+                VALUES (userWalletId, row."url", row."invoiceKey");
+            END IF;
+        END;
+    END LOOP;
+
+    FOR row IN
+        SELECT w1.*, w2."userId", w2."userId", w2."priority", w2."enabled"
+        FROM "WalletPhoenixd" w1
+        JOIN "Wallet" w2 ON w1."walletId" = w2.id
+    LOOP
+        DECLARE
+            userWalletId INT;
+        BEGIN
+            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
+            SELECT row."userId", w.id, row."priority", row."enabled"
+            FROM "WalletV2" w
+            WHERE w.name = 'PHOENIXD'
+            RETURNING id INTO userWalletId;
+
+            IF row."primaryPasswordId" IS NOT NULL THEN
+                INSERT INTO "WalletSendPhoenixd" ("walletId", "url", "apiKeyId")
+                VALUES (userWalletId, row."url", row."primaryPasswordId");
+            END IF;
+
+            IF row."secondaryPassword" IS NOT NULL THEN
+                INSERT INTO "WalletRecvPhoenixd" ("walletId", "url", "apiKey")
+                VALUES (userWalletId, row."url", row."secondaryPassword");
+            END IF;
+        END;
+    END LOOP;
+
+    FOR row IN
+        SELECT w1.*, w2."userId", w2."userId", w2."priority", w2."enabled"
+        FROM "WalletBlink" w1
+        JOIN "Wallet" w2 ON w1."walletId" = w2.id
+    LOOP
+        DECLARE
+            userWalletId INT;
+        BEGIN
+            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
+            SELECT row."userId", w.id, row."priority", row."enabled"
+            FROM "WalletV2" w
+            WHERE w.name = 'BLINK'
+            RETURNING id INTO userWalletId;
+
+            IF row."apiKeyId" IS NOT NULL AND row."currencyId" IS NOT NULL THEN
+                INSERT INTO "WalletSendBlink" ("walletId", "apiKeyId", "currencyId")
+                VALUES (userWalletId, row."apiKeyId", row."currencyId");
+            END IF;
+
+            IF row."apiKeyRecv" IS NOT NULL AND row."currencyRecv" IS NOT NULL THEN
+                INSERT INTO "WalletRecvBlink" ("walletId", "apiKey", "currency")
+                VALUES (userWalletId, row."apiKeyRecv", row."currencyRecv");
+            END IF;
+        END;
+    END LOOP;
+
+    FOR row IN
+        SELECT w1.*, w2."userId", w2."userId", w2."priority", w2."enabled"
+        FROM "WalletLND" w1
+        JOIN "Wallet" w2 ON w1."walletId" = w2.id
+    LOOP
+        DECLARE
+            userWalletId INT;
+        BEGIN
+            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
+            SELECT row."userId", w.id, row."priority", row."enabled"
+            FROM "WalletV2" w
+            WHERE w.name = 'LND'
+            RETURNING id INTO userWalletId;
+
+            INSERT INTO "WalletRecvLNDGRPC" ("walletId", "socket", "macaroon", "cert")
+            VALUES (userWalletId, row."socket", row."macaroon", row."cert");
+        END;
+    END LOOP;
+
+    FOR row IN
+        SELECT w1.*, w2."userId", w2."userId", w2."priority", w2."enabled"
+        FROM "WalletLNC" w1
+        JOIN "Wallet" w2 ON w1."walletId" = w2.id
+    LOOP
+        DECLARE
+            userWalletId INT;
+        BEGIN
+            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
+            SELECT row."userId", w.id, row."priority", row."enabled"
+            FROM "WalletV2" w
+            WHERE w.name = 'LND'
+            RETURNING id INTO userWalletId;
+
+            INSERT INTO "WalletSendLNC" ("walletId", "pairingPhraseId", "localKeyId", "remoteKeyId", "serverHostId")
+            VALUES (userWalletId, row."pairingPhraseId", row."localKeyId", row."remoteKeyId", row."serverHostId");
+        END;
+    END LOOP;
+
+    FOR row IN
+        SELECT w1.*, w2."userId", w2."userId", w2."priority", w2."enabled"
+        FROM "WalletCLN" w1
+        JOIN "Wallet" w2 ON w1."walletId" = w2.id
+    LOOP
+        DECLARE
+            userWalletId INT;
+        BEGIN
+            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
+            SELECT row."userId", w.id, row."priority", row."enabled"
+            FROM "WalletV2" w
+            WHERE w.name = 'CLN'
+            RETURNING id INTO userWalletId;
+
+            INSERT INTO "WalletRecvCLNRest" ("walletId", "socket", "rune", "cert")
+            VALUES (userWalletId, row."socket", row."rune", row."cert");
+        END;
+    END LOOP;
+
+    FOR row IN
+        SELECT w1.*, w2."userId", w2."userId", w2."priority", w2."enabled"
+        FROM "WalletNWC" w1
+        JOIN "Wallet" w2 ON w1."walletId" = w2.id
+    LOOP
+        DECLARE
+            userWalletId INT;
+            relay TEXT;
+            walletName TEXT;
+        BEGIN
+            relay := substring(row."nwcUrlRecv" from 'relay=([^&]+)');
+
+            IF relay LIKE '%getalby.com%' THEN
+                walletName := 'ALBY';
+            ELSIF relay LIKE '%rizful.com%' THEN
+                walletName := 'RIZFUL';
+            ELSIF relay LIKE '%primal.net%' THEN
+                walletName := 'PRIMAL';
+            ELSE
+                walletName := 'CUSTOM';
+            END IF;
+
+            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
+            SELECT row."userId", w.id, row."priority", row."enabled"
+            FROM "WalletV2" w
+            WHERE w.name = walletName
+            RETURNING id INTO userWalletId;
+
+            -- we assume here that the wallet to receive is the same as the wallet to send
+            -- since we can't check which relay is used for the send connection because it's encrypted.
+            -- but in 99% if not 100% of the cases, it's the same wallet anyway.
+            IF row."nwcUrlRecv" IS NOT NULL THEN
+                INSERT INTO "WalletRecvNWC" ("walletId", "url")
+                VALUES (userWalletId, row."nwcUrlRecv");
+            END IF;
+
+            IF row."nwcUrlId" IS NOT NULL THEN
+                INSERT INTO "WalletSendNWC" ("walletId", "urlId")
+                VALUES (userWalletId, row."nwcUrlId");
+            END IF;
+        END;
+    END LOOP;
+
+    FOR row IN
+        SELECT w1.*, w2."userId", w2."userId", w2."priority", w2."enabled"
+        FROM "WalletLightningAddress" w1
+        JOIN "Wallet" w2 ON w1."walletId" = w2.id
+    LOOP
+        DECLARE
+            userWalletId INT;
+            domain TEXT;
+            walletName TEXT;
+        BEGIN
+            domain := split_part(row."address", '@', 2);
+
+            IF domain LIKE '%walletofsatoshi.com' THEN
+                walletName := 'WALLET_OF_SATOSHI';
+            ELSIF domain LIKE '%getalby.com' THEN
+                walletName := 'ALBY';
+            ELSIF domain LIKE '%coinos.io' THEN
+                walletName := 'COINOS';
+            ELSIF domain LIKE '%speed.app' OR domain LIKE '%tryspeed.com' THEN
+                walletName := 'SPEED';
+            ELSIF domain LIKE '%blink.sv' THEN
+                walletName := 'BLINK';
+            ELSIF domain LIKE '%zbd.gg' THEN
+                walletName := 'ZBD';
+            ELSIF domain LIKE '%strike.me' THEN
+                walletName := 'STRIKE';
+            ELSIF domain LIKE '%primal.net' THEN
+                walletName := 'PRIMAL';
+            ELSIF domain LIKE '%minibits.cash' THEN
+                walletName := 'MINIBITS';
+            ELSIF domain LIKE '%npub.cash' THEN
+                walletName := 'NPUB.CASH';
+            ELSIF domain LIKE '%zeuspay.com' THEN
+                walletName := 'ZEUS';
+            ELSIF domain LIKE '%zeuspay.com' THEN
+                walletName := 'ZEUSPAY';
+            ELSIF domain LIKE '%fountain.fm' THEN
+                walletName := 'FOUNTAIN';
+            ELSIF domain LIKE '%lifpay.me' THEN
+                walletName := 'LIFPAY';
+            ELSIF domain LIKE '%rizful.com' THEN
+                walletName := 'RIZFUL';
+            ELSIF domain LIKE '%vlt.ge' THEN
+                walletName := 'VOLTAGE';
+            ELSIF domain LIKE '%blixtwallet.com' THEN
+                walletName := 'BLIXT';
+            ELSIF domain LIKE '%shockwallet.app' THEN
+                walletName := 'SHOCKWALLET';
+            ELSE
+                walletName := 'CUSTOM';
+            END IF;
+
+            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
+            SELECT row."userId", w.id, row."priority", row."enabled"
+            FROM "WalletV2" w
+            WHERE w.name = walletName
+            RETURNING id INTO userWalletId;
+
+            INSERT INTO "WalletRecvLightningAddress" ("walletId", "address")
+            VALUES (userWalletId, row."address");
+        END;
+    END LOOP;
+
+    FOR row IN
+        SELECT w1.*, w2."userId", w2."userId", w2."priority", w2."enabled"
+        FROM "WalletWebLN" w1
+        JOIN "Wallet" w2 ON w1."walletId" = w2.id
+    LOOP
+        DECLARE
+            userWalletId INT;
+            walletName TEXT;
+        BEGIN
+            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
+            SELECT row."userId", w.id, row."priority", row."enabled"
+            FROM "WalletV2" w
+            -- we assume here that they use the Alby browser extension even though there are other WebLN providers:
+            -- https://www.webln.guide/ressources/webln-providers
+            WHERE w.name = 'ALBY'
+            RETURNING id INTO userWalletId;
+
+            INSERT INTO "WalletSendWebLN" ("walletId")
+            VALUES (userWalletId);
+        END;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT wallet_v2_migration();
+
+DROP FUNCTION wallet_v2_migration();

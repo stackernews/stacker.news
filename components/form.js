@@ -140,6 +140,94 @@ function setNativeValue (textarea, value) {
   textarea.dispatchEvent(new Event('input', { bubbles: true, value }))
 }
 
+function EntityAutocomplete ({
+  prefix,
+  meta,
+  helpers,
+  innerRef,
+  setSelectionRange,
+  SuggestComponent
+}) {
+  const [entityData, setEntityData] = useState()
+
+  const handleSelect = useCallback((name) => {
+    if (entityData?.start === undefined || entityData?.end === undefined) return
+    const { start, end } = entityData
+    setEntityData(undefined)
+    const first = `${meta?.value.substring(0, start)}${prefix}${name}`
+    const second = meta?.value.substring(end)
+    const updatedValue = `${first}${second}`
+    helpers.setValue(updatedValue)
+    setSelectionRange({ start: first.length, end: first.length })
+    innerRef.current.focus()
+  }, [entityData, meta?.value, helpers, prefix, setSelectionRange, innerRef])
+
+  const handleTextChange = useCallback((e) => {
+    const { value, selectionStart } = e.target
+    if (!value || selectionStart === undefined) {
+      setEntityData(undefined)
+      return false
+    }
+
+    let priorSpace = -1
+    for (let i = selectionStart - 1; i >= 0; i--) {
+      if (/[^\w@~]/.test(value[i])) {
+        priorSpace = i
+        break
+      }
+    }
+
+    let nextSpace = value.length
+    for (let i = selectionStart; i <= value.length; i++) {
+      if (/[^\w]/.test(value[i])) {
+        nextSpace = i
+        break
+      }
+    }
+
+    const currentSegment = value.substring(priorSpace + 1, nextSpace)
+    const regexPattern = new RegExp(`^\\${prefix}\\w*$`)
+
+    if (regexPattern.test(currentSegment)) {
+      const { top, left } = textAreaCaret(e.target, e.target.selectionStart)
+      setEntityData({
+        query: currentSegment,
+        start: priorSpace + 1,
+        end: nextSpace,
+        style: {
+          position: 'absolute',
+          top: `${top + Number(window.getComputedStyle(e.target).lineHeight.replace('px', ''))}px`,
+          left: `${left}px`
+        }
+      })
+      return true
+    }
+
+    setEntityData(undefined)
+    return false
+  }, [prefix])
+
+  // Return a function that takes a render prop instead of directly returning the component
+  return {
+    entityData,
+    handleSelect,
+    handleTextChange,
+    renderSuggest: (renderProps) => {
+      if (!entityData) return null
+
+      return (
+        <SuggestComponent
+          query={entityData?.query}
+          onSelect={handleSelect}
+          dropdownStyle={entityData?.style}
+        >
+          {renderProps}
+        </SuggestComponent>
+      )
+    }
+  }
+}
+
 export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta, helpers] = useField(props)
@@ -199,31 +287,23 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     }
   }, [innerRef, selectionRange.start, selectionRange.end])
 
-  const [mention, setMention] = useState()
-  const insertMention = useCallback((name) => {
-    if (mention?.start === undefined || mention?.end === undefined) return
-    const { start, end } = mention
-    setMention(undefined)
-    const first = `${meta?.value.substring(0, start)}@${name}`
-    const second = meta?.value.substring(end)
-    const updatedValue = `${first}${second}`
-    helpers.setValue(updatedValue)
-    setSelectionRange({ start: first.length, end: first.length })
-    innerRef.current.focus()
-  }, [mention, meta?.value, helpers?.setValue])
+  const userAutocomplete = EntityAutocomplete({
+    prefix: '@',
+    meta,
+    helpers,
+    innerRef,
+    setSelectionRange,
+    SuggestComponent: UserSuggest
+  })
 
-  const [territory, setTerritory] = useState()
-  const insertTerritory = useCallback((name) => {
-    if (territory?.start === undefined || territory?.end === undefined) return
-    const { start, end } = territory
-    setTerritory(undefined)
-    const first = `${meta?.value.substring(0, start)}~${name}`
-    const second = meta?.value.substring(end)
-    const updatedValue = `${first}${second}`
-    helpers.setValue(updatedValue)
-    setSelectionRange({ start: first.length, end: first.length })
-    innerRef.current.focus()
-  }, [territory, meta?.value, helpers?.setValue])
+  const territoryAutocomplete = EntityAutocomplete({
+    prefix: '~',
+    meta,
+    helpers,
+    innerRef,
+    setSelectionRange,
+    SuggestComponent: TerritorySuggest
+  })
 
   const uploadFeesUpdate = useDebounceCallback(
     (text) => {
@@ -233,64 +313,14 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
 
   const onChangeInner = useCallback((formik, e) => {
     if (onChange) onChange(formik, e)
-    // check for mention editing and territory suggestions
-    const { value, selectionStart } = e.target
-    uploadFeesUpdate(value)
+    // check for mentions and territory suggestions
+    uploadFeesUpdate(e.target.value)
 
-    if (!value || selectionStart === undefined) {
-      setMention(undefined)
-      setTerritory(undefined)
-      return
+    // Try to match user mentions first, then territories
+    if (!userAutocomplete.handleTextChange(e)) {
+      territoryAutocomplete.handleTextChange(e)
     }
-
-    let priorSpace = -1
-    for (let i = selectionStart - 1; i >= 0; i--) {
-      if (/[^\w@~]/.test(value[i])) {
-        priorSpace = i
-        break
-      }
-    }
-    let nextSpace = value.length
-    for (let i = selectionStart; i <= value.length; i++) {
-      if (/[^\w]/.test(value[i])) {
-        nextSpace = i
-        break
-      }
-    }
-    const currentSegment = value.substring(priorSpace + 1, nextSpace)
-
-    // set the query to the current character segment and note where it appears
-    if (/^@\w*$/.test(currentSegment)) {
-      const { top, left } = textAreaCaret(e.target, e.target.selectionStart)
-      setMention({
-        query: currentSegment,
-        start: priorSpace + 1,
-        end: nextSpace,
-        style: {
-          position: 'absolute',
-          top: `${top + Number(window.getComputedStyle(e.target).lineHeight.replace('px', ''))}px`,
-          left: `${left}px`
-        }
-      })
-      setTerritory(undefined)
-    } else if (/^~\w*$/.test(currentSegment)) {
-      const { top, left } = textAreaCaret(e.target, e.target.selectionStart)
-      setTerritory({
-        query: currentSegment,
-        start: priorSpace + 1,
-        end: nextSpace,
-        style: {
-          position: 'absolute',
-          top: `${top + Number(window.getComputedStyle(e.target).lineHeight.replace('px', ''))}px`,
-          left: `${left}px`
-        }
-      })
-      setMention(undefined)
-    } else {
-      setMention(undefined)
-      setTerritory(undefined)
-    }
-  }, [onChange, setMention, setTerritory, uploadFeesUpdate])
+  }, [onChange, uploadFeesUpdate, userAutocomplete, territoryAutocomplete])
 
   const onKeyDownInner = useCallback((userSuggestOnKeyDown, territorySuggestOnKeyDown) => {
     return (e) => {
@@ -323,16 +353,16 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
       }
 
       if (!metaOrCtrl) {
-        if (mention) {
+        if (userAutocomplete.entityData) {
           userSuggestOnKeyDown(e)
-        } else if (territory) {
+        } else if (territoryAutocomplete.entityData) {
           territorySuggestOnKeyDown(e)
         }
       }
 
       if (onKeyDown) onKeyDown(e)
     }
-  }, [innerRef, helpers?.setValue, setSelectionRange, onKeyDown, mention, territory])
+  }, [innerRef, helpers?.setValue, setSelectionRange, onKeyDown, userAutocomplete.entityData, territoryAutocomplete.entityData])
 
   const onPaste = useCallback((event) => {
     const items = event.clipboardData.items
@@ -443,14 +473,14 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
         </Nav>
         <div className={`position-relative ${tab === 'write' ? '' : 'd-none'}`}>
           <UserSuggest
-            query={mention?.query}
-            onSelect={insertMention}
-            dropdownStyle={mention?.style}
+            query={userAutocomplete.entityData?.query}
+            onSelect={userAutocomplete.handleSelect}
+            dropdownStyle={userAutocomplete.entityData?.style}
           >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions: resetUserSuggestions }) => (
             <TerritorySuggest
-              query={territory?.query}
-              onSelect={insertTerritory}
-              dropdownStyle={territory?.style}
+              query={territoryAutocomplete.entityData?.query}
+              onSelect={territoryAutocomplete.handleSelect}
+              dropdownStyle={territoryAutocomplete.entityData?.style}
             >{({ onKeyDown: territorySuggestOnKeyDown, resetSuggestions: resetTerritorySuggestions }) => (
               <InputInner
                 innerRef={innerRef}

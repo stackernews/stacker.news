@@ -102,11 +102,13 @@ async function verifyDomain (domain, models) {
   // AWS external calls can fail, we'll catch the error for pgboss to retry the job
   try {
     // STEP 2a: Request a certificate and get its validation values
-    if (!domain.certificate && !recordMap.SSL) {
-      const certificateArn = await requestCertificate(domain, models)
+    let certificateArn = domain.certificate?.certificateArn || null
+    if (!certificateArn) {
+      certificateArn = await requestCertificate(domain, models)
       if (!certificateArn) return { status, message: 'Certificate issuance has failed.' }
+    }
 
-      // STEP 2b: get the validation values for the certificate
+    if (certificateArn && !recordMap.SSL) {
       const validationValues = await getACMValidationValues(domain, models, certificateArn)
       if (!validationValues) return { status, message: 'Could not get validation values.' }
 
@@ -217,7 +219,7 @@ async function checkACMValidation (domain, models, record) {
     }
     message = `Certificate status is: ${certificateStatus}`
   } else {
-    message = 'Couldn\'t check certificate status'
+    message = 'Could not check certificate status'
   }
 
   const status = certificateStatus === 'ISSUED' ? 'VERIFIED' : 'PENDING'

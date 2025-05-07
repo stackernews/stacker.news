@@ -75,13 +75,13 @@ export default {
           // create the verification records
           const verificationRecords = [
             {
-              domainId: updatedDomain.id,
+              domainId: domain.id,
               type: 'CNAME',
               recordName: domainName,
               recordValue: new URL(process.env.NEXT_PUBLIC_URL).host
             },
             {
-              domainId: updatedDomain.id,
+              domainId: domain.id,
               type: 'TXT',
               recordName: '_snverify.' + domainName,
               recordValue: existingTXT // if we're resuming from HOLD, use the existing TXT record
@@ -94,7 +94,7 @@ export default {
             await tx.domainVerificationRecord.upsert({
               where: {
                 domainId_type_recordName: {
-                  domainId: updatedDomain.id,
+                  domainId: domain.id,
                   type: record.type,
                   recordName: record.recordName
                 }
@@ -108,7 +108,7 @@ export default {
           await tx.$executeRaw`
           INSERT INTO pgboss.job (name, data, retrylimit, retrydelay, startafter, keepuntil)
           VALUES ('domainVerification',
-                  jsonb_build_object('domainId', ${updatedDomain.id}::INTEGER),
+                  jsonb_build_object('domainId', ${domain.id}::INTEGER),
                   3,
                   60,
                   now() + interval '30 seconds',

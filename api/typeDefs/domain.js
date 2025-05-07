@@ -28,7 +28,7 @@ export default gql`
     updatedAt: Date!
     lastCheckedAt: Date
     domainId: Int!
-    type: DomainVerificationType
+    type: DomainRecordType
     recordName: String!
     recordValue: String!
     status: DomainVerificationStatus

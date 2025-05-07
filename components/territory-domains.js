@@ -90,7 +90,7 @@ const DomainGuidelines = ({ domain }) => {
 
   const dnsRecord = ({ record }) => {
     return (
-      <div className='d-flex align-items-center gap-2'>
+      <div className='d-flex align-items-center gap-2 flex-wrap'>
         <span className={`${styles.record}`}>
           <small className='fw-bold text-muted d-flex align-items-center gap-1 position-relative'>
             host

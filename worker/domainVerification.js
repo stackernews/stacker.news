@@ -14,12 +14,11 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
       where: { id: domainId },
       include: {
         records: true,
-        attempts: true,
         certificate: true
       }
     })
 
-    console.log(`domainVerification: ${JSON.stringify(domain)}`)
+    console.log(`domainVerification: ${JSON.stringify(domain, null, 2)}`)
 
     // if we can't find the domain, bail without scheduling a retry
     if (!domain) {
@@ -101,13 +100,14 @@ async function verifyDomain (domain, models) {
   // STEP 2: Request a certificate, get its validation values and check ACM validation
   // AWS external calls can fail, we'll catch the error for pgboss to retry the job
   try {
-    // STEP 2a: Request a certificate and get its validation values
+    // STEP 2a: Request a certificate
     let certificateArn = domain.certificate?.certificateArn || null
     if (!certificateArn) {
       certificateArn = await requestCertificate(domain, models)
       if (!certificateArn) return { status, message: 'Certificate issuance has failed.' }
     }
 
+    // STEP 2b: Get the validation values for the certificate
     if (certificateArn && !recordMap.SSL) {
       const validationValues = await getACMValidationValues(domain, models, certificateArn)
       if (!validationValues) return { status, message: 'Could not get validation values.' }
@@ -238,6 +238,8 @@ async function logAttempt ({ domain, models, record, stage, status, message }) {
   if (record) {
     data.verificationRecord = { connect: { id: record.id } }
   }
+
+  console.log(`logAttempt: ${JSON.stringify(data, null, 2)}`)
 
   return await models.domainVerificationAttempt.create({
     data

@@ -22,18 +22,43 @@ else
     -H "Content-Type: application/json" \
     -X PUT \
     -d '{
+      "settings": {
+        "analysis": {
+          "analyzer": {
+            "exact_case_sensitive_analyzer": {
+              "tokenizer": "standard",
+              "filter": []
+            }
+          }
+        }
+      },
       "mappings": {
         "properties": {
           "text": {
             "type": "text",
             "analyzer": "english",
-            "fields": {"keyword":{"type":"keyword","ignore_above":256}}
+            "fields": {
+              "keyword": {"type": "keyword", "ignore_above": 256},
+              "exact": {
+                "type": "text",
+                "analyzer": "exact_case_sensitive_analyzer"
+              }
+            }
           },
           "title": {
             "type": "text",
             "analyzer": "english",
-            "fields": {"keyword":{"type":"keyword","ignore_above":256}}
-          }}}}' \
+            "fields": {
+              "keyword": {"type": "keyword", "ignore_above": 256},
+              "exact": {
+                "type": "text",
+                "analyzer": "exact_case_sensitive_analyzer"
+              }
+            }
+          }
+        }
+      }
+    }' \
     "http://localhost:9200/$OPENSEARCH_INDEX" \
     -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
   echo ""

@@ -283,52 +283,47 @@ export default {
 
       // if quoted phrases, items must contain entire phrase
       for (const quote of quotes) {
+        const isMultiWord = quote.includes(' ')
+        const queryType = isMultiWord ? 'match_phrase' : 'term'
+
+        const titleQueryBody = isMultiWord ? { query: quote } : quote
+        const textQueryBody = isMultiWord ? { query: quote } : quote
+
         filters.push({
           bool: {
             should: [
-              {
-                wildcard: {
-                  // Target the non-analyzed keyword field for case-sensitive search
-                  'title.keyword': {
-                    // Use wildcards to find the phrase anywhere within the field
-                    value: `*${quote}*`
-                  }
-                }
-              },
-              {
-                wildcard: {
-                  'text.keyword': {
-                    value: `*${quote}*`
-                  }
-                }
-              }
+              { [queryType]: { 'title.exact': titleQueryBody } },
+              { [queryType]: { 'text.exact': textQueryBody } }
             ],
-            // The document must match the phrase in at least one of the fields.
             minimum_should_match: 1
           }
         })
 
-        // Add queries for quotes to termQueries to make them highlightable
-        termQueries.push({
-          match_phrase: {
-            title: {
-              query: quote,
-              boost: 100
+        if (isMultiWord) {
+          termQueries.push({
+            match_phrase: {
+              'title.exact': { query: quote, boost: 100 }
             }
-          }
-        })
-
-        termQueries.push({
-          match_phrase: {
-            text: {
-              query: quote,
-              boost: 100
+          })
+          termQueries.push({
+            match_phrase: {
+              'text.exact': { query: quote, boost: 100 }
             }
-          }
-        })
+          })
+        } else {
+          termQueries.push({
+            term: {
+              'title.exact': { value: quote, boost: 100 }
+            }
+          })
+          termQueries.push({
+            term: {
+              'text.exact': { value: quote, boost: 100 }
+            }
+          })
+        }
       }
 
-      // functions for boosting search rank by recency or popularity
       switch (sort) {
         case 'comments':
           functions.push({
@@ -478,7 +473,9 @@ export default {
             highlight: {
               fields: {
                 title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
-                text: { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] }
+                'title.exact': { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
+                text: { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] },
+                'text.exact': { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] }
               }
             }
           }
@@ -513,8 +510,22 @@ export default {
         orderBy: 'ORDER BY rank ASC, msats DESC'
       })).map((item, i) => {
         const e = sitems.body.hits.hits[i]
-        item.searchTitle = (e.highlight?.title && e.highlight.title[0]) || item.title
-        item.searchText = (e.highlight?.text && e.highlight.text.join(' ... ')) || undefined
+
+        if (e.highlight?.['title.exact']?.[0]) {
+          item.searchTitle = e.highlight['title.exact'][0]
+        } else if (e.highlight?.title?.[0]) {
+          item.searchTitle = e.highlight.title[0]
+        } else {
+          item.searchTitle = item.title
+        }
+
+        let searchTextHighlight
+        if (e.highlight?.['text.exact']?.length > 0) {
+          searchTextHighlight = e.highlight['text.exact'].join(' ... ')
+        } else if (e.highlight?.text?.length > 0) {
+          searchTextHighlight = e.highlight.text.join(' ... ')
+        }
+        item.searchText = searchTextHighlight || undefined
         return item
       })
 

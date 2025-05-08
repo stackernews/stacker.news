@@ -3,6 +3,14 @@ import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { randomBytes } from 'node:crypto'
 import { getDomainMapping } from '@/lib/domains'
 
+async function cleanDomainVerificationJobs (domain, models) {
+  // delete any existing domain verification job left
+  await models.$queryRaw`
+  DELETE FROM pgboss.job
+  WHERE name = 'domainVerification'
+      AND data->>'domainId' = ${domain.id}::TEXT`
+}
+
 export default {
   Query: {
     domain: async (parent, { subName }, { models }) => {
@@ -36,13 +44,17 @@ export default {
         throw new GqlInputError('invalid domain format')
       }
 
+      // we need to get the existing domain if we're updating or re-verifying
       const existing = await models.domain.findUnique({ where: { subName } })
 
       if (domainName) {
+        // updating the domain name and recovering from HOLD is allowed
         if (existing && existing.domainName === domainName && existing.status !== 'HOLD') {
           throw new GqlInputError('domain already set')
         }
 
+        // we should always make sure to get a new updatedAt timestamp
+        // to know when should we put the domain in HOLD during verification
         const initializeDomain = {
           domainName,
           updatedAt: new Date(),
@@ -50,6 +62,11 @@ export default {
         }
 
         const updatedDomain = await models.$transaction(async tx => {
+          // clean any existing domain verification job left
+          if (existing && existing.status === 'HOLD') {
+            await cleanDomainVerificationJobs(existing, tx)
+          }
+
           const domain = await tx.domain.upsert({
             where: { subName },
             update: initializeDomain,
@@ -90,6 +107,7 @@ export default {
             }
           ]
 
+          // create the verification records
           for (const record of verificationRecords) {
             await tx.domainVerificationRecord.upsert({
               where: {
@@ -124,11 +142,10 @@ export default {
           // Delete any existing domain verification jobs
           if (existing) {
             return await models.$transaction(async tx => {
-              await tx.$queryRaw`
-              DELETE FROM pgboss.job
-              WHERE name = 'domainVerification'
-                  AND data->>'domainId' = ${existing.id}::TEXT`
+              // delete any existing domain verification job left
+              await cleanDomainVerificationJobs(existing, tx)
 
+              // delete the domain
               return await tx.domain.delete({ where: { subName } })
             })
           }

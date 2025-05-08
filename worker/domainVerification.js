@@ -1,5 +1,5 @@
 import createPrisma from '@/lib/create-prisma'
-import { verifyDNSRecord, issueDomainCertificate, checkCertificateStatus, getValidationValues, deleteCertificate } from '@/lib/domain-verification'
+import { verifyDNSRecord, issueDomainCertificate, checkCertificateStatus, getValidationValues, deleteDomainCertificate } from '@/lib/domain-verification'
 import { datePivot } from '@/lib/time'
 
 const VERIFICATION_INTERVAL = 60 * 5 // 5 minutes
@@ -81,7 +81,7 @@ async function verifyDomain (domain, models) {
   if (datePivot(new Date(), { days: VERIFICATION_HOLD_THRESHOLD }) > domain.updatedAt) {
     if (domain.certificate) {
       // certificate would expire in 72 hours anyway, it's best to delete it
-      await deleteCertificate(domain.certificate.certificateArn)
+      await deleteDomainCertificate(domain.certificate.certificateArn)
     }
     return { status: 'HOLD', message: `Domain ${domain.domainName} has been put on HOLD because we couldn't verify it in 48 hours` }
   }
@@ -157,22 +157,26 @@ async function requestCertificate (domain, models) {
   let message = null
 
   // ask ACM to request a certificate for the domain
-  const certificateArn = await issueDomainCertificate(domain.domainName)
+  const { certificateArn, error } = await issueDomainCertificate(domain.domainName)
 
   if (certificateArn) {
     // check the status of the just created certificate
-    const certificateStatus = await checkCertificateStatus(certificateArn)
-    // store the certificate in the database with its status
-    await models.domainCertificate.create({
-      data: {
-        domain: { connect: { id: domain.id } },
-        certificateArn,
-        status: certificateStatus
-      }
-    })
-    message = 'An ACM certificate with arn ' + certificateArn + ' has been successfully requested'
+    const { certStatus, error: checkError } = await checkCertificateStatus(certificateArn)
+    if (checkError) {
+      message = 'Could not check certificate status: ' + checkError
+    } else {
+      // store the certificate in the database with its status
+      await models.domainCertificate.create({
+        data: {
+          domain: { connect: { id: domain.id } },
+          certificateArn,
+          status: certStatus
+        }
+      })
+      message = 'An ACM certificate with arn ' + certificateArn + ' has been successfully requested'
+    }
   } else {
-    message = 'Could not request an ACM certificate'
+    message = 'Could not request an ACM certificate: ' + error
   }
 
   const status = certificateArn ? 'PENDING' : 'FAILED'
@@ -184,23 +188,23 @@ async function getACMValidationValues (domain, models, certificateArn) {
   let message = null
 
   // get the validation values for the certificate
-  const validationValues = await getValidationValues(certificateArn)
-  if (validationValues) {
+  const { cname, value, error } = await getValidationValues(certificateArn)
+  if (cname && value) {
     // store the validation values in the database
     await models.domainVerificationRecord.create({
       data: {
         domain: { connect: { id: domain.id } },
         type: 'SSL',
-        recordName: validationValues.cname,
-        recordValue: validationValues.value
+        recordName: cname,
+        recordValue: value
       }
     })
     message = 'Validation values stored'
   } else {
-    message = 'Could not get validation values'
+    message = 'Could not get validation values: ' + error
   }
 
-  const status = validationValues ? 'PENDING' : 'FAILED'
+  const status = cname && value ? 'PENDING' : 'FAILED'
   await logAttempt({ domain, models, stage: 'ACM_REQUEST_VALIDATION_VALUES', status, message })
   return status !== 'FAILED'
 }
@@ -208,21 +212,21 @@ async function getACMValidationValues (domain, models, certificateArn) {
 async function checkACMValidation (domain, models, record) {
   let message = null
 
-  const certificateStatus = await checkCertificateStatus(domain.certificate.certificateArn)
-  if (certificateStatus) {
-    if (certificateStatus !== domain.certificate.status) {
-      console.log(`certificate status for ${domain.domainName} has changed from ${domain.certificate.status} to ${certificateStatus}`)
+  const { certStatus, error } = await checkCertificateStatus(domain.certificate.certificateArn)
+  if (certStatus) {
+    if (certStatus !== domain.certificate.status) {
+      console.log(`certificate status for ${domain.domainName} has changed from ${domain.certificate.status} to ${certStatus}`)
       await models.domainCertificate.update({
         where: { id: domain.certificate.id },
-        data: { status: certificateStatus }
+        data: { status: certStatus }
       })
     }
-    message = `Certificate status is: ${certificateStatus}`
+    message = `Certificate status is: ${certStatus}`
   } else {
-    message = 'Could not check certificate status'
+    message = 'Could not check certificate status: ' + error
   }
 
-  const status = certificateStatus === 'ISSUED' ? 'VERIFIED' : 'PENDING'
+  const status = certStatus === 'ISSUED' ? 'VERIFIED' : 'PENDING'
   await logAttempt({ domain, models, record, stage: 'ACM_VALIDATION', status, message })
   return status === 'VERIFIED'
 }

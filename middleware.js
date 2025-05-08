@@ -13,7 +13,7 @@ const SN_REFERRER_NONCE = 'sn_referrer_nonce'
 // key for referred pages
 const SN_REFEREE_LANDING = 'sn_referee_landing'
 // main domain
-const SN_MAIN_DOMAIN = new URL(process.env.NEXT_PUBLIC_URL).host
+const SN_MAIN_DOMAIN = new URL(process.env.NEXT_PUBLIC_URL)
 // territory paths that needs to be rewritten to ~subname
 // const SN_TERRITORY_PATHS = ['~', 'recent', 'top', 'post', 'edit']
 
@@ -175,12 +175,12 @@ export async function middleware (request) {
 
   // if we're on a custom domain, handle it
   const domain = request.headers.get('x-forwarded-host') || request.headers.get('host')
-  if (domain !== SN_MAIN_DOMAIN) {
+  if (domain !== SN_MAIN_DOMAIN?.host) { // we don't need middleware to fail if dev messes up ENVs
     // check if we have a mapping for this domain
     const subName = await getDomainMapping(domain)
     if (subName) {
       console.log('[domains] allowed custom domain', domain, 'detected, pointing to', subName) // TEST
-      const resp = customDomainMiddleware(request, referrerResp, domain, subName)
+      const resp = await customDomainMiddleware(request, referrerResp, domain, subName)
       return applySecurityHeaders(resp)
     }
   }

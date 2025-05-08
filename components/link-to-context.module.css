@@ -35,3 +35,7 @@
 .linkBoxParent img {
     pointer-events: auto !important;
 }
+
+.linkBoxParent a[href^="/notifications#"] {
+    pointer-events: none !important;
+}

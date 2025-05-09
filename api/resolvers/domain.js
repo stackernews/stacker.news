@@ -2,6 +2,7 @@ import { validateSchema, customDomainSchema } from '@/lib/validate'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { randomBytes } from 'node:crypto'
 import { getDomainMapping } from '@/lib/domains'
+import { deleteDomainCertificate } from '@/lib/domain-verification'
 
 async function cleanDomainVerificationJobs (domain, models) {
   // delete any existing domain verification job left
@@ -144,6 +145,12 @@ export default {
             return await models.$transaction(async tx => {
               // delete any existing domain verification job left
               await cleanDomainVerificationJobs(existing, tx)
+
+              // deleting a domain will also delete the domain certificate
+              // but we need to make sure to delete the certificate from ACM
+              if (existing.certificate) {
+                await deleteDomainCertificate(existing.certificate.certificateArn)
+              }
 
               // delete the domain
               return await tx.domain.delete({ where: { subName } })

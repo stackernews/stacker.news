@@ -515,6 +515,51 @@ CREATE TRIGGER wallet_check_support
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('RECEIVE');
 
+CREATE OR REPLACE FUNCTION get_or_create_user_wallet(
+    user_id INT,
+    wallet_name TEXT,
+    priority INT,
+    enabled BOOLEAN
+)
+RETURNS INT AS
+$$
+DECLARE
+    userWalletId INT;
+BEGIN
+    SELECT uw.id INTO userWalletId
+    FROM "UserWallet" uw
+    JOIN "WalletV2" w ON uw."walletId" = w.id
+    WHERE uw."userId" = user_id AND w.name = wallet_name;
+
+    IF NOT FOUND THEN
+        userWalletId := create_user_wallet(user_id, wallet_name, priority, enabled);
+    END IF;
+
+    RETURN userWalletId;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION create_user_wallet(
+    user_id INT,
+    wallet_name TEXT,
+    priority INT,
+    enabled BOOLEAN
+)
+RETURNS INT AS
+$$
+DECLARE
+    userWalletId INT;
+BEGIN
+    INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
+    SELECT user_id, w.id, priority, enabled
+    FROM "WalletV2" w
+    WHERE w.name = wallet_name
+    RETURNING id INTO userWalletId;
+
+    RETURN userWalletId;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION wallet_v2_migration()
 RETURNS void AS
 $$
@@ -528,21 +573,31 @@ BEGIN
     LOOP
         DECLARE
             userWalletId INT;
+            sendUserWalletId INT;
+            recvUserWalletId INT;
         BEGIN
-            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
-            SELECT row."userId", w.id, row."priority", row."enabled"
-            FROM "WalletV2" w
-            WHERE w.name = 'LNBITS'
-            RETURNING id INTO userWalletId;
+            userWalletId := get_or_create_user_wallet(row."userId", 'LNBITS', row."priority", row."enabled");
 
             IF row."adminKeyId" IS NOT NULL THEN
-                INSERT INTO "WalletSendLNbits" ("walletId", "url", "apiKeyId")
-                VALUES (userWalletId, row."url", row."adminKeyId");
+                BEGIN
+                    INSERT INTO "WalletSendLNbits" ("walletId", "url", "apiKeyId")
+                    VALUES (userWalletId, row."url", row."adminKeyId");
+                EXCEPTION WHEN unique_violation THEN
+                    sendUserWalletId := create_user_wallet(row."userId", 'LNBITS', row."priority", row."enabled");
+                    INSERT INTO "WalletSendLNbits" ("walletId", "url", "apiKeyId")
+                    VALUES (sendUserWalletId, row."url", row."adminKeyId");
+                END;
             END IF;
 
             IF row."invoiceKey" IS NOT NULL THEN
-                INSERT INTO "WalletRecvLNbits" ("walletId", "url", "apiKey")
-                VALUES (userWalletId, row."url", row."invoiceKey");
+                BEGIN
+                    INSERT INTO "WalletRecvLNbits" ("walletId", "url", "apiKey")
+                    VALUES (userWalletId, row."url", row."invoiceKey");
+                EXCEPTION WHEN unique_violation THEN
+                    recvUserWalletId := create_user_wallet(row."userId", 'LNBITS', row."priority", row."enabled");
+                    INSERT INTO "WalletRecvLNbits" ("walletId", "url", "apiKey")
+                    VALUES (recvUserWalletId, row."url", row."invoiceKey");
+                END;
             END IF;
         END;
     END LOOP;
@@ -554,21 +609,31 @@ BEGIN
     LOOP
         DECLARE
             userWalletId INT;
+            sendUserWalletId INT;
+            recvUserWalletId INT;
         BEGIN
-            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
-            SELECT row."userId", w.id, row."priority", row."enabled"
-            FROM "WalletV2" w
-            WHERE w.name = 'PHOENIXD'
-            RETURNING id INTO userWalletId;
+            userWalletId := get_or_create_user_wallet(row."userId", 'PHOENIXD', row."priority", row."enabled");
 
             IF row."primaryPasswordId" IS NOT NULL THEN
-                INSERT INTO "WalletSendPhoenixd" ("walletId", "url", "apiKeyId")
-                VALUES (userWalletId, row."url", row."primaryPasswordId");
+                BEGIN
+                    INSERT INTO "WalletSendPhoenixd" ("walletId", "url", "apiKeyId")
+                    VALUES (userWalletId, row."url", row."primaryPasswordId");
+                EXCEPTION WHEN unique_violation THEN
+                    sendUserWalletId := create_user_wallet(row."userId", 'PHOENIXD', row."priority", row."enabled");
+                    INSERT INTO "WalletSendPhoenixd" ("walletId", "url", "apiKeyId")
+                    VALUES (sendUserWalletId, row."url", row."primaryPasswordId");
+                END;
             END IF;
 
             IF row."secondaryPassword" IS NOT NULL THEN
-                INSERT INTO "WalletRecvPhoenixd" ("walletId", "url", "apiKey")
-                VALUES (userWalletId, row."url", row."secondaryPassword");
+                BEGIN
+                    INSERT INTO "WalletRecvPhoenixd" ("walletId", "url", "apiKey")
+                    VALUES (userWalletId, row."url", row."secondaryPassword");
+                EXCEPTION WHEN unique_violation THEN
+                    recvUserWalletId := create_user_wallet(row."userId", 'PHOENIXD', row."priority", row."enabled");
+                    INSERT INTO "WalletRecvPhoenixd" ("walletId", "url", "apiKey")
+                    VALUES (recvUserWalletId, row."url", row."secondaryPassword");
+                END;
             END IF;
         END;
     END LOOP;
@@ -580,21 +645,31 @@ BEGIN
     LOOP
         DECLARE
             userWalletId INT;
+            sendUserWalletId INT;
+            recvUserWalletId INT;
         BEGIN
-            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
-            SELECT row."userId", w.id, row."priority", row."enabled"
-            FROM "WalletV2" w
-            WHERE w.name = 'BLINK'
-            RETURNING id INTO userWalletId;
+            userWalletId := get_or_create_user_wallet(row."userId", 'BLINK', row."priority", row."enabled");
 
             IF row."apiKeyId" IS NOT NULL AND row."currencyId" IS NOT NULL THEN
-                INSERT INTO "WalletSendBlink" ("walletId", "apiKeyId", "currencyId")
-                VALUES (userWalletId, row."apiKeyId", row."currencyId");
+                BEGIN
+                    INSERT INTO "WalletSendBlink" ("walletId", "apiKeyId", "currencyId")
+                    VALUES (userWalletId, row."apiKeyId", row."currencyId");
+                EXCEPTION WHEN unique_violation THEN
+                    sendUserWalletId := create_user_wallet(row."userId", 'BLINK', row."priority", row."enabled");
+                    INSERT INTO "WalletSendBlink" ("walletId", "apiKeyId", "currencyId")
+                    VALUES (sendUserWalletId, row."apiKeyId", row."currencyId");
+                END;
             END IF;
 
             IF row."apiKeyRecv" IS NOT NULL AND row."currencyRecv" IS NOT NULL THEN
-                INSERT INTO "WalletRecvBlink" ("walletId", "apiKey", "currency")
-                VALUES (userWalletId, row."apiKeyRecv", row."currencyRecv");
+                BEGIN
+                    INSERT INTO "WalletRecvBlink" ("walletId", "apiKey", "currency")
+                    VALUES (userWalletId, row."apiKeyRecv", row."currencyRecv");
+                EXCEPTION WHEN unique_violation THEN
+                    recvUserWalletId := create_user_wallet(row."userId", 'BLINK', row."priority", row."enabled");
+                    INSERT INTO "WalletRecvBlink" ("walletId", "apiKey", "currency")
+                    VALUES (recvUserWalletId, row."apiKeyRecv", row."currencyRecv");
+                END;
             END IF;
         END;
     END LOOP;
@@ -607,14 +682,16 @@ BEGIN
         DECLARE
             userWalletId INT;
         BEGIN
-            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
-            SELECT row."userId", w.id, row."priority", row."enabled"
-            FROM "WalletV2" w
-            WHERE w.name = 'LND'
-            RETURNING id INTO userWalletId;
+            userWalletId := get_or_create_user_wallet(row."userId", 'LND', row."priority", row."enabled");
 
-            INSERT INTO "WalletRecvLNDGRPC" ("walletId", "socket", "macaroon", "cert")
-            VALUES (userWalletId, row."socket", row."macaroon", row."cert");
+            BEGIN
+                INSERT INTO "WalletRecvLNDGRPC" ("walletId", "socket", "macaroon", "cert")
+                VALUES (userWalletId, row."socket", row."macaroon", row."cert");
+            EXCEPTION WHEN unique_violation THEN
+                userWalletId := create_user_wallet(row."userId", 'LND', row."priority", row."enabled");
+                INSERT INTO "WalletRecvLNDGRPC" ("walletId", "socket", "macaroon", "cert")
+                VALUES (userWalletId, row."socket", row."macaroon", row."cert");
+            END;
         END;
     END LOOP;
 
@@ -626,14 +703,16 @@ BEGIN
         DECLARE
             userWalletId INT;
         BEGIN
-            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
-            SELECT row."userId", w.id, row."priority", row."enabled"
-            FROM "WalletV2" w
-            WHERE w.name = 'LND'
-            RETURNING id INTO userWalletId;
+            userWalletId := get_or_create_user_wallet(row."userId", 'LND', row."priority", row."enabled");
 
-            INSERT INTO "WalletSendLNC" ("walletId", "pairingPhraseId", "localKeyId", "remoteKeyId", "serverHostId")
-            VALUES (userWalletId, row."pairingPhraseId", row."localKeyId", row."remoteKeyId", row."serverHostId");
+            BEGIN
+                INSERT INTO "WalletSendLNC" ("walletId", "pairingPhraseId", "localKeyId", "remoteKeyId", "serverHostId")
+                VALUES (userWalletId, row."pairingPhraseId", row."localKeyId", row."remoteKeyId", row."serverHostId");
+            EXCEPTION WHEN unique_violation THEN
+                userWalletId := create_user_wallet(row."userId", 'LND', row."priority", row."enabled");
+                INSERT INTO "WalletSendLNC" ("walletId", "pairingPhraseId", "localKeyId", "remoteKeyId", "serverHostId")
+                VALUES (userWalletId, row."pairingPhraseId", row."localKeyId", row."remoteKeyId", row."serverHostId");
+            END;
         END;
     END LOOP;
 
@@ -645,14 +724,16 @@ BEGIN
         DECLARE
             userWalletId INT;
         BEGIN
-            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
-            SELECT row."userId", w.id, row."priority", row."enabled"
-            FROM "WalletV2" w
-            WHERE w.name = 'CLN'
-            RETURNING id INTO userWalletId;
+            userWalletId := get_or_create_user_wallet(row."userId", 'CLN', row."priority", row."enabled");
 
-            INSERT INTO "WalletRecvCLNRest" ("walletId", "socket", "rune", "cert")
-            VALUES (userWalletId, row."socket", row."rune", row."cert");
+            BEGIN
+                INSERT INTO "WalletRecvCLNRest" ("walletId", "socket", "rune", "cert")
+                VALUES (userWalletId, row."socket", row."rune", row."cert");
+            EXCEPTION WHEN unique_violation THEN
+                userWalletId := create_user_wallet(row."userId", 'CLN', row."priority", row."enabled");
+                INSERT INTO "WalletRecvCLNRest" ("walletId", "socket", "rune", "cert")
+                VALUES (userWalletId, row."socket", row."rune", row."cert");
+            END;
         END;
     END LOOP;
 
@@ -663,6 +744,8 @@ BEGIN
     LOOP
         DECLARE
             userWalletId INT;
+            recvUserWalletId INT;
+            sendUserWalletId INT;
             relay TEXT;
             walletName TEXT;
         BEGIN
@@ -678,23 +761,31 @@ BEGIN
                 walletName := 'CUSTOM';
             END IF;
 
-            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
-            SELECT row."userId", w.id, row."priority", row."enabled"
-            FROM "WalletV2" w
-            WHERE w.name = walletName
-            RETURNING id INTO userWalletId;
+            userWalletId := get_or_create_user_wallet(row."userId", walletName, row."priority", row."enabled");
 
             -- we assume here that the wallet to receive is the same as the wallet to send
             -- since we can't check which relay is used for the send connection because it's encrypted.
             -- but in 99% if not 100% of the cases, it's the same wallet anyway.
             IF row."nwcUrlRecv" IS NOT NULL THEN
-                INSERT INTO "WalletRecvNWC" ("walletId", "url")
-                VALUES (userWalletId, row."nwcUrlRecv");
+                BEGIN
+                    INSERT INTO "WalletRecvNWC" ("walletId", "url")
+                    VALUES (userWalletId, row."nwcUrlRecv");
+                EXCEPTION WHEN unique_violation THEN
+                    recvUserWalletId := create_user_wallet(row."userId", walletName, row."priority", row."enabled");
+                    INSERT INTO "WalletRecvNWC" ("walletId", "url")
+                    VALUES (recvUserWalletId, row."nwcUrlRecv");
+                END;
             END IF;
 
             IF row."nwcUrlId" IS NOT NULL THEN
-                INSERT INTO "WalletSendNWC" ("walletId", "urlId")
-                VALUES (userWalletId, row."nwcUrlId");
+                BEGIN
+                    INSERT INTO "WalletSendNWC" ("walletId", "urlId")
+                    VALUES (userWalletId, row."nwcUrlId");
+                EXCEPTION WHEN unique_violation THEN
+                    sendUserWalletId := create_user_wallet(row."userId", walletName, row."priority", row."enabled");
+                    INSERT INTO "WalletSendNWC" ("walletId", "urlId")
+                    VALUES (sendUserWalletId, row."nwcUrlId");
+                END;
             END IF;
         END;
     END LOOP;
@@ -751,14 +842,16 @@ BEGIN
                 walletName := 'CUSTOM';
             END IF;
 
-            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
-            SELECT row."userId", w.id, row."priority", row."enabled"
-            FROM "WalletV2" w
-            WHERE w.name = walletName
-            RETURNING id INTO userWalletId;
+            userWalletId := get_or_create_user_wallet(row."userId", walletName, row."priority", row."enabled");
 
-            INSERT INTO "WalletRecvLightningAddress" ("walletId", "address")
-            VALUES (userWalletId, row."address");
+            BEGIN
+                INSERT INTO "WalletRecvLightningAddress" ("walletId", "address")
+                VALUES (userWalletId, row."address");
+            EXCEPTION WHEN unique_violation THEN
+                userWalletId := create_user_wallet(row."userId", walletName, row."priority", row."enabled");
+                INSERT INTO "WalletRecvLightningAddress" ("walletId", "address")
+                VALUES (userWalletId, row."address");
+            END;
         END;
     END LOOP;
 
@@ -769,18 +862,17 @@ BEGIN
     LOOP
         DECLARE
             userWalletId INT;
-            walletName TEXT;
         BEGIN
-            INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
-            SELECT row."userId", w.id, row."priority", row."enabled"
-            FROM "WalletV2" w
-            -- we assume here that they use the Alby browser extension even though there are other WebLN providers:
-            -- https://www.webln.guide/ressources/webln-providers
-            WHERE w.name = 'ALBY'
-            RETURNING id INTO userWalletId;
+            userWalletId := get_or_create_user_wallet(row."userId", 'ALBY', row."priority", row."enabled");
 
-            INSERT INTO "WalletSendWebLN" ("walletId")
-            VALUES (userWalletId);
+            BEGIN
+                INSERT INTO "WalletSendWebLN" ("walletId")
+                VALUES (userWalletId);
+            EXCEPTION WHEN unique_violation THEN
+                userWalletId := create_user_wallet(row."userId", 'ALBY', row."priority", row."enabled");
+                INSERT INTO "WalletSendWebLN" ("walletId")
+                VALUES (userWalletId);
+            END;
         END;
     END LOOP;
 END;
@@ -789,3 +881,5 @@ $$ LANGUAGE plpgsql;
 SELECT wallet_v2_migration();
 
 DROP FUNCTION wallet_v2_migration();
+DROP FUNCTION get_or_create_user_wallet(INT, TEXT, INT, BOOLEAN);
+DROP FUNCTION create_user_wallet(INT, TEXT, INT, BOOLEAN);

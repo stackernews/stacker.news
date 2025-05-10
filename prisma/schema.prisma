@@ -1351,6 +1351,18 @@ enum LogLevel {
 // ==== WALLET V2 ====
 // ===================
 
+enum WalletProtocol {
+  NWC
+  LNBITS
+  PHOENIXD
+  BLINK
+  WEBLN
+  LN_ADDR
+  LNC
+  CLN_REST
+  LND_GRPC
+}
+
 enum WalletSendProtocol {
   NWC
   LNBITS
@@ -1371,15 +1383,15 @@ enum WalletRecvProtocol {
 }
 
 model WalletV2 {
-  id          Int                @id @default(autoincrement())
-  createdAt   DateTime           @default(now()) @map("created_at")
-  updatedAt   DateTime           @default(now()) @updatedAt @map("updated_at")
-  name        String
-  image       String?
-  description String?
+  id            Int                  @id @default(autoincrement())
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @default(now()) @updatedAt @map("updated_at")
+  name          String
+  image         String?
+  description   String?
   sendProtocols WalletSendProtocol[]
   recvProtocols WalletRecvProtocol[]
-  userWallets UserWallet[]
+  userWallets   UserWallet[]
 }
 
 model UserWallet {
@@ -1393,12 +1405,24 @@ model UserWallet {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   wallet    WalletV2 @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
-  // NOTE: these denormalized json fields exists to make polymorphic joins efficient
-  // when reading wallets ... they are populated by a trigger when wallet descendants update
+  protocols ProtocolWallet[]
+}
+
+model ProtocolWallet {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // NOTE: this denormalized json field exists to make polymorphic joins efficient
+  // when reading wallets ... it's populated by a trigger when wallet descendants update
   // otherwise reading wallets would require a join on every descendant table.
   // this pattern gives us fast reads and fast, type safe writes
-  jsonSend Json? @db.JsonB
-  jsonRecv Json? @db.JsonB
+  json Json? @db.JsonB
+
+  walletId   Int
+  userWallet UserWallet     @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  send       Boolean
+  protocol   WalletProtocol
 
   walletSendNWC      WalletSendNWC?
   walletSendLNbits   WalletSendLNbits?
@@ -1414,155 +1438,144 @@ model UserWallet {
   walletRecvLightningAddress WalletRecvLightningAddress?
   walletRecvCLNRest          WalletRecvCLNRest?
   walletRecvLNDGRPC          WalletRecvLNDGRPC?
+
+  @@unique(name: "ProtocolWallet_walletId_send_protocol_key", [walletId, send, protocol])
 }
 
 model WalletSendNWC {
-  id         Int              @id @default(autoincrement())
-  createdAt  DateTime         @default(now()) @map("created_at")
-  updatedAt  DateTime         @default(now()) @updatedAt @map("updated_at")
-  walletId   Int              @unique
-  userWallet UserWallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type       WalletSendProtocol @default(NWC)
-  urlId      Int              @unique
-  url        Vault            @relation(fields: [urlId], references: [id], onDelete: Cascade)
+  id        Int            @id @default(autoincrement())
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId  Int            @unique
+  wallet    ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  urlId     Int            @unique
+  url       Vault          @relation(fields: [urlId], references: [id], onDelete: Cascade)
 }
 
 model WalletSendLNbits {
-  id         Int              @id @default(autoincrement())
-  createdAt  DateTime         @default(now()) @map("created_at")
-  updatedAt  DateTime         @default(now()) @updatedAt @map("updated_at")
-  walletId   Int              @unique
-  userWallet UserWallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type       WalletSendProtocol @default(LNBITS)
-  url        String
-  apiKeyId   Int              @unique
-  apiKey     Vault            @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  id        Int            @id @default(autoincrement())
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId  Int            @unique
+  wallet    ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  url       String
+  apiKeyId  Int            @unique
+  apiKey    Vault          @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
 }
 
 model WalletSendPhoenixd {
-  id         Int              @id @default(autoincrement())
-  createdAt  DateTime         @default(now()) @map("created_at")
-  updatedAt  DateTime         @default(now()) @updatedAt @map("updated_at")
-  walletId   Int              @unique
-  userWallet UserWallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type       WalletSendProtocol @default(PHOENIXD)
-  url        String
-  apiKeyId   Int              @unique
-  apiKey     Vault            @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  id        Int            @id @default(autoincrement())
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId  Int            @unique
+  wallet    ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  url       String
+  apiKeyId  Int            @unique
+  apiKey    Vault          @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
 }
 
 model WalletSendBlink {
-  id         Int              @id @default(autoincrement())
-  createdAt  DateTime         @default(now()) @map("created_at")
-  updatedAt  DateTime         @default(now()) @updatedAt @map("updated_at")
-  walletId   Int              @unique
-  userWallet UserWallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type       WalletSendProtocol @default(BLINK)
-  currencyId Int              @unique
-  currency   Vault            @relation("blinkCurrencySendV2", fields: [currencyId], references: [id], onDelete: Cascade)
-  apiKeyId   Int              @unique
-  apiKey     Vault            @relation("blinkApiKeySendV2", fields: [apiKeyId], references: [id], onDelete: Cascade)
+  id         Int            @id @default(autoincrement())
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId   Int            @unique
+  wallet     ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  currencyId Int            @unique
+  currency   Vault          @relation("blinkCurrencySendV2", fields: [currencyId], references: [id], onDelete: Cascade)
+  apiKeyId   Int            @unique
+  apiKey     Vault          @relation("blinkApiKeySendV2", fields: [apiKeyId], references: [id], onDelete: Cascade)
 }
 
 model WalletSendWebLN {
-  id         Int              @id @default(autoincrement())
-  createdAt  DateTime         @default(now()) @map("created_at")
-  updatedAt  DateTime         @default(now()) @updatedAt @map("updated_at")
-  walletId   Int              @unique
-  userWallet UserWallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type       WalletSendProtocol @default(WEBLN)
+  id        Int            @id @default(autoincrement())
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId  Int            @unique
+  wallet    ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
 }
 
 model WalletSendLNC {
-  id              Int              @id @default(autoincrement())
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at")
-  walletId        Int              @unique
-  userWallet      UserWallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type            WalletSendProtocol @default(LNC)
-  pairingPhraseId Int              @unique
-  pairingPhrase   Vault?           @relation("lncPairingPhraseV2", fields: [pairingPhraseId], references: [id])
-  localKeyId      Int              @unique
-  localKey        Vault?           @relation("lncLocalKeyV2", fields: [localKeyId], references: [id])
-  remoteKeyId     Int              @unique
-  remoteKey       Vault?           @relation("lncRemoteKeyV2", fields: [remoteKeyId], references: [id])
-  serverHostId    Int              @unique
-  serverHost      Vault?           @relation("lncServerHostV2", fields: [serverHostId], references: [id])
+  id              Int            @id @default(autoincrement())
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId        Int            @unique
+  wallet          ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  pairingPhraseId Int            @unique
+  pairingPhrase   Vault?         @relation("lncPairingPhraseV2", fields: [pairingPhraseId], references: [id])
+  localKeyId      Int            @unique
+  localKey        Vault?         @relation("lncLocalKeyV2", fields: [localKeyId], references: [id])
+  remoteKeyId     Int            @unique
+  remoteKey       Vault?         @relation("lncRemoteKeyV2", fields: [remoteKeyId], references: [id])
+  serverHostId    Int            @unique
+  serverHost      Vault?         @relation("lncServerHostV2", fields: [serverHostId], references: [id])
 }
 
 model WalletRecvNWC {
-  id         Int              @id @default(autoincrement())
-  createdAt  DateTime         @default(now()) @map("created_at")
-  updatedAt  DateTime         @default(now()) @updatedAt @map("updated_at")
-  walletId   Int              @unique
-  userWallet UserWallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type       WalletRecvProtocol @default(NWC)
-  url        String
+  id        Int            @id @default(autoincrement())
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId  Int            @unique
+  wallet    ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  url       String
 }
 
 model WalletRecvLNbits {
-  id        Int              @id @default(autoincrement())
-  createdAt DateTime         @default(now()) @map("created_at")
-  updatedAt DateTime         @default(now()) @updatedAt @map("updated_at")
-  walletId  Int              @unique
-  wallet    UserWallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type      WalletRecvProtocol @default(LNBITS)
+  id        Int            @id @default(autoincrement())
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId  Int            @unique
+  wallet    ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   url       String
   apiKey    String
 }
 
 model WalletRecvPhoenixd {
-  id         Int              @id @default(autoincrement())
-  createdAt  DateTime         @default(now()) @map("created_at")
-  updatedAt  DateTime         @default(now()) @updatedAt @map("updated_at")
-  walletId   Int              @unique
-  userWallet UserWallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type       WalletRecvProtocol @default(PHOENIXD)
-  url        String
-  apiKey     String
+  id        Int            @id @default(autoincrement())
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId  Int            @unique
+  wallet    ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  url       String
+  apiKey    String
 }
 
 model WalletRecvBlink {
-  id         Int              @id @default(autoincrement())
-  createdAt  DateTime         @default(now()) @map("created_at")
-  updatedAt  DateTime         @default(now()) @updatedAt @map("updated_at")
-  walletId   Int              @unique
-  userWallet UserWallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type       WalletRecvProtocol @default(BLINK)
-  currency   String
-  apiKey     String
+  id        Int            @id @default(autoincrement())
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId  Int            @unique
+  wallet    ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  currency  String
+  apiKey    String
 }
 
 model WalletRecvLightningAddress {
-  id         Int              @id @default(autoincrement())
-  createdAt  DateTime         @default(now()) @map("created_at")
-  updatedAt  DateTime         @default(now()) @updatedAt @map("updated_at")
-  walletId   Int              @unique
-  userWallet UserWallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type       WalletRecvProtocol @default(LN_ADDR)
-  address    String
+  id        Int            @id @default(autoincrement())
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId  Int            @unique
+  wallet    ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  address   String
 }
 
 model WalletRecvCLNRest {
-  id         Int              @id @default(autoincrement())
-  createdAt  DateTime         @default(now()) @map("created_at")
-  updatedAt  DateTime         @default(now()) @updatedAt @map("updated_at")
-  walletId   Int              @unique
-  userWallet UserWallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type       WalletRecvProtocol @default(CLN_REST)
-  socket     String
-  rune       String
-  cert       String?
+  id        Int            @id @default(autoincrement())
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId  Int            @unique
+  wallet    ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  socket    String
+  rune      String
+  cert      String?
 }
 
 model WalletRecvLNDGRPC {
-  id         Int              @id @default(autoincrement())
-  createdAt  DateTime         @default(now()) @map("created_at")
-  updatedAt  DateTime         @default(now()) @updatedAt @map("updated_at")
-  walletId   Int              @unique
-  userWallet UserWallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type       WalletRecvProtocol @default(LND_GRPC)
-  socket     String
-  macaroon   String
-  cert       String?
+  id        Int            @id @default(autoincrement())
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId  Int            @unique
+  wallet    ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  socket    String
+  macaroon  String
+  cert      String?
 }

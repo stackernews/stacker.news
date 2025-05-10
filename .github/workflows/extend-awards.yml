@@ -53,5 +53,5 @@ jobs:
           branch: extend-awards/patch
           commit-message: Extending awards.csv
           title: Extending awards.csv
-          body: One or more PR's were merged that solve an issue(s) and awards.csv should be extended. Remembere to delete the branch after merging.
+          body: One or more PR's were merged that solve an issue(s) and awards.csv should be extended. Remember to delete the branch after merging.
           delete-branch: true

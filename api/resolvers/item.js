@@ -700,7 +700,7 @@ export default {
         parentId: null,
         OR: [
           { invoiceActionState: 'PAID' },
-          { invoiceActionState: { is: null } }
+          { invoiceActionState: null }
         ]
       }
       if (id) {

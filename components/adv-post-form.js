@@ -198,7 +198,7 @@ export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) 
       for (let i = 0; i < MAX_FORWARDS; i++) {
         ['nym', 'pct'].forEach(key => {
           const value = window.localStorage.getItem(`${storageKeyPrefix}-forward[${i}].${key}`)
-          if (value) {
+          if (value !== undefined && value !== null) {
             formik?.setFieldValue(`forward[${i}].${key}`, value)
           }
         })

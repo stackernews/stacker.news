@@ -140,7 +140,7 @@ function setNativeValue (textarea, value) {
   textarea.dispatchEvent(new Event('input', { bubbles: true, value }))
 }
 
-function EntityAutocomplete ({
+function useEntityAutocomplete ({
   prefix,
   meta,
   helpers,
@@ -287,7 +287,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     }
   }, [innerRef, selectionRange.start, selectionRange.end])
 
-  const userAutocomplete = EntityAutocomplete({
+  const userAutocomplete = useEntityAutocomplete({
     prefix: '@',
     meta,
     helpers,
@@ -296,7 +296,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     SuggestComponent: UserSuggest
   })
 
-  const territoryAutocomplete = EntityAutocomplete({
+  const territoryAutocomplete = useEntityAutocomplete({
     prefix: '~',
     meta,
     helpers,
@@ -713,7 +713,7 @@ export function BaseSuggest ({
   useEffect(() => {
     if (query !== undefined) {
       // remove the leading character and any trailing spaces
-      const q = query?.replace(/^[@ ~]+|[ ]+$/g, '')
+      const q = query?.replace(/^[@ ~]+|[ ]+$/g, '').replace(/@[^\s]*$/, '').replace(/~[^\s]*$/, '')
       getSuggestions({ variables: { q, limit: 5 } })
     } else {
       resetSuggestions()
@@ -785,48 +785,6 @@ export function BaseSuggest ({
   )
 }
 
-export function UserSuggest ({
-  query, onSelect, dropdownStyle,
-  transformUser = user => user, selectWithTab = true, filterUsers = () => true,
-  children
-}) {
-  return (
-    <BaseSuggest
-      query={query}
-      onSelect={onSelect}
-      dropdownStyle={dropdownStyle}
-      transformItem={transformUser}
-      selectWithTab={selectWithTab}
-      filterItems={filterUsers}
-      getSuggestionsQuery={USER_SUGGESTIONS}
-      itemsField='userSuggestions'
-    >
-      {children}
-    </BaseSuggest>
-  )
-}
-
-export function TerritorySuggest ({
-  query, onSelect, dropdownStyle,
-  transformSub = sub => sub, selectWithTab = true, filterSubs = () => true,
-  children
-}) {
-  return (
-    <BaseSuggest
-      query={query}
-      onSelect={onSelect}
-      dropdownStyle={dropdownStyle}
-      transformItem={transformSub}
-      selectWithTab={selectWithTab}
-      filterItems={filterSubs}
-      getSuggestionsQuery={SUB_SUGGESTIONS}
-      itemsField='subSuggestions'
-    >
-      {children}
-    </BaseSuggest>
-  )
-}
-
 function BaseInputSuggest ({
   label, groupClassName, transformItem, filterItems,
   selectWithTab, onChange, transformQuery, SuggestComponent, prefixRegex, ...props
@@ -852,6 +810,10 @@ function BaseInputSuggest ({
             autoComplete='off'
             onChange={(formik, e) => {
               onChange && onChange(formik, e)
+              if (e.target.value === ovalue) {
+                // we don't need to set the ovalue or query if the value is the same
+                return
+              }
               setOValue(e.target.value)
               setQuery(e.target.value.replace(prefixRegex, ''))
             }}
@@ -866,18 +828,12 @@ function BaseInputSuggest ({
 }
 
 export function InputUserSuggest ({
-  label, groupClassName, transformUser, filterUsers,
-  selectWithTab, onChange, transformQuery, ...props
+  transformUser, filterUsers, ...props
 }) {
   return (
     <BaseInputSuggest
-      label={label}
-      groupClassName={groupClassName}
       transformItem={transformUser}
       filterItems={filterUsers}
-      selectWithTab={selectWithTab}
-      onChange={onChange}
-      transformQuery={transformQuery}
       SuggestComponent={UserSuggest}
       prefixRegex={/^[@ ]+|[ ]+$/g}
       {...props}
@@ -886,22 +842,50 @@ export function InputUserSuggest ({
 }
 
 export function InputTerritorySuggest ({
-  label, groupClassName, transformSub, filterSubs,
-  selectWithTab, onChange, transformQuery, ...props
+  transformSub, filterSubs, ...props
 }) {
   return (
     <BaseInputSuggest
-      label={label}
-      groupClassName={groupClassName}
       transformItem={transformSub}
       filterItems={filterSubs}
-      selectWithTab={selectWithTab}
-      onChange={onChange}
-      transformQuery={transformQuery}
       SuggestComponent={TerritorySuggest}
       prefixRegex={/^[~ ]+|[ ]+$/g}
       {...props}
     />
+  )
+}
+
+function UserSuggest ({
+  transformUser = user => user, filterUsers = () => true,
+  children, ...props
+}) {
+  return (
+    <BaseSuggest
+      transformItem={transformUser}
+      filterItems={filterUsers}
+      getSuggestionsQuery={USER_SUGGESTIONS}
+      itemsField='userSuggestions'
+      {...props}
+    >
+      {children}
+    </BaseSuggest>
+  )
+}
+
+function TerritorySuggest ({
+  transformSub = sub => sub, filterSubs = () => true,
+  children, ...props
+}) {
+  return (
+    <BaseSuggest
+      transformItem={transformSub}
+      filterItems={filterSubs}
+      getSuggestionsQuery={SUB_SUGGESTIONS}
+      itemsField='subSuggestions'
+      {...props}
+    >
+      {children}
+    </BaseSuggest>
   )
 }
 

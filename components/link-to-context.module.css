@@ -36,6 +36,11 @@
     pointer-events: auto !important;
 }
 
-.linkBoxParent a[href^="/notifications#"] {
+.linkBoxParent h1 a,
+.linkBoxParent h2 a,
+.linkBoxParent h3 a,
+.linkBoxParent h4 a,
+.linkBoxParent h5 a,
+.linkBoxParent h6 a {
     pointer-events: none !important;
 }

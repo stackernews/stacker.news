@@ -1443,47 +1443,47 @@ model ProtocolWallet {
 }
 
 model WalletSendNWC {
-  id        Int            @id @default(autoincrement())
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
-  walletId  Int            @unique
-  wallet    ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  urlId     Int            @unique
-  url       Vault          @relation(fields: [urlId], references: [id], onDelete: Cascade)
-}
-
-model WalletSendLNbits {
-  id        Int            @id @default(autoincrement())
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
-  walletId  Int            @unique
-  wallet    ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  url       String
-  apiKeyId  Int            @unique
-  apiKey    Vault          @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
-}
-
-model WalletSendPhoenixd {
-  id        Int            @id @default(autoincrement())
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
-  walletId  Int            @unique
-  wallet    ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  url       String
-  apiKeyId  Int            @unique
-  apiKey    Vault          @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
-}
-
-model WalletSendBlink {
   id         Int            @id @default(autoincrement())
   createdAt  DateTime       @default(now()) @map("created_at")
   updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at")
   walletId   Int            @unique
   wallet     ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  currencyId Int            @unique
-  currency   Vault          @relation("blinkCurrencySendV2", fields: [currencyId], references: [id], onDelete: Cascade)
-  apiKeyId   Int            @unique
-  apiKey     Vault          @relation("blinkApiKeySendV2", fields: [apiKeyId], references: [id], onDelete: Cascade)
+  urlVaultId Int            @unique
+  url        Vault          @relation(fields: [urlVaultId], references: [id], onDelete: Cascade)
+}
+
+model WalletSendLNbits {
+  id            Int            @id @default(autoincrement())
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId      Int            @unique
+  wallet        ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  url           String
+  apiKeyVaultId Int            @unique
+  apiKey        Vault          @relation(fields: [apiKeyVaultId], references: [id], onDelete: Cascade)
+}
+
+model WalletSendPhoenixd {
+  id            Int            @id @default(autoincrement())
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId      Int            @unique
+  wallet        ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  url           String
+  apiKeyVaultId Int            @unique
+  apiKey        Vault          @relation(fields: [apiKeyVaultId], references: [id], onDelete: Cascade)
+}
+
+model WalletSendBlink {
+  id              Int            @id @default(autoincrement())
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId        Int            @unique
+  wallet          ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  currencyVaultId Int            @unique
+  currency        Vault          @relation("blinkCurrencySendV2", fields: [currencyVaultId], references: [id], onDelete: Cascade)
+  apiKeyVaultId   Int            @unique
+  apiKey          Vault          @relation("blinkApiKeySendV2", fields: [apiKeyVaultId], references: [id], onDelete: Cascade)
 }
 
 model WalletSendWebLN {
@@ -1495,19 +1495,19 @@ model WalletSendWebLN {
 }
 
 model WalletSendLNC {
-  id              Int            @id @default(autoincrement())
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at")
-  walletId        Int            @unique
-  wallet          ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  pairingPhraseId Int            @unique
-  pairingPhrase   Vault?         @relation("lncPairingPhraseV2", fields: [pairingPhraseId], references: [id])
-  localKeyId      Int            @unique
-  localKey        Vault?         @relation("lncLocalKeyV2", fields: [localKeyId], references: [id])
-  remoteKeyId     Int            @unique
-  remoteKey       Vault?         @relation("lncRemoteKeyV2", fields: [remoteKeyId], references: [id])
-  serverHostId    Int            @unique
-  serverHost      Vault?         @relation("lncServerHostV2", fields: [serverHostId], references: [id])
+  id                   Int            @id @default(autoincrement())
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @default(now()) @updatedAt @map("updated_at")
+  walletId             Int            @unique
+  wallet               ProtocolWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  pairingPhraseVaultId Int            @unique
+  pairingPhrase        Vault?         @relation("lncPairingPhraseV2", fields: [pairingPhraseVaultId], references: [id])
+  localKeyVaultId      Int            @unique
+  localKey             Vault?         @relation("lncLocalKeyV2", fields: [localKeyVaultId], references: [id])
+  remoteKeyVaultId     Int            @unique
+  remoteKey            Vault?         @relation("lncRemoteKeyV2", fields: [remoteKeyVaultId], references: [id])
+  serverHostVaultId    Int            @unique
+  serverHost           Vault?         @relation("lncServerHostV2", fields: [serverHostVaultId], references: [id])
 }
 
 model WalletRecvNWC {

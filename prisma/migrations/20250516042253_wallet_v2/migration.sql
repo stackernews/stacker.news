@@ -124,7 +124,7 @@ CREATE TABLE "WalletSendNWC" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "walletId" INTEGER NOT NULL,
-    "urlId" INTEGER NOT NULL,
+    "urlVaultId" INTEGER NOT NULL,
 
     CONSTRAINT "WalletSendNWC_pkey" PRIMARY KEY ("id")
 );
@@ -136,7 +136,7 @@ CREATE TABLE "WalletSendLNbits" (
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "walletId" INTEGER NOT NULL,
     "url" TEXT NOT NULL,
-    "apiKeyId" INTEGER NOT NULL,
+    "apiKeyVaultId" INTEGER NOT NULL,
 
     CONSTRAINT "WalletSendLNbits_pkey" PRIMARY KEY ("id")
 );
@@ -148,7 +148,7 @@ CREATE TABLE "WalletSendPhoenixd" (
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "walletId" INTEGER NOT NULL,
     "url" TEXT NOT NULL,
-    "apiKeyId" INTEGER NOT NULL,
+    "apiKeyVaultId" INTEGER NOT NULL,
 
     CONSTRAINT "WalletSendPhoenixd_pkey" PRIMARY KEY ("id")
 );
@@ -159,8 +159,8 @@ CREATE TABLE "WalletSendBlink" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "walletId" INTEGER NOT NULL,
-    "currencyId" INTEGER NOT NULL,
-    "apiKeyId" INTEGER NOT NULL,
+    "currencyVaultId" INTEGER NOT NULL,
+    "apiKeyVaultId" INTEGER NOT NULL,
 
     CONSTRAINT "WalletSendBlink_pkey" PRIMARY KEY ("id")
 );
@@ -181,10 +181,10 @@ CREATE TABLE "WalletSendLNC" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "walletId" INTEGER NOT NULL,
-    "pairingPhraseId" INTEGER NOT NULL,
-    "localKeyId" INTEGER NOT NULL,
-    "remoteKeyId" INTEGER NOT NULL,
-    "serverHostId" INTEGER NOT NULL,
+    "pairingPhraseVaultId" INTEGER NOT NULL,
+    "localKeyVaultId" INTEGER NOT NULL,
+    "remoteKeyVaultId" INTEGER NOT NULL,
+    "serverHostVaultId" INTEGER NOT NULL,
 
     CONSTRAINT "WalletSendLNC_pkey" PRIMARY KEY ("id")
 );
@@ -280,28 +280,28 @@ CREATE UNIQUE INDEX "ProtocolWallet_walletId_send_protocol_key" ON "ProtocolWall
 CREATE UNIQUE INDEX "WalletSendNWC_walletId_key" ON "WalletSendNWC"("walletId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "WalletSendNWC_urlId_key" ON "WalletSendNWC"("urlId");
+CREATE UNIQUE INDEX "WalletSendNWC_urlVaultId_key" ON "WalletSendNWC"("urlVaultId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "WalletSendLNbits_walletId_key" ON "WalletSendLNbits"("walletId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "WalletSendLNbits_apiKeyId_key" ON "WalletSendLNbits"("apiKeyId");
+CREATE UNIQUE INDEX "WalletSendLNbits_apiKeyVaultId_key" ON "WalletSendLNbits"("apiKeyVaultId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "WalletSendPhoenixd_walletId_key" ON "WalletSendPhoenixd"("walletId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "WalletSendPhoenixd_apiKeyId_key" ON "WalletSendPhoenixd"("apiKeyId");
+CREATE UNIQUE INDEX "WalletSendPhoenixd_apiKeyVaultId_key" ON "WalletSendPhoenixd"("apiKeyVaultId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "WalletSendBlink_walletId_key" ON "WalletSendBlink"("walletId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "WalletSendBlink_apiKeyId_key" ON "WalletSendBlink"("apiKeyId");
+CREATE UNIQUE INDEX "WalletSendBlink_apiKeyVaultId_key" ON "WalletSendBlink"("apiKeyVaultId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "WalletSendBlink_currencyId_key" ON "WalletSendBlink"("currencyId");
+CREATE UNIQUE INDEX "WalletSendBlink_currencyVaultId_key" ON "WalletSendBlink"("currencyVaultId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "WalletSendWebLN_walletId_key" ON "WalletSendWebLN"("walletId");
@@ -310,16 +310,16 @@ CREATE UNIQUE INDEX "WalletSendWebLN_walletId_key" ON "WalletSendWebLN"("walletI
 CREATE UNIQUE INDEX "WalletSendLNC_walletId_key" ON "WalletSendLNC"("walletId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "WalletSendLNC_pairingPhraseId_key" ON "WalletSendLNC"("pairingPhraseId");
+CREATE UNIQUE INDEX "WalletSendLNC_pairingPhraseVaultId_key" ON "WalletSendLNC"("pairingPhraseVaultId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "WalletSendLNC_localKeyId_key" ON "WalletSendLNC"("localKeyId");
+CREATE UNIQUE INDEX "WalletSendLNC_localKeyVaultId_key" ON "WalletSendLNC"("localKeyVaultId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "WalletSendLNC_remoteKeyId_key" ON "WalletSendLNC"("remoteKeyId");
+CREATE UNIQUE INDEX "WalletSendLNC_remoteKeyVaultId_key" ON "WalletSendLNC"("remoteKeyVaultId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "WalletSendLNC_serverHostId_key" ON "WalletSendLNC"("serverHostId");
+CREATE UNIQUE INDEX "WalletSendLNC_serverHostVaultId_key" ON "WalletSendLNC"("serverHostVaultId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "WalletRecvNWC_walletId_key" ON "WalletRecvNWC"("walletId");
@@ -349,28 +349,28 @@ ALTER TABLE "ProtocolWallet" ADD CONSTRAINT "ProtocolWallet_walletId_fkey" FOREI
 ALTER TABLE "WalletSendNWC" ADD CONSTRAINT "WalletSendNWC_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "ProtocolWallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "WalletSendNWC" ADD CONSTRAINT "WalletSendNWC_urlId_fkey" FOREIGN KEY ("urlId") REFERENCES "Vault"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "WalletSendNWC" ADD CONSTRAINT "WalletSendNWC_urlVaultId_fkey" FOREIGN KEY ("urlVaultId") REFERENCES "Vault"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "WalletSendLNbits" ADD CONSTRAINT "WalletSendLNbits_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "ProtocolWallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "WalletSendLNbits" ADD CONSTRAINT "WalletSendLNbits_apiKeyId_fkey" FOREIGN KEY ("apiKeyId") REFERENCES "Vault"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "WalletSendLNbits" ADD CONSTRAINT "WalletSendLNbits_apiKeyVaultId_fkey" FOREIGN KEY ("apiKeyVaultId") REFERENCES "Vault"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "WalletSendPhoenixd" ADD CONSTRAINT "WalletSendPhoenixd_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "ProtocolWallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "WalletSendPhoenixd" ADD CONSTRAINT "WalletSendPhoenixd_apiKeyId_fkey" FOREIGN KEY ("apiKeyId") REFERENCES "Vault"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "WalletSendPhoenixd" ADD CONSTRAINT "WalletSendPhoenixd_apiKeyVaultId_fkey" FOREIGN KEY ("apiKeyVaultId") REFERENCES "Vault"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "WalletSendBlink" ADD CONSTRAINT "WalletSendBlink_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "ProtocolWallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "WalletSendBlink" ADD CONSTRAINT "WalletSendBlink_currencyId_fkey" FOREIGN KEY ("currencyId") REFERENCES "Vault"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "WalletSendBlink" ADD CONSTRAINT "WalletSendBlink_currencyVaultId_fkey" FOREIGN KEY ("currencyVaultId") REFERENCES "Vault"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "WalletSendBlink" ADD CONSTRAINT "WalletSendBlink_apiKeyId_fkey" FOREIGN KEY ("apiKeyId") REFERENCES "Vault"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "WalletSendBlink" ADD CONSTRAINT "WalletSendBlink_apiKeyVaultId_fkey" FOREIGN KEY ("apiKeyVaultId") REFERENCES "Vault"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "WalletSendWebLN" ADD CONSTRAINT "WalletSendWebLN_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "ProtocolWallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -379,16 +379,16 @@ ALTER TABLE "WalletSendWebLN" ADD CONSTRAINT "WalletSendWebLN_walletId_fkey" FOR
 ALTER TABLE "WalletSendLNC" ADD CONSTRAINT "WalletSendLNC_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "ProtocolWallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "WalletSendLNC" ADD CONSTRAINT "WalletSendLNC_pairingPhraseId_fkey" FOREIGN KEY ("pairingPhraseId") REFERENCES "Vault"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "WalletSendLNC" ADD CONSTRAINT "WalletSendLNC_pairingPhraseVaultId_fkey" FOREIGN KEY ("pairingPhraseVaultId") REFERENCES "Vault"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "WalletSendLNC" ADD CONSTRAINT "WalletSendLNC_localKeyId_fkey" FOREIGN KEY ("localKeyId") REFERENCES "Vault"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "WalletSendLNC" ADD CONSTRAINT "WalletSendLNC_localKeyVaultId_fkey" FOREIGN KEY ("localKeyVaultId") REFERENCES "Vault"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "WalletSendLNC" ADD CONSTRAINT "WalletSendLNC_remoteKeyId_fkey" FOREIGN KEY ("remoteKeyId") REFERENCES "Vault"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "WalletSendLNC" ADD CONSTRAINT "WalletSendLNC_remoteKeyVaultId_fkey" FOREIGN KEY ("remoteKeyVaultId") REFERENCES "Vault"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "WalletSendLNC" ADD CONSTRAINT "WalletSendLNC_serverHostId_fkey" FOREIGN KEY ("serverHostId") REFERENCES "Vault"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "WalletSendLNC" ADD CONSTRAINT "WalletSendLNC_serverHostVaultId_fkey" FOREIGN KEY ("serverHostVaultId") REFERENCES "Vault"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "WalletRecvNWC" ADD CONSTRAINT "WalletRecvNWC_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "ProtocolWallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -517,59 +517,29 @@ RETURNS TRIGGER AS $$
 DECLARE
     wallet jsonb;
     vault jsonb;
+    col_name text;
+    vault_id int;
+    base_name text;
 BEGIN
     wallet := to_jsonb(NEW);
 
-    IF TG_TABLE_NAME = 'WalletSendNWC' THEN
-        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
-        FROM "Vault" v
-        WHERE v.id = NEW."urlId";
-        wallet := jsonb_set(to_jsonb(NEW), '{url}', vault) - 'urlId';
-
-    ELSIF TG_TABLE_NAME = 'WalletSendLNbits' THEN
-        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
-        FROM "Vault" v
-        WHERE v.id = NEW."apiKeyId";
-        wallet := jsonb_set(to_jsonb(NEW), '{apiKey}', vault) - 'apiKeyId';
-
-    ELSIF TG_TABLE_NAME = 'WalletSendPhoenixd' THEN
-        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
-        FROM "Vault" v
-        WHERE v.id = NEW."apiKeyId";
-        wallet := jsonb_set(to_jsonb(NEW), '{apiKey}', vault) - 'apiKeyId';
-
-    ELSIF TG_TABLE_NAME = 'WalletSendBlink' THEN
-        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
-        FROM "Vault" v
-        WHERE v.id = NEW."apiKeyId";
-        wallet := jsonb_set(to_jsonb(NEW), '{apiKey}', vault) - 'apiKeyId';
+    FOR col_name IN
+        SELECT key::text
+        FROM jsonb_each(wallet)
+        WHERE key::text LIKE '%VaultId'
+    LOOP
+        vault_id := (wallet->>col_name)::int;
+        -- remove 'VaultId' suffix
+        base_name := substring(col_name from 1 for length(col_name)-7);
 
         SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
         FROM "Vault" v
-        WHERE v.id = NEW."currencyId";
-        wallet := jsonb_set(to_jsonb(NEW), '{currency}', vault) - 'currencyId';
+        WHERE v.id = vault_id;
 
-    ELSIF TG_TABLE_NAME = 'WalletSendLNC' THEN
-        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
-        FROM "Vault" v
-        WHERE v.id = NEW."pairingPhraseId";
-        wallet := jsonb_set(to_jsonb(NEW), '{pairingPhrase}', vault) - 'pairingPhraseId';
-
-        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
-        FROM "Vault" v
-        WHERE v.id = NEW."localKeyId";
-        wallet := jsonb_set(wallet, '{localKey}', vault) - 'localKeyId';
-
-        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
-        FROM "Vault" v
-        WHERE v.id = NEW."remoteKeyId";
-        wallet := jsonb_set(wallet, '{remoteKey}', vault) - 'remoteKeyId';
-
-        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
-        FROM "Vault" v
-        WHERE v.id = NEW."serverHostId";
-        wallet := jsonb_set(wallet, '{serverHost}', vault) - 'serverHostId';
-    END IF;
+        IF vault IS NOT NULL THEN
+            wallet := jsonb_set(wallet, array[base_name], vault) - col_name;
+        END IF;
+    END LOOP;
 
     UPDATE "ProtocolWallet"
     SET json = wallet
@@ -738,7 +708,7 @@ BEGIN
 
             IF row."adminKeyId" IS NOT NULL THEN
                 protocolWalletId := get_or_create_protocol_wallet(userWalletId, true, 'LNBITS', row."userId", 'LNBITS', row."priority", row."enabled");
-                INSERT INTO "WalletSendLNbits" ("walletId", "url", "apiKeyId")
+                INSERT INTO "WalletSendLNbits" ("walletId", "url", "apiKeyVaultId")
                 VALUES (protocolWalletId, row."url", row."adminKeyId");
             END IF;
 
@@ -763,7 +733,7 @@ BEGIN
 
             IF row."primaryPasswordId" IS NOT NULL THEN
                 protocolWalletId := get_or_create_protocol_wallet(userWalletId, true, 'PHOENIXD', row."userId", 'PHOENIXD', row."priority", row."enabled");
-                INSERT INTO "WalletSendPhoenixd" ("walletId", "url", "apiKeyId")
+                INSERT INTO "WalletSendPhoenixd" ("walletId", "url", "apiKeyVaultId")
                 VALUES (protocolWalletId, row."url", row."primaryPasswordId");
             END IF;
 
@@ -788,7 +758,7 @@ BEGIN
 
             IF row."apiKeyId" IS NOT NULL AND row."currencyId" IS NOT NULL THEN
                 protocolWalletId := get_or_create_protocol_wallet(userWalletId, true, 'BLINK', row."userId", 'BLINK', row."priority", row."enabled");
-                INSERT INTO "WalletSendBlink" ("walletId", "apiKeyId", "currencyId")
+                INSERT INTO "WalletSendBlink" ("walletId", "apiKeyVaultId", "currencyVaultId")
                 VALUES (protocolWalletId, row."apiKeyId", row."currencyId");
             END IF;
 
@@ -829,7 +799,7 @@ BEGIN
             userWalletId := get_or_create_user_wallet(row."userId", 'LND', row."priority", row."enabled");
 
             protocolWalletId := get_or_create_protocol_wallet(userWalletId, true, 'LNC', row."userId", 'LND', row."priority", row."enabled");
-            INSERT INTO "WalletSendLNC" ("walletId", "pairingPhraseId", "localKeyId", "remoteKeyId", "serverHostId")
+            INSERT INTO "WalletSendLNC" ("walletId", "pairingPhraseVaultId", "localKeyVaultId", "remoteKeyVaultId", "serverHostVaultId")
             VALUES (protocolWalletId, row."pairingPhraseId", row."localKeyId", row."remoteKeyId", row."serverHostId");
         END;
     END LOOP;
@@ -887,7 +857,7 @@ BEGIN
 
             IF row."nwcUrlId" IS NOT NULL THEN
                 protocolWalletId := get_or_create_protocol_wallet(userWalletId, true, 'NWC', row."userId", walletName, row."priority", row."enabled");
-                INSERT INTO "WalletSendNWC" ("walletId", "urlId")
+                INSERT INTO "WalletSendNWC" ("walletId", "urlVaultId")
                 VALUES (protocolWalletId, row."nwcUrlId");
             END IF;
         END;

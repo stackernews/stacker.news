@@ -514,9 +514,65 @@ CREATE TRIGGER wallet_check_support
 
 CREATE OR REPLACE FUNCTION wallet_to_jsonb()
 RETURNS TRIGGER AS $$
+DECLARE
+    wallet jsonb;
+    vault jsonb;
 BEGIN
+    wallet := to_jsonb(NEW);
+
+    IF TG_TABLE_NAME = 'WalletSendNWC' THEN
+        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
+        FROM "Vault" v
+        WHERE v.id = NEW."urlId";
+        wallet := jsonb_set(to_jsonb(NEW), '{url}', vault) - 'urlId';
+
+    ELSIF TG_TABLE_NAME = 'WalletSendLNbits' THEN
+        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
+        FROM "Vault" v
+        WHERE v.id = NEW."apiKeyId";
+        wallet := jsonb_set(to_jsonb(NEW), '{apiKey}', vault) - 'apiKeyId';
+
+    ELSIF TG_TABLE_NAME = 'WalletSendPhoenixd' THEN
+        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
+        FROM "Vault" v
+        WHERE v.id = NEW."apiKeyId";
+        wallet := jsonb_set(to_jsonb(NEW), '{apiKey}', vault) - 'apiKeyId';
+
+    ELSIF TG_TABLE_NAME = 'WalletSendBlink' THEN
+        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
+        FROM "Vault" v
+        WHERE v.id = NEW."apiKeyId";
+        wallet := jsonb_set(to_jsonb(NEW), '{apiKey}', vault) - 'apiKeyId';
+
+        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
+        FROM "Vault" v
+        WHERE v.id = NEW."currencyId";
+        wallet := jsonb_set(to_jsonb(NEW), '{currency}', vault) - 'currencyId';
+
+    ELSIF TG_TABLE_NAME = 'WalletSendLNC' THEN
+        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
+        FROM "Vault" v
+        WHERE v.id = NEW."pairingPhraseId";
+        wallet := jsonb_set(to_jsonb(NEW), '{pairingPhrase}', vault) - 'pairingPhraseId';
+
+        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
+        FROM "Vault" v
+        WHERE v.id = NEW."localKeyId";
+        wallet := jsonb_set(wallet, '{localKey}', vault) - 'localKeyId';
+
+        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
+        FROM "Vault" v
+        WHERE v.id = NEW."remoteKeyId";
+        wallet := jsonb_set(wallet, '{remoteKey}', vault) - 'remoteKeyId';
+
+        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
+        FROM "Vault" v
+        WHERE v.id = NEW."serverHostId";
+        wallet := jsonb_set(wallet, '{serverHost}', vault) - 'serverHostId';
+    END IF;
+
     UPDATE "ProtocolWallet"
-    SET json = to_jsonb(NEW)
+    SET json = wallet
     WHERE id = NEW."walletId";
 
     RETURN NEW;

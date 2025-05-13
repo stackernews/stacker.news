@@ -22,16 +22,6 @@ else
     -H "Content-Type: application/json" \
     -X PUT \
     -d '{
-      "settings": {
-        "analysis": {
-          "analyzer": {
-            "exact_case_sensitive_analyzer": {
-              "tokenizer": "standard",
-              "filter": []
-            }
-          }
-        }
-      },
       "mappings": {
         "properties": {
           "text": {
@@ -41,7 +31,7 @@ else
               "keyword": {"type": "keyword", "ignore_above": 256},
               "exact": {
                 "type": "text",
-                "analyzer": "exact_case_sensitive_analyzer"
+                "analyzer": "standard"
               }
             }
           },
@@ -52,7 +42,7 @@ else
               "keyword": {"type": "keyword", "ignore_above": 256},
               "exact": {
                 "type": "text",
-                "analyzer": "exact_case_sensitive_analyzer"
+                "analyzer": "standard"
               }
             }
           }

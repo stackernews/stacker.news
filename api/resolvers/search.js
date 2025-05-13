@@ -283,45 +283,21 @@ export default {
 
       // if quoted phrases, items must contain entire phrase
       for (const quote of quotes) {
-        const isMultiWord = quote.includes(' ')
-        const queryType = isMultiWord ? 'match_phrase' : 'term'
-
-        const titleQueryBody = isMultiWord ? { query: quote } : quote
-        const textQueryBody = isMultiWord ? { query: quote } : quote
-
         filters.push({
-          bool: {
-            should: [
-              { [queryType]: { 'title.exact': titleQueryBody } },
-              { [queryType]: { 'text.exact': textQueryBody } }
-            ],
-            minimum_should_match: 1
+          multi_match: {
+            query: quote,
+            fields: ['title.exact', 'text.exact'],
+            type: 'phrase'
           }
         })
-
-        if (isMultiWord) {
-          termQueries.push({
-            match_phrase: {
-              'title.exact': { query: quote, boost: 100 }
-            }
-          })
-          termQueries.push({
-            match_phrase: {
-              'text.exact': { query: quote, boost: 100 }
-            }
-          })
-        } else {
-          termQueries.push({
-            term: {
-              'title.exact': { value: quote, boost: 100 }
-            }
-          })
-          termQueries.push({
-            term: {
-              'text.exact': { value: quote, boost: 100 }
-            }
-          })
-        }
+        termQueries.push({
+          multi_match: {
+            query: quote,
+            fields: ['title.exact^10', 'text.exact'],
+            type: 'phrase',
+            boost: 1000
+          }
+        })
       }
 
       switch (sort) {
@@ -410,6 +386,24 @@ export default {
               type: 'phrase',
               fields: ['title^10', 'text'],
               boost: 1000
+            }
+          },
+          // match on exact fields higher
+          {
+            multi_match: {
+              query,
+              type: 'best_fields',
+              fields: ['title.exact^10', 'text.exact'],
+              boost: 100
+            }
+          },
+          // exact phrase matches higher
+          {
+            multi_match: {
+              query,
+              fields: ['title.exact^10', 'text.exact'],
+              type: 'phrase',
+              boost: 10000
             }
           }
         ]
@@ -511,21 +505,13 @@ export default {
       })).map((item, i) => {
         const e = sitems.body.hits.hits[i]
 
-        if (e.highlight?.['title.exact']?.[0]) {
-          item.searchTitle = e.highlight['title.exact'][0]
-        } else if (e.highlight?.title?.[0]) {
-          item.searchTitle = e.highlight.title[0]
-        } else {
-          item.searchTitle = item.title
-        }
+        // prefer the fuzzier highlight for title
+        item.searchTitle = e.highlight?.title?.[0] || e.highlight?.['title.exact']?.[0] || item.title
 
-        let searchTextHighlight
-        if (e.highlight?.['text.exact']?.length > 0) {
-          searchTextHighlight = e.highlight['text.exact'].join(' ... ')
-        } else if (e.highlight?.text?.length > 0) {
-          searchTextHighlight = e.highlight.text.join(' ... ')
-        }
-        item.searchText = searchTextHighlight || undefined
+        // prefer the exact highlight for text
+        const searchTextHighlight = [...(e.highlight?.['text.exact'] || []), ...(e.highlight?.text || [])]
+        item.searchText = searchTextHighlight?.slice(0, 5)?.join(' ... ')
+
         return item
       })
 

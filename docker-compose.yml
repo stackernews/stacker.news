@@ -163,7 +163,7 @@ services:
       - "CONNECT=localhost:4566"
     cpu_shares: "${CPU_SHARES_LOW}"
   opensearch:
-    image: opensearchproject/opensearch:2.17.0
+    image: opensearchproject/opensearch:2.19.0
     container_name: opensearch
     profiles:
       - search
@@ -188,7 +188,7 @@ services:
     command: ["bash", "/usr/share/opensearch/init-opensearch.sh"]
     cpu_shares: "${CPU_SHARES_LOW}"
   os-dashboard:
-    image: opensearchproject/opensearch-dashboards:2.17.0
+    image: opensearchproject/opensearch-dashboards:2.19.0
     container_name: os-dashboard
     restart: unless-stopped
     profiles:

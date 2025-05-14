@@ -35,6 +35,27 @@ export async function getSub (parent, { name }, { models, me }) {
 export default {
   Query: {
     sub: getSub,
+    subSuggestions: async (parent, { q, limit = 5 }, { models }) => {
+      let subs = []
+      if (q) {
+        subs = await models.$queryRaw`
+          SELECT name
+          FROM "Sub"
+          WHERE status = 'ACTIVE'
+          AND SIMILARITY(name, ${q}) > 0.1
+          ORDER BY SIMILARITY(name, ${q}) DESC
+          LIMIT ${limit}`
+      } else {
+        subs = await models.$queryRaw`
+          SELECT name
+          FROM "Sub"
+          WHERE status = 'ACTIVE'
+          ORDER BY name ASC
+          LIMIT ${limit}`
+      }
+
+      return subs
+    },
     subs: async (parent, args, { models, me }) => {
       if (me) {
         const currentUser = await models.user.findUnique({ where: { id: me.id } })

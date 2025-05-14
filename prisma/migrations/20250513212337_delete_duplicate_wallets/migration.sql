@@ -12,3 +12,5 @@ WITH duplicates AS (
 DELETE FROM "Wallet"
 WHERE id in (SELECT unnest(id) FROM duplicates);
 
+-- CreateIndex
+CREATE UNIQUE INDEX "Wallet_userId_type_key" ON "Wallet"("userId", "type");

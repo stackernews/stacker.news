@@ -1,6 +1,7 @@
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { whenToFrom } from '@/lib/time'
 import { getItem, itemQueryWithMeta, SELECT } from './item'
+import { parse } from 'tldts'
 
 function queryParts (q) {
   const regex = /"([^"]*)"/gm
@@ -253,24 +254,17 @@ export default {
 
       // if search contains a url term, modify the query text
       if (url) {
-        const uri = url.slice(4)
-        let uriObj
-        try {
-          uriObj = new URL(uri)
-        } catch {
-          try {
-            uriObj = new URL(`https://${uri}`)
-          } catch {}
+        let uri = url.slice(4)
+        termQueries.push({
+          match_bool_prefix: { url: { query: uri, operator: 'and', boost: 1000 } }
+        })
+        const parsed = parse(uri)
+        if (parsed?.subdomain?.length > 0) {
+          uri = uri.replace(`${parsed.subdomain}.`, '')
         }
-
-        if (uriObj) {
-          termQueries.push({
-            wildcard: { url: `*${uriObj?.hostname ?? uri}${uriObj?.pathname ?? ''}*` }
-          })
-          termQueries.push({
-            match: { text: `${uriObj?.hostname ?? uri}${uriObj?.pathname ?? ''}` }
-          })
-        }
+        termQueries.push({
+          wildcard: { url: { value: `*${uri}*` } }
+        })
       }
 
       // if nym, items must contain nym

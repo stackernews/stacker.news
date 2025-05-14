@@ -2,32 +2,10 @@ import { E_VAULT_KEY_EXISTS, GqlAuthenticationError, GqlInputError } from '@/lib
 
 export default {
   Query: {
-    getVaultEntry: async (parent, { key }, { me, models }, info) => {
-      if (!me) throw new GqlAuthenticationError()
-      if (!key) throw new GqlInputError('must have key')
-
-      const k = await models.vault.findUnique({
-        where: {
-          key,
-          userId: me.id
-        }
-      })
-      return k
-    },
-    getVaultEntries: async (parent, { keysFilter }, { me, models }, info) => {
+    getVaultEntries: async (parent, args, { me, models }) => {
       if (!me) throw new GqlAuthenticationError()
 
-      const entries = await models.vaultEntry.findMany({
-        where: {
-          userId: me.id,
-          key: keysFilter?.length
-            ? {
-                in: keysFilter
-              }
-            : undefined
-        }
-      })
-      return entries
+      return await models.vaultEntry.findMany({ where: { userId: me.id } })
     }
   },
   Mutation: {

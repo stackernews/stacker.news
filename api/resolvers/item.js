@@ -26,6 +26,7 @@ import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
+import { shuffleArray } from '@/lib/rand'
 
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
@@ -696,7 +697,11 @@ export default {
         status: 'ACTIVE',
         deletedAt: null,
         outlawed: false,
-        parentId: null
+        parentId: null,
+        OR: [
+          { invoiceActionState: 'PAID' },
+          { invoiceActionState: null }
+        ]
       }
       if (id) {
         where.id = { not: Number(id) }
@@ -833,8 +838,16 @@ export default {
       const data = { itemId: Number(id), userId: me.id }
       const old = await models.threadSubscription.findUnique({ where: { userId_itemId: data } })
       if (old) {
-        await models.threadSubscription.delete({ where: { userId_itemId: data } })
-      } else await models.threadSubscription.create({ data })
+        await models.$executeRaw`
+          DELETE FROM "ThreadSubscription" ts
+          USING "Item" i
+          WHERE ts."userId" = ${me.id}
+          AND i.path <@ (SELECT path FROM "Item" WHERE id = ${Number(id)})
+          AND ts."itemId" = i.id
+        `
+      } else {
+        await models.threadSubscription.create({ data })
+      }
       return { id }
     },
     deleteItem: async (parent, { id }, { me, models }) => {
@@ -1150,7 +1163,8 @@ export default {
         poll.meVoted = false
       }
 
-      poll.options = options
+      poll.randPollOptions = item?.randPollOptions
+      poll.options = poll.randPollOptions ? shuffleArray(options) : options
       poll.count = options.reduce((t, o) => t + o.count, 0)
 
       return poll

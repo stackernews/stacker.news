@@ -67,5 +67,5 @@ export async function createInvoice (
   }
 
   const payment = await res.json()
-  return payment.payment_request
+  return payment?.payment_request || payment?.bolt11
 }

@@ -193,6 +193,12 @@ The only limitation is that we will currently not attempt to pay with CCs at the
 
 Yes. We try each payment three times in total with all sender and receiver fallbacks. If a payment still wasn't successful after that, you will receive a notification allowing you to retry the payment manually.
 
+### How do I get a gun or a horse?
+
+You receive a gun when you [attach a wallet](#how-do-i-attach-a-wallet) to send sats AND enable [device sync](/settings/passphrase).
+
+You receive a horse when you [attach a wallet](#how-do-i-attach-a-wallet) to receive sats.
+
 ---
 
 ## Territories

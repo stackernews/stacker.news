@@ -246,6 +246,7 @@ model Wallet {
   InvoiceForward InvoiceForward[]
   DirectPayment  DirectPayment[]
 
+  @@unique([userId, type])
   @@index([userId])
   @@index([priority])
 }

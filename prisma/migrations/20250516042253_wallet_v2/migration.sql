@@ -8,7 +8,7 @@ CREATE TYPE "WalletSendProtocol" AS ENUM ('NWC', 'LNBITS', 'PHOENIXD', 'BLINK', 
 CREATE TYPE "WalletRecvProtocol" AS ENUM ('NWC', 'LNBITS', 'PHOENIXD', 'BLINK', 'LN_ADDR', 'CLN_REST', 'LND_GRPC');
 
 -- CreateTable
-CREATE TABLE "WalletV2" (
+CREATE TABLE "WalletTemplate" (
     "id" SERIAL NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -18,10 +18,10 @@ CREATE TABLE "WalletV2" (
     "sendProtocols" "WalletSendProtocol"[],
     "recvProtocols" "WalletRecvProtocol"[],
 
-    CONSTRAINT "WalletV2_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "WalletTemplate_pkey" PRIMARY KEY ("id")
 );
 
-INSERT INTO "WalletV2" (name, "sendProtocols", "recvProtocols") VALUES
+INSERT INTO "WalletTemplate" (name, "sendProtocols", "recvProtocols") VALUES
     ('ALBY',
         ARRAY['NWC', 'WEBLN']::"WalletSendProtocol"[],
         ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocol"[]),
@@ -100,7 +100,7 @@ CREATE TABLE "UserWallet" (
     "enabled" BOOLEAN NOT NULL DEFAULT true,
     "priority" INTEGER NOT NULL DEFAULT 0,
     "userId" INTEGER NOT NULL,
-    "walletId" INTEGER NOT NULL,
+    "templateId" INTEGER NOT NULL,
 
     CONSTRAINT "UserWallet_pkey" PRIMARY KEY ("id")
 );
@@ -415,31 +415,31 @@ ALTER TABLE "WalletRecvLNDGRPC" ADD CONSTRAINT "WalletRecvLNDGRPC_walletId_fkey"
 ALTER TABLE "UserWallet" ADD CONSTRAINT "UserWallet_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "UserWallet" ADD CONSTRAINT "UserWallet_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "WalletV2"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "UserWallet" ADD CONSTRAINT "UserWallet_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "WalletTemplate"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 CREATE OR REPLACE FUNCTION wallet_check_support()
 RETURNS TRIGGER AS $$
 DECLARE
-    wallet "WalletV2";
+    template "WalletTemplate";
     direction TEXT;
     protocol TEXT;
 BEGIN
     direction := TG_ARGV[0];
     protocol := TG_ARGV[1];
 
-    SELECT w.* INTO wallet
+    SELECT t.* INTO template
     FROM "ProtocolWallet" pw
     JOIN "UserWallet" uw ON pw."walletId" = uw.id
-    JOIN "WalletV2" w ON uw."walletId" = w.id
+    JOIN "WalletTemplate" t ON uw."templateId" = t.id
     WHERE pw.id = NEW."walletId";
 
     IF direction = 'SEND' THEN
-        IF NOT protocol::"WalletSendProtocol" = ANY(wallet."sendProtocols") THEN
-            RAISE EXCEPTION 'Wallet % does not support send protocol %', wallet.name, protocol;
+        IF NOT protocol::"WalletSendProtocol" = ANY(template."sendProtocols") THEN
+            RAISE EXCEPTION 'Wallet % does not support send protocol %', template.name, protocol;
         END IF;
     ELSIF direction = 'RECEIVE' THEN
-        IF NOT protocol::"WalletRecvProtocol" = ANY(wallet."recvProtocols") THEN
-            RAISE EXCEPTION 'Wallet % does not support receive protocol %', wallet.name, protocol;
+        IF NOT protocol::"WalletRecvProtocol" = ANY(template."recvProtocols") THEN
+            RAISE EXCEPTION 'Wallet % does not support receive protocol %', template.name, protocol;
         END IF;
     END IF;
 
@@ -616,7 +616,7 @@ CREATE TRIGGER wallet_to_jsonb
 
 CREATE OR REPLACE FUNCTION get_or_create_user_wallet(
     user_id INT,
-    wallet_name TEXT,
+    template_name TEXT,
     priority INT,
     enabled BOOLEAN
 )
@@ -627,11 +627,11 @@ DECLARE
 BEGIN
     SELECT uw.id INTO userWalletId
     FROM "UserWallet" uw
-    JOIN "WalletV2" w ON uw."walletId" = w.id
-    WHERE uw."userId" = user_id AND w.name = wallet_name;
+    JOIN "WalletTemplate" t ON uw."templateId" = t.id
+    WHERE uw."userId" = user_id AND t.name = template_name;
 
     IF NOT FOUND THEN
-        userWalletId := create_user_wallet(user_id, wallet_name, priority, enabled);
+        userWalletId := create_user_wallet(user_id, template_name, priority, enabled);
     END IF;
 
     RETURN userWalletId;
@@ -640,7 +640,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION create_user_wallet(
     user_id INT,
-    wallet_name TEXT,
+    template_name TEXT,
     priority INT,
     enabled BOOLEAN
 )
@@ -649,10 +649,10 @@ $$
 DECLARE
     userWalletId INT;
 BEGIN
-    INSERT INTO "UserWallet" ("userId", "walletId", "priority", "enabled")
-    SELECT user_id, w.id, priority, enabled
-    FROM "WalletV2" w
-    WHERE w.name = wallet_name
+    INSERT INTO "UserWallet" ("userId", "templateId", "priority", "enabled")
+    SELECT user_id, t.id, priority, enabled
+    FROM "WalletTemplate" t
+    WHERE t.name = template_name
     RETURNING id INTO userWalletId;
 
     RETURN userWalletId;
@@ -664,7 +664,7 @@ CREATE OR REPLACE FUNCTION get_or_create_protocol_wallet(
     send BOOLEAN,
     protocol "WalletProtocol",
     user_id INT,
-    wallet_name TEXT,
+    template_name TEXT,
     priority INT,
     enabled BOOLEAN
 )
@@ -679,7 +679,7 @@ BEGIN
         VALUES (user_wallet_id, send, protocol)
         RETURNING id INTO protocolWalletId;
     EXCEPTION WHEN unique_violation THEN
-        userWalletId := create_user_wallet(user_id, wallet_name, priority, enabled);
+        userWalletId := create_user_wallet(user_id, template_name, priority, enabled);
         INSERT INTO "ProtocolWallet" ("walletId", "send", "protocol")
         VALUES (userWalletId, send, protocol)
         RETURNING id INTO protocolWalletId;
@@ -949,3 +949,39 @@ DROP FUNCTION wallet_v2_migration();
 DROP FUNCTION get_or_create_user_wallet(INT, TEXT, INT, BOOLEAN);
 DROP FUNCTION create_user_wallet(INT, TEXT, INT, BOOLEAN);
 DROP FUNCTION get_or_create_protocol_wallet(INT, BOOLEAN, "WalletProtocol", INT, TEXT, INT, BOOLEAN);
+
+-- drop old tables
+DROP TABLE "WalletBlink";
+DROP TABLE "WalletCLN";
+DROP TABLE "WalletLNC";
+DROP TABLE "WalletLND";
+DROP TABLE "WalletLNbits";
+DROP TABLE "WalletLightningAddress";
+DROP TABLE "WalletNWC";
+DROP TABLE "WalletPhoenixd";
+DROP TABLE "WalletWebLN";
+
+-- update foreign keys
+-- TODO: make sure ids are stable during migration such that new foreign keys pointing to ProtocolWallet can be added
+ALTER TABLE "Withdrawl" DROP CONSTRAINT "Withdrawl_walletId_fkey";
+ALTER TABLE "Withdrawl" ADD CONSTRAINT "Withdrawl_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "ProtocolWallet"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE "DirectPayment" DROP CONSTRAINT "DirectPayment_walletId_fkey";
+ALTER TABLE "DirectPayment" ADD CONSTRAINT "DirectPayment_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "ProtocolWallet"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE "InvoiceForward" DROP CONSTRAINT "InvoiceForward_walletId_fkey";
+ALTER TABLE "InvoiceForward" ADD CONSTRAINT "InvoiceForward_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "ProtocolWallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- now drop Wallet table because nothing points to it anymore
+DROP TABLE "Wallet";
+
+-- drop old function used for the JSON trigger
+DROP FUNCTION wallet_wallet_type_as_jsonb;
+
+-- wallet logs now point to the new ProtocolWallet table instead of to the old WalletType enum
+ALTER TABLE "WalletLog"
+    DROP COLUMN "wallet",
+    ADD COLUMN "walletId" INTEGER NOT NULL;
+
+DROP TYPE "WalletType";
+ALTER TABLE "WalletLog" ADD CONSTRAINT "WalletLog_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "ProtocolWallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;

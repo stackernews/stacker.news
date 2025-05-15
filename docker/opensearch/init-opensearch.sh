@@ -27,13 +27,28 @@ else
           "text": {
             "type": "text",
             "analyzer": "english",
-            "fields": {"keyword":{"type":"keyword","ignore_above":256}}
+            "fields": {
+              "keyword": {"type": "keyword", "ignore_above": 256},
+              "exact": {
+                "type": "text",
+                "analyzer": "standard"
+              }
+            }
           },
           "title": {
             "type": "text",
             "analyzer": "english",
-            "fields": {"keyword":{"type":"keyword","ignore_above":256}}
-          }}}}' \
+            "fields": {
+              "keyword": {"type": "keyword", "ignore_above": 256},
+              "exact": {
+                "type": "text",
+                "analyzer": "standard"
+              }
+            }
+          }
+        }
+      }
+    }' \
     "http://localhost:9200/$OPENSEARCH_INDEX" \
     -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
   echo ""

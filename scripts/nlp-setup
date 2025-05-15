@@ -295,12 +295,24 @@ else
          "text": {
            "type": "text",
            "analyzer": "english",
-           "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}
+           "fields": {
+             "keyword": {"type": "keyword", "ignore_above": 256},
+             "exact": {
+               "type": "text",
+               "analyzer": "standard"
+             }
+           }
          },
          "title": {
            "type": "text",
            "analyzer": "english",
-           "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}
+           "fields": {
+             "keyword": {"type": "keyword", "ignore_above": 256},
+             "exact": {
+               "type": "text",
+               "analyzer": "standard"
+             }
+           }
          },
          "title_embedding": {
            "type": "knn_vector",

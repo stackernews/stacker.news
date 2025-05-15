@@ -17,11 +17,15 @@ export const createInvoice = async (
   const { min, callback, commentAllowed } = await lnAddrOptions(address, { signal })
   const callbackUrl = new URL(callback)
 
-  // most lnurl providers suck nards so we have to floor to nearest sat
   if (!msats) {
     // use min sendable amount by default
     msats = 1_000 * min
   }
+
+  // create invoices with a minimum amount of 1 sat
+  msats = Math.max(msats, 1_000)
+
+  // most lnurl providers suck nards so we have to floor to nearest sat
   msats = msatsSatsFloor(msats)
 
   callbackUrl.searchParams.append('amount', msats)

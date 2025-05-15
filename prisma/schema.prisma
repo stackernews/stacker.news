@@ -251,6 +251,7 @@ model Wallet {
   DirectPayment  DirectPayment[]
   PayOutBolt11   PayOutBolt11[]
 
+  @@unique([userId, type])
   @@index([userId])
   @@index([priority])
 }

@@ -4,14 +4,12 @@ AWS.config.update({
   region: 'us-east-1'
 })
 
-const config = {}
+const config = {
+  // for local development, we use the LOCALSTACK_ENDPOINT
+  endpoint: process.env.NODE_ENV === 'development' ? process.env.LOCALSTACK_ENDPOINT : undefined
+}
 
 export async function requestCertificate (domain) {
-  // for local development, we use the LOCALSTACK_ENDPOINT
-  if (process.env.NODE_ENV === 'development') {
-    config.endpoint = process.env.LOCALSTACK_ENDPOINT
-  }
-
   const acm = new AWS.ACM(config)
   const params = {
     DomainName: domain,
@@ -29,9 +27,6 @@ export async function requestCertificate (domain) {
 }
 
 export async function describeCertificate (certificateArn) {
-  if (process.env.NODE_ENV === 'development') {
-    config.endpoint = process.env.LOCALSTACK_ENDPOINT
-  }
   const acm = new AWS.ACM(config)
   const certificate = await acm.describeCertificate({ CertificateArn: certificateArn }).promise()
   return certificate
@@ -43,9 +38,6 @@ export async function getCertificateStatus (certificateArn) {
 }
 
 export async function deleteCertificate (certificateArn) {
-  if (process.env.NODE_ENV === 'development') {
-    config.endpoint = process.env.LOCALSTACK_ENDPOINT
-  }
   const acm = new AWS.ACM(config)
   const result = await acm.deleteCertificate({ CertificateArn: certificateArn }).promise()
   console.log(`delete certificate attempt for ${certificateArn}, result: ${JSON.stringify(result)}`)

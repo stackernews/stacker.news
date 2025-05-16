@@ -1,0 +1,91 @@
+#!/bin/bash
+# TODO: Restart dnsmasq after adding/removing records
+
+DNSMASQ_CONF_PATH="./docker/dnsmasq/dnsmasq.conf"
+INTENT=$1   # add, remove, list
+TYPE=$2     # cname, txt
+NAME=$3     # www.pizza.com
+VALUE=$4    # stacker.news or "7vfyvQO...vMALqvqkTQ="
+
+usage() {
+  cat <<EOF
+Set mock DNS records for custom domains in dnsmasq conf.
+Use .sndev domains as they automatically resolve to 127.0.0.1.
+
+USAGE
+  $ sndev domains dns [COMMAND]
+
+COMMANDS
+  add    <cname|txt> <name> <value>
+  remove <cname|txt> <name> <value>
+  list   <cname|txt>
+
+EXAMPLES
+  $ sndev domains dns add cname www.pizza.sndev sn.sndev
+  $ sndev domains dns remove txt _snverify.www.pizza.sndev "7vfyvQO...vMALqvqkTQ"
+  $ sndev domains dns list cname|txt
+EOF
+  exit 0
+}
+
+# check for required args for intent list
+if [ $# -lt 2 ]; then
+    usage
+fi
+
+# check for required args for add and remove
+if [ "$INTENT" == "add" ] || [ "$INTENT" == "remove" ]; then
+    if [ $# -lt 4 ]; then
+        usage
+    fi
+# check for required args for domain list
+elif [ $# -lt 2 ]; then
+    usage
+fi
+
+# Build the record line
+if [ "$TYPE" = "cname" ]; then
+  LINE="cname=${NAME},${VALUE}"
+elif [ "$TYPE" = "txt" ]; then
+  LINE="txt-record=${NAME},\"${VALUE//\"/\\\"}\""
+else
+  echo "Invalid record type: $TYPE"
+  usage
+fi
+
+# Adjust TYPE for grep
+if [ "$TYPE" = "txt" ]; then
+  TYPE="txt-record"
+fi
+
+add_record() {
+  if grep -Fxq "$LINE" "$DNSMASQ_CONF_PATH"; then
+    echo "Record already exists: $LINE"
+    exit 0
+  fi
+  echo "Adding record: $LINE"
+  echo -e "\n$LINE" >> "$DNSMASQ_CONF_PATH"
+  echo "Done."
+}
+
+remove_record() {
+  if ! grep -Fxq "$LINE" "$DNSMASQ_CONF_PATH"; then
+    echo "Can't find record: $LINE"
+    exit 0
+  fi
+  echo "Removing record: $LINE"
+  sed -i "/^$LINE$/d" "$DNSMASQ_CONF_PATH"
+  echo "Done."
+}
+
+list_records() {
+  grep "^$TYPE=" "$DNSMASQ_CONF_PATH"
+}
+
+case "$INTENT" in
+  add)    add_record ;;
+  remove) remove_record ;;
+  list)   list_records ;;
+  *)      usage ;;
+esac
+

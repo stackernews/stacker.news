@@ -614,6 +614,25 @@ CREATE TRIGGER wallet_to_jsonb
     FOR EACH ROW
     EXECUTE PROCEDURE wallet_to_jsonb();
 
+CREATE OR REPLACE FUNCTION wallet_updated_at_trigger() RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE "users" u
+    SET "walletsUpdatedAt" = NOW()
+    FROM "UserWallet" uw
+    WHERE u.id = uw."userId"
+    AND uw.id = CASE
+        WHEN TG_OP = 'DELETE'
+        THEN OLD."walletId"
+        ELSE NEW."walletId"
+    END;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER wallet_updated_at_trigger
+AFTER INSERT OR UPDATE OR DELETE ON "ProtocolWallet"
+FOR EACH ROW EXECUTE PROCEDURE wallet_updated_at_trigger();
+
 CREATE OR REPLACE FUNCTION get_or_create_user_wallet(
     user_id INT,
     template_name TEXT,

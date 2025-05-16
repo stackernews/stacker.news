@@ -187,6 +187,7 @@ After `nlp-setup` is done, restart your containers to enable semantic search:
     - [Stack](#stack)
     - [Services](#services)
     - [Wallet transaction safety](#wallet-transaction-safety)
+    - [Automated payment retries](#automated-payment-retries)
 - [Need help?](#need-help)
 - [Responsible Disclosure](#responsible-disclosure)
 - [License](#license)
@@ -476,6 +477,18 @@ In addition, we run other critical services the above services interact with lik
 To ensure stackers balances are kept sane, some wallet updates are run in [serializable transactions](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE) at the database level. Because early versions of prisma had relatively poor support for transactions most wallet touching code is written in [plpgsql](https://www.postgresql.org/docs/current/plpgsql.html) stored procedures and can be found in the `prisma/migrations` folder.
 
 *UPDATE*: Most wallet updates are now run in [read committed](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED) transactions. See `api/paidAction/README.md` for more information.
+
+<br>
+
+## Automated payment retries
+
+Every payment for `ITEM_CREATE`, `ZAP`, `DOWN_ZAP`, `POLL_VOTE`, and `BOOST` is attempted three times (first attempt + two retries). We wait 1 minute and up to 1 hour before we return a failed invoice via the `failedInvoices` query to a client to retry. During each retry, we increment the `paymentAttempt` column of the new invoice and add a link to the previous invoice in `predecessorId`.
+
+For p2p zaps, we have additional logic to try every sender and receiver wallet. This means that for p2p zaps, we can create multiple invoices per attempt.
+
+We fallback to the next sender wallet if paying the wrapped invoice failed (unless the payment failed because the invoice expired or was canceled). We do this via a loop over all sender wallets on the client and checking if the payment error is not an instance of `WalletReceiverError`. We will retry with the same sender wallet in that case.
+
+On any wallet payment error (= payment did not fail because the invoice expired or was canceled), we cancel the invoice and ask the server to create a new one for us. The server is able to know if it should fallback to the next receiver wallet or not because it knows if the wrapped invoice we're retrying failed because the wrapped invoice was never paid (sender error) or if forwarding failed (receiver error).
 
 <br>
 

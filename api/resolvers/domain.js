@@ -142,16 +142,15 @@ export default {
         try {
           // Delete any existing domain verification jobs
           if (existing) {
+            // deleting a domain will also delete the domain certificate
+            // but we need to make sure to delete the certificate from ACM first
+            if (existing.certificate) {
+              await deleteDomainCertificate(existing.certificate.certificateArn)
+            }
+
             return await models.$transaction(async tx => {
               // delete any existing domain verification job left
               await cleanDomainVerificationJobs(existing, tx)
-
-              // deleting a domain will also delete the domain certificate
-              // but we need to make sure to delete the certificate from ACM
-              if (existing.certificate) {
-                await deleteDomainCertificate(existing.certificate.certificateArn)
-              }
-
               // delete the domain
               return await tx.domain.delete({ where: { subName } })
             })

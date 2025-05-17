@@ -1242,6 +1242,8 @@ model UserWallet {
   template   WalletTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   protocols ProtocolWallet[]
+
+  @@index([userId])
 }
 
 model ProtocolWallet {

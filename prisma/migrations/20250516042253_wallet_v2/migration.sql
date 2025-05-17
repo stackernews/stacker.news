@@ -274,6 +274,9 @@ CREATE TABLE "WalletRecvLNDGRPC" (
 );
 
 -- CreateIndex
+CREATE INDEX "UserWallet_userId_idx" ON "UserWallet"("userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ProtocolWallet_walletId_send_protocol_key" ON "ProtocolWallet"("walletId", "send", "protocol");
 
 -- CreateIndex

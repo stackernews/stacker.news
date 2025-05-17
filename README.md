@@ -87,6 +87,9 @@ COMMANDS
     psql                   open psql on db
     prisma                 run prisma commands
 
+  domains:
+    domains                custom domains dev management
+
   dev:
     pr                     fetch and checkout a pr
     lint                   run linters

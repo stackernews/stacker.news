@@ -153,6 +153,25 @@ After `nlp-setup` is done, restart your containers to enable semantic search:
 > ./sndev restart
 ```
 
+#### Local DNS via dnsmasq
+
+To enable dnsmasq:
+
+- domains should be enabled in `COMPOSE_PROFILES`:
+
+    ```.env
+    COMPOSE_PROFILES=...,domains,...
+    ```
+
+If you're working with custom domains:
+
+- make sure that the following ENV variable is present:
+
+    ```.env.development
+    DOMAINS_DNS_SERVER=172.20.0.2:53 # points to dnsmasq container
+    ```
+
+To add/remove DNS records you can now use `./sndev domains dns`. More on this [here](#add-or-remove-dns-records-in-local).
 
 <br>
 
@@ -451,6 +470,25 @@ GITHUB_SECRET=<Client secret>
 To enable Web Push locally, you will need to set the `VAPID_*` env vars. `VAPID_MAILTO` needs to be an email address using the `mailto:` scheme. For `NEXT_PUBLIC_VAPID_PUBKEY` and `VAPID_PRIVKEY`, you can run `npx web-push generate-vapid-keys`.
 
 <br>
+
+## Custom domains
+
+### Add or remove DNS records in local
+
+A worker dedicated to verifying custom domains, checks, among other things, if a domain has the correct DNS records and values. This would normally require a real domain and access to its DNS configuration. Therefore we use dnsmasq to have local DNS, make sure you have [enabled it](#local-dns-via-dnsmasq).
+
+To add a DNS record the syntax is the following:
+
+`./sndev domains dns add|remove cname|txt <name/domain> <value>`
+
+For TXT records, you can also use `""` quoted strings on `value`.
+
+To list all DNS records present in the dnsmasq config: `./sndev domains dns list`
+
+#### Access a local custom domain added via dnsmasq
+sndev will use the dnsmasq DNS server by default, but chances are that you might want to access the domain via your browser.
+
+For every edit on dnsmasq, it will give you the option to either edit the `/etc/hosts` file or use the dnsmasq DNS server which can be reached on `127.0.0.1:5353`. You can avoid getting asked to edit the `/etc/hosts` file by adding the `--no-hosts` parameter.
 
 # Internals
 

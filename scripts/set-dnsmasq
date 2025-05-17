@@ -1,28 +1,42 @@
 #!/bin/bash
-# TODO: Restart dnsmasq after adding/removing records
+# Script to handle local DNS testing via dnsmasq
+# supports add/remove/list of CNAME and TXT records
+# on dnsmasq config changes it will restart the dnsmasq container
+# it also asks to add the record to the /etc/hosts file if --no-hosts is not used
 
+# prep
 DNSMASQ_CONF_PATH="./docker/dnsmasq/dnsmasq.conf"
-INTENT=$1   # add, remove, list
-TYPE=$2     # cname, txt
-NAME=$3     # www.pizza.com
-VALUE=$4    # stacker.news or "7vfyvQO...vMALqvqkTQ="
-NO_HOSTS=false
+INTENT=$1       # add, remove, list
+TYPE=$2         # cname, txt
+NAME=$3         # www.pizza.com
+VALUE=$4        # stacker.news or "7vfyvQO...vMALqvqkTQ="
+NO_HOSTS=false  # handled via --no-hosts flag
 
 # check if running on Windows
+# this script doesn't support Windows /etc/hosts editing
 IS_WINDOWS=false
 if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then
   IS_WINDOWS=true
 fi
 
-# check for --no-hosts flag in args
-for arg in "$@"; do
-  if [ "$arg" == "--no-hosts" ]; then
-    NO_HOSTS=true
-    # remove the --no-hosts flag from the arguments
-    set -- "${@/$arg/}"
-  fi
+# handle flags
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --no-hosts)
+      NO_HOSTS=true
+      shift
+    ;;
+    -h|--help)
+      usage
+      exit 0
+    ;;
+    *)
+      break
+    ;;
+  esac
 done
 
+# general usage
 usage() {
   cat <<EOF
 Set mock DNS records for custom domains in dnsmasq conf.
@@ -45,24 +59,26 @@ EXAMPLES
   $ sndev domains dns remove txt _snverify.www.pizza.sndev "7vfyvQO...vMALqvqkTQ"
   $ sndev domains dns list cname|txt
 EOF
+exit 1
 }
 
+# stop if dnsmasq config file is not found
 if [ ! -f "$DNSMASQ_CONF_PATH" ]; then
   echo "error: dnsmasq config file not found at $DNSMASQ_CONF_PATH"
   exit 1
 fi
 
-# check for required args for add and remove
+# if we're adding or removing a record, we need to check for required args
 if [ "$INTENT" == "add" ] || [ "$INTENT" == "remove" ]; then
     if [ $# -lt 4 ]; then
         usage
     fi
-# check for required args for domain list
+# if we're listing records, we need to have at least the TYPE arg
 elif [ $# -lt 2 ]; then
     usage
 fi
 
-# Build the record line
+# creates a line compatible with dnsmasq config file
 if [ "$TYPE" = "cname" ]; then
   LINE="cname=${NAME},${VALUE}"
 elif [ "$TYPE" = "txt" ]; then
@@ -72,27 +88,37 @@ else
   usage
 fi
 
-# Adjust TXT TYPE for dnsmasq
+# adjust TXT TYPE for dnsmasq
 if [ "$TYPE" = "txt" ]; then
   TYPE="txt-record"
 fi
 
+# add a record to the dnsmasq config
 add_record() {
+  # check if the record already exists
   if grep -Fxq "$LINE" "$DNSMASQ_CONF_PATH"; then
     echo "Record already exists: $LINE"
     exit 1
   fi
+
+  # add the record to the dnsmasq config
   echo "Adding record: $LINE"
   echo -e "\n$LINE" >> "$DNSMASQ_CONF_PATH"
+
+  # if we're adding a CNAME record and --no-hosts is not used, we need to ask to add the record to the /etc/hosts file
   if [ "$TYPE" = "cname" ] && [ "$NO_HOSTS" = false ]; then
+    # dnsmasq pamphlet 
     echo -e "
     While sndev will use dnsmasq DNS server, your system won't use it by default.
     You can either manually point DNS to 127.0.0.1:5353 to access it system-wide,
     or add this record to /etc/hosts to access it via browser.
     "
+    # ask to add the record to the /etc/hosts file
     read -p "[sudo] Do you want to add '127.0.0.1 $NAME' to /etc/hosts? [y/N] " response
     if [[ "$response" =~ ^[Yy]$ ]]; then
+      # add the record to the /etc/hosts file
       add_record_to_hosts "$NAME"
+      # if the record wasn't added, we need to inform the user
       if [ $? -ne 0 ]; then
         echo "/etc/hosts hasn't been touched."
       fi
@@ -102,19 +128,28 @@ add_record() {
   exit 0
 }
 
+# remove a record from the dnsmasq config
 remove_record() {
+  # check if the record exists
   if ! grep -Fxq "$LINE" "$DNSMASQ_CONF_PATH"; then
     echo "Can't find record: $LINE"
     echo "The record may have been removed or the name/value is incorrect or incomplete."
     echo "Use 'sndev domains dns list' to see all records."
     exit 1
   fi
+
+  # remove the record from the dnsmasq config
   echo "Removing record: $LINE"
   sed -i "/^$LINE$/d" "$DNSMASQ_CONF_PATH"
+
+  # if we're removing a CNAME record and --no-hosts is not used, we need to ask to remove the record from the /etc/hosts file
   if [ "$TYPE" = "cname" ] && [ "$NO_HOSTS" = false ]; then
+    # ask to remove the record from the /etc/hosts file
     read -p "[sudo] Do you want to remove this record from /etc/hosts? [y/N] " response
     if [[ "$response" =~ ^[Yy]$ ]]; then
+      # remove the record from the /etc/hosts file
       remove_record_from_hosts "$NAME"
+      # if the record wasn't removed, we need to inform the user
       if [ $? -ne 0 ]; then
         echo "/etc/hosts hasn't been touched."
       fi
@@ -124,27 +159,32 @@ remove_record() {
   exit 0
 }
 
+# list all records of a given type
 list_records() {
   grep "^$TYPE=" "$DNSMASQ_CONF_PATH" || echo "No $TYPE records found."
 }
 
+# add a record to the /etc/hosts file
 add_record_to_hosts() {
   local domain="$1"
   
+  # this script doesn't support Windows /etc/hosts editing
   if [ "$IS_WINDOWS" = true ]; then
     echo "Adding records to /etc/hosts via this script is not supported on Windows"
     return 1
   fi
 
+  # check if the record already exists in the /etc/hosts file
   check_record_hosts_exists $domain
   if [ $? -eq 0 ]; then
     echo "Record already exists in /etc/hosts: $domain"
     return 1
   fi
 
+  # add the record to the /etc/hosts file
   echo "Adding record to /etc/hosts: $domain"
+  echo "This operation requires sudo privileges"
   if ! sudo -n true 2>/dev/null; then
-    echo "This operation requires sudo privileges"
     sudo echo "127.0.0.1 $domain" >> "/etc/hosts" || return 1
   else
     sudo echo "127.0.0.1 $domain" >> "/etc/hosts"
@@ -157,20 +197,23 @@ add_record_to_hosts() {
 remove_record_from_hosts() {
   local domain="$1"
   
+  # this script doesn't support Windows /etc/hosts editing
   if [ "$IS_WINDOWS" = true ]; then
     echo "Removing records from /etc/hosts via this script is not supported on Windows"
     return 1
   fi
 
+  # check if the record exists in the /etc/hosts file
   check_record_hosts_exists $domain
   if [ $? -eq 1 ]; then
     echo "Record not found in /etc/hosts: $domain"
     return 1
   fi
 
+  # remove the record from the /etc/hosts file
   echo "Removing record from /etc/hosts: $domain"
+  echo "This operation requires sudo privileges"
   if ! sudo -n true 2>/dev/null; then
-    echo "This operation requires sudo privileges"
     sudo sed -i "/^127.0.0.1 $domain$/d" "/etc/hosts" || return 1
   else
     sudo sed -i "/^127.0.0.1 $domain$/d" "/etc/hosts"
@@ -179,15 +222,18 @@ remove_record_from_hosts() {
   return 0
 }
 
+# check if a record exists in the /etc/hosts file
 check_record_hosts_exists() {
   local domain="$1"
   
+  # grep for the record
   if grep -Fxq "127.0.0.1 $domain" "/etc/hosts"; then
     return 0
   fi
   return 1
 }
 
+# switch intents
 case "$INTENT" in
   add)    add_record ;;
   remove) remove_record ;;

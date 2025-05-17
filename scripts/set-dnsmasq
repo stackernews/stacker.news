@@ -73,7 +73,7 @@ add_record() {
   echo "Adding record: $LINE"
   echo -e "\n$LINE" >> "$DNSMASQ_CONF_PATH"
   if [ "$TYPE" = "cname" ]; then
-    read -p "Do you want to add this record to /etc/hosts to access it via browser? [y/N] " response
+    read -p "[sudo] Do you want to add this record to /etc/hosts to access it via browser? [y/N] " response
     if [[ "$response" =~ ^[Yy]$ ]]; then
       add_record_to_hosts "$NAME"
       if [ $? -ne 0 ]; then
@@ -95,7 +95,7 @@ remove_record() {
   echo "Removing record: $LINE"
   sed -i "/^$LINE$/d" "$DNSMASQ_CONF_PATH"
   if [ "$TYPE" = "cname" ]; then
-    read -p "Do you want to remove this record from /etc/hosts? [y/N] " response
+    read -p "[sudo] Do you want to remove this record from /etc/hosts? [y/N] " response
     if [[ "$response" =~ ^[Yy]$ ]]; then
       remove_record_from_hosts "$NAME"
       if [ $? -ne 0 ]; then

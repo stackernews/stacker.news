@@ -7,10 +7,18 @@ TYPE=$2     # cname, txt
 NAME=$3     # www.pizza.com
 VALUE=$4    # stacker.news or "7vfyvQO...vMALqvqkTQ="
 
+# Check if running on Windows
+IS_WINDOWS=false
+if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then
+  IS_WINDOWS=true
+fi
+
 usage() {
   cat <<EOF
 Set mock DNS records for custom domains in dnsmasq conf.
 Use .sndev domains as they automatically resolve to 127.0.0.1.
+
+cname add/remove will also ask if you want to edit /etc/hosts to access it via browser.
 
 USAGE
   $ sndev domains dns [COMMAND]
@@ -26,6 +34,11 @@ EXAMPLES
   $ sndev domains dns list cname|txt
 EOF
 }
+
+if [ ! -f "$DNSMASQ_CONF_PATH" ]; then
+  echo "error: dnsmasq config file not found at $DNSMASQ_CONF_PATH"
+  exit 1
+fi
 
 # check for required args for add and remove
 if [ "$INTENT" == "add" ] || [ "$INTENT" == "remove" ]; then
@@ -47,7 +60,7 @@ else
   usage
 fi
 
-# Adjust TYPE for grep
+# Adjust TXT TYPE for dnsmasq
 if [ "$TYPE" = "txt" ]; then
   TYPE="txt-record"
 fi
@@ -59,6 +72,15 @@ add_record() {
   fi
   echo "Adding record: $LINE"
   echo -e "\n$LINE" >> "$DNSMASQ_CONF_PATH"
+  if [ "$TYPE" = "cname" ]; then
+    read -p "Do you want to add this record to /etc/hosts to access it via browser? [y/N] " response
+    if [[ "$response" =~ ^[Yy]$ ]]; then
+      add_record_to_hosts "$NAME"
+      if [ $? -ne 0 ]; then
+        echo "/etc/hosts hasn't been touched."
+      fi
+    fi
+  fi
   echo "Done."
   exit 0
 }
@@ -66,16 +88,87 @@ add_record() {
 remove_record() {
   if ! grep -Fxq "$LINE" "$DNSMASQ_CONF_PATH"; then
     echo "Can't find record: $LINE"
+    echo "The record may have been removed or the name/value is incorrect or incomplete."
+    echo "Use 'sndev domains dns list' to see all records."
     exit 1
   fi
   echo "Removing record: $LINE"
   sed -i "/^$LINE$/d" "$DNSMASQ_CONF_PATH"
+  if [ "$TYPE" = "cname" ]; then
+    read -p "Do you want to remove this record from /etc/hosts? [y/N] " response
+    if [[ "$response" =~ ^[Yy]$ ]]; then
+      remove_record_from_hosts "$NAME"
+      if [ $? -ne 0 ]; then
+        echo "/etc/hosts hasn't been touched."
+      fi
+    fi
+  fi
   echo "Done."
   exit 0
 }
 
 list_records() {
-  grep "^$TYPE=" "$DNSMASQ_CONF_PATH"
+  grep "^$TYPE=" "$DNSMASQ_CONF_PATH" || echo "No $TYPE records found."
+}
+
+add_record_to_hosts() {
+  local domain="$1"
+  
+  if [ "$IS_WINDOWS" = true ]; then
+    echo "Adding records to /etc/hosts via this script is not supported on Windows"
+    return 1
+  fi
+
+  check_record_hosts_exists $domain
+  if [ $? -eq 0 ]; then
+    echo "Record already exists in /etc/hosts: $domain"
+    return 1
+  fi
+
+  echo "Adding record to /etc/hosts: $domain"
+  if ! sudo -n true 2>/dev/null; then
+    echo "This operation requires sudo privileges"
+    sudo echo "127.0.0.1 $domain" >> "/etc/hosts" || return 1
+  else
+    sudo echo "127.0.0.1 $domain" >> "/etc/hosts"
+  fi
+  echo "$domain added to /etc/hosts."
+  echo "You can now access http://$domain:3000 via browser."
+  return 0
+}
+
+remove_record_from_hosts() {
+  local domain="$1"
+  
+  if [ "$IS_WINDOWS" = true ]; then
+    echo "Removing records from /etc/hosts via this script is not supported on Windows"
+    return 1
+  fi
+
+  check_record_hosts_exists $domain
+  if [ $? -eq 1 ]; then
+    echo "Record not found in /etc/hosts: $domain"
+    return 1
+  fi
+
+  echo "Removing record from /etc/hosts: $domain"
+  if ! sudo -n true 2>/dev/null; then
+    echo "This operation requires sudo privileges"
+    sudo sed -i "/^127.0.0.1 $domain$/d" "/etc/hosts" || return 1
+  else
+    sudo sed -i "/^127.0.0.1 $domain$/d" "/etc/hosts"
+  fi
+  echo "$domain removed from /etc/hosts."
+  return 0
+}
+
+check_record_hosts_exists() {
+  local domain="$1"
+  
+  if grep -Fxq "127.0.0.1 $domain" "/etc/hosts"; then
+    return 0
+  fi
+  return 1
 }
 
 case "$INTENT" in

@@ -6,27 +6,39 @@ INTENT=$1   # add, remove, list
 TYPE=$2     # cname, txt
 NAME=$3     # www.pizza.com
 VALUE=$4    # stacker.news or "7vfyvQO...vMALqvqkTQ="
+NO_HOSTS=false
 
-# Check if running on Windows
+# check if running on Windows
 IS_WINDOWS=false
 if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then
   IS_WINDOWS=true
 fi
+
+# check for --no-hosts flag in args
+for arg in "$@"; do
+  if [ "$arg" == "--no-hosts" ]; then
+    NO_HOSTS=true
+    # remove the --no-hosts flag from the arguments
+    set -- "${@/$arg/}"
+  fi
+done
 
 usage() {
   cat <<EOF
 Set mock DNS records for custom domains in dnsmasq conf.
 Use .sndev domains as they automatically resolve to 127.0.0.1.
 
-cname add/remove will also ask if you want to edit /etc/hosts to access it via browser.
-
 USAGE
   $ sndev domains dns [COMMAND]
 
 COMMANDS
-  add    <cname|txt> <name> <value>
-  remove <cname|txt> <name> <value>
+  add    <cname|txt> <name> <value> [--no-hosts]
+  remove <cname|txt> <name> <value> [--no-hosts]
   list   <cname|txt>
+
+FLAGS
+  --no-hosts  Skip asking to add/remove record to /etc/hosts
+              Useful if you're using dnsmasq [127.0.0.1:5353] as your DNS server.
 
 EXAMPLES
   $ sndev domains dns add cname www.pizza.sndev sn.sndev
@@ -72,13 +84,13 @@ add_record() {
   fi
   echo "Adding record: $LINE"
   echo -e "\n$LINE" >> "$DNSMASQ_CONF_PATH"
-  if [ "$TYPE" = "cname" ]; then
+  if [ "$TYPE" = "cname" ] && [ "$NO_HOSTS" = false ]; then
     echo -e "
     While sndev will use dnsmasq DNS server, your system won't use it by default.
     You can either manually point DNS to 127.0.0.1:5353 to access it system-wide,
     or add this record to /etc/hosts to access it via browser.
     "
-    read -p "[sudo] Do you want to add this record to /etc/hosts? [y/N] " response
+    read -p "[sudo] Do you want to add '127.0.0.1 $NAME' to /etc/hosts? [y/N] " response
     if [[ "$response" =~ ^[Yy]$ ]]; then
       add_record_to_hosts "$NAME"
       if [ $? -ne 0 ]; then
@@ -99,7 +111,7 @@ remove_record() {
   fi
   echo "Removing record: $LINE"
   sed -i "/^$LINE$/d" "$DNSMASQ_CONF_PATH"
-  if [ "$TYPE" = "cname" ]; then
+  if [ "$TYPE" = "cname" ] && [ "$NO_HOSTS" = false ]; then
     read -p "[sudo] Do you want to remove this record from /etc/hosts? [y/N] " response
     if [[ "$response" =~ ^[Yy]$ ]]; then
       remove_record_from_hosts "$NAME"

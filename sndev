@@ -328,6 +328,12 @@ sndev__domains() {
   dns)
     shift
     ./scripts/set-dnsmasq "$@"
+    result=$?
+    # only restart dnsmasq if add/remove succeeded
+    if [ $result -eq 0 ] && [ "$1" = "add" ] || [ "$1" = "remove" ]; then
+      docker__compose restart dnsmasq
+    fi
+    exit $result
     ;;
   # PLACEHOLDER for domain verification management
   *)

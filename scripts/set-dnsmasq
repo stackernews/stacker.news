@@ -25,13 +25,7 @@ EXAMPLES
   $ sndev domains dns remove txt _snverify.www.pizza.sndev "7vfyvQO...vMALqvqkTQ"
   $ sndev domains dns list cname|txt
 EOF
-  exit 0
 }
-
-# check for required args for intent list
-if [ $# -lt 2 ]; then
-    usage
-fi
 
 # check for required args for add and remove
 if [ "$INTENT" == "add" ] || [ "$INTENT" == "remove" ]; then
@@ -61,21 +55,23 @@ fi
 add_record() {
   if grep -Fxq "$LINE" "$DNSMASQ_CONF_PATH"; then
     echo "Record already exists: $LINE"
-    exit 0
+    exit 1
   fi
   echo "Adding record: $LINE"
   echo -e "\n$LINE" >> "$DNSMASQ_CONF_PATH"
   echo "Done."
+  exit 0
 }
 
 remove_record() {
   if ! grep -Fxq "$LINE" "$DNSMASQ_CONF_PATH"; then
     echo "Can't find record: $LINE"
-    exit 0
+    exit 1
   fi
   echo "Removing record: $LINE"
   sed -i "/^$LINE$/d" "$DNSMASQ_CONF_PATH"
   echo "Done."
+  exit 0
 }
 
 list_records() {

@@ -73,7 +73,12 @@ add_record() {
   echo "Adding record: $LINE"
   echo -e "\n$LINE" >> "$DNSMASQ_CONF_PATH"
   if [ "$TYPE" = "cname" ]; then
-    read -p "[sudo] Do you want to add this record to /etc/hosts to access it via browser? [y/N] " response
+    echo -e "
+    While sndev will use dnsmasq DNS server, your system won't use it by default.
+    You can either manually point DNS to 127.0.0.1:5353 to access it system-wide,
+    or add this record to /etc/hosts to access it via browser.
+    "
+    read -p "[sudo] Do you want to add this record to /etc/hosts? [y/N] " response
     if [[ "$response" =~ ^[Yy]$ ]]; then
       add_record_to_hosts "$NAME"
       if [ $? -ne 0 ]; then

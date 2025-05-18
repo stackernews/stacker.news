@@ -2,6 +2,11 @@ import gql from 'graphql-tag'
 import { isServerField } from './common'
 import { WALLET_FIELDS } from '@/fragments/wallet'
 
+// TODO(wallet-v2): will we still need this?
+//
+// The plan is to generate the typedefs during the build process and write them into a file
+// with a header that mentions that this file was generated and thus shuold not be edited manually.
+
 export function fieldToGqlArg (field) {
   let arg = `${field.name}: String`
   if (!field.optional) {

@@ -35,9 +35,11 @@ export default {
       }
 
       return await models.$transaction(async tx => {
+        // TODO(wallet-v2): use UserWallet instead of Wallet table
         const wallets = await tx.wallet.findMany({ where: { userId: me.id } })
         for (const wallet of wallets) {
           const def = getWalletByType(wallet.type)
+          // TODO(wallet-v2): use UserWallet instead of Wallet table
           await tx.wallet.update({
             where: { id: wallet.id },
             data: {
@@ -65,6 +67,7 @@ export default {
         data: { vaultKeyHash: '' }
       }))
 
+      // TODO(wallet-v2): use UserWallet instead of Wallet table
       const wallets = await models.wallet.findMany({ where: { userId: me.id } })
       txs.push(...wallets.filter(hasVault).map(wallet => deleteVault(models, wallet)))
 

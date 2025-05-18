@@ -3,6 +3,9 @@ import CancelButton from '@/components/cancel-button'
 import { SubmitButton } from '@/components/form'
 import { isConfigured } from '@/wallets/common'
 
+// TODO(wallet-v2): will we still need this?
+//
+// see WalletCard component for context
 export default function WalletButtonBar ({
   wallet, disable,
   className, children, onDelete, onCancel, hasCancel = true,

@@ -1,13 +1,21 @@
 import walletDefs from '@/wallets/client'
 
+// TODO(wallet-v2): a lot of this is either unnecessary or can probably be simpler now
+
+// TODO(wallet-v2): if we don't use wallet defs anymore, this probably won't be needed anymore
 export function getWalletByName (name) {
   return walletDefs.find(def => def.name === name)
 }
 
+// TODO(wallet-v2): if we don't use wallet defs anymore, this probably won't be needed anymore
 export function getWalletByType (type) {
   return walletDefs.find(def => def.walletType === type)
 }
 
+// TODO(wallet-v2): I think we will still need this, but maybe we flag wallets like WebLN as "device only"
+// which means they are not scoped to users but to devices and thus also don't participate in device sync.
+// or maybe they do, but then they need checks if the device supports this wallet.
+// In the case of WebLN, this means window.webln is available.
 export function getStorageKey (name, userId) {
   let storageKey = `wallet:${name}`
 
@@ -58,6 +66,7 @@ export function isClientField (f) {
   return f.clientOnly || !f.serverOnly
 }
 
+// TODO(wallet-v2): this can probably be simpliifed now
 function checkFields ({ fields, config }) {
   // a wallet is configured if all of its required fields are set
   let val = fields.every(f => {
@@ -74,10 +83,12 @@ function checkFields ({ fields, config }) {
   return val
 }
 
+// TODO(wallet-v2): this can probably be simpliifed now
 export function isConfigured ({ def, config }) {
   return isSendConfigured({ def, config }) || isReceiveConfigured({ def, config })
 }
 
+// TODO(wallet-v2): this can probably be simpliifed now
 function isSendConfigured ({ def, config }) {
   const fields = def.fields.filter(isClientField)
   return (fields.length > 0 || def.isAvailable?.()) && checkFields({ fields, config })

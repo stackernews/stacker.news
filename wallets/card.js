@@ -11,6 +11,9 @@ import { useWalletImage } from '@/wallets/image'
 import { useWalletStatus, statusToClass, Status } from '@/wallets/status'
 import { useWalletSupport } from '@/wallets/support'
 
+// TODO(wallet-v2): will we still need this?
+//
+// I want to show a table, so I think we won't need cards anymore.
 export default function WalletCard ({ wallet, draggable, onDragStart, onDragEnter, onDragEnd, onTouchStart, sourceIndex, targetIndex, index }) {
   const image = useWalletImage(wallet)
   const status = useWalletStatus(wallet)

@@ -3,13 +3,9 @@ import { assertContentTypeJson } from '@/lib/url'
 
 export * from '@/wallets/lnbits'
 
-export async function testSendPayment ({ url, adminKey, invoiceKey }, { signal, logger }) {
-  logger.info('trying to fetch wallet')
-
+export async function testSendPayment ({ url, adminKey, invoiceKey }, { signal }) {
   url = url.replace(/\/+$/, '')
   await getWallet({ url, adminKey, invoiceKey }, { signal })
-
-  logger.ok('wallet found')
 }
 
 export async function sendPayment (bolt11, { url, adminKey }, { signal }) {

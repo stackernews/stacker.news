@@ -71,7 +71,9 @@ const Header = () => (
 
 const LnAddrForm = ({ onAttach }) => {
   const { me } = useMe()
+  // TODO(wallet-v2): this will probably need an update
   const wallet = useWallet('lightning-address')
+  // TODO(wallet-v2): this will probably need an update
   const { save } = useWalletConfigurator(wallet)
 
   const schema = object({ lnAddr: externalLightningAddressValidator.required('required') })

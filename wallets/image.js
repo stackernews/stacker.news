@@ -3,6 +3,7 @@ import useDarkMode from '@/components/dark-mode'
 export function useWalletImage (wallet) {
   const [darkMode] = useDarkMode()
 
+  // TODO(wallet-v2): this will probably need an update
   const { title, image } = wallet.def.card
 
   if (!image) return null

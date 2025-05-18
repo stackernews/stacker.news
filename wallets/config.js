@@ -12,14 +12,22 @@ import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 
 export function useWalletConfigurator (wallet) {
+  // TODO(wallet-v2): this will probably need an update
   const { me } = useMe()
   const { reloadLocalWallets } = useWallets()
+  // TODO(wallet-v2): this will probably need an update
   const { encrypt, isActive } = useVault()
+
+  // TODO(wallet-v2): this will probably need an update - maybe we don't need a wallet logger on the client anymore?
   const logger = useWalletLogger(wallet)
+
+  // TODO(wallet-v2): import mutation because I intend to generate them during build process
   const [upsertWallet] = useMutation(generateMutation(wallet?.def))
+
   const [removeWallet] = useMutation(REMOVE_WALLET)
   const [disableFreebies] = useMutation(gql`mutation { disableFreebies }`)
 
+  // TODO(wallet-v2): check if this can be simplified now
   const _saveToServer = useCallback(async (serverConfig, clientConfig, validateLightning) => {
     const variables = await upsertWalletVariables(
       { def: wallet.def, config: { ...serverConfig, ...clientConfig } },
@@ -28,11 +36,13 @@ export function useWalletConfigurator (wallet) {
     await upsertWallet({ variables })
   }, [encrypt, isActive, wallet.def])
 
+  // TODO(wallet-v2): check if this can be simplified now
   const _saveToLocal = useCallback(async (newConfig) => {
     saveWalletLocally(wallet.def.name, newConfig, me?.id)
     reloadLocalWallets()
   }, [me?.id, wallet.def.name, reloadLocalWallets])
 
+  // TODO(wallet-v2): check if this can be simplified now
   const _validate = useCallback(async (config, validateLightning = true) => {
     const { serverWithShared, clientWithShared } = siftConfig(wallet.def.fields, config)
 
@@ -75,15 +85,18 @@ export function useWalletConfigurator (wallet) {
     return { clientConfig, serverConfig }
   }, [wallet, logger])
 
+  // TODO(wallet-v2): check if this can be simplified now
   const _detachFromServer = useCallback(async () => {
     await removeWallet({ variables: { id: wallet.config.id } })
   }, [wallet.config?.id])
 
+  // TODO(wallet-v2): check if this can be simplified now
   const _detachFromLocal = useCallback(async () => {
     window.localStorage.removeItem(getStorageKey(wallet.def.name, me?.id))
     reloadLocalWallets()
   }, [me?.id, wallet.def.name, reloadLocalWallets])
 
+  // TODO(wallet-v2): check if this can be simplified now
   const save = useCallback(async (newConfig, validateLightning = true) => {
     const { clientWithShared: oldClientConfig } = siftConfig(wallet.def.fields, wallet.config)
     const { clientConfig: newClientConfig, serverConfig: newServerConfig } = await _validate(newConfig, validateLightning)
@@ -134,6 +147,7 @@ export function useWalletConfigurator (wallet) {
   }, [isActive, wallet.def, wallet.config, _saveToServer, _saveToLocal, _validate,
     _detachFromLocal, _detachFromServer, disableFreebies])
 
+  // TODO(wallet-v2): check if this can be simplified now
   const detach = useCallback(async () => {
     if (isActive) {
       // if vault is active, detach all wallets from server

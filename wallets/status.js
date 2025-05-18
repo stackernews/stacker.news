@@ -9,6 +9,7 @@ export const Status = {
   Warning: 'Warning'
 }
 
+// TODO(wallet-v2): this will probably need an update
 export function useWalletStatus (wallet) {
   const { logs } = useWalletLogs(wallet)
 

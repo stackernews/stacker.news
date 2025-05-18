@@ -1,6 +1,6 @@
-import { useConfiguredWallets } from '@/wallets'
-
 export function useWalletIndicator () {
-  const { wallets, loading } = useConfiguredWallets()
-  return !loading && wallets.length === 0
+  // TODO(wallet-v2): implement this
+  // const { wallets, loading } = useConfiguredWallets()
+  // return !loading && wallets.length === 0
+  return true
 }

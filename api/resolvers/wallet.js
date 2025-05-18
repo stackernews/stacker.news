@@ -29,6 +29,7 @@ import { canReceive, getWalletByType } from '@/wallets/common'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
 import { timeoutSignal, withTimeout } from '@/lib/time'
+import { deleteVault, hasVault, vaultNewSchematoTypedef, vaultPrismaFragments } from '@/wallets/vault'
 
 function injectResolvers (resolvers) {
   console.group('injected GraphQL resolvers:')
@@ -43,11 +44,13 @@ function injectResolvers (resolvers) {
         // this mutation was sent from an unsynced client
         // to pass validation, we need to add the existing vault entries for validation
         // in case the client is removing the receiving config
-        existingVaultEntries = await models.vaultEntry.findMany({
+        const wallet = await models.wallet.findUnique({
           where: {
-            walletId: Number(data.id)
-          }
+            id: Number(data.id)
+          },
+          include: vaultPrismaFragments.include()
         })
+        existingVaultEntries = vaultNewSchematoTypedef(wallet).vaultEntries
       }
 
       const validData = await validateWallet(walletDef,
@@ -159,10 +162,8 @@ const resolvers = {
         throw new GqlAuthenticationError()
       }
 
-      return await models.wallet.findMany({
-        include: {
-          vaultEntries: true
-        },
+      const wallets = await models.wallet.findMany({
+        include: vaultPrismaFragments.include(),
         where: {
           userId: me.id
         },
@@ -170,6 +171,8 @@ const resolvers = {
           priority: 'asc'
         }
       })
+
+      return wallets.map(vaultNewSchematoTypedef)
     },
     withdrawl: getWithdrawl,
     direct: async (parent, { id }, { me, models }) => {
@@ -569,7 +572,11 @@ const resolvers = {
       }
 
       const logger = walletLogger({ wallet, models })
-      await models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
+
+      await models.$transaction([
+        hasVault(wallet) ? deleteVault(models, wallet) : null,
+        models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
+      ].filter(Boolean))
 
       if (canReceive({ def: getWalletByType(wallet.type), config: wallet.wallet })) {
         logger.info('details for receiving deleted')
@@ -838,15 +845,12 @@ async function upsertWallet (
 
   const txs = []
 
-  if (id) {
-    const oldVaultEntries = await models.vaultEntry.findMany({ where: { userId: me.id, walletId: Number(id) } })
+  const walletWithVault = { ...wallet, vaultEntries }
 
-    // createMany is the set difference of the new - old
-    // deleteMany is the set difference of the old - new
-    // updateMany is the intersection of the old and new
-    const difference = (a = [], b = [], key = 'key') => a.filter(x => !b.find(y => y[key] === x[key]))
-    const intersectionMerge = (a = [], b = [], key = 'key') => a.filter(x => b.find(y => y[key] === x[key]))
-      .map(x => ({ [key]: x[key], ...b.find(y => y[key] === x[key]) }))
+  if (id) {
+    const dbWallet = await models.wallet.findUnique({
+      where: { id: Number(id), userId: me.id }
+    })
 
     txs.push(
       models.wallet.update({
@@ -854,62 +858,28 @@ async function upsertWallet (
         data: {
           enabled,
           priority,
-          // client only wallets have no receive config and thus don't have their own table
-          ...(Object.keys(recvConfig).length > 0
-            ? {
-                [wallet.field]: {
-                  upsert: {
-                    create: recvConfig,
-                    update: recvConfig
-                  }
-                }
-              }
-            : {}),
-          ...(vaultEntries
-            ? {
-                vaultEntries: {
-                  deleteMany: difference(oldVaultEntries, vaultEntries, 'key').map(({ key }) => ({
-                    userId: me.id, key
-                  })),
-                  create: difference(vaultEntries, oldVaultEntries, 'key').map(({ key, iv, value }) => ({
-                    key, iv, value, userId: me.id
-                  })),
-                  update: intersectionMerge(oldVaultEntries, vaultEntries, 'key').map(({ key, iv, value }) => ({
-                    where: { userId_key: { userId: me.id, key } },
-                    data: { value, iv }
-                  }))
-                }
-              }
-            : {})
-
+          [wallet.field]: {
+            upsert: {
+              create: { ...recvConfig, ...vaultPrismaFragments.create(walletWithVault) },
+              update: { ...recvConfig, ...vaultPrismaFragments.upsert(walletWithVault) }
+            },
+            // XXX the check is required because the update would fail if there is no row to delete ...
+            update: hasVault(dbWallet) ? vaultPrismaFragments.deleteMissing(walletWithVault) : undefined
+          }
         },
-        include: {
-          vaultEntries: true
-        }
+        include: vaultPrismaFragments.include(walletWithVault)
       })
     )
   } else {
     txs.push(
       models.wallet.create({
-        include: {
-          vaultEntries: true
-        },
+        include: vaultPrismaFragments.include(walletWithVault),
         data: {
           enabled,
           priority,
           userId: me.id,
           type: wallet.type,
-          // client only wallets have no receive config and thus don't have their own table
-          ...(Object.keys(recvConfig).length > 0 ? { [wallet.field]: { create: recvConfig } } : {}),
-          ...(vaultEntries
-            ? {
-                vaultEntries: {
-                  createMany: {
-                    data: vaultEntries?.map(({ key, iv, value }) => ({ key, iv, value, userId: me.id }))
-                  }
-                }
-              }
-            : {})
+          [wallet.field]: { create: { ...recvConfig, ...vaultPrismaFragments.create(walletWithVault) } }
         }
       })
     )
@@ -946,7 +916,7 @@ async function upsertWallet (
   }
 
   const [upsertedWallet] = await models.$transaction(txs)
-  return upsertedWallet
+  return vaultNewSchematoTypedef(upsertedWallet)
 }
 
 export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, wallet, logger }) {

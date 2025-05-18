@@ -1,66 +1,6 @@
 import { gql } from 'graphql-tag'
-import { fieldToGqlArg, fieldToGqlArgOptional, generateResolverName, generateTypeDefName } from '@/wallets/graphql'
-import { isServerField } from '@/wallets/common'
-import walletDefs from '@/wallets/server'
 
-function injectTypeDefs (typeDefs) {
-  const injected = [rawTypeDefs(), mutationTypeDefs()]
-  return `${typeDefs}\n\n${injected.join('\n\n')}\n`
-}
-
-function mutationTypeDefs () {
-  console.group('injected GraphQL mutations:')
-
-  const typeDefs = walletDefs.map((w) => {
-    let args = 'id: ID, '
-    const serverFields = w.fields
-      .filter(isServerField)
-      .map(fieldToGqlArgOptional)
-    if (serverFields.length > 0) args += serverFields.join(', ') + ','
-    args += 'enabled: Boolean, priority: Int, vaultEntries: [VaultEntryInput!], settings: AutowithdrawSettings, validateLightning: Boolean'
-    const resolverName = generateResolverName(w.walletField)
-    const typeDef = `${resolverName}(${args}): Wallet`
-    console.log(typeDef)
-    return typeDef
-  })
-
-  console.groupEnd()
-
-  return `extend type Mutation {\n${typeDefs.join('\n')}\n}`
-}
-
-function rawTypeDefs () {
-  console.group('injected GraphQL type defs:')
-
-  const typeDefs = walletDefs.map((w) => {
-    let args = w.fields
-      .filter(isServerField)
-      .map(fieldToGqlArg)
-      .map(s => '  ' + s)
-      .join('\n')
-    if (!args) {
-      // add a placeholder arg so the type is not empty
-      args = '  _empty: Boolean'
-    }
-    const typeDefName = generateTypeDefName(w.walletType)
-    const typeDef = `type ${typeDefName} {\n${args}\n}`
-    console.log(typeDef)
-    return typeDef
-  })
-
-  let union = 'union WalletDetails = '
-  union += walletDefs.map((w) => {
-    const typeDefName = generateTypeDefName(w.walletType)
-    return typeDefName
-  }).join(' | ')
-  console.log(union)
-
-  console.groupEnd()
-
-  return typeDefs.join('\n\n') + union
-}
-
-const typeDefs = `
+const typeDefs = gql`
   extend type Query {
     invoice(id: ID!): Invoice!
     withdrawl(id: ID!): Withdrawl!
@@ -93,6 +33,7 @@ const typeDefs = `
     id: ID!
   }
 
+  # TODO(wallet-v2): update type
   type Wallet {
     id: ID!
     createdAt: Date!
@@ -198,5 +139,4 @@ const typeDefs = `
     context: JSONObject
   }
 `
-
-export default gql`${injectTypeDefs(typeDefs)}`
+export default typeDefs

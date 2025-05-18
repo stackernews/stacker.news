@@ -22,8 +22,11 @@ CREATE TABLE "WalletTemplate" (
 );
 
 INSERT INTO "WalletTemplate" (name, "sendProtocols", "recvProtocols") VALUES
-    ('ALBY',
-        ARRAY['NWC', 'WEBLN']::"WalletSendProtocol"[],
+    ('ALBY_BROWSER_EXTENSION',
+        ARRAY['WEBLN']::"WalletSendProtocol"[],
+        ARRAY[]::"WalletRecvProtocol"[]),
+    ('ALBY_HUB',
+        ARRAY['NWC']::"WalletSendProtocol"[],
         ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocol"[]),
     ('BLINK',
         ARRAY['BLINK']::"WalletSendProtocol"[],
@@ -859,7 +862,7 @@ BEGIN
             relay := substring(row."nwcUrlRecv" from 'relay=([^&]+)');
 
             IF relay LIKE '%getalby.com%' THEN
-                walletName := 'ALBY';
+                walletName := 'ALBY_HUB';
             ELSIF relay LIKE '%rizful.com%' THEN
                 walletName := 'RIZFUL';
             ELSIF relay LIKE '%primal.net%' THEN
@@ -903,7 +906,7 @@ BEGIN
             IF domain LIKE '%walletofsatoshi.com' THEN
                 walletName := 'WALLET_OF_SATOSHI';
             ELSIF domain LIKE '%getalby.com' THEN
-                walletName := 'ALBY';
+                walletName := 'ALBY_HUB';
             ELSIF domain LIKE '%coinos.io' THEN
                 walletName := 'COINOS';
             ELSIF domain LIKE '%speed.app' OR domain LIKE '%tryspeed.com' THEN
@@ -957,9 +960,9 @@ BEGIN
             userWalletId INT;
             protocolWalletId INT;
         BEGIN
-            userWalletId := get_or_create_user_wallet(row."userId", 'ALBY', row."priority", row."enabled");
+            userWalletId := get_or_create_user_wallet(row."userId", 'ALBY_BROWSER_EXTENSION', row."priority", row."enabled");
 
-            protocolWalletId := create_protocol_wallet(row."walletId", userWalletId, true, 'WEBLN', row."userId", 'ALBY', row."priority", row."enabled");
+            protocolWalletId := create_protocol_wallet(row."walletId", userWalletId, true, 'WEBLN', row."userId", 'ALBY_BROWSER_EXTENSION', row."priority", row."enabled");
             INSERT INTO "WalletSendWebLN" ("walletId")
             VALUES (protocolWalletId);
         END;

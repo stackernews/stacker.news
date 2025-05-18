@@ -1,15 +1,16 @@
 import useDarkMode from '@/components/dark-mode'
+import { useCallback } from 'react'
+import { walletNameToImage } from '@/wallets/json'
 
-export function useWalletImage (wallet) {
+export function useWalletNameToImage (wallet) {
   const [darkMode] = useDarkMode()
 
-  // TODO(wallet-v2): this will probably need an update
-  const { title, image } = wallet.def.card
+  return useCallback((name) => {
+    const image = walletNameToImage(name)
+    if (!image) return null
+    if (darkMode && image.darkMode === false) return null
 
-  if (!image) return null
-
-  // wallet.png <-> wallet-dark.png
-  const src = darkMode ? image?.src.replace(/\.([a-z]{3})$/, '-dark.$1') : image?.src
-
-  return { ...image, alt: title, src }
+    const src = darkMode ? image?.src.replace(/\.([a-z]{3})$/, '-dark.$1') : image?.src
+    return { ...image, src }
+  }, [darkMode])
 }

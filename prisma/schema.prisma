@@ -1239,7 +1239,7 @@ model UserWallet {
   userId     Int
   templateId Int
   user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  template   WalletTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template   WalletTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade) 
 
   protocols ProtocolWallet[]
 

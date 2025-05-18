@@ -112,7 +112,22 @@ ALTER TABLE "DomainVerificationRecord" ADD CONSTRAINT "DomainVerificationRecord_
 ALTER TABLE "DomainCertificate" ADD CONSTRAINT "DomainCertificate_domainId_fkey" FOREIGN KEY ("domainId") REFERENCES "Domain"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- Clear domains that have been on HOLD for 30 days or more every midnight.
-INSERT INTO pgboss.schedule (name, cron, timezone) VALUES ('clearLongHeldDomains', '0 0 * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
+CREATE OR REPLACE FUNCTION schedule_clear_long_held_domains()
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+BEGIN
+    INSERT INTO pgboss.schedule (name, cron, timezone)
+    VALUES ('clearLongHeldDomains', '0 0 * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
+    return 0;
+EXCEPTION WHEN OTHERS THEN
+    return 0;
+END;
+$$;
+
+SELECT schedule_clear_long_held_domains();
+DROP FUNCTION IF EXISTS schedule_clear_long_held_domains;
 
 -- Update the record status from the attempt
 CREATE OR REPLACE FUNCTION update_record_status_from_attempt()
@@ -165,19 +180,20 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trigger_clear_domain_on_sub_takeover
 AFTER UPDATE ON "Sub"
 FOR EACH ROW
-WHEN (NEW.userId != OLD.userId)
+WHEN (NEW."userId" != OLD."userId")
 EXECUTE FUNCTION clear_domain_on_sub_takeover();
 
 -- ask ACM to delete the certificate
-CREATE OR REPLACE FUNCTION ask_acm_to_delete_certificate(certificate_arn TEXT)
+CREATE OR REPLACE FUNCTION ask_acm_to_delete_certificate()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO pgboss.job (name, data, retrylimit, retrydelay)
     VALUES (
       'deleteDomainCertificate',
-      jsonb_build_object('certificateArn', certificate_arn),
+      jsonb_build_object('certificateArn', OLD."certificateArn"),
       3, -- retry 3 times on ACM errors
-      60*60); -- wait 1 hour between retries
+      60*60 -- wait 1 hour between retries
+    ) ON CONFLICT DO NOTHING;
   RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;
@@ -186,5 +202,5 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trigger_ask_acm_to_delete_certificate
 AFTER DELETE ON "DomainCertificate"
 FOR EACH ROW
-WHEN (OLD.certificateArn IS NOT NULL)
-EXECUTE FUNCTION ask_acm_to_delete_certificate(OLD.certificateArn);
+WHEN (OLD."certificateArn" IS NOT NULL)
+EXECUTE FUNCTION ask_acm_to_delete_certificate();

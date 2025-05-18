@@ -1,5 +1,7 @@
 # Wallets
 
+// TODO(wallet-v2): this will probably need an update
+
 Every wallet that you can see at [/wallets](https://stacker.news/wallets) is implemented as a plugin in this directory.
 
 This README explains how you can add another wallet for use with Stacker News.

@@ -168,6 +168,8 @@ async function walletCreateInvoice ({ wallet, def }, {
   expiry = 360
 }, { logger, models }) {
   // check for pending withdrawals
+
+  // TODO(wallet-v2): make sure this still works as intended
   const pendingWithdrawals = await models.withdrawl.count({
     where: {
       walletId: wallet.id,
@@ -176,6 +178,7 @@ async function walletCreateInvoice ({ wallet, def }, {
   })
 
   // and pending forwards
+  // TODO(wallet-v2): make sure this still works as intended
   const pendingForwards = await models.invoiceForward.count({
     where: {
       walletId: wallet.id,
@@ -200,6 +203,7 @@ async function walletCreateInvoice ({ wallet, def }, {
         descriptionHash,
         expiry
       },
+      // TODO(wallet-v2): this will probably need an update
       wallet.wallet,
       {
         logger,

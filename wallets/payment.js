@@ -8,14 +8,12 @@ import {
   WalletNotEnabledError, WalletSendNotConfiguredError, WalletPaymentError, WalletError, WalletReceiverError
 } from '@/wallets/errors'
 import { canSend } from './common'
-import { useWalletLoggerFactory } from './logger'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { useMe } from '@/components/me'
 
 export function useWalletPayment () {
   const wallets = useSendWallets()
   const sendPayment = useSendPayment()
-  const loggerFactory = useWalletLoggerFactory()
   const invoiceHelper = useInvoice()
   const { me } = useMe()
 
@@ -35,12 +33,10 @@ export function useWalletPayment () {
 
     for (let i = 0; i < wallets.length; i++) {
       const wallet = wallets[i]
-      const logger = loggerFactory(wallet)
 
-      const { bolt11 } = latestInvoice
       const controller = invoiceController(latestInvoice, invoiceHelper.isInvoice)
 
-      const walletPromise = sendPayment(wallet, logger, latestInvoice)
+      const walletPromise = sendPayment(wallet, latestInvoice)
       const pollPromise = controller.wait(waitFor)
 
       try {
@@ -52,12 +48,13 @@ export function useWalletPayment () {
         })
       } catch (err) {
         let paymentError = err
-        const message = `payment failed: ${paymentError.reason ?? paymentError.message}`
+        // TODO(wallet-v2): I removed the wallet logger on the client. Make sure this is still logged on the server.
+        // const message = `payment failed: ${paymentError.reason ?? paymentError.message}`
 
         if (!(paymentError instanceof WalletError)) {
           // payment failed for some reason unrelated to wallets (ie invoice expired or was canceled).
           // bail out of attempting wallets.
-          logger.error(message, { bolt11 })
+          // TODO(wallet-v2): I removed the wallet logger on the client. Make sure the payment error is still logged on the server.
           throw paymentError
         }
 
@@ -77,11 +74,13 @@ export function useWalletPayment () {
         if (paymentError instanceof WalletReceiverError) {
           // if payment failed because of the receiver, use the same wallet again
           // and log this as info, not error
-          logger.info('failed to forward payment to receiver, retrying with new invoice', { bolt11 })
+          // TODO(wallet-v2): I removed the wallet logger on the client. Make sure this is still logged on the server.
+          // logger.info('failed to forward payment to receiver, retrying with new invoice', { bolt11 })
           i -= 1
         } else if (paymentError instanceof WalletPaymentError) {
           // only log payment errors, not configuration errors
-          logger.error(message, { bolt11 })
+          // TODO(wallet-v2): I removed the wallet logger on the client. Make sure this is still logged on the server.
+          // logger.error(message, { bolt11 })
         }
 
         if (paymentError instanceof WalletPaymentError) {
@@ -105,7 +104,7 @@ export function useWalletPayment () {
 
     // if we reach this line, no wallet payment succeeded
     throw new WalletPaymentAggregateError([aggregateError], latestInvoice)
-  }, [wallets, invoiceHelper, sendPayment, loggerFactory])
+  }, [wallets, invoiceHelper, sendPayment])
 }
 
 function invoiceController (inv, isInvoice) {
@@ -147,6 +146,7 @@ function invoiceController (inv, isInvoice) {
 }
 
 function useSendPayment () {
+  // TODO(wallet-v2): this will probably need an update
   return useCallback(async (wallet, logger, invoice) => {
     if (!wallet.config.enabled) {
       throw new WalletNotEnabledError(wallet.def.name)

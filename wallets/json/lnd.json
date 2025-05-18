@@ -1,0 +1,8 @@
+{
+    "name": "LND",
+    "displayName": "Lightning Network Daemon",
+    "image": {
+        "src": "/wallets/lnd.png",
+        "alt": "LND"
+    }
+}

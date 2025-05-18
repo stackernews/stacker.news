@@ -3,7 +3,6 @@ import { gql } from 'graphql-tag'
 export default gql`
   type VaultEntry {
     id: ID!
-    key: String!
     iv: String!
     value: String!
     createdAt: Date!

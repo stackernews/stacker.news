@@ -1,0 +1,8 @@
+{
+    "name": "BLINK",
+    "displayName": "Blink",
+    "image": {
+        "src": "/wallets/blink.svg",
+        "alt": "Blink"
+    }
+}

@@ -18,14 +18,13 @@ import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { bolt11Tags } from '@/lib/bolt11'
 import { finalizeHodlInvoice } from '@/worker/wallet'
-import { generateTypeDefName } from '@/wallets/graphql'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets, getOurPubkey } from '../lnd'
 import { canReceive, getWalletByType } from '@/wallets/common'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
-import { deleteVault, hasVault, vaultPrismaFragments } from '@/wallets/vault'
+import { deleteVault, hasVault } from '@/wallets/vault'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -96,18 +95,75 @@ const resolvers = {
         throw new GqlAuthenticationError()
       }
 
-      // TODO(wallet-v2): use UserWallet instead of Wallet table
-      const wallets = await models.wallet.findMany({
-        include: vaultPrismaFragments.include(),
+      let userWallets = await models.userWallet.findMany({
         where: {
           userId: me.id
         },
-        orderBy: {
-          priority: 'asc'
+        include: {
+          template: true,
+          protocols: true
         }
       })
 
-      return wallets
+      // return template for all wallets that user has not attached
+      let walletTemplates = await models.walletTemplate.findMany({
+        where: {
+          id: {
+            notIn: userWallets.map(w => w.templateId)
+          }
+        }
+      })
+
+      // TODO(wallet-v2): improve this?
+      const resolveTypeOfProtocolConfig = (name, send) => {
+        switch (name) {
+          case 'NWC':
+            return send ? 'WalletSendNWC' : 'WalletRecvNWC'
+          case 'LNBITS':
+            return send ? 'WalletSendLNbits' : 'WalletRecvLNbits'
+          case 'PHOENIXD':
+            return send ? 'WalletSendPhoenixd' : 'WalletRecvPhoenixd'
+          case 'BLINK':
+            return send ? 'WalletSendBlink' : 'WalletRecvBlink'
+          case 'WEBLN':
+            return 'WalletSendWebLN'
+          case 'LN_ADDR':
+            return 'WalletRecvLightningAddress'
+          case 'LNC':
+            return 'WalletSendLNC'
+          case 'CLN_REST':
+            return 'WalletRecvCLNRest'
+          case 'LND_GRPC':
+            return 'WalletRecvLNDGRPC'
+          default:
+            return null
+        }
+      }
+
+      userWallets = userWallets.map(w => {
+        return {
+          ...w,
+          protocols: w.protocols.map(({ json, ...p }) => {
+            return {
+              ...p,
+              config: {
+                ...json,
+                __resolveType: resolveTypeOfProtocolConfig(p.protocol, p.send)
+              }
+            }
+          }),
+          __resolveType: 'UserWallet'
+        }
+      })
+
+      walletTemplates = walletTemplates.map(t => {
+        return {
+          ...t,
+          __resolveType: 'WalletTemplate'
+        }
+      })
+
+      return [...userWallets, ...walletTemplates]
     },
     withdrawl: getWithdrawl,
     direct: async (parent, { id }, { me, models }) => {
@@ -398,16 +454,37 @@ const resolvers = {
         ORDER BY id DESC`
     }
   },
-  Wallet: {
-    wallet: async (wallet) => {
-      return {
-        ...wallet.wallet,
-        __resolveType: generateTypeDefName(wallet.type)
-      }
+  WalletOrTemplate: {
+    __resolveType: walletOrTemplate => walletOrTemplate.__resolveType
+  },
+  UserWallet: {
+    name: wallet => wallet.template.name,
+    send: wallet => wallet.protocols.some(protocol => protocol.send),
+    receive: wallet => wallet.protocols.some(protocol => !protocol.send)
+  },
+  WalletTemplate: {
+    send: walletTemplate => walletTemplate.sendProtocols.length > 0,
+    receive: walletTemplate => walletTemplate.recvProtocols.length > 0,
+    protocols: walletTemplate => {
+      return [
+        ...walletTemplate.sendProtocols.map(protocol => ({
+          id: `WalletTemplate-${walletTemplate.id}-${protocol}-send`,
+          name: protocol,
+          send: true
+        })),
+        ...walletTemplate.recvProtocols.map(protocol => ({
+          id: `WalletTemplate-${walletTemplate.id}-${protocol}-recv`,
+          name: protocol,
+          send: false
+        }))
+      ]
     }
   },
-  WalletDetails: {
-    __resolveType: wallet => wallet.__resolveType
+  WalletProtocol: {
+    name: protocol => protocol.protocol
+  },
+  WalletProtocolConfig: {
+    __resolveType: config => config.__resolveType
   },
   InvoiceOrDirect: {
     __resolveType: invoiceOrDirect => invoiceOrDirect.__resolveType

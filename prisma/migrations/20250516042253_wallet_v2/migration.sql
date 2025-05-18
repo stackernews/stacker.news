@@ -538,7 +538,7 @@ BEGIN
         -- remove 'VaultId' suffix
         base_name := substring(col_name from 1 for length(col_name)-7);
 
-        SELECT jsonb_build_object('iv', v.iv, 'value', v.value) INTO vault
+        SELECT jsonb_build_object('id', v.id, 'iv', v.iv, 'value', v.value) INTO vault
         FROM "Vault" v
         WHERE v.id = vault_id;
 

@@ -8,7 +8,7 @@ const typeDefs = gql`
     numBolt11s: Int!
     connectAddress: String!
     walletHistory(cursor: String, inc: String): History
-    wallets: [Wallet!]!
+    wallets: [WalletOrTemplate!]!
     walletLogs(type: String, from: String, to: String, cursor: String): WalletLog!
     failedInvoices: [Invoice!]!
   }
@@ -33,16 +33,131 @@ const typeDefs = gql`
     id: ID!
   }
 
-  # TODO(wallet-v2): update type
-  type Wallet {
+  union WalletOrTemplate = UserWallet | WalletTemplate
+
+  type UserWallet {
     id: ID!
-    createdAt: Date!
-    updatedAt: Date!
-    type: String!
+    name: String!
     enabled: Boolean!
     priority: Int!
-    wallet: WalletDetails!
-    vaultEntries: [VaultEntry!]!
+    template: WalletTemplate!
+    protocols: [WalletProtocol!]!
+    send: Boolean!
+    receive: Boolean!
+  }
+
+  type WalletTemplate {
+    id: ID!
+    name: String!
+    protocols: [WalletProtocolTemplate!]!
+    send: Boolean!
+    receive: Boolean!
+  }
+
+  type WalletProtocol {
+    id: ID!
+    name: String!
+    send: Boolean!
+    config: WalletProtocolConfig!
+  }
+
+  type WalletProtocolTemplate {
+    id: ID!
+    name: String!
+    send: Boolean!
+  }
+
+  # TODO(wallet-v2): This is the list of protocol tables. I want to generate this union type during the build. Should I extract the tables names from the prisma schema?
+  union WalletProtocolConfig =
+    | WalletSendNWC
+    | WalletSendLNbits
+    | WalletSendPhoenixd
+    | WalletSendBlink
+    | WalletSendWebLN
+    | WalletSendLNC
+    | WalletRecvNWC
+    | WalletRecvLNbits
+    | WalletRecvPhoenixd
+    | WalletRecvBlink
+    | WalletRecvLightningAddress
+    | WalletRecvCLNRest
+    | WalletRecvLNDGRPC
+
+  type WalletSendNWC {
+    id: ID!
+    url: VaultEntry!
+  }
+
+  type WalletSendLNbits {
+    id: ID!
+    url: String!
+    apiKey: VaultEntry!
+  }
+
+  type WalletSendPhoenixd {
+    id: ID!
+    url: String!
+    apiKey: VaultEntry!
+  }
+
+  type WalletSendBlink {
+    id: ID!
+    currency: VaultEntry!
+    apiKey: VaultEntry!
+  }
+
+  type WalletSendWebLN {
+    id: ID!
+  }
+
+  type WalletSendLNC {
+    id: ID!
+    pairingPhrase: VaultEntry!
+    localKey: VaultEntry!
+    remoteKey: VaultEntry!
+    serverHost: VaultEntry!
+  }
+
+  type WalletRecvNWC {
+    id: ID!
+    url: String!
+  }
+
+  type WalletRecvLNbits {
+    id: ID!
+    url: String!
+    apiKey: String!
+  }
+
+  type WalletRecvPhoenixd {
+    id: ID!
+    url: String!
+    apiKey: String!
+  }
+
+  type WalletRecvBlink {
+    id: ID!
+    currency: String!
+    apiKey: String!
+  }
+
+  type WalletRecvLightningAddress {
+    id: ID!
+    address: String!
+  }
+
+  type WalletRecvCLNRest {
+    id: ID!
+    socket: String!
+    rune: String!
+    cert: String
+  }
+
+  type WalletRecvLNDGRPC {
+    id: ID!
+    socket: String!
+    macaroon: String!
+    cert: String
   }
 
   input AutowithdrawSettings {

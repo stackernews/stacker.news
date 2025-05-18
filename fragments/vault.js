@@ -3,11 +3,8 @@ import { gql } from '@apollo/client'
 export const VAULT_ENTRY_FIELDS = gql`
   fragment VaultEntryFields on VaultEntry {
     id
-    key
     iv
     value
-    createdAt
-    updatedAt
   }
 `
 

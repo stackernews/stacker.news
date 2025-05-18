@@ -1,9 +1,9 @@
 .walletGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 160px);
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: auto;
   grid-gap: 20px;
   padding: 20px 0;
-  justify-content: center;
 }
 
 @media (max-width: 440px) {

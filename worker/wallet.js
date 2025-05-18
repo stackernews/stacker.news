@@ -14,6 +14,7 @@ import {
 import { payingActionConfirmed, payingActionFailed } from './payingAction'
 import { canReceive, getWalletByType } from '@/wallets/common'
 import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
+import { hasVault, vaultPrismaFragments } from '@/wallets/vault'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -296,15 +297,13 @@ export async function checkWallet ({ data: { userId }, models }) {
         userId,
         enabled: true
       },
-      include: {
-        vaultEntries: true
-      }
+      include: vaultPrismaFragments.include()
     })
 
     const { hasRecvWallet: oldHasRecvWallet, hasSendWallet: oldHasSendWallet } = await tx.user.findUnique({ where: { id: userId } })
 
     const newHasRecvWallet = wallets.some(({ type, wallet }) => canReceive({ def: getWalletByType(type), config: wallet }))
-    const newHasSendWallet = wallets.some(({ vaultEntries }) => vaultEntries.length > 0)
+    const newHasSendWallet = wallets.some(hasVault)
 
     await tx.user.update({
       where: { id: userId },

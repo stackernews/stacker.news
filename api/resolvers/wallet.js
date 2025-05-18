@@ -8,7 +8,6 @@ import { SELECT, itemQueryWithMeta } from './item'
 import { formatMsats, msatsToSats, msatsToSatsDecimal } from '@/lib/format'
 import {
   USER_ID, INVOICE_RETENTION_DAYS,
-  WALLET_CREATE_INVOICE_TIMEOUT_MS,
   WALLET_RETRY_AFTER_MS,
   WALLET_RETRY_BEFORE_MS,
   WALLET_MAX_RETRIES
@@ -18,79 +17,14 @@ import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { bolt11Tags } from '@/lib/bolt11'
 import { finalizeHodlInvoice } from '@/worker/wallet'
-import walletDefs from '@/wallets/server'
-import { generateResolverName, generateTypeDefName } from '@/wallets/graphql'
+import { generateTypeDefName } from '@/wallets/graphql'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets } from '../lnd'
-import validateWallet from '@/wallets/validate'
 import { canReceive, getWalletByType } from '@/wallets/common'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
-import { timeoutSignal, withTimeout } from '@/lib/time'
-import { deleteVault, hasVault, vaultNewSchematoTypedef, vaultPrismaFragments } from '@/wallets/vault'
-
-function injectResolvers (resolvers) {
-  console.group('injected GraphQL resolvers:')
-  for (const walletDef of walletDefs) {
-    const resolverName = generateResolverName(walletDef.walletField)
-    console.log(resolverName)
-    resolvers.Mutation[resolverName] = async (parent, { settings, validateLightning, vaultEntries, ...data }, { me, models }) => {
-      console.log('resolving', resolverName, { settings, validateLightning, vaultEntries, ...data })
-
-      let existingVaultEntries
-      if (typeof vaultEntries === 'undefined' && data.id) {
-        // this mutation was sent from an unsynced client
-        // to pass validation, we need to add the existing vault entries for validation
-        // in case the client is removing the receiving config
-        const wallet = await models.wallet.findUnique({
-          where: {
-            id: Number(data.id)
-          },
-          include: vaultPrismaFragments.include()
-        })
-        existingVaultEntries = vaultNewSchematoTypedef(wallet).vaultEntries
-      }
-
-      const validData = await validateWallet(walletDef,
-        { ...data, ...settings, vaultEntries: vaultEntries ?? existingVaultEntries },
-        { serverSide: true })
-      if (validData) {
-        data && Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
-        settings && Object.keys(validData).filter(key => key in settings).forEach(key => { settings[key] = validData[key] })
-      }
-
-      // wallet in shape of db row
-      const wallet = {
-        field: walletDef.walletField,
-        type: walletDef.walletType,
-        userId: me?.id
-      }
-      const logger = walletLogger({ wallet, models })
-
-      return await upsertWallet({
-        wallet,
-        walletDef,
-        testCreateInvoice:
-          walletDef.testCreateInvoice && validateLightning && canReceive({ def: walletDef, config: data })
-            ? (data) => withTimeout(
-                walletDef.testCreateInvoice(data, {
-                  logger,
-                  signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS)
-                }),
-                WALLET_CREATE_INVOICE_TIMEOUT_MS)
-            : null
-      }, {
-        settings,
-        data,
-        vaultEntries
-      }, { logger, me, models })
-    }
-  }
-  console.groupEnd()
-
-  return resolvers
-}
+import { deleteVault, hasVault, vaultPrismaFragments } from '@/wallets/vault'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -161,6 +95,7 @@ const resolvers = {
         throw new GqlAuthenticationError()
       }
 
+      // TODO(wallet-v2): use UserWallet instead of Wallet table
       const wallets = await models.wallet.findMany({
         include: vaultPrismaFragments.include(),
         where: {
@@ -171,7 +106,7 @@ const resolvers = {
         }
       })
 
-      return wallets.map(vaultNewSchematoTypedef)
+      return wallets
     },
     withdrawl: getWithdrawl,
     direct: async (parent, { id }, { me, models }) => {
@@ -542,6 +477,7 @@ const resolvers = {
         throw new GqlAuthenticationError()
       }
 
+      // TODO(wallet-v2): use UserWallet instead of Wallet table
       await models.wallet.update({ where: { userId: me.id, id: Number(id) }, data: { priority } })
 
       return true
@@ -551,6 +487,7 @@ const resolvers = {
         throw new GqlAuthenticationError()
       }
 
+      // TODO(wallet-v2): use UserWallet instead of Wallet table
       const wallet = await models.wallet.findUnique({ where: { userId: me.id, id: Number(id) } })
       if (!wallet) {
         throw new GqlInputError('wallet not found')
@@ -560,6 +497,7 @@ const resolvers = {
 
       await models.$transaction([
         hasVault(wallet) ? deleteVault(models, wallet) : null,
+        // TODO(wallet-v2): use UserWallet instead of Wallet table
         models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
       ].filter(Boolean))
 
@@ -743,7 +681,8 @@ const resolvers = {
   }
 }
 
-export default injectResolvers(resolvers)
+// TODO(wallet-v2): implement wallet resolvers
+export default resolvers
 
 const logContextFromBolt11 = async (bolt11) => {
   const decoded = await parsePaymentRequest({ request: bolt11 })
@@ -804,104 +743,6 @@ export const walletLogger = ({ wallet, models, me }) => {
     error: (message, context) => log('ERROR')(message, context),
     warn: (message, context) => log('WARN')(message, context)
   }
-}
-
-async function upsertWallet (
-  { wallet, walletDef, testCreateInvoice }, { settings, data, vaultEntries }, { logger, me, models }) {
-  if (!me) {
-    throw new GqlAuthenticationError()
-  }
-  assertApiKeyNotPermitted({ me })
-
-  if (testCreateInvoice) {
-    try {
-      const pr = await testCreateInvoice(data)
-      if (!pr || typeof pr !== 'string' || !pr.startsWith('lnbc')) {
-        throw new GqlInputError('not a valid payment request')
-      }
-    } catch (err) {
-      const message = 'failed to create test invoice: ' + (err.message || err.toString?.())
-      logger.error(message)
-      throw new GqlInputError(message)
-    }
-  }
-
-  const { id, enabled, priority, ...recvConfig } = data
-
-  const txs = []
-
-  const walletWithVault = { ...wallet, vaultEntries }
-
-  if (id) {
-    const dbWallet = await models.wallet.findUnique({
-      where: { id: Number(id), userId: me.id }
-    })
-
-    txs.push(
-      models.wallet.update({
-        where: { id: Number(id), userId: me.id },
-        data: {
-          enabled,
-          priority,
-          [wallet.field]: {
-            upsert: {
-              create: { ...recvConfig, ...vaultPrismaFragments.create(walletWithVault) },
-              update: { ...recvConfig, ...vaultPrismaFragments.upsert(walletWithVault) }
-            },
-            // XXX the check is required because the update would fail if there is no row to delete ...
-            update: hasVault(dbWallet) ? vaultPrismaFragments.deleteMissing(walletWithVault) : undefined
-          }
-        },
-        include: vaultPrismaFragments.include(walletWithVault)
-      })
-    )
-  } else {
-    txs.push(
-      models.wallet.create({
-        include: vaultPrismaFragments.include(walletWithVault),
-        data: {
-          enabled,
-          priority,
-          userId: me.id,
-          type: wallet.type,
-          [wallet.field]: { create: { ...recvConfig, ...vaultPrismaFragments.create(walletWithVault) } }
-        }
-      })
-    )
-  }
-
-  if (settings) {
-    txs.push(
-      models.user.update({
-        where: { id: me.id },
-        data: settings
-      })
-    )
-  }
-
-  if (canReceive({ def: walletDef, config: recvConfig })) {
-    txs.push(
-      models.walletLog.createMany({
-        data: {
-          userId: me.id,
-          wallet: wallet.type,
-          level: 'SUCCESS',
-          message: id ? 'details for receiving updated' : 'details for receiving saved'
-        }
-      }),
-      models.walletLog.create({
-        data: {
-          userId: me.id,
-          wallet: wallet.type,
-          level: enabled ? 'SUCCESS' : 'INFO',
-          message: enabled ? 'receiving enabled' : 'receiving disabled'
-        }
-      })
-    )
-  }
-
-  const [upsertedWallet] = await models.$transaction(txs)
-  return vaultNewSchematoTypedef(upsertedWallet)
 }
 
 export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, wallet, logger }) {

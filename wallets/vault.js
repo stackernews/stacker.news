@@ -77,6 +77,7 @@ function vaultFieldNames (walletDef) {
   return walletDef.fields.filter(f => f.clientOnly).map(f => f.name)
 }
 
+// TODO(wallet-v2): this will probably need an update or won't be needed anymore
 export function vaultNewSchematoTypedef (wallet) {
   // this function converts a wallet row from the db with the new schema
   // to the expected GraphQL typedef since the client has not yet been updated.

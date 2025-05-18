@@ -7,6 +7,10 @@
    - a regular expression that must match
 */
 
+// TODO(wallet-v2): will this need an update?
+//
+// Am I going to validate the wallets differently now?
+
 import { autowithdrawSchemaMembers, vaultEntrySchema } from '@/lib/validate'
 import * as Yup from '@/lib/yup'
 import { canReceive } from './common'
@@ -70,6 +74,7 @@ function composeWalletSchema (walletDef, serverSide, skipGenerated) {
       return acc
     }
 
+    // TODO(wallet-v2): this will probably need an update
     if (clientOnly && serverSide) {
       // For server-side validation, accumulate clientOnly fields as vaultEntries
       vaultEntrySchemas[optional ? 'optional' : 'required'].push(vaultEntrySchema(name))

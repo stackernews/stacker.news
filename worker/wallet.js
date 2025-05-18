@@ -292,6 +292,7 @@ export async function checkWallet ({ data: { userId }, models }) {
   const pushNotifications = []
 
   await models.$transaction(async tx => {
+    // TODO(wallet-v2): use UserWallet instead of Wallet table
     const wallets = await tx.wallet.findMany({
       where: {
         userId,

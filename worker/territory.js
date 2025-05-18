@@ -1,6 +1,5 @@
 import lnd from '@/api/lnd'
 import performPaidAction from '@/api/paidAction'
-import { deleteDomainCertificate } from '@/lib/domain-verification'
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { datePivot } from '@/lib/time'
@@ -14,20 +13,13 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
 
   async function territoryStatusUpdate () {
     if (sub.status !== 'STOPPED') {
-      const nextStatus = nextBillingWithGrace(sub) >= new Date() ? 'GRACE' : 'STOPPED'
-
-      // make sure to delete the certificate from ACM if the sub is stopped, if we have it.
-      if (nextStatus === 'STOPPED' && sub.domain?.certificate?.certificateArn) {
-        await deleteDomainCertificate(sub.domain.certificate.certificateArn)
-      }
-
       await models.sub.update({
         include: { user: true },
         where: {
           name: subName
         },
         data: {
-          status: nextStatus,
+          status: nextBillingWithGrace(sub) >= new Date() ? 'GRACE' : 'STOPPED',
           statusUpdatedAt: new Date()
         }
       })

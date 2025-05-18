@@ -111,6 +111,9 @@ ALTER TABLE "DomainVerificationRecord" ADD CONSTRAINT "DomainVerificationRecord_
 -- AddForeignKey
 ALTER TABLE "DomainCertificate" ADD CONSTRAINT "DomainCertificate_domainId_fkey" FOREIGN KEY ("domainId") REFERENCES "Domain"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+-- Clear domains that have been on HOLD for 30 days or more every midnight.
+INSERT INTO pgboss.schedule (name, cron, timezone) VALUES ('clearLongHeldDomains', '0 0 * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
+
 -- Update the record status from the attempt
 CREATE OR REPLACE FUNCTION update_record_status_from_attempt()
 RETURNS TRIGGER AS $$
@@ -129,29 +132,59 @@ AFTER INSERT ON "DomainVerificationAttempt"
 FOR EACH ROW
 EXECUTE FUNCTION update_record_status_from_attempt();
 
--- HOLD the domain and delete the certificate when the sub is stopped
--- this is to prevent the domain from being used by another sub
--- when the sub is resumed, the domain can be verified again and another certificate can be issued
-
--- !QUIRK: If someone else takes over the sub, the new guy needs to delete the domain
-CREATE OR REPLACE FUNCTION hold_domain_and_delete_certificate()
+-- SCENARIO: Territory got stopped after grace period
+-- HOLD the domain when the sub is stopped
+-- this is to prevent the domain from being used by another sub;
+-- won't delete anything but it will require a new verification attempt if the sub is resumed
+CREATE OR REPLACE FUNCTION hold_domain_on_sub_stop()
 RETURNS TRIGGER AS $$
-DECLARE
-  domain_id INTEGER;
 BEGIN
-  UPDATE "Domain" SET "status" = 'HOLD' WHERE "subName" = NEW.name
-    RETURNING id INTO domain_id;
-
-  IF domain_id IS NOT NULL THEN
-      DELETE FROM "DomainCertificate" WHERE "domainId" = domain_id;
-  END IF;
-
+  UPDATE "Domain" SET "status" = 'HOLD' WHERE "subName" = NEW.name;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger_hold_domain_and_delete_certificate
+CREATE TRIGGER trigger_hold_domain_on_sub_stop
 AFTER UPDATE ON "Sub"
 FOR EACH ROW
 WHEN (NEW.status = 'STOPPED')
-EXECUTE FUNCTION hold_domain_and_delete_certificate();
+EXECUTE FUNCTION hold_domain_on_sub_stop();
+
+-- SCENARIO: Territory got taken over by a different user
+-- clear the domain when the sub is taken over by a different user;
+-- this will delete the domain, its certificates, verification attempts, DNS records and brandings.
+-- will also trigger a request to ACM to delete the certificate because the domain is being deleted
+CREATE OR REPLACE FUNCTION clear_domain_on_sub_takeover()
+RETURNS TRIGGER AS $$
+BEGIN
+  DELETE FROM "Domain" WHERE "subName" = NEW.name;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_clear_domain_on_sub_takeover
+AFTER UPDATE ON "Sub"
+FOR EACH ROW
+WHEN (NEW.userId != OLD.userId)
+EXECUTE FUNCTION clear_domain_on_sub_takeover();
+
+-- ask ACM to delete the certificate
+CREATE OR REPLACE FUNCTION ask_acm_to_delete_certificate(certificate_arn TEXT)
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO pgboss.job (name, data, retrylimit, retrydelay)
+    VALUES (
+      'deleteDomainCertificate',
+      jsonb_build_object('certificateArn', certificate_arn),
+      3, -- retry 3 times on ACM errors
+      60*60); -- wait 1 hour between retries
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+-- everytime a domain (relation) or a domainCertificate is deleted, also ask ACM to delete the certificate
+CREATE TRIGGER trigger_ask_acm_to_delete_certificate
+AFTER DELETE ON "DomainCertificate"
+FOR EACH ROW
+WHEN (OLD.certificateArn IS NOT NULL)
+EXECUTE FUNCTION ask_acm_to_delete_certificate(OLD.certificateArn);

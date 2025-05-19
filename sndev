@@ -513,6 +513,15 @@ USAGE
   echo "$help"
 }
 
+sndev__pgboss() {
+  shift
+  ./scripts/control-pgboss "$@"
+}
+
+sndev__help_pgboss() {
+  ./scripts/control-pgboss
+}
+
 sndev__cli() {
   t=$1
 
@@ -618,6 +627,7 @@ COMMANDS
     onion                  service onion address
     cert                   service tls cert
     compose                docker compose passthrough
+    pgboss                 control pgboss jobs
 "
   echo "$help"
 }

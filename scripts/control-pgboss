@@ -1,0 +1,262 @@
+#!/bin/bash
+# Script to handle pgboss jobs
+
+# prep
+INTENT=$1       # add, edit, remove, remove-all, list
+JOB=$2          # job name or jobId
+shift 2
+
+# flags
+STARTAFTER=
+RETRYLIMIT=
+RETRYDELAY=
+RETRYBACKOFF=
+KEEPUNTIL=
+
+# shift after flags to get data
+shift $((OPTIND-1))
+DATA=$3         # data
+
+# handle flags with optargs
+while getopts "s:r:d:b:k:" opt; do
+  case "$opt" in
+    s)
+      STARTAFTER=$(date -d "$OPTARG seconds" +"%Y-%m-%d %H:%M:%S.%N")
+      ;;
+    r)
+      RETRYLIMIT=$OPTARG
+      ;;
+    d)
+      RETRYDELAY=$(date -d "$OPTARG seconds" +"%Y-%m-%d %H:%M:%S.%N")
+      ;;
+    b)
+      RETRYBACKOFF=true
+      ;;
+    k)
+      KEEPUNTIL=$(date -d "$OPTARG seconds" +"%Y-%m-%d %H:%M:%S.%N")
+      ;;
+    h)
+      usage
+      exit 0
+      ;;
+    ?)
+      echo "Invalid option: -$OPTARG"
+      usage
+      exit 1
+  esac
+done
+
+# general usage
+usage() {
+  cat <<EOF
+Control pgboss jobs.
+
+USAGE
+  $ sndev pgboss [COMMAND]
+
+COMMANDS
+  add        <name>  [flags] [data]  Add a job
+  edit       <jobId> [flags] [data]  Edit a job
+  remove     <jobId>                 Remove a job
+  remove-all <name>                  Remove all jobs of a given name
+  details    <jobId>                 Show details of a job
+  list       <name>                  List jobs
+
+FLAGS
+  -h|--help                          Show this help message
+
+FLAGS: add/edit
+  -s|--startafter                    Start the job after given SECONDS
+  -r|--retrylimit                    Set the number of retries on thrown errors
+  -d|--retrydelay                    Set the delay between retries in SECONDS
+  -b|--retrybackoff                  Enable pgboss exponential backoff between retries
+  -k|--keepuntil                     Keep the job until a given date in SECONDS
+
+EXAMPLES
+  $ sndev pgboss add jobname "{\"id\": \"test\"}"
+  $ sndev pgboss edit jobId "{\"id\": \"test\"}"
+  $ sndev pgboss remove jobId
+  $ sndev pgboss remove-all jobname
+  $ sndev pgboss list jobname
+EOF
+exit 0
+}
+
+docker__exec() {
+  if [ ! -x "$(command -v docker)" ]; then
+    echo "docker is not installed"
+    echo "installation instructions are here: https://docs.docker.com/desktop/"
+    exit 0
+  fi
+
+  DOCKER_CLI_HINTS=false command docker exec -i "$@"
+}
+
+# TODO: add a function to check if correct args are passed
+
+add_job() {
+  shift
+  if [ -z "$JOB" ]; then
+    echo "At least a job name is required"
+    usage
+    exit 1
+  fi
+
+  # Build query dynamically based on present values
+  query="INSERT INTO pgboss.job (name"
+  values="VALUES ('$JOB'"
+
+  if [ ! -z "$DATA" ]; then
+    query="$query, data"
+    values="$values, '$DATA'"
+  fi
+  if [ ! -z "$STARTAFTER" ]; then
+    query="$query, startafter" 
+    values="$values, '$STARTAFTER'"
+  fi
+  if [ ! -z "$RETRYLIMIT" ]; then
+    query="$query, retrylimit"
+    values="$values, '$RETRYLIMIT'"
+  fi
+  if [ ! -z "$RETRYDELAY" ]; then
+    query="$query, retrydelay"
+    values="$values, '$RETRYDELAY'"
+  fi
+  if [ ! -z "$RETRYBACKOFF" ]; then
+    query="$query, retrybackoff"
+    values="$values, '$RETRYBACKOFF'"
+  fi
+  if [ ! -z "$KEEPUNTIL" ]; then
+    query="$query, keepuntil"
+    values="$values, '$KEEPUNTIL'"
+  fi
+
+  query="$query) $values) RETURNING id;"
+
+  job_id=$(docker__exec db psql -U sn -d stackernews -t -q <<EOF
+    $query
+EOF
+)
+  echo "Created job with ID: $job_id"
+  echo "Job name: $JOB"
+  [ ! -z "$DATA" ] && echo "Data: $DATA"
+  [ ! -z "$STARTAFTER" ] && echo "Start after: $STARTAFTER" 
+  [ ! -z "$RETRYLIMIT" ] && echo "Retry limit: $RETRYLIMIT"
+  [ ! -z "$RETRYDELAY" ] && echo "Retry delay: $RETRYDELAY"
+  [ ! -z "$RETRYBACKOFF" ] && echo "Retry backoff: $RETRYBACKOFF"
+  [ ! -z "$KEEPUNTIL" ] && echo "Keep until: $KEEPUNTIL"
+}
+
+edit_job() {
+  shift
+  if [ -z "$JOB" ]; then
+    echo "At least a job ID is required"
+    usage
+    exit 1
+  fi
+  docker__exec db psql -U sn -d stackernews -q <<EOF
+    UPDATE pgboss.job
+    SET data = '$DATA',
+        startafter = '$STARTAFTER',
+        retrylimit = '$RETRYLIMIT',
+        retrydelay = '$RETRYDELAY',
+        retrybackoff = '$RETRYBACKOFF',
+        keepuntil = '$KEEPUNTIL'
+    WHERE id = '$JOB';
+EOF
+  echo "Updated job with ID: $JOB"
+  echo "Job name: $JOB"
+  echo "Data: $DATA"
+  echo "Start after: $STARTAFTER"
+  echo "Retry limit: $RETRYLIMIT"
+  echo "Retry delay: $RETRYDELAY"
+  echo "Retry backoff: $RETRYBACKOFF"
+}
+
+remove_job() {
+  shift
+  if [ -z "$JOB" ]; then
+    echo "At least a job ID is required"
+    usage
+    exit 1
+  fi
+  docker__exec db psql -U sn -d stackernews -q <<EOF
+    DELETE FROM pgboss.job WHERE id = '$JOB';
+EOF
+  echo "Deleted job with ID: $JOB"
+}
+
+remove_all_jobs() {
+  shift
+  if [ -z "$JOB" ]; then
+    echo "At least a job name is required"
+    usage
+    exit 1
+  fi
+  docker__exec db psql -U sn -d stackernews -q <<EOF
+    DELETE FROM pgboss.job WHERE name = '$JOB';
+EOF
+  echo "Deleted all jobs with name: $JOB"
+}
+
+details_job() {
+  shift
+  if [ -z "$JOB" ]; then
+    echo "At least a job ID is required"
+    usage
+    exit 1
+  fi
+  show_job id $JOB
+}
+
+list_jobs() {
+  shift
+  if [ -z "$JOB" ]; then
+    echo "At least a job name is required"
+    usage
+    exit 1
+  fi
+  echo "Latest 10 jobs with name: $JOB"
+  show_job name $JOB "ORDER BY createdon DESC LIMIT 10"
+}
+
+show_job() {
+  TYPE=$1 # name or id
+  SEARCH=$2 # job name or job id
+  OPTIONS=$3 # optional options
+
+  if [ -z "$TYPE" ] || [ -z "$SEARCH" ]; then
+    echo "Both type and search parameters are required"
+    usage
+    exit 1
+  fi
+
+  docker__exec db psql -U sn -d stackernews -q <<EOF
+    \x auto
+    SELECT (
+      'ID: ' || id || E'\n' ||
+      'Name: ' || name || E'\n' ||
+      'Created: ' || createdon || E'\n' ||
+      CASE WHEN data IS NOT NULL THEN 'Data: ' || data::text || E'\n' ELSE '' END ||
+      CASE WHEN startafter IS NOT NULL THEN 'Start After: ' || startafter || E'\n' ELSE '' END ||
+      CASE WHEN retrylimit IS NOT NULL THEN 'Retry Limit: ' || retrylimit || E'\n' ELSE '' END ||
+      CASE WHEN retrydelay IS NOT NULL THEN 'Retry Delay: ' || retrydelay || E'\n' ELSE '' END ||
+      'Retry Backoff: ' || CASE WHEN retrybackoff THEN 'Yes' ELSE 'No' END || E'\n' ||
+      CASE WHEN keepuntil IS NOT NULL THEN 'Keep Until: ' || keepuntil || E'\n' ELSE '' END
+    ) AS job_list
+    FROM pgboss.job
+    WHERE $TYPE = '$SEARCH'
+    $OPTIONS;
+EOF
+}
+
+# switch intents
+case "$INTENT" in
+  add)    add_job ;;
+  edit)   edit_job ;;
+  remove) remove_job ;;
+  remove-all) remove_all_jobs ;;
+  details) details_job ;;
+  list)   list_jobs ;;
+  *)      usage ;;
+esac

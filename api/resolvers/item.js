@@ -28,6 +28,8 @@ import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
 
+metadataRuleSets.title.rules.unshift(['h1 > yt-formatted-string.ytd-watch-metadata', el => el.getAttribute('title')])
+
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
   sharedSortsArray.push('("Item"."pinId" IS NOT NULL) DESC')

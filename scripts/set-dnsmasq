@@ -115,12 +115,10 @@ add_record() {
     or add this record to /etc/hosts to access it via browser.
     "
     # ask to add the record to the /etc/hosts file
-    read -p "[sudo] Do you want to add '127.0.0.1 $NAME' to /etc/hosts? [y/N] " response
+    read -r -p "[sudo] Do you want to add '127.0.0.1 $NAME' to /etc/hosts? [y/N] " response
     if [[ "$response" =~ ^[Yy]$ ]]; then
       # add the record to the /etc/hosts file
-      add_record_to_hosts "$NAME"
-      # if the record wasn't added, we need to inform the user
-      if [ $? -ne 0 ]; then
+      if ! add_record_to_hosts "$NAME"; then
         echo "/etc/hosts hasn't been touched."
       fi
     fi
@@ -146,12 +144,10 @@ remove_record() {
   # if we're removing a CNAME record and --no-hosts is not used, we need to ask to remove the record from the /etc/hosts file
   if [ "$TYPE" = "cname" ] && [ "$NO_HOSTS" = false ]; then
     # ask to remove the record from the /etc/hosts file
-    read -p "[sudo] Do you want to remove this record from /etc/hosts? [y/N] " response
+    read -r -p "[sudo] Do you want to remove this record from /etc/hosts? [y/N] " response
     if [[ "$response" =~ ^[Yy]$ ]]; then
       # remove the record from the /etc/hosts file
-      remove_record_from_hosts "$NAME"
-      # if the record wasn't removed, we need to inform the user
-      if [ $? -ne 0 ]; then
+      if ! remove_record_from_hosts "$NAME"; then
         echo "/etc/hosts hasn't been touched."
       fi
     fi
@@ -176,19 +172,17 @@ add_record_to_hosts() {
   fi
 
   # check if the record already exists in the /etc/hosts file
-  check_record_hosts_exists $domain
-  if [ $? -eq 0 ]; then
+  if check_record_hosts_exists "$domain"; then
     echo "Record already exists in /etc/hosts: $domain"
     return 1
   fi
 
   # add the record to the /etc/hosts file
   echo "Adding record to /etc/hosts: $domain"
-  echo "This operation requires sudo privileges"
-  if ! sudo -n true 2>/dev/null; then
-    sudo echo "127.0.0.1 $domain" >> "/etc/hosts" || return 1
-  else
-    sudo echo "127.0.0.1 $domain" >> "/etc/hosts"
+  echo "This operation will require sudo privileges"
+  if ! echo "127.0.0.1 $domain" | sudo tee -a "/etc/hosts" > /dev/null; then
+    echo "Failed to add record to /etc/hosts"
+    return 1
   fi
   echo "$domain added to /etc/hosts."
   echo "You can now access http://$domain:3000 via browser."
@@ -205,19 +199,17 @@ remove_record_from_hosts() {
   fi
 
   # check if the record exists in the /etc/hosts file
-  check_record_hosts_exists $domain
-  if [ $? -eq 1 ]; then
+  if ! check_record_hosts_exists "$domain"; then
     echo "Record not found in /etc/hosts: $domain"
     return 1
   fi
 
   # remove the record from the /etc/hosts file
   echo "Removing record from /etc/hosts: $domain"
-  echo "This operation requires sudo privileges"
-  if ! sudo -n true 2>/dev/null; then
-    sudo sed -i "/^127.0.0.1 $domain$/d" "/etc/hosts" || return 1
-  else
-    sudo sed -i "/^127.0.0.1 $domain$/d" "/etc/hosts"
+  echo "This operation will require sudo privileges"
+  if ! sudo sed -i "/^127.0.0.1 $domain$/d" "/etc/hosts" 2>/dev/null; then
+    echo "Failed to remove record from /etc/hosts."
+    return 1
   fi
   echo "$domain removed from /etc/hosts."
   return 0

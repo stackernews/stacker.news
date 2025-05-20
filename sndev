@@ -327,9 +327,7 @@ sndev__domains() {
   case $1 in
   dns)
     shift
-    ./scripts/set-dnsmasq "$@"
-    # only restart dnsmasq if add/remove succeeded
-    if [ $? -eq 0 ] && [ "$1" = "add" ] || [ "$1" = "remove" ]; then
+    if ./scripts/set-dnsmasq "$@" && { [ "$1" = "add" ] || [ "$1" = "remove" ]; }; then
       echo "restarting dnsmasq to apply changes"
       if docker ps | grep -q dnsmasq; then
         docker__compose restart dnsmasq

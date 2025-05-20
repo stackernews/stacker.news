@@ -163,14 +163,6 @@ To enable dnsmasq:
     COMPOSE_PROFILES=...,domains,...
     ```
 
-If you're working with custom domains:
-
-- make sure that the following ENV variable is present:
-
-    ```.env.development
-    DOMAINS_DNS_SERVER=172.20.0.2:53 # points to dnsmasq container
-    ```
-
 To add/remove DNS records you can now use `./sndev domains dns`. More on this [here](#add-or-remove-dns-records-in-local).
 
 <br>

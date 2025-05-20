@@ -3,16 +3,6 @@
 
 # prep
 set -e
-INTENT=$1       # add, edit, remove, remove-all, list
-JOB=$2          # job name or jobId
-shift 2
-
-# flags
-STARTAFTER=
-RETRYLIMIT=
-RETRYDELAY=
-RETRYBACKOFF=
-KEEPUNTIL=
 
 # general usage
 usage() {
@@ -50,41 +40,72 @@ EOF
 exit 0
 }
 
-# handle flags with optargs
-while getopts "s:r:d:k:bh" opt; do
-  case "$opt" in
-    s)
-      STARTAFTER=$(date -d "$OPTARG seconds" +"%Y-%m-%d %H:%M:%S.%N")
-      ;;
-    r)
-      RETRYLIMIT=$OPTARG
-      ;;
-    d)
-      RETRYDELAY=$(date -d "$OPTARG seconds" +"%Y-%m-%d %H:%M:%S.%N")
-      ;;
-    b)
-      RETRYBACKOFF=true
-      ;;
-    k)
-      KEEPUNTIL=$(date -d "$OPTARG seconds" +"%Y-%m-%d %H:%M:%S.%N")
-      ;;
-    h)
-      usage
-      exit 0
-      ;;
-    ?)
-      echo "Invalid option: -$OPTARG"
-      usage
-      exit 1
-  esac
-done
+if [ "$1" = "-h" ]; then
+  usage
+  exit 0
+fi
 
-# shift after flags to get data
-shift $((OPTIND-1))
+INTENT=$1       # add, edit, remove, remove-all, list
+if [ -z "$INTENT" ]; then
+  echo "At least a command is required"
+  usage
+  exit 1
+fi
+shift
+
+JOB=$1          # job name or jobId
+if [ -z "$JOB" ]; then
+  echo "At least a job name or job ID is required"
+  usage
+  exit 1
+fi
+shift
+
+# flags
+STARTAFTER=
+RETRYLIMIT=
+RETRYDELAY=
+RETRYBACKOFF=
+KEEPUNTIL=
+
+# handle flags with optargs
+if [[ "$INTENT" == "add" ]] || [[ "$INTENT" == "edit" ]]; then
+  while getopts "s:r:d:k:bh" opt; do
+    case "$opt" in
+      s)
+        STARTAFTER=$(date -d "$OPTARG seconds" +"%Y-%m-%d %H:%M:%S.%N")
+        ;;
+      r)
+        RETRYLIMIT=$OPTARG
+        ;;
+      d)
+        RETRYDELAY=$OPTARG
+        ;;
+      b)
+        RETRYBACKOFF=true
+        ;;
+      k)
+        KEEPUNTIL=$(date -d "$OPTARG seconds" +"%Y-%m-%d %H:%M:%S.%N")
+        ;;
+      h)
+        usage
+        exit 0
+        ;;
+      ?)
+        echo "Invalid option: -$OPTARG"
+        usage
+        exit 1
+    esac
+  done
+  # shift after flags to get data
+  shift $((OPTIND-1))
+fi
+
 DATA=$1         # data
 
 # query/values builder for pgboss
 # with support for multiple flags
+# TODO: more elegant, see edit_job
 build_opts() {
   query=$1
   values=$2
@@ -127,7 +148,6 @@ docker__exec() {
 
 # add a job
 add_job() {
-  shift
   if [ -z "$JOB" ]; then
     echo "At least a job name is required"
     usage
@@ -149,24 +169,36 @@ EOF
 
 # edit a job
 edit_job() {
-  shift
   if [ -z "$JOB" ]; then
     echo "At least a job ID is required"
     usage
     exit 1
   fi
 
-  query="UPDATE pgboss.job"
-  values="SET data = '$DATA'"
-  query=$(build_opts "$query" "$values")
-  query="$query WHERE id = '$JOB';"
+  declare -a flags=()
+  [ ! -z "$DATA" ] && flags+=("data = '$DATA'")
+  [ ! -z "$STARTAFTER" ] && flags+=("startafter = '$STARTAFTER'")
+  [ ! -z "$RETRYLIMIT" ] && flags+=("retrylimit = '$RETRYLIMIT'")
+  [ ! -z "$RETRYDELAY" ] && flags+=("retrydelay = '$RETRYDELAY'")
+  [ ! -z "$RETRYBACKOFF" ] && flags+=("retrybackoff = '$RETRYBACKOFF'")
+  [ ! -z "$KEEPUNTIL" ] && flags+=("keepuntil = '$KEEPUNTIL'")
 
-  job_id=$(docker__exec db psql -U sn -d stackernews -t -q <<EOF
+  if [ ${#flags[@]} -eq 0 ]; then
+    echo "Nothing to update here."
+    usage
+    exit 1
+  fi
+
+  printf -v flags_str "%s," "${flags[@]}"
+  flags_str=${flags_str%,}
+
+  query="UPDATE pgboss.job SET $flags_str WHERE id = '$JOB';"
+
+  docker__exec db psql -U sn -d stackernews -t -q <<EOF
     $query
 EOF
-)
-  echo "Updated job with ID: $job_id"
-  show_job id $job_id
+  echo "Updated job with ID: $JOB"
+  show_job id $JOB
 }
 
 # remove a job
@@ -185,7 +217,6 @@ EOF
 
 # remove all jobs of a given name
 remove_all_jobs() {
-  shift
   if [ -z "$JOB" ]; then
     echo "At least a job name is required"
     usage

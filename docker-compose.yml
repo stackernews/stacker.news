@@ -810,7 +810,7 @@ services:
       TORDIR: "/app/.tor"
     cpu_shares: "${CPU_SHARES_LOW}"
   dnsmasq:
-    image: 4km3/dnsmasq:latest
+    image: 4km3/dnsmasq:2.90-r3
     profiles:
       - domains
     container_name: dnsmasq
@@ -826,7 +826,8 @@ services:
     cpu_shares: "${CPU_SHARES_LOW}"
     networks:
       domains-network:
-        ipv4_address: 172.20.0.2
+        ipv4_address: 172.30.0.2
+
 volumes:
   db:
   os:
@@ -849,4 +850,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/24
+        - subnet: 172.30.0.0/24

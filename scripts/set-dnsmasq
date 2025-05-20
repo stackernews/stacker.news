@@ -1,10 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Script to handle local DNS testing via dnsmasq
 # supports add/remove/list of CNAME and TXT records
 # on dnsmasq config changes it will restart the dnsmasq container
 # it also asks to add the record to the /etc/hosts file if --no-hosts is not used
 
 # prep
+set -e
 DNSMASQ_CONF_PATH="./docker/dnsmasq/dnsmasq.conf"
 INTENT=$1       # add, remove, list
 TYPE=$2         # cname, txt

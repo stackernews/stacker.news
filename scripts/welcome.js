@@ -168,6 +168,7 @@ function printIntro (data) {
   console.log('- How much experience do you have with lightning?')
   console.log('- Have you read the [FAQ](https://stacker.news/faq) already?')
   console.log('- Have you realized that you need to attach a wallet to receive sats?')
+  console.log('- Do you understand the difference between cowboy credits (CCs) and sats?')
   console.log('- How was your first week on SN?\n')
 
   return data

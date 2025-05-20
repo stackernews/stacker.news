@@ -1,7 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Script to handle pgboss jobs
 
 # prep
+set -e
 INTENT=$1       # add, edit, remove, remove-all, list
 JOB=$2          # job name or jobId
 shift 2
@@ -13,12 +14,44 @@ RETRYDELAY=
 RETRYBACKOFF=
 KEEPUNTIL=
 
-# shift after flags to get data
-shift $((OPTIND-1))
-DATA=$3         # data
+# general usage
+usage() {
+  cat <<EOF
+Control pgboss jobs.
+
+USAGE
+  $ sndev pgboss [COMMAND]
+
+COMMANDS
+  add        <name>  [flags] [data]  Add a job
+  edit       <jobId> [flags] [data]  Edit a job
+  remove     <jobId>                 Remove a job
+  remove-all <name>                  Remove all jobs of a given name
+  details    <jobId>                 Show details of a job
+  list       <name>                  List jobs
+
+FLAGS
+  -h                                 Show this help message
+
+FLAGS: add/edit
+  -s                                 Start the job after given SECONDS
+  -r                                 Set the number of retries on thrown errors
+  -d                                 Set the delay between retries in SECONDS
+  -b                                 Enable pgboss exponential backoff between retries
+  -k                                 Keep the job until a given date in SECONDS
+
+EXAMPLES
+  $ sndev pgboss add jobname -s 10 "{\"id\": \"test\"}"
+  $ sndev pgboss edit jobId -s 10 "{\"id\": \"test\"}"
+  $ sndev pgboss remove jobId
+  $ sndev pgboss remove-all jobname
+  $ sndev pgboss list jobname
+EOF
+exit 0
+}
 
 # handle flags with optargs
-while getopts "s:r:d:b:k:" opt; do
+while getopts "s:r:d:k:bh" opt; do
   case "$opt" in
     s)
       STARTAFTER=$(date -d "$OPTARG seconds" +"%Y-%m-%d %H:%M:%S.%N")
@@ -46,66 +79,15 @@ while getopts "s:r:d:b:k:" opt; do
   esac
 done
 
-# general usage
-usage() {
-  cat <<EOF
-Control pgboss jobs.
+# shift after flags to get data
+shift $((OPTIND-1))
+DATA=$1         # data
 
-USAGE
-  $ sndev pgboss [COMMAND]
-
-COMMANDS
-  add        <name>  [flags] [data]  Add a job
-  edit       <jobId> [flags] [data]  Edit a job
-  remove     <jobId>                 Remove a job
-  remove-all <name>                  Remove all jobs of a given name
-  details    <jobId>                 Show details of a job
-  list       <name>                  List jobs
-
-FLAGS
-  -h|--help                          Show this help message
-
-FLAGS: add/edit
-  -s|--startafter                    Start the job after given SECONDS
-  -r|--retrylimit                    Set the number of retries on thrown errors
-  -d|--retrydelay                    Set the delay between retries in SECONDS
-  -b|--retrybackoff                  Enable pgboss exponential backoff between retries
-  -k|--keepuntil                     Keep the job until a given date in SECONDS
-
-EXAMPLES
-  $ sndev pgboss add jobname "{\"id\": \"test\"}"
-  $ sndev pgboss edit jobId "{\"id\": \"test\"}"
-  $ sndev pgboss remove jobId
-  $ sndev pgboss remove-all jobname
-  $ sndev pgboss list jobname
-EOF
-exit 0
-}
-
-docker__exec() {
-  if [ ! -x "$(command -v docker)" ]; then
-    echo "docker is not installed"
-    echo "installation instructions are here: https://docs.docker.com/desktop/"
-    exit 0
-  fi
-
-  DOCKER_CLI_HINTS=false command docker exec -i "$@"
-}
-
-# TODO: add a function to check if correct args are passed
-
-add_job() {
-  shift
-  if [ -z "$JOB" ]; then
-    echo "At least a job name is required"
-    usage
-    exit 1
-  fi
-
-  # Build query dynamically based on present values
-  query="INSERT INTO pgboss.job (name"
-  values="VALUES ('$JOB'"
-
+# query/values builder for pgboss
+# with support for multiple flags
+build_opts() {
+  query=$1
+  values=$2
   if [ ! -z "$DATA" ]; then
     query="$query, data"
     values="$values, '$DATA'"
@@ -130,23 +112,42 @@ add_job() {
     query="$query, keepuntil"
     values="$values, '$KEEPUNTIL'"
   fi
+  echo "$query) $values)"
+}
 
-  query="$query) $values) RETURNING id;"
+docker__exec() {
+  if [ ! -x "$(command -v docker)" ]; then
+    echo "docker is not installed"
+    echo "installation instructions are here: https://docs.docker.com/desktop/"
+    exit 0
+  fi
+
+  DOCKER_CLI_HINTS=false command docker exec -i "$@"
+}
+
+# add a job
+add_job() {
+  shift
+  if [ -z "$JOB" ]; then
+    echo "At least a job name is required"
+    usage
+    exit 1
+  fi
+
+  query="INSERT INTO pgboss.job (name"
+  values="VALUES ('$JOB'"
+  query=$(build_opts "$query" "$values")
+  query="$query RETURNING id;"
 
   job_id=$(docker__exec db psql -U sn -d stackernews -t -q <<EOF
     $query
 EOF
 )
   echo "Created job with ID: $job_id"
-  echo "Job name: $JOB"
-  [ ! -z "$DATA" ] && echo "Data: $DATA"
-  [ ! -z "$STARTAFTER" ] && echo "Start after: $STARTAFTER" 
-  [ ! -z "$RETRYLIMIT" ] && echo "Retry limit: $RETRYLIMIT"
-  [ ! -z "$RETRYDELAY" ] && echo "Retry delay: $RETRYDELAY"
-  [ ! -z "$RETRYBACKOFF" ] && echo "Retry backoff: $RETRYBACKOFF"
-  [ ! -z "$KEEPUNTIL" ] && echo "Keep until: $KEEPUNTIL"
+  show_job id $job_id
 }
 
+# edit a job
 edit_job() {
   shift
   if [ -z "$JOB" ]; then
@@ -154,25 +155,21 @@ edit_job() {
     usage
     exit 1
   fi
-  docker__exec db psql -U sn -d stackernews -q <<EOF
-    UPDATE pgboss.job
-    SET data = '$DATA',
-        startafter = '$STARTAFTER',
-        retrylimit = '$RETRYLIMIT',
-        retrydelay = '$RETRYDELAY',
-        retrybackoff = '$RETRYBACKOFF',
-        keepuntil = '$KEEPUNTIL'
-    WHERE id = '$JOB';
+
+  query="UPDATE pgboss.job"
+  values="SET data = '$DATA'"
+  query=$(build_opts "$query" "$values")
+  query="$query WHERE id = '$JOB';"
+
+  job_id=$(docker__exec db psql -U sn -d stackernews -t -q <<EOF
+    $query
 EOF
-  echo "Updated job with ID: $JOB"
-  echo "Job name: $JOB"
-  echo "Data: $DATA"
-  echo "Start after: $STARTAFTER"
-  echo "Retry limit: $RETRYLIMIT"
-  echo "Retry delay: $RETRYDELAY"
-  echo "Retry backoff: $RETRYBACKOFF"
+)
+  echo "Updated job with ID: $job_id"
+  show_job id $job_id
 }
 
+# remove a job
 remove_job() {
   shift
   if [ -z "$JOB" ]; then
@@ -186,6 +183,7 @@ EOF
   echo "Deleted job with ID: $JOB"
 }
 
+# remove all jobs of a given name
 remove_all_jobs() {
   shift
   if [ -z "$JOB" ]; then
@@ -199,6 +197,7 @@ EOF
   echo "Deleted all jobs with name: $JOB"
 }
 
+# command to show details of a job
 details_job() {
   shift
   if [ -z "$JOB" ]; then
@@ -209,6 +208,7 @@ details_job() {
   show_job id $JOB
 }
 
+# list jobs of a given name
 list_jobs() {
   shift
   if [ -z "$JOB" ]; then
@@ -220,6 +220,7 @@ list_jobs() {
   show_job name $JOB "ORDER BY createdon DESC LIMIT 10"
 }
 
+# function to show details of a job
 show_job() {
   TYPE=$1 # name or id
   SEARCH=$2 # job name or job id

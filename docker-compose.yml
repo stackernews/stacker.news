@@ -119,6 +119,9 @@ services:
     command:
       - npm run worker:dev
     cpu_shares: "${CPU_SHARES_IMPORTANT}"
+    networks:
+      - default
+      - domains-network
   imgproxy:
     container_name: imgproxy
     image: darthsim/imgproxy:v3.23.0
@@ -806,6 +809,28 @@ services:
       CONNECT: "localhost:${LNBITS_WEB_PORT}"
       TORDIR: "/app/.tor"
     cpu_shares: "${CPU_SHARES_LOW}"
+  dnsmasq:
+    image: 4km3/dnsmasq:2.90-r3
+    profiles:
+      - domains
+    container_name: dnsmasq
+    restart: unless-stopped
+    ports:
+      - "5353:53/tcp"
+      - "5353:53/udp"
+    command:
+      - --no-daemon
+      - --address=/.sndev/127.0.0.1
+      - --conf-file=/etc/dnsmasq.conf
+      - --conf-dir=/etc/dnsmasq.d
+    volumes:
+      - ./docker/dnsmasq/dnsmasq.conf:/etc/dnsmasq.conf
+      - ./docker/dnsmasq/dnsmasq.d:/etc/dnsmasq.d
+    cpu_shares: "${CPU_SHARES_LOW}"
+    networks:
+      domains-network:
+        ipv4_address: 172.30.0.2
+
 volumes:
   db:
   os:
@@ -819,3 +844,13 @@ volumes:
   nwc_recv:
   tordata:
   eclair:
+  dnsmasq:
+
+networks:
+  default: {}
+  domains-network:
+    name: domains-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24

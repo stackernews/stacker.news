@@ -21,10 +21,9 @@ import { finalizeHodlInvoice } from '@/worker/wallet'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets, getOurPubkey } from '../lnd'
-import { canReceive, getWalletByType } from '@/wallets/common'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
-import { deleteVault, hasVault } from '@/wallets/vault'
+import { logContextFromBolt11 } from '@/wallets/server/logger'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -164,6 +163,10 @@ const resolvers = {
       })
 
       return [...userWallets, ...walletTemplates]
+    },
+    wallet: async (parent, { name }, { me, models }) => {
+      const template = await models.walletTemplate.findFirst({ where: { name } })
+      return { ...template, __resolveType: 'WalletTemplate' }
     },
     withdrawl: getWithdrawl,
     direct: async (parent, { id }, { me, models }) => {
@@ -579,25 +582,7 @@ const resolvers = {
         throw new GqlAuthenticationError()
       }
 
-      // TODO(wallet-v2): use UserWallet instead of Wallet table
-      const wallet = await models.wallet.findUnique({ where: { userId: me.id, id: Number(id) } })
-      if (!wallet) {
-        throw new GqlInputError('wallet not found')
-      }
-
-      const logger = walletLogger({ wallet, models })
-
-      await models.$transaction([
-        hasVault(wallet) ? deleteVault(models, wallet) : null,
-        // TODO(wallet-v2): use UserWallet instead of Wallet table
-        models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
-      ].filter(Boolean))
-
-      if (canReceive({ def: getWalletByType(wallet.type), config: wallet.wallet })) {
-        logger.info('details for receiving deleted')
-      }
-
-      return true
+      // TODO(wallet-v2): implement this
     },
     deleteWalletLogs: async (parent, { wallet }, { me, models }) => {
       if (!me) {
@@ -775,67 +760,6 @@ const resolvers = {
 
 // TODO(wallet-v2): implement wallet resolvers
 export default resolvers
-
-const logContextFromBolt11 = async (bolt11) => {
-  const decoded = await parsePaymentRequest({ request: bolt11 })
-  return {
-    bolt11,
-    amount: formatMsats(decoded.mtokens),
-    payment_hash: decoded.id,
-    created_at: decoded.created_at,
-    expires_at: decoded.expires_at,
-    description: decoded.description
-  }
-}
-
-export const walletLogger = ({ wallet, models, me }) => {
-  // no-op logger if no wallet or user provided
-  if (!wallet && !me) {
-    return {
-      ok: () => {},
-      info: () => {},
-      error: () => {},
-      warn: () => {}
-    }
-  }
-
-  // server implementation of wallet logger interface on client
-  const log = (level) => async (message, ctx = {}) => {
-    try {
-      let { invoiceId, withdrawalId, ...context } = ctx
-
-      if (context.bolt11) {
-        // automatically populate context from bolt11 to avoid duplicating this code
-        context = {
-          ...context,
-          ...await logContextFromBolt11(context.bolt11)
-        }
-      }
-
-      await models.walletLog.create({
-        data: {
-          userId: wallet?.userId ?? me.id,
-          // system logs have no wallet
-          wallet: wallet?.type,
-          level,
-          message,
-          context,
-          invoiceId,
-          withdrawalId
-        }
-      })
-    } catch (err) {
-      console.error('error creating wallet log:', err)
-    }
-  }
-
-  return {
-    ok: (message, context) => log('SUCCESS')(message, context),
-    info: (message, context) => log('INFO')(message, context),
-    error: (message, context) => log('ERROR')(message, context),
-    warn: (message, context) => log('WARN')(message, context)
-  }
-}
 
 export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, wallet, logger }) {
   assertApiKeyNotPermitted({ me })

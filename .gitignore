@@ -71,3 +71,6 @@ scripts/twitter-links.db
 
 # pay-awards
 scripts/pay-awards.config.json
+
+# dnsmasq
+docker/dnsmasq/dnsmasq.conf

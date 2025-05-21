@@ -6,7 +6,12 @@
 
 # prep
 set -e
+# if the config file doesn't exist, use the default config
 DNSMASQ_CONF_PATH="./docker/dnsmasq/dnsmasq.conf"
+if [ ! -f "$DNSMASQ_CONF_PATH" ] || [ ! -s "$DNSMASQ_CONF_PATH" ]; then
+  cp ./docker/dnsmasq/dnsmasq.default.conf "$DNSMASQ_CONF_PATH"
+fi
+
 INTENT=$1       # add, remove, list
 TYPE=$2         # cname, txt
 NAME=$3         # www.pizza.com

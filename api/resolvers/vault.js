@@ -1,23 +1,9 @@
 import { E_VAULT_KEY_EXISTS, GqlAuthenticationError, GqlInputError } from '@/lib/error'
-import { getWalletByType } from '@/wallets/common'
-import { deleteVault, hasVault, vaultNewSchematoTypedef, vaultPrismaFragments } from '@/wallets/vault'
 
 export default {
   Query: {
     getVaultEntries: async (parent, args, { me, models }) => {
-      if (!me) throw new GqlAuthenticationError()
-
-      const wallets = await models.wallet.findMany({
-        where: { userId: me.id },
-        include: vaultPrismaFragments.include()
-      })
-
-      const vaultEntries = []
-      for (const wallet of wallets) {
-        vaultEntries.push(...vaultNewSchematoTypedef(wallet).vaultEntries)
-      }
-
-      return vaultEntries
+      // TODO(wallet-v2): this is probably not needed anymore
     }
   },
   Mutation: {
@@ -36,19 +22,10 @@ export default {
 
       return await models.$transaction(async tx => {
         // TODO(wallet-v2): use UserWallet instead of Wallet table
-        const wallets = await tx.wallet.findMany({ where: { userId: me.id } })
-        for (const wallet of wallets) {
-          const def = getWalletByType(wallet.type)
-          // TODO(wallet-v2): use UserWallet instead of Wallet table
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data: {
-              [def.walletField]: {
-                update: vaultPrismaFragments.upsert({ ...wallet, vaultEntries: entries })
-              }
-            }
-          })
-        }
+        // const wallets = await tx.wallet.findMany({ where: { userId: me.id } })
+        // TODO(wallet-v2): implement this
+        // for (const wallet of wallets) {
+        // }
 
         // optimistic concurrency control: make sure the user's vault key didn't change while we were updating the wallets
         await tx.user.update({
@@ -68,8 +45,8 @@ export default {
       }))
 
       // TODO(wallet-v2): use UserWallet instead of Wallet table
-      const wallets = await models.wallet.findMany({ where: { userId: me.id } })
-      txs.push(...wallets.filter(hasVault).map(wallet => deleteVault(models, wallet)))
+      // const wallets = await models.wallet.findMany({ where: { userId: me.id } })
+      // txs.push(...wallets.filter(hasVault).map(wallet => deleteVault(models, wallet)))
 
       await models.$transaction(txs)
       return true

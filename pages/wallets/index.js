@@ -1,10 +1,10 @@
 import { Fragment } from 'react'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Button } from 'react-bootstrap'
-import { FIRST_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch } from '@/wallets/provider'
-import WalletLayout, { WalletLayoutHeader, WalletLayoutImageOrName, WalletLayoutLink, WalletLayoutSubHeader } from '@/components/wallet/layout'
+import { FIRST_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch } from '@/wallets/client/context'
+import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
 import { useRouter } from 'next/router'
-import { walletNameToUrlName } from '@/wallets/json'
+import { urlify } from '@/wallets/client/util'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -66,7 +66,7 @@ function WalletButtons ({ wallet }) {
     // TODO(wallet-v2): implement wallet forms
     // if it's a UserWallet, we need to go to /wallets/:id to edit the wallet
     // if it's a WalletTemplate, we need to go to /wallets/:name to create a new wallet
-    router.push(`/wallets/${walletNameToUrlName(wallet.name)}`)
+    router.push(`/wallets/${urlify(wallet.name)}`)
   }
 
   // TODO(wallet-v2): add context menu to create a new wallet from a template

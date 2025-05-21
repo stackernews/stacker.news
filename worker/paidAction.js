@@ -10,7 +10,7 @@ import {
   getInvoice, parsePaymentRequest,
   payViaPaymentRequest, settleHodlInvoice
 } from 'ln-service'
-import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/wrap'
+import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/server/wrap'
 
 // aggressive finalization retry options
 const FINALIZE_OPTIONS = { retryLimit: 2 ** 31 - 1, retryBackoff: false, retryDelay: 5, priority: 1000 }

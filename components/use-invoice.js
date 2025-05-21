@@ -1,6 +1,6 @@
 import { useApolloClient, useMutation } from '@apollo/client'
 import { useCallback, useMemo } from 'react'
-import { InvoiceCanceledError, InvoiceExpiredError, WalletReceiverError } from '@/wallets/errors'
+import { InvoiceCanceledError, InvoiceExpiredError, WalletReceiverError } from '@/wallets/client/errors'
 import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
 import { INVOICE, CANCEL_INVOICE } from '@/fragments/wallet'
 

@@ -1,8 +1,0 @@
-{
-    "name": "CLN",
-    "displayName": "Core Lightning",
-    "image": {
-        "src": "/wallets/cln.svg",
-        "alt": "Core Lightning"
-    }
-}

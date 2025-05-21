@@ -1,3 +1,5 @@
+/* TODO(wallet-v2): a lot in this file is probably not used anymore and can be removed */
+
 .walletGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -149,4 +151,21 @@
 
 .separator:not(:empty)::after {
   margin-left: .25em;
+}
+
+/* TODO(wallet-v2): this is (mostly) copied from settings.module.css */
+
+:is(.nav, .subNav) {
+  margin: 1rem 0;
+  justify-content: center;
+  font-size: 110%;
+  gap: 0 0.5rem;
+}
+
+:is(.nav, .subNav) :global .active {
+  border-bottom: 2px solid var(--bs-primary);
+}
+
+.subNav {
+  font-size: 100%;
 }

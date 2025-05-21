@@ -13,7 +13,7 @@ import { usePaidMutation } from './use-paid-mutation'
 import { ACT_MUTATION } from '@/fragments/paidAction'
 import { meAnonSats } from '@/lib/apollo'
 import { BoostItemInput } from './adv-post-form'
-import { useSendWallets } from '@/wallets/index'
+import { useSendWallets } from '@/wallets/client/hooks'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 

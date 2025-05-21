@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # Script to handle local DNS testing via dnsmasq
 # supports add/remove/list of CNAME and TXT records
 # on dnsmasq config changes it will restart the dnsmasq container
@@ -6,11 +6,11 @@
 
 # prep
 set -e
-# if the config file doesn't exist, use the default config
-DNSMASQ_CONF_PATH="./docker/dnsmasq/dnsmasq.conf"
-if [ ! -f "$DNSMASQ_CONF_PATH" ] || [ ! -s "$DNSMASQ_CONF_PATH" ]; then
-  cp ./docker/dnsmasq/dnsmasq.default.conf "$DNSMASQ_CONF_PATH"
-fi
+
+# ensure directory exists before using the file
+mkdir -p ./docker/dnsmasq/dnsmasq.d
+# dedicated sndev.conf file
+DNSMASQ_CONF_PATH="./docker/dnsmasq/dnsmasq.d/sndev.conf"
 
 INTENT=$1       # add, remove, list
 TYPE=$2         # cname, txt
@@ -21,9 +21,11 @@ NO_HOSTS=false  # handled via --no-hosts flag
 # check if running on Windows
 # this script doesn't support Windows /etc/hosts editing
 IS_WINDOWS=false
-if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then
-  IS_WINDOWS=true
-fi
+case "$OSTYPE" in
+  msys|cygwin|win32)
+    IS_WINDOWS=true
+    ;;
+esac
 
 # handle flags
 while [ $# -gt 0 ]; do
@@ -68,14 +70,8 @@ EOF
 exit 1
 }
 
-# stop if dnsmasq config file is not found
-if [ ! -f "$DNSMASQ_CONF_PATH" ]; then
-  echo "error: dnsmasq config file not found at $DNSMASQ_CONF_PATH"
-  exit 1
-fi
-
 # if we're adding or removing a record, we need to check for required args
-if [ "$INTENT" == "add" ] || [ "$INTENT" == "remove" ]; then
+if [ "$INTENT" = "add" ] || [ "$INTENT" = "remove" ]; then
     if [ $# -lt 4 ]; then
         usage
     fi
@@ -88,7 +84,8 @@ fi
 if [ "$TYPE" = "cname" ]; then
   LINE="cname=${NAME},${VALUE}"
 elif [ "$TYPE" = "txt" ]; then
-  LINE="txt-record=${NAME},\"${VALUE//\"/\\\"}\""
+  escaped_quotes=$(printf '%s' "$VALUE" | sed 's/"/\\"/g')
+  LINE="txt-record=${NAME},\"${escaped_quotes}\""
 else
   echo "Invalid record type: $TYPE"
   usage
@@ -109,24 +106,27 @@ add_record() {
 
   # add the record to the dnsmasq config
   echo "Adding record: $LINE"
-  echo -e "\n$LINE" >> "$DNSMASQ_CONF_PATH"
+  printf "%s\n" "$LINE" >> "$DNSMASQ_CONF_PATH"
 
   # if we're adding a CNAME record and --no-hosts is not used, we need to ask to add the record to the /etc/hosts file
   if [ "$TYPE" = "cname" ] && [ "$NO_HOSTS" = false ]; then
     # dnsmasq pamphlet 
-    echo -e "
+    printf "
     While sndev will use dnsmasq DNS server, your system won't use it by default.
     You can either manually point DNS to 127.0.0.1:5353 to access it system-wide,
-    or add this record to /etc/hosts to access it via browser.
-    "
+    or add this record to /etc/hosts to access it via browser.\n\n"
+    
     # ask to add the record to the /etc/hosts file
-    read -r -p "[sudo] Do you want to add '127.0.0.1 $NAME' to /etc/hosts? [y/N] " response
-    if [[ "$response" =~ ^[Yy]$ ]]; then
-      # add the record to the /etc/hosts file
-      if ! add_record_to_hosts "$NAME"; then
-        echo "/etc/hosts hasn't been touched."
-      fi
-    fi
+    printf "[sudo] Do you want to add '127.0.0.1 %s' to /etc/hosts? [y/N] " "$NAME"
+    read -r response
+    case "$response" in
+      [Yy]*)
+        # add the record to the /etc/hosts file
+        if ! add_record_to_hosts "$NAME"; then
+          echo "/etc/hosts hasn't been touched."
+        fi
+        ;;
+    esac
   fi
   echo "Done."
   exit 0
@@ -149,13 +149,16 @@ remove_record() {
   # if we're removing a CNAME record and --no-hosts is not used, we need to ask to remove the record from the /etc/hosts file
   if [ "$TYPE" = "cname" ] && [ "$NO_HOSTS" = false ]; then
     # ask to remove the record from the /etc/hosts file
-    read -r -p "[sudo] Do you want to remove this record from /etc/hosts? [y/N] " response
-    if [[ "$response" =~ ^[Yy]$ ]]; then
-      # remove the record from the /etc/hosts file
-      if ! remove_record_from_hosts "$NAME"; then
-        echo "/etc/hosts hasn't been touched."
-      fi
-    fi
+    printf "[sudo] Do you want to remove this record from /etc/hosts? [y/N] "
+    read -r response
+    case "$response" in
+      [Yy]*)
+        # remove the record from the /etc/hosts file
+        if ! remove_record_from_hosts "$NAME"; then
+          echo "/etc/hosts hasn't been touched."
+        fi
+        ;;
+    esac
   fi
   echo "Done."
   exit 0
@@ -168,7 +171,7 @@ list_records() {
 
 # add a record to the /etc/hosts file
 add_record_to_hosts() {
-  local domain="$1"
+  domain="$1"
   
   # this script doesn't support Windows /etc/hosts editing
   if [ "$IS_WINDOWS" = true ]; then
@@ -195,7 +198,7 @@ add_record_to_hosts() {
 }
 
 remove_record_from_hosts() {
-  local domain="$1"
+  domain="$1"
   
   # this script doesn't support Windows /etc/hosts editing
   if [ "$IS_WINDOWS" = true ]; then
@@ -222,7 +225,7 @@ remove_record_from_hosts() {
 
 # check if a record exists in the /etc/hosts file
 check_record_hosts_exists() {
-  local domain="$1"
+  domain="$1"
   
   # grep for the record
   if grep -Fxq "127.0.0.1 $domain" "/etc/hosts"; then

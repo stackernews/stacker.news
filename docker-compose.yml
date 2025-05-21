@@ -821,8 +821,11 @@ services:
     command:
       - --no-daemon
       - --address=/.sndev/127.0.0.1
+      - --conf-file=/etc/dnsmasq.conf
+      - --conf-dir=/etc/dnsmasq.d
     volumes:
       - ./docker/dnsmasq/dnsmasq.conf:/etc/dnsmasq.conf
+      - ./docker/dnsmasq/dnsmasq.d:/etc/dnsmasq.d
     cpu_shares: "${CPU_SHARES_LOW}"
     networks:
       domains-network:

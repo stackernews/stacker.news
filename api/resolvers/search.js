@@ -283,25 +283,23 @@ export default {
 
       // if quoted phrases, items must contain entire phrase
       for (const quote of quotes) {
-        termQueries.push({
-          multi_match: {
-            query: quote,
-            type: 'phrase',
-            fields: ['title', 'text']
-          }
-        })
-
-        // force the search to include the quoted phrase
         filters.push({
           multi_match: {
             query: quote,
+            fields: ['title.exact', 'text.exact'],
+            type: 'phrase'
+          }
+        })
+        termQueries.push({
+          multi_match: {
+            query: quote,
+            fields: ['title.exact^10', 'text.exact'],
             type: 'phrase',
-            fields: ['title', 'text']
+            boost: 1000
           }
         })
       }
 
-      // functions for boosting search rank by recency or popularity
       switch (sort) {
         case 'comments':
           functions.push({
@@ -389,6 +387,24 @@ export default {
               fields: ['title^10', 'text'],
               boost: 1000
             }
+          },
+          // match on exact fields higher
+          {
+            multi_match: {
+              query,
+              type: 'best_fields',
+              fields: ['title.exact^10', 'text.exact'],
+              boost: 100
+            }
+          },
+          // exact phrase matches higher
+          {
+            multi_match: {
+              query,
+              fields: ['title.exact^10', 'text.exact'],
+              type: 'phrase',
+              boost: 10000
+            }
           }
         ]
 
@@ -452,7 +468,9 @@ export default {
             highlight: {
               fields: {
                 title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
-                text: { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] }
+                'title.exact': { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
+                text: { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] },
+                'text.exact': { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] }
               }
             }
           }
@@ -487,8 +505,14 @@ export default {
         orderBy: 'ORDER BY rank ASC, msats DESC'
       })).map((item, i) => {
         const e = sitems.body.hits.hits[i]
-        item.searchTitle = (e.highlight?.title && e.highlight.title[0]) || item.title
-        item.searchText = (e.highlight?.text && e.highlight.text.join(' ... ')) || undefined
+
+        // prefer the fuzzier highlight for title
+        item.searchTitle = e.highlight?.title?.[0] || e.highlight?.['title.exact']?.[0] || item.title
+
+        // prefer the exact highlight for text
+        const searchTextHighlight = [...(e.highlight?.['text.exact'] || []), ...(e.highlight?.text || [])]
+        item.searchText = searchTextHighlight?.slice(0, 5)?.join(' ... ')
+
         return item
       })
 

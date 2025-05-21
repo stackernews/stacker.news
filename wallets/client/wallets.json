@@ -1,0 +1,42 @@
+[
+    {
+        "name": "BLINK",
+        "displayName": "Blink", 
+        "image": {
+            "src": "/wallets/blink.svg",
+            "alt": "Blink"
+        }
+    },
+    {
+        "name": "CLN",
+        "displayName": "Core Lightning",
+        "image": {
+            "src": "/wallets/cln.svg", 
+            "alt": "Core Lightning"
+        }
+    },
+    {
+        "name": "LNBITS",
+        "displayName": "LNbits",
+        "image": {
+            "src": "/wallets/lnbits.svg",
+            "alt": "LNbits"
+        }
+    },
+    {
+        "name": "LND", 
+        "displayName": "Lightning Network Daemon",
+        "image": {
+            "src": "/wallets/lnd.png",
+            "alt": "LND"
+        }
+    },
+    {
+        "name": "PHOENIXD",
+        "displayName": "Phoenixd",
+        "image": {
+            "src": "/wallets/phoenixd.png",
+            "alt": "Phoenixd"
+        }
+    }
+]

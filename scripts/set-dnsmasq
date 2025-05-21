@@ -12,12 +12,19 @@ mkdir -p ./docker/dnsmasq/dnsmasq.d
 # dedicated sndev.conf file
 DNSMASQ_CONF_PATH="./docker/dnsmasq/dnsmasq.d/sndev.conf"
 
-# check if running on Windows
+# check if running on Windows or macOS
 # this script doesn't support Windows /etc/hosts editing
+# sed -i has different syntax on macOS/BSD and Linux
 IS_WINDOWS=false
-case "$OSTYPE" in
-  msys|cygwin|win32)
+IS_DARWIN=false
+
+OS_NAME=$(uname -s)
+case "$OS_NAME" in
+  MINGW*|CYGWIN*|MSYS*)
     IS_WINDOWS=true
+    ;;
+  Darwin*)
+    IS_DARWIN=true
     ;;
 esac
 
@@ -146,7 +153,11 @@ remove_record() {
 
   # remove the record from the dnsmasq config
   echo "Removing record: $LINE"
-  sed -i "/^$LINE$/d" "$DNSMASQ_CONF_PATH"
+  if [ "$IS_DARWIN" = true ]; then
+    sed -i '' "/^$LINE$/d" "$DNSMASQ_CONF_PATH"
+  else
+    sed -i "/^$LINE$/d" "$DNSMASQ_CONF_PATH"
+  fi
 
   # if we're removing a CNAME record and --no-hosts is not used, we need to ask to remove the record from the /etc/hosts file
   if [ "$TYPE" = "cname" ] && [ "$NO_HOSTS" = false ]; then
@@ -220,9 +231,16 @@ remove_record_from_hosts() {
   # remove the record from the /etc/hosts file
   echo "Removing record from /etc/hosts: $domain"
   echo "This operation will require sudo privileges"
-  if ! sudo sed -i "/^127.0.0.1 $domain$/d" "/etc/hosts" 2>/dev/null; then
-    echo "Failed to remove record from /etc/hosts."
-    return 1
+  if [ "$IS_DARWIN" = true ]; then
+    if ! sudo sed -i '' "/^127.0.0.1 $domain$/d" "/etc/hosts" 2>/dev/null; then
+      echo "Failed to remove record from /etc/hosts."
+      return 1
+    fi
+  else
+    if ! sudo sed -i "/^127.0.0.1 $domain$/d" "/etc/hosts" 2>/dev/null; then
+      echo "Failed to remove record from /etc/hosts."
+      return 1
+    fi
   fi
   echo "$domain removed from /etc/hosts."
   return 0

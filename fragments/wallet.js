@@ -154,6 +154,15 @@ export const WALLETS = gql`
   }
 `
 
+export const WALLET = gql`
+  ${WALLET_OR_TEMPLATE_FIELDS}
+  query Wallet($name: String!) {
+    wallet(name: $name) {
+      ...WalletOrTemplateFields
+    }
+  }
+`
+
 export const INVOICE_FIELDS = gql`
   fragment InvoiceFields on Invoice {
     id

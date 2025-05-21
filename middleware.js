@@ -176,8 +176,10 @@ export async function middleware (request) {
   // if we're on a custom domain, handle it
   const domain = request.headers.get('x-forwarded-host') || request.headers.get('host')
   if (domain !== SN_MAIN_DOMAIN?.host) { // we don't need middleware to fail if dev messes up ENVs
+    // in development we might have a port in the domain
+    const domainToMap = process.env.NODE_ENV === 'development' ? domain.split(':')[0] : domain
     // check if we have a mapping for this domain
-    const subName = await getDomainMapping(domain)
+    const subName = await getDomainMapping(domainToMap)
     if (subName) {
       console.log('[domains] allowed custom domain', domain, 'detected, pointing to', subName) // TEST
       const resp = await customDomainMiddleware(request, referrerResp, domain, subName)

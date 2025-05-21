@@ -12,12 +12,6 @@ mkdir -p ./docker/dnsmasq/dnsmasq.d
 # dedicated sndev.conf file
 DNSMASQ_CONF_PATH="./docker/dnsmasq/dnsmasq.d/sndev.conf"
 
-INTENT=$1       # add, remove, list
-TYPE=$2         # cname, txt
-NAME=$3         # www.pizza.com
-VALUE=$4        # stacker.news or "7vfyvQO...vMALqvqkTQ="
-NO_HOSTS=false  # handled via --no-hosts flag
-
 # check if running on Windows
 # this script doesn't support Windows /etc/hosts editing
 IS_WINDOWS=false
@@ -26,23 +20,6 @@ case "$OSTYPE" in
     IS_WINDOWS=true
     ;;
 esac
-
-# handle flags
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --no-hosts)
-      NO_HOSTS=true
-      shift
-    ;;
-    -h|--help)
-      usage
-      exit 0
-    ;;
-    *)
-      break
-    ;;
-  esac
-done
 
 # general usage
 usage() {
@@ -70,6 +47,28 @@ EOF
 exit 1
 }
 
+# handle flags
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --no-hosts)
+      NO_HOSTS=true
+      shift
+    ;;
+    -h|--help)
+      usage
+    ;;
+    *)
+      break
+    ;;
+  esac
+done
+
+INTENT=$1       # add, remove, list
+TYPE=$2         # cname, txt
+NAME=$3         # www.pizza.com
+VALUE=$4        # stacker.news or "7vfyvQO...vMALqvqkTQ="
+NO_HOSTS=false  # handled via --no-hosts flag
+
 # if we're adding or removing a record, we need to check for required args
 if [ "$INTENT" = "add" ] || [ "$INTENT" = "remove" ]; then
     if [ $# -lt 4 ]; then
@@ -78,6 +77,13 @@ if [ "$INTENT" = "add" ] || [ "$INTENT" = "remove" ]; then
 # if we're listing records, we need to have at least the TYPE arg
 elif [ $# -lt 2 ]; then
     usage
+fi
+
+# we need to get the --no-hosts flag if it's present
+shift 4
+if [ "$1" = "--no-hosts" ]; then
+    NO_HOSTS=true
+    shift
 fi
 
 # creates a line compatible with dnsmasq config file

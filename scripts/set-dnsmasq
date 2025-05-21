@@ -50,10 +50,6 @@ exit 1
 # handle flags
 while [ $# -gt 0 ]; do
   case "$1" in
-    --no-hosts)
-      NO_HOSTS=true
-      shift
-    ;;
     -h|--help)
       usage
     ;;
@@ -69,37 +65,37 @@ NAME=$3         # www.pizza.com
 VALUE=$4        # stacker.news or "7vfyvQO...vMALqvqkTQ="
 NO_HOSTS=false  # handled via --no-hosts flag
 
+# creates a line compatible with dnsmasq config file
+prepare_line() {
+  if [ "$TYPE" = "cname" ]; then
+    LINE="cname=${NAME},${VALUE}"
+  elif [ "$TYPE" = "txt" ]; then
+    escaped_quotes=$(printf '%s' "$VALUE" | sed 's/"/\\"/g')
+    LINE="txt-record=${NAME},\"${escaped_quotes}\""
+  else
+    echo "Invalid record type: $TYPE"
+    usage
+  fi
+}
+
 # if we're adding or removing a record, we need to check for required args
 if [ "$INTENT" = "add" ] || [ "$INTENT" = "remove" ]; then
     if [ $# -lt 4 ]; then
+        echo "Not enough arguments"
         usage
+    else
+        prepare_line # prepare the line for the dnsmasq config file
+        shift 4 # 4 args: intent, type, name, value
+        # we need to get the --no-hosts flag if it's present
+        if [ "$1" = "--no-hosts" ]; then
+            NO_HOSTS=true
+            shift
+        fi
     fi
 # if we're listing records, we need to have at least the TYPE arg
-elif [ $# -lt 2 ]; then
+elif [ "$INTENT" = "list" ] && [ $# -lt 2 ]; then
+    echo "No type provided"
     usage
-fi
-
-# we need to get the --no-hosts flag if it's present
-shift 4
-if [ "$1" = "--no-hosts" ]; then
-    NO_HOSTS=true
-    shift
-fi
-
-# creates a line compatible with dnsmasq config file
-if [ "$TYPE" = "cname" ]; then
-  LINE="cname=${NAME},${VALUE}"
-elif [ "$TYPE" = "txt" ]; then
-  escaped_quotes=$(printf '%s' "$VALUE" | sed 's/"/\\"/g')
-  LINE="txt-record=${NAME},\"${escaped_quotes}\""
-else
-  echo "Invalid record type: $TYPE"
-  usage
-fi
-
-# adjust TXT TYPE for dnsmasq
-if [ "$TYPE" = "txt" ]; then
-  TYPE="txt-record"
 fi
 
 # add a record to the dnsmasq config
@@ -172,6 +168,9 @@ remove_record() {
 
 # list all records of a given type
 list_records() {
+  if [ "$TYPE" = "txt" ]; then
+    TYPE="txt-record"
+  fi
   grep "^$TYPE=" "$DNSMASQ_CONF_PATH" || echo "No $TYPE records found."
 }
 

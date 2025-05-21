@@ -650,7 +650,7 @@ export default {
         query: `
           ${SELECT}
           FROM "Item"
-          WHERE url ~* $1
+          WHERE url ~* $1 AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID')
           ORDER BY created_at DESC
           LIMIT 3`
       }, similar)

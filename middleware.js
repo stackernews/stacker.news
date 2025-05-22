@@ -15,34 +15,52 @@ const SN_REFEREE_LANDING = 'sn_referee_landing'
 // main domain
 const SN_MAIN_DOMAIN = new URL(process.env.NEXT_PUBLIC_URL)
 // territory paths that needs to be rewritten to ~subname
-// const SN_TERRITORY_PATHS = ['~', 'recent', 'top', 'post', 'edit']
+const SN_TERRITORY_PATHS = ['/~', '/recent', '/random', '/top', '/post', '/edit']
 
-async function customDomainMiddleware (request, referrerResp, domain, subName) {
+async function customDomainMiddleware (request, domain, subName) {
   // clone the url to build on top of it
   const url = request.nextUrl.clone()
   // we need pathname, searchParams and origin
-  const { pathname, searchParams, origin } = url
+  const { pathname, searchParams } = url
   // set the subname in the request headers
-  const reqHeaders = new Headers(request.headers)
-  reqHeaders.set('x-stacker-news-subname', subName)
+  const headers = new Headers(request.headers)
+  headers.set('x-stacker-news-subname', subName)
 
   // TEST
   console.log('[domains] custom domain', domain, 'with subname', subName) // TEST
   console.log('[domains] main domain', SN_MAIN_DOMAIN) // TEST
   console.log('[domains] pathname', pathname) // TEST
   console.log('[domains] searchParams', searchParams) // TEST
-  console.log('[domains] origin', origin) // TEST
 
-  // TODO: 1. handle auth sync
-  // TODO: 2. redirect ~subname to /
-  // TODO: 3. rewrite / to ~subname
+  // TODO: handle auth sync
+
+  // if sub param exists and doesn't match the domain's subname, update it
+  if (searchParams.has('sub') && searchParams.get('sub') !== subName) {
+    console.log('[domains] setting sub to', subName) // TEST
+    searchParams.set('sub', subName)
+    url.search = searchParams.toString()
+    return NextResponse.redirect(url, { headers })
+  }
+
+  // clean up the pathname from any subname
+  if (pathname.startsWith('/~')) {
+    const cleanPath = pathname.replace(/^\/~[^/]+/, '') || '/'
+    url.pathname = cleanPath
+    console.log('[domains] redirecting to clean url:', url) // TEST
+    // redirect to the clean path
+    return NextResponse.redirect(url, { headers })
+  }
+
+  // if we're at the root or on some territory path, hide the subname by rewriting
+  if (pathname === '/' || SN_TERRITORY_PATHS.some(p => pathname.startsWith(p))) {
+    url.pathname = `/~${subName}${pathname === '/' ? '' : pathname}`
+    console.log('[domains] rewrite to:', url.pathname) // TEST
+    // rewrite to the territory path
+    return NextResponse.rewrite(url, { headers })
+  }
 
   // continue if we don't need to redirect, mainly for API routes
-  return NextResponse.next({
-    request: {
-      headers: reqHeaders
-    }
-  })
+  return NextResponse.next({ request: { headers } })
 }
 
 function getContentReferrer (request, url) {
@@ -117,6 +135,22 @@ function referrerMiddleware (request) {
   return response
 }
 
+function applyReferrerCookies (response, referrer) {
+  for (const cookie of referrer.cookies.getAll()) {
+    response.cookies.set(
+      cookie.name,
+      cookie.value,
+      {
+        maxAge: cookie.maxAge,
+        expires: cookie.expires,
+        path: cookie.path
+      }
+    )
+  }
+  console.log('[domains] response.cookies', response.cookies) // TEST
+  return response
+}
+
 function applySecurityHeaders (resp) {
   const isDev = process.env.NODE_ENV === 'development'
 
@@ -164,7 +198,6 @@ function applySecurityHeaders (resp) {
   return resp
 }
 
-// TODO: check the usage of applySecurityHeaders and if we can avoid returning it everywhere
 export async function middleware (request) {
   const referrerResp = referrerMiddleware(request)
   // TODO: check if we actually need this, and WHY
@@ -182,8 +215,11 @@ export async function middleware (request) {
     const subName = await getDomainMapping(domainToMap)
     if (subName) {
       console.log('[domains] allowed custom domain', domain, 'detected, pointing to', subName) // TEST
-      const resp = await customDomainMiddleware(request, referrerResp, domain, subName)
-      return applySecurityHeaders(resp)
+      const resp = await customDomainMiddleware(request, domain, subName.subName)
+      // apply referrer cookies to the custom domain response
+      const referredResp = applyReferrerCookies(resp, referrerResp)
+      // finally apply security headers
+      return applySecurityHeaders(referredResp)
     }
   }
 

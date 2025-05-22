@@ -31,7 +31,7 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      if (!SN_ADMIN_IDS.includes(me.id)) {
+      if (!SN_ADMIN_IDS.includes(Number(me.id))) {
         throw new Error('not an admin')
       }
 
@@ -44,9 +44,6 @@ export default {
         throw new GqlInputError('you do not own this sub')
       }
 
-      domainName = domainName.trim() // protect against trailing spaces
-      await validateSchema(customDomainSchema, { domainName })
-
       // we need to get the existing domain if we're updating or re-verifying
       const existing = await models.domain.findUnique({
         where: { subName },
@@ -54,6 +51,10 @@ export default {
       })
 
       if (domainName) {
+        // validate the domain name
+        domainName = domainName.trim() // protect against trailing spaces
+        await validateSchema(customDomainSchema, { domainName })
+
         // updating the domain name and recovering from HOLD is allowed
         if (existing && existing.domainName === domainName && existing.status !== 'HOLD') {
           throw new GqlInputError('domain already set')
@@ -126,13 +127,14 @@ export default {
 
           // create the job to verify the domain in 30 seconds
           await tx.$executeRaw`
-          INSERT INTO pgboss.job (name, data, retrylimit, retrydelay, startafter, keepuntil)
+          INSERT INTO pgboss.job (name, data, retrylimit, retrydelay, startafter, keepuntil, singletonkey)
           VALUES ('domainVerification',
                   jsonb_build_object('domainId', ${domain.id}::INTEGER),
                   3,
                   60,
                   now() + interval '30 seconds',
-                  now() + interval '2 days'
+                  now() + interval '2 days',
+                  'domainVerification:' || ${domain.id}::TEXT -- domain <-> job isolation
                 )`
 
           return domain

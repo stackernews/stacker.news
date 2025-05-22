@@ -289,7 +289,7 @@ export default function TerritoryForm ({ sub }) {
           />
         </div>
       </Form>
-      {SN_ADMIN_IDS.includes(me.id) &&
+      {SN_ADMIN_IDS.includes(Number(me.id)) &&
         <>
           {sub && !domain &&
             <div className='w-100'>

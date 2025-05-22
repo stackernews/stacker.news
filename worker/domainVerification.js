@@ -3,7 +3,7 @@ import { verifyDNSRecord, issueDomainCertificate, checkCertificateStatus, getVal
 import { datePivot } from '@/lib/time'
 
 const VERIFICATION_INTERVAL = (updatedAt) => {
-  const pivot = datePivot(new Date(), { hours: 1 }) // 1 hour ago
+  const pivot = datePivot(new Date(), { hours: -1 }) // 1 hour ago
   // after 1 hour, the verification interval is 5 minutes
   if (pivot > updatedAt) return 60 * 5
   // before 1 hour, the verification interval is 30 seconds
@@ -49,11 +49,11 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
     // if it's not PENDING, we stop the verification process.
     if (result.status === 'PENDING') {
       // we still need to verify the domain, schedule the job to run again
-      const newJobId = await boss.send('domainVerification', { domainId }, {
+      const newJobId = await boss.sendDebounced('domainVerification', { domainId }, {
         startAfter: VERIFICATION_INTERVAL(domain.updatedAt),
         retryLimit: 3,
         retryDelay: 60 // on critical errors, retry every minute
-      })
+      }, 30, `domainVerification:${domainId}`)
       console.log(`domain ${domain.domainName} is still pending verification, created job with ID ${newJobId} to run in 5 minutes`)
     }
   } catch (error) {

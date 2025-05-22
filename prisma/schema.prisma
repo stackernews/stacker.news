@@ -1334,6 +1334,7 @@ enum DomainRecordType {
   SSL
 }
 
+// TODO: use these statuses or get rid of most of them
 enum DomainCertificateStatus {
   PENDING_VALIDATION
   ISSUED

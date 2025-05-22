@@ -62,9 +62,21 @@ export default {
         }
 
         const updatedDomain = await models.$transaction(async tx => {
-          // clean any existing domain verification job left
+          let existingTXT = null
+
           if (existing && existing.status === 'HOLD') {
+            // clean any existing domain verification job left
             await cleanDomainVerificationJobs(existing, tx)
+            // if on HOLD, get the existing TXT record
+            existingTXT = await tx.domainVerificationRecord.findUnique({
+              where: {
+                domainId_type_recordName: {
+                  domainId: existing.id,
+                  type: 'TXT',
+                  recordName: '_snverify.' + existing.domainName
+                }
+              }
+            })
           }
 
           const domain = await tx.domain.upsert({
@@ -75,19 +87,6 @@ export default {
               sub: { connect: { name: subName } }
             }
           })
-
-          // if on HOLD, get the existing TXT record
-          const existingTXT = existing && existing.status === 'HOLD'
-            ? await tx.domainVerificationRecord.findUnique({
-              where: {
-                domainId_type_recordName: {
-                  domainId: existing.id,
-                  type: 'TXT',
-                  recordName: '_snverify.' + existing.domainName
-                }
-              }
-            })
-            : null
 
           // create the verification records
           const verificationRecords = [

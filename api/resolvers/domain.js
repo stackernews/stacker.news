@@ -2,6 +2,7 @@ import { validateSchema, customDomainSchema } from '@/lib/validate'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { randomBytes } from 'node:crypto'
 import { getDomainMapping } from '@/lib/domains'
+import { SN_ADMIN_IDS } from '@/lib/constants'
 
 async function cleanDomainVerificationJobs (domain, models) {
   // delete any existing domain verification job left
@@ -28,6 +29,10 @@ export default {
     setDomain: async (parent, { subName, domainName }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
+      }
+
+      if (!SN_ADMIN_IDS.includes(me.id)) {
+        throw new Error('not an admin')
       }
 
       const sub = await models.sub.findUnique({ where: { name: subName } })

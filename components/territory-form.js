@@ -5,7 +5,7 @@ import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
-import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
+import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, SN_ADMIN_IDS, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
 import { territorySchema } from '@/lib/validate'
 import { useMe } from './me'
 import Info from './info'
@@ -289,14 +289,17 @@ export default function TerritoryForm ({ sub }) {
           />
         </div>
       </Form>
-      {sub && !domain &&
-        <div className='w-100'>
-          <AccordianItem
-            header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
-            body={<TerritoryDomains sub={sub} />}
-          />
-        </div>}
-      {sub && domain && <Link className='text-muted w-100' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain settings on stacker.news</Link>}
+      {SN_ADMIN_IDS.includes(me.id) &&
+        <>
+          {sub && !domain &&
+            <div className='w-100'>
+              <AccordianItem
+                header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
+                body={<TerritoryDomains sub={sub} />}
+              />
+            </div>}
+          {sub && domain && <Link className='text-muted w-100' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain settings on stacker.news</Link>}
+        </>}
     </FeeButtonProvider>
   )
 }

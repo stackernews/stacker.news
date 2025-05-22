@@ -40,9 +40,7 @@ export default {
       }
 
       domainName = domainName.trim() // protect against trailing spaces
-      if (domainName && !validateSchema(customDomainSchema, { domainName })) {
-        throw new GqlInputError('invalid domain format')
-      }
+      await validateSchema(customDomainSchema, { domainName })
 
       // we need to get the existing domain if we're updating or re-verifying
       const existing = await models.domain.findUnique({

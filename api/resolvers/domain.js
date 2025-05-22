@@ -45,7 +45,10 @@ export default {
       }
 
       // we need to get the existing domain if we're updating or re-verifying
-      const existing = await models.domain.findUnique({ where: { subName } })
+      const existing = await models.domain.findUnique({
+        where: { subName },
+        include: { records: true }
+      })
 
       if (domainName) {
         // updating the domain name and recovering from HOLD is allowed
@@ -63,20 +66,17 @@ export default {
 
         const updatedDomain = await models.$transaction(async tx => {
           let existingTXT = null
-
-          if (existing && existing.status === 'HOLD') {
-            // clean any existing domain verification job left
-            await cleanDomainVerificationJobs(existing, tx)
-            // if on HOLD, get the existing TXT record
-            existingTXT = await tx.domainVerificationRecord.findUnique({
-              where: {
-                domainId_type_recordName: {
-                  domainId: existing.id,
-                  type: 'TXT',
-                  recordName: '_snverify.' + existing.domainName
-                }
-              }
-            })
+          if (existing) {
+            // if on HOLD, we can resume retaining its TXT record
+            if (existing.status === 'HOLD') {
+              // clean any existing domain verification job left
+              await cleanDomainVerificationJobs(existing, tx)
+              // get the existing TXT record value
+              existingTXT = existing.records.find(record => record.type === 'TXT')
+            } else {
+              // if not on HOLD, we should delete the domain and start over
+              await tx.domain.delete({ where: { subName } })
+            }
           }
 
           const domain = await tx.domain.upsert({

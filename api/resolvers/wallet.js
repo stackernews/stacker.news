@@ -9,7 +9,6 @@ import { formatMsats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib
 import {
   USER_ID, INVOICE_RETENTION_DAYS,
   PAID_ACTION_PAYMENT_METHODS,
-  WALLET_CREATE_INVOICE_TIMEOUT_MS,
   WALLET_RETRY_AFTER_MS,
   WALLET_RETRY_BEFORE_MS,
   WALLET_MAX_RETRIES
@@ -19,76 +18,12 @@ import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { bolt11Tags } from '@/lib/bolt11'
 import { finalizeHodlInvoice } from '@/worker/wallet'
-import walletDefs from '@/wallets/server'
-import { generateResolverName, generateTypeDefName } from '@/wallets/graphql'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets, getOurPubkey } from '../lnd'
-import validateWallet from '@/wallets/validate'
-import { canReceive, getWalletByType } from '@/wallets/common'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
-import { timeoutSignal, withTimeout } from '@/lib/time'
-
-function injectResolvers (resolvers) {
-  console.group('injected GraphQL resolvers:')
-  for (const walletDef of walletDefs) {
-    const resolverName = generateResolverName(walletDef.walletField)
-    console.log(resolverName)
-    resolvers.Mutation[resolverName] = async (parent, { settings, validateLightning, vaultEntries, ...data }, { me, models }) => {
-      console.log('resolving', resolverName, { settings, validateLightning, vaultEntries, ...data })
-
-      let existingVaultEntries
-      if (typeof vaultEntries === 'undefined' && data.id) {
-        // this mutation was sent from an unsynced client
-        // to pass validation, we need to add the existing vault entries for validation
-        // in case the client is removing the receiving config
-        existingVaultEntries = await models.vaultEntry.findMany({
-          where: {
-            walletId: Number(data.id)
-          }
-        })
-      }
-
-      const validData = await validateWallet(walletDef,
-        { ...data, ...settings, vaultEntries: vaultEntries ?? existingVaultEntries },
-        { serverSide: true })
-      if (validData) {
-        data && Object.keys(validData).filter(key => key in data).forEach(key => { data[key] = validData[key] })
-        settings && Object.keys(validData).filter(key => key in settings).forEach(key => { settings[key] = validData[key] })
-      }
-
-      // wallet in shape of db row
-      const wallet = {
-        field: walletDef.walletField,
-        type: walletDef.walletType,
-        userId: me?.id
-      }
-      const logger = walletLogger({ wallet, models })
-
-      return await upsertWallet({
-        wallet,
-        walletDef,
-        testCreateInvoice:
-          walletDef.testCreateInvoice && validateLightning && canReceive({ def: walletDef, config: data })
-            ? (data) => withTimeout(
-                walletDef.testCreateInvoice(data, {
-                  logger,
-                  signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS)
-                }),
-                WALLET_CREATE_INVOICE_TIMEOUT_MS)
-            : null
-      }, {
-        settings,
-        data,
-        vaultEntries
-      }, { logger, me, models })
-    }
-  }
-  console.groupEnd()
-
-  return resolvers
-}
+import { logContextFromBolt11 } from '@/wallets/server/logger'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -159,17 +94,79 @@ const resolvers = {
         throw new GqlAuthenticationError()
       }
 
-      return await models.wallet.findMany({
-        include: {
-          vaultEntries: true
-        },
+      let userWallets = await models.userWallet.findMany({
         where: {
           userId: me.id
         },
-        orderBy: {
-          priority: 'asc'
+        include: {
+          template: true,
+          protocols: true
         }
       })
+
+      // return template for all wallets that user has not attached
+      let walletTemplates = await models.walletTemplate.findMany({
+        where: {
+          id: {
+            notIn: userWallets.map(w => w.templateId)
+          }
+        }
+      })
+
+      // TODO(wallet-v2): improve this?
+      const resolveTypeOfProtocolConfig = (name, send) => {
+        switch (name) {
+          case 'NWC':
+            return send ? 'WalletSendNWC' : 'WalletRecvNWC'
+          case 'LNBITS':
+            return send ? 'WalletSendLNbits' : 'WalletRecvLNbits'
+          case 'PHOENIXD':
+            return send ? 'WalletSendPhoenixd' : 'WalletRecvPhoenixd'
+          case 'BLINK':
+            return send ? 'WalletSendBlink' : 'WalletRecvBlink'
+          case 'WEBLN':
+            return 'WalletSendWebLN'
+          case 'LN_ADDR':
+            return 'WalletRecvLightningAddress'
+          case 'LNC':
+            return 'WalletSendLNC'
+          case 'CLN_REST':
+            return 'WalletRecvCLNRest'
+          case 'LND_GRPC':
+            return 'WalletRecvLNDGRPC'
+          default:
+            return null
+        }
+      }
+
+      userWallets = userWallets.map(w => {
+        return {
+          ...w,
+          protocols: w.protocols.map(({ json, ...p }) => {
+            return {
+              ...p,
+              config: {
+                ...json,
+                __resolveType: resolveTypeOfProtocolConfig(p.protocol, p.send)
+              }
+            }
+          }),
+          __resolveType: 'UserWallet'
+        }
+      })
+
+      walletTemplates = walletTemplates.map(t => {
+        return {
+          ...t,
+          __resolveType: 'WalletTemplate'
+        }
+      })
+
+      return [...userWallets, ...walletTemplates]
+    },
+    wallet: async (parent, { name }, { me, models }) => {
+      const template = await models.walletTemplate.findFirst({ where: { name } })
+      return { ...template, __resolveType: 'WalletTemplate' }
     },
     withdrawl: getWithdrawl,
     direct: async (parent, { id }, { me, models }) => {
@@ -460,16 +457,37 @@ const resolvers = {
         ORDER BY id DESC`
     }
   },
-  Wallet: {
-    wallet: async (wallet) => {
-      return {
-        ...wallet.wallet,
-        __resolveType: generateTypeDefName(wallet.type)
-      }
+  WalletOrTemplate: {
+    __resolveType: walletOrTemplate => walletOrTemplate.__resolveType
+  },
+  UserWallet: {
+    name: wallet => wallet.template.name,
+    send: wallet => wallet.protocols.some(protocol => protocol.send),
+    receive: wallet => wallet.protocols.some(protocol => !protocol.send)
+  },
+  WalletTemplate: {
+    send: walletTemplate => walletTemplate.sendProtocols.length > 0,
+    receive: walletTemplate => walletTemplate.recvProtocols.length > 0,
+    protocols: walletTemplate => {
+      return [
+        ...walletTemplate.sendProtocols.map(protocol => ({
+          id: `WalletTemplate-${walletTemplate.id}-${protocol}-send`,
+          name: protocol,
+          send: true
+        })),
+        ...walletTemplate.recvProtocols.map(protocol => ({
+          id: `WalletTemplate-${walletTemplate.id}-${protocol}-recv`,
+          name: protocol,
+          send: false
+        }))
+      ]
     }
   },
-  WalletDetails: {
-    __resolveType: wallet => wallet.__resolveType
+  WalletProtocol: {
+    name: protocol => protocol.protocol
+  },
+  WalletProtocolConfig: {
+    __resolveType: config => config.__resolveType
   },
   InvoiceOrDirect: {
     __resolveType: invoiceOrDirect => invoiceOrDirect.__resolveType
@@ -554,6 +572,7 @@ const resolvers = {
         throw new GqlAuthenticationError()
       }
 
+      // TODO(wallet-v2): use UserWallet instead of Wallet table
       await models.wallet.update({ where: { userId: me.id, id: Number(id) }, data: { priority } })
 
       return true
@@ -563,19 +582,7 @@ const resolvers = {
         throw new GqlAuthenticationError()
       }
 
-      const wallet = await models.wallet.findUnique({ where: { userId: me.id, id: Number(id) } })
-      if (!wallet) {
-        throw new GqlInputError('wallet not found')
-      }
-
-      const logger = walletLogger({ wallet, models })
-      await models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
-
-      if (canReceive({ def: getWalletByType(wallet.type), config: wallet.wallet })) {
-        logger.info('details for receiving deleted')
-      }
-
-      return true
+      // TODO(wallet-v2): implement this
     },
     deleteWalletLogs: async (parent, { wallet }, { me, models }) => {
       if (!me) {
@@ -751,203 +758,8 @@ const resolvers = {
   }
 }
 
-export default injectResolvers(resolvers)
-
-const logContextFromBolt11 = async (bolt11) => {
-  const decoded = await parsePaymentRequest({ request: bolt11 })
-  return {
-    bolt11,
-    amount: formatMsats(decoded.mtokens),
-    payment_hash: decoded.id,
-    created_at: decoded.created_at,
-    expires_at: decoded.expires_at,
-    description: decoded.description
-  }
-}
-
-export const walletLogger = ({ wallet, models, me }) => {
-  // no-op logger if no wallet or user provided
-  if (!wallet && !me) {
-    return {
-      ok: () => {},
-      info: () => {},
-      error: () => {},
-      warn: () => {}
-    }
-  }
-
-  // server implementation of wallet logger interface on client
-  const log = (level) => async (message, ctx = {}) => {
-    try {
-      let { invoiceId, withdrawalId, ...context } = ctx
-
-      if (context.bolt11) {
-        // automatically populate context from bolt11 to avoid duplicating this code
-        context = {
-          ...context,
-          ...await logContextFromBolt11(context.bolt11)
-        }
-      }
-
-      await models.walletLog.create({
-        data: {
-          userId: wallet?.userId ?? me.id,
-          // system logs have no wallet
-          wallet: wallet?.type,
-          level,
-          message,
-          context,
-          invoiceId,
-          withdrawalId
-        }
-      })
-    } catch (err) {
-      console.error('error creating wallet log:', err)
-    }
-  }
-
-  return {
-    ok: (message, context) => log('SUCCESS')(message, context),
-    info: (message, context) => log('INFO')(message, context),
-    error: (message, context) => log('ERROR')(message, context),
-    warn: (message, context) => log('WARN')(message, context)
-  }
-}
-
-async function upsertWallet (
-  { wallet, walletDef, testCreateInvoice }, { settings, data, vaultEntries }, { logger, me, models }) {
-  if (!me) {
-    throw new GqlAuthenticationError()
-  }
-  assertApiKeyNotPermitted({ me })
-
-  if (testCreateInvoice) {
-    try {
-      const pr = await testCreateInvoice(data)
-      if (!pr || typeof pr !== 'string' || !pr.startsWith('lnbc')) {
-        throw new GqlInputError('not a valid payment request')
-      }
-    } catch (err) {
-      const message = 'failed to create test invoice: ' + (err.message || err.toString?.())
-      logger.error(message)
-      throw new GqlInputError(message)
-    }
-  }
-
-  const { id, enabled, priority, ...recvConfig } = data
-
-  const txs = []
-
-  if (id) {
-    const oldVaultEntries = await models.vaultEntry.findMany({ where: { userId: me.id, walletId: Number(id) } })
-
-    // createMany is the set difference of the new - old
-    // deleteMany is the set difference of the old - new
-    // updateMany is the intersection of the old and new
-    const difference = (a = [], b = [], key = 'key') => a.filter(x => !b.find(y => y[key] === x[key]))
-    const intersectionMerge = (a = [], b = [], key = 'key') => a.filter(x => b.find(y => y[key] === x[key]))
-      .map(x => ({ [key]: x[key], ...b.find(y => y[key] === x[key]) }))
-
-    txs.push(
-      models.wallet.update({
-        where: { id: Number(id), userId: me.id },
-        data: {
-          enabled,
-          priority,
-          // client only wallets have no receive config and thus don't have their own table
-          ...(Object.keys(recvConfig).length > 0
-            ? {
-                [wallet.field]: {
-                  upsert: {
-                    create: recvConfig,
-                    update: recvConfig
-                  }
-                }
-              }
-            : {}),
-          ...(vaultEntries
-            ? {
-                vaultEntries: {
-                  deleteMany: difference(oldVaultEntries, vaultEntries, 'key').map(({ key }) => ({
-                    userId: me.id, key
-                  })),
-                  create: difference(vaultEntries, oldVaultEntries, 'key').map(({ key, iv, value }) => ({
-                    key, iv, value, userId: me.id
-                  })),
-                  update: intersectionMerge(oldVaultEntries, vaultEntries, 'key').map(({ key, iv, value }) => ({
-                    where: { userId_key: { userId: me.id, key } },
-                    data: { value, iv }
-                  }))
-                }
-              }
-            : {})
-
-        },
-        include: {
-          vaultEntries: true
-        }
-      })
-    )
-  } else {
-    txs.push(
-      models.wallet.create({
-        include: {
-          vaultEntries: true
-        },
-        data: {
-          enabled,
-          priority,
-          userId: me.id,
-          type: wallet.type,
-          // client only wallets have no receive config and thus don't have their own table
-          ...(Object.keys(recvConfig).length > 0 ? { [wallet.field]: { create: recvConfig } } : {}),
-          ...(vaultEntries
-            ? {
-                vaultEntries: {
-                  createMany: {
-                    data: vaultEntries?.map(({ key, iv, value }) => ({ key, iv, value, userId: me.id }))
-                  }
-                }
-              }
-            : {})
-        }
-      })
-    )
-  }
-
-  if (settings) {
-    txs.push(
-      models.user.update({
-        where: { id: me.id },
-        data: settings
-      })
-    )
-  }
-
-  if (canReceive({ def: walletDef, config: recvConfig })) {
-    txs.push(
-      models.walletLog.createMany({
-        data: {
-          userId: me.id,
-          wallet: wallet.type,
-          level: 'SUCCESS',
-          message: id ? 'details for receiving updated' : 'details for receiving saved'
-        }
-      }),
-      models.walletLog.create({
-        data: {
-          userId: me.id,
-          wallet: wallet.type,
-          level: enabled ? 'SUCCESS' : 'INFO',
-          message: enabled ? 'receiving enabled' : 'receiving disabled'
-        }
-      })
-    )
-  }
-
-  const [upsertedWallet] = await models.$transaction(txs)
-  return upsertedWallet
-}
+// TODO(wallet-v2): implement wallet resolvers
+export default resolvers
 
 export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, wallet, logger }) {
   assertApiKeyNotPermitted({ me })
@@ -1064,6 +876,7 @@ export async function fetchLnAddrInvoice (
     const ourPubkey = await getOurPubkey({ lnd })
     if (autoWithdraw && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
       // unset lnaddr so we don't trigger another withdrawal with same destination
+      // TODO(wallet-v2): use UserWallet instead of Wallet table
       await models.wallet.deleteMany({
         where: { userId: me.id, type: 'LIGHTNING_ADDRESS' }
       })

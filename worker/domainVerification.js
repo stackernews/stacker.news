@@ -1,5 +1,13 @@
 import createPrisma from '@/lib/create-prisma'
-import { verifyDNSRecord, issueDomainCertificate, checkCertificateStatus, getValidationValues, deleteDomainCertificate } from '@/lib/domain-verification'
+import {
+  verifyDNSRecord,
+  issueDomainCertificate,
+  checkCertificateStatus,
+  getValidationValues,
+  attachDomainCertificate,
+  deleteDomainCertificate,
+  detachDomainCertificate
+} from '@/lib/domain-verification'
 import { datePivot } from '@/lib/time'
 
 const VERIFICATION_INTERVAL = (updatedAt) => {
@@ -54,7 +62,7 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
         retryLimit: 3,
         retryDelay: 60 // on critical errors, retry every minute
       }, 30, `domainVerification:${domainId}`)
-      console.log(`domain ${domain.domainName} is still pending verification, created job with ID ${newJobId} to run in 5 minutes`)
+      console.log(`domain ${domain.domainName} is still pending verification, created job with ID ${newJobId}`)
     }
   } catch (error) {
     console.error(`couldn't verify domain with ID ${domainId}: ${error.message}`)
@@ -124,6 +132,10 @@ async function verifyDomain (domain, models) {
     // STEP 2c: Check ACM validation
     const sslVerified = await checkACMValidation(domain, models, recordMap.SSL)
     if (!sslVerified) return { status, message: 'ACM validation has failed.' }
+
+    // STEP 2d: Attach the certificate to the ELB listener
+    const elbAttached = await attachACMCertificateToELB(domain, models, certificateArn)
+    if (!elbAttached) return { status, message: 'ELB attachment has failed.' }
   } catch (error) {
     await logAttempt({ domain, models, stage: 'GENERAL', status, message: 'ACM services error: ' + error.message })
     throw error
@@ -236,6 +248,22 @@ async function checkACMValidation (domain, models, record) {
   return status === 'VERIFIED'
 }
 
+async function attachACMCertificateToELB (domain, models, certificateArn) {
+  let message = null
+
+  // attach the certificate to the ELB listener
+  const { result, error } = await attachDomainCertificate(certificateArn)
+  if (result) {
+    message = `Certificate ${certificateArn} is now attached to ELB listener`
+  } else {
+    message = `Could not attach certificate ${certificateArn} to ELB listener: ${error.message}`
+  }
+
+  const status = result ? 'VERIFIED' : 'FAILED'
+  await logAttempt({ domain, models, stage: 'ELB_ATTACH_CERTIFICATE', status, message })
+  return status !== 'FAILED'
+}
+
 async function logAttempt ({ domain, models, record, stage, status, message }) {
   const data = {
     domain: { connect: { id: domain.id } },
@@ -269,8 +297,16 @@ export async function clearLongHeldDomains () {
   }
 }
 
-// delete certificates from ACM
+// delete certificates from ACM and ELB
 export async function deleteCertificateExternal ({ data: { certificateArn } }) {
+  // detach the certificate from the elb listener
+  const { error: detachError } = await detachDomainCertificate(certificateArn)
+  if (detachError) {
+    console.error(`couldn't detach certificate with ARN ${certificateArn}: ${detachError.message}`)
+    throw detachError
+  }
+
+  // delete the certificate from ACM
   const { error } = await deleteDomainCertificate(certificateArn)
   if (error) {
     console.error(`couldn't delete certificate with ARN ${certificateArn}: ${error.message}`)

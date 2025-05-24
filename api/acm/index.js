@@ -40,6 +40,5 @@ export async function getCertificateStatus (certificateArn) {
 export async function deleteCertificate (certificateArn) {
   const acm = new AWS.ACM(config)
   const result = await acm.deleteCertificate({ CertificateArn: certificateArn }).promise()
-  console.log(`delete certificate attempt for ${certificateArn}, result: ${JSON.stringify(result)}`)
   return result
 }

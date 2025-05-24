@@ -20,7 +20,6 @@ async function attachCertificateToElb (certificateArn) {
     Certificates: [{ CertificateArn: certificateArn }]
   }).promise()
 
-  console.log('[elbv2] Certificate', certificateArn, 'attached to listener', ELB_LISTENER_ARN)
   return true
 }
 
@@ -37,7 +36,6 @@ async function detachCertificateFromElb (certificateArn) {
     Certificates: [{ CertificateArn: certificateArn }]
   }).promise()
 
-  console.log('[elbv2] Certificate', certificateArn, 'detached from listener', ELB_LISTENER_ARN)
   return true
 }
 

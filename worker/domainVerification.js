@@ -117,13 +117,11 @@ async function verifyDomain (domain, models) {
     let certificateArn = domain.certificate?.certificateArn || null
     if (!certificateArn) {
       certificateArn = await requestCertificate(domain, models)
-      if (!certificateArn) return { status, message: 'Certificate issuance has failed.' }
     }
 
     // STEP 2b: Get the validation values for the certificate
     if (certificateArn && !recordMap.SSL) {
-      const validationValues = await getACMValidationValues(domain, models, certificateArn)
-      if (!validationValues) return { status, message: 'Could not get validation values.' }
+      await getACMValidationValues(domain, models, certificateArn)
 
       // return PENDING to check ACM validation later
       return { status, message: 'Certificate issued and validation values stored.' }
@@ -131,11 +129,10 @@ async function verifyDomain (domain, models) {
 
     // STEP 2c: Check ACM validation
     const sslVerified = await checkACMValidation(domain, models, recordMap.SSL)
-    if (!sslVerified) return { status, message: 'ACM validation has failed.' }
+    if (!sslVerified) return { status, message: 'ACM validation is still pending.' }
 
     // STEP 2d: Attach the certificate to the ELB listener
-    const elbAttached = await attachACMCertificateToELB(domain, models, certificateArn)
-    if (!elbAttached) return { status, message: 'ELB attachment has failed.' }
+    await attachACMCertificateToELB(domain, models, certificateArn)
   } catch (error) {
     await logAttempt({ domain, models, stage: 'GENERAL', status, message: 'ACM services error: ' + error.message })
     throw error
@@ -181,19 +178,31 @@ async function requestCertificate (domain, models) {
     const { certStatus, error: checkError } = await checkCertificateStatus(certificateArn)
     if (checkError) {
       message = 'Could not check certificate status: ' + checkError
+      throw new Error(message)
     } else {
-      // store the certificate in the database with its status
-      await models.domainCertificate.create({
-        data: {
-          domain: { connect: { id: domain.id } },
-          certificateArn,
-          status: certStatus
+      try {
+        // store the certificate in the database with its status
+        await models.domainCertificate.create({
+          data: {
+            domain: { connect: { id: domain.id } },
+            certificateArn,
+            status: certStatus
+          }
+        })
+        message = 'An ACM certificate with arn ' + certificateArn + ' has been successfully requested'
+      } catch (e) {
+        // if record already exists, move on
+        if (e.code === 'P2002') {
+          message = 'Certificate already stored'
+        } else {
+          message = 'Could not store certificate in the database: ' + e.message
+          throw new Error(message)
         }
-      })
-      message = 'An ACM certificate with arn ' + certificateArn + ' has been successfully requested'
+      }
     }
   } else {
     message = 'Could not request an ACM certificate: ' + error
+    throw new Error(message)
   }
 
   const status = certificateArn ? 'PENDING' : 'FAILED'
@@ -207,18 +216,29 @@ async function getACMValidationValues (domain, models, certificateArn) {
   // get the validation values for the certificate
   const { cname, value, error } = await getValidationValues(certificateArn)
   if (cname && value) {
-    // store the validation values in the database
-    await models.domainVerificationRecord.create({
-      data: {
-        domain: { connect: { id: domain.id } },
-        type: 'SSL',
-        recordName: cname,
-        recordValue: value
+    try {
+      // store the validation values in the database
+      await models.domainVerificationRecord.create({
+        data: {
+          domain: { connect: { id: domain.id } },
+          type: 'SSL',
+          recordName: cname,
+          recordValue: value
+        }
+      })
+      message = 'Validation values stored'
+    } catch (e) {
+      // if record already exists, move on
+      if (e.code === 'P2002') {
+        message = 'Validation values already stored'
+      } else {
+        message = 'Could not store validation values: ' + e.message
+        throw new Error(message)
       }
-    })
-    message = 'Validation values stored'
+    }
   } else {
     message = 'Could not get validation values: ' + error
+    throw new Error(message)
   }
 
   const status = cname && value ? 'PENDING' : 'FAILED'
@@ -241,6 +261,7 @@ async function checkACMValidation (domain, models, record) {
     message = `Certificate status is: ${certStatus}`
   } else {
     message = 'Could not check certificate status: ' + error
+    throw new Error(message)
   }
 
   const status = certStatus === 'ISSUED' ? 'VERIFIED' : 'PENDING'
@@ -257,6 +278,7 @@ async function attachACMCertificateToELB (domain, models, certificateArn) {
     message = `Certificate ${certificateArn} is now attached to ELB listener`
   } else {
     message = `Could not attach certificate ${certificateArn} to ELB listener: ${error.message}`
+    throw new Error(message)
   }
 
   const status = !error ? 'VERIFIED' : 'FAILED'

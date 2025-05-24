@@ -41,17 +41,4 @@ async function detachCertificateFromElb (certificateArn) {
   return true
 }
 
-/* // check if a certificate is attached to the elb listener
-async function isCertificateAttachedToElb (listenerArn, certificateArn) {
-  const elbv2 = process.env.NODE_ENV === 'development'
-    ? new MockELBv2() // use the mocked elb for local development
-    : new AWS.ELBv2()
-  const { Certificates } = await elbv2.describeListenerCertificates({ ListenerArn: listenerArn }).promise()
-  const found = Certificates.some(certificate => certificate.CertificateArn === certificateArn)
-  if (!found) {
-    return false
-  }
-  return true
-} */
-
 export { attachCertificateToElb, detachCertificateFromElb }

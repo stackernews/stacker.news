@@ -2,16 +2,16 @@
 const mockedElb = {
   loadBalancers: [
     {
-      LoadBalancerArn: 'arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/mock-lb/1234567890abcdef',
-      DNSName: 'mock-lb.us-east-1.elb.amazonaws.com',
-      LoadBalancerName: 'mock-lb',
+      LoadBalancerArn: 'arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/sndev-lb/1234567890abcdef',
+      DNSName: 'sndev-lb.us-east-1.elb.amazonaws.com',
+      LoadBalancerName: 'sndev-lb',
       Type: 'application'
     }
   ],
   listeners: [
     {
-      ListenerArn: 'arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/mock-lb/1234567890abcdef/1234567890abcdef',
-      LoadBalancerArn: 'arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/mock-lb/1234567890abcdef',
+      ListenerArn: 'arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/sndev-lb/1234567890abcdef/1234567890abcdef',
+      LoadBalancerArn: 'arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/sndev-lb/1234567890abcdef',
       Protocol: 'HTTPS',
       Port: 443
     }

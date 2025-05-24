@@ -252,14 +252,14 @@ async function attachACMCertificateToELB (domain, models, certificateArn) {
   let message = null
 
   // attach the certificate to the ELB listener
-  const { result, error } = await attachDomainCertificate(certificateArn)
-  if (result) {
+  const { error } = await attachDomainCertificate(certificateArn)
+  if (!error) {
     message = `Certificate ${certificateArn} is now attached to ELB listener`
   } else {
     message = `Could not attach certificate ${certificateArn} to ELB listener: ${error.message}`
   }
 
-  const status = result ? 'VERIFIED' : 'FAILED'
+  const status = !error ? 'VERIFIED' : 'FAILED'
   await logAttempt({ domain, models, stage: 'ELB_ATTACH_CERTIFICATE', status, message })
   return status !== 'FAILED'
 }
@@ -307,9 +307,9 @@ export async function deleteCertificateExternal ({ data: { certificateArn } }) {
   }
 
   // delete the certificate from ACM
-  const { error } = await deleteDomainCertificate(certificateArn)
-  if (error) {
-    console.error(`couldn't delete certificate with ARN ${certificateArn}: ${error.message}`)
-    throw error
+  const { error: deleteError } = await deleteDomainCertificate(certificateArn)
+  if (deleteError) {
+    console.error(`couldn't delete certificate with ARN ${certificateArn}: ${deleteError.message}`)
+    throw deleteError
   }
 }

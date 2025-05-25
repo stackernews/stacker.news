@@ -106,7 +106,7 @@ async function verifyDomain (domain, models) {
   const records = domain.records || []
   const recordMap = Object.fromEntries(records.map(record => [record.type, record]))
 
-  // verify both CNAME and TXT records
+  // verify the CNAME record
   const dnsVerified = await verifyDNS(domain, models, recordMap)
   if (!dnsVerified) return { status, message: 'DNS verification has failed.' }
 
@@ -142,14 +142,10 @@ async function verifyDomain (domain, models) {
   return { status: 'ACTIVE', message: `Domain ${domain.domainName} has been successfully verified` }
 }
 
-// verify both CNAME and TXT records
+// verify the CNAME record
 async function verifyDNS (domain, models, records) {
-  if (records.CNAME && records.TXT) {
-    const [cnameResult, txtResult] = await Promise.all([
-      verifyRecord('CNAME', records.CNAME, domain, models),
-      verifyRecord('TXT', records.TXT, domain, models)
-    ])
-    return cnameResult && txtResult
+  if (records.CNAME) {
+    return await verifyRecord('CNAME', records.CNAME, domain, models)
   }
 
   return false

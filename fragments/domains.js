@@ -25,9 +25,6 @@ export const DOMAIN_VERIFICATION_RECORD_MAP_FIELDS = gql`
     CNAME {
       ...DomainVerificationRecordFields
     }
-    TXT {
-      ...DomainVerificationRecordFields
-    }
     SSL {
       ...DomainVerificationRecordFields
     }

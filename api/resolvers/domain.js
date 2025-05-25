@@ -72,8 +72,10 @@ export default {
           if (existing) {
             // delete any existing domain verification job left
             await cleanDomainVerificationJobs(existing, tx)
-            // delete the domain
-            await tx.domain.delete({ where: { subName } })
+            // delete the domain if we're not resuming from HOLD
+            if (existing.status !== 'HOLD') {
+              await tx.domain.delete({ where: { subName } })
+            }
           }
 
           const domain = await tx.domain.create({

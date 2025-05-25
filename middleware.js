@@ -1,5 +1,7 @@
 import { NextResponse, URLPattern } from 'next/server'
 import { getDomainMapping } from '@/lib/domains'
+import { SESSION_COOKIE, cookieOptions } from '@/lib/auth'
+import { decode as decodeJWT } from 'next-auth/jwt'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -34,7 +36,14 @@ async function customDomainMiddleware (request, domain, subName) {
 
   // WIP Rewrite Auth Sync
   if (pathname.startsWith('/login') || pathname.startsWith('/signup')) {
-    return authSyncMiddleware(request, url, domain, headers)
+    return authSyncMiddleware(url, domain)
+  }
+
+  // WIP Rewrite Auth Sync
+  if (searchParams.has('token')) {
+    const redirectUri = searchParams.get('redirectUri') || '/'
+    const res = NextResponse.redirect(decodeURIComponent(redirectUri))
+    return establishAuthSync(res, url, domain)
   }
 
   // if sub param exists and doesn't match the domain's subname, update it
@@ -67,9 +76,7 @@ async function customDomainMiddleware (request, domain, subName) {
 }
 
 // WIP Rewrite Auth Sync
-async function authSyncMiddleware (request, url, domain, headers) {
-  // CD/login -> SN/sync LOGGED IN -> CD/token
-  // CD/login -> SN/sync NOT LOGGED IN -> SN/login -> SN/sync LOGGED IN -> CD/token
+async function authSyncMiddleware (url, domain) {
   const { searchParams } = url
   const syncUrl = new URL('/api/auth/sync', SN_MAIN_DOMAIN)
   syncUrl.searchParams.set('domain', domain)
@@ -79,6 +86,33 @@ async function authSyncMiddleware (request, url, domain, headers) {
   }
 
   return NextResponse.redirect(syncUrl)
+}
+
+async function establishAuthSync (res, url, domain) {
+  const { searchParams } = url
+  const token = searchParams.get('token')
+
+  const decodedSession = await verifySessionToken(token, domain)
+  if (!decodedSession) {
+    // TODO: maybe a page with a message?
+    return NextResponse.redirect('/')
+  }
+  // set the session cookie
+  res.cookies.set(SESSION_COOKIE, token, cookieOptions())
+  return res
+}
+
+async function verifySessionToken (sessionToken, domain) {
+  const decodedSession = await decodeJWT({
+    token: sessionToken,
+    secret: process.env.NEXTAUTH_SECRET
+  })
+  // check if the session is valid and belongs to the domain
+  if (!decodedSession || decodedSession?.domainName !== domain) {
+    console.log('[establishAuthSync] invalid session token') // TEST
+    return false
+  }
+  return decodedSession
 }
 
 function getContentReferrer (request, url) {

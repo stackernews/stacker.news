@@ -32,7 +32,10 @@ async function customDomainMiddleware (request, domain, subName) {
   console.log('[domains] pathname', pathname) // TEST
   console.log('[domains] searchParams', searchParams) // TEST
 
-  // TODO: handle auth sync
+  // WIP Rewrite Auth Sync
+  if (pathname.startsWith('/login') || pathname.startsWith('/signup')) {
+    return authSyncMiddleware(request, url, domain, headers)
+  }
 
   // if sub param exists and doesn't match the domain's subname, update it
   if (searchParams.has('sub') && searchParams.get('sub') !== subName) {
@@ -61,6 +64,21 @@ async function customDomainMiddleware (request, domain, subName) {
 
   // continue if we don't need to redirect, mainly for API routes
   return NextResponse.next({ request: { headers } })
+}
+
+// WIP Rewrite Auth Sync
+async function authSyncMiddleware (request, url, domain, headers) {
+  // CD/login -> SN/sync LOGGED IN -> CD/token
+  // CD/login -> SN/sync NOT LOGGED IN -> SN/login -> SN/sync LOGGED IN -> CD/token
+  const { searchParams } = url
+  const syncUrl = new URL('/api/auth/sync', SN_MAIN_DOMAIN)
+  syncUrl.searchParams.set('domain', domain)
+  // if we have a callbackUrl, we need to set it as redirectUri
+  if (searchParams.has('callbackUrl')) {
+    syncUrl.searchParams.set('redirectUri', searchParams.get('callbackUrl'))
+  }
+
+  return NextResponse.redirect(syncUrl)
 }
 
 function getContentReferrer (request, url) {

@@ -107,7 +107,7 @@ async function verifyDomain (domain, models) {
   const recordMap = Object.fromEntries(records.map(record => [record.type, record]))
 
   // verify the CNAME record
-  const dnsVerified = await verifyDNS(domain, models, recordMap)
+  const dnsVerified = await verifyRecord('CNAME', recordMap.CNAME, domain, models)
   if (!dnsVerified) return { status, message: 'DNS verification has failed.' }
 
   // STEP 2: Request a certificate, get its validation values and check ACM validation
@@ -140,15 +140,6 @@ async function verifyDomain (domain, models) {
 
   // STEP 3: If everything is verified, update the domain status to ACTIVE
   return { status: 'ACTIVE', message: `Domain ${domain.domainName} has been successfully verified` }
-}
-
-// verify the CNAME record
-async function verifyDNS (domain, models, records) {
-  if (records.CNAME) {
-    return await verifyRecord('CNAME', records.CNAME, domain, models)
-  }
-
-  return false
 }
 
 // verify a single record, logs the result and returns true if the record is valid

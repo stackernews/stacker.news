@@ -28,6 +28,8 @@ import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
 
+metadataRuleSets.title.rules.unshift(['h1 > yt-formatted-string.ytd-watch-metadata', el => el.getAttribute('title')])
+
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
   sharedSortsArray.push('("Item"."pinId" IS NOT NULL) DESC')
@@ -650,7 +652,7 @@ export default {
         query: `
           ${SELECT}
           FROM "Item"
-          WHERE url ~* $1
+          WHERE url ~* $1 AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID')
           ORDER BY created_at DESC
           LIMIT 3`
       }, similar)

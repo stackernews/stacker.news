@@ -1,6 +1,5 @@
 import { validateSchema, customDomainSchema } from '@/lib/validate'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
-import { randomBytes } from 'node:crypto'
 import { getDomainMapping } from '@/lib/domains'
 import { SN_ADMIN_IDS } from '@/lib/constants'
 
@@ -69,61 +68,30 @@ export default {
         }
 
         const updatedDomain = await models.$transaction(async tx => {
-          let existingTXT = null
+          // we're changing the domain name, delete the domain if it exists
           if (existing) {
-            // if on HOLD, we can resume retaining its TXT record
-            if (existing.status === 'HOLD') {
-              // clean any existing domain verification job left
-              await cleanDomainVerificationJobs(existing, tx)
-              // get the existing TXT record value
-              existingTXT = existing.records.find(record => record.type === 'TXT')
-            } else {
-              // if not on HOLD, we should delete the domain and start over
-              await tx.domain.delete({ where: { subName } })
-            }
+            // delete any existing domain verification job left
+            await cleanDomainVerificationJobs(existing, tx)
+            // delete the domain
+            await tx.domain.delete({ where: { subName } })
           }
 
-          const domain = await tx.domain.upsert({
-            where: { subName },
-            update: initializeDomain,
-            create: {
+          const domain = await tx.domain.create({
+            data: {
               ...initializeDomain,
               sub: { connect: { name: subName } }
             }
           })
 
-          // create the verification records
-          const verificationRecords = [
-            {
+          // create the CNAME verification record
+          await tx.domainVerificationRecord.create({
+            data: {
               domainId: domain.id,
               type: 'CNAME',
               recordName: domainName,
               recordValue: new URL(process.env.NEXT_PUBLIC_URL).host
-            },
-            {
-              domainId: domain.id,
-              type: 'TXT',
-              recordName: '_snverify.' + domainName,
-              recordValue: existingTXT // if we're resuming from HOLD, use the existing TXT record
-                ? existingTXT.recordValue
-                : randomBytes(32).toString('base64')
             }
-          ]
-
-          // create the verification records
-          for (const record of verificationRecords) {
-            await tx.domainVerificationRecord.upsert({
-              where: {
-                domainId_type_recordName: {
-                  domainId: domain.id,
-                  type: record.type,
-                  recordName: record.recordName
-                }
-              },
-              update: record,
-              create: record
-            })
-          }
+          })
 
           // create the job to verify the domain in 30 seconds
           await tx.$executeRaw`
@@ -163,7 +131,7 @@ export default {
     records: async (domain) => {
       if (!domain.records) return []
 
-      // O(1) lookups by type, simpler checks for CNAME, TXT and ACM validation records.
+      // O(1) lookups by type, simpler checks for CNAME and ACM validation records
       return Object.fromEntries(domain.records.map(record => [record.type, record]))
     }
   }

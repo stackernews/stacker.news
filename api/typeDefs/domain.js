@@ -37,7 +37,6 @@ export default gql`
 
   type DomainVerificationRecordMap {
     CNAME: DomainVerificationRecord
-    TXT: DomainVerificationRecord
     SSL: DomainVerificationRecord
   }
 
@@ -64,7 +63,6 @@ export default gql`
   enum DomainVerificationStage {
     GENERAL
     CNAME
-    TXT
     ACM_REQUEST_CERTIFICATE
     ACM_REQUEST_VALIDATION_VALUES
     ACM_VALIDATION
@@ -73,7 +71,6 @@ export default gql`
   }
 
   enum DomainRecordType {
-    TXT
     CNAME
     SSL
   }

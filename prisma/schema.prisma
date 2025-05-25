@@ -1321,7 +1321,6 @@ enum DomainVerificationStatus {
 enum DomainVerificationStage {
   GENERAL
   CNAME
-  TXT
   ACM_REQUEST_CERTIFICATE
   ACM_REQUEST_VALIDATION_VALUES
   ACM_VALIDATION
@@ -1330,7 +1329,6 @@ enum DomainVerificationStage {
 }
 
 enum DomainRecordType {
-  TXT
   CNAME
   SSL
 }

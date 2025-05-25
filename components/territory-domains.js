@@ -41,19 +41,12 @@ export const DomainProvider = ({ domain: ssrDomain, children }) => {
 
 export const useDomain = () => useContext(DomainContext)
 
-const getDNSStatusBadge = (cnameStatus, txtStatus) => {
-  if (cnameStatus === 'VERIFIED' && txtStatus === 'VERIFIED') {
-    return <Badge bg='success'>DNS verified</Badge>
-  }
-  return <Badge bg='warning'>DNS pending</Badge>
-}
-
-const getSSLStatusBadge = (status) => {
+const getStatusBadge = (type, status) => {
   switch (status) {
     case 'VERIFIED':
-      return <Badge bg='success'>SSL verified</Badge>
+      return <Badge bg='success'>{type} verified</Badge>
     default:
-      return <Badge bg='warning'>SSL pending</Badge>
+      return <Badge bg='warning'>{type} pending</Badge>
   }
 }
 
@@ -68,16 +61,18 @@ const DomainLabel = ({ domain, polling }) => {
           {status !== 'HOLD'
             ? (
               <>
-                {getDNSStatusBadge(records?.CNAME?.status, records?.TXT?.status)}
-                {getSSLStatusBadge(records?.SSL?.status)}
+                {getStatusBadge('CNAME', records?.CNAME?.status)}
+                {getStatusBadge('SSL', records?.SSL?.status)}
               </>
               )
-            : (<Badge bg='secondary'>HOLD</Badge>)}
-          {status === 'HOLD' && (
-            <SubmitButton variant='link' className='p-0'>
-              <RefreshLine className={styles.refresh} style={{ width: '1rem', height: '1rem' }} />
-            </SubmitButton>
-          )}
+            : (
+              <>
+                <Badge bg='secondary'>HOLD</Badge>
+                <SubmitButton variant='link' className='p-0'>
+                  <RefreshLine className={styles.refresh} style={{ width: '1rem', height: '1rem' }} />
+                </SubmitButton>
+              </>
+              )}
           {polling && <Moon className='spin fill-grey' style={{ width: '1rem', height: '1rem' }} />}
         </div>
       )}
@@ -127,15 +122,12 @@ const DomainGuidelines = ({ domain }) => {
 
   return (
     <div className='d-flex'>
-      {(records?.CNAME?.status === 'PENDING' || records?.TXT?.status === 'PENDING') && (
+      {records?.CNAME?.status === 'PENDING' && (
         <div className='d-flex flex-column gap-2'>
           <h5>Step 1: Verify your domain</h5>
-          <p>Add the following DNS records to verify ownership of your domain:</p>
+          <p>Add the following DNS record to verify ownership of your domain:</p>
           <h6>CNAME</h6>
           {dnsRecord({ record: records?.CNAME })}
-          <hr />
-          <h6>TXT</h6>
-          {dnsRecord({ record: records?.TXT })}
         </div>
       )}
       {records?.SSL?.status === 'PENDING' && (

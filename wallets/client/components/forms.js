@@ -6,8 +6,9 @@ import { useRouter } from 'next/router'
 import { useQuery } from '@apollo/client'
 import { WALLET } from '@/fragments/wallet'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName } from '@/wallets/client/components'
-import { protocolDisplayName, unurlify, urlify } from '@/wallets/client/util'
+import { protocolDisplayName, protocolFields, unurlify, urlify } from '@/wallets/client/util'
 import styles from '@/styles/wallet.module.css'
+import { Form, Input } from '@/components/form'
 
 export function WalletForms ({ name }) {
   // TODO(wallet-v2): support editing a user wallet if id is given
@@ -119,12 +120,39 @@ function WalletProtocolSelector ({ wallet }) {
 function WalletProtocolForm ({ wallet }) {
   const sendRecvParam = useSendRecvParam()
   const protocolParam = useWalletProtocolParam()
-  const protocol = wallet.protocols.find(p => p.name === protocolParam && p.send === (sendRecvParam === 'send'))
+  const send = sendRecvParam === 'send'
+  const protocol = wallet.protocols.find(p => p.name === protocolParam && p.send === send)
   if (!protocol) return null
 
-  // TODO(wallet-v2): implement protocol forms
-  console.log(protocol)
-  return null
+  const { fields, initial, schema } = useProtocolForm({ name: protocolParam, send })
+
+  return (
+    <Form
+      initial={initial}
+      schema={schema}
+      onSubmit={values => {
+        console.log(values)
+      }}
+    >
+      {fields.map(field => <WalletProtocolFormField key={field.name} {...field} />)}
+    </Form>
+  )
+}
+
+function WalletProtocolFormField ({ type, ...props }) {
+  function transform (props) {
+    const hint = props.hint ?? (props.required ? null : 'optional')
+    return { ...props, hint }
+  }
+
+  switch (type) {
+    case 'text':
+      return <Input {...transform(props)} />
+    case 'password':
+      return <Input {...transform(props)} type='password' />
+    default:
+      return null
+  }
 }
 
 function useWalletPathname () {
@@ -152,4 +180,15 @@ function useWalletProtocols (wallet) {
 
   const send = sendRecvParam === 'send'
   return wallet.protocols.filter(p => send ? p.send : !p.send)
+}
+
+function useProtocolForm (protocol) {
+  const fields = protocolFields(protocol)
+  const initial = fields.reduce(
+    (acc, field) => ({ ...acc, [field.name]: '' }),
+    {}
+  )
+
+  // TODO(wallet-v2): return validation schema
+  return { fields, initial }
 }

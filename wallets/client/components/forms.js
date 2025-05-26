@@ -6,7 +6,7 @@ import { useRouter } from 'next/router'
 import { useQuery } from '@apollo/client'
 import { WALLET } from '@/fragments/wallet'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName } from '@/wallets/client/components'
-import { unurlify, urlify } from '@/wallets/client/util'
+import { protocolDisplayName, unurlify, urlify } from '@/wallets/client/util'
 import styles from '@/styles/wallet.module.css'
 
 export function WalletForms ({ name }) {
@@ -107,7 +107,7 @@ function WalletProtocolSelector ({ wallet }) {
         protocols.map(p => (
           <Nav.Item key={p.name}>
             <Link href={`/${path}/${urlify(p.name)}`} passHref legacyBehavior replace>
-              <Nav.Link eventKey={p.name}>{walletProtocolNavName(p.name)}</Nav.Link>
+              <Nav.Link eventKey={p.name}>{protocolDisplayName(p)}</Nav.Link>
             </Link>
           </Nav.Item>
         ))
@@ -152,26 +152,4 @@ function useWalletProtocols (wallet) {
 
   const send = sendRecvParam === 'send'
   return wallet.protocols.filter(p => send ? p.send : !p.send)
-}
-
-// TODO(wallet-v2): generate this from a protocols.json file
-function walletProtocolNavName (name) {
-  switch (name) {
-    case 'BLINK':
-    case 'PHOENIXD':
-    case 'LNBITS':
-      return 'API'
-    case 'LN_ADDR':
-      return 'Lightning Address'
-    case 'CLN_REST':
-      return 'CLNRest'
-    case 'WEBLN':
-      return 'WebLN'
-    case 'LNC':
-      return 'Lightning Node Connect'
-    case 'LND_GRPC':
-      return 'gRPC'
-    default:
-      return name
-  }
 }

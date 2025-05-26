@@ -26,6 +26,7 @@ import { useWalletIndicator } from '@/wallets/indicator'
 import SwitchAccountList, { nextAccount, useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
+import { useDomain } from '@/components/territory-domains'
 
 export function Brand ({ className }) {
   return (
@@ -297,6 +298,7 @@ function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const { removeLocalWallets } = useWallets()
   const router = useRouter()
+  const { domain } = useDomain()
 
   return (
     <div className='d-flex m-auto flex-column w-fit-content'>
@@ -328,7 +330,11 @@ function LogoutObstacle ({ onClose }) {
 
             removeLocalWallets()
 
-            await signOut({ callbackUrl: '/' })
+            // Next Auth redirects to the imposed NEXT_AUTH_URL
+            // so we need to do manual redirects for custom domains.
+            onClose()
+            await signOut({ callbackUrl: '/', redirect: !domain })
+            domain && router.push('/')
           }}
         >
           logout

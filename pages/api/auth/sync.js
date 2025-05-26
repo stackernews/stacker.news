@@ -10,8 +10,6 @@ import { validateSchema, customDomainSchema } from '@/lib/validate'
 const SN_MAIN_DOMAIN = new URL(process.env.NEXT_PUBLIC_URL)
 const SYNC_TOKEN_MAX_AGE = 60 // 1 minute
 
-// CD/login -> SN/sync?domain=...&redirectUri=/ LOGGED IN     -> CD/token
-// CD/login -> SN/sync?domain=...&redirectUri=/ NOT LOGGED IN -> SN/login -> SN/sync?domain=...&redirectUri=/ LOGGED IN -> CD/token
 export default async function handler (req, res) {
   try {
     // STEP 1: check if the domain is correct

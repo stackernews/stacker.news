@@ -322,6 +322,43 @@ COMMANDS"
   sndev__prisma --help | awk '/Commands/{y=1;next}y' | awk '!/^([\t ]+init)|([\t ]+studio)/' | sed -n '/Flags/q;p'
 }
 
+sndev__domains() {
+  shift
+  case $1 in
+  dns)
+    shift
+    if ./scripts/set-dnsmasq "$@" && { [ "$1" = "add" ] || [ "$1" = "remove" ]; }; then
+      echo "restarting dnsmasq to apply changes"
+      if docker ps | grep -q dnsmasq; then
+        docker__compose restart dnsmasq
+        exit 0
+      else
+        echo "dnsmasq is not running, you may need to start it manually"
+        exit 1
+      fi
+    fi
+    ;;
+  # PLACEHOLDER for domain verification management
+  *)
+    sndev__help_domains
+    exit 0
+  esac
+}
+
+sndev__help_domains() {
+  help="
+manage custom domains
+
+USAGE
+  $ sndev domains [COMMAND]
+
+COMMANDS
+  dns             [add|remove|list]
+"
+
+  echo "$help"
+}
+
 sndev__lint() {
   shift
   docker__exec -t -u apprunner app npm run lint
@@ -606,6 +643,9 @@ COMMANDS
   db:
     psql                   open psql on db
     prisma                 run prisma commands
+
+  domains:
+    domains                custom domains dev management
 
   dev:
     pr                     fetch and checkout a pr

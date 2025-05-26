@@ -31,3 +31,7 @@ export function urlify (name) {
 export function unurlify (urlName) {
   return urlName.toUpperCase().replace(/-/g, '_')
 }
+
+export function protocolFields ({ name, send }) {
+  return protocolJson({ name, send })?.fields || []
+}

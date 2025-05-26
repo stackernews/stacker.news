@@ -1,11 +1,19 @@
 import wallets from './wallets.json'
-
+import protocols from './protocols.json'
 function walletJson (name) {
   return wallets.find(wallet => wallet.name === name)
 }
 
+function protocolJson ({ name, send }) {
+  return protocols.find(protocol => protocol.name === name && protocol.send === send)
+}
+
 export function walletDisplayName (name) {
   return walletJson(name)?.displayName || titleCase(name)
+}
+
+export function protocolDisplayName ({ name, send }) {
+  return protocolJson({ name, send })?.displayName || titleCase(name)
 }
 
 export function walletImage (name) {

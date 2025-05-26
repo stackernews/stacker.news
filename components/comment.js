@@ -28,6 +28,7 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
+import { commentThreadNumViewed, commentThreadNum } from '@/lib/new-comments'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -147,6 +148,17 @@ export default function Comment ({
     }
   }, [item.id])
 
+  // if the comment has a thread, track the number of comments in the thread
+  useEffect(() => {
+    const path = item.path.split('.')
+    console.log('path', path)
+    if (path.length > COMMENT_DEPTH_LIMIT) {
+      if (commentThreadNum(item) < item.ncomments || !commentThreadNum(item)) {
+        commentThreadNumViewed(item, item.ncomments)
+      }
+    }
+  }, [item.id, item.ncomments])
+
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
   const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon
@@ -252,7 +264,7 @@ export default function Comment ({
       </div>
       {collapse !== 'yep' && (
         bottomedOut
-          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3')}><ReplyOnAnotherPage item={item} /></div></div>
+          ? <div className={styles.children}><MoreReplies item={item} onAnotherPage /></div>
           : (
             <div className={styles.children}>
               {item.outlawed && !me?.privates?.wildWestMode
@@ -269,7 +281,7 @@ export default function Comment ({
                       {item.comments.comments.map((item) => (
                         <Comment depth={depth + 1} key={item.id} item={item} />
                       ))}
-                      {item.comments.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nhas={item.ncomments} />}
+                      {item.comments.comments.length < item.nDirectComments && <MoreReplies item={item} />}
                     </>
                     )
                   : null}
@@ -282,31 +294,60 @@ export default function Comment ({
   )
 }
 
-export function ViewAllReplies ({ id, nshown, nhas }) {
-  const text = `view all ${nhas} replies`
-
-  return (
-    <div className={`d-block fw-bold ${styles.comment} pb-2 ps-3`}>
-      <Link href={`/items/${id}`} as={`/items/${id}`} className='text-muted'>
-        {text}
-      </Link>
-    </div>
-  )
-}
-
-function ReplyOnAnotherPage ({ item }) {
+export function MoreReplies ({ item, onAnotherPage }) {
   const root = useRoot()
-  const rootId = commentSubTreeRootId(item, root)
+  const rootId = onAnotherPage ? commentSubTreeRootId(item, root) : null
+  const router = useRouter()
+  const ref = useRef(null)
+  const { cache } = useApolloClient()
 
-  let text = 'reply on another page'
-  if (item.ncomments > 0) {
-    text = `view all ${item.ncomments} replies`
-  }
+  useEffect(() => {
+    if (router.query.commentsViewedAt) {
+      const lastViewedNumComments = parseInt(window.localStorage.getItem(`commentsViewNumThread:${item.id}`), 10)
+      // get the updated number of comments in the thread from cache
+      const comment = cache.readFragment({
+        id: `Item:${item.id}`,
+        fragment: gql`
+          fragment NComments on Item {
+            ncomments
+          }`
+      })
+      // if the last viewed number of comments in the thread
+      // is less than the updated number of comments in it, highlight it
+      if (lastViewedNumComments && lastViewedNumComments < comment?.ncomments) {
+        ref.current.classList.add('outline-new-comment')
+      }
+    }
+  }, [item.id])
+
+  // distinguish between reply on another page and view all replies
+  const className = onAnotherPage
+    ? classNames(styles.comment, 'mt-3')
+    : `d-block fw-bold ${styles.comment} pb-2 ps-3`
+
+  // if item has replies, show view all n replies, otherwise show reply on another page
+  const text = item.ncomments > 0
+    ? `view all ${item.ncomments} replies`
+    : 'reply on another page'
 
   return (
-    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='d-block pb-2 fw-bold text-muted'>
-      {text}
-    </Link>
+    <div
+      ref={ref} className={className}
+      onMouseEnter={() => ref.current.classList.add('outline-new-comment-unset')}
+      onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
+    >
+      {onAnotherPage
+        ? (
+          <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='d-block pb-2 fw-bold text-muted'>
+            {text}
+          </Link>
+          )
+        : (
+          <Link href={`/items/${item.id}`} as={`/items/${item.id}`} className='text-muted'>
+            {text}
+          </Link>
+          )}
+    </div>
   )
 }
 

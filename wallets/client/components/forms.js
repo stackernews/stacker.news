@@ -3,30 +3,25 @@ import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { useQuery } from '@apollo/client'
-import { WALLET } from '@/fragments/wallet'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName } from '@/wallets/client/components'
 import { protocolDisplayName, protocolFields, unurlify, urlify } from '@/wallets/client/util'
 import styles from '@/styles/wallet.module.css'
 import { Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
 import * as yup from 'lib/yup'
+import { useWalletQuery } from '@/wallets/client/hooks'
 
-export function WalletForms ({ name }) {
+export function WalletForms ({ id, name }) {
   // TODO(wallet-v2): support editing a user wallet if id is given
   // TODO(wallet-v2): handle loading and error states
-  const { data } = useQuery(WALLET, {
-    variables: {
-      name
-    }
-  })
+  const { data } = useWalletQuery({ name, id })
   const wallet = data?.wallet
 
   return (
     <WalletLayout>
       <div className={styles.form}>
         <WalletLayoutHeader>
-          <WalletLayoutImageOrName name={name} maxHeight='80px' />
+          {wallet && <WalletLayoutImageOrName name={wallet.name} maxHeight='80px' />}
         </WalletLayoutHeader>
         {wallet && <WalletFormSelector wallet={wallet} />}
       </div>
@@ -132,7 +127,7 @@ function WalletProtocolForm ({ wallet }) {
   const protocol = wallet.protocols.find(p => p.name === protocolParam && p.send === send)
   if (!protocol) return null
 
-  const { fields, initial, schema } = useProtocolForm({ name: protocolParam, send })
+  const { fields, initial, schema } = useProtocolForm(protocol)
 
   const onSubmit = values => {
     console.log(values)
@@ -199,7 +194,13 @@ function useWalletProtocols (wallet) {
 
 function useProtocolForm (protocol) {
   const fields = protocolFields(protocol)
-  const initial = fields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {})
+  const initial = fields.reduce((acc, field) => {
+    const value = protocol.config[field.name]
+    return {
+      ...acc,
+      [field.name]: value || ''
+    }
+  }, {})
   const schema = yup.object(fields.reduce((acc, field) =>
     ({
       ...acc,

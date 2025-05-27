@@ -27,15 +27,22 @@ export default function WalletCard ({ wallet }) {
             : <Card.Title className={styles.walletLogo}>{walletDisplayName(wallet.name)}</Card.Title>}
         </div>
       </Card.Body>
-      <Link href={`/wallets/${urlify(wallet.name)}`}>
+      <WalletLink wallet={wallet}>
         <Card.Footer className={styles.attach}>
           {isConfigured
             ? <>configure<Gear width={14} height={14} /></>
             : <>attach<Plug width={14} height={14} /></>}
         </Card.Footer>
-      </Link>
+      </WalletLink>
     </Card>
   )
+}
+
+function WalletLink ({ wallet, children }) {
+  if (wallet.__typename === 'UserWallet') {
+    return <Link href={`/wallets/${wallet.id}`}>{children}</Link>
+  }
+  return <Link href={`/wallets/${urlify(wallet.name)}`}>{children}</Link>
 }
 
 function statusToClass (status) {

@@ -37,7 +37,7 @@ export function WalletLayoutLink ({ children, href }) {
   )
 }
 
-export function WalletLayoutImageOrName ({ name }) {
+export function WalletLayoutImageOrName ({ name, maxHeight = '50px' }) {
   const walletNameToImage = useWalletImage()
   const img = walletNameToImage(name)
   return (
@@ -48,7 +48,7 @@ export function WalletLayoutImageOrName ({ name }) {
             src={img.src}
             alt={img.alt}
             style={{
-              maxHeight: '50px',
+              maxHeight,
               maxWidth: '100%'
             }}
           />

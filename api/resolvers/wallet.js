@@ -113,48 +113,7 @@ const resolvers = {
         }
       })
 
-      // TODO(wallet-v2): improve this?
-      const resolveTypeOfProtocolConfig = (name, send) => {
-        switch (name) {
-          case 'NWC':
-            return send ? 'WalletSendNWC' : 'WalletRecvNWC'
-          case 'LNBITS':
-            return send ? 'WalletSendLNbits' : 'WalletRecvLNbits'
-          case 'PHOENIXD':
-            return send ? 'WalletSendPhoenixd' : 'WalletRecvPhoenixd'
-          case 'BLINK':
-            return send ? 'WalletSendBlink' : 'WalletRecvBlink'
-          case 'WEBLN':
-            return 'WalletSendWebLN'
-          case 'LN_ADDR':
-            return 'WalletRecvLightningAddress'
-          case 'LNC':
-            return 'WalletSendLNC'
-          case 'CLN_REST':
-            return 'WalletRecvCLNRest'
-          case 'LND_GRPC':
-            return 'WalletRecvLNDGRPC'
-          default:
-            return null
-        }
-      }
-
-      userWallets = userWallets.map(w => {
-        return {
-          ...w,
-          protocols: w.protocols.map(({ json, ...p }) => {
-            return {
-              ...p,
-              config: {
-                ...json,
-                __resolveType: resolveTypeOfProtocolConfig(p.protocol, p.send)
-              }
-            }
-          }),
-          __resolveType: 'UserWallet'
-        }
-      })
-
+      userWallets = userWallets.map(mapUserWalletsResolveType)
       walletTemplates = walletTemplates.map(t => {
         return {
           ...t,
@@ -164,7 +123,22 @@ const resolvers = {
 
       return [...userWallets, ...walletTemplates]
     },
-    wallet: async (parent, { name }, { me, models }) => {
+    wallet: async (parent, { id, name }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      if (id) {
+        const userWallet = await models.userWallet.findUnique({
+          where: { id: Number(id), userId: me.id },
+          include: {
+            template: true,
+            protocols: true
+          }
+        })
+        return mapUserWalletsResolveType(userWallet)
+      }
+
       const template = await models.walletTemplate.findFirst({ where: { name } })
       return { ...template, __resolveType: 'WalletTemplate' }
     },
@@ -891,4 +865,45 @@ export async function fetchLnAddrInvoice (
   }
 
   return res
+}
+
+function mapUserWalletsResolveType (wallet) {
+  const resolveTypeOfProtocolConfig = (name, send) => {
+    switch (name) {
+      case 'NWC':
+        return send ? 'WalletSendNWC' : 'WalletRecvNWC'
+      case 'LNBITS':
+        return send ? 'WalletSendLNbits' : 'WalletRecvLNbits'
+      case 'PHOENIXD':
+        return send ? 'WalletSendPhoenixd' : 'WalletRecvPhoenixd'
+      case 'BLINK':
+        return send ? 'WalletSendBlink' : 'WalletRecvBlink'
+      case 'WEBLN':
+        return 'WalletSendWebLN'
+      case 'LN_ADDR':
+        return 'WalletRecvLightningAddress'
+      case 'LNC':
+        return 'WalletSendLNC'
+      case 'CLN_REST':
+        return 'WalletRecvCLNRest'
+      case 'LND_GRPC':
+        return 'WalletRecvLNDGRPC'
+      default:
+        return null
+    }
+  }
+
+  return {
+    ...wallet,
+    protocols: wallet.protocols.map(({ json, ...p }) => {
+      return {
+        ...p,
+        config: {
+          ...json,
+          __resolveType: resolveTypeOfProtocolConfig(p.protocol, p.send)
+        }
+      }
+    }),
+    __resolveType: 'UserWallet'
+  }
 }

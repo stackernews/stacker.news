@@ -1,10 +1,9 @@
-import { Fragment } from 'react'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Button } from 'react-bootstrap'
 import { FIRST_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch } from '@/wallets/client/context'
-import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
-import { useRouter } from 'next/router'
-import { urlify } from '@/wallets/client/util'
+import { WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
+import styles from '@/styles/wallet.module.css'
+import WalletCard from '@/wallets/client/components/card'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -29,57 +28,21 @@ export default function Wallet () {
 
   return (
     <WalletLayout>
-      <div className='py-5 d-flex flex-column align-items-center justify-content-center flex-grow-1'>
+      <div className='py-5'>
         <WalletLayoutHeader>wallets</WalletLayoutHeader>
         <WalletLayoutSubHeader>use real bitcoin</WalletLayoutSubHeader>
         <div className='text-center'>
           <WalletLayoutLink href='/wallets/logs'>wallet logs</WalletLayoutLink>
         </div>
-        <div>
-          <div className='d-flex flex-column gap-3 pt-5'>
-            {wallets
-              .filter(w => {
-                // TODO(wallet-v2): filter templates based on search or filters
-                return true
-              })
-              .map((w, i) => {
-                return (
-                  <Fragment key={`${w.__typename}-${w.id}`}>
-                    <WalletLayoutImageOrName name={w.name} />
-                    <WalletButtons wallet={w} />
-                    <hr style={{ gridColumn: '1 / -1' }} />
-                  </Fragment>
-                )
-              })}
-          </div>
+        <div className={styles.walletGrid}>
+          {wallets
+            .filter(w => {
+              // TODO(wallet-v2): filter templates based on search or filters
+              return true
+            })
+            .map((w, i) => <WalletCard key={i} wallet={w} />)}
         </div>
       </div>
     </WalletLayout>
-  )
-}
-
-function WalletButtons ({ wallet }) {
-  const router = useRouter()
-  const configured = wallet.__typename === 'UserWallet' && (wallet.send || wallet.receive)
-
-  function onClick () {
-    // TODO(wallet-v2): implement wallet forms
-    // if it's a UserWallet, we need to go to /wallets/:id to edit the wallet
-    // if it's a WalletTemplate, we need to go to /wallets/:name to create a new wallet
-    router.push(`/wallets/${urlify(wallet.name)}`)
-  }
-
-  // TODO(wallet-v2): add context menu to create a new wallet from a template
-  return (
-    <div className='d-flex justify-content-center'>
-      <Button
-        size='sm'
-        variant='secondary'
-        onClick={onClick}
-        className='px-3'
-      >
-        {configured ? 'edit' : 'attach'}
-      </Button>
-    </div>
   )
 }

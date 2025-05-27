@@ -1,8 +1,5 @@
 import gql from 'graphql-tag'
 
-export const HASH_HMAC_INPUT_1 = '$hash: String, $hmac: String'
-export const HASH_HMAC_INPUT_2 = 'hash: $hash, hmac: $hmac'
-
 export const PAY_IN_FIELDS = gql`
   fragment PayInFields on PayIn {
     id
@@ -17,6 +14,7 @@ export const PAY_IN_FIELDS = gql`
       id
       payInId
       bolt11
+      hmac
       createdAt
       updatedAt
     }
@@ -24,6 +22,27 @@ export const PAY_IN_FIELDS = gql`
       id
       mtokens
       custodialTokenType
+    }
+    result {
+      __typename
+      ... on Item {
+        ...ItemFields
+      }
+      ... on ItemActResult {
+        ...ItemActResultFields
+      }
+      ... on PollVoteResult {
+        id
+      }
+      ... on Sub {
+        ...SubFullFields
+      }
+      ... on DonateResult {
+        sats
+      }
+      ... on BuyCreditsResult {
+        credits
+      }
     }
   }
 `

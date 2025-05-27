@@ -10,6 +10,7 @@ import { PAY_IN_INCLUDE, payInCreate } from './lib/payInCreate'
 import { payOutBolt11Replacement } from './lib/payOutBolt11'
 import { payInClone } from './lib/payInPrisma'
 import { PayInFailureReasonError } from './errors'
+import { createHmac } from '../resolvers/wallet'
 
 export default async function pay (payInType, payInArgs, { models, me }) {
   try {
@@ -77,7 +78,7 @@ async function begin (models, payInInitial, payInArgs, { me }) {
 
 async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
   async function afterInvoiceCreation ({ payInState, payInBolt11 }) {
-    return await models.payIn.update({
+    const updatedPayIn = await models.payIn.update({
       where: {
         id: payIn.id,
         payInState: { in: ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'] }
@@ -91,6 +92,11 @@ async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
       },
       include: PAY_IN_INCLUDE
     })
+    // the HMAC is only returned during invoice creation
+    // this makes sure that only the person who created this invoice
+    // has access to the HMAC
+    updatedPayIn.payInBolt11.hmac = createHmac(updatedPayIn.payInBolt11.hash)
+    return updatedPayIn
   }
 
   try {

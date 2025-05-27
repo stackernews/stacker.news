@@ -94,6 +94,7 @@ type PayInBolt11 {
   id: Int!
   payInId: Int!
   hash: String!
+  hmac: String!
   bolt11: String!
   expiresAt: DateTime!
   confirmedAt: DateTime
@@ -114,6 +115,8 @@ type PayInCustodialToken {
   custodialTokenType: CustodialTokenType!
 }
 
+union PayInResult = Item | ItemActResult | PollVoteResult | Sub | DonateResult | BuyCreditsResult | ReceiveResult
+
 type PayIn {
   payInId: Int!
   createdAt: DateTime!
@@ -125,5 +128,6 @@ type PayIn {
   payInStateChangedAt: DateTime!
   payInBolt11: PayInBolt11!
   payInCustodialTokens: [PayInCustodialToken!]!
+  result: PayInResult
 }
 `

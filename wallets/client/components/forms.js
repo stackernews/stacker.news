@@ -8,7 +8,9 @@ import { WALLET } from '@/fragments/wallet'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName } from '@/wallets/client/components'
 import { protocolDisplayName, protocolFields, unurlify, urlify } from '@/wallets/client/util'
 import styles from '@/styles/wallet.module.css'
-import { Form, Input } from '@/components/form'
+import { Form, Input, SubmitButton } from '@/components/form'
+import CancelButton from '@/components/cancel-button'
+import * as yup from 'lib/yup'
 
 export function WalletForms ({ name }) {
   // TODO(wallet-v2): support editing a user wallet if id is given
@@ -58,6 +60,8 @@ function WalletSendRecvSelector ({ wallet }) {
     }
   }, [path])
 
+  // TODO(wallet-v2): if you click a nav link again, it will update the URL
+  //   but not run the effect again to select the first protocol by default
   return (
     <Nav
       key={path}
@@ -126,22 +130,29 @@ function WalletProtocolForm ({ wallet }) {
 
   const { fields, initial, schema } = useProtocolForm({ name: protocolParam, send })
 
+  const onSubmit = values => {
+    console.log(values)
+  }
+
   return (
     <Form
       initial={initial}
       schema={schema}
-      onSubmit={values => {
-        console.log(values)
-      }}
+      onSubmit={onSubmit}
     >
       {fields.map(field => <WalletProtocolFormField key={field.name} {...field} />)}
+      <div className='d-flex justify-content-end'>
+        <CancelButton>cancel</CancelButton>
+        <SubmitButton variant='primary'>save</SubmitButton>
+      </div>
     </Form>
   )
 }
 
 function WalletProtocolFormField ({ type, ...props }) {
-  function transform (props) {
+  function transform ({ validate, ...props }) {
     const hint = props.hint ?? (props.required ? null : 'optional')
+
     return { ...props, hint }
   }
 
@@ -184,11 +195,11 @@ function useWalletProtocols (wallet) {
 
 function useProtocolForm (protocol) {
   const fields = protocolFields(protocol)
-  const initial = fields.reduce(
-    (acc, field) => ({ ...acc, [field.name]: '' }),
-    {}
-  )
-
-  // TODO(wallet-v2): return validation schema
-  return { fields, initial }
+  const initial = fields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {})
+  const schema = yup.object(fields.reduce((acc, field) =>
+    ({
+      ...acc,
+      [field.name]: field.required ? field.validate.required('required') : field.validate
+    }), {}))
+  return { fields, initial, schema }
 }

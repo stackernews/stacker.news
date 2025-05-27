@@ -1,13 +1,46 @@
-import { useMe } from '@/components/me'
-import { FAILED_INVOICES } from '@/fragments/wallet'
-import { NORMAL_POLL_INTERVAL } from '@/lib/constants'
-import { useLazyQuery } from '@apollo/client'
 import { useCallback, useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { useLazyQuery, useQuery } from '@apollo/client'
+import { FAILED_INVOICES, WALLETS } from '@/fragments/wallet'
+import { NORMAL_POLL_INTERVAL } from '@/lib/constants'
 import useInvoice from '@/components/use-invoice'
-import { WalletConfigurationError } from '@/wallets/client/errors'
+import { useMe } from '@/components/me'
 import { useSendWallets, useWalletPayment } from '@/wallets/client/hooks'
+import { WalletConfigurationError } from '@/wallets/client/errors'
+import { RESET_PAGE, SET_WALLETS, useWalletsDispatch } from '@/wallets/client/context'
 
-export default function RetryHandler ({ children }) {
+export function useServerWallets () {
+  const dispatch = useWalletsDispatch()
+  const query = useQuery(WALLETS)
+
+  useEffect(() => {
+    if (query.error) {
+      console.error('failed to fetch wallets:', query.error)
+      return
+    }
+    if (query.loading) return
+    dispatch({ type: SET_WALLETS, wallets: query.data.wallets })
+  }, [query])
+}
+
+export function usePageNavigation () {
+  const dispatch = useWalletsDispatch()
+  const router = useRouter()
+
+  useEffect(() => {
+    function handleRouteChangeComplete (url) {
+      if (!url.startsWith('/wallets')) {
+        dispatch({ type: RESET_PAGE })
+      }
+    }
+    router.events.on('routeChangeComplete', handleRouteChangeComplete)
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChangeComplete)
+    }
+  }, [router, dispatch])
+}
+
+export function useAutomatedRetries () {
   const wallets = useSendWallets()
   const waitForWalletPayment = useWalletPayment()
   const invoiceHelper = useInvoice()
@@ -78,6 +111,4 @@ export default function RetryHandler ({ children }) {
     queuePoll()
     return stopPolling
   }, [me?.id, wallets, getFailedInvoices, retry])
-
-  return children
 }

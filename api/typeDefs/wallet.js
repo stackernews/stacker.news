@@ -9,7 +9,7 @@ const typeDefs = gql`
     connectAddress: String!
     walletHistory(cursor: String, inc: String): History
     wallets: [WalletOrTemplate!]!
-    wallet(name: String!): WalletOrTemplate
+    wallet(id: ID, name: String): WalletOrTemplate
     walletLogs(type: String, from: String, to: String, cursor: String): WalletLog!
     failedInvoices: [Invoice!]!
   }

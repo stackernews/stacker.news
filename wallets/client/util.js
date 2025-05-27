@@ -1,5 +1,6 @@
 import wallets from './wallets.json'
-import protocols from './protocols.json'
+import protocols from './protocols'
+
 function walletJson (name) {
   return wallets.find(wallet => wallet.name === name)
 }

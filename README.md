@@ -101,6 +101,7 @@ COMMANDS
     onion                  service onion address
     cert                   service tls cert
     compose                docker compose passthrough
+    pgboss                 control pgboss jobs
 ```
 
 ### Modifying services

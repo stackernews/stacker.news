@@ -156,8 +156,8 @@ export const WALLETS = gql`
 
 export const WALLET = gql`
   ${WALLET_OR_TEMPLATE_FIELDS}
-  query Wallet($name: String!) {
-    wallet(name: $name) {
+  query Wallet($id: ID, $name: String) {
+    wallet(id: $id, name: $name) {
       ...WalletOrTemplateFields
     }
   }

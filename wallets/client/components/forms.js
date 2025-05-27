@@ -8,7 +8,7 @@ import { WALLET } from '@/fragments/wallet'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName } from '@/wallets/client/components'
 import { protocolDisplayName, protocolFields, unurlify, urlify } from '@/wallets/client/util'
 import styles from '@/styles/wallet.module.css'
-import { Form, Input, SubmitButton } from '@/components/form'
+import { Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
 import * as yup from 'lib/yup'
 
@@ -164,7 +164,7 @@ function WalletProtocolFormField ({ type, ...props }) {
     case 'text':
       return <Input {...transform(props)} />
     case 'password':
-      return <Input {...transform(props)} type='password' />
+      return <PasswordInput {...transform(props)} />
     default:
       return null
   }

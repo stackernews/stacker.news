@@ -3,7 +3,7 @@ We store times in the db as `timestamp(3)` which implicitly means
 - when we store a timestamp, it removes the timezone without any other modification, and we effectively lose it
 - when we read a timestamp, it has no timezone
 
-In prod, and in the sndev env, the db's configured time zone is `UTC`, i.e. `now()` is returned in `UTC` and all times stored in the db are in UTC except any stats which are kept in `America/Chicago`
+In production and the `sndev` environment, the database's configured time zone is `UTC`. This means `now()` returns UTC, and all timestamps are stored in UTC, except for statistics, which are kept in `America/Chicago`.
 
 In most instances, we interested in relative times (e.g. is this item's time greater than this item) so the timezone is not relevant. However, when we want to do things at exact times in specific time zones it can get complicated.
 
@@ -11,7 +11,7 @@ We do a lot of things that depend on knowing the time in `America/Chicago` (ie A
 
 1. If you want the time of an item in America/Chicago, you'll convert it by doing the following: `"Item".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'`
 
-	 `AT TIME ZONE 'UTC'` gives the timestamp its correct time zone. Then `AT TIME ZONE 'America/Chicago'` converts the time to be in time zone `America/Chicago`
+	 `AT TIME ZONE 'UTC'` assigns the UTC time zone to the timestamp. Then, `AT TIME ZONE 'America/Chicago'` converts this timestamp to the `America/Chicago` time zone.
 
 	 This is useful if you want to know the day in `America/Chicago` that `"Item".created_at` corresponds to, e.g. `date_trunc('day', "Item".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')`
 
@@ -21,9 +21,9 @@ We do a lot of things that depend on knowing the time in `America/Chicago` (ie A
 
 	 Note: `now()` returns a timestamp with a time zone, so `AT TIME ZONE 'UTC'` is not needed
 
-3. When we pass absolute times from the frontend to the backend we use unix timestamps, seconds, or milliseconds, since jan 1 1970 UTC. When we use these for querying materialized views, which store discrete time periods in `America/Chicago`, they need to be converted to `America/Chicago` to use them as filters on queries.
+3. When we pass absolute times from the frontend to the backend we use unix timestamps, seconds, or milliseconds, since Jan 1, 1970 UTC. When we use these for querying materialized views, which store discrete time periods in `America/Chicago`, they need to be converted to `America/Chicago` to use them as filters on queries.
 
-	So what we'll usually do is something like `user_values_days.t >= date_trunc('day', ${new Date(input)} AT TIME ZONE 'America/Chicago')`, which converts the inputted day (which has a time zone) to whichever corresponding day in `America/Chicago`.
+	For example, we might use `user_values_days.t >= date_trunc('day', ${new Date(input)} AT TIME ZONE 'America/Chicago')`. This converts the input day (which includes a time zone) to the corresponding day in `America/Chicago`.
 
 4. Often we want to send `America/Chicago` dates to the frontend. When we do that, we need to make sure the times passed have a time zone, otherwise the time will be assumed to be `UTC`.
 

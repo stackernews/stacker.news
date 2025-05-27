@@ -8,7 +8,7 @@ sub: meta
 
 _To quickly browse through this FAQ page, click the chapters icon in the top-right corner. This will let you scroll through all chapters or search for a particular topic within this page._
 
-last updated: March 25, 2025
+last updated: May 2024
 
 ---
 
@@ -16,11 +16,11 @@ last updated: March 25, 2025
 
 ### What is Stacker News?
 
-Stacker News is a forum similar to Reddit or Hacker News. Unlike on Reddit or Hacker News where you earn "upvotes" or "karma" that are not redeemable or transferable, on Stacker News you earn satoshis for creating and curating content.
+Stacker News is a forum similar to Reddit or Hacker News. However, instead of 'upvotes' or 'karma' that are not redeemable or transferable, you earn satoshis on Stacker News for creating and curating content.
 
 ### What are satoshis?
 
-A satoshi is the smallest denomination of bitcoin. Just like there are 100 pennies in 1 dollar, there are 100,000,000 satoshis in 1 bitcoin. Satoshis are commonly abbreviated as "sats".
+A satoshi is the smallest denomination of bitcoin. Just like there are 100 pennies in $1, there are 100,000,000 satoshis in 1 bitcoin. Satoshis are commonly abbreviated as "sats".
 
 On Stacker News, all bitcoin payments are denominated in sats and use the Lightning Network.
 
@@ -56,11 +56,11 @@ There are four ways to earn sats on Stacker News:
 
 **1. Zaps**
 
-To earn sats via [zaps](#zaps) from fellow stackers peer-to-peer, you need to [attach a wallet](#wallets) that can receive payments. Once you're setup, share interesting links, discussion prompts or simply engage with the community in comments. If another stacker finds value in what you shared and they also attached a wallet, you will receive real sats when they zap you.
+To earn sats via [zaps](#zaps) from fellow stackers peer-to-peer, you need to [attach a wallet](#wallets) that can receive payments. Once you're set up, share interesting links, discussion prompts or simply engage with the community in comments. If another stacker finds value in what you shared and they also attached a wallet, you will receive real sats when they zap you.
 
 **2. Daily rewards**
 
-Stackers can also earn sats via daily rewards. Stacker News uses the revenue it generates from post, comment, zap and boost fees, the job board and donations to reward stackers that contributed to the site with even more sats beyond the zaps they already received. Contributions also include zapping content since they are used as a signal for ranking. **You do not need to attach a wallet to receive daily rewards in sats. They are automatically deposited into your account.** You can find and withdraw your reward sats balance [here](/credits).
+Stackers can also earn sats via daily rewards. Stacker News uses the revenue generated from post, comment, zap, and boost fees, the job board, and donations to reward stackers who contributed to the site. These rewards are in addition to the zaps they already received. Contributions also include zapping content since they are used as a signal for ranking. **You do not need to attach a wallet to receive daily rewards in sats. They are automatically deposited into your account.** You can find and withdraw your reward sats balance [here](/credits).
 
 **3. Referrals**
 
@@ -215,7 +215,7 @@ Click [here](/territory) or scroll to the bottom in the territory dropdown menu 
 
 Founding a territory costs either 50k sats/month, 500k sats/year, or 3m sats as a one-time payment.
 
-If a territory founder chooses either the monthly or yearly payment options, they can select 'auto-renew' so that Stacker News is automatically paid the territory fee each month or year from your CC balance. If a territory founder doesn't select 'auto-renew' or they don't have enough CCs, they will get a notification to pay an invoice within 5 days after the end of their current billing period to keep their territory.
+If a territory founder chooses either the monthly or yearly payment options, they can select 'auto-renew' so that Stacker News is automatically paid the territory fee each month or year from their CC balance. If a territory founder doesn't select 'auto-renew' or they don't have enough CCs, they will get a notification to pay an invoice within 5 days after the end of their current billing period to keep their territory.
 
 If you later change your mind, your payment for the current period is included in the new cost. This means that if you go from monthly to yearly payments for example, we will charge you 450k instead of 500k sats.
 
@@ -398,7 +398,7 @@ There are two trust scores: trust scores between stackers and global trust score
 
 New accounts start without any trust and over time earn trust from other stackers by zapping content before them.
 
-The only consideration that factors into a stacker's trust level is whether or not they are zapping good content. Zap amounts do not impact stackers' trust scores.
+The only factor determining a stacker's trust level is whether they are zapping good content. Zap amounts do not impact stackers' trust scores.
 
 In addition, stackers do not lose or gain trust for making posts or comments. Instead, the post and comment fees are the mechanism that incentivizes stackers to only make high quality posts and comments.
 

@@ -24,7 +24,7 @@ export function WalletForms ({ name }) {
     <WalletLayout>
       <div className='py-5'>
         <WalletLayoutHeader>
-          <WalletLayoutImageOrName name={name} />
+          <WalletLayoutImageOrName name={name} maxHeight='80px' />
         </WalletLayoutHeader>
         {wallet && <WalletFormSelector wallet={wallet} />}
       </div>

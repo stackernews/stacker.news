@@ -1,10 +1,6 @@
-import { createContext, useContext, useEffect, useReducer } from 'react'
-import { useRouter } from 'next/router'
-import { useQuery } from '@apollo/client'
-import { WALLETS } from '@/fragments/wallet'
-
-import RetryHandler from './retry'
-import walletsReducer, { FIRST_PAGE, RESET_PAGE, SET_WALLETS } from './reducer'
+import { createContext, useContext, useReducer } from 'react'
+import walletsReducer, { FIRST_PAGE } from './reducer'
+import { useServerWallets, usePageNavigation, useAutomatedRetries } from './hooks'
 
 // https://react.dev/learn/scaling-up-with-reducer-and-context
 const WalletsContext = createContext(null)
@@ -26,46 +22,22 @@ export default function WalletsProvider ({ children }) {
     wallets: []
   })
 
-  useServerWallets({ dispatch })
-  usePageNavigation({ dispatch })
-
   // TODO(wallet-v2): add WebLnProvider to manage WebLN state
   return (
     <WalletsContext.Provider value={state}>
       <WalletsDispatchContext.Provider value={dispatch}>
-        <RetryHandler>
+        <WalletHooks>
           {children}
-        </RetryHandler>
+        </WalletHooks>
       </WalletsDispatchContext.Provider>
     </WalletsContext.Provider>
   )
 }
 
-function useServerWallets ({ dispatch }) {
-  const query = useQuery(WALLETS)
+function WalletHooks ({ children }) {
+  useServerWallets()
+  usePageNavigation()
+  useAutomatedRetries()
 
-  useEffect(() => {
-    if (query.error) {
-      console.error('failed to fetch wallets:', query.error)
-      return
-    }
-    if (query.loading) return
-    dispatch({ type: SET_WALLETS, wallets: query.data.wallets })
-  }, [query])
-}
-
-function usePageNavigation ({ dispatch }) {
-  const router = useRouter()
-
-  useEffect(() => {
-    function handleRouteChangeComplete (url) {
-      if (!url.startsWith('/wallets')) {
-        dispatch({ type: RESET_PAGE })
-      }
-    }
-    router.events.on('routeChangeComplete', handleRouteChangeComplete)
-    return () => {
-      router.events.off('routeChangeComplete', handleRouteChangeComplete)
-    }
-  }, [router, dispatch])
+  return children
 }

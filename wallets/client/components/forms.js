@@ -24,7 +24,7 @@ export function WalletForms ({ name }) {
 
   return (
     <WalletLayout>
-      <div className='py-5'>
+      <div className={styles.form}>
         <WalletLayoutHeader>
           <WalletLayoutImageOrName name={name} maxHeight='80px' />
         </WalletLayoutHeader>
@@ -99,13 +99,17 @@ function WalletProtocolSelector ({ wallet }) {
 
   if (protocols.length === 0) {
     // TODO(wallet-v2): let user know how to request support if the wallet actually does support sending
-    return <div className='text-muted text-center'>sending not supported</div>
+    return (
+      <div className='mt-2 text-muted text-center'>
+        {sendRecvParam === 'send' ? 'sending' : 'receiving'} not supported
+      </div>
+    )
   }
 
   return (
     <Nav
       key={path}
-      className={`${styles.nav} justify-content-evenly`}
+      className={`${styles.nav} mt-2 mb-3`}
       activeKey={selected}
     >
       {

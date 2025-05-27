@@ -38,8 +38,7 @@ export function WalletLayoutLink ({ children, href }) {
 }
 
 export function WalletLayoutImageOrName ({ name, maxHeight = '50px' }) {
-  const walletNameToImage = useWalletImage()
-  const img = walletNameToImage(name)
+  const img = useWalletImage(name)
   return (
     <div className='d-flex justify-content-center align-items-center text-center'>
       {img

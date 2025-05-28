@@ -5,7 +5,7 @@ function walletJson (name) {
   return wallets.find(wallet => wallet.name === name)
 }
 
-function protocolJson ({ name, send }) {
+function protocol ({ name, send }) {
   return protocols.find(protocol => protocol.name === name && protocol.send === send)
 }
 
@@ -14,7 +14,7 @@ export function walletDisplayName (name) {
 }
 
 export function protocolDisplayName ({ name, send }) {
-  return protocolJson({ name, send })?.displayName || titleCase(name)
+  return protocol({ name, send })?.displayName || titleCase(name)
 }
 
 export function walletImage (name) {
@@ -34,5 +34,5 @@ export function unurlify (urlName) {
 }
 
 export function protocolFields ({ name, send }) {
-  return protocolJson({ name, send })?.fields || []
+  return protocol({ name, send })?.fields || []
 }

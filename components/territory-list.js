@@ -6,7 +6,8 @@ import { useQuery } from '@apollo/client'
 import MoreFooter from './more-footer'
 import { useData } from './use-data'
 import Info from './info'
-import { TerritoryInfo } from './territory-header'
+import ActionDropdown from './action-dropdown'
+import { TerritoryInfo, ToggleSubSubscriptionDropdownItem, MuteSubDropdownItem } from './territory-header'
 
 // all of this nonsense is to show the stat we are sorting by first
 const Revenue = ({ sub }) => (sub.optional.revenue !== null && <span>{abbrNum(sub.optional.revenue)} revenue</span>)
@@ -35,16 +36,16 @@ function separate (arr, separator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, separator] : [x])
 }
 
-export default function TerritoryList ({ ssrData, query, variables, destructureData, rank }) {
+export default function TerritoryList ({ ssrData, query, variables, destructureData, rank, statCompsProp }) {
   const { data, fetchMore } = useQuery(query, { variables })
   const dat = useData(data, ssrData)
-  const [statComps, setStatComps] = useState(separate(STAT_COMPONENTS, Separator))
+  const [statComps, setStatComps] = useState(separate(statCompsProp || STAT_COMPONENTS, Separator))
 
   useEffect(() => {
     // shift the stat we are sorting by to the front
-    const comps = [...STAT_COMPONENTS]
+    const comps = [...statComps]
     setStatComps(separate([...comps.splice(STAT_POS[variables?.by || 0], 1), ...comps], Separator))
-  }, [variables?.by])
+  }, [variables?.by], statComps)
 
   const { subs, cursor } = useMemo(() => {
     if (!dat) return {}
@@ -77,6 +78,10 @@ export default function TerritoryList ({ ssrData, query, variables, destructureD
                     {sub.name}
                   </Link>
                   <Info className='d-flex'><TerritoryInfo sub={sub} /></Info>
+                  <ActionDropdown>
+                    <ToggleSubSubscriptionDropdownItem sub={sub} />
+                    <MuteSubDropdownItem sub={sub} />
+                  </ActionDropdown>
                 </div>
                 <div className={styles.other}>
                   {statComps.map((Comp, i) => <Comp key={i} sub={sub} />)}

@@ -149,3 +149,15 @@ export const TOP_SUBS = gql`
     }
   }
 `
+
+export const MY_SUBSCRIBED_SUBS = gql`
+  ${SUB_FULL_FIELDS}
+  query MySubscribedSubs($cursor: String) {
+    mySubscribedSubs(cursor: $cursor) {
+      subs {
+        ...SubFullFields
+      }
+      cursor
+    }
+  }
+`

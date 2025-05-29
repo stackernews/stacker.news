@@ -356,7 +356,9 @@ services:
       ofelia.job-exec.sn_channel_cron.schedule: "@every 1m"
       ofelia.job-exec.sn_channel_cron.command: >
         su lnd -c bash -c "
-          if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
+          if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 6 ]; then
+            exit 0
+          elif [ $$(lncli listchannels --peer=$ROUTER_LND_PUBKEY | jq '.channels | length') -ge 3 ]; then
             exit 0
           else
             lncli openchannel --node_key=$ROUTER_LND_PUBKEY --connect router_lnd:9735 --sat_per_vbyte 1 \\

@@ -40,7 +40,7 @@ async function customDomainMiddleware (request, domain, subName) {
     return redirectToAuthSync(searchParams, domain, signup)
   }
   // if we have a verification token, exchange it for a session token
-  if (searchParams.has('token')) return establishAuthSync(searchParams)
+  if (searchParams.has('token')) return establishAuthSync(request, searchParams)
 
   // Territory URLs
   // if sub param exists and doesn't match the domain's subname, update it
@@ -84,20 +84,25 @@ async function redirectToAuthSync (searchParams, domain, signup) {
 
   // if we have a callbackUrl, we need to set it as redirectUri
   if (searchParams.has('callbackUrl')) {
-    syncUrl.searchParams.set('redirectUri', searchParams.get('callbackUrl'))
+    const callbackUrl = searchParams.get('callbackUrl')
+    // extract just the path portion if it's a full URL
+    const redirectUri = callbackUrl.startsWith('http')
+      ? new URL(callbackUrl).pathname
+      : callbackUrl
+    syncUrl.searchParams.set('redirectUri', redirectUri)
   }
 
   return NextResponse.redirect(syncUrl)
 }
 
 // POST to /api/auth/sync and set the session cookie
-async function establishAuthSync (searchParams) {
+async function establishAuthSync (request, searchParams) {
   // get the verification token from the search params
   const token = searchParams.get('token')
   // get the redirectUri from the search params
   const redirectUri = searchParams.get('redirectUri') || '/'
   // prepare redirect to the redirectUri
-  const res = NextResponse.redirect(decodeURIComponent(redirectUri))
+  const res = NextResponse.redirect(new URL(decodeURIComponent(redirectUri), request.url))
 
   // POST to /api/auth/sync to exchange verification token for session token
   const response = await fetch(`${SN_MAIN_DOMAIN.origin}/api/auth/sync`, {
@@ -114,7 +119,7 @@ async function establishAuthSync (searchParams) {
   const data = await response.json()
   if (data.status === 'ERROR') {
     // if the response is an error, redirect to the home page
-    return NextResponse.redirect('/')
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   // set the session cookie

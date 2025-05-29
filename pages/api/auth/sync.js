@@ -13,7 +13,7 @@ export default async function handler (req, res) {
     // exchange a verification token for an ephemeral session token
     if (req.method === 'POST') {
       // a verification token is received from the middleware
-      const { verificationToken } = JSON.parse(req.body)
+      const { verificationToken } = req.body
       if (!verificationToken) {
         return res.status(400).json({ status: 'ERROR', reason: 'verification token is required' })
       }

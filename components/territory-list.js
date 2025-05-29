@@ -2,11 +2,15 @@ import Link from 'next/link'
 import { abbrNum, numWithUnits } from '@/lib/format'
 import styles from './item.module.css'
 import React, { useEffect, useMemo, useState } from 'react'
+import { Dropdown } from 'react-bootstrap'
 import { useQuery } from '@apollo/client'
 import MoreFooter from './more-footer'
 import { useData } from './use-data'
 import Info from './info'
-import { TerritoryInfo } from './territory-header'
+import ActionDropdown from './action-dropdown'
+import { TerritoryInfo, ToggleSubSubscriptionDropdownItem,   } from './territory-header'
+import { TerritoryTransferDropdownItem } from './territory-transfer'
+
 
 // all of this nonsense is to show the stat we are sorting by first
 const Revenue = ({ sub }) => (sub.optional.revenue !== null && <span>{abbrNum(sub.optional.revenue)} revenue</span>)
@@ -58,6 +62,7 @@ export default function TerritoryList ({ ssrData, query, variables, destructureD
   if (!dat) {
     return <SubsSkeleton />
   }
+  console.log('subs', subs)
 
   return (
     <>
@@ -77,6 +82,9 @@ export default function TerritoryList ({ ssrData, query, variables, destructureD
                     {sub.name}
                   </Link>
                   <Info className='d-flex'><TerritoryInfo sub={sub} /></Info>
+                  <ActionDropdown>
+                    <ToggleSubSubscriptionDropdownItem sub={sub} />
+                  </ActionDropdown>
                 </div>
                 <div className={styles.other}>
                   {statComps.map((Comp, i) => <Comp key={i} sub={sub} />)}

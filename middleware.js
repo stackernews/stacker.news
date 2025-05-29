@@ -1,7 +1,6 @@
 import { NextResponse, URLPattern } from 'next/server'
 import { getDomainMapping } from '@/lib/domains'
 import { SESSION_COOKIE, cookieOptions } from '@/lib/auth'
-import { decode as decodeJWT } from 'next-auth/jwt'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -34,18 +33,16 @@ async function customDomainMiddleware (request, domain, subName) {
   console.log('[domains] pathname', pathname) // TEST
   console.log('[domains] searchParams', searchParams) // TEST
 
-  // WIP Rewrite Auth Sync
+  // Auth Sync
+  // if the user is trying to login or signup, redirect to the Auth Sync API
   if (pathname.startsWith('/login') || pathname.startsWith('/signup')) {
-    return authSyncMiddleware(url, domain)
+    const signup = pathname.startsWith('/signup')
+    return redirectToAuthSync(searchParams, domain, signup)
   }
+  // if we have a verification token, exchange it for a session token
+  if (searchParams.has('token')) return establishAuthSync(searchParams)
 
-  // WIP Rewrite Auth Sync
-  if (searchParams.has('token')) {
-    const redirectUri = searchParams.get('redirectUri') || '/'
-    const res = NextResponse.redirect(decodeURIComponent(redirectUri))
-    return establishAuthSync(res, url, domain)
-  }
-
+  // Territory URLs
   // if sub param exists and doesn't match the domain's subname, update it
   if (searchParams.has('sub') && searchParams.get('sub') !== subName) {
     console.log('[domains] setting sub to', subName) // TEST
@@ -75,11 +72,16 @@ async function customDomainMiddleware (request, domain, subName) {
   return NextResponse.next({ request: { headers } })
 }
 
-// WIP Rewrite Auth Sync
-async function authSyncMiddleware (url, domain) {
-  const { searchParams } = url
+// redirect to the Auth Sync API
+async function redirectToAuthSync (searchParams, domain, signup) {
   const syncUrl = new URL('/api/auth/sync', SN_MAIN_DOMAIN)
   syncUrl.searchParams.set('domain', domain)
+
+  // if we're signing up, we need to set the signup flag
+  if (signup) {
+    syncUrl.searchParams.set('signup', 'true')
+  }
+
   // if we have a callbackUrl, we need to set it as redirectUri
   if (searchParams.has('callbackUrl')) {
     syncUrl.searchParams.set('redirectUri', searchParams.get('callbackUrl'))
@@ -88,31 +90,36 @@ async function authSyncMiddleware (url, domain) {
   return NextResponse.redirect(syncUrl)
 }
 
-async function establishAuthSync (res, url, domain) {
-  const { searchParams } = url
+// POST to /api/auth/sync and set the session cookie
+async function establishAuthSync (searchParams) {
+  // get the verification token from the search params
   const token = searchParams.get('token')
+  // get the redirectUri from the search params
+  const redirectUri = searchParams.get('redirectUri') || '/'
+  // prepare redirect to the redirectUri
+  const res = NextResponse.redirect(decodeURIComponent(redirectUri))
 
-  const decodedSession = await verifySessionToken(token, domain)
-  if (!decodedSession) {
-    // TODO: maybe a page with a message?
+  // POST to /api/auth/sync to exchange verification token for session token
+  const response = await fetch(`${SN_MAIN_DOMAIN.origin}/api/auth/sync`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      verificationToken: token
+    })
+  })
+
+  // get the session token from the response
+  const data = await response.json()
+  if (data.status === 'ERROR') {
+    // if the response is an error, redirect to the home page
     return NextResponse.redirect('/')
   }
-  // set the session cookie
-  res.cookies.set(SESSION_COOKIE, token, cookieOptions())
-  return res
-}
 
-async function verifySessionToken (sessionToken, domain) {
-  const decodedSession = await decodeJWT({
-    token: sessionToken,
-    secret: process.env.NEXTAUTH_SECRET
-  })
-  // check if the session is valid and belongs to the domain
-  if (!decodedSession || decodedSession?.domainName !== domain) {
-    console.log('[establishAuthSync] invalid session token') // TEST
-    return false
-  }
-  return decodedSession
+  // set the session cookie
+  res.cookies.set(SESSION_COOKIE, data.sessionToken, cookieOptions())
+  return res
 }
 
 function getContentReferrer (request, url) {

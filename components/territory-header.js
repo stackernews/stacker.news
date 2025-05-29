@@ -104,7 +104,7 @@ export default function TerritoryHeader ({ sub }) {
         <div>
           <TerritoryDetails sub={sub}>
             <div className='d-flex my-2 justify-content-end'>
-              {sub.name}
+              {sub.name} 
               <Share path={`/~${sub.name}`} title={`~${sub.name} stacker news territory`} className='mx-1' />
               {me &&
                 <>
@@ -212,6 +212,7 @@ export function PinSubDropdownItem ({ item: { id, position } }) {
 }
 
 export function ToggleSubSubscriptionDropdownItem ({ sub: { name, meSubscription } }) {
+  console.log('ToggleSubSubscriptionDropdownItem', name, meSubscription)
   const toaster = useToast()
   const [toggleSubSubscription] = useMutation(
     gql`

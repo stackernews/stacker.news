@@ -9,6 +9,7 @@ import TerritoryList from '@/components/territory-list'
 export const getServerSideProps = getGetServerSideProps({ query: USER_WITH_SUBS })
 
 export default function UserTerritories ({ ssrData }) {
+  console.log('ssrdata', ssrData)
   const router = useRouter()
   const variables = { ...router.query }
 

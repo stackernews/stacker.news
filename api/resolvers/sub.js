@@ -170,7 +170,28 @@ export default {
         cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         subs
       }
-    }
+    },
+    mySubscribedSubs: async (parent, { cursor }, { models, me }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const decodedCursor = decodeCursor(cursor)
+      const subs = await models.$queryRaw`
+        SELECT "Sub".*
+        FROM "SubSubscription"
+        JOIN "Sub" ON "SubSubscription"."subName" = "Sub".name
+        WHERE "SubSubscription"."userId" = ${me.id}
+        AND "Sub".status <> 'STOPPED'
+        ORDER BY "Sub".name ASC
+        OFFSET ${decodedCursor.offset}
+        LIMIT ${LIMIT}`
+
+      return {
+        cursor: subs.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        subs
+      }
+    },
   },
   Mutation: {
     upsertSub: async (parent, { ...data }, { me, models, lnd }) => {

@@ -112,7 +112,7 @@ const resolvers = {
         }
       })
 
-      userWallets = userWallets.map(mapUserWalletsResolveType)
+      userWallets = userWallets.map(mapUserWalletResolveTypes)
       walletTemplates = walletTemplates.map(t => {
         return {
           ...t,
@@ -135,7 +135,7 @@ const resolvers = {
             protocols: true
           }
         })
-        return mapUserWalletsResolveType(userWallet)
+        return mapUserWalletResolveTypes(userWallet)
       }
 
       const template = await models.walletTemplate.findFirst({ where: { name } })
@@ -841,7 +841,7 @@ async function fetchLnAddrInvoice (
   return res
 }
 
-function mapUserWalletsResolveType (wallet) {
+function mapUserWalletResolveTypes (wallet) {
   const resolveTypeOfProtocolConfig = (name, send) => {
     switch (name) {
       case 'NWC':

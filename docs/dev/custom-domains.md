@@ -1,4 +1,3 @@
-# The Hitchhiker's Guide to Custom Domains
 Lets territory owners attach a domain to their territories.
 TODO: change the title
 
@@ -6,16 +5,17 @@ Index:
 TODO
 
 # Middleware
-Every time we hit a custom domain, middleware checks if it's allowed via a cached list of `ACTIVE` domains, coupled with their `subName`.
-If it's allowed, we redirect and rewrite to give custom domains a seamless territory-centered SN experience.
+Every time we hit a custom domain, our middleware:
+- Looks up a cached map of `ACTIVE` custom domains and their `subName`
+- Redirects and rewrites URLs to provide a seamless territory-specific SN experience.
 ##### Main middleware
-Referral cookies and security headers gets applied the same way as before on SN, with the exception of being their own functions, so that now we can apply them also to the customDomainMiddleware resulting response.
-##### customDomainMiddleware
-A `x-stacker-news-subname` header with the `subName` is injected into the request headers to give the SN code awareness of the territory attached to a custom domain.
+Referral cookies and security headers are applied as usual ensuring that the same Stacker News functionality are applied to responses returned by `customDomainMiddleware`
+##### Custom Domain Middleware
+Injects a `x-stacker-news-subname` header into the request, so that we can avoid checking the cached map of domains again on other parts of the code.
 
 Since SN has several paths that depends on the `sub` parameter or the `~subName/` paths, it manipulates the URL to always stay on the right territory:
-- It forces the `sub` parameter to match the custom domain's `subName`
-- Rewrites `/` to `~subName/`
+- Forces the `sub` parameter to match the custom domain's `subName`
+- Internally rewrites `/` to `/~subName/`
 - Redirects paths that uses `~subName` to `/`
 
 The territory paths are the following:
@@ -23,9 +23,8 @@ The territory paths are the following:
 
 Rewriting `~subName` to `/` gives custom domains an **independent-like look**, so that things like `/~subName/post` can now look like `/post`, etc.
 # Domain Verification
-Domain Verification is a pgboss Job that checks correct DNS values and handles AWS external requests.
-
-On domain creation, we schedule a job that starts in 30 seconds sending also the domain ID, and a `singletonKey` that protects this job from being ran from other workers, avoiding concurrency issues.
+We use a pgboss job called `domainVerification`, to verify domains, manage AWS integrations and update domain status.
+A new job is scheduled 30 seconds after domain creation or `domainVerification` resulting in `PENDING`, including a `singletonKey` to prevent concurrency from other workers.
 
 The Domain Verification Flow is structured this way:
 ```
@@ -67,10 +66,10 @@ domain is PENDING
 ```
 
 ### DNS Verification
-It uses the `Resolver` class from `node:dns/promises` to resolve CNAME records on a domain.
+It uses `Resolver` from `node:dns/promises` to fetch CNAME records.
 
-If the CNAME record is correct, it logs a `DomainVerificationAttempt` tied with the `DomainVerificationRecord`, having status `VERIFIED`. This resulting status is shared with the connected `DomainVerificationRecord` thanks to a trigger.
-##### dnsmasq
+A successful CNAME lookup logs a `DomainVerificationAttempt` with status `VERIFIED`, triggering an update to the corresponding `DomainVerificationRecord` via database triggers.
+##### local testing with dnsmasq
 In local, **dnsmasq** is used as a DNS server to mock records for the domain verification job.
 To have a dedicated IP for the `node:dns` Resolver, the `worker` container is part of a dedicated docker network that gives dnsmasq the `172.30.0.2` IP address.
 
@@ -78,7 +77,8 @@ You can also set your machine's DNS configuration to point to 127.0.0.1:5353 and
 
 For more information on how to add/remove records, take a look at `README.md` on the `Custom domains` section.
 ### AWS management
-The domain verification job also handles critical AWS operations, such as:
+AWS operations are handled within the verification job. Each steps logs attempts and allows up to 3 pgboss job retries on critical thrown errors.
+
 - certificate issuance
 - certificate validation values
 - certificate polling
@@ -88,38 +88,35 @@ The domain verification job also handles critical AWS operations, such as:
 After DNS checks, if we don't have a certificate already, we request ACM a new certificate for the domain.
 ACM will return a `certificateArn`, which is the unique ID of an ACM certificate, that is immediately used to check its status. These informations are then stored in the `DomainCertificate` table.
 
-If we couldn't request a certificate, check its status or store it in the DB, it throws an error so that pgboss can retry the job.
-
 ##### Certificate validation values
 ACM needs to verify domain ownership in order to validate the certificate, in this case we use the DNS method.
 
 We ask ACM for the DNS records so that we can store them as a `DomainVerificationRecord` and present them to the user. Finally, we re-schedule the job so that the user can adjust their DNS configuration.
 
-If we couldn't get validation values or store them in the DB, it throws an error so that pgboss can retry the job.
-
-##### Certificate validation polling
+##### Certificate validation and status polling
 We asked ACM for a certificate, got its validation values and presented them to the user. Now we need to poll ACM to know if the verification was successful.
 
-Since we're directly checking the certificate status, we also update DomainCertificate on our DB with the new status.
+Since we're directly checking the certificate status, we also update `DomainCertificate` on our DB with the new status.
 
-AWS timings are unpredictable, if the verification returns a negative result, we re-schedule the job to repeat this step.
-And If we couldn't contact ACM, it throws an error so that pgboss can retry the job.
+AWS validation timings are unpredictable, if the verification returns a negative result, we re-schedule the job to repeat this step.
 
 ##### Certificate attachment to the ALB listener
 This is the last step regarding AWS in our domain verification job, it attaches a completely verified ACM certificate to our load balancer listener.
 
 The ALB listener is the gatekeeper of the application load balancer (ALB), it determines how incoming requests should be routed to the target server.
 
-In the case of Stacker News, the domain points directly at the load balancer listener, this means that we can both direct the user to point their `CNAME` record to `stacker.news` and that we can serve their ACM certificate directly from the load balancer.
+In the case of Stacker News, the domain points directly to the load balancer listener, this means that we can both direct the user to point their `CNAME` record to `stacker.news` and we can serve their ACM certificate directly from the load balancer.
+
+### Error handling
+Every AWS or DNS step is wrapped in try/catch:
+If something throws an error, we catch it to log the attempt and then re-throw it to let pgboss retry up to 3 times.
+
+Using the `jobId` that we pass with each job, we can know if we're reaching 3 retries using pgboss' `getJobById`. And if we did reach 3 retries, we put the domain on `HOLD`, stopping and deleting future jobs tied to this domain.
 
 ### End of the job
 When we finish a step in the domain verification job, and the resulting status is still `PENDING`, we re-schedule a job using `sendDebounced` by pgboss.
 
 Since we use a `singletonKey` to avoid same-domain concurrent jobs, and you can't schedule another job if one is already running, `sendDebounced` will try to schedule a job when it can, e.g. when the job finishes or after 30 seconds.
-
-### Error handling
-If something throws an error, we catch it to log the attempt and then re-throw it to let pgboss retry up to 3 times.
-Using the `jobId` that we pass with each job, we can know if we're reaching 3 retries using pgboss' `getJobById`. And if we did reach 3 retries, we put the domain on `HOLD`, stopping and deleting future jobs tied to this domain.
 
 ### Domain Verification logger
 We need to be able to track where, when and what went wrong during domain verification. To do this, every step of the job calls `logAttempt`
@@ -155,7 +152,7 @@ Since in local we don't have the possibility to use Localstack to mock the ALB, 
 
 As the ALB is really important to reach stacker.news, we only implemented Attach/Detach certificate functions that takes a specific `certificateArn` (unique ID). This way we can't possibly mess with the default ALB configuration.
 
-# plpgSQL functions and triggers
+# Triggers, cleanup and maintenance
 ### Clear Long Held Domains
 Every midnight, the `clearLongHeldDomains` job gets executed to remove domains that have been on `HOLD` for more than 30 days.
 
@@ -165,7 +162,6 @@ A domain removal also means the certificate removal, which triggers **Ask ACM to
 The `DomainVerification` job logs every step into `DomainVerificationAttempt`, when it comes to steps that involves DNS records like the `CNAME` record or ACM validation records, a connection between `DomainVerificationAttempt` and `DomainVerificationRecord` gets established.
 
 If the result of a DNS verification on the `CNAME` record is `VERIFIED`, it triggers a field `status` update to the related `DomainVerificationRecord`, keeping the record **statuses** in sync with the `DomainVerification` job results.
-
 
 ### HOLD domain on territory STOP
 Let's say the territory owner doesn't renew their territory, and they have a custom domain attached to it. We can't let the custom domain access Stacker News as the domain can be transferred or out of original owner's control.

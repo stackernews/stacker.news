@@ -151,9 +151,14 @@ function WalletProtocolForm ({ wallet }) {
 
 function WalletProtocolFormField ({ type, ...props }) {
   function transform ({ validate, ...props }) {
-    const hint = props.hint ?? (props.required ? null : 'optional')
+    const label = (
+      <div className='d-flex align-items-center'>
+        {props.label}
+        {!props.required && <small className='text-muted ms-2'>optional</small>}
+      </div>
+    )
 
-    return { ...props, hint }
+    return { ...props, label }
   }
 
   switch (type) {

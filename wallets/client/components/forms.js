@@ -14,8 +14,6 @@ import { useWalletQuery } from '@/wallets/client/hooks'
 export function WalletForms ({ id, name }) {
   // TODO(wallet-v2): support editing a user wallet if id is given
   // TODO(wallet-v2): handle loading and error states
-  // TODO(wallet-v2): FIXME: this does not return the updated wallet after decryption
-  //   so if the config is not decrypted on first render, it will not be displayed
   const { data } = useWalletQuery({ name, id })
   const wallet = data?.wallet
 
@@ -137,6 +135,7 @@ function WalletProtocolForm ({ wallet }) {
 
   return (
     <Form
+      enableReinitialize
       initial={initial}
       schema={schema}
       onSubmit={onSubmit}

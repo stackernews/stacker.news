@@ -196,7 +196,8 @@ function useWalletProtocols (wallet) {
 function useProtocolForm (protocol) {
   const fields = protocolFields(protocol)
   const initial = fields.reduce((acc, field) => {
-    const value = protocol.config[field.name]
+    // wallet templates don't have a config
+    const value = protocol.config?.[field.name]
     return {
       ...acc,
       [field.name]: value || ''

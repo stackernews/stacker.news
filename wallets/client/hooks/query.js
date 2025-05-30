@@ -30,6 +30,8 @@ function useWalletDecryption () {
   const decryptConfig = useDecryptConfig()
 
   return useCallback(async wallet => {
+    if (wallet.__typename === 'WalletTemplate') return wallet
+
     const protocols = await Promise.all(
       wallet.protocols.map(
         async protocol => ({

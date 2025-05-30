@@ -1385,5 +1385,29 @@ export function MultiInput ({
   )
 }
 
+export function ColorPicker ({ label, groupClassName, name, ...props }) {
+  const [field, , helpers] = useField({ ...props, name })
+
+  useEffect(() => {
+    helpers.setValue(field.value)
+  }, [field.value])
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <ClientInput
+        type='color'
+        {...field}
+        {...props}
+        onChange={(formik, e) => {
+          field.onChange(e)
+          if (props.onChange) {
+            props.onChange(formik, e)
+          }
+        }}
+      />
+    </FormGroup>
+  )
+}
+
 export const ClientInput = Client(Input)
 export const ClientCheckbox = Client(Checkbox)

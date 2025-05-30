@@ -14,8 +14,9 @@ import { purchasedType } from '@/lib/territory'
 import { SUB } from '@/fragments/subs'
 import { usePaidMutation } from './use-paid-mutation'
 import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/paidAction'
-import TerritoryDomains, { useDomain } from './territory-domains'
+import TerritoryDomains, { useDomain } from './domains/territory-domains'
 import Link from 'next/link'
+import BrandingForm from './domains/branding/branding-form'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
@@ -299,12 +300,7 @@ export default function TerritoryForm ({ sub }) {
                 <TerritoryDomains sub={sub} />
                 {/* TODO: doesn't follow the custom domain state */}
                 {sub?.customDomain?.dnsState === 'VERIFIED' && sub?.customDomain?.sslState === 'VERIFIED' &&
-                  <>
-                    <BootstrapForm.Label>[NOT IMPLEMENTED] branding</BootstrapForm.Label>
-                    <div className='mb-3'>WIP</div>
-                    <BootstrapForm.Label>[NOT IMPLEMENTED] color scheme</BootstrapForm.Label>
-                    <div className='mb-3'>WIP</div>
-                  </>}
+                  <BrandingForm sub={sub} />}
               </>
             }
           />

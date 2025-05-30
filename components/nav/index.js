@@ -3,7 +3,7 @@ import DesktopHeader from './desktop/header'
 import MobileHeader from './mobile/header'
 import StickyBar from './sticky-bar'
 import { PriceCarouselProvider } from './price-carousel'
-import { useDomain } from '@/components/territory-domains'
+import { useDomain } from '@/components/domains/territory-domains'
 
 export default function Navigation ({ sub }) {
   const router = useRouter()

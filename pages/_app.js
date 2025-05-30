@@ -22,7 +22,7 @@ import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
 import { WebLnProvider } from '@/wallets/webln/client'
 import { WalletsProvider } from '@/wallets/index'
-import { DomainProvider } from '@/components/territory-domains'
+import { DomainProvider } from '@/components/domains/territory-domains'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 

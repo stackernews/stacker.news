@@ -12,7 +12,7 @@ import { gql, useMutation } from '@apollo/client'
 import { useToast } from './toast'
 import ActionDropdown from './action-dropdown'
 import { TerritoryTransferDropdownItem } from './territory-transfer'
-import { useDomain } from './territory-domains'
+import { useDomain } from './domains/territory-domains'
 
 export function TerritoryDetails ({ sub, children }) {
   return (

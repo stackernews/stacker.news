@@ -25,7 +25,7 @@ import { useWallets } from '@/wallets/index'
 import SwitchAccountList, { nextAccount, useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
-import { useDomain } from '@/components/territory-domains'
+import { useDomain } from '@/components/domains/territory-domains'
 
 export function Brand ({ className }) {
   return (

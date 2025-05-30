@@ -14,12 +14,15 @@ import { purchasedType } from '@/lib/territory'
 import { SUB } from '@/fragments/subs'
 import { usePaidMutation } from './use-paid-mutation'
 import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/paidAction'
-import TerritoryDomains from './territory-domains'
+import TerritoryDomains, { useDomain } from './territory-domains'
+import Link from 'next/link'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
   const client = useApolloClient()
   const { me } = useMe()
+  const { isCustomDomain } = useDomain()
+
   const [upsertSub] = usePaidMutation(UPSERT_SUB)
   const [unarchiveTerritory] = usePaidMutation(UNARCHIVE_TERRITORY)
 
@@ -98,8 +101,7 @@ export default function TerritoryForm ({ sub }) {
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false,
           moderated: sub?.moderated || false,
-          nsfw: sub?.nsfw || false,
-          customDomain: sub?.customDomain?.domain || ''
+          nsfw: sub?.nsfw || false
         }}
         schema={schema}
         onSubmit={onSubmit}
@@ -288,7 +290,7 @@ export default function TerritoryForm ({ sub }) {
           />
         </div>
       </Form>
-      {sub &&
+      {sub && !isCustomDomain &&
         <div className='w-100'>
           <AccordianItem
             header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
@@ -307,6 +309,7 @@ export default function TerritoryForm ({ sub }) {
             }
           />
         </div>}
+      {sub && isCustomDomain && <Link className='text-muted w-100' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain settings on stacker.news</Link>}
     </FeeButtonProvider>
   )
 }

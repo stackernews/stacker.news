@@ -47,6 +47,82 @@ export const DomainProvider = ({ isCustomDomain: initialIsCustomDomain, children
 
 export const useDomain = () => useContext(DomainContext)
 
+const getStatusBadge = (status) => {
+  switch (status) {
+    case 'VERIFIED':
+      return <Badge bg='success'>DNS verified</Badge>
+    case 'PENDING':
+      return <Badge bg='warning'>DNS pending</Badge>
+    case 'FAILED':
+      return <Badge bg='danger'>DNS failed</Badge>
+  }
+}
+
+const getSSLStatusBadge = (status) => {
+  switch (status) {
+    case 'VERIFIED':
+      return <Badge bg='success'>SSL verified</Badge>
+    case 'PENDING':
+      return <Badge bg='warning'>SSL pending</Badge>
+    case 'FAILED':
+      return <Badge bg='danger'>SSL failed</Badge>
+    case 'WAITING':
+      return <Badge bg='info'>SSL waiting</Badge>
+  }
+}
+
+export function DomainLabel ({ customDomain }) {
+  const { domain, dnsState, sslState, lastVerifiedAt } = customDomain || {}
+  return (
+    <div className='d-flex align-items-center gap-2'>
+      <span>custom domain</span>
+      {domain && (
+        <ActionTooltip overlayText={lastVerifiedAt ? new Date(lastVerifiedAt).toLocaleString() : ''}>
+          <div className='d-flex align-items-center gap-2'>
+            {getStatusBadge(dnsState)}
+            {getSSLStatusBadge(sslState)}
+          </div>
+        </ActionTooltip>
+      )}
+    </div>
+  )
+}
+
+export function DomainGuidelines ({ customDomain }) {
+  const { domain, dnsState, sslState, verificationTxt, verificationCname, verificationCnameValue } = customDomain || {}
+  return (
+    <>
+      {(dnsState && dnsState !== 'VERIFIED') && (
+        <>
+          <h5>Step 1: Verify your domain</h5>
+          <p>Add the following DNS records to verify ownership of your domain:</p>
+          <h6>CNAME</h6>
+          <p>
+            Host: <pre>{domain || 'www'}</pre>
+            Value: <pre>stacker.news</pre>
+          </p>
+          <h6>TXT</h6>
+          <p>
+            Host: <pre>{domain || 'www'}</pre>
+            Value: <pre>{verificationTxt}</pre>
+          </p>
+        </>
+      )}
+      {sslState === 'PENDING' && (
+        <>
+          <h5>Step 2: Prepare your domain for SSL</h5>
+          <p>We issued an SSL certificate for your domain. To validate it, add the following CNAME record:</p>
+          <h6>CNAME</h6>
+          <p>
+            Host: <pre>{verificationCname || 'waiting for SSL certificate'}</pre>
+            Value: <pre>{verificationCnameValue || 'waiting for SSL certificate'}</pre>
+          </p>
+        </>
+      )}
+    </>
+  )
+}
+
 // TODO: clean this up, might not need all this refreshing, plus all this polling is not done correctly
 export default function CustomDomainForm ({ sub }) {
   const [setCustomDomain] = useMutation(SET_CUSTOM_DOMAIN)
@@ -57,7 +133,7 @@ export default function CustomDomainForm ({ sub }) {
     : { variables: { subName: sub.name } })
   const toaster = useToast()
 
-  const { domain, sslState, dnsState, lastVerifiedAt } = data?.customDomain || {}
+  const { domain, sslState, dnsState } = data?.customDomain || {}
 
   // Stop polling when the domain is verified
   useEffect(() => {
@@ -86,86 +162,25 @@ export default function CustomDomainForm ({ sub }) {
     }
   }
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'VERIFIED':
-        return <Badge bg='success'>DNS verified</Badge>
-      case 'PENDING':
-        return <Badge bg='warning'>DNS pending</Badge>
-      case 'FAILED':
-        return <Badge bg='danger'>DNS failed</Badge>
-    }
-  }
-
-  const getSSLStatusBadge = (status) => {
-    switch (status) {
-      case 'VERIFIED':
-        return <Badge bg='success'>SSL verified</Badge>
-      case 'PENDING':
-        return <Badge bg='warning'>SSL pending</Badge>
-      case 'FAILED':
-        return <Badge bg='danger'>SSL failed</Badge>
-      case 'WAITING':
-        return <Badge bg='info'>SSL waiting</Badge>
-    }
-  }
-
   return (
-    <Form
-      initial={{ domain: domain || sub.customDomain?.domain }}
-      schema={customDomainSchema}
-      onSubmit={onSubmit}
-      className='mb-2'
-    >
-      {/* TODO: too many flexes */}
-      <div className='d-flex align-items-center gap-2'>
-        <Input
-          label={
-            <div className='d-flex align-items-center gap-2'>
-              <span>custom domain</span>
-              {domain && (
-                <ActionTooltip overlayText={lastVerifiedAt ? new Date(lastVerifiedAt).toLocaleString() : ''}>
-                  <div className='d-flex align-items-center gap-2'>
-                    {getStatusBadge(dnsState)}
-                    {getSSLStatusBadge(sslState)}
-                  </div>
-                </ActionTooltip>
-              )}
-            </div>
-          }
-          name='domain'
-          placeholder='www.example.com'
-        />
-        <SubmitButton variant='primary' className='mt-3'>save</SubmitButton>
-      </div>
-      {/* TODO: move this to a separate sub component */}
-      {(dnsState && dnsState !== 'VERIFIED') && (
-        <>
-          <h5>Step 1: Verify your domain</h5>
-          <p>Add the following DNS records to verify ownership of your domain:</p>
-          <h6>CNAME</h6>
-          <p>
-            Host: <pre>{domain || 'www'}</pre>
-            Value: <pre>stacker.news</pre>
-          </p>
-          <h6>TXT</h6>
-          <p>
-            Host: <pre>{domain || 'www'}</pre>
-            Value: <pre>{data?.customDomain.verificationTxt}</pre>
-          </p>
-        </>
-      )}
-      {sslState === 'PENDING' && (
-        <>
-          <h5>Step 2: Prepare your domain for SSL</h5>
-          <p>We issued an SSL certificate for your domain. To validate it, add the following CNAME record:</p>
-          <h6>CNAME</h6>
-          <p>
-            Host: <pre>{data?.customDomain.verificationCname || 'waiting for SSL certificate'}</pre>
-            Value: <pre>{data?.customDomain.verificationCnameValue || 'waiting for SSL certificate'}</pre>
-          </p>
-        </>
-      )}
-    </Form>
+    <>
+      <Form
+        initial={{ domain: domain || sub.customDomain?.domain }}
+        schema={customDomainSchema}
+        onSubmit={onSubmit}
+        className='mb-2'
+      >
+        {/* TODO: too many flexes */}
+        <div className='d-flex align-items-center gap-2'>
+          <Input
+            label={<DomainLabel customDomain={data?.customDomain} />}
+            name='domain'
+            placeholder='www.example.com'
+          />
+          <SubmitButton variant='primary' className='mt-3'>save</SubmitButton>
+        </div>
+      </Form>
+      <DomainGuidelines customDomain={data?.customDomain} />
+    </>
   )
 }

@@ -107,6 +107,7 @@ function handleNoSession (res, domainName, redirectUri, signup = false) {
 
   // create SN login URL and add our sync callback URL
   const loginRedirectUrl = new URL(signup ? '/signup' : '/login', SN_MAIN_DOMAIN)
+  if (signup) loginRedirectUrl.searchParams.set('syncSignup', 'true')
   loginRedirectUrl.searchParams.set('callbackUrl', syncUrl.href)
 
   // redirect user to login page

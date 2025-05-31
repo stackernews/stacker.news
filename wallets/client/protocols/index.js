@@ -25,9 +25,11 @@ const nwcSuite = [
         placeholder: 'nostr+walletconnect://',
         type: 'password',
         required: true,
-        validate: nwcUrlValidator()
+        validate: nwcUrlValidator(),
+        encrypt: true
       }
-    ]
+    ],
+    relationName: 'walletSendNWC'
   },
   {
     name: 'NWC',
@@ -42,7 +44,8 @@ const nwcSuite = [
         required: true,
         validate: nwcUrlValidator()
       }
-    ]
+    ],
+    relationName: 'walletRecvNWC'
   }
 ]
 
@@ -60,7 +63,8 @@ const lnAddr = {
       required: true,
       validate: externalLightningAddressValidator()
     }
-  ]
+  ],
+  relationName: 'walletRecvLightningAddress'
 }
 
 /** @type {Protocol} Core Lightning REST API */
@@ -92,7 +96,8 @@ const clnRest = {
       required: true,
       hint: 'must be restricted to method=invoice'
     }
-  ]
+  ],
+  relationName: 'walletRecvCLNRest'
 }
 
 /** @type {Protocol} LND gRPC API */
@@ -122,7 +127,8 @@ const lndGrpc = {
       validate: certValidator(),
       required: false
     }
-  ]
+  ],
+  relationName: 'walletRecvLNDGRPC'
 }
 
 /** @type {Protocol} Lightning Node Connect */
@@ -137,10 +143,12 @@ const lnc = {
       label: 'pairing phrase',
       type: 'password',
       validate: bip39Validator(),
-      required: true
+      required: true,
+      encrypt: true
     }
     // TODO(wallet-v2): some fields are generated during initial attachment and must also be validated and saved
-  ]
+  ],
+  relationName: 'walletSendLNC'
 }
 
 /** @type {Protocol[]} LNbits */
@@ -163,9 +171,11 @@ const lnbitsSuite = [
         label: 'admin key',
         type: 'password',
         validate: hexValidator(32),
-        required: true
+        required: true,
+        encrypt: true
       }
-    ]
+    ],
+    relationName: 'walletSendLNbits'
   },
   {
     name: 'LNBITS',
@@ -186,7 +196,8 @@ const lnbitsSuite = [
         validate: hexValidator(32),
         required: true
       }
-    ]
+    ],
+    relationName: 'walletRecvLNbits'
   }
 ]
 
@@ -210,9 +221,11 @@ const phoenixdSuite = [
         type: 'password',
         label: 'api key',
         validate: hexValidator(64),
-        required: true
+        required: true,
+        encrypt: true
       }
-    ]
+    ],
+    relationName: 'walletSendPhoenixd'
   },
   {
     name: 'PHOENIXD',
@@ -233,7 +246,8 @@ const phoenixdSuite = [
         validate: hexValidator(64),
         required: true
       }
-    ]
+    ],
+    relationName: 'walletRecvPhoenixd'
   }
 ]
 
@@ -253,7 +267,8 @@ const blinkSuite = [
         type: 'password',
         label: 'api key',
         validate: blinkApiKeyValidator,
-        required: true
+        required: true,
+        encrypt: true
       },
       {
         name: 'currency',
@@ -262,7 +277,8 @@ const blinkSuite = [
         required: true,
         validate: blinkCurrencyValidator
       }
-    ]
+    ],
+    relationName: 'walletSendBlink'
   },
   {
     name: 'BLINK',
@@ -283,7 +299,8 @@ const blinkSuite = [
         required: true,
         validate: blinkCurrencyValidator
       }
-    ]
+    ],
+    relationName: 'walletRecvBlink'
   }
 ]
 
@@ -293,7 +310,8 @@ const webln = {
   name: 'WEBLN',
   displayName: 'WebLN',
   send: true,
-  fields: []
+  fields: [],
+  relationName: 'walletSendWebLN'
 }
 
 export default [

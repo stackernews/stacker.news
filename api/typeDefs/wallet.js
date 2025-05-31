@@ -24,6 +24,9 @@ const typeDefs = gql`
     deleteWalletLogs(wallet: String): Boolean
     setWalletPriority(id: ID!, priority: Int!): Boolean
     buyCredits(credits: Int!): BuyCreditsPaidAction!
+    # TODO(wallet-v2): generate these mutations
+    upsertWalletSendLNbits(walletId: ID, templateId: ID, url: String!, apiKey: VaultEntryInput!): WalletSendLNbits!
+    upsertWalletRecvLNbits(walletId: ID, templateId: ID, url: String!, apiKey: String!): WalletRecvLNbits!
   }
 
   type BuyCreditsResult {

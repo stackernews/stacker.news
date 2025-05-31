@@ -22,4 +22,5 @@
  * @property {boolean} send - is this protocol is for sending payments?
  * @property {ProtocolField[]} fields - protocol fields for configuration
  * @property {yup.Schema} schema - yup schema for validation of fields
+ * @property {string} [relationName] - name of the relation in the database
  */

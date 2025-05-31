@@ -1,7 +1,7 @@
 import { Nav } from 'react-bootstrap'
 import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName } from '@/wallets/client/components'
 import { protocolDisplayName, protocolFields, unurlify, urlify } from '@/wallets/client/util'
@@ -9,7 +9,8 @@ import styles from '@/styles/wallet.module.css'
 import { Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
 import * as yup from 'lib/yup'
-import { useWalletQuery } from '@/wallets/client/hooks'
+import { useWalletProtocolMutation, useWalletQuery } from '@/wallets/client/hooks'
+import { useToast } from '@/components/toast'
 
 export function WalletForms ({ id, name }) {
   // TODO(wallet-v2): support editing a user wallet if id is given
@@ -127,11 +128,18 @@ function WalletProtocolForm ({ wallet }) {
   const protocol = wallet.protocols.find(p => p.name === protocolParam && p.send === send)
   if (!protocol) return null
 
+  // I think it is okay to skip this hook if the protocol is not found
+  // because we will need to change the URL to get a different protocol
+  // so the amount of rendered hooks should stay the same during the lifecycle of this component
+  const upsertWalletProtocol = useWalletProtocolMutation(wallet, protocol)
+  const toaster = useToast()
+
   const { fields, initial, schema } = useProtocolForm(protocol)
 
-  const onSubmit = values => {
-    console.log(values)
-  }
+  const onSubmit = useCallback(async values => {
+    await upsertWalletProtocol(values)
+    toaster.success('wallet saved')
+  }, [upsertWalletProtocol, toaster])
 
   return (
     <Form
@@ -150,7 +158,7 @@ function WalletProtocolForm ({ wallet }) {
 }
 
 function WalletProtocolFormField ({ type, ...props }) {
-  function transform ({ validate, ...props }) {
+  function transform ({ validate, encrypt, ...props }) {
     const label = (
       <div className='d-flex align-items-center'>
         {props.label}

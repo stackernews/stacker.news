@@ -451,6 +451,8 @@ model Upload {
   user               User                @relation("Uploads", fields: [userId], references: [id], onDelete: Cascade)
   User               User[]
   ItemUpload         ItemUpload[]
+  logoBranding       CustomBranding[]    @relation("LogoUpload")
+  faviconBranding    CustomBranding[]    @relation("FaviconUpload")
 
   @@index([createdAt], map: "Upload.created_at_index")
   @@index([userId], map: "Upload.userId_index")
@@ -797,6 +799,7 @@ model Sub {
   TerritoryTransfer TerritoryTransfer[]
   UserSubTrust      UserSubTrust[]
   customDomain      CustomDomain?
+  customBranding    CustomBranding?
 
   @@index([parentName])
   @@index([createdAt])
@@ -1257,6 +1260,19 @@ model CustomDomain {
   
   @@index([domain])
   @@index([createdAt])
+}
+
+model CustomBranding {
+  id                      Int       @id @default(autoincrement())
+  title                   String?
+  primaryColor            String?
+  secondaryColor          String?
+  logoId                  Int?
+  logo                    Upload?   @relation("LogoUpload", fields: [logoId], references: [id])
+  faviconId               Int?
+  favicon                 Upload?   @relation("FaviconUpload", fields: [faviconId], references: [id])
+  subName                 String    @unique @db.Citext
+  sub                     Sub       @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
 }
 
 enum EarnType {

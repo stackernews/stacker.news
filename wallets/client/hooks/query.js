@@ -2,7 +2,7 @@ import { UPSERT_WALLET_RECEIVE_LNBITS, UPSERT_WALLET_SEND_LNBITS, WALLET } from 
 import { useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useState } from 'react'
-import { isEncryptedField, protocolFields } from '@/wallets/client/util'
+import { isEncryptedField } from '@/wallets/lib/util'
 
 export function useWalletQuery ({ id, name }) {
   const query = useQuery(WALLET, { variables: { id, name } })

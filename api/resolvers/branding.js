@@ -37,19 +37,21 @@ export default {
         }
       }
 
+      // TODO: validation, even of logo and favicon.
+
       return await models.customBranding.upsert({
         where: { subName },
         update: {
-          title,
-          primaryColor,
-          secondaryColor,
+          title: title || subName,
+          primaryColor: primaryColor || '#FADA5E',
+          secondaryColor: secondaryColor || '#F6911D',
           ...(logoId && { logo: { connect: { id: logoId } } }),
           ...(faviconId && { favicon: { connect: { id: faviconId } } })
         },
         create: {
-          title,
-          primaryColor,
-          secondaryColor,
+          title: title || subName,
+          primaryColor: primaryColor || '#FADA5E',
+          secondaryColor: secondaryColor || '#F6911D',
           ...(logoId && { logo: { connect: { id: logoId } } }),
           ...(faviconId && { favicon: { connect: { id: faviconId } } }),
           sub: { connect: { name: subName } }

@@ -40,11 +40,11 @@ export default function BrandingForm ({ sub }) {
       schema={brandingSchema}
       onSubmit={onSubmit}
     >
-      <Input label='Title' name='title' />
+      <Input label='title' name='title' />
       <ColorPicker label='primary color' name='primaryColor' />
       <ColorPicker label='secondary color' name='secondaryColor' />
       {/* TODO: add logo and favicon upload */}
-      <SubmitButton variant='primary'>Save Branding</SubmitButton>
+      <SubmitButton variant='primary'>save branding</SubmitButton>
     </Form>
   )
 }

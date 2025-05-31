@@ -2,26 +2,30 @@ import { NextSeo } from 'next-seo'
 import { useRouter } from 'next/router'
 import removeMd from 'remove-markdown'
 import { numWithUnits } from '@/lib/format'
+import { useBranding } from '@/components/domains/branding'
+import { useDomain } from '@/components/domains/territory-domains'
 
 export function SeoSearch ({ sub }) {
   const router = useRouter()
-  const subStr = sub ? ` ~${sub}` : ''
-  const title = `${router.query.q || 'search'} \\ stacker news${subStr}`
+  const { isCustomDomain } = useDomain()
+  const { title } = isCustomDomain ? useBranding() : { title: 'stacker news' }
+  const subStr = sub && !isCustomDomain ? ` ~${sub}` : ''
+  const snStr = `${router.query.q || 'search'} \\ ${title}${subStr}`
   const desc = `SN${subStr} search: ${router.query.q || ''}`
 
   return (
     <NextSeo
-      title={title}
+      title={snStr}
       description={desc}
       openGraph={{
-        title,
+        snStr,
         description: desc,
         images: [
           {
             url: 'https://capture.stacker.news' + router.asPath
           }
         ],
-        site_name: 'Stacker News'
+        site_name: title
       }}
       twitter={{
         site: '@stacker_news',
@@ -35,13 +39,16 @@ export function SeoSearch ({ sub }) {
 // item seo
 // index page seo
 // recent page seo
+// TODO CUSTOM DOMAINS: cleanup, verify everything is good, apply custom title to everything
 
 export default function Seo ({ sub, item, user }) {
   const router = useRouter()
+  const { isCustomDomain } = useDomain()
+  const { title } = isCustomDomain ? useBranding() : { title: 'stacker news' }
   const pathNoQuery = router.asPath.split('?')[0]
   const defaultTitle = pathNoQuery.slice(1)
-  const snStr = `stacker news${sub ? ` ~${sub}` : ''}`
-  let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}stacker news`
+  const snStr = `${title}${sub && !isCustomDomain ? ` ~${sub}` : ''}`
+  let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}${title}`
   let desc = "It's like Hacker News but we pay you Bitcoin."
   if (item) {
     if (item.title) {
@@ -84,7 +91,7 @@ export default function Seo ({ sub, item, user }) {
             url: 'https://capture.stacker.news' + pathNoQuery
           }
         ],
-        site_name: 'Stacker News'
+        site_name: title
       }}
       twitter={{
         site: '@stacker_news',

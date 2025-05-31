@@ -43,15 +43,16 @@ export default {
           title,
           primaryColor,
           secondaryColor,
-          logo: { connect: { id: logoId } },
-          favicon: { connect: { id: faviconId } }
+          ...(logoId && { logo: { connect: { id: logoId } } }),
+          ...(faviconId && { favicon: { connect: { id: faviconId } } })
         },
         create: {
           title,
           primaryColor,
           secondaryColor,
-          logo: { connect: { id: logoId } },
-          favicon: { connect: { id: faviconId } }
+          ...(logoId && { logo: { connect: { id: logoId } } }),
+          ...(faviconId && { favicon: { connect: { id: faviconId } } }),
+          sub: { connect: { name: subName } }
         }
       })
     }

@@ -56,6 +56,7 @@ export default gql`
     ncomments(when: String, from: String, to: String): Int!
     meSubscription: Boolean!
     customDomain: CustomDomain
+    customBranding: CustomBranding
     optional: SubOptional!
   }
 

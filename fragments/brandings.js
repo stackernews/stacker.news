@@ -24,13 +24,8 @@ export const GET_CUSTOM_BRANDING_FIELDS = gql`
   }
 `
 
-export const GET_CUSTOM_BRANDING_FULL = gql`
-  ${GET_CUSTOM_BRANDING}
-  fragment CustomBrandingFull on CustomBranding {
-    ...CustomBrandingFields
-  }
-`
 export const SET_CUSTOM_BRANDING = gql`
+  ${GET_CUSTOM_BRANDING_FIELDS}
   mutation SetCustomBranding($subName: String!, $branding: CustomBrandingInput!) {
     setCustomBranding(subName: $subName, branding: $branding) {
       ...CustomBrandingFields

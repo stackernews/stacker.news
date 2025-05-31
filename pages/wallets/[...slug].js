@@ -1,6 +1,6 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { WalletForms as WalletFormsComponent } from '@/wallets/client/components'
-import { unurlify } from '@/wallets/client/util'
+import { unurlify } from '@/wallets/lib/util'
 import { useParams } from 'next/navigation'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })

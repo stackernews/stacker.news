@@ -1,6 +1,6 @@
 import Layout from '@/components/layout'
 import { useWalletImage } from '@/wallets/client/hooks'
-import { walletDisplayName } from '@/wallets/client/util'
+import { walletDisplayName } from '@/wallets/lib/util'
 import Link from 'next/link'
 
 export function WalletLayout ({ children }) {

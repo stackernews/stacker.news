@@ -1,5 +1,5 @@
 import useDarkMode from '@/components/dark-mode'
-import { walletImage } from '@/wallets/client/util'
+import { walletImage } from '@/wallets/lib/util'
 
 export function useWalletImage (name) {
   const [darkMode] = useDarkMode()

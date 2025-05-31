@@ -25,11 +25,11 @@ export default function BrandingForm ({ sub }) {
   }
 
   const initialValues = {
-    title: sub?.branding?.title || sub?.subName,
-    primaryColor: sub?.branding?.primaryColor || '#FADA5E',
-    secondaryColor: sub?.branding?.secondaryColor || '#F6911D',
-    logoId: sub?.branding?.logoId || null,
-    faviconId: sub?.branding?.faviconId || null
+    title: sub?.customBranding?.title || sub?.subName,
+    primaryColor: sub?.customBranding?.primaryColor || '#FADA5E',
+    secondaryColor: sub?.customBranding?.secondaryColor || '#F6911D',
+    logoId: sub?.customBranding?.logoId || null,
+    faviconId: sub?.customBranding?.faviconId || null
   }
 
   // TODO: add logo and favicon upload

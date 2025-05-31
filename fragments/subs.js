@@ -48,6 +48,13 @@ export const SUB_FIELDS = gql`
       verificationCnameValue
       verificationTxt
     }
+    customBranding {
+      title
+      primaryColor
+      secondaryColor
+      logoId
+      faviconId
+    }
   }`
 
 export const SUB_FULL_FIELDS = gql`

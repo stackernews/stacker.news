@@ -17,6 +17,10 @@ export function protocolDisplayName ({ name, send }) {
   return protocol({ name, send })?.displayName || titleCase(name)
 }
 
+export function protocolRelationName ({ name, send }) {
+  return protocol({ name, send })?.relationName
+}
+
 export function walletImage (name) {
   return walletJson(name)?.image
 }
@@ -35,4 +39,9 @@ export function unurlify (urlName) {
 
 export function protocolFields ({ name, send }) {
   return protocol({ name, send })?.fields || []
+}
+
+export function isEncryptedField (protocol, key) {
+  const fields = protocolFields(protocol)
+  return fields.find(field => field.name === key && field.encrypt)
 }

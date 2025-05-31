@@ -10,10 +10,8 @@ export default gql`
   }
 
   input VaultEntryInput {
-    key: String!
     iv: String!
     value: String!
-    walletId: ID
   }
 
   extend type Query {

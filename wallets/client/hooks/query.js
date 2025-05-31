@@ -1,7 +1,8 @@
-import { WALLET } from '@/fragments/wallet'
-import { useQuery } from '@apollo/client'
-import { useDecryption } from '@/wallets/client/hooks'
+import { UPSERT_WALLET_RECEIVE_LNBITS, UPSERT_WALLET_SEND_LNBITS, WALLET } from '@/fragments/wallet'
+import { useMutation, useQuery } from '@apollo/client'
+import { useDecryption, useEncryption } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useState } from 'react'
+import { isEncryptedField, protocolFields } from '@/wallets/client/util'
 
 export function useWalletQuery ({ id, name }) {
   const query = useQuery(WALLET, { variables: { id, name } })
@@ -22,8 +23,31 @@ export function useWalletQuery ({ id, name }) {
   }
 }
 
-export function useWalletMutation () {
-  // TODO(wallet-v2): implement this. this should encrypt the wallet before sending it to the server
+export function useWalletProtocolMutation (wallet, protocol) {
+  const mutation = getWalletProtocolMutation(protocol)
+  const [mutate] = useMutation(mutation)
+  const encryptConfig = useEncryptConfig(protocol)
+
+  return useCallback(async (values) => {
+    const encrypted = await encryptConfig(values)
+    const { data } = await mutate({
+      variables: {
+        // TODO(wallet-v2): use template id if no wallet id is provided
+        walletId: wallet.id,
+        ...encrypted
+      }
+    })
+    return data
+  }, [mutate, encryptConfig])
+}
+
+function getWalletProtocolMutation (protocol) {
+  switch (protocol.name) {
+    case 'LNBITS':
+      return protocol.send ? UPSERT_WALLET_SEND_LNBITS : UPSERT_WALLET_RECEIVE_LNBITS
+    default:
+      return null
+  }
 }
 
 function useWalletDecryption () {
@@ -70,4 +94,25 @@ function useDecryptConfig () {
       )
     )
   }, [decrypt])
+}
+
+function useEncryptConfig (protocol) {
+  const encrypt = useEncryption()
+
+  return useCallback(async (config) => {
+    return Object.fromEntries(
+      await Promise.all(
+        Object.entries(config)
+          .map(
+            async ([key, value]) => {
+              if (!isEncryptedField(protocol, key)) return [key, value]
+              return [
+                key,
+                await encrypt(value)
+              ]
+            }
+          )
+      )
+    )
+  }, [encrypt])
 }

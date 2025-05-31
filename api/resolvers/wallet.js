@@ -24,8 +24,7 @@ import { getNodeSockets, getOurPubkey } from '../lnd'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
 import { logContextFromBolt11 } from '@/wallets/server/logger'
-// TODO(wallet-v2): don't import this from wallets/client
-import { isEncryptedField, protocolRelationName } from '@/wallets/client/util'
+import { isEncryptedField, protocolRelationName } from '@/wallets/lib/util'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({

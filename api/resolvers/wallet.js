@@ -24,7 +24,6 @@ import { getNodeSockets, getOurPubkey } from '../lnd'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
 import { logContextFromBolt11 } from '@/wallets/server/logger'
-import { isEncryptedField, protocolRelationName } from '@/wallets/lib/util'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -90,59 +89,6 @@ export function verifyHmac (hash, hmac) {
 const resolvers = {
   Query: {
     invoice: getInvoice,
-    wallets: async (parent, args, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      let userWallets = await models.userWallet.findMany({
-        where: {
-          userId: me.id
-        },
-        include: {
-          template: true,
-          protocols: true
-        }
-      })
-
-      // return template for all wallets that user has not attached
-      let walletTemplates = await models.walletTemplate.findMany({
-        where: {
-          id: {
-            notIn: userWallets.map(w => w.templateId)
-          }
-        }
-      })
-
-      userWallets = userWallets.map(mapUserWalletResolveTypes)
-      walletTemplates = walletTemplates.map(t => {
-        return {
-          ...t,
-          __resolveType: 'WalletTemplate'
-        }
-      })
-
-      return [...userWallets, ...walletTemplates]
-    },
-    wallet: async (parent, { id, name }, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      if (id) {
-        const userWallet = await models.userWallet.findUnique({
-          where: { id: Number(id), userId: me.id },
-          include: {
-            template: true,
-            protocols: true
-          }
-        })
-        return mapUserWalletResolveTypes(userWallet)
-      }
-
-      const template = await models.walletTemplate.findFirst({ where: { name } })
-      return { ...template, __resolveType: 'WalletTemplate' }
-    },
     withdrawl: getWithdrawl,
     direct: async (parent, { id }, { me, models }) => {
       if (!me) {
@@ -348,67 +294,6 @@ const resolvers = {
         facts: history
       }
     },
-    walletLogs: async (parent, { type, from, to, cursor }, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      // we cursoring with the wallet logs on the client
-      // if we have from, don't use cursor
-      // regardless, store the state of the cursor for the next call
-
-      const decodedCursor = cursor ? decodeCursor(cursor) : { offset: 0, time: to ?? new Date() }
-
-      let logs = []
-      let nextCursor
-      if (from) {
-        logs = await models.walletLog.findMany({
-          where: {
-            userId: me.id,
-            wallet: type ?? undefined,
-            createdAt: {
-              gt: from ? new Date(Number(from)) : undefined,
-              lte: to ? new Date(Number(to)) : undefined
-            }
-          },
-          include: {
-            invoice: true,
-            withdrawal: true
-          },
-          orderBy: [
-            { createdAt: 'desc' },
-            { id: 'desc' }
-          ]
-        })
-        nextCursor = nextCursorEncoded(decodedCursor, logs.length)
-      } else {
-        logs = await models.walletLog.findMany({
-          where: {
-            userId: me.id,
-            wallet: type ?? undefined,
-            createdAt: {
-              lte: decodedCursor.time
-            }
-          },
-          include: {
-            invoice: true,
-            withdrawal: true
-          },
-          orderBy: [
-            { createdAt: 'desc' },
-            { id: 'desc' }
-          ],
-          take: LIMIT,
-          skip: decodedCursor.offset
-        })
-        nextCursor = logs.length === LIMIT ? nextCursorEncoded(decodedCursor, logs.length) : null
-      }
-
-      return {
-        cursor: nextCursor,
-        entries: logs
-      }
-    },
     failedInvoices: async (parent, args, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
@@ -542,69 +427,8 @@ const resolvers = {
 
       return true
     },
-    setWalletPriority: async (parent, { id, priority }, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      // TODO(wallet-v2): use UserWallet instead of Wallet table
-      await models.wallet.update({ where: { userId: me.id, id: Number(id) }, data: { priority } })
-
-      return true
-    },
-    removeWallet: async (parent, { id }, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      // TODO(wallet-v2): implement this
-    },
-    deleteWalletLogs: async (parent, { wallet }, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      await models.walletLog.deleteMany({ where: { userId: me.id, wallet } })
-
-      return true
-    },
     buyCredits: async (parent, { credits }, { me, models, lnd }) => {
       return await performPaidAction('BUY_CREDITS', { credits }, { models, me, lnd })
-    },
-    // TODO(wallet-v2): generate these resolvers
-    upsertWalletSendLNbits: async (parent, { walletId, templateId, url, apiKey }, { me, models }) => {
-      // TODO(wallet-v2): validate and test with HOLD invoice
-
-      if (!walletId && !templateId) {
-        throw new GqlInputError('walletId or templateId is required')
-      }
-
-      if (walletId) {
-        return await updateWallet({
-          walletId: Number(walletId),
-          protocol: { name: 'LNBITS', send: true },
-          data: { url, apiKey }
-        }, { models })
-      }
-
-      // TODO(wallet-v2): create new wallet from template
-    },
-    upsertWalletRecvLNbits: async (parent, { walletId, templateId, url, apiKey }, { me, models }) => {
-      // TODO(wallet-v2): validate and test with HOLD invoice
-
-      if (!walletId && !templateId) {
-        throw new GqlInputError('walletId or templateId is required')
-      }
-
-      if (walletId) {
-        return await updateWallet({
-          walletId: Number(walletId),
-          protocol: { name: 'LNBITS', send: false },
-          data: { url, apiKey }
-        }, { models })
-      }
-
-      // TODO(wallet-v2): create new wallet from template
     }
   },
 
@@ -901,114 +725,4 @@ export async function fetchLnAddrInvoice (
   }
 
   return res
-}
-
-function mapUserWalletResolveTypes (wallet) {
-  const resolveTypeOfProtocolConfig = (name, send) => {
-    switch (name) {
-      case 'NWC':
-        return send ? 'WalletSendNWC' : 'WalletRecvNWC'
-      case 'LNBITS':
-        return send ? 'WalletSendLNbits' : 'WalletRecvLNbits'
-      case 'PHOENIXD':
-        return send ? 'WalletSendPhoenixd' : 'WalletRecvPhoenixd'
-      case 'BLINK':
-        return send ? 'WalletSendBlink' : 'WalletRecvBlink'
-      case 'WEBLN':
-        return 'WalletSendWebLN'
-      case 'LN_ADDR':
-        return 'WalletRecvLightningAddress'
-      case 'LNC':
-        return 'WalletSendLNC'
-      case 'CLN_REST':
-        return 'WalletRecvCLNRest'
-      case 'LND_GRPC':
-        return 'WalletRecvLNDGRPC'
-      default:
-        return null
-    }
-  }
-
-  return {
-    ...wallet,
-    protocols: wallet.protocols.map(({ json, ...p }) => {
-      return {
-        ...p,
-        config: {
-          ...json,
-          __resolveType: resolveTypeOfProtocolConfig(p.protocol, p.send)
-        }
-      }
-    }),
-    __resolveType: 'UserWallet'
-  }
-}
-
-async function updateWallet ({ walletId, protocol, data }, { models }) {
-  const relation = protocolRelationName(protocol)
-
-  function toFragment (data) {
-    return Object.fromEntries(
-      Object.entries(data).map(
-        ([key, value]) => {
-          if (isEncryptedField(protocol, key)) {
-            return [key, { update: { value: value.value, iv: value.iv } }]
-          }
-          return [key, value]
-        }
-      )
-    )
-  }
-
-  const dataFragment = toFragment(data)
-
-  const [userWallet] = await models.$transaction([
-    models.userWallet.update({
-      where: { id: Number(walletId) },
-      data: {
-        protocols: {
-          update: {
-            where: {
-              ProtocolWallet_walletId_send_protocol_key: {
-                walletId,
-                send: protocol.send,
-                protocol: protocol.name
-              }
-            },
-            data: {
-              [relation]: {
-                update: dataFragment
-              }
-            }
-          }
-        }
-      },
-      include: {
-        protocols: true
-      }
-    }),
-    // XXX Prisma seems to run the vault update AFTER the update of the table that points to it
-    //   which means our trigger to set the jsonb column in the ProtocolWallet table does not see
-    //   the updated vault entry.
-    //   To fix this, we run a protocol wallet update to force the trigger to run again.
-    // TODO(wallet-v2): fix this in a better way?
-    models.protocolWallet.update({
-      where: {
-        ProtocolWallet_walletId_send_protocol_key: {
-          walletId,
-          send: protocol.send,
-          protocol: protocol.name
-        }
-      },
-      data: {
-        [relation]: {
-          update: {
-            updatedAt: new Date()
-          }
-        }
-      }
-    })
-  ])
-
-  return mapUserWalletResolveTypes(userWallet)
 }

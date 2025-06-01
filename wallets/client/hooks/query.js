@@ -1,4 +1,19 @@
-import { UPSERT_WALLET_RECEIVE_LNBITS, UPSERT_WALLET_SEND_LNBITS, WALLET } from '@/wallets/client/fragments'
+import {
+  WALLET,
+  UPSERT_WALLET_RECEIVE_BLINK,
+  UPSERT_WALLET_RECEIVE_CLN_REST,
+  UPSERT_WALLET_RECEIVE_LIGHTNING_ADDRESS,
+  UPSERT_WALLET_RECEIVE_LNBITS,
+  UPSERT_WALLET_RECEIVE_LNDGRPC,
+  UPSERT_WALLET_RECEIVE_NWC,
+  UPSERT_WALLET_RECEIVE_PHOENIXD,
+  UPSERT_WALLET_SEND_BLINK,
+  UPSERT_WALLET_SEND_LNBITS,
+  UPSERT_WALLET_SEND_LNC,
+  UPSERT_WALLET_SEND_NWC,
+  UPSERT_WALLET_SEND_PHOENIXD,
+  UPSERT_WALLET_SEND_WEBLN
+} from '@/wallets/client/fragments'
 import { useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useState } from 'react'
@@ -45,6 +60,22 @@ function getWalletProtocolMutation (protocol) {
   switch (protocol.name) {
     case 'LNBITS':
       return protocol.send ? UPSERT_WALLET_SEND_LNBITS : UPSERT_WALLET_RECEIVE_LNBITS
+    case 'PHOENIXD':
+      return protocol.send ? UPSERT_WALLET_SEND_PHOENIXD : UPSERT_WALLET_RECEIVE_PHOENIXD
+    case 'BLINK':
+      return protocol.send ? UPSERT_WALLET_SEND_BLINK : UPSERT_WALLET_RECEIVE_BLINK
+    case 'LN_ADDR':
+      return protocol.send ? null : UPSERT_WALLET_RECEIVE_LIGHTNING_ADDRESS
+    case 'NWC':
+      return protocol.send ? UPSERT_WALLET_SEND_NWC : UPSERT_WALLET_RECEIVE_NWC
+    case 'CLN_REST':
+      return protocol.send ? null : UPSERT_WALLET_RECEIVE_CLN_REST
+    case 'LND_GRPC':
+      return protocol.send ? null : UPSERT_WALLET_RECEIVE_LNDGRPC
+    case 'LNC':
+      return protocol.send ? UPSERT_WALLET_SEND_LNC : null
+    case 'WEBLN':
+      return protocol.send ? UPSERT_WALLET_SEND_WEBLN : null
     default:
       return null
   }

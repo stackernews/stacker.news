@@ -24,9 +24,21 @@ const typeDefs = gql`
     deleteWalletLogs(wallet: String): Boolean
     setWalletPriority(id: ID!, priority: Int!): Boolean
     buyCredits(credits: Int!): BuyCreditsPaidAction!
+
     # TODO(wallet-v2): generate these mutations
     upsertWalletSendLNbits(walletId: ID, templateId: ID, url: String!, apiKey: VaultEntryInput!): WalletSendLNbits!
     upsertWalletRecvLNbits(walletId: ID, templateId: ID, url: String!, apiKey: String!): WalletRecvLNbits!
+    upsertWalletSendPhoenixd(walletId: ID, templateId: ID, url: String!, apiKey: VaultEntryInput!): WalletSendPhoenixd!
+    upsertWalletRecvPhoenixd(walletId: ID, templateId: ID, url: String!, apiKey: String!): WalletRecvPhoenixd!
+    upsertWalletSendBlink(walletId: ID, templateId: ID, currency: VaultEntryInput!, apiKey: VaultEntryInput!): WalletSendBlink!
+    upsertWalletRecvBlink(walletId: ID, templateId: ID, currency: String!, apiKey: String!): WalletRecvBlink!
+    upsertWalletRecvLightningAddress(walletId: ID, templateId: ID, address: String!): WalletRecvLightningAddress!
+    upsertWalletSendNWC(walletId: ID, templateId: ID, url: VaultEntryInput!): WalletSendNWC!
+    upsertWalletRecvNWC(walletId: ID, templateId: ID, url: String!): WalletRecvNWC!
+    upsertWalletRecvCLNRest(walletId: ID, templateId: ID, socket: String!, rune: String!, cert: String): WalletRecvCLNRest!
+    upsertWalletRecvLNDGRPC(walletId: ID, templateId: ID, socket: String!, macaroon: String!, cert: String): WalletRecvLNDGRPC!
+    upsertWalletSendLNC(walletId: ID, templateId: ID, pairingPhrase: VaultEntryInput!, localKey: VaultEntryInput!, remoteKey: VaultEntryInput!, serverHost: VaultEntryInput!): WalletSendLNC!
+    upsertWalletSendWebLN(walletId: ID, templateId: ID): WalletSendWebLN!
   }
 
   type BuyCreditsResult {

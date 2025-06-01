@@ -1,12 +1,17 @@
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
-import { protocolRelationName, isEncryptedField } from '@/wallets/lib/util'
+import protocols from '@/wallets/lib/protocols'
+import { protocolRelationName, isEncryptedField, protocolMutationName } from '@/wallets/lib/util'
 import { mapUserWalletResolveTypes } from '@/wallets/server/resolvers/util'
 
 export const resolvers = {
-  Mutation: {
-    upsertWalletSendLNbits: upsertWalletProtocol({ name: 'LNBITS', send: true }),
-    upsertWalletRecvLNbits: upsertWalletProtocol({ name: 'LNBITS', send: false })
-  }
+  Mutation: Object.fromEntries(
+    protocols.map(protocol => {
+      return [
+        protocolMutationName(protocol),
+        upsertWalletProtocol(protocol)
+      ]
+    })
+  )
 }
 
 function upsertWalletProtocol (protocol) {

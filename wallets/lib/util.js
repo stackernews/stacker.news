@@ -25,6 +25,11 @@ export function protocolRelationName ({ name, send }) {
   return protocol({ name, send })?.relationName
 }
 
+export function protocolMutationName ({ name, send }) {
+  const relationName = protocolRelationName({ name, send })
+  return `upsert${relationName.charAt(0).toUpperCase() + relationName.slice(1)}`
+}
+
 export function protocolFields ({ name, send }) {
   return protocol({ name, send })?.fields || []
 }

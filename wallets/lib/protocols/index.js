@@ -275,7 +275,8 @@ const blinkSuite = [
         label: 'currency',
         type: 'text',
         required: true,
-        validate: blinkCurrencyValidator
+        validate: blinkCurrencyValidator,
+        encrypt: true
       }
     ],
     relationName: 'walletSendBlink'

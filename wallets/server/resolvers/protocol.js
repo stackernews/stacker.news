@@ -1,4 +1,4 @@
-import { GqlInputError } from '@/lib/error'
+import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { protocolRelationName, isEncryptedField } from '@/wallets/lib/util'
 import { mapUserWalletResolveTypes } from '@/wallets/server/resolvers/util'
 
@@ -13,6 +13,10 @@ export const resolvers = {
 async function upsertWalletSendLNbits (parent, { walletId, templateId, url, apiKey }, { me, models }) {
   // TODO(wallet-v2): validate and test with HOLD invoice
 
+  if (!me) {
+    throw new GqlAuthenticationError()
+  }
+
   if (!walletId && !templateId) {
     throw new GqlInputError('walletId or templateId is required')
   }
@@ -22,7 +26,7 @@ async function upsertWalletSendLNbits (parent, { walletId, templateId, url, apiK
       walletId: Number(walletId),
       protocol: { name: 'LNBITS', send: true },
       data: { url, apiKey }
-    }, { models })
+    }, { me, models })
   }
 
   // TODO(wallet-v2): create new wallet from template
@@ -30,6 +34,10 @@ async function upsertWalletSendLNbits (parent, { walletId, templateId, url, apiK
 
 async function upsertWalletRecvLNbits (parent, { walletId, templateId, url, apiKey }, { me, models }) {
   // TODO(wallet-v2): validate and test with HOLD invoice
+
+  if (!me) {
+    throw new GqlAuthenticationError()
+  }
 
   if (!walletId && !templateId) {
     throw new GqlInputError('walletId or templateId is required')
@@ -40,13 +48,13 @@ async function upsertWalletRecvLNbits (parent, { walletId, templateId, url, apiK
       walletId: Number(walletId),
       protocol: { name: 'LNBITS', send: false },
       data: { url, apiKey }
-    }, { models })
+    }, { me, models })
   }
 
   // TODO(wallet-v2): create new wallet from template
 }
 
-async function updateWallet ({ walletId, protocol, data }, { models }) {
+async function updateWallet ({ walletId, protocol, data }, { me, models }) {
   const relation = protocolRelationName(protocol)
 
   function toFragment (data) {
@@ -66,7 +74,12 @@ async function updateWallet ({ walletId, protocol, data }, { models }) {
 
   const [userWallet] = await models.$transaction([
     models.userWallet.update({
-      where: { id: Number(walletId) },
+      where: {
+        id: Number(walletId),
+        // this makes sure that users can only update their own wallets
+        // (the update will fail in this case and abort the transaction)
+        userId: me.id
+      },
       data: {
         protocols: {
           update: {

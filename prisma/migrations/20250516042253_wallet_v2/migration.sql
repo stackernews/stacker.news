@@ -548,7 +548,9 @@ BEGIN
     END LOOP;
 
     UPDATE "ProtocolWallet"
-    SET json = wallet
+    SET
+        json = wallet,
+        updated_at = NOW()
     WHERE id = NEW."walletId";
 
     RETURN NEW;

@@ -111,7 +111,7 @@ export const runeValidator = ({ method }) =>
 
 export const invoiceMacaroonValidator = () =>
   string()
-    .matches(/^[0-9a-fA-F]{64}$/, { message: 'macaroon must be 64 hex chars' })
+    .hexOrBase64()
     .test({
       name: 'macaroon',
       test: v => isInvoiceMacaroon(v) || isInvoicableMacaroon(v),

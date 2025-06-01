@@ -1,4 +1,4 @@
-import { UPSERT_WALLET_RECEIVE_LNBITS, UPSERT_WALLET_SEND_LNBITS, WALLET } from '@/fragments/wallet'
+import { UPSERT_WALLET_RECEIVE_LNBITS, UPSERT_WALLET_SEND_LNBITS, WALLET } from '@/wallets/client/fragments'
 import { useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useState } from 'react'

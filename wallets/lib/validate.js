@@ -45,7 +45,7 @@ export const nwcUrlValidator = () =>
       }
     })
 
-function parseNwcUrl (walletConnectUrl) {
+export function parseNwcUrl (walletConnectUrl) {
   if (!walletConnectUrl) return {}
 
   walletConnectUrl = walletConnectUrl

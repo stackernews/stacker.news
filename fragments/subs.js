@@ -154,3 +154,14 @@ export const TOP_SUBS = gql`
     }
   }
 `
+
+export const SUB_BRANDING = gql`
+  fragment SubBrandingFields on SubBranding {
+    title
+    description
+    logoId
+    faviconId
+    primaryColor
+    secondaryColor
+  }
+`

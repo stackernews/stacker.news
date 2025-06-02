@@ -15,25 +15,43 @@ import styles from './item.module.css'
 const DomainContext = createContext({
   domain: {
     domainName: null,
-    subName: null
+    subName: null,
+    branding: null // wip-brandings
   }
 })
 
 export const DomainProvider = ({ domain: ssrDomain, children }) => {
   const [domain, setDomain] = useState(ssrDomain || null)
 
+  // wip-brandings: this is a sketch/hack to set the branding colors
+  const setBrandingColors = (branding) => {
+    document.documentElement.style.setProperty('--bs-transition', 'all 0.3s ease')
+    if (branding.primaryColor) {
+      document.documentElement.style.setProperty('--theme-primary', branding.primaryColor)
+    }
+    if (branding.secondaryColor) {
+      document.documentElement.style.setProperty('--theme-secondary', branding.secondaryColor)
+    }
+
+    return () => {
+      document.documentElement.style.removeProperty('--bs-transition')
+    }
+  }
+
   // maintain the custom domain state across re-renders
   useEffect(() => {
     if (ssrDomain && !domain) {
       setDomain(ssrDomain)
     }
-  }, [ssrDomain])
 
-  // TODO: Placeholder for Auth Sync
+    // wip-brandings: set the branding colors
+    if (ssrDomain?.branding) {
+      setBrandingColors(ssrDomain.branding)
+    }
+  }, [ssrDomain])
 
   return (
     <DomainContext.Provider value={{ domain }}>
-      {/* TODO: Placeholder for Branding */}
       {children}
     </DomainContext.Provider>
   )

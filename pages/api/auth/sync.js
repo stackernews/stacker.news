@@ -5,7 +5,7 @@ import { encode as encodeJWT, getToken } from 'next-auth/jwt'
 import { validateSchema, customDomainSchema } from '@/lib/validate'
 
 const SN_MAIN_DOMAIN = new URL(process.env.NEXT_PUBLIC_URL)
-const SYNC_TOKEN_MAX_AGE = 60 // 1 minute
+const SYNC_TOKEN_MAX_AGE = 60 * 5 // 5 minutes
 
 export default async function handler (req, res) {
   try {

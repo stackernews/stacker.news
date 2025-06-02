@@ -75,7 +75,7 @@ const clnRest = {
   send: false,
   fields: [
     {
-      name: 'url',
+      name: 'socket',
       label: 'socket',
       type: 'text',
       required: true,

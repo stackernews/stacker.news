@@ -19,8 +19,7 @@
  * @typedef {Object} Protocol
  * @property {ProtocolName} name - must match a protocol name in the database
  * @property {string} displayName - protocol name in user interface
- * @property {boolean} send - is this protocol is for sending payments?
+ * @property {boolean} send - is this protocol for sending payments?
  * @property {ProtocolField[]} fields - protocol fields for configuration
- * @property {yup.Schema} schema - yup schema for validation of fields
- * @property {string} [relationName] - name of the relation in the database
+ * @property {string} relationName - name of the relation in the ProtocolWallet prisma model
  */

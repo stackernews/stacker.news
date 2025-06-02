@@ -29,8 +29,6 @@ export const DomainProvider = ({ domain: ssrDomain, children }) => {
     }
   }, [ssrDomain])
 
-  // TODO: Placeholder for Auth Sync
-
   return (
     <DomainContext.Provider value={{ domain }}>
       {/* TODO: Placeholder for Branding */}

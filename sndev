@@ -536,7 +536,7 @@ sndev__cert() {
     echo "no CERTDIR label found for $1"
     exit 1
   fi
-  docker__exec $1 cat $certdir/tls.cert | base64
+  docker__exec $1 cat $certdir/tls.cert | base64 -w0
 }
 
 sndev__help_cert() {

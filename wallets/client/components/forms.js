@@ -4,11 +4,10 @@ import { useParams, usePathname } from 'next/navigation'
 import { useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName } from '@/wallets/client/components'
-import { protocolDisplayName, protocolFields, unurlify, urlify } from '@/wallets/lib/util'
+import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, urlify } from '@/wallets/lib/util'
 import styles from '@/styles/wallet.module.css'
 import { Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
-import * as yup from 'lib/yup'
 import { useWalletProtocolMutation, useWalletQuery } from '@/wallets/client/hooks'
 import { useToast } from '@/components/toast'
 
@@ -216,10 +215,6 @@ function useProtocolForm (protocol) {
       [field.name]: value || ''
     }
   }, {})
-  const schema = yup.object(fields.reduce((acc, field) =>
-    ({
-      ...acc,
-      [field.name]: field.required ? field.validate.required('required') : field.validate
-    }), {}))
+  const schema = protocolClientSchema(protocol)
   return { fields, initial, schema }
 }

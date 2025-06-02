@@ -455,6 +455,8 @@ model Upload {
   user               User                @relation("Uploads", fields: [userId], references: [id], onDelete: Cascade)
   User               User[]
   ItemUpload         ItemUpload[]
+  SubBrandingLogo    SubBranding[]       @relation("SubBrandingLogo")
+  SubBrandingFavicon SubBranding[]       @relation("SubBrandingFavicon")
 
   @@index([createdAt], map: "Upload.created_at_index")
   @@index([userId], map: "Upload.userId_index")
@@ -802,6 +804,7 @@ model Sub {
   TerritoryTransfer TerritoryTransfer[]
   UserSubTrust      UserSubTrust[]
   domain            Domain?
+  branding          SubBranding?
 
   @@index([parentName])
   @@index([createdAt])
@@ -1259,6 +1262,23 @@ model Domain {
 
   @@index([domainName])
   @@index([createdAt])
+  @@index([subName])
+}
+
+model SubBranding {
+  id                      Int                         @id @default(autoincrement())
+  subName                 String                      @unique @db.Citext
+  title                   String?                     // default title of the sub
+  description             String?                     // default description of the sub
+  logoId                  Int?
+  faviconId               Int?
+  primaryColor            String?
+  secondaryColor          String?
+
+  logoUpload Upload? @relation("SubBrandingLogo", fields: [logoId], references: [id], onDelete: SetNull)
+  faviconUpload Upload? @relation("SubBrandingFavicon", fields: [faviconId], references: [id], onDelete: SetNull)
+  sub Sub @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+
   @@index([subName])
 }
 

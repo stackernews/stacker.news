@@ -3,6 +3,9 @@ import { validateSchema } from '@/lib/validate'
 import protocols from '@/wallets/lib/protocols'
 import { protocolRelationName, isEncryptedField, protocolMutationName, protocolServerSchema } from '@/wallets/lib/util'
 import { mapUserWalletResolveTypes } from '@/wallets/server/resolvers/util'
+import { protocolTestCreateInvoice } from '@/wallets/server/protocols'
+import { timeoutSignal, withTimeout } from '@/lib/time'
+import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 
 export const resolvers = {
   Mutation: Object.fromEntries(
@@ -32,6 +35,22 @@ function upsertWalletProtocol (protocol) {
       // TODO(wallet-v2): on length errors, error message includes path twice like this:
       //   "apiKey.iv: apiKey.iv must be exactly 32 characters"
       throw new GqlInputError(e.message)
+    }
+
+    if (!protocol.send) {
+      let invoice
+      try {
+        invoice = await withTimeout(
+          protocolTestCreateInvoice(protocol, args, { signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS) }),
+          WALLET_CREATE_INVOICE_TIMEOUT_MS
+        )
+      } catch (e) {
+        throw new GqlInputError('failed to create test invoice: ' + e.message)
+      }
+
+      if (!invoice || !invoice.startsWith('lnbc')) {
+        throw new GqlInputError('wallet returned invalid invoice')
+      }
     }
 
     const relation = protocolRelationName(protocol)

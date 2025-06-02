@@ -1,6 +1,7 @@
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { validateSchema } from '@/lib/validate'
 import protocols from '@/wallets/lib/protocols'
-import { protocolRelationName, isEncryptedField, protocolMutationName } from '@/wallets/lib/util'
+import { protocolRelationName, isEncryptedField, protocolMutationName, protocolServerSchema } from '@/wallets/lib/util'
 import { mapUserWalletResolveTypes } from '@/wallets/server/resolvers/util'
 
 export const resolvers = {
@@ -22,6 +23,15 @@ function upsertWalletProtocol (protocol) {
 
     if (!walletId && !templateId) {
       throw new GqlInputError('walletId or templateId is required')
+    }
+
+    const schema = protocolServerSchema(protocol)
+    try {
+      await validateSchema(schema, args)
+    } catch (e) {
+      // TODO(wallet-v2): on length errors, error message includes path twice like this:
+      //   "apiKey.iv: apiKey.iv must be exactly 32 characters"
+      throw new GqlInputError(e.message)
     }
 
     const relation = protocolRelationName(protocol)

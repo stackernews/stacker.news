@@ -37,10 +37,10 @@ async function customDomainMiddleware (request, domain, subName) {
   // if the user is trying to login or signup, redirect to the Auth Sync API
   if (pathname.startsWith('/login') || pathname.startsWith('/signup')) {
     const signup = pathname.startsWith('/signup')
-    return redirectToAuthSync(searchParams, domain, signup)
+    return redirectToAuthSync(searchParams, domain, signup, headers)
   }
   // if we have a verification token, exchange it for a session token
-  if (searchParams.has('token')) return establishAuthSync(request, searchParams)
+  if (searchParams.has('token')) return establishAuthSync(request, searchParams, headers)
 
   // Territory URLs
   // if sub param exists and doesn't match the domain's subname, update it
@@ -73,7 +73,7 @@ async function customDomainMiddleware (request, domain, subName) {
 }
 
 // redirect to the Auth Sync API
-async function redirectToAuthSync (searchParams, domain, signup) {
+async function redirectToAuthSync (searchParams, domain, signup, headers) {
   const syncUrl = new URL('/api/auth/sync', SN_MAIN_DOMAIN)
   syncUrl.searchParams.set('domain', domain)
 
@@ -92,39 +92,48 @@ async function redirectToAuthSync (searchParams, domain, signup) {
     syncUrl.searchParams.set('redirectUri', redirectUri)
   }
 
-  return NextResponse.redirect(syncUrl)
+  return NextResponse.redirect(syncUrl, { headers })
 }
 
-// POST to /api/auth/sync and set the session cookie
-async function establishAuthSync (request, searchParams) {
+// Exchange verification token for JWT session cookie via POST to /api/auth/sync
+async function establishAuthSync (request, searchParams, headers) {
   // get the verification token from the search params
   const token = searchParams.get('token')
   // get the redirectUri from the search params
   const redirectUri = searchParams.get('redirectUri') || '/'
   // prepare redirect to the redirectUri
-  const res = NextResponse.redirect(new URL(decodeURIComponent(redirectUri), request.url))
+  const res = NextResponse.redirect(new URL(decodeURIComponent(redirectUri), request.url), { headers })
 
-  // POST to /api/auth/sync to exchange verification token for session token
-  const response = await fetch(`${SN_MAIN_DOMAIN.origin}/api/auth/sync`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      verificationToken: token
+  try {
+    // POST to /api/auth/sync to exchange verification token for session token
+    const response = await fetch(`${SN_MAIN_DOMAIN.origin}/api/auth/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        verificationToken: token
+      })
     })
-  })
 
-  // get the session token from the response
-  const data = await response.json()
-  if (data.status === 'ERROR') {
-    // if the response is an error, redirect to the home page
-    return NextResponse.redirect(new URL('/', request.url))
+    // check if the fetch was successful
+    if (!response.ok) {
+      throw new Error(response.status)
+    }
+
+    // get the session token from the response
+    const data = await response.json()
+    if (data.status === 'ERROR') {
+      throw new Error(data.reason)
+    }
+
+    // set the session cookie
+    res.cookies.set(SESSION_COOKIE, data.sessionToken, cookieOptions())
+    return res
+  } catch (error) {
+    console.error('[auth sync] cannot establish auth sync:', error.message)
+    return NextResponse.redirect(new URL('/error', request.url), { headers })
   }
-
-  // set the session cookie
-  res.cookies.set(SESSION_COOKIE, data.sessionToken, cookieOptions())
-  return res
 }
 
 function getContentReferrer (request, url) {

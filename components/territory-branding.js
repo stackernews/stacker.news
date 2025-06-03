@@ -33,10 +33,10 @@ export default function TerritoryBrandingForm ({ sub }) {
         variables: {
           subName: sub.name,
           branding: {
-            title: values.title,
-            description: values.description,
-            primaryColor: values.primaryColor,
-            secondaryColor: values.secondaryColor,
+            title: values.title || sub.name,
+            description: values.description || sub.desc,
+            primaryColor: values.primaryColor || '#FADA5E',
+            secondaryColor: values.secondaryColor || '#F6911D',
             logoId: values.logoId,
             faviconId: values.faviconId
           }

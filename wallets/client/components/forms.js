@@ -123,9 +123,15 @@ function WalletProtocolSelector ({ wallet }) {
 function WalletProtocolForm ({ wallet }) {
   const sendRecvParam = useSendRecvParam()
   const protocolParam = useWalletProtocolParam()
+
   const send = sendRecvParam === 'send'
-  const protocol = wallet.protocols.find(p => p.name === protocolParam && p.send === send)
-  if (!protocol) return null
+  let protocol = wallet.protocols.find(p => p.name === protocolParam && p.send === send)
+  if (!protocol && wallet.__typename === 'UserWallet') {
+    protocol = wallet.template.protocols.find(p => p.name === protocolParam && p.send === send)
+  }
+  if (!protocol) {
+    return null
+  }
 
   // I think it is okay to skip this hook if the protocol is not found
   // because we will need to change the URL to get a different protocol
@@ -201,8 +207,10 @@ function useWalletProtocols (wallet) {
   const sendRecvParam = useSendRecvParam()
   if (!sendRecvParam) return []
 
-  const send = sendRecvParam === 'send'
-  return wallet.protocols.filter(p => send ? p.send : !p.send)
+  const protocolFilter = p => sendRecvParam === 'send' ? p.send : !p.send
+  return wallet.__typename === 'UserWallet'
+    ? wallet.template.protocols.filter(protocolFilter)
+    : wallet.protocols.filter(protocolFilter)
 }
 
 function useProtocolForm (protocol) {

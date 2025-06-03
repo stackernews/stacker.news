@@ -318,6 +318,20 @@ export default {
 
       await validateSchema(subBrandingSchema, branding)
 
+      if (branding.logoId) {
+        const upload = await models.upload.findUnique({ where: { id: Number(branding.logoId) } })
+        if (!upload) {
+          throw new GqlInputError('logo not found')
+        }
+      }
+
+      if (branding.faviconId) {
+        const upload = await models.upload.findUnique({ where: { id: Number(branding.faviconId) } })
+        if (!upload) {
+          throw new GqlInputError('favicon not found')
+        }
+      }
+
       return await models.subBranding.upsert({
         where: { subName },
         update: { ...branding, subName },
@@ -358,6 +372,9 @@ export default {
     },
     domain: async (sub, args, { models }) => {
       return models.domain.findUnique({ where: { subName: sub.name } })
+    },
+    branding: async (sub, args, { models }) => {
+      return models.subBranding.findUnique({ where: { subName: sub.name } })
     },
     createdAt: sub => sub.createdAt || sub.created_at
   }

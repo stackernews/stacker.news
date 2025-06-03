@@ -78,7 +78,7 @@ COPY public."WalletCLN" ("id", "walletId", "socket", "rune", "cert") FROM stdin;
 \.
 
 COPY public."WalletBlink" ("id", "walletId", "apiKeyRecv", "currencyRecv") FROM stdin;
-1	6	blink_stacker_news_test_IpGjMEmlLZrb3dx1RS5pcVm7Z6uKthb2UMg5bfGxcIV4Yae	BTC
+1	6	blink_IpGjMEmlLZrb3dx1RS5pcVm7Z6uKthb2UMg5bfGxcIV4Yae	BTC
 \.
 
 COPY public."WalletPhoenixd" ("id", "walletId", "url", "secondaryPassword") FROM stdin;

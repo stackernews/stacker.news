@@ -1,7 +1,39 @@
 import { GqlAuthenticationError, GqlInputError, E_VAULT_KEY_EXISTS } from '@/lib/error'
 import { mapUserWalletResolveTypes } from '@/wallets/server/resolvers/util'
 
+const WalletOrTemplate = {
+  __resolveType: walletOrTemplate => walletOrTemplate.__resolveType
+}
+
+const UserWallet = {
+  name: wallet => wallet.template.name,
+  send: wallet => wallet.protocols.some(protocol => protocol.send),
+  receive: wallet => wallet.protocols.some(protocol => !protocol.send)
+}
+
+const WalletTemplate = {
+  send: walletTemplate => walletTemplate.sendProtocols.length > 0,
+  receive: walletTemplate => walletTemplate.recvProtocols.length > 0,
+  protocols: walletTemplate => {
+    return [
+      ...walletTemplate.sendProtocols.map(protocol => ({
+        id: `WalletTemplate-${walletTemplate.id}-${protocol}-send`,
+        name: protocol,
+        send: true
+      })),
+      ...walletTemplate.recvProtocols.map(protocol => ({
+        id: `WalletTemplate-${walletTemplate.id}-${protocol}-recv`,
+        name: protocol,
+        send: false
+      }))
+    ]
+  }
+}
+
 export const resolvers = {
+  WalletOrTemplate,
+  UserWallet,
+  WalletTemplate,
   Query: {
     wallets,
     wallet

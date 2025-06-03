@@ -26,12 +26,19 @@ import { useWalletIndicator } from '@/wallets/indicator'
 import SwitchAccountList, { nextAccount, useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
+import { useDomain } from '@/components/territory-domains'
 
 export function Brand ({ className }) {
+  // wip-branding: temporary logo branding concept
+  const { domain } = useDomain()
+  const branding = domain?.branding
+
   return (
     <Link href='/' passHref legacyBehavior>
       <Navbar.Brand className={classNames(styles.brand, className)}>
-        <SnIcon width={36} height={36} />
+        {branding?.logoId
+          ? <img src={branding.logoId} alt={branding.title} style={{ width: '36px', height: '36px' }} />
+          : <SnIcon width={36} height={36} />}
       </Navbar.Brand>
     </Link>
   )
@@ -119,12 +126,24 @@ export function NavSelect ({ sub: subName, className, size }) {
 }
 
 export function NavNotifications ({ className }) {
+  // wip-branding: temporary favicon branding concept
+  const { domain } = useDomain()
+  const branding = domain?.branding
+
   const hasNewNotes = useHasNewNotes()
 
   return (
     <>
       <Head>
-        <link rel='shortcut icon' href={hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
+        <link
+          rel='shortcut icon'
+          // wip-branding: temporary favicon branding, doesn't support custom favicon with hasNewNotes
+          href={hasNewNotes && !branding?.faviconId
+            ? '/favicon-notify.png'
+            : branding?.faviconId
+              ? branding.faviconId
+              : '/favicon.png'}
+        />
       </Head>
       <Link href='/notifications' passHref legacyBehavior>
         <Nav.Link eventKey='notifications' className={classNames('position-relative', className)}>

@@ -11,6 +11,7 @@ import ClipboardLine from '@/svgs/clipboard-line.svg'
 import RefreshLine from '@/svgs/refresh-line.svg'
 import styles from './item.module.css'
 import TerritoryBrandingForm from './territory-branding'
+import Head from 'next/head'
 
 // Domain context for custom domains
 const DomainContext = createContext({
@@ -58,6 +59,12 @@ export const DomainProvider = ({ domain: ssrDomain, children }) => {
 
   return (
     <DomainContext.Provider value={{ domain }}>
+      {domain?.branding &&
+        <Head>
+          {domain.branding.title && <title>{domain.branding.title}</title>}
+          {domain.branding.description && <meta name='description' content={domain.branding.description} />}
+          {domain.branding.faviconId && <link rel='shortcut icon' href={domain.branding.faviconId} />}
+        </Head>}
       {children}
     </DomainContext.Provider>
   )

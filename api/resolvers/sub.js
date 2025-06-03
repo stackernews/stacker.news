@@ -1,5 +1,5 @@
 import { whenRange } from '@/lib/time'
-import { validateSchema, territorySchema } from '@/lib/validate'
+import { validateSchema, territorySchema, subBrandingSchema } from '@/lib/validate'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { viewGroup } from './growth'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
@@ -170,6 +170,9 @@ export default {
         cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         subs
       }
+    },
+    subBranding: async (parent, { subName }, { models }) => {
+      return models.subBranding.findUnique({ where: { subName } })
     }
   },
   Mutation: {
@@ -298,6 +301,28 @@ export default {
       }
 
       return await performPaidAction('TERRITORY_UNARCHIVE', data, { me, models, lnd })
+    },
+    upsertSubBranding: async (parent, { subName, branding }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const sub = await models.sub.findUnique({ where: { name: subName } })
+      if (!sub) {
+        throw new GqlInputError('sub not found')
+      }
+
+      if (sub.userId !== me.id) {
+        throw new GqlInputError('you do not own this sub')
+      }
+
+      await validateSchema(subBrandingSchema, branding)
+
+      return await models.subBranding.upsert({
+        where: { subName },
+        update: { ...branding, subName },
+        create: { ...branding, subName }
+      })
     }
   },
   Sub: {

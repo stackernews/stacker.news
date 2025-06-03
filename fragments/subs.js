@@ -155,7 +155,7 @@ export const TOP_SUBS = gql`
   }
 `
 
-export const SUB_BRANDING = gql`
+export const SUB_BRANDING_FIELDS = gql`
   fragment SubBrandingFields on SubBranding {
     title
     description
@@ -163,5 +163,23 @@ export const SUB_BRANDING = gql`
     faviconId
     primaryColor
     secondaryColor
+  }
+`
+
+export const SUB_BRANDING = gql`
+  ${SUB_BRANDING_FIELDS}
+  query SubBranding($subName: String!) {
+    subBranding(subName: $subName) {
+      ...SubBrandingFields
+    }
+  }
+`
+
+export const UPSERT_SUB_BRANDING = gql`
+  ${SUB_BRANDING_FIELDS}
+  mutation upsertSubBranding($subName: String!, $branding: SubBrandingInput) {
+    upsertSubBranding(subName: $subName, branding: $branding) {
+      ...SubBrandingFields
+    }
   }
 `

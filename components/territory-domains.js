@@ -10,6 +10,7 @@ import Moon from '@/svgs/moon-fill.svg'
 import ClipboardLine from '@/svgs/clipboard-line.svg'
 import RefreshLine from '@/svgs/refresh-line.svg'
 import styles from './item.module.css'
+import TerritoryBrandingForm from './territory-branding'
 
 // Domain context for custom domains
 const DomainContext = createContext({
@@ -25,12 +26,17 @@ export const DomainProvider = ({ domain: ssrDomain, children }) => {
 
   // wip-brandings: this is a sketch/hack to set the branding colors
   const setBrandingColors = (branding) => {
-    document.documentElement.style.setProperty('--bs-transition', 'all 0.3s ease')
+    document.documentElement.style.setProperty('--bs-transition', 'all 1s ease')
     if (branding.primaryColor) {
-      document.documentElement.style.setProperty('--theme-primary', branding.primaryColor)
+      document.documentElement.style.setProperty('--bs-primary', branding.primaryColor)
+      // wip-brandings: set the primary color to the navbar-brand svg
+      const navbarBrand = document.querySelector('.navbar-brand')
+      if (navbarBrand) {
+        navbarBrand.style.fill = branding.primaryColor
+      }
     }
     if (branding.secondaryColor) {
-      document.documentElement.style.setProperty('--theme-secondary', branding.secondaryColor)
+      document.documentElement.style.setProperty('--bs-secondary', branding.secondaryColor)
     }
 
     return () => {
@@ -222,6 +228,7 @@ export default function CustomDomainForm ({ sub }) {
       {data?.domain && data?.domain?.status !== 'ACTIVE' && (
         <DomainGuidelines domain={data?.domain} />
       )}
+      {data?.domain?.status === 'ACTIVE' && <TerritoryBrandingForm sub={sub} />}
     </>
   )
 }

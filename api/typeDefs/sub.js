@@ -30,7 +30,7 @@ export default gql`
       replyCost: Int!, postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
       moderated: Boolean!, nsfw: Boolean!): SubPaidAction!
-    setSubBranding(subName: String!, branding: SubBrandingInput): SubBranding!
+    upsertSubBranding(subName: String!, branding: SubBrandingInput): SubBranding!
   }
 
   type Sub {
@@ -59,6 +59,7 @@ export default gql`
     ncomments(when: String, from: String, to: String): Int!
     meSubscription: Boolean!
     domain: Domain
+    branding: SubBranding
     optional: SubOptional!
   }
 

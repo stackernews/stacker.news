@@ -16,6 +16,7 @@ import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
 import { NOFOLLOW_LIMIT } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 import { MULTI_AUTH_ANON, MULTI_AUTH_LIST } from '@/lib/auth'
+import { SUB_BRANDING } from '@/fragments/subs'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
   const session = req && await getServerSession(req, res, getAuthOptions(req))
@@ -156,10 +157,15 @@ export function getGetServerSideProps (
     const subName = req.headers['x-stacker-news-subname'] || null
     let domain = null
     if (isCustomDomain && subName) {
+      const { data: { subBranding } } = await client.query({
+        query: SUB_BRANDING,
+        variables: { subName }
+      })
+      console.log('subBranding', subBranding)
       domain = {
         domainName: req.headers.host,
-        subName
-        // TODO: custom branding
+        subName,
+        branding: subBranding || null
       }
     }
 

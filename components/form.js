@@ -24,7 +24,7 @@ import textAreaCaret from 'textarea-caret'
 import 'react-datepicker/dist/react-datepicker.css'
 import useDebounceCallback, { debounce } from './use-debounce-callback'
 import { FileUpload } from './file-upload'
-import { AWS_S3_URL_REGEXP } from '@/lib/constants'
+import { AWS_S3_URL_REGEXP, MEDIA_URL } from '@/lib/constants'
 import { whenRange } from '@/lib/time'
 import { useFeeButton } from './fee-button'
 import Thumb from '@/svgs/thumb-up-fill.svg'
@@ -42,6 +42,7 @@ import dynamic from 'next/dynamic'
 import { qrImageSettings } from './qr'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
+import Avatar from './avatar'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -1528,6 +1529,55 @@ export function MultiInput ({
           </BootstrapForm.Control.Feedback>
         )}
       </div>
+    </FormGroup>
+  )
+}
+
+export function ColorPicker ({ label, groupClassName, name, ...props }) {
+  const [field, , helpers] = useField({ ...props, name })
+
+  useEffect(() => {
+    helpers.setValue(field.value)
+  }, [field.value])
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <ClientInput
+        type='color'
+        {...field}
+        {...props}
+        onChange={(formik, e) => {
+          field.onChange(e)
+          if (props.onChange) {
+            props.onChange(formik, e)
+          }
+        }}
+      />
+    </FormGroup>
+  )
+}
+
+export function BrandingUpload ({ label, groupClassName, name, ...props }) {
+  const [field, , helpers] = useField({ ...props, name })
+  const [tempId, setTempId] = useState(field.value)
+
+  const handleSuccess = useCallback((id) => {
+    setTempId(id)
+    helpers.setValue(id)
+  }, [helpers])
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <img
+        src={tempId ? `${MEDIA_URL}/${tempId}` : '/favicon.png'}
+        alt={name}
+        width={100}
+        height={100}
+        style={{ objectFit: 'contain', position: 'relative' }}
+      />
+      <Avatar
+        onSuccess={handleSuccess}
+      />
     </FormGroup>
   )
 }

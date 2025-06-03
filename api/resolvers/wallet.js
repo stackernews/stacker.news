@@ -317,38 +317,6 @@ const resolvers = {
         ORDER BY id DESC`
     }
   },
-  WalletOrTemplate: {
-    __resolveType: walletOrTemplate => walletOrTemplate.__resolveType
-  },
-  UserWallet: {
-    name: wallet => wallet.template.name,
-    send: wallet => wallet.protocols.some(protocol => protocol.send),
-    receive: wallet => wallet.protocols.some(protocol => !protocol.send)
-  },
-  WalletTemplate: {
-    send: walletTemplate => walletTemplate.sendProtocols.length > 0,
-    receive: walletTemplate => walletTemplate.recvProtocols.length > 0,
-    protocols: walletTemplate => {
-      return [
-        ...walletTemplate.sendProtocols.map(protocol => ({
-          id: `WalletTemplate-${walletTemplate.id}-${protocol}-send`,
-          name: protocol,
-          send: true
-        })),
-        ...walletTemplate.recvProtocols.map(protocol => ({
-          id: `WalletTemplate-${walletTemplate.id}-${protocol}-recv`,
-          name: protocol,
-          send: false
-        }))
-      ]
-    }
-  },
-  WalletProtocol: {
-    name: protocol => protocol.protocol
-  },
-  WalletProtocolConfig: {
-    __resolveType: config => config.__resolveType
-  },
   InvoiceOrDirect: {
     __resolveType: invoiceOrDirect => invoiceOrDirect.__resolveType
   },

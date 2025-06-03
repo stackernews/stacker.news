@@ -7,7 +7,17 @@ import { protocolTestCreateInvoice } from '@/wallets/server/protocols'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 
+const WalletProtocol = {
+  name: protocol => protocol.protocol
+}
+
+const WalletProtocolConfig = {
+  __resolveType: config => config.__resolveType
+}
+
 export const resolvers = {
+  WalletProtocol,
+  WalletProtocolConfig,
   Mutation: Object.fromEntries(
     protocols.map(protocol => {
       return [

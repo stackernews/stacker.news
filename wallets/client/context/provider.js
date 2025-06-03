@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer } from 'react'
 import walletsReducer, { FIRST_PAGE } from './reducer'
 import { useServerWallets, usePageNavigation, useAutomatedRetries } from './hooks'
+import { WebLnProvider } from '@/wallets/lib/protocols/webln'
 
 // https://react.dev/learn/scaling-up-with-reducer-and-context
 const WalletsContext = createContext(null)
@@ -22,12 +23,13 @@ export default function WalletsProvider ({ children }) {
     wallets: []
   })
 
-  // TODO(wallet-v2): add WebLnProvider to manage WebLN state
   return (
     <WalletsContext.Provider value={state}>
       <WalletsDispatchContext.Provider value={dispatch}>
         <WalletHooks>
-          {children}
+          <WebLnProvider>
+            {children}
+          </WebLnProvider>
         </WalletHooks>
       </WalletsDispatchContext.Provider>
     </WalletsContext.Provider>

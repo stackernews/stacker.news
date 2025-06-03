@@ -18,6 +18,9 @@ import { useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useState } from 'react'
 import { isEncryptedField } from '@/wallets/lib/util'
+import { protocolTestSendPayment } from '@/wallets/client/protocols'
+import { timeoutSignal } from '@/lib/time'
+import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 
 export function useWalletQuery ({ id, name }) {
   const query = useQuery(WALLET, { variables: { id, name } })
@@ -42,9 +45,13 @@ export function useWalletProtocolMutation (wallet, protocol) {
   const mutation = getWalletProtocolMutation(protocol)
   const [mutate] = useMutation(mutation)
   const encryptConfig = useEncryptConfig(protocol)
+  const testSendPayment = useTestSendPayment(protocol)
 
   return useCallback(async (values) => {
+    await testSendPayment(values)
+
     const encrypted = await encryptConfig(values)
+
     const { data } = await mutate({
       variables: {
         // TODO(wallet-v2): use template id if no wallet id is provided
@@ -52,6 +59,7 @@ export function useWalletProtocolMutation (wallet, protocol) {
         ...encrypted
       }
     })
+
     return data
   }, [mutate, encryptConfig])
 }
@@ -79,6 +87,18 @@ function getWalletProtocolMutation (protocol) {
     default:
       return null
   }
+}
+
+function useTestSendPayment (protocol) {
+  return useCallback(async (values) => {
+    if (!protocol.send) return
+
+    await protocolTestSendPayment(
+      protocol,
+      values,
+      { signal: timeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS) }
+    )
+  }, [protocol])
 }
 
 function useWalletDecryption () {

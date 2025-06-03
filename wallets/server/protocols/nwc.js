@@ -1,6 +1,4 @@
-import Nostr from '@/lib/nostr'
-import { parseNwcUrl } from '@/wallets/lib/validate'
-import { NDKNWCWallet } from '@nostr-dev-kit/ndk-wallet'
+import { nwcTryRun } from '@/wallets/lib/protocols/nwc'
 
 export const name = 'NWC'
 
@@ -19,28 +17,4 @@ export async function testCreateInvoice ({ url }, { signal }) {
     { url },
     { signal }
   )
-}
-
-async function nwcTryRun (fun, { url }, { signal }) {
-  const nostr = new Nostr()
-  try {
-    const nwc = await getNwc(nostr, url, { signal })
-    return await fun(nwc)
-  } catch (e) {
-    if (e.error) throw new Error(e.error.message || e.error.code)
-    throw e
-  } finally {
-    nostr.close()
-  }
-}
-
-async function getNwc (nostr, nwcUrl, { signal }) {
-  const ndk = nostr.ndk
-  const { walletPubkey, secret, relayUrls } = parseNwcUrl(nwcUrl)
-  const nwc = new NDKNWCWallet(ndk, {
-    pubkey: walletPubkey,
-    relayUrls,
-    secret
-  })
-  return nwc
 }

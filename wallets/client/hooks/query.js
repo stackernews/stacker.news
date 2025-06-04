@@ -52,15 +52,15 @@ export function useWalletProtocolMutation (wallet, protocol) {
 
     const encrypted = await encryptConfig(values)
 
-    const { data } = await mutate({
-      variables: {
-        // TODO(wallet-v2): use template id if no wallet id is provided
-        walletId: wallet.id,
-        ...encrypted
-      }
-    })
+    const variables = encrypted
+    if (wallet.__typename === 'WalletTemplate') {
+      variables.templateId = wallet.id
+    } else {
+      variables.walletId = wallet.id
+    }
 
-    return data
+    const { data } = await mutate({ variables })
+    return Object.values(data)[0]
   }, [mutate, encryptConfig])
 }
 

@@ -123,10 +123,12 @@ function WalletProtocolSelector ({ wallet }) {
 function WalletProtocolForm ({ wallet }) {
   const sendRecvParam = useSendRecvParam()
   const protocolParam = useWalletProtocolParam()
+  const router = useRouter()
+  const isUserWallet = wallet.__typename === 'UserWallet'
 
   const send = sendRecvParam === 'send'
   let protocol = wallet.protocols.find(p => p.name === protocolParam && p.send === send)
-  if (!protocol && wallet.__typename === 'UserWallet') {
+  if (!protocol && isUserWallet) {
     protocol = wallet.template.protocols.find(p => p.name === protocolParam && p.send === send)
   }
   if (!protocol) {
@@ -142,9 +144,15 @@ function WalletProtocolForm ({ wallet }) {
   const { fields, initial, schema } = useProtocolForm(protocol)
 
   const onSubmit = useCallback(async values => {
-    await upsertWalletProtocol(values)
-    toaster.success('wallet saved')
-  }, [upsertWalletProtocol, toaster])
+    const wallet = await upsertWalletProtocol(values)
+    if (isUserWallet) {
+      toaster.success('wallet saved')
+      return
+    }
+    // we just created a new user wallet from a template
+    router.replace(`/wallets/${wallet.id}/${sendRecvParam}`, null, { shallow: true })
+    toaster.success('wallet attached', { persistOnNavigate: true })
+  }, [upsertWalletProtocol, toaster, isUserWallet, router])
 
   return (
     <Form
@@ -156,7 +164,7 @@ function WalletProtocolForm ({ wallet }) {
       {fields.map(field => <WalletProtocolFormField key={field.name} {...field} />)}
       <div className='d-flex justify-content-end'>
         <CancelButton>cancel</CancelButton>
-        <SubmitButton variant='primary'>save</SubmitButton>
+        <SubmitButton variant='primary'>{isUserWallet ? 'save' : 'attach'}</SubmitButton>
       </div>
     </Form>
   )

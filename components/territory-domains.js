@@ -12,6 +12,7 @@ import RefreshLine from '@/svgs/refresh-line.svg'
 import styles from './item.module.css'
 import TerritoryBrandingForm from './territory-branding'
 import Head from 'next/head'
+import { setBrandingColors } from '@/lib/domain-css-injection'
 
 // Domain context for custom domains
 const DomainContext = createContext({
@@ -24,26 +25,6 @@ const DomainContext = createContext({
 
 export const DomainProvider = ({ domain: ssrDomain, children }) => {
   const [domain, setDomain] = useState(ssrDomain || null)
-
-  // wip-brandings: this is a sketch/hack to set the branding colors
-  const setBrandingColors = (branding) => {
-    document.documentElement.style.setProperty('--bs-transition', 'all 1s ease')
-    if (branding.primaryColor) {
-      document.documentElement.style.setProperty('--bs-primary', branding.primaryColor)
-      // wip-brandings: set the primary color to the navbar-brand svg
-      const navbarBrand = document.querySelector('.navbar-brand')
-      if (navbarBrand) {
-        navbarBrand.style.fill = branding.primaryColor
-      }
-    }
-    if (branding.secondaryColor) {
-      document.documentElement.style.setProperty('--bs-secondary', branding.secondaryColor)
-    }
-
-    return () => {
-      document.documentElement.style.removeProperty('--bs-transition')
-    }
-  }
 
   // maintain the custom domain state across re-renders
   useEffect(() => {
@@ -59,12 +40,11 @@ export const DomainProvider = ({ domain: ssrDomain, children }) => {
 
   return (
     <DomainContext.Provider value={{ domain }}>
-      {domain?.branding &&
-        <Head>
-          {domain.branding.title && <title>{domain.branding.title}</title>}
-          {domain.branding.description && <meta name='description' content={domain.branding.description} />}
-          {domain.branding.faviconId && <link rel='shortcut icon' href={domain.branding.faviconId} />}
-        </Head>}
+      <Head>
+        {ssrDomain?.branding?.title && <title>{ssrDomain.branding.title}</title>}
+        {ssrDomain?.branding?.description && <meta name='description' content={ssrDomain.branding.description} />}
+        {ssrDomain?.branding?.faviconId && <link rel='shortcut icon' href={ssrDomain.branding.faviconId} />}
+      </Head>
       {children}
     </DomainContext.Provider>
   )

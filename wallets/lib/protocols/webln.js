@@ -1,5 +1,16 @@
 import { useEffect } from 'react'
 
+// WebLN
+// https://webln.guide/
+
+export default {
+  name: 'WEBLN',
+  displayName: 'WebLN',
+  send: true,
+  fields: [],
+  relationName: 'walletSendWebLN'
+}
+
 export function WebLnProvider ({ children }) {
   useEffect(() => {
     const onEnable = () => {

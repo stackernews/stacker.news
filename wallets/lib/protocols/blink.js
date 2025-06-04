@@ -1,5 +1,9 @@
+import { string } from 'yup'
 import { fetchWithTimeout } from '@/lib/fetch'
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
+
+// Blink
+// http://blink.sv/
 
 export const galoyBlinkUrl = 'https://api.blink.sv/graphql'
 export const galoyBlinkDashboardUrl = 'https://dashboard.blink.sv/'
@@ -7,6 +11,58 @@ export const galoyBlinkDashboardUrl = 'https://dashboard.blink.sv/'
 export const SCOPE_READ = 'READ'
 export const SCOPE_WRITE = 'WRITE'
 export const SCOPE_RECEIVE = 'RECEIVE'
+
+const blinkApiKeyValidator = string().matches(/^blink_[A-Za-z0-9]+$/, 'must match pattern blink_A-Za-z0-9')
+const blinkCurrencyValidator = string().oneOf(['BTC', 'USD'])
+
+export default [
+  {
+    name: 'BLINK',
+    displayName: 'API',
+    send: true,
+    fields: [
+      {
+        name: 'apiKey',
+        type: 'password',
+        label: 'api key',
+        validate: blinkApiKeyValidator,
+        required: true,
+        encrypt: true
+      },
+      {
+        name: 'currency',
+        label: 'currency',
+        type: 'text',
+        required: true,
+        validate: blinkCurrencyValidator,
+        encrypt: true
+      }
+    ],
+    relationName: 'walletSendBlink'
+  },
+  {
+    name: 'BLINK',
+    displayName: 'API',
+    send: false,
+    fields: [
+      {
+        name: 'apiKey',
+        type: 'password',
+        label: 'api key',
+        validate: blinkApiKeyValidator,
+        required: true
+      },
+      {
+        name: 'currency',
+        label: 'currency',
+        type: 'text',
+        required: true,
+        validate: blinkCurrencyValidator
+      }
+    ],
+    relationName: 'walletRecvBlink'
+  }
+]
 
 export async function getWallet ({ apiKey, currency }, { signal }) {
   const out = await request({

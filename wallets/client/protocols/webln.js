@@ -28,8 +28,9 @@ export async function sendPayment (bolt11) {
 }
 
 export async function testSendPayment () {
-  // TODO: wait until test payments with HODL invoices?
-  //   https://github.com/stackernews/stacker.news/issues/1287
+  if (typeof window.webln === 'undefined') {
+    throw new WalletError('lightning browser extension not found')
+  }
 }
 
 export function isAvailable () {

@@ -65,12 +65,12 @@ function upsertWalletProtocol (protocol) {
 
     const relation = protocolRelationName(protocol)
 
-    function toFragment (args) {
+    function dataFragment (args, type) {
       return Object.fromEntries(
         Object.entries(args).map(
           ([key, value]) => {
             if (isEncryptedField(protocol, key)) {
-              return [key, { update: { value: value.value, iv: value.iv } }]
+              return [key, { [type]: { value: value.value, iv: value.iv } }]
             }
             return [key, value]
           }
@@ -78,11 +78,19 @@ function upsertWalletProtocol (protocol) {
       )
     }
 
-    const dataFragment = toFragment(args)
+    return await models.$transaction(
+      async tx => {
+        if (templateId) {
+          const { id: newWalletId } = await tx.userWallet.create({
+            data: {
+              templateId: Number(templateId),
+              userId: me.id
+            }
+          })
+          walletId = newWalletId
+        }
 
-    if (walletId) {
-      const [userWallet] = await models.$transaction([
-        models.userWallet.update({
+        const userWallet = await tx.userWallet.update({
           where: {
             id: Number(walletId),
             // this makes sure that users can only update their own wallets
@@ -91,7 +99,7 @@ function upsertWalletProtocol (protocol) {
           },
           data: {
             protocols: {
-              update: {
+              upsert: {
                 where: {
                   ProtocolWallet_walletId_send_protocol_key: {
                     walletId: Number(walletId),
@@ -99,9 +107,16 @@ function upsertWalletProtocol (protocol) {
                     protocol: protocol.name
                   }
                 },
-                data: {
+                update: {
                   [relation]: {
-                    update: dataFragment
+                    update: dataFragment(args, 'update')
+                  }
+                },
+                create: {
+                  send: protocol.send,
+                  protocol: protocol.name,
+                  [relation]: {
+                    create: dataFragment(args, 'create')
                   }
                 }
               }
@@ -110,13 +125,13 @@ function upsertWalletProtocol (protocol) {
           include: {
             protocols: true
           }
-        }),
+        })
         // XXX Prisma seems to run the vault update AFTER the update of the table that points to it
         //   which means our trigger to set the jsonb column in the ProtocolWallet table does not see
         //   the updated vault entry.
         //   To fix this, we run a protocol wallet update to force the trigger to run again.
         // TODO(wallet-v2): fix this in a better way?
-        models.protocolWallet.update({
+        tx.protocolWallet.update({
           where: {
             ProtocolWallet_walletId_send_protocol_key: {
               walletId: Number(walletId),
@@ -132,11 +147,8 @@ function upsertWalletProtocol (protocol) {
             }
           }
         })
-      ])
 
-      return mapUserWalletResolveTypes(userWallet)
-    }
-
-    // TODO(wallet-v2): create new wallet from template
+        return mapUserWalletResolveTypes(userWallet)
+      })
   }
 }

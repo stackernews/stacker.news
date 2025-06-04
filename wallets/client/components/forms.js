@@ -104,7 +104,7 @@ function WalletProtocolSelector ({ wallet }) {
   return (
     <Nav
       key={path}
-      className={`${styles.nav} mt-2 mb-3`}
+      className={`${styles.nav} justify-content-start mt-3 mb-3`}
       activeKey={selected}
     >
       {

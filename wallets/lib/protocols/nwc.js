@@ -1,6 +1,45 @@
 import Nostr from '@/lib/nostr'
 import { NDKNWCWallet } from '@nostr-dev-kit/ndk-wallet'
-import { parseNwcUrl } from '@/wallets/lib/validate'
+import { nwcUrlValidator, parseNwcUrl } from '@/wallets/lib/validate'
+
+// Nostr Wallet Connect (NIP-47)
+// https://github.com/nostr-protocol/nips/blob/master/47.md
+
+export default [
+  {
+    name: 'NWC',
+    send: true,
+    displayName: 'Nostr Wallet Connect',
+    fields: [
+      {
+        name: 'url',
+        label: 'url',
+        placeholder: 'nostr+walletconnect://',
+        type: 'password',
+        required: true,
+        validate: nwcUrlValidator(),
+        encrypt: true
+      }
+    ],
+    relationName: 'walletSendNWC'
+  },
+  {
+    name: 'NWC',
+    send: false,
+    displayName: 'Nostr Wallet Connect',
+    fields: [
+      {
+        name: 'url',
+        label: 'url',
+        placeholder: 'nostr+walletconnect://',
+        type: 'text',
+        required: true,
+        validate: nwcUrlValidator()
+      }
+    ],
+    relationName: 'walletRecvNWC'
+  }
+]
 
 export async function nwcTryRun (fun, { url }, { signal }) {
   const nostr = new Nostr()

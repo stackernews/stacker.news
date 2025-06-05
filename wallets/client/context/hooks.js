@@ -1,18 +1,17 @@
 import { useCallback, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { useLazyQuery, useQuery } from '@apollo/client'
+import { useLazyQuery } from '@apollo/client'
 import { FAILED_INVOICES } from '@/fragments/invoice'
-import { WALLETS } from '@/wallets/client/fragments'
 import { NORMAL_POLL_INTERVAL } from '@/lib/constants'
 import useInvoice from '@/components/use-invoice'
 import { useMe } from '@/components/me'
-import { useSendWallets, useWalletPayment } from '@/wallets/client/hooks'
+import { useWalletsQuery, useSendWallets, useWalletPayment } from '@/wallets/client/hooks'
 import { WalletConfigurationError } from '@/wallets/client/errors'
 import { RESET_PAGE, SET_WALLETS, useWalletsDispatch } from '@/wallets/client/context'
 
 export function useServerWallets () {
   const dispatch = useWalletsDispatch()
-  const query = useQuery(WALLETS)
+  const query = useWalletsQuery()
 
   useEffect(() => {
     if (query.error) {

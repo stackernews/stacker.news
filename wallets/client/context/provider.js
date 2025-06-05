@@ -8,7 +8,13 @@ const WalletsContext = createContext(null)
 const WalletsDispatchContext = createContext(null)
 
 export function useWallets () {
-  return useContext(WalletsContext)
+  const { wallets } = useContext(WalletsContext)
+  return wallets
+}
+
+export function usePage () {
+  const { page } = useContext(WalletsContext)
+  return page
 }
 
 export function useWalletsDispatch () {

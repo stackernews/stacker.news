@@ -1,5 +1,5 @@
-import WalletsProvider, { useWallets, useWalletsDispatch } from './provider'
+import WalletsProvider, { useWallets, useWalletsDispatch, usePage } from './provider'
 export * from './reducer'
 
-export { useWallets, useWalletsDispatch }
+export { useWallets, useWalletsDispatch, usePage }
 export default WalletsProvider

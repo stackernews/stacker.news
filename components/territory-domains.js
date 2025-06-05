@@ -25,6 +25,7 @@ const DomainContext = createContext({
 
 export const DomainProvider = ({ domain: ssrDomain, children }) => {
   const [domain, setDomain] = useState(ssrDomain || null)
+  const [loaded, setLoaded] = useState(false)
 
   // maintain the custom domain state across re-renders
   useEffect(() => {
@@ -35,8 +36,21 @@ export const DomainProvider = ({ domain: ssrDomain, children }) => {
     // wip-brandings: set the branding colors
     if (ssrDomain?.branding) {
       setBrandingColors(ssrDomain.branding)
+      setTimeout(() => {
+        setLoaded(true)
+      }, 1000)
     }
   }, [ssrDomain])
+
+  // wip-brandings: workaround for the branding colors not being applied immediately
+  if (ssrDomain?.branding && !loaded) {
+    return (
+      <div className='d-flex flex-column justify-content-center align-items-center' style={{ minHeight: '100vh', fontFamily: 'lightning' }}>
+        {ssrDomain?.branding?.title && <h1 className='text-muted'>{ssrDomain.branding.title}</h1>}
+        <Moon className='spin fill-grey' style={{ width: '1rem', height: '1rem' }} />
+      </div>
+    )
+  }
 
   return (
     <DomainContext.Provider value={{ domain }}>

@@ -12,15 +12,37 @@ import {
   UPSERT_WALLET_SEND_LNC,
   UPSERT_WALLET_SEND_NWC,
   UPSERT_WALLET_SEND_PHOENIXD,
-  UPSERT_WALLET_SEND_WEBLN
+  UPSERT_WALLET_SEND_WEBLN,
+  WALLETS
 } from '@/wallets/client/fragments'
 import { useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption } from '@/wallets/client/hooks'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { isEncryptedField } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
+
+export function useWalletsQuery () {
+  const query = useQuery(WALLETS)
+  const [wallets, setWallets] = useState(null)
+
+  const decryptWallet = useWalletDecryption()
+
+  useEffect(() => {
+    if (!query.data?.wallets) return
+    Promise.all(
+      query.data?.wallets.map(w => decryptWallet(w))
+    ).then(wallets => setWallets(wallets))
+  }, [query.data, decryptWallet])
+
+  return useMemo(() => ({
+    ...query,
+    // pretend query is still loading until we've decrypted the wallet
+    loading: !wallets,
+    data: wallets ? { wallets } : null
+  }), [query, wallets])
+}
 
 export function useWalletQuery ({ id, name }) {
   const query = useQuery(WALLET, { variables: { id, name } })
@@ -33,12 +55,12 @@ export function useWalletQuery ({ id, name }) {
     decryptWallet(query.data?.wallet).then(wallet => setWallet(wallet))
   }, [query.data, decryptWallet])
 
-  return {
+  return useMemo(() => ({
     ...query,
     // pretend query is still loading until we've decrypted the wallet
-    loading: !!wallet,
+    loading: !wallet,
     data: wallet ? { wallet } : null
-  }
+  }), [query, wallet])
 }
 
 export function useWalletProtocolMutation (wallet, protocol) {

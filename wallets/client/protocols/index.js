@@ -3,6 +3,7 @@ import * as lnbits from './lnbits'
 import * as phoenixd from './phoenixd'
 import * as blink from './blink'
 import * as webln from './webln'
+import * as lnc from './lnc'
 
 export * from './util'
 
@@ -50,5 +51,6 @@ export default [
   lnbits,
   phoenixd,
   blink,
-  webln
+  webln,
+  lnc
 ]

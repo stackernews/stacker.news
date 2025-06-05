@@ -1,3 +1,6 @@
+import { useWallets } from '@/wallets/client/context'
+import protocols from '@/wallets/client/protocols'
+
 export function useWallet (name) {
   // TODO(wallet-v2): implement this
 }
@@ -7,7 +10,26 @@ export function useConfiguredWallets () {
 }
 
 export function useSendWallets () {
-  // TODO(wallet-v2): implement this
+  const wallets = useWallets()
+  return wallets.filter(w => w.__typename === 'UserWallet' && w.send && w.enabled)
+}
+
+export function useSendProtocols () {
+  const wallets = useSendWallets()
+  return wallets.reduce((acc, wallet) => {
+    return [
+      ...acc,
+      ...wallet.protocols
+        .filter(p => p.send)
+        .map(walletProtocol => {
+          const { sendPayment } = protocols.find(p => p.name === walletProtocol.name)
+          return {
+            ...walletProtocol,
+            sendPayment
+          }
+        })
+    ]
+  }, [])
 }
 
 export function useWalletSupport (wallet) {

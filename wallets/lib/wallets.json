@@ -38,5 +38,141 @@
             "src": "/wallets/phoenixd.png",
             "alt": "Phoenixd"
         }
+    },
+    {
+        "name": "ZEUS",
+        "displayName": "Zeus",
+        "image": {
+            "src": "/wallets/zeus.svg",
+            "alt": "Zeus"
+        }
+    },
+    {
+        "name": "COINOS",
+        "displayName": "Coinos",
+        "image": {
+            "src": "/wallets/coinos.svg",
+            "alt": "Coinos"
+        }
+    },
+    {
+        "name": "PRIMAL",
+        "displayName": "Primal",
+        "image": {
+            "src": "/wallets/primal.svg",
+            "alt": "Primal"
+        }
+    },
+    {
+        "name": "WALLET_OF_SATOSHI",
+        "displayName": "Wallet of Satoshi",
+        "image": {
+            "src": "/wallets/wos.svg",
+            "alt": "Wallet of Satoshi"
+        }
+    },
+    {
+        "name": "VOLTAGE",
+        "displayName": "Voltage",
+        "image": {
+            "src": "/wallets/voltage.svg",
+            "alt": "Voltage"
+        }
+    },
+    {
+        "name": "RIZFUL",
+        "displayName": "Rizful",
+        "image": {
+            "src": "/wallets/rizful.png",
+            "alt": "Rizful"
+        }
+    },
+    {
+        "name": "SPEED",
+        "displayName": "Speed",
+        "image": {
+            "src": "/wallets/speed.svg",
+            "alt": "Speed"
+        }
+    },
+    {
+        "name": "ZBD",
+        "displayName": "ZBD",
+        "image": {
+            "src": "/wallets/zbd.png",
+            "alt": "ZBD"
+        }
+    },
+    {
+        "name": "STRIKE",
+        "displayName": "Strike",
+        "image": {
+            "src": "/wallets/strike.png",
+            "alt": "Strike"
+        }
+    },
+    {
+        "name": "MINIBITS",
+        "displayName": "Minibits",
+        "image": {
+            "src": "/wallets/minibits.png",
+            "alt": "Minibits"
+        }
+    },
+    {
+        "name": "FOUNTAIN",
+        "displayName": "Fountain",
+        "image": {
+            "src": "/wallets/fountain.png",
+            "alt": "Fountain"
+        }
+    },
+    {
+        "name": "LIFPAY",
+        "displayName": "Lifpay",
+        "image": {
+            "src": "/wallets/lifpay.png",
+            "alt": "Lifpay"
+        }
+    },
+    {
+        "name": "SHOCKWALLET",
+        "displayName": "Shockwallet",
+        "image": {
+            "src": "/wallets/shockwallet.png",
+            "alt": "Shockwallet"
+        }
+    },
+    {
+        "name": "ALBY_HUB",
+        "displayName": "Alby Hub",
+        "image": {
+            "src": "/wallets/albyhub.png",
+            "alt": "Alby Hub"
+        }
+    },
+    {
+        "name": "BLIXT",
+        "displayName": "Blixt",
+        "image": {
+            "src": "/wallets/blixt.svg",
+            "alt": "Blixt"
+        }
+    },
+    {
+        "name": "NPUB.CASH",
+        "displayName": "npub.cash",
+        "image": {
+            "src": "/wallets/npub-cash.svg",
+            "alt": "npub.cash"
+        }
+    },
+    {
+        "name": "ALBY_BROWSER_EXTENSION",
+        "displayName": "Alby Browser Extension",
+        "image": {
+            "src": "/wallets/alby-browser-extension.svg",
+            "alt": "Alby Browser Extension"
+        }
     }
 ]

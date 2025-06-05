@@ -860,7 +860,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
               )
             : <div key={provider} className='mt-2'><EmailLinkForm callbackUrl='/settings' /></div>
         } else if (provider === 'lightning') {
-                    return (
+          return (
             <div key={provider} className='d-flex align-items-center mt-2'>
               <QRLinkButton
                 key={provider} provider={provider}

@@ -1,17 +1,16 @@
 import { useCallback } from 'react'
-import { useSendWallets } from '@/wallets/client/hooks'
-import { formatSats } from '@/lib/format'
+import { useSendProtocols } from '@/wallets/client/hooks'
 import useInvoice from '@/components/use-invoice'
 import { FAST_POLL_INTERVAL, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
   AnonWalletError, WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
-  WalletNotEnabledError, /* WalletSendNotConfiguredError, */ WalletPaymentError, WalletError, WalletReceiverError
+  WalletPaymentError, WalletError, WalletReceiverError
 } from '@/wallets/client/errors'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { useMe } from '@/components/me'
 
 export function useWalletPayment () {
-  const wallets = useSendWallets()
+  const protocols = useSendProtocols()
   const sendPayment = useSendPayment()
   const invoiceHelper = useInvoice()
   const { me } = useMe()
@@ -26,23 +25,22 @@ export function useWalletPayment () {
     }
 
     // throw a special error that caller can handle separately if no payment was attempted
-    if (wallets.length === 0) {
+    if (protocols.length === 0) {
       throw new WalletsNotAvailableError()
     }
 
-    for (let i = 0; i < wallets.length; i++) {
-      const wallet = wallets[i]
-
+    for (let i = 0; i < protocols.length; i++) {
+      const protocol = protocols[i]
       const controller = invoiceController(latestInvoice, invoiceHelper.isInvoice)
 
-      const walletPromise = sendPayment(wallet, latestInvoice)
+      const paymentPromise = sendPayment(protocol, latestInvoice)
       const pollPromise = controller.wait(waitFor)
 
       try {
         return await new Promise((resolve, reject) => {
-          // can't await wallet payments since we might pay hold invoices and thus payments might not settle immediately.
+          // can't await payments since we might pay hold invoices and thus payments might not settle immediately.
           // that's why we separately check if we received the payment with the invoice controller.
-          walletPromise.catch(reject)
+          paymentPromise.catch(reject)
           pollPromise.then(resolve).catch(reject)
         })
       } catch (err) {
@@ -87,8 +85,8 @@ export function useWalletPayment () {
           await invoiceHelper.cancel(latestInvoice)
         }
 
-        // only create a new invoice if we will try to pay with a wallet again
-        const retry = paymentError instanceof WalletReceiverError || i < wallets.length - 1
+        // only create a new invoice if we will try to pay with a protocol again
+        const retry = paymentError instanceof WalletReceiverError || i < protocols.length - 1
         if (retry) {
           latestInvoice = await invoiceHelper.retry(latestInvoice, { update: updateOnFallback })
         }
@@ -103,7 +101,7 @@ export function useWalletPayment () {
 
     // if we reach this line, no wallet payment succeeded
     throw new WalletPaymentAggregateError([aggregateError], latestInvoice)
-  }, [wallets, invoiceHelper, sendPayment])
+  }, [protocols, invoiceHelper, sendPayment])
 }
 
 function invoiceController (inv, isInvoice) {
@@ -145,32 +143,19 @@ function invoiceController (inv, isInvoice) {
 }
 
 function useSendPayment () {
-  // TODO(wallet-v2): this will probably need an update
-  return useCallback(async (wallet, logger, invoice) => {
-    if (!wallet.config.enabled) {
-      throw new WalletNotEnabledError(wallet.def.name)
-    }
-
-    // TODO(wallet-v2): implement this
-    // if (!canSend(wallet)) {
-    //   throw new WalletSendNotConfiguredError(wallet.def.name)
-    // }
-
-    const { bolt11, satsRequested } = invoice
-
-    logger.info(`↗ sending payment: ${formatSats(satsRequested)}`, { bolt11 })
+  return useCallback(async (protocol, invoice) => {
     try {
-      const preimage = await withTimeout(
-        wallet.def.sendPayment(bolt11, wallet.config, {
-          logger,
-          signal: timeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS)
-        }),
+      return await withTimeout(
+        protocol.sendPayment(
+          invoice.bolt11,
+          protocol.config,
+          { signal: timeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS) }
+        ),
         WALLET_SEND_PAYMENT_TIMEOUT_MS)
-      logger.ok(`↗ payment sent: ${formatSats(satsRequested)}`, { bolt11, preimage })
     } catch (err) {
       // we don't log the error here since we want to handle receiver errors separately
       const message = err.message || err.toString?.()
-      throw new WalletSenderError(wallet.def.name, invoice, message)
+      throw new WalletSenderError(protocol.name, invoice, message)
     }
   }, [])
 }

@@ -869,21 +869,18 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
             <Info className='ms-2'>
                       <ul>
                         <li>
-                          This is an LNURL-auth. Not sure what it is? Check <a target='_blank' href='https://lightninglogin.live/learn' rel ='noreferral'>here</a>
-                        </li>
-                        <li>
-                          Linking your Lightning wallet allows you to quickly sign in and zap directly from your wallet.
+                          This is an LNURL-auth. Not sure what it is? Check <a target='_blank' href='https://lightninglogin.live/learn' rel='noopener noreferrer'>here</a>
                         </li>
                         <li>
                           You can unlink your wallet at any time.
                         </li>
                         <li>
-                          <b>Tip:</b> Use a wallet that supports LNURL-auth for seamless experience. Check the list of <a target='_blank' href='https://github.com/lnurl/luds/blob/luds/README.md#lnurl-documents' rel='noreferral'>supported wallets</a>
+                          <b>Tip:</b> Use a wallet that supports LNURL-auth for seamless experience. Check the list of <a target='_blank' href='https://github.com/lnurl/luds/blob/luds/README.md#lnurl-documents' rel='noopener noreferrer'>supported wallets</a>
                         </li>
                       </ul>
-              </Info>
-              </div>
-                 )
+            </Info>
+            </div>
+                  )
         } else if (provider === 'nostr') {
           return <NostrLinkButton key='nostr' status={methods[provider]} unlink={async () => await unlink(provider)} />
         } else {

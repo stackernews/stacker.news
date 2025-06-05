@@ -1,6 +1,6 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Button } from 'react-bootstrap'
-import { FIRST_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch } from '@/wallets/client/context'
+import { FIRST_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch, usePage } from '@/wallets/client/context'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
 import styles from '@/styles/wallet.module.css'
 import WalletCard from '@/wallets/client/components/card'
@@ -8,7 +8,8 @@ import WalletCard from '@/wallets/client/components/card'
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function Wallet () {
-  const { page, wallets } = useWallets()
+  const page = usePage()
+  const wallets = useWallets()
   const dispatch = useWalletsDispatch()
 
   if (page === FIRST_PAGE) {

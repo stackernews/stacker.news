@@ -1240,7 +1240,7 @@ model UserWallet {
   userId     Int
   templateId Int
   user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  template   WalletTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade) 
+  template   WalletTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   protocols ProtocolWallet[]
 
@@ -1256,12 +1256,12 @@ model ProtocolWallet {
   // when reading wallets ... it's populated by a trigger when wallet descendants update
   // otherwise reading wallets would require a join on every descendant table.
   // this pattern gives us fast reads and fast, type safe writes
-  json Json? @db.JsonB
+  config Json? @db.JsonB
 
   walletId Int
   wallet   UserWallet     @relation(fields: [walletId], references: [id], onDelete: Cascade)
   send     Boolean
-  protocol WalletProtocol
+  name     WalletProtocol
 
   withdrawals    Withdrawl[]
   directPayments DirectPayment[]
@@ -1283,7 +1283,7 @@ model ProtocolWallet {
   walletRecvCLNRest          WalletRecvCLNRest?
   walletRecvLNDGRPC          WalletRecvLNDGRPC?
 
-  @@unique(name: "ProtocolWallet_walletId_send_protocol_key", [walletId, send, protocol])
+  @@unique(name: "ProtocolWallet_walletId_send_name_key", [walletId, send, name])
 }
 
 model WalletSendNWC {

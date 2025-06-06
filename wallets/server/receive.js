@@ -181,16 +181,14 @@ async function walletCreateInvoice (wallet, {
 
   return await withTimeout(
     protocolCreateInvoice(
-      // TODO(wallet-v2): rename ProtocolWallet.protocol to name?
-      { name: wallet.protocol },
+      wallet,
       {
         msats,
         description: wallet.user.hideInvoiceDesc ? undefined : description,
         descriptionHash,
         expiry
       },
-      // TODO(wallet-v2): rename ProtocolWallet.json to config?
-      wallet.json,
+      wallet.config,
       {
         logger,
         signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS)

@@ -113,10 +113,10 @@ CREATE TABLE "ProtocolWallet" (
     "id" SERIAL NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "json" JSONB,
+    "config" JSONB,
     "walletId" INTEGER NOT NULL,
     "send" BOOLEAN NOT NULL,
-    "protocol" "WalletProtocol" NOT NULL,
+    "name" "WalletProtocol" NOT NULL,
 
     CONSTRAINT "ProtocolWallet_pkey" PRIMARY KEY ("id")
 );
@@ -280,7 +280,7 @@ CREATE TABLE "WalletRecvLNDGRPC" (
 CREATE INDEX "UserWallet_userId_idx" ON "UserWallet"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ProtocolWallet_walletId_send_protocol_key" ON "ProtocolWallet"("walletId", "send", "protocol");
+CREATE UNIQUE INDEX "ProtocolWallet_walletId_send_name_key" ON "ProtocolWallet"("walletId", "send", "name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "WalletSendNWC_walletId_key" ON "WalletSendNWC"("walletId");
@@ -549,7 +549,7 @@ BEGIN
 
     UPDATE "ProtocolWallet"
     SET
-        json = wallet,
+        config = wallet,
         updated_at = NOW()
     WHERE id = NEW."walletId";
 
@@ -702,7 +702,7 @@ DECLARE
     userWalletId INT;
     protocolWalletId INT;
 BEGIN
-    INSERT INTO "ProtocolWallet" ("id", "walletId", "send", "protocol")
+    INSERT INTO "ProtocolWallet" ("id", "walletId", "send", "name")
     VALUES (CASE WHEN send THEN nextval('"ProtocolWallet_id_seq"') ELSE id END, user_wallet_id, send, protocol)
     RETURNING "ProtocolWallet"."id" INTO protocolWalletId;
 

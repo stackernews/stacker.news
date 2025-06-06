@@ -722,7 +722,7 @@ BEGIN
     -- Therefore, to be able to point the foreign keys to the new ProtocolWallet table, we need to keep the same id, but only for the receive wallets
     -- because that's what the foreign keys were pointing to in the old schema.
     -- To avoid generating an id via the sequence that we already inserted manually, we let the sequence start at the highest Wallet id of the old schema.
-    PERFORM setval('"ProtocolWallet_id_seq"', (SELECT MAX(id)+1 FROM "Wallet"));
+    PERFORM setval('"ProtocolWallet_id_seq"', (SELECT MAX(id) FROM "Wallet"));
 
     FOR row IN
         SELECT w1.*, w2."userId", w2."priority", w2."enabled"

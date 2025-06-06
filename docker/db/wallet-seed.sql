@@ -162,6 +162,8 @@ COPY public."InvoiceForward" ("id", "walletId", "bolt11", "maxFeeMsats", "invoic
 16	7	lnbc	1000	16	16
 \.
 
+SELECT pg_catalog.setval('public."InvoiceForward_id_seq"', 16, true);
+
 COPY public."DirectPayment" ("id", "walletId", "senderId", "receiverId", "msats") FROM stdin;
 1	1	21001	21001	1000
 2	2	21001	21001	1000
@@ -180,3 +182,5 @@ COPY public."DirectPayment" ("id", "walletId", "senderId", "receiverId", "msats"
 15	5	21001	21001	1000
 16	4	21001	21001	1000
 \.
+
+SELECT pg_catalog.setval('public."DirectPayment_id_seq"', 16, true);

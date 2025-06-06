@@ -866,7 +866,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
                 key={provider} provider={provider}
                 status={methods[provider]} unlink={async () => await unlink(provider)}
               />
-              <Info className='ms-2'>
+              <Info>
                 <ul>
                   <li>
                     This is an LNURL-auth. Not sure what it is? Check <a target='_blank' href='https://lightninglogin.live/learn' rel='noopener noreferrer'>here</a>

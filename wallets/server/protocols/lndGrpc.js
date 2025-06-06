@@ -18,8 +18,6 @@ export const createInvoice = async (
       cert
     }, isOnion)
 
-    // TODO(wallet-v2): For some reason, I get the 'self-signed certificate' error in local dev.
-    //   The certificate did not expire though.
     const invoice = await lndCreateInvoice({
       lnd,
       description,

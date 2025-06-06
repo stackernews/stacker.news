@@ -238,3 +238,5 @@ axelvyrn,advisory,GHSA-x2xp-x867-4jfc,,,,,100k,holonite@speed.app,???
 brymut,pr,#2184,#2165,easy,,,,100k,brymut@stacker.news,???
 sutt,pr,#2190,#2187,easy,,,,100k,bounty_hunter@stacker.news,???
 sutt,issue,#2190,#2187,easy,,,,10k,bounty_hunter@stacker.news,???
+sutt,pr,#2192,#2188,medium,,,,250k,bounty_hunter@stacker.news,???
+sutt,issue,#2192,#2188,medium,,,,25k,bounty_hunter@stacker.news,???

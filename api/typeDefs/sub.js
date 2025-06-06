@@ -56,7 +56,7 @@ export default gql`
     nposts(when: String, from: String, to: String): Int!
     ncomments(when: String, from: String, to: String): Int!
     meSubscription: Boolean!
-
+    domain: Domain
     optional: SubOptional!
   }
 

@@ -1,6 +1,6 @@
 import { getPaymentFailureStatus, hodlInvoiceCltvDetails, getPaymentOrNotSent } from '@/api/lnd'
 import { paidActions } from '@/api/paidAction'
-import { walletLogger } from '@/api/resolvers/wallet'
+import { walletLogger } from '@/wallets/server'
 import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { formatSats, msatsToSats, toPositiveNumber } from '@/lib/format'
 import { datePivot } from '@/lib/time'

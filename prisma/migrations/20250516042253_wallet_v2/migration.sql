@@ -991,7 +991,6 @@ DROP TABLE "WalletPhoenixd";
 DROP TABLE "WalletWebLN";
 
 -- update foreign keys
--- TODO: make sure ids are stable during migration such that new foreign keys pointing to ProtocolWallet can be added
 ALTER TABLE "Withdrawl" DROP CONSTRAINT "Withdrawl_walletId_fkey";
 ALTER TABLE "Withdrawl" ADD CONSTRAINT "Withdrawl_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "ProtocolWallet"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 

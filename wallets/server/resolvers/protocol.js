@@ -7,16 +7,11 @@ import { protocolTestCreateInvoice } from '@/wallets/server/protocols'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 
-const WalletProtocol = {
-  name: protocol => protocol.protocol
-}
-
 const WalletProtocolConfig = {
   __resolveType: config => config.__resolveType
 }
 
 export const resolvers = {
-  WalletProtocol,
   WalletProtocolConfig,
   Mutation: Object.fromEntries(
     protocols.map(protocol => {
@@ -101,10 +96,10 @@ function upsertWalletProtocol (protocol) {
             protocols: {
               upsert: {
                 where: {
-                  ProtocolWallet_walletId_send_protocol_key: {
+                  ProtocolWallet_walletId_send_name_key: {
                     walletId: Number(walletId),
                     send: protocol.send,
-                    protocol: protocol.name
+                    name: protocol.name
                   }
                 },
                 update: {
@@ -114,7 +109,7 @@ function upsertWalletProtocol (protocol) {
                 },
                 create: {
                   send: protocol.send,
-                  protocol: protocol.name,
+                  name: protocol.name,
                   [relation]: {
                     create: dataFragment(args, 'create')
                   }
@@ -133,10 +128,10 @@ function upsertWalletProtocol (protocol) {
         // TODO(wallet-v2): fix this in a better way?
         tx.protocolWallet.update({
           where: {
-            ProtocolWallet_walletId_send_protocol_key: {
+            ProtocolWallet_walletId_send_name_key: {
               walletId: Number(walletId),
               send: protocol.send,
-              protocol: protocol.name
+              name: protocol.name
             }
           },
           data: {

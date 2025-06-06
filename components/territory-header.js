@@ -12,6 +12,7 @@ import { gql, useMutation } from '@apollo/client'
 import { useToast } from './toast'
 import ActionDropdown from './action-dropdown'
 import { TerritoryTransferDropdownItem } from './territory-transfer'
+import { useDomain } from './territory-domains'
 
 export function TerritoryDetails ({ sub, children }) {
   return (
@@ -69,6 +70,7 @@ export function TerritoryInfo ({ sub, includeLink }) {
             <span className='fw-bold'>{numWithUnits(sub.replyCost)}</span>
           </div>
         </div>
+        {/* TODO: Show custom domain if it exists */}
         <TerritoryBillingLine sub={sub} />
       </CardFooter>
     </>
@@ -78,9 +80,10 @@ export function TerritoryInfo ({ sub, includeLink }) {
 export default function TerritoryHeader ({ sub }) {
   const { me } = useMe()
   const toaster = useToast()
+  const { domain } = useDomain()
 
   const [toggleMuteSub] = useMutation(
-    gql`
+    gql`     
       mutation toggleMuteSub($name: String!) {
         toggleMuteSub(name: $name)
       }`, {
@@ -96,6 +99,8 @@ export default function TerritoryHeader ({ sub }) {
   )
 
   const isMine = Number(sub.userId) === Number(me?.id)
+  // wip-domains-uxui: on custom domain, only show the header for the territory owner
+  if (domain && !isMine) return null
 
   return (
     <>

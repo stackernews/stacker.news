@@ -811,6 +811,36 @@ services:
       CONNECT: "localhost:${LNBITS_WEB_PORT}"
       TORDIR: "/app/.tor"
     cpu_shares: "${CPU_SHARES_LOW}"
+  lnbits-v1:
+    build:
+      context: ./docker/lnbits-v1
+    container_name: lnbits-v1
+    profiles:
+      - wallets
+    restart: unless-stopped
+    ports:
+      - "${LNBITS_WEB_PORT_V1}:5000"
+    depends_on:
+      tor:
+        condition: service_healthy
+        restart: true
+      lnd:
+        condition: service_healthy
+        restart: true
+    environment:
+      - LNBITS_ADMIN_UI=true
+      - LNBITS_BACKEND_WALLET_CLASS=LndWallet
+      - LND_GRPC_ENDPOINT=lnd
+      - LND_GRPC_PORT=10009
+      - LND_GRPC_CERT=/app/.lnd/tls.cert
+      - LND_GRPC_MACAROON=/app/.lnd/data/chain/bitcoin/regtest/admin.macaroon
+    volumes:
+      - lnd:/app/.lnd
+      - tordata:/app/.tor
+    labels:
+      CONNECT: "localhost:${LNBITS_WEB_PORT_V1}"
+      TORDIR: "/app/.tor"
+    cpu_shares: "${CPU_SHARES_LOW}"
   dnsmasq:
     image: 4km3/dnsmasq:2.90-r3
     profiles:

@@ -1,9 +1,11 @@
 import { parsePaymentRequest } from 'ln-service'
-import { toPositiveBigInt, toPositiveNumber, formatMsats, formatSats, msatsToSats } from '@/lib/format'
+import { toPositiveBigInt, toPositiveNumber } from '@/lib/format'
 import { PAID_ACTION_TERMINAL_STATES, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { wrapInvoice } from '@/wallets/server/wrap'
-import { walletLogger } from '@/wallets/server/logger'
+// TODO(wallet-v2): wallet logs
+// import { walletLogger } from '@/wallets/server/logger'
+import { protocolCreateInvoice } from '@/wallets/server/protocols'
 
 // TODO(wallet-v2): implement this
 const walletDefs = [] // [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
@@ -21,30 +23,30 @@ export async function * createUserInvoice (userId, { msats, description, descrip
 
   msats = toPositiveNumber(msats)
 
-  for (const { def, wallet } of wallets) {
-    const logger = walletLogger({ wallet, models })
+  for (const wallet of wallets) {
+    // const logger = walletLogger({ wallet, models })
 
     try {
-      logger.info(
-        `↙ incoming payment: ${formatSats(msatsToSats(msats))}`, {
-          amount: formatMsats(msats)
-        })
+      // logger.info(
+      //   `↙ incoming payment: ${formatSats(msatsToSats(msats))}`, {
+      //     amount: formatMsats(msats)
+      //   })
 
       let invoice
       try {
         invoice = await walletCreateInvoice(
-          { wallet, def },
+          wallet,
           { msats, description, descriptionHash, expiry },
-          { logger, models })
+          { models })
       } catch (err) {
         throw new Error('failed to create invoice: ' + err.message)
       }
 
       const bolt11 = await parsePaymentRequest({ request: invoice })
 
-      logger.info(`created invoice for ${formatSats(msatsToSats(bolt11.mtokens))}`, {
-        bolt11: invoice
-      })
+      // logger.info(`created invoice for ${formatSats(msatsToSats(bolt11.mtokens))}`, {
+      //   bolt11: invoice
+      // })
 
       if (BigInt(bolt11.mtokens) !== BigInt(msats)) {
         if (BigInt(bolt11.mtokens) > BigInt(msats)) {
@@ -58,10 +60,10 @@ export async function * createUserInvoice (userId, { msats, description, descrip
         }
       }
 
-      yield { invoice, wallet, logger }
+      yield { invoice, wallet /* logger */ }
     } catch (err) {
       console.error('failed to create user invoice:', err)
-      logger.error(err.message, { status: true })
+      // logger.error(err.message, { status: true })
     }
   }
 }
@@ -96,61 +98,53 @@ export async function createWrappedInvoice (userId,
   throw new Error('no wallet to receive available')
 }
 
-// TODO(wallet-v2): update this for wallet schema v2
 export async function getInvoiceableWallets (userId, { paymentAttempt, predecessorId, models }) {
   // filter out all wallets that have already been tried by recursively following the retry chain of predecessor invoices.
   // the current predecessor invoice is in state 'FAILED' and not in state 'RETRYING' because we are currently retrying it
   // so it has not been updated yet.
   // if predecessorId is not provided, the subquery will be empty and thus no wallets are filtered out.
-  // const wallets = await models.$queryRaw`
-  //   SELECT
-  //     "Wallet".*,
-  //     jsonb_build_object(
-  //       'id', "users"."id",
-  //       'hideInvoiceDesc', "users"."hideInvoiceDesc"
-  //     ) AS "user"
-  //   FROM "Wallet"
-  //   JOIN "users" ON "users"."id" = "Wallet"."userId"
-  //   WHERE
-  //     "Wallet"."userId" = ${userId}
-  //     AND "Wallet"."enabled" = true
-  //     AND "Wallet"."id" NOT IN (
-  //       WITH RECURSIVE "Retries" AS (
-  //         -- select the current failed invoice that we are currently retrying
-  //         -- this failed invoice will be used to start the recursion
-  //         SELECT "Invoice"."id", "Invoice"."predecessorId"
-  //         FROM "Invoice"
-  //         WHERE "Invoice"."id" = ${predecessorId} AND "Invoice"."actionState" = 'FAILED'
-  //
-  //         UNION ALL
-  //
-  //         -- recursive part: use predecessorId to select the previous invoice that failed in the chain
-  //         -- until there is no more previous invoice
-  //         SELECT "Invoice"."id", "Invoice"."predecessorId"
-  //         FROM "Invoice"
-  //         JOIN "Retries" ON "Invoice"."id" = "Retries"."predecessorId"
-  //         WHERE "Invoice"."actionState" = 'RETRYING'
-  //         AND "Invoice"."paymentAttempt" = ${paymentAttempt}
-  //       )
-  //       SELECT
-  //         "InvoiceForward"."walletId"
-  //       FROM "Retries"
-  //       JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Retries"."id"
-  //       JOIN "Withdrawl" ON "Withdrawl".id = "InvoiceForward"."withdrawlId"
-  //       WHERE "Withdrawl"."status" IS DISTINCT FROM 'CONFIRMED'
-  //     )
-  //   ORDER BY "Wallet"."priority" ASC, "Wallet"."id" ASC`
-  //
-  // const walletsWithDefs = wallets.map(wallet => {
-  //   const w = walletDefs.find(w => w.walletType === wallet.type)
-  //   return { wallet, def: w }
-  // })
-  //
-  // return walletsWithDefs.filter(({ def, wallet }) => canReceive({ def, config: wallet.wallet }))
-  return []
+  return await models.$queryRaw`
+    SELECT
+      "ProtocolWallet".*,
+      jsonb_build_object(
+        'id', "users"."id",
+        'hideInvoiceDesc', "users"."hideInvoiceDesc"
+      ) AS "user"
+    FROM "ProtocolWallet"
+    JOIN "UserWallet" ON "ProtocolWallet"."walletId" = "UserWallet"."id"
+    JOIN "users" ON "users"."id" = "UserWallet"."userId"
+    WHERE
+      "UserWallet"."userId" = ${userId}
+      AND "UserWallet"."enabled" = true
+      AND "ProtocolWallet"."send" = false
+      AND "ProtocolWallet"."id" NOT IN (
+        WITH RECURSIVE "Retries" AS (
+          -- select the current failed invoice that we are currently retrying
+          -- this failed invoice will be used to start the recursion
+          SELECT "Invoice"."id", "Invoice"."predecessorId"
+          FROM "Invoice"
+          WHERE "Invoice"."id" = ${predecessorId} AND "Invoice"."actionState" = 'FAILED'
+            UNION ALL
+            -- recursive part: use predecessorId to select the previous invoice that failed in the chain
+          -- until there is no more previous invoice
+          SELECT "Invoice"."id", "Invoice"."predecessorId"
+          FROM "Invoice"
+          JOIN "Retries" ON "Invoice"."id" = "Retries"."predecessorId"
+          WHERE "Invoice"."actionState" = 'RETRYING'
+          AND "Invoice"."paymentAttempt" = ${paymentAttempt}
+        )
+        SELECT
+          "InvoiceForward"."walletId"
+        FROM "Retries"
+        JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Retries"."id"
+        JOIN "Withdrawl" ON "Withdrawl".id = "InvoiceForward"."withdrawlId"
+        WHERE "Withdrawl"."status" IS DISTINCT FROM 'CONFIRMED'
+      )
+    -- TODO(wallet-v2): should the user be able to specify the order of protocols within the same wallet?
+    ORDER BY "UserWallet"."priority" ASC, "ProtocolWallet"."updated_at" ASC`
 }
 
-async function walletCreateInvoice ({ wallet, def }, {
+async function walletCreateInvoice (wallet, {
   msats,
   description,
   descriptionHash,
@@ -159,6 +153,7 @@ async function walletCreateInvoice ({ wallet, def }, {
   // check for pending withdrawals
 
   // TODO(wallet-v2): make sure this still works as intended
+  // TODO(wallet-v2): rename walletId to protocolId?
   const pendingWithdrawals = await models.withdrawl.count({
     where: {
       walletId: wallet.id,
@@ -185,15 +180,17 @@ async function walletCreateInvoice ({ wallet, def }, {
   }
 
   return await withTimeout(
-    def.createInvoice(
+    protocolCreateInvoice(
+      // TODO(wallet-v2): rename ProtocolWallet.protocol to name?
+      { name: wallet.protocol },
       {
         msats,
         description: wallet.user.hideInvoiceDesc ? undefined : description,
         descriptionHash,
         expiry
       },
-      // TODO(wallet-v2): this will probably need an update
-      wallet.wallet,
+      // TODO(wallet-v2): rename ProtocolWallet.json to config?
+      wallet.json,
       {
         logger,
         signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS)

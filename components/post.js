@@ -15,9 +15,11 @@ import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseR
 import Delete from './delete'
 import CancelButton from './cancel-button'
 import { TerritoryInfo } from './territory-header'
+import { useDomain } from './territory-domains'
 
 export function PostForm ({ type, sub, children }) {
   const { me } = useMe()
+  const { domain } = useDomain()
   const [errorMessage, setErrorMessage] = useState()
 
   const prefix = sub?.name ? `/~${sub.name}` : ''
@@ -104,15 +106,16 @@ export function PostForm ({ type, sub, children }) {
           <Alert className='position-absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
             {errorMessage}
           </Alert>}
-        <SubSelect
-          prependSubs={['pick territory']}
-          className='d-flex'
-          noForm
-          size='medium'
-          sub={sub?.name}
-          info={sub && <TerritoryInfo sub={sub} includeLink />}
-          hint={sub?.moderated && 'this territory is moderated'}
-        />
+        {!domain &&
+          <SubSelect
+            prependSubs={['pick territory']}
+            className='d-flex'
+            noForm
+            size='medium'
+            sub={sub?.name}
+            info={sub && <TerritoryInfo sub={sub} includeLink />}
+            hint={sub?.moderated && 'this territory is moderated'}
+          />}
         <div>
           {postButtons}
         </div>
@@ -159,6 +162,7 @@ export function PostForm ({ type, sub, children }) {
 
 export default function Post ({ sub }) {
   const router = useRouter()
+  const { domain } = useDomain()
   let type = router.query.type
 
   if (sub?.postTypes?.length === 1) {
@@ -168,7 +172,7 @@ export default function Post ({ sub }) {
   return (
     <>
       <PostForm type={type} sub={sub}>
-        {sub?.name !== 'jobs' &&
+        {sub?.name !== 'jobs' && !domain &&
           <SubSelect
             sub={sub?.name}
             prependSubs={sub?.name ? undefined : ['pick territory']}

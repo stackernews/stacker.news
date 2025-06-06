@@ -4,7 +4,7 @@ import { PAID_ACTION_TERMINAL_STATES, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { wrapInvoice } from '@/wallets/server/wrap'
 // TODO(wallet-v2): wallet logs
-// import { walletLogger } from '@/wallets/server/logger'
+// import { walletLogger } from '@/wallets/server'
 import { protocolCreateInvoice } from '@/wallets/server/protocols'
 
 // TODO(wallet-v2): implement this

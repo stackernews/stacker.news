@@ -8,7 +8,7 @@ import { formatMsats, toPositiveBigInt } from '@/lib/format'
 import assertGofacYourself from '@/api/resolvers/ofac'
 import performPaidAction from '@/api/paidAction'
 import { validateSchema, lud18PayerDataSchema } from '@/lib/validate'
-import { walletLogger } from '@/api/resolvers/wallet'
+import { walletLogger } from '@/wallets/server'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })

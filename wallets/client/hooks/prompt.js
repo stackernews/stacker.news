@@ -19,7 +19,7 @@ export class WalletPromptClosed extends Error {
   }
 }
 
-export default function useWalletRecvPrompt () {
+export function useWalletRecvPrompt () {
   const { me } = useMe()
   const showModal = useShowModal()
   const toaster = useToast()

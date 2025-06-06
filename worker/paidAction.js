@@ -44,7 +44,13 @@ async function transitionInvoice (jobName,
           include: {
             invoice: true,
             withdrawl: true,
-            wallet: true
+            // ProtocolWallet
+            wallet: {
+              include: {
+                // UserWallet
+                wallet: true
+              }
+            }
           }
         }
       }
@@ -235,7 +241,7 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
                 msatsFeePaying: maxFeeMsats,
                 autoWithdraw: true,
                 walletId: invoiceForward.walletId,
-                userId: invoiceForward.wallet.userId
+                userId: invoiceForward.wallet.wallet.userId
               }
             }
           }

@@ -2,12 +2,17 @@ import { NextSeo } from 'next-seo'
 import { useRouter } from 'next/router'
 import removeMd from 'remove-markdown'
 import { numWithUnits } from '@/lib/format'
+import { useDomain } from '@/components/territory-domains'
 
 export function SeoSearch ({ sub }) {
   const router = useRouter()
-  const subStr = sub ? ` ~${sub}` : ''
-  const title = `${router.query.q || 'search'} \\ stacker news${subStr}`
-  const desc = `SN${subStr} search: ${router.query.q || ''}`
+  const { domain } = useDomain()
+
+  // wip-branding: temporary branding concept
+  // if it's a territory with a custom domain, we don't want to show the sub in the title
+  const subStr = sub && !domain ? ` ~${sub}` : ''
+  const title = `${router.query.q || 'search'} \\ ${domain?.branding?.title || 'stacker news'}${subStr}`
+  const desc = `${domain?.branding?.title || 'SN'}${subStr} search: ${router.query.q || ''}`
 
   return (
     <NextSeo
@@ -21,7 +26,7 @@ export function SeoSearch ({ sub }) {
             url: 'https://capture.stacker.news' + router.asPath
           }
         ],
-        site_name: 'Stacker News'
+        site_name: domain?.branding?.title || 'Stacker News'
       }}
       twitter={{
         site: '@stacker_news',
@@ -40,9 +45,13 @@ export default function Seo ({ sub, item, user }) {
   const router = useRouter()
   const pathNoQuery = router.asPath.split('?')[0]
   const defaultTitle = pathNoQuery.slice(1)
-  const snStr = `stacker news${sub ? ` ~${sub}` : ''}`
-  let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}stacker news`
-  let desc = "It's like Hacker News but we pay you Bitcoin."
+  const { domain } = useDomain()
+  // wip-branding: temporary branding concept
+  // on custom domains, replace stacker news with the domain title if it exists,
+  // also don't show sub in the title
+  const snStr = `${domain?.branding?.title || 'stacker news'}${sub && !domain ? ` ~${sub}` : ''}`
+  let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}${domain?.branding?.title || 'stacker news'}`
+  let desc = domain?.branding?.description || "It's like Hacker News but we pay you Bitcoin."
   if (item) {
     if (item.title) {
       fullTitle = `${item.title} \\ ${snStr}`
@@ -84,7 +93,7 @@ export default function Seo ({ sub, item, user }) {
             url: 'https://capture.stacker.news' + pathNoQuery
           }
         ],
-        site_name: 'Stacker News'
+        site_name: domain?.branding?.title || 'Stacker News'
       }}
       twitter={{
         site: '@stacker_news',

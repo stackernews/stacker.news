@@ -16,6 +16,7 @@ import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
 import { NOFOLLOW_LIMIT } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 import { MULTI_AUTH_ANON, MULTI_AUTH_LIST } from '@/lib/auth'
+import { SUB_BRANDING } from '@/fragments/subs'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
   const session = req && await getServerSession(req, res, getAuthOptions(req))
@@ -152,6 +153,22 @@ export function getGetServerSideProps (
 
     const client = await getSSRApolloClient({ req, res })
 
+    const isCustomDomain = req.headers.host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
+    const subName = req.headers['x-stacker-news-subname'] || null
+    let domain = null
+    if (isCustomDomain && subName) {
+      const { data: { subBranding } } = await client.query({
+        query: SUB_BRANDING,
+        variables: { subName }
+      })
+      console.log('subBranding', subBranding)
+      domain = {
+        domainName: req.headers.host,
+        subName,
+        branding: subBranding || null
+      }
+    }
+
     let { data: { me } } = await client.query({ query: ME })
 
     // required to redirect to /signup on page reload
@@ -216,6 +233,7 @@ export function getGetServerSideProps (
     return {
       props: {
         ...props,
+        domain,
         me,
         price,
         blockHeight,

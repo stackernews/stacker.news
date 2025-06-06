@@ -8,6 +8,7 @@ export default gql`
     topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
     userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
     subSuggestions(q: String!, limit: Limit): [Sub!]!
+    subBranding(subName: String!): SubBranding
   }
 
   type Subs {
@@ -29,6 +30,7 @@ export default gql`
       replyCost: Int!, postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
       moderated: Boolean!, nsfw: Boolean!): SubPaidAction!
+    upsertSubBranding(subName: String!, branding: SubBrandingInput): SubBranding!
   }
 
   type Sub {
@@ -56,7 +58,8 @@ export default gql`
     nposts(when: String, from: String, to: String): Int!
     ncomments(when: String, from: String, to: String): Int!
     meSubscription: Boolean!
-
+    domain: Domain
+    branding: SubBranding
     optional: SubOptional!
   }
 
@@ -67,5 +70,25 @@ export default gql`
     stacked(when: String, from: String, to: String): Int
     spent(when: String, from: String, to: String): Int
     revenue(when: String, from: String, to: String): Int
+  }
+
+  type SubBranding {
+    id: Int!
+    subName: String!
+    title: String
+    description: String
+    logoId: Int
+    faviconId: Int
+    primaryColor: String
+    secondaryColor: String
+  }
+
+  input SubBrandingInput {
+    title: String
+    description: String
+    logoId: Int
+    faviconId: Int
+    primaryColor: String
+    secondaryColor: String
   }
 `

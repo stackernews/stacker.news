@@ -12,6 +12,11 @@ export function useWallets () {
   return wallets
 }
 
+export function useLoading () {
+  const { loading } = useContext(WalletsContext)
+  return loading
+}
+
 export function usePage () {
   const { page } = useContext(WalletsContext)
   return page
@@ -26,7 +31,8 @@ export default function WalletsProvider ({ children }) {
     // TODO(wallet-v2): if there's no indicator, this should show the wallet list page
     page: FIRST_PAGE,
     // TODO(wallet-v2): this also includes wallet templates, so these are not the wallets we will use for payments
-    wallets: []
+    wallets: [],
+    loading: true
   })
 
   return (

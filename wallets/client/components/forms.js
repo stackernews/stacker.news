@@ -1,14 +1,14 @@
-import { Nav } from 'react-bootstrap'
+import { Button, Nav } from 'react-bootstrap'
 import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
 import { useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName } from '@/wallets/client/components'
-import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, urlify, isUserWallet } from '@/wallets/lib/util'
+import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, urlify, isUserWallet, isTemplate } from '@/wallets/lib/util'
 import styles from '@/styles/wallet.module.css'
 import { Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
-import { useWalletProtocolMutation, useWalletQuery } from '@/wallets/client/hooks'
+import { useWalletProtocolMutation, useWalletProtocolRemoveMutation, useWalletQuery } from '@/wallets/client/hooks'
 import { useToast } from '@/components/toast'
 
 export function WalletForms ({ id, name }) {
@@ -152,11 +152,21 @@ function WalletProtocolForm ({ wallet }) {
       onSubmit={onSubmit}
     >
       {fields.map(field => <WalletProtocolFormField key={field.name} {...field} />)}
-      <div className='d-flex justify-content-end'>
-        <CancelButton>cancel</CancelButton>
-        <SubmitButton variant='primary'>{isUserWallet ? 'save' : 'attach'}</SubmitButton>
-      </div>
+      <WalletProtocolFormButtons wallet={wallet} />
     </Form>
+  )
+}
+
+function WalletProtocolFormButtons ({ wallet }) {
+  const protocol = useSelectedProtocol(wallet)
+  const removeWalletProtocol = useWalletProtocolRemoveMutation(protocol)
+
+  return (
+    <div className='d-flex justify-content-end'>
+      {!isTemplate(protocol) && <Button variant='grey-medium' className='me-auto' onClick={removeWalletProtocol}>detach</Button>}
+      <CancelButton>cancel</CancelButton>
+      <SubmitButton variant='primary'>{isUserWallet(wallet) ? 'save' : 'attach'}</SubmitButton>
+    </div>
   )
 }
 

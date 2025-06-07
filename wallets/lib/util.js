@@ -86,5 +86,9 @@ function titleCase (name) {
 }
 
 export function isUserWallet (wallet) {
-  return wallet.__typename === 'UserWallet'
+  return !isTemplate(wallet)
+}
+
+export function isTemplate (obj) {
+  return obj.__typename.endsWith('Template')
 }

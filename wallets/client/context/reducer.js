@@ -26,7 +26,8 @@ export default function reducer (state, action) {
     case SET_WALLETS:
       return {
         ...state,
-        wallets: action.wallets
+        wallets: action.wallets,
+        loading: false
       }
     default:
       return state

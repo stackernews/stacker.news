@@ -20,6 +20,7 @@ import rehypeSN from '@/lib/rehype-sn'
 import remarkUnicode from '@/lib/remark-unicode'
 import Embed from './embed'
 import remarkMath from 'remark-math'
+import remarkToc from '@/lib/remark-toc'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -33,7 +34,12 @@ const rehypeSNStyled = () => rehypeSN({
   }]
 })
 
-const remarkPlugins = [gfm, remarkUnicode, [remarkMath, { singleDollarTextMath: false }]]
+const remarkPlugins = [
+  gfm,
+  remarkUnicode,
+  [remarkMath, { singleDollarTextMath: false }],
+  remarkToc
+]
 
 export function SearchText ({ text }) {
   return (

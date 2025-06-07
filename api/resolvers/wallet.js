@@ -560,7 +560,6 @@ const resolvers = {
   }
 }
 
-// TODO(wallet-v2): implement wallet resolvers
 export default resolvers
 
 export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, wallet, logger }) {

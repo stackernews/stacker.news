@@ -13,7 +13,8 @@ import {
   UPSERT_WALLET_SEND_NWC,
   UPSERT_WALLET_SEND_PHOENIXD,
   UPSERT_WALLET_SEND_WEBLN,
-  WALLETS
+  WALLETS,
+  REMOVE_WALLET_PROTOCOL
 } from '@/wallets/client/fragments'
 import { useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption } from '@/wallets/client/hooks'
@@ -22,6 +23,7 @@ import { isEncryptedField, isUserWallet } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
+import { useToast } from '@/components/toast'
 
 export function useWalletsQuery () {
   const query = useQuery(WALLETS)
@@ -84,6 +86,21 @@ export function useWalletProtocolMutation (wallet, protocol) {
     const { data } = await mutate({ variables })
     return Object.values(data)[0]
   }, [mutate, encryptConfig])
+}
+
+export function useWalletProtocolRemoveMutation (protocol) {
+  const [mutate] = useMutation(REMOVE_WALLET_PROTOCOL)
+  const toaster = useToast()
+
+  // TODO(wallet-v2): reload wallet after protocol is removed
+  return useCallback(async () => {
+    try {
+      await mutate({ variables: { id: protocol.id } })
+      toaster.success('protocol detached')
+    } catch (err) {
+      toaster.danger('failed to detach protocol: ' + err.message)
+    }
+  }, [mutate, toaster])
 }
 
 function getWalletProtocolMutation (protocol) {

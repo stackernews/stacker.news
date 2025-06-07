@@ -14,22 +14,33 @@ export default function reducer (state, action) {
     case RESET_PAGE:
       return {
         ...state,
-        page: FIRST_PAGE
+        page: getPage(state)
       }
     case NEXT_PAGE:
       return {
         ...state,
-        page: state.page === FIRST_PAGE
-          ? WALLET_LIST_PAGE
-          : undefined
+        page: nextPage(state)
       }
     case SET_WALLETS:
       return {
         ...state,
+        page: getPage(action),
         wallets: action.wallets,
         loading: false
       }
     default:
       return state
   }
+}
+
+function getPage (state) {
+  return state.wallets.length > 0
+    ? WALLET_LIST_PAGE
+    : FIRST_PAGE
+}
+
+function nextPage (state) {
+  return state.page === FIRST_PAGE
+    ? WALLET_LIST_PAGE
+    : state.page
 }

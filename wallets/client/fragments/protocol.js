@@ -1,5 +1,11 @@
 import { gql } from '@apollo/client'
 
+export const REMOVE_WALLET_PROTOCOL = gql`
+  mutation removeWalletProtocol($id: ID!) {
+    removeWalletProtocol(id: $id)
+  }
+`
+
 // TODO(wallet-v2): generate these fragments
 export const UPSERT_WALLET_SEND_LNBITS = gql`
   mutation upsertWalletSendLNbits($walletId: ID, $templateId: ID, $url: String!, $apiKey: VaultEntryInput!) {

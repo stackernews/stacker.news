@@ -18,7 +18,7 @@ import {
 import { useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { isEncryptedField } from '@/wallets/lib/util'
+import { isEncryptedField, isUserWallet } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
@@ -75,10 +75,10 @@ export function useWalletProtocolMutation (wallet, protocol) {
     const encrypted = await encryptConfig(values)
 
     const variables = encrypted
-    if (wallet.__typename === 'WalletTemplate') {
-      variables.templateId = wallet.id
-    } else {
+    if (isUserWallet(wallet)) {
       variables.walletId = wallet.id
+    } else {
+      variables.templateId = wallet.id
     }
 
     const { data } = await mutate({ variables })
@@ -127,7 +127,7 @@ function useWalletDecryption () {
   const decryptConfig = useDecryptConfig()
 
   return useCallback(async wallet => {
-    if (wallet.__typename === 'WalletTemplate') return wallet
+    if (!isUserWallet(wallet)) return wallet
 
     const protocols = await Promise.all(
       wallet.protocols.map(
@@ -150,8 +150,7 @@ function useDecryptConfig () {
         Object.entries(config)
           .map(
             async ([key, value]) => {
-              const encrypted = value.__typename === 'VaultEntry'
-              if (!encrypted) return [key, value]
+              if (!isEncrypted(value)) return [key, value]
 
               // undo the field aliases we had to use because of https://github.com/graphql/graphql-js/issues/53
               // so we can pretend the GraphQL API returns the fields as they are named in the schema
@@ -167,6 +166,10 @@ function useDecryptConfig () {
       )
     )
   }, [decrypt])
+}
+
+function isEncrypted (value) {
+  return value.__typename === 'VaultEntry'
 }
 
 function useEncryptConfig (protocol) {

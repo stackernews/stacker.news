@@ -4,7 +4,7 @@ import { useParams, usePathname } from 'next/navigation'
 import { useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName } from '@/wallets/client/components'
-import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, urlify } from '@/wallets/lib/util'
+import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, urlify, isUserWallet } from '@/wallets/lib/util'
 import styles from '@/styles/wallet.module.css'
 import { Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
@@ -123,7 +123,6 @@ function WalletProtocolForm ({ wallet }) {
   const sendRecvParam = useSendRecvParam()
   const protocolParam = useWalletProtocolParam()
   const router = useRouter()
-  const isUserWallet = wallet.__typename === 'UserWallet'
 
   const send = sendRecvParam === 'send'
   let protocol = wallet.protocols.find(p => p.name === protocolParam && p.send === send)
@@ -143,15 +142,15 @@ function WalletProtocolForm ({ wallet }) {
   const { fields, initial, schema } = useProtocolForm(protocol)
 
   const onSubmit = useCallback(async values => {
-    const wallet = await upsertWalletProtocol(values)
-    if (isUserWallet) {
+    const upsert = await upsertWalletProtocol(values)
+    if (isUserWallet(wallet)) {
       toaster.success('wallet saved')
       return
     }
     // we just created a new user wallet from a template
-    router.replace(`/wallets/${wallet.id}/${sendRecvParam}`, null, { shallow: true })
+    router.replace(`/wallets/${upsert.id}/${sendRecvParam}`, null, { shallow: true })
     toaster.success('wallet attached', { persistOnNavigate: true })
-  }, [upsertWalletProtocol, toaster, isUserWallet, router])
+  }, [upsertWalletProtocol, toaster, wallet, router])
 
   return (
     <Form
@@ -215,7 +214,7 @@ function useWalletProtocols (wallet) {
   if (!sendRecvParam) return []
 
   const protocolFilter = p => sendRecvParam === 'send' ? p.send : !p.send
-  return wallet.__typename === 'UserWallet'
+  return isUserWallet(wallet)
     ? wallet.template.protocols.filter(protocolFilter)
     : wallet.protocols.filter(protocolFilter)
 }

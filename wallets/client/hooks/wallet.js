@@ -1,5 +1,6 @@
 import { useWallets } from '@/wallets/client/context'
 import protocols from '@/wallets/client/protocols'
+import { isUserWallet } from '@/wallets/lib/util'
 
 export function useWallet (name) {
   // TODO(wallet-v2): implement this
@@ -11,7 +12,7 @@ export function useConfiguredWallets () {
 
 export function useSendWallets () {
   const wallets = useWallets()
-  return wallets.filter(w => w.__typename === 'UserWallet' && w.send && w.enabled)
+  return wallets.filter(w => isUserWallet(w) && w.send && w.enabled)
 }
 
 export function useSendProtocols () {
@@ -33,7 +34,7 @@ export function useSendProtocols () {
 }
 
 export function useWalletSupport (wallet) {
-  const template = wallet.__typename === 'UserWallet' ? wallet.template : wallet
+  const template = isUserWallet(wallet) ? wallet.template : wallet
   return {
     receive: template.receive,
     send: template.send
@@ -41,7 +42,7 @@ export function useWalletSupport (wallet) {
 }
 
 export function useWalletIsConfigured (wallet) {
-  return wallet.__typename === 'UserWallet' && (wallet.receive || wallet.send)
+  return isUserWallet(wallet) && (wallet.receive || wallet.send)
 }
 
 export const WalletStatus = {
@@ -52,7 +53,7 @@ export const WalletStatus = {
 }
 
 export function useWalletStatus (wallet) {
-  if (wallet.__typename === 'WalletTemplate') return WalletStatus.Disabled
+  if (!isUserWallet(wallet)) return WalletStatus.Disabled
 
   // TODO(wallet-v2): once API returns wallet status, use it here
   return {

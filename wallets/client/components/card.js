@@ -6,7 +6,7 @@ import Link from 'next/link'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
 import { useWalletImage, useWalletIsConfigured, useWalletSupport, useWalletStatus, WalletStatus } from '@/wallets/client/hooks'
-import { urlify, walletDisplayName } from '@/wallets/lib/util'
+import { isUserWallet, urlify, walletDisplayName } from '@/wallets/lib/util'
 
 export default function WalletCard ({ wallet }) {
   const image = useWalletImage(wallet.name)
@@ -39,7 +39,7 @@ export default function WalletCard ({ wallet }) {
 }
 
 function WalletLink ({ wallet, children }) {
-  if (wallet.__typename === 'UserWallet') {
+  if (isUserWallet(wallet)) {
     return <Link href={`/wallets/${wallet.id}`}>{children}</Link>
   }
   return <Link href={`/wallets/${urlify(wallet.name)}`}>{children}</Link>

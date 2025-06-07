@@ -1,6 +1,7 @@
+import { useWallets, useLoading } from '@/wallets/client/context'
+
 export function useWalletIndicator () {
-  // TODO(wallet-v2): implement this
-  // const { wallets, loading } = useConfiguredWallets()
-  // return !loading && wallets.length === 0
-  return { loading: true, indicator: false }
+  const wallets = useWallets()
+  const loading = useLoading()
+  return !loading && wallets.length === 0
 }

@@ -93,6 +93,19 @@ function getCallbacks (req, res) {
      * @return {object}            JSON Web Token that will be saved
      */
     async jwt ({ token, user, account, profile, isNewUser }) {
+      // Check if the user account is deleted
+      if (user?.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { deletedAt: true }
+        })
+
+        if (dbUser?.deletedAt) {
+          // Return false to prevent sign in for deleted accounts
+          return false
+        }
+      }
+
       if (user) {
         // reset signup cookie if any
         res.appendHeader('Set-Cookie', cookie.serialize('signin', '', { path: '/', expires: 0, maxAge: 0 }))

@@ -12,7 +12,6 @@ import { useWalletProtocolMutation, useWalletQuery } from '@/wallets/client/hook
 import { useToast } from '@/components/toast'
 
 export function WalletForms ({ id, name }) {
-  // TODO(wallet-v2): support editing a user wallet if id is given
   // TODO(wallet-v2): handle loading and error states
   const { data } = useWalletQuery({ name, id })
   const wallet = data?.wallet

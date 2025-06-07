@@ -622,6 +622,60 @@ CREATE TRIGGER wallet_to_jsonb
     FOR EACH ROW
     EXECUTE PROCEDURE wallet_to_jsonb();
 
+CREATE OR REPLACE FUNCTION wallet_clear_vault()
+RETURNS TRIGGER AS $$
+DECLARE
+    wallet jsonb;
+    vault jsonb;
+    col_name text;
+    vault_id int;
+    base_name text;
+BEGIN
+    wallet := to_jsonb(OLD);
+
+    FOR col_name IN
+        SELECT key::text
+        FROM jsonb_each(wallet)
+        WHERE key::text LIKE '%VaultId'
+    LOOP
+        vault_id := (wallet->>col_name)::int;
+        DELETE FROM "Vault" WHERE id = vault_id;
+    END LOOP;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER wallet_clear_vault
+    AFTER DELETE ON "WalletSendNWC"
+    FOR EACH ROW
+    EXECUTE PROCEDURE wallet_clear_vault();
+
+CREATE OR REPLACE TRIGGER wallet_clear_vault
+    AFTER DELETE ON "WalletSendLNbits"
+    FOR EACH ROW
+    EXECUTE PROCEDURE wallet_clear_vault();
+
+CREATE TRIGGER wallet_clear_vault
+    AFTER DELETE ON "WalletSendPhoenixd"
+    FOR EACH ROW
+    EXECUTE PROCEDURE wallet_clear_vault();
+
+CREATE TRIGGER wallet_clear_vault
+    AFTER DELETE ON "WalletSendBlink"
+    FOR EACH ROW
+    EXECUTE PROCEDURE wallet_clear_vault();
+
+CREATE TRIGGER wallet_clear_vault
+    AFTER DELETE ON "WalletSendWebLN"
+    FOR EACH ROW
+    EXECUTE PROCEDURE wallet_clear_vault();
+
+CREATE TRIGGER wallet_clear_vault
+    AFTER DELETE ON "WalletSendLNC"
+    FOR EACH ROW
+    EXECUTE PROCEDURE wallet_clear_vault();
+
 CREATE OR REPLACE FUNCTION wallet_updated_at_trigger() RETURNS TRIGGER AS $$
 BEGIN
     UPDATE "users" u

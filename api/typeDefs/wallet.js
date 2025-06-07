@@ -38,6 +38,7 @@ const typeDefs = gql`
     upsertWalletRecvLNDGRPC(walletId: ID, templateId: ID, socket: String!, macaroon: String!, cert: String): WalletRecvLNDGRPC!
     upsertWalletSendLNC(walletId: ID, templateId: ID, pairingPhrase: VaultEntryInput!, localKey: VaultEntryInput!, remoteKey: VaultEntryInput!, serverHost: VaultEntryInput!): WalletSendLNC!
     upsertWalletSendWebLN(walletId: ID, templateId: ID): WalletSendWebLN!
+    removeWalletProtocol(id: ID!): Boolean
   }
 
   type BuyCreditsResult {

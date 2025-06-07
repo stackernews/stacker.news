@@ -13,14 +13,17 @@ const WalletProtocolConfig = {
 
 export const resolvers = {
   WalletProtocolConfig,
-  Mutation: Object.fromEntries(
-    protocols.map(protocol => {
-      return [
-        protocolMutationName(protocol),
-        upsertWalletProtocol(protocol)
-      ]
-    })
-  )
+  Mutation: {
+    ...Object.fromEntries(
+      protocols.map(protocol => {
+        return [
+          protocolMutationName(protocol),
+          upsertWalletProtocol(protocol)
+        ]
+      })
+    ),
+    removeWalletProtocol
+  }
 }
 
 function upsertWalletProtocol (protocol) {
@@ -146,4 +149,40 @@ function upsertWalletProtocol (protocol) {
         return mapUserWalletResolveTypes(userWallet)
       })
   }
+}
+
+async function removeWalletProtocol (parent, { id }, { me, models }) {
+  if (!me) {
+    throw new GqlAuthenticationError()
+  }
+
+  await models.$transaction(async tx => {
+    // vault is deleted via trigger
+    const protocol = await tx.protocolWallet.delete({
+      where: {
+        id: Number(id),
+        wallet: {
+          userId: me.id
+        }
+      }
+    })
+
+    const userWallet = await tx.userWallet.findUnique({
+      where: {
+        id: protocol.walletId
+      },
+      include: {
+        protocols: true
+      }
+    })
+    if (userWallet.protocols.length === 0) {
+      await tx.userWallet.delete({
+        where: {
+          id: userWallet.id
+        }
+      })
+    }
+  })
+
+  return true
 }

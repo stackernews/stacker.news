@@ -1,3 +1,4 @@
+import { createHash } from 'crypto'
 import { readFile } from 'fs/promises'
 import { join, resolve } from 'path'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
@@ -656,6 +657,86 @@ export default {
   },
 
   Mutation: {
+    deleteAccount: async (parent, { deleteContent, confirmation }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      if (confirmation !== 'DELETE MY ACCOUNT') {
+        throw new GqlInputError('incorrect confirmation text')
+      }
+
+      return await models.$transaction(async (tx) => {
+        const user = await tx.user.findUnique({
+          where: { id: me.id },
+          select: {
+            msats: true,
+            mcredits: true,
+            name: true
+          }
+        })
+
+        if ((user.msats + user.mcredits) > 0) {
+          throw new GqlInputError('please withdraw your balance before deleting your account')
+        }
+
+        // If deleteContent is true, replace content with hash
+        if (deleteContent) {
+        // Get all items for this user
+          const items = await tx.item.findMany({
+            where: { userId: me.id },
+            select: { id: true, title: true, text: true, url: true }
+          })
+
+          // Update each item with hashed content
+          for (const item of items) {
+            const originalContent = JSON.stringify({
+              title: item.title,
+              text: item.text,
+              url: item.url
+            })
+
+            const hash = createHash('sha256').update(originalContent).digest('hex')
+            const deletedContent = `[deleted] ${hash}`
+
+            await tx.item.update({
+              where: { id: item.id },
+              data: {
+                title: item.title ? deletedContent : null,
+                text: item.text ? deletedContent : null,
+                url: item.url ? deletedContent : null
+              }
+            })
+          }
+        }
+
+        // Create deletion timestamp and hash the old username with it
+        const deletionTimestamp = new Date()
+        const usernameHashInput = `${user.name}${deletionTimestamp.toISOString()}`
+        const hashedUsername = createHash('sha256').update(usernameHashInput).digest('hex')
+
+        // Mark user as deleted and anonymize data
+        await tx.user.update({
+          where: { id: me.id },
+          data: {
+            deletedAt: deletionTimestamp,
+            name: hashedUsername,
+            email: null,
+            emailVerified: null,
+            emailHash: null,
+            image: null,
+            pubkey: null,
+            apiKeyHash: null,
+            nostrPubkey: null,
+            nostrAuthPubkey: null,
+            twitterId: null,
+            githubId: null
+          }
+        })
+
+        return true
+      })
+    },
     disableFreebies: async (parent, args, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()

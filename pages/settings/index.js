@@ -1,15 +1,12 @@
 import { Checkbox, Form, Input, SubmitButton, Select, VariableInput, CopyInput } from '@/components/form'
-import Alert from 'react-bootstrap/Alert'
-import Button from 'react-bootstrap/Button'
-import InputGroup from 'react-bootstrap/InputGroup'
-import Nav from 'react-bootstrap/Nav'
+import { Alert, Button, InputGroup, Nav, Form as BootstrapForm, OverlayTrigger, Tooltip } from 'react-bootstrap'
 import Layout from '@/components/layout'
 import { useState, useMemo } from 'react'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import LoginButton from '@/components/login-button'
-import { signIn } from 'next-auth/react'
 import { LightningAuthWithExplainer } from '@/components/lightning-auth'
+import { signIn, signOut } from 'next-auth/react'
 import { SETTINGS, SET_SETTINGS } from '@/fragments/users'
 import { useRouter } from 'next/router'
 import Info from '@/components/info'
@@ -27,7 +24,6 @@ import { useToast } from '@/components/toast'
 import { useServiceWorkerLogger } from '@/components/logger'
 import { useMe } from '@/components/me'
 import { INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY_MS } from '@/lib/constants'
-import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { useField } from 'formik'
 import styles from './settings.module.css'
 import { AuthBanner } from '@/components/banners'
@@ -83,6 +79,112 @@ export function SettingsHeader () {
           </Link>
         </Nav.Item>
       </Nav>
+    </>
+  )
+}
+
+const DELETE_ACCOUNT = gql`
+  mutation deleteAccount($deleteContent: Boolean!, $confirmation: String!) {
+    deleteAccount(deleteContent: $deleteContent, confirmation: $confirmation)
+  }
+`
+
+function DeleteAccount () {
+  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [deleteContent, setDeleteContent] = useState(false)
+  const [confirmation, setConfirmation] = useState('')
+  const [deleteAccount] = useMutation(DELETE_ACCOUNT)
+  const toaster = useToast()
+
+  const handleDelete = async () => {
+    try {
+      await deleteAccount({
+        variables: {
+          deleteContent,
+          confirmation
+        }
+      })
+
+      // Sign out the user after successful deletion
+      signOut({ callbackUrl: '/' })
+
+      // Show success message
+      toaster.success('Your account has been deleted')
+    } catch (error) {
+      console.error(error)
+      toaster.danger(error.message || 'Failed to delete account')
+    }
+  }
+
+  return (
+    <>
+      <div className='form-label mt-4 text-danger'>danger zone</div>
+      <div className='card border-danger mb-3'>
+        <div className='card-body'>
+          <h5 className='card-title'>Delete Account</h5>
+          <p className='card-text'>
+            This will permanently delete your account. This action cannot be undone.
+          </p>
+
+          {!showConfirmation
+            ? (
+              <Button
+                variant='danger'
+                onClick={() => setShowConfirmation(true)}
+              >
+                Delete my account
+              </Button>
+              )
+            : (
+              <>
+                <Alert variant='danger'>
+                  <p><strong>Warning:</strong> Account deletion is permanent and cannot be reversed.</p>
+                  <p>Before proceeding, please ensure:</p>
+                  <ul>
+                    <li>You have withdrawn all your sats (you cannot delete an account with a balance)</li>
+                    <li>You understand that you will lose access to your account name</li>
+                    <li>You have considered that this action affects your entire account history</li>
+                  </ul>
+                </Alert>
+
+                <BootstrapForm.Check
+                  type='checkbox'
+                  id='delete-content'
+                  label='Also anonymize all my posts and comments (they will show as "[deleted]")'
+                  checked={deleteContent}
+                  onChange={(e) => setDeleteContent(e.target.checked)}
+                  className='mb-3'
+                />
+
+                <BootstrapForm.Group className='mb-3'>
+                  <BootstrapForm.Label>Type "DELETE MY ACCOUNT" to confirm:</BootstrapForm.Label>
+                  <BootstrapForm.Control
+                    type='text'
+                    value={confirmation}
+                    onChange={(e) => setConfirmation(e.target.value)}
+                    placeholder='DELETE MY ACCOUNT'
+                  />
+                </BootstrapForm.Group>
+
+                <div className='d-flex justify-content-between'>
+                  <Button
+                    variant='secondary'
+                    onClick={() => setShowConfirmation(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant='danger'
+                    disabled={confirmation !== 'DELETE MY ACCOUNT'}
+                    onClick={handleDelete}
+                  >
+                    Permanently delete my account
+                  </Button>
+                </div>
+              </>
+              )}
+        </div>
+      </div>
     </>
   )
 }
@@ -646,6 +748,9 @@ export default function Settings ({ ssrData }) {
           <div className='form-label'>saturday newsletter</div>
           <Button href='https://mail.stacker.news/subscription/form' target='_blank'>(re)subscribe</Button>
           {settings?.authMethods && <AuthMethods methods={settings.authMethods} apiKeyEnabled={settings.apiKeyEnabled} />}
+
+          {/* Add the delete account section */}
+          <DeleteAccount />
         </div>
       </div>
     </Layout>

@@ -56,6 +56,7 @@ export default gql`
     generateApiKey(id: ID!): String
     deleteApiKey(id: ID!): User
     disableFreebies: Boolean
+    deleteAccount(deleteContent: Boolean!, confirmation: String!): Boolean
   }
 
   type User {
@@ -70,6 +71,7 @@ export default gql`
     bioId: Int
     photoId: Int
     since: Int
+    deletedAt: Date
 
     """
     this is only returned when we sort stackers by value

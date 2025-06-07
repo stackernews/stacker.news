@@ -26,6 +26,7 @@ export const ITEM_FIELDS = gql`
       id
       name
       meMute
+      deletedAt
       ...StreakFields
     }
     sub {
@@ -100,6 +101,7 @@ export const ITEM_FULL_FIELDS = gql`
       user {
         id
         name
+        deletedAt
         ...StreakFields
       }
       sub {

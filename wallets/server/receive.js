@@ -7,10 +7,6 @@ import { wrapInvoice } from '@/wallets/server/wrap'
 // import { walletLogger } from '@/wallets/server'
 import { protocolCreateInvoice } from '@/wallets/server/protocols'
 
-// TODO(wallet-v2): implement this
-const walletDefs = [] // [lnd, cln, lnAddr, lnbits, nwc, phoenixd, blink, lnc, webln]
-export default walletDefs
-
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 
 export async function * createUserInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { paymentAttempt, predecessorId, models }) {

@@ -155,6 +155,8 @@ export function MuteSubDropdownItem ({ item, sub }) {
       mutation toggleMuteSub($name: String!) {
         toggleMuteSub(name: $name)
       }`, {
+      refetchQueries: ['MySubscribedSubs'],
+      awaitRefetchQueries: true,
       update (cache, { data: { toggleMuteSub } }) {
         cache.modify({
           id: `Sub:{"name":"${sub.name}"}`,
@@ -218,6 +220,8 @@ export function ToggleSubSubscriptionDropdownItem ({ sub: { name, meSubscription
       mutation toggleSubSubscription($name: String!) {
         toggleSubSubscription(name: $name)
       }`, {
+      refetchQueries: ['MySubscribedSubs'],
+      awaitRefetchQueries: true,
       update (cache, { data: { toggleSubSubscription } }) {
         cache.modify({
           id: `Sub:{"name":"${name}"}`,

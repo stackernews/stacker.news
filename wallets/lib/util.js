@@ -84,3 +84,7 @@ export function unurlify (urlName) {
 function titleCase (name) {
   return name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')
 }
+
+export function isUserWallet (wallet) {
+  return wallet.__typename === 'UserWallet'
+}

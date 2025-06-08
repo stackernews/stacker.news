@@ -1,7 +1,7 @@
+import { useEffect, useCallback, useMemo, createContext, useContext } from 'react'
 import { Button, Nav } from 'react-bootstrap'
 import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
-import { useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName } from '@/wallets/client/components'
 import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, urlify, isUserWallet, isTemplate } from '@/wallets/lib/util'
@@ -11,9 +11,11 @@ import CancelButton from '@/components/cancel-button'
 import { useWalletProtocolMutation, useWalletProtocolRemoveMutation, useWalletQuery } from '@/wallets/client/hooks'
 import { useToast } from '@/components/toast'
 
+const WalletFormsContext = createContext()
+
 export function WalletForms ({ id, name }) {
   // TODO(wallet-v2): handle loading and error states
-  const { data } = useWalletQuery({ name, id })
+  const { data, refetch } = useWalletQuery({ name, id })
   const wallet = data?.wallet
 
   return (
@@ -22,10 +24,28 @@ export function WalletForms ({ id, name }) {
         <WalletLayoutHeader>
           {wallet && <WalletLayoutImageOrName name={wallet.name} maxHeight='80px' />}
         </WalletLayoutHeader>
-        {wallet && <WalletFormSelector wallet={wallet} />}
+        {wallet && (
+          <WalletRefetchProvider refetch={refetch}>
+            <WalletFormSelector wallet={wallet} />
+          </WalletRefetchProvider>
+        )}
       </div>
     </WalletLayout>
   )
+}
+
+function WalletRefetchProvider ({ children, refetch }) {
+  const value = useMemo(() => ({ refetch }), [refetch])
+  return (
+    <WalletFormsContext.Provider value={value}>
+      {children}
+    </WalletFormsContext.Provider>
+  )
+}
+
+function useWalletRefetch () {
+  const { refetch } = useContext(WalletFormsContext)
+  return refetch
 }
 
 function WalletFormSelector ({ wallet }) {
@@ -132,11 +152,13 @@ function WalletProtocolForm ({ wallet }) {
   const toaster = useToast()
 
   const { fields, initial, schema } = useProtocolForm(protocol)
+  const refetch = useWalletRefetch()
 
   const onSubmit = useCallback(async values => {
     const upsert = await upsertWalletProtocol(values)
     if (isUserWallet(wallet)) {
       toaster.success('wallet saved')
+      refetch()
       return
     }
     // we just created a new user wallet from a template
@@ -160,10 +182,22 @@ function WalletProtocolForm ({ wallet }) {
 function WalletProtocolFormButtons ({ wallet }) {
   const protocol = useSelectedProtocol(wallet)
   const removeWalletProtocol = useWalletProtocolRemoveMutation(protocol)
+  const refetch = useWalletRefetch()
+  const router = useRouter()
+  const isLastProtocol = wallet.protocols.length === 1
+
+  const onDetach = useCallback(async () => {
+    await removeWalletProtocol()
+    if (isLastProtocol) {
+      router.replace('/wallets', null, { shallow: true })
+      return
+    }
+    refetch()
+  }, [removeWalletProtocol, refetch, isLastProtocol, router])
 
   return (
     <div className='d-flex justify-content-end'>
-      {!isTemplate(protocol) && <Button variant='grey-medium' className='me-auto' onClick={removeWalletProtocol}>detach</Button>}
+      {!isTemplate(protocol) && <Button variant='grey-medium' className='me-auto' onClick={onDetach}>detach</Button>}
       <CancelButton>cancel</CancelButton>
       <SubmitButton variant='primary'>{isUserWallet(wallet) ? 'save' : 'attach'}</SubmitButton>
     </div>

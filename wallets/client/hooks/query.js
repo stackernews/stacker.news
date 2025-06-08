@@ -24,6 +24,7 @@ import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
+import { useMe } from '@/components/me'
 
 export function useWalletsQuery () {
   const query = useQuery(WALLETS)
@@ -38,12 +39,21 @@ export function useWalletsQuery () {
     ).then(wallets => setWallets(wallets))
   }, [query.data, decryptWallet])
 
+  useRefetchOnChange(query.refetch)
+
   return useMemo(() => ({
     ...query,
     // pretend query is still loading until we've decrypted the wallet
     loading: !wallets,
     data: wallets ? { wallets } : null
   }), [query, wallets])
+}
+
+function useRefetchOnChange (refetch) {
+  const { me } = useMe()
+  useEffect(() => {
+    refetch()
+  }, [refetch, me?.privates?.walletsUpdatedAt])
 }
 
 export function useWalletQuery ({ id, name }) {

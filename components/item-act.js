@@ -143,7 +143,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
     })
     if (error) throw error
     addCustomTip(Number(amount))
-  }, [me, actor, wallets.length, act, item.id, onClose, abortSignal, strike])
+  }, [me, actor, wallets, act, item.id, onClose, abortSignal, strike])
 
   return act === 'BOOST'
     ? <BoostForm step={step} onSubmit={onSubmit} item={item} inputRef={inputRef} act={act}>{children}</BoostForm>
@@ -262,37 +262,38 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   const { me } = useMe()
   // because the mutation name we use varies,
   // we need to extract the result/invoice from the response
-  const getPaidActionResult = data => Object.values(data)[0]
+  const getPaidActionResult = useCallback(data => Object.values(data)[0], [])
   const wallets = useSendWallets()
 
   const [act] = usePaidMutation(query, {
-    waitFor: inv =>
+    waitFor: useCallback(inv =>
       // if we have attached wallets, we might be paying a wrapped invoice in which case we need to make sure
       // we don't prematurely consider the payment as successful (important for receiver fallbacks)
       wallets.length > 0
         ? inv?.actionState === 'PAID'
         : inv?.satsReceived > 0,
+    [wallets.length]),
     ...options,
-    update: (cache, { data }) => {
+    update: useCallback((cache, { data }) => {
       const response = getPaidActionResult(data)
       if (!response) return
       modifyActCache(cache, response, me)
       options?.update?.(cache, { data })
-    },
-    onPayError: (e, cache, { data }) => {
+    }, [getPaidActionResult, me, options]),
+    onPayError: useCallback((e, cache, { data }) => {
       const response = getPaidActionResult(data)
       if (!response || !response.result) return
       const { result: { sats } } = response
       const negate = { ...response, result: { ...response.result, sats: -1 * sats } }
       modifyActCache(cache, negate, me)
       options?.onPayError?.(e, cache, { data })
-    },
-    onPaid: (cache, { data }) => {
+    }, [getPaidActionResult, me, options]),
+    onPaid: useCallback((cache, { data }) => {
       const response = getPaidActionResult(data)
       if (!response) return
       updateAncestors(cache, response)
       options?.onPaid?.(cache, { data })
-    }
+    }, [getPaidActionResult, options])
   })
   return act
 }

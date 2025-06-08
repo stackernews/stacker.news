@@ -510,8 +510,8 @@ export default {
         item.searchTitle = e.highlight?.title?.[0] || e.highlight?.['title.exact']?.[0] || item.title
 
         // prefer the exact highlight for text
-        const searchTextHighlight = [...(e.highlight?.['text.exact'] || []), ...(e.highlight?.text || [])]
-        item.searchText = searchTextHighlight?.slice(0, 5)?.join(' ... ')
+        const searchTextHighlight = e.highlight?.['text.exact'] || e.highlight?.text || []
+        item.searchText = searchTextHighlight?.join(' ... ')
 
         return item
       })

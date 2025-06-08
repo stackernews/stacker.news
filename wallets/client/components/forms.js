@@ -25,17 +25,17 @@ export function WalletForms ({ id, name }) {
           {wallet && <WalletLayoutImageOrName name={wallet.name} maxHeight='80px' />}
         </WalletLayoutHeader>
         {wallet && (
-          <WalletRefetchProvider refetch={refetch}>
-            <WalletFormSelector wallet={wallet} />
-          </WalletRefetchProvider>
+          <WalletFormsProvider wallet={wallet} refetch={refetch}>
+            <WalletFormSelector />
+          </WalletFormsProvider>
         )}
       </div>
     </WalletLayout>
   )
 }
 
-function WalletRefetchProvider ({ children, refetch }) {
-  const value = useMemo(() => ({ refetch }), [refetch])
+function WalletFormsProvider ({ children, wallet, refetch }) {
+  const value = useMemo(() => ({ refetch, wallet }), [refetch, wallet])
   return (
     <WalletFormsContext.Provider value={value}>
       {children}
@@ -48,22 +48,27 @@ function useWalletRefetch () {
   return refetch
 }
 
-function WalletFormSelector ({ wallet }) {
+function useWallet () {
+  const { wallet } = useContext(WalletFormsContext)
+  return wallet
+}
+
+function WalletFormSelector () {
   const sendRecvParam = useSendRecvParam()
   const protocolParam = useWalletProtocolParam()
 
   return (
     <>
-      <WalletSendRecvSelector wallet={wallet} />
+      <WalletSendRecvSelector />
       {sendRecvParam &&
-        <WalletProtocolSelector wallet={wallet} />}
+        <WalletProtocolSelector />}
       {sendRecvParam && protocolParam &&
-        <WalletProtocolForm wallet={wallet} />}
+        <WalletProtocolForm />}
     </>
   )
 }
 
-function WalletSendRecvSelector ({ wallet }) {
+function WalletSendRecvSelector () {
   const path = useWalletPathname()
   const selected = useSendRecvParam()
   const router = useRouter()
@@ -96,12 +101,12 @@ function WalletSendRecvSelector ({ wallet }) {
   )
 }
 
-function WalletProtocolSelector ({ wallet }) {
+function WalletProtocolSelector () {
   const walletPath = useWalletPathname()
   const sendRecvParam = useSendRecvParam()
   const path = `${walletPath}/${sendRecvParam}`
 
-  const protocols = useWalletProtocols(wallet)
+  const protocols = useWalletProtocols()
   const selected = useWalletProtocolParam()
   const router = useRouter()
 
@@ -139,20 +144,21 @@ function WalletProtocolSelector ({ wallet }) {
   )
 }
 
-function WalletProtocolForm ({ wallet }) {
+function WalletProtocolForm () {
   const sendRecvParam = useSendRecvParam()
   const router = useRouter()
-  const protocol = useSelectedProtocol(wallet)
+  const protocol = useSelectedProtocol()
   if (!protocol) return null
 
   // I think it is okay to skip this hook if the protocol is not found
   // because we will need to change the URL to get a different protocol
   // so the amount of rendered hooks should stay the same during the lifecycle of this component
+  const wallet = useWallet()
   const upsertWalletProtocol = useWalletProtocolMutation(wallet, protocol)
   const toaster = useToast()
+  const refetch = useWalletRefetch()
 
   const { fields, initial, schema } = useProtocolForm(protocol)
-  const refetch = useWalletRefetch()
 
   const onSubmit = useCallback(async values => {
     const upsert = await upsertWalletProtocol(values)
@@ -174,16 +180,17 @@ function WalletProtocolForm ({ wallet }) {
       onSubmit={onSubmit}
     >
       {fields.map(field => <WalletProtocolFormField key={field.name} {...field} />)}
-      <WalletProtocolFormButtons wallet={wallet} />
+      <WalletProtocolFormButtons />
     </Form>
   )
 }
 
-function WalletProtocolFormButtons ({ wallet }) {
-  const protocol = useSelectedProtocol(wallet)
+function WalletProtocolFormButtons () {
+  const protocol = useSelectedProtocol()
   const removeWalletProtocol = useWalletProtocolRemoveMutation(protocol)
   const refetch = useWalletRefetch()
   const router = useRouter()
+  const wallet = useWallet()
   const isLastProtocol = wallet.protocols.length === 1
 
   const onDetach = useCallback(async () => {
@@ -245,7 +252,8 @@ function useWalletProtocolParam () {
   return name ? unurlify(name) : null
 }
 
-function useWalletProtocols (wallet) {
+function useWalletProtocols () {
+  const wallet = useWallet()
   const sendRecvParam = useSendRecvParam()
   if (!sendRecvParam) return []
 
@@ -255,7 +263,8 @@ function useWalletProtocols (wallet) {
     : wallet.protocols.filter(protocolFilter)
 }
 
-function useSelectedProtocol (wallet) {
+function useSelectedProtocol () {
+  const wallet = useWallet()
   const sendRecvParam = useSendRecvParam()
   const protocolParam = useWalletProtocolParam()
 

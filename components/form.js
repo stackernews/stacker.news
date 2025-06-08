@@ -78,7 +78,7 @@ export function SubmitButton ({
   )
 }
 
-function CopyButton ({ value, icon, ...props }) {
+export function CopyButton ({ value, icon, ...props }) {
   const toaster = useToast()
   const [copied, setCopied] = useState(false)
 

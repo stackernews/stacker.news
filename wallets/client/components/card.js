@@ -39,10 +39,8 @@ export default function WalletCard ({ wallet }) {
 }
 
 function WalletLink ({ wallet, children }) {
-  if (isUserWallet(wallet)) {
-    return <Link href={`/wallets/${wallet.id}`}>{children}</Link>
-  }
-  return <Link href={`/wallets/${urlify(wallet.name)}`}>{children}</Link>
+  const href = isUserWallet(wallet) ? `/wallets/${wallet.id}` : `/wallets/${urlify(wallet.name)}`
+  return <Link href={href}>{children}</Link>
 }
 
 function statusToClass (status) {

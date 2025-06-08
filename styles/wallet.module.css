@@ -131,3 +131,10 @@
 .separator:not(:empty)::after {
   margin-left: .25em;
 }
+
+.passphrase {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  container-type: inline-size;
+}

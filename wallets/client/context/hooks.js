@@ -5,7 +5,7 @@ import { FAILED_INVOICES } from '@/fragments/invoice'
 import { NORMAL_POLL_INTERVAL } from '@/lib/constants'
 import useInvoice from '@/components/use-invoice'
 import { useMe } from '@/components/me'
-import { useWalletsQuery, useSendWallets, useWalletPayment } from '@/wallets/client/hooks'
+import { useWalletsQuery, useSendWallets, useWalletPayment, useGenerateRandomKey, useSetKey, useLoadKey } from '@/wallets/client/hooks'
 import { WalletConfigurationError } from '@/wallets/client/errors'
 import { RESET_PAGE, SET_WALLETS, useWalletsDispatch } from '@/wallets/client/context'
 
@@ -111,4 +111,38 @@ export function useAutomatedRetries () {
     queuePoll()
     return stopPolling
   }, [me?.id, wallets, getFailedInvoices, retry])
+}
+
+export function useKeyInit () {
+  const { me } = useMe()
+  const generateRandomKey = useGenerateRandomKey()
+  const setKey = useSetKey()
+  const loadKey = useLoadKey()
+
+  useEffect(() => {
+    if (!me?.id) return
+
+    loadKey()
+      .then(async key => {
+        if (key) {
+          setKey(key)
+          return
+        }
+        const { key: randomKey } = await generateRandomKey()
+        setKey(randomKey)
+      })
+  }, [me?.id, generateRandomKey])
+
+  // TODO(wallet-v2): move or remove this, this is just for loading the key for the wallet seed
+  // useEffect(() => {
+  //   if (!me?.id) return
+  //   async function loadKey () {
+  //     const { key } = await deriveKey(
+  //       'media fit youth secret combine live cupboard response enable loyal kitchen angle',
+  //       'stacker21001'
+  //     )
+  //     await set('vault', 'key', key)
+  //   }
+  //   loadKey()
+  // }, [me?.id])
 }

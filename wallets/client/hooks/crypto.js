@@ -1,19 +1,31 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { fromHex, toHex } from '@/lib/hex'
 import { useMe } from '@/components/me'
 import { useIndexedDB } from '@/components/use-indexeddb'
+import { useShowModal } from '@/components/modal'
+import { Button } from 'react-bootstrap'
+import { Passphrase } from '@/wallets/client/components/passphrase'
+import bip39Words from '@/lib/bip39-words'
+import { Form, PasswordInput, SubmitButton } from '@/components/form'
+import { object, string } from 'yup'
+import { SET_KEY, useKey, useWalletsDispatch } from '@/wallets/client/context'
 
-function useKey () {
-  const [key, setKey] = useState(null)
+export function useLoadKey () {
   const { get } = useIndexedDB()
-  const { me } = useMe()
 
-  useEffect(() => {
-    if (!me?.id) return
-    get('vault', 'key').then(key => setKey(key))
-  }, [me?.id])
+  return useCallback(async () => {
+    return await get('vault', 'key')
+  }, [get])
+}
 
-  return key
+export function useSetKey () {
+  const { set } = useIndexedDB()
+  const dispatch = useWalletsDispatch()
+
+  return useCallback(async (key) => {
+    await set('vault', 'key', key)
+    dispatch({ type: SET_KEY, key })
+  }, [set, dispatch])
 }
 
 export function useEncryption () {
@@ -26,9 +38,122 @@ export function useDecryption () {
   return useCallback(value => key ? decrypt(key, value) : null, [key])
 }
 
+export function useKeyHash () {
+  const { me } = useMe()
+  return me?.privates?.vaultKeyHash
+}
+
+export function useKeySalt () {
+  // TODO(wallet-v2): random salt
+  const { me } = useMe()
+  return `stacker${me?.id}`
+}
+
+export function useShowPassphrase () {
+  const showModal = useShowModal()
+
+  const onShow = useCallback(() => {
+    showModal(
+      close => <Passphrase />,
+      { replaceModal: true, keepOpen: true }
+    )
+  }, [showModal])
+
+  // TODO(wallet-v2): return null if the user has already seen the passphrase
+
+  return useCallback(() => {
+    showModal(close => (
+      <div>
+        <p className='line-height-md'>
+          The next screen will show the passphrase that was used to encrypt your wallets.
+        </p>
+        <p className='line-height-md fw-bold'>
+          You will not be able to see the passphrase again.
+        </p>
+        <p className='line-height-md'>
+          Do you want to see it now?
+        </p>
+        <div className='mt-3 d-flex justify-content-between align-items-center'>
+          <Button variant='grey-medium' onClick={close}>cancel</Button>
+          <Button variant='warning' onClick={onShow}>show</Button>
+        </div>
+      </div>
+    ))
+  }, [showModal])
+}
+
+export function useSavePassphrase () {
+  const setKey = useSetKey()
+  const salt = useKeySalt()
+
+  return useCallback(async ({ passphrase }) => {
+    const { key } = await deriveKey(passphrase, salt)
+    setKey(key)
+  }, [setKey])
+}
+
+const passphraseSchema = ({ hash, salt }) => object().shape({
+  passphrase: string().required('required')
+    .test(async (value, context) => {
+      const { hash: expectedHash } = await deriveKey(value, salt)
+      if (hash !== expectedHash) {
+        return context.createError({ message: 'wrong passphrase' })
+      }
+      return true
+    })
+})
+
+export function usePassphrasePrompt () {
+  const showModal = useShowModal()
+  const savePassphrase = useSavePassphrase()
+  const hash = useKeyHash()
+  const salt = useKeySalt()
+
+  const onSubmit = useCallback((close) =>
+    async ({ passphrase }) => {
+      await savePassphrase({ passphrase })
+      close()
+    }, [savePassphrase])
+
+  return useCallback(() => {
+    showModal(close => (
+      <div>
+        <h4>Wallet decryption</h4>
+        <p className='line-height-md'>
+          Your wallets have been encrypted on another device. Enter your passphrase to use your wallets on this device.
+        </p>
+        <p className='line-height-md'>
+          {/* TODO(wallet-v2): the button will only be there once. when it's gone, we should probably tell them that they should have backed it up. */}
+          You can find the button to reveal your passphrase on the top of the wallets page on the other device.
+        </p>
+        <Form
+          schema={passphraseSchema({ hash, salt })}
+          initial={{ passphrase: '' }}
+          onSubmit={onSubmit(close)}
+        >
+          <PasswordInput
+            label='passphrase'
+            name='passphrase'
+            placeholder=''
+            required
+            autoFocus
+            qr
+          />
+          <div className='mt-3'>
+            <div className='d-flex justify-content-between align-items-center'>
+              <Button variant='grey-medium' onClick={close}>cancel</Button>
+              <SubmitButton variant='primary'>save</SubmitButton>
+            </div>
+          </div>
+        </Form>
+      </div>
+    ))
+  }, [showModal, savePassphrase, hash, salt])
+}
+
 // TODO(wallet-v2): remove eslint-disable-next-line when this is used
 // eslint-disable-next-line no-unused-vars
-async function deriveKey (userId, passphrase) {
+export async function deriveKey (passphrase, salt) {
   const enc = new TextEncoder()
 
   const keyMaterial = await window.crypto.subtle.importKey(
@@ -42,7 +167,7 @@ async function deriveKey (userId, passphrase) {
   const key = await window.crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: enc.encode(`stacker${userId}`),
+      salt: enc.encode(salt),
       // 600,000 iterations is recommended by OWASP
       // see https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#pbkdf2
       iterations: 600_000,
@@ -101,4 +226,20 @@ async function decrypt (key, { iv, value }) {
   )
   const decoded = new TextDecoder().decode(decrypted)
   return JSON.parse(decoded)
+}
+
+export function useGenerateRandomKey () {
+  const salt = useKeySalt()
+
+  return useCallback(async () => {
+    const passphrase = generateRandomPassphrase()
+    const { key } = await deriveKey(passphrase, salt)
+    return { passphrase, key }
+  }, [salt])
+}
+
+function generateRandomPassphrase () {
+  const rand = new Uint32Array(12)
+  window.crypto.getRandomValues(rand)
+  return Array.from(rand).map(i => bip39Words[i % bip39Words.length]).join(' ')
 }

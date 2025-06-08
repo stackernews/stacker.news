@@ -60,10 +60,14 @@ function WalletFormSelector () {
   return (
     <>
       <WalletSendRecvSelector />
-      {sendRecvParam &&
-        <WalletProtocolSelector />}
-      {sendRecvParam && protocolParam &&
-        <WalletProtocolForm />}
+      {sendRecvParam && (
+        <div className='position-relative'>
+          <div>
+            <WalletProtocolSelector />
+            {protocolParam && <WalletProtocolForm />}
+          </div>
+        </div>
+      )}
     </>
   )
 }

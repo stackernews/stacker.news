@@ -62,13 +62,7 @@ async function wallets (parent, args, { me, models }) {
   })
 
   // return template for all wallets that user has not attached
-  let walletTemplates = await models.walletTemplate.findMany({
-    where: {
-      id: {
-        notIn: userWallets.map(w => w.templateId)
-      }
-    }
-  })
+  let walletTemplates = await models.walletTemplate.findMany()
 
   userWallets = userWallets.map(mapUserWalletResolveTypes)
   walletTemplates = walletTemplates.map(t => {

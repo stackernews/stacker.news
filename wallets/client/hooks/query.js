@@ -92,7 +92,6 @@ export function useWalletProtocolRemoveMutation (protocol) {
   const [mutate] = useMutation(REMOVE_WALLET_PROTOCOL)
   const toaster = useToast()
 
-  // TODO(wallet-v2): reload wallet after protocol is removed
   return useCallback(async () => {
     try {
       await mutate({ variables: { id: protocol.id } })
@@ -100,7 +99,7 @@ export function useWalletProtocolRemoveMutation (protocol) {
     } catch (err) {
       toaster.danger('failed to detach protocol: ' + err.message)
     }
-  }, [mutate, toaster])
+  }, [protocol?.id, mutate, toaster])
 }
 
 function getWalletProtocolMutation (protocol) {

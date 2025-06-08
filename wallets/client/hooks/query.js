@@ -155,15 +155,19 @@ function useWalletDecryption () {
   return useCallback(async wallet => {
     if (!isUserWallet(wallet)) return wallet
 
-    const protocols = await Promise.all(
-      wallet.protocols.map(
-        async protocol => ({
-          ...protocol,
-          config: await decryptConfig(protocol.config)
-        })
+    try {
+      const protocols = await Promise.all(
+        wallet.protocols.map(
+          async protocol => ({
+            ...protocol,
+            config: await decryptConfig(protocol.config)
+          })
+        )
       )
-    )
-    return { ...wallet, protocols }
+      return { ...wallet, protocols, encrypted: false }
+    } catch (err) {
+      return { ...wallet, encrypted: true }
+    }
   }, [decryptConfig])
 }
 

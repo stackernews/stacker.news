@@ -87,7 +87,8 @@ export default function useItemSubmit (mutation,
       const response = Object.values(data)[0]
       const postId = response?.result?.id
 
-      if (crosspost && postId) {
+      if (crosspost && postId && !item?.id) {
+        // Only crosspost to Nostr if this is a new post (not editing)
         await crossposter(postId)
       }
 

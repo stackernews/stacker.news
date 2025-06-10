@@ -87,9 +87,11 @@ export default function useItemSubmit (mutation,
       const response = Object.values(data)[0]
       const postId = response?.result?.id
 
-      if (crosspost && postId) {
-        await crossposter(postId)
-      }
+      // Do NOT crosspost to Nostr immediately. Instead, rely on backend to schedule crosspost after 10 minutes if crosspost is requested.
+      // (crosspost flag is already sent in upsertItem variables)
+      // if (crosspost && postId && !item?.id) {
+      //   await crossposter(postId)
+      // }
 
       toastUpsertSuccessMessages(toaster, data, Object.keys(data)[0], values.text)
 

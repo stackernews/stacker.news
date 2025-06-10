@@ -474,7 +474,7 @@ export default {
               ${selectClause(type)}
               ${relationClause(type)}
               ${whereClause(
-                '"Item"."deletedAt" IS NULL',
+                '"Item"."deletedAt" IS NOT NULL',
                 '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 2',
                 '"Item"."ncomments" > 0',
                 '"Item"."parentId" IS NULL',
@@ -1420,7 +1420,7 @@ export default {
   }
 }
 
-export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ...item }, { me, models, lnd }) => {
+export const updateItem = async (parent, { sub: subName, forward, hash, hmac, crosspost, ...item }, { me, models, lnd }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { invoice: true, sub: true } })
 
@@ -1487,13 +1487,19 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   // never change author of item
   item.userId = old.userId
 
+  // If the post is still within the 10-minute window and crosspost was requested, update the scheduled crosspost time to 10 minutes from now
+  if (old.pendingNostrCrosspost && old.nostrCrosspostAt && new Date() < old.nostrCrosspostAt) {
+    item.nostrCrosspostAt = new Date(Date.now() + 10 * 60 * 1000)
+    item.pendingNostrCrosspost = true
+  }
+
   const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd })
 
   resultItem.comments = []
   return resultItem
 }
 
-export const createItem = async (parent, { forward, ...item }, { me, models, lnd }) => {
+export const createItem = async (parent, { forward, crosspost, ...item }, { me, models, lnd }) => {
   // rename to match column name
   item.subName = item.sub
   delete item.sub
@@ -1517,6 +1523,12 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
 
   // mark item as created with API key
   item.apiKey = me?.apiKey
+
+  // schedule Nostr crosspost if requested
+  if (crosspost) {
+    item.pendingNostrCrosspost = true
+    item.nostrCrosspostAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes from now
+  }
 
   const resultItem = await performPaidAction('ITEM_CREATE', item, { models, me, lnd })
 

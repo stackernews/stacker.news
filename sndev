@@ -1,4 +1,13 @@
-#!/bin/sh
+#!/bin/bash
+
+# Detect if running in GitHub Codespaces
+if [ "$CODESPACES" = "true" ]; then
+  # Ensure Docker is running in Codespaces
+  if ! docker info > /dev/null 2>&1; then
+    echo "Docker is not running. Please start Docker in your Codespace."
+    exit 1
+  fi
+fi
 
 set -e
 set -a # automatically export all variables

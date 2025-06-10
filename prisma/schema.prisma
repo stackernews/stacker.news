@@ -605,6 +605,8 @@ model Item {
   ItemUserAgg          ItemUserAgg[]
   AutoSocialPost       AutoSocialPost[]
   randPollOptions      Boolean               @default(false)
+  pendingNostrCrosspost Boolean              @default(false)
+  nostrCrosspostAt      DateTime?
 
   @@index([uploadId])
   @@index([lastZapAt])

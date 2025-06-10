@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import MoreFooter from './more-footer'
 import { useData } from './use-data'
+import { useMe } from './me'
 import Info from './info'
 import ActionDropdown from './action-dropdown'
 import { TerritoryInfo, ToggleSubSubscriptionDropdownItem, MuteSubDropdownItem } from './territory-header'
@@ -36,16 +37,17 @@ function separate (arr, separator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, separator] : [x])
 }
 
-export default function TerritoryList ({ ssrData, query, variables, destructureData, rank, statCompsProp }) {
+export default function TerritoryList ({ ssrData, query, variables, destructureData, rank, subActionDropdown, statCompsProp = STAT_COMPONENTS }) {
   const { data, fetchMore } = useQuery(query, { variables })
   const dat = useData(data, ssrData)
-  const [statComps, setStatComps] = useState(separate(statCompsProp || STAT_COMPONENTS, Separator))
+  const { me } = useMe()
+  const [statComps, setStatComps] = useState(separate(statCompsProp, Separator))
 
   useEffect(() => {
     // shift the stat we are sorting by to the front
-    const comps = [...statComps]
+    const comps = [...statCompsProp]
     setStatComps(separate([...comps.splice(STAT_POS[variables?.by || 0], 1), ...comps], Separator))
-  }, [variables?.by], statComps)
+  }, [variables?.by], statCompsProp)
 
   const { subs, cursor } = useMemo(() => {
     if (!dat) return {}
@@ -78,10 +80,12 @@ export default function TerritoryList ({ ssrData, query, variables, destructureD
                     {sub.name}
                   </Link>
                   <Info className='d-flex'><TerritoryInfo sub={sub} /></Info>
-                  <ActionDropdown>
-                    <ToggleSubSubscriptionDropdownItem sub={sub} />
-                    <MuteSubDropdownItem sub={sub} />
-                  </ActionDropdown>
+                  {me && subActionDropdown && (
+                    <ActionDropdown>
+                      <ToggleSubSubscriptionDropdownItem sub={sub} />
+                      <MuteSubDropdownItem sub={sub} />
+                    </ActionDropdown>
+                  )}
                 </div>
                 <div className={styles.other}>
                   {statComps.map((Comp, i) => <Comp key={i} sub={sub} />)}

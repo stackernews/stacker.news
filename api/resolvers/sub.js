@@ -127,7 +127,7 @@ export default {
         subs
       }
     },
-    userSubs: async (_parent, { name, cursor, when, by, from, to, limit = LIMIT }, { models }) => {
+    userSubs: async (_parent, { name, cursor, when, by, from, to, limit = LIMIT }, { models, me }) => {
       if (!name) {
         throw new GqlInputError('must supply user name')
       }
@@ -150,21 +150,33 @@ export default {
       }
 
       const subs = await models.$queryRawUnsafe(`
-          SELECT "Sub".*,
-            "Sub".created_at as "createdAt",
-            COALESCE(floor(sum(msats_revenue)/1000), 0) as revenue,
-            COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked,
-            COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
-            COALESCE(sum(posts), 0) as nposts,
-            COALESCE(sum(comments), 0) as ncomments
-          FROM ${viewGroup(range, 'sub_stats')}
-          JOIN "Sub" on "Sub".name = u.sub_name
-          WHERE "Sub"."userId" = $3
-            AND "Sub".status = 'ACTIVE'
-          GROUP BY "Sub".name
-          ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
-          OFFSET $4
-          LIMIT $5`, ...range, user.id, decodedCursor.offset, limit)
+        SELECT "Sub".*,
+          "Sub".created_at as "createdAt",
+          COALESCE(floor(sum(msats_revenue)/1000), 0) as revenue,
+          COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked,
+          COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
+          COALESCE(sum(posts), 0) as nposts,
+          COALESCE(sum(comments), 0) as ncomments,
+          CASE WHEN ss."userId" IS NOT NULL THEN TRUE ELSE FALSE END as "meSubscription",
+          CASE WHEN ms."userId" IS NOT NULL THEN TRUE ELSE FALSE END as "meMuteSub"
+        FROM ${viewGroup(range, 'sub_stats')}
+        JOIN "Sub" on "Sub".name = u.sub_name
+        LEFT JOIN "SubSubscription" ss ON ss."subName" = "Sub".name AND ss."userId" = ${me ? Number(me.id) : -1}
+        LEFT JOIN "MuteSub" ms ON ms."subName" = "Sub".name AND ms."userId" = ${me ? Number(me.id) : -1}
+        WHERE "Sub"."userId" = $3
+          AND "Sub".status = 'ACTIVE'
+        GROUP BY "Sub".name, ss."userId", ms."userId"
+        ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
+        OFFSET $4
+        LIMIT $5
+      `, ...range, user.id, decodedCursor.offset, limit)
+
+      if (!me) {
+        subs.forEach(sub => {
+          sub.meSubscription = false
+          sub.meMuteSub = false
+        })
+      }
 
       return {
         cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,

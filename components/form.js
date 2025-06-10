@@ -140,7 +140,7 @@ function setNativeValue (textarea, value) {
   textarea.dispatchEvent(new Event('input', { bubbles: true, value }))
 }
 
-function useEntityAutocomplete ({
+export function useEntityAutocomplete ({
   prefix,
   meta,
   helpers,
@@ -855,7 +855,7 @@ export function InputTerritorySuggest ({
   )
 }
 
-function UserSuggest ({
+export function UserSuggest ({
   transformUser = user => user, filterUsers = () => true,
   children, ...props
 }) {
@@ -872,7 +872,7 @@ function UserSuggest ({
   )
 }
 
-function TerritorySuggest ({
+export function TerritorySuggest ({
   transformSub = sub => sub, filterSubs = () => true,
   children, ...props
 }) {

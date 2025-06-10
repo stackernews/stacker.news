@@ -1,21 +1,26 @@
 import Container from 'react-bootstrap/Container'
 import styles from './search.module.css'
 import SearchIcon from '@/svgs/search-line.svg'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Form, Input, Select, DatePicker, SubmitButton } from './form'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import {
+  Form,
+  Input,
+  Select,
+  DatePicker,
+  SubmitButton,
+  useEntityAutocomplete,
+  UserSuggest,
+  TerritorySuggest
+} from './form'
 import { useRouter } from 'next/router'
 import { whenToFrom } from '@/lib/time'
 import { useMe } from './me'
+import { useField } from 'formik'
 
 export default function Search ({ sub }) {
   const router = useRouter()
   const [q, setQ] = useState(router.query.q || '')
-  const inputRef = useRef(null)
   const { me } = useMe()
-
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
 
   const search = async values => {
     let prefix = ''
@@ -63,18 +68,13 @@ export default function Search ({ sub }) {
             onSubmit={values => search({ ...values })}
           >
             <div className={`${styles.active} mb-3`}>
-              <Input
+              <SearchInput
                 name='q'
                 required
                 autoFocus
                 groupClassName='me-3 mb-0 flex-grow-1'
                 className='flex-grow-1'
-                clear
-                innerRef={inputRef}
-                overrideValue={q}
-                onChange={async (formik, e) => {
-                  setQ(e.target.value?.trim())
-                }}
+                setOuterQ={setQ}
               />
               <SubmitButton variant='primary' className={styles.search}>
                 <SearchIcon width={22} height={22} />
@@ -133,5 +133,83 @@ export default function Search ({ sub }) {
         </Container>
       </div>
     </>
+  )
+}
+
+function SearchInput ({ name, setOuterQ, ...props }) {
+  const [, meta, helpers] = useField(name)
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (meta.value !== undefined) setOuterQ(meta.value.trim())
+  }, [meta.value, setOuterQ])
+
+  const setCaret = useCallback(({ start, end }) => {
+    inputRef.current?.setSelectionRange(start, end)
+  }, [])
+
+  const userAutocomplete = useEntityAutocomplete({
+    prefix: '@',
+    meta,
+    helpers,
+    innerRef: inputRef,
+    setSelectionRange: setCaret,
+    SuggestComponent: UserSuggest
+  })
+
+  const territoryAutocomplete = useEntityAutocomplete({
+    prefix: '~',
+    meta,
+    helpers,
+    innerRef: inputRef,
+    setSelectionRange: setCaret,
+    SuggestComponent: TerritorySuggest
+  })
+
+  const handleChange = useCallback((formik, e) => {
+    setOuterQ(e.target.value.trim())
+    if (!userAutocomplete.handleTextChange(e)) {
+      territoryAutocomplete.handleTextChange(e)
+    }
+  }, [setOuterQ, userAutocomplete, territoryAutocomplete])
+
+  const onKeyDown = useCallback((userSuggestOnKeyDown, territorySuggestOnKeyDown) => (e) => {
+    const metaOrCtrl = e.metaKey || e.ctrlKey
+    if (metaOrCtrl) return
+    if (userAutocomplete.entityData) return userSuggestOnKeyDown(e)
+    if (territoryAutocomplete.entityData) return territorySuggestOnKeyDown(e)
+  }, [userAutocomplete.entityData, territoryAutocomplete.entityData])
+
+  return (
+    <div className='position-relative flex-grow-1'>
+      <UserSuggest
+        query={userAutocomplete.entityData?.query}
+        onSelect={userAutocomplete.handleSelect}
+        dropdownStyle={userAutocomplete.entityData?.style}
+      >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions: resetUser }) => (
+        <TerritorySuggest
+          query={territoryAutocomplete.entityData?.query}
+          onSelect={territoryAutocomplete.handleSelect}
+          dropdownStyle={territoryAutocomplete.entityData?.style}
+        >{({ onKeyDown: territorySuggestOnKeyDown, resetSuggestions: resetTerr }) => (
+          <Input
+            name={name}
+            innerRef={inputRef}
+            clear
+            autoComplete='off'
+            onChange={handleChange}
+            onKeyDown={onKeyDown(userSuggestOnKeyDown, territorySuggestOnKeyDown)}
+            onBlur={() => {
+              // give clicks a chance before closing
+              setTimeout(resetUser, 500)
+              setTimeout(resetTerr, 500)
+            }}
+            {...props}
+          />
+        )}
+        </TerritorySuggest>
+      )}
+      </UserSuggest>
+    </div>
   )
 }

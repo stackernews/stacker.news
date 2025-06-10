@@ -861,12 +861,12 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
             : <div key={provider} className='mt-2'><EmailLinkForm callbackUrl='/settings' /></div>
         } else if (provider === 'lightning') {
           return (
-            <div key={provider} className="d-flex align-items-center mt-2">
+            <div key={provider} className="d-flex align-items-center mt-2 mb-2">
             <QRLinkButton
               key={provider} provider={provider}
               status={methods[provider]} unlink={async () => await unlink(provider)}
             />
-            <Info className="ms-2">
+            <Info className>
                       <ul>
                         <li>
                           This is an LNURL-auth. Not sure what it is? Check <a target="_blank" href="https://lightninglogin.live/learn">here</a>

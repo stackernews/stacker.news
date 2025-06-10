@@ -372,10 +372,9 @@ export const USER_STATS = gql`
       }
     }`
 
-export const MY_SUBSCRIPTIONS = gql`
+export const MY_SUBSCRIBED_USERS = gql`
   ${STREAK_FIELDS}
-  ${SUB_FULL_FIELDS}
-  query MySubscriptions($cursor: String) {
+  query MySubscribedUsers($cursor: String) {
     mySubscribedUsers(cursor: $cursor) {
       users {
         id
@@ -388,6 +387,12 @@ export const MY_SUBSCRIPTIONS = gql`
       }
       cursor
     }
+  }
+`
+
+export const MY_SUBSCRIBED_SUBS = gql`
+  ${SUB_FULL_FIELDS}
+  query MySubscribedSubs($cursor: String) {
     mySubscribedSubs(cursor: $cursor) {
       subs {
         ...SubFullFields

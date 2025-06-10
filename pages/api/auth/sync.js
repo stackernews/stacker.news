@@ -1,7 +1,7 @@
 // Auth Sync API
 import models from '@/api/models'
 import { randomBytes } from 'node:crypto'
-import { encode as encodeJWT, getToken } from 'next-auth/jwt'
+import { encode as encodeJWT, decode, getToken } from 'next-auth/jwt'
 import { validateSchema, customDomainSchema } from '@/lib/validate'
 
 const SN_MAIN_DOMAIN = new URL(process.env.NEXT_PUBLIC_URL)
@@ -117,14 +117,14 @@ function handleNoSession (res, domainName, state, redirectUri, signup = false) {
   res.redirect(302, loginRedirectUrl.href)
 }
 
-async function createVerificationToken (token, csrfToken) {
+async function createVerificationToken (token, state) {
   try {
     // a 5 minutes verification token using the session token's user id
     const verificationToken = await models.verificationToken.create({
       data: {
         identifier: token.id.toString(),
-        // store csrf token with the verification token, to prevent CSRF attacks
-        token: `${randomBytes(32).toString('hex')}|${csrfToken}`,
+        // store encoded state JWT with the verification token to prevent CSRF attacks
+        token: `${randomBytes(32).toString('hex')}|${state}`,
         expires: new Date(Date.now() + 1000 * 60 * 5) // 5 minutes
       }
     })
@@ -152,14 +152,15 @@ async function redirectToDomain (res, domainName, verificationToken, redirectUri
 }
 
 async function consumeVerificationToken (verificationToken, csrfToken) {
-  // sync tokens are stored as token|csrfToken
-  const tokenWithState = `${verificationToken}|${csrfToken}`
+  // sync tokens are stored as token
   try {
     // find and delete the verification token
     const identifier = await models.$transaction(async tx => {
       const token = await tx.verificationToken.findFirst({
         where: {
-          token: tokenWithState,
+          token: {
+            startsWith: verificationToken
+          },
           expires: { gt: new Date() }
         }
       })
@@ -168,12 +169,20 @@ async function consumeVerificationToken (verificationToken, csrfToken) {
         return null
       }
 
-      // delete the verification token, we don't need it anymore
-      await tx.verificationToken.delete({
-        where: {
-          token: tokenWithState
-        }
+      // since we touched this token, we can delete it
+      // so that if state is compromised, it's not used again
+      await tx.verificationToken.delete({ where: { id: token.id } })
+
+      // check if the state is valid
+      const encodedState = token.token.split('|')[1]
+      const decodedState = await decode({
+        token: encodedState,
+        secret: process.env.NEXTAUTH_SECRET
       })
+      // if the state is invalid, we can't use this token
+      if (decodedState.csrf !== csrfToken) {
+        return null
+      }
 
       return token.identifier
     })
@@ -186,6 +195,7 @@ async function consumeVerificationToken (verificationToken, csrfToken) {
     // return the user id
     return { status: 'OK', userId: Number(identifier) }
   } catch (error) {
+    console.error('cannot validate verification token', error)
     return { status: 'ERROR', reason: 'cannot validate verification token' }
   }
 }

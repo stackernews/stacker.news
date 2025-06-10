@@ -1,6 +1,7 @@
 import { NextResponse, URLPattern } from 'next/server'
 import { getDomainMapping } from '@/lib/domains'
 import { SESSION_COOKIE, cookieOptions } from '@/lib/auth'
+import { encode } from 'next-auth/jwt'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -85,8 +86,13 @@ async function redirectToAuthSync (request, searchParams, domain, csrfToken, sig
 
   const syncUrl = new URL('/api/auth/sync', SN_MAIN_DOMAIN)
   syncUrl.searchParams.set('domain', domain)
-  // store the csrfToken in the search params
-  syncUrl.searchParams.set('state', csrfToken)
+  // encode the csrfToken as state JWT using NEXTAUTH_SECRET
+  const randomState = await encode({
+    token: { csrf: csrfToken },
+    secret: process.env.NEXTAUTH_SECRET
+  })
+  // set the state in the search params
+  syncUrl.searchParams.set('state', randomState)
 
   // if we're signing up, we need to set the signup flag
   if (signup) {

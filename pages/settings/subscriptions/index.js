@@ -25,6 +25,7 @@ export default function MySubscribedUsers ({ ssrData }) {
         <Select
           name='subscriptionType'
           size='sm'
+          className='w-auto'
           noForm
           items={['stackers', 'territories']}
           value={view}

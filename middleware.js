@@ -43,7 +43,7 @@ async function customDomainMiddleware (request, domain, subName) {
   // A: the user is trying to login or signup, redirect to the Auth Sync API
   if (pathname.startsWith('/login') || pathname.startsWith('/signup')) {
     const signup = pathname.startsWith('/signup')
-    return redirectToAuthSync(searchParams, domain, csrfToken, signup, headers)
+    return redirectToAuthSync(request, searchParams, domain, csrfToken, signup, headers)
   }
   // B: if we have a verification token, exchange it for a session token
   if (searchParams.has('synctoken')) return establishAuthSync(request, searchParams, csrfToken, headers)
@@ -79,9 +79,9 @@ async function customDomainMiddleware (request, domain, subName) {
 }
 
 // redirect to the Auth Sync API
-async function redirectToAuthSync (searchParams, domain, csrfToken, signup, headers) {
+async function redirectToAuthSync (request, searchParams, domain, csrfToken, signup, headers) {
   // bail if we don't have a csrfToken
-  if (!csrfToken) return NextResponse.redirect('/error', { headers })
+  if (!csrfToken) return NextResponse.redirect(new URL('/error', request.url), { headers })
 
   const syncUrl = new URL('/api/auth/sync', SN_MAIN_DOMAIN)
   syncUrl.searchParams.set('domain', domain)
@@ -109,7 +109,7 @@ async function redirectToAuthSync (searchParams, domain, csrfToken, signup, head
 // Exchange verification token for JWT session cookie via POST to /api/auth/sync
 async function establishAuthSync (request, searchParams, csrfToken, headers) {
   // bail if we don't have a csrfToken
-  if (!csrfToken) return NextResponse.redirect('/error', { headers })
+  if (!csrfToken) return NextResponse.redirect(new URL('/error', request.url), { headers })
   // get the verification token from the search params
   const token = searchParams.get('synctoken')
   // get the redirectUri from the search params

@@ -182,7 +182,10 @@ function earnStmts (data, { models }) {
   return [
     models.earn.create({ data }),
     models.user.update({
-      where: { id: userId },
+      where: {
+        id: userId,
+        deletedAt: null // Only update if user is not deleted
+      },
       data: {
         msats: { increment: msats },
         stackedMsats: { increment: msats }

@@ -56,7 +56,7 @@ export default gql`
     generateApiKey(id: ID!): String
     deleteApiKey(id: ID!): User
     disableFreebies: Boolean
-    deleteAccount(deleteContent: Boolean!, confirmation: String!): Boolean
+    deleteAccount(deleteContent: Boolean!, confirmation: String!, donateBalance: Boolean): Boolean
   }
 
   type User {

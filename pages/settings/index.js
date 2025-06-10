@@ -84,14 +84,15 @@ export function SettingsHeader () {
 }
 
 const DELETE_ACCOUNT = gql`
-  mutation deleteAccount($deleteContent: Boolean!, $confirmation: String!) {
-    deleteAccount(deleteContent: $deleteContent, confirmation: $confirmation)
+  mutation deleteAccount($deleteContent: Boolean!, $confirmation: String!, $donateBalance: Boolean) {
+    deleteAccount(deleteContent: $deleteContent, confirmation: $confirmation, donateBalance: $donateBalance)
   }
 `
 
 function DeleteAccount () {
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [deleteContent, setDeleteContent] = useState(false)
+  const [donateBalance, setDonateBalance] = useState(false)
   const [confirmation, setConfirmation] = useState('')
   const [deleteAccount] = useMutation(DELETE_ACCOUNT)
   const toaster = useToast()
@@ -101,7 +102,8 @@ function DeleteAccount () {
       await deleteAccount({
         variables: {
           deleteContent,
-          confirmation
+          confirmation,
+          donateBalance
         }
       })
 
@@ -141,7 +143,7 @@ function DeleteAccount () {
                   <p><strong>Warning:</strong> Account deletion is permanent and cannot be reversed.</p>
                   <p>Before proceeding, please ensure:</p>
                   <ul>
-                    <li>You have withdrawn all your sats (you cannot delete an account with a balance)</li>
+                    <li>You have withdrawn all your sats or checked the box to donate your balance to the rewards pool</li>
                     <li>You understand that you will lose access to your account name</li>
                     <li>You have considered that this action affects your entire account history</li>
                   </ul>
@@ -153,6 +155,15 @@ function DeleteAccount () {
                   label='Also anonymize all my posts and comments (they will show as "[deleted]")'
                   checked={deleteContent}
                   onChange={(e) => setDeleteContent(e.target.checked)}
+                  className='mb-3'
+                />
+
+                <BootstrapForm.Check
+                  type='checkbox'
+                  id='donate-balance'
+                  label='Donate my remaining balance to the rewards pool (required if you have a balance)'
+                  checked={donateBalance}
+                  onChange={(e) => setDonateBalance(e.target.checked)}
                   className='mb-3'
                 />
 

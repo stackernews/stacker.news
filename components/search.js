@@ -186,12 +186,12 @@ function SearchInput ({ name, setOuterQ, ...props }) {
         query={userAutocomplete.entityData?.query}
         onSelect={userAutocomplete.handleSelect}
         dropdownStyle={userAutocomplete.entityData?.style}
-      >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions: resetUser }) => (
+      >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions: resetUserSuggestions }) => (
         <TerritorySuggest
           query={territoryAutocomplete.entityData?.query}
           onSelect={territoryAutocomplete.handleSelect}
           dropdownStyle={territoryAutocomplete.entityData?.style}
-        >{({ onKeyDown: territorySuggestOnKeyDown, resetSuggestions: resetTerr }) => (
+        >{({ onKeyDown: territorySuggestOnKeyDown, resetSuggestions: resetTerritorySuggestions }) => (
           <Input
             name={name}
             innerRef={inputRef}
@@ -200,9 +200,8 @@ function SearchInput ({ name, setOuterQ, ...props }) {
             onChange={handleChange}
             onKeyDown={onKeyDown(userSuggestOnKeyDown, territorySuggestOnKeyDown)}
             onBlur={() => {
-              // give clicks a chance before closing
-              setTimeout(resetUser, 500)
-              setTimeout(resetTerr, 500)
+              setTimeout(resetUserSuggestions, 500)
+              setTimeout(resetTerritorySuggestions, 500)
             }}
             {...props}
           />

@@ -37,10 +37,10 @@ async function customDomainMiddleware (request, domain, subName) {
   // if the user is trying to login or signup, redirect to the Auth Sync API
   if (pathname.startsWith('/login') || pathname.startsWith('/signup')) {
     const signup = pathname.startsWith('/signup')
-    return redirectToAuthSync(searchParams, domain, signup, headers)
+    return redirectToAuthSync(request, searchParams, domain, signup, headers)
   }
   // if we have a verification token, exchange it for a session token
-  if (searchParams.has('token')) return establishAuthSync(request, searchParams, headers)
+  if (searchParams.has('synctoken')) return establishAuthSync(request, searchParams, headers)
 
   // Territory URLs
   // if sub param exists and doesn't match the domain's subname, update it
@@ -73,9 +73,18 @@ async function customDomainMiddleware (request, domain, subName) {
 }
 
 // redirect to the Auth Sync API
-async function redirectToAuthSync (searchParams, domain, signup, headers) {
+async function redirectToAuthSync (request, searchParams, domain, signup, headers) {
   const syncUrl = new URL('/api/auth/sync', SN_MAIN_DOMAIN)
   syncUrl.searchParams.set('domain', domain)
+
+  // -- CSRF protection --
+  // retrieve the csrfToken from the cookie
+  const csrfCookie = request.cookies.get('__Host-next-auth.csrf-token')
+  const csrfToken = csrfCookie ? csrfCookie.value.split('|')[0] : null
+  // bail if we don't have a csrfToken
+  if (!csrfToken) return NextResponse.redirect(new URL('/error', request.url), { headers })
+  // store the csrfToken in the search params
+  syncUrl.searchParams.set('state', csrfToken)
 
   // if we're signing up, we need to set the signup flag
   if (signup) {
@@ -98,11 +107,17 @@ async function redirectToAuthSync (searchParams, domain, signup, headers) {
 // Exchange verification token for JWT session cookie via POST to /api/auth/sync
 async function establishAuthSync (request, searchParams, headers) {
   // get the verification token from the search params
-  const token = searchParams.get('token')
+  const token = searchParams.get('synctoken')
   // get the redirectUri from the search params
   const redirectUri = searchParams.get('redirectUri') || '/'
   // prepare redirect to the redirectUri
   const res = NextResponse.redirect(new URL(decodeURIComponent(redirectUri), request.url), { headers })
+
+  // -- CSRF protection --
+  const csrfCookie = request.cookies.get('__Host-next-auth.csrf-token')
+  const csrfToken = csrfCookie ? csrfCookie.value.split('|')[0] : null
+  // bail if we don't have a csrfToken
+  if (!csrfToken) return NextResponse.redirect(new URL('/error', request.url), { headers })
 
   try {
     // POST to /api/auth/sync to exchange verification token for session token
@@ -112,7 +127,8 @@ async function establishAuthSync (request, searchParams, headers) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        verificationToken: token
+        verificationToken: token,
+        csrfToken
       })
     })
 

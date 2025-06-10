@@ -26,10 +26,25 @@ export async function nostrCrosspost({ boss, models, nostrLib = Nostr }) {
 
   for (const item of items) {
     try {
+      // Fetch the user to get their Nostr pubkey (and privkey if available)
+      const user = await models.user.findUnique({ where: { id: item.userId } })
+      if (!user || !user.nostrPubkey) {
+        console.error(`User for item ${item.id} does not have a linked Nostr pubkey, skipping crosspost.`)
+        continue
+      }
+      // Use the user's Nostr pubkey for signing if supported by the Nostr library
+      // (Assume the backend has a way to sign with the pubkey, e.g., via NIP-46 or extension delegation)
+      // If not, fallback to SN's key or skip
+      const nostr = nostrLib.get()
+      let signer
+      try {
+        signer = nostr.getSigner({ pubkey: user.nostrPubkey })
+      } catch (e) {
+        console.error(`No signing method available for user ${user.id} (pubkey: ${user.nostrPubkey}), skipping crosspost.`)
+        continue
+      }
       // Compose the Nostr message
       const message = `${item.title || ''}\n${item.text || ''}\nhttps://stacker.news/items/${item.id}`.trim()
-      const nostr = nostrLib.get()
-      const signer = nostr.getSigner({ privKey: process.env.NOSTR_PRIVATE_KEY })
       await nostr.publish({
         created_at: Math.floor(Date.now() / 1000),
         content: message,
@@ -45,7 +60,7 @@ export async function nostrCrosspost({ boss, models, nostrLib = Nostr }) {
         where: { id: item.id },
         data: { pendingNostrCrosspost: false }
       })
-      console.log(`Crossposted item ${item.id} to Nostr`)
+      console.log(`Crossposted item ${item.id} to Nostr as user ${user.id}`)
     } catch (err) {
       console.error(`Failed to crosspost item ${item.id} to Nostr`, err)
     }

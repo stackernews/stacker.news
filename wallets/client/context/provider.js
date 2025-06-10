@@ -28,9 +28,7 @@ export function useWalletsDispatch () {
 
 export default function WalletsProvider ({ children }) {
   const [state, dispatch] = useReducer(walletsReducer, {
-    // TODO(wallet-v2): if there's no indicator, this should show the wallet list page
     page: FIRST_PAGE,
-    // TODO(wallet-v2): this also includes wallet templates, so these are not the wallets we will use for payments
     wallets: [],
     loading: true
   })

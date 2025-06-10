@@ -142,7 +142,6 @@ async function redirectToDomain (res, domainName, verificationToken, redirectUri
 
     // add the verification sync token and the redirectUri to the URL
     target.searchParams.set('synctoken', verificationToken.split('|')[0])
-    target.searchParams.set('state', verificationToken.split('|')[1])
     target.searchParams.set('redirectUri', redirectUri)
 
     // redirect to the custom domain

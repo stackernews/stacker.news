@@ -80,6 +80,7 @@ async function redirectToAuthSync (request, searchParams, domain, signup, header
   // -- CSRF protection --
   // retrieve the csrfToken from the cookie
   const csrfCookie = request.cookies.get('__Host-next-auth.csrf-token')
+  // csrf is stored as token|hash, we only need the token
   const csrfToken = csrfCookie ? csrfCookie.value.split('|')[0] : null
   // bail if we don't have a csrfToken
   if (!csrfToken) return NextResponse.redirect(new URL('/error', request.url), { headers })
@@ -115,6 +116,7 @@ async function establishAuthSync (request, searchParams, headers) {
 
   // -- CSRF protection --
   const csrfCookie = request.cookies.get('__Host-next-auth.csrf-token')
+  // csrf is stored as token|hash, we only need the token
   const csrfToken = csrfCookie ? csrfCookie.value.split('|')[0] : null
   // bail if we don't have a csrfToken
   if (!csrfToken) return NextResponse.redirect(new URL('/error', request.url), { headers })

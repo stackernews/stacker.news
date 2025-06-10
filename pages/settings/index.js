@@ -861,7 +861,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
             : <div key={provider} className='mt-2'><EmailLinkForm callbackUrl='/settings' /></div>
         } else if (provider === 'lightning') {
           return (
-              <QRLinkButton
+            <QRLinkButton
               key={provider} provider={provider}
               status={methods[provider]} unlink={async () => await unlink(provider)}
             />

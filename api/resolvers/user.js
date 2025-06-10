@@ -657,7 +657,7 @@ export default {
   },
 
   Mutation: {
-    deleteAccount: async (parent, { deleteContent, confirmation }, { me, models }) => {
+    deleteAccount: async (parent, { deleteContent, confirmation, donateBalance }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
@@ -676,8 +676,28 @@ export default {
           }
         })
 
-        if ((user.msats + user.mcredits) > 0) {
-          throw new GqlInputError('please withdraw your balance before deleting your account')
+        const totalBalance = user.msats + user.mcredits
+        if (totalBalance > 0 && !donateBalance) {
+          throw new GqlInputError('please withdraw your balance before deleting your account or confirm donation to rewards pool')
+        }
+
+        // If user has balance and confirmed donation, add to donations
+        if (totalBalance > 0 && donateBalance) {
+          await tx.donation.create({
+            data: {
+              sats: Number(totalBalance / 1000n), // Convert msats to sats
+              userId: me.id
+            }
+          })
+
+          // Zero out user balance
+          await tx.user.update({
+            where: { id: me.id },
+            data: {
+              msats: 0,
+              mcredits: 0
+            }
+          })
         }
 
         // If deleteContent is true, replace content with hash
@@ -709,6 +729,11 @@ export default {
             })
           }
         }
+
+        // Remove all attached wallets
+        await tx.wallet.deleteMany({
+          where: { userId: me.id }
+        })
 
         // Create deletion timestamp and hash the old username with it
         const deletionTimestamp = new Date()

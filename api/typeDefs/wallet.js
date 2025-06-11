@@ -39,6 +39,7 @@ const typeDefs = gql`
     upsertWalletSendLNC(walletId: ID, templateId: ID, pairingPhrase: VaultEntryInput!, localKey: VaultEntryInput!, remoteKey: VaultEntryInput!, serverHost: VaultEntryInput!): WalletSendLNC!
     upsertWalletSendWebLN(walletId: ID, templateId: ID): WalletSendWebLN!
     removeWalletProtocol(id: ID!): Boolean
+    updateWalletEncryption(keyHash: String!, wallets: [WalletEncryptionUpdate!]!): Boolean
   }
 
   type BuyCreditsResult {
@@ -180,6 +181,17 @@ const typeDefs = gql`
     autoWithdrawThreshold: Int!
     autoWithdrawMaxFeePercent: Float!
     autoWithdrawMaxFeeTotal: Int!
+  }
+
+  input WalletEncryptionUpdate {
+    id: ID!
+    protocols: [WalletEncryptionUpdateProtocol!]!
+  }
+
+  input WalletEncryptionUpdateProtocol {
+    name: String!
+    send: Boolean!
+    config: JSONObject!
   }
 
   type Invoice implements InvoiceOrDirect {

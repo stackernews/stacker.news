@@ -186,3 +186,9 @@ export const SET_WALLET_PRIORITY = gql`
     setWalletPriority(id: $id, priority: $priority)
   }
 `
+
+export const UPDATE_WALLET_ENCRYPTION = gql`
+  mutation UpdateWalletEncryption($keyHash: String!, $wallets: [WalletEncryptionUpdate!]!) {
+    updateWalletEncryption(keyHash: $keyHash, wallets: $wallets)
+  }
+`

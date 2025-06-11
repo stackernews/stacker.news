@@ -1,6 +1,7 @@
 import { useWallets } from '@/wallets/client/context'
 import protocols from '@/wallets/client/protocols'
 import { isUserWallet } from '@/wallets/lib/util'
+import { useMemo } from 'react'
 
 export function useWallet (name) {
   // TODO(wallet-v2): implement this
@@ -12,33 +13,41 @@ export function useConfiguredWallets () {
 
 export function useSendWallets () {
   const wallets = useWallets()
-  return wallets.filter(w => isUserWallet(w) && w.send && w.enabled)
+  return useMemo(
+    () => wallets.filter(w => isUserWallet(w) && w.send && w.enabled),
+    [wallets]
+  )
 }
 
 export function useSendProtocols () {
   const wallets = useSendWallets()
-  return wallets.reduce((acc, wallet) => {
-    return [
-      ...acc,
-      ...wallet.protocols
-        .filter(p => p.send)
-        .map(walletProtocol => {
-          const { sendPayment } = protocols.find(p => p.name === walletProtocol.name)
-          return {
-            ...walletProtocol,
-            sendPayment
-          }
-        })
-    ]
-  }, [])
+  return useMemo(
+    () => wallets.reduce((acc, wallet) => {
+      return [
+        ...acc,
+        ...wallet.protocols
+          .filter(p => p.send)
+          .map(walletProtocol => {
+            const { sendPayment } = protocols.find(p => p.name === walletProtocol.name)
+            return {
+              ...walletProtocol,
+              sendPayment
+            }
+          })
+      ]
+    }, [])
+    , [wallets])
 }
 
 export function useWalletSupport (wallet) {
   const template = isUserWallet(wallet) ? wallet.template : wallet
-  return {
-    receive: template.receive,
-    send: template.send
-  }
+  return useMemo(
+    () => ({
+      receive: template.receive,
+      send: template.send
+    }),
+    [template]
+  )
 }
 
 export function useWalletIsConfigured (wallet) {
@@ -56,8 +65,11 @@ export function useWalletStatus (wallet) {
   if (!isUserWallet(wallet)) return WalletStatus.Disabled
 
   // TODO(wallet-v2): once API returns wallet status, use it here
-  return {
-    send: wallet.send ? WalletStatus.Enabled : WalletStatus.Disabled,
-    receive: wallet.receive ? WalletStatus.Enabled : WalletStatus.Disabled
-  }
+  return useMemo(
+    () => ({
+      send: wallet.send ? WalletStatus.Enabled : WalletStatus.Disabled,
+      receive: wallet.receive ? WalletStatus.Enabled : WalletStatus.Disabled
+    }),
+    [wallet]
+  )
 }

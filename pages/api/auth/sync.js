@@ -1,7 +1,7 @@
 // Auth Sync API
 import models from '@/api/models'
 import { randomBytes } from 'node:crypto'
-import { encode as encodeJWT, decode, getToken } from 'next-auth/jwt'
+import { encode as encodeJWT, getToken } from 'next-auth/jwt'
 import { validateSchema, customDomainSchema } from '@/lib/validate'
 
 const SN_MAIN_DOMAIN = new URL(process.env.NEXT_PUBLIC_URL)
@@ -12,15 +12,14 @@ export default async function handler (req, res) {
     // POST /api/auth/sync
     // exchange a verification token for an ephemeral session token
     if (req.method === 'POST') {
-      // verification token and csrf token are received from the middleware
-      const { verificationToken, csrfToken } = req.body
-      if (!verificationToken || !csrfToken) {
-        return res.status(400).json({ status: 'ERROR', reason: 'verification token and csrf token are required' })
+      // a verification token is received from the middleware
+      const { verificationToken } = req.body
+      if (!verificationToken) {
+        return res.status(400).json({ status: 'ERROR', reason: 'verification token is required' })
       }
 
       // validate and consume the verification token
-      const validationResult = await consumeVerificationToken(verificationToken, csrfToken)
-      console.log('validationResult', validationResult)
+      const validationResult = await consumeVerificationToken(verificationToken)
       if (validationResult.status === 'ERROR') {
         return res.status(400).json(validationResult)
       }
@@ -33,11 +32,7 @@ export default async function handler (req, res) {
       }
 
       // return the session token
-      return res.status(200).json({
-        status: 'OK',
-        sessionToken: sessionTokenResult.sessionToken,
-        redirectUri: validationResult.redirectUri
-      })
+      return res.status(200).json({ status: 'OK', sessionToken: sessionTokenResult.sessionToken })
     }
 
     // GET /api/auth/sync
@@ -45,15 +40,11 @@ export default async function handler (req, res) {
     // if there's a session, create a verification token and redirect to the domain
     if (req.method === 'GET') {
       // STEP 1: check if the domain is correct
-      const { state, signup } = req.query
-      // state is required
-      if (!state) {
-        return res.status(400).json({ status: 'ERROR', reason: 'unique state is required' })
+      const { domain, redirectUri, signup } = req.query
+      // domain and a path redirectUri are required
+      if (!domain || !redirectUri?.startsWith('/')) {
+        return res.status(400).json({ status: 'ERROR', reason: 'domain and a correct redirectUri are required' })
       }
-
-      // decode the state JWE
-      const decodedState = await decode({ token: state, secret: process.env.NEXTAUTH_SECRET })
-      const { domain } = decodedState
 
       // STEP 2: check if domain is valid and ACTIVE
       const domainValidation = await isDomainAllowed(domain)
@@ -63,35 +54,34 @@ export default async function handler (req, res) {
 
       // if we're signing up, redirect to the SN signup page and come back here
       if (signup) {
-        return handleNoSession(res, state, signup)
+        return handleNoSession(res, domain, redirectUri, signup)
       }
 
       // STEP 3: check if we have a session, if not, redirect to the SN login page
       const sessionToken = await getToken({ req }) // from cookie
       if (!sessionToken) {
         // we don't have a session, redirect to the login page and come back here
-        return handleNoSession(res, state)
+        return handleNoSession(res, domain, redirectUri)
       }
 
       // STEP 4: create a verification token
-      const verificationToken = await createVerificationToken(sessionToken, state)
+      const verificationToken = await createVerificationToken(sessionToken)
       if (verificationToken.status === 'ERROR') {
         return res.status(500).json(verificationToken)
       }
 
       // STEP 5: redirect to the domain with the verification token
-      return redirectToDomain(res, domain, verificationToken.token)
+      return redirectToDomain(res, domain, verificationToken.token, redirectUri)
     }
   } catch (error) {
-    console.error('auth sync broke its legs', error)
     return res.status(500).json({ status: 'ERROR', reason: 'auth sync broke its legs' })
   }
 }
 
-// checks if a domain is conformative and ACTIVE
+// checks if a domain is conformant and ACTIVE
 async function isDomainAllowed (domainName) {
   try {
-    // check if domain is conformative
+    // check if domain is conformant
     await validateSchema(customDomainSchema, { domainName })
     // check if domain is ACTIVE
     const domain = await models.domain.findUnique({
@@ -109,11 +99,11 @@ async function isDomainAllowed (domainName) {
   }
 }
 
-function handleNoSession (res, state, signup = false) {
+function handleNoSession (res, domainName, redirectUri, signup = false) {
   // create the sync callback URL that we'll return to after login
   const syncUrl = new URL('/api/auth/sync', SN_MAIN_DOMAIN)
-  // preserve the state from the original request
-  syncUrl.searchParams.set('state', state)
+  syncUrl.searchParams.set('domain', domainName)
+  syncUrl.searchParams.set('redirectUri', redirectUri)
 
   // create SN login URL and add our sync callback URL
   const loginRedirectUrl = new URL(signup ? '/signup' : '/login', SN_MAIN_DOMAIN)
@@ -124,14 +114,13 @@ function handleNoSession (res, state, signup = false) {
   res.redirect(302, loginRedirectUrl.href)
 }
 
-async function createVerificationToken (token, state) {
+async function createVerificationToken (token) {
   try {
     // a 5 minutes verification token using the session token's user id
     const verificationToken = await models.verificationToken.create({
       data: {
         identifier: token.id.toString(),
-        // store encoded state JWE with the verification token to prevent CSRF attacks
-        token: `${randomBytes(32).toString('hex')}|${state}`,
+        token: randomBytes(32).toString('hex'),
         expires: new Date(Date.now() + 1000 * 60 * 5) // 5 minutes
       }
     })
@@ -141,72 +130,48 @@ async function createVerificationToken (token, state) {
   }
 }
 
-async function redirectToDomain (res, domainName, verificationToken) {
+async function redirectToDomain (res, domainName, verificationToken, redirectUri) {
   try {
     // create the target URL
     const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https'
     const target = new URL(`${protocol}://${domainName}`)
 
-    // add the verification sync token and the redirectUri to the URL
-    target.searchParams.set('synctoken', verificationToken.split('|')[0])
+    // add the verification token and the redirectUri to the URL
+    target.searchParams.set('sync_token', verificationToken)
+    target.searchParams.set('redirectUri', redirectUri)
 
     // redirect to the custom domain
     res.redirect(302, target.href)
   } catch (error) {
-    return { status: 'ERROR', reason: 'could not construct the URL' }
+    return { status: 'ERROR', reason: 'cannot construct the URL' }
   }
 }
 
-async function consumeVerificationToken (verificationToken, csrfToken) {
-  // sync tokens are stored as token
+async function consumeVerificationToken (verificationToken) {
   try {
-    // find and delete the verification token
-    const storedToken = await models.$transaction(async tx => {
+    // find the verification token
+    const identifier = await models.$transaction(async tx => {
       const token = await tx.verificationToken.findFirst({
         where: {
-          token: {
-            startsWith: verificationToken
-          },
+          token: verificationToken,
           expires: { gt: new Date() }
         }
       })
+      if (!token) return null
 
-      if (!token?.identifier) {
-        return null
-      }
-
-      // since we touched this token, we can delete it
-      // so that if state is compromised, it's not used again
+      // anyway we touched this token, we can delete it
       await tx.verificationToken.delete({ where: { id: token.id } })
 
-      // check if the state JWE is valid
-      const encodedState = token.token.split('|')[1]
-      const decodedState = await decode({
-        token: encodedState,
-        secret: process.env.NEXTAUTH_SECRET
-      })
-      // if the state JWE is invalid, we can't use this token
-      if (decodedState.csrf !== csrfToken) {
-        return null
-      }
-
-      return {
-        userId: Number(token.identifier),
-        redirectUri: decodedState.redirectUri || '/'
-      }
+      return token.identifier
     })
 
     // if we can't find the verification token, it's invalid or expired
-    if (!storedToken) {
+    if (!identifier) {
       return { status: 'ERROR', reason: 'invalid verification token' }
     }
 
-    // return the user id and the redirectUri
-    return {
-      status: 'OK',
-      userId: storedToken.userId,
-      redirectUri: storedToken.redirectUri
-    }
+    // return the user id
+    return { status: 'OK', userId: Number(identifier) }
   } catch (error) {
     return { status: 'ERROR', reason: 'cannot validate verification token' }
   }

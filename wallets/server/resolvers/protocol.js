@@ -154,12 +154,12 @@ export function upsertWalletProtocol (protocol, { networkTests = true } = {}) {
   }
 }
 
-async function removeWalletProtocol (parent, { id }, { me, models }) {
+export async function removeWalletProtocol (parent, { id }, { me, models, tx }) {
   if (!me) {
     throw new GqlAuthenticationError()
   }
 
-  await models.$transaction(async tx => {
+  async function transaction (tx) {
     // vault is deleted via trigger
     const protocol = await tx.protocolWallet.delete({
       where: {
@@ -185,7 +185,9 @@ async function removeWalletProtocol (parent, { id }, { me, models }) {
         }
       })
     }
-  })
 
-  return true
+    return true
+  }
+
+  return await (tx ? transaction(tx) : models.$transaction(transaction))
 }

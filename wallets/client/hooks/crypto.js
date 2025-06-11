@@ -9,6 +9,7 @@ import bip39Words from '@/lib/bip39-words'
 import { Form, PasswordInput, SubmitButton } from '@/components/form'
 import { object, string } from 'yup'
 import { SET_KEY, useKey, useWalletsDispatch } from '@/wallets/client/context'
+import { useWalletReset } from '@/wallets/client/hooks'
 
 export function useLoadKey () {
   const { get } = useIndexedDB()
@@ -103,6 +104,35 @@ export function useSavePassphrase () {
   }, [setKey])
 }
 
+export function useResetPassphrase () {
+  const showModal = useShowModal()
+  const walletReset = useWalletReset()
+
+  const resetPassphrase = useCallback((close) =>
+    async () => {
+      await walletReset()
+      close()
+    }, [walletReset])
+
+  return useCallback(async () => {
+    showModal(close => (
+      <div>
+        <h4>Reset passphrase</h4>
+        <p className='line-height-md fw-bold mt-3'>
+          This will delete all your sending credentials. Your credentials for receiving will not be affected.
+        </p>
+        <p className='line-height-md'>
+          After the reset, you will be issued a new passphrase. Take better care of it this time!
+        </p>
+        {/* TODO(wallet-v2): show list of encrypted wallets that will be deleted */}
+        <div className='mt-3 d-flex justify-content-end align-items-center'>
+          <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={close}>cancel</Button>
+          <Button variant='danger' onClick={resetPassphrase(close)}>reset</Button>
+        </div>
+      </div>
+    ))
+  }, [showModal, resetPassphrase])
+}
 const passphraseSchema = ({ hash, salt }) => object().shape({
   passphrase: string().required('required')
     .test(async (value, context) => {
@@ -120,6 +150,7 @@ export function usePassphrasePrompt () {
   const hash = useKeyHash()
   const salt = useKeySalt()
   const showPassphrase = useShowPassphrase()
+  const resetPassphrase = useResetPassphrase()
 
   const onSubmit = useCallback((close) =>
     async ({ passphrase }) => {
@@ -131,11 +162,14 @@ export function usePassphrasePrompt () {
     showModal(close => (
       <div>
         <h4>Wallet decryption</h4>
-        <p className='line-height-md'>
+        <p className='line-height-md mt-3'>
           Your wallets have been encrypted on another device. Enter your passphrase to use your wallets on this device.
         </p>
         <p className='line-height-md'>
           {showPassphrase && 'You can find the button to reveal your passphrase above your wallets on the other device.'}
+        </p>
+        <p className='line-height-md'>
+          Press reset if you lost your passphrase.
         </p>
         <Form
           schema={passphraseSchema({ hash, salt })}
@@ -152,7 +186,8 @@ export function usePassphrasePrompt () {
           />
           <div className='mt-3'>
             <div className='d-flex justify-content-between align-items-center'>
-              <Button variant='grey-medium' onClick={close}>cancel</Button>
+              <Button className='me-auto' variant='danger' onClick={resetPassphrase}>reset</Button>
+              <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={close}>cancel</Button>
               <SubmitButton variant='primary'>save</SubmitButton>
             </div>
           </div>

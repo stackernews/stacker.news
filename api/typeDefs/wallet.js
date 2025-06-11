@@ -40,6 +40,7 @@ const typeDefs = gql`
     upsertWalletSendWebLN(walletId: ID, templateId: ID): WalletSendWebLN!
     removeWalletProtocol(id: ID!): Boolean
     updateWalletEncryption(keyHash: String!, wallets: [WalletEncryptionUpdate!]!): Boolean
+    resetWallets: Boolean
   }
 
   type BuyCreditsResult {

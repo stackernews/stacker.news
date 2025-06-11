@@ -15,7 +15,8 @@ import {
   UPSERT_WALLET_SEND_WEBLN,
   WALLETS,
   REMOVE_WALLET_PROTOCOL,
-  UPDATE_WALLET_ENCRYPTION
+  UPDATE_WALLET_ENCRYPTION,
+  RESET_WALLETS
 } from '@/wallets/client/fragments'
 import { useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey } from '@/wallets/client/hooks'
@@ -142,6 +143,14 @@ export function useWalletEncryptionUpdate () {
 
     await setKey(key)
   }, [mutate, encryptConfig])
+}
+
+export function useWalletReset () {
+  const [mutate] = useMutation(RESET_WALLETS)
+
+  return useCallback(async () => {
+    await mutate()
+  }, [mutate])
 }
 
 function getWalletProtocolMutation (protocol) {

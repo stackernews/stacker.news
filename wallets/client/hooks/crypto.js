@@ -29,8 +29,12 @@ export function useSetKey () {
 }
 
 export function useEncryption () {
-  const key = useKey()
-  return useCallback(value => key ? encrypt(key, value) : null, [key])
+  const defaultKey = useKey()
+  return useCallback(
+    (value, { key } = {}) => {
+      const k = key ?? defaultKey
+      return k ? encrypt(k, value) : null
+    }, [defaultKey])
 }
 
 export function useDecryption () {
@@ -50,6 +54,7 @@ export function useKeySalt () {
 }
 
 export function useShowPassphrase () {
+  const { me } = useMe()
   const showModal = useShowModal()
 
   const onShow = useCallback(() => {
@@ -61,7 +66,7 @@ export function useShowPassphrase () {
 
   // TODO(wallet-v2): return null if the user has already seen the passphrase
 
-  return useCallback(() => {
+  const cb = useCallback(() => {
     showModal(close => (
       <div>
         <p className='line-height-md'>
@@ -80,6 +85,12 @@ export function useShowPassphrase () {
       </div>
     ))
   }, [showModal])
+
+  if (!me || !me.privates?.showPassphrase) {
+    return null
+  }
+
+  return cb
 }
 
 export function useSavePassphrase () {
@@ -108,6 +119,7 @@ export function usePassphrasePrompt () {
   const savePassphrase = useSavePassphrase()
   const hash = useKeyHash()
   const salt = useKeySalt()
+  const showPassphrase = useShowPassphrase()
 
   const onSubmit = useCallback((close) =>
     async ({ passphrase }) => {
@@ -123,8 +135,7 @@ export function usePassphrasePrompt () {
           Your wallets have been encrypted on another device. Enter your passphrase to use your wallets on this device.
         </p>
         <p className='line-height-md'>
-          {/* TODO(wallet-v2): the button will only be there once. when it's gone, we should probably tell them that they should have backed it up. */}
-          You can find the button to reveal your passphrase on the top of the wallets page on the other device.
+          {showPassphrase && 'You can find the button to reveal your passphrase above your wallets on the other device.'}
         </p>
         <Form
           schema={passphraseSchema({ hash, salt })}
@@ -233,8 +244,8 @@ export function useGenerateRandomKey () {
 
   return useCallback(async () => {
     const passphrase = generateRandomPassphrase()
-    const { key } = await deriveKey(passphrase, salt)
-    return { passphrase, key }
+    const { key, hash } = await deriveKey(passphrase, salt)
+    return { passphrase, key, hash }
   }, [salt])
 }
 

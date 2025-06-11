@@ -8,11 +8,15 @@ export function useWallet (name) {
 }
 
 export function useConfiguredWallets () {
-  // TODO(wallet-v2): implement this
+  const wallets = useWallets()
+  return useMemo(
+    () => wallets.filter(w => isUserWallet(w)),
+    [wallets]
+  )
 }
 
 export function useSendWallets () {
-  const wallets = useWallets()
+  const wallets = useConfiguredWallets()
   return useMemo(
     () => wallets.filter(w => isUserWallet(w) && w.send && w.enabled),
     [wallets]

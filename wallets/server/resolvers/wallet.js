@@ -1,5 +1,6 @@
-import { GqlAuthenticationError, GqlInputError, E_VAULT_KEY_EXISTS } from '@/lib/error'
+import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { mapUserWalletResolveTypes } from '@/wallets/server/resolvers/util'
+import { upsertWalletProtocol } from './protocol'
 
 const WalletOrTemplate = {
   __resolveType: walletOrTemplate => walletOrTemplate.__resolveType
@@ -39,7 +40,7 @@ export const resolvers = {
     wallet
   },
   Mutation: {
-    updateVaultKey,
+    updateWalletEncryption,
     clearVault,
     setWalletPriority,
     removeWallet
@@ -95,29 +96,25 @@ async function wallet (parent, { id, name }, { me, models }) {
   return { ...template, __resolveType: 'WalletTemplate' }
 }
 
-async function updateVaultKey (parent, { entries, hash }, { me, models }) {
+async function updateWalletEncryption (parent, { keyHash, wallets }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
-  if (!hash) throw new GqlInputError('hash required')
+  if (!keyHash) throw new GqlInputError('hash required')
 
   const { vaultKeyHash: oldKeyHash } = await models.user.findUnique({ where: { id: me.id } })
-  if (oldKeyHash) {
-    if (oldKeyHash === hash) {
-      return true
-    }
-    throw new GqlInputError('vault key already set', E_VAULT_KEY_EXISTS)
-  }
 
   return await models.$transaction(async tx => {
-    // TODO(wallet-v2): use UserWallet instead of Wallet table
-    // const wallets = await tx.wallet.findMany({ where: { userId: me.id } })
-    // TODO(wallet-v2): implement this
-    // for (const wallet of wallets) {
-    // }
+    for (const { id: userWalletId, protocols } of wallets) {
+      for (const { name, send, config } of protocols) {
+        const mutation = upsertWalletProtocol({ name, send }, { networkTests: false })
+        await mutation(parent, { walletId: userWalletId, ...config }, { me, tx })
+      }
+    }
 
-    // optimistic concurrency control: make sure the user's vault key didn't change while we were updating the wallets
+    // optimistic concurrency control:
+    // make sure the user's vault key didn't change while we were updating the protocols
     await tx.user.update({
       where: { id: me.id, vaultKeyHash: oldKeyHash },
-      data: { vaultKeyHash: hash }
+      data: { vaultKeyHash: keyHash, showPassphrase: false }
     })
 
     return true

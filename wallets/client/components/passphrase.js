@@ -1,16 +1,25 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { CopyButton } from '@/components/form'
 import { QRCodeSVG } from 'qrcode.react'
 import styles from '@/styles/wallet.module.css'
+import { useConfiguredWallets, useGenerateRandomKey, useWalletEncryptionUpdateMutation } from '@/wallets/client/hooks'
+import useEffectOnce from '@/components/use-effect-once'
 
 export function Passphrase () {
   // TODO(wallet-v2): encrypt wallets with new key and show passphrase of new key
-  const [passphrase] = useState(
-    'media fit youth secret combine live cupboard response enable loyal kitchen angle'
-  )
+  const [passphrase, setPassphrase] = useState(null)
+  const wallets = useConfiguredWallets()
+  const generateRandomKey = useGenerateRandomKey()
 
-  useEffect(() => {
-    // TODO(wallet-v2): encrypt wallets with new key
+  const updateWalletEncryption = useWalletEncryptionUpdateMutation()
+
+  useEffectOnce(() => {
+    async function updateKey () {
+      const { passphrase, key, hash } = await generateRandomKey()
+      await updateWalletEncryption({ key, hash, wallets })
+      setPassphrase(passphrase)
+    }
+    updateKey()
   }, [])
 
   if (!passphrase) {

@@ -14,12 +14,13 @@ import {
   UPSERT_WALLET_SEND_PHOENIXD,
   UPSERT_WALLET_SEND_WEBLN,
   WALLETS,
-  REMOVE_WALLET_PROTOCOL
+  REMOVE_WALLET_PROTOCOL,
+  UPDATE_WALLET_ENCRYPTION
 } from '@/wallets/client/fragments'
 import { useMutation, useQuery } from '@apollo/client'
-import { useDecryption, useEncryption } from '@/wallets/client/hooks'
+import { useDecryption, useEncryption, useSetKey } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { isEncryptedField, isUserWallet } from '@/wallets/lib/util'
+import { isEncryptedField, isUserWallet, reverseProtocolRelationName } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
@@ -112,6 +113,37 @@ export function useWalletProtocolRemoveMutation (protocol) {
   }, [protocol?.id, mutate, toaster])
 }
 
+export function useWalletEncryptionUpdateMutation () {
+  const [mutate] = useMutation(UPDATE_WALLET_ENCRYPTION)
+  const setKey = useSetKey()
+  const encryptConfig = useEncryptConfig()
+
+  return useCallback(async ({ key, hash, wallets }) => {
+    const encrypted = await Promise.all(
+      wallets.map(async d => ({
+        ...d,
+        protocols: await Promise.all(
+          d.protocols.map(p => {
+            return encryptConfig(p.config, { key, protocol: p })
+          }))
+      }))
+    )
+
+    const data = encrypted.map(wallet => ({
+      id: wallet.id,
+      protocols: wallet.protocols.map(protocol => {
+        const { id, __typename: relationName, ...config } = protocol
+        const { name, send } = reverseProtocolRelationName(relationName)
+        return { name, send, config }
+      })
+    }))
+
+    await mutate({ variables: { keyHash: hash, wallets: data } })
+
+    await setKey(key)
+  }, [mutate, encryptConfig])
+}
+
 function getWalletProtocolMutation (protocol) {
   switch (protocol.name) {
     case 'LNBITS':
@@ -202,23 +234,23 @@ function isEncrypted (value) {
   return value.__typename === 'VaultEntry'
 }
 
-function useEncryptConfig (protocol) {
+function useEncryptConfig (defaultProtocol) {
   const encrypt = useEncryption()
 
-  return useCallback(async (config) => {
+  return useCallback(async (config, { key: cryptoKey, protocol } = {}) => {
     return Object.fromEntries(
       await Promise.all(
         Object.entries(config)
           .map(
-            async ([key, value]) => {
-              if (!isEncryptedField(protocol, key)) return [key, value]
+            async ([fieldKey, value]) => {
+              if (!isEncryptedField(protocol ?? defaultProtocol, fieldKey)) return [fieldKey, value]
               return [
-                key,
-                await encrypt(value)
+                fieldKey,
+                await encrypt(value, { key: cryptoKey })
               ]
             }
           )
       )
     )
-  }, [protocol, encrypt])
+  }, [defaultProtocol, encrypt])
 }

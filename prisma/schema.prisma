@@ -145,6 +145,7 @@ model User {
   oneDayReferrals           OneDayReferral[]     @relation("OneDayReferral_referrer")
   oneDayReferrees           OneDayReferral[]     @relation("OneDayReferral_referrees")
   vaultKeyHash              String               @default("")
+  showPassphrase            Boolean              @default(true)
   walletsUpdatedAt          DateTime?
   proxyReceive              Boolean              @default(true)
   DirectPaymentReceived     DirectPayment[]      @relation("DirectPaymentReceived")

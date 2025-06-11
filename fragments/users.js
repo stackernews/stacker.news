@@ -53,6 +53,7 @@ ${STREAK_FIELDS}
       vaultKeyHash
       walletsUpdatedAt
       proxyReceive
+      showPassphrase
     }
     optional {
       isContributor

@@ -85,14 +85,6 @@ async function redirectToAuthSync (request, searchParams, domain, csrfToken, sig
   if (!csrfToken) return NextResponse.redirect(new URL('/error', request.url), { headers })
 
   const syncUrl = new URL('/api/auth/sync', SN_MAIN_DOMAIN)
-  syncUrl.searchParams.set('domain', domain)
-  // encode the csrfToken as state JWT using NEXTAUTH_SECRET
-  const randomState = await encode({
-    token: { csrf: csrfToken },
-    secret: process.env.NEXTAUTH_SECRET
-  })
-  // set the state in the search params
-  syncUrl.searchParams.set('state', randomState)
 
   // if we're signing up, we need to set the signup flag
   if (signup) {
@@ -100,14 +92,28 @@ async function redirectToAuthSync (request, searchParams, domain, csrfToken, sig
   }
 
   // if we have a callbackUrl, we need to set it as redirectUri
+  let redirectUri = null
   if (searchParams.has('callbackUrl')) {
     const callbackUrl = searchParams.get('callbackUrl')
     // extract just the path portion if it's a full URL
-    const redirectUri = callbackUrl.startsWith('http')
+    redirectUri = callbackUrl.startsWith('http')
       ? new URL(callbackUrl).pathname
       : callbackUrl
-    syncUrl.searchParams.set('redirectUri', redirectUri)
   }
+
+  console.log('redirectUri', redirectUri)
+
+  // encode csrfToken, domain and redirectUri as state JWE using NEXTAUTH_SECRET
+  const randomState = await encode({
+    token: {
+      csrf: csrfToken,
+      domain,
+      redirectUri
+    },
+    secret: process.env.NEXTAUTH_SECRET
+  })
+  // set the state in the search params
+  syncUrl.searchParams.set('state', randomState)
 
   return NextResponse.redirect(syncUrl, { headers })
 }
@@ -118,10 +124,6 @@ async function establishAuthSync (request, searchParams, csrfToken, headers) {
   if (!csrfToken) return NextResponse.redirect(new URL('/error', request.url), { headers })
   // get the verification token from the search params
   const token = searchParams.get('synctoken')
-  // get the redirectUri from the search params
-  const redirectUri = searchParams.get('redirectUri') || '/'
-  // prepare redirect to the redirectUri
-  const res = NextResponse.redirect(new URL(decodeURIComponent(redirectUri), request.url), { headers })
 
   try {
     // POST to /api/auth/sync to exchange verification token for session token
@@ -132,7 +134,7 @@ async function establishAuthSync (request, searchParams, csrfToken, headers) {
       },
       body: JSON.stringify({
         verificationToken: token,
-        csrfToken
+        csrfToken // compare with stored encoded state JWE
       })
     })
 
@@ -147,6 +149,8 @@ async function establishAuthSync (request, searchParams, csrfToken, headers) {
       throw new Error(data.reason)
     }
 
+    // prepare redirect to the redirectUri
+    const res = NextResponse.redirect(new URL(data.redirectUri, request.url), { headers })
     // set the session cookie
     res.cookies.set(SESSION_COOKIE, data.sessionToken, cookieOptions())
     return res

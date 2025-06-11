@@ -40,7 +40,7 @@ export default function Wallet () {
             size='md' variant='secondary'
           >unlock wallets
           </Button>
-          <small className='d-block mt-3 text-muted'>your passphrase is required for decryption</small>
+          <small className='d-block mt-3 text-muted'>your passphrase is required</small>
         </div>
       </WalletLayout>
     )

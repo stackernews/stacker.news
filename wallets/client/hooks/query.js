@@ -76,7 +76,7 @@ export function useWalletQuery ({ id, name }) {
   }), [query, wallet])
 }
 
-export function useWalletProtocolMutation (wallet, protocol) {
+export function useWalletProtocolUpsert (wallet, protocol) {
   const mutation = getWalletProtocolMutation(protocol)
   const [mutate] = useMutation(mutation)
   const encryptConfig = useEncryptConfig(protocol)
@@ -99,7 +99,7 @@ export function useWalletProtocolMutation (wallet, protocol) {
   }, [mutate, encryptConfig])
 }
 
-export function useWalletProtocolRemoveMutation (protocol) {
+export function useWalletProtocolRemove (protocol) {
   const [mutate] = useMutation(REMOVE_WALLET_PROTOCOL)
   const toaster = useToast()
 
@@ -113,7 +113,7 @@ export function useWalletProtocolRemoveMutation (protocol) {
   }, [protocol?.id, mutate, toaster])
 }
 
-export function useWalletEncryptionUpdateMutation () {
+export function useWalletEncryptionUpdate () {
   const [mutate] = useMutation(UPDATE_WALLET_ENCRYPTION)
   const setKey = useSetKey()
   const encryptConfig = useEncryptConfig()

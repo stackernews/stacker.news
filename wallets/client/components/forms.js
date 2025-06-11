@@ -8,7 +8,7 @@ import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, ur
 import styles from '@/styles/wallet.module.css'
 import { Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
-import { useWalletProtocolMutation, useWalletProtocolRemoveMutation, useWalletQuery } from '@/wallets/client/hooks'
+import { useWalletProtocolUpsert, useWalletProtocolRemove, useWalletQuery } from '@/wallets/client/hooks'
 import { useToast } from '@/components/toast'
 
 const WalletFormsContext = createContext()
@@ -158,7 +158,7 @@ function WalletProtocolForm () {
   // because we will need to change the URL to get a different protocol
   // so the amount of rendered hooks should stay the same during the lifecycle of this component
   const wallet = useWallet()
-  const upsertWalletProtocol = useWalletProtocolMutation(wallet, protocol)
+  const upsertWalletProtocol = useWalletProtocolUpsert(wallet, protocol)
   const toaster = useToast()
   const refetch = useWalletRefetch()
 
@@ -191,7 +191,7 @@ function WalletProtocolForm () {
 
 function WalletProtocolFormButtons () {
   const protocol = useSelectedProtocol()
-  const removeWalletProtocol = useWalletProtocolRemoveMutation(protocol)
+  const removeWalletProtocol = useWalletProtocolRemove(protocol)
   const refetch = useWalletRefetch()
   const router = useRouter()
   const wallet = useWallet()

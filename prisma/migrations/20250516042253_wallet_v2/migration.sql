@@ -1067,3 +1067,6 @@ ALTER TABLE "WalletLog"
 
 DROP TYPE "WalletType";
 ALTER TABLE "WalletLog" ADD CONSTRAINT "WalletLog_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "ProtocolWallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN     "showPassphrase" BOOLEAN NOT NULL DEFAULT true;

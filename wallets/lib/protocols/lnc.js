@@ -15,8 +15,20 @@ export default {
       validate: bip39Validator(),
       required: true,
       encrypt: true
+    },
+    // TODO(wallet-v2): generate these values during save
+    {
+      name: 'serverHost',
+      encrypt: true
+    },
+    {
+      name: 'localKey',
+      encrypt: true
+    },
+    {
+      name: 'remoteKey',
+      encrypt: true
     }
-    // TODO(wallet-v2): some fields are generated during initial attachment and must also be validated and saved
   ],
   relationName: 'walletSendLNC'
 }

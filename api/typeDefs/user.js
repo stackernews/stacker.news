@@ -158,6 +158,7 @@ export default gql`
     upvotePopover: Boolean!
     hasInvites: Boolean!
     apiKeyEnabled: Boolean!
+    showPassphrase: Boolean!
 
     """
     mirrors SettingsInput

@@ -43,7 +43,6 @@ export const resolvers = {
     updateWalletEncryption,
     clearVault,
     setWalletPriority,
-    removeWallet
   }
 }
 
@@ -146,12 +145,4 @@ async function setWalletPriority (parent, { id, priority }, { me, models }) {
   await models.wallet.update({ where: { userId: me.id, id: Number(id) }, data: { priority } })
 
   return true
-}
-
-async function removeWallet (parent, { id }, { me, models }) {
-  if (!me) {
-    throw new GqlAuthenticationError()
-  }
-
-  // TODO(wallet-v2): implement this
 }

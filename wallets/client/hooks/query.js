@@ -220,5 +220,5 @@ function useEncryptConfig (protocol) {
           )
       )
     )
-  }, [encrypt])
+  }, [protocol, encrypt])
 }

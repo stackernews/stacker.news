@@ -26,6 +26,10 @@ export function protocolRelationName ({ name, send }) {
   return protocol({ name, send })?.relationName
 }
 
+export function reverseProtocolRelationName (relationName) {
+  return protocols.find(protocol => protocol.relationName.toLowerCase() === relationName.toLowerCase())
+}
+
 export function protocolClientSchema ({ name, send }) {
   const fields = protocolFields({ name, send })
   const schema = yup.object(fields.reduce((acc, field) =>

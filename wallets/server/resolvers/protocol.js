@@ -26,8 +26,8 @@ export const resolvers = {
   }
 }
 
-function upsertWalletProtocol (protocol) {
-  return async (parent, { walletId, templateId, ...args }, { me, models }) => {
+export function upsertWalletProtocol (protocol, { networkTests = true } = {}) {
+  return async (parent, { walletId, templateId, ...args }, { me, models, tx }) => {
     if (!me) {
       throw new GqlAuthenticationError()
     }
@@ -45,7 +45,7 @@ function upsertWalletProtocol (protocol) {
       throw new GqlInputError(e.message)
     }
 
-    if (!protocol.send) {
+    if (!protocol.send && networkTests) {
       let invoice
       try {
         invoice = await withTimeout(
@@ -76,78 +76,81 @@ function upsertWalletProtocol (protocol) {
       )
     }
 
-    return await models.$transaction(
-      async tx => {
-        if (templateId) {
-          const { id: newWalletId } = await tx.userWallet.create({
-            data: {
-              templateId: Number(templateId),
-              userId: me.id
-            }
-          })
-          walletId = newWalletId
-        }
-
-        const userWallet = await tx.userWallet.update({
-          where: {
-            id: Number(walletId),
-            // this makes sure that users can only update their own wallets
-            // (the update will fail in this case and abort the transaction)
-            userId: me.id
-          },
+    // Prisma does not support nested transactions so we need to check manually if we were given a transaction
+    // https://github.com/prisma/prisma/issues/15212
+    async function transaction (tx) {
+      if (templateId) {
+        const { id: newWalletId } = await tx.userWallet.create({
           data: {
-            protocols: {
-              upsert: {
-                where: {
-                  ProtocolWallet_walletId_send_name_key: {
-                    walletId: Number(walletId),
-                    send: protocol.send,
-                    name: protocol.name
-                  }
-                },
-                update: {
-                  [relation]: {
-                    update: dataFragment(args, 'update')
-                  }
-                },
-                create: {
+            templateId: Number(templateId),
+            userId: me.id
+          }
+        })
+        walletId = newWalletId
+      }
+
+      const userWallet = await tx.userWallet.update({
+        where: {
+          id: Number(walletId),
+          // this makes sure that users can only update their own wallets
+          // (the update will fail in this case and abort the transaction)
+          userId: me.id
+        },
+        data: {
+          protocols: {
+            upsert: {
+              where: {
+                ProtocolWallet_walletId_send_name_key: {
+                  walletId: Number(walletId),
                   send: protocol.send,
-                  name: protocol.name,
-                  [relation]: {
-                    create: dataFragment(args, 'create')
-                  }
+                  name: protocol.name
+                }
+              },
+              update: {
+                [relation]: {
+                  update: dataFragment(args, 'update')
+                }
+              },
+              create: {
+                send: protocol.send,
+                name: protocol.name,
+                [relation]: {
+                  create: dataFragment(args, 'create')
                 }
               }
             }
-          },
-          include: {
-            protocols: true
           }
-        })
-        // XXX Prisma seems to run the vault update AFTER the update of the table that points to it
-        //   which means our trigger to set the jsonb column in the ProtocolWallet table does not see
-        //   the updated vault entry.
-        //   To fix this, we run a protocol wallet update to force the trigger to run again.
-        // TODO(wallet-v2): fix this in a better way?
-        tx.protocolWallet.update({
-          where: {
-            ProtocolWallet_walletId_send_name_key: {
-              walletId: Number(walletId),
-              send: protocol.send,
-              name: protocol.name
-            }
-          },
-          data: {
-            [relation]: {
-              update: {
-                updatedAt: new Date()
-              }
-            }
-          }
-        })
-
-        return mapUserWalletResolveTypes(userWallet)
+        },
+        include: {
+          protocols: true
+        }
       })
+      // XXX Prisma seems to run the vault update AFTER the update of the table that points to it
+      //   which means our trigger to set the jsonb column in the ProtocolWallet table does not see
+      //   the updated vault entry.
+      //   To fix this, we run a protocol wallet update to force the trigger to run again.
+      // TODO(wallet-v2): fix this in a better way?
+      await tx.protocolWallet.update({
+        where: {
+          ProtocolWallet_walletId_send_name_key: {
+            walletId: Number(walletId),
+            send: protocol.send,
+            name: protocol.name
+          }
+        },
+        data: {
+          [relation]: {
+            update: {
+              updatedAt: new Date()
+            }
+          }
+        }
+      })
+
+      return mapUserWalletResolveTypes(userWallet)
+    }
+
+    return await (tx ? transaction(tx) : models.$transaction(transaction))
   }
 }
 

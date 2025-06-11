@@ -55,6 +55,7 @@ ${STREAK_FIELDS}
       walletsUpdatedAt
       proxyReceive
       directReceive
+      showPassphrase
     }
     optional {
       isContributor

@@ -1,6 +1,6 @@
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { mapUserWalletResolveTypes } from '@/wallets/server/resolvers/util'
-import { upsertWalletProtocol } from './protocol'
+import { removeWalletProtocol, upsertWalletProtocol } from './protocol'
 
 const WalletOrTemplate = {
   __resolveType: walletOrTemplate => walletOrTemplate.__resolveType
@@ -41,8 +41,8 @@ export const resolvers = {
   },
   Mutation: {
     updateWalletEncryption,
-    clearVault,
-    setWalletPriority,
+    resetWallets,
+    setWalletPriority
   }
 }
 
@@ -120,19 +120,30 @@ async function updateWalletEncryption (parent, { keyHash, wallets }, { me, model
   })
 }
 
-async function clearVault (parent, args, { me, models }) {
+async function resetWallets (parent, args, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
-  const txs = []
-  txs.push(models.user.update({
-    where: { id: me.id },
-    data: { vaultKeyHash: '' }
-  }))
 
-  // TODO(wallet-v2): use UserWallet instead of Wallet table
-  // const wallets = await models.wallet.findMany({ where: { userId: me.id } })
-  // txs.push(...wallets.filter(hasVault).map(wallet => deleteVault(models, wallet)))
+  await models.$transaction(async tx => {
+    const protocols = await tx.protocolWallet.findMany({
+      where: {
+        send: true,
+        wallet: {
+          userId: me.id
+        }
+      }
+    })
 
-  await models.$transaction(txs)
+    for (const protocol of protocols) {
+      await removeWalletProtocol(parent, { id: protocol.id }, { me, tx })
+    }
+
+    await tx.user.update({
+      where: { id: me.id },
+      // TODO(wallet-v2): nullable vaultKeyHash column
+      data: { vaultKeyHash: '', showPassphrase: true }
+    })
+  })
+
   return true
 }
 

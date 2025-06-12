@@ -1070,3 +1070,28 @@ ALTER TABLE "WalletLog" ADD CONSTRAINT "WalletLog_walletId_fkey" FOREIGN KEY ("w
 
 -- AlterTable
 ALTER TABLE "users" ADD COLUMN     "showPassphrase" BOOLEAN NOT NULL DEFAULT true;
+
+CREATE OR REPLACE FUNCTION user_auto_withdraw() RETURNS TRIGGER AS $$
+DECLARE
+BEGIN
+    INSERT INTO pgboss.job (name, data)
+    SELECT 'autoWithdraw', jsonb_build_object('id', NEW.id)
+    -- only if there isn't already a pending job for this user
+    WHERE NOT EXISTS (
+        SELECT *
+        FROM pgboss.job
+        WHERE name = 'autoWithdraw'
+        AND data->>'id' = NEW.id::TEXT
+        AND state = 'created'
+    )
+    AND EXISTS (
+        SELECT *
+        FROM "UserWallet" uw
+        JOIN "ProtocolWallet" pw ON uw.id = pw."walletId"
+        WHERE uw."userId" = NEW.id
+        AND uw."enabled" = true
+        AND pw.send = false
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;

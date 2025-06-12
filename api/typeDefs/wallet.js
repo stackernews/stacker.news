@@ -10,6 +10,7 @@ const typeDefs = gql`
     walletHistory(cursor: String, inc: String): History
     wallets: [WalletOrTemplate!]!
     wallet(id: ID, name: String): WalletOrTemplate
+    walletSettings: WalletSettings!
     walletLogs(type: String, from: String, to: String, cursor: String): WalletLog!
     failedInvoices: [Invoice!]!
   }
@@ -42,6 +43,7 @@ const typeDefs = gql`
     updateWalletEncryption(keyHash: String!, wallets: [WalletEncryptionUpdate!]!): Boolean
     resetWallets: Boolean
     disablePassphraseExport: Boolean
+    setWalletSettings(settings: WalletSettingsInput!): Boolean
   }
 
   type BuyCreditsResult {
@@ -101,6 +103,24 @@ const typeDefs = gql`
     | WalletRecvLightningAddress
     | WalletRecvCLNRest
     | WalletRecvLNDGRPC
+
+  type WalletSettings {
+    receiveCreditsBelowSats: Int!
+    sendCreditsBelowSats: Int!
+    autoWithdrawThreshold: Int
+    autoWithdrawMaxFeePercent: Float
+    autoWithdrawMaxFeeTotal: Int
+    proxyReceive: Boolean!
+  }
+
+  input WalletSettingsInput {
+    receiveCreditsBelowSats: Int!
+    sendCreditsBelowSats: Int!
+    autoWithdrawThreshold: Int!
+    autoWithdrawMaxFeePercent: Float!
+    autoWithdrawMaxFeeTotal: Int!
+    proxyReceive: Boolean!
+  }
 
   type WalletSendNWC {
     id: ID!

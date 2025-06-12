@@ -861,25 +861,28 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
             : <div key={provider} className='mt-2'><EmailLinkForm callbackUrl='/settings' /></div>
         } else if (provider === 'lightning') {
           return (
-            <div key={provider} className="d-flex align-items-center">
-            <QRLinkButton
-              key={provider} provider={provider}
-              status={methods[provider]} unlink={async () => await unlink(provider)}
-            />
-            <Info className='mt-2'>
-                      <ul>
-                        <li>
-                          This is an LNURL-auth. Not sure what it is? Check <a target="_blank" href="https://lightninglogin.live/learn">here</a>
-                        </li>
-                        <li>
-                          You can unlink your wallet at any time.
-                        </li>
-                        <li>
-                          <b>Tip:</b> Use a wallet that supports LNURL-auth for seamless experience. Check the list of <a target="_blank" href="https://github.com/lnurl/luds/blob/luds/README.md#lnurl-documents">supported wallets</a>
-                        </li>
-                      </ul>
-                    </Info>
-                  </div>
+            <div key={provider} className='d-flex align-items-center'>
+              <QRLinkButton
+                key={provider} provider={provider}
+                status={methods[provider]} unlink={async () => await unlink(provider)}
+              />
+              <Info className='mt-2'>
+                <ul>
+                  <li>
+                    This is an LNURL-auth. Not sure what it is? Check <a target='_blank' href='https://lightninglogin.live/learn' rel='noreferrer'>here</a>
+                  </li>
+                  <li>
+                    Linking your Lightning wallet allows you to quickly sign in and zap directly from your wallet.
+                  </li>
+                  <li>
+                    You can unlink your wallet at any time.
+                  </li>
+                  <li>
+                    <b>Tip:</b> Use a wallet that supports LNURL-auth for seamless experience. Check the list of <a target='_blank' href='https://github.com/lnurl/luds/blob/luds/README.md#lnurl-documents' rel='noreferrer'>supported wallets</a>
+                  </li>
+                </ul>
+              </Info>
+            </div>
           )
         } else if (provider === 'nostr') {
           return <NostrLinkButton key='nostr' status={methods[provider]} unlink={async () => await unlink(provider)} />

@@ -252,6 +252,11 @@
     margin-top: .25rem;
 }
 
+.text li > :is(.twitterContainer, .nostrContainer, .wavlakeWrapper, .spotifyWrapper) {
+  display: inline-block;
+  vertical-align: top;
+}
+
 .text ul,
 .text ol {
   margin-top: 0;

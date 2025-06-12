@@ -158,17 +158,12 @@ export default function Settings ({ ssrData }) {
             hideWalletBalance: settings?.hideWalletBalance,
             diagnostics: settings?.diagnostics,
             hideIsContributor: settings?.hideIsContributor,
-            noReferralLinks: settings?.noReferralLinks,
-            proxyReceive: settings?.proxyReceive,
-            directReceive: settings?.directReceive,
-            receiveCreditsBelowSats: settings?.receiveCreditsBelowSats,
-            sendCreditsBelowSats: settings?.sendCreditsBelowSats
+            noReferralLinks: settings?.noReferralLinks
           }}
           schema={settingsSchema}
           onSubmit={async ({
             tipDefault, tipRandom, tipRandomMin, tipRandomMax, withdrawMaxFeeDefault,
             zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, satsFilter,
-            receiveCreditsBelowSats, sendCreditsBelowSats,
             ...values
           }) => {
             if (nostrPubkey.length === 0) {
@@ -194,8 +189,6 @@ export default function Settings ({ ssrData }) {
                     withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
                     satsFilter: Number(satsFilter),
                     zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
-                    receiveCreditsBelowSats: Number(receiveCreditsBelowSats),
-                    sendCreditsBelowSats: Number(sendCreditsBelowSats),
                     nostrPubkey,
                     nostrRelays: nostrRelaysFiltered,
                     ...values
@@ -340,49 +333,6 @@ export default function Settings ({ ssrData }) {
             name='noteCowboyHat'
           />
           <div className='form-label'>wallet</div>
-          <Input
-            label='receive credits for zaps and deposits below'
-            name='receiveCreditsBelowSats'
-            required
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-          />
-          <Input
-            label='send credits for zaps below'
-            name='sendCreditsBelowSats'
-            required
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-          />
-          <Checkbox
-            label={
-              <div className='d-flex align-items-center'>proxy deposits to attached wallets
-                <Info>
-                  <ul>
-                    <li>Forward deposits directly to your attached wallets if they cause your balance to exceed your auto-withdraw threshold</li>
-                    <li>Payments will be wrapped by the SN node to preserve your wallet's privacy</li>
-                    <li>This will incur in a 10% fee</li>
-                  </ul>
-                </Info>
-              </div>
-            }
-            name='proxyReceive'
-            groupClassName='mb-0'
-          />
-          <Checkbox
-            label={
-              <div className='d-flex align-items-center'>directly deposit to attached wallets
-                <Info>
-                  <ul>
-                    <li>Directly deposit to your attached wallets if they cause your balance to exceed your auto-withdraw threshold</li>
-                    <li>Senders will be able to see your wallet's lightning node public key</li>
-                    <li>If 'proxy deposits' is also checked, it will take precedence and direct deposits will only be used as a fallback</li>
-                    <li>Because we can't determine if a payment succeeds, you won't be notified about direct deposits</li>
-                  </ul>
-                </Info>
-              </div>
-            }
-            name='directReceive'
-            groupClassName='mb-0'
-          />
           <Checkbox
             label={
               <div className='d-flex align-items-center'>hide invoice descriptions

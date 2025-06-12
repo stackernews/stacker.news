@@ -9,7 +9,7 @@ import bip39Words from '@/lib/bip39-words'
 import { Form, PasswordInput, SubmitButton } from '@/components/form'
 import { object, string } from 'yup'
 import { SET_KEY, useKey, useWalletsDispatch } from '@/wallets/client/context'
-import { useWalletReset } from '@/wallets/client/hooks'
+import { useDisablePassphraseExport, useWalletReset } from '@/wallets/client/hooks'
 
 export function useLoadKey () {
   const { get } = useIndexedDB()
@@ -97,11 +97,13 @@ export function useShowPassphrase () {
 export function useSavePassphrase () {
   const setKey = useSetKey()
   const salt = useKeySalt()
+  const disablePassphraseExport = useDisablePassphraseExport()
 
   return useCallback(async ({ passphrase }) => {
     const { key } = await deriveKey(passphrase, salt)
     setKey(key)
-  }, [setKey])
+    await disablePassphraseExport()
+  }, [setKey, disablePassphraseExport])
 }
 
 export function useResetPassphrase () {

@@ -24,8 +24,8 @@ export default async function handler (req, res) {
         return res.status(400).json(validationResult)
       }
 
-      // create a short-lived JWT session token with the user id
-      const sessionTokenResult = await createEphemeralSessionToken(validationResult.userId)
+      // create a short-lived JWT session token with the user id and domain name
+      const sessionTokenResult = await createEphemeralSessionToken(validationResult.userId, validationResult.domainName)
       if (sessionTokenResult.status === 'ERROR') {
         // if we can't create a session token, return the error
         return res.status(500).json(sessionTokenResult)
@@ -65,7 +65,7 @@ export default async function handler (req, res) {
       }
 
       // STEP 4: create a verification token
-      const verificationToken = await createVerificationToken(sessionToken)
+      const verificationToken = await createVerificationToken(sessionToken, domain)
       if (verificationToken.status === 'ERROR') {
         return res.status(500).json(verificationToken)
       }
@@ -114,12 +114,12 @@ function handleNoSession (res, domainName, redirectUri, signup = false) {
   res.redirect(302, loginRedirectUrl.href)
 }
 
-async function createVerificationToken (token) {
+async function createVerificationToken (token, domainName) {
   try {
     // a 5 minutes verification token using the session token's user id
     const verificationToken = await models.verificationToken.create({
       data: {
-        identifier: token.id.toString(),
+        identifier: `${token.id}:${domainName}`,
         token: randomBytes(32).toString('hex'),
         expires: new Date(Date.now() + 1000 * 60 * 5) // 5 minutes
       }
@@ -170,18 +170,24 @@ async function consumeVerificationToken (verificationToken) {
       return { status: 'ERROR', reason: 'invalid verification token' }
     }
 
-    // return the user id
-    return { status: 'OK', userId: Number(identifier) }
+    // split the identifier into userId and domainName
+    const [userId, domainName] = identifier.split(':')
+
+    // return the user id and domain name
+    return { status: 'OK', userId: Number(userId), domainName }
   } catch (error) {
     return { status: 'ERROR', reason: 'cannot validate verification token' }
   }
 }
 
-async function createEphemeralSessionToken (userId) {
+async function createEphemeralSessionToken (userId, domainName) {
   try {
     // create a short-lived JWT session token with the user id
     const sessionToken = await encodeJWT({
-      token: { id: userId, sub: userId },
+      // we're adding the domain name to the token
+      // to prevent stolen JWTs from being used on other domains
+      // mitigating damages from compromised custom domains
+      token: { id: userId, sub: userId, domain: domainName },
       secret: process.env.NEXTAUTH_SECRET,
       maxAge: SYNC_TOKEN_MAX_AGE
     })

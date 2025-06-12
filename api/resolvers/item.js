@@ -108,7 +108,8 @@ export async function getItem (parent, { id }, { me, models }) {
       FROM "Item"
       ${whereClause(
         '"Item".id = $1',
-        activeOrMine(me)
+        activeOrMine(me),
+        scheduledOrMine(me)
       )}`
   }, Number(id))
   return item
@@ -130,6 +131,7 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
         '"Item".bio = false',
         '"Item".boost > 0',
         activeOrMine(),
+        scheduledOrMine(me),
         subClause(sub, 1, 'Item', me, showNsfw),
         muteClause(me))}
       ORDER BY boost desc, "Item".created_at ASC
@@ -255,6 +257,12 @@ export const activeOrMine = (me) => {
 
 export const muteClause = me =>
   me ? `NOT EXISTS (SELECT 1 FROM "Mute" WHERE "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId")` : ''
+
+export const scheduledOrMine = (me) => {
+  return me
+    ? `("Item"."isScheduled" = false OR "Item"."userId" = ${me.id})`
+    : '"Item"."isScheduled" = false'
+}
 
 const HIDE_NSFW_CLAUSE = '("Sub"."nsfw" = FALSE OR "Sub"."nsfw" IS NULL)'
 
@@ -411,6 +419,7 @@ export default {
               ${whereClause(
                 `"${table}"."userId" = $3`,
                 activeOrMine(me),
+                scheduledOrMine(me),
                 nsfwClause(showNsfw),
                 typeClause(type),
                 by === 'boost' && '"Item".boost > 0',
@@ -433,6 +442,7 @@ export default {
                 '"Item"."deletedAt" IS NULL',
                 subClause(sub, 4, subClauseTable(type), me, showNsfw),
                 activeOrMine(me),
+                scheduledOrMine(me),
                 await filterClause(me, models, type),
                 typeClause(type),
                 muteClause(me)
@@ -457,6 +467,7 @@ export default {
                 typeClause(type),
                 whenClause(when, 'Item'),
                 activeOrMine(me),
+                scheduledOrMine(me),
                 await filterClause(me, models, type),
                 by === 'boost' && '"Item".boost > 0',
                 muteClause(me))}
@@ -484,6 +495,7 @@ export default {
                 typeClause(type),
                 await filterClause(me, models, type),
                 activeOrMine(me),
+                scheduledOrMine(me),
                 muteClause(me))}
               ${orderByClause('random', me, models, type)}
               OFFSET $1
@@ -513,6 +525,7 @@ export default {
                       '"parentId" IS NULL',
                       '"Item"."deletedAt" IS NULL',
                       activeOrMine(me),
+                      scheduledOrMine(me),
                       'created_at <= $1',
                       '"pinId" IS NULL',
                       subClause(sub, 4)
@@ -543,6 +556,7 @@ export default {
                         '"pinId" IS NOT NULL',
                         '"parentId" IS NULL',
                         sub ? '"subName" = $1' : '"subName" IS NULL',
+                        scheduledOrMine(me),
                         muteClause(me))}
                   ) rank_filter WHERE RANK = 1
                   ORDER BY position ASC`,
@@ -569,6 +583,7 @@ export default {
                       '"Item".bio = false',
                       ad ? `"Item".id <> ${ad.id}` : '',
                       activeOrMine(me),
+                      scheduledOrMine(me),
                       await filterClause(me, models, type),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
@@ -653,6 +668,7 @@ export default {
           ${SELECT}
           FROM "Item"
           WHERE url ~* $1 AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID')
+          AND (${scheduledOrMine(me)})
           ORDER BY created_at DESC
           LIMIT 3`
       }, similar)
@@ -732,6 +748,36 @@ export default {
         sub: subAgg?._count.id === 0 && boost >= BOOST_MULT,
         homeMaxBoost: homeAgg._max.boost || 0,
         subMaxBoost: subAgg?._max.boost || 0
+      }
+    },
+    scheduledItems: async (parent, { cursor, limit = LIMIT }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const decodedCursor = decodeCursor(cursor)
+
+      const items = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}, trim(both ' ' from
+            coalesce(ltree2text(subpath("path", 0, -1)), '')) AS "ancestorTitles"
+          FROM "Item"
+          WHERE "userId" = $1 AND "isScheduled" = true AND "deletedAt" IS NULL
+          AND ("invoiceActionState" IS NULL OR "invoiceActionState" = 'PAID')
+          AND created_at <= $2::timestamp
+          ORDER BY "scheduledAt" ASC
+          OFFSET $3
+          LIMIT $4`,
+        orderBy: ''
+      }, me.id, decodedCursor.time, decodedCursor.offset, limit)
+
+      return {
+        cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+        items,
+        pins: [],
+        ad: null
       }
     }
   },
@@ -1048,6 +1094,94 @@ export default {
         ])
 
       return result
+    },
+    cancelScheduledPost: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const item = await models.item.findUnique({
+        where: { id: Number(id) }
+      })
+
+      if (!item) {
+        throw new GqlInputError('item not found')
+      }
+
+      if (Number(item.userId) !== Number(me.id)) {
+        throw new GqlInputError('item does not belong to you')
+      }
+
+      if (!item.isScheduled) {
+        throw new GqlInputError('item is not scheduled')
+      }
+
+      // Cancel the scheduled job
+      await models.$queryRaw`
+        DELETE FROM pgboss.job
+        WHERE name = 'publishScheduledPost'
+        AND data->>'itemId' = ${item.id}::TEXT
+        AND state <> 'completed'`
+
+      // Update the item to remove scheduling
+      return await models.item.update({
+        where: { id: Number(id) },
+        data: {
+          isScheduled: false,
+          scheduledAt: null
+        }
+      })
+    },
+    publishScheduledPostNow: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const item = await models.item.findUnique({
+        where: { id: Number(id) }
+      })
+
+      if (!item) {
+        throw new GqlInputError('item not found')
+      }
+
+      if (Number(item.userId) !== Number(me.id)) {
+        throw new GqlInputError('item does not belong to you')
+      }
+
+      if (!item.isScheduled) {
+        throw new GqlInputError('item is not scheduled')
+      }
+
+      // Cancel the scheduled job
+      await models.$queryRaw`
+    DELETE FROM pgboss.job
+    WHERE name = 'publishScheduledPost'
+    AND data->>'itemId' = ${item.id}::TEXT
+    AND state <> 'completed'`
+
+      const publishTime = new Date()
+
+      // Publish immediately with current timestamp
+      const updatedItem = await models.item.update({
+        where: { id: Number(id) },
+        data: {
+          isScheduled: false,
+          scheduledAt: null,
+          createdAt: publishTime,
+          updatedAt: publishTime
+        }
+      })
+
+      // Refresh cached views
+      await models.$executeRaw`REFRESH MATERIALIZED VIEW CONCURRENTLY hot_score_view`
+
+      // Queue side effects
+      await models.$executeRaw`
+    INSERT INTO pgboss.job (name, data, startafter)
+    VALUES ('schedulePostSideEffects', jsonb_build_object('itemId', ${item.id}::INTEGER), now())`
+
+      return updatedItem
     }
   },
   ItemAct: {
@@ -1357,7 +1491,8 @@ export default {
           FROM "Item"
           ${whereClause(
             '"Item".id = $1',
-            `("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID'${me ? ` OR "Item"."userId" = ${me.id}` : ''})`
+            `("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID'${me ? ` OR "Item"."userId" = ${me.id}` : ''})`,
+            scheduledOrMine(me)
           )}`
       }, Number(item.rootId))
 
@@ -1416,6 +1551,17 @@ export default {
         AND data->>'userId' = ${meId}::TEXT
         AND state = 'created'`
       return reminderJobs[0]?.startafter ?? null
+    },
+    scheduledAt: async (item, args, { me, models }) => {
+      const meId = me?.id ?? USER_ID.anon
+      if (meId !== item.userId) {
+        // Only show scheduledAt for your own items to keep DB queries minimized
+        return null
+      }
+      return item.scheduledAt
+    },
+    isScheduled: async (item, args, { me, models }) => {
+      return !!item.isScheduled
     }
   }
 }

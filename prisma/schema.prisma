@@ -563,6 +563,8 @@ model Item {
   bio                  Boolean               @default(false)
   freebie              Boolean               @default(false)
   deletedAt            DateTime?
+  scheduledAt          DateTime?
+  isScheduled          Boolean               @default(false)
   otsFile              Bytes?
   otsHash              String?
   imgproxyUrls         Json?
@@ -629,6 +631,9 @@ model Item {
   @@index([url])
   @@index([boost])
   @@index([invoicePaidAt])
+  @@index([scheduledAt])
+  @@index([isScheduled])
+  @@index([isScheduled, scheduledAt])
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item

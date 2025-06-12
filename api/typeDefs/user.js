@@ -124,9 +124,6 @@ export default gql`
     zapUndos: Int
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
-    proxyReceive: Boolean
-    receiveCreditsBelowSats: Int!
-    sendCreditsBelowSats: Int!
   }
 
   type AuthMethods {
@@ -204,14 +201,8 @@ export default gql`
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
     autoWithdrawThreshold: Int
-    autoWithdrawMaxFeePercent: Float
-    autoWithdrawMaxFeeTotal: Int
     vaultKeyHash: String
     walletsUpdatedAt: Date
-    proxyReceive: Boolean
-    directReceive: Boolean @deprecated
-    receiveCreditsBelowSats: Int!
-    sendCreditsBelowSats: Int!
   }
 
   type UserOptional {

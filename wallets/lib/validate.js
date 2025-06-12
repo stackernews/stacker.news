@@ -7,13 +7,12 @@ import { TOR_REGEXP } from '@/lib/url'
 import { lightningAddressValidator } from '@/lib/validate'
 import { string, array } from 'yup'
 
-export const externalLightningAddressValidator = () =>
-  lightningAddressValidator
-    .test({
-      name: 'address',
-      test: addr => !addr.toLowerCase().endsWith('@stacker.news'),
-      message: 'lightning address must be external'
-    })
+export const externalLightningAddressValidator = lightningAddressValidator
+  .test({
+    name: 'address',
+    test: addr => !addr.toLowerCase().endsWith('@stacker.news'),
+    message: 'lightning address must be external'
+  })
 
 export const nwcUrlValidator = () =>
   string()

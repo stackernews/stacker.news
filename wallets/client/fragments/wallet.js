@@ -198,3 +198,9 @@ export const RESET_WALLETS = gql`
     resetWallets
   }
 `
+
+export const DISABLE_PASSPHRASE_EXPORT = gql`
+  mutation DisablePassphraseExport {
+    disablePassphraseExport
+  }
+`

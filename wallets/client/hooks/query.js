@@ -16,7 +16,8 @@ import {
   WALLETS,
   REMOVE_WALLET_PROTOCOL,
   UPDATE_WALLET_ENCRYPTION,
-  RESET_WALLETS
+  RESET_WALLETS,
+  DISABLE_PASSPHRASE_EXPORT
 } from '@/wallets/client/fragments'
 import { useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey } from '@/wallets/client/hooks'
@@ -147,6 +148,14 @@ export function useWalletEncryptionUpdate () {
 
 export function useWalletReset () {
   const [mutate] = useMutation(RESET_WALLETS)
+
+  return useCallback(async () => {
+    await mutate()
+  }, [mutate])
+}
+
+export function useDisablePassphraseExport () {
+  const [mutate] = useMutation(DISABLE_PASSPHRASE_EXPORT)
 
   return useCallback(async () => {
     await mutate()

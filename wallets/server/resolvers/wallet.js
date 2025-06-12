@@ -1,6 +1,7 @@
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { mapUserWalletResolveTypes } from '@/wallets/server/resolvers/util'
 import { removeWalletProtocol, upsertWalletProtocol } from './protocol'
+import { validateSchema, walletSettingsSchema } from '@/lib/validate'
 
 const WalletOrTemplate = {
   __resolveType: walletOrTemplate => walletOrTemplate.__resolveType
@@ -37,13 +38,15 @@ export const resolvers = {
   WalletTemplate,
   Query: {
     wallets,
-    wallet
+    wallet,
+    walletSettings
   },
   Mutation: {
     updateWalletEncryption,
     resetWallets,
     setWalletPriority,
-    disablePassphraseExport
+    disablePassphraseExport,
+    setWalletSettings
   }
 }
 
@@ -94,6 +97,12 @@ async function wallet (parent, { id, name }, { me, models }) {
 
   const template = await models.walletTemplate.findFirst({ where: { name } })
   return { ...template, __resolveType: 'WalletTemplate' }
+}
+
+async function walletSettings (parent, args, { me, models }) {
+  if (!me) throw new GqlAuthenticationError()
+
+  return await models.user.findUnique({ where: { id: me.id } })
 }
 
 async function updateWalletEncryption (parent, { keyHash, wallets }, { me, models }) {
@@ -163,6 +172,16 @@ async function setWalletPriority (parent, { id, priority }, { me, models }) {
 
   // TODO(wallet-v2): use UserWallet instead of Wallet table
   await models.wallet.update({ where: { userId: me.id, id: Number(id) }, data: { priority } })
+
+  return true
+}
+
+async function setWalletSettings (parent, { settings }, { me, models }) {
+  if (!me) throw new GqlAuthenticationError()
+
+  await validateSchema(walletSettingsSchema, settings)
+
+  await models.user.update({ where: { id: me.id }, data: settings })
 
   return true
 }

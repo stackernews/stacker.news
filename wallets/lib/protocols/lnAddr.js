@@ -13,7 +13,7 @@ export default {
       label: 'address',
       type: 'text',
       required: true,
-      validate: externalLightningAddressValidator()
+      validate: externalLightningAddressValidator
     }
   ],
   relationName: 'walletRecvLightningAddress'

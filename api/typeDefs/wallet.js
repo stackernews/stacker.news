@@ -41,6 +41,7 @@ const typeDefs = gql`
     removeWalletProtocol(id: ID!): Boolean
     updateWalletEncryption(keyHash: String!, wallets: [WalletEncryptionUpdate!]!): Boolean
     resetWallets: Boolean
+    disablePassphraseExport: Boolean
   }
 
   type BuyCreditsResult {

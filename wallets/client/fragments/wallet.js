@@ -204,3 +204,23 @@ export const DISABLE_PASSPHRASE_EXPORT = gql`
     disablePassphraseExport
   }
 `
+
+export const WALLET_SETTINGS = gql`
+  query WalletSettings {
+    walletSettings {
+      receiveCreditsBelowSats
+      sendCreditsBelowSats
+      proxyReceive
+      directReceive
+      autoWithdrawMaxFeePercent
+      autoWithdrawMaxFeeTotal
+      autoWithdrawThreshold
+    }
+  }
+`
+
+export const SET_WALLET_SETTINGS = gql`
+  mutation SetWalletSettings($settings: WalletSettingsInput!) {
+    setWalletSettings(settings: $settings)
+  }
+`

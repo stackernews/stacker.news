@@ -1,5 +1,6 @@
 import { NextResponse, URLPattern } from 'next/server'
 import { getDomainMapping } from '@/lib/domains'
+import { fetchWithTimeout } from '@/lib/fetch'
 import { SESSION_COOKIE, cookieOptions } from '@/lib/auth'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
@@ -102,18 +103,19 @@ async function establishAuthSync (request, searchParams, headers) {
   // get the redirectUri from the search params
   const redirectUri = searchParams.get('redirectUri') || '/'
   // prepare redirect to the redirectUri
-  const res = NextResponse.redirect(new URL(decodeURIComponent(redirectUri), request.url), { headers })
+  const res = NextResponse.redirect(new URL(redirectUri, request.url), { headers })
 
   try {
+    // pass the verification token to the auth sync API
+    const body = JSON.stringify({ verificationToken: token })
+    // set the content-type header to application/json
+    const fetchHeaders = new Headers(headers)
+    fetchHeaders.set('Content-Type', 'application/json')
     // POST to /api/auth/sync to exchange verification token for session token
-    const response = await fetch(`${SN_MAIN_DOMAIN.origin}/api/auth/sync`, {
+    const response = await fetchWithTimeout(`${SN_MAIN_DOMAIN.origin}/api/auth/sync`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        verificationToken: token
-      })
+      headers: fetchHeaders,
+      body
     })
 
     // check if the fetch was successful

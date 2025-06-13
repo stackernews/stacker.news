@@ -6,26 +6,26 @@ import { validateSchema, customDomainSchema } from '@/lib/validate'
 
 const SN_MAIN_DOMAIN = new URL(process.env.NEXT_PUBLIC_URL)
 const SYNC_TOKEN_MAX_AGE = 60 * 5 // 5 minutes
+const VERIFICATION_TOKEN_EXPIRY = 1000 * 60 * 5 // 5 minutes in milliseconds
 
 export default async function handler (req, res) {
   try {
     // POST /api/auth/sync
     // exchange a verification token for an ephemeral session token
     if (req.method === 'POST') {
-      // a verification token is received from the middleware
       const { verificationToken } = req.body
       if (!verificationToken) {
         return res.status(400).json({ status: 'ERROR', reason: 'verification token is required' })
       }
 
       // validate and consume the verification token
-      const validationResult = await consumeVerificationToken(verificationToken)
-      if (validationResult.status === 'ERROR') {
-        return res.status(400).json(validationResult)
+      const verificationResult = await consumeVerificationToken(verificationToken)
+      if (verificationResult.status === 'ERROR') {
+        return res.status(400).json(verificationResult)
       }
 
       // create a short-lived JWT session token with the user id
-      const sessionTokenResult = await createEphemeralSessionToken(validationResult.userId)
+      const sessionTokenResult = await createEphemeralSessionToken(verificationResult.userId)
       if (sessionTokenResult.status === 'ERROR') {
         // if we can't create a session token, return the error
         return res.status(500).json(sessionTokenResult)
@@ -47,7 +47,7 @@ export default async function handler (req, res) {
       }
 
       // STEP 2: check if domain is valid and ACTIVE
-      const domainValidation = await isDomainAllowed(domain)
+      const domainValidation = await checkDomainValidity(domain)
       if (domainValidation.status === 'ERROR') {
         return res.status(400).json(domainValidation)
       }
@@ -65,13 +65,13 @@ export default async function handler (req, res) {
       }
 
       // STEP 4: create a verification token
-      const verificationToken = await createVerificationToken(sessionToken)
-      if (verificationToken.status === 'ERROR') {
-        return res.status(500).json(verificationToken)
+      const newVerificationToken = await createVerificationToken(sessionToken)
+      if (newVerificationToken.status === 'ERROR') {
+        return res.status(500).json(newVerificationToken)
       }
 
       // STEP 5: redirect to the domain with the verification token
-      return redirectToDomain(res, domain, verificationToken.token, redirectUri)
+      return redirectToDomain(res, domain, newVerificationToken.token, redirectUri)
     }
   } catch (error) {
     return res.status(500).json({ status: 'ERROR', reason: 'auth sync broke its legs' })
@@ -79,7 +79,7 @@ export default async function handler (req, res) {
 }
 
 // checks if a domain is conformant and ACTIVE
-async function isDomainAllowed (domainName) {
+async function checkDomainValidity (domainName) {
   try {
     // check if domain is conformant
     await validateSchema(customDomainSchema, { domainName })
@@ -121,7 +121,7 @@ async function createVerificationToken (token) {
       data: {
         identifier: token.id.toString(),
         token: randomBytes(32).toString('hex'),
-        expires: new Date(Date.now() + 1000 * 60 * 5) // 5 minutes
+        expires: new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY)
       }
     })
     return { status: 'OK', token: verificationToken.token }
@@ -157,7 +157,7 @@ async function consumeVerificationToken (verificationToken) {
           expires: { gt: new Date() }
         }
       })
-      if (!token) return null
+      if (!token) throw new Error('invalid verification token')
 
       // anyway we touched this token, we can delete it
       await tx.verificationToken.delete({ where: { id: token.id } })
@@ -165,15 +165,10 @@ async function consumeVerificationToken (verificationToken) {
       return token.identifier
     })
 
-    // if we can't find the verification token, it's invalid or expired
-    if (!identifier) {
-      return { status: 'ERROR', reason: 'invalid verification token' }
-    }
-
     // return the user id
     return { status: 'OK', userId: Number(identifier) }
   } catch (error) {
-    return { status: 'ERROR', reason: 'cannot validate verification token' }
+    return { status: 'ERROR', reason: error.message || 'cannot validate verification token' }
   }
 }
 

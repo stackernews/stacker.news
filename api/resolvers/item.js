@@ -260,8 +260,8 @@ export const muteClause = me =>
 
 export const scheduledOrMine = (me) => {
   return me
-    ? `("Item"."isScheduled" = false OR "Item"."userId" = ${me.id})`
-    : '"Item"."isScheduled" = false'
+    ? `("Item"."scheduledAt" IS NULL OR "Item"."userId" = ${me.id})`
+    : '"Item"."scheduledAt" IS NULL'
 }
 
 const HIDE_NSFW_CLAUSE = '("Sub"."nsfw" = FALSE OR "Sub"."nsfw" IS NULL)'
@@ -764,7 +764,7 @@ export default {
           ${SELECT}, trim(both ' ' from
             coalesce(ltree2text(subpath("path", 0, -1)), '')) AS "ancestorTitles"
           FROM "Item"
-          WHERE "userId" = $1 AND "isScheduled" = true AND "deletedAt" IS NULL
+          WHERE "userId" = $1 AND "scheduledAt" IS NOT NULL AND "deletedAt" IS NULL
           AND ("invoiceActionState" IS NULL OR "invoiceActionState" = 'PAID')
           AND created_at <= $2::timestamp
           ORDER BY "scheduledAt" ASC
@@ -1112,7 +1112,7 @@ export default {
         throw new GqlInputError('item does not belong to you')
       }
 
-      if (!item.isScheduled) {
+      if (!item.scheduledAt) {
         throw new GqlInputError('item is not scheduled')
       }
 
@@ -1127,7 +1127,6 @@ export default {
       return await models.item.update({
         where: { id: Number(id) },
         data: {
-          isScheduled: false,
           scheduledAt: null
         }
       })
@@ -1149,7 +1148,7 @@ export default {
         throw new GqlInputError('item does not belong to you')
       }
 
-      if (!item.isScheduled) {
+      if (!item.scheduledAt) {
         throw new GqlInputError('item is not scheduled')
       }
 
@@ -1166,7 +1165,6 @@ export default {
       const updatedItem = await models.item.update({
         where: { id: Number(id) },
         data: {
-          isScheduled: false,
           scheduledAt: null,
           createdAt: publishTime,
           updatedAt: publishTime
@@ -1561,7 +1559,7 @@ export default {
       return item.scheduledAt
     },
     isScheduled: async (item, args, { me, models }) => {
-      return !!item.isScheduled
+      return !!item.scheduledAt
     }
   }
 }

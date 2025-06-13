@@ -1,11 +1,8 @@
--- Add fields for scheduled posts to the Item model
+-- Add field for scheduled posts to the Item model
 ALTER TABLE "Item" ADD COLUMN "scheduledAt" TIMESTAMP(3);
-ALTER TABLE "Item" ADD COLUMN "isScheduled" BOOLEAN NOT NULL DEFAULT FALSE;
 
--- Create indexes for efficient querying of scheduled posts
+-- Create index for efficient querying of scheduled posts
 CREATE INDEX "Item_scheduledAt_idx" ON "Item"("scheduledAt");
-CREATE INDEX "Item_isScheduled_idx" ON "Item"("isScheduled");
-CREATE INDEX "Item_isScheduled_scheduledAt_idx" ON "Item"("isScheduled", "scheduledAt");
 
 -- Update stored functions to filter out scheduled posts from comments for non-owners
 
@@ -28,7 +25,7 @@ BEGIN
     || '    FROM "Item" '
     || '    LEFT JOIN hot_score_view g(id, "hotScore", "subHotScore") ON g.id = "Item".id '
     || '    WHERE "Item"."parentId" = $1 '
-    || '    AND ("Item"."isScheduled" = false OR "Item"."userId" = $3) '
+    || '    AND ("Item"."scheduledAt" IS NULL OR "Item"."userId" = $3) '
     ||      _order_by || ' '
     || '    LIMIT $4 '
     || '    OFFSET $5) '
@@ -108,7 +105,7 @@ BEGIN
     || '    FROM "Item" '
     || '    LEFT JOIN hot_score_view g(id, "hotScore", "subHotScore") ON g.id = "Item".id '
     || '    WHERE "Item"."parentId" = $1 '
-    || '    AND ("Item"."isScheduled" = false OR "Item"."userId" = $3) '
+    || '    AND ("Item"."scheduledAt" IS NULL OR "Item"."userId" = $3) '
     ||      _order_by || ') '
     || '    UNION ALL '
     || '    (SELECT "Item".*, b.level + 1 '
@@ -185,14 +182,14 @@ BEGIN
     || '    (SELECT "Item".*, 1 as level '
     || '    FROM "Item" '
     || '    WHERE "Item"."parentId" = $1 '
-    || '    AND "Item"."isScheduled" = false '
+    || '    AND "Item"."scheduledAt" IS NULL '
     ||      _order_by || ') '
     || '    UNION ALL '
     || '    (SELECT "Item".*, b.level + 1 '
     || '    FROM "Item" '
     || '    JOIN base b ON "Item"."parentId" = b.id '
     || '    WHERE b.level < $2 '
-    || '    AND "Item"."isScheduled" = false) '
+    || '    AND "Item"."scheduledAt" IS NULL) '
     || ') '
     || 'SELECT "Item".*, '
     || '    "Item".created_at at time zone ''UTC'' AS "createdAt", '
@@ -237,7 +234,7 @@ BEGIN
     || '    (SELECT "Item".*, 1 as level, ROW_NUMBER() OVER () as rn '
     || '    FROM "Item" '
     || '    WHERE "Item"."parentId" = $1 '
-    || '    AND "Item"."isScheduled" = false '
+    || '    AND "Item"."scheduledAt" IS NULL '
     ||      _order_by || ' '
     || '    LIMIT $2 '
     || '    OFFSET $3) '
@@ -246,7 +243,7 @@ BEGIN
     || '    FROM "Item" '
     || '    JOIN base b ON "Item"."parentId" = b.id '
     || '    WHERE b.level < $5 AND (b.level = 1 OR b.rn <= $4) '
-    || '    AND "Item"."isScheduled" = false) '
+    || '    AND "Item"."scheduledAt" IS NULL) '
     || ') '
     || 'SELECT "Item".*, '
     || '    "Item".created_at at time zone ''UTC'' AS "createdAt", '

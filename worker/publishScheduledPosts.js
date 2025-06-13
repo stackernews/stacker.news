@@ -12,7 +12,7 @@ export async function publishScheduledPost ({ data: { itemId }, models, lnd }) {
     }
   })
 
-  if (!item || !item.isScheduled || item.deletedAt) {
+  if (!item || !item.scheduledAt || item.deletedAt) {
     console.log('item not found, not scheduled, or deleted', itemId)
     return
   }
@@ -23,7 +23,6 @@ export async function publishScheduledPost ({ data: { itemId }, models, lnd }) {
   await models.item.update({
     where: { id: itemId },
     data: {
-      isScheduled: false,
       scheduledAt: null,
       createdAt: publishTime,
       updatedAt: publishTime

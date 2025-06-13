@@ -99,7 +99,6 @@ export async function perform (args, context) {
 
   // Check if this is a scheduled post
   const scheduleAt = getScheduleAt(data.text)
-  const isScheduled = !!scheduleAt
 
   // start with median vote
   if (me) {
@@ -117,7 +116,6 @@ export async function perform (args, context) {
     ...data,
     ...invoiceData,
     boost,
-    isScheduled,
     scheduledAt: scheduleAt,
     threadSubscriptions: {
       createMany: {

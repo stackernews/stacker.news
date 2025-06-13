@@ -96,11 +96,10 @@ export async function performBotBehavior ({ text, id }, { me, tx }) {
       // For new items, scheduling info is set during creation
       // For updates, we need to update the item
       const existingItem = await tx.item.findUnique({ where: { id: Number(id) } })
-      if (existingItem && !existingItem.isScheduled) {
+      if (existingItem && !existingItem.scheduledAt) {
         await tx.item.update({
           where: { id: Number(id) },
           data: {
-            isScheduled: true,
             scheduledAt: scheduleAt
           }
         })

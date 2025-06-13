@@ -1,6 +1,5 @@
 import { validateSchema, customDomainSchema } from '@/lib/validate'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
-import { getDomainMapping } from '@/lib/domains'
 import { SN_ADMIN_IDS } from '@/lib/constants'
 
 async function cleanDomainVerificationJobs (domain, models) {
@@ -18,10 +17,6 @@ export default {
         where: { subName },
         include: { records: true, attempts: true, certificate: true }
       })
-    },
-    domainMapping: async (parent, { domainName }, { models }) => {
-      const mapping = await getDomainMapping(domainName)
-      return mapping
     }
   },
   Mutation: {

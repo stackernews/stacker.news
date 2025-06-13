@@ -77,15 +77,6 @@ export const GET_DOMAIN = gql`
   }
 `
 
-export const GET_DOMAIN_MAPPING = gql`
-  query DomainMapping($domainName: String!) {
-    domainMapping(domainName: $domainName) {
-      domainName
-      subName
-    }
-  }
-`
-
 export const SET_DOMAIN = gql`
   mutation SetDomain($subName: String!, $domainName: String!) {
     setDomain(subName: $subName, domainName: $domainName) {

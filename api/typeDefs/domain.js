@@ -3,7 +3,6 @@ import { gql } from 'graphql-tag'
 export default gql`
   extend type Query {
     domain(subName: String!): Domain
-    domainMapping(domainName: String!): DomainMapping
   }
 
   extend type Mutation {
@@ -91,10 +90,5 @@ export default gql`
     REVOKED
     FAILED
     VALIDATION_TIMED_OUT
-  }
-  
-  type DomainMapping {
-    domainName: String!
-    subName: String!
   }
 `

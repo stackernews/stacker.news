@@ -1,10 +1,7 @@
 import AWS from 'aws-sdk'
 
-AWS.config.update({
-  region: 'us-east-1'
-})
-
 const config = {
+  region: 'us-east-1',
   // for local development, we use the LOCALSTACK_ENDPOINT
   endpoint: process.env.NODE_ENV === 'development' ? process.env.LOCALSTACK_ENDPOINT : undefined
 }

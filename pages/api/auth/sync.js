@@ -168,7 +168,7 @@ async function consumeVerificationToken (verificationToken) {
     // return the user id
     return { status: 'OK', userId: Number(identifier) }
   } catch (error) {
-    return { status: 'ERROR', reason: error.message || 'cannot validate verification token' }
+    return { status: 'ERROR', reason: 'cannot validate verification token' }
   }
 }
 

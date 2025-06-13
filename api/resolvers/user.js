@@ -1,3 +1,4 @@
+import { createHash } from 'crypto'
 import { readFile } from 'fs/promises'
 import { join, resolve } from 'path'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
@@ -656,6 +657,111 @@ export default {
   },
 
   Mutation: {
+    deleteAccount: async (parent, { deleteContent, confirmation, donateBalance }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      if (confirmation !== 'DELETE MY ACCOUNT') {
+        throw new GqlInputError('incorrect confirmation text')
+      }
+
+      return await models.$transaction(async (tx) => {
+        const user = await tx.user.findUnique({
+          where: { id: me.id },
+          select: {
+            msats: true,
+            mcredits: true,
+            name: true
+          }
+        })
+
+        const totalBalance = user.msats + user.mcredits
+        if (totalBalance > 0 && !donateBalance) {
+          throw new GqlInputError('please withdraw your balance before deleting your account or confirm donation to rewards pool')
+        }
+
+        // If user has balance and confirmed donation, add to donations
+        if (totalBalance > 0 && donateBalance) {
+          await tx.donation.create({
+            data: {
+              sats: Number(totalBalance / 1000n), // Convert msats to sats
+              userId: me.id
+            }
+          })
+
+          // Zero out user balance
+          await tx.user.update({
+            where: { id: me.id },
+            data: {
+              msats: 0,
+              mcredits: 0
+            }
+          })
+        }
+
+        // If deleteContent is true, replace content with hash
+        if (deleteContent) {
+        // Get all items for this user
+          const items = await tx.item.findMany({
+            where: { userId: me.id },
+            select: { id: true, title: true, text: true, url: true }
+          })
+
+          // Update each item with hashed content
+          for (const item of items) {
+            const originalContent = JSON.stringify({
+              title: item.title,
+              text: item.text,
+              url: item.url
+            })
+
+            const hash = createHash('sha256').update(originalContent).digest('hex')
+            const deletedContent = `[deleted] ${hash}`
+
+            await tx.item.update({
+              where: { id: item.id },
+              data: {
+                title: item.title ? deletedContent : null,
+                text: item.text ? deletedContent : null,
+                url: item.url ? deletedContent : null
+              }
+            })
+          }
+        }
+
+        // Remove all attached wallets
+        await tx.wallet.deleteMany({
+          where: { userId: me.id }
+        })
+
+        // Create deletion timestamp and hash the old username with it
+        const deletionTimestamp = new Date()
+        const usernameHashInput = `${user.name}${deletionTimestamp.toISOString()}`
+        const hashedUsername = createHash('sha256').update(usernameHashInput).digest('hex')
+
+        // Mark user as deleted and anonymize data
+        await tx.user.update({
+          where: { id: me.id },
+          data: {
+            deletedAt: deletionTimestamp,
+            name: hashedUsername,
+            email: null,
+            emailVerified: null,
+            emailHash: null,
+            image: null,
+            pubkey: null,
+            apiKeyHash: null,
+            nostrPubkey: null,
+            nostrAuthPubkey: null,
+            twitterId: null,
+            githubId: null
+          }
+        })
+
+        return true
+      })
+    },
     disableFreebies: async (parent, args, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()

@@ -455,6 +455,8 @@ model Upload {
   user               User                @relation("Uploads", fields: [userId], references: [id], onDelete: Cascade)
   User               User[]
   ItemUpload         ItemUpload[]
+  SubBrandingLogo    SubBranding[]       @relation("SubBrandingLogo")
+  SubBrandingFavicon SubBranding[]       @relation("SubBrandingFavicon")
 
   @@index([createdAt], map: "Upload.created_at_index")
   @@index([userId], map: "Upload.userId_index")
@@ -801,6 +803,8 @@ model Sub {
   SubSubscription   SubSubscription[]
   TerritoryTransfer TerritoryTransfer[]
   UserSubTrust      UserSubTrust[]
+  domain            Domain?
+  branding          SubBranding?
 
   @@index([parentName])
   @@index([createdAt])
@@ -1241,6 +1245,123 @@ model Reminder {
   item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([userId, remindAt], map: "Reminder.userId_reminderAt_index")
+}
+
+model Domain {
+  id                      Int                         @id @default(autoincrement())
+  createdAt               DateTime                    @default(now()) @map("created_at")
+  updatedAt               DateTime                    @default(now()) @updatedAt @map("updated_at")
+  domainName              String                      @unique @db.Citext
+  subName                 String                      @unique @db.Citext
+  status                  DomainVerificationStatus    @default(PENDING)
+
+  sub                     Sub                         @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  attempts                DomainVerificationAttempt[]
+  records                 DomainVerificationRecord[]
+  certificate             DomainCertificate?
+
+  @@index([domainName])
+  @@index([createdAt])
+  @@index([subName])
+}
+
+model SubBranding {
+  id                      Int                         @id @default(autoincrement())
+  subName                 String                      @unique @db.Citext
+  title                   String?                     // default title of the sub
+  description             String?                     // default description of the sub
+  logoId                  Int?
+  faviconId               Int?
+  primaryColor            String?
+  secondaryColor          String?
+
+  logoUpload Upload? @relation("SubBrandingLogo", fields: [logoId], references: [id], onDelete: SetNull)
+  faviconUpload Upload? @relation("SubBrandingFavicon", fields: [faviconId], references: [id], onDelete: SetNull)
+  sub Sub @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([subName])
+}
+
+model DomainVerificationAttempt {
+  id                      Int                       @id @default(autoincrement())
+  createdAt               DateTime                  @default(now()) @map("created_at")
+  updatedAt               DateTime                  @default(now()) @updatedAt @map("updated_at")
+  domainId                Int
+  verificationRecordId    Int?
+  stage                   DomainVerificationStage   @default(GENERAL)
+  status                  DomainVerificationStatus  @default(PENDING)
+  message                 String?
+
+  domain                  Domain                    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  verificationRecord      DomainVerificationRecord? @relation(fields: [verificationRecordId], references: [id], onDelete: Cascade)
+
+  @@index([domainId])
+  @@index([verificationRecordId])
+}
+
+model DomainVerificationRecord {
+  id             Int                          @id @default(autoincrement())
+  createdAt      DateTime                     @default(now()) @map("created_at")
+  updatedAt      DateTime                     @default(now()) @updatedAt @map("updated_at")
+  lastCheckedAt  DateTime?                    @map("last_checked_at")
+  domainId       Int
+  type           DomainRecordType
+  recordName     String
+  recordValue    String
+  status         DomainVerificationStatus     @default(PENDING)
+  attempts       DomainVerificationAttempt[]
+
+  domain         Domain                       @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@unique([domainId, type, recordName])
+  @@index([domainId])
+}
+
+model DomainCertificate {
+  id              Int                       @id @default(autoincrement())
+  createdAt       DateTime                  @default(now()) @map("created_at")
+  updatedAt       DateTime                  @default(now()) @updatedAt @map("updated_at")
+  domainId        Int
+  certificateArn  String                    @unique
+  status          DomainCertificateStatus
+
+  domain          Domain                    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@unique([domainId])
+}
+
+enum DomainVerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  ACTIVE
+  HOLD
+}
+
+enum DomainVerificationStage {
+  GENERAL
+  CNAME
+  ACM_REQUEST_CERTIFICATE
+  ACM_REQUEST_VALIDATION_VALUES
+  ACM_VALIDATION
+  ELB_ATTACH_CERTIFICATE
+  VERIFICATION_COMPLETE
+}
+
+enum DomainRecordType {
+  CNAME
+  SSL
+}
+
+// TODO: use these statuses or get rid of most of them
+enum DomainCertificateStatus {
+  PENDING_VALIDATION
+  ISSUED
+  INACTIVE
+  EXPIRED
+  REVOKED
+  FAILED
+  VALIDATION_TIMED_OUT
 }
 
 enum EarnType {

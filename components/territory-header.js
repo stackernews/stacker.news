@@ -69,6 +69,7 @@ export function TerritoryInfo ({ sub, includeLink }) {
             <span className='fw-bold'>{numWithUnits(sub.replyCost)}</span>
           </div>
         </div>
+        {/* TODO: Show custom domain if it exists */}
         <TerritoryBillingLine sub={sub} />
       </CardFooter>
     </>

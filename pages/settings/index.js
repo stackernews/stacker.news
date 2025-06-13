@@ -872,9 +872,6 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
                     This is an LNURL-auth. Not sure what it is? Check <a target='_blank' href='https://lightninglogin.live/learn' rel='noreferrer'>here</a>
                   </li>
                   <li>
-                    Linking your Lightning wallet allows you to quickly sign in and zap directly from your wallet.
-                  </li>
-                  <li>
                     You can unlink your wallet at any time.
                   </li>
                   <li>

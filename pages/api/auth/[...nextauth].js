@@ -119,11 +119,6 @@ function getCallbacks (req, res) {
         }
       }
 
-      // if the token is from a different domain than the one we're on, return null
-      // this is to prevent stolen JWTs from being used on other domains
-      // mitigating damages from compromised custom domains
-      if (token.domain && token.domain !== req.headers.host) return null
-
       if (token?.id) {
         // HACK token.sub is used by nextjs v4 internally and is used like a userId
         // setting it here allows us to link multiple auth method to an account

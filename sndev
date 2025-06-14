@@ -1,12 +1,26 @@
 #!/bin/bash
+# sndev - Stacker News Development Environment
+# This script manages a docker based Stacker News development environment.
+# It provides commands to start, stop, and manage the environment, as well as
+# to interact with the Stacker News application, database, and other services.
+# Usage: sndev [COMMAND] [OPTIONS]
+# Example: sndev start - starts the development environment
+# Example: sndev stop - stops the development environment
+# Example: sndev logs - shows logs from the development environment
+# Example: sndev cli lnd getinfo - runs a command on the lnd service
+# Example: sndev pr 123 - fetches and checks out pull request #123
+# Example: sndev login nym - logs in as a nym
+# Example: sndev set_balance nym 1000000 - sets the balance of a nym to 1,000,000 millisatoshis
+# Example: sndev fund lnd_bolt11 - pays a bolt11 for funding
+# Example: sndev withdraw 1000 - creates a bolt11 for withdrawal of 1000 sats
+# Example: sndev psql - opens psql on the database
+# Example: sndev prisma migrate dev - runs a prisma migration
 
-# Detect if running in GitHub Codespaces
 if [ "$CODESPACES" = "true" ]; then
-  # Ensure Docker is running in Codespaces
-  if ! docker info > /dev/null 2>&1; then
-    echo "Docker is not running. Please start Docker in your Codespace."
-    exit 1
-  fi
+  export CPU_SHARES_IMPORTANT=1024
+  export CPU_SHARES_MODERATE=512
+  export CPU_SHARES_LOW=256
+  export OPENSEARCH_PASSWORD=mVchg1T5oA9wudUh
 fi
 
 set -e

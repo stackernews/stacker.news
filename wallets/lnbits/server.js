@@ -38,7 +38,7 @@ export async function createInvoice (
 
   if (process.env.NODE_ENV !== 'production' && hostname.startsWith('localhost:')) {
     // to make it possible to attach LNbits for receives during local dev
-    hostname = 'lnbits:5000'
+    hostname = hostname === `localhost:${process.env.LNBITS_WEB_PORT}` ? 'lnbits:5000' : 'lnbits-v1:5000'
   }
 
   let res

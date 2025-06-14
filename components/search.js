@@ -8,9 +8,8 @@ import {
   Select,
   DatePicker,
   SubmitButton,
-  useEntityAutocomplete,
-  UserSuggest,
-  TerritorySuggest
+  useDualAutocomplete,
+  DualAutocompleteWrapper
 } from './form'
 import { useRouter } from 'next/router'
 import { whenToFrom } from '@/lib/time'
@@ -148,67 +147,39 @@ function SearchInput ({ name, setOuterQ, ...props }) {
     inputRef.current?.setSelectionRange(start, end)
   }, [])
 
-  const userAutocomplete = useEntityAutocomplete({
-    prefix: '@',
+  const { userAutocomplete, territoryAutocomplete, handleTextChange, handleKeyDown, handleBlur } = useDualAutocomplete({
     meta,
     helpers,
     innerRef: inputRef,
-    setSelectionRange: setCaret,
-    SuggestComponent: UserSuggest
+    setSelectionRange: setCaret
   })
 
-  const territoryAutocomplete = useEntityAutocomplete({
-    prefix: '~',
-    meta,
-    helpers,
-    innerRef: inputRef,
-    setSelectionRange: setCaret,
-    SuggestComponent: TerritorySuggest
-  })
-
-  const handleChange = useCallback((formik, e) => {
+  const handleChangeWithOuter = useCallback((formik, e) => {
     setOuterQ(e.target.value.trim())
-    if (!userAutocomplete.handleTextChange(e)) {
-      territoryAutocomplete.handleTextChange(e)
-    }
-  }, [setOuterQ, userAutocomplete, territoryAutocomplete])
-
-  const onKeyDown = useCallback((userSuggestOnKeyDown, territorySuggestOnKeyDown) => (e) => {
-    const metaOrCtrl = e.metaKey || e.ctrlKey
-    if (metaOrCtrl) return
-    if (userAutocomplete.entityData) return userSuggestOnKeyDown(e)
-    if (territoryAutocomplete.entityData) return territorySuggestOnKeyDown(e)
-  }, [userAutocomplete.entityData, territoryAutocomplete.entityData])
+    handleTextChange(e)
+  }, [setOuterQ, handleTextChange])
 
   return (
     <div className='position-relative flex-grow-1'>
-      <UserSuggest
-        query={userAutocomplete.entityData?.query}
-        onSelect={userAutocomplete.handleSelect}
-        dropdownStyle={userAutocomplete.entityData?.style}
-      >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions: resetUserSuggestions }) => (
-        <TerritorySuggest
-          query={territoryAutocomplete.entityData?.query}
-          onSelect={territoryAutocomplete.handleSelect}
-          dropdownStyle={territoryAutocomplete.entityData?.style}
-        >{({ onKeyDown: territorySuggestOnKeyDown, resetSuggestions: resetTerritorySuggestions }) => (
+      <DualAutocompleteWrapper
+        userAutocomplete={userAutocomplete}
+        territoryAutocomplete={territoryAutocomplete}
+      >
+        {({ userSuggestOnKeyDown, territorySuggestOnKeyDown, resetUserSuggestions, resetTerritorySuggestions }) => (
           <Input
             name={name}
             innerRef={inputRef}
             clear
             autoComplete='off'
-            onChange={handleChange}
-            onKeyDown={onKeyDown(userSuggestOnKeyDown, territorySuggestOnKeyDown)}
-            onBlur={() => {
-              setTimeout(resetUserSuggestions, 500)
-              setTimeout(resetTerritorySuggestions, 500)
+            onChange={handleChangeWithOuter}
+            onKeyDown={(e) => {
+              handleKeyDown(e, userSuggestOnKeyDown, territorySuggestOnKeyDown)
             }}
+            onBlur={() => handleBlur(resetUserSuggestions, resetTerritorySuggestions)}
             {...props}
           />
         )}
-        </TerritorySuggest>
-      )}
-      </UserSuggest>
+      </DualAutocompleteWrapper>
     </div>
   )
 }

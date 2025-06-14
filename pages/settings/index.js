@@ -68,7 +68,7 @@ export function SettingsHeader () {
           </Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/settings/subscriptions' passHref legacyBehavior>
+          <Link href='/settings/subscriptions/stackers' passHref legacyBehavior>
             <Nav.Link eventKey='subscriptions'>subscriptions</Nav.Link>
           </Link>
         </Nav.Item>

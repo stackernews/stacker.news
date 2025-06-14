@@ -125,7 +125,6 @@ export default gql`
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
     proxyReceive: Boolean
-    directReceive: Boolean
     receiveCreditsBelowSats: Int!
     sendCreditsBelowSats: Int!
   }
@@ -209,7 +208,6 @@ export default gql`
     vaultKeyHash: String
     walletsUpdatedAt: Date
     proxyReceive: Boolean
-    directReceive: Boolean
     receiveCreditsBelowSats: Int!
     sendCreditsBelowSats: Int!
   }

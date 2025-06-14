@@ -5,16 +5,15 @@ import {
 import crypto, { timingSafeEqual } from 'crypto'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
-import { formatMsats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
+import { formatMsats, msatsToSats, msatsToSatsDecimal } from '@/lib/format'
 import {
   USER_ID, INVOICE_RETENTION_DAYS,
-  PAID_ACTION_PAYMENT_METHODS,
   WALLET_CREATE_INVOICE_TIMEOUT_MS,
   WALLET_RETRY_AFTER_MS,
   WALLET_RETRY_BEFORE_MS,
   WALLET_MAX_RETRIES
 } from '@/lib/constants'
-import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
+import { validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { bolt11Tags } from '@/lib/bolt11'
@@ -475,20 +474,6 @@ const resolvers = {
     __resolveType: invoiceOrDirect => invoiceOrDirect.__resolveType
   },
   Mutation: {
-    createInvoice: async (parent, { amount }, { me, models, lnd, headers }) => {
-      await validateSchema(amountSchema, { amount })
-      await assertGofacYourself({ models, headers })
-
-      const { invoice, paymentMethod } = await performPaidAction('RECEIVE', {
-        msats: satsToMsats(amount)
-      }, { models, lnd, me })
-
-      return {
-        ...invoice,
-        __resolveType:
-          paymentMethod === PAID_ACTION_PAYMENT_METHODS.DIRECT ? 'Direct' : 'Invoice'
-      }
-    },
     createWithdrawl: createWithdrawal,
     sendToLnAddr,
     cancelInvoice: async (parent, { hash, hmac, userCancel }, { me, models, lnd, boss }) => {

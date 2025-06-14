@@ -12,7 +12,6 @@ import {
   paidActionCanceling
 } from './paidAction'
 import { payingActionConfirmed, payingActionFailed } from './payingAction'
-import { canReceive, getWalletByType } from '@/wallets/common'
 import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
 
 export async function subscribeToWallet (args) {
@@ -291,20 +290,21 @@ export async function checkWallet ({ data: { userId }, models }) {
   const pushNotifications = []
 
   await models.$transaction(async tx => {
-    const wallets = await tx.wallet.findMany({
+    // TODO(wallet-v2): test this when I fixed 'Unknown type "WalletDetails"'
+    const wallets = await tx.userWallet.findMany({
       where: {
         userId,
         enabled: true
       },
       include: {
-        vaultEntries: true
+        protocols: true
       }
     })
 
     const { hasRecvWallet: oldHasRecvWallet, hasSendWallet: oldHasSendWallet } = await tx.user.findUnique({ where: { id: userId } })
 
-    const newHasRecvWallet = wallets.some(({ type, wallet }) => canReceive({ def: getWalletByType(type), config: wallet }))
-    const newHasSendWallet = wallets.some(({ vaultEntries }) => vaultEntries.length > 0)
+    const newHasRecvWallet = wallets.some(({ protocols }) => protocols.some(({ send }) => !send))
+    const newHasSendWallet = wallets.some(({ protocols }) => protocols.some(({ send }) => send))
 
     await tx.user.update({
       where: { id: userId },

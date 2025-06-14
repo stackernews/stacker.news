@@ -7,7 +7,7 @@ import AnonIcon from '@/svgs/spy-fill.svg'
 import styles from './footer.module.css'
 import canvasStyles from './offcanvas.module.css'
 import classNames from 'classnames'
-import { useWalletIndicator } from '@/wallets/indicator'
+import { useWalletIndicator } from '@/wallets/client/hooks'
 
 export default function OffCanvas ({ me, dropNavKey }) {
   const [show, setShow] = useState(false)

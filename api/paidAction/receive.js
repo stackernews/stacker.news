@@ -16,7 +16,6 @@ export async function getCost ({ msats }) {
 
 export async function getInvoiceablePeer (_, { me, models, cost, paymentMethod }) {
   if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.P2P && !me?.proxyReceive) return null
-  if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.DIRECT && !me?.directReceive) return null
 
   const wallets = await getInvoiceableWallets(me.id, { models })
   if (wallets.length === 0) {

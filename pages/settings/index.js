@@ -160,7 +160,6 @@ export default function Settings ({ ssrData }) {
             hideIsContributor: settings?.hideIsContributor,
             noReferralLinks: settings?.noReferralLinks,
             proxyReceive: settings?.proxyReceive,
-            directReceive: settings?.directReceive,
             receiveCreditsBelowSats: settings?.receiveCreditsBelowSats,
             sendCreditsBelowSats: settings?.sendCreditsBelowSats
           }}
@@ -365,22 +364,6 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='proxyReceive'
-            groupClassName='mb-0'
-          />
-          <Checkbox
-            label={
-              <div className='d-flex align-items-center'>directly deposit to attached wallets
-                <Info>
-                  <ul>
-                    <li>Directly deposit to your attached wallets if they cause your balance to exceed your auto-withdraw threshold</li>
-                    <li>Senders will be able to see your wallet's lightning node public key</li>
-                    <li>If 'proxy deposits' is also checked, it will take precedence and direct deposits will only be used as a fallback</li>
-                    <li>Because we can't determine if a payment succeeds, you won't be notified about direct deposits</li>
-                  </ul>
-                </Info>
-              </div>
-            }
-            name='directReceive'
             groupClassName='mb-0'
           />
           <Checkbox

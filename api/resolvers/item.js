@@ -733,6 +733,21 @@ export default {
         homeMaxBoost: homeAgg._max.boost || 0,
         subMaxBoost: subAgg?._max.boost || 0
       }
+    },
+    newComments: async (parent, { rootId, after }, { models, me }) => {
+      const comments = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}
+          FROM "Item"
+          -- comments can be nested, so we need to get all comments that are descendants of the root
+          WHERE "Item".path <@ (SELECT path FROM "Item" WHERE id = $1)
+          AND "Item"."created_at" > $2
+          ORDER BY "Item"."created_at" ASC`
+      }, Number(rootId), after)
+
+      return { comments }
     }
   },
 

@@ -547,7 +547,7 @@ const resolvers = {
 
 export default resolvers
 
-export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, wallet, logger }) {
+export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, protocol, logger }) {
   assertApiKeyNotPermitted({ me })
   await validateSchema(withdrawlSchema, { invoice, maxFee })
   await assertGofacYourself({ models, headers })
@@ -597,7 +597,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     throw new GqlInputError('SN cannot pay an invoice that SN is proxying')
   }
 
-  return await performPayingAction({ bolt11: invoice, maxFee, walletId: wallet?.id }, { me, models, lnd })
+  return await performPayingAction({ bolt11: invoice, maxFee, protocolId: protocol?.id }, { me, models, lnd })
 }
 
 async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },

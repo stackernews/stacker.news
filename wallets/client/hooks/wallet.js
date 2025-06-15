@@ -1,6 +1,6 @@
 import { useWallets } from '@/wallets/client/context'
 import protocols from '@/wallets/client/protocols'
-import { isUserWallet } from '@/wallets/lib/util'
+import { isWallet } from '@/wallets/lib/util'
 import { useMemo } from 'react'
 
 export function useWallet (name) {
@@ -10,7 +10,7 @@ export function useWallet (name) {
 export function useConfiguredWallets () {
   const wallets = useWallets()
   return useMemo(
-    () => wallets.filter(w => isUserWallet(w)),
+    () => wallets.filter(w => isWallet(w)),
     [wallets]
   )
 }
@@ -18,7 +18,7 @@ export function useConfiguredWallets () {
 export function useSendWallets () {
   const wallets = useConfiguredWallets()
   return useMemo(
-    () => wallets.filter(w => isUserWallet(w) && w.send && w.enabled),
+    () => wallets.filter(w => isWallet(w) && w.send && w.enabled),
     [wallets]
   )
 }
@@ -44,7 +44,7 @@ export function useSendProtocols () {
 }
 
 export function useWalletSupport (wallet) {
-  const template = isUserWallet(wallet) ? wallet.template : wallet
+  const template = isWallet(wallet) ? wallet.template : wallet
   return useMemo(
     () => ({
       receive: template.receive,
@@ -55,7 +55,7 @@ export function useWalletSupport (wallet) {
 }
 
 export function useWalletIsConfigured (wallet) {
-  return isUserWallet(wallet) && (wallet.receive || wallet.send)
+  return isWallet(wallet) && (wallet.receive || wallet.send)
 }
 
 export const WalletStatus = {
@@ -66,7 +66,7 @@ export const WalletStatus = {
 }
 
 export function useWalletStatus (wallet) {
-  if (!isUserWallet(wallet)) return WalletStatus.Disabled
+  if (!isWallet(wallet)) return WalletStatus.Disabled
 
   // TODO(wallet-v2): once API returns wallet status, use it here
   return useMemo(

@@ -1,4 +1,4 @@
-import { isUserWallet } from '@/wallets/lib/util'
+import { isWallet } from '@/wallets/lib/util'
 
 // pages
 export const FIRST_PAGE = 'FIRST_PAGE'
@@ -44,7 +44,7 @@ export default function reducer (state, action) {
 
 function getPage (state) {
   // did decryption fail for a wallet?
-  if (state.wallets.some(w => isUserWallet(w) && w.encrypted)) {
+  if (state.wallets.some(w => isWallet(w) && w.encrypted)) {
     return UNLOCK_PAGE
   }
 

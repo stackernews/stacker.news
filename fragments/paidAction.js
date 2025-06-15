@@ -23,6 +23,8 @@ const ITEM_PAID_ACTION_FIELDS = gql`
       id
       deleteScheduledAt
       reminderScheduledAt
+      scheduledAt
+      isScheduled
       ...CommentFields
       comments {
         comments {
@@ -39,6 +41,8 @@ const ITEM_PAID_ACTION_FIELDS_NO_CHILD_COMMENTS = gql`
       id
       deleteScheduledAt
       reminderScheduledAt
+      scheduledAt
+      isScheduled
       ...CommentFields
     }
   }
@@ -151,6 +155,8 @@ export const UPSERT_DISCUSSION = gql`
         id
         deleteScheduledAt
         reminderScheduledAt
+        scheduledAt
+        isScheduled
       }
       ...PaidActionFields
     }
@@ -168,6 +174,8 @@ export const UPSERT_JOB = gql`
         id
         deleteScheduledAt
         reminderScheduledAt
+        scheduledAt
+        isScheduled
       }
       ...PaidActionFields
     }
@@ -183,6 +191,8 @@ export const UPSERT_LINK = gql`
         id
         deleteScheduledAt
         reminderScheduledAt
+        scheduledAt
+        isScheduled
       }
       ...PaidActionFields
     }
@@ -200,6 +210,8 @@ export const UPSERT_POLL = gql`
         id
         deleteScheduledAt
         reminderScheduledAt
+        scheduledAt
+        isScheduled
       }
       ...PaidActionFields
     }
@@ -215,6 +227,8 @@ export const UPSERT_BOUNTY = gql`
         id
         deleteScheduledAt
         reminderScheduledAt
+        scheduledAt
+        isScheduled
       }
       ...PaidActionFields
     }

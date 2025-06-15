@@ -1,6 +1,6 @@
 import { getPaymentFailureStatus, hodlInvoiceCltvDetails, getPaymentOrNotSent } from '@/api/lnd'
 import { paidActions } from '@/api/paidAction'
-import { walletLogger } from '@/api/resolvers/wallet'
+import { walletLogger } from '@/wallets/server'
 import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { formatSats, msatsToSats, toPositiveNumber } from '@/lib/format'
 import { datePivot } from '@/lib/time'
@@ -10,7 +10,7 @@ import {
   getInvoice, parsePaymentRequest,
   payViaPaymentRequest, settleHodlInvoice
 } from 'ln-service'
-import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/wrap'
+import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/server/wrap'
 
 // aggressive finalization retry options
 const FINALIZE_OPTIONS = { retryLimit: 2 ** 31 - 1, retryBackoff: false, retryDelay: 5, priority: 1000 }
@@ -44,7 +44,11 @@ async function transitionInvoice (jobName,
           include: {
             invoice: true,
             withdrawl: true,
-            wallet: true
+            protocol: {
+              include: {
+                wallet: true
+              }
+            }
           }
         }
       }
@@ -234,8 +238,8 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
                 msatsPaying: BigInt(invoice.mtokens),
                 msatsFeePaying: maxFeeMsats,
                 autoWithdraw: true,
-                walletId: invoiceForward.walletId,
-                userId: invoiceForward.wallet.userId
+                protocolId: invoiceForward.protocolId,
+                userId: invoiceForward.protocol.wallet.userId
               }
             }
           }

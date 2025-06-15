@@ -3,7 +3,6 @@ import { gql } from 'graphql-tag'
 export default gql`
   type VaultEntry {
     id: ID!
-    key: String!
     iv: String!
     value: String!
     createdAt: Date!
@@ -11,10 +10,8 @@ export default gql`
   }
 
   input VaultEntryInput {
-    key: String!
     iv: String!
     value: String!
-    walletId: ID
   }
 
   extend type Query {

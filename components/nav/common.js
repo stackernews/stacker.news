@@ -21,8 +21,8 @@ import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
-import { useWallets } from '@/wallets/index'
-import { useWalletIndicator } from '@/wallets/indicator'
+// import { useWallets } from '@/wallets/client/hooks'
+import { useWalletIndicator } from '@/wallets/client/hooks'
 import SwitchAccountList, { nextAccount, useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
@@ -295,7 +295,7 @@ export default function LoginButton () {
 
 function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
-  const { removeLocalWallets } = useWallets()
+  // const { removeLocalWallets } = useWallets()
   const router = useRouter()
 
   return (
@@ -326,7 +326,8 @@ function LogoutObstacle ({ onClose }) {
               await togglePushSubscription().catch(console.error)
             }
 
-            removeLocalWallets()
+            // TODO(wallet-v2): implement this
+            // removeLocalWallets()
 
             await signOut({ callbackUrl: '/' })
           }}

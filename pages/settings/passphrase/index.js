@@ -10,13 +10,13 @@ import { deviceSyncSchema } from '@/lib/validate'
 import RefreshIcon from '@/svgs/refresh-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/components/toast'
-import { useWallets } from '@/wallets/index'
+import { useWalletVault } from '@/wallets/client/hooks'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function DeviceSync ({ ssrData }) {
   const { me } = useMe()
-  const { onVaultKeySet, beforeDisconnectVault } = useWallets()
+  const { onVaultKeySet, beforeDisconnectVault } = useWalletVault()
   const { key, setVaultKey, clearVault, disconnectVault } =
     useVaultConfigurator({ onVaultKeySet, beforeDisconnectVault })
   const [passphrase, setPassphrase] = useState()

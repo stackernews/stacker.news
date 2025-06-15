@@ -211,7 +211,6 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
       ]
     },
     include: {
-      wallet: true,
       invoiceForward: {
         include: {
           invoice: true
@@ -291,7 +290,7 @@ export async function checkWallet ({ data: { userId }, models }) {
 
   await models.$transaction(async tx => {
     // TODO(wallet-v2): test this when I fixed 'Unknown type "WalletDetails"'
-    const wallets = await tx.userWallet.findMany({
+    const wallets = await tx.wallet.findMany({
       where: {
         userId,
         enabled: true

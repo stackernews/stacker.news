@@ -128,7 +128,7 @@ const WALLET_TEMPLATE_FIELDS = gql`
 const USER_WALLET_FIELDS = gql`
   ${WALLET_PROTOCOL_FIELDS}
   ${WALLET_TEMPLATE_FIELDS}
-  fragment UserWalletFields on UserWallet {
+  fragment WalletFields on Wallet {
     id
     name
     priority
@@ -148,8 +148,8 @@ const WALLET_OR_TEMPLATE_FIELDS = gql`
   ${USER_WALLET_FIELDS}
   ${WALLET_TEMPLATE_FIELDS}
   fragment WalletOrTemplateFields on WalletOrTemplate {
-    ... on UserWallet {
-      ...UserWalletFields
+    ... on Wallet {
+      ...WalletFields
     }
     ... on WalletTemplate {
       ...WalletTemplateFields

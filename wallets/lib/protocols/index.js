@@ -20,7 +20,7 @@ import webln from './webln'
  * @property {string} displayName - protocol name in user interface
  * @property {boolean} send - is this protocol for sending payments?
  * @property {ProtocolField[]} fields - protocol fields for configuration
- * @property {string} relationName - name of the relation in the ProtocolWallet prisma model
+ * @property {string} relationName - name of the relation in the WalletProtocol prisma model
  */
 
 /**

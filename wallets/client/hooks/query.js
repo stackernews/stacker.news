@@ -22,7 +22,7 @@ import {
 import { useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { isEncryptedField, isUserWallet, reverseProtocolRelationName } from '@/wallets/lib/util'
+import { isEncryptedField, isWallet, reverseProtocolRelationName } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
@@ -90,7 +90,7 @@ export function useWalletProtocolUpsert (wallet, protocol) {
     const encrypted = await encryptConfig(values)
 
     const variables = encrypted
-    if (isUserWallet(wallet)) {
+    if (isWallet(wallet)) {
       variables.walletId = wallet.id
     } else {
       variables.templateId = wallet.id
@@ -203,7 +203,7 @@ function useWalletDecryption () {
   const decryptConfig = useDecryptConfig()
 
   return useCallback(async wallet => {
-    if (!isUserWallet(wallet)) return wallet
+    if (!isWallet(wallet)) return wallet
 
     try {
       const protocols = await Promise.all(

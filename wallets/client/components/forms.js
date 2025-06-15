@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
 import { useRouter } from 'next/router'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName } from '@/wallets/client/components'
-import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, urlify, isUserWallet, isTemplate } from '@/wallets/lib/util'
+import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, urlify, isWallet, isTemplate } from '@/wallets/lib/util'
 import styles from '@/styles/wallet.module.css'
 import { Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
@@ -166,7 +166,7 @@ function WalletProtocolForm () {
 
   const onSubmit = useCallback(async values => {
     const upsert = await upsertWalletProtocol(values)
-    if (isUserWallet(wallet)) {
+    if (isWallet(wallet)) {
       toaster.success('wallet saved')
       refetch()
       return
@@ -210,7 +210,7 @@ function WalletProtocolFormButtons () {
     <div className='d-flex justify-content-end'>
       {!isTemplate(protocol) && <Button variant='grey-medium' className='me-auto' onClick={onDetach}>detach</Button>}
       <CancelButton>cancel</CancelButton>
-      <SubmitButton variant='primary'>{isUserWallet(wallet) ? 'save' : 'attach'}</SubmitButton>
+      <SubmitButton variant='primary'>{isWallet(wallet) ? 'save' : 'attach'}</SubmitButton>
     </div>
   )
 }
@@ -262,7 +262,7 @@ function useWalletProtocols () {
   if (!sendRecvParam) return []
 
   const protocolFilter = p => sendRecvParam === 'send' ? p.send : !p.send
-  return isUserWallet(wallet)
+  return isWallet(wallet)
     ? wallet.template.protocols.filter(protocolFilter)
     : wallet.protocols.filter(protocolFilter)
 }
@@ -274,7 +274,7 @@ function useSelectedProtocol () {
 
   const send = sendRecvParam === 'send'
   let protocol = wallet.protocols.find(p => p.name === protocolParam && p.send === send)
-  if (!protocol && isUserWallet(wallet)) {
+  if (!protocol && isWallet(wallet)) {
     // the protocol was not found as configured, look for it in the template
     protocol = wallet.template.protocols.find(p => p.name === protocolParam && p.send === send)
   }

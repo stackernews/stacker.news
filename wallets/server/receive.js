@@ -10,8 +10,8 @@ import { protocolCreateInvoice } from '@/wallets/server/protocols'
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 
 export async function * createUserInvoice (userId, { msats, description, descriptionHash, expiry = 360 }, { paymentAttempt, predecessorId, models }) {
-  // get the wallets in order of priority
-  const wallets = await getInvoiceableWallets(userId, {
+  // get the protocols in order of priority
+  const protocols = await getInvoiceableWallets(userId, {
     paymentAttempt,
     predecessorId,
     models
@@ -19,7 +19,7 @@ export async function * createUserInvoice (userId, { msats, description, descrip
 
   msats = toPositiveNumber(msats)
 
-  for (const wallet of wallets) {
+  for (const protocol of protocols) {
     // const logger = walletLogger({ wallet, models })
 
     try {
@@ -30,8 +30,8 @@ export async function * createUserInvoice (userId, { msats, description, descrip
 
       let invoice
       try {
-        invoice = await walletCreateInvoice(
-          wallet,
+        invoice = await _protocolCreateInvoice(
+          protocol,
           { msats, description, descriptionHash, expiry },
           { models })
       } catch (err) {
@@ -56,7 +56,7 @@ export async function * createUserInvoice (userId, { msats, description, descrip
         }
       }
 
-      yield { invoice, wallet /* logger */ }
+      yield { invoice, protocol /* logger */ }
     } catch (err) {
       console.error('failed to create user invoice:', err)
       // logger.error(err.message, { status: true })
@@ -68,7 +68,7 @@ export async function createWrappedInvoice (userId,
   { msats, feePercent, description, descriptionHash, expiry = 360 },
   { paymentAttempt, predecessorId, models, me, lnd }) {
   // loop over all receiver wallet invoices until we successfully wrapped one
-  for await (const { invoice, logger, wallet } of createUserInvoice(userId, {
+  for await (const { invoice, logger, protocol } of createUserInvoice(userId, {
     // this is the amount the stacker will receive, the other (feePercent)% is our fee
     msats: toPositiveBigInt(msats) * (100n - feePercent) / 100n,
     description,
@@ -82,7 +82,7 @@ export async function createWrappedInvoice (userId,
       return {
         invoice,
         wrappedInvoice: wrappedInvoice.request,
-        wallet,
+        protocol,
         maxFee
       }
     } catch (e) {
@@ -101,19 +101,19 @@ export async function getInvoiceableWallets (userId, { paymentAttempt, predecess
   // if predecessorId is not provided, the subquery will be empty and thus no wallets are filtered out.
   return await models.$queryRaw`
     SELECT
-      "ProtocolWallet".*,
+      "WalletProtocol".*,
       jsonb_build_object(
         'id', "users"."id",
         'hideInvoiceDesc', "users"."hideInvoiceDesc"
       ) AS "user"
-    FROM "ProtocolWallet"
-    JOIN "UserWallet" ON "ProtocolWallet"."walletId" = "UserWallet"."id"
-    JOIN "users" ON "users"."id" = "UserWallet"."userId"
+    FROM "WalletProtocol"
+    JOIN "Wallet" ON "WalletProtocol"."walletId" = "Wallet"."id"
+    JOIN "users" ON "users"."id" = "Wallet"."userId"
     WHERE
-      "UserWallet"."userId" = ${userId}
-      AND "UserWallet"."enabled" = true
-      AND "ProtocolWallet"."send" = false
-      AND "ProtocolWallet"."id" NOT IN (
+      "Wallet"."userId" = ${userId}
+      AND "Wallet"."enabled" = true
+      AND "WalletProtocol"."send" = false
+      AND "WalletProtocol"."id" NOT IN (
         WITH RECURSIVE "Retries" AS (
           -- select the current failed invoice that we are currently retrying
           -- this failed invoice will be used to start the recursion
@@ -130,17 +130,17 @@ export async function getInvoiceableWallets (userId, { paymentAttempt, predecess
           AND "Invoice"."paymentAttempt" = ${paymentAttempt}
         )
         SELECT
-          "InvoiceForward"."walletId"
+          "InvoiceForward"."protocolId"
         FROM "Retries"
         JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Retries"."id"
         JOIN "Withdrawl" ON "Withdrawl".id = "InvoiceForward"."withdrawlId"
         WHERE "Withdrawl"."status" IS DISTINCT FROM 'CONFIRMED'
       )
     -- TODO(wallet-v2): should the user be able to specify the order of protocols within the same wallet?
-    ORDER BY "UserWallet"."priority" ASC, "ProtocolWallet"."updated_at" ASC`
+    ORDER BY "Wallet"."priority" ASC, "WalletProtocol"."updated_at" ASC`
 }
 
-async function walletCreateInvoice (wallet, {
+async function _protocolCreateInvoice (protocol, {
   msats,
   description,
   descriptionHash,
@@ -149,10 +149,9 @@ async function walletCreateInvoice (wallet, {
   // check for pending withdrawals
 
   // TODO(wallet-v2): make sure this still works as intended
-  // TODO(wallet-v2): rename walletId to protocolId?
   const pendingWithdrawals = await models.withdrawl.count({
     where: {
-      walletId: wallet.id,
+      protocolId: protocol.id,
       status: null
     }
   })
@@ -161,7 +160,7 @@ async function walletCreateInvoice (wallet, {
   // TODO(wallet-v2): make sure this still works as intended
   const pendingForwards = await models.invoiceForward.count({
     where: {
-      walletId: wallet.id,
+      protocolId: protocol.id,
       invoice: {
         actionState: {
           notIn: PAID_ACTION_TERMINAL_STATES
@@ -177,14 +176,14 @@ async function walletCreateInvoice (wallet, {
 
   return await withTimeout(
     protocolCreateInvoice(
-      wallet,
+      protocol,
       {
         msats,
-        description: wallet.user.hideInvoiceDesc ? undefined : description,
+        description: protocol.user.hideInvoiceDesc ? undefined : description,
         descriptionHash,
         expiry
       },
-      wallet.config,
+      protocol.config,
       {
         logger,
         signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS)

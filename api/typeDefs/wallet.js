@@ -54,9 +54,9 @@ const typeDefs = gql`
     id: ID!
   }
 
-  union WalletOrTemplate = UserWallet | WalletTemplate
+  union WalletOrTemplate = Wallet | WalletTemplate
 
-  type UserWallet {
+  type Wallet {
     id: ID!
     name: String!
     enabled: Boolean!

@@ -1,6 +1,6 @@
 import { getPaymentFailureStatus, getPaymentOrNotSent } from '@/api/lnd'
 import { walletLogger } from '@/wallets/server'
-import { formatMsats, formatSats, msatsToSats, toPositiveBigInt } from '@/lib/format'
+import { formatMsats, msatsToSats, toPositiveBigInt } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { notifyWithdrawal } from '@/lib/webPush'
 import { Prisma } from '@prisma/client'
@@ -28,7 +28,7 @@ async function transitionWithdrawal (jobName,
       // grab optimistic concurrency lock and the withdrawal
       dbWithdrawal = await tx.withdrawl.update({
         include: {
-          wallet: true
+          protocol: true
         },
         where: {
           id: withdrawalId,
@@ -49,7 +49,7 @@ async function transitionWithdrawal (jobName,
       if (data) {
         return await tx.withdrawl.update({
           include: {
-            wallet: true
+            protocol: true
           },
           where: { id: dbWithdrawal.id },
           data
@@ -123,11 +123,12 @@ export async function payingActionConfirmed ({ data: args, models, lnd, boss }) 
   if (transitionedWithdrawal) {
     await notifyWithdrawal(transitionedWithdrawal)
 
-    const logger = walletLogger({ models, wallet: transitionedWithdrawal.wallet })
-    logger?.ok(
-      `↙ payment received: ${formatSats(msatsToSats(transitionedWithdrawal.msatsPaid))}`, {
-        withdrawalId: transitionedWithdrawal.id
-      })
+    // TODO(wallet-v2): add logging
+    // const logger = walletLogger({ models, protocol: transitionedWithdrawal.protocol })
+    // logger?.ok(
+    //   `↙ payment received: ${formatSats(msatsToSats(transitionedWithdrawal.msatsPaid))}`, {
+    //     withdrawalId: transitionedWithdrawal.id
+    //   })
   }
 }
 

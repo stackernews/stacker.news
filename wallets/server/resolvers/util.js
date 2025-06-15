@@ -1,4 +1,4 @@
-export function mapUserWalletResolveTypes (wallet) {
+export function mapWalletResolveTypes (wallet) {
   const resolveTypeOfProtocolConfig = ({ name, send }) => {
     switch (name) {
       case 'NWC':
@@ -35,6 +35,6 @@ export function mapUserWalletResolveTypes (wallet) {
         }
       }
     }),
-    __resolveType: 'UserWallet'
+    __resolveType: 'Wallet'
   }
 }

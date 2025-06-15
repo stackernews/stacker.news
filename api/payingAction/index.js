@@ -6,9 +6,9 @@ import { parsePaymentRequest, payViaPaymentRequest } from 'ln-service'
 // paying actions are completely distinct from paid actions
 // and there's only one paying action: send
 // ... still we want the api to at least be similar
-export default async function performPayingAction ({ bolt11, maxFee, walletId }, { me, models, lnd }) {
+export default async function performPayingAction ({ bolt11, maxFee, protocolId }, { me, models, lnd }) {
   try {
-    console.group('performPayingAction', `${bolt11.slice(0, 10)}...`, maxFee, walletId)
+    console.group('performPayingAction', `${bolt11.slice(0, 10)}...`, maxFee, protocolId)
 
     if (!me) {
       throw new Error('You must be logged in to perform this action')
@@ -34,8 +34,8 @@ export default async function performPayingAction ({ bolt11, maxFee, walletId },
           msatsPaying: toPositiveBigInt(decoded.mtokens),
           msatsFeePaying: satsToMsats(maxFee),
           userId: me.id,
-          walletId,
-          autoWithdraw: !!walletId
+          protocolId,
+          autoWithdraw: !!protocolId
         }
       })
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })

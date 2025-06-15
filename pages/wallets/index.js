@@ -4,7 +4,7 @@ import { FIRST_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch, usePage, UNLOCK_
 import { WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
 import styles from '@/styles/wallet.module.css'
 import WalletCard from '@/wallets/client/components/card'
-import { isTemplate, isUserWallet } from '@/wallets/lib/util'
+import { isTemplate, isWallet } from '@/wallets/lib/util'
 import { usePassphrasePrompt, useShowPassphrase } from '@/wallets/client/hooks'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
@@ -46,8 +46,8 @@ export default function Wallet () {
     )
   }
 
-  const userWallets = wallets.filter(w => isUserWallet(w))
-  const walletTemplates = wallets.filter(w => isTemplate(w))
+  const configured = wallets.filter(w => isWallet(w))
+  const templates = wallets.filter(w => isTemplate(w))
 
   return (
     <WalletLayout>
@@ -73,11 +73,11 @@ export default function Wallet () {
         </div>
         <div className={styles.walletGrid}>
           {/* TODO(wallet-v2): filter templates based on search or filters */}
-          {userWallets.map((w, i) => <WalletCard key={i} wallet={w} />)}
+          {configured.map((w, i) => <WalletCard key={i} wallet={w} />)}
         </div>
         <div className={styles.separator} />
         <div className={styles.walletGrid}>
-          {walletTemplates.map((w, i) => <WalletCard key={i} wallet={w} />)}
+          {templates.map((w, i) => <WalletCard key={i} wallet={w} />)}
         </div>
       </div>
     </WalletLayout>

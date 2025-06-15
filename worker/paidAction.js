@@ -44,10 +44,8 @@ async function transitionInvoice (jobName,
           include: {
             invoice: true,
             withdrawl: true,
-            // ProtocolWallet
-            wallet: {
+            protocol: {
               include: {
-                // UserWallet
                 wallet: true
               }
             }
@@ -240,8 +238,8 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
                 msatsPaying: BigInt(invoice.mtokens),
                 msatsFeePaying: maxFeeMsats,
                 autoWithdraw: true,
-                walletId: invoiceForward.walletId,
-                userId: invoiceForward.wallet.wallet.userId
+                protocolId: invoiceForward.protocolId,
+                userId: invoiceForward.protocol.wallet.userId
               }
             }
           }

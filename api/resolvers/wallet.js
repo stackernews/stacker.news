@@ -547,7 +547,7 @@ const resolvers = {
 
 export default resolvers
 
-export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, wallet, logger }) {
+export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, protocol, logger }) {
   assertApiKeyNotPermitted({ me })
   await validateSchema(withdrawlSchema, { invoice, maxFee })
   await assertGofacYourself({ models, headers })
@@ -597,7 +597,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     throw new GqlInputError('SN cannot pay an invoice that SN is proxying')
   }
 
-  return await performPayingAction({ bolt11: invoice, maxFee, walletId: wallet?.id }, { me, models, lnd })
+  return await performPayingAction({ bolt11: invoice, maxFee, protocolId: protocol?.id }, { me, models, lnd })
 }
 
 export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },
@@ -662,7 +662,7 @@ export async function fetchLnAddrInvoice (
     const ourPubkey = await getOurPubkey({ lnd })
     if (autoWithdraw && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
       // unset lnaddr so we don't trigger another withdrawal with same destination
-      // TODO(wallet-v2): use UserWallet instead of Wallet table
+      // TODO(wallet-v2)
       await models.wallet.deleteMany({
         where: { userId: me.id, type: 'LIGHTNING_ADDRESS' }
       })

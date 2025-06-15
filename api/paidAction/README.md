@@ -103,7 +103,7 @@ stateDiagram-v2
 | donations         | x           |            | x           | x        | x          |             |              | x           |            |
 | update posts      | x           |            | x           |          | x          |             | x            | x           |            |
 | update comments   | x           |            | x           |          | x          |             | x            | x           |            |
-| receive           |             | x          |             |          | x          | x           | x            |             | x          |
+| receive           |             |            |             |          | x          | x           | x            |             | x          |
 | buy fee credits   |             |            | x           |          | x          |             |              | x           |            |
 | invite gift       | x           |            |             |          |            |             | x            | x           |            |
 

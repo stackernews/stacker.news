@@ -1,4 +1,7 @@
 import { NextResponse, URLPattern } from 'next/server'
+import { getDomainMapping } from '@/lib/domains'
+import { fetchWithTimeout } from '@/lib/fetch'
+import { SESSION_COOKIE, cookieOptions } from '@/lib/auth'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -11,6 +14,129 @@ const SN_REFERRER = 'sn_referrer'
 const SN_REFERRER_NONCE = 'sn_referrer_nonce'
 // key for referred pages
 const SN_REFEREE_LANDING = 'sn_referee_landing'
+// main domain
+const SN_MAIN_DOMAIN = new URL(process.env.NEXT_PUBLIC_URL)
+// territory paths that needs to be rewritten to ~subname
+const SN_TERRITORY_PATHS = ['/~', '/recent', '/random', '/top', '/post', '/edit']
+
+async function customDomainMiddleware (request, domain, subName) {
+  // clone the url to build on top of it
+  const url = request.nextUrl.clone()
+  // we need pathname, searchParams and origin
+  const { pathname, searchParams } = url
+  // set the subname in the request headers
+  const headers = new Headers(request.headers)
+  headers.set('x-stacker-news-subname', subName)
+
+  // TEST
+  console.log('[domains] custom domain', domain, 'with subname', subName) // TEST
+  console.log('[domains] main domain', SN_MAIN_DOMAIN) // TEST
+  console.log('[domains] pathname', pathname) // TEST
+  console.log('[domains] searchParams', searchParams) // TEST
+
+  // Auth Sync
+  // if the user is trying to login or signup, redirect to the Auth Sync API
+  if (pathname.startsWith('/login') || pathname.startsWith('/signup')) {
+    const signup = pathname.startsWith('/signup')
+    return redirectToAuthSync(searchParams, domain, signup, headers)
+  }
+  // if we have a verification token, exchange it for a session token
+  if (searchParams.has('sync_token')) return establishAuthSync(request, searchParams, headers)
+
+  // Territory URLs
+  // if sub param exists and doesn't match the domain's subname, update it
+  if (searchParams.has('sub') && searchParams.get('sub') !== subName) {
+    console.log('[domains] setting sub to', subName) // TEST
+    searchParams.set('sub', subName)
+    url.search = searchParams.toString()
+    return NextResponse.redirect(url, { headers })
+  }
+
+  // clean up the pathname from any subname
+  if (pathname.startsWith('/~')) {
+    const cleanPath = pathname.replace(/^\/~[^/]+/, '') || '/'
+    url.pathname = cleanPath
+    console.log('[domains] redirecting to clean url:', url) // TEST
+    // redirect to the clean path
+    return NextResponse.redirect(url, { headers })
+  }
+
+  // if we're at the root or on some territory path, hide the subname by rewriting
+  if (pathname === '/' || SN_TERRITORY_PATHS.some(p => pathname.startsWith(p))) {
+    url.pathname = `/~${subName}${pathname === '/' ? '' : pathname}`
+    console.log('[domains] rewrite to:', url.pathname) // TEST
+    // rewrite to the territory path
+    return NextResponse.rewrite(url, { headers })
+  }
+
+  // continue if we don't need to redirect, mainly for API routes
+  return NextResponse.next({ request: { headers } })
+}
+
+// redirect to the Auth Sync API
+async function redirectToAuthSync (searchParams, domain, signup, headers) {
+  const syncUrl = new URL('/api/auth/sync', SN_MAIN_DOMAIN)
+  syncUrl.searchParams.set('domain', domain)
+
+  // if we're signing up, we need to set the signup flag
+  if (signup) {
+    syncUrl.searchParams.set('signup', 'true')
+  }
+
+  // if we have a callbackUrl, we need to set it as redirectUri
+  if (searchParams.has('callbackUrl')) {
+    const callbackUrl = searchParams.get('callbackUrl')
+    // extract just the path portion if it's a full URL
+    const redirectUri = callbackUrl.startsWith('http')
+      ? new URL(callbackUrl).pathname
+      : callbackUrl
+    syncUrl.searchParams.set('redirectUri', redirectUri)
+  }
+
+  return NextResponse.redirect(syncUrl, { headers })
+}
+
+// Exchange verification token for JWT session cookie via POST to /api/auth/sync
+async function establishAuthSync (request, searchParams, headers) {
+  // get the verification token from the search params
+  const token = searchParams.get('sync_token')
+  // get the redirectUri from the search params
+  const redirectUri = searchParams.get('redirectUri') || '/'
+  // prepare redirect to the redirectUri
+  const res = NextResponse.redirect(new URL(redirectUri, request.url), { headers })
+
+  try {
+    // pass the verification token to the auth sync API
+    const body = JSON.stringify({ verificationToken: token })
+    // set the content-type header to application/json
+    const fetchHeaders = new Headers(headers)
+    fetchHeaders.set('Content-Type', 'application/json')
+    // POST to /api/auth/sync to exchange verification token for session token
+    const response = await fetchWithTimeout(`${SN_MAIN_DOMAIN.origin}/api/auth/sync`, {
+      method: 'POST',
+      headers: fetchHeaders,
+      body
+    })
+
+    // check if the fetch was successful
+    if (!response.ok) {
+      throw new Error(response.status)
+    }
+
+    // get the session token from the response
+    const data = await response.json()
+    if (data.status === 'ERROR') {
+      throw new Error(data.reason)
+    }
+
+    // set the session cookie
+    res.cookies.set(SESSION_COOKIE, data.sessionToken, cookieOptions())
+    return res
+  } catch (error) {
+    console.error('[auth sync] cannot establish auth sync:', error.message)
+    return NextResponse.redirect(new URL('/error', request.url), { headers })
+  }
+}
 
 function getContentReferrer (request, url) {
   if (itemPattern.test(url)) {
@@ -84,9 +210,23 @@ function referrerMiddleware (request) {
   return response
 }
 
-export function middleware (request) {
-  const resp = referrerMiddleware(request)
+function applyReferrerCookies (response, referrer) {
+  for (const cookie of referrer.cookies.getAll()) {
+    response.cookies.set(
+      cookie.name,
+      cookie.value,
+      {
+        maxAge: cookie.maxAge,
+        expires: cookie.expires,
+        path: cookie.path
+      }
+    )
+  }
+  console.log('[domains] response.cookies', response.cookies) // TEST
+  return response
+}
 
+function applySecurityHeaders (resp) {
   const isDev = process.env.NODE_ENV === 'development'
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
@@ -131,6 +271,34 @@ export function middleware (request) {
   resp.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
 
   return resp
+}
+
+export async function middleware (request) {
+  const referrerResp = referrerMiddleware(request)
+  // TODO: check if we actually need this, and WHY
+  if (referrerResp.headers.get('Location')) {
+    // this is a redirect, apply security headers
+    return applySecurityHeaders(referrerResp)
+  }
+
+  // if we're on a custom domain, handle it
+  const domain = request.headers.get('x-forwarded-host') || request.headers.get('host')
+  if (domain !== SN_MAIN_DOMAIN?.host) { // we don't need middleware to fail if dev messes up ENVs
+    // in development we might have a port in the domain
+    const domainToMap = process.env.NODE_ENV === 'development' ? domain.split(':')[0] : domain
+    // check if we have a mapping for this domain
+    const subName = await getDomainMapping(domainToMap)
+    if (subName) {
+      console.log('[domains] allowed custom domain', domain, 'detected, pointing to', subName) // TEST
+      const resp = await customDomainMiddleware(request, domain, subName.subName)
+      // apply referrer cookies to the custom domain response
+      const referredResp = applyReferrerCookies(resp, referrerResp)
+      // finally apply security headers
+      return applySecurityHeaders(referredResp)
+    }
+  }
+
+  return applySecurityHeaders(referrerResp)
 }
 
 export const config = {

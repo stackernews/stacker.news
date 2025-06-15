@@ -20,6 +20,7 @@ import rehypeSN from '@/lib/rehype-sn'
 import remarkUnicode from '@/lib/remark-unicode'
 import Embed from './embed'
 import remarkMath from 'remark-math'
+import remarkToc from '@/lib/remark-toc'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -33,7 +34,12 @@ const rehypeSNStyled = () => rehypeSN({
   }]
 })
 
-const remarkPlugins = [gfm, remarkUnicode, [remarkMath, { singleDollarTextMath: false }]]
+const remarkPlugins = [
+  gfm,
+  remarkUnicode,
+  [remarkMath, { singleDollarTextMath: false }],
+  remarkToc
+]
 
 export function SearchText ({ text }) {
   return (
@@ -134,8 +140,10 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
         return href
       }
 
+      const isHashLink = href?.startsWith('#')
+
       // eslint-disable-next-line
-      return <Link id={props.id} target='_blank' rel={rel} href={href}>{children}</Link>
+      return <Link id={props.id} target={isHashLink ? undefined : '_blank'} rel={rel} href={href}>{children}</Link>
     },
     img: TextMediaOrLink,
     embed: Embed

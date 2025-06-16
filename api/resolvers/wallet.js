@@ -22,7 +22,7 @@ import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/
 import { getNodeSockets } from '../lnd'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
-import { logContextFromBolt11 } from '@/wallets/server/logger'
+import { logContextFromBolt11 } from '@/wallets/server'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({

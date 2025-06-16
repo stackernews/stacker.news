@@ -1067,7 +1067,7 @@ DROP FUNCTION wallet_wallet_type_as_jsonb;
 -- wallet logs now point to the new WalletProtocol table instead of to the old WalletType enum
 ALTER TABLE "WalletLog"
     DROP COLUMN "wallet",
-    ADD COLUMN "protocolId" INTEGER NOT NULL;
+    ADD COLUMN "protocolId" INTEGER;
 
 DROP TYPE "WalletType";
 ALTER TABLE "WalletLog" ADD CONSTRAINT "WalletLog_protocolId_fkey" FOREIGN KEY ("protocolId") REFERENCES "WalletProtocol"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -1099,3 +1099,10 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Update LogLevel enum to be more consistent with wallet logger API
+ALTER TYPE "LogLevel" RENAME TO "LogLevelV1";
+CREATE TYPE "LogLevel" AS ENUM ('OK', 'DEBUG', 'INFO', 'WARN', 'ERROR');
+ALTER TABLE "WalletLog" ALTER COLUMN "level" TYPE "LogLevel" USING (CASE WHEN "level"::text = 'SUCCESS' THEN 'OK'::"LogLevel" ELSE "level"::text::"LogLevel" END);
+ALTER TABLE "Log" ALTER COLUMN "level" TYPE "LogLevel" USING (CASE WHEN "level"::text = 'SUCCESS' THEN 'OK'::"LogLevel" ELSE "level"::text::"LogLevel" END);
+DROP TYPE "LogLevelV1";

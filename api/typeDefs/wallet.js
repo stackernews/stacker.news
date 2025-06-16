@@ -11,7 +11,7 @@ const typeDefs = gql`
     wallets: [WalletOrTemplate!]!
     wallet(id: ID, name: String): WalletOrTemplate
     walletSettings: WalletSettings!
-    walletLogs(type: String, from: String, to: String, cursor: String): WalletLog!
+    walletLogs(protocolId: ID): [WalletLogEntry!]!
     failedInvoices: [Invoice!]!
   }
 
@@ -21,7 +21,7 @@ const typeDefs = gql`
     cancelInvoice(hash: String!, hmac: String, userCancel: Boolean): Invoice!
     dropBolt11(hash: String!): Boolean
     removeWallet(id: ID!): Boolean
-    deleteWalletLogs(wallet: String): Boolean
+    deleteWalletLogs(protocolId: ID): Boolean
     setWalletPriority(id: ID!, priority: Int!): Boolean
     buyCredits(credits: Int!): BuyCreditsPaidAction!
 
@@ -43,6 +43,7 @@ const typeDefs = gql`
     resetWallets: Boolean
     disablePassphraseExport: Boolean
     setWalletSettings(settings: WalletSettingsInput!): Boolean
+    addWalletLog(protocolId: ID!, level: String!, message: String!, timestamp: Date!, invoiceId: Int): Boolean
   }
 
   type BuyCreditsResult {
@@ -296,7 +297,8 @@ const typeDefs = gql`
   type WalletLogEntry {
     id: ID!
     createdAt: Date!
-    wallet: ID
+    wallet: Wallet
+    protocol: WalletProtocol
     level: String!
     message: String!
     context: JSONObject

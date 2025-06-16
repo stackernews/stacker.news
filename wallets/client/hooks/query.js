@@ -20,7 +20,7 @@ import {
   DISABLE_PASSPHRASE_EXPORT
 } from '@/wallets/client/fragments'
 import { useMutation, useQuery } from '@apollo/client'
-import { useDecryption, useEncryption, useSetKey } from '@/wallets/client/hooks'
+import { useDecryption, useEncryption, useSetKey, useWalletLoggerFactory } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { isEncryptedField, isWallet, reverseProtocolRelationName } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
@@ -83,9 +83,18 @@ export function useWalletProtocolUpsert (wallet, protocol) {
   const [mutate] = useMutation(mutation)
   const encryptConfig = useEncryptConfig(protocol)
   const testSendPayment = useTestSendPayment(protocol)
+  const loggerFactory = useWalletLoggerFactory()
 
   return useCallback(async (values) => {
-    await testSendPayment(values)
+    const logger = loggerFactory(protocol)
+    logger.info('saving wallet ...')
+
+    try {
+      await testSendPayment(values)
+    } catch (err) {
+      logger.error(err.message)
+      throw err
+    }
 
     const encrypted = await encryptConfig(values)
 
@@ -96,8 +105,17 @@ export function useWalletProtocolUpsert (wallet, protocol) {
       variables.templateId = wallet.id
     }
 
-    const { data } = await mutate({ variables })
-    return Object.values(data)[0]
+    let updatedWallet
+    try {
+      const { data } = await mutate({ variables })
+      logger.ok('wallet saved')
+      updatedWallet = Object.values(data)[0]
+    } catch (err) {
+      logger.error(err.message)
+      throw err
+    }
+
+    return updatedWallet
   }, [mutate, encryptConfig])
 }
 

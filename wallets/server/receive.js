@@ -1,10 +1,9 @@
 import { parsePaymentRequest } from 'ln-service'
-import { toPositiveBigInt, toPositiveNumber } from '@/lib/format'
+import { formatMsats, formatSats, msatsToSats, toPositiveBigInt, toPositiveNumber } from '@/lib/format'
 import { PAID_ACTION_TERMINAL_STATES, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { wrapInvoice } from '@/wallets/server/wrap'
-// TODO(wallet-v2): wallet logs
-// import { walletLogger } from '@/wallets/server'
+import { walletLogger } from '@/wallets/server'
 import { protocolCreateInvoice } from '@/wallets/server/protocols'
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
@@ -20,13 +19,13 @@ export async function * createUserInvoice (userId, { msats, description, descrip
   msats = toPositiveNumber(msats)
 
   for (const protocol of protocols) {
-    // const logger = walletLogger({ wallet, models })
+    const logger = walletLogger({ protocolId: protocol.id, userId, models })
 
     try {
-      // logger.info(
-      //   `↙ incoming payment: ${formatSats(msatsToSats(msats))}`, {
-      //     amount: formatMsats(msats)
-      //   })
+      logger.info(
+        `↙ incoming payment: ${formatSats(msatsToSats(msats))}`, {
+          amount: formatMsats(msats)
+        })
 
       let invoice
       try {
@@ -40,9 +39,9 @@ export async function * createUserInvoice (userId, { msats, description, descrip
 
       const bolt11 = await parsePaymentRequest({ request: invoice })
 
-      // logger.info(`created invoice for ${formatSats(msatsToSats(bolt11.mtokens))}`, {
-      //   bolt11: invoice
-      // })
+      logger.info(`created invoice for ${formatSats(msatsToSats(bolt11.mtokens))}`, {
+        bolt11: invoice
+      })
 
       if (BigInt(bolt11.mtokens) !== BigInt(msats)) {
         if (BigInt(bolt11.mtokens) > BigInt(msats)) {
@@ -56,10 +55,10 @@ export async function * createUserInvoice (userId, { msats, description, descrip
         }
       }
 
-      yield { invoice, protocol /* logger */ }
+      yield { invoice, protocol, logger }
     } catch (err) {
       console.error('failed to create user invoice:', err)
-      // logger.error(err.message, { status: true })
+      logger.error(err.message)
     }
   }
 }

@@ -221,19 +221,19 @@ model Vault {
 }
 
 model WalletLog {
-  id           Int            @id @default(autoincrement())
-  createdAt    DateTime       @default(now()) @map("created_at")
+  id           Int             @id @default(autoincrement())
+  createdAt    DateTime        @default(now()) @map("created_at")
   userId       Int
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  protocolId   Int
-  protocol     WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  protocolId   Int?
+  protocol     WalletProtocol? @relation(fields: [protocolId], references: [id], onDelete: Cascade)
   level        LogLevel
   message      String
   invoiceId    Int?
-  invoice      Invoice?       @relation(fields: [invoiceId], references: [id])
+  invoice      Invoice?        @relation(fields: [invoiceId], references: [id])
   withdrawalId Int?
-  withdrawal   Withdrawl?     @relation(fields: [withdrawalId], references: [id])
-  context      Json?          @db.JsonB
+  withdrawal   Withdrawl?      @relation(fields: [withdrawalId], references: [id])
+  context      Json?           @db.JsonB
 
   @@index([userId, createdAt])
 }
@@ -1178,11 +1178,11 @@ enum WithdrawlStatus {
 }
 
 enum LogLevel {
+  OK
   DEBUG
   INFO
   WARN
   ERROR
-  SUCCESS
 }
 
 // ===================

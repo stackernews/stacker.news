@@ -16,7 +16,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
 
-  const logger = walletLogger({ models, me: user })
+  const logger = walletLogger({ models, userId: user.id })
   logger.info(`${user.name}@stacker.news payment attempt`, { amount: formatMsats(amount), nostr, comment })
 
   try {

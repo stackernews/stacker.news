@@ -3,7 +3,7 @@ import { Button, Nav } from 'react-bootstrap'
 import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
 import { useRouter } from 'next/router'
-import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName } from '@/wallets/client/components'
+import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
 import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, urlify, isWallet, isTemplate } from '@/wallets/lib/util'
 import styles from '@/styles/wallet.module.css'
 import { Form, Input, PasswordInput, SubmitButton } from '@/components/form'
@@ -177,15 +177,18 @@ function WalletProtocolForm () {
   }, [upsertWalletProtocol, toaster, wallet, router])
 
   return (
-    <Form
-      enableReinitialize
-      initial={initial}
-      schema={schema}
-      onSubmit={onSubmit}
-    >
-      {fields.map(field => <WalletProtocolFormField key={field.name} {...field} />)}
-      <WalletProtocolFormButtons />
-    </Form>
+    <>
+      <Form
+        enableReinitialize
+        initial={initial}
+        schema={schema}
+        onSubmit={onSubmit}
+      >
+        {fields.map(field => <WalletProtocolFormField key={field.name} {...field} />)}
+        <WalletProtocolFormButtons />
+      </Form>
+      <WalletLogs className='mt-3' protocol={protocol} />
+    </>
   )
 }
 

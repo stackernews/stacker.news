@@ -1,6 +1,6 @@
 import { getPaymentFailureStatus, getPaymentOrNotSent } from '@/api/lnd'
 import { walletLogger } from '@/wallets/server'
-import { formatMsats, msatsToSats, toPositiveBigInt } from '@/lib/format'
+import { formatMsats, formatSats, msatsToSats, toPositiveBigInt } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { notifyWithdrawal } from '@/lib/webPush'
 import { Prisma } from '@prisma/client'
@@ -123,12 +123,15 @@ export async function payingActionConfirmed ({ data: args, models, lnd, boss }) 
   if (transitionedWithdrawal) {
     await notifyWithdrawal(transitionedWithdrawal)
 
-    // TODO(wallet-v2): add logging
-    // const logger = walletLogger({ models, protocol: transitionedWithdrawal.protocol })
-    // logger?.ok(
-    //   `↙ payment received: ${formatSats(msatsToSats(transitionedWithdrawal.msatsPaid))}`, {
-    //     withdrawalId: transitionedWithdrawal.id
-    //   })
+    const { protocol, userId } = transitionedWithdrawal
+
+    const logger = walletLogger({
+      models,
+      protocol,
+      userId,
+      withdrawalId: transitionedWithdrawal.id
+    })
+    logger?.ok(`↙ payment received: ${formatSats(msatsToSats(transitionedWithdrawal.msatsPaid))}`)
   }
 }
 

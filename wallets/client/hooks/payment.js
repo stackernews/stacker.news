@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useSendProtocols } from '@/wallets/client/hooks'
+import { useSendProtocols, useWalletLoggerFactory } from '@/wallets/client/hooks'
 import useInvoice from '@/components/use-invoice'
 import { FAST_POLL_INTERVAL, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
@@ -8,12 +8,14 @@ import {
 } from '@/wallets/client/errors'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { useMe } from '@/components/me'
+import { formatSats } from '@/lib/format'
 
 export function useWalletPayment () {
   const protocols = useSendProtocols()
   const sendPayment = useSendPayment()
   const invoiceHelper = useInvoice()
   const { me } = useMe()
+  const loggerFactory = useWalletLoggerFactory()
 
   return useCallback(async (invoice, { waitFor, updateOnFallback } = {}) => {
     let aggregateError = new WalletAggregateError([])
@@ -33,7 +35,8 @@ export function useWalletPayment () {
       const protocol = protocols[i]
       const controller = invoiceController(latestInvoice, invoiceHelper.isInvoice)
 
-      const paymentPromise = sendPayment(protocol, latestInvoice)
+      const logger = loggerFactory(protocol, latestInvoice)
+      const paymentPromise = sendPayment(protocol, latestInvoice, logger)
       const pollPromise = controller.wait(waitFor)
 
       try {
@@ -45,13 +48,12 @@ export function useWalletPayment () {
         })
       } catch (err) {
         let paymentError = err
-        // TODO(wallet-v2): I removed the wallet logger on the client. Make sure this is still logged on the server.
-        // const message = `payment failed: ${paymentError.reason ?? paymentError.message}`
+        const message = `payment failed: ${paymentError.reason ?? paymentError.message}`
 
         if (!(paymentError instanceof WalletError)) {
           // payment failed for some reason unrelated to wallets (ie invoice expired or was canceled).
           // bail out of attempting wallets.
-          // TODO(wallet-v2): I removed the wallet logger on the client. Make sure the payment error is still logged on the server.
+          logger.error(message)
           throw paymentError
         }
 
@@ -72,12 +74,11 @@ export function useWalletPayment () {
           // if payment failed because of the receiver, use the same wallet again
           // and log this as info, not error
           // TODO(wallet-v2): I removed the wallet logger on the client. Make sure this is still logged on the server.
-          // logger.info('failed to forward payment to receiver, retrying with new invoice', { bolt11 })
+          logger.info('failed to forward payment to receiver, retrying with new invoice')
           i -= 1
         } else if (paymentError instanceof WalletPaymentError) {
           // only log payment errors, not configuration errors
-          // TODO(wallet-v2): I removed the wallet logger on the client. Make sure this is still logged on the server.
-          // logger.error(message, { bolt11 })
+          logger.error(message)
         }
 
         if (paymentError instanceof WalletPaymentError) {
@@ -143,15 +144,17 @@ function invoiceController (inv, isInvoice) {
 }
 
 function useSendPayment () {
-  return useCallback(async (protocol, invoice) => {
+  return useCallback(async (protocol, invoice, logger) => {
     try {
-      return await withTimeout(
+      logger.info(`↗ sending payment: ${formatSats(invoice.satsRequested)}`)
+      await withTimeout(
         protocol.sendPayment(
           invoice.bolt11,
           protocol.config,
           { signal: timeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS) }
         ),
         WALLET_SEND_PAYMENT_TIMEOUT_MS)
+      logger.ok(`↗ payment sent: ${formatSats(invoice.satsRequested)}`)
     } catch (err) {
       // we don't log the error here since we want to handle receiver errors separately
       const message = err.message || err.toString?.()

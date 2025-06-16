@@ -39,14 +39,17 @@ export const resolvers = {
   Query: {
     wallets,
     wallet,
-    walletSettings
+    walletSettings,
+    walletLogs
   },
   Mutation: {
     updateWalletEncryption,
     resetWallets,
     setWalletPriority,
     disablePassphraseExport,
-    setWalletSettings
+    setWalletSettings,
+    addWalletLog,
+    deleteWalletLogs
   }
 }
 
@@ -181,6 +184,74 @@ async function setWalletSettings (parent, { settings }, { me, models }) {
   await validateSchema(walletSettingsSchema, settings)
 
   await models.user.update({ where: { id: me.id }, data: settings })
+
+  return true
+}
+
+async function addWalletLog (parent, { protocolId, level, message, timestamp, invoiceId }, { me, models }) {
+  if (!me) throw new GqlAuthenticationError()
+
+  await models.walletLog.create({
+    data: {
+      protocolId: Number(protocolId),
+      level,
+      message,
+      invoiceId,
+      userId: me.id,
+      createdAt: timestamp
+    }
+  })
+
+  return true
+}
+
+async function walletLogs (parent, { protocolId }, { me, models }) {
+  if (!me) throw new GqlAuthenticationError()
+
+  const logs = await models.walletLog.findMany({
+    where: {
+      userId: me.id,
+      ...(protocolId && { protocolId: Number(protocolId) })
+    },
+    orderBy: {
+      createdAt: 'desc'
+    },
+    include: {
+      protocol: {
+        include: {
+          wallet: {
+            include: {
+              template: true
+            }
+          }
+        }
+      },
+      invoice: true
+    }
+  })
+
+  return logs.map(log => ({
+    ...log,
+    ...(log.protocol
+      ? {
+          wallet: {
+            ...log.protocol.wallet,
+            name: log.protocol.wallet.template.name
+          }
+        }
+      : {})
+  }))
+}
+
+async function deleteWalletLogs (parent, { protocolId }, { me, models }) {
+  if (!me) throw new GqlAuthenticationError()
+
+  await models.walletLog.deleteMany({
+    where: {
+      userId: me.id,
+      ...(protocolId && { protocolId: Number(protocolId) })
+    }
+  })
 
   return true
 }

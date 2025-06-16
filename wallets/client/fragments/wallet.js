@@ -223,3 +223,29 @@ export const SET_WALLET_SETTINGS = gql`
     setWalletSettings(settings: $settings)
   }
 `
+
+export const ADD_WALLET_LOG = gql`
+  mutation AddWalletLog($protocolId: ID!, $level: String!, $message: String!, $timestamp: Date!, $invoiceId: Int) {
+    addWalletLog(protocolId: $protocolId, level: $level, message: $message, timestamp: $timestamp, invoiceId: $invoiceId)
+  }
+`
+
+export const WALLET_LOGS = gql`
+  query WalletLogs($protocolId: ID) {
+    walletLogs(protocolId: $protocolId) {
+      id
+      level
+      message
+      createdAt
+      wallet {
+        name
+      }
+    }
+  }
+`
+
+export const DELETE_WALLET_LOGS = gql`
+  mutation DeleteWalletLogs($protocolId: ID) {
+    deleteWalletLogs(protocolId: $protocolId)
+  }
+`

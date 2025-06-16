@@ -1,23 +1,21 @@
 import { formatMsats } from '@/lib/format'
 import { parsePaymentRequest } from 'ln-service'
 
-// TODO(wallet-v2): update this for wallet schema v2
-export function walletLogger ({ wallet, models, me }) {
-  // no-op logger if no wallet or user provided
-  if (!wallet && !me) {
-    return {
-      ok: () => {},
-      info: () => {},
-      error: () => {},
-      warn: () => {}
-    }
-  }
-
+export function walletLogger ({
+  models,
+  protocolId,
+  userId,
+  invoiceId,
+  withdrawalId
+}) {
   // server implementation of wallet logger interface on client
-  const log = (level) => async (message, ctx = {}) => {
-    try {
-      let { invoiceId, withdrawalId, ...context } = ctx
+  const log = (level) => async (message, context = {}) => {
+    // set createdAt to time when logger was called to keep logs in order
+    // since logs are created asynchronously and thus might get inserted out of order
+    // however, millisecond precision is not always enough ...
+    const createdAt = new Date()
 
+    try {
       if (context.bolt11) {
         // automatically populate context from bolt11 to avoid duplicating this code
         context = {
@@ -28,14 +26,14 @@ export function walletLogger ({ wallet, models, me }) {
 
       await models.walletLog.create({
         data: {
-          userId: wallet?.userId ?? me.id,
-          // system logs have no wallet
-          wallet: wallet?.type,
+          userId,
+          protocolId,
           level,
           message,
           context,
           invoiceId,
-          withdrawalId
+          withdrawalId,
+          createdAt
         }
       })
     } catch (err) {
@@ -44,7 +42,7 @@ export function walletLogger ({ wallet, models, me }) {
   }
 
   return {
-    ok: (message, context) => log('SUCCESS')(message, context),
+    ok: (message, context) => log('OK')(message, context),
     info: (message, context) => log('INFO')(message, context),
     error: (message, context) => log('ERROR')(message, context),
     warn: (message, context) => log('WARN')(message, context)

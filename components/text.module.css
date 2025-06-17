@@ -253,7 +253,7 @@
 }
 
 .text li > :is(.twitterContainer, .nostrContainer, .wavlakeWrapper, .spotifyWrapper, .onlyImages) {
-  display: inline-block;
+  display: inline-flex;
   vertical-align: top;
   width: 100%;
 }
@@ -263,6 +263,7 @@
   margin-top: 0;
   margin-bottom: 0rem;
   padding-left: 2rem;
+  max-width: calc(100% - 1rem);
 }
 
 .text ol ol,

@@ -39,7 +39,7 @@ function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
     return `ORDER BY ${sharedSorts},
       ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC,
-      COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC, "Item".id DESC`
+      COALESCE("Item"."scheduledAt", "Item"."invoicePaidAt", "Item".created_at) DESC, "Item".id DESC`
   }
 
   if (sort === 'hot') {
@@ -447,10 +447,10 @@ export default {
                 typeClause(type),
                 muteClause(me)
               )}
-              ORDER BY COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC
+              ORDER BY COALESCE("Item"."scheduledAt", "Item"."invoicePaidAt", "Item".created_at) DESC
               OFFSET $2
               LIMIT $3`,
-            orderBy: 'ORDER BY COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC'
+            orderBy: 'ORDER BY COALESCE("Item"."scheduledAt", "Item"."invoicePaidAt", "Item".created_at) DESC'
           }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
           break
         case 'top':

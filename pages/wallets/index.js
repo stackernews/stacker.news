@@ -1,9 +1,8 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Button } from 'react-bootstrap'
 import { FIRST_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch, usePage, UNLOCK_PAGE } from '@/wallets/client/context'
-import { WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
+import { WalletCard, WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
 import styles from '@/styles/wallet.module.css'
-import WalletCard from '@/wallets/client/components/card'
 import { isTemplate, isWallet } from '@/wallets/lib/util'
 import { usePassphrasePrompt, useShowPassphrase } from '@/wallets/client/hooks'
 

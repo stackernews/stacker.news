@@ -81,7 +81,7 @@ export function useShowPassphrase () {
         </p>
         <div className='mt-3 d-flex justify-content-between align-items-center'>
           <Button variant='grey-medium' onClick={close}>cancel</Button>
-          <Button variant='warning' onClick={onShow}>show</Button>
+          <Button variant='danger' onClick={onShow}>yes, show me</Button>
         </div>
       </div>
     ))

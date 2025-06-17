@@ -252,9 +252,10 @@
     margin-top: .25rem;
 }
 
-.text li > :is(.twitterContainer, .nostrContainer, .wavlakeWrapper, .spotifyWrapper) {
+.text li > :is(.twitterContainer, .nostrContainer, .wavlakeWrapper, .spotifyWrapper, .onlyImages) {
   display: inline-block;
   vertical-align: top;
+  width: 100%;
 }
 
 .text ul,

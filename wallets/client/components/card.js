@@ -8,7 +8,7 @@ import SendIcon from '@/svgs/arrow-right-up-line.svg'
 import { useWalletImage, useWalletIsConfigured, useWalletSupport, useWalletStatus, WalletStatus } from '@/wallets/client/hooks'
 import { isWallet, urlify, walletDisplayName } from '@/wallets/lib/util'
 
-export default function WalletCard ({ wallet }) {
+export function WalletCard ({ wallet }) {
   const image = useWalletImage(wallet.name)
   const status = useWalletStatus(wallet)
   const support = useWalletSupport(wallet)

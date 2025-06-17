@@ -1095,42 +1095,6 @@ export default {
 
       return result
     },
-    cancelScheduledPost: async (parent, { id }, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      const item = await models.item.findUnique({
-        where: { id: Number(id) }
-      })
-
-      if (!item) {
-        throw new GqlInputError('item not found')
-      }
-
-      if (Number(item.userId) !== Number(me.id)) {
-        throw new GqlInputError('item does not belong to you')
-      }
-
-      if (!item.scheduledAt) {
-        throw new GqlInputError('item is not scheduled')
-      }
-
-      // Cancel the scheduled job
-      await models.$queryRaw`
-        DELETE FROM pgboss.job
-        WHERE name = 'publishScheduledPost'
-        AND data->>'itemId' = ${item.id}::TEXT
-        AND state <> 'completed'`
-
-      // Update the item to remove scheduling
-      return await models.item.update({
-        where: { id: Number(id) },
-        data: {
-          scheduledAt: null
-        }
-      })
-    },
     publishScheduledPostNow: async (parent, { id }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()

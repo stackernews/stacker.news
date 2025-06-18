@@ -25,7 +25,6 @@ const typeDefs = gql`
     setWalletPriority(id: ID!, priority: Int!): Boolean
     buyCredits(credits: Int!): BuyCreditsPaidAction!
 
-    # TODO(wallet-v2): generate these mutations
     upsertWalletSendLNbits(walletId: ID, templateId: ID, url: String!, apiKey: VaultEntryInput!): WalletSendLNbits!
     upsertWalletRecvLNbits(walletId: ID, templateId: ID, url: String!, apiKey: String!): WalletRecvLNbits!
     upsertWalletSendPhoenixd(walletId: ID, templateId: ID, url: String!, apiKey: VaultEntryInput!): WalletSendPhoenixd!
@@ -88,7 +87,6 @@ const typeDefs = gql`
     send: Boolean!
   }
 
-  # TODO(wallet-v2): This is the list of protocol tables. I want to generate this union type during the build. Should I extract the tables names from the prisma schema?
   union WalletProtocolConfig =
     | WalletSendNWC
     | WalletSendLNbits

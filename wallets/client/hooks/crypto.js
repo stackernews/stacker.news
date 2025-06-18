@@ -65,8 +65,6 @@ export function useShowPassphrase () {
     )
   }, [showModal])
 
-  // TODO(wallet-v2): return null if the user has already seen the passphrase
-
   const cb = useCallback(() => {
     showModal(close => (
       <div>
@@ -199,8 +197,6 @@ export function usePassphrasePrompt () {
   }, [showModal, savePassphrase, hash, salt])
 }
 
-// TODO(wallet-v2): remove eslint-disable-next-line when this is used
-// eslint-disable-next-line no-unused-vars
 export async function deriveKey (passphrase, salt) {
   const enc = new TextEncoder()
 

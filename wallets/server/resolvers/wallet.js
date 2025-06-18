@@ -170,7 +170,6 @@ async function setWalletPriority (parent, { id, priority }, { me, models }) {
     throw new GqlAuthenticationError()
   }
 
-  // TODO(wallet-v2): use Wallet instead of Wallet table
   await models.wallet.update({ where: { userId: me.id, id: Number(id) }, data: { priority } })
 
   return true

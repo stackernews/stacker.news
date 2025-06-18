@@ -6,7 +6,6 @@ import { useConfiguredWallets, useGenerateRandomKey, useWalletEncryptionUpdate }
 import useEffectOnce from '@/components/use-effect-once'
 
 export function Passphrase () {
-  // TODO(wallet-v2): encrypt wallets with new key and show passphrase of new key
   const [passphrase, setPassphrase] = useState(null)
   const wallets = useConfiguredWallets()
   const generateRandomKey = useGenerateRandomKey()

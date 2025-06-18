@@ -289,7 +289,6 @@ export async function checkWallet ({ data: { userId }, models }) {
   const pushNotifications = []
 
   await models.$transaction(async tx => {
-    // TODO(wallet-v2): test this when I fixed 'Unknown type "WalletDetails"'
     const wallets = await tx.wallet.findMany({
       where: {
         userId,

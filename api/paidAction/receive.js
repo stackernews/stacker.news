@@ -17,6 +17,9 @@ export async function getCost ({ msats }) {
 export async function getInvoiceablePeer (_, { me, models, cost, paymentMethod }) {
   if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.P2P && !me?.proxyReceive) return null
 
+  // don't fallback to direct if proxy is enabled to always hide stacker's node pubkey
+  if (paymentMethod === PAID_ACTION_PAYMENT_METHODS.DIRECT && me?.proxyReceive) return null
+
   const wallets = await getInvoiceableWallets(me.id, { models })
   if (wallets.length === 0) {
     return null

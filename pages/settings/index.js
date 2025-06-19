@@ -353,12 +353,14 @@ export default function Settings ({ ssrData }) {
           />
           <Checkbox
             label={
-              <div className='d-flex align-items-center'>proxy deposits to attached wallets
+              <div className='d-flex align-items-center'>enhance privacy of my lightning address
                 <Info>
                   <ul>
-                    <li>Forward deposits directly to your attached wallets if they cause your balance to exceed your auto-withdraw threshold</li>
-                    <li>Payments will be wrapped by the SN node to preserve your wallet's privacy</li>
+                    <li>Enabling this setting hides details (ie node pubkey) of your attached wallets when anyone pays your SN lightning address or lnurl-pay</li>
+                    <li>The lightning invoice will appear to have SN's node as the destination to preserve your wallet's privacy</li>
                     <li>This will incur in a 10% fee</li>
+                    <li>Disable this setting to receive payments directly to your attached wallets (which will reveal their details to the payer)</li>
+                    <li>Note: this privacy behavior is standard for internal zaps/payments on SN, and this setting only applies to external payments</li>
                   </ul>
                 </Info>
               </div>

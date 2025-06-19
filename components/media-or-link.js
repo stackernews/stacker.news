@@ -79,7 +79,12 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
 
   useEffect(() => {
     if (!media.image) return
-    addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: props.rel })
+    addMedia({
+      src: media.bestResSrc,
+      originalSrc: media.originalSrc,
+      rel: props.rel,
+      imgIndex: props.imgIndex
+    })
   }, [media.image])
 
   const handleClick = useCallback(() => showCarousel({ src: media.bestResSrc }),

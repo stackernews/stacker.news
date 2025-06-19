@@ -108,16 +108,19 @@ export function CarouselProvider ({ children }) {
   const showModal = useShowModal()
 
   const showCarousel = useCallback(({ src }) => {
+    const sortedMedia = Array.from(media.current.entries())
+      .sort(([, a], [, b]) => a.imgIndex - b.imgIndex)
+
     showModal((close, setOptions) => {
-      return <Carousel close={close} mediaArr={Array.from(media.current.entries())} src={src} setOptions={setOptions} />
+      return <Carousel close={close} mediaArr={sortedMedia} src={src} setOptions={setOptions} />
     }, {
       fullScreen: true,
       overflow: <CarouselOverflow {...media.current.get(src)} />
     })
   }, [showModal, media.current])
 
-  const addMedia = useCallback(({ src, originalSrc, rel }) => {
-    media.current.set(src, { src, originalSrc, rel })
+  const addMedia = useCallback(({ src, originalSrc, rel, imgIndex }) => {
+    media.current.set(src, { src, originalSrc, rel, imgIndex })
   }, [media.current])
 
   const removeMedia = useCallback((src) => {

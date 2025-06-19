@@ -222,6 +222,8 @@ function Footnote ({ children, node, ...props }) {
 function MediaLink ({
   node, src, outlawed, imgproxyUrls, rel = UNKNOWN_LINK_REL, ...props
 }) {
+  const imgIndex = node?.properties?.imgIndex
+
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
   // if outlawed, render the media link as text
   if (outlawed) {
@@ -230,7 +232,7 @@ function MediaLink ({
 
   const srcSet = imgproxyUrls?.[url]
 
-  return <MediaOrLink srcSet={srcSet} src={src} rel={rel} {...props} />
+  return <MediaOrLink srcSet={srcSet} src={src} rel={rel} imgIndex={imgIndex} {...props} />
 }
 
 function Table ({ node, ...props }) {

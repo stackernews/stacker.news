@@ -84,9 +84,9 @@ export function useWalletProtocolUpsert (wallet, protocol) {
   const encryptConfig = useEncryptConfig(protocol)
   const testSendPayment = useTestSendPayment(protocol)
   const loggerFactory = useWalletLoggerFactory()
+  const logger = loggerFactory(protocol)
 
   return useCallback(async (values) => {
-    const logger = loggerFactory(protocol)
     logger.info('saving wallet ...')
 
     try {
@@ -116,7 +116,7 @@ export function useWalletProtocolUpsert (wallet, protocol) {
     }
 
     return updatedWallet
-  }, [mutate, encryptConfig])
+  }, [logger, testSendPayment, encryptConfig, mutate])
 }
 
 export function useWalletProtocolRemove (protocol) {

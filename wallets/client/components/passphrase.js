@@ -2,12 +2,13 @@ import React, { useState } from 'react'
 import { CopyButton } from '@/components/form'
 import { QRCodeSVG } from 'qrcode.react'
 import styles from '@/styles/wallet.module.css'
-import { useConfiguredWallets, useGenerateRandomKey, useWalletEncryptionUpdate } from '@/wallets/client/hooks'
+import { useWallets } from '@/wallets/client/context'
+import { useGenerateRandomKey, useWalletEncryptionUpdate } from '@/wallets/client/hooks'
 import useEffectOnce from '@/components/use-effect-once'
 
 export function Passphrase () {
   const [passphrase, setPassphrase] = useState(null)
-  const wallets = useConfiguredWallets()
+  const wallets = useWallets()
   const generateRandomKey = useGenerateRandomKey()
 
   const updateWalletEncryption = useWalletEncryptionUpdate()

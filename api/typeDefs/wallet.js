@@ -59,7 +59,6 @@ const typeDefs = gql`
   type Wallet {
     id: ID!
     name: String!
-    enabled: Boolean!
     priority: Int!
     template: WalletTemplate!
     protocols: [WalletProtocol!]!
@@ -79,6 +78,7 @@ const typeDefs = gql`
     id: ID!
     name: String!
     send: Boolean!
+    enabled: Boolean!
     config: WalletProtocolConfig!
   }
 

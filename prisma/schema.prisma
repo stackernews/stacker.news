@@ -1236,7 +1236,6 @@ model Wallet {
   id         Int            @id @default(autoincrement())
   createdAt  DateTime       @default(now()) @map("created_at")
   updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at")
-  enabled    Boolean        @default(true)
   priority   Int            @default(0)
   userId     Int
   templateId Int
@@ -1263,6 +1262,7 @@ model WalletProtocol {
   wallet   Wallet             @relation(fields: [walletId], references: [id], onDelete: Cascade)
   send     Boolean
   name     WalletProtocolName
+  enabled  Boolean            @default(true)
 
   withdrawals    Withdrawl[]
   directPayments DirectPayment[]

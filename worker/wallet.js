@@ -291,8 +291,7 @@ export async function checkWallet ({ data: { userId }, models }) {
   await models.$transaction(async tx => {
     const wallets = await tx.wallet.findMany({
       where: {
-        userId,
-        enabled: true
+        userId
       },
       include: {
         protocols: true
@@ -301,8 +300,8 @@ export async function checkWallet ({ data: { userId }, models }) {
 
     const { hasRecvWallet: oldHasRecvWallet, hasSendWallet: oldHasSendWallet } = await tx.user.findUnique({ where: { id: userId } })
 
-    const newHasRecvWallet = wallets.some(({ protocols }) => protocols.some(({ send }) => !send))
-    const newHasSendWallet = wallets.some(({ protocols }) => protocols.some(({ send }) => send))
+    const newHasRecvWallet = wallets.some(({ protocols }) => protocols.some(({ send, enabled }) => !send && enabled))
+    const newHasSendWallet = wallets.some(({ protocols }) => protocols.some(({ send, enabled }) => send && enabled))
 
     await tx.user.update({
       where: { id: userId },

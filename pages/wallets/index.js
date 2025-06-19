@@ -1,9 +1,8 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Button } from 'react-bootstrap'
-import { FIRST_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch, usePage, UNLOCK_PAGE } from '@/wallets/client/context'
+import { FIRST_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch, usePage, UNLOCK_PAGE, useTemplates } from '@/wallets/client/context'
 import { WalletCard, WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
 import styles from '@/styles/wallet.module.css'
-import { isTemplate, isWallet } from '@/wallets/lib/util'
 import { usePassphrasePrompt, useShowPassphrase } from '@/wallets/client/hooks'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
@@ -11,6 +10,7 @@ export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 export default function Wallet () {
   const page = usePage()
   const wallets = useWallets()
+  const templates = useTemplates()
   const dispatch = useWalletsDispatch()
   const showPassphrase = useShowPassphrase()
   const passphrasePrompt = usePassphrasePrompt()
@@ -45,9 +45,6 @@ export default function Wallet () {
     )
   }
 
-  const configured = wallets.filter(w => isWallet(w))
-  const templates = wallets.filter(w => isTemplate(w))
-
   return (
     <WalletLayout>
       <div className='py-5'>
@@ -72,7 +69,7 @@ export default function Wallet () {
         </div>
         <div className={styles.walletGrid}>
           {/* TODO(wallet-v2): filter templates based on search or filters */}
-          {configured.map((w, i) => <WalletCard key={i} wallet={w} />)}
+          {wallets.map((w, i) => <WalletCard key={i} wallet={w} />)}
         </div>
         <div className={styles.separator} />
         <div className={styles.walletGrid}>

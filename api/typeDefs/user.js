@@ -208,6 +208,7 @@ export default gql`
     vaultKeyHash: String
     walletsUpdatedAt: Date
     proxyReceive: Boolean
+    directReceive: Boolean @deprecated
     receiveCreditsBelowSats: Int!
     sendCreditsBelowSats: Int!
   }

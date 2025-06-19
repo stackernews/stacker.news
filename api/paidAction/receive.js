@@ -56,24 +56,6 @@ export async function describe ({ description }, { me, cost, paymentMethod, sybi
   return description ?? `SN: ${me?.name ?? ''} receives ${numWithUnits(msatsToSats(cost - fee))}`
 }
 
-export async function onPaid ({ invoice }, { tx }) {
-  if (!invoice) {
-    throw new Error('invoice is required')
-  }
-
-  // P2P lnurlp does not need to update the user's balance
-  if (invoice?.invoiceForward) return
-
-  await tx.user.update({
-    where: { id: invoice.userId },
-    data: {
-      mcredits: {
-        increment: invoice.msatsReceived
-      }
-    }
-  })
-}
-
 export async function nonCriticalSideEffects ({ invoice }, { models }) {
   await notifyDeposit(invoice.userId, invoice)
   await models.$executeRaw`

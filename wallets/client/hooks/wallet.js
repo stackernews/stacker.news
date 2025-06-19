@@ -10,7 +10,7 @@ export function useWallet (name) {
 export function useSendWallets () {
   const wallets = useWallets()
   return useMemo(
-    () => wallets.filter(w => w.send && w.enabled),
+    () => wallets.filter(w => w.send),
     [wallets]
   )
 }
@@ -22,7 +22,7 @@ export function useSendProtocols () {
       return [
         ...acc,
         ...wallet.protocols
-          .filter(p => p.send)
+          .filter(p => p.send && p.enabled)
           .map(walletProtocol => {
             const { sendPayment } = protocols.find(p => p.name === walletProtocol.name)
             return {

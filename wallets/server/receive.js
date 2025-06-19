@@ -110,7 +110,7 @@ export async function getInvoiceableWallets (userId, { paymentAttempt, predecess
     JOIN "users" ON "users"."id" = "Wallet"."userId"
     WHERE
       "Wallet"."userId" = ${userId}
-      AND "Wallet"."enabled" = true
+      AND "WalletProtocol"."enabled" = true
       AND "WalletProtocol"."send" = false
       AND "WalletProtocol"."id" NOT IN (
         WITH RECURSIVE "Retries" AS (

@@ -7,18 +7,10 @@ export function useWallet (name) {
   // TODO(wallet-v2): implement this
 }
 
-export function useConfiguredWallets () {
+export function useSendWallets () {
   const wallets = useWallets()
   return useMemo(
-    () => wallets.filter(w => isWallet(w)),
-    [wallets]
-  )
-}
-
-export function useSendWallets () {
-  const wallets = useConfiguredWallets()
-  return useMemo(
-    () => wallets.filter(w => isWallet(w) && w.send && w.enabled),
+    () => wallets.filter(w => w.send && w.enabled),
     [wallets]
   )
 }

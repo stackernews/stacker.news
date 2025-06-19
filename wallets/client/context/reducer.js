@@ -1,4 +1,4 @@
-import { isWallet } from '@/wallets/lib/util'
+import { isEncrypted, isTemplate, isWallet } from '@/wallets/lib/util'
 
 // pages
 export const FIRST_PAGE = 'FIRST_PAGE'
@@ -25,13 +25,21 @@ export default function reducer (state, action) {
         ...state,
         page: nextPage(state)
       }
-    case SET_WALLETS:
+    case SET_WALLETS: {
+      const wallets = action.wallets
+        .filter(isWallet)
+        .sort((a, b) => a.priority === b.priority ? a.id - b.id : a.priority - b.priority)
+      const templates = action.wallets
+        .filter(isTemplate)
+        .sort((a, b) => a.name.localeCompare(b.name))
       return {
         ...state,
-        page: getPage(action),
-        wallets: action.wallets.sort((a, b) => a.priority === b.priority ? a.id - b.id : a.priority - b.priority),
+        page: getPage({ ...action, wallets, templates }),
+        wallets,
+        templates,
         loading: false
       }
+    }
     case SET_KEY:
       return {
         ...state,
@@ -44,7 +52,7 @@ export default function reducer (state, action) {
 
 function getPage (state) {
   // did decryption fail for a wallet?
-  if (state.wallets.some(w => isWallet(w) && w.encrypted)) {
+  if (state.wallets.some(isEncrypted)) {
     return UNLOCK_PAGE
   }
 

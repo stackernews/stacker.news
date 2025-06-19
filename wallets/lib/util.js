@@ -96,3 +96,7 @@ export function isWallet (wallet) {
 export function isTemplate (obj) {
   return obj.__typename.endsWith('Template')
 }
+
+export function isEncrypted (wallet) {
+  return wallet.encrypted
+}

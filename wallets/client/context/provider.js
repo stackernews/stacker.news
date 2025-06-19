@@ -12,6 +12,11 @@ export function useWallets () {
   return wallets
 }
 
+export function useTemplates () {
+  const { templates } = useContext(WalletsContext)
+  return templates
+}
+
 export function useLoading () {
   const { loading } = useContext(WalletsContext)
   return loading
@@ -35,6 +40,7 @@ export default function WalletsProvider ({ children }) {
   const [state, dispatch] = useReducer(walletsReducer, {
     page: FIRST_PAGE,
     wallets: [],
+    templates: [],
     key: null,
     loading: true
   })

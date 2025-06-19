@@ -65,7 +65,11 @@ async function wallets (parent, args, { me, models }) {
     include: {
       template: true,
       protocols: true
-    }
+    },
+    orderBy: [
+      { priority: 'asc' },
+      { id: 'asc' }
+    ]
   })
 
   let walletTemplates = await models.walletTemplate.findMany()

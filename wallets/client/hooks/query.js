@@ -20,7 +20,7 @@ import {
   DISABLE_PASSPHRASE_EXPORT
 } from '@/wallets/client/fragments'
 import { useMutation, useQuery } from '@apollo/client'
-import { useDecryption, useEncryption, useSetKey, useWalletLoggerFactory } from '@/wallets/client/hooks'
+import { useDecryption, useEncryption, useSetKey, useWalletLogger } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { isEncryptedField, isWallet, reverseProtocolRelationName } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
@@ -83,8 +83,7 @@ export function useWalletProtocolUpsert (wallet, protocol) {
   const [mutate] = useMutation(mutation)
   const encryptConfig = useEncryptConfig(protocol)
   const testSendPayment = useTestSendPayment(protocol)
-  const loggerFactory = useWalletLoggerFactory()
-  const logger = loggerFactory(protocol)
+  const logger = useWalletLogger(protocol)
 
   return useCallback(async (values) => {
     logger.info('saving wallet ...')

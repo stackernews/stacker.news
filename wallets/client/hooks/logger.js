@@ -36,6 +36,11 @@ export function useWalletLoggerFactory () {
   }, [log])
 }
 
+export function useWalletLogger (protocol) {
+  const loggerFactory = useWalletLoggerFactory()
+  return loggerFactory(protocol)
+}
+
 export function useWalletLogs (protocol) {
   const { data, loading, error, refetch } = useQuery(WALLET_LOGS, {
     variables: { protocolId: protocol ? protocol.id : null },

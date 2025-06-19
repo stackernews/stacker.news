@@ -50,7 +50,7 @@ function BioItem ({ item, handleClick }) {
   )
 }
 
-function ItemEmbed ({ url, imgproxyUrls }) {
+function ItemEmbed ({ url, imgproxyUrls, itemId }) {
   const provider = parseEmbedUrl(url)
   if (provider) {
     return (
@@ -65,7 +65,13 @@ function ItemEmbed ({ url, imgproxyUrls }) {
     const srcSet = imgproxyUrls?.[url]
     return (
       <div className='mt-3'>
-        <MediaOrLink src={src} srcSet={srcSet} topLevel linkFallback={false} imgIndex={0} />
+        <MediaOrLink
+          src={src}
+          srcSet={srcSet}
+          topLevel
+          linkFallback={false}
+          imgIndex={itemId * 100}
+        />
       </div>
     )
   }
@@ -110,7 +116,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
     >
       <article className={classNames(styles.fullItemContainer, 'topLevel')} ref={textRef}>
         {item.text && <ItemText item={item} />}
-        {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
+        {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} itemId={item.id} />}
         {item.poll && <Poll item={item} />}
         {item.bounty &&
           <div className='fw-bold mt-2'>

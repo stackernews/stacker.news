@@ -6,7 +6,7 @@ import { useRouter } from 'next/router'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
 import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, urlify, isWallet, isTemplate } from '@/wallets/lib/util'
 import styles from '@/styles/wallet.module.css'
-import { Form, Input, PasswordInput, SubmitButton } from '@/components/form'
+import { Checkbox, Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
 import { useWalletProtocolUpsert, useWalletProtocolRemove, useWalletQuery } from '@/wallets/client/hooks'
 import { useToast } from '@/components/toast'
@@ -185,6 +185,7 @@ function WalletProtocolForm () {
         onSubmit={onSubmit}
       >
         {fields.map(field => <WalletProtocolFormField key={field.name} {...field} />)}
+        <Checkbox name='enabled' label='enabled' disabled={isTemplate(protocol)} />
         <WalletProtocolFormButtons />
       </Form>
       <WalletLogs className='mt-3' protocol={protocol} />
@@ -294,7 +295,8 @@ function useProtocolForm (protocol) {
       ...acc,
       [field.name]: value || ''
     }
-  }, {})
+  }, { enabled: protocol.enabled })
+
   const schema = protocolClientSchema(protocol)
   return { fields, initial, schema }
 }

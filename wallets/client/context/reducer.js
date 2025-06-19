@@ -29,7 +29,7 @@ export default function reducer (state, action) {
       return {
         ...state,
         page: getPage(action),
-        wallets: action.wallets,
+        wallets: action.wallets.sort((a, b) => a.priority === b.priority ? a.id - b.id : a.priority - b.priority),
         loading: false
       }
     case SET_KEY:

@@ -23,6 +23,7 @@ const WALLET_PROTOCOL_FIELDS = gql`
     id
     name
     send
+    enabled
     config {
       __typename
       ... on WalletSendNWC {
@@ -132,7 +133,6 @@ const USER_WALLET_FIELDS = gql`
     id
     name
     priority
-    enabled
     send
     receive
     protocols {

@@ -104,7 +104,6 @@ CREATE TABLE "Wallet" (
     "id" SERIAL NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "enabled" BOOLEAN NOT NULL DEFAULT true,
     "priority" INTEGER NOT NULL DEFAULT 0,
     "userId" INTEGER NOT NULL,
     "templateId" INTEGER NOT NULL,
@@ -121,6 +120,7 @@ CREATE TABLE "WalletProtocol" (
     "walletId" INTEGER NOT NULL,
     "send" BOOLEAN NOT NULL,
     "name" "WalletProtocolName" NOT NULL,
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
 
     CONSTRAINT "WalletProtocol_pkey" PRIMARY KEY ("id")
 );
@@ -702,8 +702,7 @@ FOR EACH ROW EXECUTE PROCEDURE wallet_updated_at_trigger();
 CREATE OR REPLACE FUNCTION get_or_create_wallet(
     user_id INT,
     template_name TEXT,
-    priority INT,
-    enabled BOOLEAN
+    priority INT
 )
 RETURNS INT AS
 $$
@@ -716,7 +715,7 @@ BEGIN
     WHERE w."userId" = user_id AND t.name = template_name;
 
     IF NOT FOUND THEN
-        walletId := create_wallet(user_id, template_name, priority, enabled);
+        walletId := create_wallet(user_id, template_name, priority);
     END IF;
 
     RETURN walletId;
@@ -726,16 +725,15 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION create_wallet(
     user_id INT,
     template_name TEXT,
-    priority INT,
-    enabled BOOLEAN
+    priority INT
 )
 RETURNS INT AS
 $$
 DECLARE
     walletId INT;
 BEGIN
-    INSERT INTO "Wallet" ("userId", "templateId", "priority", "enabled")
-    SELECT user_id, t.id, priority, enabled
+    INSERT INTO "Wallet" ("userId", "templateId", "priority")
+    SELECT user_id, t.id, priority
     FROM "WalletTemplate" t
     WHERE t.name = template_name
     RETURNING id INTO walletId;
@@ -748,15 +746,16 @@ CREATE OR REPLACE FUNCTION create_wallet_protocol(
     id INT,
     wallet_id INT,
     send BOOLEAN,
-    protocol_name "WalletProtocolName"
+    protocol_name "WalletProtocolName",
+    enabled BOOLEAN
 )
 RETURNS INT AS
 $$
 DECLARE
     protocolId INT;
 BEGIN
-    INSERT INTO "WalletProtocol" ("id", "walletId", "send", "name")
-    VALUES (CASE WHEN send THEN nextval('"WalletProtocol_id_seq"') ELSE id END, wallet_id, send, protocol_name)
+    INSERT INTO "WalletProtocol" ("id", "walletId", "send", "name", "enabled")
+    VALUES (CASE WHEN send THEN nextval('"WalletProtocol_id_seq"') ELSE id END, wallet_id, send, protocol_name, enabled)
     RETURNING "WalletProtocol"."id" INTO protocolId;
 
     RETURN protocolId;
@@ -786,16 +785,16 @@ BEGIN
             walletId INT;
             protocolId INT;
         BEGIN
-            walletId := get_or_create_wallet(row."userId", 'LNBITS', row."priority", row."enabled");
+            walletId := get_or_create_wallet(row."userId", 'LNBITS', row."priority");
 
             IF row."adminKeyId" IS NOT NULL THEN
-                protocolId := create_wallet_protocol(row."walletId", walletId, true, 'LNBITS');
+                protocolId := create_wallet_protocol(row."walletId", walletId, true, 'LNBITS', row."enabled");
                 INSERT INTO "WalletSendLNbits" ("protocolId", "url", "apiKeyVaultId")
                 VALUES (protocolId, row."url", row."adminKeyId");
             END IF;
 
             IF row."invoiceKey" IS NOT NULL THEN
-                protocolId := create_wallet_protocol(row."walletId", walletId, false, 'LNBITS');
+                protocolId := create_wallet_protocol(row."walletId", walletId, false, 'LNBITS', row."enabled");
                 INSERT INTO "WalletRecvLNbits" ("protocolId", "url", "apiKey")
                 VALUES (protocolId, row."url", row."invoiceKey");
             END IF;
@@ -811,16 +810,16 @@ BEGIN
             walletId INT;
             protocolId INT;
         BEGIN
-            walletId := get_or_create_wallet(row."userId", 'PHOENIXD', row."priority", row."enabled");
+            walletId := get_or_create_wallet(row."userId", 'PHOENIXD', row."priority");
 
             IF row."primaryPasswordId" IS NOT NULL THEN
-                protocolId := create_wallet_protocol(row."walletId", walletId, true, 'PHOENIXD');
+                protocolId := create_wallet_protocol(row."walletId", walletId, true, 'PHOENIXD', row."enabled");
                 INSERT INTO "WalletSendPhoenixd" ("protocolId", "url", "apiKeyVaultId")
                 VALUES (protocolId, row."url", row."primaryPasswordId");
             END IF;
 
             IF row."secondaryPassword" IS NOT NULL THEN
-                protocolId := create_wallet_protocol(row."walletId", walletId, false, 'PHOENIXD');
+                protocolId := create_wallet_protocol(row."walletId", walletId, false, 'PHOENIXD', row."enabled");
                 INSERT INTO "WalletRecvPhoenixd" ("protocolId", "url", "apiKey")
                 VALUES (protocolId, row."url", row."secondaryPassword");
             END IF;
@@ -836,16 +835,16 @@ BEGIN
             walletId INT;
             protocolId INT;
         BEGIN
-            walletId := get_or_create_wallet(row."userId", 'BLINK', row."priority", row."enabled");
+            walletId := get_or_create_wallet(row."userId", 'BLINK', row."priority");
 
             IF row."apiKeyId" IS NOT NULL AND row."currencyId" IS NOT NULL THEN
-                protocolId := create_wallet_protocol(row."walletId", walletId, true, 'BLINK');
+                protocolId := create_wallet_protocol(row."walletId", walletId, true, 'BLINK', row."enabled");
                 INSERT INTO "WalletSendBlink" ("protocolId", "apiKeyVaultId", "currencyVaultId")
                 VALUES (protocolId, row."apiKeyId", row."currencyId");
             END IF;
 
             IF row."apiKeyRecv" IS NOT NULL AND row."currencyRecv" IS NOT NULL THEN
-                protocolId := create_wallet_protocol(row."walletId", walletId, false, 'BLINK');
+                protocolId := create_wallet_protocol(row."walletId", walletId, false, 'BLINK', row."enabled");
                 INSERT INTO "WalletRecvBlink" ("protocolId", "apiKey", "currency")
                 VALUES (protocolId, row."apiKeyRecv", row."currencyRecv");
             END IF;
@@ -861,9 +860,9 @@ BEGIN
             walletId INT;
             protocolId INT;
         BEGIN
-            walletId := get_or_create_wallet(row."userId", 'LND', row."priority", row."enabled");
+            walletId := get_or_create_wallet(row."userId", 'LND', row."priority");
 
-            protocolId := create_wallet_protocol(row."walletId", walletId, false, 'LND_GRPC');
+            protocolId := create_wallet_protocol(row."walletId", walletId, false, 'LND_GRPC', row."enabled");
             INSERT INTO "WalletRecvLNDGRPC" ("protocolId", "socket", "macaroon", "cert")
             VALUES (protocolId, row."socket", row."macaroon", row."cert");
         END;
@@ -878,9 +877,9 @@ BEGIN
             walletId INT;
             protocolId INT;
         BEGIN
-            walletId := get_or_create_wallet(row."userId", 'LND', row."priority", row."enabled");
+            walletId := get_or_create_wallet(row."userId", 'LND', row."priority");
 
-            protocolId := create_wallet_protocol(row."walletId", walletId, true, 'LNC');
+            protocolId := create_wallet_protocol(row."walletId", walletId, true, 'LNC', row."enabled");
             INSERT INTO "WalletSendLNC" ("protocolId", "pairingPhraseVaultId", "localKeyVaultId", "remoteKeyVaultId", "serverHostVaultId")
             VALUES (protocolId, row."pairingPhraseId", row."localKeyId", row."remoteKeyId", row."serverHostId");
         END;
@@ -895,9 +894,9 @@ BEGIN
             walletId INT;
             protocolId INT;
         BEGIN
-            walletId := get_or_create_wallet(row."userId", 'CLN', row."priority", row."enabled");
+            walletId := get_or_create_wallet(row."userId", 'CLN', row."priority");
 
-            protocolId := create_wallet_protocol(row."walletId", walletId, false, 'CLN_REST');
+            protocolId := create_wallet_protocol(row."walletId", walletId, false, 'CLN_REST', row."enabled");
             INSERT INTO "WalletRecvCLNRest" ("protocolId", "socket", "rune", "cert")
             VALUES (protocolId, row."socket", row."rune", row."cert");
         END;
@@ -926,19 +925,19 @@ BEGIN
                 walletName := 'CUSTOM';
             END IF;
 
-            walletId := get_or_create_wallet(row."userId", walletName, row."priority", row."enabled");
+            walletId := get_or_create_wallet(row."userId", walletName, row."priority");
 
             -- we assume here that the wallet to receive is the same as the wallet to send
             -- since we can't check which relay is used for the send connection because it's encrypted.
             -- but in 99% if not 100% of the cases, it's the same wallet.
             IF row."nwcUrlRecv" IS NOT NULL THEN
-                protocolId := create_wallet_protocol(row."walletId", walletId, false, 'NWC');
+                protocolId := create_wallet_protocol(row."walletId", walletId, false, 'NWC', row."enabled");
                 INSERT INTO "WalletRecvNWC" ("protocolId", "url")
                 VALUES (protocolId, row."nwcUrlRecv");
             END IF;
 
             IF row."nwcUrlId" IS NOT NULL THEN
-                protocolId := create_wallet_protocol(row."walletId", walletId, true, 'NWC');
+                protocolId := create_wallet_protocol(row."walletId", walletId, true, 'NWC', row."enabled");
                 INSERT INTO "WalletSendNWC" ("protocolId", "urlVaultId")
                 VALUES (protocolId, row."nwcUrlId");
             END IF;
@@ -998,9 +997,9 @@ BEGIN
                 walletName := 'CUSTOM';
             END IF;
 
-            walletId := get_or_create_wallet(row."userId", walletName, row."priority", row."enabled");
+            walletId := get_or_create_wallet(row."userId", walletName, row."priority");
 
-            protocolId := create_wallet_protocol(row."walletId", walletId, false, 'LN_ADDR');
+            protocolId := create_wallet_protocol(row."walletId", walletId, false, 'LN_ADDR', row."enabled");
             INSERT INTO "WalletRecvLightningAddress" ("protocolId", "address")
             VALUES (protocolId, row."address");
         END;
@@ -1015,9 +1014,9 @@ BEGIN
             walletId INT;
             protocolId INT;
         BEGIN
-            walletId := get_or_create_wallet(row."userId", 'ALBY_BROWSER_EXTENSION', row."priority", row."enabled");
+            walletId := get_or_create_wallet(row."userId", 'ALBY_BROWSER_EXTENSION', row."priority");
 
-            protocolId := create_wallet_protocol(row."walletId", walletId, true, 'WEBLN');
+            protocolId := create_wallet_protocol(row."walletId", walletId, true, 'WEBLN', row."enabled");
             INSERT INTO "WalletSendWebLN" ("protocolId")
             VALUES (protocolId);
         END;
@@ -1028,9 +1027,9 @@ $$ LANGUAGE plpgsql;
 SELECT wallet_v2_migration();
 
 DROP FUNCTION wallet_v2_migration();
-DROP FUNCTION get_or_create_wallet(INT, TEXT, INT, BOOLEAN);
-DROP FUNCTION create_wallet(INT, TEXT, INT, BOOLEAN);
-DROP FUNCTION create_wallet_protocol(INT, INT, BOOLEAN, "WalletProtocolName");
+DROP FUNCTION get_or_create_wallet(INT, TEXT, INT);
+DROP FUNCTION create_wallet(INT, TEXT, INT);
+DROP FUNCTION create_wallet_protocol(INT, INT, BOOLEAN, "WalletProtocolName", BOOLEAN);
 
 -- drop old tables
 DROP TABLE "WalletBlink";
@@ -1093,7 +1092,7 @@ BEGIN
         FROM "Wallet" w
         JOIN "WalletProtocol" wp ON w.id = wp."walletId"
         WHERE w."userId" = NEW.id
-        AND w."enabled" = true
+        AND wp."enabled" = true
         AND wp.send = false
     );
     RETURN NEW;

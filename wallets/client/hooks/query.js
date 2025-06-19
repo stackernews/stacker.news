@@ -22,7 +22,7 @@ import {
 import { useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey, useWalletLogger } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { isEncryptedField, isWallet, reverseProtocolRelationName } from '@/wallets/lib/util'
+import { isEncryptedField, isTemplate, isWallet, reverseProtocolRelationName } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
@@ -88,6 +88,10 @@ export function useWalletProtocolUpsert (wallet, protocol) {
   return useCallback(async (values) => {
     logger.info('saving wallet ...')
 
+    if (isTemplate(protocol)) {
+      values.enabled = true
+    }
+
     try {
       await testSendPayment(values)
     } catch (err) {
@@ -115,7 +119,7 @@ export function useWalletProtocolUpsert (wallet, protocol) {
     }
 
     return updatedWallet
-  }, [logger, testSendPayment, encryptConfig, mutate])
+  }, [protocol, logger, testSendPayment, encryptConfig, mutate])
 }
 
 export function useWalletProtocolRemove (protocol) {

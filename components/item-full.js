@@ -26,6 +26,7 @@ import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import classNames from 'classnames'
 import { CarouselProvider, useCarousel } from './carousel'
 import Embed from './embed'
+import { useRouter } from 'next/router'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
@@ -181,6 +182,8 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
   useEffect(() => {
     commentsViewed(item)
   }, [item.lastCommentAt])
+  const router = useRouter()
+  const carouselKey = `${item.id}--${router.query.sort || 'default'}`
 
   return (
     <>
@@ -191,7 +194,7 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
           </div>)
         : <div />}
       <RootProvider root={item.root || item}>
-        <CarouselProvider key={item.id}>
+        <CarouselProvider key={carouselKey}>
           {item.parentId
             ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
             : (

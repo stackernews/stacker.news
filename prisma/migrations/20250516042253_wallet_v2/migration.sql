@@ -946,6 +946,8 @@ BEGIN
                 walletName := 'RIZFUL';
             ELSIF relay LIKE '%primal.net%' THEN
                 walletName := 'PRIMAL';
+            ELSIF relay LIKE '%coinos.io%' THEN
+                walletName := 'COINOS';
             ELSE
                 walletName := 'CUSTOM';
             END IF;

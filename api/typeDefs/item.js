@@ -11,6 +11,7 @@ export default gql`
     auctionPosition(sub: String, id: ID, boost: Int): Int!
     boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
+    scheduledItems(cursor: String, limit: Limit): Items
   }
 
   type BoostPositions {
@@ -63,6 +64,8 @@ export default gql`
     act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): ItemActPaidAction!
     pollVote(id: ID!): PollVotePaidAction!
     toggleOutlaw(id: ID!): Item!
+    cancelScheduledPost(id: ID!): Item!
+    publishScheduledPostNow(id: ID!): Item!
   }
 
   type PollVoteResult {
@@ -112,6 +115,8 @@ export default gql`
     deletedAt: Date
     deleteScheduledAt: Date
     reminderScheduledAt: Date
+    scheduledAt: Date
+    isScheduled: Boolean!
     title: String
     searchTitle: String
     url: String

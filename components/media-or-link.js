@@ -86,7 +86,7 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
       itemId: props.itemId,
       imgIndex: props.imgIndex
     })
-  }, [media.image])
+  }, [media.image, props.rel, props.itemId, props.imgIndex])
 
   const handleClick = useCallback(() => showCarousel({ src: media.bestResSrc }),
     [showCarousel, media.bestResSrc])

@@ -118,7 +118,7 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
         itemId={itemId}
       />
     )
-  }, [outlawed, imgproxyUrls, topLevel, rel])
+  }, [outlawed, imgproxyUrls, topLevel, rel, itemId])
 
   const components = useMemo(() => ({
     h1: ({ node, id, ...props }) => <h1 id={topLevel ? id : undefined} {...props} />,

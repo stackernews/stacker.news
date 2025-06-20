@@ -76,7 +76,7 @@ function ItemEmbed ({ url, imgproxyUrls, itemId }) {
           srcSet={srcSet}
           topLevel
           linkFallback={false}
-          itemId
+          itemId={itemId}
           imgIndex={0}
         />
       </div>

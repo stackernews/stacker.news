@@ -121,7 +121,7 @@ export function CarouselProvider ({ children }) {
     })
   }, [showModal, media.current])
 
-  const addMedia = useCallback(({ src, originalSrc, rel, itemId, imgIndex }) => {
+  const addMedia = useCallback(({ src, originalSrc, rel, itemId, imgIndex = 0 }) => {
     const items = itemArray.current
     const itemOrder = items.has(itemId) ? items.get(itemId).itemOrder : 0
     const sortKey = itemOrder * 100 + imgIndex

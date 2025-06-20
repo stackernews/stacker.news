@@ -105,11 +105,13 @@ function CarouselOverflow ({ originalSrc, rel }) {
 
 export function CarouselProvider ({ children }) {
   const media = useRef(new Map())
+  const itemArray = useRef(new Map())
+  const itemCount = useRef(0)
   const showModal = useShowModal()
 
   const showCarousel = useCallback(({ src }) => {
     const sortedMedia = Array.from(media.current.entries())
-      .sort(([, a], [, b]) => a.imgIndex - b.imgIndex)
+      .sort(([, a], [, b]) => a.sortKey - b.sortKey)
 
     showModal((close, setOptions) => {
       return <Carousel close={close} mediaArr={sortedMedia} src={src} setOptions={setOptions} />
@@ -119,15 +121,32 @@ export function CarouselProvider ({ children }) {
     })
   }, [showModal, media.current])
 
-  const addMedia = useCallback(({ src, originalSrc, rel, imgIndex }) => {
-    media.current.set(src, { src, originalSrc, rel, imgIndex })
+  const addMedia = useCallback(({ src, originalSrc, rel, itemId, imgIndex }) => {
+    const items = itemArray.current
+    const itemOrder = items.has(itemId) ? items.get(itemId).itemOrder : 0
+    const sortKey = itemOrder * 100 + imgIndex
+    media.current.set(src, { src, originalSrc, rel, sortKey })
   }, [media.current])
 
   const removeMedia = useCallback((src) => {
     media.current.delete(src)
   }, [media.current])
 
-  const value = useMemo(() => ({ showCarousel, addMedia, removeMedia }), [showCarousel, addMedia, removeMedia])
+  const addItem = useCallback((itemId) => {
+    const items = itemArray.current
+    if (!items.has(itemId)) {
+      itemCount.current += 1
+      items.set(itemId, { itemOrder: itemCount.current })
+    }
+    return items.get(itemId).itemOrder
+  }, [])
+
+  const value = useMemo(() => ({
+    showCarousel,
+    addMedia,
+    removeMedia,
+    addItem
+  }), [showCarousel, addMedia, removeMedia, addItem])
   return <CarouselContext.Provider value={value}>{children}</CarouselContext.Provider>
 }
 

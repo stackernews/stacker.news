@@ -24,13 +24,18 @@ import { numWithUnits } from '@/lib/format'
 import { useQuoteReply } from './use-quote-reply'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import classNames from 'classnames'
-import { CarouselProvider } from './carousel'
+import { CarouselProvider, useCarousel } from './carousel'
 import Embed from './embed'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
   if (!item.text) {
     return null
+  }
+
+  const carousel = useCarousel()
+  if (carousel) {
+    carousel.addItem(item.id)
   }
 
   return (
@@ -50,7 +55,7 @@ function BioItem ({ item, handleClick }) {
   )
 }
 
-function ItemEmbed ({ url, imgproxyUrls }) {
+function ItemEmbed ({ url, imgproxyUrls, itemId }) {
   const provider = parseEmbedUrl(url)
   if (provider) {
     return (
@@ -65,7 +70,14 @@ function ItemEmbed ({ url, imgproxyUrls }) {
     const srcSet = imgproxyUrls?.[url]
     return (
       <div className='mt-3'>
-        <MediaOrLink src={src} srcSet={srcSet} topLevel linkFallback={false} />
+        <MediaOrLink
+          src={src}
+          srcSet={srcSet}
+          topLevel
+          linkFallback={false}
+          itemId
+          imgIndex={0}
+        />
       </div>
     )
   }
@@ -93,6 +105,11 @@ function TopLevelItem ({ item, noReply, ...props }) {
   const ItemComponent = item.isJob ? ItemJob : Item
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
+  const carousel = useCarousel()
+  if (carousel) {
+    carousel.addItem(item.id)
+  }
+
   return (
     <ItemComponent
       item={item}
@@ -110,7 +127,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
     >
       <article className={classNames(styles.fullItemContainer, 'topLevel')} ref={textRef}>
         {item.text && <ItemText item={item} />}
-        {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
+        {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} itemId={item.id} />}
         {item.poll && <Poll item={item} />}
         {item.bounty &&
           <div className='fw-bold mt-2'>

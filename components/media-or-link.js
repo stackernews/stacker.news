@@ -83,6 +83,7 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
       src: media.bestResSrc,
       originalSrc: media.originalSrc,
       rel: props.rel,
+      itemId: props.itemId,
       imgIndex: props.imgIndex
     })
   }, [media.image])

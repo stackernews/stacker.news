@@ -108,9 +108,17 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
   }, [containerRef.current, setOverflowing])
 
   const TextMediaOrLink = useCallback(props => {
-    return <MediaLink {...props} outlawed={outlawed} imgproxyUrls={imgproxyUrls} topLevel={topLevel} rel={rel} />
-  },
-  [outlawed, imgproxyUrls, topLevel, rel])
+    return (
+      <MediaLink
+        {...props}
+        outlawed={outlawed}
+        imgproxyUrls={imgproxyUrls}
+        topLevel={topLevel}
+        rel={rel}
+        itemId={itemId}
+      />
+    )
+  }, [outlawed, imgproxyUrls, topLevel, rel])
 
   const components = useMemo(() => ({
     h1: ({ node, id, ...props }) => <h1 id={topLevel ? id : undefined} {...props} />,
@@ -142,6 +150,9 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
   }), [outlawed, rel, TextMediaOrLink, topLevel])
 
   const carousel = useCarousel()
+  if (carousel) {
+    carousel.addItem(itemId)
+  }
 
   const markdownContent = useMemo(() => (
     <ReactMarkdown
@@ -220,10 +231,8 @@ function Footnote ({ children, node, ...props }) {
 }
 
 function MediaLink ({
-  node, src, outlawed, imgproxyUrls, rel = UNKNOWN_LINK_REL, ...props
+  node, src, outlawed, imgproxyUrls, itemId, imgIndex, rel = UNKNOWN_LINK_REL, ...props
 }) {
-  const imgIndex = node?.properties?.imgIndex
-
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
   // if outlawed, render the media link as text
   if (outlawed) {
@@ -232,7 +241,16 @@ function MediaLink ({
 
   const srcSet = imgproxyUrls?.[url]
 
-  return <MediaOrLink srcSet={srcSet} src={src} rel={rel} imgIndex={imgIndex} {...props} />
+  return (
+    <MediaOrLink
+      srcSet={srcSet}
+      src={src}
+      rel={rel}
+      itemId={itemId}
+      imgIndex={imgIndex}
+      {...props}
+    />
+  )
 }
 
 function Table ({ node, ...props }) {

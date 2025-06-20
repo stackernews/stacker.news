@@ -26,9 +26,6 @@ ${STREAK_FIELDS}
       diagnostics
       noReferralLinks
       fiatCurrency
-      autoWithdrawMaxFeePercent
-      autoWithdrawMaxFeeTotal
-      autoWithdrawThreshold
       withdrawMaxFeeDefault
       satsFilter
       hideFromTopUsers
@@ -53,7 +50,7 @@ ${STREAK_FIELDS}
       disableFreebies
       vaultKeyHash
       walletsUpdatedAt
-      proxyReceive
+      showPassphrase
     }
     optional {
       isContributor
@@ -115,9 +112,6 @@ export const SETTINGS_FIELDS = gql`
         apiKey
       }
       apiKeyEnabled
-      proxyReceive
-      receiveCreditsBelowSats
-      sendCreditsBelowSats
     }
   }`
 

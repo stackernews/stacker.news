@@ -1,66 +1,6 @@
 import { gql } from 'graphql-tag'
-import { fieldToGqlArg, fieldToGqlArgOptional, generateResolverName, generateTypeDefName } from '@/wallets/graphql'
-import { isServerField } from '@/wallets/common'
-import walletDefs from '@/wallets/server'
 
-function injectTypeDefs (typeDefs) {
-  const injected = [rawTypeDefs(), mutationTypeDefs()]
-  return `${typeDefs}\n\n${injected.join('\n\n')}\n`
-}
-
-function mutationTypeDefs () {
-  console.group('injected GraphQL mutations:')
-
-  const typeDefs = walletDefs.map((w) => {
-    let args = 'id: ID, '
-    const serverFields = w.fields
-      .filter(isServerField)
-      .map(fieldToGqlArgOptional)
-    if (serverFields.length > 0) args += serverFields.join(', ') + ','
-    args += 'enabled: Boolean, priority: Int, vaultEntries: [VaultEntryInput!], settings: AutowithdrawSettings, validateLightning: Boolean'
-    const resolverName = generateResolverName(w.walletField)
-    const typeDef = `${resolverName}(${args}): Wallet`
-    console.log(typeDef)
-    return typeDef
-  })
-
-  console.groupEnd()
-
-  return `extend type Mutation {\n${typeDefs.join('\n')}\n}`
-}
-
-function rawTypeDefs () {
-  console.group('injected GraphQL type defs:')
-
-  const typeDefs = walletDefs.map((w) => {
-    let args = w.fields
-      .filter(isServerField)
-      .map(fieldToGqlArg)
-      .map(s => '  ' + s)
-      .join('\n')
-    if (!args) {
-      // add a placeholder arg so the type is not empty
-      args = '  _empty: Boolean'
-    }
-    const typeDefName = generateTypeDefName(w.walletType)
-    const typeDef = `type ${typeDefName} {\n${args}\n}`
-    console.log(typeDef)
-    return typeDef
-  })
-
-  let union = 'union WalletDetails = '
-  union += walletDefs.map((w) => {
-    const typeDefName = generateTypeDefName(w.walletType)
-    return typeDefName
-  }).join(' | ')
-  console.log(union)
-
-  console.groupEnd()
-
-  return typeDefs.join('\n\n') + union
-}
-
-const typeDefs = `
+const typeDefs = gql`
   extend type Query {
     invoice(id: ID!): Invoice!
     withdrawl(id: ID!): Withdrawl!
@@ -68,8 +8,10 @@ const typeDefs = `
     numBolt11s: Int!
     connectAddress: String!
     walletHistory(cursor: String, inc: String): History
-    wallets: [Wallet!]!
-    walletLogs(type: String, from: String, to: String, cursor: String): WalletLog!
+    wallets: [WalletOrTemplate!]!
+    wallet(id: ID, name: String): WalletOrTemplate
+    walletSettings: WalletSettings!
+    walletLogs(protocolId: ID): [WalletLogEntry!]!
     failedInvoices: [Invoice!]!
   }
 
@@ -79,9 +21,29 @@ const typeDefs = `
     cancelInvoice(hash: String!, hmac: String, userCancel: Boolean): Invoice!
     dropBolt11(hash: String!): Boolean
     removeWallet(id: ID!): Boolean
-    deleteWalletLogs(wallet: String): Boolean
+    deleteWalletLogs(protocolId: ID): Boolean
     setWalletPriority(id: ID!, priority: Int!): Boolean
     buyCredits(credits: Int!): BuyCreditsPaidAction!
+
+    upsertWalletSendLNbits(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, url: String!, apiKey: VaultEntryInput!): WalletSendLNbits!
+    upsertWalletRecvLNbits(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, url: String!, apiKey: String!): WalletRecvLNbits!
+    upsertWalletSendPhoenixd(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, url: String!, apiKey: VaultEntryInput!): WalletSendPhoenixd!
+    upsertWalletRecvPhoenixd(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, url: String!, apiKey: String!): WalletRecvPhoenixd!
+    upsertWalletSendBlink(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, currency: VaultEntryInput!, apiKey: VaultEntryInput!): WalletSendBlink!
+    upsertWalletRecvBlink(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, currency: String!, apiKey: String!): WalletRecvBlink!
+    upsertWalletRecvLightningAddress(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, address: String!): WalletRecvLightningAddress!
+    upsertWalletSendNWC(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, url: VaultEntryInput!): WalletSendNWC!
+    upsertWalletRecvNWC(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, url: String!): WalletRecvNWC!
+    upsertWalletRecvCLNRest(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, socket: String!, rune: String!, cert: String): WalletRecvCLNRest!
+    upsertWalletRecvLNDGRPC(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, socket: String!, macaroon: String!, cert: String): WalletRecvLNDGRPC!
+    upsertWalletSendLNC(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, pairingPhrase: VaultEntryInput!, localKey: VaultEntryInput!, remoteKey: VaultEntryInput!, serverHost: VaultEntryInput!): WalletSendLNC!
+    upsertWalletSendWebLN(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean): WalletSendWebLN!
+    removeWalletProtocol(id: ID!): Boolean
+    updateWalletEncryption(keyHash: String!, wallets: [WalletEncryptionUpdate!]!): Boolean
+    resetWallets: Boolean
+    disablePassphraseExport: Boolean
+    setWalletSettings(settings: WalletSettingsInput!): Boolean
+    addWalletLog(protocolId: ID!, level: String!, message: String!, timestamp: Date!, invoiceId: Int): Boolean
   }
 
   type BuyCreditsResult {
@@ -92,21 +54,165 @@ const typeDefs = `
     id: ID!
   }
 
+  union WalletOrTemplate = Wallet | WalletTemplate
+
   type Wallet {
     id: ID!
-    createdAt: Date!
-    updatedAt: Date!
-    type: String!
-    enabled: Boolean!
+    name: String!
     priority: Int!
-    wallet: WalletDetails!
-    vaultEntries: [VaultEntry!]!
+    template: WalletTemplate!
+    protocols: [WalletProtocol!]!
+    send: Boolean!
+    receive: Boolean!
+  }
+
+  type WalletTemplate {
+    id: ID!
+    name: String!
+    protocols: [WalletProtocolTemplate!]!
+    send: Boolean!
+    receive: Boolean!
+  }
+
+  type WalletProtocol {
+    id: ID!
+    name: String!
+    send: Boolean!
+    enabled: Boolean!
+    config: WalletProtocolConfig!
+  }
+
+  type WalletProtocolTemplate {
+    id: ID!
+    name: String!
+    send: Boolean!
+  }
+
+  union WalletProtocolConfig =
+    | WalletSendNWC
+    | WalletSendLNbits
+    | WalletSendPhoenixd
+    | WalletSendBlink
+    | WalletSendWebLN
+    | WalletSendLNC
+    | WalletRecvNWC
+    | WalletRecvLNbits
+    | WalletRecvPhoenixd
+    | WalletRecvBlink
+    | WalletRecvLightningAddress
+    | WalletRecvCLNRest
+    | WalletRecvLNDGRPC
+
+  type WalletSettings {
+    receiveCreditsBelowSats: Int!
+    sendCreditsBelowSats: Int!
+    autoWithdrawThreshold: Int
+    autoWithdrawMaxFeePercent: Float
+    autoWithdrawMaxFeeTotal: Int
+    proxyReceive: Boolean!
+  }
+
+  input WalletSettingsInput {
+    receiveCreditsBelowSats: Int!
+    sendCreditsBelowSats: Int!
+    autoWithdrawThreshold: Int!
+    autoWithdrawMaxFeePercent: Float!
+    autoWithdrawMaxFeeTotal: Int!
+    proxyReceive: Boolean!
+  }
+
+  type WalletSendNWC {
+    id: ID!
+    url: VaultEntry!
+  }
+
+  type WalletSendLNbits {
+    id: ID!
+    url: String!
+    apiKey: VaultEntry!
+  }
+
+  type WalletSendPhoenixd {
+    id: ID!
+    url: String!
+    apiKey: VaultEntry!
+  }
+
+  type WalletSendBlink {
+    id: ID!
+    currency: VaultEntry!
+    apiKey: VaultEntry!
+  }
+
+  type WalletSendWebLN {
+    id: ID!
+  }
+
+  type WalletSendLNC {
+    id: ID!
+    pairingPhrase: VaultEntry!
+    localKey: VaultEntry!
+    remoteKey: VaultEntry!
+    serverHost: VaultEntry!
+  }
+
+  type WalletRecvNWC {
+    id: ID!
+    url: String!
+  }
+
+  type WalletRecvLNbits {
+    id: ID!
+    url: String!
+    apiKey: String!
+  }
+
+  type WalletRecvPhoenixd {
+    id: ID!
+    url: String!
+    apiKey: String!
+  }
+
+  type WalletRecvBlink {
+    id: ID!
+    currency: String!
+    apiKey: String!
+  }
+
+  type WalletRecvLightningAddress {
+    id: ID!
+    address: String!
+  }
+
+  type WalletRecvCLNRest {
+    id: ID!
+    socket: String!
+    rune: String!
+    cert: String
+  }
+
+  type WalletRecvLNDGRPC {
+    id: ID!
+    socket: String!
+    macaroon: String!
+    cert: String
   }
 
   input AutowithdrawSettings {
     autoWithdrawThreshold: Int!
     autoWithdrawMaxFeePercent: Float!
     autoWithdrawMaxFeeTotal: Int!
+  }
+
+  input WalletEncryptionUpdate {
+    id: ID!
+    protocols: [WalletEncryptionUpdateProtocol!]!
+  }
+
+  input WalletEncryptionUpdateProtocol {
+    name: String!
+    send: Boolean!
+    config: JSONObject!
   }
 
   type Invoice implements InvoiceOrDirect {
@@ -191,11 +297,11 @@ const typeDefs = `
   type WalletLogEntry {
     id: ID!
     createdAt: Date!
-    wallet: ID
+    wallet: Wallet
+    protocol: WalletProtocol
     level: String!
     message: String!
     context: JSONObject
   }
 `
-
-export default gql`${injectTypeDefs(typeDefs)}`
+export default typeDefs

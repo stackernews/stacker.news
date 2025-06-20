@@ -92,16 +92,23 @@ export function useWalletProtocolUpsert (wallet, protocol) {
       values.enabled = true
     }
 
-    try {
-      await testSendPayment(values)
-    } catch (err) {
-      logger.error(err.message)
-      throw err
+    const oldValues = { ...protocol.config, enabled: protocol.enabled }
+    const modified = modifiedKeys(values, oldValues)
+    const skipNetworkTests = modified.length === 1 && modified[0] === 'enabled'
+
+    if (!skipNetworkTests) {
+      try {
+        await testSendPayment(values)
+      } catch (err) {
+        logger.error(err.message)
+        throw err
+      }
     }
 
     const encrypted = await encryptConfig(values)
 
     const variables = encrypted
+    variables.networkTests = !skipNetworkTests
     if (isWallet(wallet)) {
       variables.walletId = wallet.id
     } else {
@@ -120,6 +127,10 @@ export function useWalletProtocolUpsert (wallet, protocol) {
 
     return updatedWallet
   }, [protocol, logger, testSendPayment, encryptConfig, mutate])
+}
+
+function modifiedKeys (a, b) {
+  return Object.keys(a).filter(key => a[key] !== b[key])
 }
 
 export function useWalletProtocolRemove (protocol) {

@@ -120,8 +120,8 @@ async function updateWalletEncryption (parent, { keyHash, wallets }, { me, model
   return await models.$transaction(async tx => {
     for (const { id: walletId, protocols } of wallets) {
       for (const { name, send, config } of protocols) {
-        const mutation = upsertWalletProtocol({ name, send }, { networkTests: false })
-        await mutation(parent, { walletId, ...config }, { me, tx })
+        const mutation = upsertWalletProtocol({ name, send })
+        await mutation(parent, { walletId, networkTests: false, ...config }, { me, tx })
       }
     }
 

@@ -27,8 +27,8 @@ export const resolvers = {
   }
 }
 
-export function upsertWalletProtocol (protocol, { networkTests = true } = {}) {
-  return async (parent, { walletId, templateId, enabled, ...args }, { me, models, tx }) => {
+export function upsertWalletProtocol (protocol) {
+  return async (parent, { walletId, templateId, enabled, networkTests = true, ...args }, { me, models, tx }) => {
     if (!me) {
       throw new GqlAuthenticationError()
     }

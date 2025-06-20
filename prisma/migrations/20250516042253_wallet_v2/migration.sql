@@ -69,7 +69,7 @@ INSERT INTO "WalletTemplate" (name, "sendProtocols", "recvProtocols") VALUES
         ARRAY['PHOENIXD']::"WalletRecvProtocolName"[]),
     ('PRIMAL',
         ARRAY['NWC']::"WalletSendProtocolName"[],
-        ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
+        ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]),
     ('RIZFUL',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]),
@@ -699,6 +699,31 @@ CREATE OR REPLACE TRIGGER wallet_updated_at_trigger
 AFTER INSERT OR UPDATE OR DELETE ON "WalletProtocol"
 FOR EACH ROW EXECUTE PROCEDURE wallet_updated_at_trigger();
 
+CREATE OR REPLACE FUNCTION user_auto_withdraw() RETURNS TRIGGER AS $$
+DECLARE
+BEGIN
+    INSERT INTO pgboss.job (name, data)
+    SELECT 'autoWithdraw', jsonb_build_object('id', NEW.id)
+    -- only if there isn't already a pending job for this user
+    WHERE NOT EXISTS (
+        SELECT *
+        FROM pgboss.job
+        WHERE name = 'autoWithdraw'
+        AND data->>'id' = NEW.id::TEXT
+        AND state = 'created'
+    )
+    AND EXISTS (
+        SELECT *
+        FROM "Wallet" w
+        JOIN "WalletProtocol" wp ON w.id = wp."walletId"
+        WHERE w."userId" = NEW.id
+        AND wp."enabled" = true
+        AND wp.send = false
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION get_or_create_wallet(
     user_id INT,
     template_name TEXT,
@@ -1073,31 +1098,6 @@ ALTER TABLE "WalletLog" ADD CONSTRAINT "WalletLog_protocolId_fkey" FOREIGN KEY (
 
 -- AlterTable
 ALTER TABLE "users" ADD COLUMN     "showPassphrase" BOOLEAN NOT NULL DEFAULT true;
-
-CREATE OR REPLACE FUNCTION user_auto_withdraw() RETURNS TRIGGER AS $$
-DECLARE
-BEGIN
-    INSERT INTO pgboss.job (name, data)
-    SELECT 'autoWithdraw', jsonb_build_object('id', NEW.id)
-    -- only if there isn't already a pending job for this user
-    WHERE NOT EXISTS (
-        SELECT *
-        FROM pgboss.job
-        WHERE name = 'autoWithdraw'
-        AND data->>'id' = NEW.id::TEXT
-        AND state = 'created'
-    )
-    AND EXISTS (
-        SELECT *
-        FROM "Wallet" w
-        JOIN "WalletProtocol" wp ON w.id = wp."walletId"
-        WHERE w."userId" = NEW.id
-        AND wp."enabled" = true
-        AND wp.send = false
-    );
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
 -- Update LogLevel enum to be more consistent with wallet logger API
 ALTER TYPE "LogLevel" RENAME TO "LogLevelV1";

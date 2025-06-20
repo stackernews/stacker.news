@@ -17,12 +17,12 @@ I think that some mitigations are correct, such as **dns polling** to take measu
 As a form of authentication, we can use ECDH shared secrets to either
 - sign requests for the GraphQL endpoint
 - encrypt JWT payloads
+
 To accomplish this, each device will have its own ECDH key pair, generated and stored in IndexedDB on first visit.
-It can also be used in the future for encrypted messaging
+It can also be used in the future for encrypted messaging.
 
 An example flow can be:
 ```
-
 1. Device generates key pair
 2. On login, server creates an ECDH key pair
 3. Client and server exchanges public keys

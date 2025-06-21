@@ -1,13 +1,13 @@
 import { useMe } from '@/components/me'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 
-const VERSION = 1
+const VERSION = 2
 
-export function useIndexedDB () {
+export function useIndexedDB (dbName) {
   // TODO(wallet-v2): clean up / migrate from old databases
 
   const { me } = useMe()
-  const dbName = me?.id ? `app:storage:${me.id}` : 'app:storage'
+  if (!dbName) dbName = me?.id ? `app:storage:${me.id}` : 'app:storage'
 
   const set = useCallback(async (storeName, key, value) => {
     const db = await _open(dbName, VERSION)
@@ -29,7 +29,11 @@ export function useIndexedDB () {
     }
   }, [dbName])
 
-  return { set, get }
+  const deleteDb = useCallback(async () => {
+    return await _delete(dbName)
+  }, [dbName])
+
+  return useMemo(() => ({ set, get, deleteDb }), [set, get, deleteDb])
 }
 
 async function _open (dbName, version = 1) {
@@ -40,7 +44,8 @@ async function _open (dbName, version = 1) {
   request.onupgradeneeded = (event) => {
     try {
       const db = event.target.result
-      db.createObjectStore('vault')
+      if (!db.objectStoreNames.contains('vault')) db.createObjectStore('vault')
+      if (db.objectStoreNames.contains('wallet_logs')) db.deleteObjectStore('wallet_logs')
     } catch (error) {
       reject(new IndexedDBOpenError(`upgrade failed: ${error?.message}`))
     }
@@ -107,6 +112,22 @@ async function _get (db, storeName, key) {
   return promise
 }
 
+async function _delete (dbName) {
+  const { promise, resolve, reject } = Promise.withResolvers()
+
+  const request = window.indexedDB.deleteDatabase(dbName)
+
+  request.onerror = (event) => {
+    reject(new IndexedDBDeleteError(event.target?.error?.message))
+  }
+
+  request.onsuccess = () => {
+    resolve(request.result)
+  }
+
+  return promise
+}
+
 class IndexedDBError extends Error {
   constructor (message) {
     super(message)
@@ -132,5 +153,12 @@ class IndexedDBGetError extends IndexedDBError {
   constructor (message) {
     super(message)
     this.name = 'IndexedDBGetError'
+  }
+}
+
+class IndexedDBDeleteError extends IndexedDBError {
+  constructor (message) {
+    super(message)
+    this.name = 'IndexedDBDeleteError'
   }
 }

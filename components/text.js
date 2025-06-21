@@ -34,11 +34,10 @@ const rehypeSNStyled = () => rehypeSN({
   }]
 })
 
-const remarkPlugins = [
+const baseRemarkPlugins = [
   gfm,
   remarkUnicode,
-  [remarkMath, { singleDollarTextMath: false }],
-  remarkToc
+  [remarkMath, { singleDollarTextMath: false }]
 ]
 
 export function SearchText ({ text }) {
@@ -55,6 +54,9 @@ export function SearchText ({ text }) {
 
 // this is one of the slowest components to render
 export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
+  // include remarkToc if topLevel
+  const remarkPlugins = topLevel ? [...baseRemarkPlugins, remarkToc] : baseRemarkPlugins
+
   // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
   // should we show the full text?

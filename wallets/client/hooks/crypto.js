@@ -19,6 +19,16 @@ export function useLoadKey () {
   }, [get])
 }
 
+export function useLoadOldKey () {
+  const { me } = useMe()
+  const oldDbName = me?.id ? `app:storage:${me?.id}:vault` : undefined
+  const { get } = useIndexedDB(oldDbName)
+
+  return useCallback(async () => {
+    return await get('vault', 'key')
+  }, [get])
+}
+
 export function useSetKey () {
   const { set } = useIndexedDB()
   const dispatch = useWalletsDispatch()

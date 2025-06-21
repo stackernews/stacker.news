@@ -5,7 +5,7 @@ import { FAILED_INVOICES } from '@/fragments/invoice'
 import { NORMAL_POLL_INTERVAL } from '@/lib/constants'
 import useInvoice from '@/components/use-invoice'
 import { useMe } from '@/components/me'
-import { useWalletsQuery, useSendWallets, useWalletPayment, useGenerateRandomKey, useSetKey, useLoadKey } from '@/wallets/client/hooks'
+import { useWalletsQuery, useSendWallets, useWalletPayment, useGenerateRandomKey, useSetKey, useLoadKey, useLoadOldKey } from '@/wallets/client/hooks'
 import { WalletConfigurationError } from '@/wallets/client/errors'
 import { RESET_PAGE, SET_WALLETS, useWalletsDispatch } from '@/wallets/client/context'
 
@@ -118,20 +118,34 @@ export function useKeyInit () {
   const generateRandomKey = useGenerateRandomKey()
   const setKey = useSetKey()
   const loadKey = useLoadKey()
+  const loadOldKey = useLoadOldKey()
 
   useEffect(() => {
     if (!me?.id) return
 
-    loadKey()
-      .then(async key => {
+    async function keyInit () {
+      try {
+        // TODO(wallet-v2): remove this migration code and delete the old db after wallet v2 has been released for some time
+        const oldKey = await loadOldKey()
+        if (oldKey?.key) {
+          setKey(oldKey.key)
+          return
+        }
+
+        const key = await loadKey()
         if (key) {
           setKey(key)
           return
         }
+
         const { key: randomKey } = await generateRandomKey()
         setKey(randomKey)
-      })
-  }, [me?.id, generateRandomKey])
+      } catch (err) {
+        console.error('key init failed:', err)
+      }
+    }
+    keyInit()
+  }, [me?.id, generateRandomKey, loadOldKey, setKey, loadKey])
 
   // TODO(wallet-v2): move or remove this, this is just for loading the key for the wallet seed
   // useEffect(() => {

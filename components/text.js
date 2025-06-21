@@ -20,6 +20,7 @@ import rehypeSN from '@/lib/rehype-sn'
 import remarkUnicode from '@/lib/remark-unicode'
 import Embed from './embed'
 import remarkMath from 'remark-math'
+import remarkToc from '@/lib/remark-toc'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -33,7 +34,11 @@ const rehypeSNStyled = () => rehypeSN({
   }]
 })
 
-const remarkPlugins = [gfm, remarkUnicode, [remarkMath, { singleDollarTextMath: false }]]
+const baseRemarkPlugins = [
+  gfm,
+  remarkUnicode,
+  [remarkMath, { singleDollarTextMath: false }]
+]
 
 export function SearchText ({ text }) {
   return (
@@ -49,6 +54,9 @@ export function SearchText ({ text }) {
 
 // this is one of the slowest components to render
 export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
+  // include remarkToc if topLevel
+  const remarkPlugins = topLevel ? [...baseRemarkPlugins, remarkToc] : baseRemarkPlugins
+
   // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
   // should we show the full text?
@@ -134,8 +142,10 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
         return href
       }
 
+      const isHashLink = href?.startsWith('#')
+
       // eslint-disable-next-line
-      return <Link id={props.id} target='_blank' rel={rel} href={href}>{children}</Link>
+      return <Link id={props.id} target={isHashLink ? undefined : '_blank'} rel={rel} href={href}>{children}</Link>
     },
     img: TextMediaOrLink,
     embed: (props) => <Embed {...props} topLevel={topLevel} />

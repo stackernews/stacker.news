@@ -22,16 +22,83 @@ To accomplish this, each device will have its own ECDH key pair, generated and s
 It can also be used in the future for encrypted messaging.
 
 An example flow can be:
+<details>
+<summary>Flow with OAuth</summary>
+Step 1: Device generates a key pair on first visit
+
 ```
-1. Device generates key pair
-2. On login, server creates an ECDH key pair
-3. Client and server exchanges public keys
-4. Server and device derives the same shared secret with each other
--- Stores:
-    user, server_priv_key, client_pub_key, shared_secret_hash
-5. Server issues an encrypted JWT using the shared secret
-6. Device decrypts JWT with the same shared secret
+{ privateKey, publicKey } = await crypto.subtle.generateKey(ECDH P-256, non-extractable)
+
+{ set, get } = useIndexedDB(idbConfig)
+set(privateKey)
+set(publicKey)
 ```
+
+##### Step 2: Initiate login using OAuth
+
+```
+state = getRandomValues -> store in sessionStorage
+code_verifier = getRandomValues -> store in sessionStorage
+code_challenge = sha256(code_verifier)
+
+GET https://stacker.news/api/auth/sync/authorize
+  ?state=<state>
+  &code_challenge=<code_challenge>
+  &redirect_uri=https://www.pizza.com/api/auth/sync/callback
+                ?callbackUrl=/items/960002
+```
+
+The `sync/authorize` endpoint checks the session on stacker.news and creates a **verification token** that is bound to the code_challenge.
+We'll send this token along with state to `sync/callback`
+
+```
+302 https://www.pizza.com/api/auth/sync/callback
+    ?callbackUrl=/items/960002
+    &token=<verificationToken>
+    &state=<state>
+```
+
+Here we check if the received `state` matches the state we saved in the client's `sessionStorage`. If it does, we'll POST the `sync/complete` endpoint with the device ECDH public key, to exchange the token for a JWT and the server public key.
+
+The `code_verifier` is how PKCE will confirm that we're exchanging with the user that initiated.
+
+##### Step 3: POST stacker.news to exchange the session cookie
+
+```
+device_pubkey = IndexedDB
+code_verifier = sessionStorage
+
+POST https://stacker.news/api/auth/sync/complete
+body {
+  token,
+  code_verifier,
+  device_pubkey
+}
+
+RESPONSE {
+  session_token,
+  server_pubkey
+}
+```
+
+The server pubkey is saved in IndexedDB, and both client and server derive the shared secret using ECDH.
+This shared secret is then used to create HMAC signatures for requests.
+
+##### Step 4: Sign a request
+For example, on GraphQL requests, the client:
+
+```
+req_payload = payload + timestamp
+signature = hmac(shared_secret, req_payload)
+Headers: {
+  'X-Timestamp': timestamp,
+  'X-Signature': signature,
+  'Authorization': etc.
+}
+```
+
+The server verifies that the timestamp isn't too old and that the HMAC signature and session token are valid.
+</details>
 
 Shared secret rotation is part of best practices in this context.
 

@@ -7,11 +7,9 @@ export function useIndexedDB () {
   // TODO(wallet-v2): clean up / migrate from old databases
 
   const { me } = useMe()
-  const dbName = `app:storage:${me?.id}`
+  const dbName = me?.id ? `app:storage:${me.id}` : 'app:storage'
 
   const set = useCallback(async (storeName, key, value) => {
-    if (!me?.id) throw new IndexedDBOpenError('not logged in')
-
     const db = await _open(dbName, VERSION)
 
     try {
@@ -19,11 +17,9 @@ export function useIndexedDB () {
     } finally {
       db.close()
     }
-  }, [dbName, me?.id])
+  }, [dbName])
 
   const get = useCallback(async (storeName, key) => {
-    if (!me?.id) throw new IndexedDBOpenError('not logged in')
-
     const db = await _open(dbName, VERSION)
 
     try {
@@ -31,7 +27,7 @@ export function useIndexedDB () {
     } finally {
       db.close()
     }
-  }, [dbName, me?.id])
+  }, [dbName])
 
   return { set, get }
 }

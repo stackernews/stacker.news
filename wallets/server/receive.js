@@ -3,7 +3,7 @@ import { formatMsats, formatSats, msatsToSats, toPositiveBigInt, toPositiveNumbe
 import { PAID_ACTION_TERMINAL_STATES, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { wrapInvoice } from '@/wallets/server/wrap'
-import { walletLogger } from '@/wallets/server'
+import { walletLogger } from '@/wallets/server/logger'
 import { protocolCreateInvoice } from '@/wallets/server/protocols'
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25

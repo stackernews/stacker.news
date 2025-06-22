@@ -1,5 +1,5 @@
 import { getPaymentFailureStatus, getPaymentOrNotSent } from '@/api/lnd'
-import { walletLogger } from '@/wallets/server'
+import { walletLogger } from '@/wallets/server/logger'
 import { formatMsats, formatSats, msatsToSats, toPositiveBigInt } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { notifyWithdrawal } from '@/lib/webPush'

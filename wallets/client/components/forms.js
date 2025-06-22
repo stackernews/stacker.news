@@ -75,13 +75,6 @@ function WalletFormSelector () {
 function WalletSendRecvSelector () {
   const path = useWalletPathname()
   const selected = useSendRecvParam()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!selected) {
-      router.replace(`/${path}/send`, null, { shallow: true })
-    }
-  }, [path])
 
   // TODO(wallet-v2): if you click a nav link again, it will update the URL
   //   but not run the effect again to select the first protocol by default

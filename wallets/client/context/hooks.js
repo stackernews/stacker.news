@@ -1,11 +1,11 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useLazyQuery } from '@apollo/client'
 import { FAILED_INVOICES } from '@/fragments/invoice'
 import { NORMAL_POLL_INTERVAL } from '@/lib/constants'
 import useInvoice from '@/components/use-invoice'
 import { useMe } from '@/components/me'
-import { useWalletsQuery, useSendWallets, useWalletPayment, useGenerateRandomKey, useSetKey, useLoadKey, useLoadOldKey } from '@/wallets/client/hooks'
+import { useWalletsQuery, useSendWallets, useWalletPayment, useGenerateRandomKey, useSetKey, useLoadKey, useLoadOldKey, useWalletMigrationMutation, CryptoKeyRequiredError } from '@/wallets/client/hooks'
 import { WalletConfigurationError } from '@/wallets/client/errors'
 import { RESET_PAGE, SET_WALLETS, useWalletsDispatch } from '@/wallets/client/context'
 
@@ -159,4 +159,65 @@ export function useKeyInit () {
   //   }
   //   loadKey()
   // }, [me?.id])
+}
+
+// TODO(wallet-v2): remove migration code
+// =============================================================
+// ****** Below is the migration code for WALLET v1 -> v2 ******
+//   remove when we can assume migration is complete (if ever)
+// =============================================================
+
+export function useWalletMigration () {
+  const { me } = useMe()
+  const localWallets = useLocalWallets()
+  const walletMigration = useWalletMigrationMutation()
+
+  useEffect(() => {
+    if (!me?.id) return
+
+    async function migrate () {
+      await Promise.allSettled(
+        localWallets.map(async ({ key, ...localWallet }) => {
+          const name = key.split(':')[1].toUpperCase()
+          try {
+            await walletMigration({ ...localWallet, name })
+            window.localStorage.removeItem(key)
+          } catch (err) {
+            if (err instanceof CryptoKeyRequiredError) {
+              // key not set yet, skip this wallet
+              return
+            }
+            console.error(`${name}: wallet migration failed:`, err)
+          }
+        })
+      )
+    }
+    migrate()
+  }, [me?.id, localWallets, walletMigration])
+}
+
+function useLocalWallets () {
+  const { me } = useMe()
+  const [wallets, setWallets] = useState([])
+
+  useEffect(() => {
+    if (!me?.id) return
+
+    const wallets = Object.entries(window.localStorage)
+      .filter(([key]) => key.startsWith('wallet:'))
+      .filter(([key]) => key.split(':').length < 3 || key.endsWith(me.id))
+      .reduce((acc, [key, value]) => {
+        try {
+          const config = JSON.parse(value)
+          acc.push({ key, ...config })
+        } catch (err) {
+          console.error(`useLocalWallets: ${key}: invalid JSON:`, err)
+        }
+        return acc
+      }, [])
+
+    setWallets(wallets)
+  }, [me?.id])
+
+  return wallets
 }

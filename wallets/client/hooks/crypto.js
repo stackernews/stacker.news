@@ -11,6 +11,13 @@ import { object, string } from 'yup'
 import { SET_KEY, useKey, useWalletsDispatch } from '@/wallets/client/context'
 import { useDisablePassphraseExport, useWalletReset } from '@/wallets/client/hooks'
 
+export class CryptoKeyRequiredError extends Error {
+  constructor () {
+    super('CryptoKey required')
+    this.name = 'CryptoKeyRequiredError'
+  }
+}
+
 export function useLoadKey () {
   const { get } = useIndexedDB()
 
@@ -39,13 +46,16 @@ export function useSetKey () {
   }, [set, dispatch])
 }
 
-export function useEncryption () {
+export function useEncryption ({ throwOnMissingKey = false } = {}) {
   const defaultKey = useKey()
   return useCallback(
     (value, { key } = {}) => {
       const k = key ?? defaultKey
+      if (throwOnMissingKey && !k) {
+        throw new CryptoKeyRequiredError()
+      }
       return k ? encrypt(k, value) : null
-    }, [defaultKey])
+    }, [defaultKey, throwOnMissingKey])
 }
 
 export function useDecryption () {

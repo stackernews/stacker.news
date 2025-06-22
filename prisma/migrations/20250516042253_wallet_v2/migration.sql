@@ -13,85 +13,86 @@ CREATE TABLE "WalletTemplate" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "name" TEXT NOT NULL,
-    "image" TEXT,
-    "description" TEXT,
     "sendProtocols" "WalletSendProtocolName"[],
     "recvProtocols" "WalletRecvProtocolName"[],
 
     CONSTRAINT "WalletTemplate_pkey" PRIMARY KEY ("id")
 );
 
-INSERT INTO "WalletTemplate" (name, "sendProtocols", "recvProtocols") VALUES
-    ('ALBY_BROWSER_EXTENSION',
+INSERT INTO "WalletTemplate" ("id", name, "sendProtocols", "recvProtocols") VALUES
+    (1, 'ALBY_BROWSER_EXTENSION',
         ARRAY['WEBLN']::"WalletSendProtocolName"[],
         ARRAY[]::"WalletRecvProtocolName"[]),
-    ('ALBY_HUB',
+    (2, 'ALBY_HUB',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('BLINK',
+    (3, 'BLINK',
         ARRAY['BLINK']::"WalletSendProtocolName"[],
         ARRAY['BLINK', 'LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('BLIXT',
+    (4, 'BLIXT',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('CASHU.ME',
+    (5, 'CASHU.ME',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('CLN',
+    (6, 'CLN',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['CLN_REST']::"WalletRecvProtocolName"[]),
-    ('COINOS',
+    (7, 'COINOS',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('CUSTOM',
-        ARRAY['NWC']::"WalletSendProtocolName"[],
-        ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('FOUNTAIN',
+    (8, 'FOUNTAIN',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('LIFPAY',
+    (9, 'LIFPAY',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('LNBITS',
+    (10, 'LNBITS',
         ARRAY['LNBITS']::"WalletSendProtocolName"[],
         ARRAY['LNBITS']::"WalletRecvProtocolName"[]),
-    ('LND',
+    (11, 'LND',
         ARRAY['LNC']::"WalletSendProtocolName"[],
         ARRAY['LND_GRPC']::"WalletRecvProtocolName"[]),
-    ('MINIBITS',
+    (12, 'MINIBITS',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('NPUB.CASH',
+    (13, 'NPUB.CASH',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('PHOENIXD',
+    (14, 'PHOENIXD',
         ARRAY['PHOENIXD']::"WalletSendProtocolName"[],
         ARRAY['PHOENIXD']::"WalletRecvProtocolName"[]),
-    ('PRIMAL',
+    (15, 'PRIMAL',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('RIZFUL',
+    (16, 'RIZFUL',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('SHOCKWALLET',
+    (17, 'SHOCKWALLET',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('SPEED',
+    (18, 'SPEED',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('STRIKE',
+    (19, 'STRIKE',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('VOLTAGE',
+    (20, 'VOLTAGE',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('WALLET_OF_SATOSHI',
+    (21, 'WALLET_OF_SATOSHI',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('ZBD',
+    (22, 'ZBD',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    ('ZEUS',
+    (23, 'ZEUS',
+        ARRAY[]::"WalletSendProtocolName"[],
+        ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
+    (24, 'NWC',
+        ARRAY['NWC']::"WalletSendProtocolName"[],
+        ARRAY['NWC']::"WalletRecvProtocolName"[]),
+    (25, 'LN_ADDR',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]);
 
@@ -949,7 +950,7 @@ BEGIN
             ELSIF relay LIKE '%coinos.io%' THEN
                 walletName := 'COINOS';
             ELSE
-                walletName := 'CUSTOM';
+                walletName := 'NWC';
             END IF;
 
             walletId := get_or_create_wallet(row."userId", walletName, row."priority");
@@ -1021,7 +1022,7 @@ BEGIN
             ELSIF domain LIKE '%shockwallet.app' THEN
                 walletName := 'SHOCKWALLET';
             ELSE
-                walletName := 'CUSTOM';
+                walletName := 'LN_ADDR';
             END IF;
 
             walletId := get_or_create_wallet(row."userId", walletName, row."priority");

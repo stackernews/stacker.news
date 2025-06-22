@@ -30,7 +30,8 @@ import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
 
 export function useWalletsQuery () {
-  const query = useQuery(WALLETS)
+  const { me } = useMe()
+  const query = useQuery(WALLETS, { skip: !me })
   const [wallets, setWallets] = useState(null)
 
   const decryptWallet = useWalletDecryption()
@@ -54,13 +55,17 @@ export function useWalletsQuery () {
 
 function useRefetchOnChange (refetch) {
   const { me } = useMe()
+
   useEffect(() => {
+    if (!me?.id) return
+
     refetch()
-  }, [refetch, me?.privates?.walletsUpdatedAt])
+  }, [refetch, me?.id, me?.privates?.walletsUpdatedAt])
 }
 
 export function useWalletQuery ({ id, name }) {
-  const query = useQuery(WALLET, { variables: { id, name } })
+  const { me } = useMe()
+  const query = useQuery(WALLET, { variables: { id, name }, skip: !me })
   const [wallet, setWallet] = useState(null)
 
   const decryptWallet = useWalletDecryption()

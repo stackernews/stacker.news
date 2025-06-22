@@ -174,5 +174,13 @@
             "src": "/wallets/alby-browser-extension.svg",
             "alt": "Alby Browser Extension"
         }
+    },
+    {
+        "name": "LN_ADDR",
+        "displayName": "Lightning Address"
+    },
+    {
+        "name": "NWC",
+        "displayName": "Nostr Wallet Connect"
     }
 ]

@@ -1225,8 +1225,6 @@ model WalletTemplate {
   createdAt     DateTime                 @default(now()) @map("created_at")
   updatedAt     DateTime                 @default(now()) @updatedAt @map("updated_at")
   name          String
-  image         String?
-  description   String?
   sendProtocols WalletSendProtocolName[]
   recvProtocols WalletRecvProtocolName[]
   wallets       Wallet[]

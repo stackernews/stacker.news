@@ -19,10 +19,10 @@ import {
   RESET_WALLETS,
   DISABLE_PASSPHRASE_EXPORT
 } from '@/wallets/client/fragments'
-import { useMutation, useQuery } from '@apollo/client'
+import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey, useWalletLogger } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { isEncryptedField, isTemplate, isWallet, reverseProtocolRelationName } from '@/wallets/lib/util'
+import { isEncryptedField, isTemplate, isWallet, protocolClientSchema, reverseProtocolRelationName } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
@@ -289,8 +289,8 @@ function isEncrypted (value) {
   return value.__typename === 'VaultEntry'
 }
 
-function useEncryptConfig (defaultProtocol) {
-  const encrypt = useEncryption()
+function useEncryptConfig (defaultProtocol, options = {}) {
+  const encrypt = useEncryption(options)
 
   return useCallback(async (config, { key: cryptoKey, protocol } = {}) => {
     return Object.fromEntries(
@@ -308,4 +308,92 @@ function useEncryptConfig (defaultProtocol) {
       )
     )
   }, [defaultProtocol, encrypt])
+}
+
+// TODO(wallet-v2): remove migration code
+// =============================================================
+// ****** Below is the migration code for WALLET v1 -> v2 ******
+//   remove when we can assume migration is complete (if ever)
+// =============================================================
+
+export function useWalletMigrationMutation () {
+  const client = useApolloClient()
+  const encryptConfig = useEncryptConfig(null, { throwOnMissingKey: true })
+
+  return useCallback(async ({ name, enabled, ...configV1 }) => {
+    const protocol = { name, send: true }
+
+    const configV2 = migrateConfig(protocol, configV1)
+
+    const schema = protocolClientSchema(protocol)
+    await schema.validate(configV2)
+
+    const encrypted = await encryptConfig(configV2, { protocol })
+
+    await client.mutate({
+      mutation: getWalletProtocolMutation(protocol),
+      variables: {
+        templateId: getWalletTemplateId(protocol),
+        enabled,
+        ...encrypted
+      }
+    })
+  }, [client, encryptConfig])
+}
+
+function migrateConfig (protocol, config) {
+  switch (protocol.name) {
+    case 'LNBITS':
+      return {
+        url: config.url,
+        apiKey: config.adminKey
+      }
+    case 'PHOENIXD':
+      return {
+        url: config.url,
+        apiKey: config.primaryPassword
+      }
+    case 'BLINK':
+      return {
+        url: config.url,
+        apiKey: config.apiKey,
+        currency: config.currency
+      }
+    case 'LNC':
+      return {
+        pairingPhrase: config.pairingPhrase,
+        localKey: config.localKey,
+        remoteKey: config.remoteKey,
+        serverHost: config.serverHost
+      }
+    case 'WEBLN':
+      return {}
+    case 'NWC':
+      return {
+        url: config.nwcUrl
+      }
+    default:
+      return config
+  }
+}
+
+function getWalletTemplateId (protocol) {
+  switch (protocol.name) {
+    // TODO(wallet-v2): insert wallet templates with IDs so the IDs don't change if their order changes
+    case 'LNBITS':
+      return 10 // LNbits
+    case 'PHOENIXD':
+      return 14 // Phoenix
+    case 'BLINK':
+      return 3 // Blink
+    case 'LNC':
+      return 11 // LND
+    case 'WEBLN':
+      return 1 // Alby Browser Extension
+    case 'NWC':
+      // TODO(wallet-v2): create wallet just for NWC and use it here
+      return 24 // Custom
+    default:
+      return null
+  }
 }

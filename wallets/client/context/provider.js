@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer } from 'react'
 import walletsReducer, { FIRST_PAGE } from './reducer'
-import { useServerWallets, usePageNavigation, useAutomatedRetries, useKeyInit } from './hooks'
+import { useServerWallets, usePageNavigation, useAutomatedRetries, useKeyInit, useWalletMigration } from './hooks'
 import { WebLnProvider } from '@/wallets/lib/protocols/webln'
 
 // https://react.dev/learn/scaling-up-with-reducer-and-context
@@ -63,6 +63,14 @@ function WalletHooks ({ children }) {
   usePageNavigation()
   useAutomatedRetries()
   useKeyInit()
+
+  // TODO(wallet-v2): remove migration code
+  // =============================================================
+  // ****** Below is the migration code for WALLET v1 -> v2 ******
+  //   remove when we can assume migration is complete (if ever)
+  // =============================================================
+
+  useWalletMigration()
 
   return children
 }

@@ -19,12 +19,10 @@ export async function publishScheduledPost ({ data: { itemId }, models, lnd }) {
 
   const publishTime = new Date()
 
-  // Update the item to be published with new timestamp
+  // Update the item to be published - keep original createdAt and scheduledAt
   await models.item.update({
     where: { id: itemId },
     data: {
-      scheduledAt: null,
-      createdAt: publishTime,
       updatedAt: publishTime
     }
   })

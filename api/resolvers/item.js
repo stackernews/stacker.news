@@ -260,8 +260,8 @@ export const muteClause = me =>
 
 export const scheduledOrMine = (me) => {
   return me
-    ? `("Item"."scheduledAt" IS NULL OR "Item"."userId" = ${me.id})`
-    : '"Item"."scheduledAt" IS NULL'
+    ? `("Item"."scheduledAt" IS NULL OR "Item"."scheduledAt" <= now() OR "Item"."userId" = ${me.id})`
+    : '("Item"."scheduledAt" IS NULL OR "Item"."scheduledAt" <= now())'
 }
 
 const HIDE_NSFW_CLAUSE = '("Sub"."nsfw" = FALSE OR "Sub"."nsfw" IS NULL)'
@@ -1125,12 +1125,10 @@ export default {
 
       const publishTime = new Date()
 
-      // Publish immediately with current timestamp
+      // Publish immediately - keep original createdAt and scheduledAt
       const updatedItem = await models.item.update({
         where: { id: Number(id) },
         data: {
-          scheduledAt: null,
-          createdAt: publishTime,
           updatedAt: publishTime
         }
       })

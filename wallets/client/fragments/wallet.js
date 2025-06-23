@@ -231,7 +231,7 @@ export const ADD_WALLET_LOG = gql`
 `
 
 export const WALLET_LOGS = gql`
-  query WalletLogs($protocolId: ID) {
+  query WalletLogs($protocolId: Int) {
     walletLogs(protocolId: $protocolId) {
       id
       level
@@ -245,7 +245,7 @@ export const WALLET_LOGS = gql`
 `
 
 export const DELETE_WALLET_LOGS = gql`
-  mutation DeleteWalletLogs($protocolId: ID) {
+  mutation DeleteWalletLogs($protocolId: Int) {
     deleteWalletLogs(protocolId: $protocolId)
   }
 `

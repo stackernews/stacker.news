@@ -11,7 +11,7 @@ const typeDefs = gql`
     wallets: [WalletOrTemplate!]!
     wallet(id: ID, name: String): WalletOrTemplate
     walletSettings: WalletSettings!
-    walletLogs(protocolId: ID): [WalletLogEntry!]!
+    walletLogs(protocolId: Int): [WalletLogEntry!]!
     failedInvoices: [Invoice!]!
   }
 
@@ -21,7 +21,7 @@ const typeDefs = gql`
     cancelInvoice(hash: String!, hmac: String, userCancel: Boolean): Invoice!
     dropBolt11(hash: String!): Boolean
     removeWallet(id: ID!): Boolean
-    deleteWalletLogs(protocolId: ID): Boolean
+    deleteWalletLogs(protocolId: Int): Boolean
     setWalletPriority(id: ID!, priority: Int!): Boolean
     buyCredits(credits: Int!): BuyCreditsPaidAction!
 

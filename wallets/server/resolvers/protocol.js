@@ -205,7 +205,7 @@ async function walletLogs (parent, { protocolId }, { me, models }) {
   const logs = await models.walletLog.findMany({
     where: {
       userId: me.id,
-      ...(protocolId && { protocolId: Number(protocolId) })
+      protocolId
     },
     orderBy: {
       createdAt: 'desc'
@@ -260,7 +260,7 @@ async function deleteWalletLogs (parent, { protocolId }, { me, models }) {
   await models.walletLog.deleteMany({
     where: {
       userId: me.id,
-      ...(protocolId && { protocolId: Number(protocolId) })
+      protocolId
     }
   })
 

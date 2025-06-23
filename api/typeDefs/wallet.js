@@ -22,7 +22,7 @@ const typeDefs = gql`
     dropBolt11(hash: String!): Boolean
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(protocolId: Int): Boolean
-    setWalletPriority(id: ID!, priority: Int!): Boolean
+    setWalletPriorities(priorities: [WalletPriorityUpdate!]!): Boolean
     buyCredits(credits: Int!): BuyCreditsPaidAction!
 
     upsertWalletSendLNbits(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, url: String!, apiKey: VaultEntryInput!): WalletSendLNbits!
@@ -213,6 +213,11 @@ const typeDefs = gql`
     name: String!
     send: Boolean!
     config: JSONObject!
+  }
+
+  input WalletPriorityUpdate {
+    id: ID!
+    priority: Int!
   }
 
   type Invoice implements InvoiceOrDirect {

@@ -3,8 +3,7 @@ import { Button } from 'react-bootstrap'
 import { FIRST_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch, usePage, UNLOCK_PAGE, useTemplates, DndProvider } from '@/wallets/client/context'
 import { WalletCard, WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader, DraggableWalletCard } from '@/wallets/client/components'
 import styles from '@/styles/wallet.module.css'
-import { usePassphrasePrompt, useShowPassphrase, useSetWalletPriority } from '@/wallets/client/hooks'
-import { useCallback } from 'react'
+import { usePassphrasePrompt, useShowPassphrase, useSetWalletPriorities } from '@/wallets/client/hooks'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -15,14 +14,7 @@ export default function Wallet () {
   const dispatch = useWalletsDispatch()
   const showPassphrase = useShowPassphrase()
   const passphrasePrompt = usePassphrasePrompt()
-  const setWalletPriority = useSetWalletPriority()
-
-  const handleReorder = useCallback(async (priorityUpdates) => {
-    // Update all wallet priorities in parallel
-    await Promise.all(
-      priorityUpdates.map(({ id, priority }) => setWalletPriority(id, priority))
-    )
-  }, [setWalletPriority])
+  const setWalletPriorities = useSetWalletPriorities()
 
   if (page === FIRST_PAGE) {
     return (
@@ -78,7 +70,7 @@ export default function Wallet () {
         </div>
         {wallets.length > 0 && (
           <>
-            <DndProvider onReorder={handleReorder}>
+            <DndProvider onReorder={setWalletPriorities}>
               <div className={styles.walletGrid}>
                 {wallets.map((wallet, index) => (
                   <DraggableWalletCard

@@ -44,7 +44,7 @@ export const resolvers = {
   Mutation: {
     updateWalletEncryption,
     resetWallets,
-    setWalletPriority,
+    setWalletPriorities,
     disablePassphraseExport,
     setWalletSettings
   }
@@ -168,12 +168,19 @@ async function disablePassphraseExport (parent, args, { me, models }) {
   return true
 }
 
-async function setWalletPriority (parent, { id, priority }, { me, models }) {
+async function setWalletPriorities (parent, { priorities }, { me, models }) {
   if (!me) {
     throw new GqlAuthenticationError()
   }
 
-  await models.wallet.update({ where: { userId: me.id, id: Number(id) }, data: { priority } })
+  await models.$transaction(async tx => {
+    for (const { id, priority } of priorities) {
+      await tx.wallet.update({
+        where: { userId: me.id, id: Number(id) },
+        data: { priority }
+      })
+    }
+  })
 
   return true
 }

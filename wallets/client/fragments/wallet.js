@@ -181,9 +181,9 @@ export const REMOVE_WALLET = gql`
   }
 `
 
-export const SET_WALLET_PRIORITY = gql`
-  mutation SetWalletPriority($id: ID!, $priority: Int!) {
-    setWalletPriority(id: $id, priority: $priority)
+export const SET_WALLET_PRIORITIES = gql`
+  mutation SetWalletPriorities($priorities: [WalletPriorityUpdate!]!) {
+    setWalletPriorities(priorities: $priorities)
   }
 `
 

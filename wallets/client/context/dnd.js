@@ -34,11 +34,26 @@ export function DndProvider ({ children, onReorder }) {
   const [state, dispatch] = useReducer(dndReducer, initialState)
 
   const dispatchWithCallback = useCallback((action) => {
-    if (action.type === DRAG_DROP) {
-      dispatch({ ...action, onReorder })
-    } else {
+    if (action.type !== DRAG_DROP) {
       dispatch(action)
+      return
     }
+
+    const { fromIndex, toIndex, items } = action
+    if (fromIndex === toIndex) {
+      // nothing changed, just dispatch action but don't run onReorder callback
+      dispatch(action)
+      return
+    }
+
+    const newItems = [...items]
+    const [movedItem] = newItems.splice(fromIndex, 1)
+    newItems.splice(toIndex, 0, movedItem)
+    const prioritiesUpdates = newItems.map((item, index) => ({
+      id: item.id,
+      priority: index
+    }))
+    onReorder(prioritiesUpdates)
   }, [onReorder])
 
   return (
@@ -63,26 +78,7 @@ function dndReducer (state, action) {
         ...state,
         dragOverIndex: action.index
       }
-    case DRAG_DROP: {
-      const { fromIndex, toIndex, items, onReorder } = action
-      if (fromIndex !== toIndex) {
-        const newItems = [...items]
-        const [movedItem] = newItems.splice(fromIndex, 1)
-        newItems.splice(toIndex, 0, movedItem)
-
-        const priorityUpdates = newItems.map((item, index) => ({
-          id: item.id,
-          priority: index
-        }))
-
-        onReorder(priorityUpdates)
-      }
-      return {
-        isDragging: false,
-        dragIndex: null,
-        dragOverIndex: null
-      }
-    }
+    case DRAG_DROP:
     case DRAG_END:
       return {
         isDragging: false,

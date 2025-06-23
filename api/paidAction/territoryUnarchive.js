@@ -36,8 +36,15 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
   data.userId = me.id
 
   if (sub.userId !== me.id) {
-    await tx.territoryTransfer.create({ data: { subName: name, oldUserId: sub.userId, newUserId: me.id } })
-    await tx.subSubscription.delete({ where: { userId_subName: { userId: sub.userId, subName: name } } })
+    try {
+      // XXX this will throw if this transfer has already happened
+      // TODO: upsert this
+      await tx.territoryTransfer.create({ data: { subName: name, oldUserId: sub.userId, newUserId: me.id } })
+      // this will throw if the prior user has already unsubscribed
+      await tx.subSubscription.delete({ where: { userId_subName: { userId: sub.userId, subName: name } } })
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   await tx.subAct.create({

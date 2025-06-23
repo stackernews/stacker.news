@@ -1,9 +1,10 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Button } from 'react-bootstrap'
-import { FIRST_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch, usePage, UNLOCK_PAGE, useTemplates } from '@/wallets/client/context'
-import { WalletCard, WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
+import { FIRST_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch, usePage, UNLOCK_PAGE, useTemplates, DndProvider } from '@/wallets/client/context'
+import { WalletCard, WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader, DraggableWalletCard } from '@/wallets/client/components'
 import styles from '@/styles/wallet.module.css'
-import { usePassphrasePrompt, useShowPassphrase } from '@/wallets/client/hooks'
+import { usePassphrasePrompt, useShowPassphrase, useSetWalletPriority } from '@/wallets/client/hooks'
+import { useCallback } from 'react'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -14,6 +15,14 @@ export default function Wallet () {
   const dispatch = useWalletsDispatch()
   const showPassphrase = useShowPassphrase()
   const passphrasePrompt = usePassphrasePrompt()
+  const setWalletPriority = useSetWalletPriority()
+
+  const handleReorder = useCallback(async (priorityUpdates) => {
+    // Update all wallet priorities in parallel
+    await Promise.all(
+      priorityUpdates.map(({ id, priority }) => setWalletPriority(id, priority))
+    )
+  }, [setWalletPriority])
 
   if (page === FIRST_PAGE) {
     return (
@@ -69,10 +78,18 @@ export default function Wallet () {
         </div>
         {wallets.length > 0 && (
           <>
-            <div className={styles.walletGrid}>
-              {/* TODO(wallet-v2): filter templates based on search or filters */}
-              {wallets.map((w, i) => <WalletCard key={i} wallet={w} />)}
-            </div>
+            <DndProvider onReorder={handleReorder}>
+              <div className={styles.walletGrid}>
+                {wallets.map((wallet, index) => (
+                  <DraggableWalletCard
+                    key={wallet.id}
+                    wallet={wallet}
+                    index={index}
+                    items={wallets}
+                  />
+                ))}
+              </div>
+            </DndProvider>
             <div className={styles.separator} />
           </>
         )}

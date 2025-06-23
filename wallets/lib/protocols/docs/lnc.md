@@ -17,6 +17,12 @@ $ sndev cli litd sessions add --type custom --label <your label> --account_id <a
 
 Grab the `pairing_secret_mnemonic` from the output and that's your pairing phrase.
 
+To do all of above in one line with default values:
+
+```bash
+$ sndev cli litd sessions add --type custom --label sndev --account_id $(sndev cli litd accounts create --balance 100000 | jq -r '.account.id') --uri /lnrpc.Lightning/SendPaymentSync | jq -r '.session.pairing_secret_mnemonic'
+```
+
 # gui
 
 To open the gui, run:

@@ -103,7 +103,8 @@ export function useWalletProtocolUpsert (wallet, protocol) {
 
     if (!skipNetworkTests) {
       try {
-        await testSendPayment(values)
+        const additionalValues = await testSendPayment(values)
+        values = { ...values, ...additionalValues }
       } catch (err) {
         logger.error(err.message)
         throw err
@@ -228,7 +229,7 @@ function useTestSendPayment (protocol) {
   return useCallback(async (values) => {
     if (!protocol.send) return
 
-    await protocolTestSendPayment(
+    return await protocolTestSendPayment(
       protocol,
       values,
       { signal: timeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS) }

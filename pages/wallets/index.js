@@ -67,11 +67,15 @@ export default function Wallet () {
             </>
           )}
         </div>
-        <div className={styles.walletGrid}>
-          {/* TODO(wallet-v2): filter templates based on search or filters */}
-          {wallets.map((w, i) => <WalletCard key={i} wallet={w} />)}
-        </div>
-        <div className={styles.separator} />
+        {wallets.length > 0 && (
+          <>
+            <div className={styles.walletGrid}>
+              {/* TODO(wallet-v2): filter templates based on search or filters */}
+              {wallets.map((w, i) => <WalletCard key={i} wallet={w} />)}
+            </div>
+            <div className={styles.separator} />
+          </>
+        )}
         <div className={styles.walletGrid}>
           {templates.map((w, i) => <WalletCard key={i} wallet={w} />)}
         </div>

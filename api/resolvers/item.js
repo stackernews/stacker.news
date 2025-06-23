@@ -1094,7 +1094,7 @@ export default {
         ])
 
       return result
-    },
+    }
   },
   ItemAct: {
     invoice: async (itemAct, args, { models }) => {

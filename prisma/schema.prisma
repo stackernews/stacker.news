@@ -148,7 +148,6 @@ model User {
   walletsUpdatedAt          DateTime?
   vaultEntries              VaultEntry[]         @relation("VaultEntries")
   proxyReceive              Boolean              @default(true)
-  directReceive             Boolean              @default(true)
   DirectPaymentReceived     DirectPayment[]      @relation("DirectPaymentReceived")
   DirectPaymentSent         DirectPayment[]      @relation("DirectPaymentSent")
   UserSubTrust              UserSubTrust[]
@@ -246,6 +245,7 @@ model Wallet {
   InvoiceForward InvoiceForward[]
   DirectPayment  DirectPayment[]
 
+  @@unique([userId, type])
   @@index([userId])
   @@index([priority])
 }
@@ -778,7 +778,7 @@ model Sub {
   allowFreebies    Boolean     @default(true)
   baseCost         Int         @default(1)
   replyCost        Int         @default(1)
-  rewardsPct       Int         @default(50)
+  rewardsPct       Int         @default(30)
   desc             String?
   status           Status      @default(ACTIVE)
   statusUpdatedAt  DateTime?

@@ -11,17 +11,6 @@ export const VAULT_ENTRY_FIELDS = gql`
   }
 `
 
-export const GET_VAULT_ENTRY = gql`
-  ${VAULT_ENTRY_FIELDS}
-  query GetVaultEntry(
-    $key: String!
-  ) {
-    getVaultEntry(key: $key) {
-      ...VaultEntryFields
-    }
-  }
-`
-
 export const GET_VAULT_ENTRIES = gql`
   ${VAULT_ENTRY_FIELDS}
   query GetVaultEntries {

@@ -122,6 +122,14 @@ export const SUB_SEARCH = gql`
   }
 `
 
+export const SUB_SUGGESTIONS = gql`
+  query subSuggestions($q: String!, $limit: Limit) {
+    subSuggestions(q: $q, limit: $limit) {
+      name
+    }
+  }
+`
+
 export const TOP_SUBS = gql`
   ${SUB_FULL_FIELDS}
   query TopSubs($cursor: String, $when: String, $from: String, $to: String, $by: String, ) {

@@ -1,21 +1,25 @@
 import Container from 'react-bootstrap/Container'
 import styles from './search.module.css'
 import SearchIcon from '@/svgs/search-line.svg'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Form, Input, Select, DatePicker, SubmitButton } from './form'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import {
+  Form,
+  Input,
+  Select,
+  DatePicker,
+  SubmitButton,
+  useDualAutocomplete,
+  DualAutocompleteWrapper
+} from './form'
 import { useRouter } from 'next/router'
 import { whenToFrom } from '@/lib/time'
 import { useMe } from './me'
+import { useField } from 'formik'
 
 export default function Search ({ sub }) {
   const router = useRouter()
   const [q, setQ] = useState(router.query.q || '')
-  const inputRef = useRef(null)
   const { me } = useMe()
-
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
 
   const search = async values => {
     let prefix = ''
@@ -63,18 +67,13 @@ export default function Search ({ sub }) {
             onSubmit={values => search({ ...values })}
           >
             <div className={`${styles.active} mb-3`}>
-              <Input
+              <SearchInput
                 name='q'
                 required
                 autoFocus
                 groupClassName='me-3 mb-0 flex-grow-1'
                 className='flex-grow-1'
-                clear
-                innerRef={inputRef}
-                overrideValue={q}
-                onChange={async (formik, e) => {
-                  setQ(e.target.value?.trim())
-                }}
+                setOuterQ={setQ}
               />
               <SubmitButton variant='primary' className={styles.search}>
                 <SearchIcon width={22} height={22} />
@@ -133,5 +132,54 @@ export default function Search ({ sub }) {
         </Container>
       </div>
     </>
+  )
+}
+
+function SearchInput ({ name, setOuterQ, ...props }) {
+  const [, meta, helpers] = useField(name)
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (meta.value !== undefined) setOuterQ(meta.value.trim())
+  }, [meta.value, setOuterQ])
+
+  const setCaret = useCallback(({ start, end }) => {
+    inputRef.current?.setSelectionRange(start, end)
+  }, [])
+
+  const { userAutocomplete, territoryAutocomplete, handleTextChange, handleKeyDown, handleBlur } = useDualAutocomplete({
+    meta,
+    helpers,
+    innerRef: inputRef,
+    setSelectionRange: setCaret
+  })
+
+  const handleChangeWithOuter = useCallback((formik, e) => {
+    setOuterQ(e.target.value.trim())
+    handleTextChange(e)
+  }, [setOuterQ, handleTextChange])
+
+  return (
+    <div className='position-relative flex-grow-1'>
+      <DualAutocompleteWrapper
+        userAutocomplete={userAutocomplete}
+        territoryAutocomplete={territoryAutocomplete}
+      >
+        {({ userSuggestOnKeyDown, territorySuggestOnKeyDown, resetUserSuggestions, resetTerritorySuggestions }) => (
+          <Input
+            name={name}
+            innerRef={inputRef}
+            clear
+            autoComplete='off'
+            onChange={handleChangeWithOuter}
+            onKeyDown={(e) => {
+              handleKeyDown(e, userSuggestOnKeyDown, territorySuggestOnKeyDown)
+            }}
+            onBlur={() => handleBlur(resetUserSuggestions, resetTerritorySuggestions)}
+            {...props}
+          />
+        )}
+      </DualAutocompleteWrapper>
+    </div>
   )
 }

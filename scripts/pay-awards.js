@@ -50,15 +50,6 @@ const parseAmount = (amountStr) => {
 // Function to format amounts with sats unit
 const formatAmount = (amount) => `${amount.toLocaleString()} sats`
 
-// Function to prompt user for confirmation
-const confirm = (question) => {
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes')
-    })
-  })
-}
-
 // Function to get invoice from Lightning address
 async function getInvoiceFromLnAddress (lnAddress, amount, comment) {
   try {
@@ -237,21 +228,265 @@ async function main () {
 
       // Process each recipient group
       for (const [recipient, group] of recipientGroups.entries()) {
-        console.log('\nPending awards for recipient:')
-        console.log(`Recipient: ${recipient}`)
+        console.log('\n' + '='.repeat(60))
+        console.log(`RECIPIENT: ${recipient}`)
         console.log(`Total amount: ${formatAmount(group.totalAmount)}`)
         console.log(`Number of awards: ${group.awards.length}`)
+        console.log('='.repeat(60))
 
         console.log('\nAwards breakdown:')
         for (const award of group.awards) {
           console.log(`- ${award.name}: ${award.type} | ${formatAmount(parseAmount(award.amount))} (${award.amount})`)
         }
 
-        const shouldPay = await confirm('Pay this consolidated award? (y/n): ')
+        // Ask for payment mode for this specific recipient
+        console.log('\nPayment options for this recipient:')
+        console.log('1. Consolidated: Pay all awards in one payment')
+        console.log('2. Individual: Pay each award separately')
+        console.log('3. Skip: Skip this recipient entirely')
 
-        if (shouldPay) {
+        const paymentChoice = await promptInput('Choose option (1, 2, or 3): ')
+
+        if (paymentChoice === '3') {
+          console.log('Skipping this recipient.')
+          continue
+        }
+
+        const payIndividually = paymentChoice === '2'
+
+        if (payIndividually) {
+          console.log('\n--- INDIVIDUAL PAYMENT MODE ---')
+
+          // Process each award individually for this recipient
+          for (let i = 0; i < group.awards.length; i++) {
+            const award = group.awards[i]
+            const amount = parseAmount(award.amount)
+
+            console.log(`\n--- Award ${i + 1} of ${group.awards.length} for ${recipient} ---`)
+            console.log(`Name: ${award.name}`)
+            console.log(`Type: ${award.type}`)
+            console.log(`Amount: ${formatAmount(amount)} (${award.amount})`)
+            console.log(`Original recipient: ${recipient}`)
+
+            console.log('\nPayment options for this award:')
+            console.log('1. Pay to original address')
+            console.log('2. Pay to alternative address')
+            console.log('3. Skip this award')
+
+            const paymentOption = await promptInput('Choose option (1, 2, or 3): ')
+
+            if (paymentOption === '3') {
+              console.log('Award skipped.')
+              continue
+            }
+
+            let actualRecipient = recipient
+            if (paymentOption === '2') {
+              actualRecipient = await promptInput('Enter alternative lightning address or receive method: ')
+              if (!actualRecipient || actualRecipient.trim() === '') {
+                console.log('No alternative address provided. Award skipped.')
+                continue
+              }
+              console.log(`Using alternative recipient: ${actualRecipient}`)
+            }
+
+            try {
+              console.log(`Sending ${formatAmount(amount)} to ${actualRecipient}...`)
+
+              // Get today's date (YYYY-MM-DD) for updating records
+              const today = new Date()
+              const formattedDate = today.toISOString().split('T')[0]
+              let paymentSuccessful = false
+
+              // Check if recipient is a Lightning address or a BOLT11 invoice
+              if (actualRecipient.includes('@')) {
+                // Handle Lightning address
+                const comment = `Award: ${award.name} (${award.type}) - see https://github.com/stackernews/stacker.news/blob/master/awards.csv`
+                console.log('Getting invoice from Lightning address...')
+                const invoice = await getInvoiceFromLnAddress(actualRecipient, amount, comment)
+                console.log('Invoice received, making payment...')
+
+                // Use @getalby/sdk to pay the invoice
+                const payResult = await payInvoice(nwcClient, invoice)
+
+                if (payResult && payResult.preimage) {
+                  console.log('Payment successful!')
+                  console.log(`Preimage: ${payResult.preimage}`)
+                  paymentSuccessful = true
+                } else {
+                  console.error('Payment failed:', payResult)
+                }
+              } else {
+                // Not a Lightning address, prompt for BOLT11 invoice
+                console.log(`For award: ${award.name} (${award.type})`)
+                console.log(`Recipient: ${actualRecipient}`)
+                const invoice = await promptInput(`Enter BOLT11 invoice for ${formatAmount(amount)}: `)
+
+                if (!invoice || invoice.trim() === '') {
+                  console.log('No invoice provided. Payment skipped.')
+                  continue
+                }
+
+                // Handle BOLT11 invoice
+                console.log('Making payment to BOLT11 invoice...')
+                const payResult = await payInvoice(nwcClient, invoice)
+
+                if (payResult && payResult.preimage) {
+                  console.log('Payment successful!')
+                  console.log(`Preimage: ${payResult.preimage}`)
+                  paymentSuccessful = true
+                } else {
+                  console.error('Payment failed:', payResult)
+                }
+              }
+
+              // Update this specific award with the payment date if successful
+              if (paymentSuccessful) {
+                award['date paid'] = formattedDate
+                // Update the receive method if an alternative was used
+                if (paymentOption === '2') {
+                  award['receive method'] = actualRecipient
+                  console.log(`Award for ${award.name} marked as paid with updated recipient: ${actualRecipient}`)
+                } else {
+                  console.log(`Award for ${award.name} marked as paid.`)
+                }
+              }
+            } catch (error) {
+              console.error('Error making payment:', error)
+            }
+          }
+        } else {
+          console.log('\n--- CONSOLIDATED PAYMENT MODE ---')
+
+          console.log('\nConsolidated payment options:')
+          console.log('1. Pay to original address (consolidated)')
+          console.log('2. Pay to alternative address (consolidated)')
+          console.log('3. Switch to individual mode for this recipient')
+          console.log('4. Skip this recipient')
+
+          const consolidatedOption = await promptInput('Choose option (1, 2, 3, or 4): ')
+
+          if (consolidatedOption === '4') {
+            console.log('Recipient skipped.')
+            continue
+          }
+
+          if (consolidatedOption === '3') {
+            console.log('\n--- SWITCHING TO INDIVIDUAL PAYMENT MODE ---')
+
+            // Process each award individually for this recipient
+            for (let i = 0; i < group.awards.length; i++) {
+              const award = group.awards[i]
+              const amount = parseAmount(award.amount)
+
+              console.log(`\n--- Award ${i + 1} of ${group.awards.length} for ${recipient} ---`)
+              console.log(`Name: ${award.name}`)
+              console.log(`Type: ${award.type}`)
+              console.log(`Amount: ${formatAmount(amount)} (${award.amount})`)
+              console.log(`Original recipient: ${recipient}`)
+
+              console.log('\nPayment options for this award:')
+              console.log('1. Pay to original address')
+              console.log('2. Pay to alternative address')
+              console.log('3. Skip this award')
+
+              const paymentOption = await promptInput('Choose option (1, 2, or 3): ')
+
+              if (paymentOption === '3') {
+                console.log('Award skipped.')
+                continue
+              }
+
+              let actualRecipient = recipient
+              if (paymentOption === '2') {
+                actualRecipient = await promptInput('Enter alternative lightning address or receive method: ')
+                if (!actualRecipient || actualRecipient.trim() === '') {
+                  console.log('No alternative address provided. Award skipped.')
+                  continue
+                }
+                console.log(`Using alternative recipient: ${actualRecipient}`)
+              }
+
+              try {
+                console.log(`Sending ${formatAmount(amount)} to ${actualRecipient}...`)
+
+                // Get today's date (YYYY-MM-DD) for updating records
+                const today = new Date()
+                const formattedDate = today.toISOString().split('T')[0]
+                let paymentSuccessful = false
+
+                // Check if recipient is a Lightning address or a BOLT11 invoice
+                if (actualRecipient.includes('@')) {
+                  // Handle Lightning address
+                  const comment = `Award: ${award.name} (${award.type}) - see https://github.com/stackernews/stacker.news/blob/master/awards.csv`
+                  console.log('Getting invoice from Lightning address...')
+                  const invoice = await getInvoiceFromLnAddress(actualRecipient, amount, comment)
+                  console.log('Invoice received, making payment...')
+
+                  // Use @getalby/sdk to pay the invoice
+                  const payResult = await payInvoice(nwcClient, invoice)
+
+                  if (payResult && payResult.preimage) {
+                    console.log('Payment successful!')
+                    console.log(`Preimage: ${payResult.preimage}`)
+                    paymentSuccessful = true
+                  } else {
+                    console.error('Payment failed:', payResult)
+                  }
+                } else {
+                  // Not a Lightning address, prompt for BOLT11 invoice
+                  console.log(`For award: ${award.name} (${award.type})`)
+                  console.log(`Recipient: ${actualRecipient}`)
+                  const invoice = await promptInput(`Enter BOLT11 invoice for ${formatAmount(amount)}: `)
+
+                  if (!invoice || invoice.trim() === '') {
+                    console.log('No invoice provided. Payment skipped.')
+                    continue
+                  }
+
+                  // Handle BOLT11 invoice
+                  console.log('Making payment to BOLT11 invoice...')
+                  const payResult = await payInvoice(nwcClient, invoice)
+
+                  if (payResult && payResult.preimage) {
+                    console.log('Payment successful!')
+                    console.log(`Preimage: ${payResult.preimage}`)
+                    paymentSuccessful = true
+                  } else {
+                    console.error('Payment failed:', payResult)
+                  }
+                }
+
+                // Update this specific award with the payment date if successful
+                if (paymentSuccessful) {
+                  award['date paid'] = formattedDate
+                  // Update the receive method if an alternative was used
+                  if (paymentOption === '2') {
+                    award['receive method'] = actualRecipient
+                    console.log(`Award for ${award.name} marked as paid with updated recipient: ${actualRecipient}`)
+                  } else {
+                    console.log(`Award for ${award.name} marked as paid.`)
+                  }
+                }
+              } catch (error) {
+                console.error('Error making payment:', error)
+              }
+            }
+            continue
+          }
+
+          let actualRecipient = recipient
+          if (consolidatedOption === '2') {
+            actualRecipient = await promptInput('Enter alternative lightning address or receive method for all awards: ')
+            if (!actualRecipient || actualRecipient.trim() === '') {
+              console.log('No alternative address provided. Recipient skipped.')
+              continue
+            }
+            console.log(`Using alternative recipient: ${actualRecipient}`)
+          }
+
           try {
-            console.log(`Sending ${formatAmount(group.totalAmount)} to ${recipient}...`)
+            console.log(`Sending ${formatAmount(group.totalAmount)} to ${actualRecipient}...`)
 
             // Get today's date (YYYY-MM-DD) for updating records
             const today = new Date()
@@ -259,11 +494,11 @@ async function main () {
             let paymentSuccessful = false
 
             // Check if recipient is a Lightning address or a BOLT11 invoice
-            if (recipient.includes('@')) {
+            if (actualRecipient.includes('@')) {
               // Handle Lightning address
               const comment = 'see https://github.com/stackernews/stacker.news/blob/master/awards.csv'
               console.log('Getting invoice from Lightning address...')
-              const invoice = await getInvoiceFromLnAddress(recipient, group.totalAmount, comment)
+              const invoice = await getInvoiceFromLnAddress(actualRecipient, group.totalAmount, comment)
               console.log('Invoice received, making payment...')
 
               // Use @getalby/sdk to pay the invoice
@@ -278,7 +513,7 @@ async function main () {
               }
             } else {
               // Not a Lightning address, prompt for BOLT11 invoice
-              console.log(`For recipient: ${recipient}`)
+              console.log(`For recipient: ${actualRecipient}`)
               const invoice = await promptInput(`Enter BOLT11 invoice for ${formatAmount(group.totalAmount)}: `)
 
               if (!invoice || invoice.trim() === '') {
@@ -303,13 +538,20 @@ async function main () {
             if (paymentSuccessful) {
               for (const award of group.awards) {
                 award['date paid'] = formattedDate
+                // Update the receive method if an alternative was used
+                if (consolidatedOption === '2') {
+                  award['receive method'] = actualRecipient
+                }
+              }
+              if (consolidatedOption === '2') {
+                console.log(`All awards marked as paid with updated recipient: ${actualRecipient}`)
+              } else {
+                console.log('All awards marked as paid.')
               }
             }
           } catch (error) {
             console.error('Error making payment:', error)
           }
-        } else {
-          console.log('Payment skipped.')
         }
       }
 

@@ -14,6 +14,9 @@ const WalletProtocolConfig = {
 
 export const resolvers = {
   WalletProtocolConfig,
+  Query: {
+    walletLogs
+  },
   Mutation: {
     ...Object.fromEntries(
       protocols.map(protocol => {
@@ -23,7 +26,9 @@ export const resolvers = {
         ]
       })
     ),
-    removeWalletProtocol
+    addWalletLog,
+    removeWalletProtocol,
+    deleteWalletLogs
   }
 }
 
@@ -196,4 +201,72 @@ export async function removeWalletProtocol (parent, { id }, { me, models, tx }) 
   }
 
   return await (tx ? transaction(tx) : models.$transaction(transaction))
+}
+
+async function walletLogs (parent, { protocolId }, { me, models }) {
+  if (!me) throw new GqlAuthenticationError()
+
+  const logs = await models.walletLog.findMany({
+    where: {
+      userId: me.id,
+      ...(protocolId && { protocolId: Number(protocolId) })
+    },
+    orderBy: {
+      createdAt: 'desc'
+    },
+    include: {
+      protocol: {
+        include: {
+          wallet: {
+            include: {
+              template: true
+            }
+          }
+        }
+      },
+      invoice: true
+    }
+  })
+
+  return logs.map(log => ({
+    ...log,
+    ...(log.protocol
+      ? {
+          wallet: {
+            ...log.protocol.wallet,
+            name: log.protocol.wallet.template.name
+          }
+        }
+      : {})
+  }))
+}
+
+async function addWalletLog (parent, { protocolId, level, message, timestamp, invoiceId }, { me, models }) {
+  if (!me) throw new GqlAuthenticationError()
+
+  await models.walletLog.create({
+    data: {
+      protocolId: Number(protocolId),
+      level,
+      message,
+      invoiceId,
+      userId: me.id,
+      createdAt: timestamp
+    }
+  })
+
+  return true
+}
+
+async function deleteWalletLogs (parent, { protocolId }, { me, models }) {
+  if (!me) throw new GqlAuthenticationError()
+
+  await models.walletLog.deleteMany({
+    where: {
+      userId: me.id,
+      ...(protocolId && { protocolId: Number(protocolId) })
+    }
+  })
+
+  return true
 }

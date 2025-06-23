@@ -5,6 +5,7 @@ import { Button } from 'react-bootstrap'
 import { ModalClosedError, useShowModal } from '@/components/modal'
 import { useToast } from '@/components/toast'
 import { FAST_POLL_INTERVAL } from '@/lib/constants'
+import { isTemplate } from '@/wallets/lib/util'
 
 export function useWalletLoggerFactory () {
   const [addWalletLog] = useMutation(ADD_WALLET_LOG)
@@ -43,7 +44,12 @@ export function useWalletLogger (protocol) {
 
 export function useWalletLogs (protocol) {
   const { data, loading, error, refetch } = useQuery(WALLET_LOGS, {
-    variables: { protocolId: protocol ? protocol.id : null },
+    variables: {
+      // if no protocol was given, we want to fetch all logs
+      protocolId: protocol ? Number(protocol.id) : undefined
+    },
+    // if we're configuring a protocol template, there are no logs to fetch
+    skip: protocol && isTemplate(protocol),
     pollInterval: FAST_POLL_INTERVAL
   })
 
@@ -113,7 +119,7 @@ function DeleteWalletLogsObstacle ({ protocol, onClose, onDelete }) {
 
   const deleteLogs = useCallback(async () => {
     await deleteWalletLogs({
-      variables: { protocolId: protocol ? protocol.id : null }
+      variables: { protocolId: protocol ? Number(protocol.id) : undefined }
     })
   }, [protocol, deleteWalletLogs])
 

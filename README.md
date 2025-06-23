@@ -167,6 +167,22 @@ To add/remove DNS records you can now use `./sndev domains dns`. More on this [h
 
 <br>
 
+## GitHub Codespaces
+
+<a href='https://codespaces.new/stackernews/stacker.news/tree/master'><img src='https://github.com/codespaces/badge.svg' alt='Open in GitHub Codespaces' style='max-width: 100%;'></a>
+
+You can also develop Stacker News in GitHub Codespaces.
+
+1.  **Open in Codespaces**: On the GitHub repository page, either click on the "Open in Github Codespaces" Badge or click on `Code` -> `Codespaces` in the Github UI and select the branch you would like to run the `DEFAULT` sndev Dev container configuration on.
+2.  **Wait for Setup**: The Codespace will automatically build the dev container and run the `./sndev start` command. This will take a several minutes before the services are ready
+4.  **Accessing Services**:
+    *   Web application (app): The `app` service runs on port 3000. GitHub Codespaces should automatically forward this port. You can open it from the "Ports" tab in VS Code.
+    *   Other services (database, MailHog, lnbits, etc.): will also be accessible in the ports tab, through their configured ports.
+5.  **Minimal Profile for Faster Startup**: For a quicker start and less resource usage in Codespaces is available as a separate `MINIMAL` Dev container configuration, that can be selected in step 1.
+6.  **Using `sndev`**: All other `sndev` commands (`./sndev logs <service>`, `./sndev psql`, `./sndev login <nym>`, etc.) should work as described in this README.
+
+<br/>
+
 # Table of Contents
 - [Getting started](#getting-started)
     - [Installation](#installation)
@@ -174,6 +190,7 @@ To add/remove DNS records you can now use `./sndev domains dns`. More on this [h
         - [Modifying services](#modifying-services)
             - [Running specific services](#running-specific-services)
             - [Merging compose files](#merging-compose-files)
+    - [Github Codespaces](#Github-Codespaces)
 - [Contributing](#contributing)
     - [We pay bitcoin for contributions](#we-pay-bitcoin-for-contributions)
     - [Pull request awards](#pull-request-awards)

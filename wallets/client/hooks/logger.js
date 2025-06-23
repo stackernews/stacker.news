@@ -137,7 +137,6 @@ function DeleteWalletLogsObstacle ({ protocol, onClose, onDelete }) {
 
   let prompt = 'Do you really want to delete all wallet logs?'
   if (protocol) {
-    // TODO(wallet-v2): use "connection" instead of "protocol"?
     prompt = 'Do you really want to delete all logs of this protocol?'
   }
 

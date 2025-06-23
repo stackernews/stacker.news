@@ -481,6 +481,14 @@ sndev__login() {
   salt="202c90943c313b829e65e3f29164fb5dd7ea3370d7262c4159691c2f6493bb8b"
   # upsert user with nym and nym@sndev.team
   email="$1@sndev.team"
+
+  # Detect Codespaces and set the correct base URL
+  if [ -n "$CODESPACE_NAME" ]; then
+    BASE_URL="https://${CODESPACE_NAME}-3000.app.github.dev"
+  else
+    BASE_URL="http://localhost:3000"
+  fi
+
   docker__exec db psql -U sn -d stackernews -q <<EOF
     INSERT INTO users (name) VALUES ('$1') ON CONFLICT DO NOTHING;
     UPDATE users SET email = '$email', "emailHash" = encode(digest(LOWER('$email')||'$salt', 'sha256'), 'hex') WHERE name = '$1';
@@ -492,7 +500,7 @@ EOF
 
   echo
   echo "open url in browser"
-  echo "http://localhost:3000/api/auth/callback/email?token=SNDEV-TOKEN&email=$1%40sndev.team"
+  echo "$BASE_URL/api/auth/callback/email?token=SNDEV-TOKEN&email=$1%40sndev.team"
   echo
 }
 

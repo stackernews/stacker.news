@@ -682,22 +682,36 @@ CREATE TRIGGER wallet_clear_vault
     EXECUTE PROCEDURE wallet_clear_vault();
 
 CREATE OR REPLACE FUNCTION wallet_updated_at_trigger() RETURNS TRIGGER AS $$
+DECLARE
+    user_id INT;
 BEGIN
+    IF TG_TABLE_NAME = 'WalletProtocol' THEN
+        SELECT w."userId" INTO user_id
+        FROM "Wallet" w
+        WHERE w.id = CASE
+            WHEN TG_OP = 'DELETE' THEN OLD."walletId"
+            ELSE NEW."walletId"
+        END;
+    ELSE
+        SELECT w."userId" INTO user_id
+        FROM "Wallet" w
+        WHERE w.id = NEW.id;
+    END IF;
+
     UPDATE "users" u
     SET "walletsUpdatedAt" = NOW()
-    FROM "Wallet" w
-    WHERE u.id = w."userId"
-    AND w.id = CASE
-        WHEN TG_OP = 'DELETE'
-        THEN OLD."walletId"
-        ELSE NEW."walletId"
-    END;
+    WHERE u.id = user_id;
+
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE TRIGGER wallet_updated_at_trigger
 AFTER INSERT OR UPDATE OR DELETE ON "WalletProtocol"
+FOR EACH ROW EXECUTE PROCEDURE wallet_updated_at_trigger();
+
+CREATE OR REPLACE TRIGGER wallet_updated_at_trigger
+AFTER INSERT OR UPDATE OR DELETE ON "Wallet"
 FOR EACH ROW EXECUTE PROCEDURE wallet_updated_at_trigger();
 
 CREATE OR REPLACE FUNCTION user_auto_withdraw() RETURNS TRIGGER AS $$

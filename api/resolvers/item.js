@@ -1467,8 +1467,11 @@ export default {
     scheduledAt: async (item, args, { me, models }) => {
       const meId = me?.id ?? USER_ID.anon
       if (meId !== item.userId) {
-        // Only show scheduledAt for your own items to keep DB queries minimized
-        return null
+        // Only show scheduledAt for published scheduled posts (scheduledAt <= now)
+        // For unpublished scheduled posts, only show to owner
+        if (!item.scheduledAt || item.scheduledAt > new Date()) {
+          return null
+        }
       }
       return item.scheduledAt
     },

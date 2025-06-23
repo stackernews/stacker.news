@@ -78,9 +78,16 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
     }
   })
 
-  await tx.userSubTrust.createMany({
-    data: initialTrust({ name: updatedSub.name, userId: updatedSub.userId })
-  })
+  const trust = initialTrust({ name: updatedSub.name, userId: updatedSub.userId })
+  for (const t of trust) {
+    await tx.userSubTrust.upsert({
+      where: {
+        userId_subName: { userId: t.userId, subName: t.subName }
+      },
+      update: t,
+      create: t
+    })
+  }
 
   return updatedSub
 }

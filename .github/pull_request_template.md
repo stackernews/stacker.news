@@ -10,8 +10,9 @@ _Was anything unclear during your work on this PR? Anything we should definitely
 
 ## Checklist
 
-**Are your changes backwards compatible? Please answer below:**
+**Are your changes backward compatible? Please answer below:**
 
+_For example, a change is not backward compatible if you removed a GraphQL field or dropped a database column._
 
 **On a scale of 1-10 how well and how have you QA'd this change and any features it might affect? Please answer below:**
 

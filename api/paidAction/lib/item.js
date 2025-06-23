@@ -1,5 +1,5 @@
 import { USER_ID } from '@/lib/constants'
-import { deleteReminders, getDeleteAt, getRemindAt, getScheduleAt } from '@/lib/item'
+import { deleteReminders, getDeleteAt, getRemindAt } from '@/lib/item'
 import { parseInternalLinks } from '@/lib/url'
 
 export async function getMentions ({ text }, { me, tx }) {
@@ -46,19 +46,15 @@ export const getItemMentions = async ({ text }, { me, tx }) => {
 }
 
 export async function performBotBehavior ({ text, id }, { me, tx }) {
-  // delete any existing deleteItem, reminder, or publishScheduledPost jobs for this item
   const userId = me?.id || USER_ID.anon
   id = Number(id)
+  
   await tx.$queryRaw`
     DELETE FROM pgboss.job
-    WHERE (name = 'deleteItem' OR name = 'publishScheduledPost')
+    WHERE name = 'deleteItem'
     AND data->>'id' = ${id}::TEXT
     AND state <> 'completed'`
-  await tx.$queryRaw`
-    DELETE FROM pgboss.job
-    WHERE name = 'publishScheduledPost'
-    AND data->>'itemId' = ${id}::TEXT
-    AND state <> 'completed'`
+    
   await deleteReminders({ id, userId, models: tx })
 
   if (text) {
@@ -89,30 +85,6 @@ export async function performBotBehavior ({ text, id }, { me, tx }) {
           remindAt
         }
       })
-    }
-
-    const scheduleAt = getScheduleAt(text)
-    if (scheduleAt) {
-      // For new items, scheduling info is set during creation
-      // For updates, we need to update the item
-      const existingItem = await tx.item.findUnique({ where: { id: Number(id) } })
-      if (existingItem && !existingItem.scheduledAt) {
-        await tx.item.update({
-          where: { id: Number(id) },
-          data: {
-            scheduledAt: scheduleAt
-          }
-        })
-      }
-
-      // Schedule the job to publish the post
-      await tx.$queryRaw`
-        INSERT INTO pgboss.job (name, data, startafter, keepuntil)
-        VALUES (
-          'publishScheduledPost',
-          jsonb_build_object('itemId', ${id}::INTEGER),
-          ${scheduleAt}::TIMESTAMP WITH TIME ZONE,
-          ${scheduleAt}::TIMESTAMP WITH TIME ZONE + interval '1 minute')`
     }
   }
 }

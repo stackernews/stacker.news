@@ -64,7 +64,6 @@ export default gql`
     act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): ItemActPaidAction!
     pollVote(id: ID!): PollVotePaidAction!
     toggleOutlaw(id: ID!): Item!
-    publishScheduledPostNow(id: ID!): Item!
   }
 
   type PollVoteResult {

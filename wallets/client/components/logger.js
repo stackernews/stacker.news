@@ -26,7 +26,7 @@ export function WalletLogs ({ protocol, className }) {
     }
   }, [deleteLogs, refetch])
 
-  const embedded = false
+  const embedded = !!protocol
 
   return (
     <>

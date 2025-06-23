@@ -7,6 +7,7 @@ import Gear from '@/svgs/settings-5-fill.svg'
 import Link from 'next/link'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
+import DragIcon from '@/svgs/draggable.svg'
 import { useWalletImage, useWalletIsConfigured, useWalletSupport, useWalletStatus, WalletStatus } from '@/wallets/client/hooks'
 import { isWallet, urlify, walletDisplayName } from '@/wallets/lib/util'
 import { useDndState, useDndDispatch, DRAG_START, DRAG_ENTER, DRAG_DROP, DRAG_END } from '@/wallets/client/context'
@@ -28,6 +29,7 @@ export function WalletCard ({ wallet, className = '', draggable = false, onDragS
       onDragEnd={onDragEnd}
     >
       <div className={styles.indicators}>
+        {draggable && <DragIcon className={classNames(styles.indicator, styles.drag, 'me-auto')} />}
         {support.receive && <RecvIcon className={`${styles.indicator} ${statusToClass(status.receive)}`} />}
         {support.send && <SendIcon className={`${styles.indicator} ${statusToClass(status.send)}`} />}
       </div>

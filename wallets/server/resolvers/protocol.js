@@ -6,7 +6,6 @@ import { mapWalletResolveTypes } from '@/wallets/server/resolvers/util'
 import { protocolTestCreateInvoice } from '@/wallets/server/protocols'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
-import { walletLogger } from '@/wallets/server/logger'
 
 const WalletProtocolConfig = {
   __resolveType: config => config.__resolveType
@@ -193,9 +192,6 @@ export async function removeWalletProtocol (parent, { id }, { me, models, tx }) 
         }
       })
     }
-
-    const logger = walletLogger({ models: tx, protocolId: protocol.id, userId: me.id })
-    logger.info('wallet detached')
 
     return true
   }

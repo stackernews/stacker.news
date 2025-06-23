@@ -17,7 +17,8 @@ import {
   REMOVE_WALLET_PROTOCOL,
   UPDATE_WALLET_ENCRYPTION,
   RESET_WALLETS,
-  DISABLE_PASSPHRASE_EXPORT
+  DISABLE_PASSPHRASE_EXPORT,
+  SET_WALLET_PRIORITY
 } from '@/wallets/client/fragments'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey, useWalletLogger } from '@/wallets/client/hooks'
@@ -198,6 +199,20 @@ export function useDisablePassphraseExport () {
   return useCallback(async () => {
     await mutate()
   }, [mutate])
+}
+
+export function useSetWalletPriority () {
+  const [mutate] = useMutation(SET_WALLET_PRIORITY)
+  const toaster = useToast()
+
+  return useCallback(async (id, priority) => {
+    try {
+      await mutate({ variables: { id, priority } })
+      toaster.success('wallet order updated')
+    } catch (err) {
+      toaster.danger('failed to update wallet order: ' + err.message)
+    }
+  }, [mutate, toaster])
 }
 
 function getWalletProtocolMutation (protocol) {

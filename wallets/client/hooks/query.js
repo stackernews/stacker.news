@@ -205,10 +205,14 @@ export function useSetWalletPriorities () {
   const [mutate] = useMutation(SET_WALLET_PRIORITIES)
   const toaster = useToast()
 
-  return useCallback(async (priorities) => {
+  return useCallback(async (wallets) => {
+    const priorities = wallets.map((wallet, index) => ({
+      id: wallet.id,
+      priority: index
+    }))
+
     try {
       await mutate({ variables: { priorities } })
-      toaster.success('updated wallet priorites')
     } catch (err) {
       console.error('failed to update wallet priorities:', err)
       toaster.danger('failed to update wallet priorities')

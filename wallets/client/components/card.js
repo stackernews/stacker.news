@@ -1,4 +1,3 @@
-import { useCallback } from 'react'
 import { Card } from 'react-bootstrap'
 import classNames from 'classnames'
 import styles from '@/styles/wallet.module.css'
@@ -10,23 +9,18 @@ import SendIcon from '@/svgs/arrow-right-up-line.svg'
 import DragIcon from '@/svgs/draggable.svg'
 import { useWalletImage, useWalletIsConfigured, useWalletSupport, useWalletStatus, WalletStatus } from '@/wallets/client/hooks'
 import { isWallet, urlify, walletDisplayName } from '@/wallets/lib/util'
-import { useDndState, useDndDispatch, DRAG_START, DRAG_ENTER, DRAG_DROP, DRAG_END } from '@/wallets/client/context'
+import { Draggable } from '@/wallets/client/components'
 
-export function WalletCard ({ wallet, className = '', draggable = false, onDragStart, onDragOver, onDragEnter, onDrop, onDragEnd }) {
+export function WalletCard ({ wallet, draggable = false, index, ...props }) {
   const image = useWalletImage(wallet.name)
   const status = useWalletStatus(wallet)
   const support = useWalletSupport(wallet)
   const isConfigured = useWalletIsConfigured(wallet)
 
-  return (
+  const card = (
     <Card
-      className={classNames(styles.card, className, { [styles.draggable]: draggable })}
-      draggable={draggable}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDragEnter={onDragEnter}
-      onDrop={onDrop}
-      onDragEnd={onDragEnd}
+      className={styles.card}
+      {...props}
     >
       <div className={styles.indicators}>
         {draggable && <DragIcon className={classNames(styles.indicator, styles.drag, 'me-auto')} />}
@@ -49,56 +43,16 @@ export function WalletCard ({ wallet, className = '', draggable = false, onDragS
       </WalletLink>
     </Card>
   )
-}
 
-export function DraggableWalletCard ({ wallet, index, items }) {
-  const { isDragging, dragOverIndex } = useDndState()
-  const dispatch = useDndDispatch()
+  if (draggable) {
+    return (
+      <Draggable index={index}>
+        {card}
+      </Draggable>
+    )
+  }
 
-  const handleDragStart = useCallback((e) => {
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/html', e.target.outerHTML)
-    e.dataTransfer.setData('text/plain', index.toString())
-    dispatch({ type: DRAG_START, index })
-  }, [index, dispatch])
-
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-  }, [])
-
-  const handleDragEnter = useCallback((e) => {
-    e.preventDefault()
-    dispatch({ type: DRAG_ENTER, index })
-  }, [index, dispatch])
-
-  const handleDrop = useCallback((e) => {
-    e.preventDefault()
-    const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'))
-    if (draggedIndex !== index) {
-      dispatch({ type: DRAG_DROP, fromIndex: draggedIndex, toIndex: index, items })
-    }
-  }, [index, dispatch, items])
-
-  const handleDragEnd = useCallback(() => {
-    dispatch({ type: DRAG_END })
-  }, [dispatch])
-
-  const isBeingDragged = isDragging && dragOverIndex === index
-  const isDragOver = isDragging && dragOverIndex !== index && dragOverIndex === index
-
-  return (
-    <WalletCard
-      wallet={wallet}
-      className={classNames({ [styles.dragging]: isBeingDragged, [styles.dragOver]: isDragOver })}
-      draggable
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnter={handleDragEnter}
-      onDrop={handleDrop}
-      onDragEnd={handleDragEnd}
-    />
-  )
+  return card
 }
 
 function WalletLink ({ wallet, children }) {

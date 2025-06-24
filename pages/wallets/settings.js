@@ -13,6 +13,7 @@ import { useField } from 'formik'
 import { SET_WALLET_SETTINGS, WALLET_SETTINGS } from '@/wallets/client/fragments'
 import { walletSettingsSchema } from '@/lib/validate'
 import { useToast } from '@/components/toast'
+import CancelButton from '@/components/cancel-button'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_SETTINGS, authRequired: true })
 
@@ -61,8 +62,9 @@ export default function WalletSettings ({ ssrData }) {
           <LightningAddressSettings />
           <AutowithdrawSettings />
           <LightningNetworkFeesSettings />
-          <div className='d-flex'>
-            <SubmitButton variant='info' className='ms-auto mt-1 px-4'>save</SubmitButton>
+          <div className='d-flex mt-1 justify-content-end'>
+            <CancelButton />
+            <SubmitButton variant='info'>save</SubmitButton>
           </div>
         </Form>
       </div>

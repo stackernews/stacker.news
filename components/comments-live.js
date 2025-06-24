@@ -49,20 +49,22 @@ export default function useLiveComments (rootId, after) {
         variables: { rootId, after: lastChecked }
       })
 
-  if (data && data.newComments) {
-    saveNewComments(client, rootId, data.newComments.comments)
-    const latestCommentCreatedAt = getLastCommentCreatedAt(data.newComments.comments)
-    if (latestCommentCreatedAt) {
-      setLastChecked(latestCommentCreatedAt)
+  useEffect(() => {
+    if (data && data.newComments) {
+      saveNewComments(client, rootId, data.newComments.comments)
+      const latestCommentCreatedAt = getLastCommentCreatedAt(data.newComments.comments)
+      if (latestCommentCreatedAt) {
+        setLastChecked(latestCommentCreatedAt)
+      }
     }
-  }
+  }, [data, client, rootId])
 
   return { polling, setPolling }
 }
 
 function saveNewComments (client, rootId, newComments) {
-  for (const comment of newComments) {
-    const { parentId } = comment
+  for (const newComment of newComments) {
+    const { parentId } = newComment
     const topLevel = Number(parentId) === Number(rootId)
 
     // if the comment is a top level comment, update the item
@@ -73,7 +75,7 @@ function saveNewComments (client, rootId, newComments) {
       }, (data) => {
         if (!data) return data
         // we return the entire item, not just the newComments
-        return { item: dedupeComment(data?.item, comment) }
+        return { item: dedupeComment(data?.item, newComment) }
       })
     } else {
       // if the comment is a reply, update the parent comment
@@ -84,32 +86,21 @@ function saveNewComments (client, rootId, newComments) {
       }, (data) => {
         if (!data) return data
         // here we return the parent comment with the new comment added
-        return dedupeComment(data, comment)
+        return dedupeComment(data, newComment)
       })
     }
   }
 }
 
 function dedupeComment (item, newComment) {
-  // get the existing comment ids for faster lookup
-  const existingCommentIds = new Set(
-    (item.comments?.comments || []).map(c => c.id)
-  )
   const existingNewComments = item.newComments || []
+  const existingComments = item.comments?.comments || []
 
-  // is the incoming new comment already in item's new comments?
-  if (existingNewComments.some(c => c.id === newComment.id)) {
+  // is the incoming new comment already in item's new comments or existing comments?
+  if (existingNewComments.some(c => c.id === newComment.id) || existingComments.some(c => c.id === newComment.id)) {
     return item
   }
-
-  // if the incoming new comment is not in item's new comments, add it
-  // sanity check: and if somehow the incoming new comment is in
-  // item's new comments, remove it
-  const updatedNewComments = !existingCommentIds.has(newComment.id)
-    ? [...existingNewComments, newComment]
-    : existingNewComments.filter(c => c.id !== newComment.id)
-
-  return { ...item, newComments: updatedNewComments }
+  return { ...item, newComments: [...existingNewComments, newComment] }
 }
 
 function getLastCommentCreatedAt (comments) {

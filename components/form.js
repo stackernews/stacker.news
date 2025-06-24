@@ -228,6 +228,86 @@ function useEntityAutocomplete ({
   }
 }
 
+export function useDualAutocomplete ({ meta, helpers, innerRef, setSelectionRange }) {
+  const userAutocomplete = useEntityAutocomplete({
+    prefix: '@',
+    meta,
+    helpers,
+    innerRef,
+    setSelectionRange,
+    SuggestComponent: UserSuggest
+  })
+
+  const territoryAutocomplete = useEntityAutocomplete({
+    prefix: '~',
+    meta,
+    helpers,
+    innerRef,
+    setSelectionRange,
+    SuggestComponent: TerritorySuggest
+  })
+
+  const handleTextChange = useCallback((e) => {
+    // Try to match user mentions first, then territories
+    if (!userAutocomplete.handleTextChange(e)) {
+      territoryAutocomplete.handleTextChange(e)
+    }
+  }, [userAutocomplete, territoryAutocomplete])
+
+  const handleKeyDown = useCallback((e, userOnKeyDown, territoryOnKeyDown) => {
+    const metaOrCtrl = e.metaKey || e.ctrlKey
+    if (!metaOrCtrl) {
+      if (userAutocomplete.entityData) {
+        return userOnKeyDown(e)
+      } else if (territoryAutocomplete.entityData) {
+        return territoryOnKeyDown(e)
+      }
+    }
+    return false // Didn't handle the event
+  }, [userAutocomplete.entityData, territoryAutocomplete.entityData])
+
+  const handleBlur = useCallback((resetUserSuggestions, resetTerritorySuggestions) => {
+    setTimeout(resetUserSuggestions, 500)
+    setTimeout(resetTerritorySuggestions, 500)
+  }, [])
+
+  return {
+    userAutocomplete,
+    territoryAutocomplete,
+    handleTextChange,
+    handleKeyDown,
+    handleBlur
+  }
+}
+
+export function DualAutocompleteWrapper ({
+  userAutocomplete,
+  territoryAutocomplete,
+  children
+}) {
+  return (
+    <UserSuggest
+      query={userAutocomplete.entityData?.query}
+      onSelect={userAutocomplete.handleSelect}
+      dropdownStyle={userAutocomplete.entityData?.style}
+    >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions: resetUserSuggestions }) => (
+      <TerritorySuggest
+        query={territoryAutocomplete.entityData?.query}
+        onSelect={territoryAutocomplete.handleSelect}
+        dropdownStyle={territoryAutocomplete.entityData?.style}
+      >{({ onKeyDown: territorySuggestOnKeyDown, resetSuggestions: resetTerritorySuggestions }) =>
+        children({
+          userSuggestOnKeyDown,
+          territorySuggestOnKeyDown,
+          resetUserSuggestions,
+          resetTerritorySuggestions
+        })}
+      </TerritorySuggest>
+    )}
+    </UserSuggest>
+  )
+}
+
 export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta, helpers] = useField(props)
@@ -287,22 +367,11 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     }
   }, [innerRef, selectionRange.start, selectionRange.end])
 
-  const userAutocomplete = useEntityAutocomplete({
-    prefix: '@',
+  const { userAutocomplete, territoryAutocomplete, handleTextChange, handleKeyDown, handleBlur } = useDualAutocomplete({
     meta,
     helpers,
     innerRef,
-    setSelectionRange,
-    SuggestComponent: UserSuggest
-  })
-
-  const territoryAutocomplete = useEntityAutocomplete({
-    prefix: '~',
-    meta,
-    helpers,
-    innerRef,
-    setSelectionRange,
-    SuggestComponent: TerritorySuggest
+    setSelectionRange
   })
 
   const uploadFeesUpdate = useDebounceCallback(
@@ -313,56 +382,9 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
 
   const onChangeInner = useCallback((formik, e) => {
     if (onChange) onChange(formik, e)
-    // check for mentions and territory suggestions
     uploadFeesUpdate(e.target.value)
-
-    // Try to match user mentions first, then territories
-    if (!userAutocomplete.handleTextChange(e)) {
-      territoryAutocomplete.handleTextChange(e)
-    }
-  }, [onChange, uploadFeesUpdate, userAutocomplete, territoryAutocomplete])
-
-  const onKeyDownInner = useCallback((userSuggestOnKeyDown, territorySuggestOnKeyDown) => {
-    return (e) => {
-      const metaOrCtrl = e.metaKey || e.ctrlKey
-      if (metaOrCtrl) {
-        if (e.key === 'k') {
-          // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
-          e.preventDefault()
-          insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-        }
-        if (e.key === 'b') {
-          // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
-          e.preventDefault()
-          insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-        }
-        if (e.key === 'i') {
-          // some browsers might use CTRL+I to do something else so prevent that behavior too
-          e.preventDefault()
-          insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-        }
-        if (e.key === 'u') {
-          // some browsers might use CTRL+U to do something else so prevent that behavior too
-          e.preventDefault()
-          imageUploadRef.current?.click()
-        }
-        if (e.key === 'Tab' && e.altKey) {
-          e.preventDefault()
-          insertMarkdownTabFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-        }
-      }
-
-      if (!metaOrCtrl) {
-        if (userAutocomplete.entityData) {
-          userSuggestOnKeyDown(e)
-        } else if (territoryAutocomplete.entityData) {
-          territorySuggestOnKeyDown(e)
-        }
-      }
-
-      if (onKeyDown) onKeyDown(e)
-    }
-  }, [innerRef, helpers?.setValue, setSelectionRange, onKeyDown, userAutocomplete.entityData, territoryAutocomplete.entityData])
+    handleTextChange(e)
+  }, [onChange, uploadFeesUpdate, handleTextChange])
 
   const onPaste = useCallback((event) => {
     const items = event.clipboardData.items
@@ -405,6 +427,44 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const onDragLeave = useCallback((e) => {
     setDragStyle(null)
   }, [setDragStyle])
+
+  const onKeyDownInner = useCallback((userSuggestOnKeyDown, territorySuggestOnKeyDown) => {
+    return (e) => {
+      const metaOrCtrl = e.metaKey || e.ctrlKey
+
+      // Handle markdown shortcuts first
+      if (metaOrCtrl) {
+        if (e.key === 'k') {
+          // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
+          e.preventDefault()
+          insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+        }
+        if (e.key === 'b') {
+          // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
+          e.preventDefault()
+          insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+        }
+        if (e.key === 'i') {
+          // some browsers might use CTRL+I to do something else so prevent that behavior too
+          e.preventDefault()
+          insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+        }
+        if (e.key === 'u') {
+          // some browsers might use CTRL+U to do something else so prevent that behavior too
+          e.preventDefault()
+          imageUploadRef.current?.click()
+        }
+        if (e.key === 'Tab' && e.altKey) {
+          e.preventDefault()
+          insertMarkdownTabFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+        }
+      } else {
+        handleKeyDown(e, userSuggestOnKeyDown, territorySuggestOnKeyDown)
+      }
+
+      if (onKeyDown) onKeyDown(e)
+    }
+  }, [innerRef, helpers?.setValue, setSelectionRange, onKeyDown, handleKeyDown, imageUploadRef])
 
   return (
     <FormGroup label={label} className={groupClassName}>
@@ -472,34 +532,25 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
           </span>
         </Nav>
         <div className={`position-relative ${tab === 'write' ? '' : 'd-none'}`}>
-          <UserSuggest
-            query={userAutocomplete.entityData?.query}
-            onSelect={userAutocomplete.handleSelect}
-            dropdownStyle={userAutocomplete.entityData?.style}
-          >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions: resetUserSuggestions }) => (
-            <TerritorySuggest
-              query={territoryAutocomplete.entityData?.query}
-              onSelect={territoryAutocomplete.handleSelect}
-              dropdownStyle={territoryAutocomplete.entityData?.style}
-            >{({ onKeyDown: territorySuggestOnKeyDown, resetSuggestions: resetTerritorySuggestions }) => (
+          <DualAutocompleteWrapper
+            userAutocomplete={userAutocomplete}
+            territoryAutocomplete={territoryAutocomplete}
+          >
+            {({ userSuggestOnKeyDown, territorySuggestOnKeyDown, resetUserSuggestions, resetTerritorySuggestions }) => (
               <InputInner
                 innerRef={innerRef}
                 {...props}
                 onChange={onChangeInner}
                 onKeyDown={onKeyDownInner(userSuggestOnKeyDown, territorySuggestOnKeyDown)}
-                onBlur={() => {
-                  setTimeout(resetUserSuggestions, 500)
-                  setTimeout(resetTerritorySuggestions, 500)
-                }}
+                onBlur={() => handleBlur(resetUserSuggestions, resetTerritorySuggestions)}
                 onDragEnter={onDragEnter}
                 onDragLeave={onDragLeave}
                 onDrop={onDrop}
                 onPaste={onPaste}
                 className={dragStyle === 'over' ? styles.dragOver : ''}
-              />)}
-            </TerritorySuggest>
-          )}
-          </UserSuggest>
+              />
+            )}
+          </DualAutocompleteWrapper>
         </div>
         {tab !== 'write' &&
           <div className='form-group'>
@@ -1017,15 +1068,14 @@ export function Form ({
     })
   }, [storageKeyPrefix])
 
-  const onSubmitInner = useCallback(async ({ amount, ...values }, ...args) => {
-    const variables = { amount, ...values }
+  const onSubmitInner = useCallback(async (values, ...args) => {
     if (requireSession && !me) {
       throw new SessionRequiredError()
     }
 
     try {
       if (onSubmit) {
-        await onSubmit(variables, ...args)
+        await onSubmit(values, ...args)
       }
     } catch (err) {
       console.log(err.message, err)

@@ -148,7 +148,6 @@ model User {
   walletsUpdatedAt          DateTime?
   vaultEntries              VaultEntry[]           @relation("VaultEntries")
   proxyReceive              Boolean                @default(true)
-  directReceive             Boolean                @default(true)
   DirectPaymentReceived     DirectPayment[]        @relation("DirectPaymentReceived")
   DirectPaymentSent         DirectPayment[]        @relation("DirectPaymentSent")
   UserSubTrust              UserSubTrust[]

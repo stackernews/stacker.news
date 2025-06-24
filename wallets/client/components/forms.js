@@ -172,6 +172,7 @@ function WalletProtocolForm () {
   return (
     <>
       <Form
+        key={router.asPath}
         enableReinitialize
         initial={initial}
         schema={schema}

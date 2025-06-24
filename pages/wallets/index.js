@@ -1,7 +1,7 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Button } from 'react-bootstrap'
 import { FIRST_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch, usePage, UNLOCK_PAGE, useTemplates, DndProvider } from '@/wallets/client/context'
-import { WalletCard, WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader, DraggableWalletCard } from '@/wallets/client/components'
+import { WalletCard, WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
 import styles from '@/styles/wallet.module.css'
 import { usePassphrasePrompt, useShowPassphrase, useSetWalletPriorities } from '@/wallets/client/hooks'
 
@@ -70,14 +70,14 @@ export default function Wallet () {
         </div>
         {wallets.length > 0 && (
           <>
-            <DndProvider onReorder={setWalletPriorities}>
+            <DndProvider items={wallets} onReorder={setWalletPriorities}>
               <div className={styles.walletGrid}>
                 {wallets.map((wallet, index) => (
-                  <DraggableWalletCard
+                  <WalletCard
                     key={wallet.id}
                     wallet={wallet}
                     index={index}
-                    items={wallets}
+                    draggable
                   />
                 ))}
               </div>

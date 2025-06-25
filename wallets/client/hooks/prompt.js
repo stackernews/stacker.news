@@ -39,7 +39,6 @@ export function useWalletRecvPrompt () {
 
   return useCallback((e) => {
     return new Promise((resolve, reject) => {
-      // TODO: check if user told us to not show again
       if (!me || me.optional?.hasRecvWallet || me.privates?.hideWalletRecvPrompt) return resolve()
 
       showModal(onClose => {

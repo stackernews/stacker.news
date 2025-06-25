@@ -400,7 +400,6 @@ function migrateConfig (protocol, config) {
 
 function getWalletTemplateId (protocol) {
   switch (protocol.name) {
-    // TODO(wallet-v2): insert wallet templates with IDs so the IDs don't change if their order changes
     case 'LNBITS':
       return 10 // LNbits
     case 'PHOENIXD':

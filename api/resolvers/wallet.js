@@ -22,7 +22,7 @@ import walletDefs from '@/wallets/server'
 import { generateResolverName, generateTypeDefName } from '@/wallets/graphql'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
-import { getNodeSockets, getOurPubkey } from '../lnd'
+import { getNodeSockets } from '../lnd'
 import validateWallet from '@/wallets/validate'
 import { canReceive, getWalletByType } from '@/wallets/common'
 import performPaidAction from '../paidAction'
@@ -1007,9 +1007,7 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
 
 export async function fetchLnAddrInvoice (
   { addr, amount, maxFee, comment, ...payer },
-  {
-    me, models, lnd, autoWithdraw = false
-  }) {
+  { me, models, lnd }) {
   const options = await lnAddrOptions(addr)
   await validateSchema(lnAddrSchema, { addr, amount, maxFee, comment, ...payer }, options)
 
@@ -1046,14 +1044,6 @@ export async function fetchLnAddrInvoice (
   // decode invoice
   try {
     const decoded = await parsePaymentRequest({ request: res.pr })
-    const ourPubkey = await getOurPubkey({ lnd })
-    if (autoWithdraw && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
-      // unset lnaddr so we don't trigger another withdrawal with same destination
-      await models.wallet.deleteMany({
-        where: { userId: me.id, type: 'LIGHTNING_ADDRESS' }
-      })
-      throw new Error('automated withdrawals to other stackers are not allowed')
-    }
     if (!decoded.mtokens || BigInt(decoded.mtokens) !== BigInt(milliamount)) {
       throw new Error('invoice has incorrect amount')
     }

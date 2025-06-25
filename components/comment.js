@@ -28,8 +28,7 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
-import { ITEM_FULL } from '@/fragments/items'
-import { COMMENT_WITH_NEW } from '@/fragments/comments'
+import { ShowNewComments } from './use-live-comments'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -341,63 +340,5 @@ export function CommentSkeleton ({ skeletonChildren }) {
         </div>
       </div>
     </div>
-  )
-}
-
-export function ShowNewComments ({ newComments = [], itemId, topLevel = false }) {
-  const client = useApolloClient()
-
-  const showNewComments = () => {
-    if (topLevel) {
-      client.cache.updateQuery({
-        query: ITEM_FULL,
-        variables: { id: itemId }
-      }, (data) => {
-        if (!data) return data
-        const { item } = data
-
-        return {
-          item: {
-            ...item,
-            comments: dedupeComments(item.comments, newComments),
-            newComments: []
-          }
-        }
-      })
-    } else {
-      client.cache.updateFragment({
-        id: `Item:${itemId}`,
-        fragment: COMMENT_WITH_NEW,
-        fragmentName: 'CommentWithNew'
-      }, (data) => {
-        if (!data) return data
-
-        return {
-          ...data,
-          comments: dedupeComments(data.comments, newComments),
-          newComments: []
-        }
-      })
-    }
-  }
-
-  const dedupeComments = (existingComments = [], newComments = []) => {
-    const existingIds = new Set(existingComments.comments?.map(c => c.id))
-    const filteredNew = newComments.filter(c => !existingIds.has(c.id))
-    return {
-      ...existingComments,
-      comments: [...filteredNew, ...(existingComments.comments || [])]
-    }
-  }
-
-  return (
-    <span onClick={showNewComments}>
-      <div className={!topLevel ? styles.comments : 'pb-2'}>
-        <div className={`d-block fw-bold ${styles.comment} pb-2 ps-3 d-flex align-items-center gap-2 pointer`}>
-          load new comments
-          <div className={styles.newCommentDot} />
-        </div>
-      </div>
-    </span>
   )
 }

@@ -3,6 +3,7 @@ import { SSR } from '../lib/constants'
 import { GET_NEW_COMMENTS, COMMENT_WITH_NEW } from '../fragments/comments'
 import { ITEM_FULL } from '../fragments/items'
 import { useEffect, useState } from 'react'
+import styles from './comments.module.css'
 
 export default function useLiveComments (rootId, after) {
   const client = useApolloClient()
@@ -114,4 +115,62 @@ function getLatestCommentCreatedAt (comments, latest) {
   }
 
   return latest
+}
+
+export function ShowNewComments ({ newComments = [], itemId, topLevel = false }) {
+  const client = useApolloClient()
+
+  const showNewComments = () => {
+    if (topLevel) {
+      client.cache.updateQuery({
+        query: ITEM_FULL,
+        variables: { id: itemId }
+      }, (data) => {
+        if (!data) return data
+        const { item } = data
+
+        return {
+          item: {
+            ...item,
+            comments: dedupeComments(item.comments, newComments),
+            newComments: []
+          }
+        }
+      })
+    } else {
+      client.cache.updateFragment({
+        id: `Item:${itemId}`,
+        fragment: COMMENT_WITH_NEW,
+        fragmentName: 'CommentWithNew'
+      }, (data) => {
+        if (!data) return data
+
+        return {
+          ...data,
+          comments: dedupeComments(data.comments, newComments),
+          newComments: []
+        }
+      })
+    }
+  }
+
+  const dedupeComments = (existingComments = [], newComments = []) => {
+    const existingIds = new Set(existingComments.comments?.map(c => c.id))
+    const filteredNew = newComments.filter(c => !existingIds.has(c.id))
+    return {
+      ...existingComments,
+      comments: [...filteredNew, ...(existingComments.comments || [])]
+    }
+  }
+
+  return (
+    <span onClick={showNewComments}>
+      <div className={!topLevel ? styles.comments : 'pb-2'}>
+        <div className={`d-block fw-bold ${styles.comment} pb-2 ps-3 d-flex align-items-center gap-2 pointer`}>
+          load new comments
+          <div className={styles.newCommentDot} />
+        </div>
+      </div>
+    </span>
+  )
 }

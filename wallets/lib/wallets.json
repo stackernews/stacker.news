@@ -2,178 +2,112 @@
     {
         "name": "BLINK",
         "displayName": "Blink", 
-        "image": {
-            "src": "/wallets/blink.svg",
-            "alt": "Blink"
-        }
+        "image": "/wallets/blink.svg"
     },
     {
         "name": "CLN",
         "displayName": "Core Lightning",
-        "image": {
-            "src": "/wallets/cln.svg", 
-            "alt": "Core Lightning"
-        }
+        "image": "/wallets/cln.svg"
     },
     {
         "name": "LNBITS",
         "displayName": "LNbits",
-        "image": {
-            "src": "/wallets/lnbits.svg",
-            "alt": "LNbits"
-        }
+        "image": "/wallets/lnbits.svg"
     },
     {
         "name": "LND", 
         "displayName": "Lightning Network Daemon",
-        "image": {
-            "src": "/wallets/lnd.png",
-            "alt": "LND"
-        }
+        "image": "/wallets/lnd.png"
     },
     {
         "name": "PHOENIXD",
         "displayName": "Phoenixd",
-        "image": {
-            "src": "/wallets/phoenixd.png",
-            "alt": "Phoenixd"
-        }
+        "image": "/wallets/phoenixd.png"
     },
     {
         "name": "ZEUS",
         "displayName": "Zeus",
-        "image": {
-            "src": "/wallets/zeus.svg",
-            "alt": "Zeus"
-        }
+        "image": "/wallets/zeus.svg"
     },
     {
         "name": "COINOS",
         "displayName": "Coinos",
-        "image": {
-            "src": "/wallets/coinos.svg",
-            "alt": "Coinos"
-        }
+        "image": "/wallets/coinos.svg"
     },
     {
         "name": "PRIMAL",
         "displayName": "Primal",
-        "image": {
-            "src": "/wallets/primal.svg",
-            "alt": "Primal"
-        }
+        "image": "/wallets/primal.svg"
     },
     {
         "name": "WALLET_OF_SATOSHI",
         "displayName": "Wallet of Satoshi",
-        "image": {
-            "src": "/wallets/wos.svg",
-            "alt": "Wallet of Satoshi"
-        }
+        "image": "/wallets/wos.svg"
     },
     {
         "name": "VOLTAGE",
         "displayName": "Voltage",
-        "image": {
-            "src": "/wallets/voltage.svg",
-            "alt": "Voltage"
-        }
+        "image": "/wallets/voltage.svg"
     },
     {
         "name": "RIZFUL",
         "displayName": "Rizful",
-        "image": {
-            "src": "/wallets/rizful.png",
-            "alt": "Rizful"
-        }
+        "image": "/wallets/rizful.png"
     },
     {
         "name": "SPEED",
         "displayName": "Speed",
-        "image": {
-            "src": "/wallets/speed.svg",
-            "alt": "Speed"
-        }
+        "image": "/wallets/speed.svg"
     },
     {
         "name": "ZBD",
         "displayName": "ZBD",
-        "image": {
-            "src": "/wallets/zbd.png",
-            "alt": "ZBD"
-        }
+        "image": "/wallets/zbd.png"
     },
     {
         "name": "STRIKE",
         "displayName": "Strike",
-        "image": {
-            "src": "/wallets/strike.png",
-            "alt": "Strike"
-        }
+        "image": "/wallets/strike.png"
     },
     {
         "name": "MINIBITS",
         "displayName": "Minibits",
-        "image": {
-            "src": "/wallets/minibits.png",
-            "alt": "Minibits"
-        }
+        "image": "/wallets/minibits.png"
     },
     {
         "name": "FOUNTAIN",
         "displayName": "Fountain",
-        "image": {
-            "src": "/wallets/fountain.png",
-            "alt": "Fountain"
-        }
+        "image": "/wallets/fountain.png"
     },
     {
         "name": "LIFPAY",
         "displayName": "Lifpay",
-        "image": {
-            "src": "/wallets/lifpay.png",
-            "alt": "Lifpay"
-        }
+        "image": "/wallets/lifpay.png"
     },
     {
         "name": "SHOCKWALLET",
         "displayName": "Shockwallet",
-        "image": {
-            "src": "/wallets/shockwallet.png",
-            "alt": "Shockwallet"
-        }
+        "image": "/wallets/shockwallet.png"
     },
     {
         "name": "ALBY_HUB",
         "displayName": "Alby Hub",
-        "image": {
-            "src": "/wallets/albyhub.png",
-            "alt": "Alby Hub"
-        }
+        "image": "/wallets/albyhub.png"
     },
     {
         "name": "BLIXT",
         "displayName": "Blixt",
-        "image": {
-            "src": "/wallets/blixt.svg",
-            "alt": "Blixt"
-        }
+        "image": "/wallets/blixt.svg"
     },
     {
         "name": "NPUB.CASH",
         "displayName": "npub.cash",
-        "image": {
-            "src": "/wallets/npub-cash.svg",
-            "alt": "npub.cash"
-        }
+        "image": "/wallets/npub-cash.svg"
     },
     {
         "name": "ALBY_BROWSER_EXTENSION",
         "displayName": "Alby Browser Extension",
-        "image": {
-            "src": "/wallets/alby-browser-extension.svg",
-            "alt": "Alby Browser Extension"
-        }
+        "image": "/wallets/alby-browser-extension.svg"
     },
     {
         "name": "LN_ADDR",

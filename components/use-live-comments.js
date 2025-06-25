@@ -3,7 +3,11 @@ import { SSR } from '../lib/constants'
 import { GET_NEW_COMMENTS, COMMENT_WITH_NEW } from '../fragments/comments'
 import { ITEM_FULL } from '../fragments/items'
 import { useEffect, useState } from 'react'
-import styles from './comments.module.css'
+import styles from './comment.module.css'
+
+const POLL_INTERVAL = 1000 * 10 // 10 seconds
+const ACTIVITY_TIMEOUT = 1000 * 60 * 30 // 30 minutes
+const ACTIVITY_CHECK_INTERVAL = 1000 * 60 // 1 minute
 
 export default function useLiveComments (rootId, after) {
   const client = useApolloClient()
@@ -25,7 +29,7 @@ export default function useLiveComments (rootId, after) {
       const isActive = document.visibilityState === 'visible'
 
       // poll only if the user is active and has been active in the last 30 minutes
-      if (timeSinceEngaged < 1000 * 60 * 30) {
+      if (timeSinceEngaged < ACTIVITY_TIMEOUT) {
         setPolling(isActive)
       } else {
         setPolling(false)
@@ -33,11 +37,12 @@ export default function useLiveComments (rootId, after) {
     }
 
     // check activity every minute
-    const interval = setInterval(checkActivity, 1000 * 60)
+    const interval = setInterval(checkActivity, ACTIVITY_CHECK_INTERVAL)
     // check activity also on visibility change
     document.addEventListener('visibilitychange', checkActivity)
 
     return () => {
+      // cleanup
       document.removeEventListener('visibilitychange', checkActivity)
       clearInterval(interval)
     }
@@ -46,25 +51,22 @@ export default function useLiveComments (rootId, after) {
   const { data } = useQuery(GET_NEW_COMMENTS, SSR
     ? {}
     : {
-        pollInterval: polling ? 10000 : null,
+        pollInterval: polling ? POLL_INTERVAL : null,
         variables: { rootId, after: latest }
       })
 
   useEffect(() => {
-    if (data && data.newComments) {
-      saveNewComments(client, rootId, data.newComments.comments)
-      // check new comments created after the latest new comment
-      const latestCommentCreatedAt = getLatestCommentCreatedAt(data.newComments.comments, latest)
-      if (latestCommentCreatedAt) {
-        setLatest(latestCommentCreatedAt)
-      }
-    }
-  }, [data, client, rootId, latest])
+    if (!data?.newComments) return
+
+    cacheNewComments(client, rootId, data.newComments.comments)
+    // check new comments created after the latest new comment
+    setLatest(prevLatest => getLatestCommentCreatedAt(data.newComments.comments, prevLatest))
+  }, [data, client, rootId])
 
   return { polling, setPolling }
 }
 
-function saveNewComments (client, rootId, newComments) {
+function cacheNewComments (client, rootId, newComments) {
   for (const newComment of newComments) {
     const { parentId } = newComment
     const topLevel = Number(parentId) === Number(rootId)
@@ -77,7 +79,7 @@ function saveNewComments (client, rootId, newComments) {
       }, (data) => {
         if (!data) return data
         // we return the entire item, not just the newComments
-        return { item: dedupeComment(data?.item, newComment) }
+        return { item: mergeNewComments(data?.item, newComment) }
       })
     } else {
       // if the comment is a reply, update the parent comment
@@ -88,13 +90,13 @@ function saveNewComments (client, rootId, newComments) {
       }, (data) => {
         if (!data) return data
         // here we return the parent comment with the new comment added
-        return dedupeComment(data, newComment)
+        return mergeNewComments(data, newComment)
       })
     }
   }
 }
 
-function dedupeComment (item, newComment) {
+function mergeNewComments (item, newComment) {
   const existingNewComments = item.newComments || []
   const existingComments = item.comments?.comments || []
 
@@ -106,15 +108,15 @@ function dedupeComment (item, newComment) {
 }
 
 function getLatestCommentCreatedAt (comments, latest) {
-  if (comments.length === 0) return null
+  if (comments.length === 0) return latest
 
-  for (const comment of comments) {
-    if (comment.createdAt > latest) {
-      latest = comment.createdAt
-    }
-  }
-
-  return latest
+  // timestamp comparison via Math.max on bare timestamps
+  // convert all createdAt to timestamps
+  const timestamps = comments.map(c => new Date(c.createdAt).getTime())
+  // find the latest timestamp
+  const maxTimestamp = Math.max(...timestamps, new Date(latest).getTime())
+  // convert back to ISO string
+  return new Date(maxTimestamp).toISOString()
 }
 
 export function ShowNewComments ({ newComments = [], itemId, topLevel = false }) {

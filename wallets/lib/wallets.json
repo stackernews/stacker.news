@@ -1,59 +1,69 @@
 [
     {
+        "templateId": 3,
         "name": "BLINK",
         "displayName": "Blink", 
         "image": "/wallets/blink.svg",
         "url": "https://blink.sv/"
     },
     {
+        "templateId": 6,
         "name": "CLN",
         "displayName": "Core Lightning",
         "image": "/wallets/cln.svg",
         "url": "https://corelightning.org/"
     },
     {
+        "templateId": 10,
         "name": "LNBITS",
         "displayName": "LNbits",
         "image": "/wallets/lnbits.svg",
         "url": "https://lnbits.com/"
     },
     {
+        "templateId": 11,
         "name": "LND", 
         "displayName": "Lightning Network Daemon",
         "image": "/wallets/lnd.png",
         "url": "https://docs.lightning.engineering/lightning-network-tools/lnd"
     },
     {
+        "templateId": 14,
         "name": "PHOENIXD",
         "displayName": "Phoenixd",
         "image": "/wallets/phoenixd.png",
         "url": "https://phoenix.acinq.co/server"
     },
     {
+        "templateId": 23,
         "name": "ZEUS",
         "displayName": "Zeus",
         "image": "/wallets/zeus.svg",
         "url": "https://zeusln.com/"
     },
     {
+        "templateId": 7,
         "name": "COINOS",
         "displayName": "Coinos",
         "image": "/wallets/coinos.svg",
         "url": "https://coinos.io/"
     },
     {
+        "templateId": 15,
         "name": "PRIMAL",
         "displayName": "Primal",
         "image": "/wallets/primal.svg",
         "url": "https://primal.net/"
     },
     {
+        "templateId": 21,
         "name": "WALLET_OF_SATOSHI",
         "displayName": "Wallet of Satoshi",
         "image": "/wallets/wos.svg",
         "url": "https://walletofsatoshi.com/"
     },
     {
+        "templateId": 20,
         "name": "VOLTAGE",
         "displayName": "Voltage",
         "image": "/wallets/voltage.svg",
@@ -63,78 +73,91 @@
         }
     },
     {
+        "templateId": 16,
         "name": "RIZFUL",
         "displayName": "Rizful",
         "image": "/wallets/rizful.png",
         "url": "https://rizful.com/"
     },
     {
+        "templateId": 18,
         "name": "SPEED",
         "displayName": "Speed",
         "image": "/wallets/speed.svg",
         "url": "https://tryspeed.com/"
     },
     {
+        "templateId": 22,
         "name": "ZBD",
         "displayName": "ZBD",
         "image": "/wallets/zbd.png",
         "url": "https://zbd.gg/"
     },
     {
+        "templateId": 19,
         "name": "STRIKE",
         "displayName": "Strike",
         "image": "/wallets/strike.png",
         "url": "https://strike.me/"
     },
     {
+        "templateId": 12,
         "name": "MINIBITS",
         "displayName": "Minibits",
         "image": "/wallets/minibits.png",
         "url": "https://minibits.cash/"
     },
     {
+        "templateId": 8,
         "name": "FOUNTAIN",
         "displayName": "Fountain",
         "image": "/wallets/fountain.png",
         "url": "https://fountain.fm/"
     },
     {
+        "templateId": 9,
         "name": "LIFPAY",
         "displayName": "Lifpay",
         "image": "/wallets/lifpay.png",
         "url": "https://lifpay.me/"
     },
     {
+        "templateId": 17,
         "name": "SHOCKWALLET",
         "displayName": "Shockwallet",
         "image": "/wallets/shockwallet.png",
         "url": "https://shockwallet.app/"
     },
     {
+        "templateId": 2,
         "name": "ALBY_HUB",
         "displayName": "Alby Hub",
         "image": "/wallets/albyhub.png",
         "url": "https://albyhub.com/"
     },
     {
+        "templateId": 4,
         "name": "BLIXT",
         "displayName": "Blixt",
         "image": "/wallets/blixt.svg",
         "url": "https://blixtwallet.github.io/"
     },
     {
+        "templateId": 13,
         "name": "NPUB.CASH",
         "displayName": "npub.cash",
         "image": "/wallets/npub-cash.svg",
         "url": "https://npub.cash/"
     },
     {
+        "templateId": 1,
         "name": "ALBY_BROWSER_EXTENSION",
         "displayName": "Alby Browser Extension",
         "image": "/wallets/alby-browser-extension.svg",
         "url": "https://albyhub.com/"
     },
     {
+        "templateId": 25,
         "name": "LN_ADDR",
         "displayName": "Lightning Address",
         "url": {
@@ -143,6 +166,7 @@
         }
     },
     {
+        "templateId": 24,
         "name": "NWC",
         "displayName": "Nostr Wallet Connect",
         "url": "https://github.com/nostr-protocol/nips/blob/master/47.md"

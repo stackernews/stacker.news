@@ -23,7 +23,7 @@ import {
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey, useWalletLogger } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { isEncryptedField, isTemplate, isWallet, protocolClientSchema, reverseProtocolRelationName } from '@/wallets/lib/util'
+import { isEncryptedField, isTemplate, isWallet, protocolClientSchema, reverseProtocolRelationName, walletTemplateId } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
@@ -401,18 +401,14 @@ function migrateConfig (protocol, config) {
 function getWalletTemplateId (protocol) {
   switch (protocol.name) {
     case 'LNBITS':
-      return 10 // LNbits
     case 'PHOENIXD':
-      return 14 // Phoenix
     case 'BLINK':
-      return 3 // Blink
-    case 'LNC':
-      return 11 // LND
-    case 'WEBLN':
-      return 1 // Alby Browser Extension
     case 'NWC':
-      // TODO(wallet-v2): create wallet just for NWC and use it here
-      return 24 // Custom
+      return walletTemplateId(protocol.name)
+    case 'LNC':
+      return walletTemplateId('LND')
+    case 'WEBLN':
+      return walletTemplateId('ALBY_BROWSER_EXTENSION')
     default:
       return null
   }

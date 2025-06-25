@@ -95,6 +95,7 @@ export function LogMessage ({ tag, level, message, context, ts }) {
   const indicator = hasContext ? (show ? '-' : '+') : <></>
 
   // TODO(wallet-v2): show wallet name
+  // TODO(wallet-v2): show invoice context
 
   return (
     <>

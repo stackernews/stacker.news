@@ -324,9 +324,6 @@ function LogoutObstacle ({ onClose }) {
               await togglePushSubscription().catch(console.error)
             }
 
-            // TODO(wallet-v2): implement this
-            // removeLocalWallets()
-
             await signOut({ callbackUrl: '/' })
           }}
         >

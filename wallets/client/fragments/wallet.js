@@ -17,8 +17,6 @@ export const CLEAR_VAULT = gql`
 const WALLET_PROTOCOL_FIELDS = gql`
   ${VAULT_ENTRY_FIELDS}
   # need to use field aliases because of https://github.com/graphql/graphql-js/issues/53
-  # TODO(wallet-v2): can I use a schema directive like @encrypted to rename the fields, and maybe do more?
-  # see https://www.apollographql.com/docs/apollo-server/v3/schema/creating-directives
   fragment WalletProtocolFields on WalletProtocol {
     id
     name

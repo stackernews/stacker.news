@@ -18,6 +18,7 @@ export function walletLogger ({
     try {
       if (context.bolt11) {
         // automatically populate context from bolt11 to avoid duplicating this code
+        // (this is needed because in some cases we want to log before we have an invoice or withdrawal id)
         context = {
           ...context,
           ...await logContextFromBolt11(context.bolt11)
@@ -49,7 +50,6 @@ export function walletLogger ({
   }
 }
 
-// TODO(wallet-v2): still needed?
 export async function logContextFromBolt11 (bolt11) {
   const decoded = await parsePaymentRequest({ request: bolt11 })
   return {

@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 
 export default function useLiveComments (rootId, after) {
   const client = useApolloClient()
-  const [lastChecked, setLastChecked] = useState(after)
+  const [latest, setLatest] = useState(after)
   const [polling, setPolling] = useState(true)
   const [engagedAt, setEngagedAt] = useState(new Date())
 
@@ -46,18 +46,19 @@ export default function useLiveComments (rootId, after) {
     ? {}
     : {
         pollInterval: polling ? 10000 : null,
-        variables: { rootId, after: lastChecked }
+        variables: { rootId, after: latest }
       })
 
   useEffect(() => {
     if (data && data.newComments) {
       saveNewComments(client, rootId, data.newComments.comments)
-      const latestCommentCreatedAt = getLastCommentCreatedAt(data.newComments.comments)
+      // check new comments created after the latest new comment
+      const latestCommentCreatedAt = getLatestCommentCreatedAt(data.newComments.comments, latest)
       if (latestCommentCreatedAt) {
-        setLastChecked(latestCommentCreatedAt)
+        setLatest(latestCommentCreatedAt)
       }
     }
-  }, [data, client, rootId])
+  }, [data, client, rootId, latest])
 
   return { polling, setPolling }
 }
@@ -103,13 +104,14 @@ function dedupeComment (item, newComment) {
   return { ...item, newComments: [...existingNewComments, newComment] }
 }
 
-function getLastCommentCreatedAt (comments) {
+function getLatestCommentCreatedAt (comments, latest) {
   if (comments.length === 0) return null
-  let latest = comments[0].createdAt
+
   for (const comment of comments) {
     if (comment.createdAt > latest) {
       latest = comment.createdAt
     }
   }
+
   return latest
 }

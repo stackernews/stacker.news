@@ -386,7 +386,7 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false })
     const filteredNew = newComments.filter(c => !existingIds.has(c.id))
     return {
       ...existingComments,
-      comments: [...(existingComments.comments || []), ...filteredNew]
+      comments: [...filteredNew, ...(existingComments.comments || [])]
     }
   }
 

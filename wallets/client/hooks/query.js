@@ -133,7 +133,7 @@ export function useWalletProtocolUpsert (wallet, protocol) {
     }
 
     return updatedWallet
-  }, [protocol, logger, testSendPayment, encryptConfig, mutate])
+  }, [wallet, protocol, logger, testSendPayment, encryptConfig, mutate])
 }
 
 function modifiedKeys (a, b) {

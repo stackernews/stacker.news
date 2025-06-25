@@ -136,6 +136,14 @@ export function useWalletProtocolUpsert (wallet, protocol) {
   }, [wallet, protocol, logger, testSendPayment, encryptConfig, mutate])
 }
 
+export function useLightningAddressUpsert () {
+  // TODO(wallet-v2): parse domain from address input to use correct wallet template
+  // useWalletProtocolUpsert needs to support passing in the wallet in the callback for that
+  const wallet = { id: walletTemplateId('LN_ADDR'), __typename: 'WalletTemplate' }
+  const protocol = { name: 'LN_ADDR', send: false, __typename: 'WalletProtocolTemplate' }
+  return useWalletProtocolUpsert(wallet, protocol)
+}
+
 function modifiedKeys (a, b) {
   return Object.keys(a).filter(key => a[key] !== b[key])
 }

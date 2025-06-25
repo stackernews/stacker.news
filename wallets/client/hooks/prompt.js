@@ -5,13 +5,12 @@ import { Form, ClientInput, SubmitButton, Checkbox } from '@/components/form'
 import { useMe } from '@/components/me'
 import { useShowModal } from '@/components/modal'
 import Link from 'next/link'
-// import { useWalletSave } from '@/wallets/client/hooks'
 import styles from '@/styles/wallet.module.css'
-import { externalLightningAddressValidator } from '@/wallets/lib/validate'
-// import { autowithdrawInitial } from '@/components/autowithdraw-shared'
 import { useMutation } from '@apollo/client'
 import { HIDE_WALLET_RECV_PROMPT_MUTATION } from '@/fragments/users'
 import { useToast } from '@/components/toast'
+import { useLightningAddressUpsert } from '@/wallets/client/hooks/query'
+import { protocolClientSchema } from '@/wallets/lib/util'
 
 export class WalletPromptClosed extends Error {
   constructor () {
@@ -70,23 +69,14 @@ function Header () {
 }
 
 function LnAddrForm ({ onAttach }) {
-  // TODO(wallet-v2): implement this
-  // const { me } = useMe()
-  // const wallet = useWallet('lightning-address')
-  // const save = useWalletConfigurator(wallet)
+  const upsert = useLightningAddressUpsert()
+  const schema = protocolClientSchema({ name: 'LN_ADDR', send: false })
+  const initial = { address: '' }
 
-  const schema = object({ lnAddr: externalLightningAddressValidator.required('required') })
-
-  const onSubmit = useCallback(async ({ lnAddr }) => {
-    // TODO(wallet-v2): implement this
-    // await save({
-    //   ...autowithdrawInitial({ me }),
-    //   priority: 0,
-    //   enabled: true,
-    //   address: lnAddr
-    // }, true)
+  const onSubmit = useCallback(async ({ address }) => {
+    await upsert({ address })
     onAttach()
-  }, [/* me?.id, save */])
+  }, [upsert, onAttach])
 
   return (
     <>
@@ -94,10 +84,10 @@ function LnAddrForm ({ onAttach }) {
       <Form
         schema={schema}
         onSubmit={onSubmit}
-        initial={{ lnAddr: '' }}
+        initial={initial}
       >
         <ClientInput
-          name='lnAddr'
+          name='address'
           groupClassName='mt-1 mb-3'
           append={<SubmitButton variant='primary' size='sm'>save</SubmitButton>}
         />

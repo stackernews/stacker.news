@@ -9,8 +9,8 @@ const WalletOrTemplate = {
 
 const Wallet = {
   name: wallet => wallet.template.name,
-  send: wallet => wallet.protocols.some(protocol => protocol.send),
-  receive: wallet => wallet.protocols.some(protocol => !protocol.send)
+  send: wallet => wallet.protocols.some(protocol => protocol.enabled && protocol.send),
+  receive: wallet => wallet.protocols.some(protocol => protocol.enabled && !protocol.send)
 }
 
 const WalletTemplate = {

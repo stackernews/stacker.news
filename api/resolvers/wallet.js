@@ -987,7 +987,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   return await performPayingAction({ bolt11: invoice, maxFee, walletId: wallet?.id }, { me, models, lnd })
 }
 
-export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },
+async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },
   { me, models, lnd, headers }) {
   if (!me) {
     throw new GqlAuthenticationError()
@@ -1005,7 +1005,7 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
   return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers })
 }
 
-export async function fetchLnAddrInvoice (
+async function fetchLnAddrInvoice (
   { addr, amount, maxFee, comment, ...payer },
   { me, models, lnd }) {
   const options = await lnAddrOptions(addr)

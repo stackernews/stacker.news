@@ -73,7 +73,6 @@ export function useWalletPayment () {
         if (paymentError instanceof WalletReceiverError) {
           // if payment failed because of the receiver, use the same wallet again
           // and log this as info, not error
-          // TODO(wallet-v2): I removed the wallet logger on the client. Make sure this is still logged on the server.
           logger.info('failed to forward payment to receiver, retrying with new invoice')
           i -= 1
         } else if (paymentError instanceof WalletPaymentError) {

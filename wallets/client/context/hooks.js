@@ -125,7 +125,8 @@ export function useKeyInit () {
 
     async function keyInit () {
       try {
-        // TODO(wallet-v2): remove this migration code and delete the old db after wallet v2 has been released for some time
+        // TODO(wallet-v2): remove migration code
+        //   and delete the old IndexedDB after wallet v2 has been released for some time
         const oldKey = await loadOldKey()
         if (oldKey?.key) {
           setKey(oldKey.key)
@@ -147,7 +148,8 @@ export function useKeyInit () {
     keyInit()
   }, [me?.id, generateRandomKey, loadOldKey, setKey, loadKey])
 
-  // TODO(wallet-v2): move or remove this, this is just for loading the key for the wallet seed
+  // TODO(wallet-v2): remove degugging code
+  //   this is just for loading the key for the wallet seed
   // useEffect(() => {
   //   if (!me?.id) return
   //   async function loadKey () {

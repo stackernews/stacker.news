@@ -98,7 +98,6 @@ function CowboyCreditsSettings () {
 }
 
 function LightningAddressSettings () {
-  // TODO(wallet-v2): https://github.com/stackernews/stacker.news/issues/2029
   return (
     <>
       <Separator>@stacker.news lightning address</Separator>

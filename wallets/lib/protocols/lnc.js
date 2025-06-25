@@ -16,7 +16,6 @@ export default {
       required: true,
       encrypt: true
     },
-    // TODO(wallet-v2): generate these values during save
     {
       name: 'serverHost',
       encrypt: true

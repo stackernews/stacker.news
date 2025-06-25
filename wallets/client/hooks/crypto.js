@@ -144,7 +144,6 @@ export function useResetPassphrase () {
         <p className='line-height-md'>
           After the reset, you will be issued a new passphrase. Take better care of it this time!
         </p>
-        {/* TODO(wallet-v2): show list of encrypted wallets that will be deleted */}
         <div className='mt-3 d-flex justify-content-end align-items-center'>
           <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={close}>cancel</Button>
           <Button variant='danger' onClick={resetPassphrase(close)}>reset</Button>

@@ -3,10 +3,6 @@ import protocols from '@/wallets/client/protocols'
 import { isWallet } from '@/wallets/lib/util'
 import { useMemo } from 'react'
 
-export function useWallet (name) {
-  // TODO(wallet-v2): implement this
-}
-
 export function useSendWallets () {
   const wallets = useWallets()
   return useMemo(

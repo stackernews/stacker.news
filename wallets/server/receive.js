@@ -135,7 +135,6 @@ export async function getInvoiceableWallets (userId, { paymentAttempt, predecess
         JOIN "Withdrawl" ON "Withdrawl".id = "InvoiceForward"."withdrawlId"
         WHERE "Withdrawl"."status" IS DISTINCT FROM 'CONFIRMED'
       )
-    -- TODO(wallet-v2): should the user be able to specify the order of protocols within the same wallet?
     ORDER BY "Wallet"."priority" ASC, "Wallet"."id" ASC`
 }
 

@@ -14,6 +14,13 @@ export function walletImage (name) {
   return walletJson(name)?.image
 }
 
+export function walletLud16Domain (name) {
+  const url = walletJson(name)?.url
+  if (!url) return undefined
+
+  return typeof url === 'string' ? new URL(url).hostname : url.lud16Domain
+}
+
 function protocol ({ name, send }) {
   return protocols.find(protocol => protocol.name === name && protocol.send === send)
 }

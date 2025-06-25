@@ -1,10 +1,10 @@
 import { useEffect, useCallback, useMemo, createContext, useContext } from 'react'
-import { Button, Nav } from 'react-bootstrap'
+import { Button, InputGroup, Nav } from 'react-bootstrap'
 import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
 import { useRouter } from 'next/router'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
-import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, urlify, isWallet, isTemplate } from '@/wallets/lib/util'
+import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, urlify, isWallet, isTemplate, walletLud16Domain } from '@/wallets/lib/util'
 import styles from '@/styles/wallet.module.css'
 import { Checkbox, Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
@@ -157,7 +157,13 @@ function WalletProtocolForm () {
 
   const { fields, initial, schema } = useProtocolForm(protocol)
 
-  const onSubmit = useCallback(async values => {
+  // create a copy of values to avoid mutating the original
+  const onSubmit = useCallback(async ({ ...values }) => {
+    const lud16Domain = walletLud16Domain(wallet.name)
+    if (values.address && lud16Domain) {
+      values.address = `${values.address}@${lud16Domain}`
+    }
+
     const upsert = await upsertWalletProtocol(values)
     if (isWallet(wallet)) {
       toaster.success('wallet saved')
@@ -214,6 +220,8 @@ function WalletProtocolFormButtons () {
 }
 
 function WalletProtocolFormField ({ type, ...props }) {
+  const wallet = useWallet()
+
   function transform ({ validate, encrypt, ...props }) {
     const label = (
       <div className='d-flex align-items-center'>
@@ -226,8 +234,14 @@ function WalletProtocolFormField ({ type, ...props }) {
   }
 
   switch (type) {
-    case 'text':
-      return <Input {...transform(props)} />
+    case 'text': {
+      let append
+      const lud16Domain = walletLud16Domain(wallet.name)
+      if (props.name === 'address' && lud16Domain) {
+        append = <InputGroup.Text className='text-monospace'>@{lud16Domain}</InputGroup.Text>
+      }
+      return <Input {...transform(props)} append={append} />
+    }
     case 'password':
       return <PasswordInput {...transform(props)} />
     default:
@@ -281,16 +295,32 @@ function useSelectedProtocol () {
 }
 
 function useProtocolForm (protocol) {
+  const wallet = useWallet()
+  const lud16Domain = walletLud16Domain(wallet.name)
   const fields = protocolFields(protocol)
   const initial = fields.reduce((acc, field) => {
     // wallet templates don't have a config
-    const value = protocol.config?.[field.name]
+    let value = protocol.config?.[field.name]
+
+    if (field.name === 'address' && lud16Domain && value) {
+      value = value.split('@')[0]
+    }
+
     return {
       ...acc,
       [field.name]: value || ''
     }
   }, { enabled: protocol.enabled })
 
-  const schema = protocolClientSchema(protocol)
+  let schema = protocolClientSchema(protocol)
+  if (lud16Domain) {
+    schema = schema.transform(({ address, ...rest }) => {
+      return {
+        address: address ? `${address}@${lud16Domain}` : '',
+        ...rest
+      }
+    })
+  }
+
   return { fields, initial, schema }
 }

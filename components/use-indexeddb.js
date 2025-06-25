@@ -4,8 +4,6 @@ import { useCallback, useMemo } from 'react'
 const VERSION = 2
 
 export function useIndexedDB (dbName) {
-  // TODO(wallet-v2): clean up / migrate from old databases
-
   const { me } = useMe()
   if (!dbName) dbName = me?.id ? `app:storage:${me.id}` : 'app:storage'
 
@@ -57,7 +55,6 @@ async function _open (dbName, version = 1) {
 
   request.onsuccess = (event) => {
     const db = request.result
-    // TODO(wallet-v2): listen for 'versionchange' event even though we open and close the db for each request?
     resolve(db)
   }
 

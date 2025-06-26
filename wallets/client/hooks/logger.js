@@ -12,7 +12,7 @@ export function useWalletLoggerFactory () {
 
   const log = useCallback(({ protocol, level, message, invoiceId }) => {
     console[mapLevelToConsole(level)](`[${protocol.name}] ${message}`)
-    addWalletLog({ variables: { protocolId: protocol.id, level, message, invoiceId, timestamp: new Date() } })
+    addWalletLog({ variables: { protocolId: Number(protocol.id), level, message, invoiceId, timestamp: new Date() } })
       .catch(err => {
         console.error('error adding wallet log:', err)
       })

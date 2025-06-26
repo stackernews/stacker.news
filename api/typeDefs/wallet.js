@@ -43,7 +43,7 @@ const typeDefs = gql`
     resetWallets: Boolean
     disablePassphraseExport: Boolean
     setWalletSettings(settings: WalletSettingsInput!): Boolean
-    addWalletLog(protocolId: ID!, level: String!, message: String!, timestamp: Date!, invoiceId: Int): Boolean
+    addWalletLog(protocolId: Int!, level: String!, message: String!, timestamp: Date!, invoiceId: Int): Boolean
   }
 
   type BuyCreditsResult {

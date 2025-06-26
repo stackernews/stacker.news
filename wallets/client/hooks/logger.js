@@ -1,22 +1,58 @@
 import { useMutation, useQuery } from '@apollo/client'
 import { ADD_WALLET_LOG, WALLET_LOGS, DELETE_WALLET_LOGS } from '@/wallets/client/fragments'
-import { useCallback, useMemo } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import { Button } from 'react-bootstrap'
 import { ModalClosedError, useShowModal } from '@/components/modal'
 import { useToast } from '@/components/toast'
 import { FAST_POLL_INTERVAL } from '@/lib/constants'
 import { isTemplate } from '@/wallets/lib/util'
 
+const TemplateLogsContext = createContext({})
+
+export function TemplateLogsProvider ({ children }) {
+  const [templateLogs, setTemplateLogs] = useState([])
+
+  const addTemplateLog = useCallback(({ level, message }) => {
+    // TODO(wallet-v2): Date.now() might return the same value for two logs
+    //   use window.performance.now() instead?
+    setTemplateLogs(prev => [{ id: Date.now(), level, message, createdAt: new Date() }, ...prev])
+  }, [])
+
+  const clearTemplateLogs = useCallback(() => {
+    setTemplateLogs([])
+  }, [])
+
+  const value = useMemo(() => ({
+    templateLogs,
+    addTemplateLog,
+    clearTemplateLogs
+  }), [templateLogs, addTemplateLog, clearTemplateLogs])
+
+  return (
+    <TemplateLogsContext.Provider value={value}>
+      {children}
+    </TemplateLogsContext.Provider>
+  )
+}
+
 export function useWalletLoggerFactory () {
+  const { addTemplateLog } = useContext(TemplateLogsContext)
   const [addWalletLog] = useMutation(ADD_WALLET_LOG)
 
   const log = useCallback(({ protocol, level, message, invoiceId }) => {
     console[mapLevelToConsole(level)](`[${protocol.name}] ${message}`)
-    addWalletLog({ variables: { protocolId: Number(protocol.id), level, message, invoiceId, timestamp: new Date() } })
+
+    if (isTemplate(protocol)) {
+      // this is a template, so there's no protocol yet to which we could attach logs in the db
+      addTemplateLog?.({ level, message })
+      return
+    }
+
+    return addWalletLog({ variables: { protocolId: Number(protocol.id), level, message, invoiceId, timestamp: new Date() } })
       .catch(err => {
         console.error('error adding wallet log:', err)
       })
-  }, [addWalletLog])
+  }, [addWalletLog, addTemplateLog])
 
   return useCallback((protocol, invoice) => {
     const invoiceId = invoice ? Number(invoice.id) : null
@@ -43,6 +79,7 @@ export function useWalletLogger (protocol) {
 }
 
 export function useWalletLogs (protocol) {
+  const { templateLogs } = useContext(TemplateLogsContext)
   const { data, loading, error, refetch } = useQuery(WALLET_LOGS, {
     variables: {
       // if no protocol was given, we want to fetch all logs
@@ -56,13 +93,13 @@ export function useWalletLogs (protocol) {
   return useMemo(() => {
     return {
       loading,
-      logs: data?.walletLogs ?? [],
+      logs: data?.walletLogs ?? templateLogs ?? [],
       error,
       loadMore: () => {},
       hasMore: false,
       refetch
     }
-  }, [data, loading, error, refetch])
+  }, [data, loading, error, refetch, templateLogs])
 }
 
 function mapLevelToConsole (level) {

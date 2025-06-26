@@ -8,7 +8,7 @@ import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, ur
 import styles from '@/styles/wallet.module.css'
 import { Checkbox, Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
-import { useWalletProtocolUpsert, useWalletProtocolRemove, useWalletQuery } from '@/wallets/client/hooks'
+import { useWalletProtocolUpsert, useWalletProtocolRemove, useWalletQuery, TemplateLogsProvider } from '@/wallets/client/hooks'
 import { useToast } from '@/components/toast'
 
 const WalletFormsContext = createContext()
@@ -64,7 +64,11 @@ function WalletFormSelector () {
         <div className='position-relative'>
           <div>
             <WalletProtocolSelector />
-            {protocolParam && <WalletProtocolForm />}
+            {protocolParam && (
+              <TemplateLogsProvider>
+                <WalletProtocolForm />
+              </TemplateLogsProvider>
+            )}
           </div>
         </div>
       )}

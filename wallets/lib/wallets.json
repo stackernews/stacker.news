@@ -169,6 +169,7 @@
         "templateId": 24,
         "name": "NWC",
         "displayName": "Nostr Wallet Connect",
+        "image": "/wallets/nwc.png",
         "url": "https://github.com/nostr-protocol/nips/blob/master/47.md"
     }
 ]

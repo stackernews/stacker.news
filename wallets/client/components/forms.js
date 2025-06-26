@@ -120,7 +120,7 @@ function WalletProtocolSelector () {
   if (protocols.length === 0) {
     // TODO(wallet-v2): let user know how to request support if the wallet actually does support sending
     return (
-      <div className='mt-2 text-muted text-center'>
+      <div className='mt-3 text-muted text-center'>
         {sendRecvParam === 'send' ? 'sending' : 'receiving'} not supported
       </div>
     )

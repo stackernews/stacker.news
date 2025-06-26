@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useLazyQuery } from '@apollo/client'
 import { FAILED_INVOICES } from '@/fragments/invoice'
@@ -171,7 +171,7 @@ export function useKeyInit () {
 
 export function useWalletMigration () {
   const { me } = useMe()
-  const localWallets = useLocalWallets()
+  const { wallets: localWallets, refetch: refetchLocalWallets } = useLocalWallets()
   const { migrate: walletMigration, loading } = useWalletMigrationMutation()
 
   useEffect(() => {
@@ -193,18 +193,18 @@ export function useWalletMigration () {
           }
         })
       )
+
+      if (localWallets.length > 0) refetchLocalWallets()
     }
     migrate()
-  }, [loading, me?.id, localWallets, walletMigration])
+  }, [loading, me?.id, localWallets, walletMigration, refetchLocalWallets])
 }
 
 function useLocalWallets () {
   const { me } = useMe()
   const [wallets, setWallets] = useState([])
 
-  useEffect(() => {
-    if (!me?.id) return
-
+  const fetch = useCallback(() => {
     const wallets = Object.entries(window.localStorage)
       .filter(([key]) => key.startsWith('wallet:'))
       .filter(([key]) => key.split(':').length < 3 || key.endsWith(me.id))
@@ -221,5 +221,7 @@ function useLocalWallets () {
     setWallets(wallets)
   }, [me?.id])
 
-  return wallets
+  useEffect(fetch, [fetch])
+
+  return useMemo(() => ({ wallets, refetch: fetch }), [wallets, fetch])
 }

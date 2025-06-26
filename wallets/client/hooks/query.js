@@ -347,7 +347,7 @@ function useEncryptConfig (defaultProtocol, options = {}) {
 
 export function useWalletMigrationMutation () {
   const client = useApolloClient()
-  const encryptConfig = useEncryptConfig(null, { throwOnMissingKey: true })
+  const encryptConfig = useEncryptConfig()
 
   return useCallback(async ({ name, enabled, ...configV1 }) => {
     const protocol = { name, send: true }

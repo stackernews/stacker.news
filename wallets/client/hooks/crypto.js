@@ -46,21 +46,22 @@ export function useSetKey () {
   }, [set, dispatch])
 }
 
-export function useEncryption ({ throwOnMissingKey = false } = {}) {
+export function useEncryption () {
   const defaultKey = useKey()
   return useCallback(
     (value, { key } = {}) => {
       const k = key ?? defaultKey
-      if (throwOnMissingKey && !k) {
-        throw new CryptoKeyRequiredError()
-      }
-      return k ? encrypt(k, value) : null
-    }, [defaultKey, throwOnMissingKey])
+      if (!k) throw new CryptoKeyRequiredError()
+      return encrypt(k, value)
+    }, [defaultKey])
 }
 
 export function useDecryption () {
   const key = useKey()
-  return useCallback(value => key ? decrypt(key, value) : null, [key])
+  return useCallback(value => {
+    if (!key) throw new CryptoKeyRequiredError()
+    return decrypt(key, value)
+  }, [key])
 }
 
 export function useKeyHash () {

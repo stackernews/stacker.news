@@ -23,13 +23,16 @@ import {
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey, useWalletLogger } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { isEncryptedField, isTemplate, isWallet, protocolClientSchema, reverseProtocolRelationName, walletTemplateId } from '@/wallets/lib/util'
+import {
+  isEncryptedField, isTemplate, isWallet, protocolClientSchema, reverseProtocolRelationName, walletTemplateId,
+  isEncrypted as isEncryptedWallet
+} from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
-import { useWallets } from '@/wallets/client/context'
+import { useKey, useWallets } from '@/wallets/client/context'
 
 export function useWalletsQuery () {
   const { me } = useMe()
@@ -347,9 +350,10 @@ function useEncryptConfig (defaultProtocol, options = {}) {
 export function useWalletMigrationMutation () {
   const wallets = useWallets()
   const client = useApolloClient()
+  const key = useKey()
   const encryptConfig = useEncryptConfig()
 
-  return useCallback(async ({ name, enabled, ...configV1 }) => {
+  const migrate = useCallback(async ({ name, enabled, ...configV1 }) => {
     const protocol = { name, send: true }
 
     const configV2 = migrateConfig(protocol, configV1)
@@ -390,6 +394,12 @@ export function useWalletMigrationMutation () {
       }
     })
   }, [wallets, client, encryptConfig])
+
+  return useMemo(() => ({
+    migrate,
+    // migrate should only be called when loading is false
+    loading: !key || wallets.some(isEncryptedWallet)
+  }), [migrate, key, wallets])
 }
 
 function migrateConfig (protocol, config) {

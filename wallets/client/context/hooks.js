@@ -172,10 +172,10 @@ export function useKeyInit () {
 export function useWalletMigration () {
   const { me } = useMe()
   const localWallets = useLocalWallets()
-  const walletMigration = useWalletMigrationMutation()
+  const { migrate: walletMigration, loading } = useWalletMigrationMutation()
 
   useEffect(() => {
-    if (!me?.id) return
+    if (!me?.id || loading) return
 
     async function migrate () {
       await Promise.allSettled(
@@ -195,7 +195,7 @@ export function useWalletMigration () {
       )
     }
     migrate()
-  }, [me?.id, localWallets, walletMigration])
+  }, [loading, me?.id, localWallets, walletMigration])
 }
 
 function useLocalWallets () {

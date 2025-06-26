@@ -29,6 +29,7 @@ import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
+import { useWallets } from '@/wallets/client/context'
 
 export function useWalletsQuery () {
   const { me } = useMe()
@@ -344,6 +345,7 @@ function useEncryptConfig (defaultProtocol, options = {}) {
 // =============================================================
 
 export function useWalletMigrationMutation () {
+  const wallets = useWallets()
   const client = useApolloClient()
   const encryptConfig = useEncryptConfig()
 
@@ -352,20 +354,42 @@ export function useWalletMigrationMutation () {
 
     const configV2 = migrateConfig(protocol, configV1)
 
+    const isSameProtocol = (p) => {
+      const sameName = p.name === protocol.name
+      const sameSend = p.send === protocol.send
+      const sameConfig = Object.keys(p.config)
+        .filter(k => !['__typename', 'id'].includes(k))
+        .every(k => p.config[k] === configV2[k])
+      return sameName && sameSend && sameConfig
+    }
+
+    const exists = wallets.some(w => w.name === name && w.protocols.some(isSameProtocol))
+    if (exists) return
+
     const schema = protocolClientSchema(protocol)
     await schema.validate(configV2)
 
     const encrypted = await encryptConfig(configV2, { protocol })
 
+    // decide if we create a new wallet (templateId) or use an existing one (walletId)
+    const templateId = getWalletTemplateId(protocol)
+    let walletId
+    const wallet = wallets.find(w =>
+      w.name === name && !w.protocols.some(p => p.name === protocol.name && p.send)
+    )
+    if (wallet) {
+      walletId = Number(wallet.id)
+    }
+
     await client.mutate({
       mutation: getWalletProtocolMutation(protocol),
       variables: {
-        templateId: getWalletTemplateId(protocol),
+        ...(walletId ? { walletId } : { templateId }),
         enabled,
         ...encrypted
       }
     })
-  }, [client, encryptConfig])
+  }, [wallets, client, encryptConfig])
 }
 
 function migrateConfig (protocol, config) {

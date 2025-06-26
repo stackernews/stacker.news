@@ -48,7 +48,6 @@ export function useWalletsQuery () {
 
   return useMemo(() => ({
     ...query,
-    // pretend query is still loading until we've decrypted the wallet
     loading: !wallets,
     data: wallets ? { wallets } : null
   }), [query, wallets])
@@ -78,7 +77,6 @@ export function useWalletQuery ({ id, name }) {
 
   return useMemo(() => ({
     ...query,
-    // pretend query is still loading until we've decrypted the wallet
     loading: !wallet,
     data: wallet ? { wallet } : null
   }), [query, wallet])

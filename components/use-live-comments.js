@@ -2,101 +2,97 @@ import { useQuery, useApolloClient } from '@apollo/client'
 import { SSR } from '../lib/constants'
 import { GET_NEW_COMMENTS, COMMENT_WITH_NEW } from '../fragments/comments'
 import { ITEM_FULL } from '../fragments/items'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import styles from './comment.module.css'
 
 const POLL_INTERVAL = 1000 * 10 // 10 seconds
-const ACTIVITY_TIMEOUT = 1000 * 60 * 30 // 30 minutes
-const ACTIVITY_CHECK_INTERVAL = 1000 * 60 // 1 minute
+
+function itemUpdateQuery (client, id, sort, fn) {
+  client.cache.updateQuery({
+    query: ITEM_FULL,
+    variables: sort === 'top' ? { id } : { id, sort }
+  }, (data) => fn(data))
+}
+
+function commentUpdateFragment (client, id, fn) {
+  client.cache.updateFragment({
+    id: `Item:${id}`,
+    fragment: COMMENT_WITH_NEW,
+    fragmentName: 'CommentWithNew'
+  }, (data) => fn(data))
+}
 
 export default function useLiveComments (rootId, after, sort) {
   const client = useApolloClient()
   const [latest, setLatest] = useState(after)
-  const [polling, setPolling] = useState(true)
-  const [engagedAt, setEngagedAt] = useState(new Date())
-
-  // reset engagedAt when polling is toggled
-  useEffect(() => {
-    if (polling) {
-      setEngagedAt(new Date())
-    }
-  }, [polling])
-
-  useEffect(() => {
-    const checkActivity = () => {
-      const now = new Date()
-      const timeSinceEngaged = now.getTime() - engagedAt.getTime()
-      const isActive = document.visibilityState === 'visible'
-
-      // poll only if the user is active and has been active in the last 30 minutes
-      if (timeSinceEngaged < ACTIVITY_TIMEOUT) {
-        setPolling(isActive)
-      } else {
-        setPolling(false)
-      }
-    }
-
-    // check activity every minute
-    const interval = setInterval(checkActivity, ACTIVITY_CHECK_INTERVAL)
-    // check activity also on visibility change
-    document.addEventListener('visibilitychange', checkActivity)
-
-    return () => {
-      // cleanup
-      document.removeEventListener('visibilitychange', checkActivity)
-      clearInterval(interval)
-    }
-  }, [engagedAt])
+  const queuedCommentsRef = useRef([])
 
   const { data } = useQuery(GET_NEW_COMMENTS, SSR
     ? {}
     : {
-        pollInterval: polling ? POLL_INTERVAL : null,
+        pollInterval: POLL_INTERVAL,
         variables: { rootId, after: latest }
       })
 
   useEffect(() => {
     if (!data?.newComments) return
 
-    cacheNewComments(client, rootId, data.newComments.comments, sort)
-    // check new comments created after the latest new comment
-    setLatest(prevLatest => getLatestCommentCreatedAt(data.newComments.comments, prevLatest))
-  }, [data, client, rootId])
+    // live comments can be orphans if the parent comment is not in the cache
+    // queue them up and retry later, when the parent decides they want the children.
+    const allComments = [...queuedCommentsRef.current, ...data.newComments.comments]
+    const { queuedComments } = cacheNewComments(client, rootId, allComments, sort)
 
-  return { polling, setPolling }
+    // keep the queued comments in the ref for the next poll
+    queuedCommentsRef.current = queuedComments
+
+    // update latest timestamp to the latest comment created at
+    setLatest(prevLatest => getLatestCommentCreatedAt(data.newComments.comments, prevLatest))
+  }, [data, client, rootId, sort])
 }
 
 function cacheNewComments (client, rootId, newComments, sort) {
+  const queuedComments = []
+
   for (const newComment of newComments) {
+    console.log('newComment', newComment)
     const { parentId } = newComment
     const topLevel = Number(parentId) === Number(rootId)
 
     // if the comment is a top level comment, update the item
     if (topLevel) {
-      client.cache.updateQuery({
-        query: ITEM_FULL,
-        variables: { id: rootId, sort } // TODO-LIVE: ok now item updates thanks to sort awareness, but please CLEAN THIS UP
-      }, (data) => {
+      console.log('topLevel', topLevel)
+      itemUpdateQuery(client, rootId, sort, (data) => {
         if (!data) return data
-        // we return the entire item, not just the newComments
-        return { item: mergeNewComments(data?.item, newComment) }
+        return { item: mergeNewComment(data?.item, newComment) }
       })
     } else {
-      // if the comment is a reply, update the parent comment
-      client.cache.updateFragment({
+      // check if parent exists in cache before attempting update
+      const parentExists = client.cache.readFragment({
         id: `Item:${parentId}`,
         fragment: COMMENT_WITH_NEW,
         fragmentName: 'CommentWithNew'
-      }, (data) => {
-        if (!data) return data
-        // here we return the parent comment with the new comment added
-        return mergeNewComments(data, newComment)
       })
+
+      if (parentExists) {
+        // if the comment is a reply, update the parent comment
+        console.log('reply', parentId)
+        commentUpdateFragment(client, parentId, (data) => {
+          if (!data) return data
+          return mergeNewComment(data, newComment)
+        })
+      } else {
+        // parent not in cache, queue for retry
+        queuedComments.push(newComment)
+      }
     }
   }
+
+  return { queuedComments }
 }
 
-function mergeNewComments (item, newComment) {
+// merge new comment into item's newComments
+// if the new comment is already in item's newComments or existing comments, do nothing
+function mergeNewComment (item, newComment) {
   const existingNewComments = item.newComments || []
   const existingComments = item.comments?.comments || []
 
@@ -122,42 +118,41 @@ function getLatestCommentCreatedAt (comments, latest) {
 export function ShowNewComments ({ newComments = [], itemId, topLevel = false, sort }) {
   const client = useApolloClient()
 
-  const showNewComments = () => {
+  const showNewComments = useCallback(() => {
     if (topLevel) {
-      client.cache.updateQuery({
-        query: ITEM_FULL,
-        variables: { id: itemId, sort } // TODO-LIVE: ok now item updates thanks to sort awareness, but please CLEAN THIS UP
-      }, (data) => {
+      console.log('topLevel', topLevel)
+      itemUpdateQuery(client, itemId, sort, (data) => {
+        console.log('data', data)
         if (!data) return data
         const { item } = data
 
         return {
           item: {
             ...item,
-            comments: dedupeComments(item.comments, newComments),
+            comments: injectComments(item.comments, newComments),
             newComments: []
           }
         }
       })
     } else {
-      client.cache.updateFragment({
-        id: `Item:${itemId}`,
-        fragment: COMMENT_WITH_NEW,
-        fragmentName: 'CommentWithNew'
-      }, (data) => {
+      console.log('reply', itemId)
+      commentUpdateFragment(client, itemId, (data) => {
+        console.log('data', data)
         if (!data) return data
 
         return {
           ...data,
-          comments: dedupeComments(data.comments, newComments),
+          comments: injectComments(data.comments, newComments),
           newComments: []
         }
       })
     }
-  }
+  }, [client, itemId, newComments, topLevel, sort])
 
-  const dedupeComments = (existingComments = [], newComments = []) => {
-    const existingIds = new Set(existingComments.comments?.map(c => c.id))
+  // inject new comments into existing comments
+  // if the new comment is already in existing comments, do nothing
+  const injectComments = (existingComments = [], newComments = []) => {
+    const existingIds = new Set(existingComments.comments.map(c => c.id))
     const filteredNew = newComments.filter(c => !existingIds.has(c.id))
     return {
       ...existingComments,

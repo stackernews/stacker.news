@@ -22,6 +22,7 @@ import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
 import { WebLnProvider } from '@/wallets/webln/client'
 import { WalletsProvider } from '@/wallets/index'
+import { SessionProvider } from 'next-auth/react'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
@@ -41,7 +42,7 @@ function writeQuery (client, apollo, data) {
   }
 }
 
-export default function MyApp ({ Component, pageProps: { ...props } }) {
+export default function MyApp ({ Component, pageProps: { session, ...props } }) {
   const client = getApolloClient()
   const router = useRouter()
 
@@ -124,8 +125,10 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                                 <BlockHeightProvider blockHeight={blockHeight}>
                                   <ChainFeeProvider chainFee={chainFee}>
                                     <ErrorBoundary>
-                                      <Component ssrData={ssrData} {...otherProps} />
-                                      {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
+                                      <SessionProvider session={session}>
+                                        <Component ssrData={ssrData} {...otherProps} />
+                                        {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
+                                      </SessionProvider>
                                     </ErrorBoundary>
                                   </ChainFeeProvider>
                                 </BlockHeightProvider>

@@ -261,6 +261,11 @@ export default function Comment ({
                 : !noReply &&
                   <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
+                    <div className='ms-auto'>
+                      {item.newComments?.length > 0 && (
+                        <ShowNewComments newComments={item.newComments} itemId={item.id} />
+                      )}
+                    </div>
                   </Reply>}
               {children}
               <div className={styles.comments}>
@@ -276,9 +281,6 @@ export default function Comment ({
                   : null}
                 {/* TODO: add link to more comments if they're limited */}
               </div>
-              {item.newComments?.length > 0 && (
-                <ShowNewComments newComments={item.newComments} itemId={item.id} />
-              )}
             </div>
             )
       )}

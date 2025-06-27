@@ -171,6 +171,7 @@ export function useResetPassphrase () {
     ))
   }, [showModal, resetPassphrase])
 }
+
 const passphraseSchema = ({ hash, salt }) => object().shape({
   passphrase: string().required('required')
     .test(async (value, context) => {

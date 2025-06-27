@@ -34,6 +34,8 @@ function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
   sharedSortsArray.push('("Item"."pinId" IS NOT NULL) DESC')
   sharedSortsArray.push('("Item"."deletedAt" IS NULL) DESC')
+  // outlawed items should be at the bottom
+  sharedSortsArray.push(`NOT ("Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD} OR "Item".outlawed) DESC`)
   const sharedSorts = sharedSortsArray.join(', ')
 
   if (sort === 'recent') {

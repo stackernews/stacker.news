@@ -33,7 +33,14 @@ export const resolvers = {
 }
 
 export function upsertWalletProtocol (protocol) {
-  return async (parent, { walletId, templateId, enabled, networkTests = true, ...args }, { me, models, tx }) => {
+  return async (parent, {
+    walletId,
+    templateId,
+    enabled,
+    networkTests = true,
+    ignoreKeyHash = false,
+    ...args
+  }, { me, models, tx }) => {
     if (!me) {
       throw new GqlAuthenticationError()
     }
@@ -42,7 +49,9 @@ export function upsertWalletProtocol (protocol) {
       throw new GqlInputError('walletId or templateId is required')
     }
 
-    const schema = protocolServerSchema(protocol)
+    const { vaultKeyHash: existingKeyHash } = await models.user.findUnique({ where: { id: me.id } })
+
+    const schema = protocolServerSchema(protocol, { keyHash: existingKeyHash, ignoreKeyHash })
     try {
       await validateSchema(schema, args)
     } catch (e) {

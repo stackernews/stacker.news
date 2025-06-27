@@ -178,7 +178,7 @@ export function useWalletEncryptionUpdate () {
         ...d,
         protocols: await Promise.all(
           d.protocols.map(p => {
-            return encryptConfig(p.config, { key, protocol: p })
+            return encryptConfig(p.config, { key, hash, protocol: p })
           }))
       }))
     )
@@ -326,7 +326,7 @@ function isEncrypted (value) {
 function useEncryptConfig (defaultProtocol, options = {}) {
   const { encrypt, ready } = useEncryption(options)
 
-  const encryptConfig = useCallback(async (config, { key: cryptoKey, protocol } = {}) => {
+  const encryptConfig = useCallback(async (config, { key: cryptoKey, hash, protocol } = {}) => {
     return Object.fromEntries(
       await Promise.all(
         Object.entries(config)
@@ -335,7 +335,7 @@ function useEncryptConfig (defaultProtocol, options = {}) {
               if (!isEncryptedField(protocol ?? defaultProtocol, fieldKey)) return [fieldKey, value]
               return [
                 fieldKey,
-                await encrypt(value, { key: cryptoKey })
+                await encrypt(value, { key: cryptoKey, hash })
               ]
             }
           )

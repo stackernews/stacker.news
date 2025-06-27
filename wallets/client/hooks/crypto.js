@@ -48,13 +48,15 @@ export function useSetKey () {
 
 export function useEncryption () {
   const defaultKey = useKey()
+  const defaultKeyHash = useKeyHash()
 
   const encrypt = useCallback(
-    (value, { key } = {}) => {
+    (value, { key, hash } = {}) => {
       const k = key ?? defaultKey
-      if (!k) throw new CryptoKeyRequiredError()
-      return _encrypt(k, value)
-    }, [defaultKey])
+      const h = hash ?? defaultKeyHash
+      if (!k || !h) throw new CryptoKeyRequiredError()
+      return _encrypt({ key: k, hash: h }, value)
+    }, [defaultKey, defaultKeyHash])
 
   return useMemo(() => ({
     encrypt,
@@ -282,7 +284,7 @@ export async function deriveKey (passphrase, salt) {
   }
 }
 
-async function _encrypt (key, value) {
+async function _encrypt ({ key, hash }, value) {
   // random IVs are _really_ important in GCM: reusing the IV once can lead to catastrophic failure
   // see https://crypto.stackexchange.com/questions/26790/how-bad-it-is-using-the-same-iv-twice-with-aes-gcm
   // 12 bytes (96 bits) is the recommended IV size for AES-GCM
@@ -297,6 +299,7 @@ async function _encrypt (key, value) {
     encoded
   )
   return {
+    keyHash: hash,
     iv: toHex(iv.buffer),
     value: toHex(encrypted)
   }

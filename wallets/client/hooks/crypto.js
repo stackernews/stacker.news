@@ -146,12 +146,16 @@ export function useSavePassphrase () {
 export function useResetPassphrase () {
   const showModal = useShowModal()
   const walletReset = useWalletReset()
+  const generateRandomKey = useGenerateRandomKey()
+  const setKey = useSetKey()
 
   const resetPassphrase = useCallback((close) =>
     async () => {
-      await walletReset()
+      const { key: randomKey, hash } = await generateRandomKey()
+      setKey({ key: randomKey, hash })
+      await walletReset({ newKeyHash: hash })
       close()
-    }, [walletReset])
+    }, [walletReset, generateRandomKey, setKey])
 
   return useCallback(async () => {
     showModal(close => (

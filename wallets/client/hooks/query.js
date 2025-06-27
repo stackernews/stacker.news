@@ -199,8 +199,8 @@ export function useWalletEncryptionUpdate () {
 export function useWalletReset () {
   const [mutate] = useMutation(RESET_WALLETS)
 
-  return useCallback(async () => {
-    await mutate()
+  return useCallback(async ({ newKeyHash }) => {
+    await mutate({ variables: { newKeyHash } })
   }, [mutate])
 }
 

@@ -9,7 +9,7 @@ import { gql, useMutation, useQuery } from '@apollo/client'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import LoginButton from '@/components/login-button'
 import { signIn } from 'next-auth/react'
-import { LightningAuth } from '@/components/lightning-auth'
+import { LightningAuthWithExplainer } from '@/components/lightning-auth'
 import { SETTINGS, SET_SETTINGS } from '@/fragments/users'
 import { useRouter } from 'next/router'
 import Info from '@/components/info'
@@ -68,7 +68,7 @@ export function SettingsHeader () {
           </Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/settings/subscriptions' passHref legacyBehavior>
+          <Link href='/settings/subscriptions/stackers' passHref legacyBehavior>
             <Nav.Link eventKey='subscriptions'>subscriptions</Nav.Link>
           </Link>
         </Nav.Item>
@@ -165,7 +165,6 @@ export default function Settings ({ ssrData }) {
             hideIsContributor: settings?.hideIsContributor,
             noReferralLinks: settings?.noReferralLinks,
             proxyReceive: settings?.proxyReceive,
-            directReceive: settings?.directReceive,
             receiveCreditsBelowSats: settings?.receiveCreditsBelowSats,
             sendCreditsBelowSats: settings?.sendCreditsBelowSats
           }}
@@ -359,33 +358,19 @@ export default function Settings ({ ssrData }) {
           />
           <Checkbox
             label={
-              <div className='d-flex align-items-center'>proxy deposits to attached wallets
+              <div className='d-flex align-items-center'>enhance privacy of my lightning address
                 <Info>
                   <ul>
-                    <li>Forward deposits directly to your attached wallets if they cause your balance to exceed your auto-withdraw threshold</li>
-                    <li>Payments will be wrapped by the SN node to preserve your wallet's privacy</li>
+                    <li>Enabling this setting hides details (ie node pubkey) of your attached wallets when anyone pays your SN lightning address or lnurl-pay</li>
+                    <li>The lightning invoice will appear to have SN's node as the destination to preserve your wallet's privacy</li>
                     <li>This will incur in a 10% fee</li>
+                    <li>Disable this setting to receive payments directly to your attached wallets (which will reveal their details to the payer)</li>
+                    <li>Note: this privacy behavior is standard for internal zaps/payments on SN, and this setting only applies to external payments</li>
                   </ul>
                 </Info>
               </div>
             }
             name='proxyReceive'
-            groupClassName='mb-0'
-          />
-          <Checkbox
-            label={
-              <div className='d-flex align-items-center'>directly deposit to attached wallets
-                <Info>
-                  <ul>
-                    <li>Directly deposit to your attached wallets if they cause your balance to exceed your auto-withdraw threshold</li>
-                    <li>Senders will be able to see your wallet's lightning node public key</li>
-                    <li>If 'proxy deposits' is also checked, it will take precedence and direct deposits will only be used as a fallback</li>
-                    <li>Because we can't determine if a payment succeeds, you won't be notified about direct deposits</li>
-                  </ul>
-                </Info>
-              </div>
-            }
-            name='directReceive'
             groupClassName='mb-0'
           />
           <Checkbox
@@ -711,7 +696,7 @@ function QRLinkButton ({ provider, unlink, status }) {
     ? unlink
     : () => showModal(onClose =>
       <div className='d-flex flex-column align-items-center'>
-        <LightningAuth />
+        <LightningAuthWithExplainer backButton={false} md={12} lg={12} />
       </div>)
 
   return (

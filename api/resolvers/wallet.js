@@ -5,16 +5,15 @@ import {
 import crypto, { timingSafeEqual } from 'crypto'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
-import { formatMsats, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
+import { formatMsats, msatsToSats, msatsToSatsDecimal } from '@/lib/format'
 import {
   USER_ID, INVOICE_RETENTION_DAYS,
-  PAID_ACTION_PAYMENT_METHODS,
   WALLET_CREATE_INVOICE_TIMEOUT_MS,
   WALLET_RETRY_AFTER_MS,
   WALLET_RETRY_BEFORE_MS,
   WALLET_MAX_RETRIES
 } from '@/lib/constants'
-import { amountSchema, validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
+import { validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { bolt11Tags } from '@/lib/bolt11'
@@ -23,7 +22,7 @@ import walletDefs from '@/wallets/server'
 import { generateResolverName, generateTypeDefName } from '@/wallets/graphql'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
-import { getNodeSockets, getOurPubkey } from '../lnd'
+import { getNodeSockets } from '../lnd'
 import validateWallet from '@/wallets/validate'
 import { canReceive, getWalletByType } from '@/wallets/common'
 import performPaidAction from '../paidAction'
@@ -475,20 +474,6 @@ const resolvers = {
     __resolveType: invoiceOrDirect => invoiceOrDirect.__resolveType
   },
   Mutation: {
-    createInvoice: async (parent, { amount }, { me, models, lnd, headers }) => {
-      await validateSchema(amountSchema, { amount })
-      await assertGofacYourself({ models, headers })
-
-      const { invoice, paymentMethod } = await performPaidAction('RECEIVE', {
-        msats: satsToMsats(amount)
-      }, { models, lnd, me })
-
-      return {
-        ...invoice,
-        __resolveType:
-          paymentMethod === PAID_ACTION_PAYMENT_METHODS.DIRECT ? 'Direct' : 'Invoice'
-      }
-    },
     createWithdrawl: createWithdrawal,
     sendToLnAddr,
     cancelInvoice: async (parent, { hash, hmac, userCancel }, { me, models, lnd, boss }) => {
@@ -1002,7 +987,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   return await performPayingAction({ bolt11: invoice, maxFee, walletId: wallet?.id }, { me, models, lnd })
 }
 
-export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },
+async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },
   { me, models, lnd, headers }) {
   if (!me) {
     throw new GqlAuthenticationError()
@@ -1020,11 +1005,9 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
   return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers })
 }
 
-export async function fetchLnAddrInvoice (
+async function fetchLnAddrInvoice (
   { addr, amount, maxFee, comment, ...payer },
-  {
-    me, models, lnd, autoWithdraw = false
-  }) {
+  { me, models, lnd }) {
   const options = await lnAddrOptions(addr)
   await validateSchema(lnAddrSchema, { addr, amount, maxFee, comment, ...payer }, options)
 
@@ -1061,14 +1044,6 @@ export async function fetchLnAddrInvoice (
   // decode invoice
   try {
     const decoded = await parsePaymentRequest({ request: res.pr })
-    const ourPubkey = await getOurPubkey({ lnd })
-    if (autoWithdraw && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
-      // unset lnaddr so we don't trigger another withdrawal with same destination
-      await models.wallet.deleteMany({
-        where: { userId: me.id, type: 'LIGHTNING_ADDRESS' }
-      })
-      throw new Error('automated withdrawals to other stackers are not allowed')
-    }
     if (!decoded.mtokens || BigInt(decoded.mtokens) !== BigInt(milliamount)) {
       throw new Error('invoice has incorrect amount')
     }

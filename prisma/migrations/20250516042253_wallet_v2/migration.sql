@@ -631,10 +631,8 @@ CREATE OR REPLACE FUNCTION wallet_clear_vault()
 RETURNS TRIGGER AS $$
 DECLARE
     wallet jsonb;
-    vault jsonb;
     col_name text;
     vault_id int;
-    base_name text;
 BEGIN
     wallet := to_jsonb(OLD);
 

@@ -12,7 +12,6 @@ import {
   paidActionCanceling
 } from './paidAction'
 import { payingActionConfirmed, payingActionFailed } from './payingAction'
-import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -283,73 +282,4 @@ export async function checkPendingWithdrawals (args) {
       console.error('error checking withdrawal', w.hash, err)
     }
   }
-}
-
-export async function checkWallet ({ data: { userId }, models }) {
-  const pushNotifications = []
-
-  await models.$transaction(async tx => {
-    const wallets = await tx.wallet.findMany({
-      where: {
-        userId
-      },
-      include: {
-        protocols: true
-      }
-    })
-
-    const { hasRecvWallet: oldHasRecvWallet, hasSendWallet: oldHasSendWallet } = await tx.user.findUnique({ where: { id: userId } })
-
-    const newHasRecvWallet = wallets.some(({ protocols }) => protocols.some(({ send, enabled }) => !send && enabled))
-    const newHasSendWallet = wallets.some(({ protocols }) => protocols.some(({ send, enabled }) => send && enabled))
-
-    await tx.user.update({
-      where: { id: userId },
-      data: {
-        hasRecvWallet: newHasRecvWallet,
-        hasSendWallet: newHasSendWallet
-      }
-    })
-
-    const startStreak = async (type) => {
-      const streak = await tx.streak.create({
-        data: { userId, type, startedAt: new Date() }
-      })
-      return streak.id
-    }
-
-    const endStreak = async (type) => {
-      const [streak] = await tx.$queryRaw`
-        UPDATE "Streak"
-        SET "endedAt" = now(), updated_at = now()
-        WHERE "userId" = ${userId}
-        AND "type" = ${type}::"StreakType"
-        AND "endedAt" IS NULL
-        RETURNING "id"
-      `
-      return streak?.id
-    }
-
-    if (!oldHasRecvWallet && newHasRecvWallet) {
-      const streakId = await startStreak('HORSE')
-      if (streakId) pushNotifications.push(() => notifyNewStreak(userId, { type: 'HORSE', id: streakId }))
-    }
-    if (!oldHasSendWallet && newHasSendWallet) {
-      const streakId = await startStreak('GUN')
-      if (streakId) pushNotifications.push(() => notifyNewStreak(userId, { type: 'GUN', id: streakId }))
-    }
-
-    if (oldHasRecvWallet && !newHasRecvWallet) {
-      const streakId = await endStreak('HORSE')
-      if (streakId) pushNotifications.push(() => notifyStreakLost(userId, { type: 'HORSE', id: streakId }))
-    }
-    if (oldHasSendWallet && !newHasSendWallet) {
-      const streakId = await endStreak('GUN')
-      if (streakId) pushNotifications.push(() => notifyStreakLost(userId, { type: 'GUN', id: streakId }))
-    }
-  })
-
-  // run all push notifications at the end to make sure we don't
-  // accidentally send duplicate push notifications because of a job retry
-  await Promise.all(pushNotifications.map(notify => notify())).catch(console.error)
 }

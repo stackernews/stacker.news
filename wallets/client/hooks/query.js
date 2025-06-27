@@ -101,9 +101,8 @@ export function useWalletProtocolUpsert (wallet, protocol) {
     }
 
     // skip network tests if we're disabling the wallet
-    const skipNetworkTests = !values.enabled
-
-    if (!skipNetworkTests) {
+    const networkTests = values.enabled
+    if (networkTests) {
       try {
         const additionalValues = await testSendPayment(values)
         values = { ...values, ...additionalValues }
@@ -116,7 +115,7 @@ export function useWalletProtocolUpsert (wallet, protocol) {
     const encrypted = await encryptConfig(values)
 
     const variables = encrypted
-    variables.networkTests = !skipNetworkTests
+    variables.networkTests = networkTests
     if (isWallet(wallet)) {
       variables.walletId = wallet.id
     } else {

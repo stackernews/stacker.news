@@ -1094,3 +1094,16 @@ div[contenteditable]:focus,
 .react-datepicker__year-text--in-range) {
   background-color: var(--bs-info) !important;
 }
+
+.react-datepicker__close-icon {
+  padding: 0rem 0.75rem !important;
+  align-items: center !important;
+  height: calc(100% - 3px) !important;
+
+  &::after {
+    content: "×" !important;
+    color: var(--theme-grey) !important;
+    font-size: 20px !important;
+    background: none !important;
+  }
+}

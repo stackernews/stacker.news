@@ -1,6 +1,6 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Button } from 'react-bootstrap'
-import { FIRST_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch, usePage, UNLOCK_PAGE, useTemplates, DndProvider } from '@/wallets/client/context'
+import { ATTACH_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch, usePage, UNLOCK_PAGE, useTemplates, DndProvider } from '@/wallets/client/context'
 import { WalletCard, WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
 import styles from '@/styles/wallet.module.css'
 import { usePassphrasePrompt, useShowPassphrase, useSetWalletPriorities } from '@/wallets/client/hooks'
@@ -16,7 +16,7 @@ export default function Wallet () {
   const passphrasePrompt = usePassphrasePrompt()
   const setWalletPriorities = useSetWalletPriorities()
 
-  if (page === FIRST_PAGE) {
+  if (page === ATTACH_PAGE) {
     return (
       <WalletLayout>
         <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>

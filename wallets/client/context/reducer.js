@@ -1,7 +1,7 @@
 import { isEncrypted, isTemplate, isWallet } from '@/wallets/lib/util'
 
 // pages
-export const FIRST_PAGE = 'FIRST_PAGE'
+export const ATTACH_PAGE = 'ATTACH_PAGE'
 export const UNLOCK_PAGE = 'UNLOCK_PAGE'
 export const WALLET_LIST_PAGE = 'WALLET_LIST_PAGE'
 
@@ -58,11 +58,11 @@ function getPage (state) {
 
   return state.wallets.length > 0
     ? WALLET_LIST_PAGE
-    : FIRST_PAGE
+    : ATTACH_PAGE
 }
 
 function nextPage (state) {
-  return [FIRST_PAGE, UNLOCK_PAGE].includes(state.page)
+  return [ATTACH_PAGE, UNLOCK_PAGE].includes(state.page)
     ? WALLET_LIST_PAGE
     : state.page
 }

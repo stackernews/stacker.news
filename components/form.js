@@ -34,12 +34,9 @@ import Info from './info'
 import { useMe } from './me'
 import classNames from 'classnames'
 import Clipboard from '@/svgs/clipboard-line.svg'
-import QrIcon from '@/svgs/qr-code-line.svg'
 import QrScanIcon from '@/svgs/qr-scan-line.svg'
 import { useShowModal } from './modal'
-import { QRCodeSVG } from 'qrcode.react'
 import dynamic from 'next/dynamic'
-import { qrImageSettings } from './qr'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
 
@@ -1333,33 +1330,6 @@ function PasswordHider ({ onClick, showPass }) {
   )
 }
 
-function QrPassword ({ value }) {
-  const showModal = useShowModal()
-  const toaster = useToast()
-
-  const showQr = useCallback(() => {
-    showModal(close => (
-      <div>
-        <p className='line-height-md text-muted'>Import this passphrase into another device by navigating to device sync settings and scanning this QR code</p>
-        <div className='d-block p-3 mx-auto' style={{ background: 'white', maxWidth: '300px' }}>
-          <QRCodeSVG className='h-auto mw-100' value={value} size={300} imageSettings={qrImageSettings} />
-        </div>
-      </div>
-    ))
-  }, [toaster, value, showModal])
-
-  return (
-    <>
-      <InputGroup.Text
-        style={{ cursor: 'pointer' }}
-        onClick={showQr}
-      >
-        <QrIcon height={16} width={16} />
-      </InputGroup.Text>
-    </>
-  )
-}
-
 function PasswordScanner ({ onScan, text }) {
   const showModal = useShowModal()
   const toaster = useToast()
@@ -1422,12 +1392,12 @@ export function PasswordInput ({ newPass, qr, copy, readOnly, append, value: ini
         {copy && (
           <CopyButton icon value={field?.value} />
         )}
-        {qr && (readOnly
-          ? <QrPassword value={field?.value} />
-          : <PasswordScanner
-              text="Where'd you learn to square dance?"
-              onScan={v => helpers.setValue(v)}
-            />)}
+        {qr && (
+          <PasswordScanner
+            text="Where'd you learn to square dance?"
+            onScan={v => helpers.setValue(v)}
+          />
+        )}
         {append}
       </>
     )

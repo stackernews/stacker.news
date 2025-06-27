@@ -5,9 +5,12 @@ import { FAILED_INVOICES } from '@/fragments/invoice'
 import { NORMAL_POLL_INTERVAL } from '@/lib/constants'
 import useInvoice from '@/components/use-invoice'
 import { useMe } from '@/components/me'
-import { useWalletsQuery, useSendWallets, useWalletPayment, useGenerateRandomKey, useSetKey, useLoadKey, useLoadOldKey, useWalletMigrationMutation, CryptoKeyRequiredError } from '@/wallets/client/hooks'
+import {
+  useWalletsQuery, useSendWallets, useWalletPayment, useGenerateRandomKey, useSetKey, useLoadKey, useLoadOldKey,
+  useWalletMigrationMutation, CryptoKeyRequiredError, useIsWrongKey
+} from '@/wallets/client/hooks'
 import { WalletConfigurationError } from '@/wallets/client/errors'
-import { RESET_PAGE, SET_WALLETS, useWalletsDispatch } from '@/wallets/client/context'
+import { RESET_PAGE, SET_WALLETS, WRONG_KEY, KEY_MATCH, useWalletsDispatch } from '@/wallets/client/context'
 
 export function useServerWallets () {
   const dispatch = useWalletsDispatch()
@@ -26,6 +29,7 @@ export function useServerWallets () {
 export function usePageNavigation () {
   const dispatch = useWalletsDispatch()
   const router = useRouter()
+  const wrongKey = useIsWrongKey()
 
   useEffect(() => {
     function handleRouteChangeComplete (url) {
@@ -38,6 +42,14 @@ export function usePageNavigation () {
       router.events.off('routeChangeComplete', handleRouteChangeComplete)
     }
   }, [router, dispatch])
+
+  useEffect(() => {
+    if (wrongKey) {
+      dispatch({ type: WRONG_KEY })
+    } else {
+      dispatch({ type: KEY_MATCH })
+    }
+  }, [wrongKey, dispatch])
 }
 
 export function useAutomatedRetries () {
@@ -172,10 +184,10 @@ export function useKeyInit () {
 export function useWalletMigration () {
   const { me } = useMe()
   const { wallets: localWallets, refetch: refetchLocalWallets } = useLocalWallets()
-  const { migrate: walletMigration, loading } = useWalletMigrationMutation()
+  const { migrate: walletMigration, ready } = useWalletMigrationMutation()
 
   useEffect(() => {
-    if (!me?.id || loading) return
+    if (!me?.id || !ready) return
 
     async function migrate () {
       await Promise.allSettled(
@@ -197,7 +209,7 @@ export function useWalletMigration () {
       if (localWallets.length > 0) refetchLocalWallets()
     }
     migrate()
-  }, [loading, me?.id, localWallets, walletMigration, refetchLocalWallets])
+  }, [ready, me?.id, localWallets, walletMigration, refetchLocalWallets])
 }
 
 function useLocalWallets () {

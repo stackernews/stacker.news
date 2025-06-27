@@ -24,29 +24,32 @@ import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey, useWalletLogger } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  isEncryptedField, isTemplate, isWallet, protocolClientSchema, reverseProtocolRelationName, walletTemplateId,
-  isEncrypted as isEncryptedWallet
+  isEncryptedField, isTemplate, isWallet, protocolClientSchema, reverseProtocolRelationName, walletTemplateId
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
-import { useKey, useWallets } from '@/wallets/client/context'
+import { useWallets, useLoading as useWalletsLoading } from '@/wallets/client/context'
 
 export function useWalletsQuery () {
   const { me } = useMe()
   const query = useQuery(WALLETS, { skip: !me })
   const [wallets, setWallets] = useState(null)
 
-  const decryptWallet = useWalletDecryption()
+  const { decryptWallet, ready } = useWalletDecryption()
 
   useEffect(() => {
-    if (!query.data?.wallets) return
+    if (!query.data?.wallets || !ready) return
     Promise.all(
       query.data?.wallets.map(w => decryptWallet(w))
-    ).then(wallets => setWallets(wallets))
-  }, [query.data, decryptWallet])
+    )
+      .then(wallets => setWallets(wallets))
+      .catch(err => {
+        console.error('failed to decrypt wallets:', err)
+      })
+  }, [query.data, decryptWallet, ready])
 
   useRefetchOnChange(query.refetch)
 
@@ -72,12 +75,16 @@ export function useWalletQuery ({ id, name }) {
   const query = useQuery(WALLET, { variables: { id, name }, skip: !me })
   const [wallet, setWallet] = useState(null)
 
-  const decryptWallet = useWalletDecryption()
+  const { decryptWallet, ready } = useWalletDecryption()
 
   useEffect(() => {
-    if (!query.data?.wallet) return
-    decryptWallet(query.data?.wallet).then(wallet => setWallet(wallet))
-  }, [query.data, decryptWallet])
+    if (!query.data?.wallet || !ready) return
+    decryptWallet(query.data?.wallet)
+      .then(wallet => setWallet(wallet))
+      .catch(err => {
+        console.error('failed to decrypt wallet:', err)
+      })
+  }, [query.data, decryptWallet, ready])
 
   return useMemo(() => ({
     ...query,
@@ -89,7 +96,7 @@ export function useWalletQuery ({ id, name }) {
 export function useWalletProtocolUpsert (wallet, protocol) {
   const mutation = getWalletProtocolMutation(protocol)
   const [mutate] = useMutation(mutation)
-  const encryptConfig = useEncryptConfig(protocol)
+  const { encryptConfig } = useEncryptConfig(protocol)
   const testSendPayment = useTestSendPayment(protocol)
   const logger = useWalletLogger(protocol)
 
@@ -161,7 +168,7 @@ export function useWalletProtocolRemove (protocol) {
 export function useWalletEncryptionUpdate () {
   const [mutate] = useMutation(UPDATE_WALLET_ENCRYPTION)
   const setKey = useSetKey()
-  const encryptConfig = useEncryptConfig()
+  const { encryptConfig } = useEncryptConfig()
 
   return useCallback(async ({ key, hash, wallets }) => {
     const encrypted = await Promise.all(
@@ -262,31 +269,29 @@ function useTestSendPayment (protocol) {
 }
 
 function useWalletDecryption () {
-  const decryptConfig = useDecryptConfig()
+  const { decryptConfig, ready } = useDecryptConfig()
 
-  return useCallback(async wallet => {
+  const decryptWallet = useCallback(async wallet => {
     if (!isWallet(wallet)) return wallet
 
-    try {
-      const protocols = await Promise.all(
-        wallet.protocols.map(
-          async protocol => ({
-            ...protocol,
-            config: await decryptConfig(protocol.config)
-          })
-        )
+    const protocols = await Promise.all(
+      wallet.protocols.map(
+        async protocol => ({
+          ...protocol,
+          config: await decryptConfig(protocol.config)
+        })
       )
-      return { ...wallet, protocols, encrypted: false }
-    } catch (err) {
-      return { ...wallet, encrypted: true }
-    }
+    )
+    return { ...wallet, protocols }
   }, [decryptConfig])
+
+  return useMemo(() => ({ decryptWallet, ready }), [decryptWallet, ready])
 }
 
 function useDecryptConfig () {
-  const decrypt = useDecryption()
+  const { decrypt, ready } = useDecryption()
 
-  return useCallback(async (config) => {
+  const decryptConfig = useCallback(async (config) => {
     return Object.fromEntries(
       await Promise.all(
         Object.entries(config)
@@ -308,6 +313,8 @@ function useDecryptConfig () {
       )
     )
   }, [decrypt])
+
+  return useMemo(() => ({ decryptConfig, ready }), [decryptConfig, ready])
 }
 
 function isEncrypted (value) {
@@ -315,9 +322,9 @@ function isEncrypted (value) {
 }
 
 function useEncryptConfig (defaultProtocol, options = {}) {
-  const encrypt = useEncryption(options)
+  const { encrypt, ready } = useEncryption(options)
 
-  return useCallback(async (config, { key: cryptoKey, protocol } = {}) => {
+  const encryptConfig = useCallback(async (config, { key: cryptoKey, protocol } = {}) => {
     return Object.fromEntries(
       await Promise.all(
         Object.entries(config)
@@ -333,6 +340,8 @@ function useEncryptConfig (defaultProtocol, options = {}) {
       )
     )
   }, [defaultProtocol, encrypt])
+
+  return useMemo(() => ({ encryptConfig, ready }), [encryptConfig, ready])
 }
 
 // TODO(wallet-v2): remove migration code
@@ -343,9 +352,9 @@ function useEncryptConfig (defaultProtocol, options = {}) {
 
 export function useWalletMigrationMutation () {
   const wallets = useWallets()
+  const loading = useWalletsLoading()
   const client = useApolloClient()
-  const key = useKey()
-  const encryptConfig = useEncryptConfig()
+  const { encryptConfig, ready } = useEncryptConfig()
 
   const migrate = useCallback(async ({ name, enabled, ...configV1 }) => {
     const protocol = { name, send: true }
@@ -389,11 +398,7 @@ export function useWalletMigrationMutation () {
     })
   }, [wallets, client, encryptConfig])
 
-  return useMemo(() => ({
-    migrate,
-    // migrate should only be called when loading is false
-    loading: !key || wallets.some(isEncryptedWallet)
-  }), [migrate, key, wallets])
+  return useMemo(() => ({ migrate, ready: ready && !loading }), [migrate, ready, loading])
 }
 
 function migrateConfig (protocol, config) {

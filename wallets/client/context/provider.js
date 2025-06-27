@@ -36,12 +36,18 @@ export function useKey () {
   return key
 }
 
+export function useKeyHash () {
+  const { keyHash } = useContext(WalletsContext)
+  return keyHash
+}
+
 export default function WalletsProvider ({ children }) {
   const [state, dispatch] = useReducer(walletsReducer, {
     page: FIRST_PAGE,
     wallets: [],
     templates: [],
     key: null,
+    keyHash: null,
     loading: true
   })
 

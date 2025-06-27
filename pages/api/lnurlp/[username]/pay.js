@@ -16,6 +16,10 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
 
+  if (!amount || amount < 1000) {
+    return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
+  }
+
   const logger = walletLogger({ models, userId: user.id })
   logger.info(`${user.name}@stacker.news payment attempt`, { amount: formatMsats(amount), nostr, comment })
 
@@ -44,10 +48,6 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       description += comment ? `: ${comment}` : '.'
       description = description.slice(0, MAX_INVOICE_DESCRIPTION_LENGTH)
       descriptionHash = lnurlPayDescriptionHashForUser(username)
-    }
-
-    if (!amount || amount < 1000) {
-      return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
     }
 
     if (comment?.length > LNURLP_COMMENT_MAX_LENGTH) {

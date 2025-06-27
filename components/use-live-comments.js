@@ -9,7 +9,7 @@ const POLL_INTERVAL = 1000 * 10 // 10 seconds
 const ACTIVITY_TIMEOUT = 1000 * 60 * 30 // 30 minutes
 const ACTIVITY_CHECK_INTERVAL = 1000 * 60 // 1 minute
 
-export default function useLiveComments (rootId, after) {
+export default function useLiveComments (rootId, after, sort) {
   const client = useApolloClient()
   const [latest, setLatest] = useState(after)
   const [polling, setPolling] = useState(true)
@@ -58,7 +58,7 @@ export default function useLiveComments (rootId, after) {
   useEffect(() => {
     if (!data?.newComments) return
 
-    cacheNewComments(client, rootId, data.newComments.comments)
+    cacheNewComments(client, rootId, data.newComments.comments, sort)
     // check new comments created after the latest new comment
     setLatest(prevLatest => getLatestCommentCreatedAt(data.newComments.comments, prevLatest))
   }, [data, client, rootId])
@@ -66,7 +66,7 @@ export default function useLiveComments (rootId, after) {
   return { polling, setPolling }
 }
 
-function cacheNewComments (client, rootId, newComments) {
+function cacheNewComments (client, rootId, newComments, sort) {
   for (const newComment of newComments) {
     const { parentId } = newComment
     const topLevel = Number(parentId) === Number(rootId)
@@ -75,7 +75,7 @@ function cacheNewComments (client, rootId, newComments) {
     if (topLevel) {
       client.cache.updateQuery({
         query: ITEM_FULL,
-        variables: { id: rootId }
+        variables: { id: rootId, sort } // TODO-LIVE: ok now item updates thanks to sort awareness, but please CLEAN THIS UP
       }, (data) => {
         if (!data) return data
         // we return the entire item, not just the newComments
@@ -119,14 +119,14 @@ function getLatestCommentCreatedAt (comments, latest) {
   return new Date(maxTimestamp).toISOString()
 }
 
-export function ShowNewComments ({ newComments = [], itemId, topLevel = false }) {
+export function ShowNewComments ({ newComments = [], itemId, topLevel = false, sort }) {
   const client = useApolloClient()
 
   const showNewComments = () => {
     if (topLevel) {
       client.cache.updateQuery({
         query: ITEM_FULL,
-        variables: { id: itemId }
+        variables: { id: itemId, sort } // TODO-LIVE: ok now item updates thanks to sort awareness, but please CLEAN THIS UP
       }, (data) => {
         if (!data) return data
         const { item } = data
@@ -166,13 +166,12 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false })
   }
 
   return (
-    <span onClick={showNewComments}>
-      <div className={!topLevel ? styles.comments : 'pb-2'}>
-        <div className={`d-block fw-bold ${styles.comment} pb-2 ps-3 d-flex align-items-center gap-2 pointer`}>
-          load new comments
-          <div className={styles.newCommentDot} />
-        </div>
-      </div>
-    </span>
+    <div
+      onClick={showNewComments}
+      className={`${topLevel && `d-block fw-bold ${styles.comment} pb-2`} d-flex align-items-center gap-2 px-3 pointer`}
+    >
+      load new comments
+      <div className={styles.newCommentDot} />
+    </div>
   )
 }

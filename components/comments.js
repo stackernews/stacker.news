@@ -89,8 +89,10 @@ export default function Comments ({
   commentSats, comments, commentsCursor, fetchMoreComments, ncomments, newComments, lastCommentAt, ...props
 }) {
   const router = useRouter()
+  // TODO-LIVE: ok now item updates thanks to sort awareness, but please CLEAN THIS UP
+  const sort = router.query.sort || defaultCommentSort(pinned, bio, parentCreatedAt)
   // update item.newComments in cache
-  const { polling: livePolling, setPolling: setLivePolling } = useLiveComments(parentId, lastCommentAt || parentCreatedAt)
+  const { polling: livePolling, setPolling: setLivePolling } = useLiveComments(parentId, lastCommentAt || parentCreatedAt, sort)
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
 
@@ -113,7 +115,8 @@ export default function Comments ({
           />
         : null}
       {newComments?.length > 0 && (
-        <ShowNewComments topLevel newComments={newComments} itemId={parentId} />
+        // TODO-LIVE: ok now item updates thanks to sort awareness, but please CLEAN THIS UP
+        <ShowNewComments topLevel newComments={newComments} itemId={parentId} sort={sort} />
       )}
       {pins.map(item => (
         <Fragment key={item.id}>

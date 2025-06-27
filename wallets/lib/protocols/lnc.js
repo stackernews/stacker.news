@@ -12,9 +12,17 @@ export default {
       name: 'pairingPhrase',
       label: 'pairing phrase',
       type: 'password',
+      help: [
+        'We only need permissions for the uri `/lnrpc.Lightning/SendPaymentSync`.',
+        'Create a budgeted account with narrow permissions:',
+        '```litcli accounts create --balance <budget>```',
+        '```litcli sessions add --type custom --label <your label> --account_id <account_id> --uri /lnrpc.Lightning/SendPaymentSync```',
+        'Grab the `pairing_secret_mnemonic` from the output and paste it here.'
+      ],
       validate: bip39Validator(),
       required: true,
-      encrypt: true
+      encrypt: true,
+      editable: false
     },
     {
       name: 'serverHost',

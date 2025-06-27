@@ -10,6 +10,8 @@ import { Checkbox, Form, Input, PasswordInput, SubmitButton } from '@/components
 import CancelButton from '@/components/cancel-button'
 import { useWalletProtocolUpsert, useWalletProtocolRemove, useWalletQuery, TemplateLogsProvider } from '@/wallets/client/hooks'
 import { useToast } from '@/components/toast'
+import Text from '@/components/text'
+import Info from '@/components/info'
 
 const WalletFormsContext = createContext()
 
@@ -225,16 +227,43 @@ function WalletProtocolFormButtons () {
 
 function WalletProtocolFormField ({ type, ...props }) {
   const wallet = useWallet()
+  const protocol = useSelectedProtocol()
 
-  function transform ({ validate, encrypt, ...props }) {
+  function transform ({ validate, encrypt, editable, help, ...props }) {
+    const [upperHint, bottomHint] = Array.isArray(props.hint) ? props.hint : [null, props.hint]
+
+    const parseHelpText = text => Array.isArray(text) ? text.join('\n\n') : text
+    const _help = help
+      ? (
+          typeof help === 'string'
+            ? { label: null, text: help }
+            : (
+                Array.isArray(help)
+                  ? { label: null, text: parseHelpText(help) }
+                  : { label: help.label, text: parseHelpText(help.text) }
+              )
+        )
+      : null
+
+    const readOnly = !!protocol.config?.[props.name] && editable === false
+
     const label = (
       <div className='d-flex align-items-center'>
         {props.label}
-        {!props.required && <small className='text-muted ms-2'>optional</small>}
+        {_help && (
+          <Info label={_help.label}>
+            <Text>{_help.text}</Text>
+          </Info>
+        )}
+        <small className='text-muted ms-2'>
+          {upperHint
+            ? <Text>{upperHint}</Text>
+            : (!props.required ? 'optional' : null)}
+        </small>
       </div>
     )
 
-    return { ...props, label }
+    return { ...props, hint: bottomHint, label, readOnly }
   }
 
   switch (type) {

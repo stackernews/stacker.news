@@ -25,6 +25,12 @@ export default [
         name: 'apiKey',
         type: 'password',
         label: 'api key',
+        placeholder: 'blink_...',
+        help: [
+          `Generate an API key in your [Blink Dashboard](${galoyBlinkDashboardUrl}) with the following scopes:`,
+          '- READ',
+          '- WRITE'
+        ],
         validate: blinkApiKeyValidator,
         required: true,
         encrypt: true
@@ -33,6 +39,7 @@ export default [
         name: 'currency',
         label: 'currency',
         type: 'text',
+        placeholder: 'BTC or USD',
         required: true,
         validate: blinkCurrencyValidator,
         encrypt: true
@@ -49,6 +56,12 @@ export default [
         name: 'apiKey',
         type: 'password',
         label: 'api key',
+        placeholder: 'blink_...',
+        help: [
+          `Generate an API key in your [Blink Dashboard](${galoyBlinkDashboardUrl}) with the following scopes:`,
+          '- READ',
+          '- RECEIVE'
+        ],
         validate: blinkApiKeyValidator,
         required: true
       },
@@ -56,6 +69,7 @@ export default [
         name: 'currency',
         label: 'currency',
         type: 'text',
+        placeholder: 'BTC or USD',
         required: true,
         validate: blinkCurrencyValidator
       }

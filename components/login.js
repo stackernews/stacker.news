@@ -11,8 +11,9 @@ import { emailSchema } from '@/lib/validate'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { datePivot } from '@/lib/time'
 import * as cookie from 'cookie'
-import { cookieOptions } from '@/lib/auth'
+import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
 import Link from 'next/link'
+import useCookie from './use-cookie'
 
 export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
   const disabled = multiAuth
@@ -71,9 +72,18 @@ export function authErrorMessage (error, signin) {
   return message
 }
 
-export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signin }) {
+export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signin, syncSignup }) {
   const [errorMessage, setErrorMessage] = useState(authErrorMessage(error, signin))
   const router = useRouter()
+  const [, setPointerCookie] = useCookie(MULTI_AUTH_POINTER)
+
+  // we can't signup if we're already logged in to another account
+  // for signups with auth sync, we first need to switch to anon.
+  useEffect(() => {
+    if (syncSignup) {
+      setPointerCookie(MULTI_AUTH_ANON, cookieOptions({ httpOnly: false }))
+    }
+  }, [syncSignup, setPointerCookie])
 
   // signup/signin awareness cookie
   useEffect(() => {

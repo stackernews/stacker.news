@@ -6,6 +6,7 @@ import { mapWalletResolveTypes } from '@/wallets/server/resolvers/util'
 import { protocolTestCreateInvoice } from '@/wallets/server/protocols'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
 
 const WalletProtocolConfig = {
   __resolveType: config => config.__resolveType
@@ -154,6 +155,8 @@ export function upsertWalletProtocol (protocol) {
         }
       })
 
+      await updateWalletBadges({ userId: me.id, tx })
+
       return mapWalletResolveTypes(wallet)
     }
 
@@ -192,6 +195,8 @@ export async function removeWalletProtocol (parent, { id }, { me, models, tx }) 
         }
       })
     }
+
+    await updateWalletBadges({ userId: me.id, tx })
 
     return true
   }
@@ -265,4 +270,71 @@ async function deleteWalletLogs (parent, { protocolId }, { me, models }) {
   })
 
   return true
+}
+
+async function updateWalletBadges ({ userId, tx }) {
+  const pushNotifications = []
+
+  const wallets = await tx.wallet.findMany({
+    where: {
+      userId
+    },
+    include: {
+      protocols: true
+    }
+  })
+
+  const { hasRecvWallet: oldHasRecvWallet, hasSendWallet: oldHasSendWallet } = await tx.user.findUnique({ where: { id: userId } })
+
+  const newHasRecvWallet = wallets.some(({ protocols }) => protocols.some(({ send, enabled }) => !send && enabled))
+  const newHasSendWallet = wallets.some(({ protocols }) => protocols.some(({ send, enabled }) => send && enabled))
+
+  await tx.user.update({
+    where: { id: userId },
+    data: {
+      hasRecvWallet: newHasRecvWallet,
+      hasSendWallet: newHasSendWallet
+    }
+  })
+
+  const startStreak = async (type) => {
+    const streak = await tx.streak.create({
+      data: { userId, type, startedAt: new Date() }
+    })
+    return streak.id
+  }
+
+  const endStreak = async (type) => {
+    const [streak] = await tx.$queryRaw`
+        UPDATE "Streak"
+        SET "endedAt" = now(), updated_at = now()
+        WHERE "userId" = ${userId}
+        AND "type" = ${type}::"StreakType"
+        AND "endedAt" IS NULL
+        RETURNING "id"
+      `
+    return streak?.id
+  }
+
+  if (!oldHasRecvWallet && newHasRecvWallet) {
+    const streakId = await startStreak('HORSE')
+    if (streakId) pushNotifications.push(() => notifyNewStreak(userId, { type: 'HORSE', id: streakId }))
+  }
+  if (!oldHasSendWallet && newHasSendWallet) {
+    const streakId = await startStreak('GUN')
+    if (streakId) pushNotifications.push(() => notifyNewStreak(userId, { type: 'GUN', id: streakId }))
+  }
+
+  if (oldHasRecvWallet && !newHasRecvWallet) {
+    const streakId = await endStreak('HORSE')
+    if (streakId) pushNotifications.push(() => notifyStreakLost(userId, { type: 'HORSE', id: streakId }))
+  }
+  if (oldHasSendWallet && !newHasSendWallet) {
+    const streakId = await endStreak('GUN')
+    if (streakId) pushNotifications.push(() => notifyStreakLost(userId, { type: 'GUN', id: streakId }))
+  }
+
+  // run all push notifications at the end to make sure we don't
+  // accidentally send push notifications even if transaction fails
+  Promise.all(pushNotifications.map(notify => notify())).catch(console.error)
 }

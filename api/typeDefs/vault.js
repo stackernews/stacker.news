@@ -12,6 +12,7 @@ export default gql`
   input VaultEntryInput {
     iv: String!
     value: String!
+    keyHash: String!
   }
 
   extend type Query {

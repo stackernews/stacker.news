@@ -51,7 +51,7 @@ export function protocolClientSchema ({ name, send }) {
   return schema
 }
 
-export function protocolServerSchema ({ name, send }) {
+export function protocolServerSchema ({ name, send }, { keyHash, ignoreKeyHash }) {
   const fields = protocolFields({ name, send })
   const schema = yup.object(fields.reduce((acc, field) => {
     if (field.encrypt) {
@@ -61,7 +61,8 @@ export function protocolServerSchema ({ name, send }) {
         ...acc,
         [field.name]: yup.object({
           iv: field.required ? ivSchema.required('required') : ivSchema,
-          value: field.required ? valueSchema.required('required') : valueSchema
+          value: field.required ? valueSchema.required('required') : valueSchema,
+          ...(!ignoreKeyHash ? { keyHash: yup.string().required('required').equals([keyHash], `must be ${keyHash}`) } : {})
         })
       }
     }

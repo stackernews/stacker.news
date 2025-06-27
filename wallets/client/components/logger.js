@@ -101,6 +101,7 @@ export function LogMessage ({ tag, level, message, context, ts }) {
     <>
       <div className={styles.row} onClick={handleClick} style={style}>
         <TimeSince timestamp={ts} />
+        <div className={styles.tag}>{`[${nameToTag(tag)}]`}</div>
         <div className={`${styles.level} ${className}`}>{level}</div>
         <div>{message}</div>
         <div>{indicator}</div>
@@ -118,6 +119,14 @@ export function LogMessage ({ tag, level, message, context, ts }) {
         })}
     </>
   )
+}
+
+function nameToTag (name) {
+  switch (name) {
+    case undefined: return 'system'
+    case 'ALBY_BROWSER_EXTENSION': return 'alby'
+    default: return name.toLowerCase()
+  }
 }
 
 function TimeSince ({ timestamp }) {

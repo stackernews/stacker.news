@@ -39,7 +39,10 @@
         "name": "ZEUS",
         "displayName": "Zeus",
         "image": "/wallets/zeus.svg",
-        "url": "https://zeusln.com/"
+        "url": {
+            "wallet": "https://zeusln.com/",
+            "lud16Domain": "zeuspay.com"
+        }
     },
     {
         "templateId": 7,

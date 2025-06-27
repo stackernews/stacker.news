@@ -127,9 +127,9 @@ export function useKeyInit () {
       try {
         // TODO(wallet-v2): remove migration code
         //   and delete the old IndexedDB after wallet v2 has been released for some time
-        const oldKey = await loadOldKey()
-        if (oldKey?.key) {
-          setKey(oldKey.key)
+        const oldKeyAndHash = await loadOldKey()
+        if (oldKeyAndHash) {
+          setKey(oldKeyAndHash)
           return
         }
 
@@ -139,8 +139,8 @@ export function useKeyInit () {
           return
         }
 
-        const { key: randomKey } = await generateRandomKey()
-        setKey(randomKey)
+        const { key: randomKey, hash } = await generateRandomKey()
+        setKey({ key: randomKey, hash })
       } catch (err) {
         console.error('key init failed:', err)
       }
@@ -153,11 +153,11 @@ export function useKeyInit () {
   // useEffect(() => {
   //   if (!me?.id) return
   //   async function loadKey () {
-  //     const { key } = await deriveKey(
+  //     const keyAndHash = await deriveKey(
   //       'media fit youth secret combine live cupboard response enable loyal kitchen angle',
   //       'stacker21001'
   //     )
-  //     await set('vault', 'key', key)
+  //     await set('vault', 'key', keyAndHash)
   //   }
   //   loadKey()
   // }, [me?.id])

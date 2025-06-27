@@ -40,8 +40,8 @@ export function useSetKey () {
   const { set } = useIndexedDB()
   const dispatch = useWalletsDispatch()
 
-  return useCallback(async (key) => {
-    await set('vault', 'key', key)
+  return useCallback(async ({ key, hash }) => {
+    await set('vault', 'key', { key, hash })
     dispatch({ type: SET_KEY, key })
   }, [set, dispatch])
 }
@@ -119,8 +119,8 @@ export function useSavePassphrase () {
   const disablePassphraseExport = useDisablePassphraseExport()
 
   return useCallback(async ({ passphrase }) => {
-    const { key } = await deriveKey(passphrase, salt)
-    setKey(key)
+    const { key, hash } = await deriveKey(passphrase, salt)
+    setKey({ key, hash })
     await disablePassphraseExport()
   }, [setKey, disablePassphraseExport])
 }

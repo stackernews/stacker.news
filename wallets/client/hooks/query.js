@@ -185,7 +185,7 @@ export function useWalletEncryptionUpdate () {
 
     await mutate({ variables: { keyHash: hash, wallets: data } })
 
-    await setKey(key)
+    await setKey({ key, hash })
   }, [mutate, encryptConfig])
 }
 

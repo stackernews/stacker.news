@@ -100,9 +100,8 @@ export function useWalletProtocolUpsert (wallet, protocol) {
       values.enabled = true
     }
 
-    const oldValues = { ...protocol.config, enabled: protocol.enabled }
-    const modified = modifiedKeys(values, oldValues)
-    const skipNetworkTests = modified.length === 1 && modified[0] === 'enabled'
+    // skip network tests if we're disabling the wallet
+    const skipNetworkTests = !values.enabled
 
     if (!skipNetworkTests) {
       try {
@@ -144,10 +143,6 @@ export function useLightningAddressUpsert () {
   const wallet = { id: walletTemplateId('LN_ADDR'), __typename: 'WalletTemplate' }
   const protocol = { name: 'LN_ADDR', send: false, __typename: 'WalletProtocolTemplate' }
   return useWalletProtocolUpsert(wallet, protocol)
-}
-
-function modifiedKeys (a, b) {
-  return Object.keys(a).filter(key => a[key] !== b[key])
 }
 
 export function useWalletProtocolRemove (protocol) {

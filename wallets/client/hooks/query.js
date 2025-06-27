@@ -122,7 +122,9 @@ export function useWalletProtocolUpsert (wallet, protocol) {
     const encrypted = await encryptConfig(values)
 
     const variables = encrypted
-    variables.networkTests = networkTests
+    if (!protocol.send) {
+      variables.networkTests = networkTests
+    }
     if (isWallet(wallet)) {
       variables.walletId = wallet.id
     } else {

@@ -1,4 +1,4 @@
-import { isEncrypted, isTemplate, isWallet } from '@/wallets/lib/util'
+import { isTemplate, isWallet } from '@/wallets/lib/util'
 
 // pages
 export const ATTACH_PAGE = 'ATTACH_PAGE'
@@ -12,6 +12,8 @@ export const NEXT_PAGE = 'NEXT_PAGE'
 // wallet actions
 export const SET_WALLETS = 'SET_WALLETS'
 export const SET_KEY = 'SET_KEY'
+export const WRONG_KEY = 'WRONG_KEY'
+export const KEY_MATCH = 'KEY_MATCH'
 
 export default function reducer (state, action) {
   switch (action.type) {
@@ -34,7 +36,7 @@ export default function reducer (state, action) {
         .sort((a, b) => a.name.localeCompare(b.name))
       return {
         ...state,
-        page: getPage({ ...action, wallets, templates }),
+        page: getPage({ ...state, wallets, templates }),
         wallets,
         templates,
         loading: false
@@ -43,7 +45,18 @@ export default function reducer (state, action) {
     case SET_KEY:
       return {
         ...state,
-        key: action.key
+        key: action.key,
+        keyHash: action.hash
+      }
+    case WRONG_KEY:
+      return {
+        ...state,
+        page: UNLOCK_PAGE
+      }
+    case KEY_MATCH:
+      return {
+        ...state,
+        page: getPage({ ...state, page: undefined })
       }
     default:
       return state
@@ -51,8 +64,7 @@ export default function reducer (state, action) {
 }
 
 function getPage (state) {
-  // did decryption fail for a wallet?
-  if (state.wallets.some(isEncrypted)) {
+  if (state.page === UNLOCK_PAGE) {
     return UNLOCK_PAGE
   }
 

@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { fromHex, toHex } from '@/lib/hex'
 import { useMe } from '@/components/me'
 import { useIndexedDB } from '@/components/use-indexeddb'
@@ -8,7 +8,7 @@ import { Passphrase } from '@/wallets/client/components'
 import bip39Words from '@/lib/bip39-words'
 import { Form, PasswordInput, SubmitButton } from '@/components/form'
 import { object, string } from 'yup'
-import { SET_KEY, useKey, useWalletsDispatch } from '@/wallets/client/context'
+import { SET_KEY, useKey, useKeyHash, useWalletsDispatch } from '@/wallets/client/context'
 import { useDisablePassphraseExport, useWalletReset } from '@/wallets/client/hooks'
 
 export class CryptoKeyRequiredError extends Error {
@@ -42,31 +42,49 @@ export function useSetKey () {
 
   return useCallback(async ({ key, hash }) => {
     await set('vault', 'key', { key, hash })
-    dispatch({ type: SET_KEY, key })
+    dispatch({ type: SET_KEY, key, hash })
   }, [set, dispatch])
 }
 
 export function useEncryption () {
   const defaultKey = useKey()
-  return useCallback(
+
+  const encrypt = useCallback(
     (value, { key } = {}) => {
       const k = key ?? defaultKey
       if (!k) throw new CryptoKeyRequiredError()
-      return encrypt(k, value)
+      return _encrypt(k, value)
     }, [defaultKey])
+
+  return useMemo(() => ({
+    encrypt,
+    ready: !!defaultKey
+  }), [encrypt, defaultKey])
 }
 
 export function useDecryption () {
   const key = useKey()
-  return useCallback(value => {
+
+  const decrypt = useCallback(value => {
     if (!key) throw new CryptoKeyRequiredError()
-    return decrypt(key, value)
+    return _decrypt(key, value)
   }, [key])
+
+  return useMemo(() => ({
+    decrypt,
+    ready: !!key
+  }), [decrypt, key])
 }
 
-export function useKeyHash () {
+export function useRemoteKeyHash () {
   const { me } = useMe()
   return me?.privates?.vaultKeyHash
+}
+
+export function useIsWrongKey () {
+  const localHash = useKeyHash()
+  const remoteHash = useRemoteKeyHash()
+  return localHash && remoteHash && localHash !== remoteHash
 }
 
 export function useKeySalt () {
@@ -167,7 +185,7 @@ const passphraseSchema = ({ hash, salt }) => object().shape({
 export function usePassphrasePrompt () {
   const showModal = useShowModal()
   const savePassphrase = useSavePassphrase()
-  const hash = useKeyHash()
+  const hash = useRemoteKeyHash()
   const salt = useKeySalt()
   const showPassphrase = useShowPassphrase()
   const resetPassphrase = useResetPassphrase()
@@ -259,7 +277,7 @@ export async function deriveKey (passphrase, salt) {
   }
 }
 
-async function encrypt (key, value) {
+async function _encrypt (key, value) {
   // random IVs are _really_ important in GCM: reusing the IV once can lead to catastrophic failure
   // see https://crypto.stackexchange.com/questions/26790/how-bad-it-is-using-the-same-iv-twice-with-aes-gcm
   // 12 bytes (96 bits) is the recommended IV size for AES-GCM
@@ -279,7 +297,7 @@ async function encrypt (key, value) {
   }
 }
 
-async function decrypt (key, { iv, value }) {
+async function _decrypt (key, { iv, value }) {
   const decrypted = await window.crypto.subtle.decrypt(
     {
       name: 'AES-GCM',

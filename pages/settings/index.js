@@ -76,11 +76,6 @@ export function SettingsHeader () {
             <Nav.Link eventKey='mutes'>muted stackers</Nav.Link>
           </Link>
         </Nav.Item>
-        <Nav.Item>
-          <Link href='/settings/passphrase' passHref legacyBehavior>
-            <Nav.Link eventKey='passphrase'>device sync</Nav.Link>
-          </Link>
-        </Nav.Item>
       </Nav>
     </>
   )

@@ -308,5 +308,19 @@ const typeDefs = gql`
     message: String!
     context: JSONObject
   }
+
+  type VaultEntry {
+    id: ID!
+    iv: String!
+    value: String!
+    createdAt: Date!
+    updatedAt: Date!
+  }
+
+  input VaultEntryInput {
+    iv: String!
+    value: String!
+    keyHash: String!
+  }
 `
 export default typeDefs

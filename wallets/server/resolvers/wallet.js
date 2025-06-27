@@ -133,8 +133,10 @@ async function updateWalletEncryption (parent, { keyHash, wallets }, { me, model
   })
 }
 
-async function resetWallets (parent, args, { me, models }) {
+async function resetWallets (parent, { newKeyHash }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
+
+  const { vaultKeyHash: oldHash } = await models.user.findUnique({ where: { id: me.id } })
 
   await models.$transaction(async tx => {
     const protocols = await tx.walletProtocol.findMany({
@@ -151,9 +153,9 @@ async function resetWallets (parent, args, { me, models }) {
     }
 
     await tx.user.update({
-      where: { id: me.id },
+      where: { id: me.id, vaultKeyHash: oldHash },
       // TODO(wallet-v2): nullable vaultKeyHash column
-      data: { vaultKeyHash: '', showPassphrase: true }
+      data: { vaultKeyHash: newKeyHash, showPassphrase: true }
     })
   })
 

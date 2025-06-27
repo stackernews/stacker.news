@@ -361,6 +361,9 @@ export default {
 
       return sub.SubSubscription?.length > 0
     },
+    domain: async (sub, args, { models }) => {
+      return models.domain.findUnique({ where: { subName: sub.name } })
+    },
     createdAt: sub => sub.createdAt || sub.created_at
   }
 }

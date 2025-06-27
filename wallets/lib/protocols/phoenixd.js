@@ -20,6 +20,11 @@ export default [
         name: 'apiKey',
         type: 'password',
         label: 'api key',
+        help: [
+          'The primary password can be found as `http-password` in your phoenixd configuration file.',
+          'The default location is ~/.phoenix/phoenix.conf.',
+          'Read the [official documentation](https://phoenix.acinq.co/server/api#security) for more details.'
+        ],
         validate: hexValidator(64),
         required: true,
         encrypt: true
@@ -43,6 +48,11 @@ export default [
         name: 'apiKey',
         type: 'password',
         label: 'api key',
+        help: [
+          'The secondary password can be found as `http-password-limited-access` in your phoenixd configuration file.',
+          'The default location is ~/.phoenix/phoenix.conf.',
+          'Read the [official documentation](https://phoenix.acinq.co/server/api#security) for more details.'
+        ],
         validate: hexValidator(64),
         required: true
       }

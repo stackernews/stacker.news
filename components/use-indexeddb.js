@@ -37,6 +37,11 @@ export function useIndexedDB (dbName) {
 async function _open (dbName, version = 1) {
   const { promise, resolve, reject } = Promise.withResolvers()
 
+  if (!window.indexedDB) {
+    reject(new IndexedDBOpenError('IndexedDB unavailable'))
+    return promise
+  }
+
   const request = window.indexedDB.open(dbName, version)
 
   request.onupgradeneeded = (event) => {

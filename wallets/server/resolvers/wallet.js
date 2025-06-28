@@ -43,6 +43,7 @@ export const resolvers = {
   },
   Mutation: {
     updateWalletEncryption,
+    updateKeyHash,
     resetWallets,
     setWalletPriorities,
     disablePassphraseExport,
@@ -131,6 +132,14 @@ async function updateWalletEncryption (parent, { keyHash, wallets }, { me, model
 
     return true
   })
+}
+
+async function updateKeyHash (parent, { keyHash }, { me, models }) {
+  if (!me) throw new GqlAuthenticationError()
+
+  await models.user.update({ where: { id: me.id }, data: { vaultKeyHash: keyHash } })
+
+  return true
 }
 
 async function resetWallets (parent, { newKeyHash }, { me, models }) {

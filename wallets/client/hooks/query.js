@@ -18,7 +18,8 @@ import {
   UPDATE_WALLET_ENCRYPTION,
   RESET_WALLETS,
   DISABLE_PASSPHRASE_EXPORT,
-  SET_WALLET_PRIORITIES
+  SET_WALLET_PRIORITIES,
+  UPDATE_KEY_HASH
 } from '@/wallets/client/fragments'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey, useWalletLogger } from '@/wallets/client/hooks'
@@ -31,7 +32,7 @@ import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
-import { useWallets, useLoading as useWalletsLoading } from '@/wallets/client/context'
+import { useKeyHash, useWallets, useLoading as useWalletsLoading } from '@/wallets/client/context'
 
 export function useWalletsQuery () {
   const { me } = useMe()
@@ -409,6 +410,17 @@ export function useWalletMigrationMutation () {
   }, [client, encryptConfig])
 
   return useMemo(() => ({ migrate, ready: ready && !loading }), [migrate, ready, loading])
+}
+
+export function useUpdateKeyHash () {
+  const keyHash = useKeyHash()
+  const [mutate] = useMutation(UPDATE_KEY_HASH)
+
+  const updateKeyHash = useCallback(async () => {
+    await mutate({ variables: { keyHash } })
+  }, [mutate, keyHash])
+
+  return useMemo(() => ({ updateKeyHash, ready: !!keyHash }), [updateKeyHash, keyHash])
 }
 
 function migrateConfig (protocol, config) {

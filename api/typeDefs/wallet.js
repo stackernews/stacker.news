@@ -40,6 +40,7 @@ const typeDefs = gql`
     upsertWalletSendWebLN(walletId: ID, templateId: ID, enabled: Boolean!): WalletSendWebLN!
     removeWalletProtocol(id: ID!): Boolean
     updateWalletEncryption(keyHash: String!, wallets: [WalletEncryptionUpdate!]!): Boolean
+    updateKeyHash(keyHash: String!): Boolean
     resetWallets(newKeyHash: String!): Boolean
     disablePassphraseExport: Boolean
     setWalletSettings(settings: WalletSettingsInput!): Boolean

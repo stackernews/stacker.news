@@ -191,6 +191,12 @@ export const UPDATE_WALLET_ENCRYPTION = gql`
   }
 `
 
+export const UPDATE_KEY_HASH = gql`
+  mutation UpdateKeyHash($keyHash: String!) {
+    updateKeyHash(keyHash: $keyHash)
+  }
+`
+
 export const RESET_WALLETS = gql`
   mutation ResetWallets($newKeyHash: String!) {
     resetWallets(newKeyHash: $newKeyHash)

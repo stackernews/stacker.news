@@ -289,16 +289,173 @@ Stacker News administrators can manage and approve OAuth applications via the ad
 *   Review application details and requested scopes.
 *   Approve or reject applications.
 *   Revoke access for existing applications.
+## 9. Examples
 
-## 9. Examples (Coming Soon)
+This document provides examples for implementing the OAuth 2.0 Authorization Code Flow with Proof Key for Code Exchange (PKCE) for your applications.
 
-This section will provide practical code examples demonstrating how to implement various aspects of the Stacker News OAuth 2.0 API, including:
+## Configuration
 
-*   Initiating the authorization flow.
-*   Exchanging the authorization code for tokens.
-*   Making authenticated API requests.
-*   Handling token expiration and renewal.
-*   Interacting with the Wallet API (e.g., creating invoices, sending payments).
-*   Implementing service worker notifications.
+Before you begin, ensure you have the following configuration details for your OAuth application:
 
-Stay tuned for updates to this section!
+- `CLIENT_ID`: Your application's client ID.
+- `CLIENT_SECRET`: Your application's client secret. **This is a sensitive value and should be kept secure.**
+- `REDIRECT_URI`: The URI where the authorization server redirects the user after they have granted or denied permission to your application. This must match one of the redirect URIs configured for your application.
+- `AUTHORIZATION_URL`: The endpoint for initiating the authorization flow. (e.g., `http://localhost:3000/api/oauth/authorize`)
+- `TOKEN_URL`: The endpoint for exchanging the authorization code for an access token. (e.g., `http://localhost:3000/api/oauth/token`)
+- `SCOPES`: A space-separated list of permissions your application is requesting (e.g., `wallet:read profile:read`).
+
+## Flow Overview
+
+The Authorization Code Flow with PKCE involves the following steps:
+
+1.  **Generate Code Verifier and Challenge**: Your application generates a cryptographically random `code_verifier` and derives a `code_challenge` from it.
+2.  **Redirect to Authorization URL**: Your application redirects the user's browser to the `AUTHORIZATION_URL` with the `client_id`, `redirect_uri`, `response_type=code`, `scope`, `code_challenge`, and `code_challenge_method=S256`.
+3.  **User Authorization**: The user is prompted to authorize your application.
+4.  **Authorization Code Grant**: If the user approves, the authorization server redirects the user back to your `REDIRECT_URI` with an `authorization_code`.
+5.  **Exchange Code for Token**: Your application sends a POST request to the `TOKEN_URL` with the `authorization_code`, `redirect_uri`, `client_id`, `client_secret`, and `code_verifier`.
+6.  **Receive Tokens**: The authorization server validates the `code_verifier` against the `code_challenge` and, if valid, returns `access_token`, `refresh_token`, and `expires_in`.
+7.  **Access API**: Your application uses the `access_token` to make authenticated requests to protected API resources.
+
+## Python Example
+
+The following Python script demonstrates the complete OAuth 2.0 Authorization Code Flow with PKCE.
+
+```python
+import http.server
+import socketserver
+import urllib.parse
+import webbrowser
+import requests
+import base64
+import hashlib
+import os
+
+# --- Configuration ---
+CLIENT_ID = "YOUR_CLIENT_ID" # Replace with your actual client ID
+CLIENT_SECRET = "YOUR_CLIENT_SECRET" # Replace with your actual client secret
+REDIRECT_URI = "http://localhost:5000/callback"
+AUTHORIZATION_URL = "http://localhost:3000/api/oauth/authorize"
+TOKEN_URL = "http://localhost:3000/api/oauth/token"
+SCOPES = "wallet:read profile:read" # Space-separated list of scopes
+
+# --- PKCE Functions ---
+def generate_code_verifier():
+    return base64.urlsafe_b64encode(os.urandom(32)).rstrip(b'=').decode('utf-8')
+
+def generate_code_challenge(code_verifier):
+    s256 = hashlib.sha256(code_verifier.encode('utf-8')).digest()
+    return base64.urlsafe_b64encode(s256).rstrip(b'=').decode('utf-8')
+
+# --- Global variables to store the code and verifier ---
+authorization_code = None
+pkce_code_verifier = generate_code_verifier()
+pkce_code_challenge = generate_code_challenge(pkce_code_verifier)
+
+class OAuthCallbackHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        global authorization_code
+        parsed_url = urllib.parse.urlparse(self.path)
+        query_params = urllib.parse.parse_qs(parsed_url.query)
+
+        if parsed_url.path == "/callback" and "code" in query_params:
+            authorization_code = query_params["code"][0]
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(b"<html><body><h1>Authorization successful!</h1><p>You can close this tab.</p></body></html>")
+            print(f"Received authorization code: {authorization_code}")
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b"Not Found")
+
+def start_local_server():
+    PORT = 5000
+    with socketserver.TCPServer(("", PORT), OAuthCallbackHandler) as httpd:
+        print(f"Serving at port {PORT} to catch OAuth redirect...")
+        httpd.handle_request()
+
+def main():
+    print("--- Starting OAuth 2.0 Authorization Code Flow with PKCE ---")
+
+    # 1. Construct Authorization URL
+    auth_params = {
+        "client_id": CLIENT_ID,
+        "redirect_uri": REDIRECT_URI,
+        "response_type": "code",
+        "scope": SCOPES,
+        "code_challenge": pkce_code_challenge,
+        "code_challenge_method": "S256"
+    }
+    auth_query_string = urllib.parse.urlencode(auth_params)
+    full_authorization_url = f"{AUTHORIZATION_URL}?{auth_query_string}"
+
+    print(f"
+Opening authorization URL in your browser. Please approve the request:")
+    print(full_authorization_url)
+    webbrowser.open(full_authorization_url)
+
+    # 2. Start local server to catch the redirect
+    start_local_server()
+
+    if not authorization_code:
+        print("Error: Did not receive an authorization code.")
+        return
+
+    # 3. Exchange Authorization Code for Access Token
+    print("
+Exchanging authorization code for access token...")
+    token_data = {
+        "grant_type": "authorization_code",
+        "code": authorization_code,
+        "redirect_uri": REDIRECT_URI,
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "code_verifier": pkce_code_verifier
+    }
+
+    try:
+        response = requests.post(TOKEN_URL, data=token_data)
+        response.raise_for_status() # Raise an exception for HTTP errors
+        token_info = response.json()
+
+        print("
+--- Access Token Response ---")
+        print(f"Access Token: {token_info.get('access_token')}")
+        print(f"Token Type: {token_info.get('token_type')}")
+        print(f"Expires In: {token_info.get('expires_in')} seconds")
+        print(f"Refresh Token: {token_info.get('refresh_token')}")
+        print(f"Scope: {token_info.get('scope')}")
+
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP Error during token exchange: {e}")
+        print(f"Response content: {e.response.text}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return
+
+    # 4. Use the Access Token to make an API call
+    print("
+--- Making API Call ---")
+    api_url = "http://localhost:3000/api/oauth/wallet/balance"
+    headers = {
+        "Authorization": f"Bearer {token_info.get('access_token')}"
+    }
+    try:
+        api_response = requests.get(api_url, headers=headers)
+        api_response.raise_for_status()
+        api_data = api_response.json()
+        print("API call successful!")
+        print("Response:")
+        print(api_data)
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP Error during API call: {e}")
+        print(f"Response content: {e.response.text}")
+    except Exception as e:
+        print(f"An error occurred during API call: {e}")
+
+
+if __name__ == "__main__":
+    # Ensure you have the 'requests' library installed: pip install requests
+    main()
+```

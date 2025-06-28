@@ -196,6 +196,7 @@ To add/remove DNS records you can now use `./sndev domains dns`. More on this [h
         - [Login with Email](#login-with-email)
         - [Login with Github](#login-with-github)
         - [Login with Lightning](#login-with-lightning)
+        - [OAuth Applications](#oauth-applications)
     - [Enabling web push notifications](#enabling-web-push-notifications)
 - [Internals](#internals)
     - [Stack](#stack)
@@ -525,3 +526,6 @@ If you found a vulnerability, we would greatly appreciate it if you contact us v
 
 # License
 [MIT](https://choosealicense.com/licenses/mit/)
+
+## OAuth Applications
+For details on how to create and use OAuth applications, refer to the [OAuth documentation](docs/dev/oauth.md).

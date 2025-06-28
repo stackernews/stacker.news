@@ -173,8 +173,8 @@ export async function paidActionPaid ({ data: { invoiceId, ...args }, models, ln
         VALUES ('checkStreak', jsonb_build_object('id', ${dbInvoice.userId}, 'type', 'COWBOY_HAT'))`
 
       // If it's an OAuth invoice, send a push notification
-      if (dbInvoice.actionType === 'RECEIVE' && dbInvoice.oAuthWalletInvoiceRequest) {
-        const oAuthRequest = await tx.oAuthWalletInvoiceRequest.findUnique({
+      if (dbInvoice.actionType === 'RECEIVE' && dbInvoice.oAuthWalletTransaction) {
+        const oAuthRequest = await tx.oAuthWalletTransaction.findUnique({
           where: { invoiceId: dbInvoice.id },
           include: { oauthApplication: true }
         })

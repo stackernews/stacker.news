@@ -114,7 +114,7 @@ CREATE TABLE "OAuthAuthorizationGrant" (
 );
 
 -- CreateTable
-CREATE TABLE "OAuthWalletInvoiceRequest" (
+CREATE TABLE "OAuthWalletTransaction" (
     "id" SERIAL NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -130,8 +130,9 @@ CREATE TABLE "OAuthWalletInvoiceRequest" (
     "approved_at" TIMESTAMP(3),
     "expires_at" TIMESTAMP(3) NOT NULL,
     "invoice_id" INTEGER,
+    "withdrawal_id" INTEGER,
 
-    CONSTRAINT "OAuthWalletInvoiceRequest_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "OAuthWalletTransaction_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -218,19 +219,19 @@ CREATE INDEX "OAuthAuthorizationGrant_application_id_idx" ON "OAuthAuthorization
 CREATE INDEX "OAuthAuthorizationGrant_revoked_idx" ON "OAuthAuthorizationGrant"("revoked");
 
 -- CreateIndex
-CREATE INDEX "OAuthWalletInvoiceRequest_user_id_idx" ON "OAuthWalletInvoiceRequest"("user_id");
+CREATE INDEX "OAuthWalletTransaction_user_id_idx" ON "OAuthWalletTransaction"("user_id");
 
 -- CreateIndex
-CREATE INDEX "OAuthWalletInvoiceRequest_application_id_idx" ON "OAuthWalletInvoiceRequest"("application_id");
+CREATE INDEX "OAuthWalletTransaction_application_id_idx" ON "OAuthWalletTransaction"("application_id");
 
 -- CreateIndex
-CREATE INDEX "OAuthWalletInvoiceRequest_access_token_id_idx" ON "OAuthWalletInvoiceRequest"("access_token_id");
+CREATE INDEX "OAuthWalletTransaction_access_token_id_idx" ON "OAuthWalletTransaction"("access_token_id");
 
 -- CreateIndex
-CREATE INDEX "OAuthWalletInvoiceRequest_status_idx" ON "OAuthWalletInvoiceRequest"("status");
+CREATE INDEX "OAuthWalletTransaction_status_idx" ON "OAuthWalletTransaction"("status");
 
 -- CreateIndex
-CREATE INDEX "OAuthWalletInvoiceRequest_expires_at_idx" ON "OAuthWalletInvoiceRequest"("expires_at");
+CREATE INDEX "OAuthWalletTransaction_expires_at_idx" ON "OAuthWalletTransaction"("expires_at");
 
 -- CreateIndex
 CREATE INDEX "OAuthApiUsage_application_id_idx" ON "OAuthApiUsage"("application_id");
@@ -275,16 +276,19 @@ ALTER TABLE "OAuthAuthorizationGrant" ADD CONSTRAINT "OAuthAuthorizationGrant_us
 ALTER TABLE "OAuthAuthorizationGrant" ADD CONSTRAINT "OAuthAuthorizationGrant_application_id_fkey" FOREIGN KEY ("application_id") REFERENCES "OAuthApplication"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "OAuthWalletInvoiceRequest" ADD CONSTRAINT "OAuthWalletInvoiceRequest_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "OAuthWalletTransaction" ADD CONSTRAINT "OAuthWalletTransaction_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "OAuthWalletInvoiceRequest" ADD CONSTRAINT "OAuthWalletInvoiceRequest_application_id_fkey" FOREIGN KEY ("application_id") REFERENCES "OAuthApplication"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "OAuthWalletTransaction" ADD CONSTRAINT "OAuthWalletTransaction_application_id_fkey" FOREIGN KEY ("application_id") REFERENCES "OAuthApplication"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "OAuthWalletInvoiceRequest" ADD CONSTRAINT "OAuthWalletInvoiceRequest_access_token_id_fkey" FOREIGN KEY ("access_token_id") REFERENCES "OAuthAccessToken"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "OAuthWalletTransaction" ADD CONSTRAINT "OAuthWalletTransaction_access_token_id_fkey" FOREIGN KEY ("access_token_id") REFERENCES "OAuthAccessToken"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "OAuthWalletInvoiceRequest" ADD CONSTRAINT "OAuthWalletInvoiceRequest_invoice_id_fkey" FOREIGN KEY ("invoice_id") REFERENCES "Invoice"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "OAuthWalletTransaction" ADD CONSTRAINT "OAuthWalletTransaction_invoice_id_fkey" FOREIGN KEY ("invoice_id") REFERENCES "Invoice"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "OAuthWalletTransaction" ADD CONSTRAINT "OAuthWalletTransaction_withdrawal_id_fkey" FOREIGN KEY ("withdrawal_id") REFERENCES "Withdrawl"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "OAuthApiUsage" ADD CONSTRAINT "OAuthApiUsage_application_id_fkey" FOREIGN KEY ("application_id") REFERENCES "OAuthApplication"("id") ON DELETE CASCADE ON UPDATE CASCADE;

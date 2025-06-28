@@ -68,6 +68,11 @@ async function getApplication (req, res, session, applicationId) {
               where: {
                 revoked: false
               }
+            },
+            walletTransactions: {
+              where: {
+                status: 'approved'
+              }
             }
           }
         }

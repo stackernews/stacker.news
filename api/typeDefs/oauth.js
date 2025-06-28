@@ -25,6 +25,25 @@ export default gql`
     pkceRequired: Boolean!
   }
 
+  type OAuthWalletTransaction {
+    id: ID!
+    createdAt: Date!
+    updatedAt: Date!
+    userId: ID!
+    applicationId: ID!
+    accessTokenId: ID!
+    bolt11: String!
+    amountMsats: BigInt!
+    description: String
+    metadata: JSONObject
+    status: String!
+    approved: Boolean
+    approvedAt: Date
+    expiresAt: Date!
+    invoiceId: ID
+    withdrawalId: ID
+  }
+
   extend type Query {
     oAuthApplications: [OAuthApplication!]!
     oAuthApplication(id: ID!): OAuthApplication

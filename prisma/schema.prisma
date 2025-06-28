@@ -156,7 +156,7 @@ model User {
   OAuthAccessTokens         OAuthAccessToken[]
   OAuthRefreshTokens        OAuthRefreshToken[]
   OAuthAuthorizationGrants  OAuthAuthorizationGrant[]
-  OAuthWalletInvoiceRequests OAuthWalletInvoiceRequest[]
+  OAuthWalletTransactions OAuthWalletTransaction[]
   OAuthApiUsage             OAuthApiUsage[]
 
   @@index([photoId])
@@ -1000,7 +1000,7 @@ model Invoice {
   PollVote           PollVote[]
   PollBlindVote      PollBlindVote[]
   WalletLog          WalletLog[]
-  OAuthWalletInvoiceRequests OAuthWalletInvoiceRequest[]
+  OAuthWalletTransactions OAuthWalletTransaction[]
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")
@@ -1079,6 +1079,7 @@ model Withdrawl {
   wallet         Wallet?          @relation(fields: [walletId], references: [id], onDelete: SetNull)
   invoiceForward InvoiceForward?
   WalletLog      WalletLog[]
+  OAuthWalletTransaction OAuthWalletTransaction[]
 
   @@index([createdAt], map: "Withdrawl.created_at_index")
   @@index([userId], map: "Withdrawl.userId_index")
@@ -1357,7 +1358,7 @@ model OAuthApplication {
   accessTokens         OAuthAccessToken[]
   refreshTokens        OAuthRefreshToken[]
   authorizationGrants  OAuthAuthorizationGrant[]
-  walletInvoiceRequests OAuthWalletInvoiceRequest[]
+  walletInvoiceRequests OAuthWalletTransaction[]
   apiUsage             OAuthApiUsage[]
 
   @@index([userId])
@@ -1404,7 +1405,7 @@ model OAuthAccessToken {
   user                  User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   application           OAuthApplication          @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   refreshToken          OAuthRefreshToken?
-  walletInvoiceRequests OAuthWalletInvoiceRequest[]
+  walletInvoiceRequests OAuthWalletTransaction[]
   apiUsage              OAuthApiUsage[]
 
   @@index([userId])
@@ -1455,7 +1456,7 @@ model OAuthAuthorizationGrant {
   @@index([revoked])
 }
 
-model OAuthWalletInvoiceRequest {
+model OAuthWalletTransaction {
   id              Int         @id @default(autoincrement())
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @default(now()) @updatedAt @map("updated_at")
@@ -1471,11 +1472,13 @@ model OAuthWalletInvoiceRequest {
   approvedAt      DateTime?   @map("approved_at")
   expiresAt       DateTime    @map("expires_at")
   invoiceId       Int?        @map("invoice_id")
+  withdrawalId    Int?        @map("withdrawal_id")
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   application     OAuthApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   accessToken     OAuthAccessToken @relation(fields: [accessTokenId], references: [id], onDelete: Cascade)
   invoice         Invoice?         @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  withdrawal      Withdrawl?       @relation(fields: [withdrawalId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([applicationId])

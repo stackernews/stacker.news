@@ -1,6 +1,8 @@
 import { authenticateOAuth } from '../../../../lib/oauth-auth'
 import models from '../../../../api/models'
 import { InvoiceActionType } from '@prisma/client'
+import { createSNInvoice, createDbInvoice } from '../../../../api/paidAction'
+import lnd from '../../../../api/lnd'
 
 export default async function handler (req, res) {
   if (req.method === 'GET') {
@@ -125,7 +127,7 @@ async function createInvoice (req, res) {
     const expiresAt = new Date(Date.now() + expirySeconds * 1000)
 
     // Create invoice request for approval
-    const invoiceRequest = await models.oAuthWalletInvoiceRequest.create({
+    const invoiceRequest = await models.oAuthWalletTransaction.create({
       data: {
         userId: user.id,
         applicationId: accessToken.applicationId,
@@ -144,20 +146,28 @@ async function createInvoice (req, res) {
 
     if (requestedAmountMsats <= autoApproveThreshold) {
       // Auto-approve and create actual invoice
-      const invoice = await models.invoice.create({
-        data: {
-          userId: user.id,
-          msatsRequested: requestedAmountMsats,
-          desc: description || 'Invoice via OAuth app',
-          actionType: InvoiceActionType.RECEIVE,
-          expiresAt,
-          // Note: In a real implementation, you'd generate the actual bolt11 here
-          // using the user's configured receive wallet
-          bolt11: `lnbc${Math.floor(Number(requestedAmountMsats) / 1000)}...` // Placeholder
-        }
+      const invoiceArgs = await createSNInvoice(InvoiceActionType.RECEIVE, { }, {
+        me: user,
+        lnd,
+        cost: requestedAmountMsats,
+        optimistic: true,
+        models,
+        description: description || 'Invoice via OAuth app'
       })
 
-      await models.oAuthWalletInvoiceRequest.update({
+      const invoice = await createDbInvoice(InvoiceActionType.RECEIVE, { }, {
+        me: user,
+        models,
+        tx: models, // Pass models as tx for direct use
+        cost: requestedAmountMsats,
+        optimistic: true,
+        invoiceArgs,
+        actionId: null, // No specific action ID for a simple receive invoice
+        paymentAttempt: 0,
+        predecessorId: null
+      })
+
+      await models.oAuthWalletTransaction.update({
         where: { id: invoiceRequest.id },
         data: {
           status: 'approved',

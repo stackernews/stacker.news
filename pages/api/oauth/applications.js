@@ -99,7 +99,7 @@ async function createApplication (req, res, session) {
         clientId,
         clientSecretHash,
         redirectUris,
-        scopes: scopes.map(s => s.replace(':', '_')), // Convert to enum format
+        scopes: scopes.map(s => s.replace(':', '_')),
         logoUrl,
         userId: parseInt(session.user.id),
         isConfidential: true,

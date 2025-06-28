@@ -57,7 +57,7 @@ export default async function handler (req, res) {
     }
 
     // Create a payment request that requires user approval
-    const paymentRequest = await models.oAuthWalletInvoiceRequest.create({
+    const paymentRequest = await models.oAuthWalletTransaction.create({
       data: {
         userId: user.id,
         applicationId: accessToken.applicationId,
@@ -82,7 +82,7 @@ export default async function handler (req, res) {
       // In a real implementation, this would actually send the payment
       const withdrawal = await createWithdrawal(null, { invoice: bolt11, maxFee: maxFeeMsats ? Number(maxFeeMsats) : undefined }, { me: user, models, lnd })
 
-      await models.oAuthWalletInvoiceRequest.update({
+      await models.oAuthWalletTransaction.update({
         where: { id: paymentRequest.id },
         data: {
           status: 'approved',
@@ -93,28 +93,18 @@ export default async function handler (req, res) {
       })
 
       return res.status(200).json({
-        payment_id: paymentRequest.id,
-        status: withdrawal.status === 'CONFIRMED' ? 'complete' : 'pending',
-        amount_msats: amountMsats.toString(),
-        amount_sats: Math.floor(Number(amountMsats) / 1000),
-        destination: parsedPaymentRequest.destination,
-        description: parsedPaymentRequest.description,
-        approved_at: new Date().toISOString(),
-        withdrawal_id: withdrawal.id
-      })
-    } else {
-      // Requires manual approval
-      return res.status(202).json({
-        payment_id: paymentRequest.id,
-        status: 'pending_approval',
-        amount_msats: amountMsats.toString(),
-        amount_sats: Math.floor(Number(amountMsats) / 1000),
-        destination: parsedPaymentRequest.destination,
-        description: parsedPaymentRequest.description,
-        expires_at: paymentRequest.expiresAt.toISOString(),
-        approval_url: `/oauth/approve-payment/${paymentRequest.id}`
+        status: 'OK',
+        approved: true,
+        payment_request_id: paymentRequest.id
       })
     }
+
+    return res.status(200).json({
+      status: 'OK',
+      approved: false,
+      message: 'Payment requires user approval',
+      payment_request_id: paymentRequest.id
+    })
   } catch (error) {
     console.error('Error in OAuth wallet send:', error)
     return res.status(500).json({ error: 'Internal server error' })

@@ -7,7 +7,7 @@ import Link from 'next/link'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
 import DragIcon from '@/svgs/draggable.svg'
-import { useWalletImage, useWalletIsConfigured, useWalletSupport, useWalletStatus, WalletStatus } from '@/wallets/client/hooks'
+import { useWalletImage, useWalletSupport, useWalletStatus, WalletStatus } from '@/wallets/client/hooks'
 import { isWallet, urlify, walletDisplayName } from '@/wallets/lib/util'
 import { Draggable } from '@/wallets/client/components'
 
@@ -15,7 +15,6 @@ export function WalletCard ({ wallet, draggable = false, index, ...props }) {
   const image = useWalletImage(wallet.name)
   const status = useWalletStatus(wallet)
   const support = useWalletSupport(wallet)
-  const isConfigured = useWalletIsConfigured(wallet)
 
   const card = (
     <Card
@@ -36,7 +35,7 @@ export function WalletCard ({ wallet, draggable = false, index, ...props }) {
       </Card.Body>
       <WalletLink wallet={wallet}>
         <Card.Footer className={styles.attach}>
-          {isConfigured
+          {isWallet(wallet)
             ? <>configure<Gear width={14} height={14} /></>
             : <>attach<Plug width={14} height={14} /></>}
         </Card.Footer>

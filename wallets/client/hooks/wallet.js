@@ -42,10 +42,6 @@ export function useWalletSupport (wallet) {
   )
 }
 
-export function useWalletIsConfigured (wallet) {
-  return isWallet(wallet) && (wallet.receive || wallet.send)
-}
-
 export const WalletStatus = {
   Enabled: 'Enabled',
   Disabled: 'Disabled',

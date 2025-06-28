@@ -8,7 +8,7 @@ import { formatMsats, toPositiveBigInt } from '@/lib/format'
 import assertGofacYourself from '@/api/resolvers/ofac'
 import performPaidAction from '@/api/paidAction'
 import { validateSchema, lud18PayerDataSchema } from '@/lib/validate'
-import { walletLogger } from '@/api/resolvers/wallet'
+import { walletLogger } from '@/wallets/server'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -16,7 +16,11 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
 
-  const logger = walletLogger({ models, me: user })
+  if (!amount || amount < 1000) {
+    return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
+  }
+
+  const logger = walletLogger({ models, userId: user.id })
   logger.info(`${user.name}@stacker.news payment attempt`, { amount: formatMsats(amount), nostr, comment })
 
   try {
@@ -44,10 +48,6 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       description += comment ? `: ${comment}` : '.'
       description = description.slice(0, MAX_INVOICE_DESCRIPTION_LENGTH)
       descriptionHash = lnurlPayDescriptionHashForUser(username)
-    }
-
-    if (!amount || amount < 1000) {
-      return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
     }
 
     if (comment?.length > LNURLP_COMMENT_MAX_LENGTH) {

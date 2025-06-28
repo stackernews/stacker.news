@@ -1,7 +1,8 @@
 import user from './user'
 import message from './message'
 import item from './item'
-import wallet from './wallet'
+import walletV1 from './wallet'
+import walletV2 from '@/wallets/server/resolvers'
 import lnurl from './lnurl'
 import notifications from './notifications'
 import invite from './invite'
@@ -19,7 +20,6 @@ import chainFee from './chainFee'
 import { GraphQLScalarType, Kind } from 'graphql'
 import { createIntScalar } from 'graphql-scalar'
 import paidAction from './paidAction'
-import vault from './vault'
 
 const date = new GraphQLScalarType({
   name: 'Date',
@@ -54,6 +54,6 @@ const limit = createIntScalar({
   maximum: 1000
 })
 
-export default [user, item, message, wallet, lnurl, notifications, invite, sub,
+export default [user, item, message, walletV1, walletV2, lnurl, notifications, invite, sub,
   upload, search, growth, rewards, referrals, price, admin, blockHeight, chainFee,
-  { JSONObject }, { Date: date }, { Limit: limit }, paidAction, vault]
+  { JSONObject }, { Date: date }, { Limit: limit }, paidAction]

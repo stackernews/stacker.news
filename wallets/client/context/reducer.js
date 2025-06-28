@@ -1,0 +1,80 @@
+import { isTemplate, isWallet } from '@/wallets/lib/util'
+
+// pages
+export const ATTACH_PAGE = 'ATTACH_PAGE'
+export const UNLOCK_PAGE = 'UNLOCK_PAGE'
+export const WALLET_LIST_PAGE = 'WALLET_LIST_PAGE'
+
+// page actions
+export const RESET_PAGE = 'RESET_PAGE'
+export const NEXT_PAGE = 'NEXT_PAGE'
+
+// wallet actions
+export const SET_WALLETS = 'SET_WALLETS'
+export const SET_KEY = 'SET_KEY'
+export const WRONG_KEY = 'WRONG_KEY'
+export const KEY_MATCH = 'KEY_MATCH'
+
+export default function reducer (state, action) {
+  switch (action.type) {
+    case RESET_PAGE:
+      return {
+        ...state,
+        page: getPage(state)
+      }
+    case NEXT_PAGE:
+      return {
+        ...state,
+        page: nextPage(state)
+      }
+    case SET_WALLETS: {
+      const wallets = action.wallets
+        .filter(isWallet)
+        .sort((a, b) => a.priority === b.priority ? a.id - b.id : a.priority - b.priority)
+      const templates = action.wallets
+        .filter(isTemplate)
+        .sort((a, b) => a.name.localeCompare(b.name))
+      return {
+        ...state,
+        page: getPage({ ...state, wallets, templates }),
+        wallets,
+        templates,
+        loading: false
+      }
+    }
+    case SET_KEY:
+      return {
+        ...state,
+        key: action.key,
+        keyHash: action.hash
+      }
+    case WRONG_KEY:
+      return {
+        ...state,
+        page: UNLOCK_PAGE
+      }
+    case KEY_MATCH:
+      return {
+        ...state,
+        page: getPage({ ...state, page: undefined })
+      }
+    default:
+      return state
+  }
+}
+
+function getPage (state) {
+  if (state.page === UNLOCK_PAGE) {
+    return UNLOCK_PAGE
+  }
+
+  return state.wallets.length > 0
+    ? WALLET_LIST_PAGE
+    : ATTACH_PAGE
+}
+
+function nextPage (state) {
+  return [ATTACH_PAGE, UNLOCK_PAGE].includes(state.page)
+    ? WALLET_LIST_PAGE
+    : state.page
+}

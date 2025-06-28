@@ -227,7 +227,7 @@ async function performP2PAction (actionType, args, incomingContext) {
     await assertBelowMaxPendingInvoices(incomingContext)
 
     const description = await paidActions[actionType].describe(args, incomingContext)
-    const { invoice, wrappedInvoice, wallet, maxFee } = await createWrappedInvoice(userId, {
+    const { invoice, wrappedInvoice, protocol, maxFee } = await createWrappedInvoice(userId, {
       msats: cost,
       feePercent: sybilFeePercent,
       description,
@@ -239,7 +239,7 @@ async function performP2PAction (actionType, args, incomingContext) {
       invoiceArgs: {
         bolt11: invoice,
         wrappedBolt11: wrappedInvoice,
-        wallet,
+        protocol,
         maxFee
       }
     }
@@ -269,7 +269,7 @@ async function performDirectAction (actionType, args, incomingContext) {
 
     const description = actionDescription ?? await paidActions[actionType].describe(args, incomingContext)
 
-    for await (const { invoice, logger, wallet } of createUserInvoice(userId, {
+    for await (const { invoice, logger, protocol } of createUserInvoice(userId, {
       msats: cost,
       description,
       expiry: INVOICE_EXPIRE_SECS
@@ -293,7 +293,7 @@ async function performDirectAction (actionType, args, incomingContext) {
               bolt11: invoice,
               msats: cost,
               hash,
-              walletId: wallet.id,
+              protocolId: protocol.id,
               receiverId: userId
             }
           }),
@@ -346,22 +346,26 @@ export async function retryPaidAction (actionType, args, incomingContext) {
       invoiceId: failedInvoice.id
     },
     include: {
-      wallet: true
+      protocol: {
+        include: {
+          wallet: true
+        }
+      }
     }
   })
 
   if (invoiceForward) {
     // this is a wrapped invoice, we need to retry it with receiver fallbacks
     try {
-      const { userId } = invoiceForward.wallet
+      const { userId } = invoiceForward.protocol.wallet
       // this will return an invoice from the first receiver wallet that didn't fail yet and throw if none is available
-      const { invoice: bolt11, wrappedInvoice: wrappedBolt11, wallet, maxFee } = await createWrappedInvoice(userId, {
+      const { invoice: bolt11, wrappedInvoice: wrappedBolt11, protocol, maxFee } = await createWrappedInvoice(userId, {
         msats: failedInvoice.msatsRequested,
         feePercent: await action.getSybilFeePercent?.(actionArgs, retryContext),
         description: await action.describe?.(actionArgs, retryContext),
         expiry: INVOICE_EXPIRE_SECS
       }, retryContext)
-      invoiceArgs = { bolt11, wrappedBolt11, wallet, maxFee }
+      invoiceArgs = { bolt11, wrappedBolt11, protocol, maxFee }
     } catch (err) {
       console.log('failed to retry wrapped invoice, falling back to SN:', err)
     }
@@ -429,7 +433,7 @@ async function createSNInvoice (actionType, args, context) {
 
 async function createDbInvoice (actionType, args, context) {
   const { me, models, tx, cost, optimistic, actionId, invoiceArgs, paymentAttempt, predecessorId } = context
-  const { bolt11, wrappedBolt11, preimage, wallet, maxFee } = invoiceArgs
+  const { bolt11, wrappedBolt11, preimage, protocol, maxFee } = invoiceArgs
 
   const db = tx ?? models
 
@@ -468,9 +472,9 @@ async function createDbInvoice (actionType, args, context) {
         invoice: {
           create: invoiceData
         },
-        wallet: {
+        protocol: {
           connect: {
-            id: wallet.id
+            id: protocol.id
           }
         }
       }

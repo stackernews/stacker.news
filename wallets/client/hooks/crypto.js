@@ -9,7 +9,7 @@ import bip39Words from '@/lib/bip39-words'
 import { Form, PasswordInput, SubmitButton } from '@/components/form'
 import { object, string } from 'yup'
 import { SET_KEY, useKey, useKeyHash, useWalletsDispatch } from '@/wallets/client/context'
-import { useDisablePassphraseExport, useWalletReset } from '@/wallets/client/hooks'
+import { useDisablePassphraseExport, useUpdateKeyHash, useWalletReset } from '@/wallets/client/hooks'
 import { useToast } from '@/components/toast'
 
 export class CryptoKeyRequiredError extends Error {
@@ -40,11 +40,13 @@ export function useLoadOldKey () {
 export function useSetKey () {
   const { set } = useIndexedDB()
   const dispatch = useWalletsDispatch()
+  const updateKeyHash = useUpdateKeyHash()
 
   return useCallback(async ({ key, hash }) => {
     await set('vault', 'key', { key, hash })
+    await updateKeyHash(hash)
     dispatch({ type: SET_KEY, key, hash })
-  }, [set, dispatch])
+  }, [set, dispatch, updateKeyHash])
 }
 
 export function useEncryption () {

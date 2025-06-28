@@ -32,7 +32,7 @@ import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
-import { useKeyHash, useWallets, useLoading as useWalletsLoading } from '@/wallets/client/context'
+import { useWallets, useLoading as useWalletsLoading } from '@/wallets/client/context'
 
 export function useWalletsQuery () {
   const { me } = useMe()
@@ -413,14 +413,11 @@ export function useWalletMigrationMutation () {
 }
 
 export function useUpdateKeyHash () {
-  const keyHash = useKeyHash()
   const [mutate] = useMutation(UPDATE_KEY_HASH)
 
-  const updateKeyHash = useCallback(async () => {
+  return useCallback(async (keyHash) => {
     await mutate({ variables: { keyHash } })
-  }, [mutate, keyHash])
-
-  return useMemo(() => ({ updateKeyHash, ready: !!keyHash }), [updateKeyHash, keyHash])
+  }, [mutate])
 }
 
 function migrateConfig (protocol, config) {

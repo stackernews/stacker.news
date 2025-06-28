@@ -137,9 +137,14 @@ async function updateWalletEncryption (parent, { keyHash, wallets }, { me, model
 async function updateKeyHash (parent, { keyHash }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
-  await models.user.update({ where: { id: me.id }, data: { vaultKeyHash: keyHash } })
+  const count = await models.$executeRaw`
+    UPDATE users
+    SET "vaultKeyHash" = ${keyHash}
+    WHERE id = ${me.id}
+    AND "vaultKeyHash" = ''
+  `
 
-  return true
+  return count > 0
 }
 
 async function resetWallets (parent, { newKeyHash }, { me, models }) {

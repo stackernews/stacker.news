@@ -7,7 +7,7 @@ import useInvoice from '@/components/use-invoice'
 import { useMe } from '@/components/me'
 import {
   useWalletsQuery, useSendWallets, useWalletPayment, useGenerateRandomKey, useSetKey, useLoadKey, useLoadOldKey,
-  useWalletMigrationMutation, CryptoKeyRequiredError, useIsWrongKey
+  useWalletMigrationMutation, CryptoKeyRequiredError, useIsWrongKey, useUpdateKeyHash, useRemoteKeyHash
 } from '@/wallets/client/hooks'
 import { WalletConfigurationError } from '@/wallets/client/errors'
 import { RESET_PAGE, SET_WALLETS, WRONG_KEY, KEY_MATCH, useWalletsDispatch } from '@/wallets/client/context'
@@ -183,8 +183,11 @@ export function useKeyInit () {
 
 export function useWalletMigration () {
   const { me } = useMe()
+  const remoteKeyHash = useRemoteKeyHash()
+  const { updateKeyHash, ready: updateKeyHashReady } = useUpdateKeyHash()
   const { wallets: localWallets, refetch: refetchLocalWallets } = useLocalWallets()
-  const { migrate: walletMigration, ready } = useWalletMigrationMutation()
+  const { migrate: walletMigration, ready: walletMigrationReady } = useWalletMigrationMutation()
+  const ready = updateKeyHashReady && walletMigrationReady
 
   useEffect(() => {
     if (!me?.id || !ready) return
@@ -206,10 +209,12 @@ export function useWalletMigration () {
         })
       )
 
+      if (!remoteKeyHash) await updateKeyHash()
+
       if (localWallets.length > 0) refetchLocalWallets()
     }
     migrate()
-  }, [ready, me?.id, localWallets, walletMigration, refetchLocalWallets])
+  }, [ready, me?.id, localWallets, walletMigration, remoteKeyHash, updateKeyHash, refetchLocalWallets])
 }
 
 function useLocalWallets () {

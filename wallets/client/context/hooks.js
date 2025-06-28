@@ -185,7 +185,6 @@ export function useWalletMigration () {
   const { me } = useMe()
   const remoteKeyHash = useRemoteKeyHash()
   const { updateKeyHash, ready: updateKeyHashReady } = useUpdateKeyHash()
-  const { wallets: localWallets, refetch: refetchLocalWallets } = useLocalWallets()
   const { migrate: walletMigration, ready: walletMigrationReady } = useWalletMigrationMutation()
   const ready = updateKeyHashReady && walletMigrationReady
 
@@ -193,6 +192,19 @@ export function useWalletMigration () {
     if (!me?.id || !ready) return
 
     async function migrate () {
+      const localWallets = Object.entries(window.localStorage)
+        .filter(([key]) => key.startsWith('wallet:'))
+        .filter(([key]) => key.split(':').length < 3 || key.endsWith(me.id))
+        .reduce((acc, [key, value]) => {
+          try {
+            const config = JSON.parse(value)
+            acc.push({ key, ...config })
+          } catch (err) {
+            console.error(`useLocalWallets: ${key}: invalid JSON:`, err)
+          }
+          return acc
+        }, [])
+
       await Promise.allSettled(
         localWallets.map(async ({ key, ...localWallet }) => {
           const name = key.split(':')[1].toUpperCase()
@@ -210,35 +222,7 @@ export function useWalletMigration () {
       )
 
       if (!remoteKeyHash) await updateKeyHash()
-
-      if (localWallets.length > 0) refetchLocalWallets()
     }
     migrate()
-  }, [ready, me?.id, localWallets, walletMigration, remoteKeyHash, updateKeyHash, refetchLocalWallets])
-}
-
-function useLocalWallets () {
-  const { me } = useMe()
-  const [wallets, setWallets] = useState([])
-
-  const fetch = useCallback(() => {
-    const wallets = Object.entries(window.localStorage)
-      .filter(([key]) => key.startsWith('wallet:'))
-      .filter(([key]) => key.split(':').length < 3 || key.endsWith(me.id))
-      .reduce((acc, [key, value]) => {
-        try {
-          const config = JSON.parse(value)
-          acc.push({ key, ...config })
-        } catch (err) {
-          console.error(`useLocalWallets: ${key}: invalid JSON:`, err)
-        }
-        return acc
-      }, [])
-
-    setWallets(wallets)
-  }, [me?.id])
-
-  useEffect(fetch, [fetch])
-
-  return useMemo(() => ({ wallets, refetch: fetch }), [wallets, fetch])
+  }, [ready, me?.id, walletMigration, remoteKeyHash, updateKeyHash])
 }

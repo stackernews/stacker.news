@@ -25,7 +25,7 @@ import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey, useWalletLogger } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  isEncryptedField, isTemplate, isWallet, protocolClientSchema, reverseProtocolRelationName, walletTemplateId
+  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolClientSchema, reverseProtocolRelationName, walletTemplateId
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
@@ -46,6 +46,7 @@ export function useWalletsQuery () {
     Promise.all(
       query.data?.wallets.map(w => decryptWallet(w))
     )
+      .then(wallets => wallets.map(protocolCheck))
       .then(wallets => setWallets(wallets))
       .catch(err => {
         console.error('failed to decrypt wallets:', err)
@@ -60,6 +61,27 @@ export function useWalletsQuery () {
     loading: !wallets,
     data: wallets ? { wallets } : null
   }), [query, wallets])
+}
+
+function protocolCheck (wallet) {
+  if (isTemplate(wallet)) return wallet
+
+  const protocols = wallet.protocols.map(protocol => {
+    return {
+      ...protocol,
+      enabled: protocol.enabled && protocolAvailable(protocol)
+    }
+  })
+
+  const sendEnabled = protocols.some(p => p.send && p.enabled)
+  const receiveEnabled = protocols.some(p => !p.send && p.enabled)
+
+  return {
+    ...wallet,
+    send: wallet.send && sendEnabled,
+    recv: wallet.recv && receiveEnabled,
+    protocols
+  }
 }
 
 function useRefetchOnChange (refetch) {
@@ -82,6 +104,7 @@ export function useWalletQuery ({ id, name }) {
   useEffect(() => {
     if (!query.data?.wallet || !ready) return
     decryptWallet(query.data?.wallet)
+      .then(protocolCheck)
       .then(wallet => setWallet(wallet))
       .catch(err => {
         console.error('failed to decrypt wallet:', err)

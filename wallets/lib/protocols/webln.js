@@ -8,7 +8,8 @@ export default {
   displayName: 'WebLN',
   send: true,
   fields: [],
-  relationName: 'walletSendWebLN'
+  relationName: 'walletSendWebLN',
+  isAvailable: () => window?.weblnEnabled
 }
 
 export function WebLnProvider ({ children }) {

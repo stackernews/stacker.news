@@ -49,6 +49,7 @@ export function useWalletsQuery () {
       .then(wallets => setWallets(wallets))
       .catch(err => {
         console.error('failed to decrypt wallets:', err)
+        setWallets([])
       })
   }, [query.data, decryptWallet, ready])
 

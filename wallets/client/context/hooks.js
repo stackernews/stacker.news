@@ -141,18 +141,18 @@ export function useKeyInit () {
         //   and delete the old IndexedDB after wallet v2 has been released for some time
         const oldKeyAndHash = await loadOldKey()
         if (oldKeyAndHash) {
-          setKey(oldKeyAndHash)
+          await setKey(oldKeyAndHash)
           return
         }
 
         const key = await loadKey()
         if (key) {
-          setKey(key)
+          await setKey(key)
           return
         }
 
         const { key: randomKey, hash } = await generateRandomKey()
-        setKey({ key: randomKey, hash })
+        await setKey({ key: randomKey, hash })
       } catch (err) {
         console.error('key init failed:', err)
       }

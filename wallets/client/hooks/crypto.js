@@ -141,7 +141,7 @@ export function useSavePassphrase () {
 
   return useCallback(async ({ passphrase }) => {
     const { key, hash } = await deriveKey(passphrase, salt)
-    setKey({ key, hash })
+    await setKey({ key, hash })
     await disablePassphraseExport()
   }, [setKey, disablePassphraseExport])
 }
@@ -157,7 +157,7 @@ export function useResetPassphrase () {
     async () => {
       try {
         const { key: randomKey, hash } = await generateRandomKey()
-        setKey({ key: randomKey, hash })
+        await setKey({ key: randomKey, hash })
         await walletReset({ newKeyHash: hash })
         close()
       } catch (err) {

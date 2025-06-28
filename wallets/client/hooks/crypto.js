@@ -10,6 +10,7 @@ import { Form, PasswordInput, SubmitButton } from '@/components/form'
 import { object, string } from 'yup'
 import { SET_KEY, useKey, useKeyHash, useWalletsDispatch } from '@/wallets/client/context'
 import { useDisablePassphraseExport, useWalletReset } from '@/wallets/client/hooks'
+import { useToast } from '@/components/toast'
 
 export class CryptoKeyRequiredError extends Error {
   constructor () {
@@ -150,14 +151,20 @@ export function useResetPassphrase () {
   const walletReset = useWalletReset()
   const generateRandomKey = useGenerateRandomKey()
   const setKey = useSetKey()
+  const toaster = useToast()
 
   const resetPassphrase = useCallback((close) =>
     async () => {
-      const { key: randomKey, hash } = await generateRandomKey()
-      setKey({ key: randomKey, hash })
-      await walletReset({ newKeyHash: hash })
-      close()
-    }, [walletReset, generateRandomKey, setKey])
+      try {
+        const { key: randomKey, hash } = await generateRandomKey()
+        setKey({ key: randomKey, hash })
+        await walletReset({ newKeyHash: hash })
+        close()
+      } catch (err) {
+        console.error('failed to reset passphrase:', err)
+        toaster.error('failed to reset passphrase')
+      }
+    }, [walletReset, generateRandomKey, setKey, toaster])
 
   return useCallback(async () => {
     showModal(close => (

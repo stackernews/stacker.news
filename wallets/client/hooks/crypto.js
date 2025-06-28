@@ -167,7 +167,7 @@ export function useResetPassphrase () {
           This will delete all your sending credentials. Your credentials for receiving will not be affected.
         </p>
         <p className='line-height-md'>
-          After the reset, you will be issued a new passphrase. Take better care of it this time!
+          After the reset, you will be issued a new passphrase.
         </p>
         <div className='mt-3 d-flex justify-content-end align-items-center'>
           <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={close}>cancel</Button>

@@ -5,7 +5,7 @@ export const name = 'WEBLN'
 
 export async function sendPayment (bolt11) {
   if (typeof window.webln === 'undefined') {
-    throw new WalletError('WebLN provider not found')
+    throw new WalletError('lightning browser extension not found')
   }
 
   // this will prompt the user to unlock the wallet if it's locked

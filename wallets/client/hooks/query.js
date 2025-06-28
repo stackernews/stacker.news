@@ -22,7 +22,7 @@ import {
 } from '@/wallets/client/fragments'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey, useWalletLogger } from '@/wallets/client/hooks'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   isEncryptedField, isTemplate, isWallet, protocolClientSchema, reverseProtocolRelationName, walletTemplateId
 } from '@/wallets/lib/util'
@@ -358,6 +358,14 @@ export function useWalletMigrationMutation () {
   const client = useApolloClient()
   const { encryptConfig, ready } = useEncryptConfig()
 
+  // XXX We use a ref for the wallets to avoid duplicate wallets
+  //   Without a ref, the migrate callback would depend on the wallets and thus update every time the migration creates a wallet.
+  //   This update would then cause the useEffect in wallets/client/context/hooks that triggers the migration to run again before the first migration is complete.
+  const walletsRef = useRef(wallets)
+  useEffect(() => {
+    if (!loading) walletsRef.current = wallets
+  }, [loading])
+
   const migrate = useCallback(async ({ name, enabled, ...configV1 }) => {
     const protocol = { name, send: true }
 
@@ -372,7 +380,7 @@ export function useWalletMigrationMutation () {
       return sameName && sameSend && sameConfig
     }
 
-    const exists = wallets.some(w => w.name === name && w.protocols.some(isSameProtocol))
+    const exists = walletsRef.current.some(w => w.name === name && w.protocols.some(isSameProtocol))
     if (exists) return
 
     const schema = protocolClientSchema(protocol)
@@ -383,7 +391,7 @@ export function useWalletMigrationMutation () {
     // decide if we create a new wallet (templateId) or use an existing one (walletId)
     const templateId = getWalletTemplateId(protocol)
     let walletId
-    const wallet = wallets.find(w =>
+    const wallet = walletsRef.current.find(w =>
       w.name === name && !w.protocols.some(p => p.name === protocol.name && p.send)
     )
     if (wallet) {
@@ -398,7 +406,7 @@ export function useWalletMigrationMutation () {
         ...encrypted
       }
     })
-  }, [wallets, client, encryptConfig])
+  }, [client, encryptConfig])
 
   return useMemo(() => ({ migrate, ready: ready && !loading }), [migrate, ready, loading])
 }

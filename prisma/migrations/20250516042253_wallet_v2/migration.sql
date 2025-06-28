@@ -831,7 +831,7 @@ BEGIN
                 VALUES (protocolId, row."url", row."adminKeyId");
             END IF;
 
-            IF row."invoiceKey" IS NOT NULL THEN
+            IF NULLIF(row."invoiceKey", '') IS NOT NULL THEN
                 protocolId := create_wallet_protocol(row."walletId", walletId, false, 'LNBITS', row."enabled");
                 INSERT INTO "WalletRecvLNbits" ("protocolId", "url", "apiKey")
                 VALUES (protocolId, row."url", row."invoiceKey");
@@ -856,7 +856,7 @@ BEGIN
                 VALUES (protocolId, row."url", row."primaryPasswordId");
             END IF;
 
-            IF row."secondaryPassword" IS NOT NULL THEN
+            IF NULLIF(row."secondaryPassword", '') IS NOT NULL THEN
                 protocolId := create_wallet_protocol(row."walletId", walletId, false, 'PHOENIXD', row."enabled");
                 INSERT INTO "WalletRecvPhoenixd" ("protocolId", "url", "apiKey")
                 VALUES (protocolId, row."url", row."secondaryPassword");
@@ -881,7 +881,7 @@ BEGIN
                 VALUES (protocolId, row."apiKeyId", row."currencyId");
             END IF;
 
-            IF row."apiKeyRecv" IS NOT NULL AND row."currencyRecv" IS NOT NULL THEN
+            IF NULLIF(row."apiKeyRecv", '') IS NOT NULL AND NULLIF(row."currencyRecv", '') IS NOT NULL THEN
                 protocolId := create_wallet_protocol(row."walletId", walletId, false, 'BLINK', row."enabled");
                 INSERT INTO "WalletRecvBlink" ("protocolId", "apiKey", "currency")
                 VALUES (protocolId, row."apiKeyRecv", row."currencyRecv");
@@ -970,7 +970,7 @@ BEGIN
             -- we assume here that the wallet to receive is the same as the wallet to send
             -- since we can't check which relay is used for the send connection because it's encrypted.
             -- but in 99% if not 100% of the cases, it's the same wallet.
-            IF row."nwcUrlRecv" IS NOT NULL THEN
+            IF NULLIF(row."nwcUrlRecv", '') IS NOT NULL THEN
                 protocolId := create_wallet_protocol(row."walletId", walletId, false, 'NWC', row."enabled");
                 INSERT INTO "WalletRecvNWC" ("protocolId", "url")
                 VALUES (protocolId, row."nwcUrlRecv");

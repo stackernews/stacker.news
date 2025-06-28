@@ -38,6 +38,7 @@ const common = gql`
   scalar JSONObject
   scalar Date
   scalar Limit
+  scalar BigInt
 `
 
 export default [common, user, item, itemForward, message, wallet, lnurl, notifications, invite,

@@ -84,6 +84,16 @@ export function protocolFields ({ name, send }) {
   return protocol({ name, send })?.fields || []
 }
 
+export function protocolAvailable ({ name, send }) {
+  const { isAvailable } = protocol({ name, send })
+
+  if (typeof isAvailable === 'function') {
+    return isAvailable()
+  }
+
+  return true
+}
+
 export function isEncryptedField (protocol, key) {
   const fields = protocolFields(protocol)
   return fields.find(field => field.name === key && field.encrypt)

@@ -1,4 +1,3 @@
-import { SSR } from '@/lib/constants'
 import { WalletError } from '@/wallets/client/errors'
 
 export const name = 'WEBLN'
@@ -31,8 +30,4 @@ export async function testSendPayment () {
   if (typeof window.webln === 'undefined') {
     throw new WalletError('lightning browser extension not found')
   }
-}
-
-export function isAvailable () {
-  return !SSR && window?.weblnEnabled
 }

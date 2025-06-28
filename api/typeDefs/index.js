@@ -20,6 +20,8 @@ import chainFee from './chainFee'
 import paidAction from './paidAction'
 import vault from './vault'
 
+import oauth from './oauth'
+
 const common = gql`
   type Query {
     _: Boolean
@@ -39,4 +41,4 @@ const common = gql`
 `
 
 export default [common, user, item, itemForward, message, wallet, lnurl, notifications, invite,
-  sub, upload, growth, rewards, referrals, price, admin, blockHeight, chainFee, paidAction, vault]
+  sub, upload, growth, rewards, referrals, price, admin, blockHeight, chainFee, paidAction, vault, oauth]

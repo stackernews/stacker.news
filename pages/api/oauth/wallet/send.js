@@ -1,6 +1,8 @@
 import { authenticateOAuth } from '../../../../lib/oauth-auth'
 import models from '../../../../api/models'
-import { parsePaymentRequest } from '@/lib/bolt11'
+import { parsePaymentRequest } from 'ln-service'
+import { createWithdrawal } from '../../../../api/resolvers/wallet'
+import lnd from '../../../../api/lnd'
 
 export default async function handler (req, res) {
   if (req.method !== 'POST') {
@@ -78,28 +80,27 @@ export default async function handler (req, res) {
 
     if (amountMsats <= autoApproveThreshold) {
       // In a real implementation, this would actually send the payment
-      // For now, we'll simulate it
+      const withdrawal = await createWithdrawal(null, { invoice: bolt11, maxFee: maxFeeMsats ? Number(maxFeeMsats) : undefined }, { me: user, models, lnd })
 
       await models.oAuthWalletInvoiceRequest.update({
         where: { id: paymentRequest.id },
         data: {
           status: 'approved',
           approved: true,
-          approvedAt: new Date()
+          approvedAt: new Date(),
+          withdrawalId: withdrawal.id
         }
       })
 
-      // TODO: Implement actual payment sending using the user's configured wallet
-      // This would integrate with the existing wallet system
-
       return res.status(200).json({
         payment_id: paymentRequest.id,
-        status: 'approved',
+        status: withdrawal.status === 'CONFIRMED' ? 'complete' : 'pending',
         amount_msats: amountMsats.toString(),
         amount_sats: Math.floor(Number(amountMsats) / 1000),
         destination: parsedPaymentRequest.destination,
         description: parsedPaymentRequest.description,
-        approved_at: new Date().toISOString()
+        approved_at: new Date().toISOString(),
+        withdrawal_id: withdrawal.id
       })
     } else {
       // Requires manual approval

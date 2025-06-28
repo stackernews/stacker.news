@@ -175,7 +175,7 @@ async function createInvoice (req, res) {
         amount_requested_msats: invoice.msatsRequested.toString(),
         amount_requested_sats: Math.floor(Number(invoice.msatsRequested) / 1000),
         description: invoice.desc,
-        status: 'pending',
+        status: getInvoiceStatus(invoice),
         expires_at: invoice.expiresAt.toISOString(),
         created_at: invoice.createdAt.toISOString(),
         request_id: invoiceRequest.id

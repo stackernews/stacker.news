@@ -10,6 +10,7 @@ import {
   getInvoice, parsePaymentRequest,
   payViaPaymentRequest, settleHodlInvoice
 } from 'ln-service'
+import { sendUserNotification } from '@/lib/webPush'
 import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/wrap'
 
 // aggressive finalization retry options
@@ -170,6 +171,27 @@ export async function paidActionPaid ({ data: { invoiceId, ...args }, models, ln
       await tx.$executeRaw`
         INSERT INTO pgboss.job (name, data)
         VALUES ('checkStreak', jsonb_build_object('id', ${dbInvoice.userId}, 'type', 'COWBOY_HAT'))`
+
+      // If it's an OAuth invoice, send a push notification
+      if (dbInvoice.actionType === 'RECEIVE' && dbInvoice.oAuthWalletInvoiceRequest) {
+        const oAuthRequest = await tx.oAuthWalletInvoiceRequest.findUnique({
+          where: { invoiceId: dbInvoice.id },
+          include: { oauthApplication: true }
+        })
+        if (oAuthRequest && oAuthRequest.oauthApplication) {
+          await sendUserNotification(dbInvoice.userId, {
+            title: 'Invoice Paid',
+            body: `Received ${Math.floor(Number(lndInvoice.received_mtokens) / 1000)} sats from ${oAuthRequest.oauthApplication.name}`,
+            tag: `oauth_invoice_paid-${dbInvoice.id}`,
+            data: {
+              type: 'oauth_invoice_paid',
+              invoiceId: dbInvoice.id,
+              appName: oAuthRequest.oauthApplication.name,
+              amountSats: Math.floor(Number(lndInvoice.received_mtokens) / 1000)
+            }
+          })
+        }
+      }
 
       return updateFields
     },

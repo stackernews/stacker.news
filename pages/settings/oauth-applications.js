@@ -15,6 +15,7 @@ export default function OAuthApplications () {
   const [error, setError] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingApp, setEditingApp] = useState(null)
+  const [newApp, setNewApp] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -81,6 +82,11 @@ export default function OAuthApplications () {
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to save application')
+      }
+
+      if (!editingApp) {
+        const newApplication = await response.json()
+        setNewApp(newApplication)
       }
 
       await fetchApplications()
@@ -452,6 +458,30 @@ export default function OAuthApplications () {
                 </Button>
               </Modal.Footer>
             </Form>
+          </Modal>
+
+          <Modal show={!!newApp} onHide={() => setNewApp(null)}>
+            <Modal.Header closeButton>
+              <Modal.Title>Application Created</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              <Alert variant='warning'>
+                Your client secret is shown below. Make sure to copy it now. You won't be able to see it again.
+              </Alert>
+              <Form.Group>
+                <Form.Label>Client ID</Form.Label>
+                <Form.Control type='text' value={newApp?.clientId} readOnly />
+              </Form.Group>
+              <Form.Group className='mt-3'>
+                <Form.Label>Client Secret</Form.Label>
+                <Form.Control type='text' value={newApp?.clientSecret} readOnly />
+              </Form.Group>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant='primary' onClick={() => setNewApp(null)}>
+                Done
+              </Button>
+            </Modal.Footer>
           </Modal>
         </Container>
       </div>

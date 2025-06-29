@@ -1068,15 +1068,14 @@ export function Form ({
     })
   }, [storageKeyPrefix])
 
-  const onSubmitInner = useCallback(async ({ amount, ...values }, ...args) => {
-    const variables = { amount, ...values }
+  const onSubmitInner = useCallback(async (values, ...args) => {
     if (requireSession && !me) {
       throw new SessionRequiredError()
     }
 
     try {
       if (onSubmit) {
-        await onSubmit(variables, ...args)
+        await onSubmit(values, ...args)
       }
     } catch (err) {
       console.log(err.message, err)

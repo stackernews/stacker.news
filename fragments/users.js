@@ -54,7 +54,6 @@ ${STREAK_FIELDS}
       vaultKeyHash
       walletsUpdatedAt
       proxyReceive
-      directReceive
     }
     optional {
       isContributor
@@ -117,7 +116,6 @@ export const SETTINGS_FIELDS = gql`
       }
       apiKeyEnabled
       proxyReceive
-      directReceive
       receiveCreditsBelowSats
       sendCreditsBelowSats
     }

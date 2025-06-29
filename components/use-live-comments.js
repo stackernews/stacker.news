@@ -2,16 +2,20 @@ import { useQuery, useApolloClient } from '@apollo/client'
 import { SSR } from '../lib/constants'
 import { GET_NEW_COMMENTS, COMMENT_WITH_NEW } from '../fragments/comments'
 import { ITEM_FULL } from '../fragments/items'
-import { useCallback, useEffect, useState, useRef } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import styles from './comment.module.css'
 
 const POLL_INTERVAL = 1000 * 10 // 10 seconds
 
+// the item query is used to update the item's newComments field
 function itemUpdateQuery (client, id, sort, fn) {
   client.cache.updateQuery({
     query: ITEM_FULL,
     variables: sort === 'top' ? { id } : { id, sort }
-  }, (data) => fn(data))
+  }, (data) => {
+    if (!data) return data
+    return { item: fn(data.item) }
+  })
 }
 
 function commentUpdateFragment (client, id, fn) {
@@ -19,13 +23,21 @@ function commentUpdateFragment (client, id, fn) {
     id: `Item:${id}`,
     fragment: COMMENT_WITH_NEW,
     fragmentName: 'CommentWithNew'
-  }, (data) => fn(data))
+  }, (data) => {
+    if (!data) return data
+    return { ...data, ...fn(data) }
+  })
+}
+
+function dedupeComments (existing = [], incoming = []) {
+  const existingIds = new Set(existing.map(c => c.id))
+  return [...incoming.filter(c => !existingIds.has(c.id)), ...existing]
 }
 
 export default function useLiveComments (rootId, after, sort) {
   const client = useApolloClient()
   const [latest, setLatest] = useState(after)
-  const queuedCommentsRef = useRef([])
+  const [queue, setQueue] = useState([])
 
   const { data } = useQuery(GET_NEW_COMMENTS, SSR
     ? {}
@@ -39,11 +51,11 @@ export default function useLiveComments (rootId, after, sort) {
 
     // live comments can be orphans if the parent comment is not in the cache
     // queue them up and retry later, when the parent decides they want the children.
-    const allComments = [...queuedCommentsRef.current, ...data.newComments.comments]
+    const allComments = [...queue, ...data.newComments.comments]
     const { queuedComments } = cacheNewComments(client, rootId, allComments, sort)
 
-    // keep the queued comments in the ref for the next poll
-    queuedCommentsRef.current = queuedComments
+    // keep the queued comments for the next poll
+    setQueue(queuedComments)
 
     // update latest timestamp to the latest comment created at
     setLatest(prevLatest => getLatestCommentCreatedAt(data.newComments.comments, prevLatest))
@@ -61,10 +73,7 @@ function cacheNewComments (client, rootId, newComments, sort) {
     // if the comment is a top level comment, update the item
     if (topLevel) {
       console.log('topLevel', topLevel)
-      itemUpdateQuery(client, rootId, sort, (data) => {
-        if (!data) return data
-        return { item: mergeNewComment(data?.item, newComment) }
-      })
+      itemUpdateQuery(client, rootId, sort, (data) => mergeNewComment(data, newComment))
     } else {
       // check if parent exists in cache before attempting update
       const parentExists = client.cache.readFragment({
@@ -76,10 +85,7 @@ function cacheNewComments (client, rootId, newComments, sort) {
       if (parentExists) {
         // if the comment is a reply, update the parent comment
         console.log('reply', parentId)
-        commentUpdateFragment(client, parentId, (data) => {
-          if (!data) return data
-          return mergeNewComment(data, newComment)
-        })
+        commentUpdateFragment(client, parentId, (data) => mergeNewComment(data, newComment))
       } else {
         // parent not in cache, queue for retry
         queuedComments.push(newComment)
@@ -93,6 +99,7 @@ function cacheNewComments (client, rootId, newComments, sort) {
 // merge new comment into item's newComments
 // if the new comment is already in item's newComments or existing comments, do nothing
 function mergeNewComment (item, newComment) {
+  console.log('mergeNewComment', item, newComment)
   const existingNewComments = item.newComments || []
   const existingComments = item.comments?.comments || []
 
@@ -119,46 +126,23 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, s
   const client = useApolloClient()
 
   const showNewComments = useCallback(() => {
+    const payload = (data) => {
+      if (!data) return data
+      return {
+        ...data,
+        comments: { ...data.comments, comments: dedupeComments(data.comments.comments, newComments) },
+        newComments: []
+      }
+    }
+
     if (topLevel) {
       console.log('topLevel', topLevel)
-      itemUpdateQuery(client, itemId, sort, (data) => {
-        console.log('data', data)
-        if (!data) return data
-        const { item } = data
-
-        return {
-          item: {
-            ...item,
-            comments: injectComments(item.comments, newComments),
-            newComments: []
-          }
-        }
-      })
+      itemUpdateQuery(client, itemId, sort, payload)
     } else {
       console.log('reply', itemId)
-      commentUpdateFragment(client, itemId, (data) => {
-        console.log('data', data)
-        if (!data) return data
-
-        return {
-          ...data,
-          comments: injectComments(data.comments, newComments),
-          newComments: []
-        }
-      })
+      commentUpdateFragment(client, itemId, payload)
     }
   }, [client, itemId, newComments, topLevel, sort])
-
-  // inject new comments into existing comments
-  // if the new comment is already in existing comments, do nothing
-  const injectComments = (existingComments = [], newComments = []) => {
-    const existingIds = new Set(existingComments.comments.map(c => c.id))
-    const filteredNew = newComments.filter(c => !existingIds.has(c.id))
-    return {
-      ...existingComments,
-      comments: [...filteredNew, ...(existingComments.comments || [])]
-    }
-  }
 
   return (
     <div

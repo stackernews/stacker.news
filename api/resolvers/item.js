@@ -742,8 +742,11 @@ export default {
           ${SELECT}
           FROM "Item"
           -- comments can be nested, so we need to get all comments that are descendants of the root
-          WHERE "Item".path <@ (SELECT path FROM "Item" WHERE id = $1)
-          AND "Item"."created_at" > $2
+          ${whereClause(
+            '"Item".path <@ (SELECT path FROM "Item" WHERE id = $1)',
+            activeOrMine(me),
+            '"Item"."created_at" > $2'
+          )}
           ORDER BY "Item"."created_at" ASC`
       }, Number(rootId), after)
 

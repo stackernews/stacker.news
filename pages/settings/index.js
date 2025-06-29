@@ -82,6 +82,16 @@ export function SettingsHeader () {
             <Nav.Link eventKey='passphrase'>device sync</Nav.Link>
           </Link>
         </Nav.Item>
+        <Nav.Item>
+          <Link href='/settings/oauth-applications' passHref legacyBehavior>
+            <Nav.Link eventKey='oauth-applications'>oauth apps</Nav.Link>
+          </Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Link href='/settings/authorized-oauth-applications' passHref legacyBehavior>
+            <Nav.Link eventKey='authorized-oauth-applications'>authorized apps</Nav.Link>
+          </Link>
+        </Nav.Item>
       </Nav>
     </>
   )

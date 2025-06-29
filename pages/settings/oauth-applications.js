@@ -29,15 +29,10 @@ export default function OAuthApplications () {
 
   const availableScopes = [
     'read',
-    'write:posts',
-    'write:comments',
     'wallet:read',
     'wallet:send',
     'wallet:receive',
-    'profile:read',
-    'profile:write',
-    'notifications:read',
-    'notifications:write'
+    'profile:read'
   ]
 
   useEffect(() => {

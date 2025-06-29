@@ -20,7 +20,7 @@ The Stacker News OAuth implementation includes:
 *   **Authorization Code Grant with PKCE**: A secure and widely recommended OAuth 2.0 flow that prevents authorization code interception attacks.
 *   **Application Management UI**: Developers can register and manage their OAuth applications directly within the Stacker News platform via `/settings/oauth-applications`.
 *   **User Consent Screen**: Users are presented with a clear and concise consent screen, detailing the permissions an application is requesting before they grant access.
-*   **Granular Scopes**: A comprehensive set of scopes allows applications to request only the necessary permissions, adhering to the principle of least privilege.
+*   **Granular Scopes**: Defines a set of scopes for basic user information (`read`, `profile:read`) and wallet permissions (`wallet:read`, `wallet:send`, `wallet:receive`).
 *   **Secure Wallet API**: A dedicated set of API endpoints for secure interaction with user wallets, enabling payments and invoice management.
 *   **Token Management**: Robust mechanisms for issuing, refreshing, and revoking access and refresh tokens.
 *   **Rate Limiting**: Implemented to ensure fair usage and protect the API from abuse.
@@ -92,9 +92,9 @@ This endpoint is used by your application to exchange the authorization code for
 {
   "access_token": "YOUR_ACCESS_TOKEN",
   "token_type": "Bearer",
-  "expires_in": 3600, // seconds
+  "expires_in": 7200,
   "refresh_token": "YOUR_REFRESH_TOKEN",
-  "scope": "read wallet:read"
+  "scope": "read profile:read wallet:read"
 }
 ```
 
@@ -117,19 +117,10 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 ```json
 {
-  "id": 123,
-  "name": "satoshi",
-  "created_at": "2023-01-01T12:00:00.000Z",
-  "sats": 100000,
-  "free_posts": 5,
-  "free_comments": 10,
-  "streak": 7,
-  "photoId": 456,
-  "hideCowboy": false,
-  "lastPost": "2023-06-20T10:00:00.000Z",
-  "lastComment": "2023-06-20T11:00:00.000Z",
-  "lastMute": null,
-  "bio": "A brief bio of the user."
+  "id": 21858,
+  "name": "fac7e6077a",
+  "created_at": "2025-06-28T20:32:43.569Z",
+  "photo_id": null
 }
 ```
 
@@ -149,7 +140,10 @@ These endpoints allow your application to interact with the user's Stacker News 
 
 ```json
 {
-  "balance": 100000 // in sats
+  "balance_msats": "9900000",
+  "balance_sats": 9900,
+  "stacked_msats": "70000000",
+  "stacked_sats": 70000
 }
 ```
 
@@ -172,9 +166,16 @@ These endpoints allow your application to interact with the user's Stacker News 
 
 ```json
 {
-  "bolt11": "lnbc...",
-  "hash": "...",
-  "expires_at": "..."
+  "id": 159690,
+  "hash": "26301e208c90a920faa886de277233c644328a0d34191e210e18b0a3556b0492",
+  "bolt11": "lnbcrt1u1p5xzchrpp5yccpugyvjz5jp74gsm0zwu3ncezr9zsdxsv3uggwrzc2x4ttqjfqdp52d8r5grxv93nwefkxqmnwcfqwfjkxetfwejhxgp3xqczqumpw3escqzzsxqzjcsp5x35r6l5e9xax486djq69rev026h5fd08ttnw605qkq3jeaqxts9q9qxpqysgqqlf7y35rsm5uzq209ma58wd7nj7zgfn33gd7hs45d6ppwf0eer2yemfdlsvfl2uduv49rt42e9g95xyduk7z9tc6xdx96tjn4pk5nscqvz77vg",
+  "amount_requested_msats": "100000",
+  "amount_requested_sats": 100,
+  "description": "Test Invoice",
+  "status": "pending",
+  "expires_at": "2025-06-29T16:09:31.000Z",
+  "created_at": "2025-06-29T15:59:31.236Z",
+  "request_id": 16
 }
 ```
 
@@ -189,14 +190,15 @@ These endpoints allow your application to interact with the user's Stacker News 
 **Parameters:**
 
 *   `bolt11` (required): The Bolt11 invoice string to pay.
-*   `max_fee_msats` (optional): The maximum fee in millisatoshis that the user is willing to pay for the transaction.
+*   `max_fee_sats` (optional): The maximum fee in satoshis that the user is willing to pay for the transaction.
 
 **Successful Response (Example):**
 
 ```json
 {
-  "success": true,
-  "preimage": "..."
+  "status": "OK",
+  "approved": true,
+  "payment_request_id": 17
 }
 ```
 
@@ -205,15 +207,10 @@ These endpoints allow your application to interact with the user's Stacker News 
 Scopes define the permissions your application requests from the user. When a user authorizes your application, they are presented with a consent screen detailing these scopes. It's crucial to request only the scopes necessary for your application's functionality, adhering to the principle of least privilege.
 
 *   `read`: Read-only access to public user data, such as username, creation date, and public profile information.
-*   `write:posts`: Allows your application to create new posts and edit existing posts on behalf of the user.
-*   `write:comments`: Allows your application to create new comments and edit existing comments on behalf of the user.
 *   `wallet:read`: Provides read-only access to the user's wallet balance and invoice history. Your application cannot initiate payments with this scope.
 *   `wallet:send`: Grants permission to send payments from the user's wallet. This is a highly sensitive scope and requires explicit user approval.
 *   `wallet:receive`: Grants permission to create invoices for receiving payments into the user's wallet.
-*   `profile:read`: Provides read-only access to the user's private profile information, such as email address (if available and consented).
-*   `profile:write`: Allows your application to modify the user's profile information.
-*   `notifications:read`: Provides read-only access to the user's notifications.
-*   `notifications:write`: Allows your application to manage the user's notification settings.
+*   `profile:read`: Provides read-only access to the user's profile information, such as name and photo.
 
 ## 5. Token Management
 
@@ -291,34 +288,21 @@ Stacker News administrators can manage and approve OAuth applications via the ad
 *   Revoke access for existing applications.
 ## 9. Examples
 
-This document provides examples for implementing the OAuth 2.0 Authorization Code Flow with Proof Key for Code Exchange (PKCE) for your applications.
+This section provides a comprehensive Python example for implementing the OAuth 2.0 Authorization Code Flow with Proof Key for Code Exchange (PKCE). This script demonstrates how to obtain an access token and use it to interact with various protected API endpoints.
 
-## Configuration
+### Python Example
 
-Before you begin, ensure you have the following configuration details for your OAuth application:
+The following Python script demonstrates the complete flow, including:
+- Generating PKCE codes.
+- Initiating the authorization flow.
+- Handling the redirect and exchanging the authorization code for an access token.
+- Making authenticated API calls to fetch user info, check wallet balance, create invoices, and send payments.
 
-- `CLIENT_ID`: Your application's client ID.
-- `CLIENT_SECRET`: Your application's client secret. **This is a sensitive value and should be kept secure.**
-- `REDIRECT_URI`: The URI where the authorization server redirects the user after they have granted or denied permission to your application. This must match one of the redirect URIs configured for your application.
-- `AUTHORIZATION_URL`: The endpoint for initiating the authorization flow. (e.g., `http://localhost:3000/api/oauth/authorize`)
-- `TOKEN_URL`: The endpoint for exchanging the authorization code for an access token. (e.g., `http://localhost:3000/api/oauth/token`)
-- `SCOPES`: A space-separated list of permissions your application is requesting (e.g., `wallet:read profile:read`).
-
-## Flow Overview
-
-The Authorization Code Flow with PKCE involves the following steps:
-
-1.  **Generate Code Verifier and Challenge**: Your application generates a cryptographically random `code_verifier` and derives a `code_challenge` from it.
-2.  **Redirect to Authorization URL**: Your application redirects the user's browser to the `AUTHORIZATION_URL` with the `client_id`, `redirect_uri`, `response_type=code`, `scope`, `code_challenge`, and `code_challenge_method=S256`.
-3.  **User Authorization**: The user is prompted to authorize your application.
-4.  **Authorization Code Grant**: If the user approves, the authorization server redirects the user back to your `REDIRECT_URI` with an `authorization_code`.
-5.  **Exchange Code for Token**: Your application sends a POST request to the `TOKEN_URL` with the `authorization_code`, `redirect_uri`, `client_id`, `client_secret`, and `code_verifier`.
-6.  **Receive Tokens**: The authorization server validates the `code_verifier` against the `code_challenge` and, if valid, returns `access_token`, `refresh_token`, and `expires_in`.
-7.  **Access API**: Your application uses the `access_token` to make authenticated requests to protected API resources.
-
-## Python Example
-
-The following Python script demonstrates the complete OAuth 2.0 Authorization Code Flow with PKCE.
+To run this example:
+1.  Save the code as a Python file (e.g., `oauth_example.py`).
+2.  Install the `requests` library: `pip install requests`.
+3.  Replace the placeholder values in the "Configuration" section with your application's actual credentials.
+4.  Run the script from your terminal: `python oauth_example.py`.
 
 ```python
 import http.server
@@ -329,133 +313,208 @@ import requests
 import base64
 import hashlib
 import os
+import json
 
 # --- Configuration ---
-CLIENT_ID = "YOUR_CLIENT_ID" # Replace with your actual client ID
-CLIENT_SECRET = "YOUR_CLIENT_SECRET" # Replace with your actual client secret
+# IMPORTANT: Replace with your actual client credentials and settings.
+CLIENT_ID = "YOUR_CLIENT_ID"
+CLIENT_SECRET = "YOUR_CLIENT_SECRET" # Keep this secret!
 REDIRECT_URI = "http://localhost:5000/callback"
-AUTHORIZATION_URL = "http://localhost:3000/api/oauth/authorize"
-TOKEN_URL = "http://localhost:3000/api/oauth/token"
-SCOPES = "wallet:read profile:read" # Space-separated list of scopes
+# Adjust the base URL to match the Stacker News instance you are targeting (e.g., https://stacker.news)
+SN_BASE_URL = "http://localhost:3000"
+AUTHORIZATION_URL = f"{SN_BASE_URL}/api/oauth/authorize"
+TOKEN_URL = f"{SN_BASE_URL}/api/oauth/token"
+# Define the scopes your application needs.
+SCOPES = "profile:read wallet:read wallet:receive wallet:send"
 
-# --- PKCE Functions ---
+# --- PKCE Helper Functions ---
 def generate_code_verifier():
+    """Generate a cryptographically random string for PKCE."""
     return base64.urlsafe_b64encode(os.urandom(32)).rstrip(b'=').decode('utf-8')
 
 def generate_code_challenge(code_verifier):
+    """Generate a SHA256 code challenge from the verifier for PKCE."""
     s256 = hashlib.sha256(code_verifier.encode('utf-8')).digest()
     return base64.urlsafe_b64encode(s256).rstrip(b'=').decode('utf-8')
 
-# --- Global variables to store the code and verifier ---
+# --- Global variables to hold OAuth data during the flow ---
 authorization_code = None
-pkce_code_verifier = generate_code_verifier()
-pkce_code_challenge = generate_code_challenge(pkce_code_verifier)
+oauth_error = None
 
 class OAuthCallbackHandler(http.server.SimpleHTTPRequestHandler):
+    """A simple HTTP server to catch the OAuth redirect."""
     def do_GET(self):
-        global authorization_code
+        global authorization_code, oauth_error
         parsed_url = urllib.parse.urlparse(self.path)
         query_params = urllib.parse.parse_qs(parsed_url.query)
 
-        if parsed_url.path == "/callback" and "code" in query_params:
+        if "code" in query_params:
             authorization_code = query_params["code"][0]
-            self.send_response(200)
-            self.send_header("Content-type", "text/html")
-            self.end_headers()
-            self.wfile.write(b"<html><body><h1>Authorization successful!</h1><p>You can close this tab.</p></body></html>")
+            message = "<html><body><h1>Authorization successful!</h1><p>You can close this tab.</p></body></html>"
             print(f"Received authorization code: {authorization_code}")
+        elif "error" in query_params:
+            error_details = {
+                "error": query_params.get("error", ["unknown"])[0],
+                "description": query_params.get("error_description", [""])[0]
+            }
+            oauth_error = json.dumps(error_details)
+            message = f"<html><body><h1>Authorization failed!</h1><p>Error: {error_details['error']}</p><p>Description: {error_details['description']}</p></body></html>"
+            print(f"Received OAuth error: {oauth_error}")
         else:
             self.send_response(404)
             self.end_headers()
             self.wfile.write(b"Not Found")
+            return
+
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write(message.encode('utf-8'))
 
 def start_local_server():
+    """Starts a local server to handle the OAuth redirect and returns when the request is handled."""
     PORT = 5000
-    with socketserver.TCPServer(("", PORT), OAuthCallbackHandler) as httpd:
+    # Use a server that allows address reuse to avoid issues on quick restarts
+    class ReusableTCPServer(socketserver.TCPServer):
+        allow_reuse_address = True
+
+    with ReusableTCPServer(("", PORT), OAuthCallbackHandler) as httpd:
         print(f"Serving at port {PORT} to catch OAuth redirect...")
-        httpd.handle_request()
+        httpd.handle_request() # This will block until one request is handled
+        print(f"Local server on port {PORT} shut down.")
+
+def exchange_code_for_token(code, verifier):
+    """Exchanges the authorization code for an access token."""
+    print("
+Exchanging authorization code for access token...")
+    token_data = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": REDIRECT_URI,
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "code_verifier": verifier
+    }
+    try:
+        response = requests.post(TOKEN_URL, data=token_data)
+        response.raise_for_status()
+        token_info = response.json()
+        print("
+--- Access Token Response ---")
+        print(json.dumps(token_info, indent=2))
+        return token_info.get('access_token')
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP Error during token exchange: {e}")
+        print(f"Response content: {e.response.text}")
+        return None
+
+def make_api_call(access_token, endpoint, method='GET', json_data=None):
+    """Makes an authenticated API call to a Stacker News OAuth endpoint."""
+    print(f"
+--- Making API Call to {endpoint} ---")
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    url = f"{SN_BASE_URL}/api/oauth/{endpoint}"
+
+    try:
+        if method == 'GET':
+            response = requests.get(url, headers=headers)
+        elif method == 'POST':
+            response = requests.post(url, headers=headers, json=json_data)
+        else:
+            raise ValueError(f"Unsupported HTTP method: {method}")
+
+        response.raise_for_status()
+        api_response = response.json()
+        print(f"Status Code: {response.status_code}")
+        print("Response:")
+        print(json.dumps(api_response, indent=2))
+        return api_response
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP Error during API call to {endpoint}: {e}")
+        print(f"Response content: {e.response.text}")
+        return None
 
 def main():
-    print("--- Starting OAuth 2.0 Authorization Code Flow with PKCE ---")
+    """Main function to run the OAuth flow and demonstrate API calls."""
+    print("====== Starting Stacker News OAuth 2.0 Example Flow ======")
 
-    # 1. Construct Authorization URL
+    # 1. Generate PKCE codes
+    code_verifier = generate_code_verifier()
+    code_challenge = generate_code_challenge(code_verifier)
+    print(f"Generated PKCE Code Verifier (secret): {code_verifier}")
+    print(f"Generated PKCE Code Challenge: {code_challenge}")
+
+    # 2. Construct the authorization URL and open it in the browser
     auth_params = {
         "client_id": CLIENT_ID,
         "redirect_uri": REDIRECT_URI,
         "response_type": "code",
         "scope": SCOPES,
-        "code_challenge": pkce_code_challenge,
+        "code_challenge": code_challenge,
         "code_challenge_method": "S256"
     }
-    auth_query_string = urllib.parse.urlencode(auth_params)
-    full_authorization_url = f"{AUTHORIZATION_URL}?{auth_query_string}"
-
+    full_authorization_url = f"{AUTHORIZATION_URL}?{urllib.parse.urlencode(auth_params)}"
     print(f"
 Opening authorization URL in your browser. Please approve the request:")
     print(full_authorization_url)
     webbrowser.open(full_authorization_url)
 
-    # 2. Start local server to catch the redirect
+    # 3. Start the local server to catch the redirect with the authorization code
     start_local_server()
 
-    if not authorization_code:
-        print("Error: Did not receive an authorization code.")
-        return
-
-    # 3. Exchange Authorization Code for Access Token
-    print("
-Exchanging authorization code for access token...")
-    token_data = {
-        "grant_type": "authorization_code",
-        "code": authorization_code,
-        "redirect_uri": REDIRECT_URI,
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
-        "code_verifier": pkce_code_verifier
-    }
-
-    try:
-        response = requests.post(TOKEN_URL, data=token_data)
-        response.raise_for_status() # Raise an exception for HTTP errors
-        token_info = response.json()
-
+    if oauth_error:
         print("
---- Access Token Response ---")
-        print(f"Access Token: {token_info.get('access_token')}")
-        print(f"Token Type: {token_info.get('token_type')}")
-        print(f"Expires In: {token_info.get('expires_in')} seconds")
-        print(f"Refresh Token: {token_info.get('refresh_token')}")
-        print(f"Scope: {token_info.get('scope')}")
-
-    except requests.exceptions.HTTPError as e:
-        print(f"HTTP Error during token exchange: {e}")
-        print(f"Response content: {e.response.text}")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+OAuth flow failed. Exiting.")
+        return
+    if not authorization_code:
+        print("
+Did not receive an authorization code. Exiting.")
         return
 
-    # 4. Use the Access Token to make an API call
+    # 4. Exchange the authorization code for an access token
+    access_token = exchange_code_for_token(authorization_code, code_verifier)
+    if not access_token:
+        print("
+Failed to obtain access token. Exiting.")
+        return
+
+    # 5. Use the access token to make various API calls
     print("
---- Making API Call ---")
-    api_url = "http://localhost:3000/api/oauth/wallet/balance"
-    headers = {
-        "Authorization": f"Bearer {token_info.get('access_token')}"
+====== Demonstrating API Calls with Access Token ======")
+
+    # Get user profile info (requires 'profile:read' scope)
+    make_api_call(access_token, "userinfo")
+
+    # Get wallet balance (requires 'wallet:read' scope)
+    make_api_call(access_token, "wallet/balance")
+
+    # Create an invoice to receive sats (requires 'wallet:receive' scope)
+    invoice_details = {
+        "amount_sats": 100,
+        "description": "Test invoice from my awesome app"
     }
-    try:
-        api_response = requests.get(api_url, headers=headers)
-        api_response.raise_for_status()
-        api_data = api_response.json()
-        print("API call successful!")
-        print("Response:")
-        print(api_data)
-    except requests.exceptions.HTTPError as e:
-        print(f"HTTP Error during API call: {e}")
-        print(f"Response content: {e.response.text}")
-    except Exception as e:
-        print(f"An error occurred during API call: {e}")
+    created_invoice = make_api_call(access_token, "wallet/invoices", method='POST', json_data=invoice_details)
+
+    # Send sats (requires 'wallet:send' scope)
+    # NOTE: You need a valid BOLT11 invoice from a different wallet to pay.
+    # The invoice below is a placeholder and will not work.
+    invoice_to_pay = "lnbc..." # <-- REPLACE WITH A REAL INVOICE
+    payment_details = {
+        "bolt11": invoice_to_pay,
+        "max_fee_sats": 10 # Optional: set a max fee in sats
+    }
+    # Uncomment the line below to attempt a payment
+    # make_api_call(access_token, "wallet/send", method='POST', json_data=payment_details)
+    print("
+--- Skipping wallet:send call ---")
+    print("To test sending, replace the placeholder invoice in the script and uncomment the API call.")
 
 
 if __name__ == "__main__":
     # Ensure you have the 'requests' library installed: pip install requests
     main()
 ```
+

@@ -6,28 +6,18 @@ import Layout from '../../components/layout'
 
 const SCOPE_DESCRIPTIONS = {
   read: 'Read your public profile, posts, and comments',
-  'write:posts': 'Create and edit posts on your behalf',
-  'write:comments': 'Create and edit comments on your behalf',
   'wallet:read': 'View your wallet balance and transaction history',
   'wallet:send': 'Send payments from your wallet',
   'wallet:receive': 'Create invoices and receive payments to your wallet',
-  'profile:read': 'Access your profile information and settings',
-  'profile:write': 'Update your profile information and settings',
-  'notifications:read': 'Read your notifications',
-  'notifications:write': 'Manage your notification settings'
+  'profile:read': 'Access your profile information and settings'
 }
 
 const SCOPE_ICONS = {
   read: '👁️',
-  'write:posts': '✍️',
-  'write:comments': '💬',
   'wallet:read': '👀',
   'wallet:send': '⚡',
   'wallet:receive': '📥',
-  'profile:read': '👤',
-  'profile:write': '✏️',
-  'notifications:read': '🔔',
-  'notifications:write': '⚙️'
+  'profile:read': '👤'
 }
 
 export default function OAuthConsent ({ application = {}, scopes = [], params }) {
@@ -52,15 +42,14 @@ export default function OAuthConsent ({ application = {}, scopes = [], params })
         })
       })
 
+      if (response.redirected) {
+        window.location.href = response.url
+        return
+      }
+
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Authorization failed')
-      }
-
-      // The API endpoint will redirect, but handle it manually in case
-      const data = await response.json()
-      if (data.redirect_url) {
-        window.location.href = data.redirect_url
       }
     } catch (err) {
       setError(err.message)

@@ -68,9 +68,8 @@ async function createApplication (req, res, session) {
 
   // Validate scopes
   const validScopes = [
-    'read', 'write:posts', 'write:comments', 'wallet:read',
-    'wallet:send', 'wallet:receive', 'profile:read', 'profile:write',
-    'notifications:read', 'notifications:write'
+    'read', 'wallet:read',
+    'wallet:send', 'wallet:receive', 'profile:read'
   ]
 
   if (!scopes || !Array.isArray(scopes) || scopes.length === 0) {

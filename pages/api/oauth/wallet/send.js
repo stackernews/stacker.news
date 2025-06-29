@@ -17,7 +17,7 @@ export default async function handler (req, res) {
     }
 
     const { user, accessToken } = auth
-    const { bolt11, max_fee_msats: maxFeeMsats } = req.body
+    const { bolt11, max_fee_sats: maxFeeSats } = req.body
 
     if (!bolt11) {
       return res.status(400).json({ error: 'bolt11 payment request is required' })
@@ -26,9 +26,10 @@ export default async function handler (req, res) {
     // Parse and validate the payment request
     let parsedPaymentRequest
     try {
-      parsedPaymentRequest = parsePaymentRequest(bolt11)
+      parsedPaymentRequest = parsePaymentRequest({ request: bolt11 })
     } catch (error) {
-      return res.status(400).json({ error: 'Invalid payment request' })
+      console.error('Error parsing payment request:', error)
+      return res.status(400).json({ error: `Invalid payment request: ${error.message || 'unknown error'}` })
     }
 
     const amountMsats = BigInt(parsedPaymentRequest.mtokens || 0)
@@ -67,7 +68,7 @@ export default async function handler (req, res) {
         description: parsedPaymentRequest.description || 'OAuth app payment',
         metadata: {
           destination: parsedPaymentRequest.destination,
-          max_fee_msats: maxFeeMsats?.toString() || null,
+          max_fee_sats: maxFeeSats?.toString() || null,
           expires_at: parsedPaymentRequest.expires_at
         },
         status: 'pending_approval',
@@ -80,7 +81,16 @@ export default async function handler (req, res) {
 
     if (amountMsats <= autoApproveThreshold) {
       // In a real implementation, this would actually send the payment
-      const withdrawal = await createWithdrawal(null, { invoice: bolt11, maxFee: maxFeeMsats ? Number(maxFeeMsats) : undefined }, { me: user, models, lnd })
+      let withdrawal
+      try {
+        withdrawal = await createWithdrawal(null, { invoice: bolt11, maxFee: maxFeeSats ? Number(maxFeeSats) : undefined }, { me: user, models, lnd })
+      } catch (error) {
+        if (error.message.includes('insufficient funds')) {
+          return res.status(400).json({ error: 'Insufficient balance to cover payment and max fee' })
+        }
+        // Re-throw other errors
+        throw error
+      }
 
       await models.oAuthWalletTransaction.update({
         where: { id: paymentRequest.id },

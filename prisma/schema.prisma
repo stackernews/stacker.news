@@ -1315,15 +1315,10 @@ enum OAuthGrantType {
 
 enum OAuthScope {
   read
-  write_posts           @map("write:posts")
-  write_comments        @map("write:comments") 
   wallet_read           @map("wallet:read")
   wallet_send           @map("wallet:send")
   wallet_receive        @map("wallet:receive")
   profile_read          @map("profile:read")
-  profile_write         @map("profile:write")
-  notifications_read    @map("notifications:read")
-  notifications_write   @map("notifications:write")
 }
 
 enum OAuthTokenType {

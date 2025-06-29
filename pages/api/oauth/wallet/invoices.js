@@ -146,6 +146,10 @@ async function createInvoice (req, res) {
 
     if (requestedAmountMsats <= autoApproveThreshold) {
       // Auto-approve and create actual invoice
+      if (!lnd) {
+        console.error('LND not initialized')
+        return res.status(500).json({ error: 'Lightning Network Daemon not available' })
+      }
       const invoiceArgs = await createSNInvoice(InvoiceActionType.RECEIVE, { }, {
         me: user,
         lnd,

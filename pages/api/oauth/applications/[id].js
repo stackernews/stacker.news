@@ -171,9 +171,8 @@ async function updateApplication (req, res, session, applicationId) {
 
     if (scopes !== undefined) {
       const validScopes = [
-        'read', 'write:posts', 'write:comments', 'wallet:read',
-        'wallet:send', 'wallet:receive', 'profile:read', 'profile:write',
-        'notifications:read', 'notifications:write'
+        'read', 'wallet:read',
+        'wallet:send', 'wallet:receive', 'profile:read'
       ]
 
       if (!Array.isArray(scopes) || scopes.length === 0) {

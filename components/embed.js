@@ -125,19 +125,21 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
   // This Twitter embed could use similar logic to the video embeds below
   if (provider === 'twitter') {
     return (
-      <div className={classNames(styles.twitterContainer, !show && styles.twitterContained, className)}>
-        <TwitterTweetEmbed
-          tweetId={id}
-          options={{ theme: darkMode ? 'dark' : 'light', width: topLevel ? '550px' : '350px' }}
-          key={darkMode ? '1' : '2'}
-          placeholder={<TweetSkeleton className={className} />}
-          onLoad={() => setOverflowing(true)}
-        />
-        {overflowing && !show &&
-          <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
-            show full tweet
-          </Button>}
-      </div>
+      <>
+        <div className={classNames(styles.twitterContainer, !show && styles.twitterContained, className)}>
+          <TwitterTweetEmbed
+            tweetId={id}
+            options={{ theme: darkMode ? 'dark' : 'light', width: topLevel ? '550px' : '350px' }}
+            key={darkMode ? '1' : '2'}
+            placeholder={<TweetSkeleton className={className} />}
+            onLoad={() => setOverflowing(true)}
+          />
+          {overflowing && !show &&
+            <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
+              show full tweet
+            </Button>}
+        </div>
+      </>
     )
   }
 

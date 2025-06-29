@@ -53,33 +53,43 @@ const RssPopover = (
 const SocialsPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
-      <a
-        href='https://njump.me/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className='nav-link p-0 d-inline-flex'
-        target='_blank' rel='noreferrer'
-      >
-        nostr
-      </a>
-      <span className='mx-2 text-muted'> \ </span>
-      <a
-        href='https://twitter.com/stacker_news' className='nav-link p-0 d-inline-flex'
-        target='_blank' rel='noreferrer'
-      >
-        twitter
-      </a>
-      <span className='mx-2 text-muted'> \ </span>
-      <a
-        href='https://www.youtube.com/@stackernews' className='nav-link p-0 d-inline-flex'
-        target='_blank' rel='noreferrer'
-      >
-        youtube
-      </a>
-      <span className='mx-2 text-muted'> \ </span>
-      <a
-        href='https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2' className='nav-link p-0 d-inline-flex'
-        target='_blank' rel='noreferrer'
-      >
-        pod
-      </a>
+      <div className='d-flex justify-content-center'>
+        <a
+          href='https://njump.me/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className='nav-link p-0 d-inline-flex'
+          target='_blank' rel='noreferrer'
+        >
+          nostr
+        </a>
+        <span className='mx-2 text-muted'> \ </span>
+        <a
+          href='https://twitter.com/stacker_news' className='nav-link p-0 d-inline-flex'
+          target='_blank' rel='noreferrer'
+        >
+          twitter
+        </a>
+        <span className='mx-2 text-muted'> \ </span>
+        <a
+          href='https://www.youtube.com/@stackernews' className='nav-link p-0 d-inline-flex'
+          target='_blank' rel='noreferrer'
+        >
+          youtube
+        </a>
+      </div>
+      <div className='d-flex justify-content-center'>
+        <a
+          href='https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2' className='nav-link p-0 d-inline-flex'
+          target='_blank' rel='noreferrer'
+        >
+          pod
+        </a>
+        <span className='mx-2 text-muted'> \ </span>
+        <a
+          href='https://www.plebpoet.com/zines.html' className='nav-link p-0 d-inline-flex'
+          target='_blank' rel='noreferrer'
+        >
+          zines
+        </a>
+      </div>
     </Popover.Body>
   </Popover>
 )

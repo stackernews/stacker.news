@@ -54,7 +54,6 @@ ${STREAK_FIELDS}
       vaultKeyHash
       walletsUpdatedAt
       proxyReceive
-      directReceive
     }
     optional {
       isContributor
@@ -117,7 +116,6 @@ export const SETTINGS_FIELDS = gql`
       }
       apiKeyEnabled
       proxyReceive
-      directReceive
       receiveCreditsBelowSats
       sendCreditsBelowSats
     }
@@ -215,25 +213,6 @@ export const USER_FIELDS = gql`
     }
     ...StreakFields
   }`
-
-export const MY_SUBSCRIBED_USERS = gql`
-  ${STREAK_FIELDS}
-  query MySubscribedUsers($cursor: String) {
-    mySubscribedUsers(cursor: $cursor) {
-      users {
-        id
-        name
-        photoId
-        meSubscriptionPosts
-        meSubscriptionComments
-        meMute
-
-        ...StreakFields
-      }
-      cursor
-    }
-  }
-`
 
 export const MY_MUTED_USERS = gql`
   ${STREAK_FIELDS}
@@ -390,3 +369,33 @@ export const USER_STATS = gql`
         }
       }
     }`
+
+export const MY_SUBSCRIBED_USERS = gql`
+  ${STREAK_FIELDS}
+  query MySubscribedUsers($cursor: String) {
+    mySubscribedUsers(cursor: $cursor) {
+      users {
+        id
+        name
+        photoId
+        meSubscriptionPosts
+        meSubscriptionComments
+        meMute
+        ...StreakFields
+      }
+      cursor
+    }
+  }
+`
+
+export const MY_SUBSCRIBED_SUBS = gql`
+  ${SUB_FULL_FIELDS}
+  query MySubscribedSubs($cursor: String) {
+    mySubscribedSubs(cursor: $cursor) {
+      subs {
+        ...SubFullFields
+      }
+      cursor
+    }
+  }
+`

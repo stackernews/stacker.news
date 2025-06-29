@@ -148,7 +148,7 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
       return <Link id={props.id} target={isHashLink ? undefined : '_blank'} rel={rel} href={href}>{children}</Link>
     },
     img: TextMediaOrLink,
-    embed: Embed
+    embed: (props) => <Embed {...props} topLevel={topLevel} />
   }), [outlawed, rel, TextMediaOrLink, topLevel])
 
   const carousel = useCarousel()

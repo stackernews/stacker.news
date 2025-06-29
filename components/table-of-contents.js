@@ -2,11 +2,8 @@ import React, { useMemo, useState } from 'react'
 import Dropdown from 'react-bootstrap/Dropdown'
 import FormControl from 'react-bootstrap/FormControl'
 import TocIcon from '@/svgs/list-unordered.svg'
-import { fromMarkdown } from 'mdast-util-from-markdown'
-import { visit } from 'unist-util-visit'
-import { toString } from 'mdast-util-to-string'
-import { slug } from 'github-slugger'
 import { useRouter } from 'next/router'
+import { extractHeadings } from '@/lib/toc'
 
 export default function Toc ({ text }) {
   const router = useRouter()
@@ -14,16 +11,7 @@ export default function Toc ({ text }) {
     return null
   }
 
-  const toc = useMemo(() => {
-    const tree = fromMarkdown(text)
-    const toc = []
-    visit(tree, 'heading', (node, position, parent) => {
-      const str = toString(node)
-      toc.push({ heading: str, slug: slug(str.replace(/[^\w\-\s]+/gi, '')), depth: node.depth })
-    })
-
-    return toc
-  }, [text])
+  const toc = useMemo(() => extractHeadings(text), [text])
 
   if (toc.length === 0) {
     return null

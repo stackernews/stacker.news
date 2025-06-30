@@ -13,6 +13,7 @@ import PageLoading from '@/components/page-loading'
 import { FeeButtonProvider } from '@/components/fee-button'
 import SubSelect from '@/components/sub-select'
 import useCanEdit from '@/components/use-can-edit'
+import { useDomain } from '@/components/territory-domains'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM,
@@ -26,7 +27,7 @@ export default function PostEdit ({ ssrData }) {
 
   const { item } = data || ssrData
   const [sub, setSub] = useState(item.subName)
-
+  const { domain } = useDomain()
   const [,, editThreshold] = useCanEdit(item)
 
   let FormType = DiscussionForm
@@ -60,7 +61,7 @@ export default function PostEdit ({ ssrData }) {
     <CenterLayout sub={sub}>
       <FeeButtonProvider baseLineItems={existingBoostLineItem}>
         <FormType item={item} editThreshold={editThreshold}>
-          {!item.isJob &&
+          {!item.isJob && !domain &&
             <SubSelect
               className='d-flex'
               size='medium'

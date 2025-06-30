@@ -38,6 +38,11 @@ import { expireBoost } from './expireBoost'
 import { payingActionConfirmed, payingActionFailed } from './payingAction'
 import { autoDropBolt11s } from './autoDropBolt11'
 import { postToSocial } from './socialPoster'
+import {
+  domainVerification,
+  deleteCertificateExternal,
+  clearLongHeldDomains
+} from './domainVerification.js'
 
 // WebSocket polyfill
 import ws from 'isomorphic-ws'
@@ -122,6 +127,11 @@ async function work () {
   if (isServiceEnabled('images')) {
     await boss.work('imgproxy', jobWrapper(imgproxy))
     await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
+  }
+  if (isServiceEnabled('domains')) {
+    await boss.work('domainVerification', jobWrapper(domainVerification))
+    await boss.work('deleteDomainCertificate', jobWrapper(deleteCertificateExternal))
+    await boss.work('clearLongHeldDomains', jobWrapper(clearLongHeldDomains))
   }
   await boss.work('expireBoost', jobWrapper(expireBoost))
   await boss.work('weeklyPost-*', jobWrapper(weeklyPost))

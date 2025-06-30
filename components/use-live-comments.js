@@ -7,33 +7,6 @@ import styles from './comment.module.css'
 
 const POLL_INTERVAL = 1000 * 10 // 10 seconds
 
-// the item query is used to update the item's newComments field
-function itemUpdateQuery (client, id, sort, fn) {
-  client.cache.updateQuery({
-    query: ITEM_FULL,
-    variables: sort === 'top' ? { id } : { id, sort }
-  }, (data) => {
-    if (!data) return data
-    return { item: fn(data.item) }
-  })
-}
-
-function commentUpdateFragment (client, id, fn) {
-  client.cache.updateFragment({
-    id: `Item:${id}`,
-    fragment: COMMENT_WITH_NEW,
-    fragmentName: 'CommentWithNew'
-  }, (data) => {
-    if (!data) return data
-    return { ...data, ...fn(data) }
-  })
-}
-
-function dedupeComments (existing = [], incoming = []) {
-  const existingIds = new Set(existing.map(c => c.id))
-  return [...incoming.filter(c => !existingIds.has(c.id)), ...existing]
-}
-
 export default function useLiveComments (rootId, after, sort) {
   const client = useApolloClient()
   const [latest, setLatest] = useState(after)
@@ -62,17 +35,37 @@ export default function useLiveComments (rootId, after, sort) {
   }, [data, client, rootId, sort])
 }
 
+// the item query is used to update the item's newComments field
+function itemUpdateQuery (client, id, sort, fn) {
+  client.cache.updateQuery({
+    query: ITEM_FULL,
+    variables: sort === 'top' ? { id } : { id, sort }
+  }, (data) => {
+    if (!data) return data
+    return { item: fn(data.item) }
+  })
+}
+
+function commentUpdateFragment (client, id, fn) {
+  client.cache.updateFragment({
+    id: `Item:${id}`,
+    fragment: COMMENT_WITH_NEW,
+    fragmentName: 'CommentWithNew'
+  }, (data) => {
+    if (!data) return data
+    return fn(data)
+  })
+}
+
 function cacheNewComments (client, rootId, newComments, sort) {
   const queuedComments = []
 
   for (const newComment of newComments) {
-    console.log('newComment', newComment)
     const { parentId } = newComment
     const topLevel = Number(parentId) === Number(rootId)
 
     // if the comment is a top level comment, update the item
     if (topLevel) {
-      console.log('topLevel', topLevel)
       itemUpdateQuery(client, rootId, sort, (data) => mergeNewComment(data, newComment))
     } else {
       // check if parent exists in cache before attempting update
@@ -84,7 +77,6 @@ function cacheNewComments (client, rootId, newComments, sort) {
 
       if (parentExists) {
         // if the comment is a reply, update the parent comment
-        console.log('reply', parentId)
         commentUpdateFragment(client, parentId, (data) => mergeNewComment(data, newComment))
       } else {
         // parent not in cache, queue for retry
@@ -99,7 +91,6 @@ function cacheNewComments (client, rootId, newComments, sort) {
 // merge new comment into item's newComments
 // if the new comment is already in item's newComments or existing comments, do nothing
 function mergeNewComment (item, newComment) {
-  console.log('mergeNewComment', item, newComment)
   const existingNewComments = item.newComments || []
   const existingComments = item.comments?.comments || []
 
@@ -107,7 +98,14 @@ function mergeNewComment (item, newComment) {
   if (existingNewComments.some(c => c.id === newComment.id) || existingComments.some(c => c.id === newComment.id)) {
     return item
   }
+
   return { ...item, newComments: [...existingNewComments, newComment] }
+}
+
+// dedupe comments by id
+function dedupeComments (existing = [], incoming = []) {
+  const existingIds = new Set(existing.map(c => c.id))
+  return [...incoming.filter(c => !existingIds.has(c.id)), ...existing]
 }
 
 function getLatestCommentCreatedAt (comments, latest) {
@@ -127,19 +125,22 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, s
 
   const showNewComments = useCallback(() => {
     const payload = (data) => {
-      if (!data) return data
+      // fresh newComments
+      const freshNewComments = newComments.map(c => client.cache.readFragment({
+        id: `Item:${c.id}`,
+        fragment: COMMENT_WITH_NEW,
+        fragmentName: 'CommentWithNew'
+      }))
       return {
         ...data,
-        comments: { ...data.comments, comments: dedupeComments(data.comments.comments, newComments) },
+        comments: { ...data.comments, comments: dedupeComments(data.comments.comments, freshNewComments) },
         newComments: []
       }
     }
 
     if (topLevel) {
-      console.log('topLevel', topLevel)
       itemUpdateQuery(client, itemId, sort, payload)
     } else {
-      console.log('reply', itemId)
       commentUpdateFragment(client, itemId, payload)
     }
   }, [client, itemId, newComments, topLevel, sort])
@@ -149,7 +150,7 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, s
       onClick={showNewComments}
       className={`${topLevel && `d-block fw-bold ${styles.comment} pb-2`} d-flex align-items-center gap-2 px-3 pointer`}
     >
-      load new comments
+      show ({newComments.length}) new comments
       <div className={styles.newCommentDot} />
     </div>
   )

@@ -11,20 +11,20 @@ import { ModalClosedError } from '@/components/modal'
 //   so when we go to all wallet logs, we still see the deleted logs until the query is refetched
 
 export function WalletLogs ({ protocol, className }) {
-  const { logs, loadMore, hasMore, refetch, loading } = useWalletLogs(protocol)
+  const { logs, loadMore, hasMore, loading, clearLogs } = useWalletLogs(protocol)
   const deleteLogs = useDeleteWalletLogs(protocol)
 
   const onDelete = useCallback(async () => {
     try {
       await deleteLogs()
-      refetch()
+      clearLogs()
     } catch (err) {
       if (err instanceof ModalClosedError) {
         return
       }
       console.error('error deleting logs:', err)
     }
-  }, [deleteLogs, refetch])
+  }, [deleteLogs, clearLogs])
 
   const embedded = !!protocol
 

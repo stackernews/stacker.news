@@ -11,7 +11,7 @@ const typeDefs = gql`
     wallets: [WalletOrTemplate!]!
     wallet(id: ID, name: String): WalletOrTemplate
     walletSettings: WalletSettings!
-    walletLogs(protocolId: Int): [WalletLogEntry!]!
+    walletLogs(protocolId: Int, cursor: String): WalletLogs!
     failedInvoices: [Invoice!]!
   }
 
@@ -295,7 +295,7 @@ const typeDefs = gql`
     cursor: String
   }
 
-  type WalletLog {
+  type WalletLogs {
     entries: [WalletLogEntry!]!
     cursor: String
   }

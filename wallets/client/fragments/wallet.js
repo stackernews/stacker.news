@@ -235,15 +235,18 @@ export const ADD_WALLET_LOG = gql`
 `
 
 export const WALLET_LOGS = gql`
-  query WalletLogs($protocolId: Int) {
-    walletLogs(protocolId: $protocolId) {
-      id
-      level
-      message
-      createdAt
-      wallet {
-        name
+  query WalletLogs($protocolId: Int, $cursor: String) {
+    walletLogs(protocolId: $protocolId, cursor: $cursor) {
+      entries {
+        id
+        level
+        message
+        createdAt
+        wallet {
+          name
+        }
       }
+      cursor
     }
   }
 `

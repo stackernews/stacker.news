@@ -1,6 +1,6 @@
-import { useMutation, useQuery } from '@apollo/client'
+import { useMutation, useLazyQuery } from '@apollo/client'
 import { ADD_WALLET_LOG, WALLET_LOGS, DELETE_WALLET_LOGS } from '@/wallets/client/fragments'
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState, useEffect } from 'react'
 import { Button } from 'react-bootstrap'
 import { ModalClosedError, useShowModal } from '@/components/modal'
 import { useToast } from '@/components/toast'
@@ -80,26 +80,58 @@ export function useWalletLogger (protocol) {
 
 export function useWalletLogs (protocol) {
   const { templateLogs } = useContext(TemplateLogsContext)
-  const { data, loading, error, refetch } = useQuery(WALLET_LOGS, {
-    variables: {
-      // if no protocol was given, we want to fetch all logs
-      protocolId: protocol ? Number(protocol.id) : undefined
-    },
-    // if we're configuring a protocol template, there are no logs to fetch
-    skip: protocol && isTemplate(protocol),
-    pollInterval: FAST_POLL_INTERVAL
+
+  const [cursor, setCursor] = useState(null)
+  // if we're configuring a protocol template, there are no logs to fetch
+  const skip = protocol && isTemplate(protocol)
+  const [logs, setLogs] = useState(skip ? templateLogs : [])
+
+  // if no protocol was given, we want to fetch all logs
+  const protocolId = protocol ? Number(protocol.id) : undefined
+
+  const [fetchLogs, { called, loading, error }] = useLazyQuery(WALLET_LOGS, {
+    variables: { protocolId },
+    skip,
+    fetchPolicy: 'network-only'
   })
+
+  useEffect(() => {
+    if (skip) return
+
+    const interval = setInterval(async () => {
+      const { data } = await fetchLogs({ variables: { protocolId } })
+      const { entries: updatedLogs, cursor } = data.walletLogs
+      setLogs(logs => [...updatedLogs.filter(log => !logs.some(l => l.id === log.id)), ...logs])
+      if (!called) {
+        setCursor(cursor)
+      }
+    }, FAST_POLL_INTERVAL)
+
+    return () => clearInterval(interval)
+  }, [fetchLogs, called, skip])
+
+  const loadMore = useCallback(async () => {
+    const { data } = await fetchLogs({ variables: { protocolId, cursor } })
+    const { entries: cursorLogs, cursor: newCursor } = data.walletLogs
+    setLogs(logs => [...logs, ...cursorLogs.filter(log => !logs.some(l => l.id === log.id))])
+    setCursor(newCursor)
+  }, [fetchLogs, cursor, protocolId])
+
+  const clearLogs = useCallback(() => {
+    setLogs([])
+    setCursor(null)
+  }, [])
 
   return useMemo(() => {
     return {
       loading,
-      logs: data?.walletLogs ?? templateLogs ?? [],
+      logs: skip ? templateLogs : logs,
       error,
-      loadMore: () => {},
-      hasMore: false,
-      refetch
+      loadMore,
+      hasMore: cursor !== null,
+      clearLogs
     }
-  }, [data, loading, error, refetch, templateLogs])
+  }, [loading, skip, templateLogs, logs, error, loadMore, clearLogs])
 }
 
 function mapLevelToConsole (level) {

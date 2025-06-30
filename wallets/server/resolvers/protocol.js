@@ -7,6 +7,7 @@ import { protocolTestCreateInvoice } from '@/wallets/server/protocols'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
+import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 
 const WalletProtocolConfig = {
   __resolveType: config => config.__resolveType
@@ -213,17 +214,24 @@ export async function removeWalletProtocol (parent, { id }, { me, models, tx }) 
   return await (tx ? transaction(tx) : models.$transaction(transaction))
 }
 
-async function walletLogs (parent, { protocolId }, { me, models }) {
+async function walletLogs (parent, { protocolId, cursor }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
+
+  const decodedCursor = decodeCursor(cursor)
 
   const logs = await models.walletLog.findMany({
     where: {
       userId: me.id,
-      protocolId
+      protocolId,
+      createdAt: {
+        lt: decodedCursor.time
+      }
     },
     orderBy: {
       createdAt: 'desc'
     },
+    take: LIMIT,
+    skip: decodedCursor.offset,
     include: {
       protocol: {
         include: {
@@ -238,17 +246,20 @@ async function walletLogs (parent, { protocolId }, { me, models }) {
     }
   })
 
-  return logs.map(log => ({
-    ...log,
-    ...(log.protocol
-      ? {
-          wallet: {
-            ...log.protocol.wallet,
-            name: log.protocol.wallet.template.name
+  return {
+    entries: logs.map(log => ({
+      ...log,
+      ...(log.protocol
+        ? {
+            wallet: {
+              ...log.protocol.wallet,
+              name: log.protocol.wallet.template.name
+            }
           }
-        }
-      : {})
-  }))
+        : {})
+    })),
+    cursor: logs.length === LIMIT ? nextCursorEncoded(decodedCursor, LIMIT) : null
+  }
 }
 
 async function addWalletLog (parent, { protocolId, level, message, timestamp, invoiceId }, { me, models }) {

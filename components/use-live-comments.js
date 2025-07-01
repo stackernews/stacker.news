@@ -35,6 +35,7 @@ export default function useLiveComments (rootId, after, sort) {
 
     // update latest timestamp to the latest comment created at
     setLatest(prevLatest => getLatestCommentCreatedAt(data.newComments.comments, prevLatest))
+    console.log('latest', latest)
   }, [data, client, rootId, sort])
 }
 
@@ -111,13 +112,8 @@ function mergeNewComment (item, newComment) {
 }
 
 function getLatestCommentCreatedAt (comments, latest) {
-  if (comments.length === 0) return latest
-
-  // timestamp comparison via Math.max on bare timestamps
-  // convert all createdAt to timestamps
-  const timestamps = comments.map(c => new Date(c.createdAt).getTime())
-  // find the latest timestamp
-  const maxTimestamp = Math.max(...timestamps, new Date(latest).getTime())
-  // convert back to ISO string
-  return new Date(maxTimestamp).toISOString()
+  return comments.reduce(
+    (max, { createdAt }) => (createdAt > max ? createdAt : max),
+    latest
+  )
 }

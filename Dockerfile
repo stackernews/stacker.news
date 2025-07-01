@@ -14,6 +14,14 @@ WORKDIR /app
 
 EXPOSE 3000
 
+EXPOSE 9229
+
+EXPOSE 9230
+
+EXPOSE 9231
+
+EXPOSE 9232
+
 COPY package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps --loglevel verbose
 CMD ["sh","-c","npm install --loglevel verbose --legacy-peer-deps && npx prisma migrate dev && npm run dev"]

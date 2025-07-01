@@ -86,7 +86,7 @@ export async function createWrappedInvoice (userId,
       }
     } catch (e) {
       console.error('failed to wrap invoice:', e)
-      logger?.error('failed to wrap invoice: ' + e.message, { bolt11 })
+      logger?.warn('failed to wrap invoice: ' + e.message, { bolt11 })
     }
   }
 

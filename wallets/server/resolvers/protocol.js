@@ -8,13 +8,33 @@ import { timeoutSignal, withTimeout } from '@/lib/time'
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
+import { logContextFromBolt11 } from '@/wallets/server/logger'
+import { formatMsats } from '@/lib/format'
 
 const WalletProtocolConfig = {
   __resolveType: config => config.__resolveType
 }
 
+const WalletLogEntry = {
+  context: async ({ level, context, withdrawal }) => {
+    const isError = ['error', 'warn'].includes(level.toLowerCase())
+
+    // never return invoice as context because it might leak sensitive sender details
+    if (withdrawal) {
+      return {
+        ...await logContextFromBolt11(withdrawal.bolt11),
+        ...(withdrawal.preimage ? { preimage: withdrawal.preimage } : {}),
+        ...(isError ? { max_fee: formatMsats(withdrawal.msatsFeePaying) } : {})
+      }
+    }
+
+    return context
+  }
+}
+
 export const resolvers = {
   WalletProtocolConfig,
+  WalletLogEntry,
   Query: {
     walletLogs
   },
@@ -242,7 +262,8 @@ async function walletLogs (parent, { protocolId, cursor }, { me, models }) {
           }
         }
       },
-      invoice: true
+      invoice: true,
+      withdrawal: true
     }
   })
 

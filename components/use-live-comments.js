@@ -35,8 +35,14 @@ export default function useLiveComments (rootId, after, sort) {
 
     // update latest timestamp to the latest comment created at
     setLatest(prevLatest => getLatestCommentCreatedAt(data.newComments.comments, prevLatest))
-    console.log('latest', latest)
   }, [data, client, rootId, sort])
+
+  // cleanup queue on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      queue.current = []
+    }
+  }, [])
 }
 
 // the item query is used to update the item's newComments field

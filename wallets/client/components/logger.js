@@ -1,7 +1,7 @@
 import { Button } from 'react-bootstrap'
 import styles from '@/styles/logger.module.css'
 import { useWalletLogs, useDeleteWalletLogs } from '@/wallets/client/hooks'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, Fragment } from 'react'
 import { timeSince } from '@/lib/time'
 import classNames from 'classnames'
 import { ModalClosedError } from '@/components/modal'
@@ -103,19 +103,21 @@ export function LogMessage ({ tag, level, message, context, ts }) {
         <div className={styles.tag}>{`[${nameToTag(tag)}]`}</div>
         <div className={`${styles.level} ${className}`}>{level}</div>
         <div className={styles.message}>{message}</div>
-        <div>{indicator}</div>
+        <div className={styles.indicator}>{indicator}</div>
       </div>
-      {show && hasContext && Object.entries(filtered)
-        .map(([key, value], i) => {
-          const last = i === Object.keys(filtered).length - 1
-          return (
-            <tr className={styles.line} key={i}>
-              <td />
-              <td className={last ? 'pb-2 pe-1' : 'pe-1'} colSpan='2'>{key}</td>
-              <td className={last ? 'text-break pb-2' : 'text-break'}>{value}</td>
-            </tr>
-          )
-        })}
+      {show && hasContext && (
+        <div className={styles.context}>
+          {Object.entries(filtered)
+            .map(([key, value], i) => {
+              return (
+                <Fragment key={i}>
+                  <div>{key}:</div>
+                  <div className='text-break'>{value}</div>
+                </Fragment>
+              )
+            })}
+        </div>
+      )}
     </>
   )
 }

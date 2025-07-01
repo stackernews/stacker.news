@@ -49,3 +49,16 @@
 .message {
     word-break: break-word;
 }
+
+.indicator {
+    margin-left: auto;
+}
+
+.context {
+    flex-basis: 100%;
+    display: grid;
+    grid-template-columns: min-content auto;
+    column-gap: 0.5rem;
+    padding-left: 0.5rem;
+    padding-bottom: 0.5rem;
+}

@@ -245,6 +245,7 @@ export const WALLET_LOGS = gql`
         wallet {
           name
         }
+        context
       }
       cursor
     }

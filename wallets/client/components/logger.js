@@ -102,7 +102,7 @@ export function LogMessage ({ tag, level, message, context, ts }) {
         <TimeSince timestamp={ts} />
         <div className={styles.tag}>{`[${nameToTag(tag)}]`}</div>
         <div className={`${styles.level} ${className}`}>{level}</div>
-        <div>{message}</div>
+        <div className={styles.message}>{message}</div>
         <div>{indicator}</div>
       </div>
       {show && hasContext && Object.entries(filtered)

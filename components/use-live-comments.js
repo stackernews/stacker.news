@@ -2,8 +2,7 @@ import { useQuery, useApolloClient } from '@apollo/client'
 import { SSR } from '../lib/constants'
 import { GET_NEW_COMMENTS, COMMENT_WITH_NEW } from '../fragments/comments'
 import { ITEM_FULL } from '../fragments/items'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import styles from './comment.module.css'
+import { useEffect, useRef, useState } from 'react'
 
 const POLL_INTERVAL = 1000 * 10 // 10 seconds
 
@@ -40,7 +39,7 @@ export default function useLiveComments (rootId, after, sort) {
 }
 
 // the item query is used to update the item's newComments field
-function itemUpdateQuery (client, id, sort, fn) {
+export function itemUpdateQuery (client, id, sort, fn) {
   client.cache.updateQuery({
     query: ITEM_FULL,
     // updateQuery needs the correct variables to update the correct item
@@ -53,7 +52,7 @@ function itemUpdateQuery (client, id, sort, fn) {
 }
 
 // update the newComments field of a nested comment fragment
-function commentUpdateFragment (client, id, fn) {
+export function commentUpdateFragment (client, id, fn) {
   client.cache.updateFragment({
     id: `Item:${id}`,
     fragment: COMMENT_WITH_NEW,
@@ -121,61 +120,4 @@ function getLatestCommentCreatedAt (comments, latest) {
   const maxTimestamp = Math.max(...timestamps, new Date(latest).getTime())
   // convert back to ISO string
   return new Date(maxTimestamp).toISOString()
-}
-
-// ShowNewComments is a component that dedupes, refreshes and injects newComments into the comments field
-export function ShowNewComments ({ newComments = [], itemId, topLevel = false, sort }) {
-  const client = useApolloClient()
-
-  const showNewComments = useCallback(() => {
-    const payload = (data) => {
-      // TODO: it might be sane to pass the cache ref to the ShowNewComments component
-      // TODO: and use it to read the latest newComments from the cache
-      // newComments can have themselves new comments between the time the button is clicked and the query is executed
-      // so we need to read the latest newComments from the cache
-      const freshNewComments = newComments.map(c => {
-        const fragment = client.cache.readFragment({
-          id: `Item:${c.id}`,
-          fragment: COMMENT_WITH_NEW,
-          fragmentName: 'CommentWithNew'
-        })
-        // if the comment is not in the cache, return the original comment
-        return fragment || c
-      })
-
-      // deduplicate the fresh new comments with the existing comments
-      const dedupedComments = dedupeComments(data.comments.comments, freshNewComments)
-
-      return {
-        ...data,
-        comments: { ...data.comments, comments: dedupedComments },
-        ncomments: data.ncomments + (dedupedComments.length || 0),
-        newComments: []
-      }
-    }
-
-    if (topLevel) {
-      itemUpdateQuery(client, itemId, sort, payload)
-    } else {
-      commentUpdateFragment(client, itemId, payload)
-    }
-  }, [client, itemId, newComments, topLevel, sort])
-
-  return (
-    <div
-      onClick={showNewComments}
-      className={`${topLevel && `d-block fw-bold ${styles.comment} pb-2`} d-flex align-items-center gap-2 px-3 pointer`}
-    >
-      {newComments.length > 1 ? `${newComments.length} new comments` : 'show new comment'}
-      <div className={styles.newCommentDot} />
-    </div>
-  )
-}
-
-// even though we already deduplicated comments during the newComments merge,
-// refetches, client-side navigation, etc. can cause duplicates to appear,
-// so we'll make sure to deduplicate them here, by id
-function dedupeComments (existing = [], incoming = []) {
-  const existingIds = new Set(existing.map(c => c.id))
-  return [...incoming.filter(c => !existingIds.has(c.id)), ...existing]
 }

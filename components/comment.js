@@ -28,7 +28,7 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
-import { ShowNewComments } from './use-live-comments'
+import { ShowNewComments } from './show-new-comments'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()

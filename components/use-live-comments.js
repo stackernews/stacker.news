@@ -111,14 +111,6 @@ function mergeNewComment (item, newComment) {
   return { ...item, newComments: [...existingNewComments, newComment] }
 }
 
-// even though we already deduplicated comments during the newComments merge
-// refetches, client-side navigation, etc. can cause duplicates to appear
-// we'll make sure to deduplicate them here, by id
-function dedupeComments (existing = [], incoming = []) {
-  const existingIds = new Set(existing.map(c => c.id))
-  return [...incoming.filter(c => !existingIds.has(c.id)), ...existing]
-}
-
 function getLatestCommentCreatedAt (comments, latest) {
   if (comments.length === 0) return latest
 
@@ -151,9 +143,13 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, s
         return fragment || c
       })
 
+      // deduplicate the fresh new comments with the existing comments
+      const dedupedComments = dedupeComments(data.comments.comments, freshNewComments)
+
       return {
         ...data,
-        comments: { ...data.comments, comments: dedupeComments(data.comments.comments, freshNewComments) },
+        comments: { ...data.comments, comments: dedupedComments },
+        ncomments: data.ncomments + (dedupedComments.length || 0),
         newComments: []
       }
     }
@@ -170,8 +166,16 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, s
       onClick={showNewComments}
       className={`${topLevel && `d-block fw-bold ${styles.comment} pb-2`} d-flex align-items-center gap-2 px-3 pointer`}
     >
-      {newComments.length > 0 ? `${newComments.length} new comments` : 'new comment'}
+      {newComments.length > 1 ? `${newComments.length} new comments` : 'show new comment'}
       <div className={styles.newCommentDot} />
     </div>
   )
+}
+
+// even though we already deduplicated comments during the newComments merge,
+// refetches, client-side navigation, etc. can cause duplicates to appear,
+// so we'll make sure to deduplicate them here, by id
+function dedupeComments (existing = [], incoming = []) {
+  const existingIds = new Set(existing.map(c => c.id))
+  return [...incoming.filter(c => !existingIds.has(c.id)), ...existing]
 }

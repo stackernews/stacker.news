@@ -2,7 +2,7 @@ import { useQuery, useApolloClient } from '@apollo/client'
 import { SSR } from '../lib/constants'
 import { GET_NEW_COMMENTS, COMMENT_WITH_NEW } from '../fragments/comments'
 import { ITEM_FULL } from '../fragments/items'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import styles from './comment.module.css'
 
 const POLL_INTERVAL = 1000 * 10 // 10 seconds
@@ -10,13 +10,14 @@ const POLL_INTERVAL = 1000 * 10 // 10 seconds
 export default function useLiveComments (rootId, after, sort) {
   const client = useApolloClient()
   const [latest, setLatest] = useState(after)
-  const [queue, setQueue] = useState([])
+  const queue = useRef([])
 
   const { data } = useQuery(GET_NEW_COMMENTS, SSR
     ? {}
     : {
         pollInterval: POLL_INTERVAL,
-        variables: { rootId, after: latest }
+        variables: { rootId, after: latest },
+        nextFetchPolicy: 'cache-and-network'
       })
 
   useEffect(() => {
@@ -24,11 +25,11 @@ export default function useLiveComments (rootId, after, sort) {
 
     // live comments can be orphans if the parent comment is not in the cache
     // queue them up and retry later, when the parent decides they want the children.
-    const allComments = [...queue, ...data.newComments.comments]
+    const allComments = [...queue.current, ...data.newComments.comments]
     const { queuedComments } = cacheNewComments(client, rootId, allComments, sort)
 
     // keep the queued comments for the next poll
-    setQueue(queuedComments)
+    queue.current = queuedComments
 
     // update latest timestamp to the latest comment created at
     setLatest(prevLatest => getLatestCommentCreatedAt(data.newComments.comments, prevLatest))
@@ -126,11 +127,15 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, s
   const showNewComments = useCallback(() => {
     const payload = (data) => {
       // fresh newComments
-      const freshNewComments = newComments.map(c => client.cache.readFragment({
-        id: `Item:${c.id}`,
-        fragment: COMMENT_WITH_NEW,
-        fragmentName: 'CommentWithNew'
-      }))
+      const freshNewComments = newComments.map(c => {
+        const fragment = client.cache.readFragment({
+          id: `Item:${c.id}`,
+          fragment: COMMENT_WITH_NEW,
+          fragmentName: 'CommentWithNew'
+        })
+        return fragment || c
+      })
+
       return {
         ...data,
         comments: { ...data.comments, comments: dedupeComments(data.comments.comments, freshNewComments) },

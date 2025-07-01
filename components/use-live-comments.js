@@ -7,6 +7,8 @@ import styles from './comment.module.css'
 
 const POLL_INTERVAL = 1000 * 10 // 10 seconds
 
+// useLiveComments fetches new comments under an item (rootId), that arrives after the latest comment createdAt
+// and inserts them into the newComment client field of their parent comment/post.
 export default function useLiveComments (rootId, after, sort) {
   const client = useApolloClient()
   const [latest, setLatest] = useState(after)
@@ -16,6 +18,7 @@ export default function useLiveComments (rootId, after, sort) {
     ? {}
     : {
         pollInterval: POLL_INTERVAL,
+        // only get comments newer than the passed latest timestamp
         variables: { rootId, after: latest },
         nextFetchPolicy: 'cache-and-network'
       })
@@ -23,10 +26,10 @@ export default function useLiveComments (rootId, after, sort) {
   useEffect(() => {
     if (!data?.newComments) return
 
-    // live comments can be orphans if the parent comment is not in the cache
-    // queue them up and retry later, when the parent decides they want the children.
-    const allComments = [...queue.current, ...data.newComments.comments]
-    const { queuedComments } = cacheNewComments(client, rootId, allComments, sort)
+    // sometimes new comments can arrive as orphans because their parent might not be in the cache yet
+    // queue them up, retry until the parent shows up.
+    const newComments = [...data.newComments.comments, ...queue.current]
+    const { queuedComments } = cacheNewComments(client, rootId, newComments, sort)
 
     // keep the queued comments for the next poll
     queue.current = queuedComments
@@ -40,13 +43,16 @@ export default function useLiveComments (rootId, after, sort) {
 function itemUpdateQuery (client, id, sort, fn) {
   client.cache.updateQuery({
     query: ITEM_FULL,
-    variables: sort === 'top' ? { id } : { id, sort }
+    // updateQuery needs the correct variables to update the correct item
+    // the Item query might have the router.query.sort in the variables, so we need to pass it in if it exists
+    variables: sort ? { id, sort } : { id }
   }, (data) => {
     if (!data) return data
     return { item: fn(data.item) }
   })
 }
 
+// update the newComments field of a nested comment fragment
 function commentUpdateFragment (client, id, fn) {
   client.cache.updateFragment({
     id: `Item:${id}`,
@@ -67,9 +73,11 @@ function cacheNewComments (client, rootId, newComments, sort) {
 
     // if the comment is a top level comment, update the item
     if (topLevel) {
+      // merge the new comment into the item's newComments field, checking for duplicates
       itemUpdateQuery(client, rootId, sort, (data) => mergeNewComment(data, newComment))
     } else {
-      // check if parent exists in cache before attempting update
+      // if the comment is a reply, update the parent comment
+      // but first check if parent exists in cache before attempting update
       const parentExists = client.cache.readFragment({
         id: `Item:${parentId}`,
         fragment: COMMENT_WITH_NEW,
@@ -77,7 +85,7 @@ function cacheNewComments (client, rootId, newComments, sort) {
       })
 
       if (parentExists) {
-        // if the comment is a reply, update the parent comment
+        // merge the new comment into the parent comment's newComments field, checking for duplicates
         commentUpdateFragment(client, parentId, (data) => mergeNewComment(data, newComment))
       } else {
         // parent not in cache, queue for retry
@@ -90,7 +98,7 @@ function cacheNewComments (client, rootId, newComments, sort) {
 }
 
 // merge new comment into item's newComments
-// if the new comment is already in item's newComments or existing comments, do nothing
+// and prevent duplicates by checking if the comment is already in item's newComments or existing comments
 function mergeNewComment (item, newComment) {
   const existingNewComments = item.newComments || []
   const existingComments = item.comments?.comments || []
@@ -103,7 +111,9 @@ function mergeNewComment (item, newComment) {
   return { ...item, newComments: [...existingNewComments, newComment] }
 }
 
-// dedupe comments by id
+// even though we already deduplicated comments during the newComments merge
+// refetches, client-side navigation, etc. can cause duplicates to appear
+// we'll make sure to deduplicate them here, by id
 function dedupeComments (existing = [], incoming = []) {
   const existingIds = new Set(existing.map(c => c.id))
   return [...incoming.filter(c => !existingIds.has(c.id)), ...existing]
@@ -121,18 +131,23 @@ function getLatestCommentCreatedAt (comments, latest) {
   return new Date(maxTimestamp).toISOString()
 }
 
+// ShowNewComments is a component that dedupes, refreshes and injects newComments into the comments field
 export function ShowNewComments ({ newComments = [], itemId, topLevel = false, sort }) {
   const client = useApolloClient()
 
   const showNewComments = useCallback(() => {
     const payload = (data) => {
-      // fresh newComments
+      // TODO: it might be sane to pass the cache ref to the ShowNewComments component
+      // TODO: and use it to read the latest newComments from the cache
+      // newComments can have themselves new comments between the time the button is clicked and the query is executed
+      // so we need to read the latest newComments from the cache
       const freshNewComments = newComments.map(c => {
         const fragment = client.cache.readFragment({
           id: `Item:${c.id}`,
           fragment: COMMENT_WITH_NEW,
           fragmentName: 'CommentWithNew'
         })
+        // if the comment is not in the cache, return the original comment
         return fragment || c
       })
 
@@ -155,7 +170,7 @@ export function ShowNewComments ({ newComments = [], itemId, topLevel = false, s
       onClick={showNewComments}
       className={`${topLevel && `d-block fw-bold ${styles.comment} pb-2`} d-flex align-items-center gap-2 px-3 pointer`}
     >
-      show ({newComments.length}) new comments
+      {newComments.length > 0 ? `${newComments.length} new comments` : 'new comment'}
       <div className={styles.newCommentDot} />
     </div>
   )

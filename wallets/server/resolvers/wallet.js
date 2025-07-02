@@ -9,13 +9,13 @@ const WalletOrTemplate = {
 
 const Wallet = {
   name: wallet => wallet.template.name,
-  send: wallet => wallet.protocols.some(protocol => protocol.enabled && protocol.send),
-  receive: wallet => wallet.protocols.some(protocol => protocol.enabled && !protocol.send)
+  send: wallet => walletStatus(wallet, 'send'),
+  receive: wallet => walletStatus(wallet, 'receive')
 }
 
 const WalletTemplate = {
-  send: walletTemplate => walletTemplate.sendProtocols.length > 0,
-  receive: walletTemplate => walletTemplate.recvProtocols.length > 0,
+  send: walletTemplate => walletTemplate.sendProtocols.length > 0 ? 'OK' : 'DISABLED',
+  receive: walletTemplate => walletTemplate.recvProtocols.length > 0 ? 'OK' : 'DISABLED',
   protocols: walletTemplate => {
     return [
       ...walletTemplate.sendProtocols.map(protocol => ({
@@ -101,6 +101,21 @@ async function wallet (parent, { id, name }, { me, models }) {
 
   const template = await models.walletTemplate.findFirst({ where: { name } })
   return { ...template, __resolveType: 'WalletTemplate' }
+}
+
+function walletStatus (wallet, type) {
+  const protocols = wallet.protocols.filter(protocol => type === 'send' ? protocol.send : !protocol.send)
+
+  const disabled = protocols.every(protocol => !protocol.enabled)
+  if (disabled) return 'DISABLED'
+
+  const ok = protocols.every(protocol => protocol.status === 'OK')
+  if (ok) return 'OK'
+
+  const error = protocols.every(protocol => protocol.status === 'ERROR')
+  if (error) return 'ERROR'
+
+  return 'WARNING'
 }
 
 async function walletSettings (parent, args, { me, models }) {

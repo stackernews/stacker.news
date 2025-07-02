@@ -112,6 +112,9 @@ CREATE TABLE "Wallet" (
     CONSTRAINT "Wallet_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateEnum
+CREATE TYPE "WalletProtocolStatus" AS ENUM ('OK', 'WARNING', 'ERROR');
+
 -- CreateTable
 CREATE TABLE "WalletProtocol" (
     "id" SERIAL NOT NULL,
@@ -122,6 +125,7 @@ CREATE TABLE "WalletProtocol" (
     "send" BOOLEAN NOT NULL,
     "name" "WalletProtocolName" NOT NULL,
     "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "status" "WalletProtocolStatus" NOT NULL DEFAULT 'OK',
 
     CONSTRAINT "WalletProtocol_pkey" PRIMARY KEY ("id")
 );
@@ -1116,7 +1120,7 @@ ALTER TABLE "users" ADD COLUMN     "showPassphrase" BOOLEAN NOT NULL DEFAULT tru
 
 -- Update LogLevel enum to be more consistent with wallet logger API
 ALTER TYPE "LogLevel" RENAME TO "LogLevelV1";
-CREATE TYPE "LogLevel" AS ENUM ('OK', 'DEBUG', 'INFO', 'WARN', 'ERROR');
+CREATE TYPE "LogLevel" AS ENUM ('OK', 'DEBUG', 'INFO', 'WARNING', 'ERROR');
 ALTER TABLE "WalletLog" ALTER COLUMN "level" TYPE "LogLevel" USING (CASE WHEN "level"::text = 'SUCCESS' THEN 'OK'::"LogLevel" ELSE "level"::text::"LogLevel" END);
 ALTER TABLE "Log" ALTER COLUMN "level" TYPE "LogLevel" USING (CASE WHEN "level"::text = 'SUCCESS' THEN 'OK'::"LogLevel" ELSE "level"::text::"LogLevel" END);
 DROP TYPE "LogLevelV1";

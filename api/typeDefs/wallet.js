@@ -57,22 +57,29 @@ const typeDefs = gql`
 
   union WalletOrTemplate = Wallet | WalletTemplate
 
+  enum WalletStatus {
+    OK
+    WARNING
+    ERROR
+    DISABLED
+  }
+
   type Wallet {
     id: ID!
     name: String!
     priority: Int!
     template: WalletTemplate!
     protocols: [WalletProtocol!]!
-    send: Boolean!
-    receive: Boolean!
+    send: WalletStatus!
+    receive: WalletStatus!
   }
 
   type WalletTemplate {
     id: ID!
     name: String!
     protocols: [WalletProtocolTemplate!]!
-    send: Boolean!
-    receive: Boolean!
+    send: WalletStatus!
+    receive: WalletStatus!
   }
 
   type WalletProtocol {
@@ -81,6 +88,7 @@ const typeDefs = gql`
     send: Boolean!
     enabled: Boolean!
     config: WalletProtocolConfig!
+    status: WalletStatus!
   }
 
   type WalletProtocolTemplate {

@@ -33,31 +33,18 @@ export function useSendProtocols () {
 
 export function useWalletSupport (wallet) {
   const template = isWallet(wallet) ? wallet.template : wallet
-  return useMemo(
-    () => ({
-      receive: template.receive,
-      send: template.send
-    }),
-    [template]
-  )
+  return useMemo(() => ({ receive: template.receive === WalletStatus.OK, send: template.send === WalletStatus.OK }), [template])
 }
 
 export const WalletStatus = {
-  Enabled: 'Enabled',
-  Disabled: 'Disabled',
-  Error: 'Error',
-  Warning: 'Warning'
+  OK: 'OK',
+  ERROR: 'ERROR',
+  WARNING: 'WARNING',
+  DISABLED: 'DISABLED'
 }
 
 export function useWalletStatus (wallet) {
-  if (!isWallet(wallet)) return WalletStatus.Disabled
+  if (!isWallet(wallet)) return WalletStatus.DISABLED
 
-  // TODO(wallet-v2): once API returns wallet status, use it here
-  return useMemo(
-    () => ({
-      send: wallet.send ? WalletStatus.Enabled : WalletStatus.Disabled,
-      receive: wallet.receive ? WalletStatus.Enabled : WalletStatus.Disabled
-    }),
-    [wallet]
-  )
+  return useMemo(() => ({ send: wallet.send, receive: wallet.receive }), [wallet])
 }

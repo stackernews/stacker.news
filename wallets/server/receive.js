@@ -58,7 +58,7 @@ export async function * createUserInvoice (userId, { msats, description, descrip
       yield { invoice, protocol, logger }
     } catch (err) {
       console.error('failed to create user invoice:', err)
-      logger.error(err.message)
+      logger.error(err.message, { updateStatus: true })
     }
   }
 }

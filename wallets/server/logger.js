@@ -15,6 +15,9 @@ export function walletLogger ({
     // however, millisecond precision is not always enough ...
     const createdAt = new Date()
 
+    const updateStatus = ['OK', 'ERROR', 'WARNING'].includes(level) && (invoiceId || withdrawalId || context.bolt11 || context?.updateStatus)
+    delete context?.updateStatus
+
     try {
       if (context.bolt11) {
         // automatically populate context from bolt11 to avoid duplicating this code
@@ -25,18 +28,24 @@ export function walletLogger ({
         }
       }
 
-      await models.walletLog.create({
-        data: {
-          userId,
-          protocolId,
-          level,
-          message,
-          context,
-          invoiceId,
-          withdrawalId,
-          createdAt
-        }
-      })
+      await models.$transaction([
+        models.walletLog.create({
+          data: {
+            userId,
+            protocolId,
+            level,
+            message,
+            context,
+            invoiceId,
+            withdrawalId,
+            createdAt
+          }
+        }),
+        updateStatus && models.walletProtocol.update({
+          where: { id: protocolId },
+          data: { status: level }
+        })
+      ].filter(Boolean))
     } catch (err) {
       console.error('error creating wallet log:', err)
     }
@@ -46,7 +55,7 @@ export function walletLogger ({
     ok: (message, context) => log('OK')(message, context),
     info: (message, context) => log('INFO')(message, context),
     error: (message, context) => log('ERROR')(message, context),
-    warn: (message, context) => log('WARN')(message, context)
+    warn: (message, context) => log('WARNING')(message, context)
   }
 }
 

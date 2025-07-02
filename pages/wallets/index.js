@@ -4,6 +4,9 @@ import { ATTACH_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch, usePage, UNLOCK
 import { WalletCard, WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
 import styles from '@/styles/wallet.module.css'
 import { usePassphrasePrompt, useShowPassphrase, useSetWalletPriorities } from '@/wallets/client/hooks'
+import { WalletSearch } from '@/wallets/client/components/search'
+import { useMemo, useState } from 'react'
+import { walletDisplayName } from '@/wallets/lib/util'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -15,6 +18,15 @@ export default function Wallet () {
   const showPassphrase = useShowPassphrase()
   const passphrasePrompt = usePassphrasePrompt()
   const setWalletPriorities = useSetWalletPriorities()
+  const [searchFilter, setSearchFilter] = useState(() => (text) => true)
+
+  const { wallets: filteredWallets, templates: filteredTemplates } = useMemo(() => {
+    const walletFilter = ({ name }) => searchFilter(walletDisplayName(name)) || searchFilter(name)
+    return {
+      wallets: wallets.filter(walletFilter),
+      templates: templates.filter(walletFilter)
+    }
+  }, [wallets, templates, searchFilter])
 
   if (page === ATTACH_PAGE) {
     return (
@@ -68,11 +80,12 @@ export default function Wallet () {
             </>
           )}
         </div>
-        {wallets.length > 0 && (
+        <WalletSearch setSearchFilter={setSearchFilter} />
+        {filteredWallets.length > 0 && (
           <>
-            <DndProvider items={wallets} onReorder={setWalletPriorities}>
+            <DndProvider items={filteredWallets} onReorder={setWalletPriorities}>
               <div className={styles.walletGrid}>
-                {wallets.map((wallet, index) => (
+                {filteredWallets.map((wallet, index) => (
                   <WalletCard
                     key={wallet.id}
                     wallet={wallet}
@@ -86,7 +99,7 @@ export default function Wallet () {
           </>
         )}
         <div className={styles.walletGrid}>
-          {templates.map((w, i) => <WalletCard key={i} wallet={w} />)}
+          {filteredTemplates.map((w, i) => <WalletCard key={i} wallet={w} />)}
         </div>
       </div>
     </WalletLayout>

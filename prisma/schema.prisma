@@ -1181,7 +1181,7 @@ enum LogLevel {
   OK
   DEBUG
   INFO
-  WARN
+  WARNING
   ERROR
 }
 
@@ -1218,6 +1218,12 @@ enum WalletRecvProtocolName {
   LN_ADDR
   CLN_REST
   LND_GRPC
+}
+
+enum WalletProtocolStatus {
+  OK
+  WARNING
+  ERROR
 }
 
 model WalletTemplate {
@@ -1257,10 +1263,11 @@ model WalletProtocol {
   config Json? @db.JsonB
 
   walletId Int
-  wallet   Wallet             @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  wallet   Wallet               @relation(fields: [walletId], references: [id], onDelete: Cascade)
   send     Boolean
   name     WalletProtocolName
-  enabled  Boolean            @default(true)
+  enabled  Boolean              @default(true)
+  status   WalletProtocolStatus @default(OK)
 
   withdrawals    Withdrawl[]
   directPayments DirectPayment[]

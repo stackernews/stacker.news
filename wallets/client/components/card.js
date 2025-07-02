@@ -63,9 +63,9 @@ function WalletLink ({ wallet, children }) {
 
 function statusToClass (status) {
   switch (status) {
-    case WalletStatus.Enabled: return styles.success
-    case WalletStatus.Disabled: return styles.disabled
-    case WalletStatus.Error: return styles.error
-    case WalletStatus.Warning: return styles.warning
+    case WalletStatus.OK: return styles.success
+    case WalletStatus.ERROR: return styles.error
+    case WalletStatus.WARNING: return styles.warning
+    case WalletStatus.DISABLED: return styles.disabled
   }
 }

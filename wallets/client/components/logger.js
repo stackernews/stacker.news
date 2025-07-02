@@ -70,7 +70,8 @@ export function LogMessage ({ tag, level, message, context, ts }) {
       className = 'text-success'; break
     case 'error':
       className = 'text-danger'; break
-    case 'warn':
+    case 'warning':
+      level = 'warn'
       className = 'text-warning'; break
     default:
       className = 'text-info'

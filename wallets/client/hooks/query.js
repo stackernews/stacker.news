@@ -22,7 +22,7 @@ import {
   UPDATE_KEY_HASH
 } from '@/wallets/client/fragments'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
-import { useDecryption, useEncryption, useSetKey, useWalletLogger } from '@/wallets/client/hooks'
+import { useDecryption, useEncryption, useSetKey, useWalletLogger, WalletStatus } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolClientSchema, reverseProtocolRelationName, walletTemplateId
@@ -78,8 +78,8 @@ function protocolCheck (wallet) {
 
   return {
     ...wallet,
-    send: wallet.send && sendEnabled,
-    recv: wallet.recv && receiveEnabled,
+    send: !sendEnabled ? WalletStatus.DISABLED : wallet.send,
+    receive: !receiveEnabled ? WalletStatus.DISABLED : wallet.receive,
     protocols
   }
 }

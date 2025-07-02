@@ -42,7 +42,7 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
 
   if (pendingOrFailed.exists) return
 
-  for await (const { invoice, wallet, logger } of createUserInvoice(id, {
+  for await (const { invoice, protocol, logger } of createUserInvoice(id, {
     msats,
     description: 'SN: autowithdrawal',
     expiry: 360
@@ -50,10 +50,10 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
     try {
       return await createWithdrawal(null,
         { invoice, maxFee: msatsToSats(maxFeeMsats) },
-        { me: { id }, models, lnd, wallet, logger })
+        { me: { id }, models, lnd, protocol, logger })
     } catch (err) {
       console.error('failed to create autowithdrawal:', err)
-      logger?.error('incoming payment failed: ' + err.message, { bolt11: invoice })
+      logger?.warn('incoming payment failed: ' + err.message, { bolt11: invoice })
     }
   }
 

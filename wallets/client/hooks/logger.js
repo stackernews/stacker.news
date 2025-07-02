@@ -124,14 +124,14 @@ export function useWalletLogs (protocol) {
 
   return useMemo(() => {
     return {
-      loading,
+      loading: skip ? false : (!called ? true : loading),
       logs: skip ? templateLogs : logs,
       error,
       loadMore,
       hasMore: cursor !== null,
       clearLogs
     }
-  }, [loading, skip, templateLogs, logs, error, loadMore, clearLogs])
+  }, [loading, skip, called, templateLogs, logs, error, loadMore, clearLogs])
 }
 
 function mapLevelToConsole (level) {

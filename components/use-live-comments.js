@@ -1,6 +1,6 @@
 import { useQuery, useApolloClient } from '@apollo/client'
 import { SSR } from '../lib/constants'
-import { GET_NEW_COMMENTS, COMMENT_WITH_NEW } from '../fragments/comments'
+import { GET_NEW_COMMENTS, COMMENT_WITH_NEW_LIMITED, COMMENT_WITH_NEW_RECURSIVE } from '../fragments/comments'
 import { ITEM_FULL } from '../fragments/items'
 import { useEffect, useRef, useState } from 'react'
 
@@ -60,14 +60,29 @@ export function itemUpdateQuery (client, id, sort, fn) {
 
 // update the newComments field of a nested comment fragment
 export function commentUpdateFragment (client, id, fn) {
-  client.cache.updateFragment({
+  let result = client.cache.updateFragment({
     id: `Item:${id}`,
-    fragment: COMMENT_WITH_NEW,
-    fragmentName: 'CommentWithNew'
+    fragment: COMMENT_WITH_NEW_RECURSIVE,
+    fragmentName: 'CommentWithNewRecursive'
   }, (data) => {
     if (!data) return data
     return fn(data)
   })
+
+  // sometimes comments can reach their depth limit, and lack adherence to the CommentsRecursive fragment
+  // for this reason, we update the fragment with a limited version that only includes the CommentFields fragment
+  if (!result) {
+    result = client.cache.updateFragment({
+      id: `Item:${id}`,
+      fragment: COMMENT_WITH_NEW_LIMITED,
+      fragmentName: 'CommentWithNewLimited'
+    }, (data) => {
+      if (!data) return data
+      return fn(data)
+    })
+  }
+
+  return result
 }
 
 function cacheNewComments (client, rootId, newComments, sort) {
@@ -83,17 +98,10 @@ function cacheNewComments (client, rootId, newComments, sort) {
       itemUpdateQuery(client, rootId, sort, (data) => mergeNewComment(data, newComment))
     } else {
       // if the comment is a reply, update the parent comment
-      // but first check if parent exists in cache before attempting update
-      const parentExists = client.cache.readFragment({
-        id: `Item:${parentId}`,
-        fragment: COMMENT_WITH_NEW,
-        fragmentName: 'CommentWithNew'
-      })
+      // merge the new comment into the parent comment's newComments field, checking for duplicates
+      const result = commentUpdateFragment(client, parentId, (data) => mergeNewComment(data, newComment))
 
-      if (parentExists) {
-        // merge the new comment into the parent comment's newComments field, checking for duplicates
-        commentUpdateFragment(client, parentId, (data) => mergeNewComment(data, newComment))
-      } else {
+      if (!result) {
         // parent not in cache, queue for retry
         queuedComments.push(newComment)
       }
@@ -110,11 +118,11 @@ function mergeNewComment (item, newComment) {
   const existingComments = item.comments?.comments || []
 
   // is the incoming new comment already in item's new comments or existing comments?
-  if (existingNewComments.some(c => c.id === newComment.id) || existingComments.some(c => c.id === newComment.id)) {
+  if (existingNewComments.includes(newComment.id) || existingComments.some(c => c.id === newComment.id)) {
     return item
   }
 
-  return { ...item, newComments: [...existingNewComments, newComment] }
+  return { ...item, newComments: [...existingNewComments, newComment.id] }
 }
 
 function getLatestCommentCreatedAt (comments, latest) {

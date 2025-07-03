@@ -182,18 +182,19 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
                 ? <BioItem item={item} {...props} />
                 : <TopLevelItem item={item} {...props} />}
               </div>)}
-          <div className={styles.comments}>
-            <Comments
-              parentId={item.id} parentCreatedAt={item.createdAt}
-              pinned={item.position} bio={bio} commentSats={item.commentSats}
-              ncomments={item.ncomments}
-              comments={item.comments.comments}
-              commentsCursor={item.comments.cursor}
-              fetchMoreComments={fetchMoreComments}
-              newComments={item.newComments}
-              lastCommentAt={item.lastCommentAt}
-            />
-          </div>
+          {item.comments &&
+            <div className={styles.comments}>
+              <Comments
+                parentId={item.id} parentCreatedAt={item.createdAt}
+                pinned={item.position} bio={bio} commentSats={item.commentSats}
+                ncomments={item.ncomments}
+                comments={item.comments.comments}
+                commentsCursor={item.comments.cursor}
+                fetchMoreComments={fetchMoreComments}
+                newComments={item.newComments}
+                lastCommentAt={item.lastCommentAt}
+              />
+            </div>}
         </CarouselProvider>
       </RootProvider>
     </>

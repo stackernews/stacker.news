@@ -263,7 +263,7 @@ export default function Comment ({
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
                     <div className='ms-auto'>
                       {item.newComments?.length > 0 && (
-                        <ShowNewComments newComments={item.newComments} itemId={item.id} />
+                        <ShowNewComments comments={item.comments.comments} newComments={item.newComments} itemId={item.id} />
                       )}
                     </div>
                   </Reply>}
@@ -310,8 +310,9 @@ function ReplyOnAnotherPage ({ item }) {
   }
 
   return (
-    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='d-block pb-2 fw-bold text-muted'>
+    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='pb-2 fw-bold d-flex align-items-center gap-2 text-muted'>
       {text}
+      {item.newComments?.length > 0 && <div className={styles.newCommentDot} />}
     </Link>
   )
 }

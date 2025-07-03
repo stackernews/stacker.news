@@ -118,17 +118,42 @@ export const COMMENTS = gql`
     }
   }`
 
-export const COMMENT_WITH_NEW = gql`
+export const COMMENT_WITH_NEW_RECURSIVE = gql`
   ${COMMENT_FIELDS}
   ${COMMENTS}
   
-  fragment CommentWithNew on Item {
+  fragment CommentWithNewRecursive on Item {
     ...CommentFields
     comments {
       comments {
         ...CommentsRecursive
       }
     }
+    newComments @client
+  }
+`
+
+export const COMMENT_WITH_NEW_LIMITED = gql`
+  ${COMMENT_FIELDS}
+  
+  fragment CommentWithNewLimited on Item {
+    ...CommentFields
+    comments {
+      comments {
+        ...CommentFields
+      }
+    }
+    newComments @client
+  }
+`
+
+// TODO: fragment for comments without item.comments field
+// TODO: remove if useless to pursue
+export const COMMENT_WITH_NEW = gql`
+  ${COMMENT_FIELDS}
+  
+  fragment CommentWithNew on Item {
+    ...CommentFields
     newComments @client
   }
 `

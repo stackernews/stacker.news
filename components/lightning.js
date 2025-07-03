@@ -1,5 +1,6 @@
-import React, { useRef, useEffect, useContext } from 'react'
+import React, { useRef, useEffect /* useContext */ } from 'react'
 import { randInRange } from '@/lib/rand'
+import { useFireworks } from './fireworks'
 
 export const LightningContext = React.createContext(() => {})
 
@@ -46,7 +47,8 @@ export class LightningProvider extends React.Component {
 
 export const LightningConsumer = LightningContext.Consumer
 export function useLightning () {
-  return useContext(LightningContext)
+  // return useContext(LightningContext)
+  return useFireworks()
 }
 
 export function Lightning ({ onDone }) {

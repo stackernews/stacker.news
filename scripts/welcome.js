@@ -119,7 +119,7 @@ async function fetchRecentBios () {
   )
 
   // assert that we fetched enough bios
-  const newBios = bios.filter(b => b.id > FETCH_AFTER)
+  const newBios = bios.filter(b => Number(b.id) > FETCH_AFTER)
   if (newBios.length === bios.length) {
     throw new Error('last bio not found. increase limit')
   }

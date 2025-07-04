@@ -405,7 +405,7 @@ export class NonInvoiceablePeerError extends Error {
 
 // we seperate the invoice creation into two functions because
 // because if lnd is slow, it'll timeout the interactive tx
-async function createSNInvoice (actionType, args, context) {
+export async function createSNInvoice (actionType, args, context) {
   const { me, lnd, cost, optimistic } = context
   const action = paidActions[actionType]
   const createLNDInvoice = optimistic ? createInvoice : createHodlInvoice
@@ -427,7 +427,7 @@ async function createSNInvoice (actionType, args, context) {
   return { bolt11: invoice.request, preimage: invoice.secret }
 }
 
-async function createDbInvoice (actionType, args, context) {
+export async function createDbInvoice (actionType, args, context) {
   const { me, models, tx, cost, optimistic, actionId, invoiceArgs, paymentAttempt, predecessorId } = context
   const { bolt11, wrappedBolt11, preimage, wallet, maxFee } = invoiceArgs
 

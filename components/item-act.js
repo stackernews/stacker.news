@@ -6,7 +6,6 @@ import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
 import { amountSchema, boostSchema } from '@/lib/validate'
 import { useToast } from './toast'
-import { useLightning } from './lightning'
 import { nextTip, defaultTipIncludingRandom } from './upvote'
 import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { usePaidMutation } from './use-paid-mutation'
@@ -14,6 +13,7 @@ import { ACT_MUTATION } from '@/fragments/paidAction'
 import { meAnonSats } from '@/lib/apollo'
 import { BoostItemInput } from './adv-post-form'
 import { useSendWallets } from '@/wallets/index'
+import { useFireworks } from './fireworks'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -96,7 +96,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
   }, [onClose, item.id])
 
   const actor = useAct()
-  const strike = useLightning()
+  const strike = useFireworks()
 
   const onSubmit = useCallback(async ({ amount }) => {
     if (abortSignal && zapUndoTrigger({ me, amount })) {
@@ -300,7 +300,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
 export function useZap () {
   const wallets = useSendWallets()
   const act = useAct()
-  const strike = useLightning()
+  const strike = useFireworks()
   const toaster = useToast()
 
   return useCallback(async ({ item, me, abortSignal }) => {

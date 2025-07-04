@@ -10,7 +10,7 @@ import { useRouter } from 'next/dist/client/router'
 import { useCallback, useEffect } from 'react'
 import { ShowModalProvider } from '@/components/modal'
 import ErrorBoundary from '@/components/error-boundary'
-import { LightningProvider } from '@/components/lightning'
+import { FireworksProvider } from '@/components/fireworks'
 import { ToastProvider } from '@/components/toast'
 import { ServiceWorkerProvider } from '@/components/serviceworker'
 import { SSR } from '@/lib/constants'
@@ -118,7 +118,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                     <WebLnProvider>
                       <ServiceWorkerProvider>
                         <PriceProvider price={price}>
-                          <LightningProvider>
+                          <FireworksProvider>
                             <ToastProvider>
                               <ShowModalProvider>
                                 <BlockHeightProvider blockHeight={blockHeight}>
@@ -131,7 +131,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                                 </BlockHeightProvider>
                               </ShowModalProvider>
                             </ToastProvider>
-                          </LightningProvider>
+                          </FireworksProvider>
                         </PriceProvider>
                       </ServiceWorkerProvider>
                     </WebLnProvider>

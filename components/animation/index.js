@@ -2,10 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { useMe } from '@/components/me'
 import { randInRange } from '@/lib/rand'
 
-/* eslint-disable no-unused-vars */
-import { LightningProvider, useLightning } from './lightning'
+// import { LightningProvider, useLightning } from './lightning'
 import { FireworksProvider, useFireworks } from './fireworks'
-import { SnowProvider, useSnow } from './snow'
+// import { SnowProvider, useSnow } from './snow'
 
 const [SelectedAnimationProvider, useSelectedAnimation] = [
   // LightningProvider, useLightning

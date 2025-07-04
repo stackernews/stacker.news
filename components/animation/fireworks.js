@@ -7,7 +7,7 @@ import {
   setRangeValue,
   stringToRgb
 } from 'tsparticles-engine'
-import useDarkMode from './dark-mode'
+import useDarkMode from '@/components/dark-mode'
 
 export const FireworksContext = createContext({
   strike: () => {}
@@ -27,8 +27,6 @@ export function FireworksProvider ({ children }) {
   useEffect(() => {
     setContext({
       strike: () => {
-        const should = window.localStorage.getItem('lnAnimate') || 'yes'
-        if (should !== 'yes') return false
         cont?.addEmitter(
           {
             direction: 'top',

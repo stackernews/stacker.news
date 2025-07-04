@@ -237,7 +237,7 @@ const particlesOptions = (theme) => ({
       max: 20
     },
     outModes: {
-      default: 'destroy',
+      default: 'split',
       top: 'none'
     },
     trail: {

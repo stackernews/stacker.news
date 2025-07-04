@@ -6,7 +6,7 @@ import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
 import { ActCanceledError, useAct } from './item-act'
-import { useLightning } from './lightning'
+import { useFireworks } from './fireworks'
 import { useToast } from './toast'
 import { useSendWallets } from '@/wallets/index'
 import { Form, SubmitButton } from './form'
@@ -48,7 +48,7 @@ export default function PayBounty ({ children, item }) {
   const { me } = useMe()
   const showModal = useShowModal()
   const root = useRoot()
-  const strike = useLightning()
+  const strike = useFireworks()
   const toaster = useToast()
   const wallets = useSendWallets()
 

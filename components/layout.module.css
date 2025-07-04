@@ -5,6 +5,7 @@
     height: 100%;
     align-items: center;
     margin: auto;
+    z-index: 0;
 }
 
 .content {

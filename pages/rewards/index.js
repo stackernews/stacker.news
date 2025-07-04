@@ -13,7 +13,7 @@ import { useShowModal } from '@/components/modal'
 import dynamic from 'next/dynamic'
 import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { useToast } from '@/components/toast'
-import { useLightning } from '@/components/lightning'
+import { useFireworks } from '@/components/fireworks'
 import { Col, Row } from 'react-bootstrap'
 import { useData } from '@/components/use-data'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
@@ -133,7 +133,7 @@ export default function Rewards ({ ssrData }) {
 export function DonateButton () {
   const showModal = useShowModal()
   const toaster = useToast()
-  const strike = useLightning()
+  const strike = useFireworks()
   const [donateToRewards] = usePaidMutation(DONATE)
 
   return (

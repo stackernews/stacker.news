@@ -7,7 +7,7 @@ import {
   setRangeValue,
   stringToRgb
 } from 'tsparticles-engine'
-import useDarkMode from './dark-mode'
+import useDarkMode from '@/components/dark-mode'
 
 export const FireworksContext = createContext({
   strike: () => {}

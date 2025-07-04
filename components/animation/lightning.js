@@ -13,16 +13,11 @@ export class LightningProvider extends React.Component {
    * @returns boolean indicating whether the strike actually happened, based on user preferences
    */
   strike = () => {
-    const should = window.localStorage.getItem('lnAnimate') || 'yes'
-    if (should === 'yes') {
-      this.setState(state => {
-        return {
-          bolts: [...state.bolts, <Lightning key={state.bolts.length} onDone={() => this.unstrike(state.bolts.length)} />]
-        }
-      })
-      return true
-    }
-    return false
+    this.setState(state => {
+      return {
+        bolts: [...state.bolts, <Lightning key={state.bolts.length} onDone={() => this.unstrike(state.bolts.length)} />]
+      }
+    })
   }
 
   unstrike = (index) => {

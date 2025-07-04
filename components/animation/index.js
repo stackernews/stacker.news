@@ -23,7 +23,6 @@ export function AnimationProvider ({ children }) {
 }
 
 export function useAnimation () {
-  const { me } = useMe()
   const animate = useSelectedAnimation()
 
   return useCallback(() => {

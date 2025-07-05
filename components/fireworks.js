@@ -27,6 +27,8 @@ export function FireworksProvider ({ children }) {
   useEffect(() => {
     setContext({
       strike: () => {
+        const should = window.localStorage.getItem('lnAnimate') || 'yes'
+        if (should !== 'yes') return false
         cont?.addEmitter(
           {
             direction: 'top',

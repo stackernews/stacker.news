@@ -28,6 +28,7 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
+import { useCarousel } from './carousel'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -113,6 +114,11 @@ export default function Comment ({
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
   const { cache } = useApolloClient()
+
+  const carousel = useCarousel()
+  if (carousel) {
+    carousel.addItem(item.id)
+  }
 
   useEffect(() => {
     const comment = cache.readFragment({

@@ -1,9 +1,9 @@
-const { withPlausibleProxy } = require('next-plausible')
-const { InjectManifest } = require('workbox-webpack-plugin')
-const { generatePrecacheManifest } = require('./sw/build.js')
-const webpack = require('webpack')
+const { withPlausibleProxy } = require('next-plausible');
+const { InjectManifest } = require('workbox-webpack-plugin');
+const { createEmptyPrecacheManifest, generatePrecacheManifest } = require('./sw/build.js');
+const webpack = require('webpack');
 
-let isProd = process.env.NODE_ENV === 'production'
+let isProd = process.env.NODE_ENV === 'production';
 const corsHeaders = [
   {
     key: 'Access-Control-Allow-Origin',
@@ -13,37 +13,38 @@ const corsHeaders = [
     key: 'Access-Control-Allow-Methods',
     value: 'GET, HEAD, OPTIONS'
   }
-]
+];
 const noCacheHeader = {
   key: 'Cache-Control',
   value: 'no-cache, max-age=0, must-revalidate'
-}
+};
 
 const getGitCommit = (env) => {
   return env === 'aws'
     // XXX this fragile ... eb could change the version label location ... it also require we set the label on deploy
     // eslint-disable-next-line
     ? Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].slice(0, 6)
-    : require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 6)
-}
+    : require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 6);
+};
 
-let commitHash
+let commitHash;
 try {
   if (isProd) {
     try {
-      commitHash = getGitCommit('aws')
+      commitHash = getGitCommit('aws');
     } catch (e) {
       // maybe we're running prod build locally
-      commitHash = getGitCommit()
+      commitHash = getGitCommit();
       // if above line worked, we're running locally and should not use prod config which configurates CDN
-      isProd = false
+      isProd = false;
     }
   } else {
-    commitHash = getGitCommit()
+    commitHash = getGitCommit();
   }
 } catch (e) {
-  console.log('could not get commit hash with `git rev-parse HEAD` ... using 0000')
-  commitHash = '0000'
+  // eslint-disable-next-line no-console
+  console.log('could not get commit hash with `git rev-parse HEAD` ... using 0000');
+  commitHash = '0000';
 }
 
 module.exports = withPlausibleProxy()({
@@ -65,7 +66,7 @@ module.exports = withPlausibleProxy()({
   // Use the CDN in production and localhost for development.
   assetPrefix: isProd ? 'https://a.stacker.news' : undefined,
   crossOrigin: isProd ? 'anonymous' : undefined,
-  async headers () {
+  async headers() {
     return [
       {
         source: '/',
@@ -124,9 +125,9 @@ module.exports = withPlausibleProxy()({
           }
         ]
       }))
-    ]
+    ];
   },
-  async rewrites () {
+  async rewrites() {
     return [
       {
         source: '/faq',
@@ -181,9 +182,9 @@ module.exports = withPlausibleProxy()({
         destination: '/~/:slug*?sub=:sub'
       },
       ...['/', '/post', '/rss', '/random', '/recent/:slug*', '/top/:slug*'].map(source => ({ source, destination: '/~' + source }))
-    ]
+    ];
   },
-  async redirects () {
+  async redirects() {
     return [
       {
         source: '/statistics',
@@ -210,11 +211,13 @@ module.exports = withPlausibleProxy()({
         destination: '/top/territories/:when*',
         permanent: true
       }
-    ]
+    ];
   },
   webpack: (config, { isServer, dev, defaultLoaders }) => {
     if (isServer) {
-      generatePrecacheManifest()
+      // Webpack won't build without a precache manifest for the service worker
+      // so we create an empty one to start with.
+      createEmptyPrecacheManifest();
       const workboxPlugin = new InjectManifest({
         // ignore the precached manifest which includes the webpack assets
         // since they are not useful to us
@@ -239,24 +242,43 @@ module.exports = withPlausibleProxy()({
             'process.env.NEXT_IS_EXPORT_WORKER': 'true'
           })
         ]
-      })
+      });
       if (dev) {
         // Suppress the "InjectManifest has been called multiple times" warning by reaching into
         // the private properties of the plugin and making sure it never ends up in the state
         // where it makes that warning.
         // https://github.com/GoogleChrome/workbox/blob/v6/packages/workbox-webpack-plugin/src/inject-manifest.ts#L260-L282
         Object.defineProperty(workboxPlugin, 'alreadyCalled', {
-          get () {
-            return false
+          get() {
+            return false;
           },
-          set () {
+          set() {
             // do nothing; the internals try to set it to true, which then results in a warning
             // on the next run of webpack.
           }
-        })
+        });
       }
+      config.plugins.push(workboxPlugin);
 
-      config.plugins.push(workboxPlugin)
+      config.plugins.push({
+        apply: (compiler) => {
+          compiler.hooks.afterEmit.tapPromise(
+            'AddEmittedStaticFileToPrecacheManifest',
+            async () => {
+              try {
+                await generatePrecacheManifest();
+                // eslint-disable-next-line no-console
+                console.log('✅ Successfully generated precache manifest after emit.');
+              } catch (e) {
+                // eslint-disable-next-line no-console
+                console.error('Failed to generate precache manifest:', e);
+              }
+            }
+          );
+        }
+      });
+
+      // Add the compiled static files urls to the precache manifest after built and have been emitted to .next/static
     }
 
     config.module.rules.push(
@@ -282,8 +304,8 @@ module.exports = withPlausibleProxy()({
           }
         ]
       }
-    )
+    );
 
-    return config
+    return config;
   }
-})
+});

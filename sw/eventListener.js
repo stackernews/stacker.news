@@ -1,32 +1,17 @@
 import ServiceWorkerStorage from 'serviceworker-storage'
 import { numWithUnits } from '@/lib/format'
 import { CLEAR_NOTIFICATIONS, clearAppBadge, setAppBadge } from '@/lib/badge'
-import { ACTION_PORT, DELETE_SUBSCRIPTION, MESSAGE_PORT, STORE_OS, STORE_SUBSCRIPTION, SYNC_SUBSCRIPTION } from '@/components/serviceworker'
+import { ACTION_PORT, DELETE_SUBSCRIPTION, STORE_OS, STORE_SUBSCRIPTION, SYNC_SUBSCRIPTION } from '@/components/serviceworker'
 
 // we store existing push subscriptions and OS to keep them in sync with server
 const storage = new ServiceWorkerStorage('sw:storage', 1)
 
 // for communication between app and service worker
 // see https://developer.mozilla.org/en-US/docs/Web/API/MessageChannel
-let messageChannelPort
 let actionChannelPort
-
-// operating system. the value will be received via a STORE_OS message from app since service workers don't have access to window.navigator
-let os = ''
-async function getOS () {
-  if (!os) {
-    os = await storage.getItem('os') || ''
-  }
-  return os
-}
 
 // current push notification count for badge purposes
 let activeCount = 0
-
-// message event listener for communication between app and service worker
-const log = (message, level = 'info', context) => {
-  messageChannelPort?.postMessage({ level, message, context })
-}
 
 export function onPush (sw) {
   return (event) => {
@@ -205,14 +190,7 @@ export function onMessage (sw) {
       event.waitUntil(storage.setItem('os', event.data.os))
       return
     }
-    if (event.data.action === MESSAGE_PORT) {
-      messageChannelPort = event.ports[0]
-    }
-    log('[sw:message] received message', 'info', { action: event.data.action })
-    const currentOS = event.waitUntil(getOS())
-    log('[sw:message] stored os: ' + currentOS, 'info', { action: event.data.action })
     if (event.data.action === STORE_SUBSCRIPTION) {
-      log('[sw:message] storing subscription in IndexedDB', 'info', { endpoint: event.data.subscription.endpoint })
       return event.waitUntil(storage.setItem('subscription', { ...event.data.subscription, swVersion: 2 }))
     }
     if (event.data.action === SYNC_SUBSCRIPTION) {

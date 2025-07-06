@@ -7,7 +7,6 @@ const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBKEY
 const ServiceWorkerContext = createContext()
 
 // message types for communication between app and service worker
-export const MESSAGE_PORT = 'MESSAGE_PORT' // message to exchange message channel on which service worker will send messages back to app
 export const ACTION_PORT = 'ACTION_PORT' // message to exchange action channel on which service worker will send actions back to app
 export const SYNC_SUBSCRIPTION = 'SYNC_SUBSCRIPTION' // trigger onPushSubscriptionChange event in service worker manually
 export const RESUBSCRIBE = 'RESUBSCRIBE' // trigger resubscribing to push notifications (sw -> app)

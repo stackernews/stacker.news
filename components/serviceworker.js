@@ -12,7 +12,6 @@ export const SYNC_SUBSCRIPTION = 'SYNC_SUBSCRIPTION' // trigger onPushSubscripti
 export const RESUBSCRIBE = 'RESUBSCRIBE' // trigger resubscribing to push notifications (sw -> app)
 export const DELETE_SUBSCRIPTION = 'DELETE_SUBSCRIPTION' // delete subscription in IndexedDB (app -> sw)
 export const STORE_SUBSCRIPTION = 'STORE_SUBSCRIPTION' // store subscription in IndexedDB (app -> sw)
-export const STORE_OS = 'STORE_OS' // store OS in service worker
 
 export const ServiceWorkerProvider = ({ children }) => {
   const [registration, setRegistration] = useState(null)
@@ -145,7 +144,6 @@ export const ServiceWorkerProvider = ({ children }) => {
     // since (a lot of) browsers don't support the pushsubscriptionchange event,
     // we sync with server manually by checking on every page reload if the push subscription changed.
     // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
-    navigator?.serviceWorker?.controller?.postMessage?.({ action: STORE_OS, os: detectOS() })
     navigator?.serviceWorker?.controller?.postMessage?.({ action: SYNC_SUBSCRIPTION })
   }, [registration, permission.notification])
 
@@ -162,31 +160,6 @@ export const ServiceWorkerProvider = ({ children }) => {
       {children}
     </ServiceWorkerContext.Provider>
   )
-}
-
-function detectOS () {
-  if (!window.navigator) return ''
-
-  const userAgent = window.navigator.userAgent
-  const platform = window.navigator.userAgentData?.platform || window.navigator.platform
-  const macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K']
-  const windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE']
-  const iosPlatforms = ['iPhone', 'iPad', 'iPod']
-  let os = null
-
-  if (macosPlatforms.indexOf(platform) !== -1) {
-    os = 'Mac OS'
-  } else if (iosPlatforms.indexOf(platform) !== -1) {
-    os = 'iOS'
-  } else if (windowsPlatforms.indexOf(platform) !== -1) {
-    os = 'Windows'
-  } else if (/Android/.test(userAgent)) {
-    os = 'Android'
-  } else if (/Linux/.test(platform)) {
-    os = 'Linux'
-  }
-
-  return os
 }
 
 export function useServiceWorker () {

@@ -1,7 +1,7 @@
 import ServiceWorkerStorage from 'serviceworker-storage'
 import { numWithUnits } from '@/lib/format'
 import { CLEAR_NOTIFICATIONS, clearAppBadge, setAppBadge } from '@/lib/badge'
-import { ACTION_PORT, DELETE_SUBSCRIPTION, STORE_OS, STORE_SUBSCRIPTION, SYNC_SUBSCRIPTION } from '@/components/serviceworker'
+import { ACTION_PORT, DELETE_SUBSCRIPTION, STORE_SUBSCRIPTION, SYNC_SUBSCRIPTION } from '@/components/serviceworker'
 
 // we store existing push subscriptions and OS to keep them in sync with server
 const storage = new ServiceWorkerStorage('sw:storage', 1)
@@ -184,10 +184,6 @@ export function onMessage (sw) {
   return async (event) => {
     if (event.data.action === ACTION_PORT) {
       actionChannelPort = event.ports[0]
-      return
-    }
-    if (event.data.action === STORE_OS) {
-      event.waitUntil(storage.setItem('os', event.data.os))
       return
     }
     if (event.data.action === STORE_SUBSCRIPTION) {

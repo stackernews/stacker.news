@@ -104,15 +104,14 @@ export const ServiceWorkerProvider = ({ children }) => {
   const togglePushSubscription = useCallback(async () => {
     const pushSubscription = await registration.pushManager.getSubscription()
     if (pushSubscription) {
-      return unsubscribeFromPushNotifications(pushSubscription)
+      return await unsubscribeFromPushNotifications(pushSubscription)
     }
-    return subscribeToPushNotifications().then(async () => {
-      // request persistent storage: https://web.dev/learn/pwa/offline-data#data_persistence
-      const persisted = await navigator?.storage?.persisted?.()
-      if (!persisted && navigator?.storage?.persist) {
-        return navigator.storage.persist()
-      }
-    })
+    await subscribeToPushNotifications()
+    // request persistent storage: https://web.dev/learn/pwa/offline-data#data_persistence
+    const persisted = await navigator?.storage?.persisted?.()
+    if (!persisted && navigator?.storage?.persist) {
+      return await navigator.storage.persist()
+    }
   })
 
   useEffect(() => {

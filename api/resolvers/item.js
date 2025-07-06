@@ -28,8 +28,6 @@ import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
 
-metadataRuleSets.title.rules.unshift(['h1 > yt-formatted-string.ytd-watch-metadata', el => el.getAttribute('title')])
-
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
   sharedSortsArray.push('("Item"."pinId" IS NOT NULL) DESC')
@@ -597,7 +595,13 @@ export default {
         const response = await fetch(ensureProtocol(url), { redirect: 'follow' })
         const html = await response.text()
         const doc = domino.createWindow(html).document
-        const metadata = getMetadata(doc, url, { title: metadataRuleSets.title, publicationDate: publicationDateRuleSet })
+        const titleRuleSet = {
+          rules: [
+            ['h1 > yt-formatted-string.ytd-watch-metadata', el => el.getAttribute('title')],
+            ...metadataRuleSets.title.rules
+          ]
+        }
+        const metadata = getMetadata(doc, url, { title: titleRuleSet, publicationDate: publicationDateRuleSet })
         const dateHint = ` (${metadata.publicationDate?.getFullYear()})`
         const moreThanOneYearAgo = metadata.publicationDate && metadata.publicationDate < datePivot(new Date(), { years: -1 })
 

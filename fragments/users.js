@@ -23,7 +23,6 @@ ${STREAK_FIELDS}
     photoId
     privates {
       autoDropBolt11s
-      diagnostics
       noReferralLinks
       fiatCurrency
       autoWithdrawMaxFeePercent
@@ -97,7 +96,6 @@ export const SETTINGS_FIELDS = gql`
       imgproxyOnly
       showImagesAndVideos
       hideWalletBalance
-      diagnostics
       noReferralLinks
       nostrPubkey
       nostrCrossposting

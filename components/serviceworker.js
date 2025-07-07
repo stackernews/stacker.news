@@ -35,12 +35,12 @@ export const ServiceWorkerProvider = ({ children }) => {
     `)
   const [deletePushSubscription] = useMutation(
     gql`
-        mutation deletePushSubscription($endpoint: String!) {
-          deletePushSubscription(endpoint: $endpoint) {
-            id
-          }
+      mutation deletePushSubscription($endpoint: String!) {
+        deletePushSubscription(endpoint: $endpoint) {
+          id
         }
-      `)
+      }
+    `)
 
   // I am not entirely sure if this is needed since at least in Brave,
   // using `registration.pushManager.subscribe` also prompts the user.

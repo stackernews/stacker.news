@@ -7,11 +7,8 @@ const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBKEY
 const ServiceWorkerContext = createContext()
 
 // message types for communication between app and service worker
-export const ACTION_PORT = 'ACTION_PORT' // message to exchange action channel on which service worker will send actions back to app
-export const SYNC_SUBSCRIPTION = 'SYNC_SUBSCRIPTION' // trigger onPushSubscriptionChange event in service worker manually
-export const RESUBSCRIBE = 'RESUBSCRIBE' // trigger resubscribing to push notifications (sw -> app)
-export const DELETE_SUBSCRIPTION = 'DELETE_SUBSCRIPTION' // delete subscription in IndexedDB (app -> sw)
-export const STORE_SUBSCRIPTION = 'STORE_SUBSCRIPTION' // store subscription in IndexedDB (app -> sw)
+export const DELETE_SUBSCRIPTION = 'DELETE_SUBSCRIPTION'
+export const STORE_SUBSCRIPTION = 'STORE_SUBSCRIPTION'
 
 export const ServiceWorkerProvider = ({ children }) => {
   const [registration, setRegistration] = useState(null)
@@ -94,8 +91,6 @@ export const ServiceWorkerProvider = ({ children }) => {
     await subscription.unsubscribe()
     const { endpoint } = subscription
     await deletePushSubscription({ variables: { endpoint } })
-    // also delete push subscription in IndexedDB so we can tell if the user disabled push subscriptions
-    // or we lost the push subscription due to a bug
     navigator.serviceWorker.controller.postMessage({ action: DELETE_SUBSCRIPTION })
   }
 
@@ -129,23 +124,6 @@ export const ServiceWorkerProvider = ({ children }) => {
       setRegistration(registration)
     })
   }, [])
-
-  useEffect(() => {
-    // wait until successful registration
-    if (!registration) return
-    // setup channel between app and service worker
-    const channel = new MessageChannel()
-    navigator?.serviceWorker?.controller?.postMessage({ action: ACTION_PORT }, [channel.port2])
-    channel.port1.onmessage = (event) => {
-      if (event.data.action === RESUBSCRIBE && permission.notification === 'granted') {
-        return subscribeToPushNotifications()
-      }
-    }
-    // since (a lot of) browsers don't support the pushsubscriptionchange event,
-    // we sync with server manually by checking on every page reload if the push subscription changed.
-    // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
-    navigator?.serviceWorker?.controller?.postMessage?.({ action: SYNC_SUBSCRIPTION })
-  }, [registration, permission.notification])
 
   const contextValue = useMemo(() => ({
     registration,

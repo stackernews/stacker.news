@@ -420,7 +420,8 @@ export function AnonDropdown ({ path }) {
 
   useEffect(() => {
     if (!window.localStorage.getItem('striked')) {
-      const striked = strike()
+      const to = setTimeout(() => {
+        const striked = strike()
         if (striked) {
           window.localStorage.setItem('striked', 'yep')
         }

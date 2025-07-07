@@ -42,14 +42,71 @@ function prepareComments (client, newComments) {
   }
 }
 
+function showAllNewCommentsRecursively (client, item) {
+  // handle new comments at this item level
+  if (item.newComments && item.newComments.length > 0) {
+    const dedupedNewComments = dedupeNewComments(item.newComments, item.comments?.comments)
+
+    if (dedupedNewComments.length > 0) {
+      const payload = prepareComments(client, dedupedNewComments)
+      commentUpdateFragment(client, item.id, payload)
+    }
+  }
+
+  // recursively handle new comments in child comments
+  if (item.comments?.comments) {
+    for (const childComment of item.comments.comments) {
+      showAllNewCommentsRecursively(client, childComment)
+    }
+  }
+}
+
+function dedupeNewComments (newComments, comments) {
+  const existingIds = new Set(comments.map(c => c.id))
+  return newComments.filter(id => !existingIds.has(id))
+}
+
+function collectAllNewComments (item) {
+  const allNewComments = [...(item.newComments || [])]
+  if (item.comments?.comments) {
+    for (const comment of item.comments.comments) {
+      allNewComments.push(...collectAllNewComments(comment))
+    }
+  }
+  return allNewComments
+}
+
+// TODO: merge this with ShowNewComments
+export function ShowAllNewComments ({ item }) {
+  const client = useApolloClient()
+
+  const newComments = useMemo(() => collectAllNewComments(item), [item])
+
+  const showNewComments = useCallback(() => {
+    showAllNewCommentsRecursively(client, item)
+  }, [client, item])
+
+  if (newComments.length === 0) {
+    return null
+  }
+
+  return (
+    <div
+      onClick={showNewComments}
+      className='d-flex align-items-center gap-2 px-3 pointer'
+    >
+      {newComments.length > 1
+        ? `show all ${newComments.length} new comments`
+        : 'show new comment'}
+      <div className={styles.newCommentDot} />
+    </div>
+  )
+}
+
 // ShowNewComments is a component that dedupes, refreshes and injects newComments into the comments field
 export function ShowNewComments ({ topLevel = false, comments, newComments = [], itemId, sort }) {
   const client = useApolloClient()
-
-  const dedupedNewComments = useMemo(() => {
-    const existingIds = new Set(comments.map(c => c.id))
-    return newComments.filter(id => !existingIds.has(id))
-  }, [newComments, comments])
+  const dedupedNewComments = useMemo(() => dedupeNewComments(newComments, comments), [newComments, comments])
 
   const showNewComments = useCallback(() => {
     // fetch the latest version of the comments from the cache by their ids

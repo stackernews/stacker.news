@@ -1,14 +1,10 @@
 import ServiceWorkerStorage from 'serviceworker-storage'
 import { numWithUnits } from '@/lib/format'
 import { CLEAR_NOTIFICATIONS, clearAppBadge, setAppBadge } from '@/lib/badge'
-import { ACTION_PORT, DELETE_SUBSCRIPTION, STORE_SUBSCRIPTION, SYNC_SUBSCRIPTION } from '@/components/serviceworker'
+import { DELETE_SUBSCRIPTION, STORE_SUBSCRIPTION } from '@/components/serviceworker'
 
-// we store existing push subscriptions and OS to keep them in sync with server
+// we store existing push subscriptions for the onpushsubscriptionchange event
 const storage = new ServiceWorkerStorage('sw:storage', 1)
-
-// for communication between app and service worker
-// see https://developer.mozilla.org/en-US/docs/Web/API/MessageChannel
-let actionChannelPort
 
 // current push notification count for badge purposes
 let activeCount = 0
@@ -130,28 +126,14 @@ export function onNotificationClick (sw) {
 
 export function onPushSubscriptionChange (sw) {
   // https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
-  // `isSync` is passed if function was called because of 'SYNC_SUBSCRIPTION' event
-  // this makes sure we can differentiate between 'pushsubscriptionchange' events and our custom 'SYNC_SUBSCRIPTION' event
-  return async (event, isSync) => {
+  return async (event) => {
     let { oldSubscription, newSubscription } = event
     // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event
     // fallbacks since browser may not set oldSubscription and newSubscription
     oldSubscription ??= await storage.getItem('subscription')
     newSubscription ??= await sw.registration.pushManager.getSubscription()
-    if (!newSubscription) {
-      if (isSync && oldSubscription?.swVersion === 2) {
-        // service worker lost the push subscription somehow, we assume this is a bug -> resubscribe
-        // see https://github.com/stackernews/stacker.news/issues/411#issuecomment-1790675861
-        // NOTE: this is only run on IndexedDB subscriptions stored under service worker version 2 since this is not backwards compatible
-        // see discussion in https://github.com/stackernews/stacker.news/pull/597
-        actionChannelPort?.postMessage({ action: 'RESUBSCRIBE' })
-        return
-      }
-      // no subscription exists at the moment
-      return
-    }
-    if (oldSubscription?.endpoint === newSubscription.endpoint) {
-      // subscription did not change. no need to sync with server
+    if (!newSubscription || oldSubscription?.endpoint === newSubscription.endpoint) {
+      // no subscription exists at the moment or subscription did not change
       return
     }
     // convert keys from ArrayBuffer to string
@@ -182,15 +164,8 @@ export function onPushSubscriptionChange (sw) {
 
 export function onMessage (sw) {
   return async (event) => {
-    if (event.data.action === ACTION_PORT) {
-      actionChannelPort = event.ports[0]
-      return
-    }
     if (event.data.action === STORE_SUBSCRIPTION) {
       return event.waitUntil(storage.setItem('subscription', { ...event.data.subscription, swVersion: 2 }))
-    }
-    if (event.data.action === SYNC_SUBSCRIPTION) {
-      return event.waitUntil(onPushSubscriptionChange(sw)(event, true))
     }
     if (event.data.action === DELETE_SUBSCRIPTION) {
       return event.waitUntil(storage.removeItem('subscription'))

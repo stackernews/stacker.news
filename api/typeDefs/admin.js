@@ -7,5 +7,6 @@ export default gql`
 
   extend type Mutation {
     onAirToggle: Boolean!
+    approveOAuthApplication(id: ID!): OAuthApplication!
   }
 `

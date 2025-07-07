@@ -139,9 +139,10 @@ function oneDayReferral (request, { me }) {
  * @param opts.notFound function that tests data to determine if 404
  * @param opts.authRequired boolean that determines if auth is required
  */
-export function getGetServerSideProps (
-  { query: queryOrFunc, variables: varsOrFunc, notFound, authRequired }) {
-  return async function ({ req, res, query: params }) {
+export function getGetServerSideProps (options, pageGetServerSideProps) {
+  const { query: queryOrFunc, variables: varsOrFunc, notFound, authRequired } = options
+  return async function (context) {
+    const { req, res, query: params } = context
     const { nodata, ...realParams } = params
     // we want to use client-side cache
     if (nodata) return { props: { } }
@@ -211,11 +212,27 @@ export function getGetServerSideProps (
       }
     }
 
+    let pageProps = {}
+    if (pageGetServerSideProps) {
+      const pageResult = await pageGetServerSideProps(context)
+
+      if (pageResult.notFound) {
+        return { notFound: true }
+      }
+
+      if (pageResult.redirect) {
+        return { redirect: pageResult.redirect }
+      }
+
+      pageProps = pageResult.props
+    }
+
     oneDayReferral(req, { me })
 
     return {
       props: {
         ...props,
+        ...pageProps,
         me,
         price,
         blockHeight,

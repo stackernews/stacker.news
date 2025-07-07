@@ -1,5 +1,5 @@
 import {
-  getInvoice as getInvoiceFromLnd, deletePayment, getPayment,
+  getInvoice as getInvoiceFromLnd, deletePayment, getPayment, createInvoice,
   parsePaymentRequest
 } from 'ln-service'
 import crypto, { timingSafeEqual } from 'crypto'
@@ -474,6 +474,49 @@ const resolvers = {
     __resolveType: invoiceOrDirect => invoiceOrDirect.__resolveType
   },
   Mutation: {
+    createInvoice: async (parent, { amount, expireMins, hodlInvoice, description, hash, hmac }, { me, models, lnd }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      if (hodlInvoice && (!hash || !hmac)) {
+        throw new GqlInputError('hash and hmac are required for hodl invoices')
+      }
+
+      if (hodlInvoice && hash && hmac) {
+        verifyHmac(hash, hmac)
+      }
+
+      const descriptionHash = hodlInvoice ? crypto.createHash('sha256').update(description).digest('hex') : undefined
+      const msats = amount * 1000
+      try {
+        const invoice = await createInvoice({
+          description: hodlInvoice ? undefined : description,
+          description_hash: descriptionHash,
+          expires_at: datePivot(new Date(), { minutes: expireMins || 1440 }),
+          mtokens: msats,
+          lnd,
+          is_including_private_channels: true
+        })
+
+        const inv = await models.invoice.create({
+          data: {
+            hash: invoice.id,
+            bolt11: invoice.request,
+            expiresAt: invoice.expires_at,
+            msatsRequested: msats,
+            userId: me.id,
+            description,
+            private: !!hodlInvoice
+          }
+        })
+
+        return inv
+      } catch (error) {
+        console.log(error)
+        throw new Error('Failed to create invoice')
+      }
+    },
     createWithdrawl: createWithdrawal,
     sendToLnAddr,
     cancelInvoice: async (parent, { hash, hmac, userCancel }, { me, models, lnd, boss }) => {

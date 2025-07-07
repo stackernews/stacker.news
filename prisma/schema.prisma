@@ -151,6 +151,13 @@ model User {
   DirectPaymentReceived     DirectPayment[]      @relation("DirectPaymentReceived")
   DirectPaymentSent         DirectPayment[]      @relation("DirectPaymentSent")
   UserSubTrust              UserSubTrust[]
+  OAuthApplications         OAuthApplication[]
+  OAuthAuthorizationCodes   OAuthAuthorizationCode[]
+  OAuthAccessTokens         OAuthAccessToken[]
+  OAuthRefreshTokens        OAuthRefreshToken[]
+  OAuthAuthorizationGrants  OAuthAuthorizationGrant[]
+  OAuthWalletTransactions OAuthWalletTransaction[]
+  OAuthApiUsage             OAuthApiUsage[]
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -993,6 +1000,7 @@ model Invoice {
   PollVote           PollVote[]
   PollBlindVote      PollBlindVote[]
   WalletLog          WalletLog[]
+  OAuthWalletTransactions OAuthWalletTransaction[]
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")
@@ -1071,6 +1079,7 @@ model Withdrawl {
   wallet         Wallet?          @relation(fields: [walletId], references: [id], onDelete: SetNull)
   invoiceForward InvoiceForward?
   WalletLog      WalletLog[]
+  OAuthWalletTransaction OAuthWalletTransaction[]
 
   @@index([createdAt], map: "Withdrawl.created_at_index")
   @@index([userId], map: "Withdrawl.userId_index")
@@ -1296,4 +1305,202 @@ enum LogLevel {
   WARN
   ERROR
   SUCCESS
+}
+
+enum OAuthGrantType {
+  authorization_code
+  refresh_token
+  client_credentials
+}
+
+enum OAuthScope {
+  read
+  wallet_read           @map("wallet:read")
+  wallet_send           @map("wallet:send")
+  wallet_receive        @map("wallet:receive")
+  profile_read          @map("profile:read")
+}
+
+enum OAuthTokenType {
+  bearer
+}
+
+model OAuthApplication {
+  id                   Int      @id @default(autoincrement())
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at")
+  name                 String
+  description          String?
+  homepageUrl          String?  @map("homepage_url")
+  privacyPolicyUrl     String?  @map("privacy_policy_url") 
+  termsOfServiceUrl    String?  @map("terms_of_service_url")
+  clientId             String   @unique @map("client_id")
+  clientSecretHash     String   @map("client_secret_hash")
+  redirectUris         String[] @map("redirect_uris")
+  scopes               OAuthScope[]
+  logoUrl              String?  @map("logo_url")
+  isConfidential       Boolean  @default(true) @map("is_confidential")
+  pkceRequired         Boolean  @default(true) @map("pkce_required")
+  userId               Int      @map("user_id")
+  approved             Boolean  @default(false)
+  suspended            Boolean  @default(false)
+  suspendedReason      String?  @map("suspended_reason")
+  rateLimitRpm         Int?     @default(100) @map("rate_limit_rpm")
+  rateLimitDaily       Int?     @default(5000) @map("rate_limit_daily")
+
+  user                 User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  authorizationCodes   OAuthAuthorizationCode[]
+  accessTokens         OAuthAccessToken[]
+  refreshTokens        OAuthRefreshToken[]
+  authorizationGrants  OAuthAuthorizationGrant[]
+  walletInvoiceRequests OAuthWalletTransaction[]
+  apiUsage             OAuthApiUsage[]
+
+  @@index([userId])
+  @@index([approved])
+  @@index([suspended])
+}
+
+model OAuthAuthorizationCode {
+  id                    Int         @id @default(autoincrement())
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @default(now()) @updatedAt @map("updated_at")
+  code                  String      @unique
+  userId                Int         @map("user_id")
+  applicationId         Int         @map("application_id")
+  redirectUri           String      @map("redirect_uri")
+  scopes                OAuthScope[]
+  codeChallenge         String?     @map("code_challenge")
+  codeChallengeMethod   String?     @map("code_challenge_method")
+  expiresAt             DateTime    @map("expires_at")
+  used                  Boolean     @default(false)
+
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application           OAuthApplication  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([applicationId])
+  @@index([expiresAt])
+}
+
+model OAuthAccessToken {
+  id                    Int         @id @default(autoincrement())
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @default(now()) @updatedAt @map("updated_at")
+  token                 String      @unique
+  userId                Int         @map("user_id")
+  applicationId         Int         @map("application_id")
+  scopes                OAuthScope[]
+  expiresAt             DateTime    @map("expires_at")
+  revoked               Boolean     @default(false)
+  revokedAt             DateTime?   @map("revoked_at")
+  lastUsedAt            DateTime?   @map("last_used_at")
+  lastUsedIp            String?     @map("last_used_ip")
+
+  user                  User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application           OAuthApplication          @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  refreshToken          OAuthRefreshToken?
+  walletInvoiceRequests OAuthWalletTransaction[]
+  apiUsage              OAuthApiUsage[]
+
+  @@index([userId])
+  @@index([applicationId])
+  @@index([expiresAt])
+  @@index([revoked])
+}
+
+model OAuthRefreshToken {
+  id              Int         @id @default(autoincrement())
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @default(now()) @updatedAt @map("updated_at")
+  token           String      @unique
+  userId          Int         @map("user_id")
+  applicationId   Int         @map("application_id")
+  accessTokenId   Int         @unique @map("access_token_id")
+  expiresAt       DateTime    @map("expires_at")
+  revoked         Boolean     @default(false)
+  revokedAt       DateTime?   @map("revoked_at")
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application     OAuthApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  accessToken     OAuthAccessToken @relation(fields: [accessTokenId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([applicationId])
+  @@index([expiresAt])
+  @@index([revoked])
+}
+
+model OAuthAuthorizationGrant {
+  id              Int         @id @default(autoincrement())
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @default(now()) @updatedAt @map("updated_at")
+  userId          Int         @map("user_id")
+  applicationId   Int         @map("application_id")
+  scopes          OAuthScope[]
+  authorizedAt    DateTime    @default(now()) @map("authorized_at")
+  lastUsedAt      DateTime?   @map("last_used_at")
+  revoked         Boolean     @default(false)
+  revokedAt       DateTime?   @map("revoked_at")
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application     OAuthApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, applicationId])
+  @@index([applicationId])
+  @@index([revoked])
+}
+
+model OAuthWalletTransaction {
+  id              Int         @id @default(autoincrement())
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @default(now()) @updatedAt @map("updated_at")
+  userId          Int         @map("user_id")
+  applicationId   Int         @map("application_id")
+  accessTokenId   Int         @map("access_token_id")
+  bolt11          String
+  amountMsats     BigInt      @map("amount_msats")
+  description     String?
+  metadata        Json?       @db.JsonB
+  status          String      @default("pending")
+  approved        Boolean?
+  approvedAt      DateTime?   @map("approved_at")
+  expiresAt       DateTime    @map("expires_at")
+  invoiceId       Int?        @map("invoice_id")
+  withdrawalId    Int?        @map("withdrawal_id")
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application     OAuthApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  accessToken     OAuthAccessToken @relation(fields: [accessTokenId], references: [id], onDelete: Cascade)
+  invoice         Invoice?         @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  withdrawal      Withdrawl?       @relation(fields: [withdrawalId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([applicationId])
+  @@index([accessTokenId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model OAuthApiUsage {
+  id              Int         @id @default(autoincrement())
+  createdAt       DateTime    @default(now()) @map("created_at")
+  applicationId   Int         @map("application_id")
+  accessTokenId   Int?        @map("access_token_id")
+  endpoint        String
+  method          String
+  statusCode      Int         @map("status_code")
+  responseTimeMs  Int?        @map("response_time_ms")
+  userId          Int?        @map("user_id")
+  ipAddress       String?     @map("ip_address")
+  userAgent       String?     @map("user_agent")
+
+  application     OAuthApplication  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  accessToken     OAuthAccessToken? @relation(fields: [accessTokenId], references: [id], onDelete: SetNull)
+  user            User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId])
+  @@index([accessTokenId])
+  @@index([createdAt])
+  @@index([userId])
 }

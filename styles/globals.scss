@@ -220,6 +220,8 @@ $zindex-sticky: 900;
   scroll-margin-top: 60px;
 }
 
+
+
 .ms-xs {
   margin-left: 0.125rem;
 }
@@ -594,6 +596,14 @@ div[contenteditable]:disabled,
   flex-direction: column;
   min-height: 100vh;
   min-height: 100svh;
+}
+
+#__next > main {
+  z-index: 0;
+}
+
+#__next > footer {
+  z-index: 0;
 }
 
 footer {
@@ -1093,4 +1103,17 @@ div[contenteditable]:focus,
 .react-datepicker__quarter-text--in-range,
 .react-datepicker__year-text--in-range) {
   background-color: var(--bs-info) !important;
+}
+
+.react-datepicker__close-icon {
+  padding: 0rem 0.75rem !important;
+  align-items: center !important;
+  height: calc(100% - 3px) !important;
+
+  &::after {
+    content: "×" !important;
+    color: var(--theme-grey) !important;
+    font-size: 20px !important;
+    background: none !important;
+  }
 }

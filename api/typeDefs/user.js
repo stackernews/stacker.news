@@ -86,7 +86,7 @@ export default gql`
 
   input SettingsInput {
     autoDropBolt11s: Boolean!
-    diagnostics: Boolean!
+    diagnostics: Boolean @deprecated
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!
@@ -162,7 +162,7 @@ export default gql`
     mirrors SettingsInput
     """
     autoDropBolt11s: Boolean!
-    diagnostics: Boolean!
+    diagnostics: Boolean @deprecated
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!

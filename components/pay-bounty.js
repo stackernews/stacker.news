@@ -6,7 +6,7 @@ import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
 import { ActCanceledError, useAct } from './item-act'
-import { useFireworks } from './fireworks'
+import { useAnimation } from '@/components/animation'
 import { useToast } from './toast'
 import { useSendWallets } from '@/wallets/index'
 import { Form, SubmitButton } from './form'
@@ -48,7 +48,7 @@ export default function PayBounty ({ children, item }) {
   const { me } = useMe()
   const showModal = useShowModal()
   const root = useRoot()
-  const strike = useFireworks()
+  const animate = useAnimation()
   const toaster = useToast()
   const wallets = useSendWallets()
 
@@ -61,7 +61,7 @@ export default function PayBounty ({ children, item }) {
 
   const handlePayBounty = async onCompleted => {
     try {
-      strike()
+      animate()
       const { error } = await act({ onCompleted })
       if (error) throw error
     } catch (error) {

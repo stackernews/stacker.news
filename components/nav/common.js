@@ -413,8 +413,10 @@ export function AnonDropdown ({ path }) {
   useEffect(() => {
     if (!window.localStorage.getItem('striked')) {
       const to = setTimeout(() => {
-        strike()
-        window.localStorage.setItem('striked', 'yep')
+        const striked = strike()
+        if (striked) {
+          window.localStorage.setItem('striked', 'yep')
+        }
       }, randInRange(3000, 10000))
       return () => clearTimeout(to)
     }

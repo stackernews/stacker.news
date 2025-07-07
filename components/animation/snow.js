@@ -21,7 +21,7 @@ export const SnowProvider = ({ children }) => {
     }
     setStartIndex(i % MAX_FLAKES)
     setFlakes(newFlakes)
-  }, [setFlakes, startIndex])
+  }, [flakes, startIndex])
 
   return (
     <SnowContext.Provider value={snow}>

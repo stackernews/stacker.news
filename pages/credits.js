@@ -2,7 +2,7 @@ import { getGetServerSideProps } from '@/api/ssrApollo'
 import CCInfo from '@/components/info/cc'
 import { Form, Input, SubmitButton } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
-import { useFireworks } from '@/components/fireworks'
+import { useAnimation } from '@/components/animation'
 import { useMe } from '@/components/me'
 import { useShowModal } from '@/components/modal'
 import { usePaidMutation } from '@/components/use-paid-mutation'
@@ -76,7 +76,7 @@ function WithdrawButton ({ className }) {
 
 export function BuyCreditsButton ({ className }) {
   const showModal = useShowModal()
-  const strike = useFireworks()
+  const animate = useAnimation()
   const [buyCredits] = usePaidMutation(BUY_CREDITS)
 
   return (
@@ -94,7 +94,7 @@ export function BuyCreditsButton ({ className }) {
                   credits: Number(amount)
                 },
                 onCompleted: () => {
-                  strike()
+                  animate()
                 }
               })
               onClose()

@@ -2,13 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { useMe } from '@/components/me'
 import { randInRange } from '@/lib/rand'
 
-// import { LightningProvider, useLightning } from './lightning'
-import { FireworksProvider, useFireworks } from './fireworks'
+import { LightningProvider, useLightning } from './lightning'
+// import { FireworksProvider, useFireworks } from './fireworks'
 // import { SnowProvider, useSnow } from './snow'
 
 const [SelectedAnimationProvider, useSelectedAnimation] = [
-  // LightningProvider, useLightning
-  FireworksProvider, useFireworks
+  LightningProvider, useLightning
+  // FireworksProvider, useFireworks
   // SnowProvider, useSnow // TODO: the snow animation doesn't seem to work anymore
 ]
 

@@ -117,7 +117,7 @@ model User {
   followees                 UserSubscription[]   @relation("followee")
   hideWelcomeBanner         Boolean              @default(false)
   hideWalletRecvPrompt      Boolean              @default(false)
-  diagnostics               Boolean              @default(false)
+  diagnostics               Boolean              @default(false) @ignore
   hideIsContributor         Boolean              @default(false)
   lnAddr                    String?
   autoWithdrawMaxFeePercent Float?
@@ -1214,6 +1214,8 @@ model Log {
   context   Json?
 
   @@index([createdAt, name], map: "Log.name_index")
+
+  @@ignore
 }
 
 model TerritoryTransfer {

@@ -120,19 +120,27 @@ export function NavSelect ({ sub: subName, className, size }) {
 
 export function NavNotifications ({ className }) {
   const hasNewNotes = useHasNewNotes()
-  // Use a stateful cache-buster to force favicon reload
-  const [cacheBuster, setCacheBuster] = useState(Date.now())
 
   useEffect(() => {
-    setCacheBuster(Date.now())
+    const setFavicon = (href) => {
+      // Remove all existing favicon link tags
+      const links = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]')
+      links.forEach(link => link.parentNode.removeChild(link))
+      // Create new favicon link with cache-busting query
+      const link = document.createElement('link')
+      link.rel = 'shortcut icon'
+      link.type = 'image/png'
+      link.href = href + '?v=' + Date.now()
+      document.head.appendChild(link)
+    }
+    setFavicon(hasNewNotes ? '/favicon-notify.png' : '/favicon.png')
   }, [hasNewNotes])
-
-  const faviconHref = (hasNewNotes ? '/favicon-notify.png' : '/favicon.png') + '?v=' + cacheBuster
 
   return (
     <>
+      {/* fallback for SSR, but will be replaced on client by useEffect */}
       <Head>
-        <link rel='shortcut icon' href={faviconHref} key={faviconHref} />
+        <link rel='shortcut icon' href={hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
       </Head>
       <Link href='/notifications' passHref legacyBehavior>
         <Nav.Link eventKey='notifications' className={classNames('position-relative', className)}>
@@ -413,10 +421,8 @@ export function AnonDropdown ({ path }) {
   useEffect(() => {
     if (!window.localStorage.getItem('striked')) {
       const to = setTimeout(() => {
-        const striked = strike()
-        if (striked) {
-          window.localStorage.setItem('striked', 'yep')
-        }
+        strike()
+        window.localStorage.setItem('striked', 'yep')
       }, randInRange(3000, 10000))
       return () => clearTimeout(to)
     }

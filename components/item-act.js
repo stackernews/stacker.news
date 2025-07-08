@@ -6,7 +6,6 @@ import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
 import { amountSchema, boostSchema } from '@/lib/validate'
 import { useToast } from './toast'
-import { useLightning } from './lightning'
 import { nextTip, defaultTipIncludingRandom } from './upvote'
 import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { usePaidMutation } from './use-paid-mutation'
@@ -14,6 +13,7 @@ import { ACT_MUTATION } from '@/fragments/paidAction'
 import { meAnonSats } from '@/lib/apollo'
 import { BoostItemInput } from './adv-post-form'
 import { useSendWallets } from '@/wallets/index'
+import { useAnimation } from '@/components/animation'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -96,7 +96,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
   }, [onClose, item.id])
 
   const actor = useAct()
-  const strike = useLightning()
+  const animate = useAnimation()
 
   const onSubmit = useCallback(async ({ amount }) => {
     if (abortSignal && zapUndoTrigger({ me, amount })) {
@@ -111,7 +111,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
     }
 
     const onPaid = () => {
-      strike()
+      animate()
       onClose?.()
       if (!me) setItemMeAnonSats({ id: item.id, amount })
     }
@@ -143,7 +143,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
     })
     if (error) throw error
     addCustomTip(Number(amount))
-  }, [me, actor, wallets.length, act, item.id, onClose, abortSignal, strike])
+  }, [me, actor, wallets.length, act, item.id, onClose, abortSignal, animate])
 
   return act === 'BOOST'
     ? <BoostForm step={step} onSubmit={onSubmit} item={item} inputRef={inputRef} act={act}>{children}</BoostForm>
@@ -300,7 +300,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
 export function useZap () {
   const wallets = useSendWallets()
   const act = useAct()
-  const strike = useLightning()
+  const animate = useAnimation()
   const toaster = useToast()
 
   return useCallback(async ({ item, me, abortSignal }) => {
@@ -314,7 +314,7 @@ export function useZap () {
 
     try {
       await abortSignal.pause({ me, amount: sats })
-      strike()
+      animate()
       // batch zaps if wallet is enabled or using fee credits so they can be executed serially in a single request
       const { error } = await act({ variables, optimisticResponse, context: { batch: wallets.length > 0 || me?.privates?.sats > sats } })
       if (error) throw error
@@ -327,7 +327,7 @@ export function useZap () {
       // but right now this toast is noisy for optimistic zaps
       console.error(error)
     }
-  }, [act, toaster, strike, wallets])
+  }, [act, toaster, animate, wallets])
 }
 
 export class ActCanceledError extends Error {

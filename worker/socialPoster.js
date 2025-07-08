@@ -3,6 +3,7 @@ import { TwitterApi } from 'twitter-api-v2'
 import { msatsToSats, numWithUnits } from '@/lib/format'
 
 const isProd = process.env.NODE_ENV === 'production'
+const WEIGHTED_VOTE_THRESHOLD = 3
 
 async function postToTwitter ({ message }) {
   if (!isProd ||
@@ -73,6 +74,7 @@ async function getHottestItem ({ models }) {
     LEFT JOIN "AutoSocialPost" ON "Item"."id" = "AutoSocialPost"."itemId"
     WHERE "AutoSocialPost"."id" IS NULL
     AND "Item"."parentId" IS NULL
+    AND "Item"."weightedVotes" - "Item"."weightedDownVotes" > ${WEIGHTED_VOTE_THRESHOLD}
     AND NOT "Item".bio
     AND "Item"."deletedAt" IS NULL
     ORDER BY "hot_score_view"."hot_score" DESC

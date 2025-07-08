@@ -1,6 +1,6 @@
 const { withPlausibleProxy } = require('next-plausible')
 const { InjectManifest } = require('workbox-webpack-plugin')
-const { generatePrecacheManifest } = require('./sw/build.js')
+const { generateDummyPrecacheManifest, addStaticAssetsInServiceWorker } = require('./sw/build.js')
 const webpack = require('webpack')
 
 let isProd = process.env.NODE_ENV === 'production'
@@ -214,7 +214,7 @@ module.exports = withPlausibleProxy()({
   },
   webpack: (config, { isServer, dev, defaultLoaders }) => {
     if (isServer) {
-      generatePrecacheManifest()
+      generateDummyPrecacheManifest()
       const workboxPlugin = new InjectManifest({
         // ignore the precached manifest which includes the webpack assets
         // since they are not useful to us
@@ -257,6 +257,25 @@ module.exports = withPlausibleProxy()({
       }
 
       config.plugins.push(workboxPlugin)
+    }
+    // Static assets cannot be added in server build they are emitted in the client build phase https://nextjs.org/docs/14/app/api-reference/next-config-js/webpack
+    // and are not needed in dev
+    // The service worker ONLY includes the assets in precache-manifest.json injected by Workbox plugin when the build starts
+    // but our static assets only exist later in the build.
+    // However the precache-manifest.json assets are hardcoded in an array in the generated service worker by Worbox in public/sw.js
+    // So we patch it to include our own custom assets
+
+    if (!dev) {
+      config.plugins.push({
+        apply: (compiler) => {
+          compiler.hooks.afterEmit.tapPromise(
+            'AddEmittedStaticAssetUrlsToServiceWorker',
+            async () => {
+              await addStaticAssetsInServiceWorker()
+            }
+          )
+        }
+      })
     }
 
     config.module.rules.push(

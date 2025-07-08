@@ -51,6 +51,7 @@ model User {
   noteForwardedSats         Boolean              @default(true)
   lastCheckedJobs           DateTime?
   noteJobIndicator          Boolean              @default(true)
+  noteDailyStacked          Boolean              @default(true)
   photoId                   Int?
   upvoteTrust               Float                @default(0)
   hideInvoiceDesc           Boolean              @default(false)

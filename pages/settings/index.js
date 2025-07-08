@@ -137,6 +137,7 @@ export default function Settings ({ ssrData }) {
             noteJobIndicator: settings?.noteJobIndicator,
             noteCowboyHat: settings?.noteCowboyHat,
             noteForwardedSats: settings?.noteForwardedSats,
+            noteDailyStacked: settings?.noteDailyStacked,
             hideInvoiceDesc: settings?.hideInvoiceDesc,
             autoDropBolt11s: settings?.autoDropBolt11s,
             hideFromTopUsers: settings?.hideFromTopUsers,
@@ -334,6 +335,11 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label='I find or lose cowboy essentials (e.g. cowboy hat)'
             name='noteCowboyHat'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label='I receive daily summary of sats stacked and spent'
+            name='noteDailyStacked'
           />
           <div className='form-label'>wallet</div>
           <Input

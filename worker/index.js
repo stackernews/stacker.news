@@ -38,6 +38,7 @@ import { expireBoost } from './expireBoost'
 import { payingActionConfirmed, payingActionFailed } from './payingAction'
 import { autoDropBolt11s } from './autoDropBolt11'
 import { postToSocial } from './socialPoster'
+import { dailyStackedNotification } from './dailyStackedNotification'
 
 // WebSocket polyfill
 import ws from 'isomorphic-ws'
@@ -145,6 +146,7 @@ async function work () {
   await boss.work('thisDay', jobWrapper(thisDay))
   await boss.work('socialPoster', jobWrapper(postToSocial))
   await boss.work('checkWallet', jobWrapper(checkWallet))
+  await boss.work('dailyStackedNotification', jobWrapper(dailyStackedNotification))
 
   console.log('working jobs')
 }

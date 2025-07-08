@@ -24,7 +24,7 @@ import { numWithUnits } from '@/lib/format'
 import { useQuoteReply } from './use-quote-reply'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import classNames from 'classnames'
-import { CarouselProvider, useCarousel } from './carousel'
+import { CarouselProvider } from './carousel'
 import Embed from './embed'
 import { useRouter } from 'next/router'
 
@@ -32,11 +32,6 @@ function BioItem ({ item, handleClick }) {
   const { me } = useMe()
   if (!item.text) {
     return null
-  }
-
-  const carousel = useCarousel()
-  if (carousel) {
-    carousel.addItem(item.id)
   }
 
   return (
@@ -56,7 +51,7 @@ function BioItem ({ item, handleClick }) {
   )
 }
 
-function ItemEmbed ({ url, imgproxyUrls, itemId }) {
+function ItemEmbed ({ url, imgproxyUrls }) {
   const provider = parseEmbedUrl(url)
   if (provider) {
     return (
@@ -71,14 +66,7 @@ function ItemEmbed ({ url, imgproxyUrls, itemId }) {
     const srcSet = imgproxyUrls?.[url]
     return (
       <div className='mt-3'>
-        <MediaOrLink
-          src={src}
-          srcSet={srcSet}
-          topLevel
-          linkFallback={false}
-          itemId={itemId}
-          imgIndex={0}
-        />
+        <MediaOrLink src={src} srcSet={srcSet} topLevel linkFallback={false} />
       </div>
     )
   }
@@ -106,11 +94,6 @@ function TopLevelItem ({ item, noReply, ...props }) {
   const ItemComponent = item.isJob ? ItemJob : Item
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
-  const carousel = useCarousel()
-  if (carousel) {
-    carousel.addItem(item.id)
-  }
-
   return (
     <ItemComponent
       item={item}
@@ -128,7 +111,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
     >
       <article className={classNames(styles.fullItemContainer, 'topLevel')} ref={textRef}>
         {item.text && <ItemText item={item} />}
-        {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} itemId={item.id} />}
+        {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
         {item.poll && <Poll item={item} />}
         {item.bounty &&
           <div className='fw-bold mt-2'>
@@ -182,8 +165,9 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
   useEffect(() => {
     commentsViewed(item)
   }, [item.lastCommentAt])
+
   const router = useRouter()
-  const carouselKey = `${item.id}--${router.query.sort || 'default'}`
+  const carouselKey = `${item.id}-${router.query?.sort || 'default'}`
 
   return (
     <>

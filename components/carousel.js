@@ -105,48 +105,38 @@ function CarouselOverflow ({ originalSrc, rel }) {
 
 export function CarouselProvider ({ children }) {
   const media = useRef(new Map())
-  const itemArray = useRef(new Map())
-  const itemCount = useRef(0)
   const showModal = useShowModal()
 
   const showCarousel = useCallback(({ src }) => {
-    const sortedMedia = Array.from(media.current.entries())
-      .sort(([, a], [, b]) => a.sortKey - b.sortKey)
+    // only show confirmed entries
+    const confirmedEntries = Array.from(media.current.entries())
+      .filter(([, entry]) => entry.confirmed)
 
     showModal((close, setOptions) => {
-      return <Carousel close={close} mediaArr={sortedMedia} src={src} setOptions={setOptions} />
+      return <Carousel close={close} mediaArr={confirmedEntries} src={src} setOptions={setOptions} />
     }, {
       fullScreen: true,
       overflow: <CarouselOverflow {...media.current.get(src)} />
     })
   }, [showModal, media.current])
 
-  const addMedia = useCallback(({ src, originalSrc, rel, itemId, imgIndex = 0 }) => {
-    const items = itemArray.current
-    const itemOrder = items.has(itemId) ? items.get(itemId).itemOrder : 0
-    const sortKey = itemOrder * 100 + imgIndex
-    media.current.set(src, { src, originalSrc, rel, sortKey })
+  const addMedia = useCallback(({ src, originalSrc, rel }) => {
+    media.current.set(src, { src, originalSrc, rel, confirmed: false })
+  }, [media.current])
+
+  const confirmMedia = useCallback((src) => {
+    const mediaItem = media.current.get(src)
+    if (mediaItem) {
+      mediaItem.confirmed = true
+      media.current.set(src, mediaItem)
+    }
   }, [media.current])
 
   const removeMedia = useCallback((src) => {
     media.current.delete(src)
   }, [media.current])
 
-  const addItem = useCallback((itemId) => {
-    const items = itemArray.current
-    if (!items.has(itemId)) {
-      itemCount.current += 1
-      items.set(itemId, { itemOrder: itemCount.current })
-    }
-    return items.get(itemId).itemOrder
-  }, [])
-
-  const value = useMemo(() => ({
-    showCarousel,
-    addMedia,
-    removeMedia,
-    addItem
-  }), [showCarousel, addMedia, removeMedia, addItem])
+  const value = useMemo(() => ({ showCarousel, addMedia, confirmMedia, removeMedia }), [showCarousel, addMedia, removeMedia])
   return <CarouselContext.Provider value={value}>{children}</CarouselContext.Provider>
 }
 

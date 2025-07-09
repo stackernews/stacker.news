@@ -76,13 +76,14 @@ function collectAllNewComments (item) {
   return allNewComments
 }
 
+// TODO: Fix bug where new comments out of depth are not shown
 export function ShowNewComments ({ sort, comments, newComments = [], itemId, item, setHasNewComments }) {
   const client = useApolloClient()
 
   const topLevel = !!sort
   // if item is provided, we're showing all new comments for a thread,
   // otherwise we're showing new comments for a comment
-  const isThread = !!item
+  const isThread = item.path.split('.').length === 2
   const allNewComments = useMemo(() => {
     if (isThread) {
       return collectAllNewComments(item)

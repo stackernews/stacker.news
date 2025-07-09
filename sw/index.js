@@ -146,61 +146,58 @@ self.addEventListener('notificationclose', function (event) {
 self.addEventListener('pushsubscriptionchange', function (event) {
   // https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
   // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event
-  let { oldSubscription, newSubscription } = event
+  const { oldSubscription, newSubscription } = event
 
-  // convert keys from ArrayBuffer to string
-  newSubscription = JSON.parse(JSON.stringify(newSubscription))
-
-  const fetchPromise = Promise.all([
-    oldSubscription ?? storage.getItem('subscription'),
-    newSubscription ?? self.registration.pushManager.getSubscription()
-  ])
-    .then(([oldSubscription, newSubscription]) => {
-      if (!newSubscription || oldSubscription?.endpoint === newSubscription.endpoint) {
+  return event.waitUntil(
+    Promise.all([
+      oldSubscription ?? storage.getItem('subscription'),
+      newSubscription ?? self.registration.pushManager.getSubscription()
+    ])
+      .then(([oldSubscription, newSubscription]) => {
+        if (!newSubscription || oldSubscription?.endpoint === newSubscription.endpoint) {
         // no subscription exists at the moment or subscription did not change
-        return
-      }
+          return
+        }
 
-      // save new subscription on server
-      return fetch('/api/graphql', {
-        method: 'POST',
-        headers: {
-          'Content-type': 'application/json'
-        },
-        body: JSON.stringify({
-          query: `
-            mutation savePushSubscription(
-              $endpoint: String!,
-              $p256dh: String!,
-              $auth: String!,
-              $oldEndpoint: String!
-            ) {
-              savePushSubscription(
-                endpoint: $endpoint,
-                p256dh: $p256dh,
-                auth: $auth,
-                oldEndpoint: $oldEndpoint
-              ) {
-                id
+        // convert keys from ArrayBuffer to string
+        newSubscription = JSON.parse(JSON.stringify(newSubscription))
+
+        // save new subscription on server
+        return Promise.all([
+          newSubscription,
+          fetch('/api/graphql', {
+            method: 'POST',
+            headers: {
+              'Content-type': 'application/json'
+            },
+            body: JSON.stringify({
+              query: `
+                mutation savePushSubscription(
+                  $endpoint: String!,
+                  $p256dh: String!,
+                  $auth: String!,
+                  $oldEndpoint: String!
+                ) {
+                  savePushSubscription(
+                    endpoint: $endpoint,
+                    p256dh: $p256dh,
+                    auth: $auth,
+                    oldEndpoint: $oldEndpoint
+                  ) {
+                    id
+                  }
+                }`,
+              variables: {
+                endpoint: newSubscription.endpoint,
+                p256dh: newSubscription.keys.p256dh,
+                auth: newSubscription.keys.auth,
+                oldEndpoint: oldSubscription?.endpoint
               }
-            }`,
-          variables: {
-            endpoint: newSubscription.endpoint,
-            p256dh: newSubscription.keys.p256dh,
-            auth: newSubscription.keys.auth,
-            oldEndpoint: oldSubscription?.endpoint
-          }
-        })
-      })
-    })
-
-  // save new subscription on client
-  const storagePromise = storage.setItem('subscription', newSubscription)
-
-  return event.waitUntil(Promise.all([
-    fetchPromise,
-    storagePromise
-  ]))
+            })
+          })
+        ])
+      }).then(([newSubscription]) => storage.setItem('subscription', newSubscription))
+  )
 })
 
 self.addEventListener('message', function (event) {

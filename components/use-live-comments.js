@@ -8,7 +8,7 @@ const POLL_INTERVAL = 1000 * 10 // 10 seconds
 
 // useLiveComments fetches new comments under an item (rootId), that arrives after the latest comment createdAt
 // and inserts them into the newComment client field of their parent comment/post.
-export default function useLiveComments (rootId, after, sort) {
+export default function useLiveComments (rootId, after, sort, setHasNewComments) {
   const client = useApolloClient()
   const [latest, setLatest] = useState(after)
   const queue = useRef([])
@@ -35,6 +35,8 @@ export default function useLiveComments (rootId, after, sort) {
 
     // update latest timestamp to the latest comment created at
     setLatest(prevLatest => getLatestCommentCreatedAt(data.newComments.comments, prevLatest))
+
+    setHasNewComments(true)
   }, [data, client, rootId, sort])
 
   // cleanup queue on unmount to prevent memory leaks

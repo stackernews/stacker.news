@@ -77,13 +77,14 @@ function collectAllNewComments (item) {
 }
 
 // TODO: merge this with ShowNewComments
-export function ShowAllNewComments ({ item }) {
+export function ShowAllNewComments ({ item, setHasNewComments }) {
   const client = useApolloClient()
 
   const newComments = useMemo(() => collectAllNewComments(item), [item])
 
   const showNewComments = useCallback(() => {
     showAllNewCommentsRecursively(client, item)
+    setHasNewComments(false)
   }, [client, item])
 
   if (newComments.length === 0) {
@@ -104,7 +105,7 @@ export function ShowAllNewComments ({ item }) {
 }
 
 // ShowNewComments is a component that dedupes, refreshes and injects newComments into the comments field
-export function ShowNewComments ({ topLevel = false, comments, newComments = [], itemId, sort }) {
+export function ShowNewComments ({ topLevel = false, comments, newComments = [], itemId, sort, setHasNewComments }) {
   const client = useApolloClient()
   const dedupedNewComments = useMemo(() => dedupeNewComments(newComments, comments), [newComments, comments])
 
@@ -117,6 +118,7 @@ export function ShowNewComments ({ topLevel = false, comments, newComments = [],
     } else {
       commentUpdateFragment(client, itemId, payload)
     }
+    setHasNewComments(false)
   }, [client, itemId, dedupedNewComments, topLevel, sort])
 
   if (dedupedNewComments.length === 0) {

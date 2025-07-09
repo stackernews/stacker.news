@@ -98,7 +98,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel,
-  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry
+  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry, setHasNewComments
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
@@ -263,8 +263,8 @@ export default function Comment ({
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
                     <div className='ms-auto'>
                       {item.path.split('.').length === 2
-                        ? <ShowAllNewComments item={item} />
-                        : <ShowNewComments comments={item.comments.comments} newComments={item.newComments} itemId={item.id} />}
+                        ? <ShowAllNewComments item={item} setHasNewComments={setHasNewComments} />
+                        : <ShowNewComments comments={item.comments.comments} newComments={item.newComments} itemId={item.id} setHasNewComments={setHasNewComments} />}
                     </div>
                   </Reply>}
               {children}

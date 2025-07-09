@@ -14,7 +14,6 @@ export function onPush (sw) {
     let payload = event.data?.json()
     if (!payload) return // ignore push events without payload, like isTrusted events
     const { tag } = payload.options
-    const nid = crypto.randomUUID() // notification id for tracking
 
     // iOS requirement: group all promises
     const promises = []
@@ -26,7 +25,7 @@ export function onPush (sw) {
       // Check if there are already notifications with the same tag and merge them
       promises.push(sw.registration.getNotifications({ tag }).then((notifications) => {
         if (notifications.length) {
-          payload = mergeNotification(event, sw, payload, notifications, tag, nid)
+          payload = mergeNotification(event, sw, payload, notifications, tag)
         }
       }))
     }
@@ -44,7 +43,7 @@ const immediatelyShowNotification = (tag) =>
   !tag || ['TIP', 'FORWARDEDTIP', 'EARN', 'STREAK', 'TERRITORY_TRANSFER'].includes(tag.split('-')[0])
 
 // merge notifications with the same tag
-const mergeNotification = (event, sw, payload, currentNotifications, tag, nid) => {
+const mergeNotification = (event, sw, payload, currentNotifications, tag) => {
   // sanity check
   const otherTagNotifications = currentNotifications.filter(({ tag: nTag }) => nTag !== tag)
   if (otherTagNotifications.length > 0) {

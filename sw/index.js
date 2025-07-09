@@ -106,9 +106,24 @@ self.addEventListener('notificationclick', function (event) {
   const promises = []
   const url = event.notification.data?.url
   if (url) {
-    // TODO: try to focus existing client first?
-    // see https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/notificationclick_event#examples?
-    promises.push(self.clients.openWindow(url))
+    // First try to find and focus an existing client before opening a new window
+    promises.push(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then(clients => {
+          if (clients.length > 0) {
+            const client = clients[0]
+            return client.focus()
+              .then(() => {
+                return client.postMessage({
+                  type: 'navigate',
+                  url
+                })
+              })
+          } else {
+            return self.clients.openWindow(url)
+          }
+        })
+    )
   }
 
   promises.push(

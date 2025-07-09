@@ -7,7 +7,7 @@ import { enable } from 'workbox-navigation-preload'
 
 import manifest from './precache-manifest.json'
 import ServiceWorkerStorage from 'serviceworker-storage'
-import { DELETE_SUBSCRIPTION, STORE_SUBSCRIPTION } from '@/components/serviceworker'
+import { CLEAR_NOTIFICATIONS, DELETE_SUBSCRIPTION, STORE_SUBSCRIPTION } from '@/components/serviceworker'
 
 // we store existing push subscriptions for the onpushsubscriptionchange event
 const storage = new ServiceWorkerStorage('sw:storage', 1)
@@ -94,22 +94,38 @@ self.addEventListener('push', function (event) {
   }
 
   event.waitUntil(
-    Promise.all([
-      self.navigator.setAppBadge?.(),
-      self.registration.showNotification(payload.title, payload.options)
-    ])
+    self.registration.showNotification(payload.title, payload.options)
+      .then(() => self.registration.getNotifications())
+      .then(notifications => self.navigator.setAppBadge?.(notifications.length))
   )
 })
 
 self.addEventListener('notificationclick', function (event) {
   event.notification.close()
 
+  const promises = []
   const url = event.notification.data?.url
   if (url) {
     // TODO: try to focus existing client first?
     // see https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/notificationclick_event#examples?
-    event.waitUntil(self.clients.openWindow(url))
+    promises.push(self.clients.openWindow(url))
   }
+
+  promises.push(
+    self.registration.getNotifications()
+      .then(notifications => self.navigator.setAppBadge?.(notifications.length))
+  )
+
+  event.waitUntil(Promise.all(promises))
+})
+
+// not supported by iOS
+// see https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/notificationclose_event
+self.addEventListener('notificationclose', function (event) {
+  event.waitUntil(
+    self.registration.getNotifications()
+      .then(notifications => self.navigator.setAppBadge?.(notifications.length))
+  )
 })
 
 self.addEventListener('pushsubscriptionchange', function (event) {
@@ -176,5 +192,13 @@ self.addEventListener('message', function (event) {
   switch (event.data.action) {
     case STORE_SUBSCRIPTION: return event.waitUntil(storage.setItem('subscription', { ...event.data.subscription, swVersion: 2 }))
     case DELETE_SUBSCRIPTION: return event.waitUntil(storage.removeItem('subscription'))
+    case CLEAR_NOTIFICATIONS:
+      return event.waitUntil(
+        Promise.all([
+          self.registration.getNotifications()
+            .then(notifications => notifications.forEach(notification => notification.close())),
+          self.navigator.clearAppBadge?.()
+        ])
+      )
   }
 })

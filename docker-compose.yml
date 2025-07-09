@@ -179,7 +179,7 @@ services:
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD}
       - plugins.security.disabled=true
       - discovery.type=single-node
-      - "_JAVA_OPTIONS=-Xms2g -Xmx2g"
+      - "_JAVA_OPTIONS=-Xms2g -Xmx2g -XX:UseSVE=0"
     ports:
       - 9200:9200 # REST API
       - 9600:9600 # Performance Analyzer

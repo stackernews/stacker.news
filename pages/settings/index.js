@@ -751,7 +751,6 @@ export default function Settings ({ ssrData }) {
           <Button href='https://mail.stacker.news/subscription/form' target='_blank'>(re)subscribe</Button>
           {settings?.authMethods && <AuthMethods methods={settings.authMethods} apiKeyEnabled={settings.apiKeyEnabled} />}
 
-          {/* Add the delete account section */}
           <DeleteAccount />
         </div>
       </div>

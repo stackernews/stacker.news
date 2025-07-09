@@ -132,16 +132,11 @@ export default function ItemInfo ({
       <span> \ </span>
       <span>
         {showUser &&
-          (item.user.deletedAt
-            ? <span className='text-muted'>[deleted]</span>
-            : (
-              <Link href={`/${item.user.name}`}>
-                <UserPopover name={item.user.name}>@{item.user.name}</UserPopover>
-                <Badges badgeClassName='fill-grey' spacingClassName='ms-xs' height={12} width={12} user={item.user} />
-                {embellishUser}
-              </Link>
-              )
-          )}
+          <Link href={`/${item.user.name}`}>
+            <UserPopover name={item.user.name}>@{item.user.name}</UserPopover>
+            <Badges badgeClassName='fill-grey' spacingClassName='ms-xs' height={12} width={12} user={item.user} />
+            {embellishUser}
+          </Link>}
         <span> </span>
         <Link href={`/items/${item.id}`} title={item.invoicePaidAt || item.createdAt} className='text-reset' suppressHydrationWarning>
           {timeSince(new Date(item.invoicePaidAt || item.createdAt))}

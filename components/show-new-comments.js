@@ -76,52 +76,36 @@ function collectAllNewComments (item) {
   return allNewComments
 }
 
-// TODO: merge this with ShowNewComments
-export function ShowAllNewComments ({ item, setHasNewComments }) {
+export function ShowNewComments ({ sort, comments, newComments = [], itemId, item, setHasNewComments }) {
   const client = useApolloClient()
 
-  const newComments = useMemo(() => collectAllNewComments(item), [item])
+  const topLevel = !!sort
+  // if item is provided, we're showing all new comments for a thread,
+  // otherwise we're showing new comments for a comment
+  const isThread = !!item
+  const allNewComments = useMemo(() => {
+    if (isThread) {
+      return collectAllNewComments(item)
+    }
+    return dedupeNewComments(newComments, comments)
+  }, [isThread, item, newComments, comments])
 
   const showNewComments = useCallback(() => {
-    showAllNewCommentsRecursively(client, item)
-    setHasNewComments(false)
-  }, [client, item])
-
-  if (newComments.length === 0) {
-    return null
-  }
-
-  return (
-    <div
-      onClick={showNewComments}
-      className='d-flex align-items-center gap-2 px-3 pointer'
-    >
-      {newComments.length > 1
-        ? `show all ${newComments.length} new comments`
-        : 'show new comment'}
-      <div className={styles.newCommentDot} />
-    </div>
-  )
-}
-
-// ShowNewComments is a component that dedupes, refreshes and injects newComments into the comments field
-export function ShowNewComments ({ topLevel = false, comments, newComments = [], itemId, sort, setHasNewComments }) {
-  const client = useApolloClient()
-  const dedupedNewComments = useMemo(() => dedupeNewComments(newComments, comments), [newComments, comments])
-
-  const showNewComments = useCallback(() => {
-    // fetch the latest version of the comments from the cache by their ids
-    const payload = prepareComments(client, dedupedNewComments)
-
-    if (topLevel) {
-      itemUpdateQuery(client, itemId, sort, payload)
+    if (isThread) {
+      showAllNewCommentsRecursively(client, item)
     } else {
-      commentUpdateFragment(client, itemId, payload)
+      // fetch the latest version of the comments from the cache by their ids
+      const payload = prepareComments(client, allNewComments)
+      if (topLevel) {
+        itemUpdateQuery(client, itemId, sort, payload)
+      } else {
+        commentUpdateFragment(client, itemId, payload)
+      }
     }
     setHasNewComments(false)
-  }, [client, itemId, dedupedNewComments, topLevel, sort])
+  }, [client, itemId, allNewComments, topLevel, sort])
 
-  if (dedupedNewComments.length === 0) {
+  if (allNewComments.length === 0) {
     return null
   }
 
@@ -130,8 +114,8 @@ export function ShowNewComments ({ topLevel = false, comments, newComments = [],
       onClick={showNewComments}
       className={`${topLevel && `d-block fw-bold ${styles.comment} pb-2`} d-flex align-items-center gap-2 px-3 pointer`}
     >
-      {dedupedNewComments.length > 1
-        ? `${dedupedNewComments.length} new comments`
+      {allNewComments.length > 1
+        ? `${isThread ? 'show all ' : ''}${allNewComments.length} new comments`
         : 'show new comment'}
       <div className={styles.newCommentDot} />
     </div>

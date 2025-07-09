@@ -28,7 +28,7 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
-import { ShowAllNewComments, ShowNewComments } from './show-new-comments'
+import { ShowNewComments } from './show-new-comments'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -262,9 +262,7 @@ export default function Comment ({
                   <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
                     <div className='ms-auto'>
-                      {item.path.split('.').length === 2
-                        ? <ShowAllNewComments item={item} setHasNewComments={setHasNewComments} />
-                        : <ShowNewComments comments={item.comments.comments} newComments={item.newComments} itemId={item.id} setHasNewComments={setHasNewComments} />}
+                      <ShowNewComments comments={item.comments.comments} newComments={item.newComments} itemId={item.id} item={item} setHasNewComments={setHasNewComments} />
                     </div>
                   </Reply>}
               {children}
@@ -273,7 +271,7 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} />
+                        <Comment depth={depth + 1} key={item.id} item={item} setHasNewComments={setHasNewComments} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nhas={item.ncomments} />}
                     </>

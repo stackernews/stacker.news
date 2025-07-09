@@ -101,7 +101,7 @@ export default function Comments ({
           />
         : null}
       {newComments?.length > 0 && (
-        <ShowNewComments topLevel comments={comments} newComments={newComments} itemId={parentId} sort={router.query.sort} setHasNewComments={setHasNewComments} />
+        <ShowNewComments comments={comments} newComments={newComments} itemId={parentId} sort={router.query.sort} setHasNewComments={setHasNewComments} />
       )}
       {pins.map(item => (
         <Fragment key={item.id}>

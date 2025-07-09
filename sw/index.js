@@ -6,7 +6,11 @@ import { NetworkOnly } from 'workbox-strategies'
 import { enable } from 'workbox-navigation-preload'
 
 import manifest from './precache-manifest.json'
-import { onPush, onNotificationClick, onPushSubscriptionChange, onMessage } from './eventListener'
+import ServiceWorkerStorage from 'serviceworker-storage'
+import { DELETE_SUBSCRIPTION, STORE_SUBSCRIPTION } from '@/components/serviceworker'
+
+// we store existing push subscriptions for the onpushsubscriptionchange event
+const storage = new ServiceWorkerStorage('sw:storage', 1)
 
 // comment out to enable workbox console logs
 self.__WB_DISABLE_DEV_LOGS = true
@@ -68,7 +72,109 @@ setDefaultHandler(new NetworkOnly({
 // See https://github.com/vercel/next.js/blob/337fb6a9aadb61c916f0121c899e463819cd3f33/server/render.js#L181-L185
 offlineFallback({ pageFallback: '/offline' })
 
-self.addEventListener('push', onPush(self))
-self.addEventListener('notificationclick', onNotificationClick(self))
-self.addEventListener('message', onMessage(self))
-self.addEventListener('pushsubscriptionchange', onPushSubscriptionChange(self), false)
+self.addEventListener('push', function (event) {
+  async function onPush () {
+    let payload
+
+    try {
+      payload = event.data?.json()
+      if (!payload) {
+        throw new Error('no payload in push event')
+      }
+    } catch (err) {
+      // we show a default nofication on any error because we *must* show a notification
+      // else the browser will show one for us or worse, remove our push subscription
+      await self.registration.showNotification(
+        // TODO: funny message as easter egg?
+        // example: "dude i'm bugging, that's wild" from https://www.youtube.com/watch?v=QsQLIaKK2s0&t=176s but in wild west theme?
+        'something went wrong',
+        { icon: '/icons/icon_x96.png' }
+      )
+      return
+    }
+
+    await self.navigator.setAppBadge?.()
+    await self.registration.showNotification(payload.title, payload.options)
+  }
+  event.waitUntil(onPush())
+})
+
+self.addEventListener('notificationclick', function (event) {
+  async function onNotificationClick () {
+    const url = event.notification.data?.url
+    if (url) {
+      // TODO: try to focus existing client first?
+      // see https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/notificationclick_event#examples?
+      await self.clients.openWindow(url)
+    }
+    event.notification.close()
+  }
+  event.waitUntil(onNotificationClick())
+})
+
+self.addEventListener('pushsubscriptionchange', function (event) {
+  // https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
+  // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event
+  async function onPushSubscriptionChange () {
+    let { oldSubscription, newSubscription } = event
+
+    // fallbacks since browser may not set oldSubscription and newSubscription
+    oldSubscription ??= await storage.getItem('subscription')
+    newSubscription ??= await self.registration.pushManager.getSubscription()
+    if (!newSubscription || oldSubscription?.endpoint === newSubscription.endpoint) {
+      // no subscription exists at the moment or subscription did not change
+      return
+    }
+
+    // convert keys from ArrayBuffer to string
+    newSubscription = JSON.parse(JSON.stringify(newSubscription))
+
+    // save new subscription on server
+    await fetch('/api/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        query: `
+          mutation savePushSubscription(
+            $endpoint: String!,
+            $p256dh: String!,
+            $auth: String!,
+            $oldEndpoint: String!
+          ) {
+            savePushSubscription(
+              endpoint: $endpoint,
+              p256dh: $p256dh,
+              auth: $auth,
+              oldEndpoint: $oldEndpoint
+            ) {
+              id
+            }
+          }`,
+        variables: {
+          endpoint: newSubscription.endpoint,
+          p256dh: newSubscription.keys.p256dh,
+          auth: newSubscription.keys.auth,
+          oldEndpoint: oldSubscription?.endpoint
+        }
+      })
+    })
+
+    // save new subscription on client
+    await storage.setItem('subscription', newSubscription)
+  }
+  event.waitUntil(onPushSubscriptionChange())
+})
+
+self.addEventListener('message', function (event) {
+  async function onMessage () {
+    if (event.data.action === STORE_SUBSCRIPTION) {
+      await storage.setItem('subscription', { ...event.data.subscription, swVersion: 2 })
+    }
+    if (event.data.action === DELETE_SUBSCRIPTION) {
+      await storage.removeItem('subscription')
+    }
+  }
+  event.waitUntil(onMessage())
+})

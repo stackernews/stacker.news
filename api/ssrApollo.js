@@ -20,20 +20,9 @@ import { MULTI_AUTH_ANON, MULTI_AUTH_LIST } from '@/lib/auth'
 export default async function getSSRApolloClient ({ req, res, me = null }) {
   const session = req && await getServerSession(req, res, getAuthOptions(req))
 
-  // If there's a session, check if the user is deleted
   let meUser = me
   if (session?.user) {
-    const user = await models.user.findUnique({
-      where: { id: parseInt(session.user.id) }, // Convert string to int
-      select: { deletedAt: true }
-    })
-
-    // If the user is deleted, don't pass the session to the context
-    if (user?.deletedAt) {
-      meUser = null
-    } else {
-      meUser = session.user
-    }
+    meUser = session.user
   }
 
   const client = new ApolloClient({
@@ -173,18 +162,6 @@ export function getGetServerSideProps (
     // if we switched to anon and authentication is required
     if (req.cookies[MULTI_AUTH_LIST] === MULTI_AUTH_ANON) {
       me = null
-    }
-
-    // Check if the user account is deleted
-    if (me) {
-      const user = await models.user.findUnique({
-        where: { id: parseInt(me.id) }, // Convert string to int
-        select: { deletedAt: true }
-      })
-
-      if (user?.deletedAt) {
-        me = null
-      }
     }
 
     if (authRequired && !me) {

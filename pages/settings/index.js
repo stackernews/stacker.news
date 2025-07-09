@@ -1,5 +1,5 @@
 import { Checkbox, Form, Input, SubmitButton, Select, VariableInput, CopyInput } from '@/components/form'
-import { Alert, Button, InputGroup, Nav, Form as BootstrapForm, OverlayTrigger, Tooltip } from 'react-bootstrap'
+import { Alert, Button, InputGroup, Nav, OverlayTrigger, Tooltip } from 'react-bootstrap'
 import Layout from '@/components/layout'
 import { useState, useMemo } from 'react'
 import { gql, useMutation, useQuery } from '@apollo/client'
@@ -15,6 +15,7 @@ import AccordianItem from '@/components/accordian-item'
 import { bech32 } from 'bech32'
 import { NOSTR_MAX_RELAY_NUM, NOSTR_PUBKEY_BECH32, DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import { emailSchema, lastAuthRemovalSchema, settingsSchema } from '@/lib/validate'
+import * as Yup from 'yup'
 import { SUPPORTED_CURRENCIES } from '@/lib/currency'
 import PageLoading from '@/components/page-loading'
 import { useShowModal } from '@/components/modal'
@@ -84,39 +85,42 @@ export function SettingsHeader () {
 }
 
 const DELETE_ACCOUNT = gql`
-  mutation deleteAccount($deleteContent: Boolean!, $confirmation: String!, $donateBalance: Boolean) {
-    deleteAccount(deleteContent: $deleteContent, confirmation: $confirmation, donateBalance: $donateBalance)
+  mutation deleteAccount($confirmation: String!, $donateBalance: Boolean) {
+    deleteAccount(confirmation: $confirmation, donateBalance: $donateBalance)
   }
+`
+
+const GET_USER_BALANCE = gql`
+  { me { privates { sats } } }
 `
 
 function DeleteAccount () {
   const [showConfirmation, setShowConfirmation] = useState(false)
-  const [deleteContent, setDeleteContent] = useState(false)
-  const [donateBalance, setDonateBalance] = useState(false)
-  const [confirmation, setConfirmation] = useState('')
   const [deleteAccount] = useMutation(DELETE_ACCOUNT)
   const toaster = useToast()
+  const { data } = useQuery(GET_USER_BALANCE)
+  const userBalance = data?.me?.privates?.sats || 0
 
-  const handleDelete = async () => {
+  const handleDelete = async (values) => {
     try {
-      await deleteAccount({
-        variables: {
-          deleteContent,
-          confirmation,
-          donateBalance
-        }
-      })
-
-      // Sign out the user after successful deletion
+      await deleteAccount({ variables: { ...values } })
       signOut({ callbackUrl: '/' })
-
-      // Show success message
       toaster.success('Your account has been deleted')
     } catch (error) {
       console.error(error)
       toaster.danger(error.message || 'Failed to delete account')
     }
   }
+
+  const deleteAccountSchema = Yup.object({
+    confirmation: Yup.string().oneOf(['DELETE MY ACCOUNT'], 'incorrect confirmation text').required('incorrect confirmation text'),
+    donateBalance: Yup.boolean()
+      .when('userBalance', {
+        is: (balance) => balance > 0,
+        then: schema => schema.oneOf([true], 'please withdraw your balance before deleting your account or confirm donation to rewards pool'),
+        otherwise: schema => schema
+      })
+  })
 
   return (
     <>
@@ -138,7 +142,16 @@ function DeleteAccount () {
               </Button>
               )
             : (
-              <>
+              <Form
+                initial={{
+                  confirmation: '',
+                  donateBalance: false,
+                  userBalance
+                }}
+                schema={deleteAccountSchema}
+                onSubmit={handleDelete}
+                context={{ userBalance }}
+              >
                 <Alert variant='danger'>
                   <p><strong>Warning:</strong> Account deletion is permanent and cannot be reversed.</p>
                   <p>Before proceeding, please ensure:</p>
@@ -149,33 +162,17 @@ function DeleteAccount () {
                   </ul>
                 </Alert>
 
-                <BootstrapForm.Check
-                  type='checkbox'
-                  id='delete-content'
-                  label='Also anonymize all my posts and comments (they will show as "[deleted]")'
-                  checked={deleteContent}
-                  onChange={(e) => setDeleteContent(e.target.checked)}
-                  className='mb-3'
-                />
-
-                <BootstrapForm.Check
-                  type='checkbox'
-                  id='donate-balance'
+                <Checkbox
+                  name='donateBalance'
                   label='Donate my remaining balance to the rewards pool (required if you have a balance)'
-                  checked={donateBalance}
-                  onChange={(e) => setDonateBalance(e.target.checked)}
-                  className='mb-3'
+                  groupClassName='mb-3'
                 />
 
-                <BootstrapForm.Group className='mb-3'>
-                  <BootstrapForm.Label>Type "DELETE MY ACCOUNT" to confirm:</BootstrapForm.Label>
-                  <BootstrapForm.Control
-                    type='text'
-                    value={confirmation}
-                    onChange={(e) => setConfirmation(e.target.value)}
-                    placeholder='DELETE MY ACCOUNT'
-                  />
-                </BootstrapForm.Group>
+                <Input
+                  name='confirmation'
+                  label='Type "DELETE MY ACCOUNT" to confirm:'
+                  placeholder='DELETE MY ACCOUNT'
+                />
 
                 <div className='d-flex justify-content-between'>
                   <Button
@@ -184,15 +181,9 @@ function DeleteAccount () {
                   >
                     Cancel
                   </Button>
-                  <Button
-                    variant='danger'
-                    disabled={confirmation !== 'DELETE MY ACCOUNT'}
-                    onClick={handleDelete}
-                  >
-                    Permanently delete my account
-                  </Button>
+                  <SubmitButton variant='danger'>Permanently delete my account</SubmitButton>
                 </div>
-              </>
+              </Form>
               )}
         </div>
       </div>

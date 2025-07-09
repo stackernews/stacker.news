@@ -38,7 +38,6 @@ import { expireBoost } from './expireBoost'
 import { payingActionConfirmed, payingActionFailed } from './payingAction'
 import { autoDropBolt11s } from './autoDropBolt11'
 import { postToSocial } from './socialPoster'
-import { deletedUserEarnings } from './deletedUserEarnings'
 
 // WebSocket polyfill
 import ws from 'isomorphic-ws'
@@ -132,7 +131,6 @@ async function work () {
   await boss.work('timestampItem', jobWrapper(timestampItem))
   await boss.work('earn', jobWrapper(earn))
   await boss.work('earnRefill', jobWrapper(earnRefill))
-  await boss.work('deletedUserEarnings', jobWrapper(deletedUserEarnings))
   await boss.work('streak', jobWrapper(computeStreaks))
   await boss.work('checkStreak', jobWrapper(checkStreak))
   await boss.work('nip57', jobWrapper(nip57))

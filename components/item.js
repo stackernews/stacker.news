@@ -115,7 +115,9 @@ export default function Item ({
               ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
               : Number(item.user?.id) === USER_ID.ad
                 ? <AdIcon width={24} height={24} className={styles.ad} />
-                : <UpVote item={item} className={styles.upvote} />}
+                : Number(item.user?.id) === USER_ID.delete
+                  ? null
+                  : <UpVote item={item} className={styles.upvote} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
             <Link

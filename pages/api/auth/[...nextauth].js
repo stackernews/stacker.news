@@ -152,8 +152,18 @@ function getCallbacks (req, res) {
     async session ({ session, token }) {
       // note: this function takes the current token (result of running jwt above)
       // and returns a new object session that's returned whenever get|use[Server]Session is called
-      session.user.id = token.id
+      if (token?.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: { deletedAt: true }
+        })
 
+        if (dbUser?.deletedAt) {
+          return null
+        }
+      }
+
+      session.user.id = token.id
       return session
     }
   }

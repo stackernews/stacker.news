@@ -13,6 +13,7 @@ import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { processCrop } from '@/worker/imgproxy'
+import { deleteItemByAuthor } from '@/lib/item'
 
 const contributors = new Set()
 
@@ -657,7 +658,7 @@ export default {
   },
 
   Mutation: {
-    deleteAccount: async (parent, { deleteContent, confirmation, donateBalance }, { me, models }) => {
+    deleteAccount: async (parent, { confirmation, donateBalance }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
@@ -667,6 +668,15 @@ export default {
       }
 
       return await models.$transaction(async (tx) => {
+        await tx.user.upsert({
+          where: { id: USER_ID.delete },
+          update: {},
+          create: {
+            id: USER_ID.delete,
+            name: 'delete'
+          }
+        })
+
         const user = await tx.user.findUnique({
           where: { id: me.id },
           select: {
@@ -700,35 +710,16 @@ export default {
           })
         }
 
-        // If deleteContent is true, replace content with hash
-        if (deleteContent) {
-        // Get all items for this user
-          const items = await tx.item.findMany({
-            where: { userId: me.id },
-            select: { id: true, title: true, text: true, url: true }
-          })
-
-          // Update each item with hashed content
-          for (const item of items) {
-            const originalContent = JSON.stringify({
-              title: item.title,
-              text: item.text,
-              url: item.url
-            })
-
-            const hash = createHash('sha256').update(originalContent).digest('hex')
-            const deletedContent = `[deleted] ${hash}`
-
-            await tx.item.update({
-              where: { id: item.id },
-              data: {
-                title: item.title ? deletedContent : null,
-                text: item.text ? deletedContent : null,
-                url: item.url ? deletedContent : null
-              }
-            })
-          }
+        const items = await tx.item.findMany({ where: { userId: me.id } })
+        for (const item of items) {
+          await deleteItemByAuthor({ models: tx, id: item.id, item })
         }
+
+        // Always move user's content to the @delete user
+        await tx.item.updateMany({
+          where: { userId: me.id },
+          data: { userId: USER_ID.delete }
+        })
 
         // Remove all attached wallets
         await tx.wallet.deleteMany({

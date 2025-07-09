@@ -57,6 +57,11 @@ export async function getSybilFeePercent () {
 }
 
 export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, cost, sybilFeePercent, tx }) {
+  const item = await tx.item.findUnique({ where: { id: parseInt(itemId) } })
+  if (item.userId === USER_ID.delete) {
+    throw new Error('cannot zap deleted content')
+  }
+
   const feeMsats = cost * sybilFeePercent / 100n
   const zapMsats = cost - feeMsats
   itemId = parseInt(itemId)
@@ -140,20 +145,11 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
       )
       UPDATE users
       SET
-        mcredits = CASE 
-          WHEN users."deletedAt" IS NULL THEN users.mcredits + recipients.mcredits
-          ELSE users.mcredits
-        END,
-        "stackedMsats" = CASE 
-          WHEN users."deletedAt" IS NULL THEN users."stackedMsats" + recipients.mcredits
-          ELSE users."stackedMsats"
-        END,
-        "stackedMcredits" = CASE 
-          WHEN users."deletedAt" IS NULL THEN users."stackedMcredits" + recipients.mcredits
-          ELSE users."stackedMcredits"
-        END
+        mcredits = users.mcredits + recipients.mcredits,
+        "stackedMsats" = users."stackedMsats" + recipients.mcredits,
+        "stackedMcredits" = users."stackedMcredits" + recipients.mcredits
       FROM recipients
-      WHERE users.id = recipients."userId"`
+      WHERE users.id = recipients."userId" AND users."deletedAt" IS NULL`
 
     // Donate msats that would have gone to deleted users to the rewards pool
     const deletedUserMsats = await tx.$queryRaw`

@@ -14,8 +14,6 @@ import { abbrNum } from '../../lib/format'
 import { useServiceWorker } from '../serviceworker'
 import { signOut } from 'next-auth/react'
 import Badges from '../badge'
-import { randInRange } from '../../lib/rand'
-import { useLightning } from '../lightning'
 import LightningIcon from '../../svgs/bolt.svg'
 import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
@@ -400,18 +398,6 @@ export function LoginButtons ({ handleClose }) {
 }
 
 export function AnonDropdown ({ path }) {
-  const strike = useLightning()
-
-  useEffect(() => {
-    if (!window.localStorage.getItem('striked')) {
-      const to = setTimeout(() => {
-        strike()
-        window.localStorage.setItem('striked', 'yep')
-      }, randInRange(3000, 10000))
-      return () => clearTimeout(to)
-    }
-  }, [])
-
   return (
     <div className='position-relative'>
       <Dropdown className={styles.dropdown} align='end' autoClose>

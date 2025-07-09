@@ -22,7 +22,6 @@ import { useShowModal } from '@/components/modal'
 import { authErrorMessage } from '@/components/login'
 import { NostrAuth } from '@/components/nostr-auth'
 import { useToast } from '@/components/toast'
-import { useServiceWorkerLogger } from '@/components/logger'
 import { useMe } from '@/components/me'
 import { INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { useField } from 'formik'
@@ -206,7 +205,6 @@ export default function Settings ({ ssrData }) {
       })
     }
   })
-  const logger = useServiceWorkerLogger()
 
   const { data } = useQuery(SETTINGS)
   const { settings: { privates: settings } } = useMemo(() => data ?? ssrData, [data, ssrData])
@@ -260,7 +258,6 @@ export default function Settings ({ ssrData }) {
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
             hideBookmarks: settings?.hideBookmarks,
             hideWalletBalance: settings?.hideWalletBalance,
-            diagnostics: settings?.diagnostics,
             hideIsContributor: settings?.hideIsContributor,
             noReferralLinks: settings?.noReferralLinks,
             proxyReceive: settings?.proxyReceive,
@@ -607,29 +604,6 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='imgproxyOnly'
-            groupClassName='mb-0'
-          />
-          <Checkbox
-            label={
-              <div className='d-flex align-items-center'>allow anonymous diagnostics
-                <Info>
-                  <ul>
-                    <li>collect and send back anonymous diagnostics data</li>
-                    <li>this information is used to fix bugs</li>
-                    <li>this information includes:
-                      <ul><li>timestamps</li></ul>
-                      <ul><li>a randomly generated fancy name</li></ul>
-                      <ul><li>your user agent</li></ul>
-                      <ul><li>your operating system</li></ul>
-                    </li>
-                    <li>this information can not be traced back to you without your fancy name</li>
-                    <li>fancy names are generated in your browser</li>
-                  </ul>
-                  <div className='text-muted fst-italic'>your fancy name: {logger.name}</div>
-                </Info>
-              </div>
-            }
-            name='diagnostics'
             groupClassName='mb-0'
           />
           <Checkbox

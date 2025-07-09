@@ -174,15 +174,5 @@
         "displayName": "Nostr Wallet Connect",
         "image": "/wallets/nwc.png",
         "url": "https://github.com/nostr-protocol/nips/blob/master/47.md"
-    },
-    {
-        "templateId": 26,
-        "name": "ALBY_GO",
-        "displayName": "Alby Go",
-        "image": "/wallets/alby-go.png",
-        "url": {
-            "wallet": "https://albygo.com/",
-            "lud16Domain": "albyhub.com"
-        }
     }
 ]

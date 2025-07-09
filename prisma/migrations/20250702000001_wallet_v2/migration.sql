@@ -94,10 +94,7 @@ INSERT INTO "WalletTemplate" ("id", name, "sendProtocols", "recvProtocols") VALU
         ARRAY['NWC']::"WalletRecvProtocolName"[]),
     (25, 'LN_ADDR',
         ARRAY[]::"WalletSendProtocolName"[],
-        ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    (26, 'ALBY_GO',
-        ARRAY['NWC']::"WalletSendProtocolName"[],
-        ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]);
+        ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]);
 
 ALTER TABLE "Wallet" RENAME TO "WalletV1";
 ALTER TABLE "WalletV1" RENAME CONSTRAINT "Wallet_pkey" TO "WalletV1_pkey";

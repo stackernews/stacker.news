@@ -73,108 +73,108 @@ setDefaultHandler(new NetworkOnly({
 offlineFallback({ pageFallback: '/offline' })
 
 self.addEventListener('push', function (event) {
-  async function onPush () {
-    let payload
+  let payload
 
-    try {
-      payload = event.data?.json()
-      if (!payload) {
-        throw new Error('no payload in push event')
-      }
-    } catch (err) {
-      // we show a default nofication on any error because we *must* show a notification
-      // else the browser will show one for us or worse, remove our push subscription
-      await self.registration.showNotification(
+  try {
+    payload = event.data?.json()
+    if (!payload) {
+      throw new Error('no payload in push event')
+    }
+  } catch (err) {
+    // we show a default nofication on any error because we *must* show a notification
+    // else the browser will show one for us or worse, remove our push subscription
+    return event.waitUntil(
+      self.registration.showNotification(
         // TODO: funny message as easter egg?
         // example: "dude i'm bugging, that's wild" from https://www.youtube.com/watch?v=QsQLIaKK2s0&t=176s but in wild west theme?
         'something went wrong',
         { icon: '/icons/icon_x96.png' }
       )
-      return
-    }
-
-    await self.navigator.setAppBadge?.()
-    await self.registration.showNotification(payload.title, payload.options)
+    )
   }
-  event.waitUntil(onPush())
+
+  event.waitUntil(
+    Promise.all([
+      self.navigator.setAppBadge?.(),
+      self.registration.showNotification(payload.title, payload.options)
+    ])
+  )
 })
 
 self.addEventListener('notificationclick', function (event) {
-  async function onNotificationClick () {
-    const url = event.notification.data?.url
-    if (url) {
-      // TODO: try to focus existing client first?
-      // see https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/notificationclick_event#examples?
-      await self.clients.openWindow(url)
-    }
-    event.notification.close()
+  event.notification.close()
+
+  const url = event.notification.data?.url
+  if (url) {
+    // TODO: try to focus existing client first?
+    // see https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/notificationclick_event#examples?
+    event.waitUntil(self.clients.openWindow(url))
   }
-  event.waitUntil(onNotificationClick())
 })
 
 self.addEventListener('pushsubscriptionchange', function (event) {
   // https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
   // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event
-  async function onPushSubscriptionChange () {
-    let { oldSubscription, newSubscription } = event
+  let { oldSubscription, newSubscription } = event
 
-    // fallbacks since browser may not set oldSubscription and newSubscription
-    oldSubscription ??= await storage.getItem('subscription')
-    newSubscription ??= await self.registration.pushManager.getSubscription()
-    if (!newSubscription || oldSubscription?.endpoint === newSubscription.endpoint) {
-      // no subscription exists at the moment or subscription did not change
-      return
-    }
+  // convert keys from ArrayBuffer to string
+  newSubscription = JSON.parse(JSON.stringify(newSubscription))
 
-    // convert keys from ArrayBuffer to string
-    newSubscription = JSON.parse(JSON.stringify(newSubscription))
+  const fetchPromise = Promise.all([
+    oldSubscription ?? storage.getItem('subscription'),
+    newSubscription ?? self.registration.pushManager.getSubscription()
+  ])
+    .then(([oldSubscription, newSubscription]) => {
+      if (!newSubscription || oldSubscription?.endpoint === newSubscription.endpoint) {
+        // no subscription exists at the moment or subscription did not change
+        return
+      }
 
-    // save new subscription on server
-    await fetch('/api/graphql', {
-      method: 'POST',
-      headers: {
-        'Content-type': 'application/json'
-      },
-      body: JSON.stringify({
-        query: `
-          mutation savePushSubscription(
-            $endpoint: String!,
-            $p256dh: String!,
-            $auth: String!,
-            $oldEndpoint: String!
-          ) {
-            savePushSubscription(
-              endpoint: $endpoint,
-              p256dh: $p256dh,
-              auth: $auth,
-              oldEndpoint: $oldEndpoint
+      // save new subscription on server
+      return fetch('/api/graphql', {
+        method: 'POST',
+        headers: {
+          'Content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: `
+            mutation savePushSubscription(
+              $endpoint: String!,
+              $p256dh: String!,
+              $auth: String!,
+              $oldEndpoint: String!
             ) {
-              id
-            }
-          }`,
-        variables: {
-          endpoint: newSubscription.endpoint,
-          p256dh: newSubscription.keys.p256dh,
-          auth: newSubscription.keys.auth,
-          oldEndpoint: oldSubscription?.endpoint
-        }
+              savePushSubscription(
+                endpoint: $endpoint,
+                p256dh: $p256dh,
+                auth: $auth,
+                oldEndpoint: $oldEndpoint
+              ) {
+                id
+              }
+            }`,
+          variables: {
+            endpoint: newSubscription.endpoint,
+            p256dh: newSubscription.keys.p256dh,
+            auth: newSubscription.keys.auth,
+            oldEndpoint: oldSubscription?.endpoint
+          }
+        })
       })
     })
 
-    // save new subscription on client
-    await storage.setItem('subscription', newSubscription)
-  }
-  event.waitUntil(onPushSubscriptionChange())
+  // save new subscription on client
+  const storagePromise = storage.setItem('subscription', newSubscription)
+
+  return event.waitUntil(Promise.all([
+    fetchPromise,
+    storagePromise
+  ]))
 })
 
 self.addEventListener('message', function (event) {
-  async function onMessage () {
-    if (event.data.action === STORE_SUBSCRIPTION) {
-      await storage.setItem('subscription', { ...event.data.subscription, swVersion: 2 })
-    }
-    if (event.data.action === DELETE_SUBSCRIPTION) {
-      await storage.removeItem('subscription')
-    }
+  switch (event.data.action) {
+    case STORE_SUBSCRIPTION: return event.waitUntil(storage.setItem('subscription', { ...event.data.subscription, swVersion: 2 }))
+    case DELETE_SUBSCRIPTION: return event.waitUntil(storage.removeItem('subscription'))
   }
-  event.waitUntil(onMessage())
 })

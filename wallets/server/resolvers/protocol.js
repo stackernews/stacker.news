@@ -8,7 +8,7 @@ import { timeoutSignal, withTimeout } from '@/lib/time'
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
-import { logContextFromBolt11 } from '@/wallets/server/logger'
+import { logContextFromBolt11, walletLogger } from '@/wallets/server/logger'
 import { formatMsats } from '@/lib/format'
 
 const WalletProtocolConfig = {
@@ -286,16 +286,8 @@ async function walletLogs (parent, { protocolId, cursor }, { me, models }) {
 async function addWalletLog (parent, { protocolId, level, message, timestamp, invoiceId }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
-  await models.walletLog.create({
-    data: {
-      protocolId: Number(protocolId),
-      level,
-      message,
-      invoiceId,
-      userId: me.id,
-      createdAt: timestamp
-    }
-  })
+  const logger = walletLogger({ models, protocolId, userId: me.id, invoiceId })
+  await logger[level.toLowerCase()](message, { createdAt: timestamp })
 
   return true
 }

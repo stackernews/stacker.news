@@ -10,10 +10,10 @@ export function walletLogger ({
 }) {
   // server implementation of wallet logger interface on client
   const log = (level) => async (message, context = {}) => {
-    // set createdAt to time when logger was called to keep logs in order
+    // if no timestamp is given, set createdAt to time when logger was called to keep logs in order
     // since logs are created asynchronously and thus might get inserted out of order
     // however, millisecond precision is not always enough ...
-    const createdAt = new Date()
+    const createdAt = context?.createdAt ?? new Date()
 
     const updateStatus = ['OK', 'ERROR', 'WARNING'].includes(level) && (invoiceId || withdrawalId || context.bolt11 || context?.updateStatus)
     delete context?.updateStatus

@@ -27,17 +27,18 @@
   display: flex;
   align-items: center;
   column-gap: 0.2rem;
-  margin-left: auto;
   padding: 10px;
-  position: absolute;
-  top: 0;
-  right: 0;
+  justify-content: end;
 }
 
 .indicator {
   width: 14px;
   height: 14px;
   background-color: var(--theme-toolbarHover) !important;
+}
+
+.indicator.drag {
+  background-color: transparent !important;
 }
 
 .indicator.success {

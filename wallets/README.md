@@ -220,7 +220,7 @@ index 8caa5f52..58f5ab86 100644
 
 **4. Add protocol method file**
 
-- If protocol to receive payments: Add file to [wallets/server/protocols](/wallets/server/protocols) (see [JSDoc](/wallets/server/protocols/index.js) for details)
+- if protocol to receive payments: Add file to [wallets/server/protocols](/wallets/server/protocols) (see [JSDoc](/wallets/server/protocols/index.js) for details)
 - if protocol to send payments: Add file to [wallets/client/protocols](/wallets/client/protocols) (see [JSDoc](/wallets/client/protocols/index.js) for details)
 - import in index.js file and add to default export
 

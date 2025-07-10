@@ -75,6 +75,7 @@ export default function Comments ({
   // fetch new comments that arrived after the lastCommentAt, and update the item.newComments field in cache
   useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort, setHasNewComments)
   console.log('hasNewComments', hasNewComments)
+  console.log('sort', router.query.sort)
   const hasNewNotes = useHasNewNotes()
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
@@ -101,7 +102,7 @@ export default function Comments ({
           />
         : null}
       {newComments?.length > 0 && (
-        <ShowNewComments comments={comments} newComments={newComments} itemId={parentId} sort={router.query.sort} setHasNewComments={setHasNewComments} />
+        <ShowNewComments topLevel comments={comments} newComments={newComments} itemId={parentId} sort={router.query.sort} setHasNewComments={setHasNewComments} />
       )}
       {pins.map(item => (
         <Fragment key={item.id}>

@@ -31,7 +31,7 @@ export const UPSERT_WALLET_SEND_PHOENIXD = gql`
 `
 
 export const UPSERT_WALLET_RECEIVE_PHOENIXD = gql`
-  mutation upsertWalletRecvLNbits($walletId: ID, $templateId: ID, $enabled: Boolean!, $networkTests: Boolean, $url: String!, $apiKey: String!) {
+  mutation upsertWalletRecvPhoenixd($walletId: ID, $templateId: ID, $enabled: Boolean!, $networkTests: Boolean, $url: String!, $apiKey: String!) {
     upsertWalletRecvPhoenixd(walletId: $walletId, templateId: $templateId, enabled: $enabled, networkTests: $networkTests, url: $url, apiKey: $apiKey) {
       id
     }

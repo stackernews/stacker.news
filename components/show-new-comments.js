@@ -4,6 +4,7 @@ import { COMMENT_WITH_NEW_RECURSIVE } from '../fragments/comments'
 import styles from './comment.module.css'
 import { itemUpdateQuery, commentUpdateFragment } from './use-live-comments'
 import { updateAncestorsCommentCount } from '@/lib/comments'
+import { COMMENT_DEPTH_LIMIT } from '@/lib/constants'
 
 function prepareComments (client, newComments) {
   return (data) => {
@@ -42,7 +43,7 @@ function prepareComments (client, newComments) {
   }
 }
 
-function showAllNewCommentsRecursively (client, item) {
+function showAllNewCommentsRecursively (client, item, currentDepth = 1) {
   // handle new comments at this item level
   if (item.newComments && item.newComments.length > 0) {
     const dedupedNewComments = dedupeNewComments(item.newComments, item.comments?.comments)
@@ -54,9 +55,9 @@ function showAllNewCommentsRecursively (client, item) {
   }
 
   // recursively handle new comments in child comments
-  if (item.comments?.comments) {
+  if (item.comments?.comments && currentDepth < (COMMENT_DEPTH_LIMIT - 1)) {
     for (const childComment of item.comments.comments) {
-      showAllNewCommentsRecursively(client, childComment)
+      showAllNewCommentsRecursively(client, childComment, currentDepth + 1)
     }
   }
 }
@@ -66,18 +67,19 @@ function dedupeNewComments (newComments, comments) {
   return newComments.filter(id => !existingIds.has(id))
 }
 
-function collectAllNewComments (item) {
+function collectAllNewComments (item, currentDepth = 1) {
   const allNewComments = [...(item.newComments || [])]
-  if (item.comments?.comments) {
+  if (item.comments?.comments && currentDepth < (COMMENT_DEPTH_LIMIT - 1)) {
     for (const comment of item.comments.comments) {
-      allNewComments.push(...collectAllNewComments(comment))
+      console.log('comment', comment)
+      console.log('currentDepth', currentDepth)
+      allNewComments.push(...collectAllNewComments(comment, currentDepth + 1))
     }
   }
   return allNewComments
 }
 
-// TODO: Fix bug where new comments out of depth are not shown
-export function ShowNewComments ({ topLevel, sort, comments, itemId, item, setHasNewComments, newComments = [] }) {
+export function ShowNewComments ({ topLevel, sort, comments, itemId, item, setHasNewComments, newComments = [], depth = 1 }) {
   const client = useApolloClient()
 
   // if item is provided, we're showing all new comments for a thread,
@@ -85,14 +87,15 @@ export function ShowNewComments ({ topLevel, sort, comments, itemId, item, setHa
   const isThread = !topLevel && item?.path.split('.').length === 2
   const allNewComments = useMemo(() => {
     if (isThread) {
-      return collectAllNewComments(item)
+      // TODO: well are we only collecting all new comments just for a fancy UI?
+      return collectAllNewComments(item, depth)
     }
     return dedupeNewComments(newComments, comments)
-  }, [isThread, item, newComments, comments])
+  }, [isThread, item, newComments, comments, depth])
 
   const showNewComments = useCallback(() => {
     if (isThread) {
-      showAllNewCommentsRecursively(client, item)
+      showAllNewCommentsRecursively(client, item, depth)
     } else {
       // fetch the latest version of the comments from the cache by their ids
       const payload = prepareComments(client, allNewComments)

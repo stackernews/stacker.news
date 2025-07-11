@@ -28,7 +28,7 @@
   align-items: center;
   column-gap: 0.2rem;
   padding: 10px;
-  justify-content: end;
+  justify-content: flex-end;
 }
 
 .indicator {

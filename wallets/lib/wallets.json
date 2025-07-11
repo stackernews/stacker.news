@@ -114,10 +114,10 @@
         "url": "https://shockwallet.app/"
     },
     {
-        "name": "ALBY_HUB",
-        "displayName": "Alby Hub",
-        "image": "/wallets/albyhub.png",
-        "url": "https://albyhub.com/"
+        "name": "ALBY",
+        "displayName": "Alby",
+        "image": "/wallets/alby.svg",
+        "url": "https://getalby.com/"
     },
     {
         "name": "BLIXT",
@@ -130,12 +130,6 @@
         "displayName": "npub.cash",
         "image": "/wallets/npub-cash.svg",
         "url": "https://npub.cash/"
-    },
-    {
-        "name": "ALBY_BROWSER_EXTENSION",
-        "displayName": "Alby Browser Extension",
-        "image": "/wallets/alby-browser-extension.svg",
-        "url": "https://albyhub.com/"
     },
     {
         "name": "LN_ADDR",

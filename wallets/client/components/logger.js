@@ -126,7 +126,6 @@ export function LogMessage ({ tag, level, message, context, ts }) {
 function nameToTag (name) {
   switch (name) {
     case undefined: return 'system'
-    case 'ALBY_BROWSER_EXTENSION': return 'alby'
     default: return name.toLowerCase()
   }
 }

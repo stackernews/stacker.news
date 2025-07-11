@@ -9,8 +9,7 @@ CREATE TYPE "WalletRecvProtocolName" AS ENUM ('NWC', 'LNBITS', 'PHOENIXD', 'BLIN
 
 -- CreateEnum
 CREATE TYPE "WalletName" AS ENUM (
-    'ALBY_BROWSER_EXTENSION',
-    'ALBY_HUB',
+    'ALBY',
     'BLINK',
     'BLIXT',
     'CASHU_ME',
@@ -48,11 +47,8 @@ CREATE TABLE "WalletTemplate" (
 );
 
 INSERT INTO "WalletTemplate" (name, "sendProtocols", "recvProtocols") VALUES
-    ('ALBY_BROWSER_EXTENSION',
-        ARRAY['WEBLN']::"WalletSendProtocolName"[],
-        ARRAY[]::"WalletRecvProtocolName"[]),
-    ('ALBY_HUB',
-        ARRAY['NWC']::"WalletSendProtocolName"[],
+    ('ALBY',
+        ARRAY['NWC', 'WEBLN']::"WalletSendProtocolName"[],
         ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]),
     ('BLINK',
         ARRAY['BLINK']::"WalletSendProtocolName"[],
@@ -985,7 +981,7 @@ BEGIN
             relay := substring(row."nwcUrlRecv" from 'relay=([^&]+)');
 
             IF relay LIKE '%getalby.com%' THEN
-                walletName := 'ALBY_HUB';
+                walletName := 'ALBY';
             ELSIF relay LIKE '%rizful.com%' THEN
                 walletName := 'RIZFUL';
             ELSIF relay LIKE '%primal.net%' THEN
@@ -1031,7 +1027,7 @@ BEGIN
             IF domain LIKE '%walletofsatoshi.com' THEN
                 walletName := 'WALLET_OF_SATOSHI';
             ELSIF domain LIKE '%getalby.com' THEN
-                walletName := 'ALBY_HUB';
+                walletName := 'ALBY';
             ELSIF domain LIKE '%coinos.io' THEN
                 walletName := 'COINOS';
             ELSIF domain LIKE '%speed.app' OR domain LIKE '%tryspeed.com' THEN
@@ -1085,7 +1081,7 @@ BEGIN
             walletId INT;
             protocolId INT;
         BEGIN
-            walletId := get_or_create_wallet(row."userId", 'ALBY_BROWSER_EXTENSION', row."priority");
+            walletId := get_or_create_wallet(row."userId", 'ALBY', row."priority");
 
             protocolId := create_wallet_protocol(row."walletId", walletId, true, 'WEBLN', row."enabled");
             INSERT INTO "WalletSendWebLN" ("protocolId")

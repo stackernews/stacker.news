@@ -506,7 +506,7 @@ function getWalletTemplateName (protocol) {
     case 'LNC':
       return 'LND'
     case 'WEBLN':
-      return 'ALBY_BROWSER_EXTENSION'
+      return 'ALBY'
     default:
       return null
   }

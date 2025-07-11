@@ -1,34 +1,10 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { CopyButton } from '@/components/form'
 import { QRCodeSVG } from 'qrcode.react'
 import styles from '@/styles/wallet.module.css'
-import { useWallets } from '@/wallets/client/context'
-import { useGenerateRandomKey, useWalletEncryptionUpdate } from '@/wallets/client/hooks'
-import useEffectOnce from '@/components/use-effect-once'
 
-export function Passphrase () {
-  const [passphrase, setPassphrase] = useState(null)
-  const wallets = useWallets()
-  const generateRandomKey = useGenerateRandomKey()
-
-  const updateWalletEncryption = useWalletEncryptionUpdate()
-
-  useEffectOnce(() => {
-    async function updateKey () {
-      const { passphrase, key, hash } = await generateRandomKey()
-      await updateWalletEncryption({ key, hash, wallets })
-      setPassphrase(passphrase)
-    }
-    updateKey()
-  }, [])
-
-  if (!passphrase) {
-    // TODO(wallet-v2): return skeleton
-    return null
-  }
-
+export function Passphrase ({ passphrase }) {
   const words = passphrase.trim().split(/\s+/)
-
   return (
     <>
       <p className='fw-bold line-height-md'>

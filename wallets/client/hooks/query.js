@@ -209,11 +209,12 @@ export function useWalletProtocolRemove (protocol) {
 }
 
 export function useWalletEncryptionUpdate () {
+  const wallets = useWallets()
   const [mutate] = useMutation(UPDATE_WALLET_ENCRYPTION)
   const setKey = useSetKey()
   const { encryptConfig } = useEncryptConfig()
 
-  return useCallback(async ({ key, hash, wallets }) => {
+  return useCallback(async ({ key, hash }) => {
     const encrypted = await Promise.all(
       wallets.map(async d => ({
         ...d,
@@ -236,7 +237,7 @@ export function useWalletEncryptionUpdate () {
     await mutate({ variables: { keyHash: hash, wallets: data } })
 
     await setKey({ key, hash })
-  }, [mutate, encryptConfig])
+  }, [wallets, mutate, setKey, encryptConfig])
 }
 
 export function useWalletReset () {

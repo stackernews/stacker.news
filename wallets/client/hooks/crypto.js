@@ -9,7 +9,7 @@ import bip39Words from '@/lib/bip39-words'
 import { Form, PasswordInput, SubmitButton } from '@/components/form'
 import { object, string } from 'yup'
 import { SET_KEY, useKey, useKeyHash, useWalletsDispatch } from '@/wallets/client/context'
-import { useDisablePassphraseExport, useUpdateKeyHash, useWalletReset } from '@/wallets/client/hooks'
+import { useDisablePassphraseExport, useUpdateKeyHash, useWalletEncryptionUpdate, useWalletReset } from '@/wallets/client/hooks'
 import { useToast } from '@/components/toast'
 
 export class CryptoKeyRequiredError extends Error {
@@ -101,13 +101,24 @@ export function useKeySalt () {
 export function useShowPassphrase () {
   const { me } = useMe()
   const showModal = useShowModal()
+  const generateRandomKey = useGenerateRandomKey()
+  const updateWalletEncryption = useWalletEncryptionUpdate()
+  const toaster = useToast()
 
-  const onShow = useCallback(() => {
+  const onShow = useCallback(async () => {
+    let passphrase, key, hash
+    try {
+      ({ passphrase, key, hash } = await generateRandomKey())
+      await updateWalletEncryption({ key, hash })
+    } catch (err) {
+      toaster.danger('failed to update wallet encryption: ' + err.message)
+      return
+    }
     showModal(
-      close => <Passphrase />,
+      close => <Passphrase passphrase={passphrase} />,
       { replaceModal: true, keepOpen: true }
     )
-  }, [showModal])
+  }, [showModal, generateRandomKey, updateWalletEncryption, toaster])
 
   const cb = useCallback(() => {
     showModal(close => (
@@ -127,7 +138,7 @@ export function useShowPassphrase () {
         </div>
       </div>
     ))
-  }, [showModal])
+  }, [showModal, onShow])
 
   if (!me || !me.privates?.showPassphrase) {
     return null

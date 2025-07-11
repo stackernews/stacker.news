@@ -1,0 +1,294 @@
+#!/usr/bin/env bash
+# Script to handle pgboss jobs
+
+# prep
+set -e
+
+# general usage
+usage() {
+  cat <<EOF
+Control pgboss jobs.
+
+USAGE
+  $ sndev pgboss [COMMAND]
+
+COMMANDS
+  add        <name>  [flags] [data]  Add a job
+  edit       <jobId> [flags] [data]  Edit a job
+  remove     <jobId>                 Remove a job
+  remove-all <name>                  Remove all jobs of a given name
+  details    <jobId>                 Show details of a job
+  list       <name>                  List jobs
+
+FLAGS
+  -h                                 Show this help message
+
+FLAGS: add/edit
+  -s                                 Start the job after given SECONDS
+  -r                                 Set the number of retries on thrown errors
+  -d                                 Set the delay between retries in SECONDS
+  -b                                 Enable pgboss exponential backoff between retries
+  -k                                 Keep the job until a given date in SECONDS
+
+EXAMPLES
+  $ sndev pgboss add jobname -s 10 "{\"id\": \"test\"}"
+  $ sndev pgboss edit jobId -s 10 "{\"id\": \"test\"}"
+  $ sndev pgboss remove jobId
+  $ sndev pgboss remove-all jobname
+  $ sndev pgboss list jobname
+EOF
+exit 0
+}
+
+if [ "$1" = "-h" ]; then
+  usage
+  exit 0
+fi
+
+INTENT=$1       # add, edit, remove, remove-all, list
+if [ -z "$INTENT" ]; then
+  echo "At least a command is required"
+  usage
+  exit 1
+fi
+shift
+
+JOB=$1          # job name or jobId
+if [ -z "$JOB" ]; then
+  echo "At least a job name or job ID is required"
+  usage
+  exit 1
+fi
+shift
+
+# flags
+STARTAFTER=
+RETRYLIMIT=
+RETRYDELAY=
+RETRYBACKOFF=
+KEEPUNTIL=
+
+# handle flags with optargs
+if [[ "$INTENT" == "add" ]] || [[ "$INTENT" == "edit" ]]; then
+  while getopts "s:r:d:k:bh" opt; do
+    case "$opt" in
+      s)
+        STARTAFTER=$(date -d "$OPTARG seconds" +"%Y-%m-%d %H:%M:%S.%N")
+        ;;
+      r)
+        RETRYLIMIT=$OPTARG
+        ;;
+      d)
+        RETRYDELAY=$OPTARG
+        ;;
+      b)
+        RETRYBACKOFF=true
+        ;;
+      k)
+        KEEPUNTIL=$(date -d "$OPTARG seconds" +"%Y-%m-%d %H:%M:%S.%N")
+        ;;
+      h)
+        usage
+        exit 0
+        ;;
+      ?)
+        echo "Invalid option: -$OPTARG"
+        usage
+        exit 1
+    esac
+  done
+  # shift after flags to get data
+  shift $((OPTIND-1))
+fi
+
+DATA=$1         # data
+
+# query/values builder for pgboss
+# with support for multiple flags
+# TODO: more elegant, see edit_job
+build_opts() {
+  query=$1
+  values=$2
+  if [ ! -z "$DATA" ]; then
+    query="$query, data"
+    values="$values, '$DATA'"
+  fi
+  if [ ! -z "$STARTAFTER" ]; then
+    query="$query, startafter" 
+    values="$values, '$STARTAFTER'"
+  fi
+  if [ ! -z "$RETRYLIMIT" ]; then
+    query="$query, retrylimit"
+    values="$values, '$RETRYLIMIT'"
+  fi
+  if [ ! -z "$RETRYDELAY" ]; then
+    query="$query, retrydelay"
+    values="$values, '$RETRYDELAY'"
+  fi
+  if [ ! -z "$RETRYBACKOFF" ]; then
+    query="$query, retrybackoff"
+    values="$values, '$RETRYBACKOFF'"
+  fi
+  if [ ! -z "$KEEPUNTIL" ]; then
+    query="$query, keepuntil"
+    values="$values, '$KEEPUNTIL'"
+  fi
+  echo "$query) $values)"
+}
+
+docker__exec() {
+  if [ ! -x "$(command -v docker)" ]; then
+    echo "docker is not installed"
+    echo "installation instructions are here: https://docs.docker.com/desktop/"
+    exit 0
+  fi
+
+  DOCKER_CLI_HINTS=false command docker exec -i "$@"
+}
+
+# add a job
+add_job() {
+  if [ -z "$JOB" ]; then
+    echo "At least a job name is required"
+    usage
+    exit 1
+  fi
+
+  query="INSERT INTO pgboss.job (name"
+  values="VALUES ('$JOB'"
+  query=$(build_opts "$query" "$values")
+  query="$query RETURNING id;"
+
+  job_id=$(docker__exec db psql -U sn -d stackernews -t -q <<EOF
+    $query
+EOF
+)
+  echo "Created job with ID: $job_id"
+  show_job id $job_id
+}
+
+# edit a job
+edit_job() {
+  if [ -z "$JOB" ]; then
+    echo "At least a job ID is required"
+    usage
+    exit 1
+  fi
+
+  declare -a flags=()
+  [ ! -z "$DATA" ] && flags+=("data = '$DATA'")
+  [ ! -z "$STARTAFTER" ] && flags+=("startafter = '$STARTAFTER'")
+  [ ! -z "$RETRYLIMIT" ] && flags+=("retrylimit = '$RETRYLIMIT'")
+  [ ! -z "$RETRYDELAY" ] && flags+=("retrydelay = '$RETRYDELAY'")
+  [ ! -z "$RETRYBACKOFF" ] && flags+=("retrybackoff = '$RETRYBACKOFF'")
+  [ ! -z "$KEEPUNTIL" ] && flags+=("keepuntil = '$KEEPUNTIL'")
+
+  if [ ${#flags[@]} -eq 0 ]; then
+    echo "Nothing to update here."
+    usage
+    exit 1
+  fi
+
+  printf -v flags_str "%s," "${flags[@]}"
+  flags_str=${flags_str%,}
+
+  query="UPDATE pgboss.job SET $flags_str WHERE id = '$JOB';"
+
+  docker__exec db psql -U sn -d stackernews -t -q <<EOF
+    $query
+EOF
+  echo "Updated job with ID: $JOB"
+  show_job id $JOB
+}
+
+# remove a job
+remove_job() {
+  shift
+  if [ -z "$JOB" ]; then
+    echo "At least a job ID is required"
+    usage
+    exit 1
+  fi
+  docker__exec db psql -U sn -d stackernews -q <<EOF
+    DELETE FROM pgboss.job WHERE id = '$JOB';
+EOF
+  echo "Deleted job with ID: $JOB"
+}
+
+# remove all jobs of a given name
+remove_all_jobs() {
+  if [ -z "$JOB" ]; then
+    echo "At least a job name is required"
+    usage
+    exit 1
+  fi
+  docker__exec db psql -U sn -d stackernews -q <<EOF
+    DELETE FROM pgboss.job WHERE name = '$JOB';
+EOF
+  echo "Deleted all jobs with name: $JOB"
+}
+
+# command to show details of a job
+details_job() {
+  shift
+  if [ -z "$JOB" ]; then
+    echo "At least a job ID is required"
+    usage
+    exit 1
+  fi
+  show_job id $JOB
+}
+
+# list jobs of a given name
+list_jobs() {
+  shift
+  if [ -z "$JOB" ]; then
+    echo "At least a job name is required"
+    usage
+    exit 1
+  fi
+  echo "Latest 10 jobs with name: $JOB"
+  show_job name $JOB "ORDER BY createdon DESC LIMIT 10"
+}
+
+# function to show details of a job
+show_job() {
+  TYPE=$1 # name or id
+  SEARCH=$2 # job name or job id
+  OPTIONS=$3 # optional options
+
+  if [ -z "$TYPE" ] || [ -z "$SEARCH" ]; then
+    echo "Both type and search parameters are required"
+    usage
+    exit 1
+  fi
+
+  docker__exec db psql -U sn -d stackernews -q <<EOF
+    \x auto
+    SELECT (
+      'ID: ' || id || E'\n' ||
+      'Name: ' || name || E'\n' ||
+      'Created: ' || createdon || E'\n' ||
+      CASE WHEN data IS NOT NULL THEN 'Data: ' || data::text || E'\n' ELSE '' END ||
+      CASE WHEN startafter IS NOT NULL THEN 'Start After: ' || startafter || E'\n' ELSE '' END ||
+      CASE WHEN retrylimit IS NOT NULL THEN 'Retry Limit: ' || retrylimit || E'\n' ELSE '' END ||
+      CASE WHEN retrydelay IS NOT NULL THEN 'Retry Delay: ' || retrydelay || E'\n' ELSE '' END ||
+      'Retry Backoff: ' || CASE WHEN retrybackoff THEN 'Yes' ELSE 'No' END || E'\n' ||
+      CASE WHEN keepuntil IS NOT NULL THEN 'Keep Until: ' || keepuntil || E'\n' ELSE '' END
+    ) AS job_list
+    FROM pgboss.job
+    WHERE $TYPE = '$SEARCH'
+    $OPTIONS;
+EOF
+}
+
+# switch intents
+case "$INTENT" in
+  add)    add_job ;;
+  edit)   edit_job ;;
+  remove) remove_job ;;
+  remove-all) remove_all_jobs ;;
+  details) details_job ;;
+  list)   list_jobs ;;
+  *)      usage ;;
+esac

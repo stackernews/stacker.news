@@ -153,6 +153,14 @@ CREATE TRIGGER wallet_to_jsonb
     AFTER INSERT OR UPDATE ON "WalletRecvBolt12"
     FOR EACH ROW
     EXECUTE PROCEDURE wallet_to_jsonb();
+
+
+-- if protocol is for sending you also need to add the wallet_clear_vault trigger:
+-- CREATE TRIGGER wallet_clear_vault
+--    AFTER DELETE ON "WalletSendClinkDebit"
+--    FOR EACH ROW
+--    EXECUTE PROCEDURE wallet_clear_vault();
+
 ```
 
 </details>

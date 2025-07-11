@@ -25,7 +25,7 @@ import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey, useWalletLogger, WalletStatus } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolClientSchema, reverseProtocolRelationName, walletTemplateId
+  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolClientSchema, reverseProtocolRelationName
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
@@ -189,7 +189,7 @@ export function useWalletProtocolUpsert (wallet, protocol) {
 export function useLightningAddressUpsert () {
   // TODO(wallet-v2): parse domain from address input to use correct wallet template
   // useWalletProtocolUpsert needs to support passing in the wallet in the callback for that
-  const wallet = { id: walletTemplateId('LN_ADDR'), __typename: 'WalletTemplate' }
+  const wallet = { name: 'LN_ADDR', __typename: 'WalletTemplate' }
   const protocol = { name: 'LN_ADDR', send: false, __typename: 'WalletProtocolTemplate' }
   return useWalletProtocolUpsert(wallet, protocol)
 }

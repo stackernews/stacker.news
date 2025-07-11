@@ -79,7 +79,7 @@ export function useWalletLogger (protocol) {
 }
 
 export function useWalletLogs (protocol) {
-  const { templateLogs } = useContext(TemplateLogsContext)
+  const { templateLogs, clearTemplateLogs } = useContext(TemplateLogsContext)
 
   const [cursor, setCursor] = useState(null)
   // if we're configuring a protocol template, there are no logs to fetch
@@ -119,8 +119,9 @@ export function useWalletLogs (protocol) {
 
   const clearLogs = useCallback(() => {
     setLogs([])
+    clearTemplateLogs?.()
     setCursor(null)
-  }, [])
+  }, [clearTemplateLogs])
 
   return useMemo(() => {
     return {
@@ -187,6 +188,9 @@ function DeleteWalletLogsObstacle ({ protocol, onClose, onDelete }) {
   const [deleteWalletLogs] = useMutation(DELETE_WALLET_LOGS)
 
   const deleteLogs = useCallback(async () => {
+    // there are no logs to delete on the server if protocol is a template
+    if (protocol && isTemplate(protocol)) return
+
     await deleteWalletLogs({
       variables: { protocolId: protocol ? Number(protocol.id) : undefined }
     })

@@ -1214,7 +1214,6 @@ model Log {
   context   Json?
 
   @@index([createdAt, name], map: "Log.name_index")
-
   @@ignore
 }
 

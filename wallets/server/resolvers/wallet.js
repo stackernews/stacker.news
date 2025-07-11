@@ -99,7 +99,7 @@ async function wallet (parent, { id, name }, { me, models }) {
     return mapWalletResolveTypes(wallet)
   }
 
-  const template = await models.walletTemplate.findFirst({ where: { name } })
+  const template = await models.walletTemplate.findUnique({ where: { name } })
   return { ...template, __resolveType: 'WalletTemplate' }
 }
 

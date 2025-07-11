@@ -9,7 +9,10 @@ export default function WalletForms () {
   const params = useParams()
   const walletName = unurlify(params.slug[0])
 
-  if (parseInt(walletName)) {
+  // if the wallet name is a number, we are showing a configured wallet
+  // otherwise, we are showing a template
+  const isNumber = !Number.isNaN(Number(walletName))
+  if (isNumber) {
     return <WalletFormsComponent id={Number(walletName)} />
   }
 

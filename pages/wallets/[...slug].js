@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
-export default function WalletForms ({ name }) {
+export default function WalletForms () {
   const params = useParams()
   const walletName = unurlify(params.slug[0])
 

@@ -7,92 +7,120 @@ CREATE TYPE "WalletSendProtocolName" AS ENUM ('NWC', 'LNBITS', 'PHOENIXD', 'BLIN
 -- CreateEnum
 CREATE TYPE "WalletRecvProtocolName" AS ENUM ('NWC', 'LNBITS', 'PHOENIXD', 'BLINK', 'LN_ADDR', 'CLN_REST', 'LND_GRPC');
 
+-- CreateEnum
+CREATE TYPE "WalletName" AS ENUM (
+    'ALBY_BROWSER_EXTENSION',
+    'ALBY_HUB',
+    'BLINK',
+    'BLIXT',
+    'CASHU_ME',
+    'CLN',
+    'COINOS',
+    'FOUNTAIN',
+    'LIFPAY',
+    'LNBITS',
+    'LND',
+    'MINIBITS',
+    'NPUB_CASH',
+    'PHOENIXD',
+    'PRIMAL',
+    'RIZFUL',
+    'SHOCKWALLET',
+    'SPEED',
+    'STRIKE',
+    'VOLTAGE',
+    'WALLET_OF_SATOSHI',
+    'ZBD',
+    'ZEUS',
+    'NWC',
+    'LN_ADDR'
+);
+
 -- CreateTable
 CREATE TABLE "WalletTemplate" (
-    "id" SERIAL NOT NULL,
+    "name" "WalletName" NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "name" TEXT NOT NULL,
     "sendProtocols" "WalletSendProtocolName"[],
     "recvProtocols" "WalletRecvProtocolName"[],
 
-    CONSTRAINT "WalletTemplate_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "WalletTemplate_pkey" PRIMARY KEY ("name")
 );
 
-INSERT INTO "WalletTemplate" ("id", name, "sendProtocols", "recvProtocols") VALUES
-    (1, 'ALBY_BROWSER_EXTENSION',
+INSERT INTO "WalletTemplate" (name, "sendProtocols", "recvProtocols") VALUES
+    ('ALBY_BROWSER_EXTENSION',
         ARRAY['WEBLN']::"WalletSendProtocolName"[],
         ARRAY[]::"WalletRecvProtocolName"[]),
-    (2, 'ALBY_HUB',
+    ('ALBY_HUB',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]),
-    (3, 'BLINK',
+    ('BLINK',
         ARRAY['BLINK']::"WalletSendProtocolName"[],
         ARRAY['BLINK', 'LN_ADDR']::"WalletRecvProtocolName"[]),
-    (4, 'BLIXT',
+    ('BLIXT',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    (5, 'CASHU.ME',
+    ('CASHU_ME',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    (6, 'CLN',
+    ('CLN',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['CLN_REST']::"WalletRecvProtocolName"[]),
-    (7, 'COINOS',
+    ('COINOS',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]),
-    (8, 'FOUNTAIN',
+    ('FOUNTAIN',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    (9, 'LIFPAY',
+    ('LIFPAY',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]),
-    (10, 'LNBITS',
+    ('LNBITS',
         ARRAY['LNBITS']::"WalletSendProtocolName"[],
         ARRAY['LNBITS']::"WalletRecvProtocolName"[]),
-    (11, 'LND',
+    ('LND',
         ARRAY['LNC']::"WalletSendProtocolName"[],
         ARRAY['LND_GRPC']::"WalletRecvProtocolName"[]),
-    (12, 'MINIBITS',
+    ('MINIBITS',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    (13, 'NPUB.CASH',
+    ('NPUB_CASH',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    (14, 'PHOENIXD',
+    ('PHOENIXD',
         ARRAY['PHOENIXD']::"WalletSendProtocolName"[],
         ARRAY['PHOENIXD']::"WalletRecvProtocolName"[]),
-    (15, 'PRIMAL',
+    ('PRIMAL',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]),
-    (16, 'RIZFUL',
+    ('RIZFUL',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['NWC', 'LN_ADDR']::"WalletRecvProtocolName"[]),
-    (17, 'SHOCKWALLET',
+    ('SHOCKWALLET',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    (18, 'SPEED',
+    ('SPEED',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    (19, 'STRIKE',
+    ('STRIKE',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    (20, 'VOLTAGE',
+    ('VOLTAGE',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    (21, 'WALLET_OF_SATOSHI',
+    ('WALLET_OF_SATOSHI',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    (22, 'ZBD',
+    ('ZBD',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    (23, 'ZEUS',
+    ('ZEUS',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
-    (24, 'NWC',
+    ('NWC',
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['NWC']::"WalletRecvProtocolName"[]),
-    (25, 'LN_ADDR',
+    ('LN_ADDR',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]);
 
@@ -107,7 +135,7 @@ CREATE TABLE "Wallet" (
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "priority" INTEGER NOT NULL DEFAULT 0,
     "userId" INTEGER NOT NULL,
-    "templateId" INTEGER NOT NULL,
+    "templateName" "WalletName" NOT NULL,
 
     CONSTRAINT "Wallet_pkey" PRIMARY KEY ("id")
 );
@@ -430,7 +458,7 @@ ALTER TABLE "WalletRecvLNDGRPC" ADD CONSTRAINT "WalletRecvLNDGRPC_protocolId_fke
 ALTER TABLE "Wallet" ADD CONSTRAINT "Wallet_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Wallet" ADD CONSTRAINT "Wallet_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "WalletTemplate"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Wallet" ADD CONSTRAINT "Wallet_templateName_fkey" FOREIGN KEY ("templateName") REFERENCES "WalletTemplate"("name") ON DELETE CASCADE ON UPDATE CASCADE;
 
 CREATE OR REPLACE FUNCTION wallet_check_support()
 RETURNS TRIGGER AS $$
@@ -445,7 +473,7 @@ BEGIN
     SELECT t.* INTO template
     FROM "WalletProtocol" wp
     JOIN "Wallet" w ON wp."walletId" = w.id
-    JOIN "WalletTemplate" t ON w."templateId" = t.id
+    JOIN "WalletTemplate" t ON w."templateName" = t.name
     WHERE wp.id = NEW."protocolId";
 
     IF direction = 'SEND' THEN
@@ -743,7 +771,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION get_or_create_wallet(
     user_id INT,
-    template_name TEXT,
+    template_name "WalletName",
     priority INT
 )
 RETURNS INT AS
@@ -753,8 +781,7 @@ DECLARE
 BEGIN
     SELECT w.id INTO walletId
     FROM "Wallet" w
-    JOIN "WalletTemplate" t ON w."templateId" = t.id
-    WHERE w."userId" = user_id AND t.name = template_name;
+    WHERE w."userId" = user_id AND w."templateName" = template_name;
 
     IF NOT FOUND THEN
         walletId := create_wallet(user_id, template_name, priority);
@@ -766,7 +793,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION create_wallet(
     user_id INT,
-    template_name TEXT,
+    template_name "WalletName",
     priority INT
 )
 RETURNS INT AS
@@ -774,8 +801,8 @@ $$
 DECLARE
     walletId INT;
 BEGIN
-    INSERT INTO "Wallet" ("userId", "templateId", "priority")
-    SELECT user_id, t.id, priority
+    INSERT INTO "Wallet" ("userId", "templateName", "priority")
+    SELECT user_id, template_name, priority
     FROM "WalletTemplate" t
     WHERE t.name = template_name
     RETURNING id INTO walletId;
@@ -953,7 +980,7 @@ BEGIN
             walletId INT;
             protocolId INT;
             relay TEXT;
-            walletName TEXT;
+            walletName "WalletName";
         BEGIN
             relay := substring(row."nwcUrlRecv" from 'relay=([^&]+)');
 
@@ -997,7 +1024,7 @@ BEGIN
             walletId INT;
             protocolId INT;
             domain TEXT;
-            walletName TEXT;
+            walletName "WalletName";
         BEGIN
             domain := split_part(row."address", '@', 2);
 
@@ -1020,7 +1047,7 @@ BEGIN
             ELSIF domain LIKE '%minibits.cash' THEN
                 walletName := 'MINIBITS';
             ELSIF domain LIKE '%npub.cash' THEN
-                walletName := 'NPUB.CASH';
+                walletName := 'NPUB_CASH';
             ELSIF domain LIKE '%zeuspay.com' THEN
                 walletName := 'ZEUS';
             ELSIF domain LIKE '%zeuspay.com' THEN
@@ -1071,8 +1098,8 @@ $$ LANGUAGE plpgsql;
 SELECT wallet_v2_migration();
 
 DROP FUNCTION wallet_v2_migration();
-DROP FUNCTION get_or_create_wallet(INT, TEXT, INT);
-DROP FUNCTION create_wallet(INT, TEXT, INT);
+DROP FUNCTION get_or_create_wallet(INT, "WalletName", INT);
+DROP FUNCTION create_wallet(INT, "WalletName", INT);
 DROP FUNCTION create_wallet_protocol(INT, INT, BOOLEAN, "WalletProtocolName", BOOLEAN);
 
 -- drop old tables

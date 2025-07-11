@@ -56,7 +56,7 @@ export const resolvers = {
 export function upsertWalletProtocol (protocol) {
   return async (parent, {
     walletId,
-    templateId,
+    templateName,
     enabled,
     networkTests = true,
     ignoreKeyHash = false,
@@ -66,8 +66,8 @@ export function upsertWalletProtocol (protocol) {
       throw new GqlAuthenticationError()
     }
 
-    if (!walletId && !templateId) {
-      throw new GqlInputError('walletId or templateId is required')
+    if (!walletId && !templateName) {
+      throw new GqlInputError('walletId or templateName is required')
     }
 
     const { vaultKeyHash: existingKeyHash } = await models.user.findUnique({ where: { id: me.id } })
@@ -115,10 +115,10 @@ export function upsertWalletProtocol (protocol) {
     // Prisma does not support nested transactions so we need to check manually if we were given a transaction
     // https://github.com/prisma/prisma/issues/15212
     async function transaction (tx) {
-      if (templateId) {
+      if (templateName) {
         const { id: newWalletId } = await tx.wallet.create({
           data: {
-            templateId: Number(templateId),
+            templateName,
             userId: me.id
           }
         })

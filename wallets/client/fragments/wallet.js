@@ -112,8 +112,8 @@ const WALLET_PROTOCOL_FIELDS = gql`
 
 const WALLET_TEMPLATE_FIELDS = gql`
   fragment WalletTemplateFields on WalletTemplate {
-    id
-    name
+    # need to use field alias because of https://github.com/graphql/graphql-js/issues/53
+    id: name
     send
     receive
     protocols {

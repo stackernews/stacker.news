@@ -1099,7 +1099,6 @@ model Log {
   context   Json?
 
   @@index([createdAt, name], map: "Log.name_index")
-
   @@ignore
 }
 
@@ -1226,25 +1225,52 @@ enum WalletProtocolStatus {
   ERROR
 }
 
+enum WalletName {
+  ALBY_BROWSER_EXTENSION
+  ALBY_HUB
+  BLINK
+  BLIXT
+  CASHU_ME
+  CLN
+  COINOS
+  FOUNTAIN
+  LIFPAY
+  LNBITS
+  LND
+  MINIBITS
+  NPUB_CASH
+  PHOENIXD
+  PRIMAL
+  RIZFUL
+  SHOCKWALLET
+  SPEED
+  STRIKE
+  VOLTAGE
+  WALLET_OF_SATOSHI
+  ZBD
+  ZEUS
+  NWC
+  LN_ADDR
+}
+
 model WalletTemplate {
-  id            Int                      @id @default(autoincrement())
+  name          WalletName               @id
   createdAt     DateTime                 @default(now()) @map("created_at")
   updatedAt     DateTime                 @default(now()) @updatedAt @map("updated_at")
-  name          String
   sendProtocols WalletSendProtocolName[]
   recvProtocols WalletRecvProtocolName[]
   wallets       Wallet[]
 }
 
 model Wallet {
-  id         Int            @id @default(autoincrement())
-  createdAt  DateTime       @default(now()) @map("created_at")
-  updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at")
-  priority   Int            @default(0)
-  userId     Int
-  templateId Int
-  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  template   WalletTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  id           Int            @id @default(autoincrement())
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @default(now()) @updatedAt @map("updated_at")
+  priority     Int            @default(0)
+  userId       Int
+  templateName WalletName
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template     WalletTemplate @relation(fields: [templateName], references: [name], onDelete: Cascade)
 
   protocols WalletProtocol[]
 

@@ -47,6 +47,7 @@ export function useWalletsQuery () {
       query.data?.wallets.map(w => decryptWallet(w))
     )
       .then(wallets => wallets.map(protocolCheck))
+      .then(wallets => wallets.map(undoFieldAlias))
       .then(wallets => setWallets(wallets))
       .catch(err => {
         console.error('failed to decrypt wallets:', err)
@@ -84,6 +85,20 @@ function protocolCheck (wallet) {
   }
 }
 
+function undoFieldAlias ({ id, ...wallet }) {
+  // Just like for encrypted fields, we have to use a field alias for the name field of templates
+  // because of https://github.com/graphql/graphql-js/issues/53.
+  // We undo this here so this only affects the GraphQL layer but not the rest of the code.
+  if (isTemplate(wallet)) {
+    return { ...wallet, name: id }
+  }
+
+  if (!wallet.template) return wallet
+
+  const { id: templateId, ...template } = wallet.template
+  return { id, ...wallet, template: { name: templateId, ...template } }
+}
+
 function useRefetchOnChange (refetch) {
   const { me } = useMe()
 
@@ -105,6 +120,7 @@ export function useWalletQuery ({ id, name }) {
     if (!query.data?.wallet || !ready) return
     decryptWallet(query.data?.wallet)
       .then(protocolCheck)
+      .then(undoFieldAlias)
       .then(wallet => setWallet(wallet))
       .catch(err => {
         console.error('failed to decrypt wallet:', err)
@@ -153,7 +169,7 @@ export function useWalletProtocolUpsert (wallet, protocol) {
     if (isWallet(wallet)) {
       variables.walletId = wallet.id
     } else {
-      variables.templateId = wallet.id
+      variables.templateName = wallet.name
     }
 
     let updatedWallet
@@ -413,8 +429,8 @@ export function useWalletMigrationMutation () {
 
     const encrypted = await encryptConfig(configV2, { protocol })
 
-    // decide if we create a new wallet (templateId) or use an existing one (walletId)
-    const templateId = getWalletTemplateId(protocol)
+    // decide if we create a new wallet (templateName) or use an existing one (walletId)
+    const templateName = getWalletTemplateName(protocol)
     let walletId
     const wallet = walletsRef.current.find(w =>
       w.name === name && !w.protocols.some(p => p.name === protocol.name && p.send)
@@ -426,7 +442,7 @@ export function useWalletMigrationMutation () {
     await client.mutate({
       mutation: getWalletProtocolMutation(protocol),
       variables: {
-        ...(walletId ? { walletId } : { templateId }),
+        ...(walletId ? { walletId } : { templateName }),
         enabled,
         ...encrypted
       }
@@ -480,17 +496,17 @@ function migrateConfig (protocol, config) {
   }
 }
 
-function getWalletTemplateId (protocol) {
+function getWalletTemplateName (protocol) {
   switch (protocol.name) {
     case 'LNBITS':
     case 'PHOENIXD':
     case 'BLINK':
     case 'NWC':
-      return walletTemplateId(protocol.name)
+      return protocol.name
     case 'LNC':
-      return walletTemplateId('LND')
+      return 'LND'
     case 'WEBLN':
-      return walletTemplateId('ALBY_BROWSER_EXTENSION')
+      return 'ALBY_BROWSER_EXTENSION'
     default:
       return null
   }

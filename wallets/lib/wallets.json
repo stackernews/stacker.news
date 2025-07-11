@@ -147,7 +147,7 @@
     },
     {
         "templateId": 13,
-        "name": "NPUB.CASH",
+        "name": "NPUB_CASH",
         "displayName": "npub.cash",
         "image": "/wallets/npub-cash.svg",
         "url": "https://npub.cash/"

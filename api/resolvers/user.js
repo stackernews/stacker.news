@@ -1,3 +1,4 @@
+import { createHash } from 'crypto'
 import { readFile } from 'fs/promises'
 import { join, resolve } from 'path'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
@@ -12,6 +13,7 @@ import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { processCrop } from '@/worker/imgproxy'
+import { deleteItemByAuthor } from '@/lib/item'
 
 const contributors = new Set()
 
@@ -656,6 +658,101 @@ export default {
   },
 
   Mutation: {
+    deleteAccount: async (parent, { confirmation, donateBalance }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      if (confirmation !== 'DELETE MY ACCOUNT') {
+        throw new GqlInputError('incorrect confirmation text')
+      }
+
+      return await models.$transaction(async (tx) => {
+        await tx.user.upsert({
+          where: { id: USER_ID.delete },
+          update: {},
+          create: {
+            id: USER_ID.delete,
+            name: 'delete'
+          }
+        })
+
+        const user = await tx.user.findUnique({
+          where: { id: me.id },
+          select: {
+            msats: true,
+            mcredits: true,
+            name: true
+          }
+        })
+
+        const totalBalance = user.msats + user.mcredits
+        if (totalBalance > 0 && !donateBalance) {
+          throw new GqlInputError('please withdraw your balance before deleting your account or confirm donation to rewards pool')
+        }
+
+        // If user has balance and confirmed donation, add to donations
+        if (totalBalance > 0 && donateBalance) {
+          await tx.donation.create({
+            data: {
+              sats: Number(totalBalance / 1000n), // Convert msats to sats
+              userId: me.id
+            }
+          })
+
+          // Zero out user balance
+          await tx.user.update({
+            where: { id: me.id },
+            data: {
+              msats: 0,
+              mcredits: 0
+            }
+          })
+        }
+
+        const items = await tx.item.findMany({ where: { userId: me.id } })
+        for (const item of items) {
+          await deleteItemByAuthor({ models: tx, id: item.id, item })
+        }
+
+        // Always move user's content to the @delete user
+        await tx.item.updateMany({
+          where: { userId: me.id },
+          data: { userId: USER_ID.delete }
+        })
+
+        // Remove all attached wallets
+        await tx.wallet.deleteMany({
+          where: { userId: me.id }
+        })
+
+        // Create deletion timestamp and hash the old username with it
+        const deletionTimestamp = new Date()
+        const usernameHashInput = `${user.name}${deletionTimestamp.toISOString()}`
+        const hashedUsername = createHash('sha256').update(usernameHashInput).digest('hex')
+
+        // Mark user as deleted and anonymize data
+        await tx.user.update({
+          where: { id: me.id },
+          data: {
+            deletedAt: deletionTimestamp,
+            name: hashedUsername,
+            email: null,
+            emailVerified: null,
+            emailHash: null,
+            image: null,
+            pubkey: null,
+            apiKeyHash: null,
+            nostrPubkey: null,
+            nostrAuthPubkey: null,
+            twitterId: null,
+            githubId: null
+          }
+        })
+
+        return true
+      })
+    },
     disableFreebies: async (parent, args, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()

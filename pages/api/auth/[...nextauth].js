@@ -93,6 +93,19 @@ function getCallbacks (req, res) {
      * @return {object}            JSON Web Token that will be saved
      */
     async jwt ({ token, user, account, profile, isNewUser }) {
+      // Check if the user account is deleted
+      if (user?.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { deletedAt: true }
+        })
+
+        if (dbUser?.deletedAt) {
+          // Return false to prevent sign in for deleted accounts
+          return false
+        }
+      }
+
       if (user) {
         // reset signup cookie if any
         res.appendHeader('Set-Cookie', cookie.serialize('signin', '', { path: '/', expires: 0, maxAge: 0 }))
@@ -139,8 +152,18 @@ function getCallbacks (req, res) {
     async session ({ session, token }) {
       // note: this function takes the current token (result of running jwt above)
       // and returns a new object session that's returned whenever get|use[Server]Session is called
-      session.user.id = token.id
+      if (token?.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: { deletedAt: true }
+        })
 
+        if (dbUser?.deletedAt) {
+          return null
+        }
+      }
+
+      session.user.id = token.id
       return session
     }
   }

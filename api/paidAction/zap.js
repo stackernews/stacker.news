@@ -57,6 +57,11 @@ export async function getSybilFeePercent () {
 }
 
 export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, cost, sybilFeePercent, tx }) {
+  const item = await tx.item.findUnique({ where: { id: parseInt(itemId) } })
+  if (item.userId === USER_ID.delete) {
+    throw new Error('cannot zap deleted content')
+  }
+
   const feeMsats = cost * sybilFeePercent / 100n
   const zapMsats = cost - feeMsats
   itemId = parseInt(itemId)
@@ -144,7 +149,40 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
         "stackedMsats" = users."stackedMsats" + recipients.mcredits,
         "stackedMcredits" = users."stackedMcredits" + recipients.mcredits
       FROM recipients
-      WHERE users.id = recipients."userId"`
+      WHERE users.id = recipients."userId" AND users."deletedAt" IS NULL`
+
+    // Donate msats that would have gone to deleted users to the rewards pool
+    const deletedUserMsats = await tx.$queryRaw`
+      WITH forwardees AS (
+        SELECT "userId", ((${itemAct.msats}::BIGINT * pct) / 100)::BIGINT AS mcredits
+        FROM "ItemForward"
+        WHERE "itemId" = ${itemAct.itemId}::INTEGER
+      ), total_forwarded AS (
+        SELECT COALESCE(SUM(mcredits), 0) as mcredits
+        FROM forwardees
+      ), recipients AS (
+        SELECT "userId", mcredits FROM forwardees
+        UNION
+        SELECT ${itemAct.item.userId}::INTEGER as "userId",
+          ${itemAct.msats}::BIGINT - (SELECT mcredits FROM total_forwarded)::BIGINT as mcredits
+      )
+      SELECT COALESCE(SUM(recipients.mcredits), 0)::BIGINT as msats
+      FROM recipients
+      JOIN users ON users.id = recipients."userId"
+      WHERE users."deletedAt" IS NOT NULL`
+
+    if (deletedUserMsats.length > 0 && deletedUserMsats[0].msats > 0) {
+      // Convert msats to sats and donate to rewards pool
+      const donationSats = Number(deletedUserMsats[0].msats / 1000n)
+      if (donationSats > 0) {
+        await tx.donation.create({
+          data: {
+            sats: donationSats,
+            userId: USER_ID.sn // System donation
+          }
+        })
+      }
+    }
   }
 
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt

@@ -971,7 +971,7 @@ export default {
         FROM "Item"
         WHERE id = $1`, Number(id))
 
-      if (item.deletedAt) {
+      if (item.deletedAt || item.userId === USER_ID.delete) {
         throw new GqlInputError('item is deleted')
       }
 

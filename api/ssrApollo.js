@@ -19,6 +19,12 @@ import { MULTI_AUTH_ANON, MULTI_AUTH_LIST } from '@/lib/auth'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
   const session = req && await getServerSession(req, res, getAuthOptions(req))
+
+  let meUser = me
+  if (session?.user) {
+    meUser = session.user
+  }
+
   const client = new ApolloClient({
     ssrMode: true,
     link: new SchemaLink({
@@ -28,9 +34,7 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
       }),
       context: {
         models,
-        me: session
-          ? session.user
-          : me,
+        me: meUser,
         lnd,
         search
       }

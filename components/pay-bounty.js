@@ -8,7 +8,7 @@ import { useRoot } from './root'
 import { ActCanceledError, useAct } from './item-act'
 import { useAnimation } from '@/components/animation'
 import { useToast } from './toast'
-import { useSendWallets } from '@/wallets/index'
+import { useSendWallets } from '@/wallets/client/hooks'
 import { Form, SubmitButton } from './form'
 
 export const payBountyCacheMods = {

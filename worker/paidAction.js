@@ -1,6 +1,6 @@
 import { getPaymentFailureStatus, hodlInvoiceCltvDetails, getPaymentOrNotSent } from '@/api/lnd'
 import { paidActions } from '@/api/paidAction'
-import { walletLogger } from '@/api/resolvers/wallet'
+import { walletLogger } from '@/wallets/server/logger'
 import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, PAID_ACTION_TERMINAL_STATES } from '@/lib/constants'
 import { formatSats, msatsToSats, toPositiveNumber } from '@/lib/format'
 import { datePivot } from '@/lib/time'
@@ -10,7 +10,7 @@ import {
   getInvoice, parsePaymentRequest,
   payViaPaymentRequest, settleHodlInvoice
 } from 'ln-service'
-import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/wrap'
+import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/server/wrap'
 
 // aggressive finalization retry options
 const FINALIZE_OPTIONS = { retryLimit: 2 ** 31 - 1, retryBackoff: false, retryDelay: 5, priority: 1000 }
@@ -44,7 +44,11 @@ async function transitionInvoice (jobName,
           include: {
             invoice: true,
             withdrawl: true,
-            wallet: true
+            protocol: {
+              include: {
+                wallet: true
+              }
+            }
           }
         }
       }
@@ -234,8 +238,8 @@ export async function paidActionForwarding ({ data: { invoiceId, ...args }, mode
                 msatsPaying: BigInt(invoice.mtokens),
                 msatsFeePaying: maxFeeMsats,
                 autoWithdraw: true,
-                walletId: invoiceForward.walletId,
-                userId: invoiceForward.wallet.userId
+                protocolId: invoiceForward.protocolId,
+                userId: invoiceForward.protocol.wallet.userId
               }
             }
           }
@@ -309,14 +313,15 @@ export async function paidActionForwarded ({ data: { invoiceId, withdrawal, ...a
   }, { models, lnd, boss })
 
   if (transitionedInvoice) {
-    const withdrawal = transitionedInvoice.invoiceForward.withdrawl
-
-    const logger = walletLogger({ wallet: transitionedInvoice.invoiceForward.wallet, models })
-    logger.ok(
-      `↙ payment received: ${formatSats(msatsToSats(Number(withdrawal.msatsPaid)))}`, {
-        invoiceId: transitionedInvoice.id,
-        withdrawalId: withdrawal.id
-      })
+    const { withdrawl, protocol } = transitionedInvoice.invoiceForward
+    const logger = walletLogger({
+      models,
+      protocolId: protocol.id,
+      userId: protocol.wallet.userId,
+      invoiceId: transitionedInvoice.id,
+      withdrawalId: withdrawl.id
+    })
+    logger.ok(`↙ payment received: ${formatSats(msatsToSats(Number(withdrawl.msatsPaid)))}`)
   }
 
   return transitionedInvoice
@@ -364,12 +369,15 @@ export async function paidActionFailedForward ({ data: { invoiceId, withdrawal: 
   }, { models, lnd, boss })
 
   if (transitionedInvoice) {
-    const fwd = transitionedInvoice.invoiceForward
-    const logger = walletLogger({ wallet: fwd.wallet, models })
-    logger.warn(
-      `incoming payment failed: ${message}`, {
-        withdrawalId: fwd.withdrawl.id
-      })
+    const { withdrawl, protocol } = transitionedInvoice.invoiceForward
+    const logger = walletLogger({
+      models,
+      protocolId: protocol.id,
+      userId: protocol.wallet.userId,
+      invoiceId: transitionedInvoice.id,
+      withdrawalId: withdrawl.id
+    })
+    logger.warn(`incoming payment failed: ${message}`)
   }
 
   return transitionedInvoice
@@ -430,14 +438,15 @@ export async function paidActionCanceling ({ data: { invoiceId, ...args }, model
 
   if (transitionedInvoice) {
     if (transitionedInvoice.invoiceForward) {
-      const { wallet, bolt11 } = transitionedInvoice.invoiceForward
-      const logger = walletLogger({ wallet, models })
+      const { protocol, bolt11 } = transitionedInvoice.invoiceForward
+      const logger = walletLogger({
+        models,
+        protocolId: protocol.id,
+        userId: protocol.wallet.userId,
+        invoiceId: transitionedInvoice.id
+      })
       const decoded = await parsePaymentRequest({ request: bolt11 })
-      logger.info(
-        `invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, {
-          bolt11,
-          invoiceId: transitionedInvoice.id
-        })
+      logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`)
     }
   }
 

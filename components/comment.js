@@ -28,6 +28,7 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
+import { ShowNewComments } from './show-new-comments'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -97,7 +98,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel,
-  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry
+  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry, setHasNewComments
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
@@ -143,7 +144,13 @@ export default function Comment ({
     if (router.query.commentsViewedAt &&
         me?.id !== item.user?.id &&
         new Date(item.createdAt).getTime() > router.query.commentsViewedAt) {
-      ref.current.classList.add('outline-new-comment')
+      // an injected new comment has the newComments field, a different class is needed
+      // to reliably outline every new comment
+      if (item.newComments) {
+        ref.current.classList.add('outline-new-injected-comment')
+      } else {
+        ref.current.classList.add('outline-new-comment')
+      }
     }
   }, [item.id])
 
@@ -260,6 +267,9 @@ export default function Comment ({
                 : !noReply &&
                   <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
+                    <div className='ms-auto'>
+                      <ShowNewComments comments={item.comments.comments} newComments={item.newComments} itemId={item.id} item={item} setHasNewComments={setHasNewComments} depth={depth} />
+                    </div>
                   </Reply>}
               {children}
               <div className={styles.comments}>
@@ -267,7 +277,7 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} />
+                        <Comment depth={depth + 1} key={item.id} item={item} setHasNewComments={setHasNewComments} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nhas={item.ncomments} />}
                     </>
@@ -304,8 +314,9 @@ function ReplyOnAnotherPage ({ item }) {
   }
 
   return (
-    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='d-block pb-2 fw-bold text-muted'>
+    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='pb-2 fw-bold d-flex align-items-center gap-2 text-muted'>
       {text}
+      {item.newComments?.length > 0 && <div className={styles.newCommentDot} />}
     </Link>
   )
 }

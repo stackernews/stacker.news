@@ -1,7 +1,7 @@
 [
     {
         "name": "BLINK",
-        "displayName": "Blink", 
+        "displayName": "Blink",
         "image": "/wallets/blink.svg",
         "url": "https://blink.sv/"
     },
@@ -18,7 +18,7 @@
         "url": "https://lnbits.com/"
     },
     {
-        "name": "LND", 
+        "name": "LND",
         "displayName": "Lightning Network Daemon",
         "image": "/wallets/lnd.png",
         "url": "https://docs.lightning.engineering/lightning-network-tools/lnd"
@@ -134,6 +134,7 @@
     {
         "name": "LN_ADDR",
         "displayName": "Lightning Address",
+        "image": "/wallets/lnaddr.png",
         "url": {
             "wallet": "https://github.com/lnurl/luds/blob/luds/16.md",
             "lud16Domain": null
@@ -144,5 +145,11 @@
         "displayName": "Nostr Wallet Connect",
         "image": "/wallets/nwc.png",
         "url": "https://github.com/nostr-protocol/nips/blob/master/47.md"
+    },
+    {
+        "name": "CASHU_ME",
+        "displayName": "Cashu.me",
+        "image": "/wallets/cashu.me.png",
+        "url": "https://cashu.me/"
     }
 ]

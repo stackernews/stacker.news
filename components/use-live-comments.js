@@ -127,7 +127,7 @@ function mergeNewComment (item, newComment) {
   return { ...item, newComments: [...existingNewComments, newComment.id] }
 }
 
-function getLatestCommentCreatedAt (comments, latest) {
+export function getLatestCommentCreatedAt (comments, latest) {
   return comments.reduce(
     (max, { createdAt }) => (createdAt > max ? createdAt : max),
     latest

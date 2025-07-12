@@ -2,9 +2,10 @@ import { useCallback, useMemo } from 'react'
 import { useApolloClient } from '@apollo/client'
 import { COMMENT_WITH_NEW_RECURSIVE } from '../fragments/comments'
 import styles from './comment.module.css'
-import { itemUpdateQuery, commentUpdateFragment } from './use-live-comments'
+import { itemUpdateQuery, commentUpdateFragment, getLatestCommentCreatedAt } from './use-live-comments'
 import { updateAncestorsCommentCount } from '@/lib/comments'
 import { COMMENT_DEPTH_LIMIT } from '@/lib/constants'
+import { commentsViewedAfterComment } from '@/lib/new-comments'
 
 function prepareComments (client, newComments) {
   return (data) => {
@@ -33,6 +34,11 @@ function prepareComments (client, newComments) {
     // update all ancestors, but not the item itself
     const ancestors = data.path.split('.').slice(0, -1)
     updateAncestorsCommentCount(client.cache, ancestors, totalNComments)
+
+    // update commentsViewedAt with the most recent comment
+    const latestCommentCreatedAt = getLatestCommentCreatedAt(freshNewComments, data.createdAt)
+    const rootId = data.path.split('.')[0]
+    commentsViewedAfterComment(rootId, latestCommentCreatedAt)
 
     return {
       ...data,
@@ -71,8 +77,6 @@ function collectAllNewComments (item, currentDepth = 1) {
   const allNewComments = [...(item.newComments || [])]
   if (item.comments?.comments && currentDepth < (COMMENT_DEPTH_LIMIT - 1)) {
     for (const comment of item.comments.comments) {
-      console.log('comment', comment)
-      console.log('currentDepth', currentDepth)
       allNewComments.push(...collectAllNewComments(comment, currentDepth + 1))
     }
   }

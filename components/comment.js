@@ -144,7 +144,13 @@ export default function Comment ({
     if (router.query.commentsViewedAt &&
         me?.id !== item.user?.id &&
         new Date(item.createdAt).getTime() > router.query.commentsViewedAt) {
-      ref.current.classList.add('outline-new-comment')
+      // an injected new comment has the newComments field, a different class is needed
+      // to reliably outline every new comment
+      if (item.newComments) {
+        ref.current.classList.add('outline-new-injected-comment')
+      } else {
+        ref.current.classList.add('outline-new-comment')
+      }
     }
   }, [item.id])
 

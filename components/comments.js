@@ -70,12 +70,11 @@ export default function Comments ({
   parentId, pinned, bio, parentCreatedAt,
   commentSats, comments, commentsCursor, fetchMoreComments, ncomments, newComments, lastCommentAt, ...props
 }) {
-  const [hasNewComments, setHasNewComments] = useState(false)
   const router = useRouter()
+  const [hasNewComments, setHasNewComments] = useState(false)
   // fetch new comments that arrived after the lastCommentAt, and update the item.newComments field in cache
   useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort, setHasNewComments)
-  console.log('hasNewComments', hasNewComments)
-  console.log('sort', router.query.sort)
+  // xxx
   const hasNewNotes = useHasNewNotes()
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
@@ -83,7 +82,7 @@ export default function Comments ({
   return (
     <>
       <Head>
-        <link rel='shortcut icon' href={hasNewComments ? '/favicon.png' : hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
+        <link rel='shortcut icon' href={hasNewComments ? '/favicon-new-comment.png' : hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
       </Head>
       {comments?.length > 0
         ? <CommentsHeader

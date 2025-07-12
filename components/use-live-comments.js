@@ -23,7 +23,7 @@ export default function useLiveComments (rootId, after, sort, setHasNewComments)
       })
 
   useEffect(() => {
-    if (!data?.newComments) return
+    if (!data?.newComments?.comments?.length) return
 
     // sometimes new comments can arrive as orphans because their parent might not be in the cache yet
     // queue them up, retry until the parent shows up.

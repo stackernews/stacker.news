@@ -108,8 +108,12 @@ export function CarouselProvider ({ children }) {
   const showModal = useShowModal()
 
   const showCarousel = useCallback(({ src }) => {
+    // only show confirmed entries
+    const confirmedEntries = Array.from(media.current.entries())
+      .filter(([, entry]) => entry.confirmed)
+
     showModal((close, setOptions) => {
-      return <Carousel close={close} mediaArr={Array.from(media.current.entries())} src={src} setOptions={setOptions} />
+      return <Carousel close={close} mediaArr={confirmedEntries} src={src} setOptions={setOptions} />
     }, {
       fullScreen: true,
       overflow: <CarouselOverflow {...media.current.get(src)} />
@@ -117,14 +121,22 @@ export function CarouselProvider ({ children }) {
   }, [showModal, media.current])
 
   const addMedia = useCallback(({ src, originalSrc, rel }) => {
-    media.current.set(src, { src, originalSrc, rel })
+    media.current.set(src, { src, originalSrc, rel, confirmed: false })
+  }, [media.current])
+
+  const confirmMedia = useCallback((src) => {
+    const mediaItem = media.current.get(src)
+    if (mediaItem) {
+      mediaItem.confirmed = true
+      media.current.set(src, mediaItem)
+    }
   }, [media.current])
 
   const removeMedia = useCallback((src) => {
     media.current.delete(src)
   }, [media.current])
 
-  const value = useMemo(() => ({ showCarousel, addMedia, removeMedia }), [showCarousel, addMedia, removeMedia])
+  const value = useMemo(() => ({ showCarousel, addMedia, confirmMedia, removeMedia }), [showCarousel, addMedia, removeMedia])
   return <CarouselContext.Provider value={value}>{children}</CarouselContext.Provider>
 }
 

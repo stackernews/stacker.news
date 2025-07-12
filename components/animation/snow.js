@@ -11,22 +11,17 @@ export const SnowProvider = ({ children }) => {
   const [flakes, setFlakes] = useState(Array(1024))
 
   const snow = useCallback(() => {
-    const should = window.localStorage.getItem('lnAnimate') || 'yes'
-    if (should === 'yes') {
-      // amount of flakes to add
-      const n = Math.floor(randInRange(5, 30))
-      const newFlakes = [...flakes]
-      let i
-      for (i = startIndex; i < (startIndex + n); ++i) {
-        const key = startIndex + i
-        newFlakes[i % MAX_FLAKES] = <Snow key={key} />
-      }
-      setStartIndex(i % MAX_FLAKES)
-      setFlakes(newFlakes)
-      return true
+    // amount of flakes to add
+    const n = Math.floor(randInRange(5, 30))
+    const newFlakes = [...flakes]
+    let i
+    for (i = startIndex; i < (startIndex + n); ++i) {
+      const key = startIndex + i
+      newFlakes[i % MAX_FLAKES] = <Snow key={key} />
     }
-    return false
-  }, [setFlakes, startIndex])
+    setStartIndex(i % MAX_FLAKES)
+    setFlakes(newFlakes)
+  }, [flakes, startIndex])
 
   return (
     <SnowContext.Provider value={snow}>

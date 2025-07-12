@@ -1,6 +1,6 @@
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { whenToFrom } from '@/lib/time'
-import { getItem, itemQueryWithMeta, SELECT } from './item'
+import { getItem, itemQueryWithMeta, SELECT, scheduledOrMine } from './item'
 import { parse } from 'tldts'
 
 function queryParts (q) {
@@ -163,7 +163,8 @@ export default {
           WITH r(id, rank) AS (VALUES ${values})
           ${SELECT}, rank
           FROM "Item"
-          JOIN r ON "Item".id = r.id`,
+          JOIN r ON "Item".id = r.id
+          WHERE ${scheduledOrMine(me)}`,
         orderBy: 'ORDER BY rank ASC'
       })
 
@@ -501,7 +502,8 @@ export default {
           WITH r(id, rank) AS (VALUES ${values})
           ${SELECT}, rank
           FROM "Item"
-          JOIN r ON "Item".id = r.id`,
+          JOIN r ON "Item".id = r.id
+          WHERE ${scheduledOrMine(me)}`,
         orderBy: 'ORDER BY rank ASC, msats DESC'
       })).map((item, i) => {
         const e = sitems.body.hits.hits[i]

@@ -688,7 +688,7 @@ CREATE TRIGGER wallet_clear_vault
     FOR EACH ROW
     EXECUTE PROCEDURE wallet_clear_vault();
 
-CREATE OR REPLACE TRIGGER wallet_clear_vault
+CREATE TRIGGER wallet_clear_vault
     AFTER DELETE ON "WalletSendLNbits"
     FOR EACH ROW
     EXECUTE PROCEDURE wallet_clear_vault();

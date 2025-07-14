@@ -112,7 +112,7 @@ index 9a113797..12505333 100644
 
 **2. Update migration file**
 
-- add required triggers (`wallet_check_support`, `wallet_to_jsonb`) to migration file
+- add required triggers (`wallet_to_jsonb` and `wallet_clear_vault` if send protocol) to migration file
 - run `npx prisma migrate dev`
 
 <details>
@@ -142,12 +142,7 @@ CREATE UNIQUE INDEX "WalletRecvBolt12_protocolId_key" ON "WalletRecvBolt12"("pro
 -- AddForeignKey
 ALTER TABLE "WalletRecvBolt12" ADD CONSTRAINT "WalletRecvBolt12_protocolId_fkey" FOREIGN KEY ("protocolId") REFERENCES "WalletProtocol"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- vvv Add triggers below manually vvv
-
-CREATE TRIGGER wallet_check_support
-    BEFORE INSERT OR UPDATE ON "WalletRecvBolt12"
-    FOR EACH ROW
-    EXECUTE FUNCTION wallet_check_support('RECEIVE', 'BOLT12');
+-- vvv Add trigger below manually vvv
 
 CREATE TRIGGER wallet_to_jsonb
     AFTER INSERT OR UPDATE ON "WalletRecvBolt12"

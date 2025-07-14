@@ -1,6 +1,6 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Button } from 'react-bootstrap'
-import { ATTACH_PAGE, NEXT_PAGE, useWallets, useWalletsDispatch, usePage, UNLOCK_PAGE, useTemplates, DndProvider } from '@/wallets/client/context'
+import { Button, Spinner } from 'react-bootstrap'
+import { useWallets, useTemplates, DndProvider, Status, useStatus } from '@/wallets/client/context'
 import { WalletCard, WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
 import styles from '@/styles/wallet.module.css'
 import { usePassphrasePrompt, useShowPassphrase, useSetWalletPriorities } from '@/wallets/client/hooks'
@@ -11,10 +11,10 @@ import { walletDisplayName } from '@/wallets/lib/util'
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function Wallet () {
-  const page = usePage()
   const wallets = useWallets()
+  const status = useStatus()
+  const [showWallets, setShowWallets] = useState(false)
   const templates = useTemplates()
-  const dispatch = useWalletsDispatch()
   const showPassphrase = useShowPassphrase()
   const passphrasePrompt = usePassphrasePrompt()
   const setWalletPriorities = useSetWalletPriorities()
@@ -28,22 +28,18 @@ export default function Wallet () {
     }
   }, [wallets, templates, searchFilter])
 
-  if (page === ATTACH_PAGE) {
+  if (status === Status.LOADING_WALLETS) {
     return (
       <WalletLayout>
-        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
-          <Button
-            onClick={() => dispatch({ type: NEXT_PAGE })}
-            size='md' variant='secondary'
-          >attach wallet
-          </Button>
-          <small className='d-block mt-3 text-muted'>attach a wallet to send and receive sats</small>
+        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1 text-muted'>
+          <Spinner />
+          <small className='d-block mt-3 text-muted'>loading wallets</small>
         </div>
       </WalletLayout>
     )
   }
 
-  if (page === UNLOCK_PAGE) {
+  if (status === Status.PASSPHRASE_REQUIRED) {
     return (
       <WalletLayout>
         <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
@@ -53,6 +49,21 @@ export default function Wallet () {
           >unlock wallets
           </Button>
           <small className='d-block mt-3 text-muted'>your passphrase is required</small>
+        </div>
+      </WalletLayout>
+    )
+  }
+
+  if (status === Status.NO_WALLETS && !showWallets) {
+    return (
+      <WalletLayout>
+        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
+          <Button
+            onClick={() => setShowWallets(true)}
+            size='md' variant='secondary'
+          >attach wallet
+          </Button>
+          <small className='d-block mt-3 text-muted'>attach a wallet to send and receive sats</small>
         </div>
       </WalletLayout>
     )

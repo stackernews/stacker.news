@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer } from 'react'
-import walletsReducer, { FIRST_PAGE } from './reducer'
-import { useServerWallets, usePageNavigation, useAutomatedRetries, useKeyInit, useWalletMigration } from './hooks'
+import walletsReducer, { Status } from './reducer'
+import { useServerWallets, useKeyCheck, useAutomatedRetries, useKeyInit, useWalletMigration } from './hooks'
 import { WebLnProvider } from '@/wallets/lib/protocols/webln'
 
 // https://react.dev/learn/scaling-up-with-reducer-and-context
@@ -18,13 +18,13 @@ export function useTemplates () {
 }
 
 export function useLoading () {
-  const { loading } = useContext(WalletsContext)
-  return loading
+  const { status } = useContext(WalletsContext)
+  return status === Status.LOADING_WALLETS
 }
 
-export function usePage () {
-  const { page } = useContext(WalletsContext)
-  return page
+export function useStatus () {
+  const { status } = useContext(WalletsContext)
+  return status
 }
 
 export function useWalletsDispatch () {
@@ -43,12 +43,11 @@ export function useKeyHash () {
 
 export default function WalletsProvider ({ children }) {
   const [state, dispatch] = useReducer(walletsReducer, {
-    page: FIRST_PAGE,
+    status: Status.LOADING_WALLETS,
     wallets: [],
     templates: [],
     key: null,
-    keyHash: null,
-    loading: true
+    keyHash: null
   })
 
   return (
@@ -66,7 +65,7 @@ export default function WalletsProvider ({ children }) {
 
 function WalletHooks ({ children }) {
   useServerWallets()
-  usePageNavigation()
+  useKeyCheck()
   useAutomatedRetries()
   useKeyInit()
 

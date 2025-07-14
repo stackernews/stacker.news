@@ -1,13 +1,12 @@
 import { isTemplate, isWallet } from '@/wallets/lib/util'
 
-// pages
-export const ATTACH_PAGE = 'ATTACH_PAGE'
-export const UNLOCK_PAGE = 'UNLOCK_PAGE'
-export const WALLET_LIST_PAGE = 'WALLET_LIST_PAGE'
-
-// page actions
-export const RESET_PAGE = 'RESET_PAGE'
-export const NEXT_PAGE = 'NEXT_PAGE'
+// states that dictate if we show a button or wallets on the wallets page
+export const Status = {
+  LOADING_WALLETS: 'LOADING_WALLETS',
+  NO_WALLETS: 'NO_WALLETS',
+  HAS_WALLETS: 'HAS_WALLETS',
+  PASSPHRASE_REQUIRED: 'PASSPHRASE_REQUIRED'
+}
 
 // wallet actions
 export const SET_WALLETS = 'SET_WALLETS'
@@ -17,16 +16,6 @@ export const KEY_MATCH = 'KEY_MATCH'
 
 export default function reducer (state, action) {
   switch (action.type) {
-    case RESET_PAGE:
-      return {
-        ...state,
-        page: getPage(state)
-      }
-    case NEXT_PAGE:
-      return {
-        ...state,
-        page: nextPage(state)
-      }
     case SET_WALLETS: {
       const wallets = action.wallets
         .filter(isWallet)
@@ -36,10 +25,11 @@ export default function reducer (state, action) {
         .sort((a, b) => a.name.localeCompare(b.name))
       return {
         ...state,
-        page: getPage({ ...state, wallets, templates }),
+        status: statusLocked(state.status)
+          ? state.status
+          : walletStatus(wallets),
         wallets,
-        templates,
-        loading: false
+        templates
       }
     }
     case SET_KEY:
@@ -51,30 +41,26 @@ export default function reducer (state, action) {
     case WRONG_KEY:
       return {
         ...state,
-        page: UNLOCK_PAGE
+        status: Status.PASSPHRASE_REQUIRED
       }
     case KEY_MATCH:
       return {
         ...state,
-        page: getPage({ ...state, page: undefined })
+        status: state.status === Status.LOADING_WALLETS
+          ? state.status
+          : walletStatus(state.wallets)
       }
     default:
       return state
   }
 }
 
-function getPage (state) {
-  if (state.page === UNLOCK_PAGE) {
-    return UNLOCK_PAGE
-  }
-
-  return state.wallets.length > 0
-    ? WALLET_LIST_PAGE
-    : ATTACH_PAGE
+function statusLocked (status) {
+  return [Status.PASSPHRASE_REQUIRED].includes(status)
 }
 
-function nextPage (state) {
-  return [ATTACH_PAGE, UNLOCK_PAGE].includes(state.page)
-    ? WALLET_LIST_PAGE
-    : state.page
+function walletStatus (wallets) {
+  return wallets.length > 0
+    ? Status.HAS_WALLETS
+    : Status.NO_WALLETS
 }

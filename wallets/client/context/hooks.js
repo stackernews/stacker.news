@@ -1,5 +1,4 @@
 import { useCallback, useEffect } from 'react'
-import { useRouter } from 'next/router'
 import { useLazyQuery } from '@apollo/client'
 import { FAILED_INVOICES } from '@/fragments/invoice'
 import { NORMAL_POLL_INTERVAL } from '@/lib/constants'
@@ -10,7 +9,7 @@ import {
   useWalletMigrationMutation, CryptoKeyRequiredError, useIsWrongKey
 } from '@/wallets/client/hooks'
 import { WalletConfigurationError } from '@/wallets/client/errors'
-import { RESET_PAGE, SET_WALLETS, WRONG_KEY, KEY_MATCH, useWalletsDispatch } from '@/wallets/client/context'
+import { SET_WALLETS, WRONG_KEY, KEY_MATCH, useWalletsDispatch } from '@/wallets/client/context'
 
 export function useServerWallets () {
   const dispatch = useWalletsDispatch()
@@ -26,30 +25,7 @@ export function useServerWallets () {
   }, [query])
 }
 
-export function usePageNavigation () {
-  const dispatch = useWalletsDispatch()
-  const router = useRouter()
-  const wrongKey = useIsWrongKey()
-
-  useEffect(() => {
-    function handleRouteChangeComplete (url) {
-      if (!url.startsWith('/wallets')) {
-        dispatch({ type: RESET_PAGE })
-      }
-    }
-    router.events.on('routeChangeComplete', handleRouteChangeComplete)
-    return () => {
-      router.events.off('routeChangeComplete', handleRouteChangeComplete)
-    }
-  }, [router, dispatch])
-
-  useEffect(() => {
-    if (wrongKey) {
-      dispatch({ type: WRONG_KEY })
-    } else {
-      dispatch({ type: KEY_MATCH })
-    }
-  }, [wrongKey, dispatch])
+export function useKeyCheck () {
 }
 
 export function useAutomatedRetries () {
@@ -127,6 +103,18 @@ export function useAutomatedRetries () {
 
 export function useKeyInit () {
   const { me } = useMe()
+
+  const dispatch = useWalletsDispatch()
+  const wrongKey = useIsWrongKey()
+
+  useEffect(() => {
+    if (wrongKey) {
+      dispatch({ type: WRONG_KEY })
+    } else {
+      dispatch({ type: KEY_MATCH })
+    }
+  }, [wrongKey, dispatch])
+
   const generateRandomKey = useGenerateRandomKey()
   const setKey = useSetKey()
   const loadKey = useLoadKey()

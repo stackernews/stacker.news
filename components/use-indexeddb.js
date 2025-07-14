@@ -37,7 +37,7 @@ export function useIndexedDB (dbName) {
 async function _open (dbName, version = 1) {
   const { promise, resolve, reject } = Promise.withResolvers()
 
-  if (!window.indexedDB) {
+  if (typeof window.indexedDB === 'undefined') {
     reject(new IndexedDBOpenError('IndexedDB unavailable'))
     return promise
   }

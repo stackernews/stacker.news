@@ -32,7 +32,8 @@ CREATE TYPE "WalletName" AS ENUM (
     'ZBD',
     'ZEUS',
     'NWC',
-    'LN_ADDR'
+    'LN_ADDR',
+    'CASH_APP'
 );
 
 -- CreateTable
@@ -117,6 +118,9 @@ INSERT INTO "WalletTemplate" (name, "sendProtocols", "recvProtocols") VALUES
         ARRAY['NWC']::"WalletSendProtocolName"[],
         ARRAY['NWC']::"WalletRecvProtocolName"[]),
     ('LN_ADDR',
+        ARRAY[]::"WalletSendProtocolName"[],
+        ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]),
+    ('CASH_APP',
         ARRAY[]::"WalletSendProtocolName"[],
         ARRAY['LN_ADDR']::"WalletRecvProtocolName"[]);
 

@@ -12,7 +12,7 @@ export function useWalletImage (name) {
   const hasDarkMode = typeof image === 'string' ? true : image.darkMode
 
   if (darkMode && hasDarkMode === false) return null
-  if (darkMode) src = src.replace(/\.([a-z]{3})$/, '-dark.$1')
+  if (darkMode) src = src.replace(/\.([a-z]{3,4})$/, '-dark.$1')
 
   return { src, alt }
 }

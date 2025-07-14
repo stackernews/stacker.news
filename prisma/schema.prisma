@@ -1250,6 +1250,7 @@ enum WalletName {
   ZEUS
   NWC
   LN_ADDR
+  CASH_APP
 }
 
 model WalletTemplate {

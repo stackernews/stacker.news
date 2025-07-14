@@ -151,5 +151,11 @@
         "displayName": "Cashu.me",
         "image": "/wallets/cashu.me.png",
         "url": "https://cashu.me/"
+    },
+    {
+        "name": "CASH_APP",
+        "displayName": "Cash App",
+        "image": "/wallets/cashapp.webp",
+        "url": "https://cash.app/"
     }
 ]

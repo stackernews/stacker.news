@@ -1,8 +1,14 @@
 import { useCallback, useMemo } from 'react'
 import { useApolloClient } from '@apollo/client'
 import styles from './comment.module.css'
-import { itemUpdateQuery, commentUpdateFragment } from './use-live-comments'
-import { prepareComments, dedupeNewComments, collectAllNewComments, showAllNewCommentsRecursively } from '@/lib/comments'
+import {
+  itemUpdateQuery,
+  commentUpdateFragment,
+  prepareComments,
+  dedupeNewComments,
+  collectAllNewComments,
+  showAllNewCommentsRecursively
+} from '../lib/comments'
 
 export const ShowNewComments = ({ topLevel, sort, comments, itemId, item, setHasNewComments, newComments = [], depth = 1 }) => {
   const client = useApolloClient()
@@ -12,6 +18,7 @@ export const ShowNewComments = ({ topLevel, sort, comments, itemId, item, setHas
   const allNewComments = useMemo(() => {
     if (isThread) {
       // TODO: well are we only collecting all new comments just for a fancy UI?
+      // TODO2: also, we're not deduping new comments here, so we're showing duplicates
       return collectAllNewComments(item, depth)
     }
     return dedupeNewComments(newComments, comments)

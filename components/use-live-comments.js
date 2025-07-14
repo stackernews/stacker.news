@@ -1,8 +1,8 @@
 import { useQuery, useApolloClient } from '@apollo/client'
 import { SSR } from '../lib/constants'
-import { GET_NEW_COMMENTS, COMMENT_WITH_NEW_LIMITED, COMMENT_WITH_NEW_RECURSIVE } from '../fragments/comments'
-import { ITEM_FULL } from '../fragments/items'
+import { GET_NEW_COMMENTS } from '../fragments/comments'
 import { useEffect, useRef, useState } from 'react'
+import { itemUpdateQuery, commentUpdateFragment, getLatestCommentCreatedAt } from '../lib/comments'
 
 const POLL_INTERVAL = 1000 * 10 // 10 seconds
 
@@ -47,46 +47,6 @@ export default function useLiveComments (rootId, after, sort, setHasNewComments)
   }, [])
 }
 
-// the item query is used to update the item's newComments field
-export function itemUpdateQuery (client, id, sort, fn) {
-  client.cache.updateQuery({
-    query: ITEM_FULL,
-    // updateQuery needs the correct variables to update the correct item
-    // the Item query might have the router.query.sort in the variables, so we need to pass it in if it exists
-    variables: sort ? { id, sort } : { id }
-  }, (data) => {
-    if (!data) return data
-    return { item: fn(data.item) }
-  })
-}
-
-// update the newComments field of a nested comment fragment
-export function commentUpdateFragment (client, id, fn) {
-  let result = client.cache.updateFragment({
-    id: `Item:${id}`,
-    fragment: COMMENT_WITH_NEW_RECURSIVE,
-    fragmentName: 'CommentWithNewRecursive'
-  }, (data) => {
-    if (!data) return data
-    return fn(data)
-  })
-
-  // sometimes comments can reach their depth limit, and lack adherence to the CommentsRecursive fragment
-  // for this reason, we update the fragment with a limited version that only includes the CommentFields fragment
-  if (!result) {
-    result = client.cache.updateFragment({
-      id: `Item:${id}`,
-      fragment: COMMENT_WITH_NEW_LIMITED,
-      fragmentName: 'CommentWithNewLimited'
-    }, (data) => {
-      if (!data) return data
-      return fn(data)
-    })
-  }
-
-  return result
-}
-
 function cacheNewComments (client, rootId, newComments, sort) {
   const queuedComments = []
 
@@ -125,11 +85,4 @@ function mergeNewComment (item, newComment) {
   }
 
   return { ...item, newComments: [...existingNewComments, newComment.id] }
-}
-
-export function getLatestCommentCreatedAt (comments, latest) {
-  return comments.reduce(
-    (max, { createdAt }) => (createdAt > max ? createdAt : max),
-    latest
-  )
 }

@@ -466,25 +466,19 @@ CREATE OR REPLACE FUNCTION wallet_check_support()
 RETURNS TRIGGER AS $$
 DECLARE
     template "WalletTemplate";
-    direction TEXT;
-    protocol TEXT;
 BEGIN
-    direction := TG_ARGV[0];
-    protocol := TG_ARGV[1];
-
     SELECT t.* INTO template
-    FROM "WalletProtocol" wp
-    JOIN "Wallet" w ON wp."walletId" = w.id
+    FROM "Wallet" w
     JOIN "WalletTemplate" t ON w."templateName" = t.name
-    WHERE wp.id = NEW."protocolId";
+    WHERE w.id = NEW."walletId";
 
-    IF direction = 'SEND' THEN
-        IF NOT protocol::"WalletSendProtocolName" = ANY(template."sendProtocols") THEN
-            RAISE EXCEPTION 'Wallet % does not support send protocol %', template.name, protocol;
+    IF NEW."send" THEN
+        IF NOT NEW."name"::text::"WalletSendProtocolName" = ANY(template."sendProtocols") THEN
+            RAISE EXCEPTION 'Wallet % does not support send protocol %', template.name, NEW."name";
         END IF;
-    ELSIF direction = 'RECEIVE' THEN
-        IF NOT protocol::"WalletRecvProtocolName" = ANY(template."recvProtocols") THEN
-            RAISE EXCEPTION 'Wallet % does not support receive protocol %', template.name, protocol;
+    ELSE
+        IF NOT NEW."name"::text::"WalletRecvProtocolName" = ANY(template."recvProtocols") THEN
+            RAISE EXCEPTION 'Wallet % does not support receive protocol %', template.name, NEW."name";
         END IF;
     END IF;
 
@@ -493,69 +487,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE CONSTRAINT TRIGGER wallet_check_support
-    AFTER INSERT OR UPDATE ON "WalletSendNWC"
+    AFTER INSERT OR UPDATE ON "WalletProtocol"
     FOR EACH ROW
-    EXECUTE FUNCTION wallet_check_support('SEND', 'NWC');
-
-CREATE CONSTRAINT TRIGGER wallet_check_support
-    AFTER INSERT OR UPDATE ON "WalletSendLNbits"
-    FOR EACH ROW
-    EXECUTE FUNCTION wallet_check_support('SEND', 'LNBITS');
-
-CREATE CONSTRAINT TRIGGER wallet_check_support
-    AFTER INSERT OR UPDATE ON "WalletSendPhoenixd"
-    FOR EACH ROW
-    EXECUTE FUNCTION wallet_check_support('SEND', 'PHOENIXD');
-
-CREATE CONSTRAINT TRIGGER wallet_check_support
-    AFTER INSERT OR UPDATE ON "WalletSendBlink"
-    FOR EACH ROW
-    EXECUTE FUNCTION wallet_check_support('SEND', 'BLINK');
-
-CREATE CONSTRAINT TRIGGER wallet_check_support
-    AFTER INSERT OR UPDATE ON "WalletSendWebLN"
-    FOR EACH ROW
-    EXECUTE FUNCTION wallet_check_support('SEND', 'WEBLN');
-
-CREATE CONSTRAINT TRIGGER wallet_check_support
-    AFTER INSERT OR UPDATE ON "WalletSendLNC"
-    FOR EACH ROW
-    EXECUTE FUNCTION wallet_check_support('SEND', 'LNC');
-
-CREATE CONSTRAINT TRIGGER wallet_check_support
-    AFTER INSERT OR UPDATE ON "WalletRecvNWC"
-    FOR EACH ROW
-    EXECUTE FUNCTION wallet_check_support('RECEIVE', 'NWC');
-
-CREATE CONSTRAINT TRIGGER wallet_check_support
-    AFTER INSERT OR UPDATE ON "WalletRecvLNbits"
-    FOR EACH ROW
-    EXECUTE FUNCTION wallet_check_support('RECEIVE', 'LNBITS');
-
-CREATE CONSTRAINT TRIGGER wallet_check_support
-    AFTER INSERT OR UPDATE ON "WalletRecvPhoenixd"
-    FOR EACH ROW
-    EXECUTE FUNCTION wallet_check_support('RECEIVE', 'PHOENIXD');
-
-CREATE CONSTRAINT TRIGGER wallet_check_support
-    AFTER INSERT OR UPDATE ON "WalletRecvBlink"
-    FOR EACH ROW
-    EXECUTE FUNCTION wallet_check_support('RECEIVE', 'BLINK');
-
-CREATE CONSTRAINT TRIGGER wallet_check_support
-    AFTER INSERT OR UPDATE ON "WalletRecvLightningAddress"
-    FOR EACH ROW
-    EXECUTE FUNCTION wallet_check_support('RECEIVE', 'LN_ADDR');
-
-CREATE CONSTRAINT TRIGGER wallet_check_support
-    AFTER INSERT OR UPDATE ON "WalletRecvCLNRest"
-    FOR EACH ROW
-    EXECUTE FUNCTION wallet_check_support('RECEIVE', 'CLN_REST');
-
-CREATE CONSTRAINT TRIGGER wallet_check_support
-    AFTER INSERT OR UPDATE ON "WalletRecvLNDGRPC"
-    FOR EACH ROW
-    EXECUTE FUNCTION wallet_check_support('RECEIVE', 'LND_GRPC');
+    EXECUTE FUNCTION wallet_check_support();
 
 CREATE OR REPLACE FUNCTION wallet_to_jsonb()
 RETURNS TRIGGER AS $$

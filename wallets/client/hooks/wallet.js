@@ -3,32 +3,31 @@ import protocols from '@/wallets/client/protocols'
 import { isWallet } from '@/wallets/lib/util'
 import { useMemo } from 'react'
 
-export function useSendWallets () {
+export function useSendProtocols () {
   const wallets = useWallets()
   return useMemo(
-    () => wallets.filter(w => w.send),
-    [wallets]
-  )
+    () => wallets
+      .filter(w => w.send)
+      .reduce((acc, wallet) => {
+        return [
+          ...acc,
+          ...wallet.protocols
+            .filter(p => p.send && p.enabled)
+            .map(walletProtocol => {
+              const { sendPayment } = protocols.find(p => p.name === walletProtocol.name)
+              return {
+                ...walletProtocol,
+                sendPayment
+              }
+            })
+        ]
+      }, [])
+    , [wallets])
 }
 
-export function useSendProtocols () {
-  const wallets = useSendWallets()
-  return useMemo(
-    () => wallets.reduce((acc, wallet) => {
-      return [
-        ...acc,
-        ...wallet.protocols
-          .filter(p => p.send && p.enabled)
-          .map(walletProtocol => {
-            const { sendPayment } = protocols.find(p => p.name === walletProtocol.name)
-            return {
-              ...walletProtocol,
-              sendPayment
-            }
-          })
-      ]
-    }, [])
-    , [wallets])
+export function useHasSendWallet () {
+  const protocols = useSendProtocols()
+  return useMemo(() => protocols.length > 0, [protocols])
 }
 
 export function useWalletSupport (wallet) {

@@ -8,7 +8,7 @@ import { useRoot } from './root'
 import { ActCanceledError, useAct } from './item-act'
 import { useAnimation } from '@/components/animation'
 import { useToast } from './toast'
-import { useSendWallets } from '@/wallets/client/hooks'
+import { useHasSendWallet } from '@/wallets/client/hooks'
 import { Form, SubmitButton } from './form'
 
 export const payBountyCacheMods = {
@@ -50,9 +50,9 @@ export default function PayBounty ({ children, item }) {
   const root = useRoot()
   const animate = useAnimation()
   const toaster = useToast()
-  const wallets = useSendWallets()
+  const hasSendWallet = useHasSendWallet()
 
-  const variables = { id: item.id, sats: root.bounty, act: 'TIP', hasSendWallet: wallets.length > 0 }
+  const variables = { id: item.id, sats: root.bounty, act: 'TIP', hasSendWallet }
   const act = useAct({
     variables,
     optimisticResponse: { act: { __typename: 'ItemActPaidAction', result: { ...variables, path: item.path } } },

@@ -5,7 +5,7 @@ import { NORMAL_POLL_INTERVAL } from '@/lib/constants'
 import useInvoice from '@/components/use-invoice'
 import { useMe } from '@/components/me'
 import {
-  useWalletsQuery, useSendWallets, useWalletPayment, useGenerateRandomKey, useSetKey, useLoadKey, useLoadOldKey,
+  useWalletsQuery, useWalletPayment, useGenerateRandomKey, useSetKey, useLoadKey, useLoadOldKey,
   useWalletMigrationMutation, CryptoKeyRequiredError, useIsWrongKey
 } from '@/wallets/client/hooks'
 import { WalletConfigurationError } from '@/wallets/client/errors'
@@ -29,7 +29,6 @@ export function useKeyCheck () {
 }
 
 export function useAutomatedRetries () {
-  const wallets = useSendWallets()
   const waitForWalletPayment = useWalletPayment()
   const invoiceHelper = useInvoice()
   const [getFailedInvoices] = useLazyQuery(FAILED_INVOICES, { fetchPolicy: 'network-only', nextFetchPolicy: 'network-only' })
@@ -98,7 +97,7 @@ export function useAutomatedRetries () {
 
     queuePoll()
     return stopPolling
-  }, [me?.id, wallets, getFailedInvoices, retry])
+  }, [me?.id, getFailedInvoices, retry])
 }
 
 export function useKeyInit () {

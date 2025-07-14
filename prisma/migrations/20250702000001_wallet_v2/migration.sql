@@ -313,6 +313,12 @@ CREATE TABLE "WalletRecvLNDGRPC" (
 CREATE INDEX "Wallet_userId_idx" ON "Wallet"("userId");
 
 -- CreateIndex
+CREATE INDEX "Wallet_templateName_idx" ON "Wallet"("templateName");
+
+-- CreateIndex
+CREATE INDEX "WalletProtocol_walletId_idx" ON "WalletProtocol"("walletId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "WalletProtocol_walletId_send_name_key" ON "WalletProtocol"("walletId", "send", "name");
 
 -- CreateIndex

@@ -486,68 +486,68 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER wallet_check_support
-    BEFORE INSERT OR UPDATE ON "WalletSendNWC"
+CREATE CONSTRAINT TRIGGER wallet_check_support
+    AFTER INSERT OR UPDATE ON "WalletSendNWC"
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('SEND', 'NWC');
 
-CREATE TRIGGER wallet_check_support
-    BEFORE INSERT OR UPDATE ON "WalletSendLNbits"
+CREATE CONSTRAINT TRIGGER wallet_check_support
+    AFTER INSERT OR UPDATE ON "WalletSendLNbits"
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('SEND', 'LNBITS');
 
-CREATE TRIGGER wallet_check_support
-    BEFORE INSERT OR UPDATE ON "WalletSendPhoenixd"
+CREATE CONSTRAINT TRIGGER wallet_check_support
+    AFTER INSERT OR UPDATE ON "WalletSendPhoenixd"
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('SEND', 'PHOENIXD');
 
-CREATE TRIGGER wallet_check_support
-    BEFORE INSERT OR UPDATE ON "WalletSendBlink"
+CREATE CONSTRAINT TRIGGER wallet_check_support
+    AFTER INSERT OR UPDATE ON "WalletSendBlink"
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('SEND', 'BLINK');
 
-CREATE TRIGGER wallet_check_support
-    BEFORE INSERT OR UPDATE ON "WalletSendWebLN"
+CREATE CONSTRAINT TRIGGER wallet_check_support
+    AFTER INSERT OR UPDATE ON "WalletSendWebLN"
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('SEND', 'WEBLN');
 
-CREATE TRIGGER wallet_check_support
-    BEFORE INSERT OR UPDATE ON "WalletSendLNC"
+CREATE CONSTRAINT TRIGGER wallet_check_support
+    AFTER INSERT OR UPDATE ON "WalletSendLNC"
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('SEND', 'LNC');
 
-CREATE TRIGGER wallet_check_support
-    BEFORE INSERT OR UPDATE ON "WalletRecvNWC"
+CREATE CONSTRAINT TRIGGER wallet_check_support
+    AFTER INSERT OR UPDATE ON "WalletRecvNWC"
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('RECEIVE', 'NWC');
 
-CREATE TRIGGER wallet_check_support
-    BEFORE INSERT OR UPDATE ON "WalletRecvLNbits"
+CREATE CONSTRAINT TRIGGER wallet_check_support
+    AFTER INSERT OR UPDATE ON "WalletRecvLNbits"
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('RECEIVE', 'LNBITS');
 
-CREATE TRIGGER wallet_check_support
-    BEFORE INSERT OR UPDATE ON "WalletRecvPhoenixd"
+CREATE CONSTRAINT TRIGGER wallet_check_support
+    AFTER INSERT OR UPDATE ON "WalletRecvPhoenixd"
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('RECEIVE', 'PHOENIXD');
 
-CREATE TRIGGER wallet_check_support
-    BEFORE INSERT OR UPDATE ON "WalletRecvBlink"
+CREATE CONSTRAINT TRIGGER wallet_check_support
+    AFTER INSERT OR UPDATE ON "WalletRecvBlink"
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('RECEIVE', 'BLINK');
 
-CREATE TRIGGER wallet_check_support
-    BEFORE INSERT OR UPDATE ON "WalletRecvLightningAddress"
+CREATE CONSTRAINT TRIGGER wallet_check_support
+    AFTER INSERT OR UPDATE ON "WalletRecvLightningAddress"
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('RECEIVE', 'LN_ADDR');
 
-CREATE TRIGGER wallet_check_support
-    BEFORE INSERT OR UPDATE ON "WalletRecvCLNRest"
+CREATE CONSTRAINT TRIGGER wallet_check_support
+    AFTER INSERT OR UPDATE ON "WalletRecvCLNRest"
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('RECEIVE', 'CLN_REST');
 
-CREATE TRIGGER wallet_check_support
-    BEFORE INSERT OR UPDATE ON "WalletRecvLNDGRPC"
+CREATE CONSTRAINT TRIGGER wallet_check_support
+    AFTER INSERT OR UPDATE ON "WalletRecvLNDGRPC"
     FOR EACH ROW
     EXECUTE FUNCTION wallet_check_support('RECEIVE', 'LND_GRPC');
 

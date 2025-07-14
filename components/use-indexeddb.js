@@ -117,6 +117,11 @@ async function _get (db, storeName, key) {
 async function _delete (dbName) {
   const { promise, resolve, reject } = Promise.withResolvers()
 
+  if (typeof window.indexedDB === 'undefined') {
+    reject(new IndexedDBOpenError('IndexedDB unavailable'))
+    return promise
+  }
+
   const request = window.indexedDB.deleteDatabase(dbName)
 
   request.onerror = (event) => {

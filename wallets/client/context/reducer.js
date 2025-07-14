@@ -5,7 +5,8 @@ export const Status = {
   LOADING_WALLETS: 'LOADING_WALLETS',
   NO_WALLETS: 'NO_WALLETS',
   HAS_WALLETS: 'HAS_WALLETS',
-  PASSPHRASE_REQUIRED: 'PASSPHRASE_REQUIRED'
+  PASSPHRASE_REQUIRED: 'PASSPHRASE_REQUIRED',
+  WALLETS_UNAVAILABLE: 'WALLETS_UNAVAILABLE'
 }
 
 // wallet actions
@@ -13,6 +14,7 @@ export const SET_WALLETS = 'SET_WALLETS'
 export const SET_KEY = 'SET_KEY'
 export const WRONG_KEY = 'WRONG_KEY'
 export const KEY_MATCH = 'KEY_MATCH'
+export const NO_KEY = 'KEY_UNAVAILABLE'
 
 export default function reducer (state, action) {
   switch (action.type) {
@@ -50,13 +52,18 @@ export default function reducer (state, action) {
           ? state.status
           : walletStatus(state.wallets)
       }
+    case NO_KEY:
+      return {
+        ...state,
+        status: Status.WALLETS_UNAVAILABLE
+      }
     default:
       return state
   }
 }
 
 function statusLocked (status) {
-  return [Status.PASSPHRASE_REQUIRED].includes(status)
+  return [Status.PASSPHRASE_REQUIRED, Status.WALLETS_UNAVAILABLE].includes(status)
 }
 
 function walletStatus (wallets) {

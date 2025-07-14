@@ -54,6 +54,19 @@ export default function Wallet () {
     )
   }
 
+  if (status === Status.WALLETS_UNAVAILABLE) {
+    return (
+      <WalletLayout>
+        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
+          <span className='text-muted fw-bold my-1'>wallets unavailable</span>
+          <small className='d-block text-muted'>
+            this device does not support storage of cryptographic keys via IndexedDB
+          </small>
+        </div>
+      </WalletLayout>
+    )
+  }
+
   if (status === Status.NO_WALLETS && !showWallets) {
     return (
       <WalletLayout>

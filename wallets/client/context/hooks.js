@@ -9,7 +9,7 @@ import {
   useWalletMigrationMutation, CryptoKeyRequiredError, useIsWrongKey
 } from '@/wallets/client/hooks'
 import { WalletConfigurationError } from '@/wallets/client/errors'
-import { SET_WALLETS, WRONG_KEY, KEY_MATCH, useWalletsDispatch } from '@/wallets/client/context'
+import { SET_WALLETS, WRONG_KEY, KEY_MATCH, NO_KEY, useWalletsDispatch } from '@/wallets/client/context'
 
 export function useServerWallets () {
   const dispatch = useWalletsDispatch()
@@ -108,7 +108,9 @@ export function useKeyInit () {
   const wrongKey = useIsWrongKey()
 
   useEffect(() => {
-    if (wrongKey) {
+    if (typeof window.indexedDB === 'undefined') {
+      dispatch({ type: NO_KEY })
+    } else if (wrongKey) {
       dispatch({ type: WRONG_KEY })
     } else {
       dispatch({ type: KEY_MATCH })

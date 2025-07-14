@@ -986,8 +986,6 @@ BEGIN
                 walletName := 'NPUB_CASH';
             ELSIF domain LIKE '%zeuspay.com' THEN
                 walletName := 'ZEUS';
-            ELSIF domain LIKE '%zeuspay.com' THEN
-                walletName := 'ZEUSPAY';
             ELSIF domain LIKE '%fountain.fm' THEN
                 walletName := 'FOUNTAIN';
             ELSIF domain LIKE '%lifpay.me' THEN

@@ -159,20 +159,6 @@ export function useKeyInit () {
     }
     keyInit()
   }, [me?.id, generateRandomKey, loadOldKey, setKey, loadKey])
-
-  // TODO(wallet-v2): remove degugging code
-  //   this is just for loading the key for the wallet seed
-  // useEffect(() => {
-  //   if (!me?.id) return
-  //   async function loadKey () {
-  //     const keyAndHash = await deriveKey(
-  //       'media fit youth secret combine live cupboard response enable loyal kitchen angle',
-  //       'stacker21001'
-  //     )
-  //     await set('vault', 'key', keyAndHash)
-  //   }
-  //   loadKey()
-  // }, [me?.id])
 }
 
 // TODO(wallet-v2): remove migration code

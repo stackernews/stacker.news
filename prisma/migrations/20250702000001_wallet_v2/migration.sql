@@ -1086,6 +1086,6 @@ ALTER TABLE "users" ADD COLUMN     "showPassphrase" BOOLEAN NOT NULL DEFAULT tru
 -- Update LogLevel enum to be more consistent with wallet logger API
 ALTER TYPE "LogLevel" RENAME TO "LogLevelV1";
 CREATE TYPE "LogLevel" AS ENUM ('OK', 'DEBUG', 'INFO', 'WARNING', 'ERROR');
-ALTER TABLE "WalletLog" ALTER COLUMN "level" TYPE "LogLevel" USING (CASE WHEN "level"::text = 'SUCCESS' THEN 'OK'::"LogLevel" ELSE "level"::text::"LogLevel" END);
-ALTER TABLE "Log" ALTER COLUMN "level" TYPE "LogLevel" USING (CASE WHEN "level"::text = 'SUCCESS' THEN 'OK'::"LogLevel" ELSE "level"::text::"LogLevel" END);
+ALTER TABLE "WalletLog" ALTER COLUMN "level" TYPE "LogLevel" USING (CASE WHEN "level"::text = 'SUCCESS' THEN 'OK'::"LogLevel" WHEN "level"::text = 'WARN' THEN 'WARNING'::"LogLevel" ELSE "level"::text::"LogLevel" END);
+ALTER TABLE "Log" ALTER COLUMN "level" TYPE "LogLevel" USING (CASE WHEN "level"::text = 'SUCCESS' THEN 'OK'::"LogLevel" WHEN "level"::text = 'WARN' THEN 'WARNING'::"LogLevel" ELSE "level"::text::"LogLevel" END);
 DROP TYPE "LogLevelV1";

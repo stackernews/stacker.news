@@ -96,7 +96,9 @@ async function _get (db, storeName, key) {
 
   let request
   try {
-    request = db.transaction(storeName).objectStore(storeName)
+    request = db
+      .transaction(storeName)
+      .objectStore(storeName)
       .get(key)
   } catch (error) {
     reject(new IndexedDBGetError(error?.message))

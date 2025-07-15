@@ -153,33 +153,31 @@ export function useDeleteWalletLogs (protocol) {
   const showModal = useShowModal()
 
   return useCallback(async () => {
-    const { promise, resolve, reject } = Promise.withResolvers()
-
-    const onClose = () => {
-      reject(new ModalClosedError())
-    }
-
-    showModal(close => {
-      const onDelete = () => {
-        resolve()
-        close()
-      }
-
+    return await new Promise((resolve, reject) => {
       const onClose = () => {
         reject(new ModalClosedError())
-        close()
       }
 
-      return (
-        <DeleteWalletLogsObstacle
-          protocol={protocol}
-          onClose={onClose}
-          onDelete={onDelete}
-        />
-      )
-    }, { onClose })
+      showModal(close => {
+        const onDelete = () => {
+          resolve()
+          close()
+        }
 
-    return promise
+        const onClose = () => {
+          reject(new ModalClosedError())
+          close()
+        }
+
+        return (
+          <DeleteWalletLogsObstacle
+            protocol={protocol}
+            onClose={onClose}
+            onDelete={onDelete}
+          />
+        )
+      }, { onClose })
+    })
   }, [showModal])
 }
 

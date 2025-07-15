@@ -39,106 +39,94 @@ export function useIndexedDB (dbName) {
 }
 
 async function _open (dbName, version = 1) {
-  const { promise, resolve, reject } = Promise.withResolvers()
-
-  if (typeof window.indexedDB === 'undefined') {
-    reject(new IndexedDBOpenError('IndexedDB unavailable'))
-    return promise
-  }
-
-  const request = window.indexedDB.open(dbName, version)
-
-  request.onupgradeneeded = (event) => {
-    try {
-      const db = event.target.result
-      if (!db.objectStoreNames.contains('vault')) db.createObjectStore('vault')
-      if (db.objectStoreNames.contains('wallet_logs')) db.deleteObjectStore('wallet_logs')
-    } catch (error) {
-      reject(new IndexedDBOpenError(`upgrade failed: ${error?.message}`))
+  return await new Promise((resolve, reject) => {
+    if (typeof window.indexedDB === 'undefined') {
+      return reject(new IndexedDBOpenError('IndexedDB unavailable'))
     }
-  }
 
-  request.onerror = (event) => {
-    reject(new IndexedDBOpenError(request.error?.message))
-  }
+    const request = window.indexedDB.open(dbName, version)
 
-  request.onsuccess = (event) => {
-    const db = request.result
-    resolve(db)
-  }
+    request.onupgradeneeded = (event) => {
+      try {
+        const db = event.target.result
+        if (!db.objectStoreNames.contains('vault')) db.createObjectStore('vault')
+        if (db.objectStoreNames.contains('wallet_logs')) db.deleteObjectStore('wallet_logs')
+      } catch (error) {
+        reject(new IndexedDBOpenError(`upgrade failed: ${error?.message}`))
+      }
+    }
 
-  return promise
+    request.onerror = (event) => {
+      reject(new IndexedDBOpenError(request.error?.message))
+    }
+
+    request.onsuccess = (event) => {
+      const db = request.result
+      resolve(db)
+    }
+  })
 }
 
 async function _set (db, storeName, key, value) {
-  const { promise, resolve, reject } = Promise.withResolvers()
+  return await new Promise((resolve, reject) => {
+    let request
+    try {
+      request = db
+        .transaction(storeName, 'readwrite')
+        .objectStore(storeName)
+        .put(value, key)
+    } catch (error) {
+      return reject(new IndexedDBSetError(error?.message))
+    }
 
-  let request
-  try {
-    request = db
-      .transaction(storeName, 'readwrite')
-      .objectStore(storeName)
-      .put(value, key)
-  } catch (error) {
-    reject(new IndexedDBSetError(error?.message))
-    return promise
-  }
+    request.onerror = (event) => {
+      reject(new IndexedDBSetError(event.target?.error?.message))
+    }
 
-  request.onerror = (event) => {
-    reject(new IndexedDBSetError(event.target?.error?.message))
-  }
-
-  request.onsuccess = () => {
-    resolve(request.result)
-  }
-
-  return promise
+    request.onsuccess = () => {
+      resolve(request.result)
+    }
+  })
 }
 
 async function _get (db, storeName, key) {
-  const { promise, resolve, reject } = Promise.withResolvers()
+  return await new Promise((resolve, reject) => {
+    let request
+    try {
+      request = db
+        .transaction(storeName)
+        .objectStore(storeName)
+        .get(key)
+    } catch (error) {
+      return reject(new IndexedDBGetError(error?.message))
+    }
 
-  let request
-  try {
-    request = db
-      .transaction(storeName)
-      .objectStore(storeName)
-      .get(key)
-  } catch (error) {
-    reject(new IndexedDBGetError(error?.message))
-    return promise
-  }
+    request.onerror = (event) => {
+      reject(new IndexedDBGetError(event.target?.error?.message))
+    }
 
-  request.onerror = (event) => {
-    reject(new IndexedDBGetError(event.target?.error?.message))
-  }
-
-  request.onsuccess = () => {
-    resolve(request.result)
-  }
-
-  return promise
+    request.onsuccess = () => {
+      resolve(request.result)
+    }
+  })
 }
 
 async function _delete (dbName) {
-  const { promise, resolve, reject } = Promise.withResolvers()
+  return await new Promise((resolve, reject) => {
+    if (typeof window.indexedDB === 'undefined') {
+      return reject(new IndexedDBOpenError('IndexedDB unavailable'))
+    }
 
-  if (typeof window.indexedDB === 'undefined') {
-    reject(new IndexedDBOpenError('IndexedDB unavailable'))
-    return promise
-  }
+    const request = window.indexedDB.deleteDatabase(dbName)
 
-  const request = window.indexedDB.deleteDatabase(dbName)
+    request.onerror = (event) => {
+      reject(new IndexedDBDeleteError(event.target?.error?.message))
+    }
 
-  request.onerror = (event) => {
-    reject(new IndexedDBDeleteError(event.target?.error?.message))
-  }
-
-  request.onsuccess = () => {
-    resolve(request.result)
-  }
-
-  return promise
+    request.onsuccess = () => {
+      resolve(request.result)
+    }
+  })
 }
 
 class IndexedDBError extends Error {

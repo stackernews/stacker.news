@@ -31,7 +31,11 @@ export function useIndexedDB (dbName) {
     return await _delete(dbName)
   }, [dbName])
 
-  return useMemo(() => ({ set, get, deleteDb }), [set, get, deleteDb])
+  const open = useCallback(async () => {
+    return await _open(dbName, VERSION)
+  }, [dbName])
+
+  return useMemo(() => ({ set, get, deleteDb, open }), [set, get, deleteDb, open])
 }
 
 async function _open (dbName, version = 1) {

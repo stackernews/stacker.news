@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useLazyQuery } from '@apollo/client'
 import { FAILED_INVOICES } from '@/fragments/invoice'
 import { NORMAL_POLL_INTERVAL } from '@/lib/constants'
@@ -10,6 +10,7 @@ import {
 } from '@/wallets/client/hooks'
 import { WalletConfigurationError } from '@/wallets/client/errors'
 import { SET_WALLETS, WRONG_KEY, KEY_MATCH, NO_KEY, useWalletsDispatch } from '@/wallets/client/context'
+import { useIndexedDB } from '@/components/use-indexeddb'
 
 export function useServerWallets () {
   const dispatch = useWalletsDispatch()
@@ -120,44 +121,80 @@ export function useKeyInit () {
   const setKey = useSetKey()
   const loadKey = useLoadKey()
   const loadOldKey = useLoadOldKey()
+  const [db, setDb] = useState(null)
+  const { open } = useIndexedDB()
 
   useEffect(() => {
     if (!me?.id) return
+    let db
 
-    let mounted = true
+    async function openDb () {
+      db = await open()
+      setDb(db)
+    }
+    openDb()
+
+    return () => {
+      db?.close()
+      setDb(null)
+    }
+  }, [me?.id, open])
+
+  useEffect(() => {
+    if (!me?.id || !db) return
+
     async function keyInit () {
-      // wait for next tick to see if cleanup was immediately run because of strict mode
-      // see https://marmelab.com/blog/2023/01/11/use-async-effect-react.html
-      await Promise.resolve()
-      if (!mounted) {
-        return
-      }
-
       try {
         // TODO(wallet-v2): remove migration code
         //   and delete the old IndexedDB after wallet v2 has been released for some time
         const oldKeyAndHash = await loadOldKey()
         if (oldKeyAndHash) {
+          // return key found in old db and save it to new db
           await setKey(oldKeyAndHash)
           return
         }
 
-        const key = await loadKey()
-        if (key) {
-          await setKey(key)
-          return
-        }
+        // create random key before opening transaction in case we need it
+        // and because we can't run async code in a transaction because it will close the transaction
+        // see https://javascript.info/indexeddb#transactions-autocommit
+        const { key: randomKey, hash: randomHash } = await generateRandomKey()
 
-        const { key: randomKey, hash } = await generateRandomKey()
-        await setKey({ key: randomKey, hash })
+        // run read and write in one transaction to avoid race conditions
+        const { key, hash } = await new Promise((resolve, reject) => {
+          const tx = db.transaction('vault', 'readwrite')
+          const read = tx.objectStore('vault').get('key')
+
+          read.onerror = () => {
+            reject(read.error)
+          }
+
+          read.onsuccess = () => {
+            if (read.result) {
+              // return key+hash found in db
+              return resolve(read.result)
+            }
+
+            // no key found, write and return generated random key
+            const write = tx.objectStore('vault').put({ key: randomKey, hash: randomHash }, 'key')
+
+            write.onerror = () => {
+              reject(write.error)
+            }
+
+            write.onsuccess = (event) => {
+              // return key+hash we just wrote to db
+              resolve({ key: randomKey, hash: randomHash })
+            }
+          }
+        })
+
+        await setKey({ key, hash })
       } catch (err) {
         console.error('key init failed:', err)
       }
     }
     keyInit()
-
-    return () => { mounted = false }
-  }, [me?.id, generateRandomKey, loadOldKey, setKey, loadKey])
+  }, [me?.id, db, generateRandomKey, loadOldKey, setKey, loadKey])
 }
 
 // TODO(wallet-v2): remove migration code

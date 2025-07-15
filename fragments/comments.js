@@ -48,6 +48,7 @@ export const COMMENT_FIELDS = gql`
     ncomments
     nDirectComments
     newComments @client
+    injected @client
     imgproxyUrls
     rel
     apiKey
@@ -130,6 +131,7 @@ export const COMMENT_WITH_NEW_RECURSIVE = gql`
       }
     }
     newComments @client
+    injected @client
   }
 `
 
@@ -144,6 +146,7 @@ export const COMMENT_WITH_NEW_LIMITED = gql`
       }
     }
     newComments @client
+    injected @client
   }
 `
 

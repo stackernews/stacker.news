@@ -6,6 +6,46 @@ import { itemUpdateQuery, commentUpdateFragment, getLatestCommentCreatedAt } fro
 
 const POLL_INTERVAL = 1000 * 10 // 10 seconds
 
+// merge new comment into item's newComments
+// and prevent duplicates by checking if the comment is already in item's newComments or existing comments
+function mergeNewComment (item, newComment) {
+  const existingNewComments = item.newComments || []
+  const existingComments = item.comments?.comments || []
+
+  // is the incoming new comment already in item's new comments or existing comments?
+  if (existingNewComments.includes(newComment.id) || existingComments.some(c => c.id === newComment.id)) {
+    return item
+  }
+
+  return { ...item, newComments: [...existingNewComments, newComment.id] }
+}
+
+function cacheNewComments (client, rootId, newComments, sort) {
+  const queuedComments = []
+
+  for (const newComment of newComments) {
+    const { parentId } = newComment
+    const topLevel = Number(parentId) === Number(rootId)
+
+    // if the comment is a top level comment, update the item
+    if (topLevel) {
+      // merge the new comment into the item's newComments field, checking for duplicates
+      itemUpdateQuery(client, rootId, sort, (data) => mergeNewComment(data, newComment))
+    } else {
+      // if the comment is a reply, update the parent comment
+      // merge the new comment into the parent comment's newComments field, checking for duplicates
+      const result = commentUpdateFragment(client, parentId, (data) => mergeNewComment(data, newComment))
+
+      if (!result) {
+        // parent not in cache, queue for retry
+        queuedComments.push(newComment)
+      }
+    }
+  }
+
+  return { queuedComments }
+}
+
 // useLiveComments fetches new comments under an item (rootId), that arrives after the latest comment createdAt
 // and inserts them into the newComment client field of their parent comment/post.
 export default function useLiveComments (rootId, after, sort, setHasNewComments) {
@@ -45,44 +85,4 @@ export default function useLiveComments (rootId, after, sort, setHasNewComments)
       queue.current = []
     }
   }, [])
-}
-
-function cacheNewComments (client, rootId, newComments, sort) {
-  const queuedComments = []
-
-  for (const newComment of newComments) {
-    const { parentId } = newComment
-    const topLevel = Number(parentId) === Number(rootId)
-
-    // if the comment is a top level comment, update the item
-    if (topLevel) {
-      // merge the new comment into the item's newComments field, checking for duplicates
-      itemUpdateQuery(client, rootId, sort, (data) => mergeNewComment(data, newComment))
-    } else {
-      // if the comment is a reply, update the parent comment
-      // merge the new comment into the parent comment's newComments field, checking for duplicates
-      const result = commentUpdateFragment(client, parentId, (data) => mergeNewComment(data, newComment))
-
-      if (!result) {
-        // parent not in cache, queue for retry
-        queuedComments.push(newComment)
-      }
-    }
-  }
-
-  return { queuedComments }
-}
-
-// merge new comment into item's newComments
-// and prevent duplicates by checking if the comment is already in item's newComments or existing comments
-function mergeNewComment (item, newComment) {
-  const existingNewComments = item.newComments || []
-  const existingComments = item.comments?.comments || []
-
-  // is the incoming new comment already in item's new comments or existing comments?
-  if (existingNewComments.includes(newComment.id) || existingComments.some(c => c.id === newComment.id)) {
-    return item
-  }
-
-  return { ...item, newComments: [...existingNewComments, newComment.id] }
 }

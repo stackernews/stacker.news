@@ -140,18 +140,34 @@ export default function Comment ({
     }
   }, [item.id, cache, router.query.commentId])
 
+  const unsetOutline = () => {
+    ref.current.classList.add('outline-new-comment-unset')
+    // if the comment is injected, we need to change injected to false
+    // so that the next time the comment is rendered, it won't be outlined
+    if (item.injected) {
+      cache.writeFragment({
+        id: `Item:${item.id}`,
+        fragment: gql`
+          fragment CommentInjected on Item {
+            injected @client
+          }`,
+        data: {
+          injected: false
+        }
+      })
+    }
+  }
+
   useEffect(() => {
-    if (router.query.commentsViewedAt &&
-        me?.id !== item.user?.id &&
-        !item.newComments &&
-        new Date(item.createdAt).getTime() > router.query.commentsViewedAt) {
-      ref.current.classList.add('outline-new-comment')
+    // an injected new comment needs a different class to reliably outline every new comment
+    if (item.injected && me?.id !== item.user?.id) {
+      ref.current.classList.add('outline-new-injected-comment')
     }
 
-    // an injected new comment has the newComments field, a different class is needed
-    // to reliably outline every new comment
-    if (item.newComments && me?.id !== item.user?.id) {
-      ref.current.classList.add('outline-new-injected-comment')
+    if (router.query.commentsViewedAt &&
+        me?.id !== item.user?.id &&
+        new Date(item.createdAt).getTime() > router.query.commentsViewedAt) {
+      ref.current.classList.add('outline-new-comment')
     }
   }, [item.id])
 
@@ -167,8 +183,8 @@ export default function Comment ({
   return (
     <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
-      onMouseEnter={() => ref.current.classList.add('outline-new-comment-unset')}
-      onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
+      onMouseEnter={unsetOutline}
+      onTouchStart={unsetOutline}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.outlawed && !me?.privates?.wildWestMode

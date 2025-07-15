@@ -150,6 +150,7 @@ export default gql`
     nDirectComments: Int!
     comments(sort: String, cursor: String): Comments!
     newComments(rootId: ID, after: Date): Comments!
+    injected: Boolean!
     path: String
     position: Int
     prior: Int

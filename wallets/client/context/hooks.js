@@ -124,7 +124,15 @@ export function useKeyInit () {
   useEffect(() => {
     if (!me?.id) return
 
+    let mounted = true
     async function keyInit () {
+      // wait for next tick to see if cleanup was immediately run because of strict mode
+      // see https://marmelab.com/blog/2023/01/11/use-async-effect-react.html
+      await Promise.resolve()
+      if (!mounted) {
+        return
+      }
+
       try {
         // TODO(wallet-v2): remove migration code
         //   and delete the old IndexedDB after wallet v2 has been released for some time
@@ -147,6 +155,8 @@ export function useKeyInit () {
       }
     }
     keyInit()
+
+    return () => { mounted = false }
   }, [me?.id, generateRandomKey, loadOldKey, setKey, loadKey])
 }
 

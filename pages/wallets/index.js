@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Button, Spinner } from 'react-bootstrap'
+import { Button } from 'react-bootstrap'
 import { useWallets, useTemplates, DndProvider, Status, useStatus } from '@/wallets/client/context'
 import { WalletCard, WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
 import styles from '@/styles/wallet.module.css'
@@ -7,6 +7,7 @@ import { usePassphrasePrompt, useShowPassphrase, useSetWalletPriorities } from '
 import { WalletSearch } from '@/wallets/client/components/search'
 import { useMemo, useState } from 'react'
 import { walletDisplayName } from '@/wallets/lib/util'
+import Moon from '@/svgs/moon-fill.svg'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -32,7 +33,7 @@ export default function Wallet () {
     return (
       <WalletLayout>
         <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1 text-muted'>
-          <Spinner />
+          <Moon className='spin fill-grey' height={28} width={28} />
           <small className='d-block mt-3 text-muted'>loading wallets</small>
         </div>
       </WalletLayout>

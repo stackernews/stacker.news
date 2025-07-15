@@ -1,0 +1,161 @@
+[
+    {
+        "name": "BLINK",
+        "displayName": "Blink",
+        "image": "/wallets/blink.svg",
+        "url": "https://blink.sv/"
+    },
+    {
+        "name": "CLN",
+        "displayName": "Core Lightning",
+        "image": "/wallets/cln.svg",
+        "url": "https://corelightning.org/"
+    },
+    {
+        "name": "LNBITS",
+        "displayName": "LNbits",
+        "image": "/wallets/lnbits.svg",
+        "url": "https://lnbits.com/"
+    },
+    {
+        "name": "LND",
+        "displayName": "Lightning Network Daemon",
+        "image": "/wallets/lnd.png",
+        "url": "https://docs.lightning.engineering/lightning-network-tools/lnd"
+    },
+    {
+        "name": "PHOENIXD",
+        "displayName": "Phoenixd",
+        "image": "/wallets/phoenixd.png",
+        "url": "https://phoenix.acinq.co/server"
+    },
+    {
+        "name": "ZEUS",
+        "displayName": "Zeus",
+        "image": "/wallets/zeus.svg",
+        "url": {
+            "wallet": "https://zeusln.com/",
+            "lud16Domain": "zeuspay.com"
+        }
+    },
+    {
+        "name": "COINOS",
+        "displayName": "Coinos",
+        "image": "/wallets/coinos.svg",
+        "url": "https://coinos.io/"
+    },
+    {
+        "name": "PRIMAL",
+        "displayName": "Primal",
+        "image": "/wallets/primal.svg",
+        "url": "https://primal.net/"
+    },
+    {
+        "name": "WALLET_OF_SATOSHI",
+        "displayName": "Wallet of Satoshi",
+        "image": "/wallets/wos.svg",
+        "url": "https://walletofsatoshi.com/"
+    },
+    {
+        "name": "VOLTAGE",
+        "displayName": "Voltage",
+        "image": "/wallets/voltage.svg",
+        "url": {
+            "wallet": "https://www.voltage.cloud/",
+            "lud16Domain": "vlt.ge"
+        }
+    },
+    {
+        "name": "RIZFUL",
+        "displayName": "Rizful",
+        "image": "/wallets/rizful.png",
+        "url": "https://rizful.com/"
+    },
+    {
+        "name": "SPEED",
+        "displayName": "Speed",
+        "image": "/wallets/speed.svg",
+        "url": "https://tryspeed.com/"
+    },
+    {
+        "name": "ZBD",
+        "displayName": "ZBD",
+        "image": "/wallets/zbd.png",
+        "url": "https://zbd.gg/"
+    },
+    {
+        "name": "STRIKE",
+        "displayName": "Strike",
+        "image": "/wallets/strike.png",
+        "url": "https://strike.me/"
+    },
+    {
+        "name": "MINIBITS",
+        "displayName": "Minibits",
+        "image": "/wallets/minibits.png",
+        "url": "https://minibits.cash/"
+    },
+    {
+        "name": "FOUNTAIN",
+        "displayName": "Fountain",
+        "image": "/wallets/fountain.png",
+        "url": "https://fountain.fm/"
+    },
+    {
+        "name": "LIFPAY",
+        "displayName": "Lifpay",
+        "image": "/wallets/lifpay.png",
+        "url": "https://lifpay.me/"
+    },
+    {
+        "name": "SHOCKWALLET",
+        "displayName": "Shockwallet",
+        "image": "/wallets/shockwallet.png",
+        "url": "https://shockwallet.app/"
+    },
+    {
+        "name": "ALBY",
+        "displayName": "Alby",
+        "image": "/wallets/alby.svg",
+        "url": "https://getalby.com/"
+    },
+    {
+        "name": "BLIXT",
+        "displayName": "Blixt",
+        "image": "/wallets/blixt.svg",
+        "url": "https://blixtwallet.github.io/"
+    },
+    {
+        "name": "NPUB_CASH",
+        "displayName": "npub.cash",
+        "image": "/wallets/npub-cash.svg",
+        "url": "https://npub.cash/"
+    },
+    {
+        "name": "LN_ADDR",
+        "displayName": "Lightning Address",
+        "image": "/wallets/lnaddr.png",
+        "url": {
+            "wallet": "https://github.com/lnurl/luds/blob/luds/16.md",
+            "lud16Domain": null
+        }
+    },
+    {
+        "name": "NWC",
+        "displayName": "Nostr Wallet Connect",
+        "image": "/wallets/nwc.png",
+        "url": "https://github.com/nostr-protocol/nips/blob/master/47.md"
+    },
+    {
+        "name": "CASHU_ME",
+        "displayName": "Cashu.me",
+        "image": "/wallets/cashu.me.png",
+        "url": "https://cashu.me/"
+    },
+    {
+        "name": "CASH_APP",
+        "displayName": "Cash App",
+        "image": "/wallets/cashapp.webp",
+        "url": "https://cash.app/"
+    }
+]

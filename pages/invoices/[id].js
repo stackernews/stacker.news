@@ -1,7 +1,7 @@
 import Invoice from '@/components/invoice'
 import { CenterLayout } from '@/components/layout'
 import { useRouter } from 'next/router'
-import { INVOICE_FULL } from '@/fragments/wallet'
+import { INVOICE_FULL } from '@/fragments/invoice'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 
 // force SSR to include CSP nonces

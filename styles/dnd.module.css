@@ -1,0 +1,31 @@
+.draggable {
+  cursor: grab;
+  transition: all 0.2s ease-out;
+  position: relative;
+}
+
+.dragging {
+  cursor: grabbing;
+  opacity: 0.3;
+  z-index: 1000;
+}
+
+.dragOver {
+  transform: scale(1.03);
+  box-shadow: 0 0 10px var(--bs-info);
+}
+
+@media (max-width: 768px) {
+  .draggable {
+    /* https://developer.mozilla.org/en-US/docs/Web/CSS/touch-action */
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+
+  .dragging {
+    touch-action: none;
+  }
+}

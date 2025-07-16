@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { useApolloClient } from '@apollo/client'
 import styles from './comment.module.css'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
-import { COMMENT_WITH_NEW_RECURSIVE } from '../fragments/comments'
+import { COMMENT_WITH_NEW_RECURSIVE, COMMENT_WITH_NEW_LIMITED } from '../fragments/comments'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import {
   itemUpdateQuery,
@@ -80,14 +80,19 @@ function showAllNewCommentsRecursively (client, item, currentDepth = 1) {
 
   // read the updated item from the cache
   // this is necessary because the item may have been updated by the time we get to the child comments
+  // comments nearing the depth limit lack the recursive structure, so we also need to read the limited fragment
   const updatedItem = client.cache.readFragment({
     id: `Item:${item.id}`,
     fragment: COMMENT_WITH_NEW_RECURSIVE,
     fragmentName: 'CommentWithNewRecursive'
+  }) || client.cache.readFragment({
+    id: `Item:${item.id}`,
+    fragment: COMMENT_WITH_NEW_LIMITED,
+    fragmentName: 'CommentWithNewLimited'
   })
 
   // recursively handle new comments in child comments
-  if (updatedItem.comments?.comments && currentDepth < (COMMENT_DEPTH_LIMIT - 1)) {
+  if (updatedItem?.comments?.comments && currentDepth < (COMMENT_DEPTH_LIMIT - 1)) {
     for (const childComment of updatedItem.comments.comments) {
       showAllNewCommentsRecursively(client, childComment, currentDepth + 1)
     }
@@ -123,7 +128,7 @@ export function ShowNewComments ({ topLevel, sort, comments, itemId, item, newCo
       return collectAllNewComments(item, depth)
     }
     return dedupeNewComments(newComments, comments)
-  }, [newComments, comments, item, depth])
+  }, [newComments, comments, item, depth, topLevel])
 
   const showNewComments = useCallback(() => {
     if (topLevel) {
@@ -132,7 +137,7 @@ export function ShowNewComments ({ topLevel, sort, comments, itemId, item, newCo
     } else {
       showAllNewCommentsRecursively(client, item, depth)
     }
-  }, [client, itemId, allNewComments, topLevel, sort])
+  }, [client, itemId, allNewComments, topLevel, sort, item, depth])
 
   if (allNewComments.length === 0) {
     return null

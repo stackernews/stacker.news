@@ -56,7 +56,8 @@ export function useWalletsQuery () {
       .catch(err => {
         console.error('failed to decrypt wallets:', err)
         setWallets([])
-        setError(new Error('decryption error: ' + err.message))
+        // OperationError from the Web Crypto API does not have a message
+        setError(new Error('decryption error: ' + (err.message || err.name)))
       })
   }, [query.data, decryptWallet, ready])
 

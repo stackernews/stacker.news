@@ -282,7 +282,7 @@ export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) 
                     name={`forward[${index}].pct`}
                     type='number'
                     step={5}
-                    min={1}
+                    min={0}
                     max={100}
                     append={<InputGroup.Text className='text-monospace'>%</InputGroup.Text>}
                     groupClassName={`${styles.percent} mb-0`}

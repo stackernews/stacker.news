@@ -38,6 +38,7 @@ export function useWalletsQuery () {
   const { me } = useMe()
   const query = useQuery(WALLETS, { skip: !me })
   const [wallets, setWallets] = useState(null)
+  const [error, setError] = useState(null)
 
   const { decryptWallet, ready } = useWalletDecryption()
 
@@ -48,10 +49,14 @@ export function useWalletsQuery () {
     )
       .then(wallets => wallets.map(protocolCheck))
       .then(wallets => wallets.map(undoFieldAlias))
-      .then(wallets => setWallets(wallets))
+      .then(wallets => {
+        setWallets(wallets)
+        setError(null)
+      })
       .catch(err => {
         console.error('failed to decrypt wallets:', err)
         setWallets([])
+        setError(new Error('decryption error: ' + err.message))
       })
   }, [query.data, decryptWallet, ready])
 
@@ -59,9 +64,10 @@ export function useWalletsQuery () {
 
   return useMemo(() => ({
     ...query,
+    error: error ?? query.error,
     loading: !wallets,
     data: wallets ? { wallets } : null
-  }), [query, wallets])
+  }), [query, error, wallets])
 }
 
 function protocolCheck (wallet) {

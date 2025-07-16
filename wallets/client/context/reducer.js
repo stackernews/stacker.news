@@ -15,6 +15,7 @@ export const SET_KEY = 'SET_KEY'
 export const WRONG_KEY = 'WRONG_KEY'
 export const KEY_MATCH = 'KEY_MATCH'
 export const NO_KEY = 'KEY_UNAVAILABLE'
+export const WALLETS_QUERY_ERROR = 'WALLETS_QUERY_ERROR'
 
 export default function reducer (state, action) {
   switch (action.type) {
@@ -32,6 +33,11 @@ export default function reducer (state, action) {
         templates
       }
     }
+    case WALLETS_QUERY_ERROR:
+      return {
+        ...state,
+        status: transitionStatus(action, state, action.error)
+      }
     case SET_KEY:
       return {
         ...state,
@@ -61,10 +67,10 @@ export default function reducer (state, action) {
 function transitionStatus ({ type }, { status: from }, to) {
   switch (type) {
     case SET_WALLETS: {
-      return [Status.PASSPHRASE_REQUIRED, Status.WALLETS_UNAVAILABLE].includes(from) ? from : to
+      return (from instanceof Error || [Status.PASSPHRASE_REQUIRED, Status.WALLETS_UNAVAILABLE].includes(from)) ? from : to
     }
     case KEY_MATCH: {
-      return from === Status.LOADING_WALLETS ? from : to
+      return (from instanceof Error || from === Status.LOADING_WALLETS) ? from : to
     }
     default:
       return to

@@ -160,11 +160,13 @@ export default function Comment ({
 
   useEffect(() => {
     // an injected new comment needs a different class to reliably outline every new comment
+    // regardless of commentsViewedAt, it's always new
     if (item.injected && me?.id !== item.user?.id) {
       ref.current.classList.add('outline-new-injected-comment')
     }
 
     if (router.query.commentsViewedAt &&
+        !item.injected &&
         me?.id !== item.user?.id &&
         new Date(item.createdAt).getTime() > router.query.commentsViewedAt) {
       ref.current.classList.add('outline-new-comment')

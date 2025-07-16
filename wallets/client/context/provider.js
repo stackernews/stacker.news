@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer } from 'react'
-import walletsReducer, { Status } from './reducer'
+import walletsReducer from './reducer'
 import { useServerWallets, useKeyCheck, useAutomatedRetries, useKeyInit, useWalletMigration } from './hooks'
 import { WebLnProvider } from '@/wallets/lib/protocols/webln'
 
@@ -17,14 +17,14 @@ export function useTemplates () {
   return templates
 }
 
-export function useLoading () {
-  const { status } = useContext(WalletsContext)
-  return status === Status.LOADING_WALLETS
+export function useWalletsLoading () {
+  const { walletsLoading } = useContext(WalletsContext)
+  return walletsLoading
 }
 
-export function useStatus () {
-  const { status } = useContext(WalletsContext)
-  return status
+export function useWalletsError () {
+  const { walletsError } = useContext(WalletsContext)
+  return walletsError
 }
 
 export function useWalletsDispatch () {
@@ -41,13 +41,20 @@ export function useKeyHash () {
   return keyHash
 }
 
+export function useKeyError () {
+  const { keyError } = useContext(WalletsContext)
+  return keyError
+}
+
 export default function WalletsProvider ({ children }) {
   const [state, dispatch] = useReducer(walletsReducer, {
-    status: Status.LOADING_WALLETS,
     wallets: [],
+    walletsLoading: true,
+    walletsError: null,
     templates: [],
     key: null,
-    keyHash: null
+    keyHash: null,
+    keyError: null
   })
 
   return (

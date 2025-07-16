@@ -22,7 +22,7 @@ function dedupeNewComments (newComments, comments = []) {
 // returns a function that can be used to update an item's comments field
 function prepareComments (client, newComments) {
   return (data) => {
-    // newComments is an array of comment ids that allows usto read the latest newComments from the cache,
+    // newComments is an array of comment ids that allows us to read the latest newComments from the cache,
     // guaranteeing that we're not reading stale data
     const freshNewComments = newComments.map(id => {
       const fragment = client.cache.readFragment({
@@ -38,9 +38,10 @@ function prepareComments (client, newComments) {
       return fragment
     }).filter(Boolean)
 
-    // count the total number of new comments including its nested new comments
+    // count total comments being injected: each new comment + all their existing nested comments
     let totalNComments = freshNewComments.length
     for (const comment of freshNewComments) {
+      // add all nested comments (subtree) under this newly injected comment to the total
       totalNComments += (comment.ncomments || 0)
     }
 
@@ -68,11 +69,11 @@ function prepareComments (client, newComments) {
 // recursively processes and displays all new comments for a thread
 // handles comment injection at each level, respecting depth limits
 function showAllNewCommentsRecursively (client, item, currentDepth = 1) {
-  // handle new comments at this item level
   if (item.newComments && item.newComments.length > 0) {
     const dedupedNewComments = dedupeNewComments(item.newComments, item.comments?.comments)
 
     if (dedupedNewComments.length > 0) {
+      // handle new comments at this item level only
       const payload = prepareComments(client, dedupedNewComments)
       commentUpdateFragment(client, item.id, payload)
     }

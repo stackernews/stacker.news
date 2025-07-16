@@ -103,7 +103,7 @@ function showAllNewCommentsRecursively (client, item, currentDepth = 1) {
 // recursively collects all new comments from an item and its children
 // by respecting the depth limit, we avoid collecting new comments to inject in places
 // that are too deep in the tree
-export function collectAllNewComments (item, currentDepth = 1) {
+function collectAllNewComments (item, currentDepth = 1) {
   let allNewComments = [...(item.newComments || [])]
 
   // dedupe against the existing comments at this level

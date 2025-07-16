@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useMemo } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
 import Nav from 'react-bootstrap/Nav'
@@ -10,8 +10,6 @@ import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
 import { ShowNewComments } from './show-new-comments'
-import Head from 'next/head'
-import { useHasNewNotes } from './use-has-new-notes'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
   const router = useRouter()
@@ -71,19 +69,13 @@ export default function Comments ({
   commentSats, comments, commentsCursor, fetchMoreComments, ncomments, newComments, lastCommentAt, ...props
 }) {
   const router = useRouter()
-  const [hasNewComments, setHasNewComments] = useState(false)
   // fetch new comments that arrived after the lastCommentAt, and update the item.newComments field in cache
-  useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort, setHasNewComments)
-  // xxx
-  const hasNewNotes = useHasNewNotes()
+  useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort)
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
 
   return (
     <>
-      <Head>
-        <link rel='shortcut icon' href={hasNewComments ? '/favicon-new-comment.png' : hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
-      </Head>
       {comments?.length > 0
         ? <CommentsHeader
             commentSats={commentSats} parentCreatedAt={parentCreatedAt}
@@ -101,15 +93,15 @@ export default function Comments ({
           />
         : null}
       {newComments?.length > 0 && (
-        <ShowNewComments topLevel comments={comments} newComments={newComments} itemId={parentId} sort={router.query.sort} setHasNewComments={setHasNewComments} />
+        <ShowNewComments topLevel comments={comments} newComments={newComments} itemId={parentId} sort={router.query.sort} />
       )}
       {pins.map(item => (
         <Fragment key={item.id}>
-          <Comment depth={1} item={item} {...props} pin setHasNewComments={setHasNewComments} />
+          <Comment depth={1} item={item} {...props} pin />
         </Fragment>
       ))}
       {comments.filter(({ position }) => !position).map(item => (
-        <Comment depth={1} key={item.id} item={item} {...props} setHasNewComments={setHasNewComments} />
+        <Comment depth={1} key={item.id} item={item} {...props} />
       ))}
       {ncomments > FULL_COMMENTS_THRESHOLD &&
         <MoreFooter

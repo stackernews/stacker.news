@@ -98,7 +98,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel,
-  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry, setHasNewComments
+  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
@@ -285,7 +285,7 @@ export default function Comment ({
                   <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
                     <div className='ms-auto'>
-                      <ShowNewComments comments={item.comments.comments} newComments={item.newComments} itemId={item.id} item={item} setHasNewComments={setHasNewComments} depth={depth} />
+                      <ShowNewComments comments={item.comments.comments} newComments={item.newComments} itemId={item.id} item={item} depth={depth} />
                     </div>
                   </Reply>}
               {children}
@@ -294,7 +294,7 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} setHasNewComments={setHasNewComments} />
+                        <Comment depth={depth + 1} key={item.id} item={item} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nhas={item.ncomments} />}
                     </>

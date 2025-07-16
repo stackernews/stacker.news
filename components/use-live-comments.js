@@ -10,10 +10,9 @@ const POLL_INTERVAL = 1000 * 10 // 10 seconds
 // and prevent duplicates by checking if the comment is already in item's newComments or existing comments
 function mergeNewComment (item, newComment) {
   const existingNewComments = item.newComments || []
-  const existingComments = item.comments?.comments || []
 
   // is the incoming new comment already in item's new comments or existing comments?
-  if (existingNewComments.includes(newComment.id) || existingComments.some(c => c.id === newComment.id)) {
+  if (existingNewComments.includes(newComment.id)) {
     return item
   }
 
@@ -48,7 +47,7 @@ function cacheNewComments (client, rootId, newComments, sort) {
 
 // useLiveComments fetches new comments under an item (rootId), that arrives after the latest comment createdAt
 // and inserts them into the newComment client field of their parent comment/post.
-export default function useLiveComments (rootId, after, sort, setHasNewComments) {
+export default function useLiveComments (rootId, after, sort) {
   const client = useApolloClient()
   const [latest, setLatest] = useState(after)
   const queue = useRef([])
@@ -75,8 +74,6 @@ export default function useLiveComments (rootId, after, sort, setHasNewComments)
 
     // update latest timestamp to the latest comment created at
     setLatest(prevLatest => getLatestCommentCreatedAt(data.newComments.comments, prevLatest))
-
-    setHasNewComments(true)
   }, [data, client, rootId, sort])
 
   // cleanup queue on unmount to prevent memory leaks

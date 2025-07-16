@@ -2,7 +2,7 @@ import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
 import { getItem, filterClause, whereClause, muteClause, activeOrMine } from './item'
 import { getInvoice, getWithdrawl } from './wallet'
 import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
-import { replyToSubscription } from '@/lib/webPush'
+import { sendPushSubscriptionReply } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
@@ -439,7 +439,7 @@ export default {
         console.log(`[webPush] created subscription for user ${me.id}: endpoint=${endpoint}`)
       }
 
-      await replyToSubscription(dbPushSubscription.id, { title: 'Stacker News notifications are now active' })
+      await sendPushSubscriptionReply(dbPushSubscription)
 
       return dbPushSubscription
     },

@@ -13,8 +13,7 @@ import {
 
 // filters out new comments, by id, that already exist in the item's comments
 // preventing duplicate comments from being injected
-function dedupeNewComments (newComments, comments) {
-  console.log('dedupeNewComments', newComments, comments)
+function dedupeNewComments (newComments, comments = []) {
   const existingIds = new Set(comments.map(c => c.id))
   return newComments.filter(id => !existingIds.has(id))
 }
@@ -23,7 +22,7 @@ function dedupeNewComments (newComments, comments) {
 // returns a function that can be used to update an item's comments field
 function prepareComments (client, newComments) {
   return (data) => {
-    // newComments is an array of comment ids that allows usto read the latest newComments from the cache,
+    // newComments is an array of comment ids that allows us to read the latest newComments from the cache,
     // guaranteeing that we're not reading stale data
     const freshNewComments = newComments.map(id => {
       const fragment = client.cache.readFragment({
@@ -96,12 +95,38 @@ function showAllNewCommentsRecursively (client, item, currentDepth = 1) {
   }
 }
 
-export const ShowNewComments = ({ topLevel, sort, comments, itemId, item, setHasNewComments, newComments = [], depth = 1 }) => {
+// recursively collects all new comments from an item and its children
+// by respecting the depth limit, we avoid collecting new comments to inject in places
+// that are too deep in the tree
+export function collectAllNewComments (item, currentDepth = 1) {
+  let allNewComments = [...(item.newComments || [])]
+
+  // dedupe against the existing comments at this level
+  if (item.comments?.comments) {
+    allNewComments = dedupeNewComments(allNewComments, item.comments.comments)
+
+    if (currentDepth < (COMMENT_DEPTH_LIMIT - 1)) {
+      for (const comment of item.comments.comments) {
+        allNewComments.push(...collectAllNewComments(comment, currentDepth + 1))
+      }
+    }
+  }
+
+  return allNewComments
+}
+
+// ShowNewComments is a component that dedupes, refreshes and injects newComments into the comments field
+export function ShowNewComments ({ topLevel, sort, comments, itemId, item, newComments = [], depth = 1 }) {
   const client = useApolloClient()
   // if item is provided, we're showing all new comments for a thread,
   // otherwise we're showing new comments for a comment
   const isThread = !topLevel && item?.path.split('.').length === 2
-  const allNewComments = useMemo(() => dedupeNewComments(newComments, comments), [newComments, comments])
+  const allNewComments = useMemo(() => {
+    if (isThread) {
+      return collectAllNewComments(item, depth)
+    }
+    return dedupeNewComments(newComments, comments)
+  }, [newComments, comments, item, depth])
 
   const showNewComments = useCallback(() => {
     if (topLevel) {
@@ -110,8 +135,7 @@ export const ShowNewComments = ({ topLevel, sort, comments, itemId, item, setHas
     } else {
       showAllNewCommentsRecursively(client, item, depth)
     }
-    setHasNewComments(false)
-  }, [client, itemId, allNewComments, topLevel, sort, item])
+  }, [client, itemId, allNewComments, topLevel, sort])
 
   if (allNewComments.length === 0) {
     return null

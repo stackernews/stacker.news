@@ -1,7 +1,7 @@
 import { useQuery } from '@apollo/client'
 import { CenterLayout } from '@/components/layout'
 import { useRouter } from 'next/router'
-import { DIRECT } from '@/fragments/wallet'
+import { DIRECT } from '@/fragments/invoice'
 import { SSR, FAST_POLL_INTERVAL } from '@/lib/constants'
 import Bolt11Info from '@/components/bolt11-info'
 import { getGetServerSideProps } from '@/api/ssrApollo'

@@ -39,11 +39,11 @@ export async function getInvoiceablePeer ({ id, sats, hasSendWallet }, { models,
     return null
   }
 
-  const wallets = await getInvoiceableWallets(item.userId, { models })
+  const protocols = await getInvoiceableWallets(item.userId, { models })
 
   // request peer invoice if they have an attached wallet and have not forwarded the item
   // and the receiver doesn't want to receive credits
-  if (wallets.length > 0 &&
+  if (protocols.length > 0 &&
     item.itemForwards.length === 0 &&
     sats >= item.user.receiveCreditsBelowSats) {
     return item.userId

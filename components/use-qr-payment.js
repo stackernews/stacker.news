@@ -1,9 +1,9 @@
 import { useCallback } from 'react'
 import Invoice from '@/components/invoice'
-import { InvoiceCanceledError, InvoiceExpiredError, AnonWalletError } from '@/wallets/errors'
+import { AnonWalletError, InvoiceCanceledError, InvoiceExpiredError } from '@/wallets/client/errors'
 import { useShowModal } from '@/components/modal'
 import useInvoice from '@/components/use-invoice'
-import { sendPayment } from '@/wallets/webln/client'
+import { sendPayment as weblnSendPayment } from '@/wallets/client/protocols/webln'
 
 export default function useQrPayment () {
   const invoice = useInvoice()
@@ -19,7 +19,7 @@ export default function useQrPayment () {
   ) => {
     // if anon user and webln is available, try to pay with webln
     if (typeof window.webln !== 'undefined' && (walletError instanceof AnonWalletError)) {
-      sendPayment(inv.bolt11).catch(e => { console.error('WebLN payment failed:', e) })
+      weblnSendPayment(inv.bolt11).catch(e => { console.error('WebLN payment failed:', e) })
     }
     return await new Promise((resolve, reject) => {
       let paid

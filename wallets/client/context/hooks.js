@@ -9,7 +9,7 @@ import {
   useWalletMigrationMutation, CryptoKeyRequiredError, useIsWrongKey
 } from '@/wallets/client/hooks'
 import { WalletConfigurationError } from '@/wallets/client/errors'
-import { SET_WALLETS, WRONG_KEY, KEY_MATCH, NO_KEY, useWalletsDispatch } from '@/wallets/client/context'
+import { SET_WALLETS, WRONG_KEY, KEY_MATCH, NO_KEY, useWalletsDispatch, WALLETS_QUERY_ERROR } from '@/wallets/client/context'
 import { useIndexedDB } from '@/components/use-indexeddb'
 
 export function useServerWallets () {
@@ -19,6 +19,7 @@ export function useServerWallets () {
   useEffect(() => {
     if (query.error) {
       console.error('failed to fetch wallets:', query.error)
+      dispatch({ type: WALLETS_QUERY_ERROR, error: query.error })
       return
     }
     if (query.loading) return

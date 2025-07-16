@@ -263,7 +263,7 @@ export default function Comment ({
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
                     {item.newComments?.length > 0 && (
                       <div className='ms-auto'>
-                        <ShowNewComments comments={item.comments.comments} newComments={item.newComments} itemId={item.id} item={item} depth={depth} />
+                        <ShowNewComments comments={item.comments?.comments} newComments={item.newComments} itemId={item.id} item={item} depth={depth} />
                       </div>
                     )}
                   </Reply>}

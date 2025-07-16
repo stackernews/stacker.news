@@ -13,7 +13,7 @@ import {
 
 // filters out new comments, by id, that already exist in the item's comments
 // preventing duplicate comments from being injected
-function dedupeNewComments (newComments, comments) {
+function dedupeNewComments (newComments, comments = []) {
   const existingIds = new Set(comments.map(c => c.id))
   return newComments.filter(id => !existingIds.has(id))
 }

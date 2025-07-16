@@ -1,8 +1,7 @@
 import { isTemplate, isWallet } from '@/wallets/lib/util'
 
 export const KeyStatus = {
-  KEY_MATCH: 'KEY_MATCH',
-  NO_KEY: 'NO_KEY',
+  KEY_STORAGE_UNAVAILABLE: 'KEY_STORAGE_UNAVAILABLE',
   WRONG_KEY: 'WRONG_KEY'
 }
 

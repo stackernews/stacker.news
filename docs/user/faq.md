@@ -129,7 +129,7 @@ The link to the wallet logs can be found on the [wallet page](/wallets).
 
 ### Why do I need to enter two strings for NWC?
 
-For security reasons, we never store permissions to spend from your wallet on the server in plain text.
+For security reasons, we never store permissions to spend from your wallet on the server in plaintext.
 
 Since we however need to request invoices from your wallet when there is an incoming payment, we need to store the details to receive payments on the server in plaintext.
 

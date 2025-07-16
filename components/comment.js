@@ -261,11 +261,11 @@ export default function Comment ({
                 : !noReply &&
                   <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
-                    <div className='ms-auto'>
-                      {item.newComments?.length > 0 && (
-                        <ShowNewComments comments={item.comments.comments} newComments={item.newComments} itemId={item.id} />
-                      )}
-                    </div>
+                    {item.newComments?.length > 0 && (
+                      <div className='ms-auto'>
+                        <ShowNewComments comments={item.comments.comments} newComments={item.newComments} itemId={item.id} item={item} depth={depth} />
+                      </div>
+                    )}
                   </Reply>}
               {children}
               <div className={styles.comments}>

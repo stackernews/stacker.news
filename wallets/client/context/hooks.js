@@ -129,8 +129,12 @@ export function useKeyInit () {
     let db
 
     async function openDb () {
-      db = await open()
-      setDb(db)
+      try {
+        db = await open()
+        setDb(db)
+      } catch (err) {
+        console.error('failed to open indexeddb:', err)
+      }
     }
     openDb()
 

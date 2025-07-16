@@ -68,6 +68,19 @@ export default function Wallet () {
     )
   }
 
+  if (status instanceof Error) {
+    return (
+      <WalletLayout>
+        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
+          <span className='text-muted fw-bold my-1'>failed to load wallets</span>
+          <small className='d-block text-muted'>
+            {status.message}
+          </small>
+        </div>
+      </WalletLayout>
+    )
+  }
+
   if (status === Status.NO_WALLETS && !showWallets) {
     return (
       <WalletLayout>

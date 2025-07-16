@@ -15,6 +15,7 @@ export const SET_KEY = 'SET_KEY'
 export const WRONG_KEY = 'WRONG_KEY'
 export const KEY_MATCH = 'KEY_MATCH'
 export const NO_KEY = 'KEY_UNAVAILABLE'
+export const WALLETS_QUERY_ERROR = 'WALLETS_QUERY_ERROR'
 
 export default function reducer (state, action) {
   switch (action.type) {
@@ -27,13 +28,16 @@ export default function reducer (state, action) {
         .sort((a, b) => a.name.localeCompare(b.name))
       return {
         ...state,
-        status: statusLocked(state.status)
-          ? state.status
-          : walletStatus(wallets),
+        status: transitionStatus(action, state, wallets.length > 0 ? Status.HAS_WALLETS : Status.NO_WALLETS),
         wallets,
         templates
       }
     }
+    case WALLETS_QUERY_ERROR:
+      return {
+        ...state,
+        status: transitionStatus(action, state, action.error)
+      }
     case SET_KEY:
       return {
         ...state,
@@ -43,31 +47,32 @@ export default function reducer (state, action) {
     case WRONG_KEY:
       return {
         ...state,
-        status: Status.PASSPHRASE_REQUIRED
+        status: transitionStatus(action, state, Status.PASSPHRASE_REQUIRED)
       }
     case KEY_MATCH:
       return {
         ...state,
-        status: state.status === Status.LOADING_WALLETS
-          ? state.status
-          : walletStatus(state.wallets)
+        status: transitionStatus(action, state, state.wallets.length > 0 ? Status.HAS_WALLETS : Status.NO_WALLETS)
       }
     case NO_KEY:
       return {
         ...state,
-        status: Status.WALLETS_UNAVAILABLE
+        status: transitionStatus(action, state, Status.WALLETS_UNAVAILABLE)
       }
     default:
       return state
   }
 }
 
-function statusLocked (status) {
-  return [Status.PASSPHRASE_REQUIRED, Status.WALLETS_UNAVAILABLE].includes(status)
-}
-
-function walletStatus (wallets) {
-  return wallets.length > 0
-    ? Status.HAS_WALLETS
-    : Status.NO_WALLETS
+function transitionStatus ({ type }, { status: from }, to) {
+  switch (type) {
+    case SET_WALLETS: {
+      return (from instanceof Error || [Status.PASSPHRASE_REQUIRED, Status.WALLETS_UNAVAILABLE].includes(from)) ? from : to
+    }
+    case KEY_MATCH: {
+      return (from instanceof Error || from === Status.LOADING_WALLETS) ? from : to
+    }
+    default:
+      return to
+  }
 }

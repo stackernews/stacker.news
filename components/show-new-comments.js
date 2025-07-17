@@ -110,20 +110,19 @@ function countAllNewComments (client, item, currentDepth = 1) {
 export function ShowNewComments ({ topLevel, sort, comments, itemId, item, newComments = [], depth = 1 }) {
   const client = useApolloClient()
 
-  const allNewComments = !topLevel
-    ? countAllNewComments(client, item, depth)
-    : dedupeNewComments(newComments, comments)
+  const newCommentIds = topLevel ? dedupeNewComments(newComments, comments) : []
+  const newCommentsCount = topLevel ? newCommentIds.length : countAllNewComments(client, item, depth)
 
   const showNewComments = useCallback(() => {
     if (topLevel) {
-      const payload = prepareComments(client, allNewComments)
+      const payload = prepareComments(client, newCommentIds)
       itemUpdateQuery(client, itemId, sort, payload)
     } else {
       injectNewComments(client, item, depth)
     }
-  }, [client, itemId, allNewComments, sort, item, depth])
+  }, [topLevel, client, itemId, newCommentIds, sort, item, depth])
 
-  if (allNewComments === 0) {
+  if (newCommentsCount === 0) {
     return null
   }
 
@@ -132,8 +131,8 @@ export function ShowNewComments ({ topLevel, sort, comments, itemId, item, newCo
       onClick={showNewComments}
       className={`${topLevel && `d-block fw-bold ${styles.comment} pb-2`} d-flex align-items-center gap-2 px-3 pointer`}
     >
-      {allNewComments > 1
-        ? `${allNewComments} new comments`
+      {newCommentsCount > 1
+        ? `${newCommentsCount} new comments`
         : 'show new comment'}
       <div className={styles.newCommentDot} />
     </div>

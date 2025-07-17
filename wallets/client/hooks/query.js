@@ -32,7 +32,7 @@ import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
-import { useWallets, useLoading as useWalletsLoading } from '@/wallets/client/context'
+import { useWallets, useWalletsLoading } from '@/wallets/client/context'
 
 export function useWalletsQuery () {
   const { me } = useMe()

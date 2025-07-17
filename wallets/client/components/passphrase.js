@@ -15,7 +15,7 @@ export function Passphrase ({ passphrase }) {
       </p>
       <div className='d-flex justify-content-center'>
         <QRCodeSVG
-          className='h-auto mx-auto mw-100 my-3' size={256} value={passphrase}
+          className='h-auto mx-auto mw-100 my-3' size={256} value={passphrase} marginSize={1}
         />
       </div>
       <div

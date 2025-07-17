@@ -1,6 +1,6 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Button } from 'react-bootstrap'
-import { useWallets, useTemplates, DndProvider, Status, useStatus } from '@/wallets/client/context'
+import { useWallets, useTemplates, DndProvider, KeyStatus, useWalletsLoading, useKeyError, useWalletsError } from '@/wallets/client/context'
 import { WalletCard, WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
 import styles from '@/styles/wallet.module.css'
 import { usePassphrasePrompt, useShowPassphrase, useSetWalletPriorities } from '@/wallets/client/hooks'
@@ -13,7 +13,9 @@ export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function Wallet () {
   const wallets = useWallets()
-  const status = useStatus()
+  const walletsLoading = useWalletsLoading()
+  const walletsError = useWalletsError()
+  const keyError = useKeyError()
   const [showWallets, setShowWallets] = useState(false)
   const templates = useTemplates()
   const showPassphrase = useShowPassphrase()
@@ -29,18 +31,20 @@ export default function Wallet () {
     }
   }, [wallets, templates, searchFilter])
 
-  if (status === Status.LOADING_WALLETS) {
+  if (keyError === KeyStatus.KEY_STORAGE_UNAVAILABLE) {
     return (
       <WalletLayout>
-        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1 text-muted'>
-          <Moon className='spin fill-grey' height={28} width={28} />
-          <small className='d-block mt-3 text-muted'>loading wallets</small>
+        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
+          <span className='text-muted fw-bold my-1'>wallets unavailable</span>
+          <small className='d-block text-muted'>
+            this device does not support storage of cryptographic keys via IndexedDB
+          </small>
         </div>
       </WalletLayout>
     )
   }
 
-  if (status === Status.PASSPHRASE_REQUIRED) {
+  if (keyError === KeyStatus.WRONG_KEY) {
     return (
       <WalletLayout>
         <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
@@ -55,33 +59,31 @@ export default function Wallet () {
     )
   }
 
-  if (status === Status.WALLETS_UNAVAILABLE) {
-    return (
-      <WalletLayout>
-        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
-          <span className='text-muted fw-bold my-1'>wallets unavailable</span>
-          <small className='d-block text-muted'>
-            this device does not support storage of cryptographic keys via IndexedDB
-          </small>
-        </div>
-      </WalletLayout>
-    )
-  }
-
-  if (status instanceof Error) {
+  if (walletsError) {
     return (
       <WalletLayout>
         <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
           <span className='text-muted fw-bold my-1'>failed to load wallets</span>
           <small className='d-block text-muted'>
-            {status.message}
+            {walletsError.message}
           </small>
         </div>
       </WalletLayout>
     )
   }
 
-  if (status === Status.NO_WALLETS && !showWallets) {
+  if (walletsLoading) {
+    return (
+      <WalletLayout>
+        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1 text-muted'>
+          <Moon className='spin fill-grey' height={28} width={28} />
+          <small className='d-block mt-3 text-muted'>loading wallets</small>
+        </div>
+      </WalletLayout>
+    )
+  }
+
+  if (wallets.length === 0 && !showWallets) {
     return (
       <WalletLayout>
         <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>

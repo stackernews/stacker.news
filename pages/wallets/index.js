@@ -19,7 +19,7 @@ export default function Wallet () {
   const [showWallets, setShowWallets] = useState(false)
   const templates = useTemplates()
   const showPassphrase = useShowPassphrase()
-  const passphrasePrompt = usePassphrasePrompt()
+  const [showPassphrasePrompt, togglePassphrasePrompt, PassphrasePrompt] = usePassphrasePrompt()
   const setWalletPriorities = useSetWalletPriorities()
   const [searchFilter, setSearchFilter] = useState(() => (text) => true)
 
@@ -45,18 +45,26 @@ export default function Wallet () {
   }
 
   if (keyError === KeyStatus.WRONG_KEY) {
-    return (
-      <WalletLayout>
-        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
-          <Button
-            onClick={passphrasePrompt}
-            size='md' variant='secondary'
-          >unlock wallets
-          </Button>
-          <small className='d-block mt-3 text-muted'>your passphrase is required</small>
-        </div>
-      </WalletLayout>
-    )
+    return showPassphrasePrompt
+      ? (
+        <WalletLayout>
+          <div className='py-5 d-flex flex-column align-items-center justify-content-center flex-grow-1 mx-auto' style={{ maxWidth: '500px' }}>
+            <PassphrasePrompt />
+          </div>
+        </WalletLayout>
+        )
+      : (
+        <WalletLayout>
+          <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
+            <Button
+              onClick={togglePassphrasePrompt}
+              size='md' variant='secondary'
+            >unlock wallets
+            </Button>
+            <small className='d-block mt-3 text-muted'>your passphrase is required</small>
+          </div>
+        </WalletLayout>
+        )
   }
 
   if (walletsError) {

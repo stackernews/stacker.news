@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { fromHex, toHex } from '@/lib/hex'
 import { useMe } from '@/components/me'
 import { useIndexedDB } from '@/components/use-indexeddb'
@@ -210,21 +210,21 @@ const passphraseSchema = ({ hash, salt }) => object().shape({
 })
 
 export function usePassphrasePrompt () {
-  const showModal = useShowModal()
   const savePassphrase = useSavePassphrase()
   const hash = useRemoteKeyHash()
   const salt = useKeySalt()
   const showPassphrase = useShowPassphrase()
   const resetPassphrase = useResetPassphrase()
 
-  const onSubmit = useCallback((close) =>
-    async ({ passphrase }) => {
-      await savePassphrase({ passphrase })
-      close()
-    }, [savePassphrase])
+  const onSubmit = useCallback(async ({ passphrase }) => {
+    await savePassphrase({ passphrase })
+  }, [savePassphrase])
 
-  return useCallback(() => {
-    showModal(close => (
+  const [showPassphrasePrompt, setShowPassphrasePrompt] = useState(false)
+  const togglePassphrasePrompt = useCallback(() => setShowPassphrasePrompt(v => !v), [])
+
+  const Prompt = useMemo(() =>
+    () => (
       <div>
         <h4>Wallet decryption</h4>
         <p className='line-height-md mt-3'>
@@ -239,7 +239,7 @@ export function usePassphrasePrompt () {
         <Form
           schema={passphraseSchema({ hash, salt })}
           initial={{ passphrase: '' }}
-          onSubmit={onSubmit(close)}
+          onSubmit={onSubmit}
         >
           <PasswordInput
             label='passphrase'
@@ -252,14 +252,18 @@ export function usePassphrasePrompt () {
           <div className='mt-3'>
             <div className='d-flex justify-content-between align-items-center'>
               <Button className='me-auto' variant='danger' onClick={resetPassphrase}>reset</Button>
-              <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={close}>cancel</Button>
+              <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={togglePassphrasePrompt}>cancel</Button>
               <SubmitButton variant='primary'>save</SubmitButton>
             </div>
           </div>
         </Form>
       </div>
-    ))
-  }, [showModal, savePassphrase, hash, salt])
+    ), [showPassphrase, resetPassphrase, togglePassphrasePrompt, onSubmit, hash, salt])
+
+  return useMemo(
+    () => [showPassphrasePrompt, togglePassphrasePrompt, Prompt],
+    [showPassphrasePrompt, togglePassphrasePrompt, Prompt]
+  )
 }
 
 export async function deriveKey (passphrase, salt) {

@@ -1350,8 +1350,10 @@ function PasswordScanner ({ onScan, text }) {
                 <Scanner
                   formats={['qr_code']}
                   onScan={([{ rawValue: result }]) => {
-                    onScan(result)
-                    onClose()
+                    if (result) {
+                      onScan(result)
+                      onClose()
+                    }
                   }}
                   styles={{
                     video: {
@@ -1366,6 +1368,7 @@ function PasswordScanner ({ onScan, text }) {
                     }
                     onClose()
                   }}
+                  components={{ audio: false }}
                 />
               )}
             </div>

@@ -2,14 +2,13 @@ import { useCallback } from 'react'
 import { useApolloClient } from '@apollo/client'
 import styles from './comment.module.css'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
-import { COMMENT_WITH_NEW_RECURSIVE } from '../fragments/comments'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import {
   itemUpdateQuery,
   commentUpdateFragment,
   getLatestCommentCreatedAt,
   updateAncestorsCommentCount,
-  readNestedCommentsFragment
+  readCommentsFragment
 } from '../lib/comments'
 
 // filters out new comments, by id, that already exist in the item's comments
@@ -21,22 +20,12 @@ function dedupeNewComments (newComments, comments = []) {
 
 // prepares and creates a new comments fragment for injection into the cache
 // returns a function that can be used to update an item's comments field
-function prepareComments (client, newComments) {
+function prepareComments ({ client, newCommentIds, newComments }) {
   return (data) => {
     // newComments is an array of comment ids that allows us to read the latest newComments from the cache,
     // guaranteeing that we're not reading stale data
-    const freshNewComments = newComments.map(id => {
-      const fragment = client.cache.readFragment({
-        id: `Item:${id}`,
-        fragment: COMMENT_WITH_NEW_RECURSIVE,
-        fragmentName: 'CommentWithNewRecursive'
-      })
-
-      if (!fragment) {
-        return null
-      }
-
-      return fragment
+    const freshNewComments = newComments || newCommentIds.map(id => {
+      return readCommentsFragment(client, id)
     }).filter(Boolean)
 
     // count total comments being injected: each new comment + all their existing nested comments
@@ -74,10 +63,13 @@ function traverseNewComments (client, item, onLevel, currentDepth = 1) {
 
   if (item.newComments && item.newComments.length > 0) {
     const dedupedNewComments = dedupeNewComments(item.newComments, item.comments?.comments)
-    onLevel(dedupedNewComments, item)
+    const freshNewComments = dedupedNewComments.map(id => {
+      return readCommentsFragment(client, id)
+    }).filter(Boolean)
 
-    for (const newCommentId of dedupedNewComments) {
-      const newComment = readNestedCommentsFragment(client, newCommentId)
+    onLevel(freshNewComments, item)
+
+    for (const newComment of freshNewComments) {
       traverseNewComments(client, newComment, onLevel, currentDepth + 1)
     }
   }
@@ -88,7 +80,7 @@ function traverseNewComments (client, item, onLevel, currentDepth = 1) {
 function injectNewComments (client, item, currentDepth = 1) {
   traverseNewComments(client, item, (newComments, item) => {
     if (newComments.length > 0) {
-      const payload = prepareComments(client, newComments)
+      const payload = prepareComments({ client, newComments })
       commentUpdateFragment(client, item.id, payload)
     }
   }, currentDepth)
@@ -101,6 +93,9 @@ function countAllNewComments (client, item, currentDepth = 1) {
   // count by traversing all new comments and their children
   traverseNewComments(client, item, (newComments) => {
     totalNComments += newComments.length
+    for (const newComment of newComments) {
+      totalNComments += newComment.ncomments || 0
+    }
   }, currentDepth)
 
   return totalNComments
@@ -115,7 +110,7 @@ export function ShowNewComments ({ topLevel, sort, comments, itemId, item, newCo
 
   const showNewComments = useCallback(() => {
     if (topLevel) {
-      const payload = prepareComments(client, newCommentIds)
+      const payload = prepareComments({ client, newCommentIds })
       itemUpdateQuery(client, itemId, sort, payload)
     } else {
       injectNewComments(client, item, depth)

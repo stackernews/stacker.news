@@ -7,11 +7,11 @@ import { itemUpdateQuery, commentUpdateFragment, getLatestCommentCreatedAt } fro
 const POLL_INTERVAL = 1000 * 10 // 10 seconds
 
 // merge new comment into item's newComments
-// and prevent duplicates by checking if the comment is already in item's newComments or existing comments
+// and prevent duplicates by checking if the comment is already in item's newComments
 function mergeNewComment (item, newComment) {
   const existingNewComments = item.newComments || []
 
-  // is the incoming new comment already in item's new comments or existing comments?
+  // is the incoming new comment already in item's new comments?
   if (existingNewComments.includes(newComment.id)) {
     return item
   }

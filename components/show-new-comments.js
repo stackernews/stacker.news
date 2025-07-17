@@ -1,14 +1,15 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import { useApolloClient } from '@apollo/client'
 import styles from './comment.module.css'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
-import { COMMENT_WITH_NEW_RECURSIVE, COMMENT_WITH_NEW_LIMITED } from '../fragments/comments'
+import { COMMENT_WITH_NEW_RECURSIVE } from '../fragments/comments'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import {
   itemUpdateQuery,
   commentUpdateFragment,
   getLatestCommentCreatedAt,
-  updateAncestorsCommentCount
+  updateAncestorsCommentCount,
+  readNestedCommentsFragment
 } from '../lib/comments'
 
 // filters out new comments, by id, that already exist in the item's comments
@@ -66,81 +67,63 @@ function prepareComments (client, newComments) {
   }
 }
 
-// recursively processes and displays all new comments for a thread
-// handles comment injection at each level, respecting depth limits
-function showAllNewCommentsRecursively (client, item, currentDepth = 1) {
+// traverses all new comments and their children
+// at each level, we can execute a callback giving the new comments and the item
+function traverseNewComments (client, item, onLevel, currentDepth = 1) {
+  if (currentDepth >= COMMENT_DEPTH_LIMIT) return
+
   if (item.newComments && item.newComments.length > 0) {
     const dedupedNewComments = dedupeNewComments(item.newComments, item.comments?.comments)
+    onLevel(dedupedNewComments, item)
 
-    if (dedupedNewComments.length > 0) {
-      // handle new comments at this item level only
-      const payload = prepareComments(client, dedupedNewComments)
-      commentUpdateFragment(client, item.id, payload)
-    }
-  }
-
-  // read the updated item from the cache
-  // this is necessary because the item may have been updated by the time we get to the child comments
-  // comments nearing the depth limit lack the recursive structure, so we also need to read the limited fragment
-  const updatedItem = client.cache.readFragment({
-    id: `Item:${item.id}`,
-    fragment: COMMENT_WITH_NEW_RECURSIVE,
-    fragmentName: 'CommentWithNewRecursive'
-  }) || client.cache.readFragment({
-    id: `Item:${item.id}`,
-    fragment: COMMENT_WITH_NEW_LIMITED,
-    fragmentName: 'CommentWithNewLimited'
-  })
-
-  // recursively handle new comments in child comments
-  if (updatedItem?.comments?.comments && currentDepth < (COMMENT_DEPTH_LIMIT - 1)) {
-    for (const childComment of updatedItem.comments.comments) {
-      showAllNewCommentsRecursively(client, childComment, currentDepth + 1)
+    for (const newCommentId of dedupedNewComments) {
+      const newComment = readNestedCommentsFragment(client, newCommentId)
+      traverseNewComments(client, newComment, onLevel, currentDepth + 1)
     }
   }
 }
 
-// recursively collects all new comments from an item and its children
-// by respecting the depth limit, we avoid collecting new comments to inject in places
-// that are too deep in the tree
-function collectAllNewComments (item, currentDepth = 1) {
-  let allNewComments = [...(item.newComments || [])]
-
-  // dedupe against the existing comments at this level
-  if (item.comments?.comments) {
-    allNewComments = dedupeNewComments(allNewComments, item.comments.comments)
-
-    if (currentDepth < (COMMENT_DEPTH_LIMIT - 1)) {
-      for (const comment of item.comments.comments) {
-        allNewComments.push(...collectAllNewComments(comment, currentDepth + 1))
-      }
+// recursively processes and displays all new comments and its children
+// handles comment injection at each level, respecting depth limits
+function injectNewComments (client, item, currentDepth = 1) {
+  traverseNewComments(client, item, (newComments, item) => {
+    if (newComments.length > 0) {
+      const payload = prepareComments(client, newComments)
+      commentUpdateFragment(client, item.id, payload)
     }
-  }
+  }, currentDepth)
+}
 
-  return allNewComments
+// counts all new comments for an item and its children
+function countAllNewComments (client, item, currentDepth = 1) {
+  let totalNComments = 0
+
+  // count by traversing all new comments and their children
+  traverseNewComments(client, item, (newComments) => {
+    totalNComments += newComments.length
+  }, currentDepth)
+
+  return totalNComments
 }
 
 // ShowNewComments is a component that dedupes, refreshes and injects newComments into the comments field
 export function ShowNewComments ({ topLevel, sort, comments, itemId, item, newComments = [], depth = 1 }) {
   const client = useApolloClient()
 
-  const allNewComments = useMemo(() => {
-    if (!topLevel) {
-      return collectAllNewComments(item, depth)
-    }
-    return dedupeNewComments(newComments, comments)
-  }, [newComments, comments, item, depth, topLevel])
+  const allNewComments = !topLevel
+    ? countAllNewComments(client, item, depth)
+    : dedupeNewComments(newComments, comments)
 
   const showNewComments = useCallback(() => {
     if (topLevel) {
       const payload = prepareComments(client, allNewComments)
       itemUpdateQuery(client, itemId, sort, payload)
     } else {
-      showAllNewCommentsRecursively(client, item, depth)
+      injectNewComments(client, item, depth)
     }
-  }, [client, itemId, allNewComments, topLevel, sort, item, depth])
+  }, [client, itemId, allNewComments, sort, item, depth])
 
-  if (allNewComments.length === 0) {
+  if (allNewComments === 0) {
     return null
   }
 
@@ -149,8 +132,8 @@ export function ShowNewComments ({ topLevel, sort, comments, itemId, item, newCo
       onClick={showNewComments}
       className={`${topLevel && `d-block fw-bold ${styles.comment} pb-2`} d-flex align-items-center gap-2 px-3 pointer`}
     >
-      {allNewComments.length > 1
-        ? `${allNewComments.length} new comments`
+      {allNewComments > 1
+        ? `${allNewComments} new comments`
         : 'show new comment'}
       <div className={styles.newCommentDot} />
     </div>

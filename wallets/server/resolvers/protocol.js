@@ -19,7 +19,7 @@ const WalletLogEntry = {
   context: async ({ level, context, invoice, withdrawal }, args, { me }) => {
     const isError = ['error', 'warn'].includes(level.toLowerCase())
 
-    if (withdrawal) {
+    if (withdrawal && me?.id === withdrawal.userId) {
       return {
         ...await logContextFromBolt11(withdrawal.bolt11),
         ...(withdrawal.preimage ? { preimage: withdrawal.preimage } : {}),

@@ -41,10 +41,10 @@ function prepareComments ({ client, newCommentIds, newComments }) {
 
     // update commentsViewedAt with the most recent fresh new comment
     // quirk: this is not the most recent comment, it's the most recent comment in the freshNewComments array
-    //        as such, the next visit will not outline other new comments that have not been injected yet
+    //        as such, the next visit will not outline other new comments that are older than this one.
     const latestCommentCreatedAt = getLatestCommentCreatedAt(freshNewComments, data.createdAt)
     const rootId = data.path.split('.')[0]
-    commentsViewedAfterComment(rootId, latestCommentCreatedAt)
+    commentsViewedAfterComment(rootId, latestCommentCreatedAt, totalNComments)
 
     // return the updated item with the new comments injected
     return {

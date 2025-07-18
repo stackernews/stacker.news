@@ -16,16 +16,19 @@ const WalletProtocolConfig = {
 }
 
 const WalletLogEntry = {
-  context: async ({ level, context, withdrawal }) => {
+  context: async ({ level, context, invoice, withdrawal }, args, { me }) => {
     const isError = ['error', 'warn'].includes(level.toLowerCase())
 
-    // never return invoice as context because it might leak sensitive sender details
     if (withdrawal) {
       return {
         ...await logContextFromBolt11(withdrawal.bolt11),
         ...(withdrawal.preimage ? { preimage: withdrawal.preimage } : {}),
         ...(isError ? { max_fee: formatMsats(withdrawal.msatsFeePaying) } : {})
       }
+    }
+
+    if (invoice && me?.id === invoice.userId) {
+      return await logContextFromBolt11(invoice.bolt11)
     }
 
     return context

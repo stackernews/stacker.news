@@ -124,7 +124,7 @@ export function ShowNewComments ({ topLevel, sort, comments, itemId, item, newCo
   return (
     <div
       onClick={showNewComments}
-      className={`${topLevel && `d-block fw-bold ${styles.comment} pb-2`} d-flex align-items-center gap-2 px-3 pointer`}
+      className='fw-bold d-flex align-items-center gap-2 px-3 pointer'
     >
       {newCommentsCount > 1
         ? `${newCommentsCount} new comments`

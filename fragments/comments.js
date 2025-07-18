@@ -47,6 +47,7 @@ export const COMMENT_FIELDS = gql`
     otsHash
     ncomments
     nDirectComments
+    newComments @client
     imgproxyUrls
     rel
     apiKey
@@ -116,3 +117,53 @@ export const COMMENTS = gql`
       }
     }
   }`
+
+export const COMMENT_WITH_NEW_RECURSIVE = gql`
+  ${COMMENT_FIELDS}
+  ${COMMENTS}
+  
+  fragment CommentWithNewRecursive on Item {
+    ...CommentFields
+    comments {
+      comments {
+        ...CommentsRecursive
+      }
+    }
+    newComments @client
+  }
+`
+
+export const COMMENT_WITH_NEW_LIMITED = gql`
+  ${COMMENT_FIELDS}
+  
+  fragment CommentWithNewLimited on Item {
+    ...CommentFields
+    comments {
+      comments {
+        ...CommentFields
+      }
+    }
+    newComments @client
+  }
+`
+
+export const COMMENT_WITH_NEW_MINIMAL = gql`
+  ${COMMENT_FIELDS}
+  
+  fragment CommentWithNewMinimal on Item {
+    ...CommentFields
+    newComments @client
+  }
+`
+
+export const GET_NEW_COMMENTS = gql`
+  ${COMMENTS}
+  
+  query GetNewComments($rootId: ID, $after: Date) {
+    newComments(rootId: $rootId, after: $after) {
+      comments {
+        ...CommentsRecursive
+      }
+    }
+  }
+`

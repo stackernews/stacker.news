@@ -8,8 +8,10 @@ import { defaultCommentSort } from '@/lib/item'
 import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
+import useLiveComments from './use-live-comments'
+import { ShowNewComments } from './show-new-comments'
 
-export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
+export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, item }) {
   const router = useRouter()
   const sort = router.query.sort || defaultCommentSort(pinned, bio, parentCreatedAt)
 
@@ -28,6 +30,9 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
         <Nav.Item className='text-muted'>
           {numWithUnits(commentSats)}
         </Nav.Item>
+        {item.newComments?.length > 0 && (
+          <ShowNewComments topLevel item={item} sort={router.query.sort} />
+        )}
         <div className='ms-auto d-flex'>
           <Nav.Item>
             <Nav.Link
@@ -64,9 +69,11 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 
 export default function Comments ({
   parentId, pinned, bio, parentCreatedAt,
-  commentSats, comments, commentsCursor, fetchMoreComments, ncomments, ...props
+  commentSats, comments, commentsCursor, fetchMoreComments, ncomments, newComments, lastCommentAt, item, ...props
 }) {
   const router = useRouter()
+  // fetch new comments that arrived after the lastCommentAt, and update the item.newComments field in cache
+  useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort)
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
 
@@ -86,6 +93,7 @@ export default function Comments ({
                 query: sort === defaultCommentSort(pinned, bio, parentCreatedAt) ? undefined : { sort }
               }, { scroll: false })
             }}
+            item={item}
           />
         : null}
       {pins.map(item => (

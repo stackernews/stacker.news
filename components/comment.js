@@ -28,6 +28,7 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
+import { ShowNewComments } from './show-new-comments'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -260,6 +261,11 @@ export default function Comment ({
                 : !noReply &&
                   <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
+                    {item.newComments?.length > 0 && (
+                      <div className='ms-auto'>
+                        <ShowNewComments item={item} depth={depth} />
+                      </div>
+                    )}
                   </Reply>}
               {children}
               <div className={styles.comments}>
@@ -304,8 +310,9 @@ function ReplyOnAnotherPage ({ item }) {
   }
 
   return (
-    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='d-block pb-2 fw-bold text-muted'>
+    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='pb-2 fw-bold d-flex align-items-center gap-2 text-muted'>
       {text}
+      {item.newComments?.length > 0 && <div className={styles.newCommentDot} />}
     </Link>
   )
 }

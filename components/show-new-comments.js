@@ -108,7 +108,7 @@ function countAllNewComments (client, item, currentDepth = 1) {
 }
 
 // ShowNewComments is a component that dedupes, refreshes and injects newComments into the comments field
-export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
+export function ShowNewComments ({ item, sort, depth = 0 }) {
   const client = useApolloClient()
 
   // recurse through all new comments and their children
@@ -117,7 +117,7 @@ export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
   const showNewComments = useCallback(() => {
     // top level comments are injected from depth 0, other comments are injected from their depth
     injectNewComments(client, item, depth, sort)
-  }, [topLevel, client, sort, item, depth])
+  }, [client, sort, item, depth])
 
   if (newCommentsCount === 0) {
     return null

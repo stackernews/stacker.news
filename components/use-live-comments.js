@@ -59,7 +59,6 @@ export default function useLiveComments (rootId, after, sort) {
       })
 
   useEffect(() => {
-    console.log('data', data)
     if (!data?.newComments?.comments?.length) return
 
     // merge and cache new comments in their parent comment/post

@@ -14,6 +14,7 @@ export function walletLogger ({
     // since logs are created asynchronously and thus might get inserted out of order
     // however, millisecond precision is not always enough ...
     const createdAt = context?.createdAt ?? new Date()
+    delete context?.createdAt
 
     const updateStatus = ['OK', 'ERROR', 'WARNING'].includes(level) && (invoiceId || withdrawalId || context.bolt11 || context?.updateStatus)
     delete context?.updateStatus

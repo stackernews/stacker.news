@@ -306,7 +306,7 @@ function ReplyOnAnotherPage ({ item }) {
 
   let text = 'reply on another page'
   if (item.ncomments > 0) {
-    text = `view all ${item.ncomments + item.newComments?.length} replies`
+    text = `view all ${item.ncomments} replies`
   }
 
   return (

@@ -5,7 +5,7 @@ import {
 import crypto, { timingSafeEqual } from 'crypto'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
-import { formatMsats, msatsToSats, msatsToSatsDecimal } from '@/lib/format'
+import { msatsToSats, msatsToSatsDecimal } from '@/lib/format'
 import {
   USER_ID, INVOICE_RETENTION_DAYS,
   WALLET_RETRY_AFTER_MS,
@@ -22,7 +22,6 @@ import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/
 import { getNodeSockets } from '../lnd'
 import performPaidAction from '../paidAction'
 import performPayingAction from '../payingAction'
-import { logContextFromBolt11 } from '@/wallets/server'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -523,25 +522,6 @@ const resolvers = {
       return item
     },
     sats: fact => msatsToSatsDecimal(fact.msats)
-  },
-
-  WalletLogEntry: {
-    context: async ({ level, context, invoice, withdrawal }, args, { models }) => {
-      const isError = ['error', 'warn'].includes(level.toLowerCase())
-
-      if (withdrawal) {
-        return {
-          ...await logContextFromBolt11(withdrawal.bolt11),
-          ...(withdrawal.preimage ? { preimage: withdrawal.preimage } : {}),
-          ...(isError ? { max_fee: formatMsats(withdrawal.msatsFeePaying) } : {})
-        }
-      }
-
-      // XXX never return invoice as context because it might leak sensitive sender details
-      // if (invoice) { ... }
-
-      return context
-    }
   }
 }
 

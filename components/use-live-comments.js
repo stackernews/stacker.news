@@ -1,7 +1,7 @@
 import { useQuery, useApolloClient } from '@apollo/client'
 import { SSR } from '../lib/constants'
 import { GET_NEW_COMMENTS } from '../fragments/comments'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { itemUpdateQuery, commentUpdateFragment, getLatestCommentCreatedAt } from '../lib/comments'
 
 const POLL_INTERVAL = 1000 * 10 // 10 seconds
@@ -20,8 +20,6 @@ function mergeNewComment (item, newComment) {
 }
 
 function cacheNewComments (client, rootId, newComments, sort) {
-  const queuedComments = []
-
   for (const newComment of newComments) {
     const { parentId } = newComment
     const topLevel = Number(parentId) === Number(rootId)
@@ -33,24 +31,23 @@ function cacheNewComments (client, rootId, newComments, sort) {
     } else {
       // if the comment is a reply, update the parent comment
       // merge the new comment into the parent comment's newComments field, checking for duplicates
-      const result = commentUpdateFragment(client, parentId, (data) => mergeNewComment(data, newComment))
-
-      if (!result) {
-        // parent not in cache, queue for retry
-        queuedComments.push(newComment)
-      }
+      commentUpdateFragment(client, parentId, (data) => mergeNewComment(data, newComment))
     }
   }
-
-  return { queuedComments }
 }
 
 // useLiveComments fetches new comments under an item (rootId), that arrives after the latest comment createdAt
 // and inserts them into the newComment client field of their parent comment/post.
 export default function useLiveComments (rootId, after, sort) {
+  const latestKey = `liveCommentsLatest:${rootId}`
   const client = useApolloClient()
-  const [latest, setLatest] = useState(after)
-  const queue = useRef([])
+  const [latest, setLatest] = useState(() => {
+    // if we're on the client, get the latest timestamp from session storage, otherwise use the passed after timestamp
+    if (typeof window !== 'undefined') {
+      return window.sessionStorage.getItem(latestKey) || after
+    }
+    return after
+  })
 
   const { data } = useQuery(GET_NEW_COMMENTS, SSR
     ? {}
@@ -62,24 +59,18 @@ export default function useLiveComments (rootId, after, sort) {
       })
 
   useEffect(() => {
+    console.log('data', data)
     if (!data?.newComments?.comments?.length) return
 
-    // sometimes new comments can arrive as orphans because their parent might not be in the cache yet
-    // queue them up, retry until the parent shows up.
-    const newComments = [...data.newComments.comments, ...queue.current]
-    const { queuedComments } = cacheNewComments(client, rootId, newComments, sort)
-
-    // keep the queued comments for the next poll
-    queue.current = queuedComments
+    // merge and cache new comments in their parent comment/post
+    cacheNewComments(client, rootId, data.newComments.comments, sort)
 
     // update latest timestamp to the latest comment created at
-    setLatest(prevLatest => getLatestCommentCreatedAt(data.newComments.comments, prevLatest))
-  }, [data, client, rootId, sort])
-
-  // cleanup queue on unmount to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      queue.current = []
+    // save it to session storage, to persist between client-side navigations
+    const newLatest = getLatestCommentCreatedAt(data.newComments.comments, latest)
+    setLatest(newLatest)
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem(latestKey, newLatest)
     }
-  }, [])
+  }, [data, client, rootId, sort, latest])
 }

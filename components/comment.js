@@ -28,6 +28,7 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
+import { ShowNewComments } from './show-new-comments'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -139,8 +140,33 @@ export default function Comment ({
     }
   }, [item.id, cache, router.query.commentId])
 
+  const unsetOutline = () => {
+    ref.current.classList.add('outline-new-comment-unset')
+    // if the comment is injected, we need to change injected to false
+    // so that the next time the comment is rendered, it won't be outlined
+    if (item.injected) {
+      cache.writeFragment({
+        id: `Item:${item.id}`,
+        fragment: gql`
+          fragment CommentInjected on Item {
+            injected @client
+          }`,
+        data: {
+          injected: false
+        }
+      })
+    }
+  }
+
   useEffect(() => {
+    // an injected new comment needs a different class to reliably outline every new comment
+    // regardless of commentsViewedAt, it's always new
+    if (item.injected && me?.id !== item.user?.id) {
+      ref.current.classList.add('outline-new-injected-comment')
+    }
+
     if (router.query.commentsViewedAt &&
+        !item.injected &&
         me?.id !== item.user?.id &&
         new Date(item.createdAt).getTime() > router.query.commentsViewedAt) {
       ref.current.classList.add('outline-new-comment')
@@ -159,8 +185,8 @@ export default function Comment ({
   return (
     <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
-      onMouseEnter={() => ref.current.classList.add('outline-new-comment-unset')}
-      onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
+      onMouseEnter={unsetOutline}
+      onTouchStart={unsetOutline}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.outlawed && !me?.privates?.wildWestMode
@@ -260,6 +286,9 @@ export default function Comment ({
                 : !noReply &&
                   <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
+                    <div className='ms-auto'>
+                      <ShowNewComments comments={item.comments.comments} newComments={item.newComments} itemId={item.id} item={item} depth={depth} />
+                    </div>
                   </Reply>}
               {children}
               <div className={styles.comments}>
@@ -304,8 +333,9 @@ function ReplyOnAnotherPage ({ item }) {
   }
 
   return (
-    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='d-block pb-2 fw-bold text-muted'>
+    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='pb-2 fw-bold d-flex align-items-center gap-2 text-muted'>
       {text}
+      {item.newComments?.length > 0 && <div className={styles.newCommentDot} />}
     </Link>
   )
 }

@@ -59,8 +59,8 @@ export default function ItemJob ({ item, toc, rank, children, disableRetry, setD
                 @{item.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={item.user} />
               </Link>
               <span> </span>
-              <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
-                {timeSince(new Date(item.createdAt))}
+              <Link href={`/items/${item.id}`} title={item.scheduledAt || item.invoicePaidAt || item.createdAt} className='text-reset' suppressHydrationWarning>
+                {timeSince(new Date(item.scheduledAt || item.invoicePaidAt || item.createdAt))}
               </Link>
             </span>
             {item.subName &&

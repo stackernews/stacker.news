@@ -73,13 +73,14 @@ setDefaultHandler(new NetworkOnly({
 offlineFallback({ pageFallback: '/offline' })
 
 self.addEventListener('push', function (event) {
-  let payload
+  let title, options
 
   try {
-    payload = event.data?.json()
-    if (!payload) {
-      throw new Error('no payload in push event')
-    }
+    const payload = event.data?.json()
+
+    // adapt declarative payload for legacy Push API
+    options = payload.notification || {}
+    title = options.title
   } catch (err) {
     // we show a default nofication on any error because we *must* show a notification
     // else the browser will show one for us or worse, remove our push subscription
@@ -94,7 +95,7 @@ self.addEventListener('push', function (event) {
   }
 
   event.waitUntil(
-    self.registration.showNotification(payload.title, payload.options)
+    self.registration.showNotification(title, options)
       .then(() => self.registration.getNotifications())
       .then(notifications => self.navigator.setAppBadge?.(notifications.length))
   )

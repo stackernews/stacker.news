@@ -93,11 +93,7 @@ self.addEventListener('push', function (event) {
     )
   }
 
-  event.waitUntil(
-    self.registration.showNotification(payload.title, payload.options)
-      .then(() => self.registration.getNotifications())
-      .then(notifications => self.navigator.setAppBadge?.(notifications.length))
-  )
+  event.waitUntil(self.registration.showNotification(payload.title, payload.options))
 })
 
 self.addEventListener('notificationclick', function (event) {

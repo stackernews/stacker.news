@@ -81,6 +81,7 @@ model User {
   hasRecvWallet             Boolean              @default(false)
   subs                      String[]
   hideCowboyHat             Boolean              @default(false)
+  deletedAt                 DateTime?
   Bookmarks                 Bookmark[]
   Donation                  Donation[]
   Earn                      Earn[]

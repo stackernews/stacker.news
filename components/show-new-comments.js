@@ -43,7 +43,7 @@ function prepareComments ({ client, newComments }) {
     // return the updated item with the new comments injected
     return {
       ...data,
-      comments: { ...data.comments, comments: [...newComments, ...data.comments.comments] },
+      comments: { ...data.comments, comments: [...newComments, ...(data.comments?.comments || [])] },
       ncomments: data.ncomments + totalNComments,
       newComments: []
     }
@@ -115,7 +115,8 @@ export function ShowNewComments ({ item, sort, depth = 0 }) {
   const newCommentsCount = countAllNewComments(client, item, depth)
 
   const showNewComments = useCallback(() => {
-    // top level comments are injected from depth 0, other comments are injected from their depth
+    // a top level comment doesn't have depth, we pass 0 to signify this
+    // other comments are injected from their depth
     injectNewComments(client, item, depth, sort)
   }, [client, sort, item, depth])
 

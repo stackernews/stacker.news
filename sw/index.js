@@ -99,11 +99,10 @@ self.addEventListener('push', function (event) {
 self.addEventListener('notificationclick', function (event) {
   event.notification.close()
 
-  const promises = []
   const url = event.notification.data?.url
   if (url) {
     // First try to find and focus an existing client before opening a new window
-    promises.push(
+    event.waitUntil(
       self.clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then(clients => {
           if (clients.length > 0) {
@@ -121,22 +120,6 @@ self.addEventListener('notificationclick', function (event) {
         })
     )
   }
-
-  promises.push(
-    self.registration.getNotifications()
-      .then(notifications => self.navigator.setAppBadge?.(notifications.length))
-  )
-
-  event.waitUntil(Promise.all(promises))
-})
-
-// not supported by iOS
-// see https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/notificationclose_event
-self.addEventListener('notificationclose', function (event) {
-  event.waitUntil(
-    self.registration.getNotifications()
-      .then(notifications => self.navigator.setAppBadge?.(notifications.length))
-  )
 })
 
 self.addEventListener('pushsubscriptionchange', function (event) {

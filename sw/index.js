@@ -77,6 +77,9 @@ self.addEventListener('push', function (event) {
 
   try {
     const payload = event.data?.json()
+    if (!payload) {
+      throw new Error('no payload in push event')
+    }
 
     // adapt declarative payload for legacy Push API
     options = payload.notification || {}

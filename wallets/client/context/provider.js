@@ -41,6 +41,11 @@ export function useKeyHash () {
   return keyHash
 }
 
+export function useKeyUpdatedAt () {
+  const { keyUpdatedAt } = useContext(WalletsContext)
+  return keyUpdatedAt
+}
+
 export function useKeyError () {
   const { keyError } = useContext(WalletsContext)
   return keyError
@@ -54,6 +59,7 @@ export default function WalletsProvider ({ children }) {
     templates: [],
     key: null,
     keyHash: null,
+    keyUpdatedAt: null,
     keyError: null
   })
 

@@ -48,6 +48,7 @@ ${STREAK_FIELDS}
       wildWestMode
       disableFreebies
       vaultKeyHash
+      vaultKeyHashUpdatedAt
       walletsUpdatedAt
       showPassphrase
     }

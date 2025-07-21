@@ -142,7 +142,11 @@ async function updateWalletEncryption (parent, { keyHash, wallets }, { me, model
     // make sure the user's vault key didn't change while we were updating the protocols
     await tx.user.update({
       where: { id: me.id, vaultKeyHash: oldKeyHash },
-      data: { vaultKeyHash: keyHash, showPassphrase: false }
+      data: {
+        vaultKeyHash: keyHash,
+        showPassphrase: false,
+        vaultKeyHashUpdatedAt: new Date()
+      }
     })
 
     return true
@@ -154,7 +158,7 @@ async function updateKeyHash (parent, { keyHash }, { me, models }) {
 
   const count = await models.$executeRaw`
     UPDATE users
-    SET "vaultKeyHash" = ${keyHash}
+    SET "vaultKeyHash" = ${keyHash}, "vaultKeyHashUpdatedAt" = NOW()
     WHERE id = ${me.id}
     AND "vaultKeyHash" = ''
   `
@@ -184,7 +188,11 @@ async function resetWallets (parent, { newKeyHash }, { me, models }) {
     await tx.user.update({
       where: { id: me.id, vaultKeyHash: oldHash },
       // TODO(wallet-v2): nullable vaultKeyHash column
-      data: { vaultKeyHash: newKeyHash, showPassphrase: true }
+      data: {
+        vaultKeyHash: newKeyHash,
+        showPassphrase: true,
+        vaultKeyHashUpdatedAt: new Date()
+      }
     })
   })
 

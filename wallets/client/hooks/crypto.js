@@ -42,10 +42,13 @@ export function useSetKey () {
   const dispatch = useWalletsDispatch()
   const updateKeyHash = useUpdateKeyHash()
 
-  return useCallback(async ({ key, hash }) => {
-    await set('vault', 'key', { key, hash })
+  return useCallback(async ({ key, hash, updatedAt }, { updateDb = true } = {}) => {
+    if (updateDb) {
+      updatedAt = updatedAt ?? Date.now()
+      await set('vault', 'key', { key, hash, updatedAt })
+    }
     await updateKeyHash(hash)
-    dispatch({ type: SET_KEY, key, hash })
+    dispatch({ type: SET_KEY, key, hash, updatedAt })
   }, [set, dispatch, updateKeyHash])
 }
 
@@ -84,6 +87,11 @@ export function useDecryption () {
 export function useRemoteKeyHash () {
   const { me } = useMe()
   return me?.privates?.vaultKeyHash
+}
+
+export function useRemoteKeyHashUpdatedAt () {
+  const { me } = useMe()
+  return me?.privates?.vaultKeyHashUpdatedAt
 }
 
 export function useIsWrongKey () {

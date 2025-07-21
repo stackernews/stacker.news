@@ -22,7 +22,7 @@ import {
   UPDATE_KEY_HASH
 } from '@/wallets/client/fragments'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
-import { useDecryption, useEncryption, useSetKey, useWalletLogger, WalletStatus } from '@/wallets/client/hooks'
+import { useDecryption, useEncryption, useSetKey, useWalletLogger, useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolClientSchema, reverseProtocolRelationName
@@ -33,6 +33,7 @@ import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
 import { useWallets, useWalletsLoading } from '@/wallets/client/context'
+import { requestPersistentStorage } from '@/components/use-indexeddb'
 
 export function useWalletsQuery () {
   const { me } = useMe()
@@ -108,12 +109,13 @@ function undoFieldAlias ({ id, ...wallet }) {
 
 function useRefetchOnChange (refetch) {
   const { me } = useMe()
+  const walletsUpdatedAt = useWalletsUpdatedAt()
 
   useEffect(() => {
     if (!me?.id) return
 
     refetch()
-  }, [refetch, me?.id, me?.privates?.walletsUpdatedAt])
+  }, [refetch, me?.id, walletsUpdatedAt])
 }
 
 export function useWalletQuery ({ id, name }) {
@@ -188,6 +190,8 @@ export function useWalletProtocolUpsert (wallet, protocol) {
       logger.error(err.message)
       throw err
     }
+
+    requestPersistentStorage()
 
     return updatedWallet
   }, [wallet, protocol, logger, testSendPayment, encryptConfig, mutate])

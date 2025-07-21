@@ -40,7 +40,8 @@ export default function reducer (state, action) {
       return {
         ...state,
         key: action.key,
-        keyHash: action.hash
+        keyHash: action.hash,
+        keyUpdatedAt: action.updatedAt
       }
     case WRONG_KEY:
       return {

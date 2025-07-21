@@ -1,3 +1,4 @@
+import { useMe } from '@/components/me'
 import { useWallets } from '@/wallets/client/context'
 import protocols from '@/wallets/client/protocols'
 import { isWallet } from '@/wallets/lib/util'
@@ -46,4 +47,9 @@ export function useWalletStatus (wallet) {
   if (!isWallet(wallet)) return WalletStatus.DISABLED
 
   return useMemo(() => ({ send: wallet.send, receive: wallet.receive }), [wallet])
+}
+
+export function useWalletsUpdatedAt () {
+  const { me } = useMe()
+  return me?.privates?.walletsUpdatedAt
 }

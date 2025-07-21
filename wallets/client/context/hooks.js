@@ -160,7 +160,7 @@ export function useKeyInit () {
         const { key: randomKey, hash: randomHash } = await generateRandomKey()
 
         // run read and write in one transaction to avoid race conditions
-        const { key, hash } = await new Promise((resolve, reject) => {
+        const { key, hash, updatedAt } = await new Promise((resolve, reject) => {
           const tx = db.transaction('vault', 'readwrite')
           const read = tx.objectStore('vault').get('key')
 
@@ -180,7 +180,8 @@ export function useKeyInit () {
             }
 
             // no key found, write and return generated random key
-            const write = tx.objectStore('vault').put({ key: randomKey, hash: randomHash }, 'key')
+            const updatedAt = Date.now()
+            const write = tx.objectStore('vault').put({ key: randomKey, hash: randomHash, updatedAt }, 'key')
 
             write.onerror = () => {
               reject(write.error)
@@ -188,12 +189,12 @@ export function useKeyInit () {
 
             write.onsuccess = (event) => {
               // return key+hash we just wrote to db
-              resolve({ key: randomKey, hash: randomHash })
+              resolve({ key: randomKey, hash: randomHash, updatedAt })
             }
           }
         })
 
-        await setKey({ key, hash })
+        await setKey({ key, hash, updatedAt }, { updateDb: false })
       } catch (err) {
         console.error('key init failed:', err)
       }

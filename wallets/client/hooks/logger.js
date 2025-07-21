@@ -40,15 +40,15 @@ export function useWalletLoggerFactory () {
   const [addWalletLog] = useMutation(ADD_WALLET_LOG)
 
   const log = useCallback(({ protocol, level, message, invoiceId }) => {
-    console[mapLevelToConsole(level)](`[${protocol.name}] ${message}`)
+    console[mapLevelToConsole(level)](`[${protocol ? protocol.name : 'system'}] ${message}`)
 
-    if (isTemplate(protocol)) {
+    if (protocol && isTemplate(protocol)) {
       // this is a template, so there's no protocol yet to which we could attach logs in the db
       addTemplateLog?.({ level, message })
       return
     }
 
-    return addWalletLog({ variables: { protocolId: Number(protocol.id), level, message, invoiceId, timestamp: new Date() } })
+    return addWalletLog({ variables: { protocolId: protocol ? Number(protocol.id) : null, level, message, invoiceId, timestamp: new Date() } })
       .catch(err => {
         console.error('error adding wallet log:', err)
       })
@@ -68,6 +68,9 @@ export function useWalletLoggerFactory () {
       },
       warn: (message) => {
         log({ protocol, level: 'WARN', message, invoiceId })
+      },
+      debug: (message) => {
+        log({ protocol, level: 'DEBUG', message, invoiceId })
       }
     }
   }, [log])
@@ -78,7 +81,7 @@ export function useWalletLogger (protocol) {
   return useMemo(() => loggerFactory(protocol), [loggerFactory, protocol])
 }
 
-export function useWalletLogs (protocol) {
+export function useWalletLogs (protocol, debug) {
   const { templateLogs, clearTemplateLogs } = useContext(TemplateLogsContext)
 
   const [cursor, setCursor] = useState(null)
@@ -90,7 +93,7 @@ export function useWalletLogs (protocol) {
   const protocolId = protocol ? Number(protocol.id) : undefined
 
   const [fetchLogs, { called, loading, error }] = useLazyQuery(WALLET_LOGS, {
-    variables: { protocolId },
+    variables: { protocolId, debug },
     skip,
     fetchPolicy: 'network-only'
   })
@@ -99,7 +102,11 @@ export function useWalletLogs (protocol) {
     if (skip) return
 
     const interval = setInterval(async () => {
-      const { data } = await fetchLogs({ variables: { protocolId } })
+      const { data, error } = await fetchLogs({ variables: { protocolId, debug } })
+      if (error) {
+        console.error('failed to fetch wallet logs:', error.message)
+        return
+      }
       const { entries: updatedLogs, cursor } = data.walletLogs
       setLogs(logs => [...updatedLogs.filter(log => !logs.some(l => l.id === log.id)), ...logs])
       if (!called) {
@@ -108,14 +115,14 @@ export function useWalletLogs (protocol) {
     }, FAST_POLL_INTERVAL)
 
     return () => clearInterval(interval)
-  }, [fetchLogs, called, skip])
+  }, [fetchLogs, called, skip, debug])
 
   const loadMore = useCallback(async () => {
-    const { data } = await fetchLogs({ variables: { protocolId, cursor } })
+    const { data } = await fetchLogs({ variables: { protocolId, cursor, debug } })
     const { entries: cursorLogs, cursor: newCursor } = data.walletLogs
     setLogs(logs => [...logs, ...cursorLogs.filter(log => !logs.some(l => l.id === log.id))])
     setCursor(newCursor)
-  }, [fetchLogs, cursor, protocolId])
+  }, [fetchLogs, cursor, protocolId, debug])
 
   const clearLogs = useCallback(() => {
     setLogs([])
@@ -149,7 +156,7 @@ function mapLevelToConsole (level) {
   }
 }
 
-export function useDeleteWalletLogs (protocol) {
+export function useDeleteWalletLogs (protocol, debug) {
   const showModal = useShowModal()
 
   return useCallback(async () => {
@@ -174,6 +181,7 @@ export function useDeleteWalletLogs (protocol) {
             protocol={protocol}
             onClose={onClose}
             onDelete={onDelete}
+            debug={debug}
           />
         )
       }, { onClose })
@@ -181,7 +189,7 @@ export function useDeleteWalletLogs (protocol) {
   }, [showModal])
 }
 
-function DeleteWalletLogsObstacle ({ protocol, onClose, onDelete }) {
+function DeleteWalletLogsObstacle ({ protocol, onClose, onDelete, debug }) {
   const toaster = useToast()
   const [deleteWalletLogs] = useMutation(DELETE_WALLET_LOGS)
 
@@ -190,9 +198,9 @@ function DeleteWalletLogsObstacle ({ protocol, onClose, onDelete }) {
     if (protocol && isTemplate(protocol)) return
 
     await deleteWalletLogs({
-      variables: { protocolId: protocol ? Number(protocol.id) : undefined }
+      variables: { protocolId: protocol ? Number(protocol.id) : undefined, debug }
     })
-  }, [protocol, deleteWalletLogs])
+  }, [protocol, deleteWalletLogs, debug])
 
   const onClick = useCallback(async () => {
     try {
@@ -206,7 +214,7 @@ function DeleteWalletLogsObstacle ({ protocol, onClose, onDelete }) {
     }
   }, [onClose, deleteLogs, toaster])
 
-  let prompt = 'Do you really want to delete all wallet logs?'
+  let prompt = debug ? 'Do you really want to delete all debug logs?' : 'Do you really want to delete all logs?'
   if (protocol) {
     prompt = 'Do you really want to delete all logs of this protocol?'
   }

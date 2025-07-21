@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { WalletLayout, WalletLayoutHeader, WalletDebugSettings } from '@/wallets/client/components'
+import { WalletLayout, WalletLayoutHeader, WalletDebugSettings, WalletLogs } from '@/wallets/client/components'
 
 export const getServerSideProps = getGetServerSideProps({})
 
@@ -9,6 +9,7 @@ export default function WalletDebug () {
       <div className='py-5 mx-auto w-100' style={{ maxWidth: '600px' }}>
         <WalletLayoutHeader>wallet debug</WalletLayoutHeader>
         <WalletDebugSettings />
+        <WalletLogs className='mt-3' debug />
       </div>
     </WalletLayout>
   )

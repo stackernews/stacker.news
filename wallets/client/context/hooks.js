@@ -6,7 +6,8 @@ import useInvoice from '@/components/use-invoice'
 import { useMe } from '@/components/me'
 import {
   useWalletsQuery, useWalletPayment, useGenerateRandomKey, useSetKey, useLoadKey, useLoadOldKey,
-  useWalletMigrationMutation, CryptoKeyRequiredError, useIsWrongKey
+  useWalletMigrationMutation, CryptoKeyRequiredError, useIsWrongKey,
+  useWalletLogger
 } from '@/wallets/client/hooks'
 import { WalletConfigurationError } from '@/wallets/client/errors'
 import { SET_WALLETS, WRONG_KEY, KEY_MATCH, useWalletsDispatch, WALLETS_QUERY_ERROR, KEY_STORAGE_UNAVAILABLE } from '@/wallets/client/context'
@@ -108,6 +109,8 @@ export function useKeyInit () {
   const dispatch = useWalletsDispatch()
   const wrongKey = useIsWrongKey()
 
+  const logger = useWalletLogger()
+
   useEffect(() => {
     if (typeof window.indexedDB === 'undefined') {
       dispatch({ type: KEY_STORAGE_UNAVAILABLE })
@@ -165,17 +168,20 @@ export function useKeyInit () {
           const read = tx.objectStore('vault').get('key')
 
           read.onerror = () => {
+            logger.debug('error reading key: ' + read.error)
             reject(read.error)
           }
 
           read.onsuccess = () => {
             if (read.result) {
               // return key+hash found in db
+              logger.debug('key init: key found in db')
               return resolve(read.result)
             }
 
             if (oldKeyAndHash) {
               // return key+hash found in old db
+              logger.debug('key init: key found in old db')
               return resolve(oldKeyAndHash)
             }
 
@@ -184,11 +190,13 @@ export function useKeyInit () {
             const write = tx.objectStore('vault').put({ key: randomKey, hash: randomHash, updatedAt }, 'key')
 
             write.onerror = () => {
+              logger.debug('key init: error writing new random key: ' + write.error)
               reject(write.error)
             }
 
             write.onsuccess = (event) => {
               // return key+hash we just wrote to db
+              logger.debug('key init: saved new random key')
               resolve({ key: randomKey, hash: randomHash, updatedAt })
             }
           }
@@ -196,11 +204,12 @@ export function useKeyInit () {
 
         await setKey({ key, hash, updatedAt }, { updateDb: false })
       } catch (err) {
-        console.error('key init failed:', err)
+        logger.debug('key init: error: ' + err)
+        console.error('key init: error:', err)
       }
     }
     keyInit()
-  }, [me?.id, db, generateRandomKey, loadOldKey, setKey, loadKey])
+  }, [me?.id, db, generateRandomKey, loadOldKey, setKey, loadKey, logger])
 }
 
 // TODO(wallet-v2): remove migration code

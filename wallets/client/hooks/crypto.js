@@ -9,7 +9,7 @@ import bip39Words from '@/lib/bip39-words'
 import { Form, PasswordInput, SubmitButton } from '@/components/form'
 import { object, string } from 'yup'
 import { SET_KEY, useKey, useKeyHash, useWalletsDispatch } from '@/wallets/client/context'
-import { useDisablePassphraseExport, useUpdateKeyHash, useWalletEncryptionUpdate, useWalletReset } from '@/wallets/client/hooks'
+import { useDisablePassphraseExport, useUpdateKeyHash, useWalletEncryptionUpdate, useWalletLogger, useWalletReset } from '@/wallets/client/hooks'
 import { useToast } from '@/components/toast'
 
 export class CryptoKeyRequiredError extends Error {
@@ -41,6 +41,7 @@ export function useSetKey () {
   const { set } = useIndexedDB()
   const dispatch = useWalletsDispatch()
   const updateKeyHash = useUpdateKeyHash()
+  const logger = useWalletLogger()
 
   return useCallback(async ({ key, hash, updatedAt }, { updateDb = true } = {}) => {
     if (updateDb) {
@@ -49,7 +50,8 @@ export function useSetKey () {
     }
     await updateKeyHash(hash)
     dispatch({ type: SET_KEY, key, hash, updatedAt })
-  }, [set, dispatch, updateKeyHash])
+    logger.debug(`using key ${hash}`)
+  }, [set, dispatch, updateKeyHash, logger])
 }
 
 export function useEncryption () {
@@ -159,12 +161,14 @@ export function useSavePassphrase () {
   const setKey = useSetKey()
   const salt = useKeySalt()
   const disablePassphraseExport = useDisablePassphraseExport()
+  const logger = useWalletLogger()
 
   return useCallback(async ({ passphrase }) => {
+    logger.debug('passphrase entered')
     const { key, hash } = await deriveKey(passphrase, salt)
     await setKey({ key, hash })
     await disablePassphraseExport()
-  }, [setKey, disablePassphraseExport])
+  }, [setKey, disablePassphraseExport, logger])
 }
 
 export function useResetPassphrase () {
@@ -173,19 +177,22 @@ export function useResetPassphrase () {
   const generateRandomKey = useGenerateRandomKey()
   const setKey = useSetKey()
   const toaster = useToast()
+  const logger = useWalletLogger()
 
   const resetPassphrase = useCallback((close) =>
     async () => {
       try {
+        logger.debug('passphrase reset')
         const { key: randomKey, hash } = await generateRandomKey()
         await setKey({ key: randomKey, hash })
         await walletReset({ newKeyHash: hash })
         close()
       } catch (err) {
+        logger.debug('failed to reset passphrase: ' + err)
         console.error('failed to reset passphrase:', err)
         toaster.error('failed to reset passphrase')
       }
-    }, [walletReset, generateRandomKey, setKey, toaster])
+    }, [walletReset, generateRandomKey, setKey, toaster, logger])
 
   return useCallback(async () => {
     showModal(close => (

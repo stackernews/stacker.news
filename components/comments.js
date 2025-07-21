@@ -11,7 +11,7 @@ import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
 import { ShowNewComments } from './show-new-comments'
 
-export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, item }) {
+export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
   const router = useRouter()
   const sort = router.query.sort || defaultCommentSort(pinned, bio, parentCreatedAt)
 
@@ -91,7 +91,6 @@ export default function Comments ({
                 query: sort === defaultCommentSort(pinned, bio, parentCreatedAt) ? undefined : { sort }
               }, { scroll: false })
             }}
-            item={item}
           />
         : null}
       {pins.map(item => (

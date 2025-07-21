@@ -1,11 +1,12 @@
 import { formatBytes } from '@/lib/format'
 import { useEffect, useState } from 'react'
-import { useKeyHash } from '@/wallets/client/context'
+import { useKeyHash, useKeyUpdatedAt } from '@/wallets/client/context'
 import { useRemoteKeyHash, useRemoteKeyHashUpdatedAt, useWalletsUpdatedAt } from '@/wallets/client/hooks'
 import { timeSince } from '@/lib/time'
 
 export function WalletDebugSettings () {
   const localKeyHash = useKeyHash()
+  const localKeyUpdatedAt = useKeyUpdatedAt()
   const remoteKeyHash = useRemoteKeyHash()
   const remoteKeyHashUpdatedAt = useRemoteKeyHashUpdatedAt()
   const walletsUpdatedAt = useWalletsUpdatedAt()
@@ -59,7 +60,13 @@ export function WalletDebugSettings () {
         <div className='col'>{remoteKeyHash ? shortHash(remoteKeyHash) : 'unknown'}</div>
       </div>
       <div className='row'>
-        <div className='col text-nowrap'>last key update:</div>
+        <div className='col text-nowrap'>last device key update:</div>
+        <div className='col' suppressHydrationWarning>
+          {localKeyUpdatedAt ? timeSince(localKeyUpdatedAt) : 'unknown'}
+        </div>
+      </div>
+      <div className='row'>
+        <div className='col text-nowrap'>last server key update:</div>
         <div className='col' suppressHydrationWarning>
           {remoteKeyHashUpdatedAt ? timeSince(new Date(remoteKeyHashUpdatedAt).getTime()) : 'unknown'}
         </div>

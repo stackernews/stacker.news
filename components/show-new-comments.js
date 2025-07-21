@@ -112,7 +112,7 @@ export function ShowNewComments ({ item, sort, depth = 0 }) {
   const client = useApolloClient()
 
   // recurse through all new comments and their children
-  const newCommentsCount = countAllNewComments(client, item, depth)
+  const newCommentsCount = item.newComments?.length > 0 ? countAllNewComments(client, item, depth) : 0
 
   const showNewComments = useCallback(() => {
     // a top level comment doesn't have depth, we pass 0 to signify this
@@ -120,19 +120,16 @@ export function ShowNewComments ({ item, sort, depth = 0 }) {
     injectNewComments(client, item, depth, sort)
   }, [client, sort, item, depth])
 
-  if (newCommentsCount === 0) {
-    return null
-  }
-
   return (
-    <div
+    <span
       onClick={showNewComments}
       className='fw-bold d-flex align-items-center gap-2 px-3 pointer'
+      style={{ visibility: newCommentsCount > 0 ? 'visible' : 'hidden' }}
     >
       {newCommentsCount > 1
         ? `${newCommentsCount} new comments`
         : 'show new comment'}
       <div className={styles.newCommentDot} />
-    </div>
+    </span>
   )
 }

@@ -30,9 +30,6 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
         <Nav.Item className='text-muted'>
           {numWithUnits(commentSats)}
         </Nav.Item>
-        {item.newComments?.length > 0 && (
-          <ShowNewComments topLevel item={item} sort={router.query.sort} />
-        )}
         <div className='ms-auto d-flex'>
           <Nav.Item>
             <Nav.Link
@@ -79,6 +76,7 @@ export default function Comments ({
 
   return (
     <>
+      <ShowNewComments item={item} sort={router.query.sort} />
       {comments?.length > 0
         ? <CommentsHeader
             commentSats={commentSats} parentCreatedAt={parentCreatedAt}

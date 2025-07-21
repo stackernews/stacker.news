@@ -60,21 +60,21 @@ export function WalletDebugSettings () {
         <div className='col'>{remoteKeyHash ? shortHash(remoteKeyHash) : 'unknown'}</div>
       </div>
       <div className='row'>
-        <div className='col text-nowrap'>last device key update:</div>
+        <div className='col text-nowrap'>device key update:</div>
         <div className='col' suppressHydrationWarning>
-          {localKeyUpdatedAt ? timeSince(localKeyUpdatedAt) : 'unknown'}
+          {localKeyUpdatedAt ? `${timeSince(localKeyUpdatedAt)} ago` : 'unknown'}
         </div>
       </div>
       <div className='row'>
-        <div className='col text-nowrap'>last server key update:</div>
+        <div className='col text-nowrap'>server key update:</div>
         <div className='col' suppressHydrationWarning>
-          {remoteKeyHashUpdatedAt ? timeSince(new Date(remoteKeyHashUpdatedAt).getTime()) : 'unknown'}
+          {remoteKeyHashUpdatedAt ? `${timeSince(new Date(remoteKeyHashUpdatedAt).getTime())} ago` : 'unknown'}
         </div>
       </div>
       <div className='row'>
-        <div className='col text-nowrap'>last wallet update:</div>
+        <div className='col text-nowrap'>wallet update:</div>
         <div className='col' suppressHydrationWarning>
-          {walletsUpdatedAt ? timeSince(new Date(walletsUpdatedAt).getTime()) : 'unknown'}
+          {walletsUpdatedAt ? `${timeSince(new Date(walletsUpdatedAt).getTime())} ago` : 'unknown'}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useRef, useEffect, useState } from 'react'
 import { useApolloClient } from '@apollo/client'
 import styles from './comment.module.css'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
@@ -61,7 +61,8 @@ function traverseNewComments (client, item, onLevel, currentDepth = 1) {
     // being newComments an array of comment ids, we can get their latest version from the cache
     // ensuring that we don't miss any new comments
     const freshNewComments = dedupedNewComments.map(id => {
-      return readCommentsFragment(client, id)
+      // injected is used to determine if we should outline this comment
+      return { ...readCommentsFragment(client, id), injected: true }
     }).filter(Boolean)
 
     // passing currentDepth allows children of top level comments
@@ -107,9 +108,59 @@ function countAllNewComments (client, item, currentDepth = 1) {
   return totalNComments
 }
 
+function useVisibility (elementRef, threshold = 0) {
+  const [isVisible, setIsVisible] = useState(true)
+
+  useEffect(() => {
+    const element = elementRef.current
+    if (!element) return
+
+    // sox notes
+    // threshold is the percentage of the element that must be visible to be considered visible
+    // 0 means the element must be fully visible, 1 means the element must be fully invisible
+    const observer = new window.IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting)
+      }, { threshold }
+    )
+
+    // track visibility of the element
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [threshold])
+
+  return isVisible
+}
+
+function FloatingComments ({ buttonRef, showNewComments, newCommentsCount }) {
+  const isButtonVisible = useVisibility(buttonRef)
+
+  if (newCommentsCount === 0 || isButtonVisible) return null
+
+  return (
+    <span
+      className='position-fixed top-0 start-50 translate-middle'
+      // marginTop is based off the height of the navbar, zIndex is based off the default modal zIndex
+      style={{ marginTop: 72, zIndex: 1050 }}
+    >
+      <button
+        className='btn btn-sm btn-info d-flex align-items-center gap-1'
+        onClick={() => {
+          showNewComments()
+          buttonRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }}
+      >
+        {newCommentsCount} new comment{newCommentsCount > 1 ? 's' : ''}
+        <div className={styles.newCommentDot} />
+      </button>
+    </span>
+  )
+}
+
 // ShowNewComments is a component that dedupes, refreshes and injects newComments into the comments field
-export function ShowNewComments ({ item, sort, depth = 0 }) {
+export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
   const client = useApolloClient()
+  const ref = useRef(null)
 
   // recurse through all new comments and their children
   const newCommentsCount = item.newComments?.length > 0 ? countAllNewComments(client, item, depth) : 0
@@ -121,15 +172,19 @@ export function ShowNewComments ({ item, sort, depth = 0 }) {
   }, [client, sort, item, depth])
 
   return (
-    <span
-      onClick={showNewComments}
-      className='fw-bold d-flex align-items-center gap-2 px-3 pointer'
-      style={{ visibility: newCommentsCount > 0 ? 'visible' : 'hidden' }}
-    >
-      {newCommentsCount > 1
-        ? `${newCommentsCount} new comments`
-        : 'show new comment'}
-      <div className={styles.newCommentDot} />
-    </span>
+    <>
+      <span
+        ref={ref}
+        onClick={showNewComments}
+        className='fw-bold d-flex align-items-center gap-2 px-3 pointer'
+        style={{ visibility: newCommentsCount > 0 ? 'visible' : 'hidden' }}
+      >
+        {newCommentsCount} new comment{newCommentsCount > 1 ? 's' : ''}
+        <div className={styles.newCommentDot} />
+      </span>
+      {topLevel && (
+        <FloatingComments buttonRef={ref} showNewComments={showNewComments} newCommentsCount={newCommentsCount} />
+      )}
+    </>
   )
 }

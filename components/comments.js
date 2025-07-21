@@ -76,7 +76,7 @@ export default function Comments ({
 
   return (
     <>
-      <ShowNewComments item={item} sort={router.query.sort} />
+      <ShowNewComments topLevel item={item} sort={router.query.sort} />
       {comments?.length > 0
         ? <CommentsHeader
             commentSats={commentSats} parentCreatedAt={parentCreatedAt}

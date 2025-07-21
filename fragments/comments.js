@@ -150,12 +150,10 @@ export const COMMENT_WITH_NEW_LIMITED = gql`
   }
 `
 
-// TODO: fragment for comments without item.comments field
-// TODO: remove if useless to pursue
-export const COMMENT_WITH_NEW = gql`
+export const COMMENT_WITH_NEW_MINIMAL = gql`
   ${COMMENT_FIELDS}
   
-  fragment CommentWithNew on Item {
+  fragment CommentWithNewMinimal on Item {
     ...CommentFields
     newComments @client
   }

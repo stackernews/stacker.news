@@ -9,7 +9,7 @@ import {
   useWalletMigrationMutation, CryptoKeyRequiredError, useIsWrongKey
 } from '@/wallets/client/hooks'
 import { WalletConfigurationError } from '@/wallets/client/errors'
-import { SET_WALLETS, WRONG_KEY, KEY_MATCH, NO_KEY, useWalletsDispatch } from '@/wallets/client/context'
+import { SET_WALLETS, WRONG_KEY, KEY_MATCH, useWalletsDispatch, WALLETS_QUERY_ERROR, KEY_STORAGE_UNAVAILABLE } from '@/wallets/client/context'
 import { useIndexedDB } from '@/components/use-indexeddb'
 
 export function useServerWallets () {
@@ -19,6 +19,7 @@ export function useServerWallets () {
   useEffect(() => {
     if (query.error) {
       console.error('failed to fetch wallets:', query.error)
+      dispatch({ type: WALLETS_QUERY_ERROR, error: query.error })
       return
     }
     if (query.loading) return
@@ -109,7 +110,7 @@ export function useKeyInit () {
 
   useEffect(() => {
     if (typeof window.indexedDB === 'undefined') {
-      dispatch({ type: NO_KEY })
+      dispatch({ type: KEY_STORAGE_UNAVAILABLE })
     } else if (wrongKey) {
       dispatch({ type: WRONG_KEY })
     } else {
@@ -129,8 +130,12 @@ export function useKeyInit () {
     let db
 
     async function openDb () {
-      db = await open()
-      setDb(db)
+      try {
+        db = await open()
+        setDb(db)
+      } catch (err) {
+        console.error('failed to open indexeddb:', err)
+      }
     }
     openDb()
 
@@ -147,16 +152,11 @@ export function useKeyInit () {
       try {
         // TODO(wallet-v2): remove migration code
         //   and delete the old IndexedDB after wallet v2 has been released for some time
-        const oldKeyAndHash = await loadOldKey()
-        if (oldKeyAndHash) {
-          // return key found in old db and save it to new db
-          await setKey(oldKeyAndHash)
-          return
-        }
 
-        // create random key before opening transaction in case we need it
-        // and because we can't run async code in a transaction because it will close the transaction
+        // load old key and create random key before opening transaction in case we need them
+        // because we can't run async code in a transaction because it will close the transaction
         // see https://javascript.info/indexeddb#transactions-autocommit
+        const oldKeyAndHash = await loadOldKey()
         const { key: randomKey, hash: randomHash } = await generateRandomKey()
 
         // run read and write in one transaction to avoid race conditions
@@ -172,6 +172,11 @@ export function useKeyInit () {
             if (read.result) {
               // return key+hash found in db
               return resolve(read.result)
+            }
+
+            if (oldKeyAndHash) {
+              // return key+hash found in old db
+              return resolve(oldKeyAndHash)
             }
 
             // no key found, write and return generated random key

@@ -32,12 +32,13 @@ import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
-import { useWallets, useLoading as useWalletsLoading } from '@/wallets/client/context'
+import { useWallets, useWalletsLoading } from '@/wallets/client/context'
 
 export function useWalletsQuery () {
   const { me } = useMe()
   const query = useQuery(WALLETS, { skip: !me })
   const [wallets, setWallets] = useState(null)
+  const [error, setError] = useState(null)
 
   const { decryptWallet, ready } = useWalletDecryption()
 
@@ -48,10 +49,15 @@ export function useWalletsQuery () {
     )
       .then(wallets => wallets.map(protocolCheck))
       .then(wallets => wallets.map(undoFieldAlias))
-      .then(wallets => setWallets(wallets))
+      .then(wallets => {
+        setWallets(wallets)
+        setError(null)
+      })
       .catch(err => {
         console.error('failed to decrypt wallets:', err)
         setWallets([])
+        // OperationError from the Web Crypto API does not have a message
+        setError(new Error('decryption error: ' + (err.message || err.name)))
       })
   }, [query.data, decryptWallet, ready])
 
@@ -59,9 +65,10 @@ export function useWalletsQuery () {
 
   return useMemo(() => ({
     ...query,
+    error: error ?? query.error,
     loading: !wallets,
     data: wallets ? { wallets } : null
-  }), [query, wallets])
+  }), [query, error, wallets])
 }
 
 function protocolCheck (wallet) {

@@ -1,6 +1,6 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Button } from 'react-bootstrap'
-import { useWallets, useTemplates, DndProvider, Status, useStatus } from '@/wallets/client/context'
+import { useWallets, useTemplates, DndProvider, KeyStatus, useWalletsLoading, useKeyError, useWalletsError } from '@/wallets/client/context'
 import { WalletCard, WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
 import styles from '@/styles/wallet.module.css'
 import { usePassphrasePrompt, useShowPassphrase, useSetWalletPriorities } from '@/wallets/client/hooks'
@@ -13,11 +13,13 @@ export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function Wallet () {
   const wallets = useWallets()
-  const status = useStatus()
+  const walletsLoading = useWalletsLoading()
+  const walletsError = useWalletsError()
+  const keyError = useKeyError()
   const [showWallets, setShowWallets] = useState(false)
   const templates = useTemplates()
   const showPassphrase = useShowPassphrase()
-  const passphrasePrompt = usePassphrasePrompt()
+  const [showPassphrasePrompt, togglePassphrasePrompt, PassphrasePrompt] = usePassphrasePrompt()
   const setWalletPriorities = useSetWalletPriorities()
   const [searchFilter, setSearchFilter] = useState(() => (text) => true)
 
@@ -29,33 +31,7 @@ export default function Wallet () {
     }
   }, [wallets, templates, searchFilter])
 
-  if (status === Status.LOADING_WALLETS) {
-    return (
-      <WalletLayout>
-        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1 text-muted'>
-          <Moon className='spin fill-grey' height={28} width={28} />
-          <small className='d-block mt-3 text-muted'>loading wallets</small>
-        </div>
-      </WalletLayout>
-    )
-  }
-
-  if (status === Status.PASSPHRASE_REQUIRED) {
-    return (
-      <WalletLayout>
-        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
-          <Button
-            onClick={passphrasePrompt}
-            size='md' variant='secondary'
-          >unlock wallets
-          </Button>
-          <small className='d-block mt-3 text-muted'>your passphrase is required</small>
-        </div>
-      </WalletLayout>
-    )
-  }
-
-  if (status === Status.WALLETS_UNAVAILABLE) {
+  if (keyError === KeyStatus.KEY_STORAGE_UNAVAILABLE) {
     return (
       <WalletLayout>
         <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
@@ -68,7 +44,54 @@ export default function Wallet () {
     )
   }
 
-  if (status === Status.NO_WALLETS && !showWallets) {
+  if (keyError === KeyStatus.WRONG_KEY) {
+    return showPassphrasePrompt
+      ? (
+        <WalletLayout>
+          <div className='py-5 d-flex flex-column align-items-center justify-content-center flex-grow-1 mx-auto' style={{ maxWidth: '500px' }}>
+            <PassphrasePrompt />
+          </div>
+        </WalletLayout>
+        )
+      : (
+        <WalletLayout>
+          <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
+            <Button
+              onClick={togglePassphrasePrompt}
+              size='md' variant='secondary'
+            >unlock wallets
+            </Button>
+            <small className='d-block mt-3 text-muted'>your passphrase is required</small>
+          </div>
+        </WalletLayout>
+        )
+  }
+
+  if (walletsError) {
+    return (
+      <WalletLayout>
+        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
+          <span className='text-muted fw-bold my-1'>failed to load wallets</span>
+          <small className='d-block text-muted'>
+            {walletsError.message}
+          </small>
+        </div>
+      </WalletLayout>
+    )
+  }
+
+  if (walletsLoading) {
+    return (
+      <WalletLayout>
+        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1 text-muted'>
+          <Moon className='spin fill-grey' height={28} width={28} />
+          <small className='d-block mt-3 text-muted'>loading wallets</small>
+        </div>
+      </WalletLayout>
+    )
+  }
+
+  if (wallets.length === 0 && !showWallets) {
     return (
       <WalletLayout>
         <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>

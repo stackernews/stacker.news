@@ -11,7 +11,7 @@ import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
 import { ShowNewComments } from './show-new-comments'
 
-export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
+export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, item }) {
   const router = useRouter()
   const sort = router.query.sort || defaultCommentSort(pinned, bio, parentCreatedAt)
 
@@ -66,7 +66,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 
 export default function Comments ({
   parentId, pinned, bio, parentCreatedAt,
-  commentSats, comments, commentsCursor, fetchMoreComments, ncomments, newComments, lastCommentAt, ...props
+  commentSats, comments, commentsCursor, fetchMoreComments, ncomments, newComments, lastCommentAt, item, ...props
 }) {
   const router = useRouter()
   // fetch new comments that arrived after the lastCommentAt, and update the item.newComments field in cache
@@ -76,6 +76,7 @@ export default function Comments ({
 
   return (
     <>
+      <ShowNewComments item={item} sort={router.query.sort} />
       {comments?.length > 0
         ? <CommentsHeader
             commentSats={commentSats} parentCreatedAt={parentCreatedAt}
@@ -90,11 +91,9 @@ export default function Comments ({
                 query: sort === defaultCommentSort(pinned, bio, parentCreatedAt) ? undefined : { sort }
               }, { scroll: false })
             }}
+            item={item}
           />
         : null}
-      {newComments?.length > 0 && (
-        <ShowNewComments topLevel comments={comments} newComments={newComments} itemId={parentId} sort={router.query.sort} />
-      )}
       {pins.map(item => (
         <Fragment key={item.id}>
           <Comment depth={1} item={item} {...props} pin />

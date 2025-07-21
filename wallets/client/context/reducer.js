@@ -1,12 +1,8 @@
 import { isTemplate, isWallet } from '@/wallets/lib/util'
 
-// states that dictate if we show a button or wallets on the wallets page
-export const Status = {
-  LOADING_WALLETS: 'LOADING_WALLETS',
-  NO_WALLETS: 'NO_WALLETS',
-  HAS_WALLETS: 'HAS_WALLETS',
-  PASSPHRASE_REQUIRED: 'PASSPHRASE_REQUIRED',
-  WALLETS_UNAVAILABLE: 'WALLETS_UNAVAILABLE'
+export const KeyStatus = {
+  KEY_STORAGE_UNAVAILABLE: 'KEY_STORAGE_UNAVAILABLE',
+  WRONG_KEY: 'WRONG_KEY'
 }
 
 // wallet actions
@@ -14,7 +10,8 @@ export const SET_WALLETS = 'SET_WALLETS'
 export const SET_KEY = 'SET_KEY'
 export const WRONG_KEY = 'WRONG_KEY'
 export const KEY_MATCH = 'KEY_MATCH'
-export const NO_KEY = 'KEY_UNAVAILABLE'
+export const KEY_STORAGE_UNAVAILABLE = 'KEY_STORAGE_UNAVAILABLE'
+export const WALLETS_QUERY_ERROR = 'WALLETS_QUERY_ERROR'
 
 export default function reducer (state, action) {
   switch (action.type) {
@@ -27,13 +24,18 @@ export default function reducer (state, action) {
         .sort((a, b) => a.name.localeCompare(b.name))
       return {
         ...state,
-        status: statusLocked(state.status)
-          ? state.status
-          : walletStatus(wallets),
+        walletsLoading: false,
+        walletsError: null,
         wallets,
         templates
       }
     }
+    case WALLETS_QUERY_ERROR:
+      return {
+        ...state,
+        walletsLoading: false,
+        walletsError: action.error
+      }
     case SET_KEY:
       return {
         ...state,
@@ -43,31 +45,19 @@ export default function reducer (state, action) {
     case WRONG_KEY:
       return {
         ...state,
-        status: Status.PASSPHRASE_REQUIRED
+        keyError: KeyStatus.WRONG_KEY
       }
     case KEY_MATCH:
       return {
         ...state,
-        status: state.status === Status.LOADING_WALLETS
-          ? state.status
-          : walletStatus(state.wallets)
+        keyError: null
       }
-    case NO_KEY:
+    case KEY_STORAGE_UNAVAILABLE:
       return {
         ...state,
-        status: Status.WALLETS_UNAVAILABLE
+        keyError: KeyStatus.KEY_STORAGE_UNAVAILABLE
       }
     default:
       return state
   }
-}
-
-function statusLocked (status) {
-  return [Status.PASSPHRASE_REQUIRED, Status.WALLETS_UNAVAILABLE].includes(status)
-}
-
-function walletStatus (wallets) {
-  return wallets.length > 0
-    ? Status.HAS_WALLETS
-    : Status.NO_WALLETS
 }

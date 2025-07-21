@@ -287,7 +287,7 @@ export default function Comment ({
                   <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
                     <div className='ms-auto'>
-                      <ShowNewComments comments={item.comments.comments} newComments={item.newComments} itemId={item.id} item={item} depth={depth} />
+                      <ShowNewComments item={item} depth={depth} />
                     </div>
                   </Reply>}
               {children}

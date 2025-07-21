@@ -22,7 +22,7 @@ import {
   UPDATE_KEY_HASH
 } from '@/wallets/client/fragments'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
-import { useDecryption, useEncryption, useSetKey, useWalletLogger, WalletStatus } from '@/wallets/client/hooks'
+import { useDecryption, useEncryption, useSetKey, useWalletLogger, useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolClientSchema, reverseProtocolRelationName
@@ -109,12 +109,13 @@ function undoFieldAlias ({ id, ...wallet }) {
 
 function useRefetchOnChange (refetch) {
   const { me } = useMe()
+  const walletsUpdatedAt = useWalletsUpdatedAt()
 
   useEffect(() => {
     if (!me?.id) return
 
     refetch()
-  }, [refetch, me?.id, me?.privates?.walletsUpdatedAt])
+  }, [refetch, me?.id, walletsUpdatedAt])
 }
 
 export function useWalletQuery ({ id, name }) {

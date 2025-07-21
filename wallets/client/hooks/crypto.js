@@ -86,6 +86,11 @@ export function useRemoteKeyHash () {
   return me?.privates?.vaultKeyHash
 }
 
+export function useRemoteKeyHashUpdatedAt () {
+  const { me } = useMe()
+  return me?.privates?.vaultKeyHashUpdatedAt
+}
+
 export function useIsWrongKey () {
   const localHash = useKeyHash()
   const remoteHash = useRemoteKeyHash()

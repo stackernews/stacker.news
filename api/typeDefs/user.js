@@ -202,6 +202,7 @@ export default gql`
     withdrawMaxFeeDefault: Int!
     autoWithdrawThreshold: Int
     vaultKeyHash: String
+    vaultKeyHashUpdatedAt: Date
     walletsUpdatedAt: Date
   }
 

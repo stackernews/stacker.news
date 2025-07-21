@@ -102,10 +102,7 @@ export const ServiceWorkerProvider = ({ children }) => {
     }
     await subscribeToPushNotifications()
     // request persistent storage: https://web.dev/learn/pwa/offline-data#data_persistence
-    const persisted = await navigator?.storage?.persisted?.()
-    if (!persisted && navigator?.storage?.persist) {
-      return await navigator.storage.persist()
-    }
+    requestPersistentStorage()
   })
 
   useEffect(() => {

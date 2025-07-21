@@ -11,6 +11,7 @@ export default gql`
     auctionPosition(sub: String, id: ID, boost: Int): Int!
     boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
+    scheduledItems(cursor: String, limit: Limit): Items
   }
 
   type BoostPositions {
@@ -112,6 +113,8 @@ export default gql`
     deletedAt: Date
     deleteScheduledAt: Date
     reminderScheduledAt: Date
+    scheduledAt: Date
+    isScheduled: Boolean!
     title: String
     searchTitle: String
     url: String

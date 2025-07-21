@@ -3,6 +3,7 @@ import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySub
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
+import { getScheduleAt } from '@/lib/item'
 
 export const anonable = true
 
@@ -96,6 +97,9 @@ export async function perform (args, context) {
   const mentions = await getMentions(args, context)
   const itemMentions = await getItemMentions(args, context)
 
+  // Check if this is a scheduled post
+  const scheduleAt = getScheduleAt(data.text)
+
   // start with median vote
   if (me) {
     const [row] = await tx.$queryRaw`SELECT
@@ -112,6 +116,7 @@ export async function perform (args, context) {
     ...data,
     ...invoiceData,
     boost,
+    scheduledAt: scheduleAt,
     threadSubscriptions: {
       createMany: {
         data: [

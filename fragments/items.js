@@ -19,6 +19,7 @@ export const ITEM_FIELDS = gql`
     parentId
     createdAt
     invoicePaidAt
+    scheduledAt
     deletedAt
     title
     url

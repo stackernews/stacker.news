@@ -138,8 +138,8 @@ export default function ItemInfo ({
             {embellishUser}
           </Link>}
         <span> </span>
-        <Link href={`/items/${item.id}`} title={item.invoicePaidAt || item.createdAt} className='text-reset' suppressHydrationWarning>
-          {timeSince(new Date(item.invoicePaidAt || item.createdAt))}
+        <Link href={`/items/${item.id}`} title={item.scheduledAt || item.invoicePaidAt || item.createdAt} className='text-reset' suppressHydrationWarning>
+          {timeSince(new Date(item.scheduledAt || item.invoicePaidAt || item.createdAt))}
         </Link>
         {item.prior &&
           <>

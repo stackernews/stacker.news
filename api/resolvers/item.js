@@ -39,7 +39,7 @@ function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
     return `ORDER BY ${sharedSorts},
       ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC,
-      COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC, "Item".id DESC`
+      COALESCE("Item"."scheduledAt", "Item"."invoicePaidAt", "Item".created_at) DESC, "Item".id DESC`
   }
 
   if (sort === 'hot') {
@@ -108,7 +108,8 @@ export async function getItem (parent, { id }, { me, models }) {
       FROM "Item"
       ${whereClause(
         '"Item".id = $1',
-        activeOrMine(me)
+        activeOrMine(me),
+        scheduledOrMine(me)
       )}`
   }, Number(id))
   return item
@@ -130,6 +131,7 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
         '"Item".bio = false',
         '"Item".boost > 0',
         activeOrMine(),
+        scheduledOrMine(me),
         subClause(sub, 1, 'Item', me, showNsfw),
         muteClause(me))}
       ORDER BY boost desc, "Item".created_at ASC
@@ -255,6 +257,12 @@ export const activeOrMine = (me) => {
 
 export const muteClause = me =>
   me ? `NOT EXISTS (SELECT 1 FROM "Mute" WHERE "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId")` : ''
+
+export const scheduledOrMine = (me) => {
+  return me
+    ? `("Item"."scheduledAt" IS NULL OR "Item"."scheduledAt" <= now() OR "Item"."userId" = ${me.id})`
+    : '("Item"."scheduledAt" IS NULL OR "Item"."scheduledAt" <= now())'
+}
 
 const HIDE_NSFW_CLAUSE = '("Sub"."nsfw" = FALSE OR "Sub"."nsfw" IS NULL)'
 
@@ -411,6 +419,7 @@ export default {
               ${whereClause(
                 `"${table}"."userId" = $3`,
                 activeOrMine(me),
+                scheduledOrMine(me),
                 nsfwClause(showNsfw),
                 typeClause(type),
                 by === 'boost' && '"Item".boost > 0',
@@ -433,14 +442,15 @@ export default {
                 '"Item"."deletedAt" IS NULL',
                 subClause(sub, 4, subClauseTable(type), me, showNsfw),
                 activeOrMine(me),
+                scheduledOrMine(me),
                 await filterClause(me, models, type),
                 typeClause(type),
                 muteClause(me)
               )}
-              ORDER BY COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC
+              ORDER BY COALESCE("Item"."scheduledAt", "Item"."invoicePaidAt", "Item".created_at) DESC
               OFFSET $2
               LIMIT $3`,
-            orderBy: 'ORDER BY COALESCE("Item"."invoicePaidAt", "Item".created_at) DESC'
+            orderBy: 'ORDER BY COALESCE("Item"."scheduledAt", "Item"."invoicePaidAt", "Item".created_at) DESC'
           }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
           break
         case 'top':
@@ -457,6 +467,7 @@ export default {
                 typeClause(type),
                 whenClause(when, 'Item'),
                 activeOrMine(me),
+                scheduledOrMine(me),
                 await filterClause(me, models, type),
                 by === 'boost' && '"Item".boost > 0',
                 muteClause(me))}
@@ -484,6 +495,7 @@ export default {
                 typeClause(type),
                 await filterClause(me, models, type),
                 activeOrMine(me),
+                scheduledOrMine(me),
                 muteClause(me))}
               ${orderByClause('random', me, models, type)}
               OFFSET $1
@@ -513,6 +525,7 @@ export default {
                       '"parentId" IS NULL',
                       '"Item"."deletedAt" IS NULL',
                       activeOrMine(me),
+                      scheduledOrMine(me),
                       'created_at <= $1',
                       '"pinId" IS NULL',
                       subClause(sub, 4)
@@ -543,6 +556,7 @@ export default {
                         '"pinId" IS NOT NULL',
                         '"parentId" IS NULL',
                         sub ? '"subName" = $1' : '"subName" IS NULL',
+                        scheduledOrMine(me),
                         muteClause(me))}
                   ) rank_filter WHERE RANK = 1
                   ORDER BY position ASC`,
@@ -569,6 +583,7 @@ export default {
                       '"Item".bio = false',
                       ad ? `"Item".id <> ${ad.id}` : '',
                       activeOrMine(me),
+                      scheduledOrMine(me),
                       await filterClause(me, models, type),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
@@ -659,6 +674,7 @@ export default {
           ${SELECT}
           FROM "Item"
           WHERE url ~* $1 AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID')
+          AND (${scheduledOrMine(me)})
           ORDER BY created_at DESC
           LIMIT 3`
       }, similar)
@@ -738,6 +754,36 @@ export default {
         sub: subAgg?._count.id === 0 && boost >= BOOST_MULT,
         homeMaxBoost: homeAgg._max.boost || 0,
         subMaxBoost: subAgg?._max.boost || 0
+      }
+    },
+    scheduledItems: async (parent, { cursor, limit = LIMIT }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const decodedCursor = decodeCursor(cursor)
+
+      const items = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}, trim(both ' ' from
+            coalesce(ltree2text(subpath("path", 0, -1)), '')) AS "ancestorTitles"
+          FROM "Item"
+          WHERE "userId" = $1 AND "scheduledAt" IS NOT NULL AND "deletedAt" IS NULL
+          AND ("invoiceActionState" IS NULL OR "invoiceActionState" = 'PAID')
+          AND created_at <= $2::timestamp
+          ORDER BY "scheduledAt" ASC
+          OFFSET $3
+          LIMIT $4`,
+        orderBy: ''
+      }, me.id, decodedCursor.time, decodedCursor.offset, limit)
+
+      return {
+        cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+        items,
+        pins: [],
+        ad: null
       }
     }
   },
@@ -1363,7 +1409,8 @@ export default {
           FROM "Item"
           ${whereClause(
             '"Item".id = $1',
-            `("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID'${me ? ` OR "Item"."userId" = ${me.id}` : ''})`
+            `("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID'${me ? ` OR "Item"."userId" = ${me.id}` : ''})`,
+            scheduledOrMine(me)
           )}`
       }, Number(item.rootId))
 
@@ -1422,6 +1469,20 @@ export default {
         AND data->>'userId' = ${meId}::TEXT
         AND state = 'created'`
       return reminderJobs[0]?.startafter ?? null
+    },
+    scheduledAt: async (item, args, { me, models }) => {
+      const meId = me?.id ?? USER_ID.anon
+      if (meId !== item.userId) {
+        // Only show scheduledAt for published scheduled posts (scheduledAt <= now)
+        // For unpublished scheduled posts, only show to owner
+        if (!item.scheduledAt || item.scheduledAt > new Date()) {
+          return null
+        }
+      }
+      return item.scheduledAt
+    },
+    isScheduled: async (item, args, { me, models }) => {
+      return !!item.scheduledAt
     }
   }
 }

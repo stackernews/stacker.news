@@ -136,3 +136,26 @@
 .comment:has(.comment) + .comment{
     padding-top: .5rem;
 }
+
+.newCommentDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--bs-primary);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        background-color: #FADA5E;
+        opacity: 0.7;
+    }
+    50% {
+        background-color: #F6911D;
+        opacity: 1;
+    }
+    100% {
+        background-color: #FADA5E;
+        opacity: 0.7;
+    }
+}

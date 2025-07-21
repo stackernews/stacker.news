@@ -33,6 +33,7 @@ import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
 import { useWallets, useWalletsLoading } from '@/wallets/client/context'
+import { requestPersistentStorage } from '@/components/use-indexeddb'
 
 export function useWalletsQuery () {
   const { me } = useMe()
@@ -188,6 +189,8 @@ export function useWalletProtocolUpsert (wallet, protocol) {
       logger.error(err.message)
       throw err
     }
+
+    requestPersistentStorage()
 
     return updatedWallet
   }, [wallet, protocol, logger, testSendPayment, encryptConfig, mutate])

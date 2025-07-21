@@ -129,6 +129,21 @@ async function _delete (dbName) {
   })
 }
 
+export async function requestPersistentStorage () {
+  try {
+    if (!('persisted' in navigator.storage) || !('persist' in navigator.storage)) {
+      throw new Error('persistent storage not supported')
+    }
+    const persisted = await navigator.storage.persisted()
+    if (!persisted) {
+      // browser might prompt the user to allow persistent storage
+      return await navigator.storage.persist()
+    }
+  } catch (err) {
+    console.error('failed to request persistent storage:', err)
+  }
+}
+
 class IndexedDBError extends Error {
   constructor (message) {
     super(message)

@@ -10,6 +10,7 @@ import {
   updateAncestorsCommentCount,
   readCommentsFragment
 } from '../lib/comments'
+import classNames from 'classnames'
 
 // filters out new comments, by id, that already exist in the item's comments
 // preventing duplicate comments from being injected
@@ -139,20 +140,13 @@ function FloatingComments ({ buttonRef, showNewComments, newCommentsCount }) {
 
   return (
     <span
-      className='position-fixed top-0 start-50 translate-middle'
-      // marginTop is based off the height of the navbar, zIndex is based off the default modal zIndex
-      style={{ marginTop: 72, zIndex: 1050 }}
+      className={classNames(styles.floatingComments, 'btn btn-sm btn-info')}
+      onClick={() => {
+        showNewComments()
+        buttonRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }}
     >
-      <button
-        className='btn btn-sm btn-info d-flex align-items-center gap-1'
-        onClick={() => {
-          showNewComments()
-          buttonRef.current?.scrollIntoView({ behavior: 'smooth' })
-        }}
-      >
-        {newCommentsCount} new comment{newCommentsCount > 1 ? 's' : ''}
-        <div className={styles.newCommentDot} />
-      </button>
+      {newCommentsCount} new comment{newCommentsCount > 1 ? 's' : ''}
     </span>
   )
 }

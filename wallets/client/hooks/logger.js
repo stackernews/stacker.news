@@ -6,6 +6,7 @@ import { ModalClosedError, useShowModal } from '@/components/modal'
 import { useToast } from '@/components/toast'
 import { FAST_POLL_INTERVAL } from '@/lib/constants'
 import { isTemplate } from '@/wallets/lib/util'
+import { useDiagnostics } from '@/wallets/client/hooks/diagnostics'
 
 const TemplateLogsContext = createContext({})
 
@@ -38,6 +39,7 @@ export function TemplateLogsProvider ({ children }) {
 export function useWalletLoggerFactory () {
   const { addTemplateLog } = useContext(TemplateLogsContext)
   const [addWalletLog] = useMutation(ADD_WALLET_LOG)
+  const [diagnostics] = useDiagnostics()
 
   const log = useCallback(({ protocol, level, message, invoiceId }) => {
     console[mapLevelToConsole(level)](`[${protocol ? protocol.name : 'system'}] ${message}`)
@@ -70,10 +72,11 @@ export function useWalletLoggerFactory () {
         log({ protocol, level: 'WARN', message, invoiceId })
       },
       debug: (message) => {
+        if (!diagnostics) return
         log({ protocol, level: 'DEBUG', message, invoiceId })
       }
     }
-  }, [log])
+  }, [log, diagnostics])
 }
 
 export function useWalletLogger (protocol) {

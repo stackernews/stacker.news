@@ -1,7 +1,7 @@
 import { formatBytes } from '@/lib/format'
 import { useEffect, useState } from 'react'
 import { useKeyHash, useKeyUpdatedAt } from '@/wallets/client/context'
-import { useRemoteKeyHash, useRemoteKeyHashUpdatedAt, useWalletsUpdatedAt } from '@/wallets/client/hooks'
+import { useDiagnostics, useRemoteKeyHash, useRemoteKeyHashUpdatedAt, useWalletsUpdatedAt } from '@/wallets/client/hooks'
 import { timeSince } from '@/lib/time'
 
 export function WalletDebugSettings () {
@@ -13,6 +13,7 @@ export function WalletDebugSettings () {
   const [persistent, setPersistent] = useState(null)
   const [quota, setQuota] = useState(null)
   const [usage, setUsage] = useState(null)
+  const [diagnostics, setDiagnostics] = useDiagnostics()
 
   useEffect(() => {
     async function init () {
@@ -59,6 +60,14 @@ export function WalletDebugSettings () {
       <div className='text-end' suppressHydrationWarning>
         {walletsUpdatedAt ? `${timeSince(new Date(walletsUpdatedAt).getTime())} ago` : 'unknown'}
       </div>
+      <div className='text-nowrap'>diagnostics:</div>
+      {/* not using Formik here because we want to submit immediately on change */}
+      <input
+        type='checkbox'
+        checked={diagnostics}
+        style={{ justifySelf: 'end', accentColor: 'var(--bs-primary)' }}
+        onChange={(e) => setDiagnostics(e.target.checked)}
+      />
     </div>
   )
 }

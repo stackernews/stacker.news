@@ -62,8 +62,7 @@ function traverseNewComments (client, item, onLevel, currentDepth = 1) {
     // being newComments an array of comment ids, we can get their latest version from the cache
     // ensuring that we don't miss any new comments
     const freshNewComments = dedupedNewComments.map(id => {
-      // injected is used to determine if we should outline this comment
-      return { ...readCommentsFragment(client, id), injected: true }
+      return readCommentsFragment(client, id)
     }).filter(Boolean)
 
     // passing currentDepth allows children of top level comments

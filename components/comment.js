@@ -97,7 +97,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 }
 
 export default function Comment ({
-  item, children, replyOpen, includeParent, topLevel,
+  item, children, replyOpen, includeParent, topLevel, rootLastCommentAt,
   rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry
 }) {
   const [edit, setEdit] = useState()
@@ -140,38 +140,21 @@ export default function Comment ({
     }
   }, [item.id, cache, router.query.commentId])
 
-  const unsetOutline = () => {
-    ref.current.classList.add('outline-new-comment-unset')
-    // if the comment is injected, we need to change injected to false
-    // so that the next time the comment is rendered, it won't be outlined
-    if (item.injected) {
-      cache.writeFragment({
-        id: `Item:${item.id}`,
-        fragment: gql`
-          fragment CommentInjected on Item {
-            injected @client
-          }`,
-        data: {
-          injected: false
-        }
-      })
-    }
-  }
-
   useEffect(() => {
-    // an injected new comment needs a different class to reliably outline every new comment
-    // regardless of commentsViewedAt, it's always new
-    if (item.injected && me?.id !== item.user?.id) {
+    if (me?.id === item.user?.id) return
+    const itemCreatedAt = new Date(item.createdAt).getTime()
+
+    // a newly injected comment will always be newer than the root's last comment
+    if (itemCreatedAt > (new Date(rootLastCommentAt).getTime() || 0)) {
       ref.current.classList.add('outline-new-injected-comment')
     }
 
     if (router.query.commentsViewedAt &&
-        !item.injected &&
-        me?.id !== item.user?.id &&
-        new Date(item.createdAt).getTime() > router.query.commentsViewedAt) {
+        !item.newComments &&
+        itemCreatedAt > router.query.commentsViewedAt) {
       ref.current.classList.add('outline-new-comment')
     }
-  }, [item.id])
+  }, [item.id, rootLastCommentAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
@@ -185,8 +168,8 @@ export default function Comment ({
   return (
     <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
-      onMouseEnter={unsetOutline}
-      onTouchStart={unsetOutline}
+      onMouseEnter={() => ref.current.classList.add('outline-new-comment-unset')}
+      onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.outlawed && !me?.privates?.wildWestMode
@@ -296,7 +279,7 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} />
+                        <Comment depth={depth + 1} key={item.id} item={item} rootLastCommentAt={rootLastCommentAt} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nhas={item.ncomments} />}
                     </>

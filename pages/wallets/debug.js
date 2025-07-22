@@ -1,7 +1,7 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { WalletLayout, WalletLayoutHeader, WalletDebugSettings, WalletLogs } from '@/wallets/client/components'
 
-export const getServerSideProps = getGetServerSideProps({})
+export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function WalletDebug () {
   return (

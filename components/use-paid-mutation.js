@@ -2,9 +2,9 @@ import { useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import { useCallback, useState } from 'react'
 import useQrPayment from '@/components/use-qr-payment'
 import useInvoice from '@/components/use-invoice'
-import { InvoiceCanceledError, InvoiceExpiredError, WalletError, WalletPaymentError } from '@/wallets/errors'
+import { InvoiceCanceledError, InvoiceExpiredError, WalletError, WalletPaymentError } from '@/wallets/client/errors'
 import { GET_PAID_ACTION } from '@/fragments/paidAction'
-import { useWalletPayment } from '@/wallets/payment'
+import { useWalletPayment } from '@/wallets/client/hooks'
 
 /*
 this is just like useMutation with a few changes:

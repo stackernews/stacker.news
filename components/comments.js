@@ -8,6 +8,8 @@ import { defaultCommentSort } from '@/lib/item'
 import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
+import useLiveComments from './use-live-comments'
+import { ShowNewComments } from './show-new-comments'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
   const router = useRouter()
@@ -64,14 +66,17 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 
 export default function Comments ({
   parentId, pinned, bio, parentCreatedAt,
-  commentSats, comments, commentsCursor, fetchMoreComments, ncomments, ...props
+  commentSats, comments, commentsCursor, fetchMoreComments, ncomments, newComments, lastCommentAt, item, ...props
 }) {
   const router = useRouter()
+  // fetch new comments that arrived after the lastCommentAt, and update the item.newComments field in cache
+  useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort)
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
 
   return (
     <>
+      <ShowNewComments item={item} sort={router.query.sort} />
       {comments?.length > 0
         ? <CommentsHeader
             commentSats={commentSats} parentCreatedAt={parentCreatedAt}

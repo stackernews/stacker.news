@@ -4,8 +4,7 @@ import PgBoss from 'pg-boss'
 import createPrisma from '@/lib/create-prisma'
 import {
   checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
-  checkWithdrawal, checkWallet,
-  finalizeHodlInvoice, subscribeToWallet
+  checkWithdrawal, finalizeHodlInvoice, subscribeToWallet
 } from './wallet'
 import { repin } from './repin'
 import { trust } from './trust'
@@ -144,7 +143,6 @@ async function work () {
   await boss.work('reminder', jobWrapper(remindUser))
   await boss.work('thisDay', jobWrapper(thisDay))
   await boss.work('socialPoster', jobWrapper(postToSocial))
-  await boss.work('checkWallet', jobWrapper(checkWallet))
 
   console.log('working jobs')
 }

@@ -23,12 +23,8 @@ ${STREAK_FIELDS}
     photoId
     privates {
       autoDropBolt11s
-      diagnostics
       noReferralLinks
       fiatCurrency
-      autoWithdrawMaxFeePercent
-      autoWithdrawMaxFeeTotal
-      autoWithdrawThreshold
       withdrawMaxFeeDefault
       satsFilter
       hideFromTopUsers
@@ -52,8 +48,9 @@ ${STREAK_FIELDS}
       wildWestMode
       disableFreebies
       vaultKeyHash
+      vaultKeyHashUpdatedAt
       walletsUpdatedAt
-      proxyReceive
+      showPassphrase
     }
     optional {
       isContributor
@@ -97,7 +94,6 @@ export const SETTINGS_FIELDS = gql`
       imgproxyOnly
       showImagesAndVideos
       hideWalletBalance
-      diagnostics
       noReferralLinks
       nostrPubkey
       nostrCrossposting
@@ -115,9 +111,6 @@ export const SETTINGS_FIELDS = gql`
         apiKey
       }
       apiKeyEnabled
-      proxyReceive
-      receiveCreditsBelowSats
-      sendCreditsBelowSats
     }
   }`
 

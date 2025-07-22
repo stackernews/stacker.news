@@ -86,7 +86,7 @@ export default gql`
 
   input SettingsInput {
     autoDropBolt11s: Boolean!
-    diagnostics: Boolean!
+    diagnostics: Boolean @deprecated
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!
@@ -124,9 +124,6 @@ export default gql`
     zapUndos: Int
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
-    proxyReceive: Boolean
-    receiveCreditsBelowSats: Int!
-    sendCreditsBelowSats: Int!
   }
 
   type AuthMethods {
@@ -157,12 +154,13 @@ export default gql`
     upvotePopover: Boolean!
     hasInvites: Boolean!
     apiKeyEnabled: Boolean!
+    showPassphrase: Boolean!
 
     """
     mirrors SettingsInput
     """
     autoDropBolt11s: Boolean!
-    diagnostics: Boolean!
+    diagnostics: Boolean @deprecated
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!
@@ -203,14 +201,9 @@ export default gql`
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
     autoWithdrawThreshold: Int
-    autoWithdrawMaxFeePercent: Float
-    autoWithdrawMaxFeeTotal: Int
     vaultKeyHash: String
+    vaultKeyHashUpdatedAt: Date
     walletsUpdatedAt: Date
-    proxyReceive: Boolean
-    directReceive: Boolean @deprecated
-    receiveCreditsBelowSats: Int!
-    sendCreditsBelowSats: Int!
   }
 
   type UserOptional {

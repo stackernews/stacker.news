@@ -166,21 +166,14 @@
     left: 50%;
     transform: translateX(-50%);
     z-index: 1050;
-    opacity: 0.7;
     animation: slideDown 0.3s ease-out;
-}
-
-.floatingComments:hover {
-    opacity: 1;
 }
 
 @keyframes slideDown {
     0% {
         transform: translateX(-50%) translateY(-100px);
-        opacity: 0;
     }
     100% {
         transform: translateX(-50%) translateY(0);
-        opacity: 0.7;
     }
 }

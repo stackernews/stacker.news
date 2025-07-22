@@ -41,20 +41,27 @@ function prepareComments ({ client, newComments }) {
     const rootId = data.path.split('.')[0]
     commentsViewedAfterComment(rootId, latestCommentCreatedAt, totalNComments)
 
-    // return the updated item with the new comments injected
-    return {
+    // standard payload for all types of comment fragments
+    const payload = {
       ...data,
-      comments: { ...data.comments, comments: [...newComments, ...(data.comments?.comments || [])] },
       ncomments: data.ncomments + totalNComments,
       newComments: []
     }
+
+    // inject comments for fragments that have a comments field
+    if (data.comments) {
+      payload.comments = { ...data.comments, comments: [...newComments, ...(data.comments?.comments || [])] }
+    }
+
+    // otherwise, just return the standard payload to update the item
+    return payload
   }
 }
 
 // traverses all new comments and their children
 // at each level, we can execute a callback giving the new comments and the item
-function traverseNewComments (client, item, onLevel, allNewComments = false, currentDepth = 1) {
-  if (currentDepth > COMMENT_DEPTH_LIMIT) return
+function traverseNewComments (client, item, onLevel, threadComment = false, currentDepth = 1) {
+  if (currentDepth >= COMMENT_DEPTH_LIMIT) return
 
   if (item.newComments && item.newComments.length > 0) {
     const dedupedNewComments = dedupeNewComments(item.newComments, item.comments?.comments)
@@ -74,9 +81,9 @@ function traverseNewComments (client, item, onLevel, allNewComments = false, cur
     }
   }
 
-  if (allNewComments && item.comments?.comments) {
+  if (threadComment && item.comments?.comments) {
     for (const child of item.comments.comments) {
-      traverseNewComments(client, child, onLevel, allNewComments, currentDepth + 1)
+      traverseNewComments(client, child, onLevel, threadComment, currentDepth + 1)
     }
   }
 }

@@ -53,7 +53,7 @@ function prepareComments ({ client, newComments }) {
 
 // traverses all new comments and their children
 // at each level, we can execute a callback giving the new comments and the item
-function traverseNewComments (client, item, onLevel, currentDepth = 1) {
+function traverseNewComments (client, item, onLevel, allNewComments = false, currentDepth = 1) {
   if (currentDepth > COMMENT_DEPTH_LIMIT) return
 
   if (item.newComments && item.newComments.length > 0) {
@@ -73,11 +73,17 @@ function traverseNewComments (client, item, onLevel, currentDepth = 1) {
       traverseNewComments(client, newComment, onLevel, currentDepth + 1)
     }
   }
+
+  if (allNewComments && item.comments?.comments) {
+    for (const child of item.comments.comments) {
+      traverseNewComments(client, child, onLevel, allNewComments, currentDepth + 1)
+    }
+  }
 }
 
 // recursively processes and displays all new comments and its children
 // handles comment injection at each level, respecting depth limits
-function injectNewComments (client, item, currentDepth, sort) {
+function injectNewComments (client, item, currentDepth, sort, threadComment = false) {
   traverseNewComments(client, item, (newComments, item, depth) => {
     if (newComments.length > 0) {
       const payload = prepareComments({ client, newComments })
@@ -90,11 +96,11 @@ function injectNewComments (client, item, currentDepth, sort) {
         commentUpdateFragment(client, item.id, payload)
       }
     }
-  }, currentDepth)
+  }, threadComment, currentDepth)
 }
 
 // counts all new comments for an item and its children
-function countAllNewComments (client, item, currentDepth = 1) {
+function countAllNewComments (client, item, threadComment = false, currentDepth = 1) {
   let totalNComments = 0
 
   // count by traversing all new comments and their children
@@ -103,7 +109,7 @@ function countAllNewComments (client, item, currentDepth = 1) {
     for (const newComment of newComments) {
       totalNComments += newComment.ncomments || 0
     }
-  }, currentDepth)
+  }, threadComment, currentDepth)
 
   return totalNComments
 }
@@ -158,13 +164,18 @@ export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
   const client = useApolloClient()
   const ref = useRef(null)
 
+  const threadComment = item.path?.split('.').length === 2
+
   // recurse through all new comments and their children
-  const newCommentsCount = item.newComments?.length > 0 ? countAllNewComments(client, item, depth) : 0
+  // if the item is a thread comment, we consider every child comment
+  const newCommentsCount = item.newComments?.length > 0 || threadComment
+    ? countAllNewComments(client, item, threadComment, depth)
+    : 0
 
   const showNewComments = useCallback(() => {
     // a top level comment doesn't have depth, we pass 0 to signify this
     // other comments are injected from their depth
-    injectNewComments(client, item, depth, sort)
+    injectNewComments(client, item, depth, sort, threadComment)
   }, [client, sort, item, depth])
 
   const text = `${newCommentsCount} new comment${newCommentsCount > 1 ? 's' : ''}`

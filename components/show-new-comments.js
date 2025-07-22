@@ -1,8 +1,10 @@
-import { useCallback, useRef, useEffect, useState } from 'react'
+import { useCallback, useRef } from 'react'
 import { useApolloClient } from '@apollo/client'
 import styles from './comment.module.css'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import { commentsViewedAfterComment } from '../lib/new-comments'
+import classNames from 'classnames'
+import useVisibility from './use-visibility'
 import {
   itemUpdateQuery,
   commentUpdateFragment,
@@ -10,7 +12,6 @@ import {
   updateAncestorsCommentCount,
   readCommentsFragment
 } from '../lib/comments'
-import classNames from 'classnames'
 
 // filters out new comments, by id, that already exist in the item's comments
 // preventing duplicate comments from being injected
@@ -59,7 +60,7 @@ function prepareComments ({ client, newComments }) {
 }
 
 // traverses all new comments and their children
-// at each level, we can execute a callback giving the new comments and the item
+// if we're showing all new comments of a thread, we also consider their existing children
 function traverseNewComments (client, item, onLevel, threadComment = false, currentDepth = 1) {
   if (currentDepth >= COMMENT_DEPTH_LIMIT) return
 
@@ -72,8 +73,7 @@ function traverseNewComments (client, item, onLevel, threadComment = false, curr
       return readCommentsFragment(client, id)
     }).filter(Boolean)
 
-    // passing currentDepth allows children of top level comments
-    // to be updated by the commentUpdateFragment
+    // at each level, we can execute a callback giving the new comments and the item
     onLevel(freshNewComments, item, currentDepth)
 
     for (const newComment of freshNewComments) {
@@ -81,6 +81,8 @@ function traverseNewComments (client, item, onLevel, threadComment = false, curr
     }
   }
 
+  // if we're showing all new comments of a thread
+  // we consider every child comment recursively
   if (threadComment && item.comments?.comments) {
     for (const child of item.comments.comments) {
       traverseNewComments(client, child, onLevel, threadComment, currentDepth + 1)
@@ -88,15 +90,15 @@ function traverseNewComments (client, item, onLevel, threadComment = false, curr
   }
 }
 
-// recursively processes and displays all new comments and its children
+// recursively processes and displays all new comments
 // handles comment injection at each level, respecting depth limits
 function injectNewComments (client, item, currentDepth, sort, threadComment = false) {
   traverseNewComments(client, item, (newComments, item, depth) => {
     if (newComments.length > 0) {
       const payload = prepareComments({ client, newComments })
 
-      // used to determine if by iterating through the new comments
-      // we are injecting topLevels (depth 0) or not
+      // traverseNewComments also passes the depth of the current item
+      // used to determine if in an array of new comments, we are injecting topLevels (depth 0) or not
       if (depth === 0) {
         itemUpdateQuery(client, item.id, sort, payload)
       } else {
@@ -106,11 +108,11 @@ function injectNewComments (client, item, currentDepth, sort, threadComment = fa
   }, threadComment, currentDepth)
 }
 
-// counts all new comments for an item and its children
+// counts all new comments of an item
 function countAllNewComments (client, item, threadComment = false, currentDepth = 1) {
   let totalNComments = 0
 
-  // count by traversing all new comments and their children
+  // count by traversing the comment structure
   traverseNewComments(client, item, (newComments) => {
     totalNComments += newComments.length
     for (const newComment of newComments) {
@@ -121,35 +123,9 @@ function countAllNewComments (client, item, threadComment = false, currentDepth 
   return totalNComments
 }
 
-function useVisibility (elementRef, threshold = 0) {
-  const [isVisible, setIsVisible] = useState(true)
-
-  useEffect(() => {
-    const element = elementRef.current
-    if (!element) return
-
-    // sox notes
-    // threshold is the percentage of the element that must be visible to be considered visible
-    // 0 means the element must be fully visible, 1 means the element must be fully invisible
-    const observer = new window.IntersectionObserver(
-      ([entry]) => {
-        // set to not visible only if we're past the observed element
-        entry.isIntersecting
-          ? setIsVisible(true)
-          : setIsVisible(entry.boundingClientRect.top > 0)
-      }, { threshold }
-    )
-
-    // track visibility of the element
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [threshold])
-
-  return isVisible
-}
-
 function FloatingComments ({ buttonRef, showNewComments, text }) {
-  const isButtonVisible = useVisibility(buttonRef)
+  // show the floating comments button only when we're past the main top level button
+  const isButtonVisible = useVisibility(buttonRef, { pastElement: true })
 
   if (isButtonVisible) return null
 
@@ -157,6 +133,7 @@ function FloatingComments ({ buttonRef, showNewComments, text }) {
     <span
       className={classNames(styles.floatingComments, 'btn btn-sm btn-info')}
       onClick={() => {
+        // show new comments as we scroll up
         showNewComments()
         buttonRef.current?.scrollIntoView({ behavior: 'smooth' })
       }}
@@ -180,8 +157,8 @@ export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
     : 0
 
   const showNewComments = useCallback(() => {
-    // a top level comment doesn't have depth, we pass 0 to signify this
-    // other comments are injected from their depth
+    // a top level comment doesn't pass depth, we pass its default value of 0 to signify this
+    // child comments are injected from the depth they're at
     injectNewComments(client, item, depth, sort, threadComment)
   }, [client, sort, item, depth])
 

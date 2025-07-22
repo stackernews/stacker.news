@@ -121,7 +121,10 @@ function useVisibility (elementRef, threshold = 0) {
     // 0 means the element must be fully visible, 1 means the element must be fully invisible
     const observer = new window.IntersectionObserver(
       ([entry]) => {
-        setIsVisible(entry.isIntersecting)
+        // set to not visible only if we're past the observed element
+        entry.isIntersecting
+          ? setIsVisible(true)
+          : setIsVisible(entry.boundingClientRect.top > 0)
       }, { threshold }
     )
 
@@ -133,10 +136,10 @@ function useVisibility (elementRef, threshold = 0) {
   return isVisible
 }
 
-function FloatingComments ({ buttonRef, showNewComments, newCommentsCount }) {
+function FloatingComments ({ buttonRef, showNewComments, text }) {
   const isButtonVisible = useVisibility(buttonRef)
 
-  if (newCommentsCount === 0 || isButtonVisible) return null
+  if (isButtonVisible) return null
 
   return (
     <span
@@ -146,7 +149,7 @@ function FloatingComments ({ buttonRef, showNewComments, newCommentsCount }) {
         buttonRef.current?.scrollIntoView({ behavior: 'smooth' })
       }}
     >
-      {newCommentsCount} new comment{newCommentsCount > 1 ? 's' : ''}
+      {text}
     </span>
   )
 }
@@ -165,6 +168,8 @@ export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
     injectNewComments(client, item, depth, sort)
   }, [client, sort, item, depth])
 
+  const text = `${newCommentsCount} new comment${newCommentsCount > 1 ? 's' : ''}`
+
   return (
     <>
       <span
@@ -173,11 +178,11 @@ export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
         className='fw-bold d-flex align-items-center gap-2 px-3 pointer'
         style={{ visibility: newCommentsCount > 0 ? 'visible' : 'hidden' }}
       >
-        {newCommentsCount} new comment{newCommentsCount > 1 ? 's' : ''}
+        {text}
         <div className={styles.newCommentDot} />
       </span>
-      {topLevel && (
-        <FloatingComments buttonRef={ref} showNewComments={showNewComments} newCommentsCount={newCommentsCount} />
+      {topLevel && newCommentsCount > 0 && (
+        <FloatingComments buttonRef={ref} showNewComments={showNewComments} text={text} />
       )}
     </>
   )

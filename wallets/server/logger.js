@@ -16,7 +16,7 @@ export function walletLogger ({
     const createdAt = context?.createdAt ?? new Date()
     delete context?.createdAt
 
-    const updateStatus = ['OK', 'ERROR', 'WARNING'].includes(level) && (invoiceId || withdrawalId || context.bolt11 || context?.updateStatus)
+    const updateStatus = protocolId && ['OK', 'ERROR', 'WARNING'].includes(level) && (invoiceId || withdrawalId || context.bolt11 || context?.updateStatus)
     delete context?.updateStatus
 
     try {

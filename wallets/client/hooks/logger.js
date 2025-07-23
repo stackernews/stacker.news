@@ -75,7 +75,7 @@ export function useWalletLoggerFactory () {
 
 export function useWalletLogger (protocol) {
   const loggerFactory = useWalletLoggerFactory()
-  return loggerFactory(protocol)
+  return useMemo(() => loggerFactory(protocol), [loggerFactory, protocol])
 }
 
 export function useWalletLogs (protocol) {

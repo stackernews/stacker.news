@@ -34,48 +34,30 @@ export function WalletDebugSettings () {
   }, [])
 
   return (
-    <div className='container text-muted mt-5'>
-      <div className='row'>
-        <div className='col text-nowrap'>persistent storage:</div>
-        <div className='col'>{persistent !== null ? persistent?.toString() : 'unknown'}</div>
+    <div className='d-grid column-gap-2 text-muted mt-3 mx-auto w-fit-content' style={{ gridTemplateColumns: '1fr 1fr' }}>
+      <div className='text-nowrap'>persistent storage:</div>
+      <div className='text-end'>{persistent !== null ? persistent?.toString() : 'unknown'}</div>
+      <div className='text-nowrap'>storage quota:</div>
+      <div className='text-end'>{quota !== null ? formatBytes(quota) : 'unknown'}</div>
+      <div className='text-nowrap'>storage usage:</div>
+      <div className='text-end'>{usage !== null ? formatBytes(usage) : 'unknown'}</div>
+      <div className='text-nowrap'>storage remaining:</div>
+      <div className='text-end'>{usage !== null && quota !== null ? formatBytes(quota - usage) : 'unknown'}</div>
+      <div className='text-nowrap'>device key hash:</div>
+      <div className='text-end'>{localKeyHash ? shortHash(localKeyHash) : 'unknown'}</div>
+      <div className='text-nowrap'>server key hash:</div>
+      <div className='text-end'>{remoteKeyHash ? shortHash(remoteKeyHash) : 'unknown'}</div>
+      <div className='text-nowrap'>device key update:</div>
+      <div className='text-end' suppressHydrationWarning>
+        {localKeyUpdatedAt ? `${timeSince(localKeyUpdatedAt)} ago` : 'unknown'}
       </div>
-      <div className='row'>
-        <div className='col text-nowrap'>storage quota:</div>
-        <div className='col'>{quota !== null ? formatBytes(quota) : 'unknown'}</div>
+      <div className='text-nowrap'>server key update:</div>
+      <div className='text-end' suppressHydrationWarning>
+        {remoteKeyHashUpdatedAt ? `${timeSince(new Date(remoteKeyHashUpdatedAt).getTime())} ago` : 'unknown'}
       </div>
-      <div className='row'>
-        <div className='col text-nowrap'>storage usage:</div>
-        <div className='col'>{usage !== null ? formatBytes(usage) : 'unknown'}</div>
-      </div>
-      <div className='row'>
-        <div className='col text-nowrap'>storage remaining:</div>
-        <div className='col'>{usage !== null && quota !== null ? formatBytes(quota - usage) : 'unknown'}</div>
-      </div>
-      <div className='row'>
-        <div className='col text-nowrap'>device key hash:</div>
-        <div className='col'>{localKeyHash ? shortHash(localKeyHash) : 'unknown'}</div>
-      </div>
-      <div className='row'>
-        <div className='col text-nowrap'>server key hash:</div>
-        <div className='col'>{remoteKeyHash ? shortHash(remoteKeyHash) : 'unknown'}</div>
-      </div>
-      <div className='row'>
-        <div className='col text-nowrap'>last device key update:</div>
-        <div className='col' suppressHydrationWarning>
-          {localKeyUpdatedAt ? timeSince(localKeyUpdatedAt) : 'unknown'}
-        </div>
-      </div>
-      <div className='row'>
-        <div className='col text-nowrap'>last server key update:</div>
-        <div className='col' suppressHydrationWarning>
-          {remoteKeyHashUpdatedAt ? timeSince(new Date(remoteKeyHashUpdatedAt).getTime()) : 'unknown'}
-        </div>
-      </div>
-      <div className='row'>
-        <div className='col text-nowrap'>last wallet update:</div>
-        <div className='col' suppressHydrationWarning>
-          {walletsUpdatedAt ? timeSince(new Date(walletsUpdatedAt).getTime()) : 'unknown'}
-        </div>
+      <div className='text-nowrap'>wallet update:</div>
+      <div className='text-end' suppressHydrationWarning>
+        {walletsUpdatedAt ? `${timeSince(new Date(walletsUpdatedAt).getTime())} ago` : 'unknown'}
       </div>
     </div>
   )

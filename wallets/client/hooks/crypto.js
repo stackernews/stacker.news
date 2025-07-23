@@ -238,42 +238,41 @@ export function usePassphrasePrompt () {
   const [showPassphrasePrompt, setShowPassphrasePrompt] = useState(false)
   const togglePassphrasePrompt = useCallback(() => setShowPassphrasePrompt(v => !v), [])
 
-  const Prompt = useMemo(() =>
-    () => (
-      <div>
-        <h4>Wallet decryption</h4>
-        <p className='line-height-md mt-3'>
-          Your wallets have been encrypted on another device. Enter your passphrase to use your wallets on this device.
-        </p>
-        <p className='line-height-md'>
-          {showPassphrase && 'You can find the button to reveal your passphrase above your wallets on the other device.'}
-        </p>
-        <p className='line-height-md'>
-          Press reset if you lost your passphrase.
-        </p>
-        <Form
-          schema={passphraseSchema({ hash, salt })}
-          initial={{ passphrase: '' }}
-          onSubmit={onSubmit}
-        >
-          <PasswordInput
-            label='passphrase'
-            name='passphrase'
-            placeholder=''
-            required
-            autoFocus
-            qr
-          />
-          <div className='mt-3'>
-            <div className='d-flex justify-content-between align-items-center'>
-              <Button className='me-auto' variant='danger' onClick={resetPassphrase}>reset</Button>
-              <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={togglePassphrasePrompt}>cancel</Button>
-              <SubmitButton variant='primary'>save</SubmitButton>
-            </div>
+  const Prompt = useMemo(() => (
+    <div>
+      <h4>Wallet decryption</h4>
+      <p className='line-height-md mt-3'>
+        Your wallets have been encrypted on another device. Enter your passphrase to use your wallets on this device.
+      </p>
+      <p className='line-height-md'>
+        {showPassphrase && 'You can find the button to reveal your passphrase above your wallets on the other device.'}
+      </p>
+      <p className='line-height-md'>
+        Press reset if you lost your passphrase.
+      </p>
+      <Form
+        schema={passphraseSchema({ hash, salt })}
+        initial={{ passphrase: '' }}
+        onSubmit={onSubmit}
+      >
+        <PasswordInput
+          label='passphrase'
+          name='passphrase'
+          placeholder=''
+          required
+          autoFocus
+          qr
+        />
+        <div className='mt-3'>
+          <div className='d-flex justify-content-between align-items-center'>
+            <Button className='me-auto' variant='danger' onClick={resetPassphrase}>reset</Button>
+            <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={togglePassphrasePrompt}>cancel</Button>
+            <SubmitButton variant='primary'>save</SubmitButton>
           </div>
-        </Form>
-      </div>
-    ), [showPassphrase, resetPassphrase, togglePassphrasePrompt, onSubmit, hash, salt])
+        </div>
+      </Form>
+    </div>
+  ), [showPassphrase, resetPassphrase, togglePassphrasePrompt, onSubmit, hash, salt])
 
   return useMemo(
     () => [showPassphrasePrompt, togglePassphrasePrompt, Prompt],

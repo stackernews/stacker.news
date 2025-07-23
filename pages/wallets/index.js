@@ -49,7 +49,7 @@ export default function Wallet () {
       ? (
         <WalletLayout>
           <div className='py-5 d-flex flex-column align-items-center justify-content-center flex-grow-1 mx-auto' style={{ maxWidth: '500px' }}>
-            <PassphrasePrompt />
+            {PassphrasePrompt}
           </div>
         </WalletLayout>
         )

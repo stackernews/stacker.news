@@ -1350,11 +1350,21 @@ function PasswordScanner ({ onScan, text }) {
     loading: () => <PageLoading />
   })
 
+  const closeRef = useRef()
+  useEffect(() => {
+    return () => {
+      // close modal on remount to avoid calling stale callbacks
+      // see https://github.com/stackernews/stacker.news/pull/2313
+      closeRef.current?.()
+    }
+  }, [])
+
   return (
     <InputGroup.Text
       style={{ cursor: 'pointer' }}
       onClick={() => {
         showModal(onClose => {
+          closeRef.current = onClose
           return (
             <div>
               {text && <h5 className='line-height-md mb-4 text-center'>{text}</h5>}

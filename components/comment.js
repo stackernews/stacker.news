@@ -156,6 +156,27 @@ export default function Comment ({
     }
   }, [item.id, rootLastCommentAt])
 
+  useEffect(() => {
+    // clear new comments when navigating away
+    const eraseNewComments = () => {
+      if (item.newComments?.length > 0) {
+        cache.writeFragment({
+          id: `Item:${item.id}`,
+          fragment: gql`
+            fragment NewComments on Item {
+              newComments
+            }`,
+          data: {
+            newComments: []
+          }
+        })
+      }
+    }
+
+    router.events.on('routeChangeStart', eraseNewComments)
+    return () => router.events.off('routeChangeStart', eraseNewComments)
+  }, [item.id, item.newComments, cache, router.events])
+
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
   const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon

@@ -176,7 +176,9 @@ export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
     injectNewComments(client, item, depth, sort, threadComment)
   }, [client, sort, item, depth])
 
-  const text = `${threadComment ? 'show all ' : ''}${newCommentsCount} new comment${newCommentsCount > 1 ? 's' : ''}`
+  const text = !threadComment
+    ? `${newCommentsCount} new comment${newCommentsCount > 1 ? 's' : ''}`
+    : 'show all new comments'
 
   return (
     <>

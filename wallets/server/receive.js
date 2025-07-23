@@ -1,6 +1,6 @@
 import { parsePaymentRequest } from 'ln-service'
 import { formatMsats, formatSats, msatsToSats, toPositiveBigInt, toPositiveNumber } from '@/lib/format'
-import { PAID_ACTION_TERMINAL_STATES, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { wrapInvoice } from '@/wallets/server/wrap'
 import { walletLogger } from '@/wallets/server/logger'
@@ -27,9 +27,9 @@ export async function * createUserInvoice (userId, { msats, description, descrip
           amount: formatMsats(msats)
         })
 
-      let invoice
+      let bolt11
       try {
-        invoice = await _protocolCreateInvoice(
+        bolt11 = await _protocolCreateInvoice(
           protocol,
           { msats, description, descriptionHash, expiry },
           { models })
@@ -37,20 +37,20 @@ export async function * createUserInvoice (userId, { msats, description, descrip
         throw new Error('failed to create invoice: ' + err.message)
       }
 
-      const bolt11 = await parsePaymentRequest({ request: invoice })
+      const invoice = await parsePaymentRequest({ request: bolt11 })
 
-      logger.info(`created invoice for ${formatSats(msatsToSats(bolt11.mtokens))}`, {
-        bolt11: invoice
+      logger.info(`created invoice for ${formatSats(msatsToSats(invoice.mtokens))}`, {
+        bolt11
       })
 
-      if (BigInt(bolt11.mtokens) !== BigInt(msats)) {
-        if (BigInt(bolt11.mtokens) > BigInt(msats)) {
+      if (BigInt(invoice.mtokens) !== BigInt(msats)) {
+        if (BigInt(invoice.mtokens) > BigInt(msats)) {
           throw new Error('invoice invalid: amount too big')
         }
-        if (BigInt(bolt11.mtokens) === 0n) {
+        if (BigInt(invoice.mtokens) === 0n) {
           throw new Error('invoice invalid: amount is 0 msats')
         }
-        if (BigInt(msats) - BigInt(bolt11.mtokens) >= 1000n) {
+        if (BigInt(msats) - BigInt(invoice.mtokens) >= 1000n) {
           throw new Error('invoice invalid: amount too small')
         }
       }
@@ -144,32 +144,19 @@ async function _protocolCreateInvoice (protocol, {
   descriptionHash,
   expiry = 360
 }, { logger, models }) {
-  // check for pending withdrawals
-
-  // TODO(wallet-v2): make sure this still works as intended
-  const pendingWithdrawals = await models.withdrawl.count({
+  // check for pending payouts
+  const pendingPayOutBolt11Count = await models.payOutBolt11.count({
     where: {
       protocolId: protocol.id,
-      status: null
-    }
-  })
-
-  // and pending forwards
-  // TODO(wallet-v2): make sure this still works as intended
-  const pendingForwards = await models.invoiceForward.count({
-    where: {
-      protocolId: protocol.id,
-      invoice: {
-        actionState: {
-          notIn: PAID_ACTION_TERMINAL_STATES
-        }
+      status: null,
+      payIn: {
+        payInState: { notIn: ['PAID', 'FAILED'] }
       }
     }
   })
 
-  const pending = pendingWithdrawals + pendingForwards
-  if (pendingWithdrawals + pendingForwards >= MAX_PENDING_INVOICES_PER_WALLET) {
-    throw new Error(`too many pending invoices: has ${pending}, max ${MAX_PENDING_INVOICES_PER_WALLET}`)
+  if (pendingPayOutBolt11Count >= MAX_PENDING_INVOICES_PER_WALLET) {
+    throw new Error(`too many pending invoices: has ${pendingPayOutBolt11Count}, max ${MAX_PENDING_INVOICES_PER_WALLET}`)
   }
 
   return await withTimeout(

@@ -3,7 +3,7 @@ import styles from './comment.module.css'
 import Text, { SearchText } from './text'
 import Link from 'next/link'
 import Reply from './reply'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import UpVote from './upvote'
 import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
@@ -156,26 +156,25 @@ export default function Comment ({
     }
   }, [item.id, rootLastCommentAt])
 
-  useEffect(() => {
-    // clear new comments when navigating away
-    const eraseNewComments = () => {
-      if (item.newComments?.length > 0) {
-        cache.writeFragment({
-          id: `Item:${item.id}`,
-          fragment: gql`
-            fragment NewComments on Item {
-              newComments
-            }`,
-          data: {
-            newComments: []
-          }
-        })
-      }
+  const eraseNewComments = useCallback(() => {
+    if (item.newComments?.length > 0) {
+      cache.writeFragment({
+        id: `Item:${item.id}`,
+        fragment: gql`
+          fragment NewComments on Item {
+            newComments
+          }`,
+        data: {
+          newComments: []
+        }
+      })
     }
+  }, [item.id, item.newComments, cache])
 
+  useEffect(() => {
     router.events.on('routeChangeStart', eraseNewComments)
     return () => router.events.off('routeChangeStart', eraseNewComments)
-  }, [item.id, item.newComments, cache, router.events])
+  }, [router.events, eraseNewComments])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts

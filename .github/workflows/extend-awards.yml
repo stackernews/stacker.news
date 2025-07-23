@@ -44,7 +44,7 @@ jobs:
       - name: Commit changes and push to existing branch
         if: env.exists == 'true'
         run: |
-          git commit -am "Extending awards.csv"
+          git commit -am "Extending awards.csv" || exit 0
           git push origin extend-awards/patch
       - uses: peter-evans/create-pull-request@v7
         if: env.exists == 'false'

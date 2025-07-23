@@ -14,7 +14,10 @@ jobs:
       github.event_name == 'pull_request_target' &&
       github.event.action == 'closed' &&
       github.event.pull_request.merged == true &&
-      github.event.pull_request.head.ref != 'extend-awards/patch'
+      github.event.pull_request.head.ref != 'extend-awards/patch' &&
+      github.event.pull_request.user.login != 'huumn' &&
+      github.event.pull_request.user.login != 'ekzyis' &&
+      github.event.pull_request.user.login != 'Soxasora'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

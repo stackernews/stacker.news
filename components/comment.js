@@ -148,8 +148,10 @@ export default function Comment ({
         !item.injected &&
         itemCreatedAt > router.query.commentsViewedAt) {
       ref.current.classList.add('outline-new-comment')
-    // a newly injected comment will always be newer than the root's last comment
-    } else if (item.injected && itemCreatedAt > (new Date(rootLastCommentAt).getTime() || 0)) {
+    // newly injected comments have to use a different class to outline every new comment
+    } else if (rootLastCommentAt &&
+              item.injected &&
+              itemCreatedAt > new Date(rootLastCommentAt).getTime()) {
       ref.current.classList.add('outline-new-injected-comment')
     }
   }, [item.id, rootLastCommentAt])

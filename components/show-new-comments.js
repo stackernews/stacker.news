@@ -47,6 +47,7 @@ function prepareComments (data, client, newComments) {
   const latestCommentCreatedAt = getLatestCommentCreatedAt(newComments, data.createdAt)
   commentsViewedAfterComment(rootId, latestCommentCreatedAt, totalNComments)
 
+  // an item can either have a comments.comments field, or not
   const payload = data.comments
     ? {
         ...data,
@@ -57,7 +58,7 @@ function prepareComments (data, client, newComments) {
           comments: newComments.concat(data.comments.comments)
         }
       }
-    // some fragments don't have a comments field, so we just update stats fields
+    // when the fragment doesn't have a comments field, we just update stats fields
     : {
         ...data,
         ncomments: data.ncomments + totalNComments,
@@ -70,6 +71,7 @@ function prepareComments (data, client, newComments) {
 // traverses all new comments and their children
 // if we're showing all new comments of a thread, we also consider their existing children
 function traverseNewComments (client, item, onLevel, threadComment = false, currentDepth = 1) {
+  // if we're at the depth limit, stop traversing, we've reached the bottom of the visible thread
   if (currentDepth >= COMMENT_DEPTH_LIMIT) return
 
   if (item.newComments && item.newComments.length > 0) {

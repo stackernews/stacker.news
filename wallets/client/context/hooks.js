@@ -168,20 +168,20 @@ export function useKeyInit () {
           const read = tx.objectStore('vault').get('key')
 
           read.onerror = () => {
-            logger.debug('error reading key: ' + read.error)
+            logger.debug('key init: error reading key: ' + read.error)
             reject(read.error)
           }
 
           read.onsuccess = () => {
             if (read.result) {
               // return key+hash found in db
-              logger.debug('key init: key found in db')
+              logger.debug('key init: key found in IndexedDB')
               return resolve(read.result)
             }
 
             if (oldKeyAndHash) {
               // return key+hash found in old db
-              logger.debug('key init: key found in old db')
+              logger.debug('key init: key found in old IndexedDB')
               return resolve(oldKeyAndHash)
             }
 

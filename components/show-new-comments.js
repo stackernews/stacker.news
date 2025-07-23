@@ -70,7 +70,8 @@ function traverseNewComments (client, item, onLevel, threadComment = false, curr
     // being newComments an array of comment ids, we can get their latest version from the cache
     // ensuring that we don't miss any new comments
     const freshNewComments = dedupedNewComments.map(id => {
-      return readCommentsFragment(client, id)
+      // mark all new comments as injected, so we can outline them
+      return { ...readCommentsFragment(client, id), injected: true }
     }).filter(Boolean)
 
     // at each level, we can execute a callback giving the new comments and the item

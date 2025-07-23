@@ -48,6 +48,7 @@ export const COMMENT_FIELDS = gql`
     ncomments
     nDirectComments
     newComments @client
+    injected @client
     imgproxyUrls
     rel
     apiKey

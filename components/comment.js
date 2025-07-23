@@ -145,11 +145,11 @@ export default function Comment ({
     const itemCreatedAt = new Date(item.createdAt).getTime()
 
     if (router.query.commentsViewedAt &&
-        !item.newComments &&
+        !item.injected &&
         itemCreatedAt > router.query.commentsViewedAt) {
       ref.current.classList.add('outline-new-comment')
     // a newly injected comment will always be newer than the root's last comment
-    } else if (itemCreatedAt > (new Date(rootLastCommentAt).getTime() || 0)) {
+    } else if (item.injected && itemCreatedAt > (new Date(rootLastCommentAt).getTime() || 0)) {
       ref.current.classList.add('outline-new-injected-comment')
     }
   }, [item.id, rootLastCommentAt])

@@ -20,43 +20,51 @@ function dedupeNewComments (newComments, comments = []) {
   return newComments.filter(id => !existingIds.has(id))
 }
 
+// of an array of new comments, count each new comment + all their existing comments
+function countNComments (newComments) {
+  let totalNComments = newComments.length
+  for (const comment of newComments) {
+    totalNComments += comment.ncomments || 0
+  }
+  return totalNComments
+}
+
 // prepares and creates a new comments fragment for injection into the cache
 // returns a function that can be used to update an item's comments field
-function prepareComments ({ client, newComments }) {
-  return (data) => {
-    // count total comments being injected: each new comment + all their existing nested comments
-    let totalNComments = newComments.length
-    for (const comment of newComments) {
-      // add all nested comments (subtree) under this newly injected comment to the total
-      totalNComments += (comment.ncomments || 0)
-    }
+function prepareComments (data, client, newComments) {
+  const totalNComments = countNComments(newComments)
 
-    // update all ancestors, but not the item itself
-    const ancestors = data.path.split('.').slice(0, -1)
-    updateAncestorsCommentCount(client.cache, ancestors, totalNComments)
+  const itemHierarchy = data.path.split('.')
+  const ancestors = itemHierarchy.slice(0, -1)
+  const rootId = itemHierarchy[0]
 
-    // update commentsViewedAt with the most recent fresh new comment
-    // quirk: this is not the most recent comment, it's the most recent comment in the newComments array
-    //        as such, the next visit will not outline other new comments that are older than this one.
-    const latestCommentCreatedAt = getLatestCommentCreatedAt(newComments, data.createdAt)
-    const rootId = data.path.split('.')[0]
-    commentsViewedAfterComment(rootId, latestCommentCreatedAt, totalNComments)
+  // update all ancestors, but not the item itself
+  updateAncestorsCommentCount(client.cache, ancestors, totalNComments)
 
-    // standard payload for all types of comment fragments
-    const payload = {
-      ...data,
-      ncomments: data.ncomments + totalNComments,
-      newComments: []
-    }
+  // update commentsViewedAt with the most recent fresh new comment
+  // quirk: this is not the most recent comment, it's the most recent comment in the newComments array
+  //        as such, the next visit will not outline other new comments that are older than this one.
+  const latestCommentCreatedAt = getLatestCommentCreatedAt(newComments, data.createdAt)
+  commentsViewedAfterComment(rootId, latestCommentCreatedAt, totalNComments)
 
-    // inject comments for fragments that have a comments field
-    if (data.comments) {
-      payload.comments = { ...data.comments, comments: [...newComments, ...(data.comments?.comments || [])] }
-    }
+  const payload = data.comments
+    ? {
+        ...data,
+        ncomments: data.ncomments + totalNComments,
+        newComments: [],
+        comments: {
+          ...data.comments,
+          comments: newComments.concat(data.comments.comments)
+        }
+      }
+    // some fragments don't have a comments field, so we just update stats fields
+    : {
+        ...data,
+        ncomments: data.ncomments + totalNComments,
+        newComments: []
+      }
 
-    // otherwise, just return the standard payload to update the item
-    return payload
-  }
+  return payload
 }
 
 // traverses all new comments and their children
@@ -78,7 +86,7 @@ function traverseNewComments (client, item, onLevel, threadComment = false, curr
     onLevel(freshNewComments, currentDepth, item.id)
 
     for (const newComment of freshNewComments) {
-      traverseNewComments(client, newComment, onLevel, currentDepth + 1)
+      traverseNewComments(client, newComment, onLevel, threadComment, currentDepth + 1)
     }
   }
 
@@ -96,14 +104,12 @@ function traverseNewComments (client, item, onLevel, threadComment = false, curr
 function injectNewComments (client, item, currentDepth, sort, threadComment = false) {
   traverseNewComments(client, item, (newComments, depth, itemId) => {
     if (newComments.length > 0) {
-      const payload = prepareComments({ client, newComments })
-
       // traverseNewComments also passes the depth of the current item
       // used to determine if in an array of new comments, we are injecting topLevels (depth 0) or not
       if (depth === 0) {
-        itemUpdateQuery(client, itemId, sort, payload)
+        itemUpdateQuery(client, itemId, sort, (data) => prepareComments(data, client, newComments))
       } else {
-        commentUpdateFragment(client, itemId, payload)
+        commentUpdateFragment(client, itemId, (data) => prepareComments(data, client, newComments))
       }
     }
   }, threadComment, currentDepth)
@@ -116,10 +122,7 @@ function countAllNewComments (client, item, thread = false, currentDepth = 1) {
 
   // count by traversing the comment structure
   traverseNewComments(client, item, (newComments, depth) => {
-    newCommentsCount += newComments.length
-    for (const newComment of newComments) {
-      newCommentsCount += newComment.ncomments || 0
-    }
+    newCommentsCount += countNComments(newComments)
 
     // if we reached a depth greater than 1, the thread's children have new comments
     if (depth > 1 && newComments.length > 0) {

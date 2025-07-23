@@ -10,9 +10,9 @@ import { ModalClosedError } from '@/components/modal'
 //   when we delete logs for a protocol, the cache is not updated
 //   so when we go to all wallet logs, we still see the deleted logs until the query is refetched
 
-export function WalletLogs ({ protocol, className }) {
-  const { logs, loadMore, hasMore, loading, clearLogs } = useWalletLogs(protocol)
-  const deleteLogs = useDeleteWalletLogs(protocol)
+export function WalletLogs ({ protocol, className, debug }) {
+  const { logs, loadMore, hasMore, loading, clearLogs } = useWalletLogs(protocol, debug)
+  const deleteLogs = useDeleteWalletLogs(protocol, debug)
 
   const onDelete = useCallback(async () => {
     try {
@@ -73,8 +73,11 @@ export function LogMessage ({ tag, level, message, context, ts }) {
     case 'warning':
       level = 'warn'
       className = 'text-warning'; break
+    case 'info':
+      className = 'text-info'; break
+    case 'debug':
     default:
-      className = 'text-info'
+      className = 'text-muted'; break
   }
 
   const filtered = context

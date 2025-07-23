@@ -56,7 +56,8 @@ export function walletLogger ({
     ok: (message, context) => log('OK')(message, context),
     info: (message, context) => log('INFO')(message, context),
     error: (message, context) => log('ERROR')(message, context),
-    warn: (message, context) => log('WARNING')(message, context)
+    warn: (message, context) => log('WARNING')(message, context),
+    debug: (message, context) => log('DEBUG')(message, context)
   }
 }
 

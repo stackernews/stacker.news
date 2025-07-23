@@ -919,6 +919,14 @@ export default {
 
       await models.user.update({ where: { id: me.id }, data: { hideWalletRecvPrompt: true } })
       return true
+    },
+    setDiagnostics: async (parent, { diagnostics }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      await models.user.update({ where: { id: me.id }, data: { diagnostics } })
+      return diagnostics
     }
   },
 

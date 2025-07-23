@@ -51,6 +51,7 @@ ${STREAK_FIELDS}
       vaultKeyHashUpdatedAt
       walletsUpdatedAt
       showPassphrase
+      diagnostics
     }
     optional {
       isContributor
@@ -390,5 +391,11 @@ export const MY_SUBSCRIBED_SUBS = gql`
       }
       cursor
     }
+  }
+`
+
+export const SET_DIAGNOSTICS = gql`
+  mutation setDiagnostics($diagnostics: Boolean!) {
+    setDiagnostics(diagnostics: $diagnostics)
   }
 `

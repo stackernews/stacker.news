@@ -1,8 +1,10 @@
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { useApolloClient } from '@apollo/client'
 import styles from './comment.module.css'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import { commentsViewedAfterComment } from '../lib/new-comments'
+import classNames from 'classnames'
+import useVisibility from './use-visibility'
 import {
   itemUpdateQuery,
   commentUpdateFragment,
@@ -18,42 +20,59 @@ function dedupeNewComments (newComments, comments = []) {
   return newComments.filter(id => !existingIds.has(id))
 }
 
+// of an array of new comments, count each new comment + all their existing comments
+function countNComments (newComments) {
+  let totalNComments = newComments.length
+  for (const comment of newComments) {
+    totalNComments += comment.ncomments || 0
+  }
+  return totalNComments
+}
+
 // prepares and creates a new comments fragment for injection into the cache
 // returns a function that can be used to update an item's comments field
-function prepareComments ({ client, newComments }) {
-  return (data) => {
-    // count total comments being injected: each new comment + all their existing nested comments
-    let totalNComments = newComments.length
-    for (const comment of newComments) {
-      // add all nested comments (subtree) under this newly injected comment to the total
-      totalNComments += (comment.ncomments || 0)
-    }
+function prepareComments (data, client, newComments) {
+  const totalNComments = countNComments(newComments)
 
-    // update all ancestors, but not the item itself
-    const ancestors = data.path.split('.').slice(0, -1)
-    updateAncestorsCommentCount(client.cache, ancestors, totalNComments)
+  const itemHierarchy = data.path.split('.')
+  const ancestors = itemHierarchy.slice(0, -1)
+  const rootId = itemHierarchy[0]
 
-    // update commentsViewedAt with the most recent fresh new comment
-    // quirk: this is not the most recent comment, it's the most recent comment in the newComments array
-    //        as such, the next visit will not outline other new comments that are older than this one.
-    const latestCommentCreatedAt = getLatestCommentCreatedAt(newComments, data.createdAt)
-    const rootId = data.path.split('.')[0]
-    commentsViewedAfterComment(rootId, latestCommentCreatedAt, totalNComments)
+  // update all ancestors, but not the item itself
+  updateAncestorsCommentCount(client.cache, ancestors, totalNComments)
 
-    // return the updated item with the new comments injected
-    return {
-      ...data,
-      comments: { ...data.comments, comments: [...newComments, ...(data.comments?.comments || [])] },
-      ncomments: data.ncomments + totalNComments,
-      newComments: []
-    }
-  }
+  // update commentsViewedAt with the most recent fresh new comment
+  // quirk: this is not the most recent comment, it's the most recent comment in the newComments array
+  //        as such, the next visit will not outline other new comments that are older than this one.
+  const latestCommentCreatedAt = getLatestCommentCreatedAt(newComments, data.createdAt)
+  commentsViewedAfterComment(rootId, latestCommentCreatedAt, totalNComments)
+
+  // an item can either have a comments.comments field, or not
+  const payload = data.comments
+    ? {
+        ...data,
+        ncomments: data.ncomments + totalNComments,
+        newComments: [],
+        comments: {
+          ...data.comments,
+          comments: newComments.concat(data.comments.comments)
+        }
+      }
+    // when the fragment doesn't have a comments field, we just update stats fields
+    : {
+        ...data,
+        ncomments: data.ncomments + totalNComments,
+        newComments: []
+      }
+
+  return payload
 }
 
 // traverses all new comments and their children
-// at each level, we can execute a callback giving the new comments and the item
-function traverseNewComments (client, item, onLevel, currentDepth = 1) {
-  if (currentDepth > COMMENT_DEPTH_LIMIT) return
+// if it's a thread, or we're in a new comment subtree, we also consider their existing children
+function traverseNewComments (client, item, onLevel, currentDepth, inSubtree) {
+  // if we're at the depth limit, stop traversing, we've reached the bottom of the visible thread
+  if (currentDepth >= COMMENT_DEPTH_LIMIT) return
 
   if (item.newComments && item.newComments.length > 0) {
     const dedupedNewComments = dedupeNewComments(item.newComments, item.comments?.comments)
@@ -61,75 +80,121 @@ function traverseNewComments (client, item, onLevel, currentDepth = 1) {
     // being newComments an array of comment ids, we can get their latest version from the cache
     // ensuring that we don't miss any new comments
     const freshNewComments = dedupedNewComments.map(id => {
-      return readCommentsFragment(client, id)
+      // mark all new comments as injected, so we can outline them
+      return { ...readCommentsFragment(client, id), injected: true }
     }).filter(Boolean)
 
-    // passing currentDepth allows children of top level comments
-    // to be updated by the commentUpdateFragment
-    onLevel(freshNewComments, item, currentDepth)
+    // at each level, we can execute a callback passing the current item's new comments, depth and ID
+    onLevel(freshNewComments, currentDepth, item.id)
 
+    // traverse the new comment's new comments and their children
     for (const newComment of freshNewComments) {
-      traverseNewComments(client, newComment, onLevel, currentDepth + 1)
+      traverseNewComments(client, newComment, onLevel, currentDepth + 1, true)
+    }
+  }
+
+  // check for new comments in existing children
+  // only if we're in a new comment subtree, or it's a thread
+  if (inSubtree && item.comments?.comments) {
+    for (const child of item.comments.comments) {
+      traverseNewComments(client, child, onLevel, currentDepth + 1, true)
     }
   }
 }
 
-// recursively processes and displays all new comments and its children
+// recursively processes and displays all new comments
 // handles comment injection at each level, respecting depth limits
-function injectNewComments (client, item, currentDepth, sort) {
-  traverseNewComments(client, item, (newComments, item, depth) => {
+function injectNewComments (client, item, sort, currentDepth, thread) {
+  traverseNewComments(client, item, (newComments, depth, itemId) => {
     if (newComments.length > 0) {
-      const payload = prepareComments({ client, newComments })
-
-      // used to determine if by iterating through the new comments
-      // we are injecting topLevels (depth 0) or not
+      // traverseNewComments also passes the depth of the current item
+      // used to determine if in an array of new comments, we are injecting topLevels (depth 0) or not
       if (depth === 0) {
-        itemUpdateQuery(client, item.id, sort, payload)
+        itemUpdateQuery(client, itemId, sort, (data) => prepareComments(data, client, newComments))
       } else {
-        commentUpdateFragment(client, item.id, payload)
+        commentUpdateFragment(client, itemId, (data) => prepareComments(data, client, newComments))
       }
     }
-  }, currentDepth)
+  }, currentDepth, thread)
 }
 
-// counts all new comments for an item and its children
-function countAllNewComments (client, item, currentDepth = 1) {
-  let totalNComments = 0
+// counts all new comments of an item
+function countAllNewComments (client, item, currentDepth, thread) {
+  let newCommentsCount = 0
+  let threadChildren = false
 
-  // count by traversing all new comments and their children
-  traverseNewComments(client, item, (newComments) => {
-    totalNComments += newComments.length
-    for (const newComment of newComments) {
-      totalNComments += newComment.ncomments || 0
+  // count by traversing the comment structure
+  traverseNewComments(client, item, (newComments, depth) => {
+    newCommentsCount += countNComments(newComments)
+
+    // if we reached a depth greater than 1, the thread's children have new comments
+    if (depth > 1 && newComments.length > 0) {
+      threadChildren = true
     }
-  }, currentDepth)
+  }, currentDepth, thread)
 
-  return totalNComments
+  return { newCommentsCount, threadChildren }
 }
 
-// ShowNewComments is a component that dedupes, refreshes and injects newComments into the comments field
-export function ShowNewComments ({ item, sort, depth = 0 }) {
-  const client = useApolloClient()
+function FloatingComments ({ buttonRef, showNewComments, text }) {
+  // show the floating comments button only when we're past the main top level button
+  const isButtonVisible = useVisibility(buttonRef, { pastElement: true })
 
-  // recurse through all new comments and their children
-  const newCommentsCount = item.newComments?.length > 0 ? countAllNewComments(client, item, depth) : 0
-
-  const showNewComments = useCallback(() => {
-    // a top level comment doesn't have depth, we pass 0 to signify this
-    // other comments are injected from their depth
-    injectNewComments(client, item, depth, sort)
-  }, [client, sort, item, depth])
+  if (isButtonVisible) return null
 
   return (
     <span
-      onClick={showNewComments}
-      className='fw-bold d-flex align-items-center gap-2 px-3 pointer'
-      style={{ visibility: newCommentsCount > 0 ? 'visible' : 'hidden' }}
+      className={classNames(styles.floatingComments, 'btn btn-sm btn-info')}
+      onClick={() => {
+        // show new comments as we scroll up
+        showNewComments()
+        buttonRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }}
     >
-      {newCommentsCount > 1
-        ? `${newCommentsCount} new comments`
-        : 'show new comment'}
-      <div className={styles.newCommentDot} />
+      {text}
     </span>
+  )
+}
+
+// ShowNewComments is a component that dedupes, refreshes and injects newComments into the comments field
+export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
+  const client = useApolloClient()
+  const ref = useRef(null)
+
+  // a thread is a top-level comment
+  const thread = item.path?.split('.').length === 2
+
+  // recurse through all new comments and their children
+  // if the item is a thread, we also consider all of their existing children
+  const { newCommentsCount, threadChildren } = countAllNewComments(client, item, depth, thread)
+
+  // only if the item is a thread and its children have new comments, we show "show all new comments"
+  const threadComment = thread && threadChildren
+
+  const showNewComments = useCallback(() => {
+    // a top level comment doesn't pass depth, we pass its default value of 0 to signify this
+    // child comments are injected from the depth they're at
+    injectNewComments(client, item, sort, depth, threadComment)
+  }, [client, sort, item, depth])
+
+  const text = !threadComment
+    ? `${newCommentsCount} new comment${newCommentsCount > 1 ? 's' : ''}`
+    : 'show all new comments'
+
+  return (
+    <>
+      <span
+        ref={ref}
+        onClick={showNewComments}
+        className='fw-bold d-flex align-items-center gap-2 px-3 pointer'
+        style={{ visibility: newCommentsCount > 0 ? 'visible' : 'hidden' }}
+      >
+        {text}
+        <div className={styles.newCommentDot} />
+      </span>
+      {topLevel && newCommentsCount > 0 && (
+        <FloatingComments buttonRef={ref} showNewComments={showNewComments} text={text} />
+      )}
+    </>
   )
 }

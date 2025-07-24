@@ -609,7 +609,7 @@ function FormGroup ({ className, label, children }) {
 function InputInner ({
   prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue,
   innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength, hideError,
-  ...props
+  AppendColumn, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -687,38 +687,43 @@ function InputInner ({
 
   return (
     <>
-      <InputGroup hasValidation className={inputGroupClassName}>
-        {prepend}
-        <BootstrapForm.Control
-          ref={innerRef}
-          {...field}
-          {...props}
-          onKeyDown={onKeyDownInner}
-          onChange={onChangeInner}
-          onBlur={onBlurInner}
-          isInvalid={!hideError && invalid} // if hideError is true, handle error showing separately
-          isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
-        />
-        {(isClient && clear && field.value && !props.readOnly) &&
-          <Button
-            variant={null}
-            onClick={(e) => {
-              helpers.setValue('')
-              if (storageKey) {
-                window.localStorage.removeItem(storageKey)
-              }
-              if (onChange) {
-                onChange(formik, { target: { value: '' } })
-              }
-            }}
-            className={`${styles.clearButton} ${styles.appendButton} ${invalid ? styles.isInvalid : ''}`}
-          ><CloseIcon className='fill-grey' height={20} width={20} />
-          </Button>}
-        {append}
-        <BootstrapForm.Control.Feedback type='invalid'>
-          {meta.touched && meta.error}
-        </BootstrapForm.Control.Feedback>
-      </InputGroup>
+      <Row>
+        <Col>
+          <InputGroup hasValidation className={inputGroupClassName}>
+            {prepend}
+            <BootstrapForm.Control
+              ref={innerRef}
+              {...field}
+              {...props}
+              onKeyDown={onKeyDownInner}
+              onChange={onChangeInner}
+              onBlur={onBlurInner}
+              isInvalid={!hideError && invalid} // if hideError is true, handle error showing separately
+              isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
+            />
+            {(isClient && clear && field.value && !props.readOnly) &&
+              <Button
+                variant={null}
+                onClick={(e) => {
+                  helpers.setValue('')
+                  if (storageKey) {
+                    window.localStorage.removeItem(storageKey)
+                  }
+                  if (onChange) {
+                    onChange(formik, { target: { value: '' } })
+                  }
+                }}
+                className={`${styles.clearButton} ${styles.appendButton} ${invalid ? styles.isInvalid : ''}`}
+              ><CloseIcon className='fill-grey' height={20} width={20} />
+              </Button>}
+            {append}
+            <BootstrapForm.Control.Feedback type='invalid'>
+              {meta.touched && meta.error}
+            </BootstrapForm.Control.Feedback>
+          </InputGroup>
+        </Col>
+        {AppendColumn && <AppendColumn className={meta.touched && meta.error ? 'invisible' : ''} />}
+      </Row>
       {hint && (
         <BootstrapForm.Text>
           {hint}
@@ -952,31 +957,38 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
       <FieldArray name={name} hasValidation>
         {({ form, ...fieldArrayHelpers }) => {
           const options = form.values[name]
+
           return (
             <>
-              {options?.map((_, i) => (
-                <div key={i}>
-                  <Row className='mb-2'>
-                    <Col>
-                      {children
-                        ? children({ index: i, readOnly: i < readOnlyLen, placeholder: i >= min ? 'optional' : undefined })
-                        : <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} />}
-                    </Col>
-                    <Col className='d-flex ps-0' xs='auto'>
-                      {options.length - 1 === i && options.length !== max
-                        ? <AddIcon className='fill-grey align-self-center justify-self-center pointer' onClick={() => fieldArrayHelpers.push(emptyItem)} />
-                        // filler div for col alignment across rows
-                        : <div style={{ width: '24px', height: '24px' }} />}
-                    </Col>
-                    {options.length - 1 === i &&
-                      <>
-                        {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
-                        {form.touched[name] && typeof form.errors[name] === 'string' &&
-                          <div className='invalid-feedback d-block'>{form.errors[name]}</div>}
-                      </>}
-                  </Row>
-                </div>
-              ))}
+              {options?.map((_, i) => {
+                const AppendColumn = ({ className }) => (
+                  <Col className={`d-flex ps-0 ${className}`} xs='auto'>
+                    {options.length - 1 === i && options.length !== max
+                      // onMouseDown is used to prevent the blur event on text inputs from overriding the click event
+                      ? <AddIcon className='fill-grey align-self-center justify-self-center pointer' onMouseDown={() => fieldArrayHelpers.push(emptyItem)} />
+                      // filler div for col alignment across rows
+                      : <div style={{ width: '24px', height: '24px' }} />}
+                  </Col>
+                )
+                return (
+                  <div key={i}>
+                    <Row className='mb-2'>
+                      <Col>
+                        {children
+                          ? children({ index: i, readOnly: i < readOnlyLen, placeholder: i >= min ? 'optional' : undefined, AppendColumn })
+                          : <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} AppendColumn={AppendColumn} />}
+                      </Col>
+
+                      {options.length - 1 === i &&
+                        <>
+                          {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
+                          {form.touched[name] && typeof form.errors[name] === 'string' &&
+                            <div className='invalid-feedback d-block'>{form.errors[name]}</div>}
+                        </>}
+                    </Row>
+                  </div>
+                )
+              })}
             </>
           )
         }}

@@ -36,6 +36,7 @@ services:
     env_file: *env_file
     volumes:
       - ./docker/db/seed.sql:/docker-entrypoint-initdb.d/seed.sql
+      - ./docker/db/wallet-seed.sql:/docker-entrypoint-initdb.d/wallet-seed.sql
       - db:/var/lib/postgresql/data
     labels:
       CONNECT: "localhost:5431"

@@ -25,9 +25,6 @@ ${STREAK_FIELDS}
       autoDropBolt11s
       noReferralLinks
       fiatCurrency
-      autoWithdrawMaxFeePercent
-      autoWithdrawMaxFeeTotal
-      autoWithdrawThreshold
       withdrawMaxFeeDefault
       satsFilter
       hideFromTopUsers
@@ -51,8 +48,10 @@ ${STREAK_FIELDS}
       wildWestMode
       disableFreebies
       vaultKeyHash
+      vaultKeyHashUpdatedAt
       walletsUpdatedAt
-      proxyReceive
+      showPassphrase
+      diagnostics
     }
     optional {
       isContributor
@@ -113,9 +112,6 @@ export const SETTINGS_FIELDS = gql`
         apiKey
       }
       apiKeyEnabled
-      proxyReceive
-      receiveCreditsBelowSats
-      sendCreditsBelowSats
     }
   }`
 
@@ -395,5 +391,11 @@ export const MY_SUBSCRIBED_SUBS = gql`
       }
       cursor
     }
+  }
+`
+
+export const SET_DIAGNOSTICS = gql`
+  mutation setDiagnostics($diagnostics: Boolean!) {
+    setDiagnostics(diagnostics: $diagnostics)
   }
 `

@@ -1,7 +1,7 @@
 import gql from 'graphql-tag'
 import { COMMENTS } from './comments'
 import { SUB_FULL_FIELDS } from './subs'
-import { INVOICE_FIELDS } from './wallet'
+import { INVOICE_FIELDS } from './invoice'
 
 const HASH_HMAC_INPUT_1 = '$hash: String, $hmac: String'
 const HASH_HMAC_INPUT_2 = 'hash: $hash, hmac: $hmac'

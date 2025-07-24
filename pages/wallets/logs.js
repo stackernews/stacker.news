@@ -1,16 +1,15 @@
-import { CenterLayout } from '@/components/layout'
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { WalletLogs } from '@/wallets/logger'
+import { WalletLayout, WalletLayoutHeader, WalletLogs } from '@/wallets/client/components'
 
-export const getServerSideProps = getGetServerSideProps({ query: null })
+export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
-export default function () {
+export default function WalletLogsPage () {
   return (
-    <>
-      <CenterLayout>
-        <h2 className='text-center'>wallet logs</h2>
+    <WalletLayout>
+      <div className='py-5'>
+        <WalletLayoutHeader>wallet logs</WalletLayoutHeader>
         <WalletLogs />
-      </CenterLayout>
-    </>
+      </div>
+    </WalletLayout>
   )
 }

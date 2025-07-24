@@ -8,7 +8,7 @@ sub: meta
 
 _To quickly browse through this FAQ page, click the chapters icon in the top-right corner. This will let you scroll through all chapters or search for a particular topic within this page._
 
-last updated: March 25, 2025
+last updated: July 16, 2025
 
 ---
 
@@ -84,7 +84,7 @@ Stacker News is non-custodial. To send and receive sats, you need to attach a wa
 
 Click [here](/wallets) or click on your name and select 'wallets'. You should then see this:
 
-![](https://m.stacker.news/75164)
+![](https://m.stacker.news/100486)
 
 We currently support the following wallets:
 
@@ -98,26 +98,11 @@ We currently support the following wallets:
 - [lightning address](https://strike.me/learn/what-is-a-lightning-address/) | [guide](https://stacker.news/items/694593/r/supratic)
 - [phoenixd](https://phoenix.acinq.co/server) | [guide](https://stacker.news/items/695912/r/supratic)
 
-
 ### I can't find my wallet. Can I not attach one?
 
-We currently don't list every wallet individually but [this is planned](https://github.com/stackernews/stacker.news/issues/1495).
+If you can't find your wallet, there is still a high chance that you can attach one. Many wallets support Nostr Wallet Connect or provide lightning addresses.
 
-If you can't find your wallet, there is still a high chance that you can attach one. Many wallets support Nostr Wallet Connect or provide lightning addresses. The following table shows how you can attach some common wallets:
-
-| Wallet | Lightning Address | Nostr Wallet Connect |
-| --- | --- | --- |
-| [Strike](https://strike.me/) | ✅ | ❌ |
-| [cashu.me](https://cashu.me/) | ✅ | ✅ |
-| [Wallet of Satoshi](https://www.walletofsatoshi.com/) | ✅ | ❌ |
-| [Zebedee](https://zbd.gg/) | ✅ | ❌ |
-| [Coinos](https://coinos.io/) | ✅ | ✅ |
-
-### What do the arrows mean?
-
-Not every wallet supports both sending and receiving sats. For example, a lightning address can receive sats but not send them. This is indicated with an arrow to the bottom-left ↙️. A wallet that can send sats will have an arrow to the top-right ↗️.
-
-If you still can't attach a wallet, you can reach out to us in the [saloon](/daily) or simply reply to this FAQ.
+You can also let us know in the [saloon](/daily) that your wallet isn't listed so we can add it!
 
 ### I receive notifications about failed zaps. What do I do?
 
@@ -129,7 +114,7 @@ The link to the wallet logs can be found on the [wallet page](/wallets).
 
 ### Why do I need to enter two strings for NWC?
 
-For security reasons, we never store permissions to spend from your wallet on the server in plain text.
+For security reasons, we never store permissions to spend from your wallet on the server in plaintext.
 
 Since we however need to request invoices from your wallet when there is an incoming payment, we need to store the details to receive payments on the server in plaintext.
 
@@ -141,11 +126,11 @@ Other applications don't require two strings for one of the following reasons:
 2. you can only receive while you are logged in
 3. they (irresponsibly) store permissions to spend in plaintext on their server
 
-### Why is my wallet not showing up on another device?
+### Why do I need to enter a passphrase on another device to see my wallets?
 
-By default, permissions to spend from your wallet are only stored on your device.
+Credentials to spend from your wallet are always stored encrypted on the server. The encryption key is generated and stored on your device.
 
-However, you can enable [device sync](/settings/passphrase) in your settings to securely sync your wallets across devices. Once enabled, your wallets will show up on all devices you entered your passphrase.
+You need to enter your passphrase on another device so it can derive the same key to decrypt your wallets.
 
 ### I have a wallet attached but I still receive CCs. Why?
 
@@ -195,7 +180,7 @@ Yes. We try each payment three times in total with all sender and receiver fallb
 
 ### How do I get a gun or a horse?
 
-You receive a gun when you [attach a wallet](#how-do-i-attach-a-wallet) to send sats AND enable [device sync](/settings/passphrase).
+You receive a gun when you [attach a wallet](#how-do-i-attach-a-wallet) to send sats.
 
 You receive a horse when you [attach a wallet](#how-do-i-attach-a-wallet) to receive sats.
 

@@ -56,8 +56,9 @@ function useArrowKeys ({ moveLeft, moveRight }) {
 function Carousel ({ close, mediaArr, src }) {
   const [index, setIndex] = useState(mediaArr.findIndex(([key]) => key === src))
   const [currentSrc, canGoLeft, canGoRight] = useMemo(() => {
+    if (index === -1) return [src, false, false]
     return [mediaArr[index][0], index > 0, index < mediaArr.length - 1]
-  }, [mediaArr, index])
+  }, [src, mediaArr, index])
 
   const moveLeft = useCallback(() => {
     setIndex(i => Math.max(0, i - 1))
@@ -108,8 +109,12 @@ export function CarouselProvider ({ children }) {
   const showModal = useShowModal()
 
   const showCarousel = useCallback(({ src }) => {
-    showModal((close) => {
-      return <Carousel close={close} mediaArr={Array.from(media.current.entries())} src={src} />
+    // only show confirmed entries
+    const confirmedEntries = Array.from(media.current.entries())
+      .filter(([, entry]) => entry.confirmed)
+
+    showModal((close, setOptions) => {
+      return <Carousel close={close} mediaArr={confirmedEntries} src={src} />
     }, {
       fullScreen: true,
       overflow: <CarouselOverflow {...media.current.get(src)} />
@@ -117,14 +122,25 @@ export function CarouselProvider ({ children }) {
   }, [showModal])
 
   const addMedia = useCallback(({ src, originalSrc, rel }) => {
-    media.current.set(src, { src, originalSrc, rel })
+    media.current.set(src, { src, originalSrc, rel, confirmed: false })
+  }, [])
+
+  const confirmMedia = useCallback((src) => {
+    const mediaItem = media.current.get(src)
+    if (mediaItem) {
+      mediaItem.confirmed = true
+      media.current.set(src, mediaItem)
+    }
   }, [])
 
   const removeMedia = useCallback((src) => {
     media.current.delete(src)
   }, [])
 
-  const value = useMemo(() => ({ showCarousel, addMedia, removeMedia }), [showCarousel, addMedia, removeMedia])
+  const value = useMemo(
+    () => ({ showCarousel, addMedia, confirmMedia, removeMedia }),
+    [showCarousel, addMedia, confirmMedia, removeMedia]
+  )
   return <CarouselContext.Provider value={value}>{children}</CarouselContext.Provider>
 }
 

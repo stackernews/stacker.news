@@ -81,7 +81,7 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
   useEffect(() => {
     if (!media.bestResSrc) return
     addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: props.rel })
-  }, [addMedia, media.bestResSrc])
+  }, [addMedia, media.bestResSrc, media.originalSrc, props.rel])
 
   // confirm media for carousel based on image detection
   useEffect(() => {

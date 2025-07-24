@@ -53,7 +53,7 @@ function useArrowKeys ({ moveLeft, moveRight }) {
   }, [onKeyDown])
 }
 
-export default function Carousel ({ close, mediaArr, src, originalSrc, setOptions }) {
+function Carousel ({ close, mediaArr, src }) {
   const [index, setIndex] = useState(mediaArr.findIndex(([key]) => key === src))
   const [currentSrc, canGoLeft, canGoRight] = useMemo(() => {
     return [mediaArr[index][0], index > 0, index < mediaArr.length - 1]
@@ -113,7 +113,7 @@ export function CarouselProvider ({ children }) {
       .filter(([, entry]) => entry.confirmed)
 
     showModal((close, setOptions) => {
-      return <Carousel close={close} mediaArr={confirmedEntries} src={src} setOptions={setOptions} />
+      return <Carousel close={close} mediaArr={confirmedEntries} src={src} />
     }, {
       fullScreen: true,
       overflow: <CarouselOverflow {...media.current.get(src)} />

@@ -118,11 +118,11 @@ export function CarouselProvider ({ children }) {
       fullScreen: true,
       overflow: <CarouselOverflow {...media.current.get(src)} />
     })
-  }, [showModal, media.current])
+  }, [showModal])
 
   const addMedia = useCallback(({ src, originalSrc, rel }) => {
     media.current.set(src, { src, originalSrc, rel, confirmed: false })
-  }, [media.current])
+  }, [])
 
   const confirmMedia = useCallback((src) => {
     const mediaItem = media.current.get(src)
@@ -130,11 +130,11 @@ export function CarouselProvider ({ children }) {
       mediaItem.confirmed = true
       media.current.set(src, mediaItem)
     }
-  }, [media.current])
+  }, [])
 
   const removeMedia = useCallback((src) => {
     media.current.delete(src)
-  }, [media.current])
+  }, [])
 
   const value = useMemo(() => ({ showCarousel, addMedia, confirmMedia, removeMedia }), [showCarousel, addMedia, removeMedia])
   return <CarouselContext.Provider value={value}>{children}</CarouselContext.Provider>

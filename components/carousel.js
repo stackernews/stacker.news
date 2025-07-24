@@ -53,7 +53,7 @@ function useArrowKeys ({ moveLeft, moveRight }) {
   }, [onKeyDown])
 }
 
-export default function Carousel ({ close, mediaArr, src }) {
+function Carousel ({ close, mediaArr, src }) {
   const [index, setIndex] = useState(mediaArr.findIndex(([key]) => key === src))
   const [currentSrc, canGoLeft, canGoRight] = useMemo(() => {
     return [mediaArr[index][0], index > 0, index < mediaArr.length - 1]

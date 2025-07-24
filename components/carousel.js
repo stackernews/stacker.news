@@ -53,11 +53,18 @@ function useArrowKeys ({ moveLeft, moveRight }) {
   }, [onKeyDown])
 }
 
-export default function Carousel ({ close, mediaArr, src, originalSrc, setOptions }) {
+function Carousel ({ close, mediaArr, src, setOptions }) {
   const [index, setIndex] = useState(mediaArr.findIndex(([key]) => key === src))
   const [currentSrc, canGoLeft, canGoRight] = useMemo(() => {
     return [mediaArr[index][0], index > 0, index < mediaArr.length - 1]
   }, [mediaArr, index])
+
+  useEffect(() => {
+    if (index === -1) return
+    setOptions({
+      overflow: <CarouselOverflow {...mediaArr[index][1]} />
+    })
+  }, [index, mediaArr, setOptions])
 
   const moveLeft = useCallback(() => {
     setIndex(i => Math.max(0, i - 1))
@@ -114,15 +121,15 @@ export function CarouselProvider ({ children }) {
       fullScreen: true,
       overflow: <CarouselOverflow {...media.current.get(src)} />
     })
-  }, [showModal, media.current])
+  }, [showModal])
 
   const addMedia = useCallback(({ src, originalSrc, rel }) => {
     media.current.set(src, { src, originalSrc, rel })
-  }, [media.current])
+  }, [])
 
   const removeMedia = useCallback((src) => {
     media.current.delete(src)
-  }, [media.current])
+  }, [])
 
   const value = useMemo(() => ({ showCarousel, addMedia, removeMedia }), [showCarousel, addMedia, removeMedia])
   return <CarouselContext.Provider value={value}>{children}</CarouselContext.Provider>

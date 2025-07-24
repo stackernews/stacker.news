@@ -309,6 +309,7 @@ export function ViewAllReplies ({ id, nshown, nhas }) {
 function ReplyOnAnotherPage ({ item }) {
   const root = useRoot()
   const rootId = commentSubTreeRootId(item, root)
+  const { cache } = useApolloClient()
 
   let text = 'reply on another page'
   if (item.ncomments > 0) {
@@ -316,7 +317,24 @@ function ReplyOnAnotherPage ({ item }) {
   }
 
   return (
-    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='pb-2 fw-bold d-flex align-items-center gap-2 text-muted'>
+    <Link
+      onClick={() => {
+        // clear new comments going to another page
+        cache.writeFragment({
+          id: `Item:${item.id}`,
+          fragment: gql`
+            fragment NewComments on Item {
+              newComments
+            }`,
+          data: {
+            newComments: []
+          }
+        })
+      }}
+      href={`/items/${rootId}?commentId=${item.id}`}
+      as={`/items/${rootId}`}
+      className='pb-2 fw-bold d-flex align-items-center gap-2 text-muted'
+    >
       {text}
       {item.newComments?.length > 0 && <div className={styles.newCommentDot} />}
     </Link>

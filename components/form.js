@@ -34,12 +34,9 @@ import Info from './info'
 import { useMe } from './me'
 import classNames from 'classnames'
 import Clipboard from '@/svgs/clipboard-line.svg'
-import QrIcon from '@/svgs/qr-code-line.svg'
 import QrScanIcon from '@/svgs/qr-scan-line.svg'
 import { useShowModal } from './modal'
-import { QRCodeSVG } from 'qrcode.react'
 import dynamic from 'next/dynamic'
-import { qrImageSettings } from './qr'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
 
@@ -78,7 +75,7 @@ export function SubmitButton ({
   )
 }
 
-function CopyButton ({ value, icon, ...props }) {
+export function CopyButton ({ value, icon, ...props }) {
   const toaster = useToast()
   const [copied, setCopied] = useState(false)
 
@@ -612,7 +609,7 @@ function FormGroup ({ className, label, children }) {
 function InputInner ({
   prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue,
   innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength, hideError,
-  ...props
+  AppendColumn, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -690,38 +687,43 @@ function InputInner ({
 
   return (
     <>
-      <InputGroup hasValidation className={inputGroupClassName}>
-        {prepend}
-        <BootstrapForm.Control
-          ref={innerRef}
-          {...field}
-          {...props}
-          onKeyDown={onKeyDownInner}
-          onChange={onChangeInner}
-          onBlur={onBlurInner}
-          isInvalid={!hideError && invalid} // if hideError is true, handle error showing separately
-          isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
-        />
-        {(isClient && clear && field.value && !props.readOnly) &&
-          <Button
-            variant={null}
-            onClick={(e) => {
-              helpers.setValue('')
-              if (storageKey) {
-                window.localStorage.removeItem(storageKey)
-              }
-              if (onChange) {
-                onChange(formik, { target: { value: '' } })
-              }
-            }}
-            className={`${styles.clearButton} ${styles.appendButton} ${invalid ? styles.isInvalid : ''}`}
-          ><CloseIcon className='fill-grey' height={20} width={20} />
-          </Button>}
-        {append}
-        <BootstrapForm.Control.Feedback type='invalid'>
-          {meta.touched && meta.error}
-        </BootstrapForm.Control.Feedback>
-      </InputGroup>
+      <Row>
+        <Col>
+          <InputGroup hasValidation className={inputGroupClassName}>
+            {prepend}
+            <BootstrapForm.Control
+              ref={innerRef}
+              {...field}
+              {...props}
+              onKeyDown={onKeyDownInner}
+              onChange={onChangeInner}
+              onBlur={onBlurInner}
+              isInvalid={!hideError && invalid} // if hideError is true, handle error showing separately
+              isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
+            />
+            {(isClient && clear && field.value && !props.readOnly) &&
+              <Button
+                variant={null}
+                onClick={(e) => {
+                  helpers.setValue('')
+                  if (storageKey) {
+                    window.localStorage.removeItem(storageKey)
+                  }
+                  if (onChange) {
+                    onChange(formik, { target: { value: '' } })
+                  }
+                }}
+                className={`${styles.clearButton} ${styles.appendButton} ${invalid ? styles.isInvalid : ''}`}
+              ><CloseIcon className='fill-grey' height={20} width={20} />
+              </Button>}
+            {append}
+            <BootstrapForm.Control.Feedback type='invalid'>
+              {meta.touched && meta.error}
+            </BootstrapForm.Control.Feedback>
+          </InputGroup>
+        </Col>
+        {AppendColumn && <AppendColumn className={meta.touched && meta.error ? 'invisible' : ''} />}
+      </Row>
       {hint && (
         <BootstrapForm.Text>
           {hint}
@@ -955,31 +957,38 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
       <FieldArray name={name} hasValidation>
         {({ form, ...fieldArrayHelpers }) => {
           const options = form.values[name]
+
           return (
             <>
-              {options?.map((_, i) => (
-                <div key={i}>
-                  <Row className='mb-2'>
-                    <Col>
-                      {children
-                        ? children({ index: i, readOnly: i < readOnlyLen, placeholder: i >= min ? 'optional' : undefined })
-                        : <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} />}
-                    </Col>
-                    <Col className='d-flex ps-0' xs='auto'>
-                      {options.length - 1 === i && options.length !== max
-                        ? <AddIcon className='fill-grey align-self-center justify-self-center pointer' onClick={() => fieldArrayHelpers.push(emptyItem)} />
-                        // filler div for col alignment across rows
-                        : <div style={{ width: '24px', height: '24px' }} />}
-                    </Col>
-                    {options.length - 1 === i &&
-                      <>
-                        {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
-                        {form.touched[name] && typeof form.errors[name] === 'string' &&
-                          <div className='invalid-feedback d-block'>{form.errors[name]}</div>}
-                      </>}
-                  </Row>
-                </div>
-              ))}
+              {options?.map((_, i) => {
+                const AppendColumn = ({ className }) => (
+                  <Col className={`d-flex ps-0 ${className}`} xs='auto'>
+                    {options.length - 1 === i && options.length !== max
+                      // onMouseDown is used to prevent the blur event on text inputs from overriding the click event
+                      ? <AddIcon className='fill-grey align-self-center justify-self-center pointer' onMouseDown={() => fieldArrayHelpers.push(emptyItem)} />
+                      // filler div for col alignment across rows
+                      : <div style={{ width: '24px', height: '24px' }} />}
+                  </Col>
+                )
+                return (
+                  <div key={i}>
+                    <Row className='mb-2'>
+                      <Col>
+                        {children
+                          ? children({ index: i, readOnly: i < readOnlyLen, placeholder: i >= min ? 'optional' : undefined, AppendColumn })
+                          : <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} AppendColumn={AppendColumn} />}
+                      </Col>
+
+                      {options.length - 1 === i &&
+                        <>
+                          {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
+                          {form.touched[name] && typeof form.errors[name] === 'string' &&
+                            <div className='invalid-feedback d-block'>{form.errors[name]}</div>}
+                        </>}
+                    </Row>
+                  </div>
+                )
+              })}
             </>
           )
         }}
@@ -1333,33 +1342,6 @@ function PasswordHider ({ onClick, showPass }) {
   )
 }
 
-function QrPassword ({ value }) {
-  const showModal = useShowModal()
-  const toaster = useToast()
-
-  const showQr = useCallback(() => {
-    showModal(close => (
-      <div>
-        <p className='line-height-md text-muted'>Import this passphrase into another device by navigating to device sync settings and scanning this QR code</p>
-        <div className='d-block p-3 mx-auto' style={{ background: 'white', maxWidth: '300px' }}>
-          <QRCodeSVG className='h-auto mw-100' value={value} size={300} imageSettings={qrImageSettings} />
-        </div>
-      </div>
-    ))
-  }, [toaster, value, showModal])
-
-  return (
-    <>
-      <InputGroup.Text
-        style={{ cursor: 'pointer' }}
-        onClick={showQr}
-      >
-        <QrIcon height={16} width={16} />
-      </InputGroup.Text>
-    </>
-  )
-}
-
 function PasswordScanner ({ onScan, text }) {
   const showModal = useShowModal()
   const toaster = useToast()
@@ -1380,8 +1362,10 @@ function PasswordScanner ({ onScan, text }) {
                 <Scanner
                   formats={['qr_code']}
                   onScan={([{ rawValue: result }]) => {
-                    onScan(result)
-                    onClose()
+                    if (result) {
+                      onScan(result)
+                      onClose()
+                    }
                   }}
                   styles={{
                     video: {
@@ -1396,6 +1380,7 @@ function PasswordScanner ({ onScan, text }) {
                     }
                     onClose()
                   }}
+                  components={{ audio: false }}
                 />
               )}
             </div>
@@ -1422,12 +1407,12 @@ export function PasswordInput ({ newPass, qr, copy, readOnly, append, value: ini
         {copy && (
           <CopyButton icon value={field?.value} />
         )}
-        {qr && (readOnly
-          ? <QrPassword value={field?.value} />
-          : <PasswordScanner
-              text="Where'd you learn to square dance?"
-              onScan={v => helpers.setValue(v)}
-            />)}
+        {qr && (
+          <PasswordScanner
+            text="Where'd you learn to square dance?"
+            onScan={v => helpers.setValue(v)}
+          />
+        )}
         {append}
       </>
     )

@@ -269,7 +269,7 @@ export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) 
             emptyItem={EMPTY_FORWARD}
             hint={<span className='text-muted'>Forward sats to up to 5 other stackers. Any remaining sats go to you.</span>}
           >
-            {({ index, placeholder }) => {
+            {({ index, AppendColumn }) => {
               return (
                 <div key={index} className='d-flex flex-row'>
                   <InputUserSuggest
@@ -286,6 +286,7 @@ export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) 
                     max={100}
                     append={<InputGroup.Text className='text-monospace'>%</InputGroup.Text>}
                     groupClassName={`${styles.percent} mb-0`}
+                    AppendColumn={AppendColumn}
                   />
                 </div>
               )

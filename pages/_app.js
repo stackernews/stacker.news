@@ -19,8 +19,7 @@ import 'nprogress/nprogress.css'
 import { ChainFeeProvider } from '@/components/chain-fee.js'
 import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
-import { WebLnProvider } from '@/wallets/webln/client'
-import { WalletsProvider } from '@/wallets/index'
+import WalletsProvider from '@/wallets/client/context'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
@@ -60,6 +59,14 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
     router.events.on('routeChangeComplete', nprogressDone)
     router.events.on('routeChangeError', nprogressDone)
 
+    const handleServiceWorkerMessage = (event) => {
+      if (event.data?.type === 'navigate') {
+        router.push(event.data.url)
+      }
+    }
+
+    navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage)
+
     if (!props?.apollo) return
     // HACK: 'cause there's no way to tell Next to skip SSR
     // So every page load, we modify the route in browser history
@@ -82,6 +89,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
       router.events.off('routeChangeStart', nprogressStart)
       router.events.off('routeChangeComplete', nprogressDone)
       router.events.off('routeChangeError', nprogressDone)
+      navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage)
     }
   }, [router.asPath, props?.apollo, shouldShowProgressBar])
 
@@ -113,26 +121,24 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
             <MeProvider me={me}>
               <WalletsProvider>
                 <HasNewNotesProvider>
-                  <WebLnProvider>
-                    <ServiceWorkerProvider>
-                      <PriceProvider price={price}>
-                        <AnimationProvider>
-                          <ToastProvider>
-                            <ShowModalProvider>
-                              <BlockHeightProvider blockHeight={blockHeight}>
-                                <ChainFeeProvider chainFee={chainFee}>
-                                  <ErrorBoundary>
-                                    <Component ssrData={ssrData} {...otherProps} />
-                                    {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
-                                  </ErrorBoundary>
-                                </ChainFeeProvider>
-                              </BlockHeightProvider>
-                            </ShowModalProvider>
-                          </ToastProvider>
-                        </AnimationProvider>
-                      </PriceProvider>
-                    </ServiceWorkerProvider>
-                  </WebLnProvider>
+                  <ServiceWorkerProvider>
+                    <PriceProvider price={price}>
+                      <AnimationProvider>
+                        <ToastProvider>
+                          <ShowModalProvider>
+                            <BlockHeightProvider blockHeight={blockHeight}>
+                              <ChainFeeProvider chainFee={chainFee}>
+                                <ErrorBoundary>
+                                  <Component ssrData={ssrData} {...otherProps} />
+                                  {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
+                                </ErrorBoundary>
+                              </ChainFeeProvider>
+                            </BlockHeightProvider>
+                          </ShowModalProvider>
+                        </ToastProvider>
+                      </AnimationProvider>
+                    </PriceProvider>
+                  </ServiceWorkerProvider>
                 </HasNewNotesProvider>
               </WalletsProvider>
             </MeProvider>

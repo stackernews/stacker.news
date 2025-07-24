@@ -29,7 +29,7 @@ import { useShowModal } from './modal'
 import { BoostHelp } from './adv-post-form'
 
 function onItemClick (e, router, item) {
-  const viewedAt = commentsViewedAt(item)
+  const viewedAt = commentsViewedAt(item.id)
   if (viewedAt) {
     e.preventDefault()
     if (e.ctrlKey || e.metaKey) {

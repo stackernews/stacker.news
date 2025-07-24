@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { Workbox } from 'workbox-window'
 import { gql, useMutation } from '@apollo/client'
+import { requestPersistentStorage } from './use-indexeddb'
 
 const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBKEY
 
@@ -9,6 +10,7 @@ const ServiceWorkerContext = createContext()
 // message types for communication between app and service worker
 export const DELETE_SUBSCRIPTION = 'DELETE_SUBSCRIPTION'
 export const STORE_SUBSCRIPTION = 'STORE_SUBSCRIPTION'
+export const CLEAR_NOTIFICATIONS = 'CLEAR_NOTIFICATIONS'
 
 export const ServiceWorkerProvider = ({ children }) => {
   const [registration, setRegistration] = useState(null)
@@ -78,6 +80,8 @@ export const ServiceWorkerProvider = ({ children }) => {
       action: STORE_SUBSCRIPTION,
       subscription: pushSubscription
     })
+    requestPersistentStorage()
+
     // send subscription to server
     const variables = {
       endpoint,
@@ -100,11 +104,6 @@ export const ServiceWorkerProvider = ({ children }) => {
       return await unsubscribeFromPushNotifications(pushSubscription)
     }
     await subscribeToPushNotifications()
-    // request persistent storage: https://web.dev/learn/pwa/offline-data#data_persistence
-    const persisted = await navigator?.storage?.persisted?.()
-    if (!persisted && navigator?.storage?.persist) {
-      return await navigator.storage.persist()
-    }
   })
 
   useEffect(() => {
@@ -138,6 +137,10 @@ export const ServiceWorkerProvider = ({ children }) => {
       {children}
     </ServiceWorkerContext.Provider>
   )
+}
+
+export function clearNotifications () {
+  return navigator.serviceWorker?.controller?.postMessage({ action: CLEAR_NOTIFICATIONS })
 }
 
 export function useServiceWorker () {

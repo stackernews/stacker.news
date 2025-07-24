@@ -261,7 +261,7 @@ export default function Comment ({
       </div>
       {collapse !== 'yep' && (
         bottomedOut
-          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3')}><ReplyOnAnotherPage item={item} cache={cache} /></div></div>
+          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3')}><ReplyOnAnotherPage item={item} /></div></div>
           : (
             <div className={styles.children}>
               {item.outlawed && !me?.privates?.wildWestMode
@@ -306,9 +306,10 @@ export function ViewAllReplies ({ id, nshown, nhas }) {
   )
 }
 
-function ReplyOnAnotherPage ({ item, cache }) {
+function ReplyOnAnotherPage ({ item }) {
   const root = useRoot()
   const rootId = commentSubTreeRootId(item, root)
+  const { cache } = useApolloClient()
 
   let text = 'reply on another page'
   if (item.ncomments > 0) {

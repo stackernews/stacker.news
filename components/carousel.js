@@ -114,15 +114,15 @@ export function CarouselProvider ({ children }) {
       fullScreen: true,
       overflow: <CarouselOverflow {...media.current.get(src)} />
     })
-  }, [showModal, media.current])
+  }, [showModal])
 
   const addMedia = useCallback(({ src, originalSrc, rel }) => {
     media.current.set(src, { src, originalSrc, rel })
-  }, [media.current])
+  }, [])
 
   const removeMedia = useCallback((src) => {
     media.current.delete(src)
-  }, [media.current])
+  }, [])
 
   const value = useMemo(() => ({ showCarousel, addMedia, removeMedia }), [showCarousel, addMedia, removeMedia])
   return <CarouselContext.Provider value={value}>{children}</CarouselContext.Provider>

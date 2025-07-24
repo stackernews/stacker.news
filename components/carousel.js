@@ -53,11 +53,18 @@ function useArrowKeys ({ moveLeft, moveRight }) {
   }, [onKeyDown])
 }
 
-function Carousel ({ close, mediaArr, src }) {
+function Carousel ({ close, mediaArr, src, setOptions }) {
   const [index, setIndex] = useState(mediaArr.findIndex(([key]) => key === src))
   const [currentSrc, canGoLeft, canGoRight] = useMemo(() => {
     return [mediaArr[index][0], index > 0, index < mediaArr.length - 1]
   }, [mediaArr, index])
+
+  useEffect(() => {
+    if (index === -1) return
+    setOptions({
+      overflow: <CarouselOverflow {...mediaArr[index][1]} />
+    })
+  }, [index, mediaArr, setOptions])
 
   const moveLeft = useCallback(() => {
     setIndex(i => Math.max(0, i - 1))
@@ -108,8 +115,8 @@ export function CarouselProvider ({ children }) {
   const showModal = useShowModal()
 
   const showCarousel = useCallback(({ src }) => {
-    showModal((close) => {
-      return <Carousel close={close} mediaArr={Array.from(media.current.entries())} src={src} />
+    showModal((close, setOptions) => {
+      return <Carousel close={close} mediaArr={Array.from(media.current.entries())} src={src} setOptions={setOptions} />
     }, {
       fullScreen: true,
       overflow: <CarouselOverflow {...media.current.get(src)} />

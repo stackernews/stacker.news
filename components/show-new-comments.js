@@ -70,7 +70,7 @@ function prepareComments (data, client, newComments) {
 
 // traverses all new comments and their children
 // if it's a thread, or we're in a new comment subtree, we also consider their existing children
-function traverseNewComments (client, item, onLevel, currentDepth = 1, inSubtree = false) {
+function traverseNewComments (client, item, onLevel, currentDepth, inSubtree) {
   // if we're at the depth limit, stop traversing, we've reached the bottom of the visible thread
   if (currentDepth >= COMMENT_DEPTH_LIMIT) return
 
@@ -87,7 +87,7 @@ function traverseNewComments (client, item, onLevel, currentDepth = 1, inSubtree
     // at each level, we can execute a callback passing the current item's new comments, depth and ID
     onLevel(freshNewComments, currentDepth, item.id)
 
-    // traverse the new comment's new comments
+    // traverse the new comment's new comments and their children
     for (const newComment of freshNewComments) {
       traverseNewComments(client, newComment, onLevel, currentDepth + 1, true)
     }
@@ -104,7 +104,7 @@ function traverseNewComments (client, item, onLevel, currentDepth = 1, inSubtree
 
 // recursively processes and displays all new comments
 // handles comment injection at each level, respecting depth limits
-function injectNewComments (client, item, currentDepth, sort, thread) {
+function injectNewComments (client, item, sort, currentDepth, thread) {
   traverseNewComments(client, item, (newComments, depth, itemId) => {
     if (newComments.length > 0) {
       // traverseNewComments also passes the depth of the current item
@@ -119,7 +119,7 @@ function injectNewComments (client, item, currentDepth, sort, thread) {
 }
 
 // counts all new comments of an item
-function countAllNewComments (client, item, currentDepth = 1, thread) {
+function countAllNewComments (client, item, currentDepth, thread) {
   let newCommentsCount = 0
   let threadChildren = false
 
@@ -174,7 +174,7 @@ export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
   const showNewComments = useCallback(() => {
     // a top level comment doesn't pass depth, we pass its default value of 0 to signify this
     // child comments are injected from the depth they're at
-    injectNewComments(client, item, depth, sort, threadComment)
+    injectNewComments(client, item, sort, depth, threadComment)
   }, [client, sort, item, depth])
 
   const text = !threadComment

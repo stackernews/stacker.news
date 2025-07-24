@@ -3,7 +3,7 @@ import styles from './comment.module.css'
 import Text, { SearchText } from './text'
 import Link from 'next/link'
 import Reply from './reply'
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import UpVote from './upvote'
 import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
@@ -156,26 +156,6 @@ export default function Comment ({
     }
   }, [item.id, rootLastCommentAt])
 
-  const eraseNewComments = useCallback(() => {
-    if (item.newComments?.length > 0) {
-      cache.writeFragment({
-        id: `Item:${item.id}`,
-        fragment: gql`
-          fragment NewComments on Item {
-            newComments
-          }`,
-        data: {
-          newComments: []
-        }
-      })
-    }
-  }, [item.id, item.newComments, cache])
-
-  useEffect(() => {
-    router.events.on('routeChangeStart', eraseNewComments)
-    return () => router.events.off('routeChangeStart', eraseNewComments)
-  }, [router.events, eraseNewComments])
-
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
   const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon
@@ -281,7 +261,7 @@ export default function Comment ({
       </div>
       {collapse !== 'yep' && (
         bottomedOut
-          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3')}><ReplyOnAnotherPage item={item} /></div></div>
+          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3')}><ReplyOnAnotherPage item={item} cache={cache} /></div></div>
           : (
             <div className={styles.children}>
               {item.outlawed && !me?.privates?.wildWestMode
@@ -326,7 +306,7 @@ export function ViewAllReplies ({ id, nshown, nhas }) {
   )
 }
 
-function ReplyOnAnotherPage ({ item }) {
+function ReplyOnAnotherPage ({ item, cache }) {
   const root = useRoot()
   const rootId = commentSubTreeRootId(item, root)
 
@@ -336,7 +316,24 @@ function ReplyOnAnotherPage ({ item }) {
   }
 
   return (
-    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='pb-2 fw-bold d-flex align-items-center gap-2 text-muted'>
+    <Link
+      onClick={() => {
+        // clear new comments going to another page
+        cache.writeFragment({
+          id: `Item:${item.id}`,
+          fragment: gql`
+            fragment NewComments on Item {
+              newComments
+            }`,
+          data: {
+            newComments: []
+          }
+        })
+      }}
+      href={`/items/${rootId}?commentId=${item.id}`}
+      as={`/items/${rootId}`}
+      className='pb-2 fw-bold d-flex align-items-center gap-2 text-muted'
+    >
       {text}
       {item.newComments?.length > 0 && <div className={styles.newCommentDot} />}
     </Link>

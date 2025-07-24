@@ -56,8 +56,9 @@ function useArrowKeys ({ moveLeft, moveRight }) {
 function Carousel ({ close, mediaArr, src }) {
   const [index, setIndex] = useState(mediaArr.findIndex(([key]) => key === src))
   const [currentSrc, canGoLeft, canGoRight] = useMemo(() => {
+    if (index === -1) return [src, false, false]
     return [mediaArr[index][0], index > 0, index < mediaArr.length - 1]
-  }, [mediaArr, index])
+  }, [src, mediaArr, index])
 
   const moveLeft = useCallback(() => {
     setIndex(i => Math.max(0, i - 1))

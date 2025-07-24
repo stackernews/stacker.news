@@ -81,13 +81,13 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
   useEffect(() => {
     if (!media.bestResSrc) return
     addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: props.rel })
-  }, [media.bestResSrc])
+  }, [addMedia, media.bestResSrc])
 
   // confirm media for carousel based on image detection
   useEffect(() => {
     if (!media.image) return
     confirmMedia(media.bestResSrc)
-  }, [media.image, media.bestResSrc])
+  }, [confirmMedia, media.image, media.bestResSrc])
 
   const handleClick = useCallback(() => showCarousel({ src: media.bestResSrc }),
     [showCarousel, media.bestResSrc])

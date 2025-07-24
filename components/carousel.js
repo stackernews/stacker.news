@@ -136,7 +136,10 @@ export function CarouselProvider ({ children }) {
     media.current.delete(src)
   }, [])
 
-  const value = useMemo(() => ({ showCarousel, addMedia, confirmMedia, removeMedia }), [showCarousel, addMedia, removeMedia])
+  const value = useMemo(
+    () => ({ showCarousel, addMedia, confirmMedia, removeMedia }),
+    [showCarousel, addMedia, confirmMedia, removeMedia]
+  )
   return <CarouselContext.Provider value={value}>{children}</CarouselContext.Provider>
 }
 

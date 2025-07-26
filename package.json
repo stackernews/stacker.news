@@ -85,7 +85,7 @@
     "react-particles": "^2.12.2",
     "react-string-replace": "^1.1.1",
     "react-syntax-highlighter": "^15.5.0",
-    "react-textarea-autosize": "^8.5.4",
+    "react-textarea-autosize": "^8.5.9",
     "react-twitter-embed": "^4.0.4",
     "react-youtube": "^10.1.0",
     "recharts": "^2.13.0",

@@ -75,7 +75,7 @@ async function fetchData () {
   return await Promise.all([
     fetchLatestWelcomePost(),
     fetchRecentBios()
-  ])
+  ]).then(([welcomePost, bios]) => ({ welcomePost, bios }))
 }
 
 async function fetchLatestWelcomePost () {
@@ -90,7 +90,7 @@ async function fetchLatestWelcomePost () {
       }
     }`)
 
-  const regex = /Baby Stacker Corner/i
+  const regex = /(Baby Stacker Corner|Tenderfoot Corner)/i
   for (const item of items) if (regex.test(item.title)) return item
   throw new Error('latest welcome post not found')
 }
@@ -127,10 +127,10 @@ async function fetchRecentBios () {
 }
 
 async function populate (data) {
-  const [welcomePost, bios] = data
-  return await Promise.all([
+  const { welcomePost, bios } = data
+  return {
     welcomePost,
-    Promise.all(
+    bios: await Promise.all(
       bios.map(
         async bio => {
           bio.user.since = await util.fetchItem(bio.user.since)
@@ -146,37 +146,68 @@ async function populate (data) {
         }
       )
     )
-  ])
+  }
 }
 
-function printIntro (data) {
-  const [welcomePost, bios] = data
-
-  console.log(`> latest welcome post: ${welcomePost.title}`)
-  const nr = Number(welcomePost.title.match(/\d+/)[0])
-
-  console.log(`\n# Baby Stacker Corner #${nr + 1}\n`)
-
-  let series = welcomePost.text.split('\n').filter(line => line.startsWith('whole series:'))[0]
-  series += `, [#${nr}](${util.itemLink(welcomePost.id)})\n`
-  console.log(series)
-
-  console.log(`${bios.length} new stackers have found their way to Stacker News this week!\n`)
-  console.log('Questions for the new stackers:')
-  console.log('- How did you find out about SN?')
-  console.log('- How difficult was it to get started? Any feedback?')
-  console.log('- How much experience do you have with lightning?')
-  console.log('- Have you read the [FAQ](https://stacker.news/faq) already?')
-  console.log('- Have you realized that you need to attach a wallet to receive sats?')
-  console.log('- Do you understand the difference between cowboy credits (CCs) and sats?')
-  console.log('- How was your first week on SN?\n')
-
-  return data
+function printPost (data) {
+  printDebug(data)
+  printTitle(data)
+  printAmount(data)
+  printTopTenderfoots(data)
+  printQuestions(data)
+  printAllStackers(data)
+  printSatStandardExplainer(data)
+  printMemePlaceholder(data)
 }
 
-async function printTable (data) {
-  const [, bios] = data
+function printDebug ({ welcomePost }) {
+  console.log(`> latest welcome post: ${welcomePost.title}\n`)
+}
 
+function printTitle ({ welcomePost }) {
+  const nr = welcomePostNr(welcomePost)
+  console.log(`# Tenderfoot Corner #${nr + 1}\n`)
+}
+
+function welcomePostNr (welcomePost) {
+  return Number(welcomePost.title.match(/\d+/)[0])
+}
+
+function printAmount ({ welcomePost, bios }) {
+  const nr = welcomePostNr(welcomePost)
+  console.log(`${bios.length} new stackers have found their way to Stacker News since [#${nr}](${util.itemLink(welcomePost.id)})!\n`)
+}
+
+function printTopTenderfoots ({ bios }) {
+  console.log('Top 10 Tenderfoots:\n')
+  console.log('| nym | items | sats/ccs stacked | sat standard |')
+  console.log('| --- | ----- | ---------------- | ------------ |')
+
+  const topTenderfoots = bios
+    .sort((a, b) => (b.user.sats + b.user.credits) - (a.user.sats + a.user.credits))
+    .slice(0, 10)
+
+  for (const bio of topTenderfoots) {
+    const { user } = bio
+    console.log(`| **@${user.name}** | ${user.nitems} | ${user.sats}/${user.credits} | ${user.satstandard.toFixed(2)} |`)
+  }
+
+  console.log()
+}
+
+function printQuestions () {
+  console.log('Questions for the new stackers:\n')
+  console.log('1. How did you find out about SN?')
+  console.log('2. How difficult was it to get started? Any feedback?')
+  console.log('3. How much experience do you have with lightning?')
+  console.log('4. Have you read the [FAQ](https://stacker.news/faq) already?')
+  console.log('5. Have you realized that you need to attach a wallet to receive sats?')
+  console.log('6. Do you understand the difference between cowboy credits (CCs) and sats?')
+  console.log('7. How were your first weeks on SN?\n')
+}
+
+async function printAllStackers ({ bios }) {
+  console.log('All new stackers:\n')
   console.log('| nym | bio (stacking since) | items | sats/ccs stacked | sat standard |')
   console.log('| --- | -------------------- | ----- | ---------------- | ------------ |')
 
@@ -196,21 +227,18 @@ async function printTable (data) {
     console.log(`| @${user.name} | ${col2} | ${user.nitems} | ${user.sats}/${user.credits} | ${user.satstandard.toFixed(2)} |`)
   }
 
-  return data
+  console.log()
 }
 
-function printOutro (data) {
-  console.log('\n_sat standard = ratio of received sats vs credits (`sats/(sats+credits)`)_\n')
+function printSatStandardExplainer () {
+  console.log('_sat standard = ratio of received sats vs credits (`sats/(sats+credits)`)_\n')
+}
 
-  console.log('Questions for the old stackers:')
-  console.log('- Anyone in there who you want to point out?')
-  console.log('- Do you know better questions I could ask the new stackers or you?\n')
-
+function printMemePlaceholder () {
   console.log('<<< INSERT MEME HERE >>>')
   console.log('inspiration: https://imgflip.com/memetemplates?sort=top-new')
-
-  return data
 }
+
 const util = {
   formatDate (date) {
     return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -254,8 +282,6 @@ const util = {
 
 assertSettings()
   .then(fetchData)
-  .then(printIntro)
   .then(populate)
-  .then(printTable)
-  .then(printOutro)
+  .then(printPost)
   .catch(console.error)

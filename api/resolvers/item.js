@@ -749,7 +749,7 @@ export default {
           FROM "Item"
           -- comments can be nested, so we need to get all comments that are descendants of the root
           ${whereClause(
-            '"Item".path <@ (SELECT path FROM "Item" WHERE id = $1)',
+            '"Item".path <@ (SELECT path FROM "Item" WHERE id = $1 AND "Item"."lastCommentAt" > $2)',
             activeOrMine(me),
             '"Item"."created_at" > $2'
           )}

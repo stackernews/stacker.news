@@ -220,8 +220,6 @@ $zindex-sticky: 900;
   scroll-margin-top: 60px;
 }
 
-
-
 .ms-xs {
   margin-left: 0.125rem;
 }
@@ -598,14 +596,6 @@ div[contenteditable]:disabled,
   min-height: 100svh;
 }
 
-#__next > main {
-  z-index: 0;
-}
-
-#__next > footer {
-  z-index: 0;
-}
-
 footer {
   margin-top: auto;
   display: flex;
@@ -908,7 +898,15 @@ div[contenteditable]:focus,
   box-shadow: inset 0 0 1px 1px rgba(0, 123, 190, 0.25);
 }
 
+.outline-new-injected-comment {
+  box-shadow: inset 0 0 1px 1px rgba(0, 123, 190, 0.25);
+}
+
 .outline-new-comment.outline-new-comment-unset {
+  box-shadow: none;
+}
+
+.outline-new-injected-comment.outline-new-comment-unset {
   box-shadow: none;
 }
 

@@ -97,7 +97,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 }
 
 export default function Comment ({
-  item, children, replyOpen, includeParent, topLevel,
+  item, children, replyOpen, includeParent, topLevel, rootLastCommentAt,
   rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry
 }) {
   const [edit, setEdit] = useState()
@@ -141,12 +141,20 @@ export default function Comment ({
   }, [item.id, cache, router.query.commentId])
 
   useEffect(() => {
+    if (me?.id === item.user?.id) return
+    const itemCreatedAt = new Date(item.createdAt).getTime()
+
     if (router.query.commentsViewedAt &&
-        me?.id !== item.user?.id &&
-        new Date(item.createdAt).getTime() > router.query.commentsViewedAt) {
+        !item.injected &&
+        itemCreatedAt > router.query.commentsViewedAt) {
       ref.current.classList.add('outline-new-comment')
+    // newly injected comments have to use a different class to outline every new comment
+    } else if (rootLastCommentAt &&
+              item.injected &&
+              itemCreatedAt > new Date(rootLastCommentAt).getTime()) {
+      ref.current.classList.add('outline-new-injected-comment')
     }
-  }, [item.id])
+  }, [item.id, rootLastCommentAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
@@ -261,11 +269,9 @@ export default function Comment ({
                 : !noReply &&
                   <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
-                    {item.newComments?.length > 0 && (
-                      <div className='ms-auto'>
-                        <ShowNewComments item={item} depth={depth} />
-                      </div>
-                    )}
+                    <div className='ms-auto'>
+                      <ShowNewComments item={item} depth={depth} />
+                    </div>
                   </Reply>}
               {children}
               <div className={styles.comments}>
@@ -273,7 +279,7 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} />
+                        <Comment depth={depth + 1} key={item.id} item={item} rootLastCommentAt={rootLastCommentAt} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nhas={item.ncomments} />}
                     </>
@@ -303,6 +309,7 @@ export function ViewAllReplies ({ id, nshown, nhas }) {
 function ReplyOnAnotherPage ({ item }) {
   const root = useRoot()
   const rootId = commentSubTreeRootId(item, root)
+  const { cache } = useApolloClient()
 
   let text = 'reply on another page'
   if (item.ncomments > 0) {
@@ -310,7 +317,24 @@ function ReplyOnAnotherPage ({ item }) {
   }
 
   return (
-    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='pb-2 fw-bold d-flex align-items-center gap-2 text-muted'>
+    <Link
+      onClick={() => {
+        // clear new comments going to another page
+        cache.writeFragment({
+          id: `Item:${item.id}`,
+          fragment: gql`
+            fragment NewComments on Item {
+              newComments
+            }`,
+          data: {
+            newComments: []
+          }
+        })
+      }}
+      href={`/items/${rootId}?commentId=${item.id}`}
+      as={`/items/${rootId}`}
+      className='pb-2 fw-bold d-flex align-items-center gap-2 text-muted'
+    >
       {text}
       {item.newComments?.length > 0 && <div className={styles.newCommentDot} />}
     </Link>

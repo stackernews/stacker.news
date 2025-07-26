@@ -9,7 +9,7 @@ import bip39Words from '@/lib/bip39-words'
 import { Form, PasswordInput, SubmitButton } from '@/components/form'
 import { object, string } from 'yup'
 import { SET_KEY, useKey, useKeyHash, useWalletsDispatch } from '@/wallets/client/context'
-import { useDisablePassphraseExport, useUpdateKeyHash, useWalletEncryptionUpdate, useWalletReset } from '@/wallets/client/hooks'
+import { useDisablePassphraseExport, useUpdateKeyHash, useWalletEncryptionUpdate, useWalletLogger, useWalletReset } from '@/wallets/client/hooks'
 import { useToast } from '@/components/toast'
 
 export class CryptoKeyRequiredError extends Error {
@@ -41,12 +41,17 @@ export function useSetKey () {
   const { set } = useIndexedDB()
   const dispatch = useWalletsDispatch()
   const updateKeyHash = useUpdateKeyHash()
+  const logger = useWalletLogger()
 
-  return useCallback(async ({ key, hash }) => {
-    await set('vault', 'key', { key, hash })
+  return useCallback(async ({ key, hash, updatedAt }, { updateDb = true } = {}) => {
+    if (updateDb) {
+      updatedAt = updatedAt ?? Date.now()
+      await set('vault', 'key', { key, hash, updatedAt })
+    }
     await updateKeyHash(hash)
-    dispatch({ type: SET_KEY, key, hash })
-  }, [set, dispatch, updateKeyHash])
+    dispatch({ type: SET_KEY, key, hash, updatedAt })
+    logger.debug(`using key ${hash}`)
+  }, [set, dispatch, updateKeyHash, logger])
 }
 
 export function useEncryption () {
@@ -84,6 +89,11 @@ export function useDecryption () {
 export function useRemoteKeyHash () {
   const { me } = useMe()
   return me?.privates?.vaultKeyHash
+}
+
+export function useRemoteKeyHashUpdatedAt () {
+  const { me } = useMe()
+  return me?.privates?.vaultKeyHashUpdatedAt
 }
 
 export function useIsWrongKey () {
@@ -151,12 +161,14 @@ export function useSavePassphrase () {
   const setKey = useSetKey()
   const salt = useKeySalt()
   const disablePassphraseExport = useDisablePassphraseExport()
+  const logger = useWalletLogger()
 
   return useCallback(async ({ passphrase }) => {
+    logger.debug('passphrase entered')
     const { key, hash } = await deriveKey(passphrase, salt)
     await setKey({ key, hash })
     await disablePassphraseExport()
-  }, [setKey, disablePassphraseExport])
+  }, [setKey, disablePassphraseExport, logger])
 }
 
 export function useResetPassphrase () {
@@ -165,19 +177,22 @@ export function useResetPassphrase () {
   const generateRandomKey = useGenerateRandomKey()
   const setKey = useSetKey()
   const toaster = useToast()
+  const logger = useWalletLogger()
 
   const resetPassphrase = useCallback((close) =>
     async () => {
       try {
+        logger.debug('passphrase reset')
         const { key: randomKey, hash } = await generateRandomKey()
         await setKey({ key: randomKey, hash })
         await walletReset({ newKeyHash: hash })
         close()
       } catch (err) {
+        logger.debug('failed to reset passphrase: ' + err)
         console.error('failed to reset passphrase:', err)
         toaster.error('failed to reset passphrase')
       }
-    }, [walletReset, generateRandomKey, setKey, toaster])
+    }, [walletReset, generateRandomKey, setKey, toaster, logger])
 
   return useCallback(async () => {
     showModal(close => (
@@ -223,42 +238,41 @@ export function usePassphrasePrompt () {
   const [showPassphrasePrompt, setShowPassphrasePrompt] = useState(false)
   const togglePassphrasePrompt = useCallback(() => setShowPassphrasePrompt(v => !v), [])
 
-  const Prompt = useMemo(() =>
-    () => (
-      <div>
-        <h4>Wallet decryption</h4>
-        <p className='line-height-md mt-3'>
-          Your wallets have been encrypted on another device. Enter your passphrase to use your wallets on this device.
-        </p>
-        <p className='line-height-md'>
-          {showPassphrase && 'You can find the button to reveal your passphrase above your wallets on the other device.'}
-        </p>
-        <p className='line-height-md'>
-          Press reset if you lost your passphrase.
-        </p>
-        <Form
-          schema={passphraseSchema({ hash, salt })}
-          initial={{ passphrase: '' }}
-          onSubmit={onSubmit}
-        >
-          <PasswordInput
-            label='passphrase'
-            name='passphrase'
-            placeholder=''
-            required
-            autoFocus
-            qr
-          />
-          <div className='mt-3'>
-            <div className='d-flex justify-content-between align-items-center'>
-              <Button className='me-auto' variant='danger' onClick={resetPassphrase}>reset</Button>
-              <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={togglePassphrasePrompt}>cancel</Button>
-              <SubmitButton variant='primary'>save</SubmitButton>
-            </div>
+  const Prompt = useMemo(() => (
+    <div>
+      <h4>Wallet decryption</h4>
+      <p className='line-height-md mt-3'>
+        Your wallets have been encrypted on another device. Enter your passphrase to use your wallets on this device.
+      </p>
+      <p className='line-height-md'>
+        {showPassphrase && 'You can find the button to reveal your passphrase above your wallets on the other device.'}
+      </p>
+      <p className='line-height-md'>
+        Press reset if you lost your passphrase.
+      </p>
+      <Form
+        schema={passphraseSchema({ hash, salt })}
+        initial={{ passphrase: '' }}
+        onSubmit={onSubmit}
+      >
+        <PasswordInput
+          label='passphrase'
+          name='passphrase'
+          placeholder=''
+          required
+          autoFocus
+          qr
+        />
+        <div className='mt-3'>
+          <div className='d-flex justify-content-between align-items-center'>
+            <Button className='me-auto' variant='danger' onClick={resetPassphrase}>reset</Button>
+            <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={togglePassphrasePrompt}>cancel</Button>
+            <SubmitButton variant='primary'>save</SubmitButton>
           </div>
-        </Form>
-      </div>
-    ), [showPassphrase, resetPassphrase, togglePassphrasePrompt, onSubmit, hash, salt])
+        </div>
+      </Form>
+    </div>
+  ), [showPassphrase, resetPassphrase, togglePassphrasePrompt, onSubmit, hash, salt])
 
   return useMemo(
     () => [showPassphrasePrompt, togglePassphrasePrompt, Prompt],

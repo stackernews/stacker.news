@@ -56,6 +56,7 @@ export default gql`
     generateApiKey(id: ID!): String
     deleteApiKey(id: ID!): User
     disableFreebies: Boolean
+    setDiagnostics(diagnostics: Boolean!): Boolean
   }
 
   type User {
@@ -86,7 +87,6 @@ export default gql`
 
   input SettingsInput {
     autoDropBolt11s: Boolean!
-    diagnostics: Boolean @deprecated
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!
@@ -155,12 +155,12 @@ export default gql`
     hasInvites: Boolean!
     apiKeyEnabled: Boolean!
     showPassphrase: Boolean!
+    diagnostics: Boolean!
 
     """
     mirrors SettingsInput
     """
     autoDropBolt11s: Boolean!
-    diagnostics: Boolean @deprecated
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!
@@ -202,6 +202,7 @@ export default gql`
     withdrawMaxFeeDefault: Int!
     autoWithdrawThreshold: Int
     vaultKeyHash: String
+    vaultKeyHashUpdatedAt: Date
     walletsUpdatedAt: Date
   }
 

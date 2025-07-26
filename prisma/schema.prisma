@@ -117,7 +117,7 @@ model User {
   followees                 UserSubscription[]   @relation("followee")
   hideWelcomeBanner         Boolean              @default(false)
   hideWalletRecvPrompt      Boolean              @default(false)
-  diagnostics               Boolean              @default(false) @ignore
+  diagnostics               Boolean              @default(false)
   hideIsContributor         Boolean              @default(false)
   lnAddr                    String?
   autoWithdrawMaxFeePercent Float?
@@ -145,6 +145,7 @@ model User {
   oneDayReferrals           OneDayReferral[]     @relation("OneDayReferral_referrer")
   oneDayReferrees           OneDayReferral[]     @relation("OneDayReferral_referrees")
   vaultKeyHash              String               @default("")
+  vaultKeyHashUpdatedAt     DateTime?
   showPassphrase            Boolean              @default(true)
   walletsUpdatedAt          DateTime?
   proxyReceive              Boolean              @default(true)

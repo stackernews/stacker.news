@@ -229,14 +229,14 @@ export const SET_WALLET_SETTINGS = gql`
 `
 
 export const ADD_WALLET_LOG = gql`
-  mutation AddWalletLog($protocolId: Int!, $level: String!, $message: String!, $timestamp: Date!, $invoiceId: Int) {
+  mutation AddWalletLog($protocolId: Int, $level: String!, $message: String!, $timestamp: Date!, $invoiceId: Int) {
     addWalletLog(protocolId: $protocolId, level: $level, message: $message, timestamp: $timestamp, invoiceId: $invoiceId)
   }
 `
 
 export const WALLET_LOGS = gql`
-  query WalletLogs($protocolId: Int, $cursor: String) {
-    walletLogs(protocolId: $protocolId, cursor: $cursor) {
+  query WalletLogs($protocolId: Int, $cursor: String, $debug: Boolean) {
+    walletLogs(protocolId: $protocolId, cursor: $cursor, debug: $debug) {
       entries {
         id
         level
@@ -253,7 +253,7 @@ export const WALLET_LOGS = gql`
 `
 
 export const DELETE_WALLET_LOGS = gql`
-  mutation DeleteWalletLogs($protocolId: Int) {
-    deleteWalletLogs(protocolId: $protocolId)
+  mutation DeleteWalletLogs($protocolId: Int, $debug: Boolean) {
+    deleteWalletLogs(protocolId: $protocolId, debug: $debug)
   }
 `

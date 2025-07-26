@@ -94,6 +94,12 @@
 }
 
 .nav {
+  display: flex;
+  flex-wrap: nowrap;
+  text-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-bottom: 1rem;
   justify-content: center;
   font-size: 110%;
   gap: 0 0.5rem;

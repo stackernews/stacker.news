@@ -261,7 +261,7 @@ export default function Comment ({
       </div>
       {collapse !== 'yep' && (
         bottomedOut
-          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3')}><ReplyOnAnotherPage item={item} /></div></div>
+          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3 pb-2')}><ViewMoreReplies item={item} navigateRoot /></div></div>
           : (
             <div className={styles.children}>
               {item.outlawed && !me?.privates?.wildWestMode
@@ -281,7 +281,11 @@ export default function Comment ({
                       {item.comments.comments.map((item) => (
                         <Comment depth={depth + 1} key={item.id} item={item} rootLastCommentAt={rootLastCommentAt} />
                       ))}
-                      {item.comments.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nhas={item.ncomments} />}
+                      {item.comments.comments.length < item.nDirectComments && (
+                        <div className={`d-block ${styles.comment} pb-2 ps-3`}>
+                          <ViewMoreReplies item={item} />
+                        </div>
+                      )}
                     </>
                     )
                   : null}
@@ -294,31 +298,24 @@ export default function Comment ({
   )
 }
 
-export function ViewAllReplies ({ id, nshown, nhas }) {
-  const text = `view all ${nhas} replies`
-
-  return (
-    <div className={`d-block fw-bold ${styles.comment} pb-2 ps-3`}>
-      <Link href={`/items/${id}`} as={`/items/${id}`} className='text-muted'>
-        {text}
-      </Link>
-    </div>
-  )
-}
-
-function ReplyOnAnotherPage ({ item }) {
+export function ViewMoreReplies ({ item, navigateRoot = false }) {
   const root = useRoot()
-  const rootId = commentSubTreeRootId(item, root)
   const { cache } = useApolloClient()
+  const id = navigateRoot ? commentSubTreeRootId(item, root) : item.id
 
-  let text = 'reply on another page'
-  if (item.ncomments > 0) {
-    text = `view all ${item.ncomments} replies`
-  }
+  const href = `/items/${id}` + (navigateRoot ? '' : `?commentId=${item.id}`)
+
+  const text = navigateRoot && item.ncomments === 0
+    ? 'reply on another page'
+    : `view all ${item.ncomments} replies`
 
   return (
     <Link
+      href={href}
+      as={`/items/${id}`}
+      className='fw-bold d-flex align-items-center gap-2 text-muted'
       onClick={() => {
+        if (!item.newComments?.length) return
         // clear new comments going to another page
         cache.writeFragment({
           id: `Item:${item.id}`,
@@ -331,9 +328,6 @@ function ReplyOnAnotherPage ({ item }) {
           }
         })
       }}
-      href={`/items/${rootId}?commentId=${item.id}`}
-      as={`/items/${rootId}`}
-      className='pb-2 fw-bold d-flex align-items-center gap-2 text-muted'
     >
       {text}
       {item.newComments?.length > 0 && <div className={styles.newCommentDot} />}

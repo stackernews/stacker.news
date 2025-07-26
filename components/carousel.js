@@ -5,6 +5,7 @@ import ArrowRight from '@/svgs/arrow-right-line.svg'
 import styles from './carousel.module.css'
 import { useShowModal } from './modal'
 import { Dropdown } from 'react-bootstrap'
+import { useRouter } from 'next/router'
 
 function useSwiping ({ moveLeft, moveRight }) {
   const [touchStartX, setTouchStartX] = useState(null)
@@ -56,8 +57,16 @@ function useArrowKeys ({ moveLeft, moveRight }) {
 function Carousel ({ close, mediaArr, src, setOptions }) {
   const [index, setIndex] = useState(mediaArr.findIndex(([key]) => key === src))
   const [currentSrc, canGoLeft, canGoRight] = useMemo(() => {
+    if (index === -1) return [src, false, false]
     return [mediaArr[index][0], index > 0, index < mediaArr.length - 1]
-  }, [mediaArr, index])
+  }, [mediaArr, index, src])
+
+  useEffect(() => {
+    if (!setOptions || !mediaArr[index]) return
+    setOptions({
+      overflow: <CarouselOverflow {...mediaArr[index][1]} />
+    })
+  }, [index, mediaArr, setOptions])
 
   useEffect(() => {
     if (index === -1) return
@@ -113,15 +122,25 @@ function CarouselOverflow ({ originalSrc, rel }) {
 export function CarouselProvider ({ children }) {
   const media = useRef(new Map())
   const showModal = useShowModal()
+  const router = useRouter()
 
   const showCarousel = useCallback(({ src }) => {
+    const url = router.asPath.split('#')[0]
+    if (window.location.hash !== '#carousel') {
+      router.push(url, url + '#carousel', { shallow: true })
+    }
     showModal((close, setOptions) => {
       return <Carousel close={close} mediaArr={Array.from(media.current.entries())} src={src} setOptions={setOptions} />
     }, {
       fullScreen: true,
-      overflow: <CarouselOverflow {...media.current.get(src)} />
+      overflow: <CarouselOverflow {...media.current.get(src)} />,
+      onClose: () => {
+        if (window.location.hash === '#carousel') {
+          router.back()
+        }
+      }
     })
-  }, [showModal])
+  }, [showModal, media.current, router])
 
   const addMedia = useCallback(({ src, originalSrc, rel }) => {
     media.current.set(src, { src, originalSrc, rel })

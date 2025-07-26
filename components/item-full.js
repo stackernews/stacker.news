@@ -191,6 +191,8 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
                 comments={item.comments.comments}
                 commentsCursor={item.comments.cursor}
                 fetchMoreComments={fetchMoreComments}
+                lastCommentAt={item.lastCommentAt}
+                item={item}
               />
             </div>}
         </CarouselProvider>

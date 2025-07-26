@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { Workbox } from 'workbox-window'
 import { gql, useMutation } from '@apollo/client'
+import { requestPersistentStorage } from './use-indexeddb'
 
 const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBKEY
 
@@ -79,6 +80,8 @@ export const ServiceWorkerProvider = ({ children }) => {
       action: STORE_SUBSCRIPTION,
       subscription: pushSubscription
     })
+    requestPersistentStorage()
+
     // send subscription to server
     const variables = {
       endpoint,
@@ -101,11 +104,6 @@ export const ServiceWorkerProvider = ({ children }) => {
       return await unsubscribeFromPushNotifications(pushSubscription)
     }
     await subscribeToPushNotifications()
-    // request persistent storage: https://web.dev/learn/pwa/offline-data#data_persistence
-    const persisted = await navigator?.storage?.persisted?.()
-    if (!persisted && navigator?.storage?.persist) {
-      return await navigator.storage.persist()
-    }
   })
 
   useEffect(() => {

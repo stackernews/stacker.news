@@ -919,6 +919,14 @@ export default {
 
       await models.user.update({ where: { id: me.id }, data: { hideWalletRecvPrompt: true } })
       return true
+    },
+    setDiagnostics: async (parent, { diagnostics }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      await models.user.update({ where: { id: me.id }, data: { diagnostics } })
+      return diagnostics
     }
   },
 
@@ -1125,7 +1133,8 @@ export default {
 
       const [{ max }] = await models.$queryRaw`
         SELECT MAX(COALESCE("endedAt"::date, (now() AT TIME ZONE 'America/Chicago')::date) - "startedAt"::date)
-        FROM "Streak" WHERE "userId" = ${user.id}`
+        FROM "Streak" WHERE "userId" = ${user.id}
+        AND type = 'COWBOY_HAT'`
       return max
     },
     isContributor: async (user, args, { me }) => {

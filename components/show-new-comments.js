@@ -165,9 +165,8 @@ export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
   const client = useApolloClient()
   const ref = useRef(null)
 
-  // a thread comment is a parent comment that might have children
-  // when shown as full item (topLevel = true), we don't want to consider it a thread
-  const thread = item.path?.split('.').length === 2 && !topLevel
+  // a thread comment is a comment at depth 1 (parent)
+  const thread = depth === 1
 
   // recurse through all new comments and their children
   // if the item is a thread, we also consider all of their existing children

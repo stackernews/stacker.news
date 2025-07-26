@@ -17,7 +17,7 @@ import ItemJob from '@/components/item-job'
 import PageLoading from '@/components/page-loading'
 import PayerData from '@/components/payer-data'
 import { Badge } from 'react-bootstrap'
-import navStyles from '../settings/settings.module.css'
+import navStyles from '@/styles/nav.module.css'
 import classNames from 'classnames'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })

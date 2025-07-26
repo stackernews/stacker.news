@@ -74,6 +74,10 @@ function traverseNewComments (client, item, onLevel, currentDepth, inSubtree) {
   // if we're at the depth limit, stop traversing, we've reached the bottom of the visible thread
   if (currentDepth >= COMMENT_DEPTH_LIMIT) return
 
+  // if the current item shows less comments than its nDirectComments, it's paginated
+  // we don't want to count/inject new comments in paginated items, as they shouldn't be visible
+  if (item.comments?.comments?.length < item.nDirectComments) return
+
   if (item.newComments && item.newComments.length > 0) {
     const dedupedNewComments = dedupeNewComments(item.newComments, item.comments?.comments)
 
@@ -161,8 +165,8 @@ export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
   const client = useApolloClient()
   const ref = useRef(null)
 
-  // a thread is a top-level comment
-  const thread = item.path?.split('.').length === 2
+  // a thread comment is a comment at depth 1 (parent)
+  const thread = depth === 1
 
   // recurse through all new comments and their children
   // if the item is a thread, we also consider all of their existing children

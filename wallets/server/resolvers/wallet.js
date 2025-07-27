@@ -47,7 +47,8 @@ export const resolvers = {
     resetWallets,
     setWalletPriorities,
     disablePassphraseExport,
-    setWalletSettings
+    setWalletSettings,
+    deleteWallet
   }
 }
 
@@ -168,6 +169,14 @@ async function updateKeyHash (parent, { keyHash }, { me, models }) {
   return count > 0
 }
 
+async function deleteWallet (parent, { id }, { me, models }) {
+  if (!me) throw new GqlAuthenticationError()
+
+  await models.wallet.delete({ where: { id: Number(id), userId: me.id } })
+
+  return true
+}
+
 async function resetWallets (parent, { newKeyHash }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
@@ -233,5 +242,5 @@ async function setWalletSettings (parent, { settings }, { me, models }) {
 
   await models.user.update({ where: { id: me.id }, data: settings })
 
-  return true
+  return settings
 }

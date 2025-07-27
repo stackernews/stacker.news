@@ -28,7 +28,7 @@ import { useMe } from '@/components/me'
 import { INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { useField } from 'formik'
-import styles from './settings.module.css'
+import styles from '@/styles/nav.module.css'
 import { AuthBanner } from '@/components/banners'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })

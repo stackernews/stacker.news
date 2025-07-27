@@ -45,7 +45,9 @@ export async function nwcTryRun (fun, { url }, { signal }) {
   const nostr = new Nostr()
   try {
     const nwc = await getNwc(nostr, url, { signal })
-    return await fun(nwc)
+    const res = await fun(nwc)
+    if (res.error) throw new Error(res.error)
+    return res
   } catch (e) {
     if (e.error) throw new Error(e.error.message || e.error.code)
     throw e

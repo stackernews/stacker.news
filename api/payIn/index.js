@@ -26,7 +26,7 @@ export default async function pay (payInType, payInArgs, { models, me }) {
       throw new Error('You must be logged in to perform this action')
     }
 
-    // need to double check all old usage of !me for detecting anon users
+    // TODO: need to double check all old usage of !me for detecting anon users
     me ??= { id: USER_ID.anon }
 
     const payIn = await payInModule.getInitial(models, payInArgs, { me })

@@ -4,13 +4,13 @@ import useQrPayment from './use-qr-payment'
 import { useCallback } from 'react'
 import { WalletError, InvoiceCanceledError, InvoiceExpiredError, WalletPaymentError } from '@/wallets/errors'
 
-export function useWaitForPayment () {
+export function useWaitForPayIn () {
   const walletPayment = useWalletPayment()
   const invoiceHelper = useInvoice()
   const waitForQrPayment = useQrPayment()
-  return useCallback(async (invoice, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor, updateOnFallback }) => {
+  return useCallback(async (payIn, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor, updateOnFallback }) => {
     let walletError
-    let walletInvoice = invoice
+    let walletInvoice = payIn.payInBolt11.bolt11
     const start = Date.now()
 
     try {

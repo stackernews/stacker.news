@@ -23,6 +23,9 @@ export const PAY_IN_FIELDS = gql`
       createdAt
       updatedAt
     }
+    pessimisticEnv {
+      error
+    }
     payInCustodialTokens {
       id
       mtokens

@@ -76,14 +76,14 @@ self.addEventListener('push', function (event) {
   let title, options
 
   try {
-    const payload = event.data?.json()
-    if (!payload) {
+    const { notification } = event.data?.json()
+    if (!notification) {
       throw new Error('no payload in push event')
     }
 
     // adapt declarative payload for legacy Push API
-    options = payload.notification || {}
-    title = options.title
+    options = notification || {}
+    title = notification.title
   } catch (err) {
     // we show a default nofication on any error because we *must* show a notification
     // else the browser will show one for us or worse, remove our push subscription

@@ -1,26 +1,67 @@
-import { useEffect, useCallback, useMemo, createContext, useContext } from 'react'
-import { Button, InputGroup, Nav } from 'react-bootstrap'
-import Link from 'next/link'
-import { useParams, usePathname } from 'next/navigation'
+import { useCallback, useMemo, createContext, useContext, useState } from 'react'
+import { Button, InputGroup } from 'react-bootstrap'
 import { useRouter } from 'next/router'
-import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
-import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, urlify, isWallet, isTemplate, walletLud16Domain } from '@/wallets/lib/util'
+import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs, WalletSettings } from '@/wallets/client/components'
+import { protocolDisplayName, protocolFields, protocolClientSchema, isWallet, isTemplate, walletLud16Domain } from '@/wallets/lib/util'
 import styles from '@/styles/wallet.module.css'
-import navStyles from '@/styles/nav.module.css'
 import { Checkbox, Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
-import { useWalletProtocolUpsert, useWalletProtocolRemove, useWalletQuery, TemplateLogsProvider } from '@/wallets/client/hooks'
-import { useToast } from '@/components/toast'
+import { useWalletProtocolRemove, useWalletQuery, TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice } from '@/wallets/client/hooks'
 import Text from '@/components/text'
 import Info from '@/components/info'
 import classNames from 'classnames'
 
 const WalletFormsContext = createContext()
 
+const PROGRESS = {
+  SEND: 0,
+  RECEIVE: 1,
+  SETTINGS: 2
+}
+
 export function WalletForms ({ id, name }) {
   // TODO(wallet-v2): handle loading and error states
   const { data, refetch } = useWalletQuery({ name, id })
   const wallet = data?.wallet
+
+  const [progress, setProgress] = useState(PROGRESS.SEND)
+  // save form state since we submit protocols at the end
+  const [formState, setFormState] = useState()
+  // the useProtocol hook will return the first available protocol if no protocol is selected
+  const [protocol, setProtocol] = useState(null)
+
+  const skip = useCallback(() => {
+    setProgress(progress => progress + 1)
+  }, [])
+
+  const back = useCallback(() => {
+    setProgress(progress => progress - 1)
+  }, [])
+
+  const updateFormState = useCallback((protocol, state) => {
+    if (progress === PROGRESS.SEND) {
+      setFormState(fs => ({ ...fs, send: { [protocol.id]: state } }))
+    } else if (progress === PROGRESS.RECEIVE) {
+      setFormState(fs => ({ ...fs, receive: { [protocol.id]: state } }))
+    } else if (progress === PROGRESS.SETTINGS) {
+      setFormState(fs => ({ ...fs, settings: { [protocol.id]: state } }))
+    }
+    setProgress(progress => progress + 1)
+  }, [progress])
+
+  const value = useMemo(
+    () => ({
+      refetch,
+      wallet,
+      progress,
+      protocol,
+      setProtocol,
+      back,
+      skip,
+      formState,
+      updateFormState
+    }),
+    [refetch, wallet, progress, protocol, setProtocol, back, skip, formState, setFormState])
 
   return (
     <WalletLayout>
@@ -29,21 +70,12 @@ export function WalletForms ({ id, name }) {
           {wallet && <WalletLayoutImageOrName name={wallet.name} maxHeight='80px' />}
         </WalletLayoutHeader>
         {wallet && (
-          <WalletFormsProvider wallet={wallet} refetch={refetch}>
+          <WalletFormsContext.Provider value={value}>
             <WalletFormSelector />
-          </WalletFormsProvider>
+          </WalletFormsContext.Provider>
         )}
       </div>
     </WalletLayout>
-  )
-}
-
-function WalletFormsProvider ({ children, wallet, refetch }) {
-  const value = useMemo(() => ({ refetch, wallet }), [refetch, wallet])
-  return (
-    <WalletFormsContext.Provider value={value}>
-      {children}
-    </WalletFormsContext.Provider>
   )
 }
 
@@ -57,112 +89,146 @@ function useWallet () {
   return wallet
 }
 
+function useProgress () {
+  const { progress } = useContext(WalletFormsContext)
+  return progress
+}
+
+function useUpdateFormState () {
+  const { updateFormState } = useContext(WalletFormsContext)
+  return updateFormState
+}
+
+function useFormState () {
+  const progress = useProgress()
+  const protocol = useProtocol()
+  const { formState } = useContext(WalletFormsContext)
+
+  const progressState = progress === PROGRESS.SEND
+    ? formState?.send
+    : progress === PROGRESS.RECEIVE
+      ? formState?.receive
+      : formState?.settings
+
+  return progressState?.[protocol.id]
+}
+
+function useBack () {
+  const { back } = useContext(WalletFormsContext)
+  return back
+}
+
+function useSkip () {
+  const { skip } = useContext(WalletFormsContext)
+  return skip
+}
+
+function useProtocol () {
+  const protocols = useWalletProtocols()
+  const { protocol } = useContext(WalletFormsContext)
+  return useMemo(() => protocol || protocols[0], [protocols, protocol])
+}
+
+function useSelectProtocol () {
+  const { setProtocol } = useContext(WalletFormsContext)
+  return setProtocol
+}
+
 function WalletFormSelector () {
-  const sendRecvParam = useSendRecvParam()
-  const protocolParam = useWalletProtocolParam()
+  const progress = useProgress()
 
   return (
     <>
-      <WalletSendRecvSelector />
-      {sendRecvParam && (
-        <div className='position-relative'>
-          <div>
-            <WalletProtocolSelector />
-            {protocolParam && (
+      <WalletProgress />
+      <div className='position-relative'>
+        {[PROGRESS.SEND, PROGRESS.RECEIVE].includes(progress)
+          ? (
+            <div>
+              <WalletProtocolSelector />
               <TemplateLogsProvider>
                 <WalletProtocolForm />
               </TemplateLogsProvider>
-            )}
-          </div>
-        </div>
-      )}
+            </div>
+            )
+          : <WalletSettings />}
+      </div>
     </>
   )
 }
 
-function WalletSendRecvSelector () {
-  const path = useWalletPathname()
-  const selected = useSendRecvParam()
-
-  // TODO(wallet-v2): if you click a nav link again, it will update the URL
-  //   but not run the effect again to select the first protocol by default
+function WalletProgress () {
+  const progress = useProgress()
+  // XXX the margins were manually adjusted to connect the numbers
+  //   if we'd use fw-bold when active, the margins need to be adjusted again ...
+  // TODO: is there a way to connect the numbers without manual pixel tweaking?
   return (
-    <Nav
-      key={path}
-      className={classNames(navStyles.nav, 'justify-content-center')}
-      activeKey={selected}
-    >
-      <Nav.Item>
-        <Link href={`/${path}/send`} passHref legacyBehavior replace>
-          <Nav.Link className='ps-3' eventKey='send'>SEND</Nav.Link>
-        </Link>
-      </Nav.Item>
-      <Nav.Item>
-        <Link href={`/${path}/receive`} passHref legacyBehavior replace>
-          <Nav.Link className='ps-3' eventKey='receive'>RECEIVE</Nav.Link>
-        </Link>
-      </Nav.Item>
-    </Nav>
+    <div className='d-flex my-3 mx-auto'>
+      <ProgressStep number={1} label='send' active={progress >= 0} />
+      <ProgressLine style={{ marginLeft: '-4px', marginRight: '-13px' }} active={progress >= 1} />
+      <ProgressStep number={2} label='receive' active={progress >= 1} />
+      <ProgressLine style={{ marginLeft: '-12px', marginRight: '-15px' }} active={progress >= 2} />
+      <ProgressStep number={3} label='settings' active={progress >= 2} />
+    </div>
+  )
+}
+
+function ProgressStep ({ number, label, active }) {
+  return (
+    <div className={classNames('text-center z-1', { 'text-info': active })}>
+      <div className={classNames(styles.progressNumber, active ? 'bg-info text-white' : 'border text-muted')}>
+        {number}
+      </div>
+      <div className={classNames('small pt-1', active ? 'text-info' : 'text-muted')}>
+        {label}
+      </div>
+    </div>
+  )
+}
+
+function ProgressLine ({ style, active }) {
+  return (
+    <div style={style}>
+      <svg width='100%' height='1' viewBox='0 0 100 1' preserveAspectRatio='none'>
+        <path
+          d='M 0 1 L 100 1'
+          stroke={active ? 'var(--bs-info)' : 'var(--theme-grey)'}
+          strokeWidth='1'
+          fill='none'
+        />
+      </svg>
+    </div>
   )
 }
 
 function WalletProtocolSelector () {
-  const walletPath = useWalletPathname()
-  const sendRecvParam = useSendRecvParam()
-  const path = `${walletPath}/${sendRecvParam}`
-
   const protocols = useWalletProtocols()
-  const selected = useWalletProtocolParam()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!selected && protocols.length > 0) {
-      router.replace(`/${path}/${urlify(protocols[0].name)}`, null, { shallow: true })
-    }
-  }, [path])
-
-  if (protocols.length === 0) {
-    // TODO(wallet-v2): let user know how to request support if the wallet actually does support sending
-    return (
-      <div className='mt-3 text-muted text-center'>
-        {sendRecvParam === 'send' ? 'sending' : 'receiving'} not supported
-      </div>
-    )
-  }
+  const protocol = useProtocol()
+  const setProtocol = useSelectProtocol()
 
   return (
-    <Nav
-      key={path}
-      className={classNames(navStyles.nav, 'justify-content-start mt-0')}
-      activeKey={selected}
-    >
+    <div className='d-flex gap-2 pointer'>
       {
         protocols.map(p => (
-          <Nav.Item key={p.name}>
-            <Link href={`/${path}/${urlify(p.name)}`} passHref legacyBehavior replace>
-              <Nav.Link eventKey={p.name}>{protocolDisplayName(p)}</Nav.Link>
-            </Link>
-          </Nav.Item>
+          <div
+            key={p.id}
+            className={classNames('flex-grow-1 mb-3 text-nowrap', { 'fw-bold border-bottom border-primary border-3': p.name === protocol?.name })}
+            onClick={() => setProtocol(p)}
+          >
+            {protocolDisplayName(p)}
+          </div>
         ))
       }
-    </Nav>
+    </div>
   )
 }
 
 function WalletProtocolForm () {
-  const sendRecvParam = useSendRecvParam()
-  const router = useRouter()
-  const protocol = useSelectedProtocol()
-  if (!protocol) return null
-
-  // I think it is okay to skip this hook if the protocol is not found
-  // because we will need to change the URL to get a different protocol
-  // so the amount of rendered hooks should stay the same during the lifecycle of this component
   const wallet = useWallet()
-  const upsertWalletProtocol = useWalletProtocolUpsert(wallet, protocol)
-  const toaster = useToast()
-  const refetch = useWalletRefetch()
-
+  const protocol = useProtocol()
+  const updateFormState = useUpdateFormState()
+  const testSendPayment = useTestSendPayment(protocol)
+  const testCreateInvoice = useTestCreateInvoice(protocol)
+  const logger = useWalletLogger(protocol)
   const { fields, initial, schema } = useProtocolForm(protocol)
 
   // create a copy of values to avoid mutating the original
@@ -172,28 +238,43 @@ function WalletProtocolForm () {
       values.address = `${values.address}@${lud16Domain}`
     }
 
-    const upsert = await upsertWalletProtocol(values)
-    if (isWallet(wallet)) {
-      toaster.success('wallet saved')
-      refetch()
-      return
+    if (isTemplate(protocol)) {
+      values.enabled = true
     }
-    // we just created a new user wallet from a template
-    router.replace(`/wallets/${upsert.id}/${sendRecvParam}`, null, { shallow: true })
-    toaster.success('wallet attached', { persistOnNavigate: true })
-  }, [upsertWalletProtocol, toaster, wallet, router])
+
+    if (values.enabled) {
+      try {
+        if (protocol.send) {
+          logger.info('testing send ...')
+          const additionalValues = await testSendPayment(values)
+          values = { ...values, ...additionalValues }
+          logger.ok('send ok')
+        } else {
+          logger.info('testing receive ...')
+          const additionalValues = await testCreateInvoice(values)
+          values = { ...values, ...additionalValues }
+          logger.ok('receive ok')
+        }
+      } catch (err) {
+        logger.error(err.message)
+        throw err
+      }
+    }
+
+    updateFormState(protocol, values)
+  }, [protocol, wallet, updateFormState, testSendPayment, logger])
 
   return (
     <>
       <Form
-        key={router.asPath}
+        key={protocol.id}
         enableReinitialize
         initial={initial}
         schema={schema}
         onSubmit={onSubmit}
       >
         {fields.map(field => <WalletProtocolFormField key={field.name} {...field} />)}
-        <Checkbox name='enabled' label='enabled' disabled={isTemplate(protocol)} />
+        {!isTemplate(protocol) && <Checkbox name='enabled' label='enabled' disabled={isTemplate(protocol)} />}
         <WalletProtocolFormButtons />
       </Form>
       <WalletLogs className='mt-3' protocol={protocol} />
@@ -202,11 +283,12 @@ function WalletProtocolForm () {
 }
 
 function WalletProtocolFormButtons () {
-  const protocol = useSelectedProtocol()
+  const protocol = useProtocol()
   const removeWalletProtocol = useWalletProtocolRemove(protocol)
   const refetch = useWalletRefetch()
   const router = useRouter()
   const wallet = useWallet()
+  const progress = useProgress()
   const isLastProtocol = wallet.protocols.length === 1
 
   const onDetach = useCallback(async () => {
@@ -221,15 +303,26 @@ function WalletProtocolFormButtons () {
   return (
     <div className='d-flex justify-content-end'>
       {!isTemplate(protocol) && <Button variant='grey-medium' className='me-auto' onClick={onDetach}>detach</Button>}
-      <CancelButton>cancel</CancelButton>
-      <SubmitButton variant='primary'>{isWallet(wallet) ? 'save' : 'attach'}</SubmitButton>
+      {progress === PROGRESS.SEND ? <CancelButton>cancel</CancelButton> : <BackButton />}
+      <SkipButton />
+      <SubmitButton variant='primary'>{isWallet(wallet) ? 'save' : 'next'}</SubmitButton>
     </div>
   )
 }
 
+function BackButton () {
+  const back = useBack()
+  return <Button className='text-muted nav-link fw-bold' variant='link' onClick={back}>back</Button>
+}
+
+function SkipButton () {
+  const skip = useSkip()
+  return <Button className='ms-auto me-3 text-muted nav-link fw-bold' variant='link' onClick={skip}>skip</Button>
+}
+
 function WalletProtocolFormField ({ type, ...props }) {
   const wallet = useWallet()
-  const protocol = useSelectedProtocol()
+  const protocol = useProtocol()
 
   function transform ({ validate, encrypt, editable, help, ...props }) {
     const [upperHint, bottomHint] = Array.isArray(props.hint) ? props.hint : [null, props.hint]
@@ -284,58 +377,27 @@ function WalletProtocolFormField ({ type, ...props }) {
   }
 }
 
-function useWalletPathname () {
-  const pathname = usePathname()
-  // returns /wallets/:name
-  return pathname.split('/').filter(Boolean).slice(0, 2).join('/')
-}
-
-function useSendRecvParam () {
-  const params = useParams()
-  // returns only :send in /wallets/:name/:send
-  return ['send', 'receive'].includes(params.slug[1]) ? params.slug[1] : null
-}
-
-function useWalletProtocolParam () {
-  const params = useParams()
-  const name = params.slug[2]
-  // returns only :protocol in /wallets/:name/:send/:protocol
-  return name ? unurlify(name) : null
-}
-
 function useWalletProtocols () {
   const wallet = useWallet()
-  const sendRecvParam = useSendRecvParam()
-  if (!sendRecvParam) return []
+  const progress = useProgress()
 
-  const protocolFilter = p => sendRecvParam === 'send' ? p.send : !p.send
+  const send = progress === PROGRESS.SEND
+  const protocolFilter = p => send ? p.send : !p.send
+
   return isWallet(wallet)
     ? wallet.template.protocols.filter(protocolFilter)
     : wallet.protocols.filter(protocolFilter)
 }
 
-function useSelectedProtocol () {
-  const wallet = useWallet()
-  const sendRecvParam = useSendRecvParam()
-  const protocolParam = useWalletProtocolParam()
-
-  const send = sendRecvParam === 'send'
-  let protocol = wallet.protocols.find(p => p.name === protocolParam && p.send === send)
-  if (!protocol && isWallet(wallet)) {
-    // the protocol was not found as configured, look for it in the template
-    protocol = wallet.template.protocols.find(p => p.name === protocolParam && p.send === send)
-  }
-
-  return protocol
-}
-
 function useProtocolForm (protocol) {
+  const formState = useFormState()
+
   const wallet = useWallet()
   const lud16Domain = walletLud16Domain(wallet.name)
   const fields = protocolFields(protocol)
   const initial = fields.reduce((acc, field) => {
     // wallet templates don't have a config
-    let value = protocol.config?.[field.name]
+    let value = protocol.config?.[field.name] ?? formState?.[field.name]
 
     if (field.name === 'address' && lud16Domain && value) {
       value = value.split('@')[0]
@@ -345,7 +407,7 @@ function useProtocolForm (protocol) {
       ...acc,
       [field.name]: value || ''
     }
-  }, { enabled: protocol.enabled })
+  }, { enabled: protocol.enabled ?? formState?.enabled })
 
   let schema = protocolClientSchema(protocol)
   if (lud16Domain) {

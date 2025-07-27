@@ -19,9 +19,16 @@ import {
   RESET_WALLETS,
   DISABLE_PASSPHRASE_EXPORT,
   SET_WALLET_PRIORITIES,
-  UPDATE_KEY_HASH
+  UPDATE_KEY_HASH,
+  TEST_WALLET_RECEIVE_LNBITS,
+  TEST_WALLET_RECEIVE_PHOENIXD,
+  TEST_WALLET_RECEIVE_BLINK,
+  TEST_WALLET_RECEIVE_NWC,
+  TEST_WALLET_RECEIVE_CLN_REST,
+  TEST_WALLET_RECEIVE_LNDGRPC,
+  TEST_WALLET_RECEIVE_LIGHTNING_ADDRESS
 } from '@/wallets/client/fragments'
-import { useApolloClient, useMutation, useQuery } from '@apollo/client'
+import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey, useWalletLogger, useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -144,7 +151,7 @@ export function useWalletQuery ({ id, name }) {
 }
 
 export function useWalletProtocolUpsert (wallet, protocol) {
-  const mutation = getWalletProtocolMutation(protocol)
+  const mutation = getWalletProtocolUpsertMutation(protocol)
   const [mutate] = useMutation(mutation)
   const { encryptConfig } = useEncryptConfig(protocol)
   const testSendPayment = useTestSendPayment(protocol)
@@ -153,28 +160,9 @@ export function useWalletProtocolUpsert (wallet, protocol) {
   return useCallback(async (values) => {
     logger.info('saving wallet ...')
 
-    if (isTemplate(protocol)) {
-      values.enabled = true
-    }
-
-    // skip network tests if we're disabling the wallet
-    const networkTests = values.enabled
-    if (networkTests) {
-      try {
-        const additionalValues = await testSendPayment(values)
-        values = { ...values, ...additionalValues }
-      } catch (err) {
-        logger.error(err.message)
-        throw err
-      }
-    }
-
     const encrypted = await encryptConfig(values)
-
     const variables = encrypted
-    if (!protocol.send) {
-      variables.networkTests = networkTests
-    }
+
     if (isWallet(wallet)) {
       variables.walletId = wallet.id
     } else {
@@ -286,7 +274,10 @@ export function useSetWalletPriorities () {
   }, [mutate, toaster])
 }
 
-function getWalletProtocolMutation (protocol) {
+// a mutation that does nothing as a placeholder
+const NOOP_MUTATION = gql`mutation noop { noop }`
+
+function getWalletProtocolUpsertMutation (protocol) {
   switch (protocol.name) {
     case 'LNBITS':
       return protocol.send ? UPSERT_WALLET_SEND_LNBITS : UPSERT_WALLET_RECEIVE_LNBITS
@@ -295,32 +286,61 @@ function getWalletProtocolMutation (protocol) {
     case 'BLINK':
       return protocol.send ? UPSERT_WALLET_SEND_BLINK : UPSERT_WALLET_RECEIVE_BLINK
     case 'LN_ADDR':
-      return protocol.send ? null : UPSERT_WALLET_RECEIVE_LIGHTNING_ADDRESS
+      return protocol.send ? NOOP_MUTATION : UPSERT_WALLET_RECEIVE_LIGHTNING_ADDRESS
     case 'NWC':
       return protocol.send ? UPSERT_WALLET_SEND_NWC : UPSERT_WALLET_RECEIVE_NWC
     case 'CLN_REST':
-      return protocol.send ? null : UPSERT_WALLET_RECEIVE_CLN_REST
+      return protocol.send ? NOOP_MUTATION : UPSERT_WALLET_RECEIVE_CLN_REST
     case 'LND_GRPC':
-      return protocol.send ? null : UPSERT_WALLET_RECEIVE_LNDGRPC
+      return protocol.send ? NOOP_MUTATION : UPSERT_WALLET_RECEIVE_LNDGRPC
     case 'LNC':
-      return protocol.send ? UPSERT_WALLET_SEND_LNC : null
+      return protocol.send ? UPSERT_WALLET_SEND_LNC : NOOP_MUTATION
     case 'WEBLN':
-      return protocol.send ? UPSERT_WALLET_SEND_WEBLN : null
+      return protocol.send ? UPSERT_WALLET_SEND_WEBLN : NOOP_MUTATION
     default:
-      return null
+      return NOOP_MUTATION
   }
 }
 
-function useTestSendPayment (protocol) {
-  return useCallback(async (values) => {
-    if (!protocol.send) return
+function getWalletProtocolTestMutation (protocol) {
+  if (protocol.send) return NOOP_MUTATION
+  switch (protocol.name) {
+    case 'LNBITS':
+      return TEST_WALLET_RECEIVE_LNBITS
+    case 'PHOENIXD':
+      return TEST_WALLET_RECEIVE_PHOENIXD
+    case 'BLINK':
+      return TEST_WALLET_RECEIVE_BLINK
+    case 'LN_ADDR':
+      return TEST_WALLET_RECEIVE_LIGHTNING_ADDRESS
+    case 'NWC':
+      return TEST_WALLET_RECEIVE_NWC
+    case 'CLN_REST':
+      return TEST_WALLET_RECEIVE_CLN_REST
+    case 'LNDGRPC':
+      return TEST_WALLET_RECEIVE_LNDGRPC
+    default:
+      return NOOP_MUTATION
+  }
+}
 
+export function useTestSendPayment (protocol) {
+  return useCallback(async (values) => {
     return await protocolTestSendPayment(
       protocol,
       values,
       { signal: timeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS) }
     )
   }, [protocol])
+}
+
+export function useTestCreateInvoice (protocol) {
+  const mutation = getWalletProtocolTestMutation(protocol)
+  const [testCreateInvoice] = useMutation(mutation)
+
+  return useCallback(async (values) => {
+    return await testCreateInvoice({ variables: values })
+  }, [protocol, testCreateInvoice])
 }
 
 function useWalletDecryption () {
@@ -452,7 +472,7 @@ export function useWalletMigrationMutation () {
     }
 
     await client.mutate({
-      mutation: getWalletProtocolMutation(protocol),
+      mutation: getWalletProtocolUpsertMutation(protocol),
       variables: {
         ...(walletId ? { walletId } : { templateName }),
         enabled,

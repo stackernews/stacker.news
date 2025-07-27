@@ -62,6 +62,8 @@ That's it!
 
 ## How to add a new protocol
 
+// TODO: update this documentation with new required test mutations
+
 **1. Update prisma.schema**
 
 - add enum value to `WalletProtocolName` enum
@@ -303,10 +305,10 @@ index 3c1fffd1..af3858a5 100644
 --- a/api/typeDefs/wallet.js
 +++ b/api/typeDefs/wallet.js
 @@ -38,6 +38,7 @@ const typeDefs = gql`
-     upsertWalletRecvLNDGRPC(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, socket: String!, macaroon: String!, cert: String): WalletRecvLNDGRPC!
+     upsertWalletRecvLNDGRPC(walletId: ID, templateId: ID, enabled: Boolean!, socket: String!, macaroon: String!, cert: String): WalletRecvLNDGRPC!
      upsertWalletSendLNC(walletId: ID, templateId: ID, enabled: Boolean!, pairingPhrase: VaultEntryInput!, localKey: VaultEntryInput!, remoteKey: VaultEntryInput!, serverHost: VaultEntryInput!): WalletSendLNC!
      upsertWalletSendWebLN(walletId: ID, templateId: ID, enabled: Boolean!): WalletSendWebLN!
-+    upsertWalletRecvBolt12(walletId: ID, templateId: ID, enabled: Boolean!, networkTests: Boolean, offer: String!): WalletRecvBolt12!
++    upsertWalletRecvBolt12(walletId: ID, templateId: ID, enabled: Boolean!, offer: String!): WalletRecvBolt12!
      removeWalletProtocol(id: ID!): Boolean
      updateWalletEncryption(keyHash: String!, wallets: [WalletEncryptionUpdate!]!): Boolean
      updateKeyHash(keyHash: String!): Boolean
@@ -340,8 +342,8 @@ index d1a65ff4..138d1a62 100644
  `
 +
 +export const UPSERT_WALLET_RECEIVE_BOLT12 = gql`
-+  mutation upsertWalletRecvBolt12($walletId: ID, $templateId: ID, $enabled: Boolean!, $networkTests: Boolean, $offer: String!) {
-+    upsertWalletRecvBolt12(walletId: $walletId, templateId: $templateId, enabled: $enabled, networkTests: $networkTests, offer: $offer) {
++  mutation upsertWalletRecvBolt12($walletId: ID, $templateId: ID, $enabled: Boolean!, $offer: String!) {
++    upsertWalletRecvBolt12(walletId: $walletId, templateId: $templateId, enabled: $enabled, offer: $offer) {
 +      id
 +    }
 +  }

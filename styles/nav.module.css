@@ -12,8 +12,3 @@
 .nav :global .active {
     border-bottom: 2px solid var(--bs-primary);
 }
-
-.alert {
-    color: var(--bs-danger);
-    margin-bottom: 10px;
-}

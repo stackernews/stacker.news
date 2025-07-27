@@ -6,6 +6,8 @@ import { useRouter } from 'next/router'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
 import { protocolDisplayName, protocolFields, protocolClientSchema, unurlify, urlify, isWallet, isTemplate, walletLud16Domain } from '@/wallets/lib/util'
 import styles from '@/styles/wallet.module.css'
+import navStyles from '@/styles/nav.module.css'
+import classNames from 'classnames'
 import { Checkbox, Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
 import { useWalletProtocolUpsert, useWalletProtocolRemove, useWalletQuery, TemplateLogsProvider } from '@/wallets/client/hooks'
@@ -87,17 +89,17 @@ function WalletSendRecvSelector () {
   return (
     <Nav
       key={path}
-      className={styles.nav}
+      className={classNames(navStyles.nav, 'justify-content-center')}
       activeKey={selected}
     >
       <Nav.Item>
         <Link href={`/${path}/send`} passHref legacyBehavior replace>
-          <Nav.Link eventKey='send'>SEND</Nav.Link>
+          <Nav.Link className='ps-3' eventKey='send'>SEND</Nav.Link>
         </Link>
       </Nav.Item>
       <Nav.Item>
         <Link href={`/${path}/receive`} passHref legacyBehavior replace>
-          <Nav.Link eventKey='receive'>RECEIVE</Nav.Link>
+          <Nav.Link className='ps-3' eventKey='receive'>RECEIVE</Nav.Link>
         </Link>
       </Nav.Item>
     </Nav>
@@ -131,7 +133,7 @@ function WalletProtocolSelector () {
   return (
     <Nav
       key={path}
-      className={`${styles.nav} justify-content-start mt-3 mb-3`}
+      className={classNames(navStyles.nav, 'mt-0')}
       activeKey={selected}
     >
       {

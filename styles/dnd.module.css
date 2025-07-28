@@ -18,7 +18,7 @@
 @media (max-width: 768px) {
   .draggable {
     /* https://developer.mozilla.org/en-US/docs/Web/CSS/touch-action */
-    touch-action: none;
+    touch-action: pan-y;
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;

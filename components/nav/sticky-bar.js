@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import styles from '@/components/header.module.css'
 import { Container, Nav, Navbar } from 'react-bootstrap'
 import { NavPrice, MeCorner, AnonCorner, SearchItem, Back, NavWalletSummary, Brand, SignUpButton } from './common'
@@ -9,24 +9,8 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey })
   const ref = useRef()
   const { me } = useMe()
 
-  useEffect(() => {
-    const stick = () => {
-      if (window.scrollY > 100) {
-        ref.current?.classList.remove(styles.hide)
-      } else {
-        ref.current?.classList.add(styles.hide)
-      }
-    }
-
-    window.addEventListener('scroll', stick)
-
-    return () => {
-      window.removeEventListener('scroll', stick)
-    }
-  }, [ref?.current])
-
   return (
-    <div className={classNames(styles.hide, styles.sticky)} ref={ref}>
+    <div className={styles.sticky} ref={ref}>
       <Container className='px-0 d-none d-md-block'>
         <Navbar className='py-0'>
           <Nav

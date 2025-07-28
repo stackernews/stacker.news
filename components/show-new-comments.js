@@ -69,10 +69,14 @@ function prepareComments (data, client, newComments) {
 }
 
 // traverses all new comments and their children
-// if we're showing all new comments of a thread, we also consider their existing children
-function traverseNewComments (client, item, onLevel, threadComment = false, currentDepth = 1) {
+// if it's a thread, or we're in a new comment subtree, we also consider their existing children
+function traverseNewComments (client, item, onLevel, currentDepth, inSubtree) {
   // if we're at the depth limit, stop traversing, we've reached the bottom of the visible thread
   if (currentDepth >= COMMENT_DEPTH_LIMIT) return
+
+  // if the current item shows less comments than its nDirectComments, it's paginated
+  // we don't want to count/inject new comments in paginated items, as they shouldn't be visible
+  if (item.comments?.comments?.length < item.nDirectComments) return
 
   if (item.newComments && item.newComments.length > 0) {
     const dedupedNewComments = dedupeNewComments(item.newComments, item.comments?.comments)
@@ -87,23 +91,24 @@ function traverseNewComments (client, item, onLevel, threadComment = false, curr
     // at each level, we can execute a callback passing the current item's new comments, depth and ID
     onLevel(freshNewComments, currentDepth, item.id)
 
+    // traverse the new comment's new comments and their children
     for (const newComment of freshNewComments) {
-      traverseNewComments(client, newComment, onLevel, threadComment, currentDepth + 1)
+      traverseNewComments(client, newComment, onLevel, currentDepth + 1, true)
     }
   }
 
-  // if we're showing all new comments of a thread
-  // we consider every child comment recursively
-  if (threadComment && item.comments?.comments) {
+  // check for new comments in existing children
+  // only if we're in a new comment subtree, or it's a thread
+  if (inSubtree && item.comments?.comments) {
     for (const child of item.comments.comments) {
-      traverseNewComments(client, child, onLevel, threadComment, currentDepth + 1)
+      traverseNewComments(client, child, onLevel, currentDepth + 1, true)
     }
   }
 }
 
 // recursively processes and displays all new comments
 // handles comment injection at each level, respecting depth limits
-function injectNewComments (client, item, currentDepth, sort, threadComment = false) {
+function injectNewComments (client, item, sort, currentDepth, thread) {
   traverseNewComments(client, item, (newComments, depth, itemId) => {
     if (newComments.length > 0) {
       // traverseNewComments also passes the depth of the current item
@@ -114,11 +119,11 @@ function injectNewComments (client, item, currentDepth, sort, threadComment = fa
         commentUpdateFragment(client, itemId, (data) => prepareComments(data, client, newComments))
       }
     }
-  }, threadComment, currentDepth)
+  }, currentDepth, thread)
 }
 
 // counts all new comments of an item
-function countAllNewComments (client, item, thread = false, currentDepth = 1) {
+function countAllNewComments (client, item, currentDepth, thread) {
   let newCommentsCount = 0
   let threadChildren = false
 
@@ -130,7 +135,7 @@ function countAllNewComments (client, item, thread = false, currentDepth = 1) {
     if (depth > 1 && newComments.length > 0) {
       threadChildren = true
     }
-  }, thread, currentDepth)
+  }, currentDepth, thread)
 
   return { newCommentsCount, threadChildren }
 }
@@ -160,12 +165,12 @@ export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
   const client = useApolloClient()
   const ref = useRef(null)
 
-  // a thread is a top-level comment
-  const thread = item.path?.split('.').length === 2
+  // a thread comment is a comment at depth 1 (parent)
+  const thread = depth === 1
 
   // recurse through all new comments and their children
-  // if the item is a thread, we consider every existing child comment
-  const { newCommentsCount, threadChildren } = countAllNewComments(client, item, thread, depth)
+  // if the item is a thread, we also consider all of their existing children
+  const { newCommentsCount, threadChildren } = countAllNewComments(client, item, depth, thread)
 
   // only if the item is a thread and its children have new comments, we show "show all new comments"
   const threadComment = thread && threadChildren
@@ -173,7 +178,7 @@ export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
   const showNewComments = useCallback(() => {
     // a top level comment doesn't pass depth, we pass its default value of 0 to signify this
     // child comments are injected from the depth they're at
-    injectNewComments(client, item, depth, sort, threadComment)
+    injectNewComments(client, item, sort, depth, threadComment)
   }, [client, sort, item, depth])
 
   const text = !threadComment

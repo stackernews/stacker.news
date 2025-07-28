@@ -1,4 +1,10 @@
 .nav {
+    display: flex;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding-bottom: 0.5rem;
     margin: 1rem 0;
     justify-content: start;
     font-size: 110%;
@@ -11,9 +17,4 @@
 
 .nav :global .active {
     border-bottom: 2px solid var(--bs-primary);
-}
-
-.alert {
-    color: var(--bs-danger);
-    margin-bottom: 10px;
 }

@@ -30,7 +30,7 @@
 }
 
 .timestamp {
-    text-wrap: nowrap;
+    white-space: nowrap;
     min-width: 20px;
     text-align: right;
 }

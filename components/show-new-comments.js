@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useApolloClient } from '@apollo/client'
 import styles from './comment.module.css'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
@@ -12,6 +12,7 @@ import {
   updateAncestorsCommentCount,
   readCommentsFragment
 } from '../lib/comments'
+import preserveScroll from './preserve-scroll'
 
 // filters out new comments, by id, that already exist in the item's comments
 // preventing duplicate comments from being injected
@@ -84,8 +85,11 @@ function traverseNewComments (client, item, onLevel, currentDepth, inSubtree) {
     // being newComments an array of comment ids, we can get their latest version from the cache
     // ensuring that we don't miss any new comments
     const freshNewComments = dedupedNewComments.map(id => {
+      const comment = readCommentsFragment(client, id)
+      // idempotency: if the comment has already been injected, skip it
+      if (comment?.injected) return null
       // mark all new comments as injected, so we can outline them
-      return { ...readCommentsFragment(client, id), injected: true }
+      return { ...comment, injected: true }
     }).filter(Boolean)
 
     // at each level, we can execute a callback passing the current item's new comments, depth and ID
@@ -180,6 +184,13 @@ export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
     // child comments are injected from the depth they're at
     injectNewComments(client, item, sort, depth, threadComment)
   }, [client, sort, item, depth])
+
+  // react strict mode calls this function twice
+  useEffect(() => {
+    if (newCommentsCount > 0) {
+      preserveScroll(showNewComments)
+    }
+  }, [newCommentsCount])
 
   const text = !threadComment
     ? `${newCommentsCount} new comment${newCommentsCount > 1 ? 's' : ''}`

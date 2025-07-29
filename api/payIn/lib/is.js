@@ -1,5 +1,5 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
-import { payInTypeModules } from '../types'
+import payInTypeModules from '../types'
 
 export const PAY_IN_RECEIVER_FAILURE_REASONS = [
   'INVOICE_WRAPPING_FAILED_HIGH_PREDICTED_FEE',

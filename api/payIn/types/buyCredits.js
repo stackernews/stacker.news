@@ -15,9 +15,9 @@ export async function getInitial (models, { credits }, { me }) {
     mcost: satsToMsats(credits),
     payOutCustodialTokens: [
       {
-        payOutType: 'CREDITS',
+        payOutType: 'BUY_CREDITS',
         userId: me.id,
-        mtokens: credits,
+        mtokens: satsToMsats(credits),
         custodialTokenType: 'CREDITS'
       }
     ]

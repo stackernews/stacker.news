@@ -96,13 +96,13 @@ type PayInBolt11 {
   hash: String!
   hmac: String!
   bolt11: String!
-  expiresAt: DateTime!
-  confirmedAt: DateTime
-  cancelledAt: DateTime
-  msatsRequested: Int!
-  msatsReceived: Int
-  createdAt: DateTime!
-  updatedAt: DateTime!
+  expiresAt: Date!
+  confirmedAt: Date
+  cancelledAt: Date
+  msatsRequested: BigInt!
+  msatsReceived: BigInt
+  createdAt: Date!
+  updatedAt: Date!
   lud18Data: PayInBolt11Lud18
   nostrNote: PayInBolt11NostrNote
   comment: PayInBolt11Comment
@@ -111,23 +111,31 @@ type PayInBolt11 {
 type PayInCustodialToken {
   id: Int!
   payInId: Int!
-  mtokens: Int!
+  mtokens: BigInt!
   custodialTokenType: CustodialTokenType!
 }
 
-union PayInResult = Item | ItemActResult | PollVoteResult | Sub | DonateResult | BuyCreditsResult | ReceiveResult
+union PayInResult = Item | ItemActResult | PollVoteResult | Sub | DonateResult | BuyCreditsResult
+
+type PayInPessimisticEnv {
+  id: Int!
+  payInId: Int!
+  args: JSONObject
+  error: String
+}
 
 type PayIn {
-  payInId: Int!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  mcost: Int!
+  id: Int!
+  createdAt: Date!
+  updatedAt: Date!
+  mcost: BigInt!
   payInType: PayInType!
   payInState: PayInState!
   payInFailureReason: PayInFailureReason
-  payInStateChangedAt: DateTime!
-  payInBolt11: PayInBolt11!
+  payInStateChangedAt: Date!
+  payInBolt11: PayInBolt11
   payInCustodialTokens: [PayInCustodialToken!]!
   result: PayInResult
+  pessimisticEnv: PayInPessimisticEnv
 }
 `

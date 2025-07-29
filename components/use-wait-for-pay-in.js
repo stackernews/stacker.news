@@ -1,8 +1,8 @@
-import { useWalletPayment } from '@/wallets/payment'
+import { useWalletPayment } from '@/wallets/client/hooks'
 import useInvoice from './use-invoice'
 import useQrPayment from './use-qr-payment'
 import { useCallback } from 'react'
-import { WalletError, InvoiceCanceledError, InvoiceExpiredError, WalletPaymentError } from '@/wallets/errors'
+import { WalletError, InvoiceCanceledError, InvoiceExpiredError, WalletPaymentError } from '@/wallets/client/errors'
 
 export function useWaitForPayIn () {
   const walletPayment = useWalletPayment()

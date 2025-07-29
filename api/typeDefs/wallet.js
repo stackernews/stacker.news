@@ -23,7 +23,7 @@ const typeDefs = gql`
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(protocolId: Int, debug: Boolean): Boolean
     setWalletPriorities(priorities: [WalletPriorityUpdate!]!): Boolean
-    buyCredits(credits: Int!): BuyCreditsPaidAction!
+    buyCredits(credits: Int!): PayIn!
 
     upsertWalletSendLNbits(walletId: ID, templateName: ID, enabled: Boolean!, url: String!, apiKey: VaultEntryInput!): WalletSendLNbits!
     upsertWalletRecvLNbits(walletId: ID, templateName: ID, enabled: Boolean!, networkTests: Boolean, url: String!, apiKey: String!): WalletRecvLNbits!

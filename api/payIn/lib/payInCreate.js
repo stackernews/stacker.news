@@ -11,8 +11,8 @@ export const PAY_IN_INCLUDE = {
   payOutCustodialTokens: true
 }
 
-export async function payInCreate (tx, payInProspect, { me }) {
-  const { mCostRemaining, mP2PCost, payInCustodialTokens } = await getPayInCosts(tx, payInProspect, { me })
+export async function payInCreate (tx, payInProspect, payInArgs, { me }) {
+  const { mCostRemaining, mP2PCost, payInCustodialTokens, mcreditsBefore, msatsBefore } = await getPayInCosts(tx, payInProspect, { me })
   const payInState = await getPayInState(payInProspect, { mCostRemaining, mP2PCost })
   if (!isWithdrawal(payInProspect) && payInState !== 'PAID') {
     await assertBelowMaxPendingPayInBolt11s(tx, payInProspect.userId)
@@ -23,10 +23,12 @@ export async function payInCreate (tx, payInProspect, { me }) {
         ...payInProspect,
         payInState,
         payInStateChangedAt: new Date(),
-        payInCustodialTokens
+        payInCustodialTokens,
+        mcreditsBefore,
+        msatsBefore
       }),
       pessimisticEnv: {
-        create: isPessimistic(payInProspect, { me }) ? { args: payInProspect } : undefined
+        create: isPessimistic(payInProspect, { me }) && payInState !== 'PAID' ? { args: payInArgs } : undefined
       }
     },
     include: PAY_IN_INCLUDE
@@ -36,7 +38,8 @@ export async function payInCreate (tx, payInProspect, { me }) {
 
 async function getPayInCosts (tx, payIn, { me }) {
   const { mP2PCost, mCustodialCost } = getCostBreakdown(payIn)
-  const payInCustodialTokens = await getPayInCustodialTokens(tx, mCustodialCost, payIn, { me })
+  const { payInCustodialTokens, mcreditsBefore, msatsBefore } = await getPayInCustodialTokens(tx, mCustodialCost, payIn, { me })
+  console.log('payInCustodialTokens', payInCustodialTokens)
   const mCustodialPaid = payInCustodialTokens.reduce((acc, token) => acc + token.mtokens, 0n)
 
   return {
@@ -45,7 +48,9 @@ async function getPayInCosts (tx, payIn, { me }) {
     mCustodialPaid,
     // TODO: how to deal with < 1000msats?
     mCostRemaining: mCustodialCost - mCustodialPaid + mP2PCost,
-    payInCustodialTokens
+    payInCustodialTokens,
+    mcreditsBefore,
+    msatsBefore
   }
 }
 

@@ -1,4 +1,5 @@
 export function payInPrismaCreate (payIn) {
+  console.log('payIn', payIn)
   const result = {}
 
   if (payIn.beneficiaries) {
@@ -21,10 +22,11 @@ export function payInPrismaCreate (payIn) {
   // if the value is an array, recursively call payInPrismaCreate on each element of the array
   // if the value is not an object or array, add the key and value to the result
   for (const key in payIn) {
-    if (typeof payIn[key] === 'object') {
-      result[key] = { create: payInPrismaCreate(payIn[key]) }
-    } else if (Array.isArray(payIn[key])) {
+    console.log('key', key, typeof payIn[key])
+    if (Array.isArray(payIn[key])) {
       result[key] = { create: payIn[key].map(item => payInPrismaCreate(item)) }
+    } else if (isPlainObject(payIn[key])) {
+      result[key] = { create: payInPrismaCreate(payIn[key]) }
     } else if (payIn[key] !== undefined) {
       result[key] = payIn[key]
     }
@@ -45,14 +47,14 @@ export function payInClone (payIn) {
     genesisId: payIn.genesisId ?? payIn.id
   }
   for (const key in payIn) {
-    if (typeof payIn[key] === 'object') {
-      result[key] = payInCloneNested(payIn[key])
-    } else if (Array.isArray(payIn[key])) {
+    if (Array.isArray(payIn[key])) {
       if (key === 'beneficiaries') {
         result[key] = payIn[key].map(beneficiary => payInClone(beneficiary))
       } else {
         result[key] = payIn[key].map(item => payInCloneNested(item))
       }
+    } if (typeof payIn[key] === 'object') {
+      result[key] = payInCloneNested(payIn[key])
     }
   }
   return payInPrismaCreate(result)
@@ -61,7 +63,7 @@ export function payInClone (payIn) {
 function payInCloneNested (payInNested) {
   const result = {}
   for (const key in payInNested) {
-    if (typeof payInNested[key] === 'object') {
+    if (isPlainObject(payInNested[key])) {
       result[key] = payInCloneNested(payInNested[key])
     } else if (Array.isArray(payInNested[key])) {
       result[key] = payInNested[key].map(item => payInCloneNested(item))
@@ -70,4 +72,13 @@ function payInCloneNested (payInNested) {
     }
   }
   return result
+}
+
+function isPlainObject (value) {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  const prototype = Object.getPrototypeOf(value)
+  return (prototype === null || prototype === Object.prototype || Object.getPrototypeOf(prototype) === null) && !(Symbol.toStringTag in value) && !(Symbol.iterator in value)
 }

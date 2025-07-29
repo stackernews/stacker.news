@@ -2,7 +2,7 @@
 // if PENDING_HELD and a zap, it's optimistic unless the zapper is anon
 
 import { useCallback, useState } from 'react'
-import { InvoiceCanceledError } from '@/wallets/errors'
+import { InvoiceCanceledError } from '@/wallets/client/errors'
 import { useApolloClient, useMutation } from '@apollo/client'
 import { useWaitForPayIn } from './use-wait-for-pay-in'
 import { getOperationName } from '@apollo/client/utilities'

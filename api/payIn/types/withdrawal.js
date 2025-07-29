@@ -8,7 +8,7 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.REWARD_SATS
 ]
 
-export async function getInitial (models, { bolt11, maxFee, walletId }, { me }) {
+export async function getInitial (models, { bolt11, maxFee, protocolId }, { me }) {
   const invoice = parsePaymentRequest({ request: bolt11 })
   return {
     payInType: 'WITHDRAWAL',
@@ -20,7 +20,7 @@ export async function getInitial (models, { bolt11, maxFee, walletId }, { me }) 
       bolt11: invoice.bolt11,
       hash: invoice.hash,
       userId: me.id,
-      walletId
+      protocolId
     },
     payOutCustodialTokens: [
       {

@@ -43,7 +43,7 @@ async function begin (models, payInInitial, payInArgs, { me }) {
   const payInModule = payInTypeModules[payInInitial.payInType]
 
   const { payIn, mCostRemaining } = await models.$transaction(async tx => {
-    const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, { me })
+    const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, payInArgs, { me })
 
     // if it's pessimistic, we don't perform the action until the invoice is held
     if (payIn.pessimisticEnv) {
@@ -171,21 +171,23 @@ export async function onPaid (tx, payInId) {
     if (!payOut.userId) {
       continue
     }
+    console.log('payOut', payOut)
+
     await tx.$queryRaw`
-      WITH user AS (
+      WITH outuser AS (
         UPDATE users
-        SET msats = msats + ${payOut.custodialTokenType === 'SATS' ? payOut.mtokens : 0},
-          "stackedMsats" = "stackedMsats" + ${!isWithdrawal(payIn) ? payOut.mtokens : 0},
-          mcredits = mcredits + ${payOut.custodialTokenType === 'CREDITS' ? payOut.mtokens : 0},
-          "stackedMcredits" = "stackedMcredits" + ${!isWithdrawal(payIn) && payOut.custodialTokenType === 'CREDITS' ? payOut.mtokens : 0}
+        SET msats = users.msats + ${payOut.custodialTokenType === 'SATS' ? payOut.mtokens : 0},
+          "stackedMsats" = users."stackedMsats" + ${!isWithdrawal(payIn) ? payOut.mtokens : 0},
+          mcredits = users.mcredits + ${payOut.custodialTokenType === 'CREDITS' ? payOut.mtokens : 0},
+          "stackedMcredits" = users."stackedMcredits" + ${!isWithdrawal(payIn) && payOut.custodialTokenType === 'CREDITS' ? payOut.mtokens : 0}
         FROM (SELECT id, mcredits, msats FROM users WHERE id = ${payOut.userId} FOR UPDATE) before
         WHERE users.id = before.id
-        RETURNING before.mcredits as mcreditsBefore, before.msats as msatsBefore
+        RETURNING before.mcredits as "mcreditsBefore", before.msats as "msatsBefore"
       )
       UPDATE "PayOutCustodialToken"
-      SET "msatsBefore" = user.msatsBefore, "mcreditsBefore" = user.mcreditsBefore
-      FROM user
-      WHERE "id" = ${payOut.userId}`
+      SET "msatsBefore" = outuser."msatsBefore", "mcreditsBefore" = outuser."mcreditsBefore"
+      FROM outuser
+      WHERE "id" = ${payOut.id}`
   }
 
   if (!isWithdrawal(payIn)) {

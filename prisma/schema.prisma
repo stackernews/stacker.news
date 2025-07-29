@@ -1284,8 +1284,7 @@ model Wallet {
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   template     WalletTemplate @relation(fields: [templateName], references: [name], onDelete: Cascade)
 
-  protocols    WalletProtocol[]
-  PayOutBolt11 PayOutBolt11[]
+  protocols WalletProtocol[]
 
   @@index([userId])
   @@index([templateName])
@@ -1328,6 +1327,8 @@ model WalletProtocol {
   walletRecvLightningAddress WalletRecvLightningAddress?
   walletRecvCLNRest          WalletRecvCLNRest?
   walletRecvLNDGRPC          WalletRecvLNDGRPC?
+  PayOutBolt11               PayOutBolt11[]
+  PayInBolt11                PayInBolt11[]
 
   @@unique(name: "WalletProtocol_walletId_send_name_key", [walletId, send, name])
   @@index([walletId])
@@ -1625,6 +1626,7 @@ enum PayOutType {
   INVITE_GIFT
   WITHDRAWAL
   SYSTEM_REVENUE
+  BUY_CREDITS
 }
 
 model SubPayOutCustodialToken {
@@ -1676,7 +1678,9 @@ model PayInBolt11 {
   acceptHeight   Int?
   User           User?     @relation(fields: [userId], references: [id])
   userId         Int?
+  protocolId     Int?
 
+  protocol  WalletProtocol?       @relation(fields: [protocolId], references: [id], onDelete: SetNull)
   lud18Data PayInBolt11Lud18?
   nostrNote PayInBolt11NostrNote?
   comment   PayInBolt11Comment?
@@ -1698,17 +1702,17 @@ model PayOutBolt11 {
   bolt11     String?
   msats      BigInt
   status     WithdrawlStatus?
-  walletId   Int?
+  protocolId Int?
   payInId    Int              @unique
   user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  wallet     Wallet?          @relation(fields: [walletId], references: [id], onDelete: SetNull)
+  protocol   WalletProtocol?  @relation(fields: [protocolId], references: [id], onDelete: SetNull)
   payIn      PayIn            @relation(fields: [payInId], references: [id])
   WalletLog  WalletLog[]
 
   @@index([createdAt])
   @@index([userId])
   @@index([hash])
-  @@index([walletId])
+  @@index([protocolId])
   @@index([status])
 }
 

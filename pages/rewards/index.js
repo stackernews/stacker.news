@@ -19,10 +19,10 @@ import { useData } from '@/components/use-data'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
 import { useMemo } from 'react'
 import { CompactLongCountdown } from '@/components/countdown'
-import { usePaidMutation } from '@/components/use-paid-mutation'
-import { DONATE } from '@/fragments/paidAction'
+import { DONATE } from '@/fragments/payIn'
 import { ITEM_FULL_FIELDS } from '@/fragments/items'
 import { ListItem } from '@/components/items'
+import { usePayInMutation } from '@/components/use-pay-in-mutation'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <GrowthPieChartSkeleton />
@@ -134,7 +134,7 @@ export function DonateButton () {
   const showModal = useShowModal()
   const toaster = useToast()
   const animate = useAnimation()
-  const [donateToRewards] = usePaidMutation(DONATE)
+  const [donateToRewards] = usePayInMutation(DONATE)
 
   return (
     <>

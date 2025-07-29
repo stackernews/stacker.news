@@ -1,7 +1,7 @@
 import { amountSchema, validateSchema } from '@/lib/validate'
 import { getAd, getItem } from './item'
-import performPaidAction from '../paidAction'
 import { GqlInputError } from '@/lib/error'
+import pay from '../payIn'
 
 let rewardCache
 
@@ -162,10 +162,10 @@ export default {
     }
   },
   Mutation: {
-    donateToRewards: async (parent, { sats }, { me, models, lnd }) => {
+    donateToRewards: async (parent, { sats }, { me, models }) => {
       await validateSchema(amountSchema, { amount: sats })
 
-      return await performPaidAction('DONATE', { sats }, { me, models, lnd })
+      return await pay('DONATE', { sats }, { me, models })
     }
   },
   Reward: {

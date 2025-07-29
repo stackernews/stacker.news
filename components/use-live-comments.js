@@ -3,6 +3,7 @@ import { SSR } from '../lib/constants'
 import { GET_NEW_COMMENTS } from '../fragments/comments'
 import { useEffect, useState } from 'react'
 import { itemUpdateQuery, commentUpdateFragment, getLatestCommentCreatedAt } from '../lib/comments'
+import { useFavicon } from './favicon'
 
 const POLL_INTERVAL = 1000 * 10 // 10 seconds
 
@@ -20,10 +21,11 @@ function mergeNewComment (item, newComment) {
   return { ...item, newComments: [...existingNewComments, newComment.id] }
 }
 
-function cacheNewComments (client, rootId, newComments, sort) {
+function cacheNewComments (client, rootId, newComments, sort, setHasLiveComments) {
   for (const newComment of newComments) {
     const { parentId } = newComment
     const topLevel = Number(parentId) === Number(rootId)
+    setHasLiveComments(prev => [...prev, Number(newComment.id)])
 
     // if the comment is a top level comment, update the item
     if (topLevel) {
@@ -42,6 +44,8 @@ function cacheNewComments (client, rootId, newComments, sort) {
 export default function useLiveComments (rootId, after, sort) {
   const latestKey = `liveCommentsLatest:${rootId}`
   const client = useApolloClient()
+  const { setHasLiveComments } = useFavicon()
+
   const [latest, setLatest] = useState(() => {
     // if we're on the client, get the latest timestamp from session storage, otherwise use the passed after timestamp
     if (typeof window !== 'undefined') {
@@ -63,7 +67,7 @@ export default function useLiveComments (rootId, after, sort) {
     if (!data?.newComments?.comments?.length) return
 
     // merge and cache new comments in their parent comment/post
-    cacheNewComments(client, rootId, data.newComments.comments, sort)
+    cacheNewComments(client, rootId, data.newComments.comments, sort, setHasLiveComments)
 
     // update latest timestamp to the latest comment created at
     // save it to session storage, to persist between client-side navigations

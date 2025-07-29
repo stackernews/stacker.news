@@ -29,6 +29,7 @@ import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
 import { ShowNewComments } from './show-new-comments'
+import { useFavicon } from './favicon'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -102,6 +103,7 @@ export default function Comment ({
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
+  const { setHasLiveComments } = useFavicon()
   const isHiddenFreebie = me?.privates?.satsFilter !== 0 && !item.mine && item.freebie && !item.freedFreebie
   const isDeletedChildless = item?.ncomments === 0 && item?.deletedAt
   const [collapse, setCollapse] = useState(
@@ -114,6 +116,20 @@ export default function Comment ({
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
   const { cache } = useApolloClient()
+
+  const unsetOutlineNewComment = () => {
+    // if the comment is not new or we already unset the outline, return
+    if (ref.current.classList.contains('outline-new-comment-unset') ||
+      !(ref.current.classList.contains('outline-new-comment') || ref.current.classList.contains('outline-new-injected-comment'))) return
+
+    ref.current.classList.add('outline-new-comment-unset')
+
+    // if an item has been injected
+    // the live comments hook found it and added it to the live comments array for favicon
+    if (item.injected) {
+      setHasLiveComments(prev => prev.filter(id => id !== Number(item.id)))
+    }
+  }
 
   useEffect(() => {
     const comment = cache.readFragment({
@@ -168,8 +184,8 @@ export default function Comment ({
   return (
     <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
-      onMouseEnter={() => ref.current.classList.add('outline-new-comment-unset')}
-      onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
+      onMouseEnter={unsetOutlineNewComment}
+      onTouchStart={unsetOutlineNewComment}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.outlawed && !me?.privates?.wildWestMode

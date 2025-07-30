@@ -88,13 +88,13 @@ export function useWalletLogs (protocol, debug) {
   const { templateLogs, clearTemplateLogs } = useContext(TemplateLogsContext)
 
   const [cursor, setCursor] = useState(null)
-  // if we're configuring a protocol template, there are no logs to fetch
-  const skip = protocol && isTemplate(protocol)
-  const [logs, setLogs] = useState(skip ? templateLogs : [])
+  const [logs, setLogs] = useState([])
 
   // if no protocol was given, we want to fetch all logs
   const protocolId = protocol ? Number(protocol.id) : undefined
 
+  // if we're configuring a protocol template, there are no logs to fetch
+  const skip = protocol && isTemplate(protocol)
   const [fetchLogs, { called, loading, error }] = useLazyQuery(WALLET_LOGS, {
     variables: { protocolId, debug },
     skip,

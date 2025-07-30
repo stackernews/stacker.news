@@ -94,15 +94,15 @@ export function useWalletLogs (protocol, debug) {
   const protocolId = protocol ? Number(protocol.id) : undefined
 
   // if we're configuring a protocol template, there are no logs to fetch
-  const skip = protocol && isTemplate(protocol)
+  const noFetch = protocol && isTemplate(protocol)
   const [fetchLogs, { called, loading, error }] = useLazyQuery(WALLET_LOGS, {
     variables: { protocolId, debug },
-    skip,
+    skip: noFetch,
     fetchPolicy: 'network-only'
   })
 
   useEffect(() => {
-    if (skip) return
+    if (noFetch) return
 
     const interval = setInterval(async () => {
       const { data, error } = await fetchLogs({ variables: { protocolId, debug } })
@@ -118,7 +118,7 @@ export function useWalletLogs (protocol, debug) {
     }, FAST_POLL_INTERVAL)
 
     return () => clearInterval(interval)
-  }, [fetchLogs, called, skip, debug])
+  }, [fetchLogs, called, noFetch, debug])
 
   const loadMore = useCallback(async () => {
     const { data } = await fetchLogs({ variables: { protocolId, cursor, debug } })
@@ -135,14 +135,14 @@ export function useWalletLogs (protocol, debug) {
 
   return useMemo(() => {
     return {
-      loading: skip ? false : (!called ? true : loading),
-      logs: skip ? templateLogs : logs,
+      loading: noFetch ? false : (!called ? true : loading),
+      logs: noFetch ? templateLogs : logs,
       error,
       loadMore,
       hasMore: cursor !== null,
       clearLogs
     }
-  }, [loading, skip, called, templateLogs, logs, error, loadMore, clearLogs])
+  }, [loading, noFetch, called, templateLogs, logs, error, loadMore, clearLogs])
 }
 
 function mapLevelToConsole (level) {

@@ -19,12 +19,12 @@ const WalletTemplate = {
   protocols: walletTemplate => {
     return [
       ...walletTemplate.sendProtocols.map(protocol => ({
-        id: `WalletTemplate-${walletTemplate.id}-${protocol}-send`,
+        id: `WalletTemplate-${walletTemplate.name}-${protocol}-send`,
         name: protocol,
         send: true
       })),
       ...walletTemplate.recvProtocols.map(protocol => ({
-        id: `WalletTemplate-${walletTemplate.id}-${protocol}-recv`,
+        id: `WalletTemplate-${walletTemplate.name}-${protocol}-recv`,
         name: protocol,
         send: false
       }))

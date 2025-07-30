@@ -1263,6 +1263,7 @@ enum WalletName {
   NWC
   LN_ADDR
   CASH_APP
+  BLITZ
 }
 
 model WalletTemplate {

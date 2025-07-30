@@ -153,6 +153,7 @@ export default function Comment ({
               item.injected &&
               itemCreatedAt > new Date(rootLastCommentAt).getTime()) {
       ref.current.classList.add('outline-new-injected-comment')
+      ref.current.classList.add(styles.injectedComment)
     }
   }, [item.id, rootLastCommentAt])
 

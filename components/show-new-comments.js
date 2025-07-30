@@ -1,10 +1,7 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useApolloClient } from '@apollo/client'
-import styles from './comment.module.css'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import { commentsViewedAfterComment } from '../lib/new-comments'
-import classNames from 'classnames'
-import useVisibility from './use-visibility'
 import {
   itemUpdateQuery,
   commentUpdateFragment,
@@ -112,7 +109,7 @@ function traverseNewComments (client, item, onLevel, currentDepth, inSubtree) {
 
 // recursively processes and displays all new comments
 // handles comment injection at each level, respecting depth limits
-function injectNewComments (client, item, sort, currentDepth, thread) {
+function injectNewComments (client, item, sort, currentDepth) {
   traverseNewComments(client, item, (newComments, depth, itemId) => {
     if (newComments.length > 0) {
       // traverseNewComments also passes the depth of the current item
@@ -123,93 +120,23 @@ function injectNewComments (client, item, sort, currentDepth, thread) {
         commentUpdateFragment(client, itemId, (data) => prepareComments(data, client, newComments))
       }
     }
-  }, currentDepth, thread)
-}
-
-// counts all new comments of an item
-function countAllNewComments (client, item, currentDepth, thread) {
-  let newCommentsCount = 0
-  let threadChildren = false
-
-  // count by traversing the comment structure
-  traverseNewComments(client, item, (newComments, depth) => {
-    newCommentsCount += countNComments(newComments)
-
-    // if we reached a depth greater than 1, the thread's children have new comments
-    if (depth > 1 && newComments.length > 0) {
-      threadChildren = true
-    }
-  }, currentDepth, thread)
-
-  return { newCommentsCount, threadChildren }
-}
-
-function FloatingComments ({ buttonRef, showNewComments, text }) {
-  // show the floating comments button only when we're past the main top level button
-  const isButtonVisible = useVisibility(buttonRef, { pastElement: true })
-
-  if (isButtonVisible) return null
-
-  return (
-    <span
-      className={classNames(styles.floatingComments, 'btn btn-sm btn-info')}
-      onClick={() => {
-        // show new comments as we scroll up
-        showNewComments()
-        buttonRef.current?.scrollIntoView({ behavior: 'smooth' })
-      }}
-    >
-      {text}
-    </span>
-  )
+  }, currentDepth)
 }
 
 // ShowNewComments is a component that dedupes, refreshes and injects newComments into the comments field
-export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
+export function ShowNewComments ({ item, sort, depth = 0 }) {
   const client = useApolloClient()
-  const ref = useRef(null)
-
-  // a thread comment is a comment at depth 1 (parent)
-  const thread = depth === 1
-
-  // recurse through all new comments and their children
-  // if the item is a thread, we also consider all of their existing children
-  const { newCommentsCount, threadChildren } = countAllNewComments(client, item, depth, thread)
-
-  // only if the item is a thread and its children have new comments, we show "show all new comments"
-  const threadComment = thread && threadChildren
 
   const showNewComments = useCallback(() => {
     // a top level comment doesn't pass depth, we pass its default value of 0 to signify this
     // child comments are injected from the depth they're at
-    injectNewComments(client, item, sort, depth, threadComment)
+    injectNewComments(client, item, sort, depth)
   }, [client, sort, item, depth])
 
-  // react strict mode calls this function twice
+  // auto-show new comments as they arrive
   useEffect(() => {
-    if (newCommentsCount > 0) {
+    if (item.newComments?.length > 0) {
       preserveScroll(showNewComments)
     }
-  }, [newCommentsCount])
-
-  const text = !threadComment
-    ? `${newCommentsCount} new comment${newCommentsCount > 1 ? 's' : ''}`
-    : 'show all new comments'
-
-  return (
-    <>
-      <span
-        ref={ref}
-        onClick={showNewComments}
-        className='fw-bold d-flex align-items-center gap-2 px-3 pointer'
-        style={{ visibility: newCommentsCount > 0 ? 'visible' : 'hidden' }}
-      >
-        {text}
-        <div className={styles.newCommentDot} />
-      </span>
-      {topLevel && newCommentsCount > 0 && (
-        <FloatingComments buttonRef={ref} showNewComments={showNewComments} text={text} />
-      )}
-    </>
-  )
+  }, [item.newComments?.length])
 }

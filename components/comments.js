@@ -76,7 +76,7 @@ export default function Comments ({
 
   return (
     <>
-      <ShowNewComments topLevel item={item} sort={router.query.sort} />
+      <ShowNewComments item={item} sort={router.query.sort} />
       {comments?.length > 0
         ? <CommentsHeader
             commentSats={commentSats} parentCreatedAt={parentCreatedAt}
@@ -95,11 +95,11 @@ export default function Comments ({
         : null}
       {pins.map(item => (
         <Fragment key={item.id}>
-          <Comment depth={1} item={item} rootLastCommentAt={lastCommentAt} {...props} pin />
+          <Comment depth={1} item={item} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} pin />
         </Fragment>
       ))}
       {comments.filter(({ position }) => !position).map(item => (
-        <Comment depth={1} key={item.id} item={item} rootLastCommentAt={lastCommentAt} {...props} />
+        <Comment depth={1} key={item.id} item={item} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} />
       ))}
       {ncomments > FULL_COMMENTS_THRESHOLD &&
         <MoreFooter

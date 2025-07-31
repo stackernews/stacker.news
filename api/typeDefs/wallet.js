@@ -1,5 +1,9 @@
 import { gql } from 'graphql-tag'
 
+const sharedSend = 'walletId: ID, templateName: ID, enabled: Boolean!'
+
+const sharedRecv = `${sharedSend}, networkTests: Boolean`
+
 const typeDefs = gql`
   extend type Query {
     invoice(id: ID!): Invoice!
@@ -26,103 +30,72 @@ const typeDefs = gql`
     buyCredits(credits: Int!): BuyCreditsPaidAction!
 
     upsertWalletSendLNbits(
-      walletId: ID,
-      templateName: ID,
-      enabled: Boolean!,
+      ${sharedSend},
       url: String!,
       apiKey: VaultEntryInput!
     ): WalletSendLNbits!
 
     upsertWalletRecvLNbits(
-      walletId: ID,
-      templateName: ID,
-      enabled: Boolean!,
-      networkTests: Boolean,
+      ${sharedRecv},
       url: String!,
       apiKey: String!
     ): WalletRecvLNbits!
 
     upsertWalletSendPhoenixd(
-      walletId: ID,
-      templateName: ID,
-      enabled: Boolean!,
+      ${sharedSend},
       url: String!,
       apiKey: VaultEntryInput!
     ): WalletSendPhoenixd!
 
     upsertWalletRecvPhoenixd(
-      walletId: ID,
-      templateName: ID,
-      enabled: Boolean!,
-      networkTests: Boolean,
+      ${sharedRecv},
       url: String!,
       apiKey: String!
     ): WalletRecvPhoenixd!
 
     upsertWalletSendBlink(
-      walletId: ID,
-      templateName: ID,
-      enabled: Boolean!,
+      ${sharedSend},
       currency: VaultEntryInput!,
       apiKey: VaultEntryInput!
     ): WalletSendBlink!
 
     upsertWalletRecvBlink(
-      walletId: ID,
-      templateName: ID,
-      enabled: Boolean!,
-      networkTests: Boolean,
+      ${sharedRecv},
       currency: String!,
       apiKey: String!
     ): WalletRecvBlink!
 
     upsertWalletRecvLightningAddress(
-      walletId: ID,
-      templateName: ID,
-      enabled: Boolean!,
-      networkTests: Boolean,
+      ${sharedRecv},
       address: String!
     ): WalletRecvLightningAddress!
 
     upsertWalletSendNWC(
-      walletId: ID,
-      templateName: ID,
-      enabled: Boolean!,
+      ${sharedSend},
       url: VaultEntryInput!
     ): WalletSendNWC!
 
     upsertWalletRecvNWC(
-      walletId: ID,
-      templateName: ID,
-      enabled: Boolean!,
-      networkTests: Boolean,
+      ${sharedRecv},
       url: String!
     ): WalletRecvNWC!
 
     upsertWalletRecvCLNRest(
-      walletId: ID,
-      templateName: ID,
-      enabled: Boolean!,
-      networkTests: Boolean,
+      ${sharedRecv},
       socket: String!,
       rune: String!,
       cert: String
     ): WalletRecvCLNRest!
 
     upsertWalletRecvLNDGRPC(
-      walletId: ID,
-      templateName: ID,
-      enabled: Boolean!,
-      networkTests: Boolean,
+      ${sharedRecv},
       socket: String!,
       macaroon: String!,
       cert: String
     ): WalletRecvLNDGRPC!
 
     upsertWalletSendLNC(
-      walletId: ID,
-      templateName: ID,
-      enabled: Boolean!,
+      ${sharedSend},
       pairingPhrase: VaultEntryInput!,
       localKey: VaultEntryInput!,
       remoteKey: VaultEntryInput!,
@@ -130,9 +103,7 @@ const typeDefs = gql`
     ): WalletSendLNC!
 
     upsertWalletSendWebLN(
-      walletId: ID,
-      templateName: ID,
-      enabled: Boolean!
+      ${sharedSend}
     ): WalletSendWebLN!
 
     removeWalletProtocol(id: ID!): Boolean

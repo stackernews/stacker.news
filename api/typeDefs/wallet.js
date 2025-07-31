@@ -25,19 +25,116 @@ const typeDefs = gql`
     setWalletPriorities(priorities: [WalletPriorityUpdate!]!): Boolean
     buyCredits(credits: Int!): BuyCreditsPaidAction!
 
-    upsertWalletSendLNbits(walletId: ID, templateName: ID, enabled: Boolean!, url: String!, apiKey: VaultEntryInput!): WalletSendLNbits!
-    upsertWalletRecvLNbits(walletId: ID, templateName: ID, enabled: Boolean!, networkTests: Boolean, url: String!, apiKey: String!): WalletRecvLNbits!
-    upsertWalletSendPhoenixd(walletId: ID, templateName: ID, enabled: Boolean!, url: String!, apiKey: VaultEntryInput!): WalletSendPhoenixd!
-    upsertWalletRecvPhoenixd(walletId: ID, templateName: ID, enabled: Boolean!, networkTests: Boolean, url: String!, apiKey: String!): WalletRecvPhoenixd!
-    upsertWalletSendBlink(walletId: ID, templateName: ID, enabled: Boolean!, currency: VaultEntryInput!, apiKey: VaultEntryInput!): WalletSendBlink!
-    upsertWalletRecvBlink(walletId: ID, templateName: ID, enabled: Boolean!, networkTests: Boolean, currency: String!, apiKey: String!): WalletRecvBlink!
-    upsertWalletRecvLightningAddress(walletId: ID, templateName: ID, enabled: Boolean!, networkTests: Boolean, address: String!): WalletRecvLightningAddress!
-    upsertWalletSendNWC(walletId: ID, templateName: ID, enabled: Boolean!, url: VaultEntryInput!): WalletSendNWC!
-    upsertWalletRecvNWC(walletId: ID, templateName: ID, enabled: Boolean!, networkTests: Boolean, url: String!): WalletRecvNWC!
-    upsertWalletRecvCLNRest(walletId: ID, templateName: ID, enabled: Boolean!, networkTests: Boolean, socket: String!, rune: String!, cert: String): WalletRecvCLNRest!
-    upsertWalletRecvLNDGRPC(walletId: ID, templateName: ID, enabled: Boolean!, networkTests: Boolean, socket: String!, macaroon: String!, cert: String): WalletRecvLNDGRPC!
-    upsertWalletSendLNC(walletId: ID, templateName: ID, enabled: Boolean!, pairingPhrase: VaultEntryInput!, localKey: VaultEntryInput!, remoteKey: VaultEntryInput!, serverHost: VaultEntryInput!): WalletSendLNC!
-    upsertWalletSendWebLN(walletId: ID, templateName: ID, enabled: Boolean!): WalletSendWebLN!
+    upsertWalletSendLNbits(
+      walletId: ID,
+      templateName: ID,
+      enabled: Boolean!,
+      url: String!,
+      apiKey: VaultEntryInput!
+    ): WalletSendLNbits!
+
+    upsertWalletRecvLNbits(
+      walletId: ID,
+      templateName: ID,
+      enabled: Boolean!,
+      networkTests: Boolean,
+      url: String!,
+      apiKey: String!
+    ): WalletRecvLNbits!
+
+    upsertWalletSendPhoenixd(
+      walletId: ID,
+      templateName: ID,
+      enabled: Boolean!,
+      url: String!,
+      apiKey: VaultEntryInput!
+    ): WalletSendPhoenixd!
+
+    upsertWalletRecvPhoenixd(
+      walletId: ID,
+      templateName: ID,
+      enabled: Boolean!,
+      networkTests: Boolean,
+      url: String!,
+      apiKey: String!
+    ): WalletRecvPhoenixd!
+
+    upsertWalletSendBlink(
+      walletId: ID,
+      templateName: ID,
+      enabled: Boolean!,
+      currency: VaultEntryInput!,
+      apiKey: VaultEntryInput!
+    ): WalletSendBlink!
+
+    upsertWalletRecvBlink(
+      walletId: ID,
+      templateName: ID,
+      enabled: Boolean!,
+      networkTests: Boolean,
+      currency: String!,
+      apiKey: String!
+    ): WalletRecvBlink!
+
+    upsertWalletRecvLightningAddress(
+      walletId: ID,
+      templateName: ID,
+      enabled: Boolean!,
+      networkTests: Boolean,
+      address: String!
+    ): WalletRecvLightningAddress!
+
+    upsertWalletSendNWC(
+      walletId: ID,
+      templateName: ID,
+      enabled: Boolean!,
+      url: VaultEntryInput!
+    ): WalletSendNWC!
+
+    upsertWalletRecvNWC(
+      walletId: ID,
+      templateName: ID,
+      enabled: Boolean!,
+      networkTests: Boolean,
+      url: String!
+    ): WalletRecvNWC!
+
+    upsertWalletRecvCLNRest(
+      walletId: ID,
+      templateName: ID,
+      enabled: Boolean!,
+      networkTests: Boolean,
+      socket: String!,
+      rune: String!,
+      cert: String
+    ): WalletRecvCLNRest!
+
+    upsertWalletRecvLNDGRPC(
+      walletId: ID,
+      templateName: ID,
+      enabled: Boolean!,
+      networkTests: Boolean,
+      socket: String!,
+      macaroon: String!,
+      cert: String
+    ): WalletRecvLNDGRPC!
+
+    upsertWalletSendLNC(
+      walletId: ID,
+      templateName: ID,
+      enabled: Boolean!,
+      pairingPhrase: VaultEntryInput!,
+      localKey: VaultEntryInput!,
+      remoteKey: VaultEntryInput!,
+      serverHost: VaultEntryInput!
+    ): WalletSendLNC!
+
+    upsertWalletSendWebLN(
+      walletId: ID,
+      templateName: ID,
+      enabled: Boolean!
+    ): WalletSendWebLN!
+
     removeWalletProtocol(id: ID!): Boolean
     updateWalletEncryption(keyHash: String!, wallets: [WalletEncryptionUpdate!]!): Boolean
     updateKeyHash(keyHash: String!): Boolean

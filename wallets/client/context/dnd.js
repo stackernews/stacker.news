@@ -123,14 +123,18 @@ export function useDndHandlers (index) {
       if (isTouchDragging) {
         // Find the element under the touch point
         const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY)
-        if (elementUnderTouch) {
-          const element = elementUnderTouch.closest('[data-index]')
-          if (element) {
-            const elementIndex = parseInt(element.dataset.index)
-            if (elementIndex !== index) {
-              dispatch({ type: DRAG_ENTER, index: elementIndex })
-            }
-          }
+        if (!elementUnderTouch) {
+          return dispatch({ type: DRAG_LEAVE })
+        }
+
+        const element = elementUnderTouch.closest('[data-index]')
+        if (!element) {
+          return dispatch({ type: DRAG_LEAVE })
+        }
+
+        const elementIndex = parseInt(element.dataset.index)
+        if (elementIndex !== index) {
+          dispatch({ type: DRAG_ENTER, index: elementIndex })
         }
       }
     }

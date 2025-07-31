@@ -42,15 +42,25 @@ function cacheNewComments (client, rootId, newComments, sort) {
 export default function useLiveComments (rootId, after, sort) {
   const latestKey = `liveCommentsLatest:${rootId}`
   const client = useApolloClient()
-  const [latest, setLatest] = useState(() => {
-    // if we're on the client, get the latest timestamp from session storage, otherwise use the passed after timestamp
-    if (typeof window !== 'undefined') {
-      return window.sessionStorage.getItem(latestKey) || after
-    }
-    return after
-  })
+  const [latest, setLatest] = useState(after)
+  const [initialized, setInitialized] = useState(false)
 
-  const { data } = useQuery(GET_NEW_COMMENTS, SSR
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedLatest = window.sessionStorage.getItem(latestKey)
+      if (storedLatest && storedLatest > after) {
+        setLatest(storedLatest)
+      } else {
+        setLatest(after)
+      }
+    }
+
+    // Apollo might update the cache before the page has fully rendered, causing reads of stale cached data
+    // this prevents GET_NEW_COMMENTS from producing results before the page has fully rendered
+    setInitialized(true)
+  }, [after])
+
+  const { data } = useQuery(GET_NEW_COMMENTS, SSR || !initialized
     ? {}
     : {
         pollInterval: POLL_INTERVAL,

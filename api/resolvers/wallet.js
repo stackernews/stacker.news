@@ -20,8 +20,7 @@ import { finalizeHodlInvoice } from '@/worker/wallet'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets } from '../lnd'
-import performPaidAction from '../paidAction'
-import performPayingAction from '../payingAction'
+import pay from '../payIn'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -379,8 +378,8 @@ const resolvers = {
 
       return true
     },
-    buyCredits: async (parent, { credits }, { me, models, lnd }) => {
-      return await performPaidAction('BUY_CREDITS', { credits }, { models, me, lnd })
+    buyCredits: async (parent, { credits }, { me, models }) => {
+      return await pay('BUY_CREDITS', { credits }, { models, me })
     }
   },
 
@@ -577,7 +576,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     throw new GqlInputError('SN cannot pay an invoice that SN is proxying')
   }
 
-  return await performPayingAction({ bolt11: invoice, maxFee, protocolId: protocol?.id }, { me, models, lnd })
+  return await pay('WITHDRAWAL', { bolt11: invoice, maxFee, protocolId: protocol?.id }, { me, models })
 }
 
 async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },

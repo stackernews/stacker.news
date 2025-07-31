@@ -27,7 +27,7 @@ const typeDefs = gql`
     removeWallet(id: ID!): Boolean
     deleteWalletLogs(protocolId: Int, debug: Boolean): Boolean
     setWalletPriorities(priorities: [WalletPriorityUpdate!]!): Boolean
-    buyCredits(credits: Int!): BuyCreditsPaidAction!
+    buyCredits(credits: Int!): PayIn!
 
     upsertWalletSendLNbits(
       ${sharedSend},

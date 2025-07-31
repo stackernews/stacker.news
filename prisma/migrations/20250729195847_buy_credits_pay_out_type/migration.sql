@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "PayOutType" ADD VALUE 'BUY_CREDITS';

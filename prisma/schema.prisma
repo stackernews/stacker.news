@@ -1579,14 +1579,15 @@ model PayIn {
   payOutCustodialTokens PayOutCustodialToken[]
   payOutBolt11          PayOutBolt11?
 
-  genesis       PayIn?      @relation("PayInGenesis", fields: [genesisId], references: [id], onDelete: Cascade)
-  successor     PayIn?      @relation("PayInSuccessor", fields: [successorId], references: [id], onDelete: Cascade)
-  predecessor   PayIn?      @relation("PayInSuccessor")
-  benefactor    PayIn?      @relation("PayInBenefactor", fields: [benefactorId], references: [id], onDelete: Cascade)
-  beneficiaries PayIn[]     @relation("PayInBenefactor")
+  genesis       PayIn?       @relation("PayInGenesis", fields: [genesisId], references: [id], onDelete: Cascade)
+  successor     PayIn?       @relation("PayInSuccessor", fields: [successorId], references: [id], onDelete: Cascade)
+  predecessor   PayIn?       @relation("PayInSuccessor")
+  benefactor    PayIn?       @relation("PayInBenefactor", fields: [benefactorId], references: [id], onDelete: Cascade)
+  beneficiaries PayIn[]      @relation("PayInBenefactor")
   itemPayIns    ItemPayIn[]
   subPayIns     SubPayIn[]
-  progeny       PayIn[]     @relation("PayInGenesis")
+  progeny       PayIn[]      @relation("PayInGenesis")
+  payInBolt11   PayInBolt11?
 
   @@index([userId])
   @@index([payInType])
@@ -1685,6 +1686,7 @@ model PayInBolt11 {
   lud18Data PayInBolt11Lud18?
   nostrNote PayInBolt11NostrNote?
   comment   PayInBolt11Comment?
+  payIn     PayIn                 @relation(fields: [payInId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
   @@index([confirmedIndex])

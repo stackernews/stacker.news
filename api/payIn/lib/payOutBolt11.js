@@ -1,61 +1,61 @@
 import { parsePaymentRequest } from 'ln-service'
 import { PAY_IN_RECEIVER_FAILURE_REASONS } from './is'
-import { createBolt11FromWallets } from '@/wallets/server'
+import { createBolt11FromWalletProtocols } from '@/wallets/server/receive'
 import { Prisma } from '@prisma/client'
 
-async function getLeastFailedWallets (models, { genesisId, userId }) {
+async function getLeastFailedWalletProtocols (models, { genesisId, userId }) {
   return await models.$queryRaw`
     WITH "failedWallets" AS (
-      SELECT count(*) as "failedCount", "PayOutBolt11"."walletId"
+      SELECT count(*) as "failedCount", "PayOutBolt11"."protocolId"
       FROM "PayIn"
       JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn"."id"
       WHERE "PayIn"."payInFailureReason" IS NOT NULL AND "PayIn"."genesisId" = ${genesisId}
       AND "PayOutBolt11"."payInFailureReason" IN (${Prisma.join(PAY_IN_RECEIVER_FAILURE_REASONS)})
-      GROUP BY "PayOutBolt11"."walletId"
+      GROUP BY "PayOutBolt11"."protocolId"
     )
-    SELECT *
-    FROM "Wallet"
-    LEFT JOIN "failedWallets" ON "failedWallets"."walletId" = "Wallet"."id"
+    SELECT "WalletProtocol".*, "Wallet"."userId" as "userId"
+    FROM "WalletProtocol"
+    JOIN "Wallet" ON "Wallet"."id" = "WalletProtocol"."walletId"
+    LEFT JOIN "failedWallets" ON "failedWallets"."protocolId" = "WalletProtocol"."id"
+    WHERE "Wallet"."userId" = ${userId} AND "WalletProtocol"."enabled" = true AND "WalletProtocol"."send" = false
     ORDER BY "failedWallets"."failedCount" ASC, "Wallet"."priority" ASC`
 }
 
-async function getWallets (models, { userId }) {
-  return await models.wallet.findMany({
-    where: {
-      userId,
-      enabled: true
-    },
-    include: {
-      user: true
+async function getWalletProtocols (models, { userId }) {
+  return await models.$queryRaw`
+    SELECT "WalletProtocol".*, "Wallet"."userId" as "userId"
+    FROM "WalletProtocol"
+    JOIN "Wallet" ON "Wallet"."id" = "WalletProtocol"."walletId"
+    WHERE "Wallet"."userId" = ${userId} AND "WalletProtocol"."enabled" = true AND "WalletProtocol"."send" = false
+    ORDER BY "Wallet"."priority" ASC`
+}
+
+async function createPayOutBolt11FromWalletProtocols (walletProtocols, bolt11Args, { payOutType, userId }, { models }) {
+  for await (const { bolt11, protocol } of createBolt11FromWalletProtocols(walletProtocols, bolt11Args, { models })) {
+    try {
+      const invoice = await parsePaymentRequest({ request: bolt11 })
+      return {
+        payOutType,
+        msats: BigInt(invoice.mtokens),
+        bolt11,
+        hash: invoice.id,
+        userId,
+        protocolId: protocol.id
+      }
+    } catch (err) {
+      console.error('failed to create pay out bolt11:', err)
     }
-  })
+  }
+
+  throw new Error('no wallet to receive available')
 }
 
-export async function payOutBolt11Replacement (models, genesisId, { userId, msats, payOutType }) {
-  const wallets = await getLeastFailedWallets(models, { genesisId, userId })
-  const { bolt11, wallet } = await createBolt11FromWallets(wallets, { msats }, { models })
-
-  const invoice = await parsePaymentRequest({ request: bolt11 })
-  return {
-    payOutType,
-    msats: BigInt(invoice.mtokens),
-    bolt11,
-    hash: invoice.hash,
-    userId,
-    walletId: wallet.id
-  }
+export async function payOutBolt11Replacement (models, bolt11Args, { genesisId, payOutType, userId }) {
+  const walletProtocols = await getLeastFailedWalletProtocols(models, { genesisId, userId })
+  return await createPayOutBolt11FromWalletProtocols(walletProtocols, bolt11Args, { payOutType, userId }, { models })
 }
 
-export async function payOutBolt11Prospect (models, { userId, payOutType, msats }) {
-  const wallets = await getWallets(models, { userId })
-  const { bolt11, wallet } = await createBolt11FromWallets(wallets, { msats }, { models })
-  const invoice = await parsePaymentRequest({ request: bolt11 })
-  return {
-    payOutType,
-    msats: BigInt(invoice.mtokens),
-    bolt11,
-    hash: invoice.hash,
-    userId,
-    walletId: wallet.id
-  }
+export async function payOutBolt11Prospect (models, bolt11Args, { payOutType, userId }) {
+  const walletProtocols = await getWalletProtocols(models, { userId })
+  return await createPayOutBolt11FromWalletProtocols(walletProtocols, bolt11Args, { payOutType, userId }, { models })
 }

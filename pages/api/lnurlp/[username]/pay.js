@@ -1,14 +1,13 @@
 import models from '@/api/models'
-import lnd from '@/api/lnd'
-import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString, lnurlPayDescriptionHash } from '@/lib/lnurl'
+import { lnurlPayMetadata } from '@/lib/lnurl'
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
-import { LNURLP_COMMENT_MAX_LENGTH, MAX_INVOICE_DESCRIPTION_LENGTH } from '@/lib/constants'
+import { LNURLP_COMMENT_MAX_LENGTH } from '@/lib/constants'
 import { formatMsats, toPositiveBigInt } from '@/lib/format'
 import assertGofacYourself from '@/api/resolvers/ofac'
-import performPaidAction from '@/api/paidAction'
 import { validateSchema, lud18PayerDataSchema } from '@/lib/validate'
 import { walletLogger } from '@/wallets/server'
+import pay from '@/api/payIn'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -26,7 +25,8 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
   try {
     await assertGofacYourself({ models, headers })
     // if nostr, decode, validate sig, check tags, set description hash
-    let description, descriptionHash, noteStr
+    let { description, descriptionHash } = lnurlPayMetadata(username)
+    let noteStr
     if (nostr) {
       noteStr = decodeURIComponent(nostr)
       const note = JSON.parse(noteStr)
@@ -37,17 +37,12 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       // If there is an amount tag, it MUST be equal to the amount query parameter
       const eventAmount = note.tags?.find(t => t[0] === 'amount')?.[1]
       if (schnorr.verify(note.sig, note.id, note.pubkey) && hasPTag && hasETag && (!eventAmount || Number(eventAmount) === Number(amount))) {
-        description = 'zap'
+        // override description hash
         descriptionHash = createHash('sha256').update(noteStr).digest('hex')
       } else {
         res.status(400).json({ status: 'ERROR', reason: 'invalid NIP-57 note' })
         return
       }
-    } else {
-      description = `Paying @${username} on stacker.news`
-      description += comment ? `: ${comment}` : '.'
-      description = description.slice(0, MAX_INVOICE_DESCRIPTION_LENGTH)
-      descriptionHash = lnurlPayDescriptionHashForUser(username)
     }
 
     if (comment?.length > LNURLP_COMMENT_MAX_LENGTH) {
@@ -77,26 +72,25 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       }
 
       // Update description hash to include the passed payer data
-      const metadataStr = `${lnurlPayMetadataString(username)}${payerData}`
-      descriptionHash = lnurlPayDescriptionHash(metadataStr)
+      descriptionHash = createHash('sha256').update(lnurlPayMetadata(username).metadata + payerData).digest('hex')
     }
 
     // generate invoice
-    const { invoice, paymentMethod } = await performPaidAction('RECEIVE', {
+    const { payInBolt11 } = await pay('PROXY_PAYMENT', {
       msats: toPositiveBigInt(amount),
       description,
       descriptionHash,
       comment: comment || '',
       lud18Data: parsedPayerData,
       noteStr
-    }, { models, lnd, me: user })
+    }, { models, me: user })
 
-    if (!invoice?.bolt11) throw new Error('could not generate invoice')
+    if (!payInBolt11) throw new Error('could not generate invoice')
 
     return res.status(200).json({
-      pr: invoice.bolt11,
+      pr: payInBolt11.bolt11,
       routes: [],
-      verify: paymentMethod !== 'DIRECT' && invoice.hash ? `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${invoice.hash}` : undefined
+      verify: `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${payInBolt11.hash}`
     })
   } catch (error) {
     console.log(error)

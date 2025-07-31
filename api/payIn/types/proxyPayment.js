@@ -1,5 +1,5 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
-import { toPositiveBigInt, numWithUnits, msatsToSats } from '@/lib/format'
+import { toPositiveBigInt } from '@/lib/format'
 import { notifyDeposit } from '@/lib/webPush'
 import { payOutBolt11Prospect } from '../lib/payOutBolt11'
 export const anonable = false
@@ -9,13 +9,19 @@ export const paymentMethods = [
 ]
 
 // 3% to routing fee, 7% to rewards pool, 90% to invoice
-export async function getInitial (models, { msats }, { me }) {
+export async function getInitial (models, { msats, description, descriptionHash, expiry }, { me }) {
   const mcost = toPositiveBigInt(msats)
   const routingFeeMtokens = mcost * 3n / 100n
   const rewardsPoolMtokens = mcost * 7n / 100n
   const proxyPaymentMtokens = mcost - routingFeeMtokens - rewardsPoolMtokens
 
-  const payOutBolt11 = await payOutBolt11Prospect(models, { userId: me.id, payOutType: 'PROXY_PAYMENT', msats: proxyPaymentMtokens })
+  // payInBolt11 and payOutBolt11 belong to the same user
+  const payOutBolt11 = await payOutBolt11Prospect(models, {
+    msats: proxyPaymentMtokens,
+    description: me.hideInvoiceDesc ? undefined : description,
+    descriptionHash,
+    expiry
+  }, { payOutType: 'PROXY_PAYMENT', userId: me.id })
 
   return {
     payInType: 'PROXY_PAYMENT',
@@ -63,11 +69,10 @@ export async function onPaidSideEffects (models, payInId) {
   await notifyDeposit(payInBolt11.userId, payInBolt11)
 }
 
-export async function describe (models, payInId, { me }) {
-  const payInBolt11 = await models.payInBolt11.findUnique({
-    where: { payInId },
-    include: { lud18Data: true, nostrNote: true, comment: true, payIn: { include: { user: true } } }
+export async function describe (models, payInId) {
+  const { user } = await models.payIn.findUnique({
+    where: { id: payInId },
+    include: { user: true }
   })
-  const { nostrNote, payIn: { user }, msatsRequested } = payInBolt11
-  return `SN: ${nostrNote ? 'zap' : 'pay'} ${user?.name ?? ''} ${numWithUnits(msatsToSats(msatsRequested))}`
+  return `pay ${user.name}@stacker.news`
 }

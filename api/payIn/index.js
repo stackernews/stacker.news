@@ -32,7 +32,7 @@ export default async function pay (payInType, payInArgs, { models, me }) {
     const payIn = await payInModule.getInitial(models, payInArgs, { me })
     return await begin(models, payIn, payInArgs, { me })
   } catch (e) {
-    console.error('performPaidAction failed', e)
+    console.error('payIn failed', e)
     throw e
   } finally {
     console.groupEnd()
@@ -103,13 +103,15 @@ async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
     if (payIn.payInState === 'PAID') {
       payInTypeModules[payIn.payInType].onPaidSideEffects?.(models, payIn.id).catch(console.error)
     } else if (payIn.payInState === 'PENDING_INVOICE_CREATION') {
-      const payInBolt11 = await payInBolt11Prospect(models, payIn, { msats: mCostRemaining })
+      const payInBolt11 = await payInBolt11Prospect(models, payIn,
+        { msats: mCostRemaining, description: await payInTypeModules[payIn.payInType].describe(models, payIn.id) })
       return await afterInvoiceCreation({
         payInState: payIn.pessimisticEnv ? 'PENDING_HELD' : 'PENDING',
         payInBolt11
       })
     } else if (payIn.payInState === 'PENDING_INVOICE_WRAP') {
-      const payInBolt11 = await payInBolt11WrapProspect(models, payIn, { msats: mCostRemaining })
+      const payInBolt11 = await payInBolt11WrapProspect(models, payIn,
+        { msats: mCostRemaining, description: await payInTypeModules[payIn.payInType].describe(models, payIn.id) })
       return await afterInvoiceCreation({
         payInState: 'PENDING_HELD',
         payInBolt11
@@ -132,7 +134,14 @@ async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
       payInFailureReason = e.payInFailureReason
     }
     models.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-        VALUES ('payInFailed', jsonb_build_object('payInId', ${payIn.id}::INTEGER, 'payInFailureReason', ${payInFailureReason}), now(), 1000)`.catch(console.error)
+        VALUES (
+          'payInFailed',
+          jsonb_build_object(
+            'payInId', ${payIn.id}::INTEGER,
+            'payInFailureReason', ${payInFailureReason},
+            'payInBolt11', ${payIn.payInBolt11 ?? null}
+          ),
+          now(), 1000)`.catch(console.error)
     throw e
   }
 

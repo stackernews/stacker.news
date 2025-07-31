@@ -1,12 +1,12 @@
-import { isP2P, isPayableWithCredits } from './is'
+import { isP2P, isPayableWithCredits, isProxyPayment } from './is'
 import { USER_ID } from '@/lib/constants'
 
 export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }) {
-  if (!me || me.id === USER_ID.anon || mCustodialCost <= 0n) {
-    return []
-  }
-
   const payInCustodialTokens = []
+
+  if (!me || me.id === USER_ID.anon || mCustodialCost <= 0n) {
+    return { payInCustodialTokens }
+  }
 
   // we always want to return mcreditsBefore, even if we don't spend any credits
   const mCreditPayable = isPayableWithCredits(payIn) ? mCustodialCost : 0n
@@ -46,10 +46,25 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
   return { payInCustodialTokens, mcreditsBefore, msatsBefore }
 }
 
+function getP2PCost (payIn) {
+  // proxy payments are only ever paid for with sats
+  if (isProxyPayment(payIn)) {
+    return payIn.mcost
+  }
+  if (isP2P(payIn)) {
+    return payIn.payOutBolt11?.msats ?? 0n
+  }
+  return 0n
+}
+
+function getTotalCost (payIn) {
+  const { beneficiaries = [] } = payIn
+  return payIn.mcost + beneficiaries.reduce((acc, b) => acc + b.mcost, 0n)
+}
+
 export function getCostBreakdown (payIn) {
-  const { payOutBolt11, beneficiaries = [] } = payIn
-  const mP2PCost = isP2P(payIn) ? (payOutBolt11?.msats ?? 0n) : 0n
-  const mCustodialCost = payIn.mcost + beneficiaries.reduce((acc, b) => acc + b.mcost, 0n) - mP2PCost
+  const mP2PCost = getP2PCost(payIn)
+  const mCustodialCost = getTotalCost(payIn) - mP2PCost
 
   return {
     mP2PCost,

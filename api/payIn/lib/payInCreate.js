@@ -6,6 +6,7 @@ import { payInPrismaCreate } from './payInPrisma'
 export const PAY_IN_INCLUDE = {
   payInCustodialTokens: true,
   payOutBolt11: true,
+  payInBolt11: true,
   pessimisticEnv: true,
   user: true,
   payOutCustodialTokens: true

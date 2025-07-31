@@ -31,6 +31,10 @@ export function isP2P (payIn) {
   return payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.P2P)
 }
 
+export function isProxyPayment (payIn) {
+  return payIn.payInType === 'PROXY_PAYMENT'
+}
+
 export function isWithdrawal (payIn) {
   return payIn.payInType === 'WITHDRAWAL' || payIn.payInType === 'AUTO_WITHDRAWAL'
 }

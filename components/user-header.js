@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react'
 import { Form, Input, SubmitButton } from './form'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import styles from './user-header.module.css'
+import navStyles from '@/styles/nav.module.css'
 import { useMe } from './me'
 import { NAME_MUTATION } from '@/fragments/users'
 import { QRCodeSVG } from 'qrcode.react'
@@ -44,7 +45,7 @@ export default function UserHeader ({ user }) {
     <>
       <HeaderHeader user={user} />
       <Nav
-        className={styles.nav}
+        className={navStyles.nav}
         activeKey={activeKey}
       >
         <Nav.Item>

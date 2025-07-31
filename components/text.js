@@ -141,9 +141,7 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
       if (outlawed) {
         return href
       }
-
-      const isHashLink = href?.startsWith('#')
-
+      const isHashLink = href.startsWith('#')
       // eslint-disable-next-line
       return <Link id={props.id} target={isHashLink ? undefined : '_blank'} rel={rel} href={href}>{children}</Link>
     },

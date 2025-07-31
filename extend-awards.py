@@ -16,14 +16,14 @@ def getIssue(n):
 	return j
 
 def findIssuesInPR(j):
-	p = re.compile('(#|https://github.com/stackernews/stacker.news/issues/)([0-9]+)')
+	closing_keywords = ['close', 'closes', 'closed', 'fix', 'fixes', 'fixed', 'resolve', 'resolves', 'resolved']
+	# Support both #123 and full URL
+	closing_pattern = re.compile(
+		r'(?i)\b(' + '|'.join(closing_keywords) + r')\s+(?:#|https://github\.com/stackernews/stacker\.news/issues/)(\d+)'
+	)
 	issues = set()
-	for m in p.finditer(j['title']):
-		issues.add(m.group(2))
-	if not 'body' in j or j['body'] is None:
-		return
-	for s in j['body'].split('\n'):
-		for m in p.finditer(s):
+	for text in [j.get('title', ''), j.get('body', '') or '']:
+		for m in closing_pattern.finditer(text):
 			issues.add(m.group(2))
 	return list(issues)
 

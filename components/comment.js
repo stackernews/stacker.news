@@ -3,7 +3,7 @@ import styles from './comment.module.css'
 import Text, { SearchText } from './text'
 import Link from 'next/link'
 import Reply from './reply'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import UpVote from './upvote'
 import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
@@ -98,7 +98,8 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel, rootLastCommentAt,
-  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry
+  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry,
+  trackNewComment
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
@@ -140,6 +141,25 @@ export default function Comment ({
     }
   }, [item.id, cache, router.query.commentId])
 
+  // TODO: clean everything up sox lol
+  // TODO: hacky way to track new comments
+  // TODO: also, we have to use useVisibility somehow since we removed FloatingComment
+  const track = useCallback(() => {
+    // track this new comment if it's not visible in the viewport
+    const rect = ref.current.getBoundingClientRect()
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth
+
+    const isVisible = rect.top >= 0 &&
+                      rect.left >= 0 &&
+                      rect.bottom <= viewportHeight &&
+                      rect.right <= viewportWidth
+
+    if (!isVisible) {
+      trackNewComment(ref)
+    }
+  }, [trackNewComment])
+
   useEffect(() => {
     if (me?.id === item.user?.id) return
     const itemCreatedAt = new Date(item.createdAt).getTime()
@@ -148,14 +168,21 @@ export default function Comment ({
         !item.injected &&
         itemCreatedAt > router.query.commentsViewedAt) {
       ref.current.classList.add('outline-new-comment')
+      track()
     // newly injected comments have to use a different class to outline every new comment
     } else if (rootLastCommentAt &&
               item.injected &&
               itemCreatedAt > new Date(rootLastCommentAt).getTime()) {
       ref.current.classList.add('outline-new-injected-comment')
+
       ref.current.classList.add(styles.injectedComment)
+      // remove the injected comment class when the animation ends
+      ref.current.addEventListener('animationend', () => {
+        ref.current.classList.remove(styles.injectedComment)
+      }, { once: true })
+      track()
     }
-  }, [item.id, rootLastCommentAt])
+  }, [item.id, rootLastCommentAt, trackNewComment])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
@@ -280,7 +307,7 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} rootLastCommentAt={rootLastCommentAt} />
+                        <Comment depth={depth + 1} key={item.id} item={item} trackNewComment={trackNewComment} rootLastCommentAt={rootLastCommentAt} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && (
                         <div className={`d-block ${styles.comment} pb-2 ps-3`}>

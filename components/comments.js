@@ -10,6 +10,7 @@ import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
 import { ShowNewComments } from './show-new-comments'
+import { useLiveCommentsNavigator, LiveCommentsNavigator } from './use-live-comments-navigator'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
   const router = useRouter()
@@ -69,6 +70,11 @@ export default function Comments ({
   commentSats, comments, commentsCursor, fetchMoreComments, ncomments, newComments, lastCommentAt, item, ...props
 }) {
   const router = useRouter()
+
+  // TODO: mega cleanup after solid decision on design pattern
+  const navigator = useLiveCommentsNavigator()
+  const { trackNewComment } = navigator
+
   // fetch new comments that arrived after the lastCommentAt, and update the item.newComments field in cache
   useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort)
 
@@ -76,6 +82,7 @@ export default function Comments ({
 
   return (
     <>
+      <LiveCommentsNavigator navigator={navigator} />
       <ShowNewComments item={item} sort={router.query.sort} />
       {comments?.length > 0
         ? <CommentsHeader
@@ -95,11 +102,11 @@ export default function Comments ({
         : null}
       {pins.map(item => (
         <Fragment key={item.id}>
-          <Comment depth={1} item={item} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} pin />
+          <Comment depth={1} item={item} trackNewComment={trackNewComment} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} pin />
         </Fragment>
       ))}
       {comments.filter(({ position }) => !position).map(item => (
-        <Comment depth={1} key={item.id} item={item} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} />
+        <Comment depth={1} key={item.id} item={item} trackNewComment={trackNewComment} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} />
       ))}
       {ncomments > FULL_COMMENTS_THRESHOLD &&
         <MoreFooter

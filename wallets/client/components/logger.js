@@ -98,8 +98,6 @@ export function LogMessage ({ tag, level, message, context, ts }) {
   const style = hasContext ? { cursor: 'pointer' } : { cursor: 'inherit' }
   const indicator = hasContext ? (show ? '-' : '+') : <></>
 
-  // TODO(wallet-v2): show invoice context
-
   return (
     <>
       <div className={styles.row} onClick={handleClick} style={style}>

@@ -29,6 +29,7 @@ import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
 import { ShowNewComments } from './show-new-comments'
+import { useFavicon } from './favicon'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -111,6 +112,7 @@ export default function Comment ({
   const ref = useRef(null)
   const router = useRouter()
   const root = useRoot()
+  const { setHasNewComments, hasNewComments } = useFavicon()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
   const { cache } = useApolloClient()
@@ -123,6 +125,10 @@ export default function Comment ({
     // don't try to unset the outline if the comment is not outlined or we already unset the outline
     if (hasOutline && !hasOutlineUnset) {
       ref.current.classList.add('outline-new-comment-unset')
+      // reset the new comments favicon
+      if (hasNewComments) {
+        setHasNewComments(false)
+      }
     }
   }
 
@@ -170,7 +176,19 @@ export default function Comment ({
     } else {
       ref.current.classList.add('outline-new-comment')
     }
-  }, [item.id, rootLastCommentAt])
+
+    // set the new comments favicon
+    if (!hasNewComments) {
+      setHasNewComments(true)
+    }
+  }, [item.id, rootLastCommentAt, me?.id])
+
+  // reset the new comments favicon when we unmount the comment
+  useEffect(() => {
+    return () => {
+      setHasNewComments(false)
+    }
+  }, [item.id, setHasNewComments])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts

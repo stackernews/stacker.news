@@ -10,7 +10,6 @@ import {
   readCommentsFragment
 } from '../lib/comments'
 import preserveScroll from './preserve-scroll'
-import { useFavicon } from './favicon'
 
 // filters out new comments, by id, that already exist in the item's comments
 // preventing duplicate comments from being injected
@@ -127,13 +126,11 @@ function injectNewComments (client, item, sort, currentDepth) {
 // ShowNewComments is a component that dedupes, refreshes and injects newComments into the comments field
 export function ShowNewComments ({ item, sort, depth = 0 }) {
   const client = useApolloClient()
-  const { setHasNewComments } = useFavicon()
 
   const showNewComments = useCallback(() => {
     // a top level comment doesn't pass depth, we pass its default value of 0 to signify this
     // child comments are injected from the depth they're at
     injectNewComments(client, item, sort, depth)
-    setHasNewComments(false)
   }, [client, sort, item, depth])
 
   // auto-show new comments as they arrive

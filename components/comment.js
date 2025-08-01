@@ -115,12 +115,15 @@ export default function Comment ({
 
   const { cache } = useApolloClient()
 
-  const unsetOutlineNewComment = () => {
-    // don't try to unset the outline if the comment is not new or we already unset the outline
-    if (ref.current.classList.contains('outline-new-comment-unset') ||
-      !(ref.current.classList.contains('outline-new-comment') || ref.current.classList.contains('outline-new-injected-comment'))) return
+  const unsetOutline = () => {
+    if (!ref.current) return
+    const hasOutline = ref.current.classList.contains('outline-new-comment') || ref.current.classList.contains('outline-new-injected-comment')
+    const hasOutlineUnset = ref.current.classList.contains('outline-new-comment-unset')
 
-    ref.current.classList.add('outline-new-comment-unset')
+    // don't try to unset the outline if the comment is not outlined or we already unset the outline
+    if (hasOutline && !hasOutlineUnset) {
+      ref.current.classList.add('outline-new-comment-unset')
+    }
   }
 
   useEffect(() => {
@@ -175,8 +178,8 @@ export default function Comment ({
   return (
     <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
-      onMouseEnter={unsetOutlineNewComment}
-      onTouchStart={unsetOutlineNewComment}
+      onMouseEnter={unsetOutline}
+      onTouchStart={unsetOutline}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.outlawed && !me?.privates?.wildWestMode

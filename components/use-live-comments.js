@@ -6,7 +6,7 @@ import { itemUpdateQuery, commentUpdateFragment, getLatestCommentCreatedAt } fro
 import { useFavicon } from './favicon'
 import { useMe } from './me'
 
-const POLL_INTERVAL = 1000 * 1 // 10 seconds
+const POLL_INTERVAL = 1000 * 10 // 10 seconds
 
 // merge new comment into item's newComments
 // and prevent duplicates by checking if the comment is already in item's newComments or existing comments

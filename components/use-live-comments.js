@@ -48,13 +48,23 @@ export default function useLiveComments (rootId, after, sort) {
   const client = useApolloClient()
   const { me } = useMe()
   const { setHasNewComments, hasNewComments } = useFavicon()
-  const [latest, setLatest] = useState(() => {
-    // if we're on the client, get the latest timestamp from session storage, otherwise use the passed after timestamp
+  const [latest, setLatest] = useState(after)
+  const [initialized, setInitialized] = useState(false)
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      return window.sessionStorage.getItem(latestKey) || after
+      const storedLatest = window.sessionStorage.getItem(latestKey)
+      if (storedLatest && storedLatest > after) {
+        setLatest(storedLatest)
+      } else {
+        setLatest(after)
+      }
     }
-    return after
-  })
+    
+    // Apollo might update the cache before the page has fully rendered, causing reads of stale cached data
+    // this prevents GET_NEW_COMMENTS from producing results before the page has fully rendered
+    setInitialized(true)
+  }, [after])
 
   const handleNewComment = useCallback((newComment) => {
     // set the new comments favicon if the deduped comment is not from the current user
@@ -63,7 +73,7 @@ export default function useLiveComments (rootId, after, sort) {
     }
   }, [me?.id, setHasNewComments, hasNewComments])
 
-  const { data } = useQuery(GET_NEW_COMMENTS, SSR
+  const { data } = useQuery(GET_NEW_COMMENTS, SSR || !initialized
     ? {}
     : {
         pollInterval: POLL_INTERVAL,

@@ -60,7 +60,7 @@ export default function useLiveComments (rootId, after, sort) {
         setLatest(after)
       }
     }
-    
+
     // Apollo might update the cache before the page has fully rendered, causing reads of stale cached data
     // this prevents GET_NEW_COMMENTS from producing results before the page has fully rendered
     setInitialized(true)

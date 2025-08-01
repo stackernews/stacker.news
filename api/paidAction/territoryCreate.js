@@ -56,7 +56,6 @@ export async function perform ({ invoiceId, ...data }, { me, cost, tx }) {
     }
   })
 
-
   await tx.userSubTrust.createMany({
     data: initialTrust({ name: sub.name, userId: sub.userId })
   })

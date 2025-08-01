@@ -68,3 +68,15 @@ export async function uploadFees (s3Keys, { models, me }) {
   const totalFees = msatsToSats(totalFeesMsats)
   return { ...info, uploadFees, totalFees, totalFeesMsats }
 }
+
+export async function throwOnExpiredUploads (uploadIds, { tx }) {
+  const deletedUploads = []
+  for (const uploadId of uploadIds) {
+    if (!await tx.upload.findUnique({ where: { id: uploadId } })) {
+      deletedUploads.push(uploadId)
+    }
+  }
+  if (deletedUploads.length > 0) {
+    throw new Error(`upload(s) ${deletedUploads.join(', ')} are expired, consider reuploading.`)
+  }
+}

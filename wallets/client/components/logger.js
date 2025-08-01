@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, Fragment } from 'react'
 import { timeSince } from '@/lib/time'
 import classNames from 'classnames'
 import { ModalClosedError } from '@/components/modal'
+import { isTemplate } from '@/wallets/lib/util'
 
 // TODO(wallet-v2):
 //   when we delete logs for a protocol, the cache is not updated
@@ -28,40 +29,105 @@ export function WalletLogs ({ protocol, className, debug }) {
 
   const embedded = !!protocol
 
+  // avoid unnecessary clutter when attaching new wallet
+  const hideLogs = logs.length === 0 && protocol && isTemplate(protocol)
+  if (hideLogs) return null
+
+  // showing delete button and logs footer for temporary template logs is unnecessary clutter
+  const template = protocol && isTemplate(protocol)
+
   return (
-    <>
-      <div className={classNames('d-flex w-100 align-items-center mb-3', className)}>
-        <span
-          style={{ cursor: 'pointer' }}
-          className='text-muted fw-bold nav-link ms-auto' onClick={onDelete}
-        >clear logs
-        </span>
-      </div>
+    <div className={className}>
+      {!template && (
+        <div className='d-flex w-100 align-items-center mb-3'>
+          <span
+            style={{ cursor: 'pointer' }}
+            className='text-muted fw-bold nav-link ms-auto' onClick={onDelete}
+          >clear logs
+          </span>
+        </div>
+      )}
       <div className={classNames(styles.container, embedded && styles.embedded)}>
         {logs.map((log, i) => (
           <LogMessage
             key={i}
-            tag={log.wallet?.name}
+            tag={protocol ? null : log.wallet?.name}
             level={log.level}
             message={log.message}
             context={log.context}
             ts={log.createdAt}
           />
         ))}
-        {loading
-          ? <div className='w-100 text-center'>loading...</div>
-          : logs.length === 0 && <div className='w-100 text-center'>empty</div>}
-        {hasMore
-          ? <div className='w-100 text-center'><Button onClick={loadMore} size='sm' className='mt-3'>more</Button></div>
-          : <div className='w-100 text-center'>------ start of logs ------</div>}
+        {!template && <WalletLogsFooter empty={logs.length === 0} loading={loading} hasMore={hasMore} loadMore={loadMore} />}
       </div>
+    </div>
+  )
+}
+
+function WalletLogsFooter ({ empty, loading, hasMore, loadMore }) {
+  return (
+    <>
+      {loading
+        ? <div className='w-100 text-center'>loading...</div>
+        : empty && <div className='w-100 text-center'>empty</div>}
+      {hasMore
+        ? <div className='w-100 text-center'><Button onClick={loadMore} size='sm' className='mt-3'>more</Button></div>
+        : <div className='w-100 text-center'>------ start of logs ------</div>}
     </>
   )
 }
 
 export function LogMessage ({ tag, level, message, context, ts }) {
-  const [show, setShow] = useState(false)
+  const [showContext, setShowContext] = useState(false)
 
+  const filtered = context
+    ? Object.keys(context)
+      .filter(key => !['send', 'recv', 'status'].includes(key))
+      .reduce((obj, key) => {
+        obj[key] = context[key]
+        return obj
+      }, {})
+    : {}
+
+  const hasContext = context && Object.keys(filtered).length > 0
+  const handleClick = () => {
+    if (hasContext) { setShowContext(show => !show) }
+  }
+  const style = hasContext ? { cursor: 'pointer' } : { cursor: 'inherit' }
+
+  return (
+    <>
+      <div className={styles.row} onClick={handleClick} style={style}>
+        <TimeSince timestamp={ts} />
+        {tag !== null && <Tag tag={tag?.toLowerCase() ?? 'system'} />}
+        <Level level={level} />
+        <Message message={message} />
+        {hasContext && <Indicator show={showContext} />}
+      </div>
+      {hasContext && showContext && <Context context={filtered} />}
+    </>
+  )
+}
+
+function TimeSince ({ timestamp }) {
+  const [time, setTime] = useState(timeSince(new Date(timestamp)))
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(timeSince(new Date(timestamp)))
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [timestamp])
+
+  return <div className={styles.timestamp}>{time}</div>
+}
+
+function Tag ({ tag }) {
+  return <div className={styles.tag}>{`[${tag}]`}</div>
+}
+
+function Level ({ level }) {
   let className
   switch (level.toLowerCase()) {
     case 'ok':
@@ -80,69 +146,29 @@ export function LogMessage ({ tag, level, message, context, ts }) {
       className = 'text-muted'; break
   }
 
-  const filtered = context
-    ? Object.keys(context)
-      .filter(key => !['send', 'recv', 'status'].includes(key))
-      .reduce((obj, key) => {
-        obj[key] = context[key]
-        return obj
-      }, {})
-    : {}
+  return <div className={classNames(styles.level, className)}>{level}</div>
+}
 
-  const hasContext = context && Object.keys(filtered).length > 0
+function Message ({ message }) {
+  return <div className={styles.message}>{message}</div>
+}
 
-  const handleClick = () => {
-    if (hasContext) { setShow(show => !show) }
-  }
+function Indicator ({ show }) {
+  return <div className={styles.indicator}>{show ? '-' : '+'}</div>
+}
 
-  const style = hasContext ? { cursor: 'pointer' } : { cursor: 'inherit' }
-  const indicator = hasContext ? (show ? '-' : '+') : <></>
-
-  // TODO(wallet-v2): show invoice context
-
+function Context ({ context }) {
   return (
-    <>
-      <div className={styles.row} onClick={handleClick} style={style}>
-        <TimeSince timestamp={ts} />
-        <div className={styles.tag}>{`[${nameToTag(tag)}]`}</div>
-        <div className={`${styles.level} ${className}`}>{level}</div>
-        <div className={styles.message}>{message}</div>
-        <div className={styles.indicator}>{indicator}</div>
-      </div>
-      {show && hasContext && (
-        <div className={styles.context}>
-          {Object.entries(filtered)
-            .map(([key, value], i) => {
-              return (
-                <Fragment key={i}>
-                  <div>{key}:</div>
-                  <div className='text-break'>{value}</div>
-                </Fragment>
-              )
-            })}
-        </div>
-      )}
-    </>
+    <div className={styles.context}>
+      {Object.entries(context)
+        .map(([key, value], i) => {
+          return (
+            <Fragment key={i}>
+              <div>{key}:</div>
+              <div className='text-break'>{value}</div>
+            </Fragment>
+          )
+        })}
+    </div>
   )
-}
-
-function nameToTag (name) {
-  switch (name) {
-    case undefined: return 'system'
-    default: return name.toLowerCase()
-  }
-}
-
-function TimeSince ({ timestamp }) {
-  const [time, setTime] = useState(timeSince(new Date(timestamp)))
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(timeSince(new Date(timestamp)))
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [timestamp])
-
-  return <div className={styles.timestamp}>{time}</div>
 }

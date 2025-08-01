@@ -157,5 +157,11 @@
         "displayName": "Cash App",
         "image": "/wallets/cashapp.webp",
         "url": "https://cash.app/"
+    },
+    {
+        "name": "BLITZ",
+        "displayName": "Blitz Wallet",
+        "image": "/wallets/blitz.png",
+        "url": "https://blitz-wallet.com/"
     }
 ]

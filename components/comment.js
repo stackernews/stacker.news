@@ -115,6 +115,17 @@ export default function Comment ({
 
   const { cache } = useApolloClient()
 
+  const unsetOutline = () => {
+    if (!ref.current) return
+    const hasOutline = ref.current.classList.contains('outline-new-comment') || ref.current.classList.contains('outline-new-injected-comment')
+    const hasOutlineUnset = ref.current.classList.contains('outline-new-comment-unset')
+
+    // don't try to unset the outline if the comment is not outlined or we already unset the outline
+    if (hasOutline && !hasOutlineUnset) {
+      ref.current.classList.add('outline-new-comment-unset')
+    }
+  }
+
   useEffect(() => {
     const comment = cache.readFragment({
       id: `Item:${router.query.commentId}`,
@@ -143,17 +154,17 @@ export default function Comment ({
   useEffect(() => {
     if (me?.id === item.user?.id) return
     const itemCreatedAt = new Date(item.createdAt).getTime()
+    const isNewComment = (router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||
+                        (rootLastCommentAt && itemCreatedAt > new Date(rootLastCommentAt).getTime())
+    if (!isNewComment) return
 
-    if (router.query.commentsViewedAt &&
-        !item.injected &&
-        itemCreatedAt > router.query.commentsViewedAt) {
-      ref.current.classList.add('outline-new-comment')
-    // newly injected comments have to use a different class to outline every new comment
-    } else if (rootLastCommentAt &&
-              item.injected &&
-              itemCreatedAt > new Date(rootLastCommentAt).getTime()) {
+    // newly injected comments (item.injected) have to use a different class to outline every new comment
+    if (item.injected) {
       ref.current.classList.add('outline-new-injected-comment')
+      // animated live comment injection
       ref.current.classList.add(styles.injectedComment)
+    } else {
+      ref.current.classList.add('outline-new-comment')
     }
   }, [item.id, rootLastCommentAt])
 
@@ -169,8 +180,8 @@ export default function Comment ({
   return (
     <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
-      onMouseEnter={() => ref.current.classList.add('outline-new-comment-unset')}
-      onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
+      onMouseEnter={unsetOutline}
+      onTouchStart={unsetOutline}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.outlawed && !me?.privates?.wildWestMode

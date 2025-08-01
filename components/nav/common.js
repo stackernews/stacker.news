@@ -7,7 +7,6 @@ import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
 import { USER_ID } from '../../lib/constants'
-import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
 import { abbrNum } from '../../lib/format'
@@ -121,9 +120,6 @@ export function NavNotifications ({ className }) {
 
   return (
     <>
-      <Head>
-        <link rel='shortcut icon' href={hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
-      </Head>
       <Link href='/notifications' passHref legacyBehavior>
         <Nav.Link eventKey='notifications' className={classNames('position-relative', className)}>
           <NoteIcon height={28} width={20} className='theme' />

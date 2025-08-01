@@ -29,7 +29,6 @@ import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
 import { ShowNewComments } from './show-new-comments'
-import { useFavicon } from './favicon'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -103,7 +102,6 @@ export default function Comment ({
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
-  const { setHasNewComments, hasNewComments } = useFavicon()
   const isHiddenFreebie = me?.privates?.satsFilter !== 0 && !item.mine && item.freebie && !item.freedFreebie
   const isDeletedChildless = item?.ncomments === 0 && item?.deletedAt
   const [collapse, setCollapse] = useState(
@@ -123,11 +121,6 @@ export default function Comment ({
       !(ref.current.classList.contains('outline-new-comment') || ref.current.classList.contains('outline-new-injected-comment'))) return
 
     ref.current.classList.add('outline-new-comment-unset')
-
-    // we viewed the comment, remove the favicon
-    if (hasNewComments) {
-      setHasNewComments(false)
-    }
   }
 
   useEffect(() => {

@@ -12,6 +12,7 @@ import {
   updateAncestorsCommentCount,
   readCommentsFragment
 } from '../lib/comments'
+import { useFavicon } from './favicon'
 
 // filters out new comments, by id, that already exist in the item's comments
 // preventing duplicate comments from being injected
@@ -164,6 +165,7 @@ function FloatingComments ({ buttonRef, showNewComments, text }) {
 export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
   const client = useApolloClient()
   const ref = useRef(null)
+  const { setHasNewComments } = useFavicon()
 
   // a thread comment is a comment at depth 1 (parent)
   const thread = depth === 1
@@ -179,6 +181,7 @@ export function ShowNewComments ({ topLevel, item, sort, depth = 0 }) {
     // a top level comment doesn't pass depth, we pass its default value of 0 to signify this
     // child comments are injected from the depth they're at
     injectNewComments(client, item, sort, depth, threadComment)
+    setHasNewComments(false)
   }, [client, sort, item, depth])
 
   const text = !threadComment

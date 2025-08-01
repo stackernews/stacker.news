@@ -21,6 +21,18 @@ export async function perform ({ invoiceId, ...data }, { me, cost, tx }) {
   const billedLastAt = new Date()
   const billPaidUntil = nextBilling(billedLastAt, billingType)
 
+  if (data.uploadIds.length > 0) {
+    await tx.upload.updateMany({
+      where: {
+        id: { in: data.uploadIds }
+      },
+      data: {
+        paid: true
+      }
+    })
+  }
+  delete data.uploadIds
+
   const sub = await tx.sub.create({
     data: {
       ...data,
@@ -43,6 +55,7 @@ export async function perform ({ invoiceId, ...data }, { me, cost, tx }) {
       }
     }
   })
+
 
   await tx.userSubTrust.createMany({
     data: initialTrust({ name: sub.name, userId: sub.userId })

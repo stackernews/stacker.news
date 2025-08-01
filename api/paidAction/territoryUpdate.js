@@ -63,6 +63,18 @@ export async function perform ({ oldName, invoiceId, ...data }, { me, cost, tx }
     })
   }
 
+  if (data.uploadIds.length > 0) {
+    await tx.upload.updateMany({
+      where: {
+        id: { in: data.uploadIds }
+      },
+      data: {
+        paid: true
+      }
+    })
+  }
+  delete data.uploadIds
+
   return await tx.sub.update({
     data,
     where: {

@@ -5,6 +5,7 @@ import { viewGroup } from './growth'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
 import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { uploadIdsFromText } from './upload'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
@@ -209,6 +210,8 @@ export default {
       }
 
       await validateSchema(territorySchema, data, { models, me, sub: { name: data.oldName } })
+
+      data.uploadIds = uploadIdsFromText(data.desc)
 
       if (data.oldName) {
         return await updateSub(parent, data, { me, models, lnd })

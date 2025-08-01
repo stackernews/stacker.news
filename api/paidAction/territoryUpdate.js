@@ -2,6 +2,7 @@ import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST } from '@/lib/consta
 import { satsToMsats } from '@/lib/format'
 import { proratedBillingCost } from '@/lib/territory'
 import { datePivot } from '@/lib/time'
+import { uploadFees } from '@/api/resolvers/upload'
 
 export const anonable = false
 
@@ -11,18 +12,16 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getCost ({ oldName, billingType }, { models }) {
+export async function getCost ({ oldName, billingType, uploadIds }, { models, me }) {
   const oldSub = await models.sub.findUnique({
     where: {
       name: oldName
     }
   })
 
-  const cost = proratedBillingCost(oldSub, billingType)
-  if (!cost) {
-    return 0n
-  }
+  const { totalFees } = await uploadFees(uploadIds, { models, me })
 
+  const cost = proratedBillingCost(oldSub, billingType) + totalFees
   return satsToMsats(cost)
 }
 

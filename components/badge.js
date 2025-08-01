@@ -46,6 +46,8 @@ export default function Badges ({ user, badge, className = 'ms-1', badgeClassNam
     })
   }
 
+  if (badges.length === 0) return null
+
   return (
     <span className={className}>
       {badges.map(({ icon, overlayText, sizeDelta }, i) => (

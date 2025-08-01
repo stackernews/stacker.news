@@ -2,11 +2,21 @@
 
 ## How to add a new wallet
 
-**1. Insert a new row to the `WalletTemplate` table with which protocols it supports**
+**1. Update prisma.schema**
 
-Example:
+- add enum value to `WalletName` enum
+- run `npx prisma migrate dev --create-only`
+
+**2. Update migration file**
+
+- append `COMMIT` to the `ALTER TYPE` statement in the migration
+- insert new row into `ẀalletTemplate`
+- run `npx prisma migrate dev`
+
+Example migration:
 
 ```sql
+ALTER TYPE "WalletName" ADD VALUE 'PHOENIX'; COMMIT;
 INSERT INTO "WalletTemplate" (name, "sendProtocols", "recvProtocols")
 VALUES (
     'PHOENIX',
@@ -15,7 +25,7 @@ VALUES (
 );
 ```
 
-**2. Customize how the wallet looks on the client via [wallets/lib/wallets.json](/wallets/lib/wallets.json)**
+**3. Customize how the wallet looks on the client via [wallets/lib/wallets.json](/wallets/lib/wallets.json)**
 
 Example:
 
@@ -26,6 +36,7 @@ Example:
     // name to show in client
     "displayName": "Phoenix",
     // image to show in client
+    // (dark mode will use /path/to/image-dark.png)
     "image": "/path/to/image.png",
     // url (planned) to show in client
     "url": "https://phoenix.acinq.co/"
@@ -36,7 +47,6 @@ _If the wallet supports a lightning address and the domain is different than the
 
 ```json
 {
-    "templateId": 23,
     "name": "ZEUS",
     "displayName": "Zeus",
     "image": "/wallets/zeus.svg",

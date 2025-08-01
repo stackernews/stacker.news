@@ -2,6 +2,7 @@ import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST } from '@/lib/consta
 import { satsToMsats } from '@/lib/format'
 import { nextBilling } from '@/lib/territory'
 import { initialTrust } from './lib/territory'
+import { throwOnExpiredUploads } from '@/api/resolvers/upload'
 
 export const anonable = false
 
@@ -21,6 +22,7 @@ export async function perform ({ invoiceId, ...data }, { me, cost, tx }) {
   const billedLastAt = new Date()
   const billPaidUntil = nextBilling(billedLastAt, billingType)
 
+  await throwOnExpiredUploads(data.uploadIds, { tx })
   if (data.uploadIds.length > 0) {
     await tx.upload.updateMany({
       where: {

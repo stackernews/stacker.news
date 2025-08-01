@@ -2,7 +2,7 @@ import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST } from '@/lib/consta
 import { satsToMsats } from '@/lib/format'
 import { proratedBillingCost } from '@/lib/territory'
 import { datePivot } from '@/lib/time'
-import { uploadFees } from '@/api/resolvers/upload'
+import { throwOnExpiredUploads, uploadFees } from '@/api/resolvers/upload'
 
 export const anonable = false
 
@@ -62,6 +62,7 @@ export async function perform ({ oldName, invoiceId, ...data }, { me, cost, tx }
     })
   }
 
+  await throwOnExpiredUploads(data.uploadIds, { tx })
   if (data.uploadIds.length > 0) {
     await tx.upload.updateMany({
       where: {

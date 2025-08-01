@@ -9,10 +9,10 @@ const FAVICONS = {
   notifyWithComments: '/favicon-notify-with-comments.png'
 }
 
-const getFavicon = (hasNewNotes, hasLiveComments) => {
-  if (hasNewNotes && hasLiveComments.length > 0) return FAVICONS.notifyWithComments
+const getFavicon = (hasNewNotes, hasNewComments) => {
+  if (hasNewNotes && hasNewComments) return FAVICONS.notifyWithComments
   if (hasNewNotes) return FAVICONS.notify
-  if (hasLiveComments.length > 0) return FAVICONS.comments
+  if (hasNewComments) return FAVICONS.comments
   return FAVICONS.default
 }
 
@@ -20,19 +20,18 @@ export const FaviconContext = createContext()
 
 export function FaviconProvider ({ children }) {
   const hasNewNotes = useHasNewNotes()
-  const [hasLiveComments, setHasLiveComments] = useState([])
-  console.log('hasLiveComments', hasLiveComments)
+  const [hasNewComments, setHasNewComments] = useState(false)
 
   const favicon = useMemo(() =>
-    getFavicon(hasNewNotes, hasLiveComments),
-  [hasNewNotes, hasLiveComments])
+    getFavicon(hasNewNotes, hasNewComments),
+  [hasNewNotes, hasNewComments])
 
   const contextValue = useMemo(() => ({
     favicon,
     hasNewNotes,
-    hasLiveComments,
-    setHasLiveComments
-  }), [favicon, hasNewNotes, hasLiveComments, setHasLiveComments])
+    hasNewComments,
+    setHasNewComments
+  }), [favicon, hasNewNotes, hasNewComments, setHasNewComments])
 
   return (
     <FaviconContext.Provider value={contextValue}>

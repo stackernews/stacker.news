@@ -103,7 +103,7 @@ export default function Comment ({
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
-  const { setHasLiveComments } = useFavicon()
+  const { setHasNewComments, hasNewComments } = useFavicon()
   const isHiddenFreebie = me?.privates?.satsFilter !== 0 && !item.mine && item.freebie && !item.freedFreebie
   const isDeletedChildless = item?.ncomments === 0 && item?.deletedAt
   const [collapse, setCollapse] = useState(
@@ -118,16 +118,15 @@ export default function Comment ({
   const { cache } = useApolloClient()
 
   const unsetOutlineNewComment = () => {
-    // if the comment is not new or we already unset the outline, return
+    // don't try to unset the outline if the comment is not new or we already unset the outline
     if (ref.current.classList.contains('outline-new-comment-unset') ||
       !(ref.current.classList.contains('outline-new-comment') || ref.current.classList.contains('outline-new-injected-comment'))) return
 
     ref.current.classList.add('outline-new-comment-unset')
 
-    // if an item has been injected
-    // the live comments hook found it and added it to the live comments array for favicon
-    if (item.injected) {
-      setHasLiveComments(prev => prev.filter(id => id !== Number(item.id)))
+    // we viewed the comment, remove the favicon
+    if (hasNewComments) {
+      setHasNewComments(false)
     }
   }
 
@@ -159,16 +158,15 @@ export default function Comment ({
   useEffect(() => {
     if (me?.id === item.user?.id) return
     const itemCreatedAt = new Date(item.createdAt).getTime()
+    const isNewComment = (router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||
+                        (rootLastCommentAt && itemCreatedAt > new Date(rootLastCommentAt).getTime())
+    if (!isNewComment) return
 
-    if (router.query.commentsViewedAt &&
-        !item.injected &&
-        itemCreatedAt > router.query.commentsViewedAt) {
-      ref.current.classList.add('outline-new-comment')
-    // newly injected comments have to use a different class to outline every new comment
-    } else if (rootLastCommentAt &&
-              item.injected &&
-              itemCreatedAt > new Date(rootLastCommentAt).getTime()) {
+    // newly injected comments (item.injected) have to use a different class to outline every new comment
+    if (item.injected) {
       ref.current.classList.add('outline-new-injected-comment')
+    } else {
+      ref.current.classList.add('outline-new-comment')
     }
   }, [item.id, rootLastCommentAt])
 

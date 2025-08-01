@@ -22,12 +22,14 @@ function mergeNewComment (item, newComment) {
   return { ...item, newComments: [...existingNewComments, newComment.id] }
 }
 
-function cacheNewComments (client, rootId, newComments, sort, setHasLiveComments, me) {
+function cacheNewComments (client, rootId, newComments, sort, me, setHasNewComments) {
   for (const newComment of newComments) {
     const { parentId } = newComment
     const topLevel = Number(parentId) === Number(rootId)
-    if (me?.id !== newComment.user.id) {
-      setHasLiveComments(prev => [...prev, Number(newComment.id)])
+
+    // set the new comments favicon if the comment is not from the current user
+    if (me?.id !== newComment.user?.id) {
+      setHasNewComments(true)
     }
 
     // if the comment is a top level comment, update the item
@@ -48,8 +50,7 @@ export default function useLiveComments (rootId, after, sort) {
   const latestKey = `liveCommentsLatest:${rootId}`
   const client = useApolloClient()
   const { me } = useMe()
-  const { setHasLiveComments } = useFavicon()
-
+  const { setHasNewComments } = useFavicon()
   const [latest, setLatest] = useState(() => {
     // if we're on the client, get the latest timestamp from session storage, otherwise use the passed after timestamp
     if (typeof window !== 'undefined') {
@@ -71,7 +72,7 @@ export default function useLiveComments (rootId, after, sort) {
     if (!data?.newComments?.comments?.length) return
 
     // merge and cache new comments in their parent comment/post
-    cacheNewComments(client, rootId, data.newComments.comments, sort, setHasLiveComments, me)
+    cacheNewComments(client, rootId, data.newComments.comments, sort, me, setHasNewComments)
 
     // update latest timestamp to the latest comment created at
     // save it to session storage, to persist between client-side navigations
@@ -81,4 +82,11 @@ export default function useLiveComments (rootId, after, sort) {
       window.sessionStorage.setItem(latestKey, newLatest)
     }
   }, [data, client, rootId, sort, latest])
+
+  // reset the new comments favicon when the rootId changes or we leave the page
+  useEffect(() => {
+    return () => {
+      setHasNewComments(false)
+    }
+  }, [rootId, setHasNewComments])
 }

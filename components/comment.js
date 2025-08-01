@@ -163,6 +163,10 @@ export default function Comment ({
       ref.current.classList.add('outline-new-injected-comment')
       // animated live comment injection
       ref.current.classList.add(styles.injectedComment)
+      // remove the injected comment class after the animation ends
+      ref.current.addEventListener('animationend', () => {
+        ref.current.classList.remove(styles.injectedComment)
+      }, { once: true }) // remove the listener once the animation ends
     } else {
       ref.current.classList.add('outline-new-comment')
     }

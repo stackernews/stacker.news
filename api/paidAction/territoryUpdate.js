@@ -21,7 +21,7 @@ export async function getCost ({ oldName, billingType, uploadIds }, { models, me
 
   const { totalFees } = await uploadFees(uploadIds, { models, me })
 
-  const cost = proratedBillingCost(oldSub, billingType) + totalFees
+  const cost = BigInt(proratedBillingCost(oldSub, billingType)) + totalFees
   return satsToMsats(cost)
 }
 

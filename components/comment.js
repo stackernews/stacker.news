@@ -28,7 +28,6 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
-import { ShowNewComments } from './show-new-comments'
 import { useFavicon } from './favicon'
 
 function Parent ({ item, rootText }) {
@@ -186,13 +185,13 @@ export default function Comment ({
 
     // newly injected comments (item.injected) have to use a different class to outline every new comment
     if (item.injected) {
-      ref.current.classList.add('outline-new-injected-comment')
-      // animated live comment injection
-      ref.current.classList.add(styles.injectedComment)
+      // ref.current.classList.add('outline-new-injected-comment')
       // remove the injected comment class after the animation ends
       ref.current.addEventListener('animationend', () => {
         ref.current.classList.remove(styles.injectedComment)
       }, { once: true }) // remove the listener once the animation ends
+      // animated live comment injection
+      ref.current.classList.add(styles.injectedComment)
     } else {
       ref.current.classList.add('outline-new-comment')
     }
@@ -318,9 +317,6 @@ export default function Comment ({
                 : !noReply &&
                   <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
-                    <div className='ms-auto'>
-                      <ShowNewComments item={item} depth={depth} />
-                    </div>
                   </Reply>}
               {children}
               <div className={styles.comments}>
@@ -349,7 +345,6 @@ export default function Comment ({
 
 export function ViewMoreReplies ({ item, navigateRoot = false }) {
   const root = useRoot()
-  const { cache } = useApolloClient()
   const id = navigateRoot ? commentSubTreeRootId(item, root) : item.id
 
   const href = `/items/${id}` + (navigateRoot ? '' : `?commentId=${item.id}`)
@@ -363,23 +358,8 @@ export function ViewMoreReplies ({ item, navigateRoot = false }) {
       href={href}
       as={`/items/${id}`}
       className='fw-bold d-flex align-items-center gap-2 text-muted'
-      onClick={() => {
-        if (!item.newComments?.length) return
-        // clear new comments going to another page
-        cache.writeFragment({
-          id: `Item:${item.id}`,
-          fragment: gql`
-            fragment NewComments on Item {
-              newComments
-            }`,
-          data: {
-            newComments: []
-          }
-        })
-      }}
     >
       {text}
-      {item.newComments?.length > 0 && <div className={styles.newCommentDot} />}
     </Link>
   )
 }

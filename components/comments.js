@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from 'react'
+import { Fragment, useMemo, useEffect } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
 import Nav from 'react-bootstrap/Nav'
@@ -9,6 +9,7 @@ import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
+import { useFavicon } from './favicon'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
   const router = useRouter()
@@ -68,10 +69,17 @@ export default function Comments ({
   commentSats, comments, commentsCursor, fetchMoreComments, ncomments, lastCommentAt, item, ...props
 }) {
   const router = useRouter()
+  const { setHasNewComments } = useFavicon()
   // fetch new comments that arrived after the lastCommentAt, and update the item.comments field in cache
   useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort)
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
+
+  useEffect(() => {
+    return () => {
+      setHasNewComments(false)
+    }
+  }, [setHasNewComments])
 
   return (
     <>

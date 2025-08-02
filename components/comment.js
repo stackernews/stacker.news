@@ -165,13 +165,13 @@ export default function Comment ({
 
     // newly injected comments (item.injected) have to use a different class to outline every new comment
     if (item.injected) {
-      ref.current.classList.add('outline-new-injected-comment')
-      // animated live comment injection
-      ref.current.classList.add(styles.injectedComment)
+      // ref.current.classList.add('outline-new-injected-comment')
       // remove the injected comment class after the animation ends
       ref.current.addEventListener('animationend', () => {
         ref.current.classList.remove(styles.injectedComment)
       }, { once: true }) // remove the listener once the animation ends
+      // animated live comment injection
+      ref.current.classList.add(styles.injectedComment)
     } else {
       ref.current.classList.add('outline-new-comment')
     }
@@ -181,13 +181,6 @@ export default function Comment ({
       setHasNewComments(true)
     }
   }, [item.id, rootLastCommentAt, me?.id])
-
-  // reset the new comments favicon when we unmount the comment
-  useEffect(() => {
-    return () => {
-      setHasNewComments(false)
-    }
-  }, [item.id, setHasNewComments])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts

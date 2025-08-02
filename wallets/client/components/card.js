@@ -55,9 +55,7 @@ export function WalletCard ({ wallet, draggable = false, index, ...props }) {
 }
 
 function WalletLink ({ wallet, children }) {
-  const support = useWalletSupport(wallet)
-  const sendRecvParam = support.send ? 'send' : 'receive'
-  const href = '/wallets' + (isWallet(wallet) ? `/${wallet.id}` : `/${urlify(wallet.name)}`) + `/${sendRecvParam}`
+  const href = '/wallets' + (isWallet(wallet) ? `/${wallet.id}` : `/${urlify(wallet.name)}`)
   return <Link href={href}>{children}</Link>
 }
 

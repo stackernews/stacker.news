@@ -317,10 +317,8 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const [updateUploadFees] = useLazyQuery(gql`
     query uploadFees($s3Keys: [Int]!) {
       uploadFees(s3Keys: $s3Keys) {
-        totalFees
         nUnpaid
         uploadFees
-        bytes24h
       }
     }`, {
     fetchPolicy: 'no-cache',
@@ -329,13 +327,15 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
       console.error(err)
     },
     onCompleted: ({ uploadFees }) => {
+      const { uploadFees: feePerUpload, nUnpaid } = uploadFees
+      const totalFees = feePerUpload * nUnpaid
       merge({
         uploadFees: {
-          term: `+ ${numWithUnits(uploadFees.totalFees, { abbreviate: false })}`,
+          term: `+ ${numWithUnits(feePerUpload, { abbreviate: false })} x ${nUnpaid}`,
           label: 'upload fee',
           op: '+',
-          modifier: cost => cost + uploadFees.totalFees,
-          omit: !uploadFees.totalFees
+          modifier: cost => cost + totalFees,
+          omit: !totalFees
         }
       })
     }

@@ -3,7 +3,7 @@ import styles from './comment.module.css'
 import Text, { SearchText } from './text'
 import Link from 'next/link'
 import Reply from './reply'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import UpVote from './upvote'
 import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
@@ -28,7 +28,7 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
-import { ShowNewComments } from './show-new-comments'
+import { useFavicon } from './favicon'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -98,7 +98,8 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel, rootLastCommentAt,
-  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry
+  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry,
+  trackNewComment
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
@@ -111,9 +112,25 @@ export default function Comment ({
   const ref = useRef(null)
   const router = useRouter()
   const root = useRoot()
+  const { setHasNewComments, hasNewComments } = useFavicon()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
   const { cache } = useApolloClient()
+
+  const unsetOutline = () => {
+    if (!ref.current) return
+    const hasOutline = ref.current.classList.contains('outline-new-comment') || ref.current.classList.contains('outline-new-injected-comment')
+    const hasOutlineUnset = ref.current.classList.contains('outline-new-comment-unset')
+
+    // don't try to unset the outline if the comment is not outlined or we already unset the outline
+    if (hasOutline && !hasOutlineUnset) {
+      ref.current.classList.add('outline-new-comment-unset')
+      // reset the new comments favicon
+      if (hasNewComments) {
+        setHasNewComments(false)
+      }
+    }
+  }
 
   useEffect(() => {
     const comment = cache.readFragment({
@@ -140,21 +157,52 @@ export default function Comment ({
     }
   }, [item.id, cache, router.query.commentId])
 
+  // TODO: clean everything up sox lol
+  // TODO: hacky way to track new comments
+  // TODO: also, we have to use useVisibility somehow since we removed FloatingComment
+  const track = useCallback(() => {
+    // track this new comment if it's not visible in the viewport
+    const rect = ref.current.getBoundingClientRect()
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth
+
+    const isVisible = rect.top >= 0 &&
+                      rect.left >= 0 &&
+                      rect.bottom <= viewportHeight &&
+                      rect.right <= viewportWidth
+
+    if (!isVisible) {
+      trackNewComment(ref)
+    }
+  }, [trackNewComment])
+
   useEffect(() => {
     if (me?.id === item.user?.id) return
     const itemCreatedAt = new Date(item.createdAt).getTime()
+    const isNewComment = (router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||
+                        (rootLastCommentAt && itemCreatedAt > new Date(rootLastCommentAt).getTime())
+    if (!isNewComment) return
 
-    if (router.query.commentsViewedAt &&
-        !item.injected &&
-        itemCreatedAt > router.query.commentsViewedAt) {
+    // newly injected comments (item.injected) have to use a different class to outline every new comment
+    if (item.injected) {
+      // ref.current.classList.add('outline-new-injected-comment')
+      // remove the injected comment class after the animation ends
+      ref.current.addEventListener('animationend', () => {
+        ref.current.classList.remove(styles.injectedComment)
+      }, { once: true }) // remove the listener once the animation ends
+      // animated live comment injection
+      ref.current.classList.add(styles.injectedComment)
+    } else {
       ref.current.classList.add('outline-new-comment')
-    // newly injected comments have to use a different class to outline every new comment
-    } else if (rootLastCommentAt &&
-              item.injected &&
-              itemCreatedAt > new Date(rootLastCommentAt).getTime()) {
-      ref.current.classList.add('outline-new-injected-comment')
     }
-  }, [item.id, rootLastCommentAt])
+
+    // set the new comments favicon
+    if (!hasNewComments) {
+      setHasNewComments(true)
+    }
+
+    track()
+  }, [item.id, rootLastCommentAt, me?.id])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
@@ -168,8 +216,8 @@ export default function Comment ({
   return (
     <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
-      onMouseEnter={() => ref.current.classList.add('outline-new-comment-unset')}
-      onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
+      onMouseEnter={unsetOutline}
+      onTouchStart={unsetOutline}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.outlawed && !me?.privates?.wildWestMode
@@ -269,9 +317,6 @@ export default function Comment ({
                 : !noReply &&
                   <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
-                    <div className='ms-auto'>
-                      <ShowNewComments item={item} depth={depth} />
-                    </div>
                   </Reply>}
               {children}
               <div className={styles.comments}>
@@ -279,7 +324,7 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} rootLastCommentAt={rootLastCommentAt} />
+                        <Comment depth={depth + 1} key={item.id} item={item} trackNewComment={trackNewComment} rootLastCommentAt={rootLastCommentAt} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && (
                         <div className={`d-block ${styles.comment} pb-2 ps-3`}>
@@ -300,7 +345,6 @@ export default function Comment ({
 
 export function ViewMoreReplies ({ item, navigateRoot = false }) {
   const root = useRoot()
-  const { cache } = useApolloClient()
   const id = navigateRoot ? commentSubTreeRootId(item, root) : item.id
 
   const href = `/items/${id}` + (navigateRoot ? '' : `?commentId=${item.id}`)
@@ -314,23 +358,8 @@ export function ViewMoreReplies ({ item, navigateRoot = false }) {
       href={href}
       as={`/items/${id}`}
       className='fw-bold d-flex align-items-center gap-2 text-muted'
-      onClick={() => {
-        if (!item.newComments?.length) return
-        // clear new comments going to another page
-        cache.writeFragment({
-          id: `Item:${item.id}`,
-          fragment: gql`
-            fragment NewComments on Item {
-              newComments
-            }`,
-          data: {
-            newComments: []
-          }
-        })
-      }}
     >
       {text}
-      {item.newComments?.length > 0 && <div className={styles.newCommentDot} />}
     </Link>
   )
 }

@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from 'react'
+import { Fragment, useMemo, useEffect } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
 import Nav from 'react-bootstrap/Nav'
@@ -9,7 +9,8 @@ import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
-import { ShowNewComments } from './show-new-comments'
+import { useLiveCommentsNavigator, LiveCommentsNavigator } from './use-live-comments-navigator'
+import { useFavicon } from './favicon'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
   const router = useRouter()
@@ -66,17 +67,29 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 
 export default function Comments ({
   parentId, pinned, bio, parentCreatedAt,
-  commentSats, comments, commentsCursor, fetchMoreComments, ncomments, newComments, lastCommentAt, item, ...props
+  commentSats, comments, commentsCursor, fetchMoreComments, ncomments, lastCommentAt, item, ...props
 }) {
   const router = useRouter()
-  // fetch new comments that arrived after the lastCommentAt, and update the item.newComments field in cache
+
+  // TODO: mega cleanup after solid decision on design pattern
+  const navigator = useLiveCommentsNavigator()
+  const { trackNewComment } = navigator
+
+  const { setHasNewComments } = useFavicon()
+  // fetch new comments that arrived after the lastCommentAt, and update the item.comments field in cache
   useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort)
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
 
+  useEffect(() => {
+    return () => {
+      setHasNewComments(false)
+    }
+  }, [setHasNewComments])
+
   return (
     <>
-      <ShowNewComments topLevel item={item} sort={router.query.sort} />
+      <LiveCommentsNavigator navigator={navigator} />
       {comments?.length > 0
         ? <CommentsHeader
             commentSats={commentSats} parentCreatedAt={parentCreatedAt}
@@ -95,11 +108,11 @@ export default function Comments ({
         : null}
       {pins.map(item => (
         <Fragment key={item.id}>
-          <Comment depth={1} item={item} rootLastCommentAt={lastCommentAt} {...props} pin />
+          <Comment depth={1} item={item} trackNewComment={trackNewComment} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} pin />
         </Fragment>
       ))}
       {comments.filter(({ position }) => !position).map(item => (
-        <Comment depth={1} key={item.id} item={item} rootLastCommentAt={lastCommentAt} {...props} />
+        <Comment depth={1} key={item.id} item={item} trackNewComment={trackNewComment} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} />
       ))}
       {ncomments > FULL_COMMENTS_THRESHOLD &&
         <MoreFooter

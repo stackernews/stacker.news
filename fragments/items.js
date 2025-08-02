@@ -59,7 +59,6 @@ export const ITEM_FIELDS = gql`
     bio
     ncomments
     nDirectComments
-    newComments @client
     commentSats
     commentCredits
     lastCommentAt

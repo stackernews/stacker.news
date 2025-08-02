@@ -1,38 +1,78 @@
 import { useQuery, useApolloClient } from '@apollo/client'
-import { SSR } from '../lib/constants'
+import { SSR, COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import { GET_NEW_COMMENTS } from '../fragments/comments'
-import { useEffect, useState } from 'react'
-import { itemUpdateQuery, commentUpdateFragment, getLatestCommentCreatedAt } from '../lib/comments'
+import { useEffect, useState, useCallback } from 'react'
+import { itemUpdateQuery, commentUpdateFragment, getLatestCommentCreatedAt, updateAncestorsCommentCount } from '../lib/comments'
+import { commentsViewedAfterComment } from '../lib/new-comments'
+import preserveScroll from './preserve-scroll'
 
 const POLL_INTERVAL = 1000 * 10 // 10 seconds
 
-// merge new comment into item's newComments
-// and prevent duplicates by checking if the comment is already in item's newComments or existing comments
-function mergeNewComment (item, newComment) {
-  const existingNewComments = item.newComments || []
-  const existingComments = item.comments?.comments || []
+// prepares and creates a new comments fragment for injection into the cache
+// returns a function that can be used to update an item's comments field
+function prepareComments (data, client, newComment) {
+  const existingComments = data.comments?.comments || []
 
   // is the incoming new comment already in item's new comments or existing comments?
-  if (existingNewComments.includes(newComment.id) || existingComments.some(comment => comment.id === newComment.id)) {
-    return item
+  if (existingComments.some(comment => comment.id === newComment.id)) {
+    return data
   }
 
-  return { ...item, newComments: [...existingNewComments, newComment.id] }
+  // +1 because the new comment is also a comment
+  const totalNComments = (newComment.ncomments || 0) + 1
+
+  const itemHierarchy = data.path.split('.')
+  // update all ancestors comment count, but not the item itself
+  const ancestors = itemHierarchy.slice(0, -1)
+  updateAncestorsCommentCount(client.cache, ancestors, totalNComments)
+  // update commentsViewedAt to now, and add the number of new comments
+  const rootId = itemHierarchy[0]
+  commentsViewedAfterComment(rootId, Date.now(), totalNComments)
+
+  // an item can either have a comments.comments field, or not
+  const payload = data.comments
+    ? {
+        ...data,
+        ncomments: data.ncomments + totalNComments,
+        comments: {
+          ...data.comments,
+          comments: [newComment, ...data.comments.comments]
+        }
+      }
+    // when the fragment doesn't have a comments field, we just update stats fields
+    : {
+        ...data,
+        ncomments: data.ncomments + totalNComments
+      }
+
+  return payload
 }
 
-function cacheNewComments (client, rootId, newComments, sort) {
+function injectNewComments (client, rootId, newComments, sort) {
   for (const newComment of newComments) {
     const { parentId } = newComment
     const topLevel = Number(parentId) === Number(rootId)
 
+    // add a flag to the new comment to indicate it was injected
+    const injectedComment = { ...newComment, injected: true }
+
     // if the comment is a top level comment, update the item
     if (topLevel) {
-      // merge the new comment into the item's newComments field, checking for duplicates
-      itemUpdateQuery(client, rootId, sort, (data) => mergeNewComment(data, newComment))
+      // inject the new comment into the item's comments field
+      itemUpdateQuery(client, rootId, sort, (data) => prepareComments(data, client, injectedComment))
     } else {
+      // calculate depth by counting path segments from root to parent
+      const pathSegments = newComment.path.split('.')
+      const rootIndex = pathSegments.indexOf(rootId.toString())
+      const parentIndex = pathSegments.indexOf(parentId.toString())
+
+      // depth is the distance from root to parent in the path
+      const depth = parentIndex - rootIndex
+      if (depth > COMMENT_DEPTH_LIMIT) return
+
       // if the comment is a reply, update the parent comment
-      // merge the new comment into the parent comment's newComments field, checking for duplicates
-      commentUpdateFragment(client, parentId, (data) => mergeNewComment(data, newComment))
+      // inject the new comment into the parent comment's comments field
+      commentUpdateFragment(client, parentId, (data) => prepareComments(data, client, injectedComment))
     }
   }
 }
@@ -69,11 +109,17 @@ export default function useLiveComments (rootId, after, sort) {
         nextFetchPolicy: 'cache-and-network'
       })
 
+  const updateCache = useCallback(() => {
+    if (data?.newComments?.comments?.length) {
+      injectNewComments(client, rootId, data.newComments.comments, sort)
+    }
+  }, [client, rootId, sort, data])
+
   useEffect(() => {
     if (!data?.newComments?.comments?.length) return
 
-    // merge and cache new comments in their parent comment/post
-    cacheNewComments(client, rootId, data.newComments.comments, sort)
+    // directly inject new comments into the cache, preserving scroll position
+    preserveScroll(updateCache)
 
     // update latest timestamp to the latest comment created at
     // save it to session storage, to persist between client-side navigations

@@ -1,8 +1,6 @@
 import { gql } from 'graphql-tag'
 
-const sharedSend = 'walletId: ID, templateName: ID, enabled: Boolean!'
-
-const sharedRecv = `${sharedSend}, networkTests: Boolean`
+const shared = 'walletId: ID, templateName: ID, enabled: Boolean!'
 
 const typeDefs = gql`
   extend type Query {
@@ -28,72 +26,72 @@ const typeDefs = gql`
 
     # upserts
     upsertWalletSendLNbits(
-      ${sharedSend},
+      ${shared},
       url: String!,
       apiKey: VaultEntryInput!
     ): WalletSendLNbits!
 
     upsertWalletRecvLNbits(
-      ${sharedRecv},
+      ${shared},
       url: String!,
       apiKey: String!
     ): WalletRecvLNbits!
 
     upsertWalletSendPhoenixd(
-      ${sharedSend},
+      ${shared},
       url: String!,
       apiKey: VaultEntryInput!
     ): WalletSendPhoenixd!
 
     upsertWalletRecvPhoenixd(
-      ${sharedRecv},
+      ${shared},
       url: String!,
       apiKey: String!
     ): WalletRecvPhoenixd!
 
     upsertWalletSendBlink(
-      ${sharedSend},
+      ${shared},
       currency: VaultEntryInput!,
       apiKey: VaultEntryInput!
     ): WalletSendBlink!
 
     upsertWalletRecvBlink(
-      ${sharedRecv},
+      ${shared},
       currency: String!,
       apiKey: String!
     ): WalletRecvBlink!
 
     upsertWalletRecvLightningAddress(
-      ${sharedRecv},
+      ${shared},
       address: String!
     ): WalletRecvLightningAddress!
 
     upsertWalletSendNWC(
-      ${sharedSend},
+      ${shared},
       url: VaultEntryInput!
     ): WalletSendNWC!
 
     upsertWalletRecvNWC(
-      ${sharedRecv},
+      ${shared},
       url: String!
     ): WalletRecvNWC!
 
     upsertWalletRecvCLNRest(
-      ${sharedRecv},
+      ${shared},
       socket: String!,
       rune: String!,
       cert: String
     ): WalletRecvCLNRest!
 
     upsertWalletRecvLNDGRPC(
-      ${sharedRecv},
+      ${shared},
       socket: String!,
       macaroon: String!,
       cert: String
     ): WalletRecvLNDGRPC!
 
     upsertWalletSendLNC(
-      ${sharedSend},
+      ${shared},
       pairingPhrase: VaultEntryInput!,
       localKey: VaultEntryInput!,
       remoteKey: VaultEntryInput!,
@@ -101,8 +99,44 @@ const typeDefs = gql`
     ): WalletSendLNC!
 
     upsertWalletSendWebLN(
-      ${sharedSend}
+      ${shared}
     ): WalletSendWebLN!
+
+    # tests
+    testWalletRecvNWC(
+      url: String!
+    ): Boolean!
+
+    testWalletRecvLightningAddress(
+      address: String!
+    ): Boolean!
+
+    testWalletRecvCLNRest(
+      socket: String!,
+      rune: String!,
+      cert: String
+    ): Boolean!
+
+    testWalletRecvLNDGRPC(
+      socket: String!,
+      macaroon: String!,
+      cert: String
+    ): Boolean!
+
+    testWalletRecvPhoenixd(
+      url: String!
+      apiKey: String!
+    ): Boolean!
+
+    testWalletRecvLNbits(
+      url: String!
+      apiKey: String!
+    ): Boolean!
+
+    testWalletRecvBlink(
+      currency: String!
+      apiKey: String!
+    ): Boolean!
 
     # delete
     removeWallet(id: ID!): Boolean

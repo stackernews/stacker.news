@@ -3,10 +3,12 @@ import ArrowUp from '../svgs/arrow-up-s-line.svg'
 import ArrowDown from '../svgs/arrow-down-s-line.svg'
 import styles from './comment.module.css'
 import { useFavicon } from './favicon'
+import { useRouter } from 'next/router'
 
 // TODO: mega cleanup after solid decision on design pattern
 export function useLiveCommentsNavigator () {
   const { hasNewComments, setHasNewComments } = useFavicon()
+  const router = useRouter()
   const [commentCount, setCommentCount] = useState(0)
   const [currentIndex, setCurrentIndex] = useState(-1)
 
@@ -82,12 +84,15 @@ export function useLiveCommentsNavigator () {
     }
   }, [clearCommentRefs, currentIndex, commentCount])
 
-  // clear the refs when the component unmounts
+  // reset navigator on route changes
   useEffect(() => {
-    return () => {
+    const clearOnRouteChange = () => {
       clearCommentRefs()
     }
-  }, [])
+
+    router.events.on('routeChangeStart', clearOnRouteChange)
+    return () => router.events.off('routeChangeStart', clearOnRouteChange)
+  }, [clearCommentRefs, router.events])
 
   return {
     trackNewComment,

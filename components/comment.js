@@ -205,13 +205,6 @@ export default function Comment ({
     track()
   }, [item.id, rootLastCommentAt, me?.id])
 
-  // reset the new comments favicon when we unmount the comment
-  useEffect(() => {
-    return () => {
-      setHasNewComments(false)
-    }
-  }, [item.id, setHasNewComments])
-
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
   const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon

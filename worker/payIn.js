@@ -9,7 +9,7 @@ import {
   payInWithdrawalPaid, payInWithdrawalFailed, payInPaid, payInForwarding, payInForwarded, payInFailedForward, payInHeld, payInCancel, payInFailed,
   PAY_IN_TERMINAL_STATES
 } from '@/api/payIn/transitions'
-import { isP2P } from '@/api/payIn/lib/is'
+import { isP2P, isWithdrawal } from '@/api/payIn/lib/is'
 
 export async function subscribeToBolt11s (args) {
   await subscribeToPayInBolt11s(args)
@@ -116,9 +116,11 @@ function subscribeToHodlInvoice (args) {
 export async function checkPayInBolt11 ({ data: { hash, invoice }, boss, models, lnd }) {
   const inv = invoice ?? await getInvoice({ id: hash, lnd })
 
+  console.log('inv', inv.id, 'is_confirmed', inv.is_confirmed, 'is_held', inv.is_held, 'is_canceled', inv.is_canceled)
+
   // invoice could be created by LND but wasn't inserted into the database yet
   // this is expected and the function will be called again with the updates
-  const payIn = await models.payIn.findUnique({
+  const payIn = await models.payIn.findFirst({
     where: { payInBolt11: { hash } },
     include: {
       payInBolt11: true
@@ -205,6 +207,8 @@ export async function checkPayOutBolt11 ({ data: { hash, withdrawal, invoice }, 
   // TODO: I'm not sure notSent is accurate given that payOutBolt11 is created when the payIn is created
   const wdrwl = withdrawal ?? await getPaymentOrNotSent({ id: hash, lnd, createdAt: payIn.payOutBolt11.createdAt })
 
+  console.log('wdrwl', hash, 'is_confirmed', wdrwl?.is_confirmed, 'is_failed', wdrwl?.is_failed, 'notSent', wdrwl?.notSent)
+
   if (wdrwl?.is_confirmed) {
     if (payIn.payInState === 'FORWARDING') {
       return await payInForwarded({ data: { payInId: payIn.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
@@ -212,11 +216,15 @@ export async function checkPayOutBolt11 ({ data: { hash, withdrawal, invoice }, 
 
     return await payInWithdrawalPaid({ data: { payInId: payIn.id, withdrawal: wdrwl }, models, lnd, boss })
   } else if (wdrwl?.is_failed || wdrwl?.notSent) {
-    if (payIn.payInState === 'FORWARDING') {
-      return await payInFailedForward({ data: { payInId: payIn.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
+    if (isWithdrawal(payIn)) {
+      return await payInWithdrawalFailed({ data: { payInId: payIn.id, withdrawal: wdrwl }, models, lnd, boss })
     }
 
-    return await payInWithdrawalFailed({ data: { payInId: payIn.id, withdrawal: wdrwl }, models, lnd, boss })
+    if (payIn.payInState === 'PENDING_INVOICE_WRAP') {
+      return await payInFailed({ data: { payInId: payIn.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
+    }
+
+    return await payInFailedForward({ data: { payInId: payIn.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
   }
 }
 
@@ -254,8 +262,8 @@ export async function checkPendingPayInBolt11s (args) {
     try {
       await checkPayInBolt11({ ...args, data: { hash: payIn.payInBolt11.hash } })
       await sleep(10)
-    } catch {
-      console.error('error checking invoice', payIn.payInBolt11.hash)
+    } catch (err) {
+      console.error('error checking invoice', payIn.payInBolt11.hash, err)
     }
   }
 }

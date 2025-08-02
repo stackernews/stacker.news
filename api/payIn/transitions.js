@@ -1,12 +1,12 @@
 import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
 import { onFail, onPaid } from '.'
-import { getInvoice, walletLogger } from '../resolvers/wallet'
+import { walletLogger } from '@/wallets/server/logger'
 import { payInTypeModules } from './types'
 import { getPaymentFailureStatus, getPaymentOrNotSent, hodlInvoiceCltvDetails } from '../lnd'
-import { cancelHodlInvoice, parsePaymentRequest, payViaPaymentRequest, settleHodlInvoice } from 'ln-service'
+import { cancelHodlInvoice, parsePaymentRequest, payViaPaymentRequest, settleHodlInvoice, getInvoice } from 'ln-service'
 import { toPositiveNumber, formatSats, msatsToSats, toPositiveBigInt, formatMsats } from '@/lib/format'
-import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/wrap'
+import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/server/wrap'
 import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { notifyWithdrawal } from '@/lib/webPush'
 import { PayInFailureReasonError } from './errors'
@@ -21,6 +21,9 @@ async function transitionPayIn (jobName, data,
   try {
     const include = { payInBolt11: true, payOutBolt11: true, pessimisticEnv: true, payOutCustodialTokens: true, beneficiaries: true }
     const currentPayIn = await models.payIn.findUnique({ where: { id: payInId }, include })
+
+    console.group(`${jobName}: transitioning payIn ${payInId} from ${fromStates} to ${toState}`)
+    console.log('currentPayIn', currentPayIn)
 
     if (PAY_IN_TERMINAL_STATES.includes(currentPayIn.payInState)) {
       console.log('payIn is already in a terminal state, skipping transition')
@@ -55,6 +58,9 @@ async function transitionPayIn (jobName, data,
               data: {
                 payInState: toState,
                 payInStateChangedAt: new Date()
+              },
+              where: {
+                benefactorId: payInId
               }
             }
           }
@@ -67,7 +73,7 @@ async function transitionPayIn (jobName, data,
         return
       }
 
-      const updateFields = await transitionFunc(tx, payIn, lndPayInBolt11, lndPayOutBolt11)
+      const updateFields = await transitionFunc({ tx, payIn, lndPayInBolt11, lndPayOutBolt11 })
 
       if (updateFields) {
         return await tx.payIn.update({
@@ -123,6 +129,8 @@ async function transitionPayIn (jobName, data,
 
     console.error(`${jobName} failed for payIn ${payInId}: ${error}`)
     throw error
+  } finally {
+    console.groupEnd()
   }
 }
 
@@ -131,9 +139,9 @@ export async function payInWithdrawalPaid ({ data, models, ...args }) {
 
   const transitionedPayIn = await transitionPayIn('payInWithdrawalPaid', data, {
     payInId,
-    fromState: 'PENDING_WITHDRAWAL',
+    fromStates: 'PENDING_WITHDRAWAL',
     toState: 'WITHDRAWAL_PAID',
-    transition: async (tx, payIn, lndPayOutBolt11) => {
+    transitionFunc: async ({ tx, payIn, lndPayOutBolt11 }) => {
       if (!lndPayOutBolt11.is_confirmed) {
         throw new Error('withdrawal is not confirmed')
       }
@@ -182,9 +190,9 @@ export async function payInWithdrawalFailed ({ data, models, ...args }) {
   let message
   const transitionedPayIn = await transitionPayIn('payInWithdrawalFailed', data, {
     payInId,
-    fromState: 'PENDING_WITHDRAWAL',
+    fromStates: 'PENDING_WITHDRAWAL',
     toState: 'WITHDRAWAL_FAILED',
-    transition: async (tx, payIn, lndPayOutBolt11) => {
+    transitionFunc: async ({ tx, payIn, lndPayOutBolt11 }) => {
       if (!lndPayOutBolt11?.is_failed) {
         throw new Error('withdrawal is not failed')
       }
@@ -217,9 +225,9 @@ export async function payInPaid ({ data, models, ...args }) {
   const { payInId } = data
   const transitionedPayIn = await transitionPayIn('payInPaid', data, {
     payInId,
-    fromState: ['HELD', 'PENDING', 'FORWARDED'],
+    fromStates: ['HELD', 'PENDING', 'FORWARDED'],
     toState: 'PAID',
-    transition: async (tx, payIn, lndPayInBolt11) => {
+    transitionFunc: async ({ tx, payIn, lndPayInBolt11 }) => {
       if (!lndPayInBolt11.is_confirmed) {
         throw new Error('invoice is not confirmed')
       }
@@ -252,9 +260,9 @@ export async function payInForwarding ({ data, models, boss, lnd, ...args }) {
   const { payInId } = data
   const transitionedPayIn = await transitionPayIn('payInForwarding', data, {
     payInId,
-    fromState: 'PENDING_HELD',
+    fromStates: 'PENDING_HELD',
     toState: 'FORWARDING',
-    transition: async ({ tx, payIn, lndPayInBolt11 }) => {
+    transitionFunc: async ({ tx, payIn, lndPayInBolt11 }) => {
       if (!lndPayInBolt11.is_held) {
         throw new Error('invoice is not held')
       }
@@ -326,9 +334,9 @@ export async function payInForwarded ({ data, models, lnd, boss, ...args }) {
   const { payInId } = data
   const transitionedPayIn = await transitionPayIn('payInForwarded', data, {
     payInId,
-    fromState: 'FORWARDING',
+    fromStates: 'FORWARDING',
     toState: 'FORWARDED',
-    transition: async ({ tx, payIn, lndPayInBolt11, lndPayOutBolt11 }) => {
+    transitionFunc: async ({ tx, payIn, lndPayInBolt11, lndPayOutBolt11 }) => {
       if (!(lndPayInBolt11.is_held || lndPayInBolt11.is_confirmed)) {
         throw new Error('invoice is not held')
       }
@@ -394,9 +402,9 @@ export async function payInFailedForward ({ data, models, lnd, boss, ...args }) 
   let message
   const transitionedPayIn = await transitionPayIn('payInFailedForward', data, {
     payInId,
-    fromState: 'FORWARDING',
+    fromStates: 'FORWARDING',
     toState: 'FAILED_FORWARD',
-    transition: async ({ tx, payIn, lndPayInBolt11, lndPayOutBolt11 }) => {
+    transitionFunc: async ({ tx, payIn, lndPayInBolt11, lndPayOutBolt11 }) => {
       if (!(lndPayInBolt11.is_held || lndPayInBolt11.is_cancelled)) {
         throw new Error('invoice is not held')
       }
@@ -437,9 +445,9 @@ export async function payInFailedForward ({ data, models, lnd, boss, ...args }) 
 export async function payInHeld ({ data: { payInId, ...args }, models, lnd, boss }) {
   return await transitionPayIn('payInHeld', {
     payInId,
-    fromState: 'PENDING_HELD',
+    fromStates: 'PENDING_HELD',
     toState: 'HELD',
-    transition: async ({ tx, payIn, lndPayInBolt11 }) => {
+    transitionFunc: async ({ tx, payIn, lndPayInBolt11 }) => {
       // XXX allow both held and confirmed invoices to do this transition
       // because it's possible for a prior settleHodlInvoice to have succeeded but
       // timeout and rollback the transaction, leaving the invoice in a pending_held state
@@ -486,9 +494,9 @@ export async function payInCancel ({ data, models, lnd, boss, ...args }) {
   const { payInId, payInFailureReason } = data
   const transitionedPayIn = await transitionPayIn('payInCancel', data, {
     payInId,
-    fromState: ['HELD', 'PENDING', 'PENDING_HELD', 'FAILED_FORWARD'],
+    fromStates: ['HELD', 'PENDING', 'PENDING_HELD', 'FAILED_FORWARD'],
     toState: 'CANCELLED',
-    transition: async ({ tx, payIn, lndPayInBolt11 }) => {
+    transitionFunc: async ({ tx, payIn, lndPayInBolt11 }) => {
       if (lndPayInBolt11.is_confirmed) {
         throw new Error('invoice is confirmed already')
       }
@@ -522,9 +530,9 @@ export async function payInFailed ({ data, models, lnd, boss, ...args }) {
   return await transitionPayIn('payInFailed', data, {
     payInId,
     // any of these states can transition to FAILED
-    fromState: ['PENDING', 'PENDING_HELD', 'HELD', 'FAILED_FORWARD', 'CANCELLED', 'PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'],
+    fromStates: ['PENDING', 'PENDING_HELD', 'HELD', 'FAILED_FORWARD', 'CANCELLED', 'PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'],
     toState: 'FAILED',
-    transition: async ({ tx, payIn, lndPayInBolt11 }) => {
+    transitionFunc: async ({ tx, payIn, lndPayInBolt11 }) => {
       let payInBolt11
       if (lndPayInBolt11) {
         if (!lndPayInBolt11.is_canceled) {
@@ -539,6 +547,7 @@ export async function payInFailed ({ data, models, lnd, boss, ...args }) {
 
       await onFail(tx, payIn.id)
 
+      // TODO: in which cases might we not have this passed by can deduce the error from the payIn/lnd state?
       const reason = payInFailureReason ?? payIn.payInFailureReason ?? 'UNKNOWN_FAILURE'
 
       return {

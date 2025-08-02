@@ -3,9 +3,13 @@ import './loadenv'
 import PgBoss from 'pg-boss'
 import createPrisma from '@/lib/create-prisma'
 import {
-  checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
-  checkWithdrawal, finalizeHodlInvoice, subscribeToWallet
-} from './wallet'
+  subscribeToBolt11s,
+  checkPendingPayInBolt11s,
+  checkPendingPayOutBolt11s,
+  checkPayInBolt11,
+  checkPayOutBolt11,
+  finalizeHodlInvoice
+} from './payIn'
 import { repin } from './repin'
 import { trust } from './trust'
 import { earn, earnRefill } from './earn'
@@ -30,7 +34,6 @@ import {
   paidActionFailedForward, paidActionHeld, paidActionFailed,
   paidActionCanceling
 } from './paidAction'
-import { subscribeToBolt11s } from './payIn'
 import {
   payInFailedForward, payInForwarded, payInForwarding,
   payInHeld, payInCancel, payInFailed, payInPaid, payInWithdrawalPaid, payInWithdrawalFailed
@@ -100,15 +103,14 @@ async function work () {
   await boss.start()
 
   if (isServiceEnabled('payments')) {
-    // TODO: most of these need to be migrated to payIn jobs
-    // including any existing jobs or recurring, scheduled jobs
-    await subscribeToWallet(args)
-    await boss.work('checkPendingDeposits', jobWrapper(checkPendingDeposits))
-    await boss.work('checkPendingWithdrawals', jobWrapper(checkPendingWithdrawals))
     await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
     await boss.work('autoWithdraw', jobWrapper(autoWithdraw))
-    await boss.work('checkInvoice', jobWrapper(checkInvoice))
-    await boss.work('checkWithdrawal', jobWrapper(checkWithdrawal))
+    // TODO: most of these need to be migrated to payIn jobs
+    // including any existing jobs or recurring, scheduled jobs
+    await boss.work('checkPendingPayInBolt11s', jobWrapper(checkPendingPayInBolt11s))
+    await boss.work('checkPendingPayOutBolt11s', jobWrapper(checkPendingPayOutBolt11s))
+    await boss.work('checkPayInBolt11', jobWrapper(checkPayInBolt11))
+    await boss.work('checkPayOutBolt11', jobWrapper(checkPayOutBolt11))
     // paidAction jobs
     await boss.work('paidActionForwarding', jobWrapper(paidActionForwarding))
     await boss.work('paidActionForwarded', jobWrapper(paidActionForwarded))

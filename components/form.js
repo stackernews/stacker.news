@@ -329,9 +329,10 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
       console.error(err)
     },
     onCompleted: ({ uploadFees }) => {
+      const { uploadFees: feePerUpload, nUnpaid: uploads } = uploadFees
       merge({
         uploadFees: {
-          term: `+ ${numWithUnits(uploadFees.totalFees, { abbreviate: false })}`,
+          term: `+ ${numWithUnits(feePerUpload, { abbreviate: false })} x ${uploads}`,
           label: 'upload fee',
           op: '+',
           modifier: cost => cost + uploadFees.totalFees,

@@ -1,5 +1,5 @@
 import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
-import { uploadFees } from '../resolvers/upload'
+import { throwOnExpiredUploads, uploadFees } from '@/api/resolvers/upload'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import { satsToMsats } from '@/lib/format'
@@ -60,6 +60,7 @@ export async function perform (args, context) {
   const itemMentions = await getItemMentions(args, context)
   const itemUploads = uploadIds.map(id => ({ uploadId: id }))
 
+  await throwOnExpiredUploads(uploadIds, { tx })
   await tx.upload.updateMany({
     where: { id: { in: uploadIds } },
     data: { paid: true }

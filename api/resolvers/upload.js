@@ -54,7 +54,7 @@ export default {
   }
 }
 
-export function uploadIdsFromText (text, { models }) {
+export function uploadIdsFromText (text) {
   if (!text) return []
   return [...new Set([...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])))]
 }
@@ -67,4 +67,20 @@ export async function uploadFees (s3Keys, { models, me }) {
   const totalFeesMsats = info.nUnpaid * Number(info.uploadFeesMsats)
   const totalFees = msatsToSats(totalFeesMsats)
   return { ...info, uploadFees, totalFees, totalFeesMsats }
+}
+
+export async function throwOnExpiredUploads (uploadIds, { tx }) {
+  if (uploadIds.length === 0) return
+
+  const existingUploads = await tx.upload.findMany({
+    where: { id: { in: uploadIds } },
+    select: { id: true }
+  })
+
+  const existingIds = new Set(existingUploads.map(upload => upload.id))
+  const deletedIds = uploadIds.filter(id => !existingIds.has(id))
+
+  if (deletedIds.length > 0) {
+    throw new Error(`upload(s) ${deletedIds.join(', ')} are expired, consider reuploading.`)
+  }
 }

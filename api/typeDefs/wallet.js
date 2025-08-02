@@ -24,11 +24,9 @@ const typeDefs = gql`
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
     cancelInvoice(hash: String!, hmac: String, userCancel: Boolean): Invoice!
     dropBolt11(hash: String!): Boolean
-    removeWallet(id: ID!): Boolean
-    deleteWalletLogs(protocolId: Int, debug: Boolean): Boolean
-    setWalletPriorities(priorities: [WalletPriorityUpdate!]!): Boolean
     buyCredits(credits: Int!): BuyCreditsPaidAction!
 
+    # upserts
     upsertWalletSendLNbits(
       ${sharedSend},
       url: String!,
@@ -106,13 +104,23 @@ const typeDefs = gql`
       ${sharedSend}
     ): WalletSendWebLN!
 
+    # delete
+    removeWallet(id: ID!): Boolean
     removeWalletProtocol(id: ID!): Boolean
+
+    # crypto
     updateWalletEncryption(keyHash: String!, wallets: [WalletEncryptionUpdate!]!): Boolean
     updateKeyHash(keyHash: String!): Boolean
     resetWallets(newKeyHash: String!): Boolean
     disablePassphraseExport: Boolean
+
+    # settings
     setWalletSettings(settings: WalletSettingsInput!): Boolean
+    setWalletPriorities(priorities: [WalletPriorityUpdate!]!): Boolean
+
+    # logs
     addWalletLog(protocolId: Int, level: String!, message: String!, timestamp: Date!, invoiceId: Int): Boolean
+    deleteWalletLogs(protocolId: Int, debug: Boolean): Boolean
   }
 
   type BuyCreditsResult {

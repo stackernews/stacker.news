@@ -10,7 +10,7 @@ import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/wrap'
 import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { notifyWithdrawal } from '@/lib/webPush'
 import { PayInFailureReasonError } from './errors'
-const PAY_IN_TERMINAL_STATES = ['PAID', 'FAILED']
+export const PAY_IN_TERMINAL_STATES = ['PAID', 'FAILED']
 const FINALIZE_OPTIONS = { retryLimit: 2 ** 31 - 1, retryBackoff: false, retryDelay: 5, priority: 1000 }
 
 async function transitionPayIn (jobName, data,

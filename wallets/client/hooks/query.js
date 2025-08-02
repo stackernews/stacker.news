@@ -4,7 +4,7 @@ import {
   UPSERT_WALLET_RECEIVE_CLN_REST,
   UPSERT_WALLET_RECEIVE_LIGHTNING_ADDRESS,
   UPSERT_WALLET_RECEIVE_LNBITS,
-  UPSERT_WALLET_RECEIVE_LNDGRPC,
+  UPSERT_WALLET_RECEIVE_LND_GRPC,
   UPSERT_WALLET_RECEIVE_NWC,
   UPSERT_WALLET_RECEIVE_PHOENIXD,
   UPSERT_WALLET_SEND_BLINK,
@@ -301,7 +301,7 @@ function getWalletProtocolMutation (protocol) {
     case 'CLN_REST':
       return protocol.send ? null : UPSERT_WALLET_RECEIVE_CLN_REST
     case 'LND_GRPC':
-      return protocol.send ? null : UPSERT_WALLET_RECEIVE_LNDGRPC
+      return protocol.send ? null : UPSERT_WALLET_RECEIVE_LND_GRPC
     case 'LNC':
       return protocol.send ? UPSERT_WALLET_SEND_LNC : null
     case 'WEBLN':

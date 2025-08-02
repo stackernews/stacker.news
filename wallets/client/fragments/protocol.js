@@ -172,7 +172,7 @@ export const UPSERT_WALLET_RECEIVE_CLN_REST = gql`
   }
 `
 
-export const UPSERT_WALLET_RECEIVE_LNDGRPC = gql`
+export const UPSERT_WALLET_RECEIVE_LND_GRPC = gql`
   mutation upsertWalletRecvLNDGRPC(
     ${sharedRecv.variables},
     $socket: String!,

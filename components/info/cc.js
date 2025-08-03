@@ -18,7 +18,7 @@ export default function CCInfo (props) {
         </li>
         <li>some zaps might be smaller than your configured receiving dust limit
           <ul>
-            <li>you can configure your dust limit in your <Link href='/settings'>settings</Link></li>
+            <li>you can configure your dust limit in your <Link href='/wallets/settings'>wallet settings</Link></li>
           </ul>
         </li>
       </ul>

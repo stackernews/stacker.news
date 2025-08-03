@@ -73,7 +73,6 @@ export default function Comments ({
 
   // TODO: mega cleanup after solid decision on design pattern
   const navigator = useLiveCommentsNavigator()
-  const { trackNewComment } = navigator
 
   const { setHasNewComments } = useFavicon()
   // fetch new comments that arrived after the lastCommentAt, and update the item.comments field in cache
@@ -108,11 +107,11 @@ export default function Comments ({
         : null}
       {pins.map(item => (
         <Fragment key={item.id}>
-          <Comment depth={1} item={item} trackNewComment={trackNewComment} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} pin />
+          <Comment depth={1} item={item} navigator={navigator} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} pin />
         </Fragment>
       ))}
       {comments.filter(({ position }) => !position).map(item => (
-        <Comment depth={1} key={item.id} item={item} trackNewComment={trackNewComment} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} />
+        <Comment depth={1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} />
       ))}
       {ncomments > FULL_COMMENTS_THRESHOLD &&
         <MoreFooter

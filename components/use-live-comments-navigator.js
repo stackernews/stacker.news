@@ -7,8 +7,8 @@ import { useRouter } from 'next/router'
 
 // TODO: mega cleanup after solid decision on design pattern
 export function useLiveCommentsNavigator () {
-  const { hasNewComments, setHasNewComments } = useFavicon()
   const router = useRouter()
+  const { hasNewComments, setHasNewComments } = useFavicon()
   const [commentCount, setCommentCount] = useState(0)
   const [currentIndex, setCurrentIndex] = useState(-1)
 
@@ -18,11 +18,35 @@ export function useLiveCommentsNavigator () {
   const trackNewComment = useCallback((commentRef) => {
     if (!commentRef?.current) return
 
+    // track this new comment if it's not visible in the viewport
+    const rect = commentRef.current.getBoundingClientRect()
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth
+
+    const isVisible = rect.top >= 0 &&
+                      rect.left >= 0 &&
+                      rect.bottom <= viewportHeight &&
+                      rect.right <= viewportWidth
+
+    if (isVisible) return
+
     // dedupe and store the ref
     if (!commentRefs.current.some(ref => ref.current === commentRef.current)) {
       commentRefs.current.push(commentRef)
     }
 
+    setCommentCount(commentRefs.current.length)
+  }, [])
+
+  // remove a comment ref from the list
+  const unTrackNewComment = useCallback((commentRef) => {
+    // no need to untrack if there are no new comments
+    if (!commentRef?.current || commentRefs.current.length === 0) return
+
+    // remove the ref from the list
+    commentRefs.current = commentRefs.current.filter(ref => ref.current !== commentRef.current)
+
+    // update the comment count
     setCommentCount(commentRefs.current.length)
   }, [])
 
@@ -96,6 +120,7 @@ export function useLiveCommentsNavigator () {
 
   return {
     trackNewComment,
+    unTrackNewComment,
     scrollToComment,
     clearCommentRefs,
     currentIndex,

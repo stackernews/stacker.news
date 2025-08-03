@@ -3,7 +3,7 @@ import styles from './comment.module.css'
 import Text, { SearchText } from './text'
 import Link from 'next/link'
 import Reply from './reply'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import UpVote from './upvote'
 import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
@@ -99,7 +99,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel, rootLastCommentAt,
   rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry,
-  trackNewComment
+  navigator
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
@@ -125,6 +125,8 @@ export default function Comment ({
     // don't try to unset the outline if the comment is not outlined or we already unset the outline
     if (hasOutline && !hasOutlineUnset) {
       ref.current.classList.add('outline-new-comment-unset')
+      // untrack the new comment
+      navigator.unTrackNewComment(ref)
       // reset the new comments favicon
       if (hasNewComments) {
         setHasNewComments(false)
@@ -157,25 +159,6 @@ export default function Comment ({
     }
   }, [item.id, cache, router.query.commentId])
 
-  // TODO: clean everything up sox lol
-  // TODO: hacky way to track new comments
-  // TODO: also, we have to use useVisibility somehow since we removed FloatingComment
-  const track = useCallback(() => {
-    // track this new comment if it's not visible in the viewport
-    const rect = ref.current.getBoundingClientRect()
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight
-    const viewportWidth = window.innerWidth || document.documentElement.clientWidth
-
-    const isVisible = rect.top >= 0 &&
-                      rect.left >= 0 &&
-                      rect.bottom <= viewportHeight &&
-                      rect.right <= viewportWidth
-
-    if (!isVisible) {
-      trackNewComment(ref)
-    }
-  }, [trackNewComment])
-
   useEffect(() => {
     if (me?.id === item.user?.id) return
     const itemCreatedAt = new Date(item.createdAt).getTime()
@@ -185,7 +168,7 @@ export default function Comment ({
 
     // newly injected comments (item.injected) have to use a different class to outline every new comment
     if (item.injected) {
-      // ref.current.classList.add('outline-new-injected-comment')
+      ref.current.classList.add('outline-new-injected-comment')
       // remove the injected comment class after the animation ends
       ref.current.addEventListener('animationend', () => {
         ref.current.classList.remove(styles.injectedComment)
@@ -201,7 +184,7 @@ export default function Comment ({
       setHasNewComments(true)
     }
 
-    track()
+    navigator.trackNewComment(ref)
   }, [item.id, rootLastCommentAt, me?.id])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
@@ -324,7 +307,7 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} trackNewComment={trackNewComment} rootLastCommentAt={rootLastCommentAt} />
+                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={rootLastCommentAt} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && (
                         <div className={`d-block ${styles.comment} pb-2 ps-3`}>

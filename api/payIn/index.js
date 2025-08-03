@@ -9,7 +9,6 @@ import { isPessimistic, isWithdrawal } from './lib/is'
 import { PAY_IN_INCLUDE, payInCreate } from './lib/payInCreate'
 import { payOutBolt11Replacement } from './lib/payOutBolt11'
 import { payInClone } from './lib/payInPrisma'
-import { PayInFailureReasonError } from './errors'
 import { createHmac } from '../resolvers/wallet'
 
 export default async function pay (payInType, payInArgs, { models, me }) {
@@ -129,18 +128,12 @@ async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
       throw new Error('Invalid payIn begin state')
     }
   } catch (e) {
-    let payInFailureReason = 'EXECUTION_FAILED'
-    if (e instanceof PayInFailureReasonError) {
-      payInFailureReason = e.payInFailureReason
-    }
     models.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
         VALUES (
           'payInFailed',
           jsonb_build_object(
             'payInId', ${payIn.id}::INTEGER,
-            'payInFailureReason', ${payInFailureReason},
-            'payInBolt11', ${payIn.payInBolt11 ?? null}
-          ),
+            'payInFailureReason', ${e.payInFailureReason ?? 'EXECUTION_FAILED'}),
           now(), 1000)`.catch(console.error)
     throw e
   }

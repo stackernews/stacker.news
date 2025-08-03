@@ -54,17 +54,36 @@ export default {
   }
 }
 
-export function uploadIdsFromText (text, { models }) {
+export function uploadIdsFromText (text) {
   if (!text) return []
   return [...new Set([...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])))]
 }
 
 export async function uploadFees (s3Keys, { models, me }) {
-  // returns info object in this format:
-  // { bytes24h: int, bytesUnpaid: int, nUnpaid: int, uploadFeesMsats: BigInt }
-  const [info] = await models.$queryRawUnsafe('SELECT * FROM upload_fees($1::INTEGER, $2::INTEGER[])', me ? me.id : USER_ID.anon, s3Keys)
-  const uploadFees = msatsToSats(info.uploadFeesMsats)
-  const totalFeesMsats = info.nUnpaid * Number(info.uploadFeesMsats)
+  const [{
+    bytes24h,
+    bytesUnpaid,
+    nUnpaid,
+    uploadFeesMsats
+  }] = await models.$queryRaw`SELECT * FROM upload_fees(${me?.id ?? USER_ID.anon}::INTEGER, ${s3Keys}::INTEGER[])`
+  const uploadFees = msatsToSats(uploadFeesMsats)
+  const totalFeesMsats = BigInt(nUnpaid) * uploadFeesMsats
   const totalFees = msatsToSats(totalFeesMsats)
-  return { ...info, uploadFees, totalFees, totalFeesMsats }
+  return { bytes24h, bytesUnpaid, nUnpaid, uploadFees, totalFees, totalFeesMsats }
+}
+
+export async function throwOnExpiredUploads (uploadIds, { tx }) {
+  if (uploadIds.length === 0) return
+
+  const existingUploads = await tx.upload.findMany({
+    where: { id: { in: uploadIds } },
+    select: { id: true }
+  })
+
+  const existingIds = new Set(existingUploads.map(upload => upload.id))
+  const deletedIds = uploadIds.filter(id => !existingIds.has(id))
+
+  if (deletedIds.length > 0) {
+    throw new Error(`upload(s) ${deletedIds.join(', ')} are expired, consider reuploading.`)
+  }
 }

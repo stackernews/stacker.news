@@ -1,7 +1,7 @@
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { validateSchema } from '@/lib/validate'
 import protocols from '@/wallets/lib/protocols'
-import { protocolRelationName, isEncryptedField, protocolMutationName, protocolServerSchema } from '@/wallets/lib/util'
+import { protocolRelationName, isEncryptedField, protocolMutationName, protocolServerSchema, protocolTestMutationName } from '@/wallets/lib/util'
 import { mapWalletResolveTypes } from '@/wallets/server/resolvers/util'
 import { protocolTestCreateInvoice } from '@/wallets/server/protocols'
 import { timeoutSignal, withTimeout } from '@/lib/time'
@@ -43,16 +43,59 @@ export const resolvers = {
   },
   Mutation: {
     ...Object.fromEntries(
-      protocols.map(protocol => {
+      protocols.reduce((acc, protocol) => {
         return [
-          protocolMutationName(protocol),
-          upsertWalletProtocol(protocol)
+          ...acc,
+          [
+            protocolMutationName(protocol),
+            upsertWalletProtocol(protocol)
+          ],
+          ...(protocol.send
+            ? []
+            : [
+                [
+                  protocolTestMutationName(protocol),
+                  testWalletProtocol(protocol)
+                ]
+              ])
         ]
-      })
+      }, [])
     ),
     addWalletLog,
     removeWalletProtocol,
     deleteWalletLogs
+  }
+}
+
+function testWalletProtocol (protocol) {
+  return async (parent, args, { me, models, tx }) => {
+    if (!me) {
+      throw new GqlAuthenticationError()
+    }
+
+    if (protocol.send) {
+      throw new GqlInputError('can only test receive protocols')
+    }
+
+    let invoice
+    try {
+      invoice = await withTimeout(
+        protocolTestCreateInvoice(
+          protocol,
+          args,
+          { signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS) }
+        ),
+        WALLET_CREATE_INVOICE_TIMEOUT_MS
+      )
+    } catch (e) {
+      throw new GqlInputError('failed to create invoice: ' + e.message)
+    }
+
+    if (!invoice || !invoice.startsWith('lnbc')) {
+      throw new GqlInputError('wallet returned invalid invoice')
+    }
+
+    return true
   }
 }
 
@@ -61,7 +104,6 @@ export function upsertWalletProtocol (protocol) {
     walletId,
     templateName,
     enabled,
-    networkTests = true,
     ignoreKeyHash = false,
     ...args
   }, { me, models, tx }) => {
@@ -82,22 +124,6 @@ export function upsertWalletProtocol (protocol) {
       // TODO(wallet-v2): on length errors, error message includes path twice like this:
       //   "apiKey.iv: apiKey.iv must be exactly 32 characters"
       throw new GqlInputError(e.message)
-    }
-
-    if (!protocol.send && networkTests) {
-      let invoice
-      try {
-        invoice = await withTimeout(
-          protocolTestCreateInvoice(protocol, args, { signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS) }),
-          WALLET_CREATE_INVOICE_TIMEOUT_MS
-        )
-      } catch (e) {
-        throw new GqlInputError('failed to create test invoice: ' + e.message)
-      }
-
-      if (!invoice || !invoice.startsWith('lnbc')) {
-        throw new GqlInputError('wallet returned invalid invoice')
-      }
     }
 
     const relation = protocolRelationName(protocol)

@@ -17,7 +17,7 @@ export async function getCost ({ id, boost = 0, uploadIds, bio }, { me, models }
   // or more boost
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
-  const cost = BigInt(totalFeesMsats) + satsToMsats(boost - old.boost)
+  const cost = totalFeesMsats + satsToMsats(boost - old.boost)
 
   if (cost > 0 && old.invoiceActionState && old.invoiceActionState !== 'PAID') {
     throw new Error('creation invoice not paid')

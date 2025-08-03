@@ -60,13 +60,16 @@ export function uploadIdsFromText (text) {
 }
 
 export async function uploadFees (s3Keys, { models, me }) {
-  // returns info object in this format:
-  // { bytes24h: int, bytesUnpaid: int, nUnpaid: int, uploadFeesMsats: BigInt }
-  const [info] = await models.$queryRawUnsafe('SELECT * FROM upload_fees($1::INTEGER, $2::INTEGER[])', me ? me.id : USER_ID.anon, s3Keys)
-  const uploadFees = msatsToSats(info.uploadFeesMsats)
-  const totalFeesMsats = info.nUnpaid * Number(info.uploadFeesMsats)
+  const [{
+    bytes24h,
+    bytesUnpaid,
+    nUnpaid,
+    uploadFeesMsats
+  }] = await models.$queryRaw`SELECT * FROM upload_fees(${me?.id ?? USER_ID.anon}::INTEGER, ${s3Keys}::INTEGER[])`
+  const uploadFees = msatsToSats(uploadFeesMsats)
+  const totalFeesMsats = BigInt(nUnpaid) * uploadFeesMsats
   const totalFees = msatsToSats(totalFeesMsats)
-  return { ...info, uploadFees, totalFees, totalFeesMsats }
+  return { bytes24h, bytesUnpaid, nUnpaid, uploadFees, totalFees, totalFeesMsats }
 }
 
 export async function throwOnExpiredUploads (uploadIds, { tx }) {

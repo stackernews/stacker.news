@@ -134,7 +134,7 @@ async function updateWalletEncryption (parent, { keyHash, wallets }, { me, model
     for (const { id: walletId, protocols } of wallets) {
       for (const { name, send, config } of protocols) {
         const mutation = upsertWalletProtocol({ name, send })
-        await mutation(parent, { walletId, networkTests: false, ignoreKeyHash: true, ...config }, { me, models: tx, tx })
+        await mutation(parent, { walletId, ignoreKeyHash: true, ...config }, { me, models: tx, tx })
       }
     }
 

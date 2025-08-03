@@ -2,7 +2,7 @@ import { USER_ID } from '@/lib/constants'
 import { deleteReminders, getDeleteAt, getRemindAt } from '@/lib/item'
 import { parseInternalLinks } from '@/lib/url'
 
-export async function getMentions (tx, { text }, { me }) {
+export async function getMentions (tx, { text, userId }) {
   const mentionPattern = /\B@[\w_]+/gi
   const names = text.match(mentionPattern)?.map(m => m.slice(1))
   if (names?.length > 0) {
@@ -12,7 +12,7 @@ export async function getMentions (tx, { text }, { me }) {
           in: names
         },
         id: {
-          not: me?.id || USER_ID.anon
+          not: userId || USER_ID.anon
         }
       }
     })
@@ -21,7 +21,7 @@ export async function getMentions (tx, { text }, { me }) {
   return []
 }
 
-export const getItemMentions = async (tx, { text }, { me }) => {
+export const getItemMentions = async (tx, { text, userId }) => {
   const linkPattern = new RegExp(`${process.env.NEXT_PUBLIC_URL}/items/\\d+[a-zA-Z0-9/?=]*`, 'gi')
   const refs = text.match(linkPattern)?.map(m => {
     try {
@@ -36,7 +36,7 @@ export const getItemMentions = async (tx, { text }, { me }) => {
     const referee = await tx.item.findMany({
       where: {
         id: { in: refs },
-        userId: { not: me?.id || USER_ID.anon }
+        userId: { not: userId || USER_ID.anon }
       }
     })
     return referee.map(r => ({ refereeId: r.id }))
@@ -45,9 +45,8 @@ export const getItemMentions = async (tx, { text }, { me }) => {
   return []
 }
 
-export async function performBotBehavior (tx, { text, id }, { me }) {
+export async function performBotBehavior (tx, { text, id, userId = USER_ID.anon }) {
   // delete any existing deleteItem or reminder jobs for this item
-  const userId = me?.id || USER_ID.anon
   id = Number(id)
   await tx.$queryRaw`
     DELETE FROM pgboss.job

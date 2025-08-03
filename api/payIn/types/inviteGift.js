@@ -34,9 +34,11 @@ export async function getInitial (models, { id, userId }, { me }) {
   }
 }
 
-export async function onBegin (tx, payInId, { id, userId }, { me }) {
+export async function onBegin (tx, payInId, { id, userId }) {
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
+
   const invite = await tx.invite.findUnique({
-    where: { id, userId: me.id, revoked: false }
+    where: { id, userId: payIn.userId, revoked: false }
   })
 
   if (invite.limit && invite.giftedCount >= invite.limit) {
@@ -55,12 +57,12 @@ export async function onBegin (tx, payInId, { id, userId }, { me }) {
     },
     data: {
       inviteId: id,
-      referrerId: me.id
+      referrerId: payIn.userId
     }
   })
 
   await tx.invite.update({
-    where: { id, userId: me.id, revoked: false, ...(invite.limit ? { giftedCount: { lt: invite.limit } } : {}) },
+    where: { id, userId: payIn.userId, revoked: false, ...(invite.limit ? { giftedCount: { lt: invite.limit } } : {}) },
     data: {
       giftedCount: {
         increment: 1

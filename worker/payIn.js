@@ -6,7 +6,7 @@ import { getPaymentOrNotSent } from '@/api/lnd'
 import { sleep } from '@/lib/time'
 import retry from 'async-retry'
 import {
-  payInWithdrawalPaid, payInWithdrawalFailed, payInPaid, payInForwarding, payInForwarded, payInFailedForward, payInHeld, payInCancel, payInFailed,
+  payInWithdrawalPaid, payInWithdrawalFailed, payInPaid, payInForwarding, payInForwarded, payInFailedForward, payInHeld, payInFailed,
   PAY_IN_TERMINAL_STATES
 } from '@/api/payIn/transitions'
 import { isP2P, isWithdrawal } from '@/api/payIn/lib/is'
@@ -226,26 +226,6 @@ export async function checkPayOutBolt11 ({ data: { hash, withdrawal, invoice }, 
 
     return await payInFailedForward({ data: { payInId: payIn.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
   }
-}
-
-// The callback subscriptions above will NOT get called for already held invoices
-// So we manually cancel the HODL invoice here if it wasn't settled
-export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, boss, ...args }) {
-  const inv = await getInvoice({ id: hash, lnd })
-  if (inv.is_confirmed) {
-    return
-  }
-
-  const payIn = await models.payIn.findUnique({ where: { payInBolt11: { hash } } })
-  if (!payIn) {
-    console.log('invoice not found in database', hash)
-    return
-  }
-
-  await payInCancel({ data: { payInId: payIn.id, invoice: inv }, models, lnd, boss })
-
-  // sync LND invoice status with invoice status in database
-  await checkPayInBolt11({ data: { hash }, models, lnd, boss })
 }
 
 export async function checkPendingPayInBolt11s (args) {

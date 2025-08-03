@@ -36,24 +36,20 @@ export async function getInitial (models, { msats, description, descriptionHash,
 }
 
 // TODO: all of this needs to be updated elsewhere
-export async function onBegin (tx, payInId, { comment, lud18Data, noteStr }, { me }) {
+export async function onBegin (tx, payInId, { comment, lud18Data, noteStr }) {
+  const data = {
+    ...(lud18Data && { lud18Data: { create: lud18Data } }),
+    ...(noteStr && { nostrNote: { create: { note: noteStr } } }),
+    ...(comment && { comment: { create: { comment } } })
+  }
+
+  if (Object.keys(data).length === 0) {
+    return
+  }
+
   await tx.payInBolt11.update({
     where: { payInId },
-    data: {
-      lud18Data: {
-        create: lud18Data
-      },
-      nostrNote: {
-        create: {
-          note: noteStr
-        }
-      },
-      comment: {
-        create: {
-          comment
-        }
-      }
-    }
+    data
   })
 }
 

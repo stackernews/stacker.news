@@ -89,8 +89,9 @@ export async function getInitial (models, args, { me }) {
 }
 
 // TODO: uploads should just have an itemId
-export async function onBegin (tx, payInId, args, { me }) {
+export async function onBegin (tx, payInId, args) {
   const { invoiceId, parentId, uploadIds = [], forwardUsers = [], options: pollOptions = [], boost = 0, ...data } = args
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
 
   const deletedUploads = []
   for (const uploadId of uploadIds) {
@@ -102,15 +103,15 @@ export async function onBegin (tx, payInId, args, { me }) {
     throw new Error(`upload(s) ${deletedUploads.join(', ')} are expired, consider reuploading.`)
   }
 
-  const mentions = await getMentions(tx, args, { me })
-  const itemMentions = await getItemMentions(tx, args, { me })
+  const mentions = await getMentions(tx, { ...args, userId: payIn.userId })
+  const itemMentions = await getItemMentions(tx, { ...args, userId: payIn.userId })
 
   // start with median vote
-  if (me !== USER_ID.anon) {
+  if (payIn.userId !== USER_ID.anon) {
     const [row] = await tx.$queryRaw`SELECT
       COALESCE(percentile_cont(0.5) WITHIN GROUP(
         ORDER BY "weightedVotes" - "weightedDownVotes"), 0)
-      AS median FROM "Item" WHERE "userId" = ${me.id}::INTEGER`
+      AS median FROM "Item" WHERE "userId" = ${payIn.userId}::INTEGER`
     if (row?.median < 0) {
       data.weightedDownVotes = -row.median
     }
@@ -156,7 +157,7 @@ export async function onBegin (tx, payInId, args, { me }) {
   }
 
   let item
-  if (data.bio && me) {
+  if (data.bio && payIn.userId !== USER_ID.anon) {
     item = (await tx.user.update({
       where: { id: data.userId },
       include: { bio: true },
@@ -178,11 +179,11 @@ export async function onBegin (tx, payInId, args, { me }) {
     }
   }
 
-  await performBotBehavior(tx, item, { me })
+  await performBotBehavior(tx, { ...item, userId: payIn.userId })
 
   const { beneficiaries } = await tx.payIn.findUnique({ where: { id: payInId }, include: { beneficiaries: true } })
   for (const beneficiary of beneficiaries) {
-    await BOOST.onBegin(tx, beneficiary.id, { sats: boost, id: item.id }, { me })
+    await BOOST.onBegin(tx, beneficiary.id, { sats: boost, id: item.id })
   }
 }
 

@@ -53,7 +53,7 @@ async function begin (models, payInInitial, payInArgs, { me }) {
     }
 
     // if it's optimistic or already paid, we perform the action
-    await payInModule.onBegin?.(tx, payIn.id, payInArgs, { models, me })
+    await payInModule.onBegin?.(tx, payIn.id, payInArgs)
 
     // if it's already paid, we run onPaid and do payOuts in the same transaction
     if (payIn.payInState === 'PAID') {

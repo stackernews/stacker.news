@@ -7,8 +7,7 @@ import {
   checkPendingPayInBolt11s,
   checkPendingPayOutBolt11s,
   checkPayInBolt11,
-  checkPayOutBolt11,
-  finalizeHodlInvoice
+  checkPayOutBolt11
 } from './payIn'
 import { repin } from './repin'
 import { trust } from './trust'
@@ -125,7 +124,6 @@ async function work () {
 
     // payIn jobs
     await subscribeToBolt11s(args)
-    await boss.work('finalizeHodlInvoice', jobWrapper(finalizeHodlInvoice))
     await boss.work('payInForwarding', jobWrapper(payInForwarding))
     await boss.work('payInForwarded', jobWrapper(payInForwarded))
     await boss.work('payInFailedForward', jobWrapper(payInFailedForward))

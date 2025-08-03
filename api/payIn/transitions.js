@@ -2,7 +2,7 @@ import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
 import { onFail, onPaid } from '.'
 import { walletLogger } from '@/wallets/server/logger'
-import { payInTypeModules } from './types'
+import payInTypeModules from './types'
 import { getPaymentFailureStatus, getPaymentOrNotSent, hodlInvoiceCltvDetails } from '../lnd'
 import { cancelHodlInvoice, parsePaymentRequest, payViaPaymentRequest, settleHodlInvoice, getInvoice } from 'ln-service'
 import { toPositiveNumber, formatSats, msatsToSats, toPositiveBigInt, formatMsats } from '@/lib/format'
@@ -309,23 +309,29 @@ export async function payInForwarding ({ data, models, boss, lnd, ...args }) {
   // only pay if we successfully transitioned which can only happen once
   // we can't do this inside the transaction because it isn't necessarily idempotent
   if (transitionedPayIn?.payInBolt11 && transitionedPayIn.payOutBolt11) {
-    const { bolt11, expiryHeight, acceptHeight } = transitionedPayIn.payInBolt11
-    const { mtokens } = transitionedPayIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
+    const { expiryHeight, acceptHeight } = transitionedPayIn.payInBolt11
+    const { mtokens: mtokensFee } = transitionedPayIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
 
     // give ourselves at least MIN_SETTLEMENT_CLTV_DELTA blocks to settle the incoming payment
     const maxTimeoutHeight = toPositiveNumber(toPositiveNumber(expiryHeight) - MIN_SETTLEMENT_CLTV_DELTA)
 
-    console.log('forwarding with max fee', mtokens, 'max_timeout_height', maxTimeoutHeight,
+    console.log('forwarding with max fee', mtokensFee, 'max_timeout_height', maxTimeoutHeight,
       'accept_height', acceptHeight, 'expiry_height', expiryHeight)
 
     payViaPaymentRequest({
       lnd,
-      request: bolt11,
-      max_fee_mtokens: String(mtokens),
+      request: transitionedPayIn.payOutBolt11.bolt11,
+      max_fee_mtokens: String(mtokensFee),
       pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
       confidence: LND_PATHFINDING_TIME_PREF_PPM,
       max_timeout_height: maxTimeoutHeight
-    }).catch(console.error)
+    }).catch(
+      e => {
+        console.error('failed to forward', e)
+        boss.send('payInCancel', { payInId, payInFailureReason: 'INVOICE_FORWARDING_FAILED' }, FINALIZE_OPTIONS)
+          .catch(e => console.error('failed to cancel payIn', e))
+      }
+    )
   }
 }
 
@@ -363,7 +369,6 @@ export async function payInForwarded ({ data, models, lnd, boss, ...args }) {
         payOutBolt11: {
           update: {
             status: 'CONFIRMED',
-            msatsFeePaid: BigInt(payment.fee_mtokens),
             preimage: payment.secret
           }
         },
@@ -384,11 +389,11 @@ export async function payInForwarded ({ data, models, lnd, boss, ...args }) {
   }, { models, lnd, boss, ...args })
 
   if (transitionedPayIn) {
-    const withdrawal = transitionedPayIn.payOutBolt11
+    const { msats, protocolId, userId } = transitionedPayIn.payOutBolt11
 
-    const logger = walletLogger({ wallet: transitionedPayIn.payOutBolt11.wallet, models })
+    const logger = walletLogger({ protocolId, userId, models })
     logger.ok(
-      `↙ payment received: ${formatSats(msatsToSats(Number(withdrawal.msatsPaid)))}`, {
+      `↙ payment received: ${formatSats(msatsToSats(Number(msats)))}`, {
         payInId: transitionedPayIn.id
       })
   }

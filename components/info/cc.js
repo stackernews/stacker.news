@@ -13,7 +13,7 @@ export default function CCInfo (props) {
           <ul>
             <li>if the zap is small and you don't have a direct channel to SN, the routing fee may exceed SN's 3% max fee</li>
             <li>check your <Link href='/wallets/logs'>wallet logs</Link> for clues</li>
-            <li>if you have questions about the errors in your wallet logs, mention the error in the <a href='/daily'>saloon</a></li>
+            <li>if you have questions about the errors in your wallet logs, mention the error in the <Link href='/api/daily'>saloon</Link></li>
           </ul>
         </li>
         <li>some zaps might be smaller than your configured receiving dust limit

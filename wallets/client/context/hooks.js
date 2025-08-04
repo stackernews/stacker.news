@@ -28,9 +28,6 @@ export function useServerWallets () {
   }, [query])
 }
 
-export function useKeyCheck () {
-}
-
 export function useAutomatedRetries () {
   const waitForWalletPayment = useWalletPayment()
   const invoiceHelper = useInvoice()

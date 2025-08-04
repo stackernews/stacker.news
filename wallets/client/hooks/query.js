@@ -89,13 +89,19 @@ function protocolCheck (wallet) {
     }
   })
 
-  const sendEnabled = protocols.some(p => p.send && p.enabled)
-  const receiveEnabled = protocols.some(p => !p.send && p.enabled)
+  const sendProtocols = protocols.filter(p => p.send)
+  const recvProtocols = protocols.filter(p => !p.send)
+  const sendEnabled = sendProtocols.some(p => p.enabled)
+  const receiveEnabled = recvProtocols.some(p => p.enabled)
 
   return {
     ...wallet,
-    send: !sendEnabled ? WalletStatus.DISABLED : wallet.send,
-    receive: !receiveEnabled ? WalletStatus.DISABLED : wallet.receive,
+    send: !sendEnabled
+      ? (sendProtocols.length > 0 ? WalletStatus.DISABLED : WalletStatus.UNCONFIGURED)
+      : wallet.send,
+    receive: !receiveEnabled
+      ? (recvProtocols.length > 0 ? WalletStatus.DISABLED : WalletStatus.UNCONFIGURED)
+      : wallet.receive,
     protocols
   }
 }

@@ -66,6 +66,7 @@ function statusToClass (status) {
     case WalletStatus.OK: return styles.success
     case WalletStatus.ERROR: return styles.error
     case WalletStatus.WARNING: return styles.warning
-    case WalletStatus.DISABLED: return styles.disabled
+    case WalletStatus.DISABLED:
+    case WalletStatus.UNCONFIGURED: return styles.disabled
   }
 }

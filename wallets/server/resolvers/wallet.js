@@ -107,7 +107,12 @@ function walletStatus (wallet, type) {
   const protocols = wallet.protocols.filter(protocol => type === 'send' ? protocol.send : !protocol.send)
 
   const disabled = protocols.every(protocol => !protocol.enabled)
-  if (disabled) return 'DISABLED'
+  if (disabled) {
+    // this check is kind of redundant because we check the status
+    // on the client again because some protocols have device requirements
+    // example: WebLN requires browser extensions
+    return protocols.length > 0 ? 'DISABLED' : 'UNCONFIGURED'
+  }
 
   const ok = protocols.every(protocol => protocol.status === 'OK')
   if (ok) return 'OK'

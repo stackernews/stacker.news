@@ -40,7 +40,8 @@ export const WalletStatus = {
   OK: 'OK',
   ERROR: 'ERROR',
   WARNING: 'WARNING',
-  DISABLED: 'DISABLED'
+  DISABLED: 'DISABLED',
+  UNCONFIGURED: 'UNCONFIGURED'
 }
 
 export function useWalletStatus (wallet) {

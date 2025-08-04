@@ -172,6 +172,7 @@ const typeDefs = gql`
     WARNING
     ERROR
     DISABLED
+    UNCONFIGURED
   }
 
   type Wallet {

@@ -19,7 +19,7 @@ function prepareComments (data, client, newComment) {
   }
 
   // +1 because the new comment is also a comment
-  const totalNComments = (newComment.ncomments || 0) + 1
+  const totalNComments = newComment.ncomments + 1
 
   const itemHierarchy = data.path.split('.')
   // update all ancestors comment count, but not the item itself
@@ -48,7 +48,7 @@ function prepareComments (data, client, newComment) {
   return payload
 }
 
-function injectNewComments (client, rootId, newComments, sort) {
+function cacheNewComments (client, rootId, newComments, sort) {
   for (const newComment of newComments) {
     const { parentId } = newComment
     const topLevel = Number(parentId) === Number(rootId)
@@ -77,8 +77,8 @@ function injectNewComments (client, rootId, newComments, sort) {
   }
 }
 
-// useLiveComments fetches new comments under an item (rootId), that arrives after the latest comment createdAt
-// and inserts them into the newComment client field of their parent comment/post.
+// useLiveComments fetches new comments under an item (rootId),
+// that are newer than the latest comment createdAt (after), and caches them in the cache.
 export default function useLiveComments (rootId, after, sort) {
   const latestKey = `liveCommentsLatest:${rootId}`
   const client = useApolloClient()
@@ -109,17 +109,15 @@ export default function useLiveComments (rootId, after, sort) {
         nextFetchPolicy: 'cache-and-network'
       })
 
-  const updateCache = useCallback(() => {
-    if (data?.newComments?.comments?.length) {
-      injectNewComments(client, rootId, data.newComments.comments, sort)
-    }
+  const injectNewComments = useCallback(() => {
+    cacheNewComments(client, rootId, data?.newComments?.comments, sort)
   }, [client, rootId, sort, data])
 
   useEffect(() => {
     if (!data?.newComments?.comments?.length) return
 
     // directly inject new comments into the cache, preserving scroll position
-    preserveScroll(updateCache)
+    preserveScroll(injectNewComments)
 
     // update latest timestamp to the latest comment created at
     // save it to session storage, to persist between client-side navigations

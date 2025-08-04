@@ -165,7 +165,7 @@ export default function Comment ({
 
     // newly injected comments (item.injected) have to use a different class to outline every new comment
     if (item.injected) {
-      // ref.current.classList.add('outline-new-injected-comment')
+      ref.current.classList.add('outline-new-injected-comment')
       // remove the injected comment class after the animation ends
       ref.current.addEventListener('animationend', () => {
         ref.current.classList.remove(styles.injectedComment)

@@ -158,19 +158,23 @@ export default function Comment ({
 
   useEffect(() => {
     if (me?.id === item.user?.id) return
+
     const itemCreatedAt = new Date(item.createdAt).getTime()
+    // it's a new comment if it was created after the last comment was viewed
+    // or, in the case of live comments, after the last comment was created
     const isNewComment = (router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||
                         (rootLastCommentAt && itemCreatedAt > new Date(rootLastCommentAt).getTime())
     if (!isNewComment) return
 
-    // newly injected comments (item.injected) have to use a different class to outline every new comment
     if (item.injected) {
+      // newly injected comments (item.injected) have to use a different class to outline every new comment
       ref.current.classList.add('outline-new-injected-comment')
-      // remove the injected comment class after the animation ends
+
+      // wait for the injection animation to end before removing its class
       ref.current.addEventListener('animationend', () => {
         ref.current.classList.remove(styles.injectedComment)
-      }, { once: true }) // remove the listener once the animation ends
-      // animated live comment injection
+      }, { once: true })
+      // animate the live comment injection
       ref.current.classList.add(styles.injectedComment)
     } else {
       ref.current.classList.add('outline-new-comment')

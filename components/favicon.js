@@ -18,7 +18,7 @@ const getFavicon = (hasNewNotes, hasNewComments) => {
 
 export const FaviconContext = createContext()
 
-export function FaviconProvider ({ children }) {
+export default function FaviconProvider ({ children }) {
   const hasNewNotes = useHasNewNotes()
   const [hasNewComments, setHasNewComments] = useState(false)
 

@@ -160,36 +160,11 @@
     }
 }
 
-.floatingComments {
-    position: fixed;
-    top: 72px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1050;
-    animation: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
-    0% {
-        transform: translateX(-50%) translateY(-100px);
-    }
-    100% {
-        transform: translateX(-50%) translateY(0);
-    }
-}
-
 .injectedComment {
     animation: fadeIn 0.5s ease-out;
 }
 
 @keyframes fadeIn {
-  0% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 0.7;
-  }
-  100% {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

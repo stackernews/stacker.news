@@ -9,7 +9,7 @@ import styles from '@/styles/wallet.module.css'
 import navStyles from '@/styles/nav.module.css'
 import { Checkbox, Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
-import { useWalletProtocolUpsert, useWalletProtocolRemove, useWalletQuery, TemplateLogsProvider } from '@/wallets/client/hooks'
+import { useWalletProtocolUpsert, useWalletProtocolRemove, TemplateLogsProvider } from '@/wallets/client/hooks'
 import { useToast } from '@/components/toast'
 import Text from '@/components/text'
 import Info from '@/components/info'
@@ -17,10 +17,9 @@ import classNames from 'classnames'
 
 const WalletFormsContext = createContext()
 
-export function WalletForms ({ id, name }) {
-  // TODO(wallet-v2): handle loading and error states
-  const { data, refetch } = useWalletQuery({ name, id })
-  const wallet = data?.wallet
+export function WalletForms ({ wallet }) {
+  const router = useRouter()
+  const refetch = useCallback(() => router.refresh(), [router])
 
   return (
     <WalletLayout>

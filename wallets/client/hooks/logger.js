@@ -118,7 +118,7 @@ export function useWalletLogs (protocol, debug) {
     }, FAST_POLL_INTERVAL)
 
     return () => clearInterval(interval)
-  }, [fetchLogs, called, noFetch, debug])
+  }, [fetchLogs, protocolId, called, noFetch, debug])
 
   const loadMore = useCallback(async () => {
     const { data } = await fetchLogs({ variables: { protocolId, cursor, debug } })

@@ -149,6 +149,7 @@ export default gql`
     ncomments: Int!
     nDirectComments: Int!
     comments(sort: String, cursor: String): Comments!
+    injected: Boolean!
     path: String
     position: Int
     prior: Int

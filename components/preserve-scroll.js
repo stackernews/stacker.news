@@ -30,6 +30,7 @@ export default function preserveScroll (callback) {
       // if the reference element moved, we need to scroll to the new position
       if (refMoved > 0) {
         window.scrollTo({
+          // some browsers don't respond well to fractional scroll position, so we round up the new position to the nearest integer
           top: scrollTop + Math.ceil(refMoved),
           behavior: 'instant'
         })

@@ -150,6 +150,24 @@ export function useWalletQuery ({ id, name }) {
   }), [query, wallet])
 }
 
+export function useDecryptedWallet (wallet) {
+  const { decryptWallet, ready } = useWalletDecryption()
+  const [decryptedWallet, setDecryptedWallet] = useState(undoFieldAlias(wallet))
+
+  useEffect(() => {
+    if (!ready || !wallet) return
+    decryptWallet(wallet)
+      .then(protocolCheck)
+      .then(undoFieldAlias)
+      .then(wallet => setDecryptedWallet(wallet))
+      .catch(err => {
+        console.error('failed to decrypt wallet:', err)
+      })
+  }, [decryptWallet, wallet, ready])
+
+  return decryptedWallet
+}
+
 export function useWalletProtocolUpsert (wallet, protocol) {
   const mutation = getWalletProtocolUpsertMutation(protocol)
   const [mutate] = useMutation(mutation)

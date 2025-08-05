@@ -1,20 +1,16 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { WalletForms as WalletFormsComponent } from '@/wallets/client/components'
+import { WALLET } from '@/wallets/client/fragments'
+import { useDecryptedWallet } from '@/wallets/client/hooks'
 import { unurlify } from '@/wallets/lib/util'
-import { useParams } from 'next/navigation'
 
-export const getServerSideProps = getGetServerSideProps({ authRequired: true })
+const variablesFunc = params => {
+  const id = Number(params.slug[0])
+  return !Number.isNaN(id) ? { id } : { name: unurlify(params.slug[0]) }
+}
+export const getServerSideProps = getGetServerSideProps({ query: WALLET, variables: variablesFunc, authRequired: true })
 
-export default function WalletForms () {
-  const params = useParams()
-  const walletName = unurlify(params.slug[0])
-
-  // if the wallet name is a number, we are showing a configured wallet
-  // otherwise, we are showing a template
-  const isNumber = !Number.isNaN(Number(walletName))
-  if (isNumber) {
-    return <WalletFormsComponent id={Number(walletName)} />
-  }
-
-  return <WalletFormsComponent name={walletName} />
+export default function WalletForms ({ ssrData }) {
+  const decryptedWallet = useDecryptedWallet(ssrData?.wallet)
+  return <WalletFormsComponent wallet={decryptedWallet ?? ssrData?.wallet} />
 }

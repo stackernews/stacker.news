@@ -1,12 +1,19 @@
-import { useQuery, useApolloClient } from '@apollo/client'
-import { SSR, COMMENT_DEPTH_LIMIT } from '../lib/constants'
-import { GET_NEW_COMMENTS } from '../fragments/comments'
-import { useEffect, useState, useCallback } from 'react'
-import { itemUpdateQuery, commentUpdateFragment, getLatestCommentCreatedAt, updateAncestorsCommentCount } from '../lib/comments'
-import { commentsViewedAfterComment } from '../lib/new-comments'
 import preserveScroll from './preserve-scroll'
+import { GET_NEW_COMMENTS } from '../fragments/comments'
+import { useEffect, useState } from 'react'
+import { SSR, COMMENT_DEPTH_LIMIT } from '../lib/constants'
+import { useQuery, useApolloClient } from '@apollo/client'
+import { commentsViewedAfterComment } from '../lib/new-comments'
+import {
+  readItemQuery,
+  writeItemQuery,
+  readCommentsFragment,
+  writeCommentFragment,
+  getLatestCommentCreatedAt,
+  updateAncestorsCommentCount
+} from '../lib/comments'
 
-const POLL_INTERVAL = 1000 * 10 // 10 seconds
+const POLL_INTERVAL = 1000 * 5 // 5 seconds
 
 // prepares and creates a new comments fragment for injection into the cache
 // returns a function that can be used to update an item's comments field
@@ -14,9 +21,8 @@ function prepareComments (data, client, newComment) {
   const existingComments = data.comments?.comments || []
 
   // is the incoming new comment already in item's new comments or existing comments?
-  if (existingComments.some(comment => comment.id === newComment.id)) {
-    return data
-  }
+  // if so, we don't need to update the cache
+  if (existingComments.some(comment => comment.id === newComment.id)) return
 
   // +1 because the new comment is also a comment
   const totalNComments = newComment.ncomments + 1
@@ -29,6 +35,9 @@ function prepareComments (data, client, newComment) {
   const rootId = itemHierarchy[0]
   commentsViewedAfterComment(rootId, Date.now(), totalNComments)
 
+  // add a flag to the new comment to indicate it was injected
+  const injectedComment = { ...newComment, injected: true }
+
   // an item can either have a comments.comments field, or not
   const payload = data.comments
     ? {
@@ -36,7 +45,7 @@ function prepareComments (data, client, newComment) {
         ncomments: data.ncomments + totalNComments,
         comments: {
           ...data.comments,
-          comments: [newComment, ...data.comments.comments]
+          comments: [injectedComment, ...data.comments.comments]
         }
       }
     // when the fragment doesn't have a comments field, we just update stats fields
@@ -53,14 +62,15 @@ function cacheNewComments (client, rootId, newComments, sort) {
     const { parentId } = newComment
     const topLevel = Number(parentId) === Number(rootId)
 
-    // add a flag to the new comment to indicate it was injected
-    const injectedComment = { ...newComment, injected: true }
-
-    // if the comment is a top level comment, update the item
     if (topLevel) {
-      // inject the new comment into the item's comments field
-      itemUpdateQuery(client, rootId, sort, (data) => prepareComments(data, client, injectedComment))
+      // if the comment is a top level comment, update the item
+      const { item } = readItemQuery(client, rootId, sort)
+      const updatedItem = prepareComments(item, client, newComment)
+      if (updatedItem) {
+        preserveScroll(() => writeItemQuery(client, rootId, sort, updatedItem))
+      }
     } else {
+      // if the comment is a reply, update the parent comment
       // calculate depth by counting path segments from root to parent
       const pathSegments = newComment.path.split('.')
       const rootIndex = pathSegments.indexOf(rootId.toString())
@@ -68,11 +78,15 @@ function cacheNewComments (client, rootId, newComments, sort) {
 
       // depth is the distance from root to parent in the path
       const depth = parentIndex - rootIndex
+      // if the comment is too deep, we don't need to update the cache
       if (depth > COMMENT_DEPTH_LIMIT) return
 
-      // if the comment is a reply, update the parent comment
       // inject the new comment into the parent comment's comments field
-      commentUpdateFragment(client, parentId, (data) => prepareComments(data, client, injectedComment))
+      const parent = readCommentsFragment(client, parentId)
+      const updatedParent = prepareComments(parent, client, newComment)
+      if (updatedParent) {
+        preserveScroll(() => writeCommentFragment(client, parentId, updatedParent))
+      }
     }
   }
 }
@@ -109,15 +123,11 @@ export default function useLiveComments (rootId, after, sort) {
         nextFetchPolicy: 'cache-and-network'
       })
 
-  const injectNewComments = useCallback(() => {
-    cacheNewComments(client, rootId, data?.newComments?.comments, sort)
-  }, [client, rootId, sort, data])
-
   useEffect(() => {
     if (!data?.newComments?.comments?.length) return
 
     // directly inject new comments into the cache, preserving scroll position
-    preserveScroll(injectNewComments)
+    cacheNewComments(client, rootId, data.newComments.comments, sort)
 
     // update latest timestamp to the latest comment created at
     // save it to session storage, to persist between client-side navigations

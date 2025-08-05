@@ -1,6 +1,5 @@
-import { useCallback, useState, useEffect, useRef } from 'react'
-import ArrowUp from '../svgs/arrow-up-s-line.svg'
-import ArrowDown from '../svgs/arrow-down-s-line.svg'
+import { useCallback, useEffect, useState } from 'react'
+import ArrowRight from '../svgs/arrow-right-line.svg'
 import styles from './comment.module.css'
 import { useFavicon } from './favicon'
 import { useRouter } from 'next/router'
@@ -9,53 +8,12 @@ import { useRouter } from 'next/router'
 export function useLiveCommentsNavigator () {
   const router = useRouter()
   const { hasNewComments, setHasNewComments } = useFavicon()
-  const [commentCount, setCommentCount] = useState(0)
-  const [currentIndex, setCurrentIndex] = useState(-1)
+  const [commentRefs, setCommentRefs] = useState([])
 
-  const commentRefs = useRef([])
-
-  // add a new comment ref to the list
-  const trackNewComment = useCallback((commentRef) => {
-    if (!commentRef?.current) return
-
-    // track this new comment if it's not visible in the viewport
-    const rect = commentRef.current.getBoundingClientRect()
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight
-    const viewportWidth = window.innerWidth || document.documentElement.clientWidth
-
-    const isVisible = rect.top >= 0 &&
-                      rect.left >= 0 &&
-                      rect.bottom <= viewportHeight &&
-                      rect.right <= viewportWidth
-
-    if (isVisible) return
-
-    // dedupe and store the ref
-    if (!commentRefs.current.some(ref => ref.current === commentRef.current)) {
-      commentRefs.current.push(commentRef)
-    }
-
-    setCommentCount(commentRefs.current.length)
-  }, [])
-
-  // remove a comment ref from the list
-  const unTrackNewComment = useCallback((commentRef) => {
-    // no need to untrack if there are no new comments
-    if (!commentRef?.current || commentRefs.current.length === 0) return
-
-    // remove the ref from the list
-    commentRefs.current = commentRefs.current.filter(ref => ref.current !== commentRef.current)
-
-    // update the comment count
-    setCommentCount(commentRefs.current.length)
-  }, [])
-
-  // clear the list of refs and reset the current index to -1
+  // clear the list of refs and resets favicon
   const clearCommentRefs = useCallback(() => {
     // reset navigator
-    commentRefs.current = []
-    setCurrentIndex(-1)
-    setCommentCount(0)
+    setCommentRefs([])
 
     // reset favicon
     if (hasNewComments) {
@@ -63,19 +21,44 @@ export function useLiveCommentsNavigator () {
     }
   }, [hasNewComments, setHasNewComments])
 
-  const scrollToComment = useCallback((direction) => {
-    const refs = commentRefs.current
+  // add a new comment ref to the list
+  const trackNewComment = useCallback((commentRef) => {
+    if (!commentRef?.current) return
 
-    let newIndex
-    if (direction === 'prev') {
-      newIndex = Math.max(currentIndex - 1, 0)
-    } else if (direction === 'next') {
-      newIndex = Math.min(currentIndex + 1, commentCount - 1)
-    }
+    // requestAnimationFrame to ensure the DOM is updated before checking if the comment is visible
+    window.requestAnimationFrame(() => {
+      // track this new comment if it's not visible in the viewport
+      const rect = commentRef.current.getBoundingClientRect()
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth
 
-    setCurrentIndex(newIndex)
+      const isVisible = rect.top >= 0 &&
+                        rect.left >= 0 &&
+                        rect.bottom <= viewportHeight &&
+                        rect.right <= viewportWidth
 
-    const ref = refs[newIndex]
+      if (isVisible) return
+
+      // dedupe and store the ref
+      setCommentRefs(prev => (
+        prev.some(ref => ref.current === commentRef.current) ? prev : [...prev, commentRef]
+      ))
+    })
+  }, [])
+
+  // remove a comment ref from the list
+  const unTrackNewComment = useCallback((commentRef) => {
+    // no need to untrack if there are no new comments
+    if (!commentRef?.current || commentRefs.length === 0) return
+
+    // remove the ref from the list
+    setCommentRefs(prev => prev.filter(ref => ref.current !== commentRef.current))
+  }, [commentRefs.length])
+
+  const scrollToComment = useCallback(() => {
+    if (commentRefs.length === 0) return
+
+    const ref = commentRefs[0]
     if (!ref?.current) return
 
     // clear any conflicting classes
@@ -103,10 +86,12 @@ export function useLiveCommentsNavigator () {
     })
 
     // we reached the end of the new comments, clear the tracked refs
-    if (newIndex === commentCount - 1) {
+    if (commentRefs.length === 1) {
       clearCommentRefs()
+    } else {
+      unTrackNewComment(ref)
     }
-  }, [clearCommentRefs, currentIndex, commentCount])
+  }, [commentRefs, clearCommentRefs, unTrackNewComment])
 
   // reset navigator on route changes
   useEffect(() => {
@@ -123,35 +108,25 @@ export function useLiveCommentsNavigator () {
     unTrackNewComment,
     scrollToComment,
     clearCommentRefs,
-    currentIndex,
-    commentCount
+    commentCount: commentRefs.length
   }
 }
 
 export function LiveCommentsNavigator ({ navigator }) {
-  const { commentCount, currentIndex, scrollToComment, clearCommentRefs } = navigator
+  const { commentCount, scrollToComment, clearCommentRefs } = navigator
   if (!commentCount) return null
-
-  console.log('commentCount', commentCount)
 
   return (
     <span className={`${styles.commentNavigator} fw-bold`}>
-      <span>{currentIndex + 1}/{commentCount} new comment{commentCount > 1 ? 's' : ''}</span>
+      <span>{commentCount} new comment{commentCount > 1 ? 's' : ''}</span>
       {/* hover on buttons makes them more visible */}
-      <div className='d-flex align-items-center justify-content-center gap-1'>
+      <div className='d-flex align-items-center justify-content-center gap-1 pb-1'>
         <span
-          onClick={() => scrollToComment('prev')}
-          disabled={currentIndex <= 0}
-          className={`${styles.navigatorButton} ${currentIndex <= 0 ? styles.disabled : ''}`}
+          onClick={() => scrollToComment()}
+          disabled={commentCount === 0}
+          className={`${styles.navigatorButton} ${commentCount === 0 ? styles.disabled : ''}`}
         >
-          <ArrowUp width={24} height={24} className={styles.navigatorButton} />
-        </span>
-        <span
-          onClick={() => scrollToComment('next')}
-          disabled={currentIndex === commentCount - 1}
-          className={`${styles.navigatorButton} ${currentIndex === commentCount - 1 ? styles.disabled : ''}`}
-        >
-          <ArrowDown width={24} height={24} className={styles.navigatorButton} />
+          <ArrowRight width={24} height={24} className={styles.navigatorButton} />
         </span>
       </div>
       <span

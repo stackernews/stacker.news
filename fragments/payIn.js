@@ -1,11 +1,13 @@
 import gql from 'graphql-tag'
 import { SUB_FULL_FIELDS } from './subs'
+import { COMMENTS } from './comments'
 
 const HASH_HMAC_INPUT_1 = '$hash: String, $hmac: String'
 const HASH_HMAC_INPUT_2 = 'hash: $hash, hmac: $hmac'
 
 export const PAY_IN_FIELDS = gql`
   ${SUB_FULL_FIELDS}
+  ${COMMENTS}
   fragment PayInFields on PayIn {
     id
     createdAt
@@ -37,6 +39,12 @@ export const PAY_IN_FIELDS = gql`
         id
         deleteScheduledAt
         reminderScheduledAt
+        ...CommentFields
+        comments {
+          comments {
+            ...CommentsRecursive
+          }
+        }
       }
       ... on ItemActResult {
         id

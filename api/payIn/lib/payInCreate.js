@@ -18,6 +18,7 @@ export async function payInCreate (tx, payInProspect, payInArgs, { me }) {
   if (!isWithdrawal(payInProspect) && payInState !== 'PAID') {
     await assertBelowMaxPendingPayInBolt11s(tx, payInProspect.userId)
   }
+  console.log('payInProspect', payInProspect)
   const payIn = await tx.payIn.create({
     data: {
       ...payInPrismaCreate({
@@ -34,6 +35,7 @@ export async function payInCreate (tx, payInProspect, payInArgs, { me }) {
     },
     include: PAY_IN_INCLUDE
   })
+  console.log('payIn', payIn)
   return { payIn, mCostRemaining }
 }
 

@@ -220,6 +220,7 @@ export async function checkPayOutBolt11 ({ data: { hash, withdrawal, invoice }, 
       return await payInWithdrawalFailed({ data: { payInId: payIn.id, withdrawal: wdrwl }, models, lnd, boss })
     }
 
+    // TODO: if can properly handle afterBegin failures, this can be removed
     if (payIn.payInState === 'PENDING_INVOICE_WRAP') {
       return await payInFailed({ data: { payInId: payIn.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
     }

@@ -1,5 +1,5 @@
 export function payInPrismaCreate (payIn) {
-  console.log('payIn', payIn)
+  console.log('payInPrismaCreate', payIn)
   const result = {}
 
   if (payIn.beneficiaries) {

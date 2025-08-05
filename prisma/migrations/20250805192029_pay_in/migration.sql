@@ -11,7 +11,7 @@ CREATE TYPE "PayInFailureReason" AS ENUM ('INVOICE_CREATION_FAILED', 'INVOICE_WR
 CREATE TYPE "CustodialTokenType" AS ENUM ('CREDITS', 'SATS');
 
 -- CreateEnum
-CREATE TYPE "PayOutType" AS ENUM ('TERRITORY_REVENUE', 'REWARDS_POOL', 'ROUTING_FEE', 'ROUTING_FEE_REFUND', 'PROXY_PAYMENT', 'ZAP', 'REWARD', 'INVITE_GIFT', 'WITHDRAWAL', 'SYSTEM_REVENUE');
+CREATE TYPE "PayOutType" AS ENUM ('TERRITORY_REVENUE', 'REWARDS_POOL', 'ROUTING_FEE', 'ROUTING_FEE_REFUND', 'PROXY_PAYMENT', 'ZAP', 'REWARD', 'INVITE_GIFT', 'WITHDRAWAL', 'SYSTEM_REVENUE', 'BUY_CREDITS');
 
 -- AlterTable
 ALTER TABLE "WalletLog" ADD COLUMN     "payOutBolt11Id" INTEGER;
@@ -117,6 +117,7 @@ CREATE TABLE "PayInBolt11" (
     "expiryHeight" INTEGER,
     "acceptHeight" INTEGER,
     "userId" INTEGER,
+    "protocolId" INTEGER,
 
     CONSTRAINT "PayInBolt11_pkey" PRIMARY KEY ("id")
 );
@@ -133,7 +134,7 @@ CREATE TABLE "PayOutBolt11" (
     "bolt11" TEXT,
     "msats" BIGINT NOT NULL,
     "status" "WithdrawlStatus",
-    "walletId" INTEGER,
+    "protocolId" INTEGER,
     "payInId" INTEGER NOT NULL,
 
     CONSTRAINT "PayOutBolt11_pkey" PRIMARY KEY ("id")
@@ -212,13 +213,10 @@ CREATE INDEX "PayIn_payInStateChangedAt_idx" ON "PayIn"("payInStateChangedAt");
 CREATE UNIQUE INDEX "PessimisticEnv_payInId_key" ON "PessimisticEnv"("payInId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "SubPayOutCustodialToken_payOutCustodialTokenId_key" ON "SubPayOutCustodialToken"("payOutCustodialTokenId");
+
+-- CreateIndex
 CREATE INDEX "SubPayOutCustodialToken_subName_idx" ON "SubPayOutCustodialToken"("subName");
-
--- CreateIndex
-CREATE INDEX "SubPayOutCustodialToken_payOutCustodialTokenId_idx" ON "SubPayOutCustodialToken"("payOutCustodialTokenId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "SubPayOutCustodialToken_subName_payOutCustodialTokenId_key" ON "SubPayOutCustodialToken"("subName", "payOutCustodialTokenId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PayInBolt11_payInId_key" ON "PayInBolt11"("payInId");
@@ -254,7 +252,7 @@ CREATE INDEX "PayOutBolt11_userId_idx" ON "PayOutBolt11"("userId");
 CREATE INDEX "PayOutBolt11_hash_idx" ON "PayOutBolt11"("hash");
 
 -- CreateIndex
-CREATE INDEX "PayOutBolt11_walletId_idx" ON "PayOutBolt11"("walletId");
+CREATE INDEX "PayOutBolt11_protocolId_idx" ON "PayOutBolt11"("protocolId");
 
 -- CreateIndex
 CREATE INDEX "PayOutBolt11_status_idx" ON "PayOutBolt11"("status");
@@ -317,10 +315,16 @@ ALTER TABLE "PayOutCustodialToken" ADD CONSTRAINT "PayOutCustodialToken_payInId_
 ALTER TABLE "PayInBolt11" ADD CONSTRAINT "PayInBolt11_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "PayInBolt11" ADD CONSTRAINT "PayInBolt11_protocolId_fkey" FOREIGN KEY ("protocolId") REFERENCES "WalletProtocol"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PayInBolt11" ADD CONSTRAINT "PayInBolt11_payInId_fkey" FOREIGN KEY ("payInId") REFERENCES "PayIn"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "PayOutBolt11" ADD CONSTRAINT "PayOutBolt11_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PayOutBolt11" ADD CONSTRAINT "PayOutBolt11_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "PayOutBolt11" ADD CONSTRAINT "PayOutBolt11_protocolId_fkey" FOREIGN KEY ("protocolId") REFERENCES "WalletProtocol"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "PayOutBolt11" ADD CONSTRAINT "PayOutBolt11_payInId_fkey" FOREIGN KEY ("payInId") REFERENCES "PayIn"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

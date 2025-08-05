@@ -2,6 +2,33 @@ import { USER_ID } from '@/lib/constants'
 import { deleteReminders, getDeleteAt, getRemindAt } from '@/lib/item'
 import { parseInternalLinks } from '@/lib/url'
 
+export async function getSub (models, { subName, parentId }) {
+  if (!subName && !parentId) {
+    return null
+  }
+
+  if (parentId) {
+    const [sub] = await models.$queryRaw`
+      SELECT "Sub".*
+      FROM "Item" i
+      LEFT JOIN "Item" r ON r.id = i."rootId"
+      LEFT JOIN "Sub" ON "Sub".name = COALESCE(r."subName", i."subName")
+      WHERE i.id = ${Number(parentId)}`
+
+    return sub
+  }
+
+  return await models.sub.findUnique({ where: { name: subName } })
+}
+
+// ltree is unsupported in Prisma, so we have to query it manually (FUCK!)
+export async function getItemResult (tx, { id }) {
+  return (await tx.$queryRaw`
+    SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt", ARRAY[]::JSONB[] AS "comments"
+    FROM "Item" WHERE id = ${id}::INTEGER`
+  )[0]
+}
+
 export async function getMentions (tx, { text, userId }) {
   const mentionPattern = /\B@[\w_]+/gi
   const names = text.match(mentionPattern)?.map(m => m.slice(1))

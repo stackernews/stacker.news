@@ -1,7 +1,7 @@
 import { ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers, notifyThreadSubscribers } from '@/lib/webPush'
-import { getItemMentions, getMentions, performBotBehavior } from '../lib/item'
-import { satsToMsats } from '@/lib/format'
+import { getItemMentions, getMentions, performBotBehavior, getSub, getItemResult } from '../lib/item'
+import { msatsToSats, satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
 import * as BOOST from './boost'
 
@@ -19,21 +19,17 @@ const DEFAULT_ITEM_COST = 1000n
 async function getBaseCost (models, { bio, parentId, subName }) {
   if (bio) return DEFAULT_ITEM_COST
 
-  if (parentId) {
-    // the subname is stored in the root item of the thread
-    const [sub] = await models.$queryRaw`
-      SELECT s."replyCost"
-      FROM "Item" i
-      LEFT JOIN "Item" r ON r.id = i."rootId"
-      LEFT JOIN "Sub" s ON s.name = COALESCE(r."subName", i."subName")
-      WHERE i.id = ${Number(parentId)}`
+  const sub = await getSub(models, { subName, parentId })
 
-    if (sub?.replyCost) return satsToMsats(sub.replyCost)
-    return DEFAULT_ITEM_COST
+  if (parentId && sub?.replyCost) {
+    return satsToMsats(sub.replyCost)
   }
 
-  const sub = await models.sub.findUnique({ where: { name: subName } })
-  return satsToMsats(sub.baseCost)
+  if (sub?.baseCost) {
+    return satsToMsats(sub.baseCost)
+  }
+
+  return DEFAULT_ITEM_COST
 }
 
 async function getCost (models, { subName, parentId, uploadIds, boost = 0, bio }, { me }) {
@@ -58,9 +54,24 @@ async function getCost (models, { subName, parentId, uploadIds, boost = 0, bio }
 
 export async function getInitial (models, args, { me }) {
   const mcost = await getCost(models, args, { me })
-  const sub = await models.sub.findUnique({ where: { name: args.subName } })
-  const revenueMsats = mcost * BigInt(sub.rewardsPct) / 100n
+  const sub = await getSub(models, args)
+
+  const revenueMsats = sub ? mcost * BigInt(sub.rewardsPct) / 100n : 0n
   const rewardMsats = mcost - revenueMsats
+  const payOutCustodialTokens = [
+    { payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardMsats, custodialTokenType: 'SATS' }
+  ]
+  if (revenueMsats > 0n) {
+    payOutCustodialTokens.push({
+      payOutType: 'TERRITORY_REVENUE',
+      userId: sub.userId,
+      mtokens: revenueMsats,
+      custodialTokenType: 'SATS',
+      subPayOutCustodialToken: {
+        subName: sub.name
+      }
+    })
+  }
 
   let beneficiaries
   if (args.boost > 0) {
@@ -68,29 +79,19 @@ export async function getInitial (models, args, { me }) {
       await BOOST.getInitial(models, { sats: args.boost, sub }, { me })
     ]
   }
+
   return {
     payInType: 'ITEM_CREATE',
-    userId: me?.id,
+    userId: me.id,
     mcost,
-    payOutCustodialTokens: [
-      {
-        payOutType: 'TERRITORY_REVENUE',
-        userId: sub.userId,
-        mtokens: revenueMsats,
-        custodialTokenType: 'SATS',
-        subPayOutCustodialToken: {
-          subName: sub.name
-        }
-      },
-      { payOutType: 'REWARD_POOL', userId: null, mtokens: rewardMsats, custodialTokenType: 'SATS' }
-    ],
+    payOutCustodialTokens,
     beneficiaries
   }
 }
 
 // TODO: uploads should just have an itemId
 export async function onBegin (tx, payInId, args) {
-  const { invoiceId, parentId, uploadIds = [], forwardUsers = [], options: pollOptions = [], boost = 0, ...data } = args
+  const { invoiceId, parentId, uploadIds = [], forwardUsers = [], options: pollOptions = [], ...data } = args
   const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
 
   const deletedUploads = []
@@ -120,10 +121,9 @@ export async function onBegin (tx, payInId, args) {
   const itemData = {
     parentId: parentId ? parseInt(parentId) : null,
     ...data,
-    itemPayIn: {
-      create: {
-        payInId
-      }
+    cost: msatsToSats(payIn.mcost),
+    itemPayIns: {
+      create: [{ payInId }]
     },
     threadSubscriptions: {
       createMany: {
@@ -181,10 +181,7 @@ export async function onBegin (tx, payInId, args) {
 
   await performBotBehavior(tx, { ...item, userId: payIn.userId })
 
-  const { beneficiaries } = await tx.payIn.findUnique({ where: { id: payInId }, include: { beneficiaries: true } })
-  for (const beneficiary of beneficiaries) {
-    await BOOST.onBegin(tx, beneficiary.id, { sats: boost, id: item.id })
-  }
+  return getItemResult(tx, { id: item.id })
 }
 
 // TODO: caller of onRetry needs to update beneficiaries
@@ -234,7 +231,7 @@ export async function onPaid (tx, payInId) {
   }
 }
 
-export async function onPaidSideEffects (models, payInId, { me }) {
+export async function onPaidSideEffects (models, payInId) {
   const { item } = await models.itemPayIn.findUnique({
     where: { payInId },
     include: {
@@ -261,11 +258,6 @@ export async function onPaidSideEffects (models, payInId, { me }) {
 
   notifyUserSubscribers({ models, item }).catch(console.error)
   notifyTerritorySubscribers({ models, item }).catch(console.error)
-
-  const { beneficiaries } = await models.payIn.findUnique({ where: { id: payInId }, include: { beneficiaries: true } })
-  for (const beneficiary of beneficiaries) {
-    await BOOST.onPaidSideEffects(models, beneficiary.id)
-  }
 }
 
 export async function describe (models, payInId, { me }) {

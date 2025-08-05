@@ -497,7 +497,7 @@ model Item {
   ItemUserAgg          ItemUserAgg[]
   AutoSocialPost       AutoSocialPost[]
   randPollOptions      Boolean               @default(false)
-  ItemPayIn            ItemPayIn[]
+  itemPayIns           ItemPayIn[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -1635,12 +1635,10 @@ model SubPayOutCustodialToken {
   id                     Int                  @id @default(autoincrement())
   subName                String               @db.Citext
   sub                    Sub                  @relation(fields: [subName], references: [name], onDelete: Cascade)
-  payOutCustodialTokenId Int
+  payOutCustodialTokenId Int                  @unique
   payOutCustodialToken   PayOutCustodialToken @relation(fields: [payOutCustodialTokenId], references: [id], onDelete: Cascade)
 
-  @@unique([subName, payOutCustodialTokenId])
   @@index([subName])
-  @@index([payOutCustodialTokenId])
 }
 
 model PayOutCustodialToken {
@@ -1659,7 +1657,7 @@ model PayOutCustodialToken {
 
   msatsBefore             BigInt?
   mcreditsBefore          BigInt?
-  SubPayOutCustodialToken SubPayOutCustodialToken[]
+  subPayOutCustodialToken SubPayOutCustodialToken?
 }
 
 model PayInBolt11 {

@@ -1,6 +1,6 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { uploadFees } from '../../resolvers/upload'
-import { getItemMentions, getMentions, performBotBehavior } from '../lib/item'
+import { getItemMentions, getItemResult, getMentions, performBotBehavior } from '../lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import * as BOOST from './boost'
 export const anonable = true
@@ -150,6 +150,8 @@ export async function onPaid (tx, payInId, { me }) {
               now() + interval '5 seconds', now() + interval '1 day')`
 
   await performBotBehavior(tx, args, { me })
+
+  return getItemResult(tx, { id })
 }
 
 export async function onPaidSideEffects (models, payInId) {

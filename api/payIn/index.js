@@ -39,9 +39,7 @@ export default async function pay (payInType, payInArgs, { models, me }) {
 }
 
 async function begin (models, payInInitial, payInArgs, { me }) {
-  const payInModule = payInTypeModules[payInInitial.payInType]
-
-  const { payIn, mCostRemaining } = await models.$transaction(async tx => {
+  const { payIn, result, mCostRemaining } = await models.$transaction(async tx => {
     const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, payInArgs, { me })
 
     // if it's pessimistic, we don't perform the action until the invoice is held
@@ -53,13 +51,14 @@ async function begin (models, payInInitial, payInArgs, { me }) {
     }
 
     // if it's optimistic or already paid, we perform the action
-    await payInModule.onBegin?.(tx, payIn.id, payInArgs)
+    const result = await onBegin(tx, payIn.id, payInArgs)
 
     // if it's already paid, we run onPaid and do payOuts in the same transaction
     if (payIn.payInState === 'PAID') {
       await onPaid(tx, payIn.id, { me })
       return {
         payIn,
+        result,
         mCostRemaining: 0n
       }
     }
@@ -68,14 +67,30 @@ async function begin (models, payInInitial, payInArgs, { me }) {
       VALUES ('checkPayIn', jsonb_build_object('payInId', ${payIn.id}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
     return {
       payIn,
+      result,
       mCostRemaining
     }
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 
-  return await afterBegin(models, { payIn, mCostRemaining }, { me })
+  return await afterBegin(models, { payIn, result, mCostRemaining }, { me })
 }
 
-async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
+async function onBegin (tx, payInId, payInArgs) {
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { beneficiaries: true } })
+  if (!payIn) {
+    throw new Error('PayIn not found')
+  }
+
+  const result = await payInTypeModules[payIn.payInType].onBegin?.(tx, payIn.id, payInArgs)
+
+  for (const beneficiary of payIn.beneficiaries) {
+    await onBegin(tx, beneficiary.id, payInArgs, result)
+  }
+
+  return result
+}
+
+async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
   async function afterInvoiceCreation ({ payInState, payInBolt11 }) {
     const updatedPayIn = await models.payIn.update({
       where: {
@@ -95,7 +110,7 @@ async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
     // this makes sure that only the person who created this invoice
     // has access to the HMAC
     updatedPayIn.payInBolt11.hmac = createHmac(updatedPayIn.payInBolt11.hash)
-    return updatedPayIn
+    return { ...updatedPayIn, result }
   }
 
   try {
@@ -138,7 +153,7 @@ async function afterBegin (models, { payIn, mCostRemaining }, { me }) {
     throw e
   }
 
-  return payIn
+  return { ...payIn, result }
 }
 
 export async function onFail (tx, payInId) {
@@ -211,6 +226,18 @@ export async function onPaid (tx, payInId) {
   await payInModule.onPaid?.(tx, payInId)
   for (const beneficiary of payIn.beneficiaries) {
     await onPaid(tx, beneficiary.id)
+  }
+}
+
+export async function onPaidSideEffects (models, payInId) {
+  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { beneficiaries: true } })
+  if (!payIn) {
+    throw new Error('PayIn not found')
+  }
+
+  await payInTypeModules[payIn.payInType].onPaidSideEffects?.(models, payInId)
+  for (const beneficiary of payIn.beneficiaries) {
+    await onPaidSideEffects(models, beneficiary.id)
   }
 }
 

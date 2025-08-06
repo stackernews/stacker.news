@@ -2,15 +2,20 @@ import { useCallback, useEffect, useState } from 'react'
 import ArrowRight from '../svgs/arrow-right-line.svg'
 import styles from './comment.module.css'
 import { useRouter } from 'next/router'
+import { useFavicon } from './favicon'
 
 export function useNewCommentsNavigator () {
   const router = useRouter()
   const [commentRefs, setCommentRefs] = useState([])
+  const { setHasNewComments } = useFavicon()
 
   // clear the list of refs and resets favicon
   const clearCommentRefs = useCallback(() => {
     // reset navigator
     setCommentRefs([])
+
+    // reset favicon
+    setHasNewComments(false)
   }, [])
 
   // reset navigator on route changes
@@ -26,6 +31,9 @@ export function useNewCommentsNavigator () {
   // add a new comment ref to the list
   const trackNewComment = useCallback((commentRef) => {
     if (!commentRef?.current) return
+
+    // set new comments favicon
+    setHasNewComments(true)
 
     // requestAnimationFrame to ensure the DOM is updated before checking if the comment is visible
     window.requestAnimationFrame(() => {
@@ -52,6 +60,9 @@ export function useNewCommentsNavigator () {
   const unTrackNewComment = useCallback((commentRef) => {
     // no need to untrack if there are no new comments
     if (!commentRef?.current) return
+
+    // reset favicon
+    setHasNewComments(false)
 
     // remove the ref from the list
     setCommentRefs(prev => prev.filter(ref => ref.current !== commentRef.current))

@@ -1,23 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import ArrowRight from '../svgs/arrow-right-line.svg'
 import styles from './comment.module.css'
-import { useFavicon } from './favicon'
 import { useRouter } from 'next/router'
 
-// TODO: mega cleanup after solid decision on design pattern
-export function useLiveCommentsNavigator () {
+export function useNewCommentsNavigator () {
   const router = useRouter()
-  const { setHasNewComments } = useFavicon()
   const [commentRefs, setCommentRefs] = useState([])
 
   // clear the list of refs and resets favicon
   const clearCommentRefs = useCallback(() => {
     // reset navigator
     setCommentRefs([])
-
-    // reset favicon
-    setHasNewComments(false)
-  }, [setHasNewComments])
+  }, [])
 
   // reset navigator on route changes
   useEffect(() => {
@@ -32,9 +26,6 @@ export function useLiveCommentsNavigator () {
   // add a new comment ref to the list
   const trackNewComment = useCallback((commentRef) => {
     if (!commentRef?.current) return
-
-    // set the new comments favicon
-    setHasNewComments(true)
 
     // requestAnimationFrame to ensure the DOM is updated before checking if the comment is visible
     window.requestAnimationFrame(() => {
@@ -61,9 +52,6 @@ export function useLiveCommentsNavigator () {
   const unTrackNewComment = useCallback((commentRef) => {
     // no need to untrack if there are no new comments
     if (!commentRef?.current) return
-
-    // reset the new comments favicon
-    setHasNewComments(false)
 
     // remove the ref from the list
     setCommentRefs(prev => prev.filter(ref => ref.current !== commentRef.current))
@@ -116,7 +104,7 @@ export function useLiveCommentsNavigator () {
   }
 }
 
-export function LiveCommentsNavigator ({ navigator }) {
+export function NewCommentsNavigator ({ navigator }) {
   const { commentCount, scrollToComment, clearCommentRefs } = navigator
   if (!commentCount) return null
 
@@ -125,8 +113,7 @@ export function LiveCommentsNavigator ({ navigator }) {
       <span>{commentCount} new comment{commentCount > 1 ? 's' : ''}</span>
       <span
         onClick={() => scrollToComment()}
-        disabled={commentCount === 0}
-        className={`${styles.navigatorButton} ${commentCount === 0 ? styles.disabled : ''}`}
+        className={`${styles.navigatorButton}`}
       >
         <ArrowRight width={24} height={24} className={styles.navigatorButton} />
       </span>

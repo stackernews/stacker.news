@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer } from 'react'
 import walletsReducer from './reducer'
-import { useServerWallets, useKeyCheck, useAutomatedRetries, useKeyInit, useWalletMigration } from './hooks'
+import { useServerWallets, useAutomatedRetries, useKeyInit, useWalletMigration } from './hooks'
 import { WebLnProvider } from '@/wallets/lib/protocols/webln'
 
 // https://react.dev/learn/scaling-up-with-reducer-and-context
@@ -78,7 +78,6 @@ export default function WalletsProvider ({ children }) {
 
 function WalletHooks ({ children }) {
   useServerWallets()
-  useKeyCheck()
   useAutomatedRetries()
   useKeyInit()
 

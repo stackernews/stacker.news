@@ -10,27 +10,28 @@ import {
   readCommentsFragment,
   writeCommentFragment,
   getLatestCommentCreatedAt,
-  updateAncestorsCommentCount
+  updateAncestorsCommentCount,
+  calculateDepth
 } from '../lib/comments'
 
 const POLL_INTERVAL = 1000 * 5 // 5 seconds
 
-// prepares and creates a new comments fragment for injection into the cache
-// returns a function that can be used to update an item's comments field
-function prepareComments (data, client, newComment) {
-  const existingComments = data.comments?.comments || []
+// prepares and creates a fragment for injection into the cache
+// also handles side effects like updating comment counts and viewedAt timestamps
+function prepareComments (item, cache, newComment) {
+  const existingComments = item.comments?.comments || []
 
-  // is the incoming new comment already in item's new comments or existing comments?
+  // is the incoming new comment already in item's existing comments?
   // if so, we don't need to update the cache
   if (existingComments.some(comment => comment.id === newComment.id)) return
 
-  // +1 because the new comment is also a comment
+  // count the new comment (+1) and its children (+ncomments)
   const totalNComments = newComment.ncomments + 1
 
-  const itemHierarchy = data.path.split('.')
+  const itemHierarchy = item.path.split('.')
   // update all ancestors comment count, but not the item itself
   const ancestors = itemHierarchy.slice(0, -1)
-  updateAncestorsCommentCount(client.cache, ancestors, totalNComments)
+  updateAncestorsCommentCount(cache, ancestors, totalNComments)
   // update commentsViewedAt to now, and add the number of new comments
   const rootId = itemHierarchy[0]
   commentsViewedAfterComment(rootId, Date.now(), totalNComments)
@@ -39,63 +40,55 @@ function prepareComments (data, client, newComment) {
   const injectedComment = { ...newComment, injected: true }
 
   // an item can either have a comments.comments field, or not
-  const payload = data.comments
+  const payload = item.comments
     ? {
-        ...data,
-        ncomments: data.ncomments + totalNComments,
+        ...item,
+        ncomments: item.ncomments + totalNComments,
         comments: {
-          ...data.comments,
-          comments: [injectedComment, ...data.comments.comments]
+          ...item.comments,
+          comments: [injectedComment, ...item.comments.comments]
         }
       }
     // when the fragment doesn't have a comments field, we just update stats fields
     : {
-        ...data,
-        ncomments: data.ncomments + totalNComments
+        ...item,
+        ncomments: item.ncomments + totalNComments
       }
 
   return payload
 }
 
-function cacheNewComments (client, rootId, newComments, sort) {
+function cacheNewComments (cache, rootId, newComments, sort) {
   for (const newComment of newComments) {
     const { parentId } = newComment
     const topLevel = Number(parentId) === Number(rootId)
 
+    // if the comment is a top level comment, update the item, else update the parent comment
     if (topLevel) {
-      // if the comment is a top level comment, update the item
-      const { item } = readItemQuery(client, rootId, sort)
-      const updatedItem = prepareComments(item, client, newComment)
+      const item = readItemQuery(cache, rootId, sort)
+      const updatedItem = prepareComments(item, cache, newComment)
       if (updatedItem) {
-        preserveScroll(() => writeItemQuery(client, rootId, sort, updatedItem))
+        preserveScroll(() => writeItemQuery(cache, rootId, sort, updatedItem))
       }
     } else {
-      // if the comment is a reply, update the parent comment
-      // calculate depth by counting path segments from root to parent
-      const pathSegments = newComment.path.split('.')
-      const rootIndex = pathSegments.indexOf(rootId.toString())
-      const parentIndex = pathSegments.indexOf(parentId.toString())
-
-      // depth is the distance from root to parent in the path
-      const depth = parentIndex - rootIndex
-      // if the comment is too deep, we don't need to update the cache
-      if (depth > COMMENT_DEPTH_LIMIT) return
-
+      // if the comment is too deep, we can skip it
+      const depth = calculateDepth(newComment.path, rootId, parentId)
+      if (depth > COMMENT_DEPTH_LIMIT) continue
       // inject the new comment into the parent comment's comments field
-      const parent = readCommentsFragment(client, parentId)
-      const updatedParent = prepareComments(parent, client, newComment)
+      const parent = readCommentsFragment(cache, parentId)
+      const updatedParent = prepareComments(parent, cache, newComment)
       if (updatedParent) {
-        preserveScroll(() => writeCommentFragment(client, parentId, updatedParent))
+        preserveScroll(() => writeCommentFragment(cache, parentId, updatedParent))
       }
     }
   }
 }
 
 // useLiveComments fetches new comments under an item (rootId),
-// that are newer than the latest comment createdAt (after), and caches them in the cache.
+// that are newer than the latest comment createdAt (after), and injects them into the cache.
 export default function useLiveComments (rootId, after, sort) {
   const latestKey = `liveCommentsLatest:${rootId}`
-  const client = useApolloClient()
+  const { cache } = useApolloClient()
   const [latest, setLatest] = useState(after)
   const [initialized, setInitialized] = useState(false)
 
@@ -127,7 +120,7 @@ export default function useLiveComments (rootId, after, sort) {
     if (!data?.newComments?.comments?.length) return
 
     // directly inject new comments into the cache, preserving scroll position
-    cacheNewComments(client, rootId, data.newComments.comments, sort)
+    cacheNewComments(cache, rootId, data.newComments.comments, sort)
 
     // update latest timestamp to the latest comment created at
     // save it to session storage, to persist between client-side navigations
@@ -136,5 +129,5 @@ export default function useLiveComments (rootId, after, sort) {
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem(latestKey, newLatest)
     }
-  }, [data, client, rootId, sort, latest])
+  }, [data, cache, rootId, sort, latest])
 }

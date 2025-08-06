@@ -17,10 +17,7 @@ import classNames from 'classnames'
 
 const WalletFormsContext = createContext()
 
-export function WalletForms ({ wallet }) {
-  const router = useRouter()
-  const refetch = useCallback(() => router.refresh(), [router])
-
+export function WalletForms ({ wallet, refetch }) {
   return (
     <WalletLayout>
       <div className={styles.form}>

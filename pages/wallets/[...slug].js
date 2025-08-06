@@ -16,9 +16,9 @@ export const getServerSideProps = getGetServerSideProps({ query: WALLET, variabl
 export default function WalletForms ({ ssrData }) {
   const router = useRouter()
   const variables = variablesFunc(router.query)
-  const { data } = useQuery(WALLET, { variables })
+  const { data, refetch } = useQuery(WALLET, { variables })
   const dat = useData(data, ssrData)
 
   const decryptedWallet = useDecryptedWallet(dat?.wallet)
-  return <WalletFormsComponent wallet={decryptedWallet ?? dat?.wallet} />
+  return <WalletFormsComponent wallet={decryptedWallet ?? dat?.wallet} refetch={refetch} />
 }

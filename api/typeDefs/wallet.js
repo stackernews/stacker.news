@@ -1,8 +1,6 @@
 import { gql } from 'graphql-tag'
 
-const sharedSend = 'walletId: ID, templateName: ID, enabled: Boolean!'
-
-const sharedRecv = `${sharedSend}, networkTests: Boolean`
+const shared = 'walletId: ID, templateName: ID, enabled: Boolean!'
 
 const typeDefs = gql`
   extend type Query {
@@ -24,78 +22,76 @@ const typeDefs = gql`
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
     cancelInvoice(hash: String!, hmac: String, userCancel: Boolean): Invoice!
     dropBolt11(hash: String!): Boolean
-    removeWallet(id: ID!): Boolean
-    deleteWalletLogs(protocolId: Int, debug: Boolean): Boolean
-    setWalletPriorities(priorities: [WalletPriorityUpdate!]!): Boolean
     buyCredits(credits: Int!): BuyCreditsPaidAction!
 
+    # upserts
     upsertWalletSendLNbits(
-      ${sharedSend},
+      ${shared},
       url: String!,
       apiKey: VaultEntryInput!
     ): WalletSendLNbits!
 
     upsertWalletRecvLNbits(
-      ${sharedRecv},
+      ${shared},
       url: String!,
       apiKey: String!
     ): WalletRecvLNbits!
 
     upsertWalletSendPhoenixd(
-      ${sharedSend},
+      ${shared},
       url: String!,
       apiKey: VaultEntryInput!
     ): WalletSendPhoenixd!
 
     upsertWalletRecvPhoenixd(
-      ${sharedRecv},
+      ${shared},
       url: String!,
       apiKey: String!
     ): WalletRecvPhoenixd!
 
     upsertWalletSendBlink(
-      ${sharedSend},
+      ${shared},
       currency: VaultEntryInput!,
       apiKey: VaultEntryInput!
     ): WalletSendBlink!
 
     upsertWalletRecvBlink(
-      ${sharedRecv},
+      ${shared},
       currency: String!,
       apiKey: String!
     ): WalletRecvBlink!
 
     upsertWalletRecvLightningAddress(
-      ${sharedRecv},
+      ${shared},
       address: String!
     ): WalletRecvLightningAddress!
 
     upsertWalletSendNWC(
-      ${sharedSend},
+      ${shared},
       url: VaultEntryInput!
     ): WalletSendNWC!
 
     upsertWalletRecvNWC(
-      ${sharedRecv},
+      ${shared},
       url: String!
     ): WalletRecvNWC!
 
     upsertWalletRecvCLNRest(
-      ${sharedRecv},
+      ${shared},
       socket: String!,
       rune: String!,
       cert: String
     ): WalletRecvCLNRest!
 
     upsertWalletRecvLNDGRPC(
-      ${sharedRecv},
+      ${shared},
       socket: String!,
       macaroon: String!,
       cert: String
     ): WalletRecvLNDGRPC!
 
     upsertWalletSendLNC(
-      ${sharedSend},
+      ${shared},
       pairingPhrase: VaultEntryInput!,
       localKey: VaultEntryInput!,
       remoteKey: VaultEntryInput!,
@@ -103,16 +99,62 @@ const typeDefs = gql`
     ): WalletSendLNC!
 
     upsertWalletSendWebLN(
-      ${sharedSend}
+      ${shared}
     ): WalletSendWebLN!
 
+    # tests
+    testWalletRecvNWC(
+      url: String!
+    ): Boolean!
+
+    testWalletRecvLightningAddress(
+      address: String!
+    ): Boolean!
+
+    testWalletRecvCLNRest(
+      socket: String!,
+      rune: String!,
+      cert: String
+    ): Boolean!
+
+    testWalletRecvLNDGRPC(
+      socket: String!,
+      macaroon: String!,
+      cert: String
+    ): Boolean!
+
+    testWalletRecvPhoenixd(
+      url: String!
+      apiKey: String!
+    ): Boolean!
+
+    testWalletRecvLNbits(
+      url: String!
+      apiKey: String!
+    ): Boolean!
+
+    testWalletRecvBlink(
+      currency: String!
+      apiKey: String!
+    ): Boolean!
+
+    # delete
+    removeWallet(id: ID!): Boolean
     removeWalletProtocol(id: ID!): Boolean
+
+    # crypto
     updateWalletEncryption(keyHash: String!, wallets: [WalletEncryptionUpdate!]!): Boolean
     updateKeyHash(keyHash: String!): Boolean
     resetWallets(newKeyHash: String!): Boolean
     disablePassphraseExport: Boolean
+
+    # settings
     setWalletSettings(settings: WalletSettingsInput!): Boolean
+    setWalletPriorities(priorities: [WalletPriorityUpdate!]!): Boolean
+
+    # logs
     addWalletLog(protocolId: Int, level: String!, message: String!, timestamp: Date!, invoiceId: Int): Boolean
+    deleteWalletLogs(protocolId: Int, debug: Boolean): Boolean
   }
 
   type BuyCreditsResult {

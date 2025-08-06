@@ -1506,7 +1506,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     item = { subName, ...item }
     item.forwardUsers = await getForwardUsers(models, forward)
   }
-  item.uploadIds = uploadIdsFromText(item.text, { models })
+  item.uploadIds = uploadIdsFromText(item.text)
 
   // never change author of item
   item.userId = old.userId
@@ -1525,7 +1525,7 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
   item.userId = me ? Number(me.id) : USER_ID.anon
 
   item.forwardUsers = await getForwardUsers(models, forward)
-  item.uploadIds = uploadIdsFromText(item.text, { models })
+  item.uploadIds = uploadIdsFromText(item.text)
 
   if (item.url && !isJob(item)) {
     item.url = ensureProtocol(item.url)

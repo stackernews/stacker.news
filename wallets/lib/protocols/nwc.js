@@ -32,7 +32,7 @@ export default [
         name: 'url',
         label: 'url',
         placeholder: 'nostr+walletconnect://',
-        type: 'text',
+        type: 'password',
         required: true,
         validate: nwcUrlValidator()
       }

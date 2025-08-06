@@ -1,13 +1,8 @@
 import { gql } from '@apollo/client'
 
-const sharedSend = {
+const shared = {
   variables: '$walletId: ID, $templateName: ID, $enabled: Boolean!',
   arguments: 'walletId: $walletId, templateName: $templateName, enabled: $enabled'
-}
-
-const sharedRecv = {
-  variables: `${sharedSend.variables}, $networkTests: Boolean`,
-  arguments: `${sharedSend.arguments}, networkTests: $networkTests`
 }
 
 export const REMOVE_WALLET_PROTOCOL = gql`
@@ -16,14 +11,16 @@ export const REMOVE_WALLET_PROTOCOL = gql`
   }
 `
 
+// upserts
+
 export const UPSERT_WALLET_SEND_LNBITS = gql`
   mutation upsertWalletSendLNbits(
-    ${sharedSend.variables},
+    ${shared.variables},
     $url: String!,
     $apiKey: VaultEntryInput!
   ) {
     upsertWalletSendLNbits(
-      ${sharedSend.arguments}
+      ${shared.arguments}
       url: $url,
       apiKey: $apiKey
     ) {
@@ -34,12 +31,12 @@ export const UPSERT_WALLET_SEND_LNBITS = gql`
 
 export const UPSERT_WALLET_RECEIVE_LNBITS = gql`
   mutation upsertWalletRecvLNbits(
-    ${sharedRecv.variables},
+    ${shared.variables},
     $url: String!,
     $apiKey: String!
   ) {
     upsertWalletRecvLNbits(
-      ${sharedRecv.arguments},
+      ${shared.arguments},
       url: $url,
       apiKey: $apiKey
     ) {
@@ -50,12 +47,12 @@ export const UPSERT_WALLET_RECEIVE_LNBITS = gql`
 
 export const UPSERT_WALLET_SEND_PHOENIXD = gql`
   mutation upsertWalletSendPhoenixd(
-    ${sharedSend.variables},
+    ${shared.variables},
     $url: String!,
     $apiKey: VaultEntryInput!
   ) {
     upsertWalletSendPhoenixd(
-      ${sharedSend.arguments},
+      ${shared.arguments},
       url: $url,
       apiKey: $apiKey
     ) {
@@ -66,12 +63,12 @@ export const UPSERT_WALLET_SEND_PHOENIXD = gql`
 
 export const UPSERT_WALLET_RECEIVE_PHOENIXD = gql`
   mutation upsertWalletRecvPhoenixd(
-    ${sharedRecv.variables},
+    ${shared.variables},
     $url: String!,
     $apiKey: String!
   ) {
     upsertWalletRecvPhoenixd(
-      ${sharedRecv.arguments},
+      ${shared.arguments},
       url: $url,
       apiKey: $apiKey
     ) {
@@ -82,12 +79,12 @@ export const UPSERT_WALLET_RECEIVE_PHOENIXD = gql`
 
 export const UPSERT_WALLET_SEND_BLINK = gql`
   mutation upsertWalletSendBlink(
-    ${sharedSend.variables},
+    ${shared.variables},
     $currency: VaultEntryInput!,
     $apiKey: VaultEntryInput!
   ) {
     upsertWalletSendBlink(
-      ${sharedSend.arguments},
+      ${shared.arguments},
       currency: $currency,
       apiKey: $apiKey
     ) {
@@ -98,12 +95,12 @@ export const UPSERT_WALLET_SEND_BLINK = gql`
 
 export const UPSERT_WALLET_RECEIVE_BLINK = gql`
   mutation upsertWalletRecvBlink(
-    ${sharedRecv.variables},
+    ${shared.variables},
     $currency: String!,
     $apiKey: String!
   ) {
     upsertWalletRecvBlink(
-      ${sharedRecv.arguments},
+      ${shared.arguments},
       currency: $currency,
       apiKey: $apiKey
     ) {
@@ -114,11 +111,11 @@ export const UPSERT_WALLET_RECEIVE_BLINK = gql`
 
 export const UPSERT_WALLET_RECEIVE_LIGHTNING_ADDRESS = gql`
   mutation upsertWalletRecvLightningAddress(
-    ${sharedRecv.variables},
+    ${shared.variables},
     $address: String!
   ) {
     upsertWalletRecvLightningAddress(
-      ${sharedRecv.arguments},
+      ${shared.arguments},
       address: $address
     ) {
       id
@@ -128,11 +125,11 @@ export const UPSERT_WALLET_RECEIVE_LIGHTNING_ADDRESS = gql`
 
 export const UPSERT_WALLET_SEND_NWC = gql`
   mutation upsertWalletSendNWC(
-    ${sharedSend.variables},
+    ${shared.variables},
     $url: VaultEntryInput!
   ) {
     upsertWalletSendNWC(
-      ${sharedSend.arguments},
+      ${shared.arguments},
       url: $url
     ) {
       id
@@ -142,11 +139,11 @@ export const UPSERT_WALLET_SEND_NWC = gql`
 
 export const UPSERT_WALLET_RECEIVE_NWC = gql`
   mutation upsertWalletRecvNWC(
-    ${sharedRecv.variables},
+    ${shared.variables},
     $url: String!
   ) {
     upsertWalletRecvNWC(
-      ${sharedRecv.arguments},
+      ${shared.arguments},
       url: $url
     ) {
       id
@@ -156,13 +153,13 @@ export const UPSERT_WALLET_RECEIVE_NWC = gql`
 
 export const UPSERT_WALLET_RECEIVE_CLN_REST = gql`
   mutation upsertWalletRecvCLNRest(
-    ${sharedRecv.variables},
+    ${shared.variables},
     $socket: String!,
     $rune: String!,
     $cert: String
   ) {
     upsertWalletRecvCLNRest(
-      ${sharedRecv.arguments},
+      ${shared.arguments},
       socket: $socket,
       rune: $rune,
       cert: $cert
@@ -172,15 +169,15 @@ export const UPSERT_WALLET_RECEIVE_CLN_REST = gql`
   }
 `
 
-export const UPSERT_WALLET_RECEIVE_LNDGRPC = gql`
+export const UPSERT_WALLET_RECEIVE_LND_GRPC = gql`
   mutation upsertWalletRecvLNDGRPC(
-    ${sharedRecv.variables},
+    ${shared.variables},
     $socket: String!,
     $macaroon: String!,
     $cert: String
   ) {
     upsertWalletRecvLNDGRPC(
-      ${sharedRecv.arguments},
+      ${shared.arguments},
       socket: $socket,
       macaroon: $macaroon,
       cert: $cert
@@ -192,14 +189,14 @@ export const UPSERT_WALLET_RECEIVE_LNDGRPC = gql`
 
 export const UPSERT_WALLET_SEND_LNC = gql`
   mutation upsertWalletSendLNC(
-    ${sharedSend.variables},
+    ${shared.variables},
     $pairingPhrase: VaultEntryInput!,
     $localKey: VaultEntryInput!,
     $remoteKey: VaultEntryInput!,
     $serverHost: VaultEntryInput!
   ) {
     upsertWalletSendLNC(
-      ${sharedSend.arguments},
+      ${shared.arguments},
       pairingPhrase: $pairingPhrase,
       localKey: $localKey,
       remoteKey: $remoteKey,
@@ -212,12 +209,56 @@ export const UPSERT_WALLET_SEND_LNC = gql`
 
 export const UPSERT_WALLET_SEND_WEBLN = gql`
   mutation upsertWalletSendWebLN(
-    ${sharedSend.variables}
+    ${shared.variables}
   ) {
     upsertWalletSendWebLN(
-      ${sharedSend.arguments}
+      ${shared.arguments}
     ) {
       id
     }
+  }
+`
+
+// tests
+
+export const TEST_WALLET_RECEIVE_NWC = gql`
+  mutation testWalletRecvNWC($url: String!) {
+    testWalletRecvNWC(url: $url)
+  }
+`
+
+export const TEST_WALLET_RECEIVE_LIGHTNING_ADDRESS = gql`
+  mutation testWalletRecvLightningAddress($address: String!) {
+    testWalletRecvLightningAddress(address: $address)
+  }
+`
+
+export const TEST_WALLET_RECEIVE_CLN_REST = gql`
+  mutation testWalletRecvCLNRest($socket: String!, $rune: String!, $cert: String) {
+    testWalletRecvCLNRest(socket: $socket, rune: $rune, cert: $cert)
+  }
+`
+
+export const TEST_WALLET_RECEIVE_LND_GRPC = gql`
+  mutation testWalletRecvLNDGRPC($socket: String!, $macaroon: String!, $cert: String) {
+    testWalletRecvLNDGRPC(socket: $socket, macaroon: $macaroon, cert: $cert)
+  }
+`
+
+export const TEST_WALLET_RECEIVE_PHOENIXD = gql`
+  mutation testWalletRecvPhoenixd($url: String!, $apiKey: String!) {
+    testWalletRecvPhoenixd(url: $url, apiKey: $apiKey)
+  }
+`
+
+export const TEST_WALLET_RECEIVE_LNBITS = gql`
+  mutation testWalletRecvLNbits($url: String!, $apiKey: String!) {
+    testWalletRecvLNbits(url: $url, apiKey: $apiKey)
+  }
+`
+
+export const TEST_WALLET_RECEIVE_BLINK = gql`
+  mutation testWalletRecvBlink($currency: String!, $apiKey: String!) {
+    testWalletRecvBlink(currency: $currency, apiKey: $apiKey)
   }
 `

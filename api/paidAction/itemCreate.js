@@ -3,6 +3,7 @@ import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySub
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
+import { throwOnExpiredUploads } from '@/api/resolvers/upload'
 
 export const anonable = true
 
@@ -61,15 +62,7 @@ export async function perform (args, context) {
   const { tx, me, cost } = context
   const boostMsats = satsToMsats(boost)
 
-  const deletedUploads = []
-  for (const uploadId of uploadIds) {
-    if (!await tx.upload.findUnique({ where: { id: uploadId } })) {
-      deletedUploads.push(uploadId)
-    }
-  }
-  if (deletedUploads.length > 0) {
-    throw new Error(`upload(s) ${deletedUploads.join(', ')} are expired, consider reuploading.`)
-  }
+  await throwOnExpiredUploads(uploadIds, { tx })
 
   let invoiceData = {}
   if (invoiceId) {

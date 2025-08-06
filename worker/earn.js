@@ -190,7 +190,7 @@ function earnStmts (data, { models }) {
     })]
 }
 
-const DAILY_STIMULUS_SATS = 50_000
+const DAILY_STIMULUS_SATS = 25_000
 export async function earnRefill ({ models, lnd }) {
   return await performPaidAction('DONATE',
     { sats: DAILY_STIMULUS_SATS },

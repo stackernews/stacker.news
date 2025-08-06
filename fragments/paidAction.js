@@ -1,5 +1,5 @@
 import gql from 'graphql-tag'
-import { COMMENTS } from './comments'
+import { COMMENTS, COMMENT_FIELDS_NO_CHILD_COMMENTS } from './comments'
 import { SUB_FULL_FIELDS } from './subs'
 import { INVOICE_FIELDS } from './invoice'
 
@@ -33,13 +33,13 @@ const ITEM_PAID_ACTION_FIELDS = gql`
   }`
 
 const ITEM_PAID_ACTION_FIELDS_NO_CHILD_COMMENTS = gql`
-  ${COMMENTS}
+  ${COMMENT_FIELDS_NO_CHILD_COMMENTS}
   fragment ItemPaidActionFieldsNoChildComments on ItemPaidAction {
     result {
       id
       deleteScheduledAt
       reminderScheduledAt
-      ...CommentFields
+      ...CommentFieldsNoChildComments
     }
   }
 `

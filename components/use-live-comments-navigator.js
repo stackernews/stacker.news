@@ -7,7 +7,7 @@ import { useRouter } from 'next/router'
 // TODO: mega cleanup after solid decision on design pattern
 export function useLiveCommentsNavigator () {
   const router = useRouter()
-  const { hasNewComments, setHasNewComments } = useFavicon()
+  const { setHasNewComments } = useFavicon()
   const [commentRefs, setCommentRefs] = useState([])
 
   // clear the list of refs and resets favicon
@@ -16,14 +16,25 @@ export function useLiveCommentsNavigator () {
     setCommentRefs([])
 
     // reset favicon
-    if (hasNewComments) {
-      setHasNewComments(false)
+    setHasNewComments(false)
+  }, [setHasNewComments])
+
+  // reset navigator on route changes
+  useEffect(() => {
+    const clearOnRouteChange = () => {
+      clearCommentRefs()
     }
-  }, [hasNewComments, setHasNewComments])
+
+    router.events.on('routeChangeStart', clearOnRouteChange)
+    return () => router.events.off('routeChangeStart', clearOnRouteChange)
+  }, [clearCommentRefs, router.events])
 
   // add a new comment ref to the list
   const trackNewComment = useCallback((commentRef) => {
     if (!commentRef?.current) return
+
+    // set the new comments favicon
+    setHasNewComments(true)
 
     // requestAnimationFrame to ensure the DOM is updated before checking if the comment is visible
     window.requestAnimationFrame(() => {
@@ -49,11 +60,14 @@ export function useLiveCommentsNavigator () {
   // remove a comment ref from the list
   const unTrackNewComment = useCallback((commentRef) => {
     // no need to untrack if there are no new comments
-    if (!commentRef?.current || commentRefs.length === 0) return
+    if (!commentRef?.current) return
+
+    // reset the new comments favicon
+    setHasNewComments(false)
 
     // remove the ref from the list
     setCommentRefs(prev => prev.filter(ref => ref.current !== commentRef.current))
-  }, [commentRefs.length])
+  }, [])
 
   const scrollToComment = useCallback(() => {
     if (commentRefs.length === 0) return
@@ -93,16 +107,6 @@ export function useLiveCommentsNavigator () {
     }
   }, [commentRefs, clearCommentRefs, unTrackNewComment])
 
-  // reset navigator on route changes
-  useEffect(() => {
-    const clearOnRouteChange = () => {
-      clearCommentRefs()
-    }
-
-    router.events.on('routeChangeStart', clearOnRouteChange)
-    return () => router.events.off('routeChangeStart', clearOnRouteChange)
-  }, [clearCommentRefs, router.events])
-
   return {
     trackNewComment,
     unTrackNewComment,
@@ -119,20 +123,17 @@ export function LiveCommentsNavigator ({ navigator }) {
   return (
     <span className={`${styles.commentNavigator} fw-bold`}>
       <span>{commentCount} new comment{commentCount > 1 ? 's' : ''}</span>
-      {/* hover on buttons makes them more visible */}
-      <div className='d-flex align-items-center justify-content-center gap-1 pb-1'>
-        <span
-          onClick={() => scrollToComment()}
-          disabled={commentCount === 0}
-          className={`${styles.navigatorButton} ${commentCount === 0 ? styles.disabled : ''}`}
-        >
-          <ArrowRight width={24} height={24} className={styles.navigatorButton} />
-        </span>
-      </div>
+      <span
+        onClick={() => scrollToComment()}
+        disabled={commentCount === 0}
+        className={`${styles.navigatorButton} ${commentCount === 0 ? styles.disabled : ''}`}
+      >
+        <ArrowRight width={24} height={24} className={styles.navigatorButton} />
+      </span>
       <span
         aria-label='close'
         onClick={clearCommentRefs}
-        className={`${styles.closeButton} p-0 px-2`}
+        className={`${styles.closeButton}`}
       >
         X
       </span>

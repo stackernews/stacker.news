@@ -169,41 +169,41 @@
   to { opacity: 1; }
 }
 
-/* comment navigator, clean this up */
+/* comment navigator */
 .commentNavigator {
     position: fixed;
-    bottom: 0;
-    right: 0;
+    bottom: 1rem;
+    right: 1rem;
     z-index: 1050;
     background-color: var(--bs-info);
     padding: 0.5rem;
-    margin-bottom: 1rem;
-    margin-right: 1rem;
     border-radius: 0.4rem;
     box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
     animation: slideUp 0.3s ease-out;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 0.4rem;
     opacity: 0.8;
     color: #fff;
+    transition: opacity 0.3s ease-in-out;
+    justify-content: center;
 }
+
+.commentNavigator:hover {
+    opacity: 1;
+}
+
 
 .navigatorButton {
     width: 24px;
     height: 24px;
-    padding: 0;
     cursor: pointer;
     fill: rgba(255, 255, 255, 0.55);
+    vertical-align: 0;
 }
 
 .navigatorButton:hover {
     fill: rgba(255, 255, 255, 0.75);
-}
-
-.navigatorButton.disabled {
-    cursor: not-allowed;
 }
 
 .closeButton {
@@ -215,22 +215,14 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-  }
+    padding-right: 0.25rem;
+}
 
 .closeButton:hover {
     color: rgba(255, 255, 255, 0.75);
 }
 
-.commentNavigator:hover {
-    opacity: 1;
-    transition: opacity 0.3s ease-in-out;
-}
-
 @keyframes slideUp {
-    0% {
-        transform: translateY(100%);
-    }
-    100% {
-        transform: translateY(0);
-    }
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
 }

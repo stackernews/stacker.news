@@ -28,7 +28,6 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
-import { useFavicon } from './favicon'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -112,7 +111,6 @@ export default function Comment ({
   const ref = useRef(null)
   const router = useRouter()
   const root = useRoot()
-  const { setHasNewComments, hasNewComments } = useFavicon()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
   const { cache } = useApolloClient()
@@ -127,10 +125,6 @@ export default function Comment ({
       ref.current.classList.add('outline-new-comment-unset')
       // untrack the new comment
       navigator.unTrackNewComment(ref)
-      // reset the new comments favicon
-      if (hasNewComments) {
-        setHasNewComments(false)
-      }
     }
   }
 
@@ -181,11 +175,6 @@ export default function Comment ({
       ref.current.classList.add(styles.injectedComment)
     } else {
       ref.current.classList.add('outline-new-comment')
-    }
-
-    // set the new comments favicon
-    if (!hasNewComments) {
-      setHasNewComments(true)
     }
 
     navigator.trackNewComment(ref)

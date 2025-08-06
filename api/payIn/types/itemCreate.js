@@ -181,7 +181,7 @@ export async function onBegin (tx, payInId, args) {
 
   await performBotBehavior(tx, { ...item, userId: payIn.userId })
 
-  return getItemResult(tx, { id: item.id })
+  return await getItemResult(tx, { id: item.id })
 }
 
 // TODO: caller of onRetry needs to update beneficiaries
@@ -262,5 +262,5 @@ export async function onPaidSideEffects (models, payInId) {
 
 export async function describe (models, payInId, { me }) {
   const item = await models.item.findUnique({ where: { payInId } })
-  return `SN: create ${item.parentId ? `reply to #${item.parentId}` : 'item'}`
+  return `SN: create ${item.parentId ? `reply #${item.id} to #${item.parentId}` : `post #${item.id}`}`
 }

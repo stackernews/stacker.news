@@ -180,5 +180,5 @@ export async function onPaidSideEffects (models, payInId) {
 
 export async function describe (models, payInId) {
   const { item } = await models.itemPayIn.findUnique({ where: { payInId }, include: { item: true } })
-  return `SN: update ${item.parentId ? `reply to #${item.parentId}` : 'post'}`
+  return `SN: update ${item.parentId ? `reply #${item.id} to #${item.parentId}` : `post #${item.id}`}`
 }

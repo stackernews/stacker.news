@@ -61,6 +61,52 @@ export const COMMENT_FIELDS = gql`
   }
 `
 
+export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
+  ${STREAK_FIELDS}
+  fragment CommentFieldsNoChildComments on Item {
+    id
+    position
+    parentId
+    createdAt
+    invoicePaidAt
+    deletedAt
+    text
+    user {
+      id
+      name
+      meMute
+      ...StreakFields
+    }
+    sats
+    credits
+    meAnonSats @client
+    upvotes
+    freedFreebie
+    boost
+    meSats
+    meCredits
+    meDontLikeSats
+    meBookmark
+    meSubscription
+    outlawed
+    freebie
+    path
+    commentSats
+    commentCredits
+    mine
+    otsHash
+    imgproxyUrls
+    rel
+    apiKey
+    invoice {
+      id
+      actionState
+      confirmedAt
+    }
+    cost
+  }
+`
+
 export const COMMENTS_ITEM_EXT_FIELDS = gql`
   ${STREAK_FIELDS}
   fragment CommentItemExtFields on Item {

@@ -116,7 +116,8 @@ function WalletProtocolSelector () {
 
   useEffect(() => {
     if (!selected && protocols.length > 0) {
-      router.replace(`/${path}/${urlify(protocols[0].name)}`, null, { shallow: true })
+      // TODO: why does this need shallow: false since SSR?
+      router.replace(`/${path}/${urlify(protocols[0].name)}`, null, { shallow: false })
     }
   }, [path])
 

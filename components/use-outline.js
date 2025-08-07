@@ -7,6 +7,7 @@ import styles from './comment.module.css'
 export function useOutline ({ ref, navigator }) {
   const setOutline = useCallback((item) => {
     if (!ref.current) return
+    navigator.trackNewComment(ref)
 
     if (item.injected) {
       // newly injected comments (item.injected) have to use a different class to outline every new comment
@@ -22,10 +23,6 @@ export function useOutline ({ ref, navigator }) {
       ref.current.classList.add('outline-new-comment')
       return () => ref.current.classList.remove('outline-new-comment')
     }
-
-    console.log('track new comment', ref.current)
-
-    navigator.trackNewComment(ref)
   }, [ref])
 
   const unsetOutline = useCallback(() => {
@@ -36,9 +33,9 @@ export function useOutline ({ ref, navigator }) {
     const hasOutlineUnset = ref.current.classList.contains('outline-new-comment-unset')
 
     if (hasOutline && !hasOutlineUnset) {
-      ref.current.classList.add('outline-new-comment-unset')
       // untrack the new comment
       navigator.unTrackNewComment(ref)
+      ref.current.classList.add('outline-new-comment-unset')
     }
   }, [ref])
 

@@ -8,7 +8,7 @@ import {
   readItemQuery,
   writeItemQuery,
   readCommentsFragment,
-  writeCommentFragment,
+  updateCommentFragment,
   getLatestCommentCreatedAt,
   updateAncestorsCommentCount,
   calculateDepth
@@ -78,7 +78,7 @@ function cacheNewComments (cache, rootId, newComments, sort) {
       const parent = readCommentsFragment(cache, parentId)
       const updatedParent = prepareComments(parent, cache, newComment)
       if (updatedParent) {
-        preserveScroll(() => writeCommentFragment(cache, parentId, updatedParent))
+        preserveScroll(() => updateCommentFragment(cache, parentId, updatedParent))
       }
     }
   }

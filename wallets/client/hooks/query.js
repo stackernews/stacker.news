@@ -1,5 +1,4 @@
 import {
-  WALLET,
   UPSERT_WALLET_RECEIVE_BLINK,
   UPSERT_WALLET_RECEIVE_CLN_REST,
   UPSERT_WALLET_RECEIVE_LIGHTNING_ADDRESS,
@@ -123,31 +122,6 @@ function useRefetchOnChange (refetch) {
 
     refetch()
   }, [refetch, me?.id, walletsUpdatedAt])
-}
-
-export function useWalletQuery ({ id, name }) {
-  const { me } = useMe()
-  const query = useQuery(WALLET, { variables: { id, name }, skip: !me })
-  const [wallet, setWallet] = useState(null)
-
-  const { decryptWallet, ready } = useWalletDecryption()
-
-  useEffect(() => {
-    if (!query.data?.wallet || !ready) return
-    decryptWallet(query.data?.wallet)
-      .then(protocolCheck)
-      .then(undoFieldAlias)
-      .then(wallet => setWallet(wallet))
-      .catch(err => {
-        console.error('failed to decrypt wallet:', err)
-      })
-  }, [query.data, decryptWallet, ready])
-
-  return useMemo(() => ({
-    ...query,
-    loading: !wallet,
-    data: wallet ? { wallet } : null
-  }), [query, wallet])
 }
 
 export function useDecryptedWallet (wallet) {

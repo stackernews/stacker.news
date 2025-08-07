@@ -50,15 +50,15 @@ export function WalletDebugSettings () {
       <div className='text-end'>{remoteKeyHash ? shortHash(remoteKeyHash) : 'unknown'}</div>
       <div className='text-nowrap'>device key update:</div>
       <div className='text-end' suppressHydrationWarning>
-        {localKeyUpdatedAt ? `${timeSince(localKeyUpdatedAt)} ago` : 'unknown'}
+        {localKeyUpdatedAt ? `${timeSince(new Date(localKeyUpdatedAt))} ago` : 'unknown'}
       </div>
       <div className='text-nowrap'>server key update:</div>
       <div className='text-end' suppressHydrationWarning>
-        {remoteKeyHashUpdatedAt ? `${timeSince(new Date(remoteKeyHashUpdatedAt).getTime())} ago` : 'unknown'}
+        {remoteKeyHashUpdatedAt ? `${timeSince(new Date(remoteKeyHashUpdatedAt))} ago` : 'unknown'}
       </div>
       <div className='text-nowrap'>wallet update:</div>
       <div className='text-end' suppressHydrationWarning>
-        {walletsUpdatedAt ? `${timeSince(new Date(walletsUpdatedAt).getTime())} ago` : 'unknown'}
+        {walletsUpdatedAt ? `${timeSince(new Date(walletsUpdatedAt))} ago` : 'unknown'}
       </div>
       <div className='text-nowrap'>diagnostics:</div>
       {/* not using Formik here because we want to submit immediately on change */}

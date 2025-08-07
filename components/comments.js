@@ -70,11 +70,11 @@ export default function Comments ({
 }) {
   const router = useRouter()
 
-  // navigator tracks new comments and provides controls for navigating to them
-  const navigator = useNewCommentsNavigator()
-
   // fetch new comments that arrived after the lastCommentAt, and update the item.comments field in cache
   useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort)
+
+  // navigator tracks new comments and provides controls for navigating to them
+  const navigator = useNewCommentsNavigator()
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
 

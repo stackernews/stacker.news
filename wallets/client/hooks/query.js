@@ -54,8 +54,7 @@ export function useWalletsQuery () {
     Promise.all(
       query.data?.wallets.map(w => decryptWallet(w))
     )
-      .then(wallets => wallets.map(protocolCheck))
-      .then(wallets => wallets.map(undoFieldAlias))
+      .then(wallets => wallets.map(server2Client))
       .then(wallets => {
         setWallets(wallets)
         setError(null)
@@ -78,41 +77,6 @@ export function useWalletsQuery () {
   }), [query, error, wallets])
 }
 
-function protocolCheck (wallet) {
-  if (isTemplate(wallet)) return wallet
-
-  const protocols = wallet.protocols.map(protocol => {
-    return {
-      ...protocol,
-      enabled: protocol.enabled && protocolAvailable(protocol)
-    }
-  })
-
-  const sendEnabled = protocols.some(p => p.send && p.enabled)
-  const receiveEnabled = protocols.some(p => !p.send && p.enabled)
-
-  return {
-    ...wallet,
-    send: !sendEnabled ? WalletStatus.DISABLED : wallet.send,
-    receive: !receiveEnabled ? WalletStatus.DISABLED : wallet.receive,
-    protocols
-  }
-}
-
-function undoFieldAlias ({ id, ...wallet }) {
-  // Just like for encrypted fields, we have to use a field alias for the name field of templates
-  // because of https://github.com/graphql/graphql-js/issues/53.
-  // We undo this here so this only affects the GraphQL layer but not the rest of the code.
-  if (isTemplate(wallet)) {
-    return { ...wallet, name: id }
-  }
-
-  if (!wallet.template) return wallet
-
-  const { id: templateId, ...template } = wallet.template
-  return { id, ...wallet, template: { name: templateId, ...template } }
-}
-
 function useRefetchOnChange (refetch) {
   const { me } = useMe()
   const walletsUpdatedAt = useWalletsUpdatedAt()
@@ -126,13 +90,12 @@ function useRefetchOnChange (refetch) {
 
 export function useDecryptedWallet (wallet) {
   const { decryptWallet, ready } = useWalletDecryption()
-  const [decryptedWallet, setDecryptedWallet] = useState(undoFieldAlias(wallet))
+  const [decryptedWallet, setDecryptedWallet] = useState(server2Client(wallet))
 
   useEffect(() => {
     if (!ready || !wallet) return
     decryptWallet(wallet)
-      .then(protocolCheck)
-      .then(undoFieldAlias)
+      .then(server2Client)
       .then(wallet => setDecryptedWallet(wallet))
       .catch(err => {
         console.error('failed to decrypt wallet:', err)
@@ -140,6 +103,47 @@ export function useDecryptedWallet (wallet) {
   }, [decryptWallet, wallet, ready])
 
   return decryptedWallet
+}
+
+function server2Client (wallet) {
+  // some protocols require a specific client environment
+  // e.g. WebLN requires a browser extension
+  function checkProtocolAvailability (wallet) {
+    if (isTemplate(wallet)) return wallet
+
+    const protocols = wallet.protocols.map(protocol => {
+      return {
+        ...protocol,
+        enabled: protocol.enabled && protocolAvailable(protocol)
+      }
+    })
+
+    const sendEnabled = protocols.some(p => p.send && p.enabled)
+    const receiveEnabled = protocols.some(p => !p.send && p.enabled)
+
+    return {
+      ...wallet,
+      send: !sendEnabled ? WalletStatus.DISABLED : wallet.send,
+      receive: !receiveEnabled ? WalletStatus.DISABLED : wallet.receive,
+      protocols
+    }
+  }
+
+  // Just like for encrypted fields, we have to use a field alias for the name field of templates
+  // because of https://github.com/graphql/graphql-js/issues/53.
+  // We undo this here so this only affects the GraphQL layer but not the rest of the code.
+  function undoFieldAlias ({ id, ...wallet }) {
+    if (isTemplate(wallet)) {
+      return { ...wallet, name: id }
+    }
+
+    if (!wallet.template) return wallet
+
+    const { id: templateId, ...template } = wallet.template
+    return { id, ...wallet, template: { name: templateId, ...template } }
+  }
+
+  return undoFieldAlias(checkProtocolAvailability(wallet))
 }
 
 export function useWalletProtocolUpsert (wallet, protocol) {

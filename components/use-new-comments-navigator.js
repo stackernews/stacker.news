@@ -30,30 +30,36 @@ export function useNewCommentsNavigator () {
 
   // add a new comment ref to the list
   const trackNewComment = useCallback((commentRef) => {
-    if (!commentRef?.current) return
-
     // set new comments favicon
     setHasNewComments(true)
 
-    // requestAnimationFrame to ensure the DOM is updated before checking if the comment is visible
-    window.requestAnimationFrame(() => {
-      // track this new comment if it's not visible in the viewport
-      const rect = commentRef.current.getBoundingClientRect()
-      const viewportHeight = window.innerHeight || document.documentElement.clientHeight
-      const viewportWidth = window.innerWidth || document.documentElement.clientWidth
+    try {
+      // requestAnimationFrame to ensure the DOM is updated before checking if the comment is visible
+      window.requestAnimationFrame(() => {
+        // if the ref is not connected to the DOM, silently bail
+        // can happen if the comment has been unmounted
+        if (!commentRef?.current || !commentRef.current.isConnected) return
 
-      const isVisible = rect.top >= 0 &&
-                        rect.left >= 0 &&
-                        rect.bottom <= viewportHeight &&
-                        rect.right <= viewportWidth
+        // track this new comment if it's not visible in the viewport
+        const rect = commentRef.current.getBoundingClientRect()
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth
 
-      if (isVisible) return
+        const isVisible = rect.top >= 0 &&
+                          rect.left >= 0 &&
+                          rect.bottom <= viewportHeight &&
+                          rect.right <= viewportWidth
 
-      // dedupe and store the ref
-      setCommentRefs(prev => (
-        prev.some(ref => ref.current === commentRef.current) ? prev : [...prev, commentRef]
-      ))
-    })
+        if (isVisible) return
+
+        // dedupe and store the ref
+        setCommentRefs(prev => (
+          prev.some(ref => ref.current === commentRef.current) ? prev : [...prev, commentRef]
+        ))
+      })
+    } catch (error) {
+      console.warn('failed to get dimensions of a comment')
+    }
   }, [])
 
   // remove a comment ref from the list

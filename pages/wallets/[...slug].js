@@ -16,6 +16,10 @@ export const getServerSideProps = getGetServerSideProps({ query: WALLET, variabl
 export default function WalletForms ({ ssrData }) {
   const router = useRouter()
   const variables = variablesFunc(router.query)
+  // this will print the following warning in the console:
+  //   Warning: fragment with name WalletTemplateFields already exists.
+  //   graphql-tag enforces all fragment names across your application to be unique
+  // this is not a problem because the warning is only meant to avoid overwriting fragments but we're reusing it
   const { data, refetch } = useQuery(WALLET, { variables })
   const dat = useData(data, ssrData)
 

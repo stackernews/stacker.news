@@ -62,7 +62,7 @@ export function usePayInMutation (mutation, options) {
           onCompleted?.(data)
           onPaid?.(client.cache, { data })
         } catch (e) {
-          console.error('usePaidMutation: failed to pay for pessimistic mutation', mutationName, e)
+          console.error('usePayInMutation: failed to pay for pessimistic mutation', mutationName, e)
           onPayError?.(e, client.cache, { data })
           payError = e
         }
@@ -74,7 +74,7 @@ export function usePayInMutation (mutation, options) {
           // invoice might have been retried during payment
           onPaid?.(client.cache, { data: { [mutationName]: paidPayIn } })
         }).catch(e => {
-          console.error('usePaidMutation: failed to pay for optimistic mutation', mutationName, e)
+          console.error('usePayInMutation: failed to pay for optimistic mutation', mutationName, e)
           // onPayError is called after the invoice fails to pay
           // useful for updating invoiceActionState to FAILED
           onPayError?.(e, client.cache, { data })

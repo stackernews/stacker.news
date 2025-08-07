@@ -193,7 +193,6 @@ export async function onPaid (tx, payInId) {
     if (!payOut.userId) {
       continue
     }
-    console.log('payOut', payOut)
 
     await tx.$queryRaw`
       WITH outuser AS (

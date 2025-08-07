@@ -8,12 +8,13 @@ import { amountSchema, boostSchema } from '@/lib/validate'
 import { useToast } from './toast'
 import { nextTip, defaultTipIncludingRandom } from './upvote'
 import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
-import { usePaidMutation } from './use-paid-mutation'
-import { ACT_MUTATION } from '@/fragments/paidAction'
+import { ACT_MUTATION } from '@/fragments/payIn'
 import { meAnonSats } from '@/lib/apollo'
 import { BoostItemInput } from './adv-post-form'
 import { useHasSendWallet } from '@/wallets/client/hooks'
 import { useAnimation } from '@/components/animation'
+import { usePayInMutation } from './use-pay-in-mutation'
+import { getOperationName } from '@apollo/client/utilities'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -262,10 +263,10 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   const { me } = useMe()
   // because the mutation name we use varies,
   // we need to extract the result/invoice from the response
-  const getPaidActionResult = data => Object.values(data)[0]
+  const getPayInResult = data => data[getOperationName(query)]
   const hasSendWallet = useHasSendWallet()
 
-  const [act] = usePaidMutation(query, {
+  const [act] = usePayInMutation(query, {
     waitFor: inv =>
       // if we have attached wallets, we might be paying a wrapped invoice in which case we need to make sure
       // we don't prematurely consider the payment as successful (important for receiver fallbacks)
@@ -274,13 +275,13 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
         : inv?.satsReceived > 0,
     ...options,
     update: (cache, { data }) => {
-      const response = getPaidActionResult(data)
+      const response = getPayInResult(data)
       if (!response) return
       modifyActCache(cache, response, me)
       options?.update?.(cache, { data })
     },
     onPayError: (e, cache, { data }) => {
-      const response = getPaidActionResult(data)
+      const response = getPayInResult(data)
       if (!response || !response.result) return
       const { result: { sats } } = response
       const negate = { ...response, result: { ...response.result, sats: -1 * sats } }
@@ -288,7 +289,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
       options?.onPayError?.(e, cache, { data })
     },
     onPaid: (cache, { data }) => {
-      const response = getPaidActionResult(data)
+      const response = getPayInResult(data)
       if (!response) return
       updateAncestors(cache, response)
       options?.onPaid?.(cache, { data })

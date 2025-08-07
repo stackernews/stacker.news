@@ -72,7 +72,7 @@ export async function getInitial (models, { id, boost = 0, uploadIds, bio }, { m
     userId: me?.id,
     mcost,
     payOutCustodialTokens,
-    itemPayIns: [{ itemId: parseInt(id) }],
+    itemPayIn: { itemId: parseInt(id) },
     beneficiaries
   }
 }

@@ -984,17 +984,26 @@ export default {
       await validateSchema(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
 
-      const [item] = await models.$queryRawUnsafe(`
-        ${SELECT}
-        FROM "Item"
-        WHERE id = $1`, Number(id))
+      const item = await models.item.findUnique({
+        where: { id: Number(id) },
+        include: {
+          itemPayIns: {
+            where: {
+              payIn: {
+                payInType: 'ITEM_CREATE',
+                payInState: 'PAID'
+              }
+            }
+          }
+        }
+      })
+
+      if (item.itemPayIns.length === 0) {
+        throw new GqlInputError('cannot act on unpaid item')
+      }
 
       if (item.deletedAt) {
         throw new GqlInputError('item is deleted')
-      }
-
-      if (item.invoiceActionState && item.invoiceActionState !== 'PAID') {
-        throw new GqlInputError('cannot act on unpaid item')
       }
 
       // disallow self tips except anons
@@ -1013,11 +1022,11 @@ export default {
       }
 
       if (act === 'TIP') {
-        return await performPaidAction('ZAP', { id, sats, hasSendWallet }, { me, models, lnd })
+        return await pay('ZAP', { id, sats, hasSendWallet }, { me, models })
       } else if (act === 'DONT_LIKE_THIS') {
-        return await performPaidAction('DOWN_ZAP', { id, sats }, { me, models, lnd })
+        return await pay('DOWN_ZAP', { id, sats }, { me, models })
       } else if (act === 'BOOST') {
-        return await performPaidAction('BOOST', { id, sats }, { me, models, lnd })
+        return await pay('BOOST', { id, sats }, { me, models })
       } else {
         throw new GqlInputError('unknown act')
       }

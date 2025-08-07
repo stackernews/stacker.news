@@ -39,68 +39,66 @@ async function tryP2P (models, { id, sats, hasSendWallet }, { me }) {
   return true
 }
 
-// 70% to the receiver(s), 21% to the territory founder, the rest depends on if it's P2P or not
+// 70% to the receiver(s)
+// if sub, 21% to the territory founder
+//    if p2p, 6% to rewards pool, 3% to routing fee
+//    if not p2p, all 9% to rewards pool
+// if not sub
+//    if p2p, 27% to rewards pool, 3% to routing fee
+//    if not p2p, all 30% to rewards pool
 export async function getInitial (models, payInArgs, { me }) {
   const { sub, itemForwards, userId } = await models.item.findUnique({ where: { id: parseInt(payInArgs.id) }, include: { sub: true, itemForwards: true, user: true } })
   const mcost = satsToMsats(payInArgs.sats)
-  const founderMtokens = mcost * 21n / 100n
+  let payOutBolt11
 
-  const result = {
-    payInType: 'ZAP',
-    userId: me.id,
-    mcost,
-    payOutCustodialTokens: [{
+  let routingFeeMtokens = 0n
+  const zapMtokens = mcost * 70n / 100n
+  const revenueMtokens = sub ? (mcost - zapMtokens) * BigInt(sub.rewardsPct) / 100n : 0n
+  const payOutCustodialTokens = []
+  if (revenueMtokens > 0n) {
+    payOutCustodialTokens.push({
       payOutType: 'TERRITORY_REVENUE',
       userId: sub.userId,
-      mtokens: founderMtokens,
-      custodialTokenType: 'SATS'
-    }],
-    payOutBolt11: null,
-    itemPayIn: {
-      itemId: parseInt(payInArgs.id)
-    }
+      mtokens: revenueMtokens,
+      custodialTokenType: 'SATS',
+      subPayOutCustodialToken: {
+        subName: sub.name
+      }
+    })
   }
 
   const p2p = await tryP2P(models, payInArgs, { me })
   if (p2p) {
     try {
-      // 6% to rewards pool, 3% to routing fee
-      const routingFeeMtokens = mcost * 3n / 100n
-      const rewardsPoolMtokens = mcost * 6n / 100n
-      const zapMtokens = mcost - routingFeeMtokens - rewardsPoolMtokens
-
-      return {
-        ...result,
-        payOutCustodialTokens: [
-          ...result.payOutCustodialTokens,
-          { payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' },
-          { payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardsPoolMtokens, custodialTokenType: 'SATS' }
-        ],
-        payOutBolt11: await payOutBolt11Prospect(models, { userId, payOutType: 'ZAP', msats: zapMtokens })
-      }
+      // 3% to routing fee
+      routingFeeMtokens = mcost * 3n / 100n
+      payOutCustodialTokens.push({ payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' })
+      payOutBolt11 = await payOutBolt11Prospect(models, { userId, payOutType: 'ZAP', msats: zapMtokens })
     } catch (err) {
+      routingFeeMtokens = 0n
       console.error('failed to create user invoice:', err)
     }
+  } else {
+    if (itemForwards.length > 0) {
+      for (const f of itemForwards) {
+        payOutCustodialTokens.push({ payOutType: 'ZAP', userId: f.userId, mtokens: zapMtokens * BigInt(f.pct) / 100n, custodialTokenType: 'CREDITS' })
+      }
+    }
+    const remainingZapMtokens = zapMtokens - payOutCustodialTokens.filter(t => t.payOutType === 'ZAP').reduce((acc, t) => acc + t.mtokens, 0n)
+    payOutCustodialTokens.push({ payOutType: 'ZAP', userId, mtokens: remainingZapMtokens, custodialTokenType: 'CREDITS' })
   }
 
-  // 9% to rewards pool
-  const rewardsPoolMtokens = mcost * 9n / 100n
-  const zapMtokens = mcost - rewardsPoolMtokens - founderMtokens
-  const payOutCustodialTokens = []
-  if (itemForwards.length > 0) {
-    for (const f of itemForwards) {
-      payOutCustodialTokens.push({ payOutType: 'ZAP', userId: f.userId, mtokens: zapMtokens * BigInt(f.pct) / 100n, custodialTokenType: 'CREDITS' })
-    }
-  }
-  const remainingZapMtokens = zapMtokens - payOutCustodialTokens.filter(t => t.payOutType === 'ZAP').reduce((acc, t) => acc + t.mtokens, 0n)
-  payOutCustodialTokens.push({ payOutType: 'ZAP', userId, mtokens: remainingZapMtokens, custodialTokenType: 'CREDITS' })
+  // what's left goes to the rewards pool
+  const rewardsPoolMtokens = mcost - zapMtokens - routingFeeMtokens - revenueMtokens
+  payOutCustodialTokens.push({ payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardsPoolMtokens, custodialTokenType: 'SATS' })
 
   return {
-    ...result,
-    payOutCustodialTokens: [
-      ...result.payOutCustodialTokens,
-      ...payOutCustodialTokens
-    ]
+    payInType: 'ZAP',
+    userId: me.id,
+    mcost,
+    itemPayIn: { itemId: parseInt(payInArgs.id) },
+    payOutCustodialTokens,
+    payOutBolt11
   }
 }
 
@@ -203,11 +201,11 @@ export async function onPaidSideEffects (models, payInId) {
   const pendingZaps = await models.itemPayIn.count({
     where: {
       itemId: payIn.itemPayIn.itemId,
-      createdAt: {
-        gt: payIn.createdAt
-      },
       payIn: {
-        payInType: 'ZAP'
+        payInType: 'ZAP',
+        createdAt: {
+          gt: payIn.createdAt
+        }
       }
     }
   })

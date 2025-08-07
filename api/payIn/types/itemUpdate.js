@@ -14,11 +14,26 @@ export const paymentMethods = [
 async function getCost (models, { id, boost = 0, uploadIds, bio }, { me }) {
   // the only reason updating items costs anything is when it has new uploads
   // or more boost
-  const old = await models.item.findUnique({ where: { id: parseInt(id) }, include: { payIn: true } })
+  const old = await models.item.findUnique({
+    where: {
+      id: parseInt(id)
+    },
+    include: {
+      itemPayIns: {
+        where: {
+          payIn: {
+            payInType: 'ITEM_CREATE',
+            payInState: 'PAID'
+          }
+        }
+      }
+    }
+  })
+
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
   const cost = BigInt(totalFeesMsats)
 
-  if ((cost > 0 || (boost - old.boost) > 0) && old.payIn.payInState !== 'PAID') {
+  if ((cost > 0 || (boost - old.boost) > 0) && old.itemPayIns.length === 0) {
     throw new Error('cannot update item with unpaid invoice')
   }
 
@@ -28,8 +43,23 @@ async function getCost (models, { id, boost = 0, uploadIds, bio }, { me }) {
 export async function getInitial (models, { id, boost = 0, uploadIds, bio }, { me }) {
   const old = await models.item.findUnique({ where: { id: parseInt(id) }, include: { sub: true } })
   const mcost = await getCost(models, { id, boost, uploadIds, bio }, { me })
-  const revenueMsats = mcost * BigInt(old.sub.rewardsPct) / 100n
+
+  const revenueMsats = old.sub ? mcost * BigInt(old.sub.rewardsPct) / 100n : 0n
   const rewardMsats = mcost - revenueMsats
+  const payOutCustodialTokens = [
+    { payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardMsats, custodialTokenType: 'SATS' }
+  ]
+  if (revenueMsats > 0n) {
+    payOutCustodialTokens.push({
+      payOutType: 'TERRITORY_REVENUE',
+      userId: old.sub.userId,
+      mtokens: revenueMsats,
+      custodialTokenType: 'SATS',
+      subPayOutCustodialToken: {
+        subName: old.sub.name
+      }
+    })
+  }
 
   let beneficiaries
   if (boost - old.boost > 0) {
@@ -41,21 +71,13 @@ export async function getInitial (models, { id, boost = 0, uploadIds, bio }, { m
     payInType: 'ITEM_UPDATE',
     userId: me?.id,
     mcost,
-    payOutCustodialTokens: [
-      { payOutType: 'TERRITORY_REVENUE', userId: old.sub.userId, mtokens: revenueMsats, custodialTokenType: 'SATS' },
-      { payOutType: 'REWARD_POOL', userId: null, mtokens: rewardMsats, custodialTokenType: 'SATS' }
-    ],
-    itemPayIn: {
-      itemId: parseInt(id)
-    },
+    payOutCustodialTokens,
+    itemPayIns: [{ itemId: parseInt(id) }],
     beneficiaries
   }
 }
 
-export async function onPaid (tx, payInId, { me }) {
-  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
-
-  const args = payIn.pessimisticEnv.args
+export async function onBegin (tx, payInId, args) {
   const { id, boost: _, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], ...data } = args
 
   const old = await tx.item.findUnique({
@@ -76,8 +98,8 @@ export async function onPaid (tx, payInId, { me }) {
   const intersectionMerge = (a = [], b = [], key) => a.filter(x => b.find(y => y.userId === x.userId))
     .map(x => ({ [key]: x[key], ...b.find(y => y.userId === x.userId) }))
 
-  const mentions = await getMentions(tx, args, { me })
-  const itemMentions = await getItemMentions(tx, args, { me })
+  const mentions = await getMentions(tx, args)
+  const itemMentions = await getItemMentions(tx, args)
   const itemUploads = uploadIds.map(id => ({ uploadId: id }))
 
   // we put boost in the where clause because we don't want to update the boost
@@ -149,7 +171,7 @@ export async function onPaid (tx, payInId, { me }) {
     VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true,
               now() + interval '5 seconds', now() + interval '1 day')`
 
-  await performBotBehavior(tx, args, { me })
+  await performBotBehavior(tx, args)
 
   return getItemResult(tx, { id })
 }

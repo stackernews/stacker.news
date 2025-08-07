@@ -12,7 +12,7 @@ export async function getSub (models, { subName, parentId }) {
       SELECT "Sub".*
       FROM "Item" i
       LEFT JOIN "Item" r ON r.id = i."rootId"
-      LEFT JOIN "Sub" ON "Sub".name = COALESCE(r."subName", i."subName")
+      JOIN "Sub" ON "Sub".name = COALESCE(r."subName", i."subName")
       WHERE i.id = ${Number(parentId)}`
 
     return sub

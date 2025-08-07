@@ -1,6 +1,6 @@
 import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
-import { onFail, onPaid } from '.'
+import { onBegin, onFail, onPaid } from '.'
 import { walletLogger } from '@/wallets/server/logger'
 import payInTypeModules from './types'
 import { getPaymentFailureStatus, getPaymentOrNotSent, hodlInvoiceCltvDetails } from '../lnd'
@@ -474,7 +474,7 @@ export async function payInHeld ({ data: { payInId, ...args }, models, lnd, boss
       if (payIn.pessimisticEnv) {
         pessimisticEnv = {
           update: {
-            result: await payInTypeModules[payIn.payInType].onBegin?.(tx, payIn.id, payIn.pessimisticEnv.args)
+            result: await onBegin(tx, payIn.id, payIn.pessimisticEnv.args)
           }
         }
       }

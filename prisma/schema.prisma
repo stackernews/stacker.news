@@ -1613,8 +1613,9 @@ model PessimisticEnv {
   payInId Int   @unique
   payIn   PayIn @relation(fields: [payInId], references: [id], onDelete: Cascade)
 
-  args  Json?   @db.JsonB
-  error String?
+  args   Json?   @db.JsonB
+  error  String?
+  result Json?   @db.JsonB
 }
 
 enum PayOutType {

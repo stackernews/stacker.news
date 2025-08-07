@@ -55,7 +55,7 @@ async function begin (models, payInInitial, payInArgs, { me }) {
 
     // if it's already paid, we run onPaid and do payOuts in the same transaction
     if (payIn.payInState === 'PAID') {
-      await onPaid(tx, payIn.id, { me })
+      await onPaid(tx, payIn.id, payInArgs)
       return {
         payIn,
         result,
@@ -178,7 +178,12 @@ export async function onFail (tx, payInId) {
 }
 
 export async function onPaid (tx, payInId) {
-  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { payOutCustodialTokens: true, payOutBolt11: true, beneficiaries: true } })
+  const payIn = await tx.payIn.findUnique({
+    where: { id: payInId },
+    include: {
+      payOutCustodialTokens: true, payOutBolt11: true, beneficiaries: true, pessimisticEnv: true
+    }
+  })
   if (!payIn) {
     throw new Error('PayIn not found')
   }

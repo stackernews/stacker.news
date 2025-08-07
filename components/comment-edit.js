@@ -3,7 +3,7 @@ import styles from './reply.module.css'
 import { commentSchema } from '@/lib/validate'
 import { FeeButtonProvider } from './fee-button'
 import { ItemButtonBar } from './post'
-import { UPDATE_COMMENT } from '@/fragments/paidAction'
+import { UPDATE_COMMENT } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {

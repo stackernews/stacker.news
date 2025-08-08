@@ -42,7 +42,7 @@ export default {
         subs = await models.$queryRaw`
           SELECT name
           FROM "Sub"
-          WHERE status = 'ACTIVE'
+          WHERE status IN ('ACTIVE', 'GRACE')
           AND SIMILARITY(name, ${q}) > 0.1
           ORDER BY SIMILARITY(name, ${q}) DESC
           LIMIT ${limit}`
@@ -50,7 +50,7 @@ export default {
         subs = await models.$queryRaw`
           SELECT name
           FROM "Sub"
-          WHERE status = 'ACTIVE'
+          WHERE status IN ('ACTIVE', 'GRACE')
           ORDER BY name ASC
           LIMIT ${limit}`
       }

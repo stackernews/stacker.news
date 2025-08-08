@@ -66,9 +66,9 @@ export async function uploadFees (s3Keys, { models, me }) {
     nUnpaid,
     uploadFeesMsats
   }] = await models.$queryRaw`SELECT * FROM upload_fees(${me?.id ?? USER_ID.anon}::INTEGER, ${s3Keys}::INTEGER[])`
-  const uploadFees = msatsToSats(uploadFeesMsats)
+  const uploadFees = BigInt(msatsToSats(uploadFeesMsats))
   const totalFeesMsats = BigInt(nUnpaid) * uploadFeesMsats
-  const totalFees = msatsToSats(totalFeesMsats)
+  const totalFees = BigInt(msatsToSats(totalFeesMsats))
   return { bytes24h, bytesUnpaid, nUnpaid, uploadFees, totalFees, totalFeesMsats }
 }
 

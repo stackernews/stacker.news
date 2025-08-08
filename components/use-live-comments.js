@@ -5,9 +5,7 @@ import { SSR, COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import { useQuery, useApolloClient } from '@apollo/client'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import {
-  readItemQuery,
-  writeItemQuery,
-  readCommentsFragment,
+  updateItemQuery,
   updateCommentFragment,
   getLatestCommentCreatedAt,
   updateAncestorsCommentCount,
@@ -23,7 +21,7 @@ function prepareComments (item, cache, newComment) {
 
   // is the incoming new comment already in item's existing comments?
   // if so, we don't need to update the cache
-  if (existingComments.some(comment => comment.id === newComment.id)) return
+  if (existingComments.some(comment => comment.id === newComment.id)) return item
 
   // count the new comment (+1) and its children (+ncomments)
   const totalNComments = newComment.ncomments + 1
@@ -65,21 +63,13 @@ function cacheNewComments (cache, rootId, newComments, sort) {
 
     // if the comment is a top level comment, update the item, else update the parent comment
     if (topLevel) {
-      const item = readItemQuery(cache, rootId, sort)
-      const updatedItem = prepareComments(item, cache, newComment)
-      if (updatedItem) {
-        preserveScroll(() => writeItemQuery(cache, rootId, sort, updatedItem))
-      }
+      updateItemQuery(cache, rootId, sort, (item) => prepareComments(item, cache, newComment))
     } else {
       // if the comment is too deep, we can skip it
       const depth = calculateDepth(newComment.path, rootId, parentId)
       if (depth > COMMENT_DEPTH_LIMIT) continue
       // inject the new comment into the parent comment's comments field
-      const parent = readCommentsFragment(cache, parentId)
-      const updatedParent = prepareComments(parent, cache, newComment)
-      if (updatedParent) {
-        preserveScroll(() => updateCommentFragment(cache, parentId, updatedParent))
-      }
+      updateCommentFragment(cache, parentId, (parent) => prepareComments(parent, cache, newComment))
     }
   }
 }
@@ -120,7 +110,8 @@ export default function useLiveComments (rootId, after, sort) {
     if (!data?.newComments?.comments?.length) return
 
     // directly inject new comments into the cache, preserving scroll position
-    cacheNewComments(cache, rootId, data.newComments.comments, sort)
+    // quirk: scroll is preserved even if we are not injecting new comments due to dedupe
+    preserveScroll(() => cacheNewComments(cache, rootId, data.newComments.comments, sort))
 
     // update latest timestamp to the latest comment created at
     // save it to session storage, to persist between client-side navigations

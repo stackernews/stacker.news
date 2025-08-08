@@ -28,7 +28,7 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
-import { ShowNewComments } from './show-new-comments'
+import { useBottomedOutline, useItemOutline } from './use-outline'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -98,7 +98,8 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel, rootLastCommentAt,
-  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry
+  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry,
+  navigator
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
@@ -112,6 +113,7 @@ export default function Comment ({
   const router = useRouter()
   const root = useRoot()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
+  const { unsetOutline } = useItemOutline({ ref, item, rootLastCommentAt, navigator })
 
   const { cache } = useApolloClient()
 
@@ -140,22 +142,6 @@ export default function Comment ({
     }
   }, [item.id, cache, router.query.commentId])
 
-  useEffect(() => {
-    if (me?.id === item.user?.id) return
-    const itemCreatedAt = new Date(item.createdAt).getTime()
-
-    if (router.query.commentsViewedAt &&
-        !item.injected &&
-        itemCreatedAt > router.query.commentsViewedAt) {
-      ref.current.classList.add('outline-new-comment')
-    // newly injected comments have to use a different class to outline every new comment
-    } else if (rootLastCommentAt &&
-              item.injected &&
-              itemCreatedAt > new Date(rootLastCommentAt).getTime()) {
-      ref.current.classList.add('outline-new-injected-comment')
-    }
-  }, [item.id, rootLastCommentAt])
-
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
   const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon
@@ -168,8 +154,8 @@ export default function Comment ({
   return (
     <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
-      onMouseEnter={() => ref.current.classList.add('outline-new-comment-unset')}
-      onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
+      onMouseEnter={unsetOutline}
+      onTouchStart={unsetOutline}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.outlawed && !me?.privates?.wildWestMode
@@ -261,7 +247,7 @@ export default function Comment ({
       </div>
       {collapse !== 'yep' && (
         bottomedOut
-          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3 pb-2')}><ViewMoreReplies item={item} navigateRoot /></div></div>
+          ? <div className={styles.children}><ViewMoreReplies item={item} navigateRoot navigator={navigator} /></div>
           : (
             <div className={styles.children}>
               {item.outlawed && !me?.privates?.wildWestMode
@@ -269,9 +255,6 @@ export default function Comment ({
                 : !noReply &&
                   <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
-                    <div className='ms-auto'>
-                      <ShowNewComments item={item} depth={depth} />
-                    </div>
                   </Reply>}
               {children}
               <div className={styles.comments}>
@@ -279,12 +262,10 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} rootLastCommentAt={rootLastCommentAt} />
+                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={rootLastCommentAt} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && (
-                        <div className={`d-block ${styles.comment} pb-2 ps-3`}>
-                          <ViewMoreReplies item={item} />
-                        </div>
+                        <ViewMoreReplies item={item} navigator={navigator} />
                       )}
                     </>
                     )
@@ -298,9 +279,11 @@ export default function Comment ({
   )
 }
 
-export function ViewMoreReplies ({ item, navigateRoot = false }) {
+export function ViewMoreReplies ({ item, navigateRoot = false, navigator }) {
   const root = useRoot()
-  const { cache } = useApolloClient()
+  const ref = useRef(null)
+  const { hasNewComments, unsetBottomedOutline } = useBottomedOutline({ ref, item, navigator })
+
   const id = navigateRoot ? commentSubTreeRootId(item, root) : item.id
 
   const href = `/items/${id}` + (navigateRoot ? '' : `?commentId=${item.id}`)
@@ -310,28 +293,20 @@ export function ViewMoreReplies ({ item, navigateRoot = false }) {
     : `view all ${item.ncomments} replies`
 
   return (
-    <Link
-      href={href}
-      as={`/items/${id}`}
-      className='fw-bold d-flex align-items-center gap-2 text-muted'
-      onClick={() => {
-        if (!item.newComments?.length) return
-        // clear new comments going to another page
-        cache.writeFragment({
-          id: `Item:${item.id}`,
-          fragment: gql`
-            fragment NewComments on Item {
-              newComments
-            }`,
-          data: {
-            newComments: []
-          }
-        })
-      }}
+    <div
+      ref={ref} className={classNames(styles.comment, 'pb-2', navigateRoot ? 'mt-3' : 'd-block ps-3')}
+      onMouseEnter={unsetBottomedOutline}
+      onTouchStart={unsetBottomedOutline}
     >
-      {text}
-      {item.newComments?.length > 0 && <div className={styles.newCommentDot} />}
-    </Link>
+      <Link
+        href={href}
+        as={`/items/${id}`}
+        className='fw-bold d-flex align-items-center gap-2 text-muted'
+      >
+        {text}
+        {hasNewComments && <div className={styles.newCommentDot} />}
+      </Link>
+    </div>
   )
 }
 

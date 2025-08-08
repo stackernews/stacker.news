@@ -28,7 +28,6 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
-import { ShowNewComments } from './show-new-comments'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -115,6 +114,17 @@ export default function Comment ({
 
   const { cache } = useApolloClient()
 
+  const unsetOutline = () => {
+    if (!ref.current) return
+    const hasOutline = ref.current.classList.contains('outline-new-comment') || ref.current.classList.contains('outline-new-injected-comment')
+    const hasOutlineUnset = ref.current.classList.contains('outline-new-comment-unset')
+
+    // don't try to unset the outline if the comment is not outlined or we already unset the outline
+    if (hasOutline && !hasOutlineUnset) {
+      ref.current.classList.add('outline-new-comment-unset')
+    }
+  }
+
   useEffect(() => {
     const comment = cache.readFragment({
       id: `Item:${router.query.commentId}`,
@@ -142,17 +152,26 @@ export default function Comment ({
 
   useEffect(() => {
     if (me?.id === item.user?.id) return
-    const itemCreatedAt = new Date(item.createdAt).getTime()
 
-    if (router.query.commentsViewedAt &&
-        !item.injected &&
-        itemCreatedAt > router.query.commentsViewedAt) {
-      ref.current.classList.add('outline-new-comment')
-    // newly injected comments have to use a different class to outline every new comment
-    } else if (rootLastCommentAt &&
-              item.injected &&
-              itemCreatedAt > new Date(rootLastCommentAt).getTime()) {
+    const itemCreatedAt = new Date(item.createdAt).getTime()
+    // it's a new comment if it was created after the last comment was viewed
+    // or, in the case of live comments, after the last comment was created
+    const isNewComment = (router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||
+                        (rootLastCommentAt && itemCreatedAt > new Date(rootLastCommentAt).getTime())
+    if (!isNewComment) return
+
+    if (item.injected) {
+      // newly injected comments (item.injected) have to use a different class to outline every new comment
       ref.current.classList.add('outline-new-injected-comment')
+
+      // wait for the injection animation to end before removing its class
+      ref.current.addEventListener('animationend', () => {
+        ref.current.classList.remove(styles.injectedComment)
+      }, { once: true })
+      // animate the live comment injection
+      ref.current.classList.add(styles.injectedComment)
+    } else {
+      ref.current.classList.add('outline-new-comment')
     }
   }, [item.id, rootLastCommentAt])
 
@@ -168,8 +187,8 @@ export default function Comment ({
   return (
     <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
-      onMouseEnter={() => ref.current.classList.add('outline-new-comment-unset')}
-      onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
+      onMouseEnter={unsetOutline}
+      onTouchStart={unsetOutline}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.outlawed && !me?.privates?.wildWestMode
@@ -269,9 +288,6 @@ export default function Comment ({
                 : !noReply &&
                   <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
                     {root.bounty && !bountyPaid && <PayBounty item={item} />}
-                    <div className='ms-auto'>
-                      <ShowNewComments item={item} depth={depth} />
-                    </div>
                   </Reply>}
               {children}
               <div className={styles.comments}>
@@ -300,7 +316,6 @@ export default function Comment ({
 
 export function ViewMoreReplies ({ item, navigateRoot = false }) {
   const root = useRoot()
-  const { cache } = useApolloClient()
   const id = navigateRoot ? commentSubTreeRootId(item, root) : item.id
 
   const href = `/items/${id}` + (navigateRoot ? '' : `?commentId=${item.id}`)
@@ -314,23 +329,8 @@ export function ViewMoreReplies ({ item, navigateRoot = false }) {
       href={href}
       as={`/items/${id}`}
       className='fw-bold d-flex align-items-center gap-2 text-muted'
-      onClick={() => {
-        if (!item.newComments?.length) return
-        // clear new comments going to another page
-        cache.writeFragment({
-          id: `Item:${item.id}`,
-          fragment: gql`
-            fragment NewComments on Item {
-              newComments
-            }`,
-          data: {
-            newComments: []
-          }
-        })
-      }}
     >
       {text}
-      {item.newComments?.length > 0 && <div className={styles.newCommentDot} />}
     </Link>
   )
 }

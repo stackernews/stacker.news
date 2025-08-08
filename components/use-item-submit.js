@@ -1,5 +1,6 @@
 import { useRouter } from 'next/router'
 import { useToast } from './toast'
+import { usePayInMutation } from './use-pay-in-mutation'
 import { usePaidMutation, paidActionCacheMods } from './use-paid-mutation'
 import useCrossposter from './use-crossposter'
 import { useCallback } from 'react'
@@ -21,7 +22,7 @@ export default function useItemSubmit (mutation,
   const router = useRouter()
   const toaster = useToast()
   const crossposter = useCrossposter()
-  const [upsertItem] = usePaidMutation(mutation)
+  const [upsertItem] = usePayInMutation(mutation)
   const { me } = useMe()
   const walletPrompt = useWalletRecvPrompt()
 
@@ -66,11 +67,9 @@ export default function useItemSubmit (mutation,
         persistOnNavigate: navigateOnSubmit,
         ...paidMutationOptions,
         onPayError: (e, cache, { data }) => {
-          paidActionCacheMods.onPayError(e, cache, { data })
           paidMutationOptions?.onPayError?.(e, cache, { data })
         },
         onPaid: (cache, { data }) => {
-          paidActionCacheMods.onPaid(cache, { data })
           paidMutationOptions?.onPaid?.(cache, { data })
         },
         onCompleted: (data) => {

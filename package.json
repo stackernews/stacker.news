@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--trace-warnings' next dev",
+    "dev": "NODE_OPTIONS='--trace-warnings --enable-source-maps' next dev",
     "build": "next build",
     "migrate": "prisma migrate deploy",
     "start": "NODE_OPTIONS='--trace-warnings --max-old-space-size=4096 --max-semi-space-size=128' next start -p $PORT --keepAliveTimeout 120000",

@@ -27,6 +27,7 @@ import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
+import pay from '../payIn'
 
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
@@ -956,8 +957,7 @@ export default {
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
-        item = await createItem(parent, item, { me, models, lnd })
-        return item
+        return await createItem(parent, item, { me, models, lnd })
       }
     },
     updateNoteId: async (parent, { id, noteId }, { me, models }) => {
@@ -984,17 +984,26 @@ export default {
       await validateSchema(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
 
-      const [item] = await models.$queryRawUnsafe(`
-        ${SELECT}
-        FROM "Item"
-        WHERE id = $1`, Number(id))
+      const item = await models.item.findUnique({
+        where: { id: Number(id) },
+        include: {
+          itemPayIns: {
+            where: {
+              payIn: {
+                payInType: 'ITEM_CREATE',
+                payInState: 'PAID'
+              }
+            }
+          }
+        }
+      })
+
+      if (item.itemPayIns.length === 0) {
+        throw new GqlInputError('cannot act on unpaid item')
+      }
 
       if (item.deletedAt) {
         throw new GqlInputError('item is deleted')
-      }
-
-      if (item.invoiceActionState && item.invoiceActionState !== 'PAID') {
-        throw new GqlInputError('cannot act on unpaid item')
       }
 
       // disallow self tips except anons
@@ -1013,11 +1022,11 @@ export default {
       }
 
       if (act === 'TIP') {
-        return await performPaidAction('ZAP', { id, sats, hasSendWallet }, { me, models, lnd })
+        return await pay('ZAP', { id, sats, hasSendWallet }, { me, models })
       } else if (act === 'DONT_LIKE_THIS') {
-        return await performPaidAction('DOWN_ZAP', { id, sats }, { me, models, lnd })
+        return await pay('DOWN_ZAP', { id, sats }, { me, models })
       } else if (act === 'BOOST') {
-        return await performPaidAction('BOOST', { id, sats }, { me, models, lnd })
+        return await pay('BOOST', { id, sats }, { me, models })
       } else {
         throw new GqlInputError('unknown act')
       }
@@ -1511,10 +1520,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   // never change author of item
   item.userId = old.userId
 
-  const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd })
-
-  resultItem.comments = []
-  return resultItem
+  return await pay('ITEM_UPDATE', item, { models, me, lnd })
 }
 
 export const createItem = async (parent, { forward, ...item }, { me, models, lnd }) => {
@@ -1542,10 +1548,7 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
   // mark item as created with API key
   item.apiKey = me?.apiKey
 
-  const resultItem = await performPaidAction('ITEM_CREATE', item, { models, me, lnd })
-
-  resultItem.comments = []
-  return resultItem
+  return await pay('ITEM_CREATE', item, { models, me, lnd })
 }
 
 export const getForwardUsers = async (models, forward) => {

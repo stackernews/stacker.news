@@ -14,7 +14,7 @@ export const paymentMethods = [
 
 export async function getCost ({ billingType, uploadIds }, { models, me }) {
   const { totalFees } = await uploadFees(uploadIds, { models, me })
-  return satsToMsats(TERRITORY_PERIOD_COST(billingType) + totalFees)
+  return satsToMsats(BigInt(TERRITORY_PERIOD_COST(billingType)) + totalFees)
 }
 
 export async function perform ({ invoiceId, ...data }, { me, cost, tx }) {

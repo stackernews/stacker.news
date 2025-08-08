@@ -47,7 +47,6 @@ export const COMMENT_FIELDS = gql`
     otsHash
     ncomments
     nDirectComments
-    newComments @client
     injected @client
     imgproxyUrls
     rel
@@ -176,7 +175,6 @@ export const COMMENT_WITH_NEW_RECURSIVE = gql`
         ...CommentsRecursive
       }
     }
-    newComments @client
   }
 `
 
@@ -190,7 +188,6 @@ export const COMMENT_WITH_NEW_LIMITED = gql`
         ...CommentFields
       }
     }
-    newComments @client
   }
 `
 
@@ -199,7 +196,6 @@ export const COMMENT_WITH_NEW_MINIMAL = gql`
   
   fragment CommentWithNewMinimal on Item {
     ...CommentFields
-    newComments @client
   }
 `
 

@@ -1,6 +1,7 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { msatsToSats, satsToMsats, numWithUnits } from '@/lib/format'
 import { Prisma } from '@prisma/client'
+import { getItemResult } from '../lib/item'
 
 export const anonable = false
 
@@ -10,37 +11,35 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
 ]
 
-async function getPayOuts (models, payIn, { sats, id: itemId }, { me }) {
+export async function getInitial (models, { sats, id: itemId }, { me }) {
   const item = await models.item.findUnique({ where: { id: parseInt(itemId) }, include: { sub: true } })
 
-  const revenueMsats = satsToMsats(sats * item.sub.rewardsPct / 100)
-  const rewardMsats = satsToMsats(sats - revenueMsats)
-
-  return {
-    payOutCustodialTokens: [
-      { payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardMsats, custodialTokenType: 'SATS' },
-      {
-        payOutType: 'TERRITORY_REVENUE',
-        userId: item.sub.userId,
-        mtokens: revenueMsats,
-        custodialTokenType: 'SATS',
-        subPayOutCustodialToken: {
-          subName: item.sub.name
-        }
+  const mcost = satsToMsats(sats)
+  const revenueMsats = item.sub ? mcost * BigInt(item.sub.rewardsPct) / 100n : 0n
+  const rewardsMsats = mcost - revenueMsats
+  const payOutCustodialTokens = []
+  if (revenueMsats > 0n) {
+    payOutCustodialTokens.push({
+      payOutType: 'TERRITORY_REVENUE',
+      userId: item.sub.userId,
+      mtokens: revenueMsats,
+      custodialTokenType: 'SATS',
+      subPayOutCustodialToken: {
+        subName: item.sub.name
       }
-    ]
+    })
   }
-}
 
-export async function getInitial (models, { sats, id: itemId }, { me }) {
+  payOutCustodialTokens.push({ payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardsMsats, custodialTokenType: 'SATS' })
+
   return {
-    payInType: 'DOWNZAP',
+    payInType: 'DOWN_ZAP',
     userId: me?.id,
-    mcost: satsToMsats(sats),
+    mcost,
     itemPayIn: {
       itemId: parseInt(itemId)
     },
-    ...(await getPayOuts(models, { sats, id: itemId }, { me }))
+    payOutCustodialTokens
   }
 }
 
@@ -48,11 +47,24 @@ export async function onRetry (tx, oldPayInId, newPayInId) {
   await tx.itemPayIn.update({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
 }
 
-export async function onPaid (tx, payInId) {
-  const itemAct = await tx.itemAct.findUnique({ where: { payInId }, include: { payIn: true, item: true } })
+export async function onBegin (tx, payInId, payInArgs) {
+  const item = await getItemResult(tx, { id: payInArgs.id })
+  return { id: item.id, path: item.path, sats: payInArgs.sats, act: 'DONT_LIKE_THIS' }
+}
 
-  const msats = BigInt(itemAct.payIn.mcost)
+export async function onPaid (tx, payInId) {
+  const payIn = await tx.payIn.findUnique({
+    where: { id: payInId },
+    include: {
+      itemPayIn: { include: { item: true } },
+      payOutBolt11: true
+    }
+  })
+
+  const msats = payIn.mcost
   const sats = msatsToSats(msats)
+  const userId = payIn.userId
+  const item = payIn.itemPayIn.item
 
   // denormalize downzaps
   await tx.$executeRaw`
@@ -60,21 +72,21 @@ export async function onPaid (tx, payInId) {
       SELECT COALESCE(r."subName", i."subName", 'meta')::CITEXT as "subName"
       FROM "Item" i
       LEFT JOIN "Item" r ON r.id = i."rootId"
-      WHERE i.id = ${itemAct.itemId}::INTEGER
+      WHERE i.id = ${item.id}::INTEGER
     ), zapper AS (
       SELECT
-        COALESCE(${itemAct.item.parentId
+        COALESCE(${item.parentId
           ? Prisma.sql`"zapCommentTrust"`
           : Prisma.sql`"zapPostTrust"`}, 0) as "zapTrust",
-        COALESCE(${itemAct.item.parentId
+        COALESCE(${item.parentId
           ? Prisma.sql`"subZapCommentTrust"`
           : Prisma.sql`"subZapPostTrust"`}, 0) as "subZapTrust"
       FROM territory
       LEFT JOIN "UserSubTrust" ust ON ust."subName" = territory."subName"
-        AND ust."userId" = ${itemAct.payIn.userId}::INTEGER
+        AND ust."userId" = ${userId}::INTEGER
     ), zap AS (
       INSERT INTO "ItemUserAgg" ("userId", "itemId", "downZapSats")
-      VALUES (${itemAct.payIn.userId}::INTEGER, ${itemAct.itemId}::INTEGER, ${sats}::INTEGER)
+      VALUES (${userId}::INTEGER, ${item.id}::INTEGER, ${sats}::INTEGER)
       ON CONFLICT ("itemId", "userId") DO UPDATE
       SET "downZapSats" = "ItemUserAgg"."downZapSats" + ${sats}::INTEGER, updated_at = now()
       RETURNING LOG("downZapSats" / GREATEST("downZapSats" - ${sats}::INTEGER, 1)::FLOAT) AS log_sats
@@ -83,10 +95,10 @@ export async function onPaid (tx, payInId) {
     SET "weightedDownVotes" = "weightedDownVotes" + zapper."zapTrust" * zap.log_sats,
         "subWeightedDownVotes" = "subWeightedDownVotes" + zapper."subZapTrust" * zap.log_sats
     FROM zap, zapper
-    WHERE "Item".id = ${itemAct.itemId}::INTEGER`
+    WHERE "Item".id = ${item.id}::INTEGER`
 }
 
-export async function describe (models, payInId, { me }) {
-  const itemAct = await models.itemAct.findUnique({ where: { payInId }, include: { payIn: true, item: true } })
-  return `SN: downzap #${itemAct.itemId} for ${numWithUnits(msatsToSats(itemAct.payIn.mcost), { abbreviate: false })}`
+export async function describe (models, payInId) {
+  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { itemPayIn: true } })
+  return `SN: downzap #${payIn.itemPayIn.itemId} for ${numWithUnits(msatsToSats(payIn.mcost), { abbreviate: false })}`
 }

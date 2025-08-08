@@ -3,6 +3,7 @@ import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyZapped } from '@/lib/webPush'
 import { Prisma } from '@prisma/client'
 import { payOutBolt11Prospect } from '../lib/payOutBolt11'
+import { getItemResult } from '../lib/item'
 
 export const anonable = true
 
@@ -100,6 +101,11 @@ export async function getInitial (models, payInArgs, { me }) {
     payOutCustodialTokens,
     payOutBolt11
   }
+}
+
+export async function onBegin (tx, payInId, payInArgs) {
+  const item = await getItemResult(tx, { id: payInArgs.id })
+  return { id: item.id, path: item.path, sats: payInArgs.sats, act: 'TIP' }
 }
 
 export async function onRetry (tx, oldPayInId, newPayInId) {
@@ -212,7 +218,7 @@ export async function onPaidSideEffects (models, payInId) {
   if (pendingZaps === 0) notifyZapped({ models, item: payIn.itemPayIn.item }).catch(console.error)
 }
 
-export async function describe (models, payInId, { me }) {
+export async function describe (models, payInId) {
   const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { itemPayIn: true } })
-  return `SN: zap ${numWithUnits(payIn.mcost, { abbreviate: false })} #${payIn.itemPayIn.itemId}`
+  return `SN: zap ${numWithUnits(msatsToSats(payIn.mcost), { abbreviate: false })} #${payIn.itemPayIn.itemId}`
 }

@@ -132,7 +132,6 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       optimisticResponse: me
         ? {
             act: {
-              __typename: 'ItemActPaidAction',
               result: {
                 id: item.id, sats: Number(amount), act, path: item.path
               }
@@ -311,7 +310,7 @@ export function useZap () {
     const sats = nextTip(meSats, { ...me?.privates })
 
     const variables = { id: item.id, sats, act: 'TIP', hasSendWallet }
-    const optimisticResponse = { act: { __typename: 'ItemActPaidAction', result: { path: item.path, ...variables } } }
+    const optimisticResponse = { act: { result: { path: item.path, ...variables } } }
 
     try {
       await abortSignal.pause({ me, amount: sats })

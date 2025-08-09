@@ -30,7 +30,6 @@ export function Settings () {
 
   const onSubmit = useCallback(async ({ send, receive, ...settings }) => {
     try {
-      // TODO: save wallets and settings in one mutation
       await saveWallet({ send, receive })
       await setSettings({
         variables: { settings },

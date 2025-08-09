@@ -8,6 +8,7 @@ import { USER_ID } from '@/lib/constants'
 // ... so we can either:
 // 1. use NOWAIT locks, then retry the transaction if we get a deadlock error
 // 2. pre-locking all users in a transaction in a specific order, so that competing transactions will block
+// 3. issue onPaid in a separate transaction, so that payInCustodialTokens and payOutCustodialTokens cannot be interleaved
 export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }) {
   const payInCustodialTokens = []
 

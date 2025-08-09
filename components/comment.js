@@ -318,7 +318,7 @@ export function ViewMoreReplies ({ item, navigateRoot = false }) {
   const root = useRoot()
   const id = navigateRoot ? commentSubTreeRootId(item, root) : item.id
 
-  const href = `/items/${id}` + (navigateRoot ? '' : `?commentId=${item.id}`)
+  const href = `/items/${id}` + (navigateRoot ? `?commentId=${item.id}` : '')
 
   const text = navigateRoot && item.ncomments === 0
     ? 'reply on another page'

@@ -184,11 +184,16 @@ export function useWalletProtocolUpsert () {
 }
 
 export function useLightningAddressUpsert () {
-  // TODO(wallet-v2): parse domain from address input to use correct wallet template
-  // useWalletProtocolUpsert needs to support passing in the wallet in the callback for that
-  const wallet = { name: 'LN_ADDR', __typename: 'WalletTemplate' }
-  const protocol = { name: 'LN_ADDR', send: false, __typename: 'WalletProtocolTemplate' }
-  return useWalletProtocolUpsert(wallet, protocol)
+  const wallet = useMemo(() => ({ name: 'LN_ADDR', __typename: 'WalletTemplate' }), [])
+  const protocol = useMemo(() => ({ name: 'LN_ADDR', send: false, __typename: 'WalletProtocolTemplate' }), [])
+  const upsert = useWalletProtocolUpsert()
+  const testCreateInvoice = useTestCreateInvoice(protocol)
+
+  return useCallback(async (values) => {
+    // TODO(wallet-v2): parse domain from address input to use correct wallet template
+    await testCreateInvoice(values)
+    return await upsert(wallet, protocol, { ...values, enabled: true })
+  }, [testCreateInvoice, upsert, wallet, protocol])
 }
 
 export function useWalletEncryptionUpdate () {

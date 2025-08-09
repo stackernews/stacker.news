@@ -7,7 +7,7 @@ const MultiStepFormContext = createContext()
 
 export function MultiStepForm ({ children, initial, steps }) {
   const [stepIndex, setStepIndex] = useState(0)
-  const [formState, setFormState] = useState([])
+  const [formState, setFormState] = useState({})
   const router = useRouter()
 
   useEffect(() => {
@@ -35,14 +35,11 @@ export function MultiStepForm ({ children, initial, steps }) {
 
   const prev = useCallback(() => router.back(), [router])
 
-  const updateFormState = useCallback(({ id, ...state }) => {
-    setFormState(formState =>
-      [
-        ...formState.filter(fs => fs.id !== id),
-        { id, ...state }
-      ]
-    )
-  }, [])
+  const updateFormState = useCallback((id, state) => {
+    setFormState(formState => {
+      return id ? { ...formState, [id]: state } : state
+    }, [])
+  })
 
   const value = useMemo(
     () => ({ stepIndex, steps, next, prev, formState, updateFormState }),
@@ -136,12 +133,10 @@ export function usePrev () {
 
 export function useFormState (id) {
   const { formState, updateFormState } = useContext(MultiStepFormContext)
-  const setFormState = useCallback(state => updateFormState({ id, ...state }), [id, updateFormState])
+  const setFormState = useCallback(state => updateFormState(id, state), [id, updateFormState])
   return useMemo(
     () => [
-      id
-        ? formState.find(fs => fs.id === id)
-        : formState,
+      id ? formState[id] : formState,
       setFormState
     ], [formState, id, setFormState])
 }

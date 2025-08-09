@@ -7,7 +7,7 @@ import CancelButton from '@/components/cancel-button'
 import Text from '@/components/text'
 import Info from '@/components/info'
 import { useFormState, useMaxSteps, useNext, useStepIndex } from '@/components/multi-step-form'
-import { isTemplate, isWallet, protocolDisplayName, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
+import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
 import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport } from '@/wallets/client/hooks'
 
@@ -16,7 +16,15 @@ import { Settings } from './settings'
 import { BackButton, SkipButton } from './button'
 
 export function WalletMultiStepForm ({ wallet }) {
-  const initial = useMemo(() => wallet.protocols.filter(p => !isTemplate(p)), [wallet])
+  const initial = useMemo(() => wallet.protocols
+    .filter(p => !isTemplate(p))
+    .reduce((acc, p) => {
+      const formId = protocolFormId(p)
+      return {
+        ...acc,
+        [formId]: p
+      }
+    }, {}), [wallet])
 
   const support = useWalletSupport(wallet)
   const steps = useMemo(() =>
@@ -146,7 +154,7 @@ function WalletProtocolFormNavigator () {
   const [formState] = useFormState()
 
   // was something already configured or was something configured just now?
-  const configExists = (isWallet(wallet) && wallet.protocols.length > 0) || formState.length > 0
+  const configExists = (isWallet(wallet) && wallet.protocols.length > 0) || Object.keys(formState).length > 0
 
   // don't allow going to settings as last step with nothing configured
   const hideSkip = stepIndex === maxSteps - 2 && !configExists

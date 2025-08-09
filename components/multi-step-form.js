@@ -38,8 +38,8 @@ export function MultiStepForm ({ children, initial, steps }) {
   const updateFormState = useCallback((id, state) => {
     setFormState(formState => {
       return id ? { ...formState, [id]: state } : state
-    }, [])
-  })
+    })
+  }, [])
 
   const value = useMemo(
     () => ({ stepIndex, steps, next, prev, formState, updateFormState }),

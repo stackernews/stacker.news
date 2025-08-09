@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, PROXY_RECEIVE_FEE_PERCENT } from '@/lib/constants'
 import { toPositiveBigInt, numWithUnits, msatsToSats } from '@/lib/format'
 import { notifyDeposit } from '@/lib/webPush'
 import { getInvoiceableWallets } from '@/wallets/server'
@@ -29,7 +29,7 @@ export async function getInvoiceablePeer (_, { me, models, cost, paymentMethod }
 }
 
 export async function getSybilFeePercent () {
-  return 10n
+  return PROXY_RECEIVE_FEE_PERCENT
 }
 
 export async function perform ({

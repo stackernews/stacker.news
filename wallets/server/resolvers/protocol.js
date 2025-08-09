@@ -336,7 +336,7 @@ async function deleteWalletLogs (parent, { protocolId, debug }, { me, models }) 
   return true
 }
 
-async function updateWalletBadges ({ userId, tx }) {
+export async function updateWalletBadges ({ userId, tx }) {
   const pushNotifications = []
 
   const wallets = await tx.wallet.findMany({

@@ -280,7 +280,7 @@ export default function Comment ({
       </div>
       {collapse !== 'yep' && (
         bottomedOut
-          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3 pb-2')}><ViewMoreReplies item={item} navigateRoot /></div></div>
+          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3 pb-2')}><ViewMoreReplies item={item} threadContext /></div></div>
           : (
             <div className={styles.children}>
               {item.outlawed && !me?.privates?.wildWestMode
@@ -314,13 +314,15 @@ export default function Comment ({
   )
 }
 
-export function ViewMoreReplies ({ item, navigateRoot = false }) {
+export function ViewMoreReplies ({ item, threadContext = false }) {
   const root = useRoot()
-  const id = navigateRoot ? commentSubTreeRootId(item, root) : item.id
+  const id = threadContext ? commentSubTreeRootId(item, root) : item.id
 
-  const href = `/items/${id}` + (navigateRoot ? `?commentId=${item.id}` : '')
+  // if threadContext is true, we travel to some comments before the current comment, focusing on the comment itself
+  // otherwise, we directly navigate to the comment
+  const href = `/items/${id}` + (threadContext ? `?commentId=${item.id}` : '')
 
-  const text = navigateRoot && item.ncomments === 0
+  const text = threadContext && item.ncomments === 0
     ? 'reply on another page'
     : `view all ${item.ncomments} replies`
 

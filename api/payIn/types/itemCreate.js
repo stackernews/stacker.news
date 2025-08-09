@@ -4,6 +4,7 @@ import { getItemMentions, getMentions, performBotBehavior, getSub, getItemResult
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
 import * as BOOST from './boost'
+import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 
 export const anonable = true
 
@@ -55,28 +56,12 @@ async function getCost (models, { subName, parentId, uploadIds, boost = 0, bio }
 export async function getInitial (models, args, { me }) {
   const mcost = await getCost(models, args, { me })
   const sub = await getSub(models, args)
-
-  const revenueMsats = sub ? mcost * BigInt(sub.rewardsPct) / 100n : 0n
-  const rewardMsats = mcost - revenueMsats
-  const payOutCustodialTokens = [
-    { payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardMsats, custodialTokenType: 'SATS' }
-  ]
-  if (revenueMsats > 0n) {
-    payOutCustodialTokens.push({
-      payOutType: 'TERRITORY_REVENUE',
-      userId: sub.userId,
-      mtokens: revenueMsats,
-      custodialTokenType: 'SATS',
-      subPayOutCustodialToken: {
-        subName: sub.name
-      }
-    })
-  }
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost })
 
   let beneficiaries
   if (args.boost > 0) {
     beneficiaries = [
-      await BOOST.getInitial(models, { sats: args.boost, sub }, { me })
+      await BOOST.getInitial(models, { sats: args.boost }, { me, sub })
     ]
   }
 
@@ -91,7 +76,8 @@ export async function getInitial (models, args, { me }) {
 
 // TODO: uploads should just have an itemId
 export async function onBegin (tx, payInId, args) {
-  const { invoiceId, parentId, uploadIds = [], forwardUsers = [], options: pollOptions = [], ...data } = args
+  // don't want to double count boost ... it should be a beneficiary
+  const { invoiceId, parentId, uploadIds = [], boost: _, forwardUsers = [], options: pollOptions = [], ...data } = args
   const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
 
   const deletedUploads = []

@@ -3,7 +3,8 @@ import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyZapped } from '@/lib/webPush'
 import { Prisma } from '@prisma/client'
 import { payOutBolt11Prospect } from '../lib/payOutBolt11'
-import { getItemResult } from '../lib/item'
+import { getItemResult, getSub } from '../lib/item'
+import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 
 export const anonable = true
 
@@ -48,38 +49,27 @@ async function tryP2P (models, { id, sats, hasSendWallet }, { me }) {
 //    if p2p, 27% to rewards pool, 3% to routing fee
 //    if not p2p, all 30% to rewards pool
 export async function getInitial (models, payInArgs, { me }) {
-  const { sub, itemForwards, userId } = await models.item.findUnique({ where: { id: parseInt(payInArgs.id) }, include: { sub: true, itemForwards: true, user: true } })
+  const { subName, parentId, itemForwards, userId } = await models.item.findUnique({ where: { id: parseInt(payInArgs.id) }, include: { itemForwards: true, user: true } })
+  const sub = await getSub(models, { subName, parentId })
   const mcost = satsToMsats(payInArgs.sats)
   let payOutBolt11
 
-  let routingFeeMtokens = 0n
   const zapMtokens = mcost * 70n / 100n
-  const revenueMtokens = sub ? (mcost - zapMtokens) * BigInt(sub.rewardsPct) / 100n : 0n
   const payOutCustodialTokens = []
-  if (revenueMtokens > 0n) {
-    payOutCustodialTokens.push({
-      payOutType: 'TERRITORY_REVENUE',
-      userId: sub.userId,
-      mtokens: revenueMtokens,
-      custodialTokenType: 'SATS',
-      subPayOutCustodialToken: {
-        subName: sub.name
-      }
-    })
-  }
 
   const p2p = await tryP2P(models, payInArgs, { me })
   if (p2p) {
     try {
       // 3% to routing fee
-      routingFeeMtokens = mcost * 3n / 100n
-      payOutCustodialTokens.push({ payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' })
+      const routingFeeMtokens = mcost * 3n / 100n
       payOutBolt11 = await payOutBolt11Prospect(models, { userId, payOutType: 'ZAP', msats: zapMtokens })
+      payOutCustodialTokens.push({ payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' })
     } catch (err) {
-      routingFeeMtokens = 0n
       console.error('failed to create user invoice:', err)
     }
-  } else {
+  }
+
+  if (!payOutBolt11) {
     if (itemForwards.length > 0) {
       for (const f of itemForwards) {
         payOutCustodialTokens.push({ payOutType: 'ZAP', userId: f.userId, mtokens: zapMtokens * BigInt(f.pct) / 100n, custodialTokenType: 'CREDITS' })
@@ -90,15 +80,14 @@ export async function getInitial (models, payInArgs, { me }) {
   }
 
   // what's left goes to the rewards pool
-  const rewardsPoolMtokens = mcost - zapMtokens - routingFeeMtokens - revenueMtokens
-  payOutCustodialTokens.push({ payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardsPoolMtokens, custodialTokenType: 'SATS' })
+  const redistributedPayOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost, payOutCustodialTokens, payOutBolt11 })
 
   return {
     payInType: 'ZAP',
     userId: me.id,
     mcost,
     itemPayIn: { itemId: parseInt(payInArgs.id) },
-    payOutCustodialTokens,
+    payOutCustodialTokens: redistributedPayOutCustodialTokens,
     payOutBolt11
   }
 }

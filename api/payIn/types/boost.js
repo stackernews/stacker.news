@@ -1,5 +1,7 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
+import { getItemResult, getSub } from '../lib/item'
+import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 
 export const anonable = false
 
@@ -9,55 +11,38 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
 ]
 
-async function getPayOuts (models, { sats, id, sub }, { me }) {
+export async function getInitial (models, { sats, id }, { me, sub }) {
   if (id) {
-    sub = (await models.item.findUnique({ where: { id }, include: { sub: true } })).sub
+    const { subName, parentId } = await models.item.findUnique({ where: { id: parseInt(id) } })
+    sub = await getSub(models, { subName, parentId })
   }
 
-  if (!sub) {
-    throw new Error('Sub not found')
-  }
+  const mcost = satsToMsats(sats)
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost })
 
-  const revenueMsats = satsToMsats(sats * sub.rewardsPct / 100)
-  const rewardMsats = satsToMsats(sats - revenueMsats)
-
-  // TODO: this won't work for beneficiaries on itemCreate
-  return {
-    payOutCustodialTokens: [
-      {
-        payOutType: 'TERRITORY_REVENUE',
-        userId: sub.userId,
-        mtokens: revenueMsats,
-        custodialTokenType: 'SATS',
-        subPayOutCustodialToken: {
-          subName: sub.name
-        }
-      },
-      {
-        payOutType: 'REWARD_POOL',
-        userId: null,
-        mtokens: rewardMsats,
-        custodialTokenType: 'SATS'
-      }
-    ]
-  }
-}
-
-export async function getInitial (models, payInArgs, { me }) {
-  const { sats } = payInArgs
   return {
     payInType: 'BOOST',
     userId: me?.id,
-    mcost: satsToMsats(sats),
-    itemPayIn: {
-      itemId: parseInt(payInArgs.id)
-    },
-    ...(await getPayOuts(models, payInArgs, { me }))
+    mcost,
+    payOutCustodialTokens
   }
 }
 
 export async function onRetry (tx, oldPayInId, newPayInId) {
   await tx.itemPayIn.update({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
+}
+
+export async function onBegin (tx, payInId, { sats, id }, benefactorResult) {
+  id ??= benefactorResult.id
+
+  if (!id) {
+    throw new Error('item id is required')
+  }
+
+  const item = await getItemResult(tx, { id })
+  await tx.payIn.update({ where: { id: payInId }, data: { itemPayIn: { create: { itemId: item.id } } } })
+
+  return { id: item.id, path: item.path, sats, act: 'BOOST' }
 }
 
 export async function onPaid (tx, payInId) {

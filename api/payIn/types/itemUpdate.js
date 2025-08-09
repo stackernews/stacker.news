@@ -1,8 +1,9 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { uploadFees } from '../../resolvers/upload'
-import { getItemMentions, getItemResult, getMentions, performBotBehavior } from '../lib/item'
+import { getItemMentions, getItemResult, getMentions, getSub, performBotBehavior } from '../lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import * as BOOST from './boost'
+import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 export const anonable = true
 
 export const paymentMethods = [
@@ -40,26 +41,11 @@ async function getCost (models, { id, boost = 0, uploadIds, bio }, { me }) {
   return cost
 }
 
-export async function getInitial (models, { id, boost = 0, uploadIds, bio }, { me }) {
-  const old = await models.item.findUnique({ where: { id: parseInt(id) }, include: { sub: true } })
+export async function getInitial (models, { id, boost = 0, uploadIds, bio, subName }, { me }) {
+  const old = await models.item.findUnique({ where: { id: parseInt(id) } })
   const mcost = await getCost(models, { id, boost, uploadIds, bio }, { me })
-
-  const revenueMsats = old.sub ? mcost * BigInt(old.sub.rewardsPct) / 100n : 0n
-  const rewardMsats = mcost - revenueMsats
-  const payOutCustodialTokens = [
-    { payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardMsats, custodialTokenType: 'SATS' }
-  ]
-  if (revenueMsats > 0n) {
-    payOutCustodialTokens.push({
-      payOutType: 'TERRITORY_REVENUE',
-      userId: old.sub.userId,
-      mtokens: revenueMsats,
-      custodialTokenType: 'SATS',
-      subPayOutCustodialToken: {
-        subName: old.sub.name
-      }
-    })
-  }
+  const sub = await getSub(models, { subName })
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost })
 
   let beneficiaries
   if (boost - old.boost > 0) {

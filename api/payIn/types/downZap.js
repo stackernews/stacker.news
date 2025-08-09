@@ -1,7 +1,8 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { msatsToSats, satsToMsats, numWithUnits } from '@/lib/format'
 import { Prisma } from '@prisma/client'
-import { getItemResult } from '../lib/item'
+import { getItemResult, getSub } from '../lib/item'
+import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 
 export const anonable = false
 
@@ -12,25 +13,11 @@ export const paymentMethods = [
 ]
 
 export async function getInitial (models, { sats, id: itemId }, { me }) {
-  const item = await models.item.findUnique({ where: { id: parseInt(itemId) }, include: { sub: true } })
+  const item = await models.item.findUnique({ where: { id: parseInt(itemId) } })
+  const sub = await getSub(models, { subName: item.subName, parentId: item.parentId })
 
   const mcost = satsToMsats(sats)
-  const revenueMsats = item.sub ? mcost * BigInt(item.sub.rewardsPct) / 100n : 0n
-  const rewardsMsats = mcost - revenueMsats
-  const payOutCustodialTokens = []
-  if (revenueMsats > 0n) {
-    payOutCustodialTokens.push({
-      payOutType: 'TERRITORY_REVENUE',
-      userId: item.sub.userId,
-      mtokens: revenueMsats,
-      custodialTokenType: 'SATS',
-      subPayOutCustodialToken: {
-        subName: item.sub.name
-      }
-    })
-  }
-
-  payOutCustodialTokens.push({ payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardsMsats, custodialTokenType: 'SATS' })
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost })
 
   return {
     payInType: 'DOWN_ZAP',

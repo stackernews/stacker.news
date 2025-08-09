@@ -24,5 +24,10 @@ export default function WalletForms ({ ssrData }) {
   const dat = useData(data, ssrData)
 
   const decryptedWallet = useDecryptedWallet(dat?.wallet)
-  return <WalletFormsComponent wallet={decryptedWallet ?? dat?.wallet} refetch={refetch} />
+  const wallet = decryptedWallet ?? ssrData?.wallet
+  if (!wallet) {
+    return null
+  }
+
+  return <WalletFormsComponent wallet={wallet} refetch={refetch} />
 }

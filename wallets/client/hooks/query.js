@@ -143,7 +143,7 @@ function server2Client (wallet) {
     return { id, ...wallet, template: { name: templateId, ...template } }
   }
 
-  return undoFieldAlias(checkProtocolAvailability(wallet))
+  return wallet ? undoFieldAlias(checkProtocolAvailability(wallet)) : wallet
 }
 
 export function useWalletProtocolUpsert (wallet, protocol) {

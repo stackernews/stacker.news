@@ -8,65 +8,35 @@ export default function preserveScroll (callback) {
     return
   }
 
-  // check if a ref element is in the viewport
-  const isElementInViewport = (element) => {
-    if (!element?.getBoundingClientRect) return false
-
-    const rect = element.getBoundingClientRect()
-    return (
-      rect.bottom > 0 &&
-      rect.right > 0 &&
-      rect.top < window.innerHeight &&
-      rect.left < window.innerWidth
-    )
-  }
-
-  // pick a textarea element to use as anchor ref, if any
-  const selectTextarea = () => {
-    // pick the focused textarea, if any
-    const active = document.activeElement
-    if (active && active.tagName === 'TEXTAREA' && isElementInViewport(active)) {
-      return active
-    }
-
-    // if no textarea is focused, check if there are any in the viewport
-    const textareas = document.querySelectorAll('textarea')
-    for (const textarea of textareas) {
-      if (isElementInViewport(textarea)) {
-        return textarea
-      }
-    }
-
-    return null
-  }
-
-  // if no textarea is found, use the center of the viewport as fallback anchor
-  const anchorRef = selectTextarea() || document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)
-  const refTop = anchorRef ? anchorRef.getBoundingClientRect().top + scrollTop : scrollTop
+  // get a reference element at the center of the viewport to track if content is added above it
+  const ref = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)
+  const refTop = ref ? ref.getBoundingClientRect().top + scrollTop : scrollTop
 
   // observe the document for changes in height
   const observer = new window.MutationObserver(() => {
-    cleanup()
-
-    // double rAF to ensure the DOM is updated - textareas are rendered on the next tick
+    // request animation frame to ensure the DOM is updated
     window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        if (!anchorRef) return
+      // we can't proceed if we couldn't find a traceable reference element
+      if (!ref) {
+        cleanup()
+        return
+      }
 
-        // get the new position of the anchor ref along with the new scroll position
-        const newRefTop = anchorRef ? anchorRef.getBoundingClientRect().top + window.scrollY : window.scrollY
-        // has the anchor ref moved?
-        const refMoved = newRefTop - refTop
+      // get the new position of the reference element along with the new scroll position
+      const newRefTop = ref ? ref.getBoundingClientRect().top + window.scrollY : window.scrollY
+      // has the reference element moved?
+      const refMoved = newRefTop - refTop
 
-        // if the anchor ref moved, we need to scroll to the new position
-        if (refMoved > 0) {
-          window.scrollTo({
-            // some browsers don't respond well to fractional scroll position, so we round up the new position to the nearest integer
-            top: scrollTop + Math.ceil(refMoved),
-            behavior: 'instant'
-          })
-        }
-      })
+      // if the reference element moved, we need to scroll to the new position
+      if (refMoved > 0) {
+        window.scrollTo({
+          // some browsers don't respond well to fractional scroll position, so we round up the new position to the nearest integer
+          top: scrollTop + Math.ceil(refMoved),
+          behavior: 'instant'
+        })
+      }
+
+      cleanup()
     })
   })
 

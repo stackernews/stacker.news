@@ -172,7 +172,7 @@ function WalletProtocolFormField ({ type, ...props }) {
   const wallet = useWallet()
   const [protocol] = useProtocol()
 
-  function transform ({ validate, encrypt, editable, help, ...props }) {
+  function transform ({ validate, encrypt, editable, help, share, ...props }) {
     const [upperHint, bottomHint] = Array.isArray(props.hint) ? props.hint : [null, props.hint]
 
     const parseHelpText = text => Array.isArray(text) ? text.join('\n\n') : text

@@ -131,11 +131,6 @@ export const SET_SETTINGS = gql`
     }
   }`
 
-export const DELETE_WALLET = gql`
-  mutation removeWallet {
-    removeWallet
-  }`
-
 export const NAME_QUERY = gql`
   query nameAvailable($name: String!) {
     nameAvailable(name: $name)

@@ -1,5 +1,4 @@
 import {
-  WALLET,
   UPSERT_WALLET_RECEIVE_BLINK,
   UPSERT_WALLET_RECEIVE_CLN_REST,
   UPSERT_WALLET_RECEIVE_LIGHTNING_ADDRESS,
@@ -14,7 +13,6 @@ import {
   UPSERT_WALLET_SEND_PHOENIXD,
   UPSERT_WALLET_SEND_WEBLN,
   WALLETS,
-  REMOVE_WALLET_PROTOCOL,
   UPDATE_WALLET_ENCRYPTION,
   RESET_WALLETS,
   DISABLE_PASSPHRASE_EXPORT,
@@ -26,13 +24,14 @@ import {
   TEST_WALLET_RECEIVE_LIGHTNING_ADDRESS,
   TEST_WALLET_RECEIVE_NWC,
   TEST_WALLET_RECEIVE_CLN_REST,
-  TEST_WALLET_RECEIVE_LND_GRPC
+  TEST_WALLET_RECEIVE_LND_GRPC,
+  DELETE_WALLET
 } from '@/wallets/client/fragments'
 import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
-import { useDecryption, useEncryption, useSetKey, useWalletLogger, useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks'
+import { useDecryption, useEncryption, useSetKey, useWalletLoggerFactory, useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolClientSchema, reverseProtocolRelationName
+  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolClientSchema, protocolLogName, reverseProtocolRelationName
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
@@ -55,8 +54,7 @@ export function useWalletsQuery () {
     Promise.all(
       query.data?.wallets.map(w => decryptWallet(w))
     )
-      .then(wallets => wallets.map(protocolCheck))
-      .then(wallets => wallets.map(undoFieldAlias))
+      .then(wallets => wallets.map(server2Client))
       .then(wallets => {
         setWallets(wallets)
         setError(null)
@@ -79,41 +77,6 @@ export function useWalletsQuery () {
   }), [query, error, wallets])
 }
 
-function protocolCheck (wallet) {
-  if (isTemplate(wallet)) return wallet
-
-  const protocols = wallet.protocols.map(protocol => {
-    return {
-      ...protocol,
-      enabled: protocol.enabled && protocolAvailable(protocol)
-    }
-  })
-
-  const sendEnabled = protocols.some(p => p.send && p.enabled)
-  const receiveEnabled = protocols.some(p => !p.send && p.enabled)
-
-  return {
-    ...wallet,
-    send: !sendEnabled ? WalletStatus.DISABLED : wallet.send,
-    receive: !receiveEnabled ? WalletStatus.DISABLED : wallet.receive,
-    protocols
-  }
-}
-
-function undoFieldAlias ({ id, ...wallet }) {
-  // Just like for encrypted fields, we have to use a field alias for the name field of templates
-  // because of https://github.com/graphql/graphql-js/issues/53.
-  // We undo this here so this only affects the GraphQL layer but not the rest of the code.
-  if (isTemplate(wallet)) {
-    return { ...wallet, name: id }
-  }
-
-  if (!wallet.template) return wallet
-
-  const { id: templateId, ...template } = wallet.template
-  return { id, ...wallet, template: { name: templateId, ...template } }
-}
-
 function useRefetchOnChange (refetch) {
   const { me } = useMe()
   const walletsUpdatedAt = useWalletsUpdatedAt()
@@ -125,62 +88,77 @@ function useRefetchOnChange (refetch) {
   }, [refetch, me?.id, walletsUpdatedAt])
 }
 
-export function useWalletQuery ({ id, name }) {
-  const { me } = useMe()
-  const query = useQuery(WALLET, { variables: { id, name }, skip: !me })
-  const [wallet, setWallet] = useState(null)
-
+export function useDecryptedWallet (wallet) {
   const { decryptWallet, ready } = useWalletDecryption()
+  const [decryptedWallet, setDecryptedWallet] = useState(server2Client(wallet))
 
   useEffect(() => {
-    if (!query.data?.wallet || !ready) return
-    decryptWallet(query.data?.wallet)
-      .then(protocolCheck)
-      .then(undoFieldAlias)
-      .then(wallet => setWallet(wallet))
+    if (!ready || !wallet) return
+    decryptWallet(wallet)
+      .then(server2Client)
+      .then(wallet => setDecryptedWallet(wallet))
       .catch(err => {
         console.error('failed to decrypt wallet:', err)
       })
-  }, [query.data, decryptWallet, ready])
+  }, [decryptWallet, wallet, ready])
 
-  return useMemo(() => ({
-    ...query,
-    loading: !wallet,
-    data: wallet ? { wallet } : null
-  }), [query, wallet])
+  return decryptedWallet
 }
 
-export function useWalletProtocolUpsert (wallet, protocol) {
-  const mutation = getWalletProtocolUpsertMutation(protocol)
-  const [mutate] = useMutation(mutation)
-  const { encryptConfig } = useEncryptConfig(protocol)
-  const testSendPayment = useTestSendPayment(protocol)
-  const testCreateInvoice = useTestCreateInvoice(protocol)
-  const logger = useWalletLogger(protocol)
+function server2Client (wallet) {
+  // some protocols require a specific client environment
+  // e.g. WebLN requires a browser extension
+  function checkProtocolAvailability (wallet) {
+    if (isTemplate(wallet)) return wallet
 
-  return useCallback(async (values) => {
-    logger.info('saving wallet ...')
-
-    if (isTemplate(protocol)) {
-      values.enabled = true
-    }
-
-    // skip network tests if we're disabling the wallet
-    if (values.enabled) {
-      try {
-        if (protocol.send) {
-          const additionalValues = await testSendPayment(values)
-          values = { ...values, ...additionalValues }
-        } else {
-          await testCreateInvoice(values)
-        }
-      } catch (err) {
-        logger.error(err.message)
-        throw err
+    const protocols = wallet.protocols.map(protocol => {
+      return {
+        ...protocol,
+        enabled: protocol.enabled && protocolAvailable(protocol)
       }
+    })
+
+    const sendEnabled = protocols.some(p => p.send && p.enabled)
+    const receiveEnabled = protocols.some(p => !p.send && p.enabled)
+
+    return {
+      ...wallet,
+      send: !sendEnabled ? WalletStatus.DISABLED : wallet.send,
+      receive: !receiveEnabled ? WalletStatus.DISABLED : wallet.receive,
+      protocols
+    }
+  }
+
+  // Just like for encrypted fields, we have to use a field alias for the name field of templates
+  // because of https://github.com/graphql/graphql-js/issues/53.
+  // We undo this here so this only affects the GraphQL layer but not the rest of the code.
+  function undoFieldAlias ({ id, ...wallet }) {
+    if (isTemplate(wallet)) {
+      return { ...wallet, name: id }
     }
 
-    const encrypted = await encryptConfig(values)
+    if (!wallet.template) return wallet
+
+    const { id: templateId, ...template } = wallet.template
+    return { id, ...wallet, template: { name: templateId, ...template } }
+  }
+
+  return wallet ? undoFieldAlias(checkProtocolAvailability(wallet)) : wallet
+}
+
+export function useWalletProtocolUpsert () {
+  const client = useApolloClient()
+  const loggerFactory = useWalletLoggerFactory()
+  const { encryptConfig } = useEncryptConfig()
+
+  return useCallback(async (wallet, protocol, values) => {
+    const logger = loggerFactory(protocol)
+    const mutation = protocolUpsertMutation(protocol)
+    const name = `${protocolLogName(protocol)} ${protocol.send ? 'send' : 'receive'}`
+
+    logger.info(`saving ${name}...`)
+
+    const encrypted = await encryptConfig(values, { protocol })
 
     const variables = encrypted
     if (isWallet(wallet)) {
@@ -191,8 +169,8 @@ export function useWalletProtocolUpsert (wallet, protocol) {
 
     let updatedWallet
     try {
-      const { data } = await mutate({ variables })
-      logger.ok('wallet saved')
+      const { data } = await client.mutate({ mutation, variables })
+      logger.ok(`${name} saved`)
       updatedWallet = Object.values(data)[0]
     } catch (err) {
       logger.error(err.message)
@@ -202,29 +180,20 @@ export function useWalletProtocolUpsert (wallet, protocol) {
     requestPersistentStorage()
 
     return updatedWallet
-  }, [wallet, protocol, logger, testSendPayment, testCreateInvoice, encryptConfig, mutate])
+  }, [client, loggerFactory, encryptConfig])
 }
 
 export function useLightningAddressUpsert () {
-  // TODO(wallet-v2): parse domain from address input to use correct wallet template
-  // useWalletProtocolUpsert needs to support passing in the wallet in the callback for that
-  const wallet = { name: 'LN_ADDR', __typename: 'WalletTemplate' }
-  const protocol = { name: 'LN_ADDR', send: false, __typename: 'WalletProtocolTemplate' }
-  return useWalletProtocolUpsert(wallet, protocol)
-}
+  const wallet = useMemo(() => ({ name: 'LN_ADDR', __typename: 'WalletTemplate' }), [])
+  const protocol = useMemo(() => ({ name: 'LN_ADDR', send: false, __typename: 'WalletProtocolTemplate' }), [])
+  const upsert = useWalletProtocolUpsert()
+  const testCreateInvoice = useTestCreateInvoice(protocol)
 
-export function useWalletProtocolRemove (protocol) {
-  const [mutate] = useMutation(REMOVE_WALLET_PROTOCOL)
-  const toaster = useToast()
-
-  return useCallback(async () => {
-    try {
-      await mutate({ variables: { id: protocol.id } })
-      toaster.success('protocol detached')
-    } catch (err) {
-      toaster.danger('failed to detach protocol: ' + err.message)
-    }
-  }, [protocol?.id, mutate, toaster])
+  return useCallback(async (values) => {
+    // TODO(wallet-v2): parse domain from address input to use correct wallet template
+    await testCreateInvoice(values)
+    return await upsert(wallet, protocol, { ...values, enabled: true })
+  }, [testCreateInvoice, upsert, wallet, protocol])
 }
 
 export function useWalletEncryptionUpdate () {
@@ -299,7 +268,7 @@ export function useSetWalletPriorities () {
 // (the mutation would throw if called but we make sure to never call it.)
 const NOOP_MUTATION = gql`mutation noop { noop }`
 
-function getWalletProtocolUpsertMutation (protocol) {
+function protocolUpsertMutation (protocol) {
   switch (protocol.name) {
     case 'LNBITS':
       return protocol.send ? UPSERT_WALLET_SEND_LNBITS : UPSERT_WALLET_RECEIVE_LNBITS
@@ -324,7 +293,7 @@ function getWalletProtocolUpsertMutation (protocol) {
   }
 }
 
-function getWalletProtocolTestMutation (protocol) {
+function protocolTestMutation (protocol) {
   if (protocol.send) return NOOP_MUTATION
 
   switch (protocol.name) {
@@ -347,7 +316,7 @@ function getWalletProtocolTestMutation (protocol) {
   }
 }
 
-function useTestSendPayment (protocol) {
+export function useTestSendPayment (protocol) {
   return useCallback(async (values) => {
     return await protocolTestSendPayment(
       protocol,
@@ -357,13 +326,21 @@ function useTestSendPayment (protocol) {
   }, [protocol])
 }
 
-function useTestCreateInvoice (protocol) {
-  const mutation = getWalletProtocolTestMutation(protocol)
+export function useTestCreateInvoice (protocol) {
+  const mutation = protocolTestMutation(protocol)
   const [testCreateInvoice] = useMutation(mutation)
 
   return useCallback(async (values) => {
     return await testCreateInvoice({ variables: values })
   }, [testCreateInvoice])
+}
+
+export function useWalletDelete (wallet) {
+  const [mutate] = useMutation(DELETE_WALLET)
+
+  return useCallback(async () => {
+    await mutate({ variables: { id: wallet.id } })
+  }, [mutate, wallet.id])
 }
 
 function useWalletDecryption () {
@@ -495,7 +472,7 @@ export function useWalletMigrationMutation () {
     }
 
     await client.mutate({
-      mutation: getWalletProtocolUpsertMutation(protocol),
+      mutation: protocolUpsertMutation(protocol),
       variables: {
         ...(walletId ? { walletId } : { templateName }),
         enabled,

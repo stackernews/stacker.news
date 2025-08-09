@@ -1,4 +1,4 @@
-import { isTemplate, isWallet, protocolClientSchema, protocolFields, walletLud16Domain } from '@/wallets/lib/util'
+import { isTemplate, isWallet, protocolClientSchema, protocolFields, protocolFormId, walletLud16Domain } from '@/wallets/lib/util'
 import { createContext, useContext, useEffect, useMemo, useCallback, useState } from 'react'
 import { useWalletProtocolUpsert } from '@/wallets/client/hooks'
 import { MultiStepForm, useFormState, useStep } from '@/components/multi-step-form'
@@ -64,7 +64,8 @@ export function useProtocol () {
 }
 
 function useProtocolFormState (protocol) {
-  const [formState, setFormState] = useFormState(protocol.id)
+  const formId = protocolFormId(protocol)
+  const [formState, setFormState] = useFormState(formId)
   const setProtocolFormState = useCallback(
     ({ enabled, ...config }) => {
       setFormState({ ...protocol, enabled, config })
@@ -75,6 +76,7 @@ function useProtocolFormState (protocol) {
 
 export function useProtocolForm (protocol) {
   const [formState, setFormState] = useProtocolFormState(protocol)
+  const [complementaryFormState] = useProtocolFormState({ name: protocol.name, send: !protocol.send })
   const wallet = useWallet()
   const lud16Domain = walletLud16Domain(wallet.name)
   const fields = protocolFields(protocol)
@@ -82,6 +84,10 @@ export function useProtocolForm (protocol) {
     // we only fallback to the existing protocol config because formState was not initialized yet on first render
     // after init, we use formState as the source of truth everywhere
     let value = formState?.config?.[field.name] ?? protocol.config?.[field.name]
+
+    if (!value && field.share) {
+      value = complementaryFormState?.config?.[field.name]
+    }
 
     if (field.name === 'address' && lud16Domain && value) {
       value = value.split('@')[0]
@@ -113,7 +119,7 @@ export function useSaveWallet () {
 
   const save = useCallback(async () => {
     let walletId = isWallet(wallet) ? wallet.id : undefined
-    for (const protocol of formState) {
+    for (const protocol of Object.values(formState)) {
       const { id } = await upsert(
         {
           ...wallet,

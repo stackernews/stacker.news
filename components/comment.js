@@ -97,7 +97,8 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel, rootLastCommentAt,
-  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry
+  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry,
+  navigator
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
@@ -122,6 +123,8 @@ export default function Comment ({
     // don't try to unset the outline if the comment is not outlined or we already unset the outline
     if (hasOutline && !hasOutlineUnset) {
       ref.current.classList.add('outline-new-comment-unset')
+      // untrack the new comment
+      navigator.unTrackNewComment(ref)
     }
   }
 
@@ -173,6 +176,8 @@ export default function Comment ({
     } else {
       ref.current.classList.add('outline-new-comment')
     }
+
+    navigator.trackNewComment(ref)
   }, [item.id, rootLastCommentAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
@@ -295,7 +300,7 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} rootLastCommentAt={rootLastCommentAt} />
+                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={rootLastCommentAt} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && (
                         <div className={`d-block ${styles.comment} pb-2 ps-3`}>

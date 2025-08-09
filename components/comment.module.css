@@ -168,3 +168,61 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* comment navigator */
+.commentNavigator {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 1050;
+    background-color: var(--bs-info);
+    padding: 0.5rem;
+    border-radius: 0.4rem;
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+    animation: slideUp 0.3s ease-out;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    opacity: 0.8;
+    color: #fff;
+    transition: opacity 0.3s ease-in-out;
+    justify-content: center;
+}
+
+.commentNavigator:hover {
+    opacity: 1;
+}
+
+
+.navigatorButton {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    fill: rgba(255, 255, 255, 0.55);
+    vertical-align: 0;
+}
+
+.navigatorButton:hover {
+    fill: rgba(255, 255, 255, 0.75);
+}
+
+.closeButton {
+    color: rgba(255, 255, 255, 0.55);
+    font-family: "lightning";
+    font-size: 150%;
+    line-height: 1rem;
+    margin-bottom: -0.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding-right: 0.25rem;
+}
+
+.closeButton:hover {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}

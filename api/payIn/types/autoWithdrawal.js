@@ -25,7 +25,7 @@ export async function getInitial (models, { msats, maxFeeMsats }, { me }) {
   }
 }
 
-export async function describe (models, payInId, { me }) {
+export async function describe (models, payInId) {
   const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { payOutBolt11: true } })
   return `SN: auto-withdraw ${numWithUnits(msatsToSats(payIn.payOutBolt11.msats))}`
 }

@@ -55,7 +55,7 @@ export async function getInitial (models, payInArgs, { me }) {
   let payOutBolt11
 
   const zapMtokens = mcost * 70n / 100n
-  const payOutCustodialTokens = []
+  const payOutCustodialTokensProspects = []
 
   const p2p = await tryP2P(models, payInArgs, { me })
   if (p2p) {
@@ -63,7 +63,7 @@ export async function getInitial (models, payInArgs, { me }) {
       // 3% to routing fee
       const routingFeeMtokens = mcost * 3n / 100n
       payOutBolt11 = await payOutBolt11Prospect(models, { userId, payOutType: 'ZAP', msats: zapMtokens })
-      payOutCustodialTokens.push({ payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' })
+      payOutCustodialTokensProspects.push({ payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' })
     } catch (err) {
       console.error('failed to create user invoice:', err)
     }
@@ -72,22 +72,22 @@ export async function getInitial (models, payInArgs, { me }) {
   if (!payOutBolt11) {
     if (itemForwards.length > 0) {
       for (const f of itemForwards) {
-        payOutCustodialTokens.push({ payOutType: 'ZAP', userId: f.userId, mtokens: zapMtokens * BigInt(f.pct) / 100n, custodialTokenType: 'CREDITS' })
+        payOutCustodialTokensProspects.push({ payOutType: 'ZAP', userId: f.userId, mtokens: zapMtokens * BigInt(f.pct) / 100n, custodialTokenType: 'CREDITS' })
       }
     }
-    const remainingZapMtokens = zapMtokens - payOutCustodialTokens.filter(t => t.payOutType === 'ZAP').reduce((acc, t) => acc + t.mtokens, 0n)
-    payOutCustodialTokens.push({ payOutType: 'ZAP', userId, mtokens: remainingZapMtokens, custodialTokenType: 'CREDITS' })
+    const remainingZapMtokens = zapMtokens - payOutCustodialTokensProspects.filter(t => t.payOutType === 'ZAP').reduce((acc, t) => acc + t.mtokens, 0n)
+    payOutCustodialTokensProspects.push({ payOutType: 'ZAP', userId, mtokens: remainingZapMtokens, custodialTokenType: 'CREDITS' })
   }
 
   // what's left goes to the rewards pool
-  const redistributedPayOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost, payOutCustodialTokens, payOutBolt11 })
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost, payOutCustodialTokens: payOutCustodialTokensProspects, payOutBolt11 })
 
   return {
     payInType: 'ZAP',
     userId: me.id,
     mcost,
     itemPayIn: { itemId: parseInt(payInArgs.id) },
-    payOutCustodialTokens: redistributedPayOutCustodialTokens,
+    payOutCustodialTokens,
     payOutBolt11
   }
 }

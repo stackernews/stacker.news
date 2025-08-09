@@ -23,9 +23,8 @@ export async function getInitial (models, { billingType }, { me }) {
   }
 }
 
-export async function onPaid (tx, payInId, { me }) {
-  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
-  const { args: { name, invoiceId, ...data } } = payIn.pessimisticEnv
+export async function onBegin (tx, payInId, { name, billingType, ...data }) {
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
   const sub = await tx.sub.findUnique({
     where: {
       name
@@ -43,37 +42,50 @@ export async function onPaid (tx, payInId, { me }) {
   data.billedLastAt = new Date()
   data.billPaidUntil = nextBilling(data.billedLastAt, data.billingType)
   data.status = 'ACTIVE'
-  data.userId = me.id
+  data.userId = payIn.userId
   data.subPayIn = {
     create: {
       payInId
     }
   }
 
-  if (sub.userId !== me.id) {
-    await tx.territoryTransfer.create({ data: { subName: name, oldUserId: sub.userId, newUserId: me.id } })
-    await tx.subSubscription.delete({ where: { userId_subName: { userId: sub.userId, subName: name } } })
+  if (sub.userId !== payIn.userId) {
+    try {
+      // this will throw if this transfer has already happened
+      await tx.territoryTransfer.create({ data: { subName: name, oldUserId: sub.userId, newUserId: payIn.userId } })
+      // this will throw if the prior user has already unsubscribed
+      await tx.subSubscription.delete({ where: { userId_subName: { userId: sub.userId, subName: name } } })
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   await tx.subSubscription.upsert({
     where: {
       userId_subName: {
-        userId: me.id,
+        userId: payIn.userId,
         subName: name
       }
     },
     update: {
-      userId: me.id,
+      userId: payIn.userId,
       subName: name
     },
     create: {
-      userId: me.id,
+      userId: payIn.userId,
       subName: name
     }
   })
 
   const updatedSub = await tx.sub.update({
-    data,
+    data: {
+      ...data,
+      subPayIn: {
+        create: {
+          payInId
+        }
+      }
+    },
     // optimistic concurrency control
     // make sure none of the relevant fields have changed since we fetched the sub
     where: {
@@ -84,9 +96,18 @@ export async function onPaid (tx, payInId, { me }) {
     }
   })
 
-  await tx.userSubTrust.createMany({
-    data: initialTrust({ name: updatedSub.name, userId: updatedSub.userId })
-  })
+  const trust = initialTrust({ name: updatedSub.name, userId: updatedSub.userId })
+  for (const t of trust) {
+    await tx.userSubTrust.upsert({
+      where: {
+        userId_subName: { userId: t.userId, subName: t.subName }
+      },
+      update: t,
+      create: t
+    })
+  }
+
+  return updatedSub
 }
 
 export async function describe (models, payInId) {

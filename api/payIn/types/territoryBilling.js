@@ -29,9 +29,7 @@ export async function getInitial (models, { name }, { me }) {
   }
 }
 
-export async function onPaid (tx, payInId, { me }) {
-  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
-  const { args: { name } } = payIn.pessimisticEnv
+export async function onBegin (tx, payInId, { name }) {
   const sub = await tx.sub.findUnique({
     where: {
       name
@@ -54,7 +52,7 @@ export async function onPaid (tx, payInId, { me }) {
 
   const billPaidUntil = nextBilling(billedLastAt, sub.billingType)
 
-  await tx.sub.update({
+  return await tx.sub.update({
     // optimistic concurrency control
     // make sure the sub hasn't changed since we fetched it
     where: {

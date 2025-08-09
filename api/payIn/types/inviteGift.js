@@ -9,16 +9,12 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.REWARD_SATS
 ]
 
-async function getCost (models, { id }, { me }) {
+export async function getInitial (models, { id, userId }, { me }) {
   const invite = await models.invite.findUnique({ where: { id, userId: me.id, revoked: false } })
   if (!invite) {
     throw new Error('invite not found')
   }
-  return satsToMsats(invite.gift)
-}
-
-export async function getInitial (models, { id, userId }, { me }) {
-  const mcost = await getCost(models, { id }, { me })
+  const mcost = satsToMsats(invite.gift)
   return {
     payInType: 'INVITE_GIFT',
     userId: me?.id,
@@ -71,6 +67,7 @@ export async function onBegin (tx, payInId, { id, userId }) {
   })
 }
 
-export async function onPaidSideEffects (models, payInId, { me }) {
-  notifyInvite(me.id)
+export async function onPaidSideEffects (models, payInId) {
+  const payIn = await models.payIn.findUnique({ where: { id: payInId } })
+  notifyInvite(payIn.userId)
 }

@@ -1,5 +1,6 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
+import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 
 export const anonable = false
 
@@ -16,27 +17,13 @@ export async function getInitial (models, { id }, { me }) {
   })
 
   const mcost = satsToMsats(pollOption.item.pollCost)
-  const revenueMsats = mcost * BigInt(pollOption.item.sub.rewardsPct) / 100n
-  const rewardMsats = mcost - revenueMsats
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub: pollOption.item.sub, mcost })
 
   return {
     payInType: 'POLL_VOTE',
     userId: me?.id,
     mcost,
-    payOutCustodialTokens: [{
-      payOutType: 'TERRITORY_REVENUE',
-      userId: pollOption.item.sub.userId,
-      mtokens: revenueMsats,
-      custodialTokenType: 'SATS',
-      subPayOutCustodialToken: {
-        subName: pollOption.item.sub.name
-      }
-    }, {
-      payOutType: 'REWARD_POOL',
-      userId: null,
-      mtokens: rewardMsats,
-      custodialTokenType: 'SATS'
-    }],
+    payOutCustodialTokens,
     pollBlindVote: {
       itemId: pollOption.itemId,
       userId: me.id
@@ -58,7 +45,7 @@ export async function onPaid (tx, payInId) {
   await tx.pollVote.updateMany({ where: { payInId }, data: { payInId: null } })
 }
 
-export async function describe (models, payInId, { me }) {
+export async function describe (models, payInId) {
   const pollOption = await models.pollOption.findUnique({ where: { payInId } })
   return `SN: vote on poll #${pollOption.itemId}`
 }

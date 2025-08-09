@@ -2,6 +2,7 @@ import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { toPositiveBigInt } from '@/lib/format'
 import { notifyDeposit } from '@/lib/webPush'
 import { payOutBolt11Prospect } from '../lib/payOutBolt11'
+import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 export const anonable = false
 
 export const paymentMethods = [
@@ -11,9 +12,8 @@ export const paymentMethods = [
 // 3% to routing fee, 7% to rewards pool, 90% to invoice
 export async function getInitial (models, { msats, description, descriptionHash, expiry }, { me }) {
   const mcost = toPositiveBigInt(msats)
+  const proxyPaymentMtokens = mcost * 90n / 100n
   const routingFeeMtokens = mcost * 3n / 100n
-  const rewardsPoolMtokens = mcost * 7n / 100n
-  const proxyPaymentMtokens = mcost - routingFeeMtokens - rewardsPoolMtokens
 
   // payInBolt11 and payOutBolt11 belong to the same user
   const payOutBolt11 = await payOutBolt11Prospect(models, {
@@ -23,14 +23,20 @@ export async function getInitial (models, { msats, description, descriptionHash,
     expiry
   }, { payOutType: 'PROXY_PAYMENT', userId: me.id })
 
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({
+    sub: null,
+    mcost,
+    payOutCustodialTokens: [
+      { payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' }
+    ],
+    payOutBolt11
+  })
+
   return {
     payInType: 'PROXY_PAYMENT',
     userId: me.id,
     mcost,
-    payOutCustodialTokens: [
-      { payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' },
-      { payOutType: 'REWARDS_POOL', userId: null, mtokens: rewardsPoolMtokens, custodialTokenType: 'SATS' }
-    ],
+    payOutCustodialTokens,
     payOutBolt11
   }
 }

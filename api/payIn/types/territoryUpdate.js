@@ -28,9 +28,8 @@ export async function getInitial (models, { oldName, billingType }, { me }) {
   }
 }
 
-export async function onPaid (tx, payInId, { me }) {
-  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
-  const { args: { oldName, invoiceId, ...data } } = payIn.pessimisticEnv
+export async function onBegin (tx, payInId, { oldName, billingType, ...data }) {
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
   const oldSub = await tx.sub.findUnique({
     where: {
       name: oldName
@@ -62,7 +61,14 @@ export async function onPaid (tx, payInId, { me }) {
   }
 
   return await tx.sub.update({
-    data,
+    data: {
+      ...data,
+      subPayIn: {
+        create: {
+          payInId
+        }
+      }
+    },
     where: {
       // optimistic concurrency control
       // make sure none of the relevant fields have changed since we fetched the sub
@@ -71,7 +77,7 @@ export async function onPaid (tx, payInId, { me }) {
         equals: oldSub.postTypes
       },
       name: oldName,
-      userId: me.id
+      userId: payIn.userId
     }
   })
 }

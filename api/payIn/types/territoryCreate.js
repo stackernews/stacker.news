@@ -23,9 +23,8 @@ export async function getInitial (models, { billingType }, { me }) {
   }
 }
 
-export async function onPaid (tx, payInId, { me }) {
-  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
-  const { billingType, ...data } = payIn.pessimisticEnv.args
+export async function onBegin (tx, payInId, { billingType, ...data }) {
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
   const billingCost = TERRITORY_PERIOD_COST(billingType)
   const billedLastAt = new Date()
   const billPaidUntil = nextBilling(billedLastAt, billingType)
@@ -37,7 +36,7 @@ export async function onPaid (tx, payInId, { me }) {
       billPaidUntil,
       billingCost,
       rankingType: 'WOT',
-      userId: me.id,
+      userId: payIn.userId,
       subPayIn: {
         create: {
           payInId
@@ -45,7 +44,7 @@ export async function onPaid (tx, payInId, { me }) {
       },
       SubSubscription: {
         create: {
-          userId: me.id
+          userId: payIn.userId
         }
       }
     }
@@ -54,6 +53,8 @@ export async function onPaid (tx, payInId, { me }) {
   await tx.userSubTrust.createMany({
     data: initialTrust({ name: sub.name, userId: sub.userId })
   })
+
+  return sub
 }
 
 export async function describe (models, payInId) {

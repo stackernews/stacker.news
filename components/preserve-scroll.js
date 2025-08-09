@@ -59,7 +59,7 @@ export default function preserveScroll (callback) {
         const refMoved = newRefTop - refTop
 
         // if the anchor ref moved, we need to scroll to the new position
-        if (refMoved !== 0) {
+        if (refMoved > 0) {
           window.scrollTo({
             // some browsers don't respond well to fractional scroll position, so we round up the new position to the nearest integer
             top: scrollTop + Math.ceil(refMoved),

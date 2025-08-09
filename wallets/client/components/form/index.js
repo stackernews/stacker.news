@@ -170,7 +170,7 @@ function WalletProtocolFormNavigator () {
 
 function WalletProtocolFormField ({ type, ...props }) {
   const wallet = useWallet()
-  const protocol = useProtocol()
+  const [protocol] = useProtocol()
 
   function transform ({ validate, encrypt, editable, help, ...props }) {
     const [upperHint, bottomHint] = Array.isArray(props.hint) ? props.hint : [null, props.hint]

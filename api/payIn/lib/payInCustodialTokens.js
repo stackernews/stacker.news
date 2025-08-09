@@ -1,11 +1,18 @@
 import { isP2P, isPayableWithCredits, isProxyPayment } from './is'
 import { USER_ID } from '@/lib/constants'
 
+// TODO: these locks for recording mtokensBefore will predispose us to deadlocks
+// with the mtokensBefore locks in onPaid (as will the normal UPDATE locks for decrementing and incrementing mtokens)
+// for example, if two users zap each other simultaneously, they will both try to lock each other out of order
+// ... and this is more likely to happen because these locks are taken in interactive transactions
+// ... so we can either:
+// 1. use NOWAIT locks, then retry the transaction if we get a deadlock error
+// 2. pre-locking all users in a transaction in a specific order, so that competing transactions will block
 export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }) {
   const payInCustodialTokens = []
 
   if (!me || me.id === USER_ID.anon || mCustodialCost <= 0n) {
-    return { payInCustodialTokens }
+    return payInCustodialTokens
   }
 
   // we always want to return mcreditsBefore, even if we don't spend any credits
@@ -22,7 +29,8 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
   if (mcreditsSpent > 0n) {
     payInCustodialTokens.push({
       custodialTokenType: 'CREDITS',
-      mtokens: mcreditsSpent
+      mtokens: mcreditsSpent,
+      mtokensBefore: mcreditsBefore
     })
   }
   mCustodialCost -= mcreditsSpent
@@ -39,11 +47,12 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
   if (msatsSpent > 0n) {
     payInCustodialTokens.push({
       custodialTokenType: 'SATS',
-      mtokens: msatsSpent
+      mtokens: msatsSpent,
+      mtokensBefore: msatsBefore
     })
   }
 
-  return { payInCustodialTokens, mcreditsBefore, msatsBefore }
+  return payInCustodialTokens
 }
 
 function getP2PCost (payIn) {

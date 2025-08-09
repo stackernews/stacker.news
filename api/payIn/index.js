@@ -206,7 +206,7 @@ export async function onPaid (tx, payInId) {
         RETURNING before.mcredits as "mcreditsBefore", before.msats as "msatsBefore"
       )
       UPDATE "PayOutCustodialToken"
-      SET "msatsBefore" = outuser."msatsBefore", "mcreditsBefore" = outuser."mcreditsBefore"
+      SET "mtokensBefore" = CASE WHEN "custodialTokenType" = 'SATS' THEN outuser."msatsBefore" ELSE outuser."mcreditsBefore" END
       FROM outuser
       WHERE "id" = ${payOut.id}`
   }

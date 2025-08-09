@@ -1571,9 +1571,6 @@ model PayIn {
   userId Int?
   user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  msatsBefore    BigInt?
-  mcreditsBefore BigInt?
-
   pessimisticEnv        PessimisticEnv?
   payInCustodialTokens  PayInCustodialToken[]
   payOutCustodialTokens PayOutCustodialToken[]
@@ -1605,6 +1602,7 @@ model PayInCustodialToken {
   payInId            Int
   payIn              PayIn              @relation(fields: [payInId], references: [id], onDelete: Cascade)
   mtokens            BigInt
+  mtokensBefore      BigInt?
   custodialTokenType CustodialTokenType
 }
 
@@ -1654,10 +1652,9 @@ model PayOutCustodialToken {
   payIn   PayIn @relation(fields: [payInId], references: [id], onDelete: Cascade)
 
   mtokens            BigInt
+  mtokensBefore      BigInt?
   custodialTokenType CustodialTokenType
 
-  msatsBefore             BigInt?
-  mcreditsBefore          BigInt?
   subPayOutCustodialToken SubPayOutCustodialToken?
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, createContext, useContext } from 'react'
+import { useCallback, useMemo, createContext, useContext } from 'react'
 import { Button, InputGroup, Nav } from 'react-bootstrap'
 import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
@@ -9,7 +9,7 @@ import styles from '@/styles/wallet.module.css'
 import navStyles from '@/styles/nav.module.css'
 import { Checkbox, Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
-import { useWalletProtocolUpsert, useWalletProtocolRemove, useWalletQuery, TemplateLogsProvider } from '@/wallets/client/hooks'
+import { useWalletProtocolUpsert, useWalletProtocolRemove, useProtocolTemplates, TemplateLogsProvider } from '@/wallets/client/hooks'
 import { useToast } from '@/components/toast'
 import Text from '@/components/text'
 import Info from '@/components/info'
@@ -17,11 +17,7 @@ import classNames from 'classnames'
 
 const WalletFormsContext = createContext()
 
-export function WalletForms ({ id, name }) {
-  // TODO(wallet-v2): handle loading and error states
-  const { data, refetch } = useWalletQuery({ name, id })
-  const wallet = data?.wallet
-
+export function WalletForms ({ wallet, refetch }) {
   return (
     <WalletLayout>
       <div className={styles.form}>
@@ -81,8 +77,13 @@ function WalletFormSelector () {
 }
 
 function WalletSendRecvSelector () {
+  const wallet = useWallet()
   const path = useWalletPathname()
+  const protocols = useProtocolTemplates(wallet)
   const selected = useSendRecvParam()
+
+  const firstSend = protocols.find(p => p.send)
+  const firstRecv = protocols.find(p => !p.send)
 
   // TODO(wallet-v2): if you click a nav link again, it will update the URL
   //   but not run the effect again to select the first protocol by default
@@ -93,12 +94,12 @@ function WalletSendRecvSelector () {
       activeKey={selected}
     >
       <Nav.Item>
-        <Link href={`/${path}/send`} passHref legacyBehavior replace>
+        <Link href={`/${path}/send${firstSend ? `/${urlify(firstSend.name)}` : ''}`} passHref legacyBehavior replace>
           <Nav.Link className='ps-3' eventKey='send'>SEND</Nav.Link>
         </Link>
       </Nav.Item>
       <Nav.Item>
-        <Link href={`/${path}/receive`} passHref legacyBehavior replace>
+        <Link href={`/${path}/receive${firstRecv ? `/${urlify(firstRecv.name)}` : ''}`} passHref legacyBehavior replace>
           <Nav.Link className='ps-3' eventKey='receive'>RECEIVE</Nav.Link>
         </Link>
       </Nav.Item>
@@ -109,17 +110,11 @@ function WalletSendRecvSelector () {
 function WalletProtocolSelector () {
   const walletPath = useWalletPathname()
   const sendRecvParam = useSendRecvParam()
+  const selected = useWalletProtocolParam()
   const path = `${walletPath}/${sendRecvParam}`
 
-  const protocols = useWalletProtocols()
-  const selected = useWalletProtocolParam()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!selected && protocols.length > 0) {
-      router.replace(`/${path}/${urlify(protocols[0].name)}`, null, { shallow: true })
-    }
-  }, [path])
+  const wallet = useWallet()
+  const protocols = useProtocolTemplates(wallet).filter(p => sendRecvParam === 'send' ? p.send : !p.send)
 
   if (protocols.length === 0) {
     // TODO(wallet-v2): let user know how to request support if the wallet actually does support sending
@@ -179,7 +174,7 @@ function WalletProtocolForm () {
       return
     }
     // we just created a new user wallet from a template
-    router.replace(`/wallets/${upsert.id}/${sendRecvParam}`, null, { shallow: true })
+    router.replace(`/wallets/${upsert.id}/${sendRecvParam}/${urlify(protocol.name)}`, null, { shallow: true })
     toaster.success('wallet attached', { persistOnNavigate: true })
   }, [upsertWalletProtocol, toaster, wallet, router])
 
@@ -301,17 +296,6 @@ function useWalletProtocolParam () {
   const name = params.slug[2]
   // returns only :protocol in /wallets/:name/:send/:protocol
   return name ? unurlify(name) : null
-}
-
-function useWalletProtocols () {
-  const wallet = useWallet()
-  const sendRecvParam = useSendRecvParam()
-  if (!sendRecvParam) return []
-
-  const protocolFilter = p => sendRecvParam === 'send' ? p.send : !p.send
-  return isWallet(wallet)
-    ? wallet.template.protocols.filter(protocolFilter)
-    : wallet.protocols.filter(protocolFilter)
 }
 
 function useSelectedProtocol () {

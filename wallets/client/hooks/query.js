@@ -1,5 +1,4 @@
 import {
-  WALLET,
   UPSERT_WALLET_RECEIVE_BLINK,
   UPSERT_WALLET_RECEIVE_CLN_REST,
   UPSERT_WALLET_RECEIVE_LIGHTNING_ADDRESS,
@@ -55,8 +54,7 @@ export function useWalletsQuery () {
     Promise.all(
       query.data?.wallets.map(w => decryptWallet(w))
     )
-      .then(wallets => wallets.map(protocolCheck))
-      .then(wallets => wallets.map(undoFieldAlias))
+      .then(wallets => wallets.map(server2Client))
       .then(wallets => {
         setWallets(wallets)
         setError(null)
@@ -79,41 +77,6 @@ export function useWalletsQuery () {
   }), [query, error, wallets])
 }
 
-function protocolCheck (wallet) {
-  if (isTemplate(wallet)) return wallet
-
-  const protocols = wallet.protocols.map(protocol => {
-    return {
-      ...protocol,
-      enabled: protocol.enabled && protocolAvailable(protocol)
-    }
-  })
-
-  const sendEnabled = protocols.some(p => p.send && p.enabled)
-  const receiveEnabled = protocols.some(p => !p.send && p.enabled)
-
-  return {
-    ...wallet,
-    send: !sendEnabled ? WalletStatus.DISABLED : wallet.send,
-    receive: !receiveEnabled ? WalletStatus.DISABLED : wallet.receive,
-    protocols
-  }
-}
-
-function undoFieldAlias ({ id, ...wallet }) {
-  // Just like for encrypted fields, we have to use a field alias for the name field of templates
-  // because of https://github.com/graphql/graphql-js/issues/53.
-  // We undo this here so this only affects the GraphQL layer but not the rest of the code.
-  if (isTemplate(wallet)) {
-    return { ...wallet, name: id }
-  }
-
-  if (!wallet.template) return wallet
-
-  const { id: templateId, ...template } = wallet.template
-  return { id, ...wallet, template: { name: templateId, ...template } }
-}
-
 function useRefetchOnChange (refetch) {
   const { me } = useMe()
   const walletsUpdatedAt = useWalletsUpdatedAt()
@@ -125,29 +88,62 @@ function useRefetchOnChange (refetch) {
   }, [refetch, me?.id, walletsUpdatedAt])
 }
 
-export function useWalletQuery ({ id, name }) {
-  const { me } = useMe()
-  const query = useQuery(WALLET, { variables: { id, name }, skip: !me })
-  const [wallet, setWallet] = useState(null)
-
+export function useDecryptedWallet (wallet) {
   const { decryptWallet, ready } = useWalletDecryption()
+  const [decryptedWallet, setDecryptedWallet] = useState(server2Client(wallet))
 
   useEffect(() => {
-    if (!query.data?.wallet || !ready) return
-    decryptWallet(query.data?.wallet)
-      .then(protocolCheck)
-      .then(undoFieldAlias)
-      .then(wallet => setWallet(wallet))
+    if (!ready || !wallet) return
+    decryptWallet(wallet)
+      .then(server2Client)
+      .then(wallet => setDecryptedWallet(wallet))
       .catch(err => {
         console.error('failed to decrypt wallet:', err)
       })
-  }, [query.data, decryptWallet, ready])
+  }, [decryptWallet, wallet, ready])
 
-  return useMemo(() => ({
-    ...query,
-    loading: !wallet,
-    data: wallet ? { wallet } : null
-  }), [query, wallet])
+  return decryptedWallet
+}
+
+function server2Client (wallet) {
+  // some protocols require a specific client environment
+  // e.g. WebLN requires a browser extension
+  function checkProtocolAvailability (wallet) {
+    if (isTemplate(wallet)) return wallet
+
+    const protocols = wallet.protocols.map(protocol => {
+      return {
+        ...protocol,
+        enabled: protocol.enabled && protocolAvailable(protocol)
+      }
+    })
+
+    const sendEnabled = protocols.some(p => p.send && p.enabled)
+    const receiveEnabled = protocols.some(p => !p.send && p.enabled)
+
+    return {
+      ...wallet,
+      send: !sendEnabled ? WalletStatus.DISABLED : wallet.send,
+      receive: !receiveEnabled ? WalletStatus.DISABLED : wallet.receive,
+      protocols
+    }
+  }
+
+  // Just like for encrypted fields, we have to use a field alias for the name field of templates
+  // because of https://github.com/graphql/graphql-js/issues/53.
+  // We undo this here so this only affects the GraphQL layer but not the rest of the code.
+  function undoFieldAlias ({ id, ...wallet }) {
+    if (isTemplate(wallet)) {
+      return { ...wallet, name: id }
+    }
+
+    if (!wallet.template) return wallet
+
+    const { id: templateId, ...template } = wallet.template
+    return { id, ...wallet, template: { name: templateId, ...template } }
+  }
+
+  return wallet ? undoFieldAlias(checkProtocolAvailability(wallet)) : wallet
 }
 
 export function useWalletProtocolUpsert (wallet, protocol) {

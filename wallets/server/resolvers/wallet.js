@@ -96,6 +96,8 @@ async function wallet (parent, { id, name }, { me, models }) {
         protocols: true
       }
     })
+    if (!wallet) throw new GqlInputError('wallet not found')
+
     return mapWalletResolveTypes(wallet)
   }
 

@@ -53,3 +53,9 @@ export function useWalletsUpdatedAt () {
   const { me } = useMe()
   return me?.privates?.walletsUpdatedAt
 }
+
+export function useProtocolTemplates (wallet) {
+  return useMemo(() => {
+    return isWallet(wallet) ? wallet.template.protocols : wallet.protocols
+  }, [wallet])
+}

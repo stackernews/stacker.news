@@ -7,7 +7,7 @@ import Link from 'next/link'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
 import DragIcon from '@/svgs/draggable.svg'
-import { useWalletImage, useWalletSupport, useWalletStatus, WalletStatus } from '@/wallets/client/hooks'
+import { useWalletImage, useWalletSupport, useWalletStatus, WalletStatus, useProtocolTemplates } from '@/wallets/client/hooks'
 import { isWallet, urlify, walletDisplayName } from '@/wallets/lib/util'
 import { Draggable } from '@/wallets/client/components'
 
@@ -56,8 +56,14 @@ export function WalletCard ({ wallet, draggable = false, index, ...props }) {
 
 function WalletLink ({ wallet, children }) {
   const support = useWalletSupport(wallet)
-  const sendRecvParam = support.send ? 'send' : 'receive'
-  const href = '/wallets' + (isWallet(wallet) ? `/${wallet.id}` : `/${urlify(wallet.name)}`) + `/${sendRecvParam}`
+  const protocols = useProtocolTemplates(wallet)
+  const firstSend = protocols.find(p => p.send)
+  const firstRecv = protocols.find(p => !p.send)
+
+  let href = '/wallets'
+  href += isWallet(wallet) ? `/${wallet.id}` : `/${urlify(wallet.name)}`
+  href += support.send ? `/send/${urlify(firstSend.name)}` : `/receive/${urlify(firstRecv.name)}`
+
   return <Link href={href}>{children}</Link>
 }
 

@@ -116,13 +116,7 @@ self.addEventListener('notificationclick', function (event) {
         .then(clients => {
           if (clients.length > 0) {
             const client = clients[0]
-            return client.focus()
-              .then(() => {
-                return client.postMessage({
-                  type: 'navigate',
-                  url
-                })
-              })
+            return client.focus().then(() => client.navigate(url))
           } else {
             return self.clients.openWindow(url)
           }

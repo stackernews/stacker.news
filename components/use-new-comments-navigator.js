@@ -140,14 +140,14 @@ export function NewCommentsNavigator ({ navigator, commentCount }) {
   if (!commentCount) return null
 
   return (
-    <span className={`${styles.commentNavigator} fw-bold`}>
+    <aside className={`${styles.commentNavigator} fw-bold`}>
       <span>{commentCount} new comment{commentCount > 1 ? 's' : ''}</span>
-      <span onClick={() => scrollToComment()} className={`${styles.navigatorButton}`}>
-        <ArrowRight width={24} height={24} className={styles.navigatorButton} />
+      <span aria-label='next comment' onClick={() => scrollToComment()} className={styles.navigatorButton}>
+        <ArrowRight className={styles.navigatorButton} />
       </span>
       <span aria-label='close' onClick={clearCommentRefs} className={`${styles.closeButton}`}>
         X
       </span>
-    </span>
+    </aside>
   )
 }

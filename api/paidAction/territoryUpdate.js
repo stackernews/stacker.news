@@ -62,6 +62,7 @@ export async function perform ({ oldName, invoiceId, ...data }, { me, cost, tx }
     })
   }
 
+  // TODO: this is nasty
   await throwOnExpiredUploads(data.uploadIds, { tx })
   if (data.uploadIds.length > 0) {
     await tx.upload.updateMany({

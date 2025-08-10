@@ -698,7 +698,7 @@ model Sub {
   SubSubscription         SubSubscription[]
   TerritoryTransfer       TerritoryTransfer[]
   UserSubTrust            UserSubTrust[]
-  SubPayIn                SubPayIn[]
+  subPayIn                SubPayIn[]
   SubPayOutCustodialToken SubPayOutCustodialToken[]
 
   @@index([parentName])

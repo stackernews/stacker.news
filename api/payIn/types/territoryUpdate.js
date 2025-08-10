@@ -1,3 +1,4 @@
+import { throwOnExpiredUploads } from '@/api/resolvers/upload'
 import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 import { proratedBillingCost } from '@/lib/territory'
@@ -24,7 +25,7 @@ export async function getInitial (models, { oldName, billingType }, { me }) {
     payInType: 'TERRITORY_UPDATE',
     userId: me?.id,
     mcost,
-    payOutCustodialTokens: [{ payOutType: 'SYSTEM_REVENUE', userId: null, mtokens: mcost, custodialTokenType: 'SATS' }]
+    payOutCustodialTokens: mcost > 0n ? [{ payOutType: 'SYSTEM_REVENUE', userId: null, mtokens: mcost, custodialTokenType: 'SATS' }] : []
   }
 }
 
@@ -36,22 +37,17 @@ export async function onBegin (tx, payInId, { oldName, billingType, ...data }) {
     }
   })
 
-  data.billingCost = TERRITORY_PERIOD_COST(data.billingType)
-  data.subPayIn = {
-    create: {
-      payInId
-    }
-  }
+  data.billingCost = TERRITORY_PERIOD_COST(billingType)
 
   // we never want to bill them again if they are changing to ONCE
-  if (data.billingType === 'ONCE') {
+  if (billingType === 'ONCE') {
     data.billPaidUntil = null
     data.billingAutoRenew = false
   }
 
   // if they are changing to YEARLY, bill them in a year
   // if they are changing to MONTHLY from YEARLY, do nothing
-  if (oldSub.billingType === 'MONTHLY' && data.billingType === 'YEARLY') {
+  if (oldSub.billingType === 'MONTHLY' && billingType === 'YEARLY') {
     data.billPaidUntil = datePivot(new Date(oldSub.billedLastAt), { years: 1 })
   }
 
@@ -60,13 +56,24 @@ export async function onBegin (tx, payInId, { oldName, billingType, ...data }) {
     data.status = 'ACTIVE'
   }
 
+  await throwOnExpiredUploads(data.uploadIds, { tx })
+  if (data.uploadIds.length > 0) {
+    await tx.upload.updateMany({
+      where: {
+        id: { in: data.uploadIds }
+      },
+      data: {
+        paid: true
+      }
+    })
+  }
+  delete data.uploadIds
+
   return await tx.sub.update({
     data: {
       ...data,
       subPayIn: {
-        create: {
-          payInId
-        }
+        create: [{ payInId }]
       }
     },
     where: {

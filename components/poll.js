@@ -7,9 +7,8 @@ import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
 import useQrPayment from './use-qr-payment'
 import { useToast } from './toast'
-import { usePaidMutation } from './use-paid-mutation'
-import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
-import { POLL_VOTE } from '@/fragments/payIn'
+import { usePayInMutation } from './use-pay-in-mutation'
+import { RETRY_PAID_ACTION, POLL_VOTE } from '@/fragments/payIn'
 
 export default function Poll ({ item }) {
   const { me } = useMe()
@@ -190,6 +189,6 @@ export function usePollVote ({ query = POLL_VOTE, itemId }) {
     })
   }
 
-  const [pollVote] = usePaidMutation(query, { update, onPayError, onPaid })
+  const [pollVote] = usePayInMutation(query, { update, onPayError, onPaid })
   return pollVote
 }

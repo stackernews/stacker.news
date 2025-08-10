@@ -41,12 +41,6 @@ type PollVotePaidAction implements PaidAction {
   paymentMethod: PaymentMethod!
 }
 
-type SubPaidAction implements PaidAction {
-  result: Sub
-  invoice: Invoice
-  paymentMethod: PaymentMethod!
-}
-
 type DonatePaidAction implements PaidAction {
   result: DonateResult
   invoice: Invoice

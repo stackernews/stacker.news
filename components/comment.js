@@ -28,6 +28,7 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
+import { useItemOutline, useBottomedOutline } from './use-outline'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -112,21 +113,9 @@ export default function Comment ({
   const router = useRouter()
   const root = useRoot()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
+  const { unsetOutline } = useItemOutline({ ref, item, rootLastCommentAt, navigator })
 
   const { cache } = useApolloClient()
-
-  const unsetOutline = () => {
-    if (!ref.current) return
-    const hasOutline = ref.current.classList.contains('outline-new-comment') || ref.current.classList.contains('outline-new-injected-comment')
-    const hasOutlineUnset = ref.current.classList.contains('outline-new-comment-unset')
-
-    // don't try to unset the outline if the comment is not outlined or we already unset the outline
-    if (hasOutline && !hasOutlineUnset) {
-      ref.current.classList.add('outline-new-comment-unset')
-      // untrack the new comment
-      navigator.unTrackNewComment(ref)
-    }
-  }
 
   useEffect(() => {
     const comment = cache.readFragment({
@@ -152,33 +141,6 @@ export default function Comment ({
       }, 100)
     }
   }, [item.id, cache, router.query.commentId])
-
-  useEffect(() => {
-    if (me?.id === item.user?.id) return
-
-    const itemCreatedAt = new Date(item.createdAt).getTime()
-    // it's a new comment if it was created after the last comment was viewed
-    // or, in the case of live comments, after the last comment was created
-    const isNewComment = (router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||
-                        (rootLastCommentAt && itemCreatedAt > new Date(rootLastCommentAt).getTime())
-    if (!isNewComment) return
-
-    if (item.injected) {
-      // newly injected comments (item.injected) have to use a different class to outline every new comment
-      ref.current.classList.add('outline-new-injected-comment')
-
-      // wait for the injection animation to end before removing its class
-      ref.current.addEventListener('animationend', () => {
-        ref.current.classList.remove(styles.injectedComment)
-      }, { once: true })
-      // animate the live comment injection
-      ref.current.classList.add(styles.injectedComment)
-    } else {
-      ref.current.classList.add('outline-new-comment')
-    }
-
-    navigator.trackNewComment(ref)
-  }, [item.id, rootLastCommentAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
@@ -285,7 +247,7 @@ export default function Comment ({
       </div>
       {collapse !== 'yep' && (
         bottomedOut
-          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3 pb-2')}><ViewMoreReplies item={item} threadContext /></div></div>
+          ? <div className={styles.children}><ViewMoreReplies item={item} threadContext navigator={navigator} /></div>
           : (
             <div className={styles.children}>
               {item.outlawed && !me?.privates?.wildWestMode
@@ -303,9 +265,7 @@ export default function Comment ({
                         <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={rootLastCommentAt} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && (
-                        <div className={`d-block ${styles.comment} pb-2 ps-3`}>
-                          <ViewMoreReplies item={item} />
-                        </div>
+                        <ViewMoreReplies item={item} navigator={navigator} />
                       )}
                     </>
                     )
@@ -319,8 +279,10 @@ export default function Comment ({
   )
 }
 
-export function ViewMoreReplies ({ item, threadContext = false }) {
+export function ViewMoreReplies ({ item, threadContext = false, navigator }) {
   const root = useRoot()
+  const ref = useRef(null)
+  const { unsetBottomedOutline, hasNewComments } = useBottomedOutline({ ref, item, navigator })
   const id = threadContext ? commentSubTreeRootId(item, root) : item.id
 
   // if threadContext is true, we travel to some comments before the current comment, focusing on the comment itself
@@ -332,13 +294,20 @@ export function ViewMoreReplies ({ item, threadContext = false }) {
     : `view all ${item.ncomments} replies`
 
   return (
-    <Link
-      href={href}
-      as={`/items/${id}`}
-      className='fw-bold d-flex align-items-center gap-2 text-muted'
+    <div
+      ref={ref} className={classNames(styles.comment, 'pb-2', threadContext ? 'mt-3' : 'd-block ps-3')}
+      onMouseEnter={unsetBottomedOutline}
+      onTouchStart={unsetBottomedOutline}
     >
-      {text}
-    </Link>
+      <Link
+        href={href}
+        as={`/items/${id}`}
+        className='fw-bold d-flex align-items-center gap-2 text-muted'
+      >
+        {text}
+        {hasNewComments && <div className={styles.newCommentDot} />}
+      </Link>
+    </div>
   )
 }
 

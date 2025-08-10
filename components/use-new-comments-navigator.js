@@ -119,6 +119,24 @@ export function useNewCommentsNavigator () {
 
 export function NewCommentsNavigator ({ navigator, commentCount }) {
   const { scrollToComment, clearCommentRefs } = navigator
+
+  const onNext = useCallback((e) => {
+    // ignore if there are no new comments or if we're focused on a textarea or input
+    if (!commentCount || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return
+    // arrow right key scrolls to the next new comment
+    if (e.key === 'ArrowRight' && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+      e.preventDefault()
+      scrollToComment()
+    }
+    // escape key clears the new comments navigator
+    if (e.key === 'Escape') clearCommentRefs()
+  }, [commentCount, scrollToComment, clearCommentRefs])
+
+  useEffect(() => {
+    document.addEventListener('keydown', onNext)
+    return () => document.removeEventListener('keydown', onNext)
+  }, [onNext])
+
   if (!commentCount) return null
 
   return (

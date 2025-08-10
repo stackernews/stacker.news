@@ -38,8 +38,20 @@ export default async function pay (payInType, payInArgs, { models, me }) {
   }
 }
 
+// we lock all users in the payIn in order to avoid deadlocks with other payIns
+// that might be competing to update the same users, e.g. two users simultaneously zapping each other
+// https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE
+// alternative approaches:
+// 1. do NOT lock all users, but use NOWAIT on users locks so that we can catch AND retry transactions that fail with a deadlock error
+// 2. issue onPaid in a separate transaction, so that payInCustodialTokens and payOutCustodialTokens cannot be interleaved
+async function obtainRowLevelLocks (tx, payInInitial) {
+  const payOutUserIds = [...new Set(payInInitial.payOutCustodialTokens.map(t => t.userId)).add(payInInitial.userId)]
+  await tx.$executeRaw`SELECT * FROM users WHERE id IN (${Prisma.join(payOutUserIds)}) ORDER BY id ASC FOR UPDATE`
+}
+
 async function begin (models, payInInitial, payInArgs, { me }) {
   const { payIn, result, mCostRemaining } = await models.$transaction(async tx => {
+    await obtainRowLevelLocks(tx, payInInitial)
     const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, payInArgs, { me })
 
     // if it's pessimistic, we don't perform the action until the invoice is held
@@ -181,7 +193,14 @@ export async function onPaid (tx, payInId) {
   const payIn = await tx.payIn.findUnique({
     where: { id: payInId },
     include: {
-      payOutCustodialTokens: true, payOutBolt11: true, beneficiaries: true, pessimisticEnv: true
+      // payOutCustodialTokens are ordered by userId, so that we can lock all users FOR UPDATE in order
+      // https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE
+      payOutCustodialTokens: {
+        orderBy: { userId: 'asc' }
+      },
+      payOutBolt11: true,
+      beneficiaries: true,
+      pessimisticEnv: true
     }
   })
   if (!payIn) {

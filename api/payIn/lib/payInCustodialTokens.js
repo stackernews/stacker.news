@@ -1,14 +1,6 @@
 import { isP2P, isPayableWithCredits, isProxyPayment } from './is'
 import { USER_ID } from '@/lib/constants'
 
-// TODO: these locks for recording mtokensBefore will predispose us to deadlocks
-// with the mtokensBefore locks in onPaid (as will the normal UPDATE locks for decrementing and incrementing mtokens)
-// for example, if two users zap each other simultaneously, they will both try to lock each other out of order
-// ... and this is more likely to happen because these locks are taken in interactive transactions
-// ... so we can either:
-// 1. use NOWAIT locks, then retry the transaction if we get a deadlock error
-// 2. pre-locking all users in a transaction in a specific order (e.g. by userId), so that competing transactions will block
-// 3. issue onPaid in a separate transaction, so that payInCustodialTokens and payOutCustodialTokens cannot be interleaved
 export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }) {
   const payInCustodialTokens = []
 

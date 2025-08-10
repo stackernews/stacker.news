@@ -15,8 +15,6 @@ export const PAY_IN_INCLUDE = {
 // TODO: before we create, validate the payIn such that
 // 1. the payIn amounts are enough to cover the payOuts
 // ... and other invariants are met
-// TODO2: gather locks for all users in a transaction in order, so that competing transactions will block
-// for the transaction duration
 export async function payInCreate (tx, payInProspect, payInArgs, { me }) {
   const { mCostRemaining, mP2PCost, payInCustodialTokens } = await getPayInCosts(tx, payInProspect, { me })
   const payInState = await getPayInState(payInProspect, { mCostRemaining, mP2PCost })

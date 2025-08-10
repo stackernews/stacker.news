@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState, startTransition } from 'react
 import ArrowRight from '../svgs/arrow-right-line.svg'
 import styles from './comment.module.css'
 import { useRouter } from 'next/router'
+import { useFavicon } from './favicon'
 
 export function useNewCommentsNavigator () {
   const router = useRouter()
   const [commentCount, setCommentCount] = useState(0)
+  const { setHasNewComments } = useFavicon()
   const commentRefsRef = useRef([])
   const frameRef = useRef(null)
   const navigatorRef = useRef(null)
@@ -26,10 +28,12 @@ export function useNewCommentsNavigator () {
   const clearCommentRefs = useCallback(() => {
     commentRefsRef.current = []
     startTransition?.(() => setCommentCount(0))
+    setHasNewComments(false)
   }, [])
 
   // track a new comment
   const trackNewComment = useCallback((commentRef) => {
+    setHasNewComments(true)
     try {
       window.requestAnimationFrame(() => {
         if (!commentRef?.current || !commentRef.current.isConnected) return
@@ -56,6 +60,9 @@ export function useNewCommentsNavigator () {
   // remove a comment ref from the list
   const unTrackNewComment = useCallback((commentRef) => {
     if (!commentRef?.current) return
+
+    setHasNewComments(false)
+
     const before = commentRefsRef.current.length
     commentRefsRef.current = commentRefsRef.current.filter(ref => ref.current !== commentRef.current)
     // update the comment count if the list actually changed

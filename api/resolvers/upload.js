@@ -79,7 +79,7 @@ export async function uploadFees (s3Keys, { models, me }) {
   const uploadFees = BigInt(msatsToSats(uploadFeesMsats))
   const totalFeesMsats = BigInt(nUnpaid) * uploadFeesMsats
   const totalFees = BigInt(msatsToSats(totalFeesMsats))
-  return { bytes24h, bytesUnpaid, nUnpaid, uploadFees, totalFees, totalFeesMsats }
+  return { bytes24h, bytesUnpaid, nUnpaid, uploadFees, uploadFeesMsats, totalFees, totalFeesMsats }
 }
 
 export async function throwOnExpiredUploads (uploadIds, { tx }) {

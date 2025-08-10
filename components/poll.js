@@ -8,7 +8,8 @@ import ActionTooltip from './action-tooltip'
 import useQrPayment from './use-qr-payment'
 import { useToast } from './toast'
 import { usePaidMutation } from './use-paid-mutation'
-import { POLL_VOTE, RETRY_PAID_ACTION } from '@/fragments/paidAction'
+import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
+import { POLL_VOTE } from '@/fragments/payIn'
 
 export default function Poll ({ item }) {
   const { me } = useMe()

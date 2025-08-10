@@ -22,7 +22,6 @@ import { datePivot, whenRange } from '@/lib/time'
 import { uploadIdsFromText } from './upload'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
-import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
@@ -977,7 +976,7 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      return await performPaidAction('POLL_VOTE', { id }, { me, models, lnd })
+      return await pay('POLL_VOTE', { id }, { me, models })
     },
     act: async (parent, { id, sats, act = 'TIP', hasSendWallet }, { me, models, lnd, headers }) => {
       assertApiKeyNotPermitted({ me })

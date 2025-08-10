@@ -9,7 +9,7 @@ import { SubSelectInitial } from './sub-select'
 import { normalizeForwards } from '@/lib/form'
 import { useMe } from './me'
 import { ItemButtonBar } from './post'
-import { UPSERT_POLL } from '@/fragments/paidAction'
+import { UPSERT_POLL } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 
 export function PollForm ({ item, sub, editThreshold, children }) {

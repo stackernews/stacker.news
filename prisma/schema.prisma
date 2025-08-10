@@ -621,6 +621,8 @@ model PollVote {
   pollOptionId       Int
   invoiceId          Int?
   invoiceActionState InvoiceActionState?
+  payIn              PayIn?              @relation(fields: [payInId], references: [id])
+  payInId            Int?                @unique
   invoice            Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   item               Item                @relation(fields: [itemId], references: [id], onDelete: Cascade)
   pollOption         PollOption          @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
@@ -630,6 +632,7 @@ model PollVote {
   @@index([invoiceActionState])
 }
 
+// TODO: this can be replaced by ItemPayIn
 model PollBlindVote {
   id                 Int                 @id @default(autoincrement())
   createdAt          DateTime            @default(now()) @map("created_at")
@@ -1585,6 +1588,7 @@ model PayIn {
   subPayIns     SubPayIn[]
   progeny       PayIn[]      @relation("PayInGenesis")
   payInBolt11   PayInBolt11?
+  pollVote      PollVote?
 
   @@index([userId])
   @@index([payInType])

@@ -24,20 +24,22 @@ export async function getInitial (models, { id }, { me }) {
     userId: me?.id,
     mcost,
     payOutCustodialTokens,
-    pollBlindVote: {
-      itemId: pollOption.itemId,
-      userId: me.id
-    },
     pollVote: {
       pollOptionId: pollOption.id,
+      itemId: pollOption.itemId
+    },
+    itemPayIn: {
       itemId: pollOption.itemId
     }
   }
 }
 
 export async function onRetry (tx, oldPayInId, newPayInId) {
-  await tx.pollBlindVote.updateMany({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
-  await tx.pollVote.updateMany({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
+  await tx.pollVote.update({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
+}
+
+export async function onBegin (tx, payInId, { id }) {
+  return { id }
 }
 
 export async function onPaid (tx, payInId) {
@@ -46,6 +48,6 @@ export async function onPaid (tx, payInId) {
 }
 
 export async function describe (models, payInId) {
-  const pollOption = await models.pollOption.findUnique({ where: { payInId } })
-  return `SN: vote on poll #${pollOption.itemId}`
+  const pollVote = await models.pollVote.findUnique({ where: { payInId } })
+  return `SN: vote on poll #${pollVote.itemId}`
 }

@@ -6,7 +6,17 @@ import { msatsToSats } from '@/lib/format'
 export default {
   Query: {
     uploadFees: async (parent, { s3Keys }, { models, me }) => {
-      return uploadFees(s3Keys, { models, me })
+      const fees = await uploadFees(s3Keys, { models, me })
+      // GraphQL doesn't support bigint
+      return {
+        totalFees: Number(fees.totalFees),
+        totalFeesMsats: Number(fees.totalFeesMsats),
+        uploadFees: Number(fees.uploadFees),
+        uploadFeesMsats: Number(fees.uploadFeesMsats),
+        nUnpaid: Number(fees.nUnpaid),
+        bytesUnpaid: Number(fees.bytesUnpaid),
+        bytes24h: Number(fees.bytes24h)
+      }
     }
   },
   Mutation: {
@@ -69,7 +79,7 @@ export async function uploadFees (s3Keys, { models, me }) {
   const uploadFees = BigInt(msatsToSats(uploadFeesMsats))
   const totalFeesMsats = BigInt(nUnpaid) * uploadFeesMsats
   const totalFees = BigInt(msatsToSats(totalFeesMsats))
-  return { bytes24h, bytesUnpaid, nUnpaid, uploadFees, totalFees, totalFeesMsats }
+  return { bytes24h, bytesUnpaid, nUnpaid, uploadFees, uploadFeesMsats, totalFees, totalFeesMsats }
 }
 
 export async function throwOnExpiredUploads (uploadIds, { tx }) {

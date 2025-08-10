@@ -20,7 +20,7 @@ export async function getInitial (models, { sats }, { me }) {
   }
 }
 
-export async function describe (models, payInId, { me }) {
+export async function describe (models, payInId) {
   const payIn = await models.payIn.findUnique({ where: { id: payInId } })
   return `SN: donate ${numWithUnits(msatsToSats(payIn.mcost), { abbreviate: false })} to rewards pool`
 }

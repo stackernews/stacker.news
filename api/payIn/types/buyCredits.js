@@ -24,7 +24,7 @@ export async function getInitial (models, { credits }, { me }) {
   }
 }
 
-export async function describe (models, payInId, { me }) {
+export async function describe (models, payInId) {
   const payIn = await models.payIn.findUnique({ where: { id: payInId } })
   return `SN: buy ${numWithUnits(payIn.mcost, { abbreviate: false, unitSingular: 'credit', unitPlural: 'credits' })}`
 }

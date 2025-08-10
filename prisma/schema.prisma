@@ -307,6 +307,7 @@ model UserNostrRelay {
   @@id([userId, nostrRelayAddr])
 }
 
+// TODO: payIn replaces the need for this model
 model Donation {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now()) @map("created_at")

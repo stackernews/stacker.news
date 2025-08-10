@@ -30,6 +30,8 @@ export async function getInitial (models, { id, userId }, { me }) {
   }
 }
 
+// NOTE: the relationship between payIn and invite can be deduced
+// from the payOutCustodialTokens.user.inviteId
 export async function onBegin (tx, payInId, { id, userId }) {
   const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
 

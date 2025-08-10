@@ -8,7 +8,7 @@ import getSSRApolloClient from '@/api/ssrApollo'
 import Link from 'next/link'
 import { CenterLayout } from '@/components/layout'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
-import performPaidAction from '@/api/paidAction'
+import pay from '@/api/payIn'
 
 export async function getServerSideProps ({ req, res, query: { id, error = null } }) {
   const session = await getServerSession(req, res, getAuthOptions(req))
@@ -35,10 +35,10 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
     try {
       // attempt to send gift
       // catch any errors and just ignore them for now
-      await performPaidAction('INVITE_GIFT', {
+      await pay('INVITE_GIFT', {
         id,
         userId: session.user.id
-      }, { models, me: { id: data.invite.user.id } })
+      }, { models, me: { id: parseInt(data.invite.user.id) } })
     } catch (e) {
       console.log(e)
     }

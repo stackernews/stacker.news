@@ -20,6 +20,8 @@ export async function getInitial (models, { sats, id }, { me, sub }) {
   const mcost = satsToMsats(sats)
   const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost })
 
+  // if we have a benefactor, we might not know the itemId until after the payIn is created
+  // so we create the itemPayIn in onBegin
   return {
     payInType: 'BOOST',
     userId: me?.id,

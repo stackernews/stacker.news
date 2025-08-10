@@ -44,40 +44,26 @@ export default function preserveScroll (callback) {
   const anchorRef = selectTextarea() || document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)
   const refTop = anchorRef ? anchorRef.getBoundingClientRect().top + scrollTop : scrollTop
 
-  // observe the document for changes in height
-  const observer = new window.MutationObserver(() => {
-    cleanup()
+  callback()
 
-    // double rAF to ensure the DOM is updated - textareas are rendered on the next tick
+  // double rAF to ensure the DOM is updated - textareas are rendered on the next tick
+  window.requestAnimationFrame(() => {
     window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        if (!anchorRef) return
+      if (!anchorRef) return
 
-        // get the new position of the anchor ref along with the new scroll position
-        const newRefTop = anchorRef ? anchorRef.getBoundingClientRect().top + window.scrollY : window.scrollY
-        // has the anchor ref moved?
-        const refMoved = newRefTop - refTop
+      // get the new position of the anchor ref along with the new scroll position
+      const newRefTop = anchorRef ? anchorRef.getBoundingClientRect().top + window.scrollY : window.scrollY
+      // has the anchor ref moved?
+      const refMoved = newRefTop - refTop
 
-        // if the anchor ref moved, we need to scroll to the new position
-        if (refMoved > 0) {
-          window.scrollTo({
-            // some browsers don't respond well to fractional scroll position, so we round up the new position to the nearest integer
-            top: scrollTop + Math.ceil(refMoved),
-            behavior: 'instant'
-          })
-        }
-      })
+      // if the anchor ref moved, we need to scroll to the new position
+      if (refMoved > 0) {
+        window.scrollTo({
+          // some browsers don't respond well to fractional scroll position, so we round up the new position to the nearest integer
+          top: scrollTop + Math.ceil(refMoved),
+          behavior: 'instant'
+        })
+      }
     })
   })
-
-  const timeout = setTimeout(() => cleanup(), 1000) // fallback
-
-  function cleanup () {
-    clearTimeout(timeout)
-    observer.disconnect()
-  }
-
-  observer.observe(document.body, { childList: true, subtree: true })
-
-  callback()
 }

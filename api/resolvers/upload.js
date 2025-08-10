@@ -6,7 +6,17 @@ import { msatsToSats } from '@/lib/format'
 export default {
   Query: {
     uploadFees: async (parent, { s3Keys }, { models, me }) => {
-      return uploadFees(s3Keys, { models, me })
+      const fees = await uploadFees(s3Keys, { models, me })
+      // GraphQL doesn't support bigint
+      return {
+        totalFees: Number(fees.totalFees),
+        totalFeesMsats: Number(fees.totalFeesMsats),
+        uploadFees: Number(fees.uploadFees),
+        uploadFeesMsats: Number(fees.uploadFeesMsats),
+        nUnpaid: Number(fees.nUnpaid),
+        bytesUnpaid: Number(fees.bytesUnpaid),
+        bytes24h: Number(fees.bytes24h)
+      }
     }
   },
   Mutation: {

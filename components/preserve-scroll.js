@@ -2,12 +2,6 @@ export default function preserveScroll (callback) {
   // preserve the actual scroll position
   const scrollTop = window.scrollY
 
-  // if the scroll position is at the top, we don't need to preserve it, just call the callback
-  if (scrollTop <= 0) {
-    callback()
-    return
-  }
-
   // check if a ref element is in the viewport
   const isElementInViewport = (element) => {
     if (!element?.getBoundingClientRect) return false
@@ -21,7 +15,7 @@ export default function preserveScroll (callback) {
     )
   }
 
-  // pick a textarea element to use as anchor ref, if any
+  // pick a textarea element to use as anchor ref
   const selectTextarea = () => {
     // pick the focused textarea, if any
     const active = document.activeElement

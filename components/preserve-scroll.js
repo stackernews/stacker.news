@@ -51,8 +51,11 @@ export default function preserveScroll (callback) {
     window.requestAnimationFrame(() => {
       if (!anchorRef) return
 
+      // bail if user scrolled manually
+      if (window.scrollY !== scrollTop) return
+
       // get the new position of the anchor ref along with the new scroll position
-      const newRefTop = anchorRef ? anchorRef.getBoundingClientRect().top + window.scrollY : window.scrollY
+      const newRefTop = anchorRef.getBoundingClientRect().top + window.scrollY
       // has the anchor ref moved?
       const refMoved = newRefTop - refTop
 

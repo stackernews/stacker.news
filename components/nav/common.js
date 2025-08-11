@@ -119,8 +119,24 @@ export function NavSelect ({ sub: subName, className, size }) {
 export function NavNotifications ({ className }) {
   const hasNewNotes = useHasNewNotes()
 
+  useEffect(() => {
+    const setFavicon = (href) => {
+      // Remove all existing favicon link tags
+      const links = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]')
+      links.forEach(link => link.parentNode.removeChild(link))
+      // Create new favicon link with cache-busting query
+      const link = document.createElement('link')
+      link.rel = 'shortcut icon'
+      link.type = 'image/png'
+      link.href = href + '?v=' + Date.now()
+      document.head.appendChild(link)
+    }
+    setFavicon(hasNewNotes ? '/favicon-notify.png' : '/favicon.png')
+  }, [hasNewNotes])
+
   return (
     <>
+      {/* fallback for SSR, but will be replaced on client by useEffect */}
       <Head>
         <link rel='shortcut icon' href={hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
       </Head>

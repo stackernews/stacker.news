@@ -8,13 +8,13 @@ import { LongCountdown } from './countdown'
 import { useCallback } from 'react'
 import { useApolloClient } from '@apollo/client'
 import { nextBillingWithGrace } from '@/lib/territory'
-import { usePaidMutation } from './use-paid-mutation'
-import { SUB_PAY } from '@/fragments/paidAction'
+import { usePayInMutation } from './use-pay-in-mutation'
+import { SUB_PAY } from '@/fragments/payIn'
 
 export default function TerritoryPaymentDue ({ sub }) {
   const { me } = useMe()
   const client = useApolloClient()
-  const [paySub] = usePaidMutation(SUB_PAY)
+  const [paySub] = usePayInMutation(SUB_PAY)
 
   const onSubmit = useCallback(async ({ ...variables }) => {
     const { error } = await paySub({

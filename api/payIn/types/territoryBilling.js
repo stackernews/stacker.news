@@ -66,7 +66,7 @@ export async function onBegin (tx, payInId, { name }) {
       billPaidUntil,
       billingCost,
       status: 'ACTIVE',
-      subPayIn: [{ payInId }]
+      subPayIn: { create: [{ payInId }] }
     }
   })
 }

@@ -56,6 +56,7 @@ export async function onBegin (tx, payInId, { oldName, billingType, ...data }) {
     data.status = 'ACTIVE'
   }
 
+  // TODO: this is nasty
   await throwOnExpiredUploads(data.uploadIds, { tx })
   if (data.uploadIds.length > 0) {
     await tx.upload.updateMany({

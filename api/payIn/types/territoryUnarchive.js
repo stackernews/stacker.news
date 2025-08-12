@@ -31,23 +31,18 @@ export async function onBegin (tx, payInId, { name, billingType, ...data }) {
     }
   })
 
-  data.billingCost = TERRITORY_PERIOD_COST(data.billingType)
+  data.billingCost = TERRITORY_PERIOD_COST(billingType)
 
   // we never want to bill them again if they are changing to ONCE
-  if (data.billingType === 'ONCE') {
+  if (billingType === 'ONCE') {
     data.billPaidUntil = null
     data.billingAutoRenew = false
   }
 
   data.billedLastAt = new Date()
-  data.billPaidUntil = nextBilling(data.billedLastAt, data.billingType)
+  data.billPaidUntil = nextBilling(data.billedLastAt, billingType)
   data.status = 'ACTIVE'
   data.userId = payIn.userId
-  data.subPayIn = {
-    create: {
-      payInId
-    }
-  }
 
   if (sub.userId !== payIn.userId) {
     try {
@@ -80,11 +75,8 @@ export async function onBegin (tx, payInId, { name, billingType, ...data }) {
   const updatedSub = await tx.sub.update({
     data: {
       ...data,
-      subPayIn: {
-        create: {
-          payInId
-        }
-      }
+      billingType,
+      subPayIn: { create: [{ payInId }] }
     },
     // optimistic concurrency control
     // make sure none of the relevant fields have changed since we fetched the sub

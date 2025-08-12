@@ -176,7 +176,7 @@ export async function onFail (tx, payInId) {
 
   // refund the custodial tokens
   for (const payInCustodialToken of payIn.payInCustodialTokens) {
-    await tx.$queryRaw`
+    await tx.$executeRaw`
       UPDATE users
       SET msats = msats + ${payInCustodialToken.custodialTokenType === 'SATS' ? payInCustodialToken.mtokens : 0},
         mcredits = mcredits + ${payInCustodialToken.custodialTokenType === 'CREDITS' ? payInCustodialToken.mtokens : 0}
@@ -213,7 +213,7 @@ export async function onPaid (tx, payInId) {
       continue
     }
 
-    await tx.$queryRaw`
+    await tx.$executeRaw`
       WITH outuser AS (
         UPDATE users
         SET msats = users.msats + ${payOut.custodialTokenType === 'SATS' ? payOut.mtokens : 0},

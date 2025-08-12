@@ -19,7 +19,8 @@ export async function getInitial (models, { msats, maxFeeMsats }, { me }) {
       {
         payOutType: 'ROUTING_FEE',
         userId: null,
-        mtokens: maxFeeMsats
+        mtokens: maxFeeMsats,
+        custodialTokenType: 'SATS'
       }
     ]
   }

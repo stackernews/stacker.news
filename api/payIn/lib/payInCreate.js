@@ -31,7 +31,7 @@ export async function payInCreate (tx, payInProspect, payInArgs, { me }) {
         payInCustodialTokens
       }),
       pessimisticEnv: {
-        create: isPessimistic(payInProspect, { me }) && payInState !== 'PAID' ? { args: payInArgs } : undefined
+        create: isPessimistic(payInProspect, { me }) && !isWithdrawal(payInProspect) && payInState !== 'PAID' ? { args: payInArgs } : undefined
       }
     },
     include: PAY_IN_INCLUDE

@@ -140,7 +140,7 @@ export async function payInWithdrawalPaid ({ data, models, ...args }) {
   const transitionedPayIn = await transitionPayIn('payInWithdrawalPaid', data, {
     payInId,
     fromStates: 'PENDING_WITHDRAWAL',
-    toState: 'WITHDRAWAL_PAID',
+    toState: 'PAID',
     transitionFunc: async ({ tx, payIn, lndPayOutBolt11 }) => {
       if (!lndPayOutBolt11.is_confirmed) {
         throw new Error('withdrawal is not confirmed')
@@ -177,11 +177,14 @@ export async function payInWithdrawalPaid ({ data, models, ...args }) {
 
   if (transitionedPayIn) {
     await notifyWithdrawal(transitionedPayIn)
-    const logger = walletLogger({ wallet: transitionedPayIn.payOutBolt11.wallet, models })
-    logger?.ok(
-      `↙ payment received: ${formatSats(msatsToSats(transitionedPayIn.payOutBolt11.msats))}`, {
-        withdrawalId: transitionedPayIn.payOutBolt11.id
-      })
+    const { payOutBolt11 } = transitionedPayIn
+    if (payOutBolt11?.protocolId) {
+      const logger = walletLogger({ protocolId: payOutBolt11.protocolId, userId: payOutBolt11.userId, models })
+      logger?.ok(
+        `↙ payment received: ${formatSats(msatsToSats(payOutBolt11.msats))}`, {
+          withdrawalId: payOutBolt11.id
+        })
+    }
   }
 }
 
@@ -191,7 +194,7 @@ export async function payInWithdrawalFailed ({ data, models, ...args }) {
   const transitionedPayIn = await transitionPayIn('payInWithdrawalFailed', data, {
     payInId,
     fromStates: 'PENDING_WITHDRAWAL',
-    toState: 'WITHDRAWAL_FAILED',
+    toState: 'FAILED',
     transitionFunc: async ({ tx, payIn, lndPayOutBolt11 }) => {
       if (!lndPayOutBolt11?.is_failed) {
         throw new Error('withdrawal is not failed')
@@ -213,11 +216,14 @@ export async function payInWithdrawalFailed ({ data, models, ...args }) {
 
   if (transitionedPayIn) {
     const { mtokens } = transitionedPayIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
-    const logger = walletLogger({ wallet: transitionedPayIn.payOutBolt11.wallet, models })
-    logger?.error(`incoming payment failed: ${message}`, {
-      bolt11: transitionedPayIn.payOutBolt11.bolt11,
-      max_fee: formatMsats(mtokens)
-    })
+    const { payOutBolt11 } = transitionedPayIn
+    if (payOutBolt11?.protocolId) {
+      const logger = walletLogger({ protocolId: payOutBolt11.protocolId, userId: payOutBolt11.userId, models })
+      logger?.error(`incoming payment failed: ${message}`, {
+        bolt11: payOutBolt11.bolt11,
+        max_fee: formatMsats(mtokens)
+      })
+    }
   }
 }
 

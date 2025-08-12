@@ -9,16 +9,16 @@ export const paymentMethods = [
 ]
 
 export async function getInitial (models, { bolt11, maxFee, protocolId }, { me }) {
-  const invoice = parsePaymentRequest({ request: bolt11 })
+  const decodedBolt11 = parsePaymentRequest({ request: bolt11 })
   return {
     payInType: 'WITHDRAWAL',
     userId: me?.id,
-    mcost: BigInt(invoice.mtokens) + satsToMsats(maxFee),
+    mcost: BigInt(decodedBolt11.mtokens) + satsToMsats(maxFee),
     payOutBolt11: {
       payOutType: 'WITHDRAWAL',
-      msats: BigInt(invoice.mtokens),
-      bolt11: invoice.bolt11,
-      hash: invoice.hash,
+      msats: BigInt(decodedBolt11.mtokens),
+      bolt11,
+      hash: decodedBolt11.id,
       userId: me.id,
       protocolId
     },
@@ -26,7 +26,8 @@ export async function getInitial (models, { bolt11, maxFee, protocolId }, { me }
       {
         payOutType: 'ROUTING_FEE',
         userId: null,
-        mtokens: satsToMsats(maxFee)
+        mtokens: satsToMsats(maxFee),
+        custodialTokenType: 'SATS'
       }
     ]
   }

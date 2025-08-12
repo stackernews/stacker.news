@@ -44,7 +44,7 @@ class ErrorBoundary extends Component {
       const errorDetails = this.getErrorDetails()
       return (
         <StaticLayout footer={false}>
-          <Image width='500' height='375' className='rounded-1 shadow-sm' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/floating.gif`} fluid />
+          <Image width='500' height='375' className='rounded-1 shadow-sm' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/floating.webp`} fluid />
           <h1 className={styles.status} style={{ fontSize: '48px' }}>something went wrong</h1>
           {this.state.error && <CopyErrorButton errorDetails={errorDetails} />}
         </StaticLayout>

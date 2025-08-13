@@ -1,5 +1,5 @@
 import {
-  getInvoice as getInvoiceFromLnd, deletePayment, getPayment,
+  getInvoice as getInvoiceFromLnd, getPayment,
   parsePaymentRequest
 } from 'ln-service'
 import crypto, { timingSafeEqual } from 'crypto'
@@ -7,7 +7,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
 import { msatsToSats, msatsToSatsDecimal } from '@/lib/format'
 import {
-  USER_ID, INVOICE_RETENTION_DAYS,
+  USER_ID,
   WALLET_RETRY_AFTER_MS,
   WALLET_RETRY_BEFORE_MS,
   WALLET_MAX_RETRIES
@@ -21,6 +21,7 @@ import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets } from '../lnd'
 import pay from '../payIn'
+import { dropBolt11 } from '@/worker/autoDropBolt11'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -337,44 +338,7 @@ const resolvers = {
         throw new GqlAuthenticationError()
       }
 
-      const retention = `${INVOICE_RETENTION_DAYS} days`
-
-      const [invoice] = await models.$queryRaw`
-        WITH to_be_updated AS (
-          SELECT id, hash, bolt11
-          FROM "Withdrawl"
-          WHERE "userId" = ${me.id}
-          AND hash = ${hash}
-          AND now() > created_at + ${retention}::INTERVAL
-          AND hash IS NOT NULL
-          AND status IS NOT NULL
-        ), updated_rows AS (
-          UPDATE "Withdrawl"
-          SET hash = NULL, bolt11 = NULL, preimage = NULL
-          FROM to_be_updated
-          WHERE "Withdrawl".id = to_be_updated.id)
-        SELECT * FROM to_be_updated;`
-
-      if (invoice) {
-        try {
-          await deletePayment({ id: invoice.hash, lnd })
-        } catch (error) {
-          console.error(error)
-          await models.withdrawl.update({
-            where: { id: invoice.id },
-            data: { hash: invoice.hash, bolt11: invoice.bolt11, preimage: invoice.preimage }
-          })
-          throw new GqlInputError('failed to drop bolt11 from lnd')
-        }
-      }
-
-      await models.$queryRaw`
-        UPDATE "DirectPayment"
-        SET hash = NULL, bolt11 = NULL, preimage = NULL
-        WHERE "receiverId" = ${me.id}
-        AND hash = ${hash}
-        AND now() > created_at + ${retention}::INTERVAL
-        AND hash IS NOT NULL`
+      await dropBolt11({ userId: me.id, hash }, { models, lnd })
 
       return true
     },

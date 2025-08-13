@@ -13,6 +13,7 @@ import * as PROXY_PAYMENT from './proxyPayment'
 import * as BUY_CREDITS from './buyCredits'
 import * as INVITE_GIFT from './inviteGift'
 import * as WITHDRAWAL from './withdrawal'
+import * as AUTO_WITHDRAWAL from './autoWithdrawal'
 
 export default {
   BUY_CREDITS,
@@ -29,5 +30,6 @@ export default {
   TERRITORY_BILLING,
   TERRITORY_UNARCHIVE,
   PROXY_PAYMENT,
-  WITHDRAWAL
+  WITHDRAWAL,
+  AUTO_WITHDRAWAL
 }

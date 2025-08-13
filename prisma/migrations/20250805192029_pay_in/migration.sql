@@ -47,7 +47,7 @@ CREATE TABLE "PayIn" (
     "genesisId" INTEGER,
     "successorId" INTEGER,
     "benefactorId" INTEGER,
-    "userId" INTEGER
+    "userId" INTEGER,
 
     CONSTRAINT "PayIn_pkey" PRIMARY KEY ("id")
 );

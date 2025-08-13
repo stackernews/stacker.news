@@ -158,7 +158,8 @@ export async function payInWithdrawalPaid ({ data, models, ...args }) {
         data: {
           mtokens: mtokens - toPositiveBigInt(lndPayOutBolt11.payment.fee_mtokens),
           payOutType: 'ROUTING_FEE_REFUND',
-          custodialTokenType: 'SATS'
+          custodialTokenType: 'SATS',
+          payInId: payIn.id
         }
       })
 

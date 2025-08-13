@@ -62,7 +62,8 @@ export async function getInitial (models, payInArgs, { me }) {
     try {
       // 3% to routing fee
       const routingFeeMtokens = mcost * 3n / 100n
-      payOutBolt11 = await payOutBolt11Prospect(models, { userId, payOutType: 'ZAP', msats: zapMtokens })
+      // TODO: description, expiry?
+      payOutBolt11 = await payOutBolt11Prospect(models, { msats: zapMtokens }, { userId, payOutType: 'ZAP' })
       payOutCustodialTokensProspects.push({ payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' })
     } catch (err) {
       console.error('failed to create user invoice:', err)

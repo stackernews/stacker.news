@@ -9,7 +9,7 @@ export const paymentMethods = [
 ]
 
 export async function getInitial (models, { msats, maxFeeMsats }, { me }) {
-  const payOutBolt11 = await payOutBolt11Prospect(models, { payOutType: 'WITHDRAWAL', msats }, { me })
+  const payOutBolt11 = await payOutBolt11Prospect(models, { msats }, { userId: me?.id, payOutType: 'WITHDRAWAL' })
   return {
     payInType: 'AUTO_WITHDRAWAL',
     userId: me?.id,

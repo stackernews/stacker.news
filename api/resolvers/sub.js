@@ -6,6 +6,7 @@ import { notifyTerritoryTransfer } from '@/lib/webPush'
 import pay from '../payIn'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { uploadIdsFromText } from './upload'
+import { Prisma } from '@prisma/client'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
@@ -38,22 +39,13 @@ export default {
     sub: getSub,
     subSuggestions: async (parent, { q, limit = 5 }, { models }) => {
       let subs = []
-      if (q) {
-        subs = await models.$queryRaw`
+      subs = await models.$queryRaw`
           SELECT name
           FROM "Sub"
-          WHERE status = 'ACTIVE'
-          AND SIMILARITY(name, ${q}) > 0.1
-          ORDER BY SIMILARITY(name, ${q}) DESC
+          WHERE status IN ('ACTIVE', 'GRACE')
+          ${q ? Prisma.sql`AND SIMILARITY(name, ${q}) > 0.1` : Prisma.empty}
+          ${q ? Prisma.sql`ORDER BY SIMILARITY(name, ${q}) DESC` : Prisma.sql`ORDER BY name ASC`}
           LIMIT ${limit}`
-      } else {
-        subs = await models.$queryRaw`
-          SELECT name
-          FROM "Sub"
-          WHERE status = 'ACTIVE'
-          ORDER BY name ASC
-          LIMIT ${limit}`
-      }
 
       return subs
     },

@@ -18,14 +18,14 @@ export default function AuthError ({ error }) {
   if (error === 'AccessDenied') {
     return (
       <StaticLayout>
-        <Image className='rounded-1 shadow-sm' width='500' height='381' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/forbidden.gif`} fluid />
+        <Image className='rounded-1 shadow-sm' width='500' height='381' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/forbidden.webp`} fluid />
         <h1 className={[styles.status, styles.smaller].join(' ')}><span>ACCESS DENIED</span></h1>
       </StaticLayout>
     )
   } else if (error === 'Verification') {
     return (
       <StaticLayout>
-        <Image className='rounded-1 shadow-sm' width='500' height='375' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/double.gif`} fluid />
+        <Image className='rounded-1 shadow-sm' width='500' height='375' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/double.webp`} fluid />
         <h2 className='pt-4'>Incorrect magic code</h2>
         <Button
           className='align-items-center my-3'
@@ -41,7 +41,7 @@ export default function AuthError ({ error }) {
   } else if (error === 'Configuration') {
     return (
       <StaticLayout>
-        <Image className='rounded-1 shadow-sm' width='500' height='375' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/double.gif`} fluid />
+        <Image className='rounded-1 shadow-sm' width='500' height='375' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/double.webp`} fluid />
         <h1 className={[styles.status, styles.smaller].join(' ')}><span>configuration error</span></h1>
       </StaticLayout>
     )
@@ -49,7 +49,7 @@ export default function AuthError ({ error }) {
 
   return (
     <StaticLayout>
-      <Image className='rounded-1 shadow-sm' width='500' height='375' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/double.gif`} fluid />
+      <Image className='rounded-1 shadow-sm' width='500' height='375' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/double.webp`} fluid />
       <h1 className={[styles.status, styles.smaller].join(' ')}><span>auth error</span></h1>
     </StaticLayout>
 

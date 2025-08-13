@@ -1,9 +1,32 @@
-import { useCallback, useEffect, useRef, useState, startTransition } from 'react'
-import ArrowRight from '../svgs/arrow-right-line.svg'
+import { useCallback, useEffect, useRef, useState, startTransition, createContext, useContext } from 'react'
 import styles from './comment.module.css'
 import { useRouter } from 'next/router'
+import LongPressable from './long-pressable'
 
-export function useNewCommentsNavigator () {
+const CommentsNavigatorContext = createContext({
+  navigator: {
+    trackNewComment: () => {},
+    untrackNewComment: () => {},
+    scrollToComment: () => {},
+    clearCommentRefs: () => {}
+  },
+  commentCount: 0
+})
+
+export function CommentsNavigatorProvider ({ children }) {
+  const value = useCommentsNavigator()
+  return (
+    <CommentsNavigatorContext.Provider value={value}>
+      {children}
+    </CommentsNavigatorContext.Provider>
+  )
+}
+
+export function useCommentsNavigatorContext () {
+  return useContext(CommentsNavigatorContext)
+}
+
+export function useCommentsNavigator () {
   const router = useRouter()
   const [commentCount, setCommentCount] = useState(0)
   const commentRefsRef = useRef([])
@@ -29,22 +52,31 @@ export function useNewCommentsNavigator () {
   }, [])
 
   // track a new comment
-  const trackNewComment = useCallback((commentRef) => {
+  const trackNewComment = useCallback((commentRef, createdAt) => {
     try {
       window.requestAnimationFrame(() => {
         if (!commentRef?.current || !commentRef.current.isConnected) return
 
         // don't track this new comment if it's visible in the viewport
         const rect = commentRef.current.getBoundingClientRect()
-        const vh = window.innerHeight || document.documentElement.clientHeight
-        const vw = window.innerWidth || document.documentElement.clientWidth
-        const isVisible = rect.top >= 0 && rect.left >= 0 && rect.bottom <= vh && rect.right <= vw
+        const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight
         if (isVisible) return
 
         // dedupe and store the ref
-        const exists = commentRefsRef.current.some(ref => ref.current === commentRef.current)
-        if (!exists) {
-          commentRefsRef.current = [...commentRefsRef.current, commentRef]
+        const existingIndex = commentRefsRef.current.findIndex(item => item.ref.current === commentRef.current)
+        if (existingIndex === -1) {
+          // find the correct insertion position to maintain sort order
+          const insertIndex = commentRefsRef.current.findIndex(item => item.createdAt > createdAt)
+          const newItem = { ref: commentRef, createdAt }
+
+          if (insertIndex === -1) {
+            // append if no newer comments found
+            commentRefsRef.current.push(newItem)
+          } else {
+            // insert at the correct position to maintain sort order
+            commentRefsRef.current.splice(insertIndex, 0, newItem)
+          }
+
           setCountThrottled()
         }
       })
@@ -54,10 +86,34 @@ export function useNewCommentsNavigator () {
   }, [setCountThrottled])
 
   // remove a comment ref from the list
-  const unTrackNewComment = useCallback((commentRef) => {
+  const untrackNewComment = useCallback((commentRef, options = {}) => {
+    const { includeDescendants = false, clearOutline = false } = options
     if (!commentRef?.current) return
+    const refNode = commentRef.current
     const before = commentRefsRef.current.length
-    commentRefsRef.current = commentRefsRef.current.filter(ref => ref.current !== commentRef.current)
+
+    const toRemove = commentRefsRef.current.filter(item => {
+      const node = item?.ref?.current
+      return includeDescendants
+        ? node && refNode.contains(node)
+        : node === refNode
+    })
+
+    if (clearOutline) {
+      for (const item of toRemove) {
+        const ref = item.ref.current
+        if (!ref) continue
+        ref.classList.remove(
+          'outline-it',
+          'outline-new-comment',
+          'outline-new-injected-comment'
+        )
+        ref.classList.add('outline-new-comment-unset')
+      }
+    }
+
+    commentRefsRef.current = commentRefsRef.current.filter(item => !toRemove.includes(item))
+
     // update the comment count if the list actually changed
     if (commentRefsRef.current.length !== before) setCountThrottled()
   }, [setCountThrottled])
@@ -66,27 +122,18 @@ export function useNewCommentsNavigator () {
   const scrollToComment = useCallback(() => {
     const list = commentRefsRef.current
     if (!list.length) return
-    const ref = list[0]
+    const ref = list[0].ref
     if (!ref?.current) return
-
-    // clear any conflicting classes
-    ref.current.classList.remove(
-      'outline-it',
-      'outline-new-comment',
-      'outline-new-injected-comment',
-      'outline-new-comment-unset'
-    )
 
     // smoothly scroll to the start of the comment
     ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
-    const clearOutline = () => {
+    // clear the outline class after the animation ends
+    ref.current.addEventListener('animationend', () => {
       ref.current.classList.remove('outline-it')
-      ref.current.classList.add('outline-new-comment-unset')
-    }
-    ref.current.addEventListener('animationend', clearOutline, { once: true })
+    }, { once: true })
 
-    // requestAnimationFrame to ensure the removal is processed before adding
+    // requestAnimationFrame to ensure untracking is processed before outlining
     window.requestAnimationFrame(() => {
       ref.current.classList.add('outline-it')
     })
@@ -95,13 +142,13 @@ export function useNewCommentsNavigator () {
     if (list.length === 1) {
       clearCommentRefs()
     } else {
-      unTrackNewComment(ref)
+      untrackNewComment(ref, { includeDescendants: true, clearOutline: true })
     }
-  }, [clearCommentRefs, unTrackNewComment])
+  }, [clearCommentRefs, untrackNewComment])
 
   // create the navigator object once
   if (!navigatorRef.current) {
-    navigatorRef.current = { trackNewComment, unTrackNewComment, scrollToComment, clearCommentRefs }
+    navigatorRef.current = { trackNewComment, untrackNewComment, scrollToComment, clearCommentRefs }
   }
 
   // clear the navigator on route changes
@@ -117,7 +164,7 @@ export function useNewCommentsNavigator () {
   return { navigator: navigatorRef.current, commentCount }
 }
 
-export function NewCommentsNavigator ({ navigator, commentCount }) {
+export function CommentsNavigator ({ navigator, commentCount }) {
   const { scrollToComment, clearCommentRefs } = navigator
 
   const onNext = useCallback((e) => {
@@ -133,6 +180,7 @@ export function NewCommentsNavigator ({ navigator, commentCount }) {
   }, [commentCount, scrollToComment, clearCommentRefs])
 
   useEffect(() => {
+    if (!commentCount) return
     document.addEventListener('keydown', onNext)
     return () => document.removeEventListener('keydown', onNext)
   }, [onNext])
@@ -140,14 +188,13 @@ export function NewCommentsNavigator ({ navigator, commentCount }) {
   if (!commentCount) return null
 
   return (
-    <aside className={`${styles.commentNavigator} fw-bold`}>
-      <span>{commentCount} new comment{commentCount > 1 ? 's' : ''}</span>
-      <span aria-label='next comment' onClick={() => scrollToComment()} className={styles.navigatorButton}>
-        <ArrowRight className={styles.navigatorButton} />
-      </span>
-      <span aria-label='close' onClick={clearCommentRefs} className={`${styles.closeButton}`}>
-        X
-      </span>
-    </aside>
+    <LongPressable onShortPress={scrollToComment} onLongPress={clearCommentRefs}>
+      <aside className={`${styles.commentNavigator} fw-bold`}>
+        <span aria-label='next comment' className={styles.navigatorButton}>
+          <div className={styles.newCommentDot} />
+        </span>
+        <span className='text-muted'>{commentCount}</span>
+      </aside>
+    </LongPressable>
   )
 }

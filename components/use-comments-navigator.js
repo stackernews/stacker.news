@@ -88,6 +88,7 @@ export function useCommentsNavigator () {
   // remove a comment ref from the list
   const untrackNewComment = useCallback((commentRef, options = {}) => {
     const { includeDescendants = false, clearOutline = false } = options
+
     if (!commentRef?.current) return
     const refNode = commentRef.current
     const before = commentRefsRef.current.length
@@ -138,11 +139,12 @@ export function useCommentsNavigator () {
       ref.current.classList.add('outline-it')
     })
 
-    // we reached the end of the new comments, clear the tracked refs
+    // untrack the new comment and clear the outlines
+    untrackNewComment(ref, { includeDescendants: true, clearOutline: true })
+
+    // if we reached the end, reset the navigator
     if (list.length === 1) {
       clearCommentRefs()
-    } else {
-      untrackNewComment(ref, { includeDescendants: true, clearOutline: true })
     }
   }, [clearCommentRefs, untrackNewComment])
 
@@ -164,7 +166,7 @@ export function useCommentsNavigator () {
   return { navigator: navigatorRef.current, commentCount }
 }
 
-export function CommentsNavigator ({ navigator, commentCount }) {
+export function CommentsNavigator ({ navigator, commentCount, className }) {
   const { scrollToComment, clearCommentRefs } = navigator
 
   const onNext = useCallback((e) => {
@@ -189,11 +191,11 @@ export function CommentsNavigator ({ navigator, commentCount }) {
 
   return (
     <LongPressable onShortPress={scrollToComment} onLongPress={clearCommentRefs}>
-      <aside className={`${styles.commentNavigator} fw-bold`}>
+      <aside className={`${styles.commentNavigator} fw-bold nav-link ${className}`}>
         <span aria-label='next comment' className={styles.navigatorButton}>
           <div className={styles.newCommentDot} />
         </span>
-        <span className='text-muted'>{commentCount}</span>
+        <span className=''>{commentCount}</span>
       </aside>
     </LongPressable>
   )

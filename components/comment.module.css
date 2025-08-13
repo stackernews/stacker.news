@@ -151,7 +151,7 @@
     align-items: center;
     vertical-align: middle;
     gap: 0.2rem;
-    padding-right: 1rem;
+    padding-bottom: 0.15rem;
     animation: fadeIn 0.3s ease-out;
     justify-content: center;
     cursor: pointer;
@@ -159,36 +159,6 @@
 
 .commentNavigator:hover {
     color: #fff;
-}
-
-/* comment navigator */
-/* .commentNavigator {
-    position: fixed;
-    bottom: calc(1rem + env(safe-area-inset-bottom));
-    right: 1rem;
-    z-index: 1050;
-    background-color: var(--bs-info);
-    padding: 0.5rem;
-    border-radius: 0.4rem;
-    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    color: #fff;
-    animation: slideUp 0.3s ease-out;
-    opacity: 0.8;
-    transition: opacity 0.3s ease-in-out;
-    justify-content: center;
-    /* 53px footer-padding
-    @media (max-width: 768px) {
-        right: 0.5rem;
-        bottom: calc(0.5rem + env(safe-area-inset-bottom));
-        margin-bottom: 53px;
-    }
-} */
-
-.commentNavigator:hover {
-    opacity: 1;
 }
 
 @keyframes slideUp {

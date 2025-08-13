@@ -20,7 +20,7 @@ export default function TopBar ({ prefix, sub, path, pathname, topNavKey, dropNa
           : (
             <>
               <NavPrice className='flex-shrink-1' />
-              <CommentsNavigator navigator={navigator} commentCount={commentCount} />
+              <CommentsNavigator navigator={navigator} commentCount={commentCount} className='px-2' />
               {me ? <NavWalletSummary /> : <SignUpButton width='fit-content' />}
             </>)}
       </Nav>

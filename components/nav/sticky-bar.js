@@ -39,7 +39,7 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey })
             <Brand className='me-1' />
             <SearchItem className='me-0 ms-2' />
             <NavPrice />
-            <CommentsNavigator navigator={navigator} commentCount={commentCount} />
+            <CommentsNavigator navigator={navigator} commentCount={commentCount} className='d-flex' />
             {me ? <MeCorner dropNavKey={dropNavKey} me={me} className='d-flex' /> : <AnonCorner path={path} className='d-flex' />}
           </Nav>
         </Navbar>
@@ -52,7 +52,7 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey })
           >
             <Back />
             <NavPrice className='flex-shrink-1' />
-            <CommentsNavigator navigator={navigator} commentCount={commentCount} />
+            <CommentsNavigator navigator={navigator} commentCount={commentCount} className='d-flex' />
             {me ? <NavWalletSummary className='px-2' /> : <SignUpButton width='fit-content' />}
           </Nav>
         </Navbar>

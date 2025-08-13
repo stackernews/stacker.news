@@ -29,16 +29,19 @@ export function useCommentsNavigatorContext () {
 export function useCommentsNavigator () {
   const router = useRouter()
   const [commentCount, setCommentCount] = useState(0)
-  const commentRefsRef = useRef([])
+  // refs in ref to not re-render on tracking
+  const commentRefs = useRef([])
+  // ref to track if the comment count is being updated
   const frameRef = useRef(null)
   const navigatorRef = useRef(null)
 
   // batch updates to the comment count
-  const setCountThrottled = useCallback(() => {
+  const throttleCountUpdate = useCallback(() => {
     if (frameRef.current) return
+    // prevent multiple updates in the same frame
     frameRef.current = true
     window.requestAnimationFrame(() => {
-      const next = commentRefsRef.current.length
+      const next = commentRefs.current.length
       // transition to the new comment count
       startTransition?.(() => setCommentCount(next))
       frameRef.current = false
@@ -47,7 +50,7 @@ export function useCommentsNavigator () {
 
   // clear the list of refs and reset the comment count
   const clearCommentRefs = useCallback(() => {
-    commentRefsRef.current = []
+    commentRefs.current = []
     startTransition?.(() => setCommentCount(0))
   }, [])
 
@@ -59,41 +62,39 @@ export function useCommentsNavigator () {
 
         // don't track this new comment if it's visible in the viewport
         const rect = commentRef.current.getBoundingClientRect()
-        const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight
-        if (isVisible) return
+        if (rect.top >= 0 && rect.bottom <= window.innerHeight) return
 
-        // dedupe and store the ref
-        const existingIndex = commentRefsRef.current.findIndex(item => item.ref.current === commentRef.current)
-        if (existingIndex === -1) {
-          // find the correct insertion position to maintain sort order
-          const insertIndex = commentRefsRef.current.findIndex(item => item.createdAt > createdAt)
-          const newItem = { ref: commentRef, createdAt }
+        // dedupe
+        const existing = commentRefs.current.some(item => item.ref.current === commentRef.current)
+        if (existing) return
 
-          if (insertIndex === -1) {
-            // append if no newer comments found
-            commentRefsRef.current.push(newItem)
-          } else {
-            // insert at the correct position to maintain sort order
-            commentRefsRef.current.splice(insertIndex, 0, newItem)
-          }
+        // find the correct insertion position to maintain sort order
+        const insertIndex = commentRefs.current.findIndex(item => item.createdAt > createdAt)
+        const newItem = { ref: commentRef, createdAt }
 
-          setCountThrottled()
+        if (insertIndex === -1) {
+          // append if no newer comments found
+          commentRefs.current.push(newItem)
+        } else {
+          // insert at the correct position to maintain sort order
+          commentRefs.current.splice(insertIndex, 0, newItem)
         }
+
+        throttleCountUpdate()
       })
     } catch {
       // in the rare case of a ref being disconnected during RAF, ignore to avoid blocking UI
     }
-  }, [setCountThrottled])
+  }, [throttleCountUpdate])
 
   // remove a comment ref from the list
   const untrackNewComment = useCallback((commentRef, options = {}) => {
     const { includeDescendants = false, clearOutline = false } = options
 
-    if (!commentRef?.current) return
     const refNode = commentRef.current
-    const before = commentRefsRef.current.length
+    if (!refNode) return
 
-    const toRemove = commentRefsRef.current.filter(item => {
+    const toRemove = commentRefs.current.filter(item => {
       const node = item?.ref?.current
       return includeDescendants
         ? node && refNode.contains(node)
@@ -102,50 +103,50 @@ export function useCommentsNavigator () {
 
     if (clearOutline) {
       for (const item of toRemove) {
-        const ref = item.ref.current
-        if (!ref) continue
-        ref.classList.remove(
+        const node = item.ref.current
+        if (!node) continue
+        node.classList.remove(
           'outline-it',
           'outline-new-comment',
           'outline-new-injected-comment'
         )
-        ref.classList.add('outline-new-comment-unset')
+        node.classList.add('outline-new-comment-unset')
       }
     }
 
-    commentRefsRef.current = commentRefsRef.current.filter(item => !toRemove.includes(item))
-
-    // update the comment count if the list actually changed
-    if (commentRefsRef.current.length !== before) setCountThrottled()
-  }, [setCountThrottled])
+    if (toRemove.length) {
+      commentRefs.current = commentRefs.current.filter(item => !toRemove.includes(item))
+      throttleCountUpdate()
+    }
+  }, [throttleCountUpdate])
 
   // scroll to the next new comment
   const scrollToComment = useCallback(() => {
-    const list = commentRefsRef.current
+    const list = commentRefs.current
     if (!list.length) return
-    const ref = list[0].ref
-    if (!ref?.current) return
+
+    const ref = list[0]?.ref
+    const node = ref?.current
+    if (!node) return
 
     // smoothly scroll to the start of the comment
-    ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' })
 
     // clear the outline class after the animation ends
-    ref.current.addEventListener('animationend', () => {
-      ref.current.classList.remove('outline-it')
+    node.addEventListener('animationend', () => {
+      node.classList.remove('outline-it')
     }, { once: true })
 
     // requestAnimationFrame to ensure untracking is processed before outlining
     window.requestAnimationFrame(() => {
-      ref.current.classList.add('outline-it')
+      node.classList.add('outline-it')
     })
 
     // untrack the new comment and clear the outlines
     untrackNewComment(ref, { includeDescendants: true, clearOutline: true })
 
     // if we reached the end, reset the navigator
-    if (list.length === 1) {
-      clearCommentRefs()
-    }
+    if (list.length === 1) clearCommentRefs()
   }, [clearCommentRefs, untrackNewComment])
 
   // create the navigator object once
@@ -155,12 +156,8 @@ export function useCommentsNavigator () {
 
   // clear the navigator on route changes
   useEffect(() => {
-    const clearOnRouteChange = () => {
-      clearCommentRefs()
-    }
-
-    router.events.on('routeChangeStart', clearOnRouteChange)
-    return () => router.events.off('routeChangeStart', clearOnRouteChange)
+    router.events.on('routeChangeStart', clearCommentRefs)
+    return () => router.events.off('routeChangeStart', clearCommentRefs)
   }, [clearCommentRefs, router.events])
 
   return { navigator: navigatorRef.current, commentCount }

@@ -39,7 +39,7 @@ export function Settings () {
             data: {
               walletSettings: {
                 __typename: 'WalletSettings',
-                ...settings
+                ...data?.setWalletSettings
               }
             }
           })

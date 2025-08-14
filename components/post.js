@@ -187,7 +187,7 @@ export default function Post ({ sub }) {
 export function ItemButtonBar ({
   itemId, canDelete = true, disable,
   className, children, onDelete, onCancel, hasCancel = true,
-  createText = 'post', editText = 'save', deleteText = 'delete'
+  createText = 'post', editText = 'save', deleteText = 'delete', inlinePrice = true
 }) {
   const router = useRouter()
 
@@ -208,6 +208,7 @@ export function ItemButtonBar ({
             text={itemId ? editText : createText}
             variant='secondary'
             disabled={disable}
+            inlinePrice={inlinePrice}
           />
         </div>
       </div>

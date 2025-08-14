@@ -149,29 +149,31 @@ function FreebieDialog () {
   )
 }
 
-export default function FeeButton ({ ChildButton = SubmitButton, variant, text, disabled }) {
+export default function FeeButton ({ ChildButton = SubmitButton, variant, text, disabled, inlinePrice = true }) {
   const { me } = useMe()
   const { lines, total, disabled: ctxDisabled, free } = useFeeButton()
-  const feeText = free
-    ? 'free'
-    : total > 1
-      ? numWithUnits(total, { abbreviate: false, format: true })
-      : undefined
+  // Only show a price when there is an actual fee; do not show 'free'
+  const showPrice = !free && total >= 1
+  const feeText = showPrice
+    ? (total > 1
+        ? numWithUnits(total, { abbreviate: false, format: true })
+        : '1 sat')
+    : undefined
   disabled ||= ctxDisabled
 
   return (
     <div className={styles.feeButton}>
-      <ActionTooltip overlayText={!free && total === 1 ? '1 sat' : feeText}>
+      <ActionTooltip overlayText={feeText}>
         <ChildButton
           variant={variant} disabled={disabled}
-          appendText={feeText}
-          submittingText={free || !feeText ? undefined : 'paying...'}
+          appendText={inlinePrice ? feeText : undefined}
+          submittingText={!feeText ? undefined : 'paying...'}
         >{text}
         </ChildButton>
       </ActionTooltip>
       {!me && <AnonInfo />}
       {(free && <Info><FreebieDialog /></Info>) ||
-       (total > 1 && <Info><Receipt lines={lines} total={total} /></Info>)}
+       (showPrice && total > 1 && <Info><Receipt lines={lines} total={total} /></Info>)}
     </div>
   )
 }

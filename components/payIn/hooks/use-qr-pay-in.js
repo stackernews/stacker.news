@@ -28,7 +28,7 @@ export default function useQrPayment () {
         console.log('waitForQrPayIn: cancelAndReject', payIn.id, paid, cancelOnClose)
         if (!paid && cancelOnClose) {
           const updatedPayIn = await watchPayIn.cancel(payIn, { userCancel: true })
-          reject(new InvoiceCanceledError(updatedPayIn))
+          reject(new InvoiceCanceledError(updatedPayIn.payInBolt11))
         }
         resolve(payIn)
       }

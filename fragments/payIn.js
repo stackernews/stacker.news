@@ -101,6 +101,14 @@ export const RETRY_PAY_IN = gql`
   }
 `
 
+export const CANCEL_PAY_IN_BOLT11 = gql`
+  ${PAY_IN_FIELDS}
+  mutation cancelPayInBolt11($hash: String!, $hmac: String, $userCancel: Boolean) {
+    cancelPayInBolt11(hash: $hash, hmac: $hmac, userCancel: $userCancel) {
+      ...PayInFields
+    }
+  }`
+
 export const DONATE = gql`
   ${PAY_IN_FIELDS}
   mutation donateToRewards($sats: Int!) {

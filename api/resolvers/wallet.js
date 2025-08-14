@@ -16,7 +16,6 @@ import { validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { bolt11Tags } from '@/lib/bolt11'
-import { finalizeHodlInvoice } from '@/worker/wallet'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets } from '../lnd'
@@ -321,18 +320,6 @@ const resolvers = {
   Mutation: {
     createWithdrawl: createWithdrawal,
     sendToLnAddr,
-    cancelInvoice: async (parent, { hash, hmac, userCancel }, { me, models, lnd, boss }) => {
-      // stackers can cancel their own invoices without hmac
-      if (me && !hmac) {
-        const inv = await models.invoice.findUnique({ where: { hash } })
-        if (!inv) throw new GqlInputError('invoice not found')
-        if (inv.userId !== me.id) throw new GqlInputError('not ur invoice')
-      } else {
-        verifyHmac(hash, hmac)
-      }
-      await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
-      return await models.invoice.update({ where: { hash }, data: { userCancel: !!userCancel } })
-    },
     dropBolt11: async (parent, { hash }, { me, models, lnd }) => {
       if (!me) {
         throw new GqlAuthenticationError()

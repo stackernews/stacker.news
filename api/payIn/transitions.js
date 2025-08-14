@@ -19,7 +19,7 @@ async function transitionPayIn (jobName, data,
   let payIn
 
   try {
-    const include = { payInBolt11: true, payOutBolt11: true, pessimisticEnv: true, payOutCustodialTokens: true, beneficiaries: true }
+    const include = { payInBolt11: true, payInCustodialTokens: true, payOutBolt11: true, pessimisticEnv: true, payOutCustodialTokens: true, beneficiaries: true }
     const currentPayIn = await models.payIn.findUnique({ where: { id: payInId }, include })
 
     console.group(`${jobName}: transitioning payIn ${payInId} from ${fromStates} to ${toState}`)

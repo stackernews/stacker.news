@@ -20,7 +20,6 @@ const typeDefs = gql`
   extend type Mutation {
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
-    cancelInvoice(hash: String!, hmac: String, userCancel: Boolean): Invoice!
     dropBolt11(hash: String!): Boolean
     buyCredits(credits: Int!): PayIn!
 

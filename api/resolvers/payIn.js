@@ -1,4 +1,7 @@
 import { USER_ID } from '@/lib/constants'
+import { GqlInputError } from '@/lib/error'
+import { verifyHmac } from './wallet'
+import { payInCancel } from '../payIn/transitions'
 
 function payInResultType (payInType) {
   switch (payInType) {
@@ -40,6 +43,27 @@ export default {
       }
 
       return payIn
+    }
+  },
+  Mutation: {
+    cancelPayInBolt11: async (parent, { hash, hmac, userCancel }, { models, me, boss, lnd }) => {
+      const payInBolt11 = await models.PayInBolt11.findUnique({ where: { hash } })
+      if (me && !hmac) {
+        if (!payInBolt11) throw new GqlInputError('bolt11 not found')
+        if (payInBolt11.userId !== me.id) throw new GqlInputError('not ur bolt11')
+      } else {
+        verifyHmac(hash, hmac)
+      }
+      return await payInCancel({
+        data: {
+          payInId: payInBolt11.payInId,
+          payInFailureReason: userCancel ? 'USER_CANCELLED' : 'SYSTEM_CANCELLED'
+        },
+        models,
+        me,
+        boss,
+        lnd
+      })
     }
   },
   PayIn: {

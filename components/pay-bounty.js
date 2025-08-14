@@ -55,7 +55,7 @@ export default function PayBounty ({ children, item }) {
   const variables = { id: item.id, sats: root.bounty, act: 'TIP', hasSendWallet }
   const act = useAct({
     variables,
-    optimisticResponse: { act: { result: { ...variables, path: item.path } } },
+    optimisticResponse: { act: { ...variables, path: item.path, __typename: 'ItemActResult' } },
     ...payBountyCacheMods
   })
 

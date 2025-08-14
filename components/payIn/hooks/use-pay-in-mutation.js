@@ -115,6 +115,7 @@ function addOptimisticResponseExtras (mutation, optimisticResponse) {
   const mutationName = getOperationName(mutation)
   optimisticResponse[mutationName] = {
     __typename: 'PayIn',
+    id: 'temp-pay-in-id',
     payInBolt11: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -123,6 +124,7 @@ function addOptimisticResponseExtras (mutation, optimisticResponse) {
     payInType: null,
     payInFailureReason: null,
     payInCustodialTokens: null,
+    pessimisticEnv: null,
     mcost: null,
     result: optimisticResponse[mutationName]
   }

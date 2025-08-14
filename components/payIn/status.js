@@ -21,7 +21,7 @@ export default function PayInStatus ({ payIn }) {
       status = 'failed'
     }
   } else if (payIn.payInState === 'PENDING_HELD' || payIn.payInState === 'PENDING') {
-    variant = 'settling'
+    variant = null
     status = <CompactLongCountdown date={payIn.payInBolt11.expiresAt} />
   } else {
     variant = 'pending'

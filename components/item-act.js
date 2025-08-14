@@ -131,11 +131,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       },
       optimisticResponse: me
         ? {
-            act: {
-              result: {
-                id: item.id, sats: Number(amount), act, path: item.path
-              }
-            }
+            act: { id: item.id, sats: Number(amount), act, path: item.path, __typename: 'ItemActResult' }
           }
         : undefined,
       // don't close modal immediately because we want the QR modal to stack
@@ -310,7 +306,7 @@ export function useZap () {
     const sats = nextTip(meSats, { ...me?.privates })
 
     const variables = { id: item.id, sats, act: 'TIP', hasSendWallet }
-    const optimisticResponse = { act: { result: { path: item.path, ...variables } } }
+    const optimisticResponse = { act: { path: item.path, ...variables, __typename: 'ItemActResult' } }
 
     try {
       await abortSignal.pause({ me, amount: sats })

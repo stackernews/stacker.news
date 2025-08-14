@@ -10,6 +10,7 @@ import { useFormState, useMaxSteps, useNext, useStepIndex } from '@/components/m
 import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
 import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport } from '@/wallets/client/hooks'
+import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 
 import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm } from './hooks'
 import { Settings } from './settings'
@@ -163,7 +164,10 @@ function WalletProtocolFormNavigator () {
     <div className='d-flex justify-content-end'>
       {stepIndex === 0 ? <CancelButton>cancel</CancelButton> : <BackButton />}
       {!hideSkip ? <SkipButton /> : <div className='ms-auto' />}
-      <SubmitButton variant='primary'>next</SubmitButton>
+      <SubmitButton variant='primary' className='ps-3 pe-1'>
+        next
+        <ArrowRight width={24} height={24} />
+      </SubmitButton>
     </div>
   )
 }

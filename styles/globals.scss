@@ -782,6 +782,7 @@ div[contenteditable]:focus,
   fill: var(--theme-navLink);
 }
 
+.nav-link:hover svg,
 .nav-link.active svg {
   fill: var(--theme-navLinkActive);
 }

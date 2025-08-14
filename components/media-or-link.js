@@ -75,12 +75,19 @@ const Media = memo(function Media ({
 export default function MediaOrLink ({ linkFallback = true, ...props }) {
   const media = useMediaHelper(props)
   const [error, setError] = useState(false)
-  const { showCarousel, addMedia, removeMedia } = useCarousel()
+  const { showCarousel, addMedia, confirmMedia, removeMedia } = useCarousel()
 
+  // register placeholder immediately on mount if we have a src
+  useEffect(() => {
+    if (!media.bestResSrc) return
+    addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: props.rel })
+  }, [addMedia, media.bestResSrc, media.originalSrc, props.rel])
+
+  // confirm media for carousel based on image detection
   useEffect(() => {
     if (!media.image) return
-    addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: props.rel })
-  }, [media.image])
+    confirmMedia(media.bestResSrc)
+  }, [confirmMedia, media.image, media.bestResSrc])
 
   const handleClick = useCallback(() => showCarousel({ src: media.bestResSrc }),
     [showCarousel, media.bestResSrc])

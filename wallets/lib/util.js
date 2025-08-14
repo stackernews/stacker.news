@@ -1,6 +1,7 @@
 import * as yup from 'yup'
 import wallets from '@/wallets/lib/wallets.json'
 import protocols from '@/wallets/lib/protocols'
+import { SSR } from '@/lib/constants'
 
 function walletJson (name) {
   return wallets.find(wallet => wallet.name === name)
@@ -88,7 +89,7 @@ export function protocolFields ({ name, send }) {
 export function protocolAvailable ({ name, send }) {
   const { isAvailable } = protocol({ name, send })
 
-  if (typeof isAvailable === 'function') {
+  if (!SSR && typeof isAvailable === 'function') {
     return isAvailable()
   }
 

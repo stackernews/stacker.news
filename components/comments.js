@@ -9,7 +9,7 @@ import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
-import { useNewCommentsNavigator, NewCommentsNavigator } from './use-new-comments-navigator'
+import { useCommentsNavigatorContext } from './use-comments-navigator'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
   const router = useRouter()
@@ -74,13 +74,12 @@ export default function Comments ({
   useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort)
 
   // new comments navigator, tracks new comments and provides navigation controls
-  const { navigator, commentCount } = useNewCommentsNavigator()
+  const { navigator } = useCommentsNavigatorContext()
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
 
   return (
     <>
-      <NewCommentsNavigator navigator={navigator} commentCount={commentCount} />
       {comments?.length > 0
         ? <CommentsHeader
             commentSats={commentSats} parentCreatedAt={parentCreatedAt}

@@ -54,6 +54,15 @@ export function MultiStepForm ({ children, initial, steps }) {
 function Progress () {
   const steps = useSteps()
   const stepIndex = useStepIndex()
+
+  const style = (index) => {
+    switch (index) {
+      case 0: return { marginLeft: '-4px', marginRight: '-13px' }
+      case 1: return { marginLeft: '-13px', marginRight: '-15px' }
+      default: return {}
+    }
+  }
+
   return (
     <div className='d-flex my-3 mx-auto'>
       {
@@ -62,7 +71,7 @@ function Progress () {
           return (
             <Fragment key={i}>
               <ProgressNumber number={i + 1} label={label} active={stepIndex >= i} />
-              {!last && <ProgressLine style={{ marginLeft: '-4px', marginRight: '-13px' }} active={stepIndex >= i + 1} />}
+              {!last && <ProgressLine style={style(i)} active={stepIndex >= i + 1} />}
             </Fragment>
           )
         })

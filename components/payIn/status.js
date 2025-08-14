@@ -5,7 +5,7 @@ import Check from '@/svgs/check-double-line.svg'
 import ThumbDown from '@/svgs/thumb-down-fill.svg'
 
 export default function PayInStatus ({ payIn }) {
-  let variant = 'default'
+  let variant = 'pending'
   let status = 'waiting for you'
 
   if (payIn.payInState === 'PAID') {
@@ -21,17 +21,11 @@ export default function PayInStatus ({ payIn }) {
       status = 'failed'
     }
   } else if (payIn.payInState === 'PENDING_HELD' || payIn.payInState === 'PENDING') {
-    variant = 'pending'
-    status = (
-      <CompactLongCountdown date={payIn.payInBolt11.expiresAt} />
-    )
+    variant = 'settling'
+    status = <CompactLongCountdown date={payIn.payInBolt11.expiresAt} />
   } else {
     variant = 'pending'
-    status = (
-      <div className='d-flex justify-content-center'>
-        <Moon className='spin fill-grey me-2' /> settling
-      </div>
-    )
+    status = 'settling'
   }
 
   return (

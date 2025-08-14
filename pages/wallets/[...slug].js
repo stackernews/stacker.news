@@ -1,20 +1,33 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
+import { useData } from '@/components/use-data'
 import { WalletForms as WalletFormsComponent } from '@/wallets/client/components'
+import { WALLET } from '@/wallets/client/fragments'
+import { useDecryptedWallet } from '@/wallets/client/hooks'
 import { unurlify } from '@/wallets/lib/util'
-import { useParams } from 'next/navigation'
+import { useQuery } from '@apollo/client'
+import { useRouter } from 'next/router'
 
-export const getServerSideProps = getGetServerSideProps({ authRequired: true })
+const variablesFunc = params => {
+  const id = Number(params.slug[0])
+  return !Number.isNaN(id) ? { id } : { name: unurlify(params.slug[0]) }
+}
+export const getServerSideProps = getGetServerSideProps({ query: WALLET, variables: variablesFunc, authRequired: true })
 
-export default function WalletForms () {
-  const params = useParams()
-  const walletName = unurlify(params.slug[0])
+export default function WalletForms ({ ssrData }) {
+  const router = useRouter()
+  const variables = variablesFunc(router.query)
+  // this will print the following warning in the console:
+  //   Warning: fragment with name WalletTemplateFields already exists.
+  //   graphql-tag enforces all fragment names across your application to be unique
+  // this is not a problem because the warning is only meant to avoid overwriting fragments but we're reusing it
+  const { data, refetch } = useQuery(WALLET, { variables })
+  const dat = useData(data, ssrData)
 
-  // if the wallet name is a number, we are showing a configured wallet
-  // otherwise, we are showing a template
-  const isNumber = !Number.isNaN(Number(walletName))
-  if (isNumber) {
-    return <WalletFormsComponent id={Number(walletName)} />
+  const decryptedWallet = useDecryptedWallet(dat?.wallet)
+  const wallet = decryptedWallet ?? ssrData?.wallet
+  if (!wallet) {
+    return null
   }
 
-  return <WalletFormsComponent name={walletName} />
+  return <WalletFormsComponent wallet={wallet} refetch={refetch} />
 }

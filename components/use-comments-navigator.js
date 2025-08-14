@@ -184,11 +184,12 @@ export function CommentsNavigator ({ navigator, commentCount, className }) {
     return () => document.removeEventListener('keydown', onNext)
   }, [onNext])
 
-  if (!commentCount) return null
-
   return (
     <LongPressable onShortPress={scrollToComment} onLongPress={clearCommentRefs}>
-      <aside className={`${styles.commentNavigator} fw-bold nav-link ${className}`}>
+      <aside
+        className={`${styles.commentNavigator} fw-bold nav-link ${className}`}
+        style={{ visibility: commentCount ? 'visible' : 'hidden' }}
+      >
         <span aria-label='next comment' className={styles.navigatorButton}>
           <div className={styles.newCommentDot} />
         </span>

@@ -87,7 +87,7 @@ async function begin (models, payInInitial, payInArgs, { me }) {
   return await afterBegin(models, { payIn, result, mCostRemaining }, { me })
 }
 
-async function onBegin (tx, payInId, payInArgs) {
+export async function onBegin (tx, payInId, payInArgs) {
   const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { beneficiaries: true } })
   if (!payIn) {
     throw new Error('PayIn not found')
@@ -103,6 +103,7 @@ async function onBegin (tx, payInId, payInArgs) {
 }
 
 async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
+  console.log('afterBegin', result, mCostRemaining)
   async function afterInvoiceCreation ({ payInState, payInBolt11 }) {
     const updatedPayIn = await models.payIn.update({
       where: {

@@ -8,7 +8,7 @@ import { LongCountdown } from './countdown'
 import { useCallback } from 'react'
 import { useApolloClient } from '@apollo/client'
 import { nextBillingWithGrace } from '@/lib/territory'
-import { usePayInMutation } from './use-pay-in-mutation'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { SUB_PAY } from '@/fragments/payIn'
 
 export default function TerritoryPaymentDue ({ sub }) {

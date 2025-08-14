@@ -16,3 +16,5 @@ export default function PayerData ({ data, className, header = false }) {
     </div>
   )
 }
+
+// TODO: delete when payIn is finished

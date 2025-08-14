@@ -6,7 +6,7 @@ import { PayInFailureReasonError } from '../errors'
 
 const INVOICE_EXPIRE_SECS = 600
 
-function payInBolt11FromBolt11 (bolt11) {
+function payInBolt11FromBolt11 (bolt11, preimage) {
   const decodedBolt11 = parsePaymentRequest({ request: bolt11 })
   const expiresAt = new Date(decodedBolt11.expires_at)
   const msatsRequested = BigInt(decodedBolt11.mtokens)
@@ -14,7 +14,8 @@ function payInBolt11FromBolt11 (bolt11) {
     hash: decodedBolt11.id,
     bolt11,
     msatsRequested,
-    expiresAt
+    expiresAt,
+    preimage
   }
 }
 
@@ -29,7 +30,7 @@ export async function payInBolt11Prospect (models, payIn, { msats, description }
       lnd
     })
 
-    return payInBolt11FromBolt11(invoice.request)
+    return payInBolt11FromBolt11(invoice.request, invoice.secret)
   } catch (e) {
     console.error('failed to create invoice', e)
     throw new PayInFailureReasonError('Invoice creation failed', 'INVOICE_CREATION_FAILED')

@@ -22,7 +22,7 @@ import { CompactLongCountdown } from '@/components/countdown'
 import { DONATE } from '@/fragments/payIn'
 import { ITEM_FULL_FIELDS } from '@/fragments/items'
 import { ListItem } from '@/components/items'
-import { usePayInMutation } from '@/components/use-pay-in-mutation'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <GrowthPieChartSkeleton />

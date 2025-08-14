@@ -5,9 +5,9 @@ import { useMe } from './me'
 import styles from './poll.module.css'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
-import useQrPayment from './use-qr-payment'
+import useQrPayment from './payIn/hooks/use-qr-pay-in'
 import { useToast } from './toast'
-import { usePayInMutation } from './use-pay-in-mutation'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { RETRY_PAID_ACTION, POLL_VOTE } from '@/fragments/payIn'
 
 export default function Poll ({ item }) {

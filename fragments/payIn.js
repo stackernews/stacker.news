@@ -21,9 +21,30 @@ export const PAY_IN_FIELDS = gql`
       id
       payInId
       bolt11
+      hash
       hmac
+      msatsRequested
+      msatsReceived
+      expiresAt
+      confirmedAt
+      cancelledAt
       createdAt
       updatedAt
+      lud18Data {
+        id
+        name
+        identifier
+        email
+        pubkey
+      }
+      nostrNote {
+        id
+        note
+      }
+      comment {
+        id
+        comment
+      }
     }
     pessimisticEnv {
       error
@@ -58,20 +79,14 @@ export const PAY_IN_FIELDS = gql`
       ... on Sub {
         ...SubFullFields
       }
-      ... on DonateResult {
-        sats
-      }
-      ... on BuyCreditsResult {
-        credits
-      }
     }
   }
 `
 
 export const GET_PAY_IN = gql`
   ${PAY_IN_FIELDS}
-  query payIn($payInId: Int!) {
-    payIn(payInId: $payInId) {
+  query payIn($id: Int!) {
+    payIn(id: $id) {
       ...PayInFields
     }
   }

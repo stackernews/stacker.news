@@ -4,9 +4,9 @@
 import { useCallback, useState } from 'react'
 import { InvoiceCanceledError } from '@/wallets/client/errors'
 import { useApolloClient, useMutation } from '@apollo/client'
-import { useWaitForPayIn } from './use-wait-for-pay-in'
+import usePayPayIn from '@/components/payIn/hooks/use-pay-pay-in'
 import { getOperationName } from '@apollo/client/utilities'
-import { useMe } from './me'
+import { useMe } from '@/components/me'
 
 /*
 this is just like useMutation with a few changes:
@@ -20,7 +20,7 @@ this is just like useMutation with a few changes:
   b. it's called after the invoice is paid for pessimistic updates
 4. we return a payError field in the result object if the invoice fails to pay
 */
-export function usePayInMutation (mutation, options) {
+export default function usePayInMutation (mutation, options) {
   if (options) {
     options.optimisticResponse = addOptimisticResponseExtras(mutation, options.optimisticResponse)
   }
@@ -29,7 +29,7 @@ export function usePayInMutation (mutation, options) {
   const { me } = useMe()
   // innerResult is used to store/control the result of the mutation when innerMutate runs
   const [innerResult, setInnerResult] = useState(result)
-  const waitForPayIn = useWaitForPayIn()
+  const payPayIn = usePayPayIn()
   const mutationName = getOperationName(mutation)
 
   const innerMutate = useCallback(async (innerOptions) => {
@@ -41,20 +41,24 @@ export function usePayInMutation (mutation, options) {
     // use the most inner callbacks/options if they exist
     const {
       onPaid, onPayError, forceWaitForPayment, persistOnNavigate,
-      update, waitFor = inv => inv?.actionState === 'PAID', updateOnFallback,
+      update, waitFor = payIn => payIn?.payInState === 'PAID', updateOnFallback,
       onCompleted
     } = { ...options, ...innerOptions }
 
     const payIn = data[mutationName]
 
+    console.log('payInMutation', payIn)
+
     // if the mutation returns in a pending state, it has an invoice we need to pay
     let payError
     if (payIn.payInState === 'PENDING' || payIn.payInState === 'PENDING_HELD') {
+      console.log('payInMutation: pending', payIn.payInState, payIn.payInType)
       if (forceWaitForPayment || !me || (payIn.payInState === 'PENDING_HELD' && payIn.payInType !== 'ZAP')) {
+        console.log('payInMutation: forceWaitForPayment', forceWaitForPayment, me, payIn.payInState, payIn.payInType)
         // the action is pessimistic
         try {
           // wait for the invoice to be paid
-          const paidPayIn = await waitForPayIn(payIn, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor, updateOnFallback })
+          const paidPayIn = await payPayIn(payIn, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor, updateOnFallback })
 
           // we need to run update functions on mutations now that we have the data
           const data = { [mutationName]: paidPayIn }
@@ -67,10 +71,11 @@ export function usePayInMutation (mutation, options) {
           payError = e
         }
       } else {
+        console.log('payInMutation: not forceWaitForPayment', forceWaitForPayment, me, payIn.payInState, payIn.payInType)
         // onCompleted is called before the invoice is paid for optimistic updates
         onCompleted?.(data)
         // don't wait to pay the invoice
-        waitForPayIn(payIn, { persistOnNavigate, waitFor, updateOnFallback }).then((paidPayIn) => {
+        payPayIn(payIn, { persistOnNavigate, waitFor, updateOnFallback }).then((paidPayIn) => {
           // invoice might have been retried during payment
           onPaid?.(client.cache, { data: { [mutationName]: paidPayIn } })
         }).catch(e => {
@@ -82,10 +87,12 @@ export function usePayInMutation (mutation, options) {
         })
       }
     } else if (payIn.payInState === 'PAID') {
+      console.log('payInMutation: paid', payIn.payInState, payIn.payInType)
       // fee credits/reward sats paid for it
       onCompleted?.(data)
       onPaid?.(client.cache, { data })
     } else {
+      console.log('payInMutation: unexpected', payIn.payInState, payIn.payInType)
       payError = new Error(`PayIn is in an unexpected state: ${payIn.payInState}`)
     }
 
@@ -97,7 +104,7 @@ export function usePayInMutation (mutation, options) {
     }
     setInnerResult(result)
     return result
-  }, [mutate, options, waitForPayIn, client.cache, setInnerResult, !!me])
+  }, [mutate, options, payPayIn, client.cache, setInnerResult, !!me])
 
   return [innerMutate, innerResult]
 }

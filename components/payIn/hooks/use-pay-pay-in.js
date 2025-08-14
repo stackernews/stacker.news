@@ -1,13 +1,13 @@
 import { useWalletPayment } from '@/wallets/client/hooks'
-import useInvoice from './use-invoice'
-import useQrPayment from './use-qr-payment'
+import usePayInHelper from './use-pay-in-helper'
+import useQrPayIn from './use-qr-pay-in'
 import { useCallback } from 'react'
 import { WalletError, InvoiceCanceledError, InvoiceExpiredError, WalletPaymentError } from '@/wallets/client/errors'
 
-export function useWaitForPayIn () {
+export default function usePayPayIn () {
   const walletPayment = useWalletPayment()
-  const invoiceHelper = useInvoice()
-  const waitForQrPayment = useQrPayment()
+  const payInHelper = usePayInHelper()
+  const qrPayIn = useQrPayIn()
   return useCallback(async (payIn, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor, updateOnFallback }) => {
     let walletError
     let walletInvoice = payIn.payInBolt11.bolt11
@@ -40,8 +40,9 @@ export function useWaitForPayIn () {
 
     const paymentAttempted = walletError instanceof WalletPaymentError
     if (paymentAttempted) {
-      walletInvoice = await invoiceHelper.retry(walletInvoice, { update: updateOnFallback })
+      walletInvoice = await payInHelper.retry(walletInvoice, { update: updateOnFallback })
     }
-    return await waitForQrPayment(walletInvoice, walletError, { persistOnNavigate, waitFor })
-  }, [invoiceHelper, waitForQrPayment, walletPayment])
+    console.log('usePayPayIn: qrPayIn', payIn.id, walletError)
+    return await qrPayIn(payIn, walletError, { persistOnNavigate, waitFor })
+  }, [payInHelper, qrPayIn, walletPayment])
 }

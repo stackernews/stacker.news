@@ -454,8 +454,10 @@ export async function payInFailedForward ({ data, models, lnd, boss, ...args }) 
   return transitionedPayIn
 }
 
-export async function payInHeld ({ data: { payInId, ...args }, models, lnd, boss }) {
-  return await transitionPayIn('payInHeld', {
+export async function payInHeld ({ data, models, lnd, boss, ...args }) {
+  const { payInId } = data
+
+  return await transitionPayIn('payInHeld', data, {
     payInId,
     fromStates: 'PENDING_HELD',
     toState: 'HELD',
@@ -499,7 +501,7 @@ export async function payInHeld ({ data: { payInId, ...args }, models, lnd, boss
       }
     },
     cancelOnError: true
-  }, { models, lnd, boss })
+  }, { models, lnd, boss, ...args })
 }
 
 export async function payInCancel ({ data, models, lnd, boss, ...args }) {

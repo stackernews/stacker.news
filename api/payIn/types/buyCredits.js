@@ -1,5 +1,5 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
-import { numWithUnits, satsToMsats } from '@/lib/format'
+import { numWithUnits, satsToMsats, msatsToSats } from '@/lib/format'
 
 export const anonable = false
 
@@ -26,5 +26,5 @@ export async function getInitial (models, { credits }, { me }) {
 
 export async function describe (models, payInId) {
   const payIn = await models.payIn.findUnique({ where: { id: payInId } })
-  return `SN: buy ${numWithUnits(payIn.mcost, { abbreviate: false, unitSingular: 'credit', unitPlural: 'credits' })}`
+  return `SN: buy ${numWithUnits(msatsToSats(payIn.mcost), { abbreviate: false, unitSingular: 'credit', unitPlural: 'credits' })}`
 }

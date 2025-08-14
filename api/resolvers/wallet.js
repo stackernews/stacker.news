@@ -339,7 +339,6 @@ const resolvers = {
       }
 
       await dropBolt11({ userId: me.id, hash }, { models, lnd })
-
       return true
     },
     buyCredits: async (parent, { credits }, { me, models }) => {

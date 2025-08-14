@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 import { useToast } from './toast'
-import { usePayInMutation } from './use-pay-in-mutation'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { usePaidMutation, paidActionCacheMods } from './use-paid-mutation'
 import useCrossposter from './use-crossposter'
 import { useCallback } from 'react'

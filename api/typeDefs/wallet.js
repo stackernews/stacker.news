@@ -157,10 +157,6 @@ const typeDefs = gql`
     deleteWalletLogs(protocolId: Int, debug: Boolean): Boolean
   }
 
-  type BuyCreditsResult {
-    credits: Int!
-  }
-
   interface InvoiceOrDirect {
     id: ID!
   }

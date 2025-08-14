@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useSendProtocols, useWalletLoggerFactory } from '@/wallets/client/hooks'
-import useInvoice from '@/components/use-invoice'
+import useInvoice from '@/components/payIn/hooks/use-pay-in-helper'
 import { FAST_POLL_INTERVAL, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
   AnonWalletError, WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,

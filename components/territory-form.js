@@ -12,7 +12,7 @@ import Info from './info'
 import { abbrNum } from '@/lib/format'
 import { purchasedType } from '@/lib/territory'
 import { SUB } from '@/fragments/subs'
-import { usePayInMutation } from './use-pay-in-mutation'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/payIn'
 
 export default function TerritoryForm ({ sub }) {

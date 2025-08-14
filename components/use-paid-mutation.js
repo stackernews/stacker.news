@@ -1,7 +1,7 @@
 import { useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import { useCallback, useState } from 'react'
-import useQrPayment from '@/components/use-qr-payment'
-import useInvoice from '@/components/use-invoice'
+import useQrPayment from '@/components/payIn/hooks/use-qr-pay-in'
+import useInvoice from '@/components/payIn/hooks/use-pay-in-helper'
 import { InvoiceCanceledError, InvoiceExpiredError, WalletError, WalletPaymentError } from '@/wallets/client/errors'
 import { GET_PAID_ACTION } from '@/fragments/paidAction'
 import { useWalletPayment } from '@/wallets/client/hooks'
@@ -212,3 +212,5 @@ export const paidActionCacheMods = {
     })
   }
 }
+
+// TODO: delete when payIn is finished

@@ -46,10 +46,4 @@ type DonatePaidAction implements PaidAction {
   invoice: Invoice
   paymentMethod: PaymentMethod!
 }
-
-type BuyCreditsPaidAction implements PaidAction {
-  result: BuyCreditsResult
-  invoice: Invoice
-  paymentMethod: PaymentMethod!
-}
 `

@@ -13,7 +13,7 @@ import { meAnonSats } from '@/lib/apollo'
 import { BoostItemInput } from './adv-post-form'
 import { useHasSendWallet } from '@/wallets/client/hooks'
 import { useAnimation } from '@/components/animation'
-import { usePayInMutation } from './use-pay-in-mutation'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { getOperationName } from '@apollo/client/utilities'
 
 const defaultTips = [100, 1000, 10_000, 100_000]

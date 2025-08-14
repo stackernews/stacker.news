@@ -1,5 +1,5 @@
-import AccordianItem from './accordian-item'
-import { CopyInput } from './form'
+import AccordianItem from '@/components/accordian-item'
+import { CopyInput } from '@/components/form'
 import { bolt11Tags } from '@/lib/bolt11'
 
 export default ({ bolt11, preimage, children }) => {
@@ -48,5 +48,3 @@ export default ({ bolt11, preimage, children }) => {
     </div>
   )
 }
-
-// TODO: delete when payIn is finished

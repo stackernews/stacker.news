@@ -3,7 +3,7 @@ import { gql } from 'graphql-tag'
 export default gql`
 
 extend type Query {
-  payIn(payInId: Int!): PayIn
+  payIn(id: Int!): PayIn
 }
 
 extend type Mutation {
@@ -71,22 +71,19 @@ enum PayInFailureReason {
 
 type PayInBolt11Lud18 {
   id: Int!
-  payInBolt11Id: Int!
-  name: String!
-  identifier: String!
-  email: String!
-  pubkey: String!
+  name: String
+  identifier: String
+  email: String
+  pubkey: String
 }
 
 type PayInBolt11NostrNote {
   id: Int!
-  payInBolt11Id: Int!
   note: JSONObject!
 }
 
 type PayInBolt11Comment {
   id: Int!
-  payInBolt11Id: Int!
   comment: String!
 }
 
@@ -94,7 +91,7 @@ type PayInBolt11 {
   id: Int!
   payInId: Int!
   hash: String!
-  hmac: String!
+  hmac: String
   bolt11: String!
   expiresAt: Date!
   confirmedAt: Date
@@ -115,7 +112,7 @@ type PayInCustodialToken {
   custodialTokenType: CustodialTokenType!
 }
 
-union PayInResult = Item | ItemActResult | PollVoteResult | Sub | DonateResult | BuyCreditsResult
+union PayInResult = Item | ItemActResult | PollVoteResult | Sub | DonateResult
 
 type PayInPessimisticEnv {
   id: Int!

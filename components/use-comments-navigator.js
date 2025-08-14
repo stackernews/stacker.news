@@ -130,7 +130,7 @@ export function useCommentsNavigator () {
     if (!node) return
 
     // smoothly scroll to the start of the comment
-    node.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    node.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
     // clear the outline class after the animation ends
     node.addEventListener('animationend', () => {

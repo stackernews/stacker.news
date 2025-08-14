@@ -246,7 +246,7 @@ export async function onPaidSideEffects (models, payInId) {
   notifyTerritorySubscribers({ models, item }).catch(console.error)
 }
 
-export async function describe (models, payInId, { me }) {
-  const item = await models.item.findUnique({ where: { payInId } })
+export async function describe (models, payInId) {
+  const { item } = await models.itemPayIn.findUnique({ where: { payInId }, include: { item: true } })
   return `SN: create ${item.parentId ? `reply #${item.id} to #${item.parentId}` : `post #${item.id}`}`
 }

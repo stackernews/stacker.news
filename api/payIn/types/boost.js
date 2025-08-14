@@ -65,7 +65,7 @@ export async function onPaid (tx, payInId) {
               now() + interval '30 days', now() + interval '40 days')`
 }
 
-export async function describe (models, payInId, { me }) {
+export async function describe (models, payInId) {
   const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { itemPayIn: true } })
   return `SN: boost #${payIn.itemPayIn.itemId} by ${numWithUnits(msatsToSats(payIn.mcost), { abbreviate: false })}`
 }

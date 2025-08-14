@@ -28,9 +28,9 @@ export function Settings () {
   const saveWallet = useSaveWallet()
   const router = useRouter()
 
-  const onSubmit = useCallback(async ({ send, receive, ...settings }) => {
+  const onSubmit = useCallback(async (settings) => {
     try {
-      await saveWallet({ send, receive })
+      await saveWallet()
       await setSettings({
         variables: { settings },
         update: (cache, { data }) => {

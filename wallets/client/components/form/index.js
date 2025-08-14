@@ -1,7 +1,8 @@
 import { useCallback, useMemo } from 'react'
-import { InputGroup } from 'react-bootstrap'
+import { InputGroup, Nav } from 'react-bootstrap'
 import classNames from 'classnames'
 import styles from '@/styles/wallet.module.css'
+import navStyles from '@/styles/nav.module.css'
 import { Checkbox, Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
 import Text from '@/components/text'
@@ -70,19 +71,19 @@ function WalletProtocolSelector () {
   const [protocol, selectProtocol] = useProtocol()
 
   return (
-    <div className='d-flex gap-2 pointer'>
+    <Nav className={classNames(navStyles.nav, 'mt-0')} activeKey={protocol?.name}>
       {
-        protocols.map(p => (
-          <div
-            key={p.id}
-            className={classNames('flex-grow-1 mb-3 text-nowrap', { 'fw-bold border-bottom border-primary border-3': p.name === protocol?.name })}
-            onClick={() => selectProtocol(p)}
-          >
-            {protocolDisplayName(p)}
-          </div>
-        ))
+        protocols.map(p => {
+          return (
+            <Nav.Item key={p.id} onClick={() => selectProtocol(p)}>
+              <Nav.Link eventKey={p.name}>
+                {protocolDisplayName(p)}
+              </Nav.Link>
+            </Nav.Item>
+          )
+        })
       }
-    </div>
+    </Nav>
   )
 }
 

@@ -142,42 +142,20 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 
 .commentNavigator {
     display: flex;
     align-items: center;
     vertical-align: middle;
     gap: 0.2rem;
-    padding-bottom: 0.15rem;
-    animation: fadeIn 0.3s ease-out;
+    padding-bottom: 0.2rem;
     justify-content: center;
     cursor: pointer;
-}
-
-.commentNavigator:hover {
-    color: #fff;
-}
-
-@keyframes slideUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
-}
-
-.closeButton {
-    color: rgba(255, 255, 255, 0.75);
-    font-family: "lightning";
-    font-size: 150%;
-    line-height: 1rem;
-    margin-bottom: -0.25rem;
-    cursor: pointer;
-    padding-right: 0.25rem;
-}
-
-.closeButton:hover {
-    color: rgba(255, 255, 255);
+    /* prevent double tap from zooming */
+    touch-action: manipulation;
 }
 
 .newCommentDot {
@@ -200,20 +178,5 @@
     100% {
         background-color: #80d3ff;
         opacity: 0.7;
-    }
-}
-
-.newCommentDot:active {
-    transition: fadeOut 0.5s ease-out;
-}
-
-@keyframes fadeOut {
-    from {
-        opacity: 1;
-        box-shadow: 0 0 0 4px rgba(128, 211, 255, 0.5);
-    }
-    to {
-        opacity: 0;
-        box-shadow: 0 0 0 0 rgba(128, 211, 255, 0.5);
     }
 }

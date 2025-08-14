@@ -137,7 +137,7 @@ export function useCommentsNavigator () {
     if (!node) return
 
     // smoothly scroll to the start of the comment
-    node.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    node.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
     // clear the outline class after the animation ends
     node.addEventListener('animationend', () => {
@@ -191,11 +191,12 @@ export function CommentsNavigator ({ navigator, commentCount, className }) {
     return () => document.removeEventListener('keydown', onNext)
   }, [onNext])
 
-  if (!commentCount) return null
-
   return (
     <LongPressable onShortPress={scrollToComment} onLongPress={clearCommentRefs}>
-      <aside className={`${styles.commentNavigator} fw-bold nav-link ${className}`}>
+      <aside
+        className={`${styles.commentNavigator} fw-bold nav-link ${className}`}
+        style={{ visibility: commentCount ? 'visible' : 'hidden' }}
+      >
         <span aria-label='next comment' className={styles.navigatorButton}>
           <div className={styles.newCommentDot} />
         </span>

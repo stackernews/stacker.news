@@ -156,7 +156,7 @@ export function useWalletProtocolUpsert () {
     const mutation = protocolUpsertMutation(protocol)
     const name = `${protocolLogName(protocol)} ${protocol.send ? 'send' : 'receive'}`
 
-    logger.info(`saving ${name}...`)
+    logger.info(`saving ${name} ...`)
 
     const encrypted = await encryptConfig(values, { protocol })
 

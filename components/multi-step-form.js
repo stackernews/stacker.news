@@ -57,7 +57,7 @@ function Progress () {
 
   const style = (index) => {
     switch (index) {
-      case 0: return { marginLeft: '-4px', marginRight: '-13px' }
+      case 0: return { marginLeft: '-5px', marginRight: '-13px' }
       case 1: return { marginLeft: '-13px', marginRight: '-15px' }
       default: return {}
     }

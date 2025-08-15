@@ -9,8 +9,9 @@ import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
+import ActionTooltip from './action-tooltip'
 
-export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
+export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, pauseLiveComments, setPauseLiveComments }) {
   const router = useRouter()
   const sort = router.query.sort || defaultCommentSort(pinned, bio, parentCreatedAt)
 
@@ -28,6 +29,17 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
       >
         <Nav.Item className='text-muted'>
           {numWithUnits(commentSats)}
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link
+            eventKey='live'
+            className={styles.navLink}
+            onClick={() => setPauseLiveComments(!pauseLiveComments)}
+          >
+            <ActionTooltip notForm placement='top' overlayText={pauseLiveComments ? 'resume live comments' : 'pause live comments'}>
+              <div className={`${styles.newCommentDot} ${pauseLiveComments ? styles.paused : ''}`} />
+            </ActionTooltip>
+          </Nav.Link>
         </Nav.Item>
         <div className='ms-auto d-flex'>
           <Nav.Item>
@@ -70,7 +82,7 @@ export default function Comments ({
   const router = useRouter()
 
   // fetch new comments that arrived after the lastCommentAt, and update the item.comments field in cache
-  useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort)
+  const { pauseLiveComments, setPauseLiveComments } = useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort)
 
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
 
@@ -90,6 +102,8 @@ export default function Comments ({
                 query: sort === defaultCommentSort(pinned, bio, parentCreatedAt) ? undefined : { sort }
               }, { scroll: false })
             }}
+            pauseLiveComments={pauseLiveComments}
+            setPauseLiveComments={setPauseLiveComments}
           />
         : null}
       {pins.map(item => (

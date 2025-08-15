@@ -117,6 +117,7 @@ export default gql`
     noteMentions: Boolean!
     noteItemMentions: Boolean!
     nsfwMode: Boolean!
+    pauseLiveComments: Boolean!
     tipDefault: Int!
     tipRandomMin: Int
     tipRandomMax: Int
@@ -192,6 +193,7 @@ export default gql`
     noteMentions: Boolean!
     noteItemMentions: Boolean!
     nsfwMode: Boolean!
+    pauseLiveComments: Boolean!
     tipDefault: Int!
     tipRandom: Boolean!
     tipRandomMin: Int

@@ -52,6 +52,7 @@ ${STREAK_FIELDS}
       walletsUpdatedAt
       showPassphrase
       diagnostics
+      pauseLiveComments
     }
     optional {
       isContributor
@@ -103,6 +104,7 @@ export const SETTINGS_FIELDS = gql`
       satsFilter
       disableFreebies
       nsfwMode
+      pauseLiveComments
       authMethods {
         lightning
         nostr

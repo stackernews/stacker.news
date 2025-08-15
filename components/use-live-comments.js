@@ -11,6 +11,7 @@ import {
   updateAncestorsCommentCount,
   calculateDepth
 } from '../lib/comments'
+import { useMe } from './me'
 
 const POLL_INTERVAL = 1000 * 5 // 5 seconds
 
@@ -79,6 +80,8 @@ function cacheNewComments (cache, rootId, newComments, sort) {
 export default function useLiveComments (rootId, after, sort) {
   const latestKey = `liveCommentsLatest:${rootId}`
   const { cache } = useApolloClient()
+  const { me } = useMe()
+  const [pauseLiveComments, setPauseLiveComments] = useState(me?.privates?.pauseLiveComments)
   const [latest, setLatest] = useState(after)
   const [initialized, setInitialized] = useState(false)
 
@@ -97,7 +100,7 @@ export default function useLiveComments (rootId, after, sort) {
     setInitialized(true)
   }, [after])
 
-  const { data } = useQuery(GET_NEW_COMMENTS, SSR || !initialized
+  const { data } = useQuery(GET_NEW_COMMENTS, SSR || !initialized || pauseLiveComments
     ? {}
     : {
         pollInterval: POLL_INTERVAL,
@@ -121,4 +124,6 @@ export default function useLiveComments (rootId, after, sort) {
       window.sessionStorage.setItem(latestKey, newLatest)
     }
   }, [data, cache, rootId, sort, latest])
+
+  return { pauseLiveComments, setPauseLiveComments }
 }

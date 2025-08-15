@@ -17,6 +17,13 @@ export default function PullToRefresh ({ children, className }) {
     setIsPWA(androidPWA || iosPWA)
   }
 
+  const clearPullDistance = () => {
+    setPullDistance(0)
+    document.body.style.marginTop = '0px'
+    touchStartY.current = 0
+    touchEndY.current = 0
+  }
+
   useEffect(checkPWA, [])
 
   const handleTouchStart = useCallback((e) => {
@@ -28,6 +35,13 @@ export default function PullToRefresh ({ children, className }) {
   const handleTouchMove = useCallback((e) => {
     if (touchStartY.current === 0) return
     if (!isPWA) return
+
+    // if we're not at the top of the page after the touch start, reset the pull distance
+    if (window.scrollY > 0) {
+      clearPullDistance()
+      return
+    }
+
     touchEndY.current = e.touches[0].clientY
     const distance = touchEndY.current - touchStartY.current
     setPullDistance(distance)
@@ -39,10 +53,7 @@ export default function PullToRefresh ({ children, className }) {
     if (touchEndY.current - touchStartY.current > REFRESH_THRESHOLD) {
       router.push(router.asPath)
     }
-    setPullDistance(0)
-    document.body.style.marginTop = '0px'
-    touchStartY.current = 0
-    touchEndY.current = 0
+    clearPullDistance()
   }, [router])
 
   useEffect(() => {

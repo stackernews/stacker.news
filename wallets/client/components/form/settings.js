@@ -70,7 +70,7 @@ export function Settings () {
         onSubmit={onSubmit}
       >
         <GlobalSettings />
-        <div className='d-flex mt-1 justify-content-end'>
+        <div className='d-flex mt-5 justify-content-end align-items-center'>
           <BackButton className='me-auto' />
           {isWallet(wallet) && <WalletDeleteButton className='me-2' />}
           <SubmitButton variant='primary'>save</SubmitButton>

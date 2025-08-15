@@ -22,7 +22,7 @@ export default function Sub ({ ssrData }) {
   const { sub } = data || ssrData
 
   return (
-    <Layout sub={sub?.name}>
+    <Layout sub={sub?.name} territory={sub}>
       {sub
         ? <TerritoryHeader sub={sub} />
         : (

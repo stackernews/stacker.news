@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, startTransition, createContex
 import styles from './comment.module.css'
 import { useRouter } from 'next/router'
 import LongPressable from './long-pressable'
+import { useFavicon } from './favicon'
 
 const CommentsNavigatorContext = createContext({
   navigator: {
@@ -28,6 +29,7 @@ export function useCommentsNavigatorContext () {
 
 export function useCommentsNavigator () {
   const router = useRouter()
+  const { setHasNewComments } = useFavicon()
   const [commentCount, setCommentCount] = useState(0)
   // refs in ref to not re-render on tracking
   const commentRefs = useRef([])
@@ -52,10 +54,12 @@ export function useCommentsNavigator () {
   const clearCommentRefs = useCallback(() => {
     commentRefs.current = []
     startTransition?.(() => setCommentCount(0))
+    setHasNewComments(false)
   }, [])
 
   // track a new comment
   const trackNewComment = useCallback((commentRef, createdAt) => {
+    setHasNewComments(true)
     try {
       window.requestAnimationFrame(() => {
         if (!commentRef?.current || !commentRef.current.isConnected) return
@@ -89,6 +93,9 @@ export function useCommentsNavigator () {
 
   // remove a comment ref from the list
   const untrackNewComment = useCallback((commentRef, options = {}) => {
+    // we just need to read a single comment to clear the favicon
+    setHasNewComments(false)
+
     const { includeDescendants = false, clearOutline = false } = options
 
     const refNode = commentRef.current

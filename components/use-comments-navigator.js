@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, startTransition, createContext, useContext } from 'react'
 import styles from './comment.module.css'
-import { useRouter } from 'next/router'
 import LongPressable from './long-pressable'
 import { useFavicon } from './favicon'
 
@@ -28,7 +27,6 @@ export function useCommentsNavigatorContext () {
 }
 
 export function useCommentsNavigator () {
-  const router = useRouter()
   const { setHasNewComments } = useFavicon()
   const [commentCount, setCommentCount] = useState(0)
   // refs in ref to not re-render on tracking
@@ -161,11 +159,10 @@ export function useCommentsNavigator () {
     navigatorRef.current = { trackNewComment, untrackNewComment, scrollToComment, clearCommentRefs }
   }
 
-  // clear the navigator on route changes
+  // clear the navigator on unmount
   useEffect(() => {
-    router.events.on('routeChangeStart', clearCommentRefs)
-    return () => router.events.off('routeChangeStart', clearCommentRefs)
-  }, [clearCommentRefs, router.events])
+    return () => clearCommentRefs()
+  }, [clearCommentRefs])
 
   return { navigator: navigatorRef.current, commentCount }
 }

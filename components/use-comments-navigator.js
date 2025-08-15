@@ -94,6 +94,7 @@ export function useCommentsNavigator () {
 
   // remove a comment ref from the list
   const untrackNewComment = useCallback((commentRef, options = {}) => {
+    // we just need to read a single comment to clear the favicon
     setHasNewComments(false)
 
     const { includeDescendants = false, clearOutline = false } = options

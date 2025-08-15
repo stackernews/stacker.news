@@ -2,6 +2,7 @@ import { NextSeo } from 'next-seo'
 import { useRouter } from 'next/router'
 import removeMd from 'remove-markdown'
 import { numWithUnits } from '@/lib/format'
+import { processTerritoryDescription } from '@/lib/territory'
 
 export function SeoSearch ({ sub }) {
   const router = useRouter()
@@ -36,14 +37,17 @@ export function SeoSearch ({ sub }) {
 // index page seo
 // recent page seo
 
-export default function Seo ({ sub, item, user }) {
+export default function Seo ({ sub, item, user, territory }) {
   const router = useRouter()
   const pathNoQuery = router.asPath.split('?')[0]
   const defaultTitle = pathNoQuery.slice(1)
   const snStr = `stacker news${sub ? ` ~${sub}` : ''}`
   let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}stacker news`
   let desc = "It's like Hacker News but we pay you Bitcoin."
-  if (item) {
+  if (territory) {
+    fullTitle = `${territory.name} \\ ${snStr}`
+    desc = processTerritoryDescription(territory)
+  } else if (item) {
     if (item.title) {
       fullTitle = `${item.title} \\ ${snStr}`
     } else if (item.root) {
@@ -67,8 +71,7 @@ export default function Seo ({ sub, item, user }) {
     } else if (item.boost) {
       desc += ` [${item.boost} boost]`
     }
-  }
-  if (user) {
+  } else if (user) {
     desc = `@${user.name} has [${user.optional.stacked ? `${user.optional.stacked} stacked,` : ''}${numWithUnits(user.nitems, { unitSingular: 'item', unitPlural: 'items' })}]`
   }
 

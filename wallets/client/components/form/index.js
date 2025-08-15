@@ -162,10 +162,10 @@ function WalletProtocolFormNavigator () {
   const hideSkip = stepIndex === maxSteps - 2 && !configExists
 
   return (
-    <div className='d-flex justify-content-end'>
+    <div className='d-flex justify-content-end align-items-center'>
       {stepIndex === 0 ? <CancelButton>cancel</CancelButton> : <BackButton />}
       {!hideSkip ? <SkipButton /> : <div className='ms-auto' />}
-      <SubmitButton variant='primary' className='ps-3 pe-1'>
+      <SubmitButton variant='primary' className='ps-3 pe-2 d-flex align-items-center'>
         next
         <ArrowRight width={24} height={24} />
       </SubmitButton>

@@ -9,7 +9,7 @@ import { Form, MarkdownInput } from '@/components/form'
 import { useMe } from '@/components/me'
 import { USER_FULL } from '@/fragments/users'
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from '@/components/fee-button'
+import { FeeButtonProvider } from '@/components/fee-button'
 import { bioSchema } from '@/lib/validate'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
@@ -26,8 +26,6 @@ export function BioForm ({ handleDone, bio, me }) {
   const onSubmit = useItemSubmit(UPSERT_BIO, {
     navigateOnSubmit: false,
     paidMutationOptions: {
-      // force showing wallet/QR when there's a fee (disableFreebies=true or otherwise)
-      forceWaitForPayment: true,
       update (cache, { data: { upsertBio: { result, invoice } } }) {
         if (!result) return
 
@@ -48,10 +46,7 @@ export function BioForm ({ handleDone, bio, me }) {
 
   return (
     <div className={styles.createFormContainer}>
-      <FeeButtonProvider
-        baseLineItems={me?.privates?.disableFreebies && !bio ? postCommentBaseLineItems({ baseCost: 1, bio: true, me: !!me }) : undefined}
-        useRemoteLineItems={me?.privates?.disableFreebies && !bio ? postCommentUseRemoteLineItems() : undefined}
-      >
+      <FeeButtonProvider>
         <Form
           initial={{
             text: bio?.text || ''
@@ -65,7 +60,7 @@ export function BioForm ({ handleDone, bio, me }) {
             name='text'
             minRows={6}
           />
-          <ItemButtonBar createText='save' onCancel={handleDone} inlinePrice={false} />
+          <ItemButtonBar createText='save' onCancel={handleDone} />
         </Form>
       </FeeButtonProvider>
     </div>

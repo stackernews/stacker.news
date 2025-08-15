@@ -124,7 +124,7 @@ export default function Comment ({
     if (hasOutline && !hasOutlineUnset) {
       ref.current.classList.add('outline-new-comment-unset')
       // untrack the new comment
-      navigator.untrackNewComment(ref)
+      navigator?.untrackNewComment(ref)
     }
   }
 
@@ -177,7 +177,7 @@ export default function Comment ({
       ref.current.classList.add('outline-new-comment')
     }
 
-    navigator.trackNewComment(ref, itemCreatedAt)
+    navigator?.trackNewComment(ref, itemCreatedAt)
   }, [item.id, rootLastCommentAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)

@@ -90,9 +90,12 @@ function ProgressNumber ({ number, label, active }) {
   )
 }
 
+const NUMBER_SVG_WIDTH = 24
+const NUMBER_SVG_HEIGHT = 24
+
 function NumberSVG ({ number, active }) {
-  const width = 24
-  const height = 24
+  const width = NUMBER_SVG_WIDTH
+  const height = NUMBER_SVG_HEIGHT
 
   const Wrapper = ({ children }) => (
     <div style={{ position: 'relative', width: `${width}px`, height: `${height}px`, margin: '0 auto' }}>
@@ -163,9 +166,10 @@ function NumberSVG ({ number, active }) {
 }
 
 function ProgressLine ({ style, active }) {
+  const svgStyle = { display: 'block', position: 'relative', top: `${NUMBER_SVG_HEIGHT / 2}px` }
   return (
     <div style={style}>
-      <svg width='100%' height='1' viewBox='0 0 100 1' preserveAspectRatio='none'>
+      <svg style={svgStyle} width='100%' height='1' viewBox='0 0 100 1' preserveAspectRatio='none'>
         <path
           d='M 0 1 L 100 1'
           stroke={active ? 'var(--bs-info)' : 'var(--theme-grey)'}

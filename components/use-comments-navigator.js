@@ -60,7 +60,6 @@ export function useCommentsNavigator () {
   // track a new comment
   const trackNewComment = useCallback((commentRef, createdAt) => {
     setHasNewComments(true)
-
     try {
       window.requestAnimationFrame(() => {
         if (!commentRef?.current || !commentRef.current.isConnected) return

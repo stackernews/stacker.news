@@ -8,7 +8,7 @@ sub: meta
 
 _To quickly browse through this FAQ page, click the chapters icon in the top-right corner. This will let you scroll through all chapters or search for a particular topic within this page._
 
-last updated: July 16, 2025
+last updated: August 13, 2025
 
 ---
 
@@ -46,7 +46,7 @@ See the [section about territories](#territories) for details.
 
 ### Do I need bitcoin to use Stacker News?
 
-No. Every new stacker can post or comment for free (with limited visibility) while they earn their first few CCs or sats. After a stacker has gained a balance, subsequent posts and comments will incur a small fee to prevent spam and to encourage quality contributions. Many stackers earn enough from their posts and comments to continue posting on the site indefinitely without ever buying CCs with sats.
+No. You don't need bitcoin to get started. You can create your bio for free (with limited visibility) and earn Cowboy Credits (CCs) from zaps to cover fees. Posts and comments incur a small fee to prevent spam and to encourage quality contributions. Many stackers earn enough from their posts and comments to continue posting on the site indefinitely without ever buying CCs with sats.
 
 [Post and comment fees vary depending on the territory](#why-does-it-cost-more-to-post-in-some-territories).
 

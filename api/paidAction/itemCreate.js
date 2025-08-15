@@ -49,10 +49,12 @@ export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio },
           FROM upload_fees(${me?.id || USER_ID.anon}::INTEGER, ${uploadIds}::INTEGER[]))
       + ${satsToMsats(boost)}::INTEGER as cost`
 
-  // sub allows freebies (or is a bio or a comment), cost is less than baseCost, not anon,
-  // cost must be greater than user's balance, and user has not disabled freebies
-  const freebie = (parentId || bio) && cost <= baseCost && !!me &&
-    me?.msats < cost && !me?.disableFreebies && me?.mcredits < cost
+  // freebies currently only apply to bios (comments disabled). To keep togglable behavior,
+  // respect user's disableFreebies preference for bios as well.
+  // conditions: is a bio, cost <= baseCost, user logged in, insufficient balance & credits,
+  // and user has not disabled freebies
+  const freebie = bio && cost <= baseCost && !!me &&
+    me?.msats < cost && me?.mcredits < cost && !me?.disableFreebies
 
   return freebie ? BigInt(0) : BigInt(cost)
 }

@@ -14,7 +14,7 @@ import { SubmitButton } from './form'
 
 const FeeButtonContext = createContext()
 
-export function postCommentBaseLineItems ({ baseCost = 1, comment = false, me }) {
+export function postCommentBaseLineItems ({ baseCost = 1, comment = false, bio = false, me }) {
   const anonCharge = me
     ? {}
     : {
@@ -28,10 +28,10 @@ export function postCommentBaseLineItems ({ baseCost = 1, comment = false, me })
   return {
     baseCost: {
       term: baseCost,
-      label: `${comment ? 'comment' : 'post'} cost`,
+      label: `${bio ? 'bio' : (comment ? 'comment' : 'post')} cost`,
       op: '_',
       modifier: (cost) => cost + baseCost,
-      allowFreebies: comment
+      allowFreebies: bio
     },
     ...anonCharge
   }

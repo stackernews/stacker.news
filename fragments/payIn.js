@@ -48,6 +48,7 @@ export const PAY_IN_FIELDS = gql`
     }
     pessimisticEnv {
       error
+      result
     }
     payInCustodialTokens {
       id

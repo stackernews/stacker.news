@@ -1,4 +1,4 @@
-import { ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
+import { ANON_FEE_MULTIPLIER, ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers, notifyThreadSubscribers } from '@/lib/webPush'
 import { getItemMentions, getMentions, performBotBehavior, getSub, getItemResult } from '../lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
@@ -39,16 +39,16 @@ async function getCost (models, { subName, parentId, uploadIds, boost = 0, bio }
   // cost = baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + upload fees + boost
   const [{ cost }] = await models.$queryRaw`
     SELECT ${baseCost}::INTEGER
-      * POWER(10, item_spam(${parseInt(parentId)}::INTEGER, ${me?.id ?? USER_ID.anon}::INTEGER,
-          ${me?.id && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
-      * ${me ? 1 : 100}::INTEGER
+      * POWER(10, item_spam(${parseInt(parentId)}::INTEGER, ${me.id}::INTEGER,
+          ${me.id !== USER_ID.anon && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
+      * ${me.id !== USER_ID.anon ? 1 : ANON_FEE_MULTIPLIER}::INTEGER
       + (SELECT "nUnpaid" * "uploadFeesMsats"
-          FROM upload_fees(${me?.id || USER_ID.anon}::INTEGER, ${uploadIds}::INTEGER[])) as cost`
+          FROM upload_fees(${me.id}::INTEGER, ${uploadIds}::INTEGER[])) as cost`
 
   // sub allows freebies (or is a bio or a comment), cost is less than baseCost, not anon,
   // cost must be greater than user's balance, and user has not disabled freebies
-  const freebie = (parentId || bio) && cost <= baseCost && !!me &&
-    me?.msats < cost && !me?.disableFreebies && me?.mcredits < cost && boost <= 0
+  const freebie = (parentId || bio) && cost <= baseCost && me.id !== USER_ID.anon &&
+    me.msats < cost && !me.disableFreebies && me.mcredits < cost && boost <= 0
 
   return freebie ? BigInt(0) : BigInt(cost)
 }
@@ -247,6 +247,20 @@ export async function onPaidSideEffects (models, payInId) {
 }
 
 export async function describe (models, payInId) {
-  const { item } = await models.itemPayIn.findUnique({ where: { payInId }, include: { item: true } })
-  return `SN: create ${item.parentId ? `reply #${item.id} to #${item.parentId}` : `post #${item.id}`}`
+  const itemPayIn = await models.itemPayIn.findUnique({ where: { payInId }, include: { item: true } })
+  if (itemPayIn?.item) {
+    return `SN: create ${itemPayIn.item.parentId ? `reply #${itemPayIn.item.id} to #${itemPayIn.item.parentId}` : `post #${itemPayIn.item.id}`}`
+  }
+  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
+  if (payIn.pessimisticEnv?.args) {
+    const { subName, parentId, bio } = payIn.pessimisticEnv.args
+    if (bio) {
+      return 'SN: create bio'
+    }
+    if (parentId) {
+      return `SN: create reply to #${parentId} in ${subName}`
+    }
+    return `SN: create post in ${subName}`
+  }
+  return 'SN: create item'
 }

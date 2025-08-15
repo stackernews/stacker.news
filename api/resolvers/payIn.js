@@ -35,6 +35,7 @@ export default {
               comment: true
             }
           },
+          pessimisticEnv: true,
           payInCustodialTokens: true
         }
       })
@@ -68,8 +69,10 @@ export default {
   },
   PayIn: {
     result: (parent, args) => {
-      if (parent.result) {
-        return { ...parent.result, __typename: payInResultType(parent.payInType) }
+      // if the payIn was paid pessimistically, the result is permanently in the pessimisticEnv
+      const result = parent.result || parent.pessimisticEnv?.result
+      if (result) {
+        return { ...result, __typename: payInResultType(parent.payInType) }
       }
       return null
     }

@@ -20,7 +20,7 @@ this is just like useMutation with a few changes:
   b. it's called after the invoice is paid for pessimistic updates
 4. we return a payError field in the result object if the invoice fails to pay
 */
-export default function usePayInMutation (mutation, options) {
+export default function usePayInMutation (mutation, { onCompleted, ...options } = {}) {
   if (options) {
     options.optimisticResponse = addOptimisticResponseExtras(mutation, options.optimisticResponse)
   }
@@ -32,7 +32,7 @@ export default function usePayInMutation (mutation, options) {
   const payPayIn = usePayPayIn()
   const mutationName = getOperationName(mutation)
 
-  const innerMutate = useCallback(async (innerOptions) => {
+  const innerMutate = useCallback(async ({ onCompleted: innerOnCompleted, ...innerOptions } = {}) => {
     if (innerOptions) {
       innerOptions.optimisticResponse = addOptimisticResponseExtras(mutation, innerOptions.optimisticResponse)
     }
@@ -41,9 +41,10 @@ export default function usePayInMutation (mutation, options) {
     // use the most inner callbacks/options if they exist
     const {
       onPaid, onPayError, forceWaitForPayment, persistOnNavigate,
-      update, waitFor = payIn => payIn?.payInState === 'PAID', updateOnFallback,
-      onCompleted
+      update, waitFor = payIn => payIn?.payInState === 'PAID', updateOnFallback
     } = { ...options, ...innerOptions }
+    // onCompleted needs to run after the payIn is paid for pessimistic updates, so we give it special treatment
+    const ourOnCompleted = innerOnCompleted || onCompleted
 
     const payIn = data[mutationName]
 
@@ -59,11 +60,11 @@ export default function usePayInMutation (mutation, options) {
         try {
           // wait for the invoice to be paid
           const paidPayIn = await payPayIn(payIn, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor, updateOnFallback })
-
+          console.log('payInMutation: paidPayIn', paidPayIn)
           // we need to run update functions on mutations now that we have the data
           const data = { [mutationName]: paidPayIn }
           update?.(client.cache, { data })
-          onCompleted?.(data)
+          ourOnCompleted?.(data)
           onPaid?.(client.cache, { data })
         } catch (e) {
           console.error('usePayInMutation: failed to pay for pessimistic mutation', mutationName, e)
@@ -73,7 +74,7 @@ export default function usePayInMutation (mutation, options) {
       } else {
         console.log('payInMutation: not forceWaitForPayment', forceWaitForPayment, me, payIn.payInState, payIn.payInType)
         // onCompleted is called before the invoice is paid for optimistic updates
-        onCompleted?.(data)
+        ourOnCompleted?.(data)
         // don't wait to pay the invoice
         payPayIn(payIn, { persistOnNavigate, waitFor, updateOnFallback }).then((paidPayIn) => {
           // invoice might have been retried during payment
@@ -89,7 +90,7 @@ export default function usePayInMutation (mutation, options) {
     } else if (payIn.payInState === 'PAID') {
       console.log('payInMutation: paid', payIn.payInState, payIn.payInType)
       // fee credits/reward sats paid for it
-      onCompleted?.(data)
+      ourOnCompleted?.(data)
       onPaid?.(client.cache, { data })
     } else {
       console.log('payInMutation: unexpected', payIn.payInState, payIn.payInType)

@@ -138,12 +138,13 @@ export function useRetryCreateItem ({ id }) {
 }
 
 function saveItemInvoiceHmac (mutationData) {
+  console.log('saveItemInvoiceHmac', mutationData)
   const response = Object.values(mutationData)[0]
 
-  if (!response?.invoice) return
+  if (!response?.payInBolt11) return
 
   const id = response.result.id
-  const { hash, hmac } = response.invoice
+  const { hash, hmac } = response.payInBolt11
 
   if (id && hash && hmac) {
     window.localStorage.setItem(`item:${id}:hash:hmac`, `${hash}:${hmac}`)

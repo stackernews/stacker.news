@@ -1454,7 +1454,27 @@ export default {
 
 export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ...item }, { me, models, lnd }) => {
   // update iff this item belongs to me
-  const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { invoice: true, sub: true } })
+  const old = await models.item.findUnique({
+    where: { id: Number(item.id) },
+    include: {
+      itemPayIns: {
+        where: {
+          payIn: {
+            payInType: 'ITEM_CREATE',
+            payInState: 'PAID'
+          }
+        },
+        include: {
+          payIn: {
+            include: {
+              payInBolt11: true
+            }
+          }
+        }
+      },
+      sub: true
+    }
+  })
 
   if (old.deletedAt) {
     throw new GqlInputError('item is deleted')
@@ -1468,8 +1488,8 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   const adminEdit = ADMIN_ITEMS.includes(old.id) && SN_ADMIN_IDS.includes(meId)
   // anybody can edit with valid hash+hmac
   let hmacEdit = false
-  if (old.invoice?.hash && hash && hmac) {
-    hmacEdit = old.invoice.hash === hash && verifyHmac(hash, hmac)
+  if (old.itemPayIns[0]?.payIn?.payInBolt11?.hash && hash && hmac) {
+    hmacEdit = old.itemPayIns[0]?.payIn?.payInBolt11?.hash === hash && verifyHmac(hash, hmac)
   }
   // ownership permission check
   const ownerEdit = authorEdit || adminEdit || hmacEdit

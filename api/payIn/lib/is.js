@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import payInTypeModules from '../types'
 
 export const PAY_IN_RECEIVER_FAILURE_REASONS = [
@@ -11,7 +11,7 @@ export const PAY_IN_RECEIVER_FAILURE_REASONS = [
 
 export function isPessimistic (payIn, { me }) {
   const payInModule = payInTypeModules[payIn.payInType]
-  return !me || !payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC)
+  return !me || me.id === USER_ID.anon || !payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC)
 }
 
 export function isPayableWithCredits (payIn) {

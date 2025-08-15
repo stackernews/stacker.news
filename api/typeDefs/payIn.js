@@ -120,6 +120,7 @@ type PayInPessimisticEnv {
   payInId: Int!
   args: JSONObject
   error: String
+  result: JSONObject
 }
 
 type PayIn {

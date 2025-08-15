@@ -49,3 +49,5 @@ export default function InvoiceStatus ({ variant, status }) {
       return <InvoiceDefaultStatus status={status} />
   }
 }
+
+// TODO: delete when payIn is finished

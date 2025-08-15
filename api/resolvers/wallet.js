@@ -1,5 +1,5 @@
 import {
-  getInvoice as getInvoiceFromLnd, deletePayment, getPayment,
+  getInvoice as getInvoiceFromLnd, getPayment,
   parsePaymentRequest
 } from 'ln-service'
 import crypto, { timingSafeEqual } from 'crypto'
@@ -7,7 +7,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { SELECT, itemQueryWithMeta } from './item'
 import { msatsToSats, msatsToSatsDecimal } from '@/lib/format'
 import {
-  USER_ID, INVOICE_RETENTION_DAYS,
+  USER_ID,
   WALLET_RETRY_AFTER_MS,
   WALLET_RETRY_BEFORE_MS,
   WALLET_MAX_RETRIES
@@ -16,12 +16,11 @@ import { validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { bolt11Tags } from '@/lib/bolt11'
-import { finalizeHodlInvoice } from '@/worker/wallet'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets } from '../lnd'
-import performPaidAction from '../paidAction'
-import performPayingAction from '../payingAction'
+import pay from '../payIn'
+import { dropBolt11 } from '@/worker/autoDropBolt11'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -321,66 +320,16 @@ const resolvers = {
   Mutation: {
     createWithdrawl: createWithdrawal,
     sendToLnAddr,
-    cancelInvoice: async (parent, { hash, hmac, userCancel }, { me, models, lnd, boss }) => {
-      // stackers can cancel their own invoices without hmac
-      if (me && !hmac) {
-        const inv = await models.invoice.findUnique({ where: { hash } })
-        if (!inv) throw new GqlInputError('invoice not found')
-        if (inv.userId !== me.id) throw new GqlInputError('not ur invoice')
-      } else {
-        verifyHmac(hash, hmac)
-      }
-      await finalizeHodlInvoice({ data: { hash }, lnd, models, boss })
-      return await models.invoice.update({ where: { hash }, data: { userCancel: !!userCancel } })
-    },
     dropBolt11: async (parent, { hash }, { me, models, lnd }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
-      const retention = `${INVOICE_RETENTION_DAYS} days`
-
-      const [invoice] = await models.$queryRaw`
-        WITH to_be_updated AS (
-          SELECT id, hash, bolt11
-          FROM "Withdrawl"
-          WHERE "userId" = ${me.id}
-          AND hash = ${hash}
-          AND now() > created_at + ${retention}::INTERVAL
-          AND hash IS NOT NULL
-          AND status IS NOT NULL
-        ), updated_rows AS (
-          UPDATE "Withdrawl"
-          SET hash = NULL, bolt11 = NULL, preimage = NULL
-          FROM to_be_updated
-          WHERE "Withdrawl".id = to_be_updated.id)
-        SELECT * FROM to_be_updated;`
-
-      if (invoice) {
-        try {
-          await deletePayment({ id: invoice.hash, lnd })
-        } catch (error) {
-          console.error(error)
-          await models.withdrawl.update({
-            where: { id: invoice.id },
-            data: { hash: invoice.hash, bolt11: invoice.bolt11, preimage: invoice.preimage }
-          })
-          throw new GqlInputError('failed to drop bolt11 from lnd')
-        }
-      }
-
-      await models.$queryRaw`
-        UPDATE "DirectPayment"
-        SET hash = NULL, bolt11 = NULL, preimage = NULL
-        WHERE "receiverId" = ${me.id}
-        AND hash = ${hash}
-        AND now() > created_at + ${retention}::INTERVAL
-        AND hash IS NOT NULL`
-
+      await dropBolt11({ userId: me.id, hash }, { models, lnd })
       return true
     },
-    buyCredits: async (parent, { credits }, { me, models, lnd }) => {
-      return await performPaidAction('BUY_CREDITS', { credits }, { models, me, lnd })
+    buyCredits: async (parent, { credits }, { me, models }) => {
+      return await pay('BUY_CREDITS', { credits }, { models, me })
     }
   },
 
@@ -577,7 +526,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     throw new GqlInputError('SN cannot pay an invoice that SN is proxying')
   }
 
-  return await performPayingAction({ bolt11: invoice, maxFee, protocolId: protocol?.id }, { me, models, lnd })
+  return await pay('WITHDRAWAL', { bolt11: invoice, maxFee, protocolId: protocol?.id }, { me, models })
 }
 
 async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },

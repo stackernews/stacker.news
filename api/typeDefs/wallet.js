@@ -20,9 +20,8 @@ const typeDefs = gql`
   extend type Mutation {
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
-    cancelInvoice(hash: String!, hmac: String, userCancel: Boolean): Invoice!
     dropBolt11(hash: String!): Boolean
-    buyCredits(credits: Int!): BuyCreditsPaidAction!
+    buyCredits(credits: Int!): PayIn!
 
     # upserts
     upsertWalletSendLNbits(
@@ -155,10 +154,6 @@ const typeDefs = gql`
     # logs
     addWalletLog(protocolId: Int, level: String!, message: String!, timestamp: Date!, invoiceId: Int): Boolean
     deleteWalletLogs(protocolId: Int, debug: Boolean): Boolean
-  }
-
-  type BuyCreditsResult {
-    credits: Int!
   }
 
   interface InvoiceOrDirect {

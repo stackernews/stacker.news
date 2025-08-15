@@ -221,3 +221,5 @@ function WalletError ({ error }) {
     </div>
   )
 }
+
+// TODO: delete when payIn is finished

@@ -5,10 +5,10 @@ import { useMe } from './me'
 import styles from './poll.module.css'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
-import useQrPayment from './use-qr-payment'
+import useQrPayment from './payIn/hooks/use-qr-pay-in'
 import { useToast } from './toast'
-import { usePaidMutation } from './use-paid-mutation'
-import { POLL_VOTE, RETRY_PAID_ACTION } from '@/fragments/paidAction'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
+import { RETRY_PAID_ACTION, POLL_VOTE } from '@/fragments/payIn'
 
 export default function Poll ({ item }) {
   const { me } = useMe()
@@ -23,7 +23,7 @@ export default function Poll ({ item }) {
           onClick={me
             ? async () => {
               const variables = { id: v.id }
-              const optimisticResponse = { pollVote: { __typename: 'PollVotePaidAction', result: { id: v.id } } }
+              const optimisticResponse = { pollVote: { __typename: 'PollVotePaidAction', id: v.id } }
               try {
                 const { error } = await pollVote({
                   variables,
@@ -189,6 +189,6 @@ export function usePollVote ({ query = POLL_VOTE, itemId }) {
     })
   }
 
-  const [pollVote] = usePaidMutation(query, { update, onPayError, onPaid })
+  const [pollVote] = usePayInMutation(query, { update, onPayError, onPaid })
   return pollVote
 }

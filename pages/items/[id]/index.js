@@ -5,6 +5,7 @@ import { getGetServerSideProps } from '@/api/ssrApollo'
 import { useQuery } from '@apollo/client'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
+import { CommentsNavigatorProvider } from '@/components/use-comments-navigator'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM_FULL,
@@ -25,8 +26,10 @@ export default function Item ({ ssrData }) {
   }
 
   return (
-    <Layout sub={sub} item={item}>
-      <ItemFull item={item} fetchMoreComments={fetchMoreComments} />
-    </Layout>
+    <CommentsNavigatorProvider>
+      <Layout sub={sub} item={item}>
+        <ItemFull item={item} fetchMoreComments={fetchMoreComments} />
+      </Layout>
+    </CommentsNavigatorProvider>
   )
 }

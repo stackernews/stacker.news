@@ -9,6 +9,7 @@ import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
+import { useCommentsNavigatorContext } from './use-comments-navigator'
 import ActionTooltip from './action-tooltip'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, pauseLiveComments, setPauseLiveComments }) {
@@ -84,6 +85,9 @@ export default function Comments ({
   // fetch new comments that arrived after the lastCommentAt, and update the item.comments field in cache
   const { pauseLiveComments, setPauseLiveComments } = useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort)
 
+  // new comments navigator, tracks new comments and provides navigation controls
+  const { navigator } = useCommentsNavigatorContext()
+
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
 
   return (
@@ -108,11 +112,11 @@ export default function Comments ({
         : null}
       {pins.map(item => (
         <Fragment key={item.id}>
-          <Comment depth={1} item={item} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} pin />
+          <Comment depth={1} item={item} navigator={navigator} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} pin />
         </Fragment>
       ))}
       {comments.filter(({ position }) => !position).map(item => (
-        <Comment depth={1} key={item.id} item={item} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} />
+        <Comment depth={1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} />
       ))}
       {ncomments > FULL_COMMENTS_THRESHOLD &&
         <MoreFooter

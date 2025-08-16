@@ -23,7 +23,6 @@ import { useWalletIndicator } from '@/wallets/client/hooks'
 import SwitchAccountList, { nextAccount, useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
-import Head from 'next/head'
 
 export function Brand ({ className }) {
   return (
@@ -121,9 +120,6 @@ export function NavNotifications ({ className }) {
 
   return (
     <>
-      <Head>
-        <link rel='shortcut icon' href={hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
-      </Head>
       <Link href='/notifications' passHref legacyBehavior>
         <Nav.Link eventKey='notifications' className={classNames('position-relative', className)}>
           <NoteIcon height={28} width={20} className='theme' />

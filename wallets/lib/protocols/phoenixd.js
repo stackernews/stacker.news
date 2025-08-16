@@ -14,7 +14,8 @@ export default [
         type: 'text',
         label: 'url',
         validate: urlValidator('clearnet'),
-        required: true
+        required: true,
+        share: true
       },
       {
         name: 'apiKey',
@@ -42,7 +43,8 @@ export default [
         type: 'text',
         label: 'url',
         validate: urlValidator('clearnet'),
-        required: true
+        required: true,
+        share: true
       },
       {
         name: 'apiKey',

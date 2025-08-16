@@ -150,7 +150,8 @@ export default function Settings ({ ssrData }) {
             hideBookmarks: settings?.hideBookmarks,
             hideWalletBalance: settings?.hideWalletBalance,
             hideIsContributor: settings?.hideIsContributor,
-            noReferralLinks: settings?.noReferralLinks
+            noReferralLinks: settings?.noReferralLinks,
+            pauseLiveComments: settings?.pauseLiveComments
           }}
           schema={settingsSchema}
           onSubmit={async ({
@@ -536,6 +537,20 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='nsfwMode'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>pause live comments
+                <Info>
+                  <ul>
+                    <li>if checked, live comments will be paused on every post</li>
+                    <li>you can still enable it back manually on each post</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='pauseLiveComments'
           />
           <h4>nostr</h4>
           <Checkbox

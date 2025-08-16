@@ -110,3 +110,31 @@
     background-color: var(--bs-body-bg);
     z-index: 1000;
 }
+
+.newCommentDot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--bs-primary);
+    animation: pulse 2s infinite;
+}
+
+.newCommentDot.paused {
+    background-color: var(--theme-grey);
+    animation: none;
+}
+
+@keyframes pulse {
+    0% {
+        background-color: #80d3ff;
+        opacity: 0.7;
+    }
+    50% {
+        background-color: #007cbe;
+        opacity: 1;
+    }
+    100% {
+        background-color: #80d3ff;
+        opacity: 0.7;
+    }
+}

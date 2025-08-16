@@ -2,32 +2,58 @@ export default function preserveScroll (callback) {
   // preserve the actual scroll position
   const scrollTop = window.scrollY
 
-  // if the scroll position is at the top, we don't need to preserve it, just call the callback
-  if (scrollTop <= 0) {
-    callback()
-    return
+  // check if a ref element is in the viewport
+  const isElementInViewport = (element) => {
+    if (!element?.getBoundingClientRect) return false
+
+    const rect = element.getBoundingClientRect()
+    return (
+      rect.bottom > 0 &&
+      rect.right > 0 &&
+      rect.top < window.innerHeight &&
+      rect.left < window.innerWidth
+    )
   }
 
-  // get a reference element at the center of the viewport to track if content is added above it
-  const ref = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)
-  const refTop = ref ? ref.getBoundingClientRect().top + scrollTop : scrollTop
+  // pick a textarea element to use as anchor ref
+  const selectTextarea = () => {
+    // pick the focused textarea, if any
+    const active = document.activeElement
+    if (active && active.tagName === 'TEXTAREA' && isElementInViewport(active)) {
+      return active
+    }
 
-  // observe the document for changes in height
-  const observer = new window.MutationObserver(() => {
-    // request animation frame to ensure the DOM is updated
-    window.requestAnimationFrame(() => {
-      // we can't proceed if we couldn't find a traceable reference element
-      if (!ref) {
-        cleanup()
-        return
+    // if no textarea is focused, check if there are any in the viewport
+    const textareas = document.querySelectorAll('textarea')
+    for (const textarea of textareas) {
+      if (isElementInViewport(textarea)) {
+        return textarea
       }
+    }
 
-      // get the new position of the reference element along with the new scroll position
-      const newRefTop = ref ? ref.getBoundingClientRect().top + window.scrollY : window.scrollY
-      // has the reference element moved?
+    return null
+  }
+
+  // if no textarea is found, use the center of the viewport as fallback anchor
+  const anchorRef = selectTextarea() || document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)
+  const refTop = anchorRef ? anchorRef.getBoundingClientRect().top + scrollTop : scrollTop
+
+  callback()
+
+  // double rAF to ensure the DOM is updated - textareas are rendered on the next tick
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      if (!anchorRef) return
+
+      // bail if user scrolled manually
+      if (window.scrollY !== scrollTop) return
+
+      // get the new position of the anchor ref along with the new scroll position
+      const newRefTop = anchorRef.getBoundingClientRect().top + window.scrollY
+      // has the anchor ref moved?
       const refMoved = newRefTop - refTop
 
-      // if the reference element moved, we need to scroll to the new position
+      // if the anchor ref moved, we need to scroll to the new position
       if (refMoved > 0) {
         window.scrollTo({
           // some browsers don't respond well to fractional scroll position, so we round up the new position to the nearest integer
@@ -35,19 +61,6 @@ export default function preserveScroll (callback) {
           behavior: 'instant'
         })
       }
-
-      cleanup()
     })
   })
-
-  const timeout = setTimeout(() => cleanup(), 1000) // fallback
-
-  function cleanup () {
-    clearTimeout(timeout)
-    observer.disconnect()
-  }
-
-  observer.observe(document.body, { childList: true, subtree: true })
-
-  callback()
 }

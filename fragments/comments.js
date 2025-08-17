@@ -152,6 +152,16 @@ export const COMMENTS = gql`
                     comments {
                       comments {
                         ...CommentFields
+                        comments {
+                          comments {
+                            ...CommentFields
+                            comments {
+                              comments {
+                                ...CommentFields
+                              }
+                            }
+                          }
+                        }
                       }
                     }
                   }
@@ -167,7 +177,7 @@ export const COMMENTS = gql`
 export const COMMENT_WITH_NEW_RECURSIVE = gql`
   ${COMMENT_FIELDS}
   ${COMMENTS}
-  
+
   fragment CommentWithNewRecursive on Item {
     ...CommentFields
     comments {
@@ -180,7 +190,7 @@ export const COMMENT_WITH_NEW_RECURSIVE = gql`
 
 export const COMMENT_WITH_NEW_LIMITED = gql`
   ${COMMENT_FIELDS}
-  
+
   fragment CommentWithNewLimited on Item {
     ...CommentFields
     comments {
@@ -193,7 +203,7 @@ export const COMMENT_WITH_NEW_LIMITED = gql`
 
 export const COMMENT_WITH_NEW_MINIMAL = gql`
   ${COMMENT_FIELDS}
-  
+
   fragment CommentWithNewMinimal on Item {
     ...CommentFields
   }
@@ -201,7 +211,7 @@ export const COMMENT_WITH_NEW_MINIMAL = gql`
 
 export const GET_NEW_COMMENTS = gql`
   ${COMMENTS}
-  
+
   query GetNewComments($rootId: ID, $after: Date) {
     newComments(rootId: $rootId, after: $after) {
       comments {

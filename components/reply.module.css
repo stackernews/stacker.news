@@ -2,6 +2,7 @@
     max-width: 600px;
     padding-right: 15px;
     padding-bottom: 1rem;
+    margin-left: 12px;
 }
 
 .replyButtons {
@@ -12,6 +13,7 @@
     align-items: center;
     line-height: 1rem;
     vertical-align: middle;
+    margin-left: 12px;
 }
 
 .replyButtons > * {
@@ -47,4 +49,14 @@
 .reply .text {
     margin-top: -1px;
     height: auto;
+}
+
+@media screen and (min-width: 768px) {
+    .replyButtons {
+        margin-left: .99px;
+    }
+
+    .reply {
+        margin-left: .99px;
+    }
 }

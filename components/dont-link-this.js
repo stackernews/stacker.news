@@ -7,6 +7,7 @@ import Flag from '@/svgs/flag-fill.svg'
 import { useMemo } from 'react'
 import getColor from '@/lib/rainbow'
 import { gql, useMutation } from '@apollo/client'
+import styles from './upvote.module.css'
 
 export function DownZap ({ item, ...props }) {
   const { meDontLikeSats } = item
@@ -20,7 +21,9 @@ export function DownZap ({ item, ...props }) {
     <DownZapper
       item={item} As={({ ...oprops }) =>
         <div className='upvoteParent'>
-          <Flag {...props} {...oprops} style={style} />
+          <div className={styles.upvoteWrapper}>
+            <Flag {...props} {...oprops} style={style} />
+          </div>
         </div>}
     />
   )

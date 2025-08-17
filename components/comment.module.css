@@ -18,9 +18,7 @@
 
 .dontLike {
     fill: #a5a5a5;
-    margin-right: .35rem;
-    padding: 2px;
-    margin-left: 1px;
+    margin-right: 2px;
     margin-top: 9px;
     cursor: pointer;
 }
@@ -64,19 +62,23 @@
 
 .children {
     margin-top: 0;
-    margin-left: 27px;
+    margin-left: 15px;
 }
 
 .comments {
-    margin-left: -.75rem;
+    margin-left: -15px;
 }
 
 @media screen and (min-width: 768px) {
 
     .comments {
-        margin-left: .75rem;
+        margin-left: 0px;
     }
-  }
+
+    .children {
+        margin-left: 25px;
+    }
+}
 
 .skeleton .hunk {
     width: 100%;

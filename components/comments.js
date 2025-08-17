@@ -10,9 +10,8 @@ import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
 import { useCommentsNavigatorContext } from './use-comments-navigator'
-import ActionTooltip from './action-tooltip'
 
-export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, pauseLiveComments, setPauseLiveComments }) {
+export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
   const router = useRouter()
   const sort = router.query.sort || defaultCommentSort(pinned, bio, parentCreatedAt)
 
@@ -30,17 +29,6 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
       >
         <Nav.Item className='text-muted'>
           {numWithUnits(commentSats)}
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link
-            eventKey='live'
-            className={styles.navLink}
-            onClick={() => setPauseLiveComments(!pauseLiveComments)}
-          >
-            <ActionTooltip notForm placement='top' overlayText={pauseLiveComments ? 'resume live comments' : 'pause live comments'}>
-              <div className={`${styles.newCommentDot} ${pauseLiveComments ? styles.paused : ''}`} />
-            </ActionTooltip>
-          </Nav.Link>
         </Nav.Item>
         <div className='ms-auto d-flex'>
           <Nav.Item>
@@ -83,7 +71,7 @@ export default function Comments ({
   const router = useRouter()
 
   // fetch new comments that arrived after the lastCommentAt, and update the item.comments field in cache
-  const { pauseLiveComments, setPauseLiveComments } = useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort)
+  useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort)
 
   // new comments navigator, tracks new comments and provides navigation controls
   const { navigator } = useCommentsNavigatorContext()
@@ -106,8 +94,6 @@ export default function Comments ({
                 query: sort === defaultCommentSort(pinned, bio, parentCreatedAt) ? undefined : { sort }
               }, { scroll: false })
             }}
-            pauseLiveComments={pauseLiveComments}
-            setPauseLiveComments={setPauseLiveComments}
           />
         : null}
       {pins.map(item => (

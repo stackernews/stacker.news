@@ -2,8 +2,9 @@ import preserveScroll from './preserve-scroll'
 import { GET_NEW_COMMENTS } from '../fragments/comments'
 import { useEffect, useState } from 'react'
 import { SSR, COMMENT_DEPTH_LIMIT } from '../lib/constants'
-import { useQuery, useApolloClient } from '@apollo/client'
+import { useQuery, useApolloClient, useMutation } from '@apollo/client'
 import { commentsViewedAfterComment } from '../lib/new-comments'
+import { gql } from 'graphql-tag'
 import {
   updateItemQuery,
   updateCommentFragment,
@@ -126,4 +127,36 @@ export default function useLiveComments (rootId, after, sort) {
   }, [data, cache, rootId, sort, latest])
 
   return { pauseLiveComments, setPauseLiveComments }
+}
+
+export function useLiveCommentsToggle () {
+  const { me } = useMe()
+  const [pauseLiveComments, setPauseLiveComments] = useState(me?.privates?.pauseLiveComments)
+
+  const [mutate] = useMutation(
+    gql`
+      mutation toggleLiveComments($pauseLiveComments: Boolean!) {
+        toggleLiveComments(pauseLiveComments: $pauseLiveComments)
+      }`, {
+      update (cache, { data: { toggleLiveComments } }) {
+        cache.modify({
+          id: `User:${me.id}`,
+          fields: {
+            privates: (existing) => ({
+              ...existing,
+              pauseLiveComments: toggleLiveComments
+            })
+          },
+          optimistic: true
+        })
+        setPauseLiveComments(toggleLiveComments)
+      }
+    }
+  )
+
+  const toggle = () => {
+    mutate({ variables: { pauseLiveComments: !pauseLiveComments } })
+  }
+
+  return [pauseLiveComments, toggle]
 }

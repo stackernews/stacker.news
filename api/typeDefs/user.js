@@ -57,6 +57,7 @@ export default gql`
     deleteApiKey(id: ID!): User
     disableFreebies: Boolean
     setDiagnostics(diagnostics: Boolean!): Boolean
+    toggleLiveComments(pauseLiveComments: Boolean!): Boolean!
   }
 
   type User {

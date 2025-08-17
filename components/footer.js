@@ -16,6 +16,7 @@ import Rewards from './footer-rewards'
 import useDarkMode from './dark-mode'
 import ActionTooltip from './action-tooltip'
 import { useAnimationEnabled } from '@/components/animation'
+import { useLiveCommentsToggle } from './use-live-comments'
 
 const RssPopover = (
   <Popover>
@@ -147,6 +148,8 @@ export default function Footer ({ links = true }) {
 
   const [animationEnabled, toggleAnimation] = useAnimationEnabled()
 
+  const [pauseLiveComments, toggleLiveComments] = useLiveCommentsToggle()
+
   const DarkModeIcon = darkMode ? Sun : Moon
   const LnIcon = animationEnabled ? No : Bolt
 
@@ -163,6 +166,11 @@ export default function Footer ({ links = true }) {
               </ActionTooltip>
               <ActionTooltip notForm overlayText={`${animationEnabled ? 'disable' : 'enable'} lightning animations`}>
                 <LnIcon onClick={toggleAnimation} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
+              </ActionTooltip>
+              <ActionTooltip notForm overlayText={`${pauseLiveComments ? 'disable' : 'enable'} live comments`}>
+                <div className='nav-link p-2 d-inline-flex' style={{ cursor: 'pointer' }} onClick={toggleLiveComments} suppressHydrationWarning>
+                  live comments {pauseLiveComments ? 'on' : 'off'}
+                </div>
               </ActionTooltip>
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>

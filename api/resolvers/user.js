@@ -927,6 +927,14 @@ export default {
 
       await models.user.update({ where: { id: me.id }, data: { diagnostics } })
       return diagnostics
+    },
+    toggleLiveComments: async (parent, { pauseLiveComments }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      await models.user.update({ where: { id: me.id }, data: { pauseLiveComments } })
+      return pauseLiveComments
     }
   },
 

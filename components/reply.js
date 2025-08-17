@@ -83,7 +83,7 @@ export default forwardRef(function Reply ({
         const ancestors = item.path.split('.')
 
         // update all ancestors
-        updateAncestorsCommentCount(cache, ancestors, 1)
+        updateAncestorsCommentCount(cache, ancestors, 1, parentId)
 
         // so that we don't see indicator for our own comments, we record this comments as the latest time
         // but we also have record num comments, in case someone else commented when we did

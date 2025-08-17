@@ -76,10 +76,9 @@ a.title:visited {
 
 .dontLike {
     fill: #a5a5a5;
-    margin-right: .35rem;
-    margin-left: -.2rem;
     flex-shrink: 0;
     cursor: pointer;
+    margin-right: 2px;
 }
 
 .case {

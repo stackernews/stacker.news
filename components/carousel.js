@@ -114,17 +114,28 @@ function CarouselOverflow ({ originalSrc, rel }) {
 export function CarouselProvider ({ children }) {
   const media = useRef(new Map())
   const showModal = useShowModal()
+  const isCarouselOpenRef = useRef(false)
+
+  // Helper function to get confirmed entries
+  const getConfirmedEntries = useCallback(() => {
+    return Array.from(media.current.entries())
+      .filter(([, entry]) => entry.confirmed)
+  }, [])
 
   const showCarousel = useCallback(({ src }) => {
     // only show confirmed entries
-    const confirmedEntries = Array.from(media.current.entries())
-      .filter(([, entry]) => entry.confirmed)
+    const confirmedEntries = getConfirmedEntries()
 
+    isCarouselOpenRef.current = true
     showModal((close, setOptions) => {
       return <Carousel close={close} mediaArr={confirmedEntries} src={src} setOptions={setOptions} />
     }, {
       fullScreen: true,
-      overflow: <CarouselOverflow {...media.current.get(src)} />
+      overflow: <CarouselOverflow {...media.current.get(src)} />,
+      hash: 'carousel',
+      onClose: () => {
+        isCarouselOpenRef.current = false
+      }
     })
   }, [showModal])
 
@@ -137,8 +148,15 @@ export function CarouselProvider ({ children }) {
     if (mediaItem) {
       mediaItem.confirmed = true
       media.current.set(src, mediaItem)
+
+      if (typeof window !== 'undefined' && window.location.hash === '#carousel' && !isCarouselOpenRef.current) {
+        const confirmedEntries = getConfirmedEntries()
+        if (confirmedEntries.length >= 1) {
+          showCarousel({ src })
+        }
+      }
     }
-  }, [])
+  }, [showCarousel])
 
   const removeMedia = useCallback((src) => {
     media.current.delete(src)

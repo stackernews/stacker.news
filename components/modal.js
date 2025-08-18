@@ -59,12 +59,22 @@ export default function useModal () {
       return
     }
 
+    const currentHash = window.location.hash
+    if (currentHash) {
+      const hasModalWithHash = modalStack.current.some(
+        modal => modal.options?.hash && `#${modal.options.hash}` === currentHash
+      )
+      if (hasModalWithHash) {
+        window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search)
+      }
+    }
+
     while (modalStack.current.length) {
       getCurrentContent()?.options?.onClose?.()
       modalStack.current.pop()
     }
     forceUpdate()
-  }, [onBack])
+  }, [onBack, getCurrentContent])
 
   const router = useRouter()
   useEffect(() => {
@@ -79,6 +89,21 @@ export default function useModal () {
     router.events.on('routeChangeStart', maybeOnClose)
     return () => router.events.off('routeChangeStart', maybeOnClose)
   }, [router.events, onClose, getCurrentContent])
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const currentContent = getCurrentContent()
+      if (!currentContent?.options?.hash) return
+
+      const expectedHash = `#${currentContent.options.hash}`
+      if (window.location.hash !== expectedHash) {
+        onClose()
+      }
+    }
+
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [onClose, getCurrentContent])
 
   const modal = useMemo(() => {
     if (modalStack.current.length === 0) {
@@ -116,6 +141,12 @@ export default function useModal () {
   const showModal = useCallback(
     (getContent, options) => {
       document.activeElement?.blur()
+      if (options?.hash) {
+        const newHash = `#${options.hash}`
+        if (window.location.hash !== newHash) {
+          window.history.pushState(window.history.state, '', newHash)
+        }
+      }
       const ref = { node: getContent(onClose, setOptions), options }
       if (options?.replaceModal) {
         modalStack.current = [ref]
@@ -124,7 +155,7 @@ export default function useModal () {
       }
       forceUpdate()
     },
-    [onClose]
+    [onClose, setOptions]
   )
 
   return [modal, showModal]

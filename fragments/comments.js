@@ -27,6 +27,11 @@ export const COMMENT_FIELDS = gql`
       meMute
       ...StreakFields
     }
+    payIn {
+      id
+      payInState
+      payInStateChangedAt
+    }
     sats
     credits
     meAnonSats @client
@@ -51,11 +56,6 @@ export const COMMENT_FIELDS = gql`
     imgproxyUrls
     rel
     apiKey
-    invoice {
-      id
-      actionState
-      confirmedAt
-    }
     cost
   }
 `

@@ -517,6 +517,11 @@ export async function payInCancel ({ data, models, lnd, boss, ...args }) {
 
       await cancelHodlInvoice({ id: payIn.payInBolt11.hash, lnd })
 
+      // transition to FAILED manually so we don't have to wait
+      await tx.$executeRaw`
+        INSERT INTO pgboss.job (name, data)
+        VALUES ('payInFailed', jsonb_build_object('payInId', ${payInId}::INTEGER))`
+
       return {
         payInFailureReason: payInFailureReason ?? 'SYSTEM_CANCELLED'
       }

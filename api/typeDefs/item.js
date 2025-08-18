@@ -172,6 +172,7 @@ export default gql`
     apiKey: Boolean
     invoice: Invoice
     cost: Int!
+    payIn: PayIn
   }
 
   input ItemForwardInput {

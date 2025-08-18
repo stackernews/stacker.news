@@ -68,6 +68,8 @@ export default {
     }
   },
   PayIn: {
+    // the payIn result is dependent on the payIn type
+    // so we need to resolve the type here
     result: (parent, args) => {
       // if the payIn was paid pessimistically, the result is permanently in the pessimisticEnv
       const result = parent.result || parent.pessimisticEnv?.result

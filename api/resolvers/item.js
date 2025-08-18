@@ -1095,6 +1095,20 @@ export default {
     }
   },
   Item: {
+    payIn: async (item, args, { models }) => {
+      // TODO: very inefficient on a relative basis, so we can:
+      // 1. denormalize payInId that created the item to it
+      // 2. add this to the getItemMeta query
+      const payIn = await models.payIn.findFirst({
+        where: {
+          itemPayIn: {
+            itemId: item.id
+          },
+          payInType: 'ITEM_CREATE'
+        }
+      })
+      return payIn
+    },
     invoicePaidAt: async (item, args, { models }) => {
       return item.invoicePaidAtUTC ?? item.invoicePaidAt
     },

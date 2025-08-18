@@ -67,6 +67,13 @@ export const PAY_IN_FIELDS = gql`
             ...CommentsRecursive
           }
         }
+        payIn {
+          id
+          mcost
+          payInType
+          payInState
+          payInStateChangedAt
+        }
       }
       ... on ItemActResult {
         id

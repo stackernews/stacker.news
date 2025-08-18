@@ -113,6 +113,10 @@ type PayInCustodialToken {
   custodialTokenType: CustodialTokenType!
 }
 
+# TODO: I think we should only have Item, Sub, and Boolean as possible result types
+# it should suffice to let everything else return no result, e.g. ItemActResult, and PollVoteResult,
+# could simply return the Item as we expect it to be on a page refresh
+# the upside of this is that result is not ephemeral
 union PayInResult = Item | ItemActResult | PollVoteResult | Sub | DonateResult
 
 type PayInPessimisticEnv {

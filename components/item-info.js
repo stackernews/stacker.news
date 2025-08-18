@@ -177,7 +177,7 @@ export default function ItemInfo ({
               item={item} edit={edit} canEdit={canEdit}
               setCanEdit={setCanEdit} toggleEdit={toggleEdit} editText={editText} editThreshold={editThreshold}
             />
-            <PaymentInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
+            <PayInInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
             <ActionDropdown>
               <CopyLinkDropdownItem item={item} />
               <InfoDropdownItem item={item} />
@@ -282,6 +282,20 @@ function InfoDropdownItem ({ item }) {
     <Dropdown.Item onClick={onClick}>
       details
     </Dropdown.Item>
+  )
+}
+
+export function PayInInfo ({ item }) {
+  if (!item.payIn) return null
+  return (
+    <>
+      <span> \ </span>
+      <span
+        className='text-reset pointer fw-bold'
+      >
+        {item.payIn?.payInState}
+      </span>
+    </>
   )
 }
 

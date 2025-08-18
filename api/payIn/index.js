@@ -123,7 +123,7 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
     // this makes sure that only the person who created this invoice
     // has access to the HMAC
     updatedPayIn.payInBolt11.hmac = createHmac(updatedPayIn.payInBolt11.hash)
-    return { ...updatedPayIn, result }
+    return { ...updatedPayIn, result: { ...result, payIn: { updatedPayIn } } }
   }
 
   try {
@@ -166,7 +166,7 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
     throw e
   }
 
-  return { ...payIn, result }
+  return { ...payIn, result: { ...result, payIn: { ...payIn } } }
 }
 
 export async function onFail (tx, payInId) {

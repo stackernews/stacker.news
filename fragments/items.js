@@ -37,6 +37,11 @@ export const ITEM_FIELDS = gql`
       nsfw
       replyCost
     }
+    payIn {
+      id
+      payInState
+      payInStateChangedAt
+    }
     otsHash
     position
     sats
@@ -75,11 +80,6 @@ export const ITEM_FIELDS = gql`
     imgproxyUrls
     rel
     apiKey
-    invoice {
-      id
-      actionState
-      confirmedAt
-    }
     cost
   }`
 

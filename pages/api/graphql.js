@@ -12,12 +12,25 @@ import {
   ApolloServerPluginLandingPageProductionDefault
 } from '@apollo/server/plugin/landingPage/default'
 import { multiAuthMiddleware } from '@/lib/auth'
+import { depthLimit } from '@graphile/depth-limit'
+import { COMMENT_DEPTH_LIMIT } from '@/lib/constants'
 
 const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
   introspection: true,
   allowBatchedHttpRequests: true,
+  validationRules: [depthLimit({
+    revealDetails: true,
+    maxListDepth: COMMENT_DEPTH_LIMIT,
+    maxDepth: 20,
+    maxIntrospectionDepth: 20,
+    maxDepthByFieldCoordinates: {
+      '__Type.ofType': 20,
+      'Item.comments': COMMENT_DEPTH_LIMIT,
+      'Comments.comments': COMMENT_DEPTH_LIMIT
+    }
+  })],
   plugins: [{
     requestDidStart (initialRequestContext) {
       return {

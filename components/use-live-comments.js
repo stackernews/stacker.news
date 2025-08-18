@@ -1,10 +1,10 @@
 import preserveScroll from './preserve-scroll'
 import { GET_NEW_COMMENTS } from '../fragments/comments'
-import { useEffect, useState } from 'react'
+import { TOGGLE_LIVE_COMMENTS } from '../fragments/users'
+import { useEffect, useState, useCallback } from 'react'
 import { SSR, COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import { useQuery, useApolloClient, useMutation } from '@apollo/client'
 import { commentsViewedAfterComment } from '../lib/new-comments'
-import { gql } from 'graphql-tag'
 import {
   updateItemQuery,
   updateCommentFragment,
@@ -82,7 +82,6 @@ export default function useLiveComments (rootId, after, sort) {
   const latestKey = `liveCommentsLatest:${rootId}`
   const { cache } = useApolloClient()
   const { me } = useMe()
-  const [pauseLiveComments, setPauseLiveComments] = useState(me?.privates?.pauseLiveComments)
   const [latest, setLatest] = useState(after)
   const [initialized, setInitialized] = useState(false)
 
@@ -101,7 +100,7 @@ export default function useLiveComments (rootId, after, sort) {
     setInitialized(true)
   }, [after])
 
-  const { data } = useQuery(GET_NEW_COMMENTS, SSR || !initialized || pauseLiveComments
+  const { data } = useQuery(GET_NEW_COMMENTS, SSR || !initialized || me?.privates?.disableLiveComments
     ? {}
     : {
         pollInterval: POLL_INTERVAL,
@@ -125,38 +124,31 @@ export default function useLiveComments (rootId, after, sort) {
       window.sessionStorage.setItem(latestKey, newLatest)
     }
   }, [data, cache, rootId, sort, latest])
-
-  return { pauseLiveComments, setPauseLiveComments }
 }
 
 export function useLiveCommentsToggle () {
   const { me } = useMe()
-  const [pauseLiveComments, setPauseLiveComments] = useState(me?.privates?.pauseLiveComments)
+  const [disableLiveComments, setDisableLiveComments] = useState(me?.privates?.disableLiveComments)
 
-  const [mutate] = useMutation(
-    gql`
-      mutation toggleLiveComments($pauseLiveComments: Boolean!) {
-        toggleLiveComments(pauseLiveComments: $pauseLiveComments)
-      }`, {
-      update (cache, { data: { toggleLiveComments } }) {
-        cache.modify({
-          id: `User:${me.id}`,
-          fields: {
-            privates: (existing) => ({
-              ...existing,
-              pauseLiveComments: toggleLiveComments
-            })
-          },
-          optimistic: true
-        })
-        setPauseLiveComments(toggleLiveComments)
-      }
+  const [mutate] = useMutation(TOGGLE_LIVE_COMMENTS, {
+    update (cache, { data: { toggleLiveComments } }) {
+      cache.modify({
+        id: `User:${me.id}`,
+        fields: {
+          privates: (existing) => ({
+            ...existing,
+            disableLiveComments: toggleLiveComments
+          })
+        },
+        optimistic: true
+      })
+      setDisableLiveComments(toggleLiveComments)
     }
-  )
+  })
 
-  const toggle = () => {
-    mutate({ variables: { pauseLiveComments: !pauseLiveComments } })
-  }
+  const toggle = useCallback(() => {
+    mutate({ variables: { disableLiveComments: !disableLiveComments } })
+  }, [mutate, disableLiveComments])
 
-  return [pauseLiveComments, toggle]
+  return [!disableLiveComments, toggle]
 }

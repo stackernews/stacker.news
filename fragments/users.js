@@ -52,7 +52,7 @@ ${STREAK_FIELDS}
       walletsUpdatedAt
       showPassphrase
       diagnostics
-      pauseLiveComments
+      disableLiveComments
     }
     optional {
       isContributor
@@ -104,7 +104,7 @@ export const SETTINGS_FIELDS = gql`
       satsFilter
       disableFreebies
       nsfwMode
-      pauseLiveComments
+      disableLiveComments
       authMethods {
         lightning
         nostr
@@ -401,3 +401,8 @@ export const SET_DIAGNOSTICS = gql`
     setDiagnostics(diagnostics: $diagnostics)
   }
 `
+
+export const TOGGLE_LIVE_COMMENTS = gql`
+  mutation toggleLiveComments($disableLiveComments: Boolean!) {
+    toggleLiveComments(disableLiveComments: $disableLiveComments)
+  }`

@@ -151,7 +151,7 @@ export default function Settings ({ ssrData }) {
             hideWalletBalance: settings?.hideWalletBalance,
             hideIsContributor: settings?.hideIsContributor,
             noReferralLinks: settings?.noReferralLinks,
-            pauseLiveComments: settings?.pauseLiveComments
+            disableLiveComments: settings?.disableLiveComments
           }}
           schema={settingsSchema}
           onSubmit={async ({
@@ -541,16 +541,16 @@ export default function Settings ({ ssrData }) {
           />
           <Checkbox
             label={
-              <div className='d-flex align-items-center'>pause live comments
+              <div className='d-flex align-items-center'>disable live comments
                 <Info>
                   <ul>
-                    <li>if checked, live comments will be paused on every post</li>
-                    <li>you can still enable it back manually on each post</li>
+                    <li>if checked, live comments will be disabled on every post</li>
+                    <li>you can enable it back here or at the end of the page</li>
                   </ul>
                 </Info>
               </div>
             }
-            name='pauseLiveComments'
+            name='disableLiveComments'
           />
           <h4>nostr</h4>
           <Checkbox

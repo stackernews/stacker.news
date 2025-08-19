@@ -490,6 +490,7 @@ model Item {
   ItemUserAgg          ItemUserAgg[]
   AutoSocialPost       AutoSocialPost[]
   randPollOptions      Boolean               @default(false)
+  postAnonymously      Boolean?
 
   @@index([uploadId])
   @@index([lastZapAt])

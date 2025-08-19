@@ -177,7 +177,7 @@ export default function Comment ({
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
-  const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon
+  const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon && !root.postAnonymously
     ? 'OP'
     : root.forwards?.some(f => f.user.name === item.user.name) && Number(item.user.id) !== USER_ID.anon
       ? 'fwd'

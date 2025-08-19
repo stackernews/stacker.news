@@ -8,6 +8,7 @@ import PageLoading from '@/components/page-loading'
 import { UserLayout } from '.'
 import { Form, Select, DatePicker } from '@/components/form'
 import { whenToFrom } from '@/lib/time'
+import { useMe } from '../../components/me'
 
 const staticVariables = { sort: 'user' }
 const variablesFunc = vars => ({
@@ -21,11 +22,13 @@ export const getServerSideProps = getGetServerSideProps(
 export default function UserItems ({ ssrData }) {
   const router = useRouter()
   const variables = variablesFunc(router.query)
+  const { me } = useMe()
 
   const { data } = useQuery(USER, { variables })
   if (!data && !ssrData) return <PageLoading />
 
   const { user } = data || ssrData
+  const isMine = Number(user.id) === Number(me?.id)
 
   return (
     <UserLayout user={user}>
@@ -35,6 +38,7 @@ export default function UserItems ({ ssrData }) {
           ssrData={ssrData}
           variables={variables}
           query={USER_WITH_ITEMS}
+          filter={ item => isMine || !item.postAnonymously }
         />
       </div>
     </UserLayout>

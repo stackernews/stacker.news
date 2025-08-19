@@ -144,8 +144,9 @@ export const ACT_MUTATION = gql`
 export const UPSERT_DISCUSSION = gql`
   ${PAID_ACTION}
   mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String,
-    $boost: Int, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
+    $boost: Int, $postAnonymously: Boolean, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
     upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost,
+      postAnonymously: $postAnonymously,
       forward: $forward, ${HASH_HMAC_INPUT_2}) {
       result {
         id
@@ -160,10 +161,11 @@ export const UPSERT_JOB = gql`
   ${PAID_ACTION}
   mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!,
     $location: String, $remote: Boolean, $text: String!, $url: String!, $boost: Int,
-    $status: String, $logo: Int) {
+    $postAnonymously: Boolean, $status: String, $logo: Int) {
     upsertJob(sub: $sub, id: $id, title: $title, company: $company,
       location: $location, remote: $remote, text: $text,
-      url: $url, boost: $boost, status: $status, logo: $logo) {
+      url: $url, boost: $boost, postAnonymously: $postAnonymously,
+      status: $status, logo: $logo) {
       result {
         id
         deleteScheduledAt
@@ -176,8 +178,10 @@ export const UPSERT_JOB = gql`
 export const UPSERT_LINK = gql`
   ${PAID_ACTION}
   mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!,
-    $text: String, $boost: Int, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
+    $text: String, $boost: Int, $postAnonymously: Boolean,
+    $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
     upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text,
+      postAnonymously: $postAnonymously,
       boost: $boost, forward: $forward, ${HASH_HMAC_INPUT_2}) {
       result {
         id
@@ -192,8 +196,9 @@ export const UPSERT_POLL = gql`
   ${PAID_ACTION}
   mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
     $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $pollExpiresAt: Date,
-    $randPollOptions: Boolean, ${HASH_HMAC_INPUT_1}) {
+    $postAnonymously: Boolean, $randPollOptions: Boolean, ${HASH_HMAC_INPUT_1}) {
     upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
+      postAnonymously: $postAnonymously,
       options: $options, boost: $boost, forward: $forward, pollExpiresAt: $pollExpiresAt,
       randPollOptions: $randPollOptions, ${HASH_HMAC_INPUT_2}) {
       result {

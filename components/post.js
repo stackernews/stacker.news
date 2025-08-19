@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
 import Alert from 'react-bootstrap/Alert'
 import AccordianItem from './accordian-item'
+import { Checkbox } from '@/components/form'
 import { useMe } from './me'
 import { useRouter } from 'next/router'
 import { DiscussionForm } from './discussion-form'
@@ -15,6 +16,7 @@ import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseR
 import Delete from './delete'
 import CancelButton from './cancel-button'
 import { TerritoryInfo } from './territory-header'
+import { USER_ID } from '@/lib/constants'
 
 export function PostForm ({ type, sub, children }) {
   const { me } = useMe()
@@ -147,12 +149,18 @@ export function PostForm ({ type, sub, children }) {
     FormType = BountyForm
   }
 
+  const addAnonymousPostingOption =
+    me && me.id != USER_ID.anon && type != 'bounty' && type != 'job'
+
   return (
     <FeeButtonProvider
       baseLineItems={sub ? postCommentBaseLineItems({ baseCost: sub.baseCost, me: !!me }) : undefined}
       useRemoteLineItems={postCommentUseRemoteLineItems()}
     >
-      <FormType sub={sub}>{children}</FormType>
+      <FormType sub={sub}>
+        {children}
+        {addAnonymousPostingOption && <Checkbox name="postAnonymously" label="Post anonymously" />}
+      </FormType>
     </FeeButtonProvider>
   )
 }

@@ -5,9 +5,20 @@ import { COMMENTS } from './comments'
 const HASH_HMAC_INPUT_1 = '$hash: String, $hmac: String'
 const HASH_HMAC_INPUT_2 = 'hash: $hash, hmac: $hmac'
 
+export const PAY_IN_LINK_FIELDS = gql`
+  fragment PayInLinkFields on PayIn {
+    id
+    mcost
+    payInType
+    payInState
+    payInStateChangedAt
+  }
+`
+
 export const PAY_IN_FIELDS = gql`
   ${SUB_FULL_FIELDS}
   ${COMMENTS}
+  ${PAY_IN_LINK_FIELDS}
   fragment PayInFields on PayIn {
     id
     createdAt
@@ -62,27 +73,24 @@ export const PAY_IN_FIELDS = gql`
         deleteScheduledAt
         reminderScheduledAt
         ...CommentFields
-        comments {
-          comments {
-            ...CommentsRecursive
-          }
-        }
         payIn {
-          id
-          mcost
-          payInType
-          payInState
-          payInStateChangedAt
+          ...PayInLinkFields
         }
       }
-      ... on ItemActResult {
+      ... on ItemAct {
         id
         sats
         path
         act
+        payIn {
+          ...PayInLinkFields
+        }
       }
-      ... on PollVoteResult {
+      ... on PollVote {
         id
+        payIn {
+          ...PayInLinkFields
+        }
       }
       ... on Sub {
         ...SubFullFields

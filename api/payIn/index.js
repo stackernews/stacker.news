@@ -45,6 +45,7 @@ export default async function pay (payInType, payInArgs, { models, me }) {
 // 1. do NOT lock all users, but use NOWAIT on users locks so that we can catch AND retry transactions that fail with a deadlock error
 // 2. issue onPaid in a separate transaction, so that payInCustodialTokens and payOutCustodialTokens cannot be interleaved
 async function obtainRowLevelLocks (tx, payInInitial) {
+  console.log('obtainRowLevelLocks', payInInitial)
   const payOutUserIds = [...new Set(payInInitial.payOutCustodialTokens.map(t => t.userId)).add(payInInitial.userId)]
   await tx.$executeRaw`SELECT * FROM users WHERE id IN (${Prisma.join(payOutUserIds)}) ORDER BY id ASC FOR UPDATE`
 }
@@ -123,7 +124,7 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
     // this makes sure that only the person who created this invoice
     // has access to the HMAC
     updatedPayIn.payInBolt11.hmac = createHmac(updatedPayIn.payInBolt11.hash)
-    return { ...updatedPayIn, result: { ...result, payIn: { updatedPayIn } } }
+    return { ...updatedPayIn, result: { ...result, payIn: updatedPayIn } }
   }
 
   try {
@@ -166,7 +167,7 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
     throw e
   }
 
-  return { ...payIn, result: { ...result, payIn: { ...payIn } } }
+  return { ...payIn, result: { ...result, payIn } }
 }
 
 export async function onFail (tx, payInId) {
@@ -266,59 +267,63 @@ export async function onPaidSideEffects (models, payInId) {
 }
 
 export async function retry (payInId, { models, me }) {
-  const include = { payOutCustodialTokens: true, payOutBolt11: true }
-  const where = { id: payInId, userId: me.id, payInState: 'FAILED', successorId: { is: null } }
+  try {
+    const include = { payOutCustodialTokens: true, payOutBolt11: true }
+    const where = { id: payInId, userId: me.id, payInState: 'FAILED', successorId: null }
 
-  const payInFailed = await models.payIn.findUnique({
-    where,
-    include: { ...include, beneficiaries: { include } }
-  })
-  if (!payInFailed) {
-    throw new Error('PayIn not found')
-  }
-  if (isWithdrawal(payInFailed)) {
-    throw new Error('Withdrawal payIns cannot be retried')
-  }
-  if (isPessimistic(payInFailed, { me })) {
-    throw new Error('Pessimistic payIns cannot be retried')
-  }
-
-  let payOutBolt11
-  if (payInFailed.payOutBolt11) {
-    payOutBolt11 = await payOutBolt11Replacement(models, payInFailed.genesisId ?? payInFailed.id, payInFailed.payOutBolt11)
-  }
-
-  const { payIn, mCostRemaining } = await models.$transaction(async tx => {
-    const { payIn, mCostRemaining } = await payInCreate(tx, payInClone({ ...payInFailed, payOutBolt11 }), { me })
-
-    // use an optimistic lock on successorId on the payIn
-    await tx.payIn.update({
+    const payInFailed = await models.payIn.findFirst({
       where,
-      data: {
-        successorId: payIn.id
-      }
+      include: { ...include, beneficiaries: { include } }
     })
-
-    // run the onRetry hook for the payIn and its beneficiaries
-    await payInTypeModules[payIn.payInType].onRetry?.(tx, payInFailed.id, payIn.id)
-    for (const beneficiary of payIn.beneficiaries) {
-      await payInTypeModules[beneficiary.payInType].onRetry?.(tx, beneficiary.id, payIn.id)
+    if (!payInFailed) {
+      throw new Error('PayIn with id ' + payInId + ' not found')
+    }
+    if (isWithdrawal(payInFailed)) {
+      throw new Error('Withdrawal payIns cannot be retried')
+    }
+    if (isPessimistic(payInFailed, { me })) {
+      throw new Error('Pessimistic payIns cannot be retried')
     }
 
-    // if it's already paid, we run onPaid and do payOuts in the same transaction
-    if (payIn.payInState === 'PAID') {
-      await onPaid(tx, payIn.id, { me })
+    let payOutBolt11
+    if (payInFailed.payOutBolt11) {
+      payOutBolt11 = await payOutBolt11Replacement(models, payInFailed.genesisId ?? payInFailed.id, payInFailed.payOutBolt11)
+    }
+
+    const { payIn, result, mCostRemaining } = await models.$transaction(async tx => {
+      const payInInitial = payInClone({ ...payInFailed, payOutBolt11 })
+      await obtainRowLevelLocks(tx, payInInitial)
+      const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, undefined, { me })
+
+      // use an optimistic lock on successorId on the payIn
+      await tx.$executeRaw`UPDATE "PayIn" SET "successorId" = ${payIn.id} WHERE "id" = ${payInFailed.id} AND "successorId" IS NULL`
+
+      // run the onRetry hook for the payIn and its beneficiaries
+      const result = await payInTypeModules[payIn.payInType].onRetry?.(tx, payInFailed.id, payIn.id)
+      for (const beneficiary of payIn.beneficiaries) {
+        await payInTypeModules[beneficiary.payInType].onRetry?.(tx, beneficiary.id, payIn.id)
+      }
+
+      // if it's already paid, we run onPaid and do payOuts in the same transaction
+      if (payIn.payInState === 'PAID') {
+        await onPaid(tx, payIn.id, { me })
+        return {
+          payIn,
+          result,
+          mCostRemaining: 0n
+        }
+      }
+
       return {
         payIn,
-        mCostRemaining: 0n
+        result,
+        mCostRemaining
       }
-    }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 
-    return {
-      payIn,
-      mCostRemaining
-    }
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
-
-  return await afterBegin(models, { payIn, mCostRemaining }, { me })
+    return await afterBegin(models, { payIn, result, mCostRemaining }, { me })
+  } catch (e) {
+    console.error('retry failed', e)
+    throw e
+  }
 }

@@ -9,7 +9,8 @@ export const PAY_IN_INCLUDE = {
   payInBolt11: true,
   pessimisticEnv: true,
   user: true,
-  payOutCustodialTokens: true
+  payOutCustodialTokens: true,
+  beneficiaries: true
 }
 
 // TODO: before we create, validate the payIn such that

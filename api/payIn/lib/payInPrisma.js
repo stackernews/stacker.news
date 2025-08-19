@@ -2,7 +2,7 @@ export function payInPrismaCreate (payIn) {
   console.log('payInPrismaCreate', payIn)
   const result = {}
 
-  if (payIn.beneficiaries) {
+  if (Array.isArray(payIn.beneficiaries)) {
     payIn.beneficiaries = payIn.beneficiaries.map(beneficiary => {
       if (beneficiary.payOutBolt11) {
         throw new Error('Beneficiary payOutBolt11 not supported')
@@ -47,27 +47,29 @@ export function payInClone (payIn) {
     genesisId: payIn.genesisId ?? payIn.id
   }
   for (const key in payIn) {
+    console.log('payInClone', key, typeof payIn[key], payIn[key])
     if (Array.isArray(payIn[key])) {
       if (key === 'beneficiaries') {
         result[key] = payIn[key].map(beneficiary => payInClone(beneficiary))
       } else {
         result[key] = payIn[key].map(item => payInCloneNested(item))
       }
-    } if (typeof payIn[key] === 'object') {
+    } else if (isPlainObject(payIn[key])) {
       result[key] = payInCloneNested(payIn[key])
     }
   }
-  return payInPrismaCreate(result)
+  return result
 }
 
+// this assumes that any other nested object only has a payInId or id that should be ignored
 function payInCloneNested (payInNested) {
   const result = {}
   for (const key in payInNested) {
-    if (isPlainObject(payInNested[key])) {
-      result[key] = payInCloneNested(payInNested[key])
-    } else if (Array.isArray(payInNested[key])) {
+    if (Array.isArray(payInNested[key])) {
       result[key] = payInNested[key].map(item => payInCloneNested(item))
-    } else if (key !== 'payInId') {
+    } else if (isPlainObject(payInNested[key])) {
+      result[key] = payInCloneNested(payInNested[key])
+    } else if (key !== 'payInId' && key !== 'id') {
       result[key] = payInNested[key]
     }
   }

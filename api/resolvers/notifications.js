@@ -5,7 +5,7 @@ import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
 import { sendPushSubscriptionReply } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
-import { WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
+import { getPayIn } from './payIn'
 
 export default {
   Query: {
@@ -368,33 +368,46 @@ export default {
         LIMIT ${LIMIT})`
       )
 
+      // queries.push(
+      //   `(SELECT "Invoice".id::text,
+      //     CASE
+      //       WHEN
+      //         "Invoice"."paymentAttempt" < ${WALLET_MAX_RETRIES}
+      //         AND "Invoice"."userCancel" = false
+      //         AND "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
+      //       THEN "Invoice"."cancelledAt" + interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
+      //       ELSE "Invoice"."updated_at"
+      //     END AS "sortTime", NULL as "earnedSats", 'Invoicification' AS type
+      //   FROM "Invoice"
+      //   WHERE "Invoice"."userId" = $1
+      //   AND "Invoice"."updated_at" < $2
+      //   AND "Invoice"."actionState" = 'FAILED'
+      //   AND (
+      //     -- this is the inverse of the filter for automated retries
+      //     "Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES}
+      //     OR "Invoice"."userCancel" = true
+      //     OR "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
+      //   )
+      //   AND (
+      //     "Invoice"."actionType" = 'ITEM_CREATE' OR
+      //     "Invoice"."actionType" = 'ZAP' OR
+      //     "Invoice"."actionType" = 'DOWN_ZAP' OR
+      //     "Invoice"."actionType" = 'POLL_VOTE' OR
+      //     "Invoice"."actionType" = 'BOOST'
+      //   )
+      //   ORDER BY "sortTime" DESC
+      //   LIMIT ${LIMIT})`
+      // )
+
       queries.push(
-        `(SELECT "Invoice".id::text,
-          CASE
-            WHEN
-              "Invoice"."paymentAttempt" < ${WALLET_MAX_RETRIES}
-              AND "Invoice"."userCancel" = false
-              AND "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
-            THEN "Invoice"."cancelledAt" + interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
-            ELSE "Invoice"."updated_at"
-          END AS "sortTime", NULL as "earnedSats", 'Invoicification' AS type
-        FROM "Invoice"
-        WHERE "Invoice"."userId" = $1
-        AND "Invoice"."updated_at" < $2
-        AND "Invoice"."actionState" = 'FAILED'
-        AND (
-          -- this is the inverse of the filter for automated retries
-          "Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES}
-          OR "Invoice"."userCancel" = true
-          OR "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
-        )
-        AND (
-          "Invoice"."actionType" = 'ITEM_CREATE' OR
-          "Invoice"."actionType" = 'ZAP' OR
-          "Invoice"."actionType" = 'DOWN_ZAP' OR
-          "Invoice"."actionType" = 'POLL_VOTE' OR
-          "Invoice"."actionType" = 'BOOST'
-        )
+        `(SELECT "PayIn".id::text,
+          "PayIn"."payInStateChangedAt" AS "sortTime", NULL as "earnedSats", 'PayInFailed' AS type
+        FROM "PayIn"
+        WHERE "PayIn"."userId" = $1
+        AND "PayIn"."payInStateChangedAt" < $2
+        AND "PayIn"."payInState" = 'FAILED'
+        AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'POLL_VOTE', 'BOOST')
+        AND "PayIn"."successorId" IS NULL
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT})`
       )
@@ -586,8 +599,12 @@ export default {
   InvoicePaid: {
     invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })
   },
-  Invoicification: {
-    invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })
+  PayInFailed: {
+    payIn: async (n, args, { me, models }) => getPayIn(n, { id: Number(n.id) }, { me, models }),
+    item: async (n, args, { models, me }) => {
+      const { itemId } = await models.itemPayIn.findUnique({ where: { payInId: Number(n.id) } })
+      return await getItem(n, { id: itemId }, { models, me })
+    }
   },
   WithdrawlPaid: {
     withdrawl: async (n, args, { me, models }) => getWithdrawl(n, { id: n.id }, { me, models })

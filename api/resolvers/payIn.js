@@ -2,6 +2,7 @@ import { USER_ID } from '@/lib/constants'
 import { GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { payInCancel } from '../payIn/transitions'
+import { retry } from '../payIn'
 
 function payInResultType (payInType) {
   switch (payInType) {
@@ -11,7 +12,7 @@ function payInResultType (payInType) {
     case 'ZAP':
     case 'DOWN_ZAP':
     case 'BOOST':
-      return 'ItemActResult'
+      return 'ItemAct'
     case 'POLL_VOTE':
       return 'PollVoteResult'
     case 'TERRITORY_CREATE':
@@ -22,29 +23,30 @@ function payInResultType (payInType) {
   }
 }
 
+export async function getPayIn (parent, { id }, { me, models }) {
+  const payIn = await models.PayIn.findUnique({
+    where: { id, userId: me?.id ?? USER_ID.ANON },
+    include: {
+      payInBolt11: {
+        include: {
+          lud18Data: true,
+          nostrNote: true,
+          comment: true
+        }
+      },
+      pessimisticEnv: true,
+      payInCustodialTokens: true
+    }
+  })
+  if (!payIn) {
+    throw new Error('PayIn not found')
+  }
+  return payIn
+}
+
 export default {
   Query: {
-    payIn: async (parent, { id }, { models, me }) => {
-      const payIn = await models.PayIn.findUnique({
-        where: { id, userId: me?.id ?? USER_ID.ANON },
-        include: {
-          payInBolt11: {
-            include: {
-              lud18Data: true,
-              nostrNote: true,
-              comment: true
-            }
-          },
-          pessimisticEnv: true,
-          payInCustodialTokens: true
-        }
-      })
-      if (!payIn) {
-        throw new Error('PayIn not found')
-      }
-
-      return payIn
-    }
+    payIn: getPayIn
   },
   Mutation: {
     cancelPayInBolt11: async (parent, { hash, hmac, userCancel }, { models, me, boss, lnd }) => {
@@ -65,6 +67,9 @@ export default {
         boss,
         lnd
       })
+    },
+    retryPayIn: async (parent, { payInId }, { models, me }) => {
+      return await retry(payInId, { models, me })
     }
   },
   PayIn: {

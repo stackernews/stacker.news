@@ -24,7 +24,7 @@ export async function getSub (models, { subName, parentId }) {
 // ltree is unsupported in Prisma, so we have to query it manually (FUCK!)
 export async function getItemResult (tx, { id }) {
   return (await tx.$queryRaw`
-    SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt", ARRAY[]::JSONB[] AS "comments"
+    SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
     FROM "Item" WHERE id = ${id}::INTEGER`
   )[0]
 }

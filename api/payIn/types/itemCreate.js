@@ -170,9 +170,10 @@ export async function onBegin (tx, payInId, args) {
   return await getItemResult(tx, { id: item.id })
 }
 
-// TODO: caller of onRetry needs to update beneficiaries
 export async function onRetry (tx, oldPayInId, newPayInId) {
-  await tx.itemPayIn.updateMany({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
+  const { itemId } = await tx.itemPayIn.findUnique({ where: { payInId: oldPayInId } })
+  await tx.itemPayIn.create({ data: { itemId, payInId: newPayInId } })
+  return await getItemResult(tx, { id: itemId })
 }
 
 export async function onPaid (tx, payInId) {

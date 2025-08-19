@@ -26,19 +26,6 @@ export default gql`
     unshorted: String
   }
 
-  type ItemActResult {
-    id: ID!
-    sats: Int!
-    path: String
-    act: String!
-  }
-
-  type ItemAct {
-    id: ID!
-    act: String!
-    invoice: Invoice
-  }
-
   extend type Mutation {
     bookmarkItem(id: ID): Item
     pinItem(id: ID): Item
@@ -64,10 +51,6 @@ export default gql`
     act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): PayIn!
     pollVote(id: ID!): PayIn!
     toggleOutlaw(id: ID!): Item!
-  }
-
-  type PollVoteResult {
-    id: ID!
   }
 
   type PollOption {
@@ -103,6 +86,19 @@ export default gql`
     HELD
     PAID
     FAILED
+  }
+
+  type ItemAct {
+    id: ID!
+    sats: Int!
+    act: String!
+    path: String
+    payIn: PayIn
+  }
+
+  type PollVote {
+    id: ID!
+    payIn: PayIn
   }
 
   type Item {

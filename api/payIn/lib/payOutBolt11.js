@@ -50,9 +50,9 @@ async function createPayOutBolt11FromWalletProtocols (walletProtocols, bolt11Arg
   throw new Error('no wallet to receive available')
 }
 
-export async function payOutBolt11Replacement (models, bolt11Args, { genesisId, payOutType, userId }) {
+export async function payOutBolt11Replacement (models, genesisId, { payOutType, userId, msats }) {
   const walletProtocols = await getLeastFailedWalletProtocols(models, { genesisId, userId })
-  return await createPayOutBolt11FromWalletProtocols(walletProtocols, bolt11Args, { payOutType, userId }, { models })
+  return await createPayOutBolt11FromWalletProtocols(walletProtocols, { msats }, { payOutType, userId }, { models })
 }
 
 export async function payOutBolt11Prospect (models, bolt11Args, { payOutType, userId }) {

@@ -519,8 +519,8 @@ export async function payInCancel ({ data, models, lnd, boss, ...args }) {
 
       // transition to FAILED manually so we don't have to wait
       await tx.$executeRaw`
-        INSERT INTO pgboss.job (name, data)
-        VALUES ('payInFailed', jsonb_build_object('payInId', ${payInId}::INTEGER))`
+        INSERT INTO pgboss.job (name, data, priority)
+        VALUES ('payInFailed', jsonb_build_object('payInId', ${payInId}::INTEGER), 100)`
 
       return {
         payInFailureReason: payInFailureReason ?? 'SYSTEM_CANCELLED'

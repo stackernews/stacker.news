@@ -5,7 +5,7 @@ import { useMe } from './me'
 import styles from './poll.module.css'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
-import useQrPayment from './payIn/hooks/use-qr-pay-in'
+import useQrPayIn from './payIn/hooks/use-qr-pay-in'
 import { useToast } from './toast'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { RETRY_PAID_ACTION, POLL_VOTE } from '@/fragments/payIn'
@@ -45,13 +45,13 @@ export default function Poll ({ item }) {
 
   const RetryVote = () => {
     const retryVote = usePollVote({ query: RETRY_PAID_ACTION, itemId: item.id })
-    const waitForQrPayment = useQrPayment()
+    const waitForQrPayIn = useQrPayIn()
 
     if (item.poll.meInvoiceActionState === 'PENDING') {
       return (
         <span
           className='ms-2 fw-bold text-info pointer'
-          onClick={() => waitForQrPayment(
+          onClick={() => waitForQrPayIn(
             { id: parseInt(item.poll.meInvoiceId) }, null, { cancelOnClose: false }).catch(console.error)}
         >vote pending
         </span>

@@ -1082,20 +1082,12 @@ export default {
       return result
     }
   },
-  ItemAct: {
-    invoice: async (itemAct, args, { models }) => {
-      // we never want to fetch the sensitive data full monty in nested resolvers
-      if (itemAct.invoiceId) {
-        return {
-          id: itemAct.invoiceId,
-          actionState: itemAct.invoiceActionState
-        }
-      }
-      return null
-    }
-  },
   Item: {
     payIn: async (item, args, { models }) => {
+      if (typeof item.payIn !== 'undefined') {
+        return item.payIn
+      }
+
       // TODO: very inefficient on a relative basis, so we can:
       // 1. denormalize payInId that created the item to it
       // 2. add this to the getItemMeta query
@@ -1104,7 +1096,8 @@ export default {
           itemPayIn: {
             itemId: item.id
           },
-          payInType: 'ITEM_CREATE'
+          payInType: 'ITEM_CREATE',
+          successorId: null
         }
       })
       return payIn

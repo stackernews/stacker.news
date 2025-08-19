@@ -1,12 +1,9 @@
 import { useRouter } from 'next/router'
 import { useToast } from './toast'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
-import { usePaidMutation, paidActionCacheMods } from './use-paid-mutation'
 import useCrossposter from './use-crossposter'
 import { useCallback } from 'react'
 import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
-import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
-import gql from 'graphql-tag'
 import { USER_ID } from '@/lib/constants'
 import { useMe } from './me'
 import { useWalletRecvPrompt, WalletPromptClosed } from '@/wallets/client/hooks'
@@ -103,38 +100,6 @@ export default function useItemSubmit (mutation,
     }, [me, upsertItem, router, crossposter, item, sub, onSuccessfulSubmit,
       navigateOnSubmit, extraValues, paidMutationOptions, walletPrompt]
   )
-}
-
-export function useRetryCreateItem ({ id }) {
-  const [retryPaidAction] = usePaidMutation(
-    RETRY_PAID_ACTION,
-    {
-      ...paidActionCacheMods,
-      update: (cache, { data }) => {
-        const response = Object.values(data)[0]
-        if (!response?.invoice) return
-        cache.modify({
-          id: `Item:${id}`,
-          fields: {
-            // this is a bit of a hack just to update the reference to the new invoice
-            invoice: () => cache.writeFragment({
-              id: `Invoice:${response.invoice.id}`,
-              fragment: gql`
-                fragment _ on Invoice {
-                  bolt11
-                }
-              `,
-              data: { bolt11: response.invoice.bolt11 }
-            })
-          },
-          optimistic: true
-        })
-        paidActionCacheMods?.update?.(cache, { data })
-      }
-    }
-  )
-
-  return retryPaidAction
 }
 
 function saveItemInvoiceHmac (mutationData) {

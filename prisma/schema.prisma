@@ -1566,8 +1566,8 @@ model PayIn {
   payInState          PayInState
   payInFailureReason  PayInFailureReason? // TODO: add check constraint
   payInStateChangedAt DateTime? // TODO: set with a trigger?
-  genesisId           Int?
-  successorId         Int?                @unique
+  genesisId           Int? // the original payIn that was retried
+  successorId         Int?                @unique // this ensures a payIn can only be retried once
   benefactorId        Int?
 
   userId Int?

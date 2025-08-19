@@ -5,7 +5,7 @@ import { useShowModal } from '@/components/modal'
 import useWatchPayIn from '@/components/payIn/hooks/use-pay-in-helper'
 import { sendPayment as weblnSendPayment } from '@/wallets/client/protocols/webln'
 
-export default function useQrPayment () {
+export default function useQrPayIn () {
   const watchPayIn = useWatchPayIn()
   const showModal = useShowModal()
 

@@ -145,14 +145,12 @@ export function useLiveCommentsToggle () {
     }
   }, [])
 
-  const toggle = useCallback((value) => {
-    const next = typeof value === 'boolean' ? value : !disableLiveComments
+  const toggle = useCallback(() => {
+    const current = window.localStorage.getItem(STORAGE_KEY) === 'true'
 
-    window.localStorage.setItem(STORAGE_KEY, next)
+    window.localStorage.setItem(STORAGE_KEY, !current)
     // trigger local event to update this tab
     window.dispatchEvent(new Event(TOGGLE_EVENT))
-
-    setDisableLiveComments(next)
   }, [disableLiveComments])
 
   return [disableLiveComments, toggle]

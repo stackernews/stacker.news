@@ -57,7 +57,6 @@ export default gql`
     deleteApiKey(id: ID!): User
     disableFreebies: Boolean
     setDiagnostics(diagnostics: Boolean!): Boolean
-    toggleLiveComments(disableLiveComments: Boolean!): Boolean!
   }
 
   type User {
@@ -118,7 +117,6 @@ export default gql`
     noteMentions: Boolean!
     noteItemMentions: Boolean!
     nsfwMode: Boolean!
-    disableLiveComments: Boolean!
     tipDefault: Int!
     tipRandomMin: Int
     tipRandomMax: Int
@@ -194,7 +192,6 @@ export default gql`
     noteMentions: Boolean!
     noteItemMentions: Boolean!
     nsfwMode: Boolean!
-    disableLiveComments: Boolean!
     tipDefault: Int!
     tipRandom: Boolean!
     tipRandomMin: Int

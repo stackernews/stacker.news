@@ -11,7 +11,6 @@ import {
   updateAncestorsCommentCount,
   calculateDepth
 } from '../lib/comments'
-import { useMe } from './me'
 
 const POLL_INTERVAL = 1000 * 5 // 5 seconds
 
@@ -126,9 +125,7 @@ const STORAGE_KEY = 'disableLiveComments'
 const TOGGLE_EVENT = 'liveComments:toggle'
 
 export function useLiveCommentsToggle () {
-  const { me } = useMe()
-  // default: user setting
-  const [disableLiveComments, setDisableLiveComments] = useState(me?.privates?.disableLiveComments)
+  const [disableLiveComments, setDisableLiveComments] = useState(false)
 
   useEffect(() => {
     // preference: local storage
@@ -158,6 +155,5 @@ export function useLiveCommentsToggle () {
     setDisableLiveComments(next)
   }, [disableLiveComments])
 
-  // disableLiveComments matches user setting but liveCommentsEnabled is used in code
   return [disableLiveComments, toggle]
 }

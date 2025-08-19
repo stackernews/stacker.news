@@ -119,7 +119,6 @@ model User {
   hideWalletRecvPrompt      Boolean              @default(false)
   diagnostics               Boolean              @default(false)
   hideIsContributor         Boolean              @default(false)
-  disableLiveComments         Boolean              @default(false)
   lnAddr                    String?
   autoWithdrawMaxFeePercent Float?
   autoWithdrawThreshold     Int?

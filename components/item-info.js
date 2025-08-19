@@ -138,8 +138,8 @@ export default function ItemInfo ({
             {embellishUser}
           </Link>}
         <span> </span>
-        <Link href={`/items/${item.id}`} title={item.invoicePaidAt || item.createdAt} className='text-reset' suppressHydrationWarning>
-          {timeSince(new Date(item.invoicePaidAt || item.createdAt))}
+        <Link href={`/items/${item.id}`} title={item.payIn?.payInStateChangedAt || item.createdAt} className='text-reset' suppressHydrationWarning>
+          {timeSince(new Date(item.payIn?.payInStateChangedAt || item.createdAt))}
         </Link>
         {item.prior &&
           <>
@@ -354,7 +354,7 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, edit
           onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}/edit`)}
         >
           <span>{editText || 'edit'} </span>
-          {(!item.invoice?.actionState || item.invoice?.actionState === 'PAID')
+          {(!item.payIn?.payInState || item.payIn?.payInState === 'PAID')
             ? <Countdown
                 date={editThreshold}
                 onComplete={() => { setCanEdit(false) }}

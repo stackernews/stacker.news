@@ -30,6 +30,7 @@ import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { useField } from 'formik'
 import styles from '@/styles/nav.module.css'
 import { AuthBanner } from '@/components/banners'
+import { useLiveCommentsToggle } from '@/components/use-live-comments'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -84,6 +85,7 @@ export function SettingsHeader () {
 export default function Settings ({ ssrData }) {
   const toaster = useToast()
   const { me } = useMe()
+  const [, toggleLiveComments] = useLiveCommentsToggle()
   const [setSettings] = useMutation(SET_SETTINGS, {
     update (cache, { data: { setSettings } }) {
       cache.modify({
@@ -188,6 +190,7 @@ export default function Settings ({ ssrData }) {
                   }
                 }
               })
+              toggleLiveComments(values.disableLiveComments)
               toaster.success('saved settings')
             } catch (err) {
               console.error(err)
@@ -544,8 +547,8 @@ export default function Settings ({ ssrData }) {
               <div className='d-flex align-items-center'>disable live comments
                 <Info>
                   <ul>
-                    <li>if checked, live comments will be disabled on every post</li>
-                    <li>you can enable it back here or at the end of the page</li>
+                    <li>if checked, live comments will be disabled by default on every device</li>
+                    <li>you can enable it per-device in the footer</li>
                   </ul>
                 </Info>
               </div>

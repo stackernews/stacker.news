@@ -14,7 +14,7 @@ function payInResultType (payInType) {
     case 'BOOST':
       return 'ItemAct'
     case 'POLL_VOTE':
-      return 'PollVoteResult'
+      return 'PollVote'
     case 'TERRITORY_CREATE':
     case 'TERRITORY_UPDATE':
     case 'TERRITORY_BILLING':

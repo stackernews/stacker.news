@@ -1178,10 +1178,7 @@ export default {
       }
 
       const options = await models.$queryRaw`
-        SELECT "PollOption".id, option,
-          (count("PollVote".id)
-            FILTER(WHERE "PollVote"."invoiceActionState" IS NULL
-              OR "PollVote"."invoiceActionState" = 'PAID'))::INTEGER as count
+        SELECT "PollOption".id, option, count("PollVote".id)::INTEGER as count
         FROM "PollOption"
         LEFT JOIN "PollVote" on "PollVote"."pollOptionId" = "PollOption".id
         WHERE "PollOption"."itemId" = ${item.id}
@@ -1198,8 +1195,6 @@ export default {
           }
         })
         poll.meVoted = !!meVoted
-        poll.meInvoiceId = meVoted?.invoiceId
-        poll.meInvoiceActionState = meVoted?.invoiceActionState
       } else {
         poll.meVoted = false
       }

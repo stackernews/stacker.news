@@ -12,8 +12,6 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-// TODO: I believe this needs to be updated to include the uploadIds
-// likewise with update and unarchive
 export async function getInitial (models, { billingType }, { me }) {
   const mcost = satsToMsats(TERRITORY_PERIOD_COST(billingType))
   return {

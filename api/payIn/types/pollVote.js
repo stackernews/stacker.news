@@ -7,7 +7,7 @@ export const anonable = false
 export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
   PAID_ACTION_PAYMENT_METHODS.REWARD_SATS,
-  PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
+  PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
 export async function getInitial (models, { id }, { me }) {
@@ -34,17 +34,10 @@ export async function getInitial (models, { id }, { me }) {
   }
 }
 
-export async function onRetry (tx, oldPayInId, newPayInId) {
-  await tx.pollVote.update({ where: { payInId: oldPayInId }, data: { payInId: newPayInId } })
-}
-
 export async function onBegin (tx, payInId, { id }) {
-  return { id }
-}
-
-export async function onPaid (tx, payInId) {
   // anonymize the vote
   await tx.pollVote.updateMany({ where: { payInId }, data: { payInId: null } })
+  return { id }
 }
 
 export async function describe (models, payInId) {

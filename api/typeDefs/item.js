@@ -60,12 +60,10 @@ export default gql`
   }
 
   type Poll {
-    meVoted: Boolean!
-    meInvoiceId: Int
-    meInvoiceActionState: InvoiceActionState
     count: Int!
     options: [PollOption!]!
     randPollOptions: Boolean
+    meVoted: Boolean!
   }
 
   type Items {

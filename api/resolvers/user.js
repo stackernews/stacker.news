@@ -4,9 +4,9 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
-import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
+import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, PAY_IN_NOTIFICATION_TYPES } from '@/lib/constants'
 import { viewGroup } from './growth'
-import { datePivot, timeUnitForRange, whenRange } from '@/lib/time'
+import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
@@ -535,26 +535,26 @@ export default {
         return true
       }
 
-      const invoiceActionFailed = await models.invoice.findFirst({
+      const invoiceActionFailed = await models.PayIn.findFirst({
         where: {
           userId: me.id,
-          updatedAt: {
+          payInStateChangedAt: {
             gt: lastChecked
           },
-          actionType: {
-            in: INVOICE_ACTION_NOTIFICATION_TYPES
+          payInType: {
+            in: PAY_IN_NOTIFICATION_TYPES
           },
-          actionState: 'FAILED',
-          OR: [
-            {
-              paymentAttempt: {
-                gte: WALLET_MAX_RETRIES
-              }
-            },
-            {
-              userCancel: true
-            }
-          ]
+          payInState: 'FAILED'
+          // OR: [
+          //   {
+          //     paymentAttempt: {
+          //       gte: WALLET_MAX_RETRIES
+          //     }
+          //   },
+          //   {
+          //     userCancel: true
+          //   }
+          // ]
         }
       })
 
@@ -563,30 +563,30 @@ export default {
         return true
       }
 
-      const invoiceActionFailed2 = await models.invoice.findFirst({
-        where: {
-          userId: me.id,
-          updatedAt: {
-            gt: datePivot(lastChecked, { milliseconds: -WALLET_RETRY_BEFORE_MS })
-          },
-          actionType: {
-            in: INVOICE_ACTION_NOTIFICATION_TYPES
-          },
-          actionState: 'FAILED',
-          paymentAttempt: {
-            lt: WALLET_MAX_RETRIES
-          },
-          userCancel: false,
-          cancelledAt: {
-            lte: datePivot(new Date(), { milliseconds: -WALLET_RETRY_BEFORE_MS })
-          }
-        }
-      })
+      // const invoiceActionFailed2 = await models.invoice.findFirst({
+      //   where: {
+      //     userId: me.id,
+      //     updatedAt: {
+      //       gt: datePivot(lastChecked, { milliseconds: -WALLET_RETRY_BEFORE_MS })
+      //     },
+      //     actionType: {
+      //       in: INVOICE_ACTION_NOTIFICATION_TYPES
+      //     },
+      //     actionState: 'FAILED',
+      //     paymentAttempt: {
+      //       lt: WALLET_MAX_RETRIES
+      //     },
+      //     userCancel: false,
+      //     cancelledAt: {
+      //       lte: datePivot(new Date(), { milliseconds: -WALLET_RETRY_BEFORE_MS })
+      //     }
+      //   }
+      // })
 
-      if (invoiceActionFailed2) {
-        foundNotes()
-        return true
-      }
+      // if (invoiceActionFailed2) {
+      //   foundNotes()
+      //   return true
+      // }
 
       // update checkedNotesAt to prevent rechecking same time period
       models.user.update({

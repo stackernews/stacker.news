@@ -7,7 +7,7 @@ import { msatsToSats } from '@/lib/format'
 import { payInBolt11Prospect, payInBolt11WrapProspect } from './lib/payInBolt11'
 import { isPessimistic, isWithdrawal } from './lib/is'
 import { PAY_IN_INCLUDE, payInCreate } from './lib/payInCreate'
-import { payOutBolt11Replacement } from './lib/payOutBolt11'
+import { NoReceiveWalletError, payOutBolt11Replacement } from './lib/payOutBolt11'
 import { payInClone } from './lib/payInPrisma'
 import { createHmac } from '../resolvers/wallet'
 
@@ -76,6 +76,7 @@ async function begin (models, payInInitial, payInArgs, { me }) {
       }
     }
 
+    // TODO: create a job for this
     tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
       VALUES ('checkPayIn', jsonb_build_object('payInId', ${payIn.id}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
     return {
@@ -285,9 +286,18 @@ export async function retry (payInId, { models, me }) {
       throw new Error('Pessimistic payIns cannot be retried')
     }
 
+    // TODO: if we can't produce a new payOutBolt11, we need to update the payOuts to use
+    // custodial tokens instead ... or don't clone the payIn, and just start from scratch
     let payOutBolt11
     if (payInFailed.payOutBolt11) {
-      payOutBolt11 = await payOutBolt11Replacement(models, payInFailed.genesisId ?? payInFailed.id, payInFailed.payOutBolt11)
+      try {
+        payOutBolt11 = await payOutBolt11Replacement(models, payInFailed.genesisId ?? payInFailed.id, payInFailed.payOutBolt11)
+      } catch (e) {
+        console.error('payOutBolt11Replacement failed', e)
+        if (!(e instanceof NoReceiveWalletError)) {
+          throw e
+        }
+      }
     }
 
     const { payIn, result, mCostRemaining } = await models.$transaction(async tx => {
@@ -296,7 +306,10 @@ export async function retry (payInId, { models, me }) {
       const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, undefined, { me })
 
       // use an optimistic lock on successorId on the payIn
-      await tx.$executeRaw`UPDATE "PayIn" SET "successorId" = ${payIn.id} WHERE "id" = ${payInFailed.id} AND "successorId" IS NULL`
+      const rows = await tx.$queryRaw`UPDATE "PayIn" SET "successorId" = ${payIn.id} WHERE "id" = ${payInFailed.id} AND "successorId" IS NULL RETURNING *`
+      if (rows.length === 0) {
+        throw new Error('PayIn with id ' + payInFailed.id + ' is already being retried')
+      }
 
       // run the onRetry hook for the payIn and its beneficiaries
       const result = await payInTypeModules[payIn.payInType].onRetry?.(tx, payInFailed.id, payIn.id)

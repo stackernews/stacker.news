@@ -10,7 +10,7 @@ async function getLeastFailedWalletProtocols (models, { genesisId, userId }) {
       FROM "PayIn"
       JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn"."id"
       WHERE "PayIn"."payInFailureReason" IS NOT NULL AND "PayIn"."genesisId" = ${genesisId}
-      AND "PayOutBolt11"."payInFailureReason" IN (${Prisma.join(PAY_IN_RECEIVER_FAILURE_REASONS)})
+      AND "PayIn"."payInFailureReason" IN (${Prisma.join(PAY_IN_RECEIVER_FAILURE_REASONS.map(r => Prisma.sql`${r}::"PayInFailureReason"`))})
       GROUP BY "PayOutBolt11"."protocolId"
     )
     SELECT "WalletProtocol".*, "Wallet"."userId" as "userId"
@@ -30,6 +30,13 @@ async function getWalletProtocols (models, { userId }) {
     ORDER BY "Wallet"."priority" ASC`
 }
 
+export class NoReceiveWalletError extends Error {
+  constructor (message) {
+    super(message)
+    this.name = 'NoReceiveWalletError'
+  }
+}
+
 async function createPayOutBolt11FromWalletProtocols (walletProtocols, bolt11Args, { payOutType, userId }, { models }) {
   for await (const { bolt11, protocol } of createBolt11FromWalletProtocols(walletProtocols, bolt11Args, { models })) {
     try {
@@ -47,7 +54,7 @@ async function createPayOutBolt11FromWalletProtocols (walletProtocols, bolt11Arg
     }
   }
 
-  throw new Error('no wallet to receive available')
+  throw new NoReceiveWalletError('no wallet to receive available')
 }
 
 export async function payOutBolt11Replacement (models, genesisId, { payOutType, userId, msats }) {

@@ -2,7 +2,7 @@ import React from 'react'
 import styles from './pay-bounty.module.css'
 import ActionTooltip from './action-tooltip'
 import { useMe } from './me'
-import { numWithUnits } from '@/lib/format'
+import { numWithUnits, satsToMsats } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
 import { ActCanceledError, useAct } from './item-act'
@@ -12,9 +12,10 @@ import { useHasSendWallet } from '@/wallets/client/hooks'
 import { Form, SubmitButton } from './form'
 
 export const payBountyCacheMods = {
-  onPaid: (cache, { data }) => {
+  update: (cache, { data }) => {
     const response = Object.values(data)[0]
     if (!response?.result) return
+    console.log('payBounty: update', response)
     const { id, path } = response.result
     const root = path.split('.')[0]
     cache.modify({
@@ -30,6 +31,7 @@ export const payBountyCacheMods = {
   onPayError: (e, cache, { data }) => {
     const response = Object.values(data)[0]
     if (!response?.result) return
+    console.log('payBounty: onPayError', response)
     const { id, path } = response.result
     const root = path.split('.')[0]
     cache.modify({
@@ -53,9 +55,10 @@ export default function PayBounty ({ children, item }) {
   const hasSendWallet = useHasSendWallet()
 
   const variables = { id: item.id, sats: root.bounty, act: 'TIP', hasSendWallet }
+  console.log('payBounty', item.path)
   const act = useAct({
     variables,
-    optimisticResponse: { act: { ...variables, path: item.path, __typename: 'ItemActResult' } },
+    optimisticResponse: { payInType: 'ZAP', mcost: satsToMsats(root.bounty), result: { path: item.path, id: item.id, sats: root.bounty, act: 'TIP', __typename: 'ItemAct' } },
     ...payBountyCacheMods
   })
 

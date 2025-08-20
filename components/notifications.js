@@ -39,7 +39,7 @@ import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
-import useRetryPayIn from './payIn/hooks/use-retry-pay-in'
+import { useRetryPayIn, useRetryBountyPayIn, useRetryItemActPayIn } from './payIn/hooks/use-retry-pay-in'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -158,7 +158,7 @@ const defaultOnClick = n => {
   if (type === 'SubStatus') return { href: `/~${n.sub.name}` }
   if (type === 'Invitification') return { href: '/invites' }
   if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
-  if (type === 'Invoicification') return itemLink(n.invoice.item)
+  if (type === 'PayInFailed') return itemLink(n.item)
   if (type === 'WithdrawlPaid') return { href: `/withdrawals/${n.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'ReferralReward') return { href: '/referrals/month' }
@@ -405,7 +405,6 @@ function PayInFailed ({ n }) {
   const toaster = useToast()
   const { payIn, item } = n
   const updatePayIn = useCallback((cache, { data }) => {
-    console.log('updatePayIn', data.retryPayIn.id, data.retryPayIn.payInState)
     cache.writeFragment({
       id: `PayInFailed:${n.id}`,
       fragment: gql`
@@ -424,28 +423,36 @@ function PayInFailed ({ n }) {
       }
     })
   }, [n.id])
-  const retryPayIn = useRetryPayIn(payIn.id, {
-    update: updatePayIn
-  })
 
-  const [actionString, colorClass] = useMemo(() => {
+  const retryPayIn = useRetryPayIn(payIn.id, { update: updatePayIn })
+  const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
+  const optimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct' } }
+  const retryBountyPayIn = useRetryBountyPayIn(payIn.id, { update: updatePayIn, optimisticResponse })
+  const retryItemActPayIn = useRetryItemActPayIn(payIn.id, { update: updatePayIn, optimisticResponse })
+
+  const [actionString, colorClass, retry] = useMemo(() => {
+    let retry
     let actionString = ''
     const itemType = item.title ? 'post' : 'comment'
     if (payIn.payInType === 'ITEM_CREATE') {
       actionString = `${itemType} create `
+      retry = retryPayIn
     } else if (payIn.payInType === 'POLL_VOTE') {
       actionString = 'poll vote '
+      retry = retryPayIn
     } else {
-      if (payIn.payInType === 'ZAP') {
-        if (item.root?.bounty === msatsToSats(payIn.mcost) && item.root?.mine) {
-          actionString = 'bounty payment'
-        } else {
+      if (payIn.payInType === 'ZAP' && item.root?.bounty === msatsToSats(payIn.mcost) && item.root?.mine) {
+        actionString = 'bounty payment'
+        retry = retryBountyPayIn
+      } else {
+        if (payIn.payInType === 'ZAP') {
           actionString = 'zap'
+        } else if (payIn.payInType === 'DOWN_ZAP') {
+          actionString = 'downzap'
+        } else if (payIn.payInType === 'BOOST') {
+          actionString = 'boost'
         }
-      } else if (payIn.payInType === 'DOWN_ZAP') {
-        actionString = 'downzap'
-      } else if (payIn.payInType === 'BOOST') {
-        actionString = 'boost'
+        retry = retryItemActPayIn
       }
       actionString = `${actionString} on ${itemType} `
     }
@@ -463,8 +470,8 @@ function PayInFailed ({ n }) {
       default:
         actionString += 'pending'
     }
-    return [actionString, colorClass]
-  }, [payIn, item])
+    return [actionString, colorClass, retry]
+  }, [payIn, item, retryPayIn, retryBountyPayIn, retryItemActPayIn])
 
   return (
     <div>
@@ -480,7 +487,7 @@ function PayInFailed ({ n }) {
               if (disableRetry) return
               setDisableRetry(true)
               try {
-                const { error } = await retryPayIn()
+                const { error } = await retry()
                 if (error) throw error
               } catch (error) {
                 toaster.danger(error?.message || error?.toString?.())

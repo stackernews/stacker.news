@@ -28,7 +28,7 @@ import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
-import useRetryPayIn from './payIn/hooks/use-retry-pay-in'
+import { useRetryPayIn } from './payIn/hooks/use-retry-pay-in'
 
 function itemTitle (item) {
   let title = ''

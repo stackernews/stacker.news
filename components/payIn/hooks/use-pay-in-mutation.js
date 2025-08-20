@@ -111,23 +111,24 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
 }
 
 // all paid actions need these fields and they're easy to forget
-function addOptimisticResponseExtras (mutation, optimisticResponse) {
-  if (!optimisticResponse) return optimisticResponse
+function addOptimisticResponseExtras (mutation, payInOptimisticResponse) {
+  if (!payInOptimisticResponse) return payInOptimisticResponse
   const mutationName = getOperationName(mutation)
-  optimisticResponse[mutationName] = {
-    __typename: 'PayIn',
-    id: 'temp-pay-in-id',
-    payInBolt11: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    payInState: 'PENDING',
-    payInStateChangedAt: new Date().toISOString(),
-    payInType: null,
-    payInFailureReason: null,
-    payInCustodialTokens: null,
-    pessimisticEnv: null,
-    mcost: null,
-    result: optimisticResponse[mutationName]
+  return {
+    [mutationName]: {
+      __typename: 'PayIn',
+      id: 'temp-pay-in-id',
+      payInBolt11: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      payInState: 'PENDING',
+      payInStateChangedAt: new Date().toISOString(),
+      payInType: payInOptimisticResponse.payInType,
+      payInFailureReason: null,
+      payInCustodialTokens: null,
+      pessimisticEnv: null,
+      mcost: payInOptimisticResponse.mcost,
+      result: payInOptimisticResponse.result
+    }
   }
-  return optimisticResponse
 }

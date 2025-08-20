@@ -15,6 +15,7 @@ import { useHasSendWallet } from '@/wallets/client/hooks'
 import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { getOperationName } from '@apollo/client/utilities'
+import { satsToMsats } from '@/lib/format'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -131,7 +132,9 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       },
       optimisticResponse: me
         ? {
-            act: { id: item.id, sats: Number(amount), act, path: item.path, __typename: 'ItemActResult' }
+            payInType: act === 'DONT_LIKE_THIS' ? 'DOWN_ZAP' : act === 'BOOST' ? 'BOOST' : 'ZAP',
+            mcost: satsToMsats(Number(amount)),
+            result: { path: item.path, id: item.id, sats: Number(amount), act, __typename: 'ItemAct' }
           }
         : undefined,
       // don't close modal immediately because we want the QR modal to stack
@@ -175,10 +178,10 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       </Form>)
 }
 
-function modifyActCache (cache, { result, invoice }, me) {
+function modifyActCache (cache, { result, payOutBolt11 }, me) {
   if (!result) return
   const { id, sats, act } = result
-  const p2p = invoice?.invoiceForward
+  const p2p = !!payOutBolt11
 
   cache.modify({
     id: `Item:${id}`,
@@ -226,10 +229,10 @@ function modifyActCache (cache, { result, invoice }, me) {
 
 // doing this onPaid fixes issue #1695 because optimistically updating all ancestors
 // conflicts with the writeQuery on navigation from SSR
-function updateAncestors (cache, { result, invoice }) {
+function updateAncestors (cache, { result, payOutBolt11 }) {
   if (!result) return
   const { id, sats, act, path } = result
-  const p2p = invoice?.invoiceForward
+  const p2p = !!payOutBolt11
 
   if (act === 'TIP') {
     // update all ancestors
@@ -262,12 +265,12 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   const hasSendWallet = useHasSendWallet()
 
   const [act] = usePayInMutation(query, {
-    waitFor: inv =>
+    waitFor: payIn =>
       // if we have attached wallets, we might be paying a wrapped invoice in which case we need to make sure
       // we don't prematurely consider the payment as successful (important for receiver fallbacks)
       hasSendWallet
-        ? inv?.actionState === 'PAID'
-        : inv?.satsReceived > 0,
+        ? payIn?.payInState === 'PAID'
+        : ['FORWARDING', 'PAID'].includes(payIn?.payInState),
     ...options,
     update: (cache, { data }) => {
       const response = getPayInResult(data)
@@ -306,7 +309,7 @@ export function useZap () {
     const sats = nextTip(meSats, { ...me?.privates })
 
     const variables = { id: item.id, sats, act: 'TIP', hasSendWallet }
-    const optimisticResponse = { act: { path: item.path, ...variables, __typename: 'ItemActResult' } }
+    const optimisticResponse = { payInType: 'ZAP', mcost: satsToMsats(sats), result: { path: item.path, ...variables, __typename: 'ItemAct' } }
 
     try {
       await abortSignal.pause({ me, amount: sats })

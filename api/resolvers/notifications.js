@@ -406,7 +406,7 @@ export default {
         WHERE "PayIn"."userId" = $1
         AND "PayIn"."payInStateChangedAt" < $2
         AND "PayIn"."payInState" = 'FAILED'
-        AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'POLL_VOTE', 'BOOST')
+        AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
         AND "PayIn"."successorId" IS NULL
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT})`

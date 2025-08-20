@@ -8,7 +8,7 @@ export class InvoiceError extends Error {
 
 export class InvoiceCanceledError extends InvoiceError {
   constructor (invoice, actionError) {
-    super(invoice, actionError ?? `invoice canceled: ${invoice.hash}`)
+    super(invoice, actionError ?? `invoice canceled: ${invoice?.hash}`)
     this.name = 'InvoiceCanceledError'
     this.actionError = actionError
   }

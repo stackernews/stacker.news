@@ -2,11 +2,11 @@ import { useCallback } from 'react'
 import PayIn from '@/components/payIn'
 import { AnonWalletError, InvoiceCanceledError } from '@/wallets/client/errors'
 import { useShowModal } from '@/components/modal'
-import useWatchPayIn from '@/components/payIn/hooks/use-pay-in-helper'
+import usePayInHelper from '@/components/payIn/hooks/use-pay-in-helper'
 import { sendPayment as weblnSendPayment } from '@/wallets/client/protocols/webln'
 
 export default function useQrPayIn () {
-  const watchPayIn = useWatchPayIn()
+  const payInHelper = usePayInHelper()
   const showModal = useShowModal()
 
   const waitForQrPayIn = useCallback(async (payIn, walletError,
@@ -27,8 +27,8 @@ export default function useQrPayIn () {
       const cancelAndReject = async (onClose) => {
         console.log('waitForQrPayIn: cancelAndReject', payIn.id, updatedPayIn, cancelOnClose)
         if (!updatedPayIn && cancelOnClose) {
-          const updatedPayIn = await watchPayIn.cancel(payIn, { userCancel: true })
-          reject(new InvoiceCanceledError(updatedPayIn.payInBolt11))
+          const updatedPayIn = await payInHelper.cancel(payIn, { userCancel: true })
+          reject(new InvoiceCanceledError(updatedPayIn?.payInBolt11))
         }
         resolve(updatedPayIn)
       }
@@ -57,7 +57,7 @@ export default function useQrPayIn () {
         />,
       { keepOpen, persistOnNavigate, onClose: cancelAndReject })
     })
-  }, [watchPayIn])
+  }, [payInHelper])
 
   return waitForQrPayIn
 }

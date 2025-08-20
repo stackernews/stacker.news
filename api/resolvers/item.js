@@ -1181,6 +1181,7 @@ export default {
         SELECT "PollOption".id, option, count("PollVote".id)::INTEGER as count
         FROM "PollOption"
         LEFT JOIN "PollVote" on "PollVote"."pollOptionId" = "PollOption".id
+        LEFT JOIN "PayIn" on "PayIn"."id" = "PollVote"."payInId" AND "PayIn"."payInState" = 'PAID'
         WHERE "PollOption"."itemId" = ${item.id}
         GROUP BY "PollOption".id
         ORDER BY "PollOption".id ASC
@@ -1188,10 +1189,14 @@ export default {
 
       const poll = {}
       if (me) {
-        const meVoted = await models.pollBlindVote.findFirst({
+        const meVoted = await models.payIn.findFirst({
           where: {
             userId: me.id,
-            itemId: item.id
+            payInType: 'POLL_VOTE',
+            payInState: 'PAID',
+            itemPayIn: {
+              itemId: item.id
+            }
           }
         })
         poll.meVoted = !!meVoted

@@ -22,7 +22,7 @@ function subscribeForever (subscribe) {
     let sub
     try {
       return await new Promise((resolve, reject) => {
-        sub = subscribe(resolve, bail)
+        sub = subscribe(resolve, reject)
         if (!sub) {
           return bail(new Error('function passed to subscribeForever must return a subscription object or promise'))
         }
@@ -37,7 +37,7 @@ function subscribeForever (subscribe) {
         }
       })
     } catch (error) {
-      console.error(error)
+      console.error('error subscribing', error)
       throw new Error('error subscribing - trying again')
     } finally {
       sub?.removeAllListeners()

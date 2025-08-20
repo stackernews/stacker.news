@@ -81,6 +81,7 @@ export const ITEM_FIELDS = gql`
       confirmedAt
     }
     cost
+    meCommentsViewedAt
   }`
 
 export const ITEM_FULL_FIELDS = gql`
@@ -209,5 +210,11 @@ export const RELATED_ITEMS_WITH_ITEM = gql`
         ...ItemFields
       }
     }
+  }
+`
+
+export const UPDATE_ITEM_USER_VIEW = gql`
+  mutation updateItemUserView($id: ID!, $meCommentsViewedAt: Date!) {
+    updateItemUserView(id: $id, meCommentsViewedAt: $meCommentsViewedAt)
   }
 `

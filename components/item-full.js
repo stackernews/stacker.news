@@ -27,6 +27,8 @@ import classNames from 'classnames'
 import { CarouselProvider } from './carousel'
 import Embed from './embed'
 import { useRouter } from 'next/router'
+import { useMutation } from '@apollo/client'
+import { UPDATE_ITEM_USER_VIEW } from '@/fragments/items'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
@@ -162,9 +164,19 @@ function ItemText ({ item }) {
 }
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {
+  const { me } = useMe()
+  const [updateItemUserView] = useMutation(UPDATE_ITEM_USER_VIEW)
+
   useEffect(() => {
+    const lastCommentAt = item.lastCommentAt || item.createdAt
+    if (me?.id && lastCommentAt) {
+      console.log('updating item user view', item.id, lastCommentAt)
+      updateItemUserView({
+        variables: { id: item.id, meCommentsViewedAt: lastCommentAt }
+      })
+    }
     commentsViewed(item)
-  }, [item.lastCommentAt])
+  }, [item.lastCommentAt, item.createdAt])
 
   const router = useRouter()
   const carouselKey = `${item.id}-${router.query?.sort || 'default'}`

@@ -45,6 +45,7 @@ export function BoostHelp () {
       </li>
       <li>boost can take a few minutes to show higher ranking in feed</li>
       <li>100% of boost goes to the territory founder and top stackers as rewards</li>
+      <li>If a boost is outlawed, it will only be visible to stackers in wild west mode</li>
     </ol>
   )
 }

@@ -12,10 +12,13 @@ import No from '@/svgs/no.svg'
 import Bolt from '@/svgs/bolt.svg'
 import Amboss from '@/svgs/amboss.svg'
 import Mempool from '@/svgs/bimi.svg'
+import Live from '@/svgs/chat-unread-fill.svg'
+import NoLive from '@/svgs/chat-off-fill.svg'
 import Rewards from './footer-rewards'
 import useDarkMode from './dark-mode'
 import ActionTooltip from './action-tooltip'
 import { useAnimationEnabled } from '@/components/animation'
+import { useLiveCommentsToggle } from './use-live-comments'
 
 const RssPopover = (
   <Popover>
@@ -147,8 +150,11 @@ export default function Footer ({ links = true }) {
 
   const [animationEnabled, toggleAnimation] = useAnimationEnabled()
 
+  const [disableLiveComments, toggleLiveComments] = useLiveCommentsToggle()
+
   const DarkModeIcon = darkMode ? Sun : Moon
   const LnIcon = animationEnabled ? No : Bolt
+  const LiveIcon = disableLiveComments ? Live : NoLive
 
   const version = process.env.NEXT_PUBLIC_COMMIT_HASH
 
@@ -163,6 +169,9 @@ export default function Footer ({ links = true }) {
               </ActionTooltip>
               <ActionTooltip notForm overlayText={`${animationEnabled ? 'disable' : 'enable'} lightning animations`}>
                 <LnIcon onClick={toggleAnimation} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
+              </ActionTooltip>
+              <ActionTooltip notForm overlayText={`${disableLiveComments ? 'enable' : 'disable'} live comments`}>
+                <LiveIcon onClick={toggleLiveComments} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
               </ActionTooltip>
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>

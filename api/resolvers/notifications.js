@@ -1,5 +1,5 @@
 import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
-import { getItem, filterClause, whereClause, muteClause, activeOrMine } from './item'
+import { getItem, filterClause, whereClause, muteClause, activeOrMine, payInJoinFilter } from './item'
 import { getInvoice, getWithdrawl } from './wallet'
 import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
 import { sendPushSubscriptionReply } from '@/lib/webPush'
@@ -165,6 +165,7 @@ export default {
           FROM (
             ${itemDrivenQueries.map(q => `(${q})`).join(' UNION ALL ')}
           ) as "Item"
+          ${payInJoinFilter(me)}
           ${whereClause(
             '"Item".created_at < $2',
             await filterClause(me, models),

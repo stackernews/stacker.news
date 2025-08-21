@@ -9,12 +9,13 @@ export async function expireBoost ({ data: { id }, models }) {
     [
       models.$executeRaw`
         WITH boost AS (
-          SELECT sum(msats) FILTER (WHERE created_at <= now() - interval '30 days') as old_msats,
-                sum(msats) FILTER (WHERE created_at > now() - interval '30 days') as cur_msats
-          FROM "ItemAct"
-          WHERE act = 'BOOST'
+          SELECT sum("mcost") FILTER (WHERE "PayIn"."payInStateChangedAt" <= now() - interval '30 days') as old_msats,
+                sum("mcost") FILTER (WHERE "PayIn"."payInStateChangedAt" > now() - interval '30 days') as cur_msats
+          FROM "PayIn"
+          JOIN "ItemPayIn" ON "ItemPayIn"."payInId" = "PayIn"."id"
+          WHERE "payInType" = 'BOOST'
           AND "itemId" = ${Number(id)}::INTEGER
-          AND ("invoiceActionState" IS NULL OR "invoiceActionState" = 'PAID')
+          AND "payInState" = 'PAID'
         )
         UPDATE "Item"
         SET boost = COALESCE(boost.cur_msats, 0) / 1000, "oldBoost" = COALESCE(boost.old_msats, 0) / 1000

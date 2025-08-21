@@ -1,8 +1,7 @@
 import { useApolloClient, useMutation } from '@apollo/client'
 import { useCallback, useMemo } from 'react'
 import { InvoiceCanceledError, InvoiceExpiredError, WalletReceiverError } from '@/wallets/client/errors'
-import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
-import { GET_PAY_IN, CANCEL_PAY_IN_BOLT11 } from '@/fragments/payIn'
+import { GET_PAY_IN, CANCEL_PAY_IN_BOLT11, RETRY_PAY_IN } from '@/fragments/payIn'
 import { FAST_POLL_INTERVAL } from '@/lib/constants'
 
 const RECEIVER_FAILURE_REASONS = [
@@ -14,7 +13,7 @@ const RECEIVER_FAILURE_REASONS = [
 
 export default function usePayInHelper () {
   const client = useApolloClient()
-  const [retryPaidAction] = useMutation(RETRY_PAID_ACTION)
+  const [retryPayIn] = useMutation(RETRY_PAY_IN)
   const [cancelPayInBolt11] = useMutation(CANCEL_PAY_IN_BOLT11)
 
   const check = useCallback(async (id, that, { fetchPolicy = 'network-only' } = {}) => {
@@ -54,16 +53,16 @@ export default function usePayInHelper () {
     return data.cancelPayInBolt11
   }, [cancelPayInBolt11])
 
-  const retry = useCallback(async ({ id, hash, hmac, newAttempt = false }, { update } = {}) => {
-    console.log('retrying invoice:', hash)
-    const { data, error } = await retryPaidAction({ variables: { invoiceId: Number(id), newAttempt }, update })
+  const retry = useCallback(async ({ payIn, newAttempt = false }, { update } = {}) => {
+    console.log('retrying invoice:', payIn.payInBolt11.hash)
+    const { data, error } = await retryPayIn({ variables: { payInId: payIn.id, newAttempt }, update })
     if (error) throw error
 
-    const newInvoice = data.retryPaidAction.invoice
-    console.log('new invoice:', newInvoice?.hash)
+    const newPayIn = data.retryPayIn
+    console.log('new payIn:', newPayIn?.payInBolt11?.hash)
 
-    return newInvoice
-  }, [retryPaidAction])
+    return newPayIn
+  }, [retryPayIn])
 
   return useMemo(() => ({ cancel, retry, check, waitCheckController }), [cancel, retry, check, waitCheckController])
 }

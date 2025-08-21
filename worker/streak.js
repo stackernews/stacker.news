@@ -91,29 +91,13 @@ function getStreakQuery (type, userId) {
     : Prisma.sql`(now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date`
 
   return Prisma.sql`
-      SELECT "userId"
-        FROM
-        ((SELECT "userId", floor(sum("ItemAct".msats)/1000) as sats_spent
-            FROM "ItemAct"
-            WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= ${dayFragment}
-            AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
-            ${userId ? Prisma.sql`AND "userId" = ${userId}` : Prisma.empty}
-            GROUP BY "userId")
-        UNION ALL
-        (SELECT "userId", sats as sats_spent
-            FROM "Donation"
-            WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= ${dayFragment}
-            ${userId ? Prisma.sql`AND "userId" = ${userId}` : Prisma.empty}
-        )
-        UNION ALL
-        (SELECT "userId", floor(sum("SubAct".msats)/1000) as sats_spent
-          FROM "SubAct"
-          WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= ${dayFragment}
-          ${userId ? Prisma.sql`AND "userId" = ${userId}` : Prisma.empty}
-          AND "type" = 'BILLING'
-          GROUP BY "userId")) spending
-        GROUP BY "userId"
-        HAVING sum(sats_spent) >= ${COWBOY_HAT_STREAK_THRESHOLD}`
+      SELECT "PayIn"."userId"
+        FROM "PayIn"
+        WHERE "PayIn"."payInState" = 'PAID'
+        AND ("PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= ${dayFragment}
+        ${userId ? Prisma.sql`AND "PayIn"."userId" = ${userId}` : Prisma.empty}
+        GROUP BY "PayIn"."userId"
+        HAVING sum("PayIn"."mcost") / 1000.0 >= ${COWBOY_HAT_STREAK_THRESHOLD}`
 }
 
 function isStreakActive (type, user) {

@@ -980,7 +980,14 @@ export default {
       const item = await models.item.findFirst({
         where: {
           userId: user.id,
-          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
+          itemPayIns: {
+            some: {
+              payIn: {
+                payInState: 'PAID',
+                payInType: 'ITEM_CREATE'
+              }
+            }
+          }
         },
         orderBy: {
           createdAt: 'asc'
@@ -1001,7 +1008,14 @@ export default {
             gte,
             lte
           },
-          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
+          itemPayIns: {
+            some: {
+              payIn: {
+                payInState: 'PAID',
+                payInType: 'ITEM_CREATE'
+              }
+            }
+          }
         }
       })
     },
@@ -1019,7 +1033,14 @@ export default {
             gte,
             lte
           },
-          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
+          itemPayIns: {
+            some: {
+              payIn: {
+                payInState: 'PAID',
+                payInType: 'ITEM_CREATE'
+              }
+            }
+          }
         }
       })
     },
@@ -1037,7 +1058,14 @@ export default {
             gte,
             lte
           },
-          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
+          itemPayIns: {
+            some: {
+              payIn: {
+                payInState: 'PAID',
+                payInType: 'ITEM_CREATE'
+              }
+            }
+          }
         }
       })
     },

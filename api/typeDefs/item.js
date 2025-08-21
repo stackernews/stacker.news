@@ -103,7 +103,6 @@ export default gql`
     id: ID!
     createdAt: Date!
     updatedAt: Date!
-    invoicePaidAt: Date
     deletedAt: Date
     deleteScheduledAt: Date
     reminderScheduledAt: Date
@@ -164,7 +163,6 @@ export default gql`
     imgproxyUrls: JSONObject
     rel: String
     apiKey: Boolean
-    invoice: Invoice
     cost: Int!
     payIn: PayIn
   }

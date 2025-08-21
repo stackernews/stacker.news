@@ -39,7 +39,7 @@ function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
     return `ORDER BY ${sharedSorts},
       ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC,
-      COALESCE("payIn"->>'payInStateChangedAt', "Item".created_at) DESC, "Item".id DESC`
+      COALESCE(("payIn"->>'payInStateChangedAt')::timestamp(3), "Item".created_at) DESC, "Item".id DESC`
   }
 
   if (sort === 'hot') {

@@ -13,6 +13,7 @@ import { Button, Container } from 'react-bootstrap'
 import { Form, Input, SubmitButton } from '@/components/form'
 import Moon from '@/svgs/moon-fill.svg'
 import styles from './lightning-auth.module.css'
+import NostrBunkerLogin from './nostr-bunker-login'
 
 const sanitizeURL = (s) => {
   try {
@@ -33,7 +34,7 @@ function NostrError ({ message }) {
   )
 }
 
-export function NostrAuth ({ text, callbackUrl, multiAuth }) {
+export function NostrAuth ({ text, callbackUrl, multiAuth, enableQRLogin = false }) {
   const [status, setStatus] = useState({
     msg: '',
     error: false,
@@ -41,6 +42,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
     title: undefined,
     button: undefined
   })
+  const [showBunkerLogin, setShowBunkerLogin] = useState(false)
 
   const [suggestion, setSuggestion] = useState(null)
   const suggestionTimeout = useRef(null)
@@ -231,8 +233,25 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
             >
               {text || 'Login'} with extension
             </Button>
+            {enableQRLogin && (
+              <>
+                <div className='text-center text-muted fw-bold my-2'>or</div>
+                <Button
+                  variant='outline-secondary'
+                  className='w-100 mb-3'
+                  onClick={() => setShowBunkerLogin(!showBunkerLogin)}
+                >
+                  {showBunkerLogin ? 'Hide' : 'Show'} QR code login (mobile)
+                </Button>
+              </>
+            )}
           </>
           )}
+      {enableQRLogin && showBunkerLogin && (
+        <div className='mt-3 mb-4 p-3 border rounded bg-light'>
+          <NostrBunkerLogin text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} compact />
+        </div>
+      )}
     </>
   )
 }
@@ -327,10 +346,10 @@ function NostrExplainer ({ text, children }) {
   )
 }
 
-export function NostrAuthWithExplainer ({ text, callbackUrl, multiAuth }) {
+export function NostrAuthWithExplainer ({ text, callbackUrl, multiAuth, enableQRLogin = false }) {
   return (
     <NostrExplainer text={text}>
-      <NostrAuth text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
+      <NostrAuth text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} enableQRLogin={enableQRLogin} />
     </NostrExplainer>
   )
 }

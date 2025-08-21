@@ -194,7 +194,6 @@ async function pubkeyAuth (credentials, req, res, pubkeyColumnName) {
 async function nostrEventAuth (event) {
   // parse event
   const e = JSON.parse(event)
-
   // is the event id a hash of this event
   const id = createHash('sha256').update(
     JSON.stringify(
@@ -206,17 +205,18 @@ async function nostrEventAuth (event) {
   }
 
   // is the signature valid
-  if (!(await schnorr.verify(e.sig, e.id, e.pubkey))) {
+  if (!schnorr.verify(e.sig, e.id, e.pubkey)) {
     throw new Error('invalid signature')
   }
 
   // is the challenge present in the event
-  if (!(e.tags[0].length === 2 && e.tags[0][0] === 'challenge')) {
-    throw new Error('expected tags = [["challenge", <challenge>]]')
+  const challengeTag = e.tags.find(tag => tag.length >= 2 && tag[0] === 'challenge')
+  if (!challengeTag) {
+    throw new Error('expected challenge tag in event tags')
   }
 
   const pubkey = e.pubkey
-  const k1 = e.tags[0][1]
+  const k1 = challengeTag[1]
   await prisma.lnAuth.update({ data: { pubkey }, where: { k1 } })
 
   return { k1, pubkey }

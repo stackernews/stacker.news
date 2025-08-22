@@ -4,8 +4,7 @@ import PgBoss from 'pg-boss'
 import createPrisma from '@/lib/create-prisma'
 import {
   checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
-  checkWithdrawal,
-  finalizeHodlInvoice, subscribeToWallet
+  checkWithdrawal, finalizeHodlInvoice, subscribeToWallet
 } from './wallet'
 import { repin } from './repin'
 import { trust } from './trust'
@@ -37,6 +36,7 @@ import { payWeeklyPostBounty, weeklyPost } from './weeklyPosts'
 import { expireBoost } from './expireBoost'
 import { payingActionConfirmed, payingActionFailed } from './payingAction'
 import { autoDropBolt11s } from './autoDropBolt11'
+import { postToSocial } from './socialPoster'
 
 // WebSocket polyfill
 import ws from 'isomorphic-ws'
@@ -142,6 +142,7 @@ async function work () {
   await boss.work('saltAndHashEmails', jobWrapper(saltAndHashEmails))
   await boss.work('reminder', jobWrapper(remindUser))
   await boss.work('thisDay', jobWrapper(thisDay))
+  await boss.work('socialPoster', jobWrapper(postToSocial))
 
   console.log('working jobs')
 }

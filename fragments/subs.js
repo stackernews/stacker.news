@@ -6,9 +6,9 @@ import { COMMENTS_ITEM_EXT_FIELDS } from './comments'
 const STREAK_FIELDS = gql`
   fragment StreakFields on User {
     optional {
-    streak
-    gunStreak
-      horseStreak
+      streak
+      hasSendWallet
+      hasRecvWallet
     }
   }
 `
@@ -118,6 +118,14 @@ export const SUB_SEARCH = gql`
         searchTitle
         searchText
       }
+    }
+  }
+`
+
+export const SUB_SUGGESTIONS = gql`
+  query subSuggestions($q: String!, $limit: Limit) {
+    subSuggestions(q: $q, limit: $limit) {
+      name
     }
   }
 `

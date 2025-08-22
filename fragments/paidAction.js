@@ -1,7 +1,7 @@
 import gql from 'graphql-tag'
-import { COMMENTS } from './comments'
+import { COMMENTS, COMMENT_FIELDS_NO_CHILD_COMMENTS } from './comments'
 import { SUB_FULL_FIELDS } from './subs'
-import { INVOICE_FIELDS } from './wallet'
+import { INVOICE_FIELDS } from './invoice'
 
 const HASH_HMAC_INPUT_1 = '$hash: String, $hmac: String'
 const HASH_HMAC_INPUT_2 = 'hash: $hash, hmac: $hmac'
@@ -33,13 +33,13 @@ const ITEM_PAID_ACTION_FIELDS = gql`
   }`
 
 const ITEM_PAID_ACTION_FIELDS_NO_CHILD_COMMENTS = gql`
-  ${COMMENTS}
+  ${COMMENT_FIELDS_NO_CHILD_COMMENTS}
   fragment ItemPaidActionFieldsNoChildComments on ItemPaidAction {
     result {
       id
       deleteScheduledAt
       reminderScheduledAt
-      ...CommentFields
+      ...CommentFieldsNoChildComments
     }
   }
 `
@@ -192,10 +192,10 @@ export const UPSERT_POLL = gql`
   ${PAID_ACTION}
   mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
     $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $pollExpiresAt: Date,
-    ${HASH_HMAC_INPUT_1}) {
+    $randPollOptions: Boolean, ${HASH_HMAC_INPUT_1}) {
     upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
       options: $options, boost: $boost, forward: $forward, pollExpiresAt: $pollExpiresAt,
-      ${HASH_HMAC_INPUT_2}) {
+      randPollOptions: $randPollOptions, ${HASH_HMAC_INPUT_2}) {
       result {
         id
         deleteScheduledAt

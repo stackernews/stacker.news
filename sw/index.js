@@ -6,7 +6,11 @@ import { NetworkOnly } from 'workbox-strategies'
 import { enable } from 'workbox-navigation-preload'
 
 import manifest from './precache-manifest.json'
-import { onPush, onNotificationClick, onPushSubscriptionChange, onMessage } from './eventListener'
+import ServiceWorkerStorage from 'serviceworker-storage'
+import { CLEAR_NOTIFICATIONS, DELETE_SUBSCRIPTION, STORE_SUBSCRIPTION } from '@/components/serviceworker'
+
+// we store existing push subscriptions for the onpushsubscriptionchange event
+const storage = new ServiceWorkerStorage('sw:storage', 1)
 
 // comment out to enable workbox console logs
 self.__WB_DISABLE_DEV_LOGS = true
@@ -68,7 +72,149 @@ setDefaultHandler(new NetworkOnly({
 // See https://github.com/vercel/next.js/blob/337fb6a9aadb61c916f0121c899e463819cd3f33/server/render.js#L181-L185
 offlineFallback({ pageFallback: '/offline' })
 
-self.addEventListener('push', onPush(self))
-self.addEventListener('notificationclick', onNotificationClick(self))
-self.addEventListener('message', onMessage(self))
-self.addEventListener('pushsubscriptionchange', onPushSubscriptionChange(self), false)
+self.addEventListener('push', function (event) {
+  let title, options
+
+  try {
+    const { notification } = event.data?.json()
+    if (!notification) {
+      throw new Error('no payload in push event')
+    }
+
+    // adapt declarative payload for legacy Push API
+    options = notification || {}
+    title = notification.title
+  } catch (err) {
+    // we show a default nofication on any error because we *must* show a notification
+    // else the browser will show one for us or worse, remove our push subscription
+    return event.waitUntil(
+      self.registration.showNotification(
+        // TODO: funny message as easter egg?
+        // example: "dude i'm bugging, that's wild" from https://www.youtube.com/watch?v=QsQLIaKK2s0&t=176s but in wild west theme?
+        'something went wrong',
+        { icon: '/icons/icon_x96.png' }
+      )
+    )
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+      .then(() => self.registration.getNotifications())
+      .then(notifications => self.navigator.setAppBadge?.(notifications.length))
+  )
+})
+
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close()
+
+  const promises = []
+  const url = event.notification.data?.url
+  if (url) {
+    // First try to find and focus an existing client before opening a new window
+    promises.push(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then(clients => {
+          if (clients.length > 0) {
+            const client = clients[0]
+            return client.focus()
+              .then(() => {
+                return client.postMessage({
+                  type: 'navigate',
+                  url
+                })
+              })
+          } else {
+            return self.clients.openWindow(url)
+          }
+        })
+    )
+  }
+
+  promises.push(
+    self.registration.getNotifications()
+      .then(notifications => self.navigator.setAppBadge?.(notifications.length))
+  )
+
+  event.waitUntil(Promise.all(promises))
+})
+
+// not supported by iOS
+// see https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/notificationclose_event
+self.addEventListener('notificationclose', function (event) {
+  event.waitUntil(
+    self.registration.getNotifications()
+      .then(notifications => self.navigator.setAppBadge?.(notifications.length))
+  )
+})
+
+self.addEventListener('pushsubscriptionchange', function (event) {
+  // https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
+  // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event
+  const { oldSubscription, newSubscription } = event
+
+  return event.waitUntil(
+    Promise.all([
+      oldSubscription ?? storage.getItem('subscription'),
+      newSubscription ?? self.registration.pushManager.getSubscription()
+    ])
+      .then(([oldSubscription, newSubscription]) => {
+        if (!newSubscription || oldSubscription?.endpoint === newSubscription.endpoint) {
+        // no subscription exists at the moment or subscription did not change
+          return
+        }
+
+        // convert keys from ArrayBuffer to string
+        newSubscription = JSON.parse(JSON.stringify(newSubscription))
+
+        // save new subscription on server
+        return Promise.all([
+          newSubscription,
+          fetch('/api/graphql', {
+            method: 'POST',
+            headers: {
+              'Content-type': 'application/json'
+            },
+            body: JSON.stringify({
+              query: `
+                mutation savePushSubscription(
+                  $endpoint: String!,
+                  $p256dh: String!,
+                  $auth: String!,
+                  $oldEndpoint: String!
+                ) {
+                  savePushSubscription(
+                    endpoint: $endpoint,
+                    p256dh: $p256dh,
+                    auth: $auth,
+                    oldEndpoint: $oldEndpoint
+                  ) {
+                    id
+                  }
+                }`,
+              variables: {
+                endpoint: newSubscription.endpoint,
+                p256dh: newSubscription.keys.p256dh,
+                auth: newSubscription.keys.auth,
+                oldEndpoint: oldSubscription?.endpoint
+              }
+            })
+          })
+        ])
+      }).then(([newSubscription]) => storage.setItem('subscription', newSubscription))
+  )
+})
+
+self.addEventListener('message', function (event) {
+  switch (event.data.action) {
+    case STORE_SUBSCRIPTION: return event.waitUntil(storage.setItem('subscription', { ...event.data.subscription, swVersion: 2 }))
+    case DELETE_SUBSCRIPTION: return event.waitUntil(storage.removeItem('subscription'))
+    case CLEAR_NOTIFICATIONS:
+      return event.waitUntil(
+        Promise.all([
+          self.registration.getNotifications()
+            .then(notifications => notifications.forEach(notification => notification.close())),
+          self.navigator.clearAppBadge?.()
+        ])
+      )
+  }
+})

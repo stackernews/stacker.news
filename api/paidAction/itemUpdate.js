@@ -1,5 +1,5 @@
 import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
-import { uploadFees } from '../resolvers/upload'
+import { throwOnExpiredUploads, uploadFees } from '@/api/resolvers/upload'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import { satsToMsats } from '@/lib/format'
@@ -17,7 +17,7 @@ export async function getCost ({ id, boost = 0, uploadIds, bio }, { me, models }
   // or more boost
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
-  const cost = BigInt(totalFeesMsats) + satsToMsats(boost - old.boost)
+  const cost = totalFeesMsats + satsToMsats(boost - old.boost)
 
   if (cost > 0 && old.invoiceActionState && old.invoiceActionState !== 'PAID') {
     throw new Error('creation invoice not paid')
@@ -60,6 +60,7 @@ export async function perform (args, context) {
   const itemMentions = await getItemMentions(args, context)
   const itemUploads = uploadIds.map(id => ({ uploadId: id }))
 
+  await throwOnExpiredUploads(uploadIds, { tx })
   await tx.upload.updateMany({
     where: { id: { in: uploadIds } },
     data: { paid: true }
@@ -163,7 +164,8 @@ export async function nonCriticalSideEffects ({ invoice, id }, { models }) {
     where: invoice ? { invoiceId: invoice.id } : { id: parseInt(id) },
     include: {
       mentions: true,
-      itemReferrers: { include: { refereeItem: true } }
+      itemReferrers: { include: { refereeItem: true } },
+      user: true
     }
   })
   // compare timestamps to only notify if mention or item referral was just created to avoid duplicates on edits

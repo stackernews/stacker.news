@@ -36,6 +36,7 @@ services:
     env_file: *env_file
     volumes:
       - ./docker/db/seed.sql:/docker-entrypoint-initdb.d/seed.sql
+      - ./docker/db/wallet-seed.sql:/docker-entrypoint-initdb.d/wallet-seed.sql
       - db:/var/lib/postgresql/data
     labels:
       CONNECT: "localhost:5431"
@@ -119,6 +120,9 @@ services:
     command:
       - npm run worker:dev
     cpu_shares: "${CPU_SHARES_IMPORTANT}"
+    networks:
+      - default
+      - domains-network
   imgproxy:
     container_name: imgproxy
     image: darthsim/imgproxy:v3.23.0
@@ -163,7 +167,7 @@ services:
       - "CONNECT=localhost:4566"
     cpu_shares: "${CPU_SHARES_LOW}"
   opensearch:
-    image: opensearchproject/opensearch:2.17.0
+    image: opensearchproject/opensearch:2.19.0
     container_name: opensearch
     profiles:
       - search
@@ -173,37 +177,22 @@ services:
     restart: unless-stopped
     env_file: *env_file
     environment:
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=mVchg1T5oA9wudUh
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD}
       - plugins.security.disabled=true
       - discovery.type=single-node
+      - "_JAVA_OPTIONS=-Xms2g -Xmx2g -XX:UseSVE=0"
     ports:
       - 9200:9200 # REST API
       - 9600:9600 # Performance Analyzer
     volumes:
       - os:/usr/share/opensearch/data
+      - ./docker/opensearch/init-opensearch.sh:/usr/share/opensearch/init-opensearch.sh
     labels:
       CONNECT: "localhost:9200"
-    command: >
-      bash -c '
-        set -m
-        /usr/share/opensearch/opensearch-docker-entrypoint.sh &
-        until curl -sS "http://localhost:9200/_cat/health?h=status" -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD} | grep -q "green\|yellow"; do
-          echo "Waiting for OpenSearch to start..."
-          sleep 1
-        done
-        echo "OpenSearch started."
-        curl \
-          -H "Content-Type: application/json" \
-          -X PUT \
-          -d '{"mappings":{"properties":{"text":{"type":"text","analyzer":"english","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"title":{"type":"text","analyzer":"english","fields":{"keyword":{"type":"keyword","ignore_above":256}}}}}}' \
-          "http://localhost:9200/item" \
-          -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
-        echo "OpenSearch index created."
-        fg
-      '
+    command: ["bash", "/usr/share/opensearch/init-opensearch.sh"]
     cpu_shares: "${CPU_SHARES_LOW}"
   os-dashboard:
-    image: opensearchproject/opensearch-dashboards:2.17.0
+    image: opensearchproject/opensearch-dashboards:2.19.0
     container_name: os-dashboard
     restart: unless-stopped
     profiles:
@@ -368,7 +357,9 @@ services:
       ofelia.job-exec.sn_channel_cron.schedule: "@every 1m"
       ofelia.job-exec.sn_channel_cron.command: >
         su lnd -c bash -c "
-          if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
+          if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 6 ]; then
+            exit 0
+          elif [ $$(lncli listchannels --peer=$ROUTER_LND_PUBKEY | jq '.channels | length') -ge 3 ]; then
             exit 0
           else
             lncli openchannel --node_key=$ROUTER_LND_PUBKEY --connect router_lnd:9735 --sat_per_vbyte 1 \\
@@ -821,6 +812,58 @@ services:
       CONNECT: "localhost:${LNBITS_WEB_PORT}"
       TORDIR: "/app/.tor"
     cpu_shares: "${CPU_SHARES_LOW}"
+  lnbits-v1:
+    build:
+      context: ./docker/lnbits-v1
+    container_name: lnbits-v1
+    profiles:
+      - wallets
+    restart: unless-stopped
+    ports:
+      - "${LNBITS_WEB_PORT_V1}:5000"
+    depends_on:
+      tor:
+        condition: service_healthy
+        restart: true
+      lnd:
+        condition: service_healthy
+        restart: true
+    environment:
+      - LNBITS_ADMIN_UI=true
+      - LNBITS_BACKEND_WALLET_CLASS=LndWallet
+      - LND_GRPC_ENDPOINT=lnd
+      - LND_GRPC_PORT=10009
+      - LND_GRPC_CERT=/app/.lnd/tls.cert
+      - LND_GRPC_MACAROON=/app/.lnd/data/chain/bitcoin/regtest/admin.macaroon
+    volumes:
+      - lnd:/app/.lnd
+      - tordata:/app/.tor
+    labels:
+      CONNECT: "localhost:${LNBITS_WEB_PORT_V1}"
+      TORDIR: "/app/.tor"
+    cpu_shares: "${CPU_SHARES_LOW}"
+  dnsmasq:
+    image: 4km3/dnsmasq:2.90-r3
+    profiles:
+      - domains
+    container_name: dnsmasq
+    restart: unless-stopped
+    ports:
+      - "5353:53/tcp"
+      - "5353:53/udp"
+    command:
+      - --no-daemon
+      - --address=/.sndev/127.0.0.1
+      - --conf-file=/etc/dnsmasq.conf
+      - --conf-dir=/etc/dnsmasq.d
+    volumes:
+      - ./docker/dnsmasq/dnsmasq.conf:/etc/dnsmasq.conf
+      - ./docker/dnsmasq/dnsmasq.d:/etc/dnsmasq.d
+    cpu_shares: "${CPU_SHARES_LOW}"
+    networks:
+      domains-network:
+        ipv4_address: 172.30.0.2
+
 volumes:
   db:
   os:
@@ -834,3 +877,13 @@ volumes:
   nwc_recv:
   tordata:
   eclair:
+  dnsmasq:
+
+networks:
+  default: {}
+  domains-network:
+    name: domains-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24

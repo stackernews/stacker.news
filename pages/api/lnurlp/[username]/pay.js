@@ -4,16 +4,24 @@ import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString, lnurlPayDescrip
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
 import { LNURLP_COMMENT_MAX_LENGTH, MAX_INVOICE_DESCRIPTION_LENGTH } from '@/lib/constants'
-import { toPositiveBigInt } from '@/lib/format'
+import { formatMsats, toPositiveBigInt } from '@/lib/format'
 import assertGofacYourself from '@/api/resolvers/ofac'
 import performPaidAction from '@/api/paidAction'
 import { validateSchema, lud18PayerDataSchema } from '@/lib/validate'
+import { walletLogger } from '@/wallets/server'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
   if (!user) {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
+
+  if (!amount || amount < 1000) {
+    return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
+  }
+
+  const logger = walletLogger({ models, userId: user.id })
+  logger.info(`${user.name}@stacker.news payment attempt`, { amount: formatMsats(amount), nostr, comment })
 
   try {
     await assertGofacYourself({ models, headers })
@@ -40,10 +48,6 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       description += comment ? `: ${comment}` : '.'
       description = description.slice(0, MAX_INVOICE_DESCRIPTION_LENGTH)
       descriptionHash = lnurlPayDescriptionHashForUser(username)
-    }
-
-    if (!amount || amount < 1000) {
-      return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
     }
 
     if (comment?.length > LNURLP_COMMENT_MAX_LENGTH) {
@@ -78,7 +82,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     }
 
     // generate invoice
-    const { invoice } = await performPaidAction('RECEIVE', {
+    const { invoice, paymentMethod } = await performPaidAction('RECEIVE', {
       msats: toPositiveBigInt(amount),
       description,
       descriptionHash,
@@ -92,10 +96,11 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     return res.status(200).json({
       pr: invoice.bolt11,
       routes: [],
-      verify: invoice.hash ? `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${invoice.hash}` : undefined
+      verify: paymentMethod !== 'DIRECT' && invoice.hash ? `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${invoice.hash}` : undefined
     })
   } catch (error) {
     console.log(error)
+    logger.error(`${user.name}@stacker.news payment failed: ${error.message}`)
     res.status(400).json({ status: 'ERROR', reason: 'could not generate invoice to customer\'s attached wallet' })
   }
 }

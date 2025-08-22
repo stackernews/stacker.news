@@ -210,7 +210,6 @@ export async function checkWithdrawal ({ data: { hash, withdrawal, invoice }, bo
       ]
     },
     include: {
-      wallet: true,
       invoiceForward: {
         include: {
           invoice: true

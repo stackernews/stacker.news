@@ -15,7 +15,6 @@ import {
   FULL_COMMENTS_THRESHOLD
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
-import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
@@ -26,11 +25,15 @@ import assertApiKeyNotPermitted from './apiKey'
 import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
+import { parse } from 'tldts'
+import { shuffleArray } from '@/lib/rand'
 
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
   sharedSortsArray.push('("Item"."pinId" IS NOT NULL) DESC')
   sharedSortsArray.push('("Item"."deletedAt" IS NULL) DESC')
+  // outlawed items should be at the bottom
+  sharedSortsArray.push(`NOT ("Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD} OR "Item".outlawed) DESC`)
   const sharedSorts = sharedSortsArray.join(', ')
 
   if (sort === 'recent') {
@@ -126,6 +129,7 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
         '"Item"."parentId" IS NULL',
         '"Item".bio = false',
         '"Item".boost > 0',
+        await filterClause(me, models),
         activeOrMine(),
         subClause(sub, 1, 'Item', me, showNsfw),
         muteClause(me))}
@@ -509,7 +513,7 @@ export default {
                     ${whereClause(
                       '"parentId" IS NULL',
                       '"Item"."deletedAt" IS NULL',
-                      '"Item"."status" = \'ACTIVE\'',
+                      activeOrMine(me),
                       'created_at <= $1',
                       '"pinId" IS NULL',
                       subClause(sub, 4)
@@ -592,7 +596,13 @@ export default {
         const response = await fetch(ensureProtocol(url), { redirect: 'follow' })
         const html = await response.text()
         const doc = domino.createWindow(html).document
-        const metadata = getMetadata(doc, url, { title: metadataRuleSets.title, publicationDate: publicationDateRuleSet })
+        const titleRuleSet = {
+          rules: [
+            ['h1 > yt-formatted-string.ytd-watch-metadata', el => el.getAttribute('title')],
+            ...metadataRuleSets.title.rules
+          ]
+        }
+        const metadata = getMetadata(doc, url, { title: titleRuleSet, publicationDate: publicationDateRuleSet })
         const dateHint = ` (${metadata.publicationDate?.getFullYear()})`
         const moreThanOneYearAgo = metadata.publicationDate && metadata.publicationDate < datePivot(new Date(), { years: -1 })
 
@@ -613,7 +623,6 @@ export default {
       const urlObj = new URL(ensureProtocol(url))
       let { hostname, pathname } = urlObj
 
-      // remove subdomain from hostname
       const parseResult = parse(urlObj.hostname)
       if (parseResult?.subdomain?.length > 0) {
         hostname = hostname.replace(`${parseResult.subdomain}.`, '')
@@ -639,6 +648,9 @@ export default {
       } else if (urlObj.hostname === 'yewtu.be') {
         const matches = url.match(/(https?:\/\/)?yewtu\.be.*(v=|embed\/)(?<id>[_0-9a-z-]+)/i)
         similar = `^(http(s)?:\\/\\/)?yewtu\\.be\\/(watch\\?v\\=|embed\\/)${matches?.groups?.id}&?`
+      } else {
+        // only allow ending of mismatching search params
+        similar += '(?:\\?.*)?$'
       }
 
       return await itemQueryWithMeta({
@@ -647,7 +659,7 @@ export default {
         query: `
           ${SELECT}
           FROM "Item"
-          WHERE url ~* $1
+          WHERE url ~* $1 AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID')
           ORDER BY created_at DESC
           LIMIT 3`
       }, similar)
@@ -694,7 +706,11 @@ export default {
         status: 'ACTIVE',
         deletedAt: null,
         outlawed: false,
-        parentId: null
+        parentId: null,
+        OR: [
+          { invoiceActionState: 'PAID' },
+          { invoiceActionState: null }
+        ]
       }
       if (id) {
         where.id = { not: Number(id) }
@@ -724,6 +740,24 @@ export default {
         homeMaxBoost: homeAgg._max.boost || 0,
         subMaxBoost: subAgg?._max.boost || 0
       }
+    },
+    newComments: async (parent, { rootId, after }, { models, me }) => {
+      const comments = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}
+          FROM "Item"
+          -- comments can be nested, so we need to get all comments that are descendants of the root
+          ${whereClause(
+            '"Item".path <@ (SELECT path FROM "Item" WHERE id = $1 AND "Item"."lastCommentAt" > $2)',
+            activeOrMine(me),
+            '"Item"."created_at" > $2'
+          )}
+          ORDER BY "Item"."created_at" ASC`
+      }, Number(rootId), after)
+
+      return { comments }
     }
   },
 
@@ -831,8 +865,16 @@ export default {
       const data = { itemId: Number(id), userId: me.id }
       const old = await models.threadSubscription.findUnique({ where: { userId_itemId: data } })
       if (old) {
-        await models.threadSubscription.delete({ where: { userId_itemId: data } })
-      } else await models.threadSubscription.create({ data })
+        await models.$executeRaw`
+          DELETE FROM "ThreadSubscription" ts
+          USING "Item" i
+          WHERE ts."userId" = ${me.id}
+          AND i.path <@ (SELECT path FROM "Item" WHERE id = ${Number(id)})
+          AND ts."itemId" = i.id
+        `
+      } else {
+        await models.threadSubscription.create({ data })
+      }
       return { id }
     },
     deleteItem: async (parent, { id }, { me, models }) => {
@@ -1148,7 +1190,8 @@ export default {
         poll.meVoted = false
       }
 
-      poll.options = options
+      poll.randPollOptions = item?.randPollOptions
+      poll.options = poll.randPollOptions ? shuffleArray(options) : options
       poll.count = options.reduce((t, o) => t + o.count, 0)
 
       return poll
@@ -1449,7 +1492,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     throw new GqlInputError('item can no longer be edited')
   }
 
-  if (item.url && !isJob(item)) {
+  if (item.url && !isJob({ subName, ...item })) {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }
@@ -1464,7 +1507,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     item = { subName, ...item }
     item.forwardUsers = await getForwardUsers(models, forward)
   }
-  item.uploadIds = uploadIdsFromText(item.text, { models })
+  item.uploadIds = uploadIdsFromText(item.text)
 
   // never change author of item
   item.userId = old.userId
@@ -1483,7 +1526,7 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
   item.userId = me ? Number(me.id) : USER_ID.anon
 
   item.forwardUsers = await getForwardUsers(models, forward)
-  item.uploadIds = uploadIdsFromText(item.text, { models })
+  item.uploadIds = uploadIdsFromText(item.text)
 
   if (item.url && !isJob(item)) {
     item.url = ensureProtocol(item.url)

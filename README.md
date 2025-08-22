@@ -87,6 +87,9 @@ COMMANDS
     psql                   open psql on db
     prisma                 run prisma commands
 
+  domains:
+    domains                custom domains dev management
+
   dev:
     pr                     fetch and checkout a pr
     lint                   run linters
@@ -131,7 +134,36 @@ services:
 
 You can read more about [docker compose override files](https://docs.docker.com/compose/multiple-compose-files/merge/).
 
+#### Enabling semantic search
 
+To enable semantic search that uses text embeddings, run `./scripts/nlp-setup`.
+
+Before running `./scripts/nlp-setup`, ensure the following are true:
+
+- search is enabled in `COMPOSE_PROFILES`:
+
+    ```.env
+    COMPOSE_PROFILES=...,search,...
+    ```
+- The default opensearch index (default name=`item`) is created and done indexing. This should happen the first time you run `./sndev start`, but it may take a few minutes for indexing to complete.
+
+After `nlp-setup` is done, restart your containers to enable semantic search:
+
+```
+> ./sndev restart
+```
+
+#### Local DNS via dnsmasq
+
+To enable dnsmasq:
+
+- domains should be enabled in `COMPOSE_PROFILES`:
+
+    ```.env
+    COMPOSE_PROFILES=...,domains,...
+    ```
+
+To add/remove DNS records you can now use `./sndev domains dns`. More on this [here](#add-or-remove-dns-records-in-local).
 
 <br>
 
@@ -431,6 +463,25 @@ To enable Web Push locally, you will need to set the `VAPID_*` env vars. `VAPID_
 
 <br>
 
+## Custom domains
+
+### Add or remove DNS records in local
+
+A worker dedicated to verifying custom domains, checks, among other things, if a domain has the correct DNS records and values. This would normally require a real domain and access to its DNS configuration. Therefore we use dnsmasq to have local DNS, make sure you have [enabled it](#local-dns-via-dnsmasq).
+
+To add a DNS record the syntax is the following:
+
+`./sndev domains dns add|remove cname|txt <name/domain> <value>`
+
+For TXT records, you can also use `""` quoted strings on `value`.
+
+To list all DNS records present in the dnsmasq config: `./sndev domains dns list`
+
+#### Access a local custom domain added via dnsmasq
+sndev will use the dnsmasq DNS server by default, but chances are that you might want to access the domain via your browser.
+
+For every edit on dnsmasq, it will give you the option to either edit the `/etc/hosts` file or use the dnsmasq DNS server which can be reached on `127.0.0.1:5353`. You can avoid getting asked to edit the `/etc/hosts` file by adding the `--no-hosts` parameter.
+
 # Internals
 
 <br>
@@ -468,7 +519,7 @@ Open a [discussion](http://github.com/stackernews/stacker.news/discussions) or [
 
 # Responsible disclosure
 
-If you found a vulnerability, we would greatly appreciate it if you contact us via [security@stacker.news](mailto:security@stacker.news) or open a [security advisory](https://github.com/stackernews/stacker.news/security/advisories/new). Our PGP key can be found [here](https://stacker.news/pgp.txt) (EBAF 75DA 7279 CB48).
+If you found a vulnerability, we would greatly appreciate it if you contact us via [security@stacker.news](mailto:security@stacker.news) or open a [security advisory](https://github.com/stackernews/stacker.news/security/advisories/new). Our PGP key can be found [here](https://stacker.news/pgp.txt) (FEE1 E768 E0B3 81F5).
 
 <br>
 

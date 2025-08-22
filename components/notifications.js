@@ -58,7 +58,9 @@ function Notification ({ n, fresh }) {
         (type === 'InvoicePaid' && (n.invoice.nostr ? <NostrZap n={n} /> : <InvoicePaid n={n} />)) ||
         (type === 'WithdrawlPaid' && <WithdrawlPaid n={n} />) ||
         (type === 'Referral' && <Referral n={n} />) ||
-        (type === 'Streak' && <Streak n={n} />) ||
+        (type === 'CowboyHat' && <CowboyHat n={n} />) ||
+        (['NewHorse', 'LostHorse'].includes(type) && <Horse n={n} />) ||
+        (['NewGun', 'LostGun'].includes(type) && <Gun n={n} />) ||
         (type === 'Votification' && <Votification n={n} />) ||
         (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
@@ -112,12 +114,14 @@ function NoteHeader ({ color, children, big }) {
 function NoteItem ({ item, ...props }) {
   return (
     <div>
-      {item.title
-        ? <Item item={item} itemClassName='pt-0' {...props} />
-        : (
-          <RootProvider root={item.root}>
-            <Comment item={item} noReply includeParent clickToContext {...props} />
-          </RootProvider>)}
+      {item.isJob
+        ? <ItemJob item={item} {...props} />
+        : item.title
+          ? <Item item={item} itemClassName='pt-0' {...props} />
+          : (
+            <RootProvider root={item.root}>
+              <Comment item={item} noReply includeParent clickToContext {...props} />
+            </RootProvider>)}
     </div>
   )
 }
@@ -163,7 +167,7 @@ const defaultOnClick = n => {
   if (type === 'WithdrawlPaid') return { href: `/withdrawals/${n.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'ReferralReward') return { href: '/referrals/month' }
-  if (type === 'Streak') return {}
+  if (['CowboyHat', 'NewHorse', 'LostHorse', 'NewGun', 'LostGun'].includes(type)) return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
 
   if (!n.item) return {}
@@ -172,30 +176,64 @@ const defaultOnClick = n => {
   return itemLink(n.item)
 }
 
-function Streak ({ n }) {
-  function blurb (n) {
-    const type = n.type ?? 'COWBOY_HAT'
-    const index = Number(n.id) % Math.min(FOUND_BLURBS[type].length, LOST_BLURBS[type].length)
-    if (n.days) {
-      return `After ${numWithUnits(n.days, {
-        abbreviate: false,
-        unitSingular: 'day',
-         unitPlural: 'days'
-      })}, ` + LOST_BLURBS[type][index]
-    }
+function blurb (n) {
+  const type = n.__typename === 'CowboyHat'
+    ? 'COWBOY_HAT'
+    : (n.__typename.includes('Horse') ? 'HORSE' : 'GUN')
+  const index = Number(n.id) % Math.min(FOUND_BLURBS[type].length, LOST_BLURBS[type].length)
+  const lost = n.days || n.__typename.includes('Lost')
+  return lost ? LOST_BLURBS[type][index] : FOUND_BLURBS[type][index]
+}
 
-    return FOUND_BLURBS[type][index]
+function CowboyHat ({ n }) {
+  const Icon = n.days ? BaldIcon : CowboyHatIcon
+
+  let body = ''
+  if (n.days) {
+    body = `After ${numWithUnits(n.days, {
+      abbreviate: false,
+      unitSingular: 'day',
+      unitPlural: 'days'
+    })}, `
   }
 
-  const Icon = n.days
-    ? n.type === 'GUN' ? HolsterIcon : n.type === 'HORSE' ? SaddleIcon : BaldIcon
-    : n.type === 'GUN' ? GunIcon : n.type === 'HORSE' ? HorseIcon : CowboyHatIcon
+  body += `you ${n.days ? 'lost your' : 'found a'} cowboy hat`
 
   return (
     <div className='d-flex'>
       <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
-        <span className='fw-bold'>you {n.days ? 'lost your' : 'found a'} {n.type.toLowerCase().replace('_', ' ')}</span>
+        <span className='fw-bold'>{body}</span>
+        <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
+      </div>
+    </div>
+  )
+}
+
+function Horse ({ n }) {
+  const found = n.__typename.includes('New')
+  const Icon = found ? HorseIcon : SaddleIcon
+
+  return (
+    <div className='d-flex'>
+      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div className='ms-1 p-1'>
+        <span className='fw-bold'>you {found ? 'found a' : 'lost your'} horse</span>
+        <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
+      </div>
+    </div>
+  )
+}
+
+function Gun ({ n }) {
+  const found = n.__typename.includes('New')
+  const Icon = found ? GunIcon : HolsterIcon
+
+  return (
+    <div className='d-flex'>
+      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div className='ms-1 p-1'>
+        <span className='fw-bold'>you {found ? 'found a' : 'lost your'} gun</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
       </div>
     </div>
@@ -700,7 +738,7 @@ function Reminder ({ n }) {
   return (
     <>
       <NoteHeader color='info'>
-        you asked to be reminded of this {n.item.title ? 'post' : 'comment'}
+        you requested this reminder
       </NoteHeader>
       <NoteItem item={n.item} />
     </>

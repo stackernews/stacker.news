@@ -11,6 +11,7 @@ export default gql`
     auctionPosition(sub: String, id: ID, boost: Int): Int!
     boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
+    newComments(rootId: ID, after: Date): Comments!
   }
 
   type BoostPositions {
@@ -57,7 +58,7 @@ export default gql`
       text: String!, url: String!, boost: Int, status: String, logo: Int): ItemPaidAction!
     upsertPoll(
       id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], pollExpiresAt: Date,
-      hash: String, hmac: String): ItemPaidAction!
+      randPollOptions: Boolean, hash: String, hmac: String): ItemPaidAction!
     updateNoteId(id: ID!, noteId: String!): Item!
     upsertComment(id: ID, text: String!, parentId: ID, boost: Int, hash: String, hmac: String): ItemPaidAction!
     act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): ItemActPaidAction!
@@ -81,6 +82,7 @@ export default gql`
     meInvoiceActionState: InvoiceActionState
     count: Int!
     options: [PollOption!]!
+    randPollOptions: Boolean
   }
 
   type Items {
@@ -147,6 +149,7 @@ export default gql`
     ncomments: Int!
     nDirectComments: Int!
     comments(sort: String, cursor: String): Comments!
+    injected: Boolean!
     path: String
     position: Int
     prior: Int

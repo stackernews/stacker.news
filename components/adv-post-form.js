@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import AccordianItem from './accordian-item'
 import { Input, InputUserSuggest, VariableInput, Checkbox } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
-import { BOOST_MIN, BOOST_MULT, MAX_FORWARDS, SSR } from '@/lib/constants'
+import { BOOST_MIN, BOOST_MAX, BOOST_MULT, MAX_FORWARDS, SSR } from '@/lib/constants'
 import { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import Info from './info'
 import { abbrNum, numWithUnits } from '@/lib/format'
@@ -37,6 +37,7 @@ export function BoostHelp () {
       <li>The highest boost in a territory over the last 30 days is pinned to the top of the territory</li>
       <li>The highest boost across all territories over the last 30 days is pinned to the top of the homepage</li>
       <li>The minimum boost is {numWithUnits(BOOST_MIN, { abbreviate: false })}</li>
+      <li>The maximum boost is {numWithUnits(BOOST_MAX, { abbreviate: false })}</li>
       <li>Each {numWithUnits(BOOST_MULT, { abbreviate: false })} of boost is equivalent to a zap-vote from a maximally trusted stacker (very rare)
         <ul>
           <li>e.g. {numWithUnits(BOOST_MULT * 5, { abbreviate: false })} is like five zap-votes from a maximally trusted stacker</li>
@@ -44,6 +45,7 @@ export function BoostHelp () {
       </li>
       <li>boost can take a few minutes to show higher ranking in feed</li>
       <li>100% of boost goes to the territory founder and top stackers as rewards</li>
+      <li>If a boost is outlawed, it will only be visible to stackers in wild west mode</li>
     </ol>
   )
 }
@@ -197,7 +199,7 @@ export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) 
       for (let i = 0; i < MAX_FORWARDS; i++) {
         ['nym', 'pct'].forEach(key => {
           const value = window.localStorage.getItem(`${storageKeyPrefix}-forward[${i}].${key}`)
-          if (value) {
+          if (value !== undefined && value !== null) {
             formik?.setFieldValue(`forward[${i}].${key}`, value)
           }
         })
@@ -268,7 +270,7 @@ export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) 
             emptyItem={EMPTY_FORWARD}
             hint={<span className='text-muted'>Forward sats to up to 5 other stackers. Any remaining sats go to you.</span>}
           >
-            {({ index, placeholder }) => {
+            {({ index, AppendColumn }) => {
               return (
                 <div key={index} className='d-flex flex-row'>
                   <InputUserSuggest
@@ -285,6 +287,7 @@ export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) 
                     max={100}
                     append={<InputGroup.Text className='text-monospace'>%</InputGroup.Text>}
                     groupClassName={`${styles.percent} mb-0`}
+                    AppendColumn={AppendColumn}
                   />
                 </div>
               )

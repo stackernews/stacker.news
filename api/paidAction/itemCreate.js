@@ -1,8 +1,9 @@
-import { ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
+import { ANON_ITEM_SPAM_INTERVAL, ANON_FEE_MULTIPLIER, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers, notifyThreadSubscribers } from '@/lib/webPush'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
+import { throwOnExpiredUploads } from '@/api/resolvers/upload'
 
 export const anonable = true
 
@@ -38,12 +39,12 @@ export async function getBaseCost ({ models, bio, parentId, subName }) {
 export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio }, { models, me }) {
   const baseCost = await getBaseCost({ models, bio, parentId, subName })
 
-  // cost = baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + upload fees + boost
+  // cost = baseCost * 10^num_items_in_10m * 10 (ANON_FEE_MULTIPLIER constant) or 1 (user) + upload fees + boost
   const [{ cost }] = await models.$queryRaw`
     SELECT ${baseCost}::INTEGER
       * POWER(10, item_spam(${parseInt(parentId)}::INTEGER, ${me?.id ?? USER_ID.anon}::INTEGER,
           ${me?.id && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
-      * ${me ? 1 : 100}::INTEGER
+      * ${me ? 1 : ANON_FEE_MULTIPLIER}::INTEGER
       + (SELECT "nUnpaid" * "uploadFeesMsats"
           FROM upload_fees(${me?.id || USER_ID.anon}::INTEGER, ${uploadIds}::INTEGER[]))
       + ${satsToMsats(boost)}::INTEGER as cost`
@@ -61,15 +62,7 @@ export async function perform (args, context) {
   const { tx, me, cost } = context
   const boostMsats = satsToMsats(boost)
 
-  const deletedUploads = []
-  for (const uploadId of uploadIds) {
-    if (!await tx.upload.findUnique({ where: { id: uploadId } })) {
-      deletedUploads.push(uploadId)
-    }
-  }
-  if (deletedUploads.length > 0) {
-    throw new Error(`upload(s) ${deletedUploads.join(', ')} are expired, consider reuploading.`)
-  }
+  await throwOnExpiredUploads(uploadIds, { tx })
 
   let invoiceData = {}
   if (invoiceId) {

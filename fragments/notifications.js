@@ -2,7 +2,7 @@ import { gql } from '@apollo/client'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from './items'
 import { INVITE_FIELDS } from './invites'
 import { SUB_FIELDS } from './subs'
-import { INVOICE_FIELDS } from './wallet'
+import { INVOICE_FIELDS } from './invoice'
 
 export const HAS_NOTIFICATIONS = gql`{ hasNewNotes }`
 
@@ -82,11 +82,26 @@ export const NOTIFICATIONS = gql`
             text
           }
         }
-        ... on Streak {
+        ... on CowboyHat {
           id
           sortTime
           days
-          type
+        }
+        ... on NewHorse {
+          id
+          sortTime
+        }
+        ... on LostHorse {
+          id
+          sortTime
+        }
+        ... on NewGun {
+          id
+          sortTime
+        }
+        ... on LostGun {
+          id
+          sortTime
         }
         ... on Earn {
           id

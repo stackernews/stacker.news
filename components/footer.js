@@ -12,10 +12,10 @@ import No from '@/svgs/no.svg'
 import Bolt from '@/svgs/bolt.svg'
 import Amboss from '@/svgs/amboss.svg'
 import Mempool from '@/svgs/bimi.svg'
-import { useEffect, useState } from 'react'
 import Rewards from './footer-rewards'
 import useDarkMode from './dark-mode'
 import ActionTooltip from './action-tooltip'
+import { useAnimationEnabled } from '@/components/animation'
 
 const RssPopover = (
   <Popover>
@@ -53,33 +53,43 @@ const RssPopover = (
 const SocialsPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
-      <a
-        href='https://njump.me/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className='nav-link p-0 d-inline-flex'
-        target='_blank' rel='noreferrer'
-      >
-        nostr
-      </a>
-      <span className='mx-2 text-muted'> \ </span>
-      <a
-        href='https://twitter.com/stacker_news' className='nav-link p-0 d-inline-flex'
-        target='_blank' rel='noreferrer'
-      >
-        twitter
-      </a>
-      <span className='mx-2 text-muted'> \ </span>
-      <a
-        href='https://www.youtube.com/@stackernews' className='nav-link p-0 d-inline-flex'
-        target='_blank' rel='noreferrer'
-      >
-        youtube
-      </a>
-      <span className='mx-2 text-muted'> \ </span>
-      <a
-        href='https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2' className='nav-link p-0 d-inline-flex'
-        target='_blank' rel='noreferrer'
-      >
-        pod
-      </a>
+      <div className='d-flex justify-content-center'>
+        <a
+          href='https://njump.me/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className='nav-link p-0 d-inline-flex'
+          target='_blank' rel='noreferrer'
+        >
+          nostr
+        </a>
+        <span className='mx-2 text-muted'> \ </span>
+        <a
+          href='https://twitter.com/stacker_news' className='nav-link p-0 d-inline-flex'
+          target='_blank' rel='noreferrer'
+        >
+          twitter
+        </a>
+        <span className='mx-2 text-muted'> \ </span>
+        <a
+          href='https://www.youtube.com/@stackernews' className='nav-link p-0 d-inline-flex'
+          target='_blank' rel='noreferrer'
+        >
+          youtube
+        </a>
+      </div>
+      <div className='d-flex justify-content-center'>
+        <a
+          href='https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2' className='nav-link p-0 d-inline-flex'
+          target='_blank' rel='noreferrer'
+        >
+          pod
+        </a>
+        <span className='mx-2 text-muted'> \ </span>
+        <a
+          href='https://www.plebpoet.com/zines.html' className='nav-link p-0 d-inline-flex'
+          target='_blank' rel='noreferrer'
+        >
+          zines
+        </a>
+      </div>
     </Popover.Body>
   </Popover>
 )
@@ -135,24 +145,10 @@ const LegalPopover = (
 export default function Footer ({ links = true }) {
   const [darkMode, darkModeToggle] = useDarkMode()
 
-  const [lightning, setLightning] = useState(undefined)
-
-  useEffect(() => {
-    setLightning(window.localStorage.getItem('lnAnimate') || 'yes')
-  }, [])
-
-  const toggleLightning = () => {
-    if (lightning === 'yes') {
-      window.localStorage.setItem('lnAnimate', 'no')
-      setLightning('no')
-    } else {
-      window.localStorage.setItem('lnAnimate', 'yes')
-      setLightning('yes')
-    }
-  }
+  const [animationEnabled, toggleAnimation] = useAnimationEnabled()
 
   const DarkModeIcon = darkMode ? Sun : Moon
-  const LnIcon = lightning === 'yes' ? No : Bolt
+  const LnIcon = animationEnabled ? No : Bolt
 
   const version = process.env.NEXT_PUBLIC_COMMIT_HASH
 
@@ -165,8 +161,8 @@ export default function Footer ({ links = true }) {
               <ActionTooltip notForm overlayText={`${darkMode ? 'disable' : 'enable'} dark mode`}>
                 <DarkModeIcon onClick={darkModeToggle} width={20} height={20} className='fill-grey theme' suppressHydrationWarning />
               </ActionTooltip>
-              <ActionTooltip notForm overlayText={`${lightning === 'yes' ? 'disable' : 'enable'} lightning animations`}>
-                <LnIcon onClick={toggleLightning} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
+              <ActionTooltip notForm overlayText={`${animationEnabled ? 'disable' : 'enable'} lightning animations`}>
+                <LnIcon onClick={toggleAnimation} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
               </ActionTooltip>
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>

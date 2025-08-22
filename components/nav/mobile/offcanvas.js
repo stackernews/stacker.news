@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { Dropdown, Image, Nav, Navbar, Offcanvas } from 'react-bootstrap'
 import { MEDIA_URL } from '@/lib/constants'
 import Link from 'next/link'
-import { LoginButtons, LogoutDropdownItem, NavWalletSummary } from '../common'
+import { Indicator, LoginButtons, LogoutDropdownItem, NavWalletSummary } from '../common'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import styles from './footer.module.css'
 import canvasStyles from './offcanvas.module.css'
 import classNames from 'classnames'
+import { useWalletIndicator } from '@/wallets/client/hooks'
 
 export default function OffCanvas ({ me, dropNavKey }) {
   const [show, setShow] = useState(false)
@@ -24,6 +25,9 @@ export default function OffCanvas ({ me, dropNavKey }) {
       />
       )
     : <span className='text-muted pointer'><AnonIcon onClick={onClick} width='22' height='22' /></span>
+
+  const profileIndicator = me && !me.bioId
+  const walletIndicator = useWalletIndicator()
 
   return (
     <>
@@ -50,17 +54,17 @@ export default function OffCanvas ({ me, dropNavKey }) {
                   <Link href={'/' + me.name} passHref legacyBehavior>
                     <Dropdown.Item active={me.name === dropNavKey}>
                       profile
-                      {me && !me.bioId &&
-                        <div className='p-1 d-inline-block bg-secondary ms-1'>
-                          <span className='invisible'>{' '}</span>
-                        </div>}
+                      {profileIndicator && <Indicator />}
                     </Dropdown.Item>
                   </Link>
                   <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
                     <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
                   </Link>
                   <Link href='/wallets' passHref legacyBehavior>
-                    <Dropdown.Item eventKey='wallets'>wallets</Dropdown.Item>
+                    <Dropdown.Item eventKey='wallets'>
+                      wallets
+                      {walletIndicator && <Indicator />}
+                    </Dropdown.Item>
                   </Link>
                   <Link href='/credits' passHref legacyBehavior>
                     <Dropdown.Item eventKey='credits'>credits</Dropdown.Item>

@@ -39,11 +39,11 @@ export async function getInvoiceablePeer ({ id, sats, hasSendWallet }, { models,
     return null
   }
 
-  const wallets = await getInvoiceableWallets(item.userId, { models })
+  const protocols = await getInvoiceableWallets(item.userId, { models })
 
   // request peer invoice if they have an attached wallet and have not forwarded the item
   // and the receiver doesn't want to receive credits
-  if (wallets.length > 0 &&
+  if (protocols.length > 0 &&
     item.itemForwards.length === 0 &&
     sats >= item.user.receiveCreditsBelowSats) {
     return item.userId
@@ -151,7 +151,7 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
   await tx.$queryRaw`
     WITH territory AS (
-      SELECT COALESCE(r."subName", i."subName", 'meta')::TEXT as "subName"
+      SELECT COALESCE(r."subName", i."subName", 'meta')::CITEXT as "subName"
       FROM "Item" i
       LEFT JOIN "Item" r ON r.id = i."rootId"
       WHERE i.id = ${itemAct.itemId}::INTEGER

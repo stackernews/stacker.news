@@ -6,9 +6,9 @@ import { SUB_FULL_FIELDS } from './subs'
 export const STREAK_FIELDS = gql`
   fragment StreakFields on User {
     optional {
-    streak
-    gunStreak
-      horseStreak
+      streak
+      hasSendWallet
+      hasRecvWallet
     }
   }
 `
@@ -23,17 +23,14 @@ ${STREAK_FIELDS}
     photoId
     privates {
       autoDropBolt11s
-      diagnostics
       noReferralLinks
       fiatCurrency
-      autoWithdrawMaxFeePercent
-      autoWithdrawMaxFeeTotal
-      autoWithdrawThreshold
       withdrawMaxFeeDefault
       satsFilter
       hideFromTopUsers
       hideWalletBalance
       hideWelcomeBanner
+      hideWalletRecvPrompt
       imgproxyOnly
       showImagesAndVideos
       nostrCrossposting
@@ -51,9 +48,10 @@ ${STREAK_FIELDS}
       wildWestMode
       disableFreebies
       vaultKeyHash
+      vaultKeyHashUpdatedAt
       walletsUpdatedAt
-      proxyReceive
-      directReceive
+      showPassphrase
+      diagnostics
     }
     optional {
       isContributor
@@ -97,7 +95,6 @@ export const SETTINGS_FIELDS = gql`
       imgproxyOnly
       showImagesAndVideos
       hideWalletBalance
-      diagnostics
       noReferralLinks
       nostrPubkey
       nostrCrossposting
@@ -115,10 +112,6 @@ export const SETTINGS_FIELDS = gql`
         apiKey
       }
       apiKeyEnabled
-      proxyReceive
-      directReceive
-      receiveCreditsBelowSats
-      sendCreditsBelowSats
     }
   }`
 
@@ -167,6 +160,11 @@ export const USER_SUGGESTIONS = gql`
     }
   }`
 
+export const HIDE_WALLET_RECV_PROMPT_MUTATION = gql`
+  mutation hideWalletRecvPrompt {
+    hideWalletRecvPrompt
+  }`
+
 export const USER_SEARCH = gql`
 ${STREAK_FIELDS}
   query searchUsers($q: String!, $limit: Limit, $similarity: Float) {
@@ -209,25 +207,6 @@ export const USER_FIELDS = gql`
     }
     ...StreakFields
   }`
-
-export const MY_SUBSCRIBED_USERS = gql`
-  ${STREAK_FIELDS}
-  query MySubscribedUsers($cursor: String) {
-    mySubscribedUsers(cursor: $cursor) {
-      users {
-        id
-        name
-        photoId
-        meSubscriptionPosts
-        meSubscriptionComments
-        meMute
-
-        ...StreakFields
-      }
-      cursor
-    }
-  }
-`
 
 export const MY_MUTED_USERS = gql`
   ${STREAK_FIELDS}
@@ -384,3 +363,39 @@ export const USER_STATS = gql`
         }
       }
     }`
+
+export const MY_SUBSCRIBED_USERS = gql`
+  ${STREAK_FIELDS}
+  query MySubscribedUsers($cursor: String) {
+    mySubscribedUsers(cursor: $cursor) {
+      users {
+        id
+        name
+        photoId
+        meSubscriptionPosts
+        meSubscriptionComments
+        meMute
+        ...StreakFields
+      }
+      cursor
+    }
+  }
+`
+
+export const MY_SUBSCRIBED_SUBS = gql`
+  ${SUB_FULL_FIELDS}
+  query MySubscribedSubs($cursor: String) {
+    mySubscribedSubs(cursor: $cursor) {
+      subs {
+        ...SubFullFields
+      }
+      cursor
+    }
+  }
+`
+
+export const SET_DIAGNOSTICS = gql`
+  mutation setDiagnostics($diagnostics: Boolean!) {
+    setDiagnostics(diagnostics: $diagnostics)
+  }
+`

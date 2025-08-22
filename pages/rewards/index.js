@@ -13,8 +13,7 @@ import { useShowModal } from '@/components/modal'
 import dynamic from 'next/dynamic'
 import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { useToast } from '@/components/toast'
-import { useLightning } from '@/components/lightning'
-import { ListUsers } from '@/components/user-list'
+import { useAnimation } from '@/components/animation'
 import { Col, Row } from 'react-bootstrap'
 import { useData } from '@/components/use-data'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
@@ -41,25 +40,6 @@ ${ITEM_FULL_FIELDS}
     }
     ad {
       ...ItemFullFields
-    }
-    leaderboard {
-      users {
-        id
-        name
-        photoId
-        ncomments
-        nposts
-        proportion
-
-        optional {
-          streak
-          gunStreak
-          horseStreak
-          stacked
-          spent
-          referrals
-        }
-      }
     }
   }
 }
@@ -98,14 +78,14 @@ export function RewardLine ({ total, time }) {
 }
 
 export default function Rewards ({ ssrData }) {
-  // only poll for updates to rewards and not leaderboard
+  // only poll for updates to rewards
   const { data: rewardsData } = useQuery(
     REWARDS,
     SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
   const { data } = useQuery(REWARDS_FULL)
   const dat = useData(data, ssrData)
 
-  let { rewards: [{ total, sources, time, leaderboard, ad }] } = useMemo(() => {
+  let { rewards: [{ total, sources, time, ad }] } = useMemo(() => {
     return dat || { rewards: [{}] }
   }, [dat])
 
@@ -117,20 +97,6 @@ export default function Rewards ({ ssrData }) {
 
   if (!dat) return <PageLoading />
 
-  function EstimatedReward ({ rank, user }) {
-    if (!user) return null
-    const referrerReward = Math.max(Math.floor(total * user.proportion * 0.2), 0)
-    const reward = Math.max(Math.floor(total * user.proportion) - referrerReward, 0)
-
-    return (
-      <div className='text-muted fst-italic'>
-        <small>
-          <span>estimated reward: {numWithUnits(reward)} <small className='fw-light'>(+ {numWithUnits(referrerReward)} to referrers)</small></span>
-        </small>
-      </div>
-    )
-  }
-
   return (
     <Layout footerLinks>
       {ad &&
@@ -141,7 +107,7 @@ export default function Rewards ({ ssrData }) {
           <ListItem item={ad} ad />
         </div>}
       <Row className='pb-3'>
-        <Col lg={leaderboard?.users && 5}>
+        <Col>
           <div
             className='d-flex flex-column sticky-lg-top py-5'
           >
@@ -159,13 +125,6 @@ export default function Rewards ({ ssrData }) {
             <DonateButton />
           </div>
         </Col>
-        {leaderboard?.users &&
-          <Col lg={7}>
-            <h2 className='pt-5 text-center text-muted'>leaderboard</h2>
-            <div className='d-flex justify-content-center pt-4'>
-              <ListUsers users={leaderboard.users} rank Embellish={EstimatedReward} />
-            </div>
-          </Col>}
       </Row>
     </Layout>
   )
@@ -174,7 +133,7 @@ export default function Rewards ({ ssrData }) {
 export function DonateButton () {
   const showModal = useShowModal()
   const toaster = useToast()
-  const strike = useLightning()
+  const animate = useAnimation()
   const [donateToRewards] = usePaidMutation(DONATE)
 
   return (
@@ -192,7 +151,7 @@ export function DonateButton () {
                   sats: Number(amount)
                 },
                 onCompleted: () => {
-                  strike()
+                  animate()
                   toaster.success('donated')
                 }
               })

@@ -6,12 +6,18 @@ import EditImage from '@/svgs/image-edit-fill.svg'
 import Moon from '@/svgs/moon-fill.svg'
 import { useShowModal } from './modal'
 import { FileUpload } from './file-upload'
+import { gql, useMutation } from '@apollo/client'
 
 export default function Avatar ({ onSuccess }) {
+  const [cropPhoto] = useMutation(gql`
+    mutation cropPhoto($photoId: ID!, $cropData: CropData) {
+      cropPhoto(photoId: $photoId, cropData: $cropData)
+    }
+  `)
   const [uploading, setUploading] = useState()
   const showModal = useShowModal()
 
-  const Body = ({ onClose, file, upload }) => {
+  const Body = ({ onClose, file, onSave }) => {
     const [scale, setScale] = useState(1)
     const ref = useRef()
 
@@ -34,17 +40,64 @@ export default function Avatar ({ onSuccess }) {
           />
         </BootstrapForm.Group>
         <Button
-          onClick={() => {
-            ref.current.getImageScaledToCanvas().toBlob(blob => {
-              if (blob) {
-                upload(blob)
-                onClose()
+          onClick={async () => {
+            const rect = ref.current.getCroppingRect()
+            const img = new window.Image()
+            img.onload = async () => {
+              const cropData = {
+                ...rect,
+                originalWidth: img.width,
+                originalHeight: img.height,
+                scale
               }
-            }, 'image/jpeg')
+              // upload original to S3 along with crop data
+              await onSave(cropData)
+            }
+            img.src = URL.createObjectURL(file)
+            onClose()
           }}
         >save
         </Button>
       </div>
+    )
+  }
+
+  const startCrop = async (file, upload) => {
+    return new Promise((resolve, reject) =>
+      showModal(onClose => (
+        <Body
+          onClose={() => {
+            onClose()
+            resolve()
+          }}
+          file={file}
+          onSave={async (cropData) => {
+            setUploading(true)
+            try {
+              // upload original to S3
+              const photoId = await upload(file)
+
+              // crop it
+              const { data } = await cropPhoto({ variables: { photoId, cropData } })
+              const res = await fetch(data.cropPhoto)
+              const blob = await res.blob()
+
+              // create a file from the blob
+              const croppedImage = new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
+
+              // upload the imgproxy cropped image
+              const croppedPhotoId = await upload(croppedImage)
+
+              onSuccess?.(croppedPhotoId)
+              setUploading(false)
+            } catch (e) {
+              console.error(e)
+              setUploading(false)
+              reject(e)
+            }
+          }}
+        />
+      ))
     )
   }
 
@@ -56,26 +109,7 @@ export default function Avatar ({ onSuccess }) {
         console.log(e)
         setUploading(false)
       }}
-      onSelect={(file, upload) => {
-        return new Promise((resolve, reject) =>
-          showModal(onClose => (
-            <Body
-              onClose={() => {
-                onClose()
-                resolve()
-              }}
-              file={file}
-              upload={async (blob) => {
-                await upload(blob)
-                resolve(blob)
-              }}
-            />
-          )))
-      }}
-      onSuccess={({ id }) => {
-        onSuccess?.(id)
-        setUploading(false)
-      }}
+      onSelect={startCrop}
       onUpload={() => {
         setUploading(true)
       }}

@@ -7,24 +7,23 @@ import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
 import { USER_ID } from '../../lib/constants'
-import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
 import { abbrNum } from '../../lib/format'
 import { useServiceWorker } from '../serviceworker'
 import { signOut } from 'next-auth/react'
 import Badges from '../badge'
-import { randInRange } from '../../lib/rand'
-import { useLightning } from '../lightning'
 import LightningIcon from '../../svgs/bolt.svg'
 import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
-import { useWallets } from '@/wallets/index'
-import SwitchAccountList, { useAccounts } from '@/components/account'
+// import { useWallets } from '@/wallets/client/hooks'
+import { useWalletIndicator } from '@/wallets/client/hooks'
+import SwitchAccountList, { nextAccount, useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
+
 export function Brand ({ className }) {
   return (
     <Link href='/' passHref legacyBehavior>
@@ -121,9 +120,6 @@ export function NavNotifications ({ className }) {
 
   return (
     <>
-      <Head>
-        <link rel='shortcut icon' href={hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
-      </Head>
       <Link href='/notifications' passHref legacyBehavior>
         <Nav.Link eventKey='notifications' className={classNames('position-relative', className)}>
           <NoteIcon height={28} width={20} className='theme' />
@@ -164,8 +160,34 @@ export function NavWalletSummary ({ className }) {
   )
 }
 
+export const Indicator = ({ superscript }) => {
+  if (superscript) {
+    return (
+      <span className='d-inline-block p-1'>
+        <span
+          className='position-absolute p-1 bg-secondary'
+          style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}
+        >
+          <span className='invisible'>{' '}</span>
+        </span>
+      </span>
+    )
+  }
+
+  return (
+    <div className='p-1 d-inline-block bg-secondary ms-1'>
+      <span className='invisible'>{' '}</span>
+    </div>
+  )
+}
+
 export function MeDropdown ({ me, dropNavKey }) {
   if (!me) return null
+
+  const profileIndicator = !me.bioId
+  const walletIndicator = useWalletIndicator()
+  const indicator = profileIndicator || walletIndicator
+
   return (
     <div className=''>
       <Dropdown className={styles.dropdown} align='end'>
@@ -173,12 +195,7 @@ export function MeDropdown ({ me, dropNavKey }) {
           <div className='d-flex align-items-center'>
             <Nav.Link eventKey={me.name} as='span' className='p-0 position-relative'>
               {`@${me.name}`}
-              {!me.bioId &&
-                <span className='d-inline-block p-1'>
-                  <span className='position-absolute p-1 bg-secondary' style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}>
-                    <span className='invisible'>{' '}</span>
-                  </span>
-                </span>}
+              {indicator && <Indicator superscript />}
             </Nav.Link>
             <Badges user={me} />
           </div>
@@ -187,17 +204,17 @@ export function MeDropdown ({ me, dropNavKey }) {
           <Link href={'/' + me.name} passHref legacyBehavior>
             <Dropdown.Item active={me.name === dropNavKey}>
               profile
-              {me && !me.bioId &&
-                <div className='p-1 d-inline-block bg-secondary ms-1'>
-                  <span className='invisible'>{' '}</span>
-                </div>}
+              {profileIndicator && <Indicator />}
             </Dropdown.Item>
           </Link>
           <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
             <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
           </Link>
           <Link href='/wallets' passHref legacyBehavior>
-            <Dropdown.Item eventKey='wallets'>wallets</Dropdown.Item>
+            <Dropdown.Item eventKey='wallets'>
+              wallets
+              {walletIndicator && <Indicator />}
+            </Dropdown.Item>
           </Link>
           <Link href='/credits' passHref legacyBehavior>
             <Dropdown.Item eventKey='credits'>credits</Dropdown.Item>
@@ -272,8 +289,7 @@ export default function LoginButton () {
 
 function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
-  const { removeLocalWallets } = useWallets()
-  const { nextAccount } = useAccounts()
+  // const { removeLocalWallets } = useWallets()
   const router = useRouter()
 
   return (
@@ -303,8 +319,6 @@ function LogoutObstacle ({ onClose }) {
             if (pushSubscription) {
               await togglePushSubscription().catch(console.error)
             }
-
-            removeLocalWallets()
 
             await signOut({ callbackUrl: '/' })
           }}
@@ -340,7 +354,7 @@ export function LogoutDropdownItem ({ handleClose }) {
 
 function SwitchAccountButton ({ handleClose }) {
   const showModal = useShowModal()
-  const { accounts } = useAccounts()
+  const accounts = useAccounts()
 
   if (accounts.length === 0) return null
 
@@ -378,18 +392,6 @@ export function LoginButtons ({ handleClose }) {
 }
 
 export function AnonDropdown ({ path }) {
-  const strike = useLightning()
-
-  useEffect(() => {
-    if (!window.localStorage.getItem('striked')) {
-      const to = setTimeout(() => {
-        strike()
-        window.localStorage.setItem('striked', 'yep')
-      }, randInRange(3000, 10000))
-      return () => clearTimeout(to)
-    }
-  }, [])
-
   return (
     <div className='position-relative'>
       <Dropdown className={styles.dropdown} align='end' autoClose>

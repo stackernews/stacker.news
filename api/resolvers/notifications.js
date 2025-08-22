@@ -2,7 +2,7 @@ import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
 import { getItem, filterClause, whereClause, muteClause, activeOrMine } from './item'
 import { getInvoice, getWithdrawl } from './wallet'
 import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
-import { replyToSubscription } from '@/lib/webPush'
+import { sendPushSubscriptionReply } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
@@ -316,13 +316,36 @@ export default {
 
       if (meFull.noteCowboyHat) {
         queries.push(
-          `(SELECT id::text, updated_at AS "sortTime", 0 as "earnedSats", 'Streak' AS type
+          `(SELECT id::text, updated_at AS "sortTime", 0 as "earnedSats", 'CowboyHat' AS type
           FROM "Streak"
           WHERE "userId" = $1
           AND updated_at < $2
+          AND type = 'COWBOY_HAT'
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT})`
         )
+        for (const type of ['HORSE', 'GUN']) {
+          const gqlType = type.charAt(0) + type.slice(1).toLowerCase()
+          queries.push(
+            `(SELECT id::text, "startedAt" AS "sortTime", 0 as "earnedSats", 'New${gqlType}' AS type
+            FROM "Streak"
+            WHERE "userId" = $1
+            AND updated_at < $2
+            AND type = '${type}'::"StreakType"
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+          )
+          queries.push(
+            `(SELECT id::text AS id, "endedAt" AS "sortTime", 0 as "earnedSats", 'Lost${gqlType}' AS type
+            FROM "Streak"
+            WHERE "userId" = $1
+            AND updated_at < $2
+            AND "endedAt" IS NOT NULL
+            AND type = '${type}'::"StreakType"
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+          )
+        }
       }
 
       queries.push(
@@ -416,7 +439,7 @@ export default {
         console.log(`[webPush] created subscription for user ${me.id}: endpoint=${endpoint}`)
       }
 
-      await replyToSubscription(dbPushSubscription.id, { title: 'Stacker News notifications are now active' })
+      await sendPushSubscriptionReply(dbPushSubscription)
 
       return dbPushSubscription
     },
@@ -461,8 +484,13 @@ export default {
   },
   TerritoryTransfer: {
     sub: async (n, args, { models, me }) => {
-      const transfer = await models.territoryTransfer.findUnique({ where: { id: Number(n.id) }, include: { sub: true } })
-      return transfer.sub
+      const [sub] = await models.$queryRaw`
+        SELECT "Sub".*
+        FROM "TerritoryTransfer"
+        JOIN "Sub" ON "Sub"."name" = "TerritoryTransfer"."subName"
+        WHERE "TerritoryTransfer"."id" = ${Number(n.id)}`
+
+      return sub
     }
   },
   JobChanged: {
@@ -500,23 +528,14 @@ export default {
       }
     }
   },
-  Streak: {
+  CowboyHat: {
     days: async (n, args, { models }) => {
       const res = await models.$queryRaw`
-        SELECT "endedAt" - "startedAt" AS days
+        SELECT "endedAt"::date - "startedAt"::date AS days
         FROM "Streak"
         WHERE id = ${Number(n.id)} AND "endedAt" IS NOT NULL
       `
-
       return res.length ? res[0].days : null
-    },
-    type: async (n, args, { models }) => {
-      const res = await models.$queryRaw`
-        SELECT "type"
-        FROM "Streak"
-        WHERE id = ${Number(n.id)}
-      `
-      return res.length ? res[0].type : null
     }
   },
   Earn: {

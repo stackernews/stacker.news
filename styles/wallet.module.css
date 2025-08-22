@@ -16,91 +16,33 @@
   }
 }
 
-@media (max-width: 330px) {
-  .walletGrid {
-    grid-template-columns: 100%;
-  }
-  .walletGrid > * {
-    justify-self: center;
-  }
-}
-
-.walletFilters {
-  grid-column: 1 / -1;
-  margin-left: 0.2rem;
-  user-select: none;
-}
-
-.drag {
-  opacity: 33%;
-}
-
-.drop {
-  box-shadow: 0 0 10px var(--bs-info);
-}
-
 .card {
   width: 160px;
   max-width: 100%;
   aspect-ratio: 160 / 180;
+  transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
 }
 
 .indicators {
   display: flex;
   align-items: center;
   column-gap: 0.2rem;
-  margin-left: auto;
   padding: 10px;
+  justify-content: flex-end;
   position: absolute;
+  width: 100%;
   top: 0;
   right: 0;
-}
-
-.walletLogo {
-  max-width: 100%;
-  max-height: 40%;
-  margin: auto;
-  text-align: center;
-  font-size: 1.5rem;
-  line-height: 1;
-}
-
-.walletBanner {
-  max-width: min(256px, 100vw);
-  max-height: 100px;
-  padding: 0 15px 1rem 15px;
-}
-
-.badge {
-  color: var(--theme-grey) !important;
-  background: var(--theme-clickToContextColor) !important;
-  vertical-align: middle;
-  margin-bottom: 0.1rem;
-  margin-top: 0.1rem;
-  margin-right: 0.2rem;
-}
-
-.receive {
-  color: #20c997 !important;
-}
-
-.send {
-  color: var(--bs-primary) !important;
-}
-
-.attach {
-  color: var(--bs-body-color) !important;
-  text-align: center;
-}
-
-.attach svg {
-  fill: var(--bs-body-color) !important;
-  margin-left: 0.5rem;
 }
 
 .indicator {
   width: 14px;
   height: 14px;
+  background-color: var(--theme-toolbarHover) !important;
+}
+
+.indicator.drag {
+  background-color: transparent !important;
 }
 
 .indicator.success {
@@ -125,4 +67,72 @@
   color: var(--theme-toolbarHover) !important;
   background-color: var(--theme-toolbarHover) !important;
   border: 1px solid var(--theme-toolbarActive);
+}
+
+.walletLogo {
+  max-width: 100%;
+  max-height: 40%;
+  margin: auto;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.walletBanner {
+  max-width: min(256px, 100vw);
+  max-height: 100px;
+  padding: 0 15px 1rem 15px;
+}
+
+.attach {
+  color: var(--bs-body-color) !important;
+  text-align: center;
+}
+
+.attach svg {
+  fill: var(--bs-body-color) !important;
+  margin-left: 0.5rem;
+}
+
+.form {
+  display: flex;
+  justify-content: center;
+  max-width: 740px;
+  width: 100%;
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-top: 5rem;
+  margin-left: auto;
+  margin-right: auto;
+  flex-direction: column;
+}
+
+.separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--theme-grey);
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.separator::before,
+.separator::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--theme-grey);
+}
+
+.separator:not(:empty)::before {
+  margin-right: .25em;
+}
+
+.separator:not(:empty)::after {
+  margin-left: .25em;
+}
+
+.passphrase {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  container-type: inline-size;
 }

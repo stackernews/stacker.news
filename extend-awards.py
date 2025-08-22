@@ -2,7 +2,7 @@ import json, os, re, requests
 
 difficulties = {'good-first-issue':20000,'easy':100000,'medium':250000,'medium-hard':500000,'hard':1000000}
 priorities = {'low':0.5,'medium':1.5,'high':2,'urgent':3}
-ignored = ['huumn', 'ekzyis']
+ignored = ['huumn', 'ekzyis', 'Soxasora']
 fn = 'awards.csv'
 
 sess = requests.Session()
@@ -15,15 +15,17 @@ def getIssue(n):
 	j = json.loads(r.text)
 	return j
 
-def findIssueInPR(j):
-	p = re.compile('(#|https://github.com/stackernews/stacker.news/issues/)([0-9]+)')
-	for m in p.finditer(j['title']):
-		return m.group(2)
-	if not 'body' in j or j['body'] is None:
-		return
-	for s in j['body'].split('\n'):
-		for m in p.finditer(s):
-			return m.group(2)
+def findIssuesInPR(j):
+	closing_keywords = ['close', 'closes', 'closed', 'fix', 'fixes', 'fixed', 'resolve', 'resolves', 'resolved']
+	# Support both #123 and full URL
+	closing_pattern = re.compile(
+		r'(?i)\b(' + '|'.join(closing_keywords) + r')\s+(?:#|https://github\.com/stackernews/stacker\.news/issues/)(\d+)'
+	)
+	issues = set()
+	for text in [j.get('title', ''), j.get('body', '') or '']:
+		for m in closing_pattern.finditer(text):
+			issues.add(m.group(2))
+	return list(issues)
 
 def addAward(user, kind, pr, issue, difficulty, priority, count, amount):
 	if amount >= 1000000 and amount % 1000000 == 0:
@@ -59,41 +61,42 @@ def countReviews(pr):
 def checkPR(i):
 	pr = str(i['number'])
 	print('pr %s' % pr)
-	n = findIssueInPR(i)
-	if not n:
-		print('pr %s does not solve an issue' % pr)
+	issue_numbers = findIssuesInPR(i)
+	if not issue_numbers:
+		print('pr %s does not solve any issues' % pr)
 		return
-	print('solves issue %s' % n)
-	j = getIssue(n)
-	difficulty = ''
-	amount = 0
-	priority = ''
-	multiplier = 1
-	for l in j['labels']:
-		for d in difficulties:
-			if l['name'] == 'difficulty:' + d:
-				difficulty = d
-				amount = difficulties[d]
-		for p in priorities:
-			if l['name'] == 'priority:' + p:
-				priority = p
-				multiplier = priorities[p]
-	if amount * multiplier <= 0:
-		print('issue gives no award')
-		return
-	count = countReviews(pr)
-	if count >= 10:
-		print('too many reviews, no award')
-		return
-	if count > 0:
-		print('%d reviews, %d%% reduction' % (count, count * 10))
-	award = amount * multiplier * (10 - count) / 10
-	print('award is %d' % award)
-	if i['user']['login'] not in ignored:
-		addAward(i['user']['login'], 'pr', '#' + pr, '#' + n, difficulty, priority, count, award)
-	if j['user']['login'] not in ignored:
-		count = 0
-		addAward(j['user']['login'], 'issue', '#' + pr, '#' + n, difficulty, priority, count, int(award / 10))
+	for n in issue_numbers:
+		print('solves issue %s' % n)
+		j = getIssue(n)
+		difficulty = ''
+		amount = 0
+		priority = ''
+		multiplier = 1
+		for l in j['labels']:
+			for d in difficulties:
+				if l['name'] == 'difficulty:' + d:
+					difficulty = d
+					amount = difficulties[d]
+			for p in priorities:
+				if l['name'] == 'priority:' + p:
+					priority = p
+					multiplier = priorities[p]
+		if amount * multiplier <= 0:
+			print('issue gives no award')
+			continue
+		count = countReviews(pr)
+		if count >= 10:
+			print('too many reviews, no award')
+			continue
+		if count > 0:
+			print('%d reviews, %d%% reduction' % (count, count * 10))
+		award = amount * multiplier * (10 - count) / 10
+		print('award is %d' % award)
+		if i['user']['login'] not in ignored:
+			addAward(i['user']['login'], 'pr', '#' + pr, '#' + n, difficulty, priority, count, award)
+		if j['user']['login'] not in ignored:
+			count = 0
+			addAward(j['user']['login'], 'issue', '#' + pr, '#' + n, difficulty, priority, count, int(award / 10))
 
 with open(fn, 'r') as f:
 	for s in f:

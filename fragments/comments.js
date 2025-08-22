@@ -4,9 +4,9 @@ import { gql } from '@apollo/client'
 const STREAK_FIELDS = gql`
   fragment StreakFields on User {
     optional {
-    streak
-    gunStreak
-      horseStreak
+      streak
+      hasSendWallet
+      hasRecvWallet
     }
   }
 `
@@ -47,6 +47,53 @@ export const COMMENT_FIELDS = gql`
     otsHash
     ncomments
     nDirectComments
+    injected @client
+    imgproxyUrls
+    rel
+    apiKey
+    invoice {
+      id
+      actionState
+      confirmedAt
+    }
+    cost
+  }
+`
+
+export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
+  ${STREAK_FIELDS}
+  fragment CommentFieldsNoChildComments on Item {
+    id
+    position
+    parentId
+    createdAt
+    invoicePaidAt
+    deletedAt
+    text
+    user {
+      id
+      name
+      meMute
+      ...StreakFields
+    }
+    sats
+    credits
+    meAnonSats @client
+    upvotes
+    freedFreebie
+    boost
+    meSats
+    meCredits
+    meDontLikeSats
+    meBookmark
+    meSubscription
+    outlawed
+    freebie
+    path
+    commentSats
+    commentCredits
+    mine
+    otsHash
     imgproxyUrls
     rel
     apiKey
@@ -105,6 +152,16 @@ export const COMMENTS = gql`
                     comments {
                       comments {
                         ...CommentFields
+                        comments {
+                          comments {
+                            ...CommentFields
+                            comments {
+                              comments {
+                                ...CommentFields
+                              }
+                            }
+                          }
+                        }
                       }
                     }
                   }
@@ -116,3 +173,50 @@ export const COMMENTS = gql`
       }
     }
   }`
+
+export const COMMENT_WITH_NEW_RECURSIVE = gql`
+  ${COMMENT_FIELDS}
+  ${COMMENTS}
+
+  fragment CommentWithNewRecursive on Item {
+    ...CommentFields
+    comments {
+      comments {
+        ...CommentsRecursive
+      }
+    }
+  }
+`
+
+export const COMMENT_WITH_NEW_LIMITED = gql`
+  ${COMMENT_FIELDS}
+
+  fragment CommentWithNewLimited on Item {
+    ...CommentFields
+    comments {
+      comments {
+        ...CommentFields
+      }
+    }
+  }
+`
+
+export const COMMENT_WITH_NEW_MINIMAL = gql`
+  ${COMMENT_FIELDS}
+
+  fragment CommentWithNewMinimal on Item {
+    ...CommentFields
+  }
+`
+
+export const GET_NEW_COMMENTS = gql`
+  ${COMMENTS}
+
+  query GetNewComments($rootId: ID, $after: Date) {
+    newComments(rootId: $rootId, after: $after) {
+      comments {
+        ...CommentsRecursive
+      }
+    }
+  }
+`

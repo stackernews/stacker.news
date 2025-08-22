@@ -57,7 +57,8 @@ module.exports = withPlausibleProxy()({
   },
   compress: false,
   experimental: {
-    scrollRestoration: true
+    scrollRestoration: true,
+    serverSourceMaps: true
   },
   reactStrictMode: true,
   productionBrowserSourceMaps: true,

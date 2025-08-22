@@ -898,7 +898,15 @@ div[contenteditable]:focus,
   box-shadow: inset 0 0 1px 1px rgba(0, 123, 190, 0.25);
 }
 
+.outline-new-injected-comment {
+  box-shadow: inset 0 0 1px 1px rgba(0, 123, 190, 0.25);
+}
+
 .outline-new-comment.outline-new-comment-unset {
+  box-shadow: none;
+}
+
+.outline-new-injected-comment.outline-new-comment-unset {
   box-shadow: none;
 }
 
@@ -1093,4 +1101,17 @@ div[contenteditable]:focus,
 .react-datepicker__quarter-text--in-range,
 .react-datepicker__year-text--in-range) {
   background-color: var(--bs-info) !important;
+}
+
+.react-datepicker__close-icon {
+  padding: 0rem 0.75rem !important;
+  align-items: center !important;
+  height: calc(100% - 3px) !important;
+
+  &::after {
+    content: "×" !important;
+    color: var(--theme-grey) !important;
+    font-size: 20px !important;
+    background: none !important;
+  }
 }

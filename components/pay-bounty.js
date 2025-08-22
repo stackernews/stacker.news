@@ -1,5 +1,4 @@
 import React from 'react'
-import Button from 'react-bootstrap/Button'
 import styles from './pay-bounty.module.css'
 import ActionTooltip from './action-tooltip'
 import { useMe } from './me'
@@ -7,9 +6,10 @@ import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
 import { ActCanceledError, useAct } from './item-act'
-import { useLightning } from './lightning'
+import { useAnimation } from '@/components/animation'
 import { useToast } from './toast'
-import { useSendWallets } from '@/wallets/index'
+import { useHasSendWallet } from '@/wallets/client/hooks'
+import { Form, SubmitButton } from './form'
 
 export const payBountyCacheMods = {
   onPaid: (cache, { data }) => {
@@ -48,11 +48,11 @@ export default function PayBounty ({ children, item }) {
   const { me } = useMe()
   const showModal = useShowModal()
   const root = useRoot()
-  const strike = useLightning()
+  const animate = useAnimation()
   const toaster = useToast()
-  const wallets = useSendWallets()
+  const hasSendWallet = useHasSendWallet()
 
-  const variables = { id: item.id, sats: root.bounty, act: 'TIP', hasSendWallet: wallets.length > 0 }
+  const variables = { id: item.id, sats: root.bounty, act: 'TIP', hasSendWallet }
   const act = useAct({
     variables,
     optimisticResponse: { act: { __typename: 'ItemActPaidAction', result: { ...variables, path: item.path } } },
@@ -61,7 +61,7 @@ export default function PayBounty ({ children, item }) {
 
   const handlePayBounty = async onCompleted => {
     try {
-      strike()
+      animate()
       const { error } = await act({ onCompleted })
       if (error) throw error
     } catch (error) {
@@ -90,11 +90,12 @@ export default function PayBounty ({ children, item }) {
               <div className='text-center fw-bold text-muted'>
                 Pay this bounty to {item.user.name}?
               </div>
-              <div className='text-center'>
-                <Button className='mt-4' variant='primary' onClick={() => handlePayBounty(onClose)}>
-                  pay <small>{numWithUnits(root.bounty)}</small>
-                </Button>
-              </div>
+              {/* initial={{ id: item.id }} is a hack to allow SubmitButton to be used as a button */}
+              <Form className='text-center' onSubmit={() => handlePayBounty(onClose)} initial={{ id: item.id }}>
+                <SubmitButton className='mt-4' variant='primary' submittingText='paying...' appendText={numWithUnits(root.bounty)}>
+                  pay
+                </SubmitButton>
+              </Form>
             </>
           ))
         }}

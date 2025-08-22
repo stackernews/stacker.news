@@ -96,8 +96,9 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 }
 
 export default function Comment ({
-  item, children, replyOpen, includeParent, topLevel,
-  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry
+  item, children, replyOpen, includeParent, topLevel, rootLastCommentAt,
+  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry,
+  navigator
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
@@ -113,6 +114,19 @@ export default function Comment ({
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
   const { cache } = useApolloClient()
+
+  const unsetOutline = () => {
+    if (!ref.current) return
+    const hasOutline = ref.current.classList.contains('outline-new-comment') || ref.current.classList.contains('outline-new-injected-comment')
+    const hasOutlineUnset = ref.current.classList.contains('outline-new-comment-unset')
+
+    // don't try to unset the outline if the comment is not outlined or we already unset the outline
+    if (hasOutline && !hasOutlineUnset) {
+      ref.current.classList.add('outline-new-comment-unset')
+      // untrack the new comment
+      navigator?.untrackNewComment(ref)
+    }
+  }
 
   useEffect(() => {
     const comment = cache.readFragment({
@@ -140,12 +154,31 @@ export default function Comment ({
   }, [item.id, cache, router.query.commentId])
 
   useEffect(() => {
-    if (router.query.commentsViewedAt &&
-        me?.id !== item.user?.id &&
-        new Date(item.createdAt).getTime() > router.query.commentsViewedAt) {
+    if (me?.id === item.user?.id) return
+
+    const itemCreatedAt = new Date(item.createdAt).getTime()
+    // it's a new comment if it was created after the last comment was viewed
+    // or, in the case of live comments, after the last comment was created
+    const isNewComment = (router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||
+                        (rootLastCommentAt && itemCreatedAt > new Date(rootLastCommentAt).getTime())
+    if (!isNewComment) return
+
+    if (item.injected) {
+      // newly injected comments (item.injected) have to use a different class to outline every new comment
+      ref.current.classList.add('outline-new-injected-comment')
+
+      // wait for the injection animation to end before removing its class
+      ref.current.addEventListener('animationend', () => {
+        ref.current.classList.remove(styles.injectedComment)
+      }, { once: true })
+      // animate the live comment injection
+      ref.current.classList.add(styles.injectedComment)
+    } else {
       ref.current.classList.add('outline-new-comment')
     }
-  }, [item.id])
+
+    navigator?.trackNewComment(ref, itemCreatedAt)
+  }, [item.id, rootLastCommentAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
@@ -159,17 +192,19 @@ export default function Comment ({
   return (
     <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
-      onMouseEnter={() => ref.current.classList.add('outline-new-comment-unset')}
-      onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
+      onMouseEnter={unsetOutline}
+      onTouchStart={unsetOutline}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.outlawed && !me?.privates?.wildWestMode
           ? <Skull className={styles.dontLike} width={24} height={24} />
-          : item.mine
-            ? <Boost item={item} className={styles.upvote} />
-            : item.meDontLikeSats > item.meSats
-              ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
-              : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} collapsed={collapse === 'yep'} />}
+          : pin
+            ? <Pin width={22} height={22} className={styles.pin} />
+            : item.mine
+              ? <Boost item={item} className={styles.upvote} />
+              : item.meDontLikeSats > item.meSats
+                ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
+                : <UpVote item={item} className={styles.upvote} collapsed={collapse === 'yep'} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             {item.user?.meMute && !includeParent && collapse === 'yep'
@@ -182,6 +217,7 @@ export default function Comment ({
                 >reply from someone you muted
                 </span>)
               : <ItemInfo
+                  full={topLevel}
                   item={item}
                   commentsText='replies'
                   commentTextSingular='reply'
@@ -249,7 +285,7 @@ export default function Comment ({
       </div>
       {collapse !== 'yep' && (
         bottomedOut
-          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3')}><ReplyOnAnotherPage item={item} /></div></div>
+          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3 pb-2')}><ViewMoreReplies item={item} threadContext /></div></div>
           : (
             <div className={styles.children}>
               {item.outlawed && !me?.privates?.wildWestMode
@@ -264,9 +300,13 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} />
+                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={rootLastCommentAt} />
                       ))}
-                      {item.comments.comments.length < item.nDirectComments && <ViewAllReplies id={item.id} nhas={item.ncomments} />}
+                      {item.comments.comments.length < item.nDirectComments && (
+                        <div className={`d-block ${styles.comment} pb-2 ps-3`}>
+                          <ViewMoreReplies item={item} />
+                        </div>
+                      )}
                     </>
                     )
                   : null}
@@ -279,29 +319,24 @@ export default function Comment ({
   )
 }
 
-export function ViewAllReplies ({ id, nshown, nhas }) {
-  const text = `view all ${nhas} replies`
-
-  return (
-    <div className={`d-block fw-bold ${styles.comment} pb-2 ps-3`}>
-      <Link href={`/items/${id}`} as={`/items/${id}`} className='text-muted'>
-        {text}
-      </Link>
-    </div>
-  )
-}
-
-function ReplyOnAnotherPage ({ item }) {
+export function ViewMoreReplies ({ item, threadContext = false }) {
   const root = useRoot()
-  const rootId = commentSubTreeRootId(item, root)
+  const id = threadContext ? commentSubTreeRootId(item, root) : item.id
 
-  let text = 'reply on another page'
-  if (item.ncomments > 0) {
-    text = `view all ${item.ncomments} replies`
-  }
+  // if threadContext is true, we travel to some comments before the current comment, focusing on the comment itself
+  // otherwise, we directly navigate to the comment
+  const href = `/items/${id}` + (threadContext ? `?commentId=${item.id}` : '')
+
+  const text = threadContext && item.ncomments === 0
+    ? 'reply on another page'
+    : `view all ${item.ncomments} replies`
 
   return (
-    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='d-block pb-2 fw-bold text-muted'>
+    <Link
+      href={href}
+      as={`/items/${id}`}
+      className='fw-bold d-flex align-items-center gap-2 text-muted'
+    >
       {text}
     </Link>
   )

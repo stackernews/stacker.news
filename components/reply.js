@@ -13,6 +13,7 @@ import { useRoot } from './root'
 import { CREATE_COMMENT } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
+import { updateAncestorsCommentCount } from '@/lib/comments'
 
 export default forwardRef(function Reply ({
   item,
@@ -82,17 +83,7 @@ export default forwardRef(function Reply ({
         const ancestors = item.path.split('.')
 
         // update all ancestors
-        ancestors.forEach(id => {
-          cache.modify({
-            id: `Item:${id}`,
-            fields: {
-              ncomments (existingNComments = 0) {
-                return existingNComments + 1
-              }
-            },
-            optimistic: true
-          })
-        })
+        updateAncestorsCommentCount(cache, ancestors, 1, parentId)
 
         // so that we don't see indicator for our own comments, we record this comments as the latest time
         // but we also have record num comments, in case someone else commented when we did

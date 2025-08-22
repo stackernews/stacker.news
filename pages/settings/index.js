@@ -9,7 +9,7 @@ import { gql, useMutation, useQuery } from '@apollo/client'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import LoginButton from '@/components/login-button'
 import { signIn } from 'next-auth/react'
-import { LightningAuth } from '@/components/lightning-auth'
+import { LightningAuthWithExplainer } from '@/components/lightning-auth'
 import { SETTINGS, SET_SETTINGS } from '@/fragments/users'
 import { useRouter } from 'next/router'
 import Info from '@/components/info'
@@ -24,12 +24,11 @@ import { useShowModal } from '@/components/modal'
 import { authErrorMessage } from '@/components/login'
 import { NostrAuth } from '@/components/nostr-auth'
 import { useToast } from '@/components/toast'
-import { useServiceWorkerLogger } from '@/components/logger'
 import { useMe } from '@/components/me'
 import { INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { useField } from 'formik'
-import styles from './settings.module.css'
+import styles from '@/styles/nav.module.css'
 import { AuthBanner } from '@/components/banners'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
@@ -68,18 +67,13 @@ export function SettingsHeader () {
           </Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/settings/subscriptions' passHref legacyBehavior>
+          <Link href='/settings/subscriptions/stackers' passHref legacyBehavior>
             <Nav.Link eventKey='subscriptions'>subscriptions</Nav.Link>
           </Link>
         </Nav.Item>
         <Nav.Item>
           <Link href='/settings/mutes' passHref legacyBehavior>
             <Nav.Link eventKey='mutes'>muted stackers</Nav.Link>
-          </Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Link href='/settings/passphrase' passHref legacyBehavior>
-            <Nav.Link eventKey='passphrase'>device sync</Nav.Link>
           </Link>
         </Nav.Item>
       </Nav>
@@ -102,7 +96,6 @@ export default function Settings ({ ssrData }) {
       })
     }
   })
-  const logger = useServiceWorkerLogger()
 
   const { data } = useQuery(SETTINGS)
   const { settings: { privates: settings } } = useMemo(() => data ?? ssrData, [data, ssrData])
@@ -156,19 +149,13 @@ export default function Settings ({ ssrData }) {
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
             hideBookmarks: settings?.hideBookmarks,
             hideWalletBalance: settings?.hideWalletBalance,
-            diagnostics: settings?.diagnostics,
             hideIsContributor: settings?.hideIsContributor,
-            noReferralLinks: settings?.noReferralLinks,
-            proxyReceive: settings?.proxyReceive,
-            directReceive: settings?.directReceive,
-            receiveCreditsBelowSats: settings?.receiveCreditsBelowSats,
-            sendCreditsBelowSats: settings?.sendCreditsBelowSats
+            noReferralLinks: settings?.noReferralLinks
           }}
           schema={settingsSchema}
           onSubmit={async ({
             tipDefault, tipRandom, tipRandomMin, tipRandomMax, withdrawMaxFeeDefault,
             zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, satsFilter,
-            receiveCreditsBelowSats, sendCreditsBelowSats,
             ...values
           }) => {
             if (nostrPubkey.length === 0) {
@@ -194,8 +181,6 @@ export default function Settings ({ ssrData }) {
                     withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
                     satsFilter: Number(satsFilter),
                     zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
-                    receiveCreditsBelowSats: Number(receiveCreditsBelowSats),
-                    sendCreditsBelowSats: Number(sendCreditsBelowSats),
                     nostrPubkey,
                     nostrRelays: nostrRelaysFiltered,
                     ...values
@@ -340,49 +325,6 @@ export default function Settings ({ ssrData }) {
             name='noteCowboyHat'
           />
           <div className='form-label'>wallet</div>
-          <Input
-            label='receive credits for zaps and deposits below'
-            name='receiveCreditsBelowSats'
-            required
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-          />
-          <Input
-            label='send credits for zaps below'
-            name='sendCreditsBelowSats'
-            required
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-          />
-          <Checkbox
-            label={
-              <div className='d-flex align-items-center'>proxy deposits to attached wallets
-                <Info>
-                  <ul>
-                    <li>Forward deposits directly to your attached wallets if they cause your balance to exceed your auto-withdraw threshold</li>
-                    <li>Payments will be wrapped by the SN node to preserve your wallet's privacy</li>
-                    <li>This will incur in a 10% fee</li>
-                  </ul>
-                </Info>
-              </div>
-            }
-            name='proxyReceive'
-            groupClassName='mb-0'
-          />
-          <Checkbox
-            label={
-              <div className='d-flex align-items-center'>directly deposit to attached wallets
-                <Info>
-                  <ul>
-                    <li>Directly deposit to your attached wallets if they cause your balance to exceed your auto-withdraw threshold</li>
-                    <li>Senders will be able to see your wallet's lightning node public key</li>
-                    <li>If 'proxy deposits' is also checked, it will take precedence and direct deposits will only be used as a fallback</li>
-                    <li>Because we can't determine if a payment succeeds, you won't be notified about direct deposits</li>
-                  </ul>
-                </Info>
-              </div>
-            }
-            name='directReceive'
-            groupClassName='mb-0'
-          />
           <Checkbox
             label={
               <div className='d-flex align-items-center'>hide invoice descriptions
@@ -518,29 +460,6 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='imgproxyOnly'
-            groupClassName='mb-0'
-          />
-          <Checkbox
-            label={
-              <div className='d-flex align-items-center'>allow anonymous diagnostics
-                <Info>
-                  <ul>
-                    <li>collect and send back anonymous diagnostics data</li>
-                    <li>this information is used to fix bugs</li>
-                    <li>this information includes:
-                      <ul><li>timestamps</li></ul>
-                      <ul><li>a randomly generated fancy name</li></ul>
-                      <ul><li>your user agent</li></ul>
-                      <ul><li>your operating system</li></ul>
-                    </li>
-                    <li>this information can not be traced back to you without your fancy name</li>
-                    <li>fancy names are generated in your browser</li>
-                  </ul>
-                  <div className='text-muted fst-italic'>your fancy name: {logger.name}</div>
-                </Info>
-              </div>
-            }
-            name='diagnostics'
             groupClassName='mb-0'
           />
           <Checkbox
@@ -706,7 +625,7 @@ function QRLinkButton ({ provider, unlink, status }) {
     ? unlink
     : () => showModal(onClose =>
       <div className='d-flex flex-column align-items-center'>
-        <LightningAuth />
+        <LightningAuthWithExplainer backButton={false} md={12} lg={12} />
       </div>)
 
   return (

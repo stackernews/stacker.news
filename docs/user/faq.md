@@ -8,7 +8,7 @@ sub: meta
 
 _To quickly browse through this FAQ page, click the chapters icon in the top-right corner. This will let you scroll through all chapters or search for a particular topic within this page._
 
-last updated: March 12, 2025
+last updated: July 16, 2025
 
 ---
 
@@ -84,40 +84,25 @@ Stacker News is non-custodial. To send and receive sats, you need to attach a wa
 
 Click [here](/wallets) or click on your name and select 'wallets'. You should then see this:
 
-![](https://m.stacker.news/75164)
+![](https://m.stacker.news/100486)
 
 We currently support the following wallets:
 
 - [WebLN](https://www.webln.guide/ressources/webln-providers)
-- [Blink](https://www.blink.sv/). Read the [guide](https://stacker.news/items/705629/r/supratic)
-- [Core Lightning](https://docs.corelightning.org/) via [CLNRest](https://docs.corelightning.org/docs/rest). Read the [guide](https://stacker.news/items/545926/r/supratic)
+- [Blink](https://www.blink.sv/) | [guide](https://stacker.news/items/705629/r/supratic)
+- [Core Lightning](https://docs.corelightning.org/) via [CLNRest](https://docs.corelightning.org/docs/rest) | [guide](https://stacker.news/items/545926/r/supratic)
 - [Lightning Node Connect](https://docs.lightning.engineering/lightning-network-tools/lightning-terminal/lightning-node-connect) (LNC)
-- [Lightning Network Daemon](https://github.com/lightningnetwork/lnd) (LND) via [gRPC](https://lightning.engineering/api-docs/api/lnd/). Read the [guide](https://stacker.news/items/704693/r/supratic)
-- [LNbits](https://lnbits.com/). Read the [guide](https://stacker.news/items/697132/r/supratic)
-- [Nostr Wallet Connect](https://nwc.dev/) (NWC). Read the [guide](https://stacker.news/items/698497/r/supratic)
-- [lightning address](https://strike.me/learn/what-is-a-lightning-address/). Read the [guide](https://stacker.news/items/694593/r/supratic)
-- [phoenixd](https://phoenix.acinq.co/server). Read the [guide](https://stacker.news/items/695912/r/supratic)
-
+- [Lightning Network Daemon](https://github.com/lightningnetwork/lnd) (LND) via [gRPC](https://lightning.engineering/api-docs/api/lnd/) | [guide](https://stacker.news/items/704693/r/supratic)
+- [LNbits](https://lnbits.com/) | [guide](https://stacker.news/items/697132/r/supratic)
+- [Nostr Wallet Connect](https://nwc.dev/) (NWC) | [guide](https://stacker.news/items/698497/r/supratic)
+- [lightning address](https://strike.me/learn/what-is-a-lightning-address/) | [guide](https://stacker.news/items/694593/r/supratic)
+- [phoenixd](https://phoenix.acinq.co/server) | [guide](https://stacker.news/items/695912/r/supratic)
 
 ### I can't find my wallet. Can I not attach one?
 
-We currently don't list every wallet individually but [this is planned](https://github.com/stackernews/stacker.news/issues/1495).
+If you can't find your wallet, there is still a high chance that you can attach one. Many wallets support Nostr Wallet Connect or provide lightning addresses.
 
-If you can't find your wallet, there is still a high chance that you can attach one. Many wallets support Nostr Wallet Connect or provide lightning addresses. The following table shows how you can attach some common wallets:
-
-| Wallet | Lightning Address | Nostr Wallet Connect |
-| --- | --- | --- |
-| [Strike](https://strike.me/) | ✅ | ❌ |
-| [cashu.me](https://cashu.me/) | ✅ | ✅ |
-| [Wallet of Satoshi](https://www.walletofsatoshi.com/) | ✅ | ❌ |
-| [Zebedee](https://zbd.gg/) | ✅ | ❌ |
-| [Coinos](https://coinos.io/) | ✅ | ✅ |
-
-### What do the arrows mean?
-
-Not every wallet supports both sending and receiving sats. For example, a lightning address can receive sats but not send them. This is indicated with an arrow to the bottom-left ↙️. A wallet that can send sats will have an arrow to the top-right ↗️.
-
-If you still can't attach a wallet, you can reach out to us in the [saloon](/daily) or simply reply to this FAQ.
+You can also let us know in the [saloon](/daily) that your wallet isn't listed so we can add it!
 
 ### I receive notifications about failed zaps. What do I do?
 
@@ -129,7 +114,7 @@ The link to the wallet logs can be found on the [wallet page](/wallets).
 
 ### Why do I need to enter two strings for NWC?
 
-For security reasons, we never store permissions to spend from your wallet on the server in plain text.
+For security reasons, we never store permissions to spend from your wallet on the server in plaintext.
 
 Since we however need to request invoices from your wallet when there is an incoming payment, we need to store the details to receive payments on the server in plaintext.
 
@@ -141,11 +126,11 @@ Other applications don't require two strings for one of the following reasons:
 2. you can only receive while you are logged in
 3. they (irresponsibly) store permissions to spend in plaintext on their server
 
-### Why is my wallet not showing up on another device?
+### Why do I need to enter a passphrase on another device to see my wallets?
 
-By default, permissions to spend from your wallet are only stored on your device.
+Credentials to spend from your wallet are always stored encrypted on the server. The encryption key is generated and stored on your device.
 
-However, you can enable [device sync](/settings/passphrase) in your settings to securely sync your wallets across devices. Once enabled, your wallets will show up on all devices you entered your passphrase.
+You need to enter your passphrase on another device so it can derive the same key to decrypt your wallets.
 
 ### I have a wallet attached but I still receive CCs. Why?
 
@@ -183,7 +168,7 @@ No. Payments can currently only be made entirely in CCs or sats.
 
 ### Which wallet is used if I attached multiple wallets for send or receive?
 
-All of them! The wallet that is the furthest to the top-right will be attempted first. If it fails, we will attempt the next wallet in order. On desktop, you can drag the wallets around to rearrange their priority. On mobile, you need to click on a wallet and then select where you want the wallet to be.
+All of them! The wallet that is the furthest to the top-left will be attempted first. If it fails, we will attempt the next wallet in order. On desktop, you can drag the wallets around to rearrange their priority. On mobile, you need to click on a wallet and then select where you want the wallet to be.
 
 These sender and receiver fallbacks happen if the payment failed for any reason. The sender will attempt the next wallet if the error was caused by the sender side and the same is true for the receiver.
 
@@ -192,6 +177,12 @@ The only limitation is that we will currently not attempt to pay with CCs at the
 ### Are payments retried in the background?
 
 Yes. We try each payment three times in total with all sender and receiver fallbacks. If a payment still wasn't successful after that, you will receive a notification allowing you to retry the payment manually.
+
+### How do I get a gun or a horse?
+
+You receive a gun when you [attach a wallet](#how-do-i-attach-a-wallet) to send sats.
+
+You receive a horse when you [attach a wallet](#how-do-i-attach-a-wallet) to receive sats.
 
 ---
 
@@ -405,12 +396,6 @@ Your global trust score is basically how much stackers trust you on average.
 ### Can I see my trust scores?
 
 No. All trust scores are private. We might make them public in the future but for now, they are kept private to protect the integrity of ranking and rewards.
-
-### Is my feed personalized?
-
-Yes. If someone zapped a post or comment before you, your trust in them to show you content you like increases. This means content that these early zappers zapped will rank higher in your feed.
-
-A common misconception is that we show you more content of the stackers you zapped. This is not the case. Think of it this way: if you and a friend like the same band, you would ask that friend to show you more similar music and not ask the band to never change their music and produce more of it.
 
 ---
 

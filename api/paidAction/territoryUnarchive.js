@@ -36,8 +36,15 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
   data.userId = me.id
 
   if (sub.userId !== me.id) {
-    await tx.territoryTransfer.create({ data: { subName: name, oldUserId: sub.userId, newUserId: me.id } })
-    await tx.subSubscription.delete({ where: { userId_subName: { userId: sub.userId, subName: name } } })
+    try {
+      // XXX this will throw if this transfer has already happened
+      // TODO: upsert this
+      await tx.territoryTransfer.create({ data: { subName: name, oldUserId: sub.userId, newUserId: me.id } })
+      // this will throw if the prior user has already unsubscribed
+      await tx.subSubscription.delete({ where: { userId_subName: { userId: sub.userId, subName: name } } })
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   await tx.subAct.create({
@@ -78,9 +85,16 @@ export async function perform ({ name, invoiceId, ...data }, { me, cost, tx }) {
     }
   })
 
-  await tx.userSubTrust.createMany({
-    data: initialTrust({ name: updatedSub.name, userId: updatedSub.userId })
-  })
+  const trust = initialTrust({ name: updatedSub.name, userId: updatedSub.userId })
+  for (const t of trust) {
+    await tx.userSubTrust.upsert({
+      where: {
+        userId_subName: { userId: t.userId, subName: t.subName }
+      },
+      update: t,
+      create: t
+    })
+  }
 
   return updatedSub
 }

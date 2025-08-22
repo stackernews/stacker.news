@@ -11,6 +11,7 @@ import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
+import { processCrop } from '@/worker/imgproxy'
 
 const contributors = new Set()
 
@@ -727,6 +728,18 @@ export default {
 
       return true
     },
+    cropPhoto: async (parent, { photoId, cropData }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const croppedUrl = await processCrop({ photoId: Number(photoId), cropData })
+      if (!croppedUrl) {
+        throw new GqlInputError('can\'t crop photo')
+      }
+
+      return croppedUrl
+    },
     setPhoto: async (parent, { photoId }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
@@ -898,6 +911,22 @@ export default {
 
       await models.user.update({ where: { id: me.id }, data: { hideWelcomeBanner: true } })
       return true
+    },
+    hideWalletRecvPrompt: async (parent, data, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      await models.user.update({ where: { id: me.id }, data: { hideWalletRecvPrompt: true } })
+      return true
+    },
+    setDiagnostics: async (parent, { diagnostics }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      await models.user.update({ where: { id: me.id }, data: { diagnostics } })
+      return diagnostics
     }
   },
 
@@ -1071,6 +1100,9 @@ export default {
         return false
       }
       return !!user.tipRandomMin && !!user.tipRandomMax
+    },
+    hideWalletRecvPrompt: async (user, args, { models }) => {
+      return user.hideWalletRecvPrompt || user.hasRecvWallet
     }
   },
 
@@ -1082,19 +1114,17 @@ export default {
 
       return user.streak
     },
-    gunStreak: async (user, args, { models }) => {
+    hasSendWallet: async (user, args, { models }) => {
       if (user.hideCowboyHat) {
-        return null
+        return false
       }
-
-      return user.gunStreak
+      return user.hasSendWallet
     },
-    horseStreak: async (user, args, { models }) => {
+    hasRecvWallet: async (user, args, { models }) => {
       if (user.hideCowboyHat) {
-        return null
+        return false
       }
-
-      return user.horseStreak
+      return user.hasRecvWallet
     },
     maxStreak: async (user, args, { models }) => {
       if (user.hideCowboyHat) {
@@ -1102,8 +1132,9 @@ export default {
       }
 
       const [{ max }] = await models.$queryRaw`
-        SELECT MAX(COALESCE("endedAt", (now() AT TIME ZONE 'America/Chicago')::date) - "startedAt")
-        FROM "Streak" WHERE "userId" = ${user.id}`
+        SELECT MAX(COALESCE("endedAt"::date, (now() AT TIME ZONE 'America/Chicago')::date) - "startedAt"::date)
+        FROM "Streak" WHERE "userId" = ${user.id}
+        AND type = 'COWBOY_HAT'`
       return max
     },
     isContributor: async (user, args, { me }) => {

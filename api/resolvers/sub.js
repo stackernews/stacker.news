@@ -5,6 +5,8 @@ import { viewGroup } from './growth'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
 import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { uploadIdsFromText } from './upload'
+import { Prisma } from '@prisma/client'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
@@ -35,6 +37,18 @@ export async function getSub (parent, { name }, { models, me }) {
 export default {
   Query: {
     sub: getSub,
+    subSuggestions: async (parent, { q, limit = 5 }, { models }) => {
+      let subs = []
+      subs = await models.$queryRaw`
+          SELECT name
+          FROM "Sub"
+          WHERE status IN ('ACTIVE', 'GRACE')
+          ${q ? Prisma.sql`AND SIMILARITY(name, ${q}) > 0.1` : Prisma.empty}
+          ${q ? Prisma.sql`ORDER BY SIMILARITY(name, ${q}) DESC` : Prisma.sql`ORDER BY name ASC`}
+          LIMIT ${limit}`
+
+      return subs
+    },
     subs: async (parent, args, { models, me }) => {
       if (me) {
         const currentUser = await models.user.findUnique({ where: { id: me.id } })
@@ -106,7 +120,7 @@ export default {
         subs
       }
     },
-    userSubs: async (_parent, { name, cursor, when, by, from, to, limit = LIMIT }, { models }) => {
+    userSubs: async (_parent, { name, cursor, when, by, from, to, limit = LIMIT }, { models, me }) => {
       if (!name) {
         throw new GqlInputError('must supply user name')
       }
@@ -129,24 +143,54 @@ export default {
       }
 
       const subs = await models.$queryRawUnsafe(`
-          SELECT "Sub".*,
-            "Sub".created_at as "createdAt",
-            COALESCE(floor(sum(msats_revenue)/1000), 0) as revenue,
-            COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked,
-            COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
-            COALESCE(sum(posts), 0) as nposts,
-            COALESCE(sum(comments), 0) as ncomments
-          FROM ${viewGroup(range, 'sub_stats')}
-          JOIN "Sub" on "Sub".name = u.sub_name
-          WHERE "Sub"."userId" = $3
-            AND "Sub".status = 'ACTIVE'
-          GROUP BY "Sub".name
-          ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
-          OFFSET $4
-          LIMIT $5`, ...range, user.id, decodedCursor.offset, limit)
+        SELECT "Sub".*,
+          "Sub".created_at as "createdAt",
+          COALESCE(floor(sum(msats_revenue)/1000), 0) as revenue,
+          COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked,
+          COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
+          COALESCE(sum(posts), 0) as nposts,
+          COALESCE(sum(comments), 0) as ncomments,
+          ss."userId" IS NOT NULL as "meSubscription",
+          ms."userId" IS NOT NULL as "meMuteSub"
+        FROM ${viewGroup(range, 'sub_stats')}
+        JOIN "Sub" on "Sub".name = u.sub_name
+        LEFT JOIN "SubSubscription" ss ON ss."subName" = "Sub".name AND ss."userId" IS NOT DISTINCT FROM $4
+        LEFT JOIN "MuteSub" ms ON ms."subName" = "Sub".name AND ms."userId" IS NOT DISTINCT FROM $4
+        WHERE "Sub"."userId" = $3
+          AND "Sub".status = 'ACTIVE'
+        GROUP BY "Sub".name, ss."userId", ms."userId"
+        ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
+        OFFSET $5
+        LIMIT $6
+      `, ...range, user.id, me?.id, decodedCursor.offset, limit)
 
       return {
         cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+        subs
+      }
+    },
+    mySubscribedSubs: async (parent, { cursor }, { models, me }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const decodedCursor = decodeCursor(cursor)
+      const subs = await models.$queryRaw`
+        SELECT "Sub".*,
+          "MuteSub"."userId" IS NOT NULL as "meMuteSub",
+          TRUE as "meSubscription"
+        FROM "SubSubscription"
+        JOIN "Sub" ON "SubSubscription"."subName" = "Sub".name
+        LEFT JOIN "MuteSub" ON "MuteSub"."subName" = "Sub".name AND "MuteSub"."userId" = ${me.id}
+        WHERE "SubSubscription"."userId" = ${me.id}
+          AND "Sub".status <> 'STOPPED'
+        ORDER BY "Sub".name ASC
+        OFFSET ${decodedCursor.offset}
+        LIMIT ${LIMIT}
+      `
+
+      return {
+        cursor: subs.length === LIMIT ? nextCursorEncoded(decodedCursor, LIMIT) : null,
         subs
       }
     }
@@ -158,6 +202,8 @@ export default {
       }
 
       await validateSchema(territorySchema, data, { models, me, sub: { name: data.oldName } })
+
+      data.uploadIds = uploadIdsFromText(data.desc)
 
       if (data.oldName) {
         return await updateSub(parent, data, { me, models, lnd })

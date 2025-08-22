@@ -7,6 +7,8 @@ export default gql`
     subs: [Sub!]!
     topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
     userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
+    mySubscribedSubs(cursor: String): Subs
+    subSuggestions(q: String!, limit: Limit): [Sub!]!
   }
 
   type Subs {

@@ -6,14 +6,16 @@ import Row from 'react-bootstrap/Row'
 import { useRouter } from 'next/router'
 import AccordianItem from './accordian-item'
 import BackIcon from '@/svgs/arrow-left-line.svg'
-import Nostr from '@/lib/nostr'
 import { NDKNip46Signer } from '@nostr-dev-kit/ndk'
 import { useToast } from '@/components/toast'
 import { Button, Container } from 'react-bootstrap'
 import { Form, Input, SubmitButton } from '@/components/form'
 import Moon from '@/svgs/moon-fill.svg'
 import styles from './lightning-auth.module.css'
-import NostrBunkerLogin from './nostr-bunker-login'
+import Qr from '@/components/qr'
+import { generateSecretKey, getPublicKey } from 'nostr-tools'
+import Nostr from '@/lib/nostr'
+import NostrBunkerLogin from '@/components/nostr-bunker-login'
 
 const sanitizeURL = (s) => {
   try {
@@ -34,15 +36,15 @@ function NostrError ({ message }) {
   )
 }
 
-export function NostrAuth ({ text, callbackUrl, multiAuth, enableQRLogin = false }) {
+export function NostrAuth ({ text, callbackUrl, multiAuth, enableQRLogin = false, showBunkerLogin = false }) {
   const [status, setStatus] = useState({
     msg: '',
     error: false,
     loading: false,
     title: undefined,
-    button: undefined
+    button: undefined,
+    qr: undefined
   })
-  const [showBunkerLogin, setShowBunkerLogin] = useState(false)
 
   const [suggestion, setSuggestion] = useState(null)
   const suggestionTimeout = useRef(null)
@@ -61,19 +63,29 @@ export function NostrAuth ({ text, callbackUrl, multiAuth, enableQRLogin = false
           action: () => {
             window.open(challengeUrl, '_blank')
           }
-        }
+        },
+        qr: challenge
       })
     } else {
       setStatus({
         title: 'Waiting for confirmation',
         msg: challenge,
         error: false,
-        loading: true
+        loading: true,
+        qr: challenge
       })
     }
   }, [])
-
-  // create auth challenge
+  const makeSecret = () => {
+    const arr = new Uint8Array(32)
+    crypto.getRandomValues(arr)
+    return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('')
+  }
+  const makeNostrConnectUri = ({ appPubkey, relays, secret, metadata }) => {
+    const relayParams = (relays || []).map(r => `relay=${encodeURIComponent(r)}`).join('&')
+    const md = encodeURIComponent(JSON.stringify(metadata || {}))
+    return `nostrconnect://${appPubkey}?${relayParams}&secret=${secret}&metadata=${md}`
+  }
   const [createAuth] = useMutation(gql`
     mutation createAuth {
       createAuth {
@@ -83,6 +95,52 @@ export function NostrAuth ({ text, callbackUrl, multiAuth, enableQRLogin = false
     // don't cache this mutation
     fetchPolicy: 'no-cache'
   })
+
+  const loginWithQr = useCallback(async () => {
+    try {
+      setStatus({
+        title: 'Scan to connect',
+        msg: 'Awaiting signer pairing ...',
+        error: false,
+        loading: true,
+        qr: undefined,
+        button: undefined
+      })
+
+      const { data, error } = await createAuth()
+      if (error) throw error
+      const k1 = data?.createAuth.k1
+      if (!k1) throw new Error('Error generating challenge')
+
+      const privKey = generateSecretKey()
+      const pubkey = getPublicKey(privKey)
+      const relays = [
+        'wss://relay.nsec.app',
+        'wss://relay.nostr.net',
+        'wss://nostr.at',
+        'wss://nos.lol'
+      ]
+      const metadata = {
+        name: 'stacker.news',
+        url: process.env.NEXT_PUBLIC_URL,
+        icons: [new URL('/favicon.ico', process.env.NEXT_PUBLIC_URL).toString()]
+      }
+      const secret = makeSecret()
+      const token = makeNostrConnectUri({ appPubkey: pubkey, relays, secret, metadata })
+
+      setStatus(s => ({
+        ...s,
+        qr: token,
+        privKey,
+        token,
+        k1,
+        secret
+      }))
+    } catch (e) {
+      setError(e)
+    }
+  }, [createAuth])
+  // create auth challenge
 
   // print an error message
   const setError = useCallback((e) => {
@@ -110,28 +168,21 @@ export function NostrAuth ({ text, callbackUrl, multiAuth, enableQRLogin = false
     return () => {
       clearSuggestionTimer()
     }
-  }, [])
+  }, [status])
 
   // authorize user
   const auth = useCallback(async (nip46token) => {
+    const { privKey, token, k1, secret } = status
     setStatus({
       msg: 'Waiting for authorization',
       error: false,
       loading: true
     })
 
-    const nostr = new Nostr()
+    const nostr = new Nostr({ privKey })
     try {
-      const { data, error } = await createAuth()
-      if (error) throw error
-
-      const k1 = data?.createAuth.k1
-      if (!k1) throw new Error('Error generating challenge') // should never happen
-
-      const useExtension = !nip46token
-      const signer = nostr.getSigner({ nip46token, supportNip07: useExtension })
-      if (!signer && useExtension) throw new Error('No extension found')
-
+      const signer = nostr.getSigner({ nip46token: token, supportNip07: false, secret })
+      if (!signer) throw new Error('Failed to initialize NIP-46 signer')
       if (signer instanceof NDKNip46Signer) {
         signer.once('authUrl', challengeResolver)
       }
@@ -143,7 +194,8 @@ export function NostrAuth ({ text, callbackUrl, multiAuth, enableQRLogin = false
       setStatus({
         msg: 'Signing in',
         error: false,
-        loading: true
+        loading: true,
+        qr: token
       })
 
       const signedEvent = await nostr.sign({
@@ -164,11 +216,8 @@ export function NostrAuth ({ text, callbackUrl, multiAuth, enableQRLogin = false
       })
     } catch (e) {
       setError(e)
-    } finally {
-      nostr.close()
-      clearSuggestionTimer()
     }
-  }, [])
+  }, [status])
 
   return (
     <>
@@ -176,21 +225,48 @@ export function NostrAuth ({ text, callbackUrl, multiAuth, enableQRLogin = false
       {status.loading
         ? (
           <>
-            <div className='text-muted py-4 w-100 line-height-1 d-flex align-items-center gap-2'>
-              <Moon className='spin fill-grey flex-shrink-0' width='30' height='30' />
-              {status.msg}
-            </div>
-            {status.button && (
-              <Button
-                className='w-100' variant='primary'
-                onClick={() => status.button.action()}
-              >
-                {status.button.label}
-              </Button>
-            )}
-            {suggestion && (
-              <div className='text-muted text-center small pt-2'>{suggestion}</div>
-            )}
+            {status.qr
+              ? (
+                <>
+                  <Qr
+                    asIs
+                    value={status.qr}
+                    description='Scan with your Nostr signer'
+                    statusVariant='pending'
+                    status={status.msg}
+                  />
+                  {status.button && (
+                    <Button
+                      className='w-100 mt-2' variant='primary'
+                      onClick={() => status.button.action()}
+                    >
+                      {status.button.label}
+                    </Button>
+                  )}
+                  {suggestion && (
+                    <div className='text-muted text-center small pt-2'>{suggestion}</div>
+                  )}
+                </>
+                )
+              : (
+                <>
+                  <div className='text-muted py-4 w-100 line-height-1 d-flex align-items-center gap-2'>
+                    <Moon className='spin fill-grey flex-shrink-0' width='30' height='30' />
+                    {status.msg}
+                  </div>
+                  {status.button && (
+                    <Button
+                      className='w-100' variant='primary'
+                      onClick={() => status.button.action()}
+                    >
+                      {status.button.label}
+                    </Button>
+                  )}
+                  {suggestion && (
+                    <div className='text-muted text-center small pt-2'>{suggestion}</div>
+                  )}
+                </>
+                )}
           </>
           )
         : (
@@ -233,18 +309,14 @@ export function NostrAuth ({ text, callbackUrl, multiAuth, enableQRLogin = false
             >
               {text || 'Login'} with extension
             </Button>
-            {enableQRLogin && (
-              <>
-                <div className='text-center text-muted fw-bold my-2'>or</div>
-                <Button
-                  variant='outline-secondary'
-                  className='w-100 mb-3'
-                  onClick={() => setShowBunkerLogin(!showBunkerLogin)}
-                >
-                  {showBunkerLogin ? 'Hide' : 'Show'} QR code login (mobile)
-                </Button>
-              </>
-            )}
+            <div className='text-center text-muted fw-bold my-2'>or</div>
+            <Button
+              variant='nostr'
+              className='w-100'
+              onClick={loginWithQr}
+            >
+              {text || 'Login'} with QR
+            </Button>
           </>
           )}
       {enableQRLogin && showBunkerLogin && (

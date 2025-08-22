@@ -152,7 +152,7 @@ model User {
   DirectPaymentReceived     DirectPayment[]      @relation("DirectPaymentReceived")
   DirectPaymentSent         DirectPayment[]      @relation("DirectPaymentSent")
   UserSubTrust              UserSubTrust[]
-  ItemUserView              ItemUserView[]
+  CommentsViewAt              CommentsViewAt[]
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -491,7 +491,7 @@ model Item {
   ItemUserAgg          ItemUserAgg[]
   AutoSocialPost       AutoSocialPost[]
   randPollOptions      Boolean               @default(false)
-  ItemUserView         ItemUserView[]
+  CommentsViewAt         CommentsViewAt[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -516,7 +516,7 @@ model Item {
   @@index([url])
   @@index([boost])
   @@index([invoicePaidAt])
-  @@index([id, createdAt], map: "Item.id_createdAt_index") // ItemUserView
+  @@index([id, createdAt], map: "Item.id_createdAt_index") // CommentsViewAt
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item
@@ -543,7 +543,7 @@ model ItemUserAgg {
   @@index([createdAt])
 }
 
-model ItemUserView {
+model CommentsViewAt {
   userId        Int
   itemId        Int
   lastViewedAt  DateTime @default(now()) @map("last_viewed_at")

@@ -165,18 +165,28 @@ function ItemText ({ item }) {
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {
   const { me } = useMe()
-  const [updateItemUserView] = useMutation(UPDATE_ITEM_USER_VIEW)
-
-  useEffect(() => {
-    const lastCommentAt = item.lastCommentAt || item.createdAt
-    if (me?.id && lastCommentAt) {
-      console.log('updating item user view', item.id, lastCommentAt)
-      updateItemUserView({
-        variables: { id: item.id, meCommentsViewedAt: lastCommentAt }
+  const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, {
+    update (cache, { data: { updateCommentsViewAt } }) {
+      cache.modify({
+        id: `Item:${item.id}`,
+        fields: { meCommentsViewedAt: () => updateCommentsViewAt }
       })
     }
-    commentsViewed(item)
-  }, [item.lastCommentAt, item.createdAt])
+  })
+
+  useEffect(() => {
+    console.log('running item full', item.meCommentsViewedAt)
+    // local comments viewed (anon fallback)
+    if (!me?.id) commentsViewed(item)
+
+    const lastCommentAt = item.lastCommentAt || item.createdAt
+    if (!me?.id || item.meCommentsViewedAt > lastCommentAt) return
+
+    // me server comments viewed
+    updateCommentsViewAt({
+      variables: { id: item.id, meCommentsViewedAt: lastCommentAt }
+    })
+  }, [item.lastCommentAt, item.createdAt, item.meCommentsViewedAt, me?.id])
 
   const router = useRouter()
   const carouselKey = `${item.id}-${router.query?.sort || 'default'}`
@@ -208,6 +218,7 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
                 commentsCursor={item.comments.cursor}
                 fetchMoreComments={fetchMoreComments}
                 lastCommentAt={item.lastCommentAt}
+                meCommentsViewedAt={item.meCommentsViewedAt}
                 item={item}
               />
             </div>}

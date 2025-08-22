@@ -180,7 +180,7 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
         "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward",
         to_jsonb("Sub".*) || jsonb_build_object('meMuteSub', "MuteSub"."userId" IS NOT NULL)
         || jsonb_build_object('meSubscription', "SubSubscription"."userId" IS NOT NULL) as sub,
-        "ItemUserView"."last_viewed_at" as "meCommentsViewedAt"
+        "CommentsViewAt"."last_viewed_at" as "meCommentsViewedAt"
       FROM (
         ${query}
       ) "Item"
@@ -192,7 +192,7 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
       LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
       LEFT JOIN "MuteSub" ON "Sub"."name" = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}
       LEFT JOIN "SubSubscription" ON "Sub"."name" = "SubSubscription"."subName" AND "SubSubscription"."userId" = ${me.id}
-      LEFT JOIN "ItemUserView" ON "ItemUserView"."itemId" = "Item".id AND "ItemUserView"."userId" = ${me.id}
+      LEFT JOIN "CommentsViewAt" ON "CommentsViewAt"."itemId" = "Item".id AND "CommentsViewAt"."userId" = ${me.id}
       LEFT JOIN LATERAL (
         SELECT "itemId",
           sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND "InvoiceForward".id IS NOT NULL AND (act = 'FEE' OR act = 'TIP')) AS "meMsats",
@@ -1075,7 +1075,7 @@ export default {
 
       return result
     },
-    updateItemUserView: async (parent, { id, meCommentsViewedAt }, { me, models }) => {
+    updateCommentsViewAt: async (parent, { id, meCommentsViewedAt }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
@@ -1083,7 +1083,7 @@ export default {
       console.log('updating item user view', id, meCommentsViewedAt)
       console.log('me', me)
 
-      const result = await models.itemUserView.upsert({
+      const result = await models.CommentsViewAt.upsert({
         where: {
           userId_itemId: { userId: Number(me.id), itemId: Number(id) }
         },

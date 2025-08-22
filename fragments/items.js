@@ -214,7 +214,7 @@ export const RELATED_ITEMS_WITH_ITEM = gql`
 `
 
 export const UPDATE_ITEM_USER_VIEW = gql`
-  mutation updateItemUserView($id: ID!, $meCommentsViewedAt: Date!) {
-    updateItemUserView(id: $id, meCommentsViewedAt: $meCommentsViewedAt)
+  mutation updateCommentsViewAt($id: ID!, $meCommentsViewedAt: Date!) {
+    updateCommentsViewAt(id: $id, meCommentsViewedAt: $meCommentsViewedAt)
   }
 `

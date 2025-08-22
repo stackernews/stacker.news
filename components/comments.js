@@ -65,7 +65,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 }
 
 export default function Comments ({
-  parentId, pinned, bio, parentCreatedAt,
+  parentId, pinned, bio, parentCreatedAt, meCommentsViewedAt,
   commentSats, comments, commentsCursor, fetchMoreComments, ncomments, lastCommentAt, item, ...props
 }) {
   const router = useRouter()
@@ -98,11 +98,11 @@ export default function Comments ({
         : null}
       {pins.map(item => (
         <Fragment key={item.id}>
-          <Comment depth={1} item={item} navigator={navigator} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} pin />
+          <Comment depth={1} item={item} navigator={navigator} rootLastCommentAt={lastCommentAt || parentCreatedAt} rootMeCommentsViewedAt={meCommentsViewedAt} {...props} pin />
         </Fragment>
       ))}
       {comments.filter(({ position }) => !position).map(item => (
-        <Comment depth={1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} />
+        <Comment depth={1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={lastCommentAt || parentCreatedAt} rootMeCommentsViewedAt={meCommentsViewedAt} {...props} />
       ))}
       {ncomments > FULL_COMMENTS_THRESHOLD &&
         <MoreFooter

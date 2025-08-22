@@ -29,6 +29,9 @@ import { useShowModal } from './modal'
 import { BoostHelp } from './adv-post-form'
 
 function onItemClick (e, router, item) {
+  if (item.meCommentsViewedAt) return
+
+  // anon fallback
   const viewedAt = commentsViewedAt(item.id)
   if (viewedAt) {
     e.preventDefault()

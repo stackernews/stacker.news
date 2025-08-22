@@ -96,7 +96,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 }
 
 export default function Comment ({
-  item, children, replyOpen, includeParent, topLevel, rootLastCommentAt,
+  item, children, replyOpen, includeParent, topLevel, rootLastCommentAt, rootMeCommentsViewedAt,
   rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry,
   navigator
 }) {
@@ -156,6 +156,8 @@ export default function Comment ({
   useEffect(() => {
     if (me?.id === item.user?.id) return
 
+    console.log('meCommentsViewedAt', rootMeCommentsViewedAt)
+
     const itemCreatedAt = new Date(item.createdAt).getTime()
     // it's a new comment if it was created after the last comment was viewed
     // or, in the case of live comments, after the last comment was created
@@ -178,7 +180,7 @@ export default function Comment ({
     }
 
     navigator?.trackNewComment(ref, itemCreatedAt)
-  }, [item.id, rootLastCommentAt])
+  }, [item.id, rootLastCommentAt, rootMeCommentsViewedAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
@@ -300,7 +302,7 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={rootLastCommentAt} />
+                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={rootLastCommentAt} rootMeCommentsViewedAt={rootMeCommentsViewedAt} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && (
                         <div className={`d-block ${styles.comment} pb-2 ps-3`}>

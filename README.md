@@ -45,7 +45,8 @@ You can run Stacker News on Github Codespaces
 #### Setup
 
 1. Open the repository on GitHub and click the **"Code"** button
-2. Select the CodeSpaces tab and create a new codespace. (or configure with provided settings first)
+2. Select the Codespaces tab and create a new codespace. 
+   - You can also configure your codespace to run select services based on  `COMPOSE_PROFILES` as well as in a different region and machine type by clicking "..." and selecting "New with options...". Check [Modifying services](#modifying-services) for more information on `COMPOSE_PROFILES`
 3. Wait for the environment to set up (this may take several minutes the first time)
 4. Once ready, you'll see a terminal with the environment initialized
 
@@ -57,7 +58,7 @@ Access your running application at the URL shown in the forwarded ports panel (t
 
 #### Port Configuration
 
-⚠️ **Important**: For external access to work properly, you must set forwarded ports to **Public** in the Ports tab:
+⚠️ **Important**: For various internal services and external access to work properly, you must set forwarded ports to **Public** in the Ports tab:
 
 1. In your codespace, look for the "PORTS" tab in the bottom panel
 2. Click the lock icon to change visibility from "Private" to "Public"
@@ -384,7 +385,7 @@ We offer triage permissions to contributors after they've made a few contributio
 Contributors can get badges on their SN profiles by opening a pull request adding their SN nym to the [contributors.txt](/contributors.txt) file.
 
 ## What else you got
-We offer GitHub Codespaces support for cloud-based development! In the future we plan to offer more, like gratis github copilot subscriptions, reverse tunnels, and merch.
+In the future we plan to offer more, like gratis github copilot subscriptions, reverse tunnels, codespaces, and merch.
 
 If you'd like to see something added, please make a suggestion.
 

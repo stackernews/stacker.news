@@ -534,12 +534,7 @@ DESCRIPTION
   This is automatically run when the Codespace is created.
 
 REQUIREMENTS
-  - Set GITHUB_TOKEN in Codespaces settings for NextAuth functionality
   - Set forwarded ports to 'Public' in the Ports tab for external access
-
-WARNING
-  Without GITHUB_TOKEN, authentication may fail. Without public ports,
-  external access to the application will be blocked.
 "
 
   echo "$help"

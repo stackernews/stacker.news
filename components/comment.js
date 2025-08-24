@@ -156,13 +156,13 @@ export default function Comment ({
   useEffect(() => {
     if (me?.id === item.user?.id) return
 
-    console.log('meCommentsViewedAt', rootMeCommentsViewedAt)
-
     const itemCreatedAt = new Date(item.createdAt).getTime()
     // it's a new comment if it was created after the last comment was viewed
     // or, in the case of live comments, after the last comment was created
-    const isNewComment = (router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||
-                        (rootLastCommentAt && itemCreatedAt > new Date(rootLastCommentAt).getTime())
+    const isNewComment = me?.id
+      ? (rootMeCommentsViewedAt && itemCreatedAt > new Date(rootMeCommentsViewedAt).getTime())
+      : ((router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||
+        (rootLastCommentAt && itemCreatedAt > new Date(rootLastCommentAt).getTime()))
     if (!isNewComment) return
 
     if (item.injected) {

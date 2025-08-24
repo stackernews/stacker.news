@@ -175,12 +175,11 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
   })
 
   useEffect(() => {
-    console.log('running item full', item.meCommentsViewedAt)
     // local comments viewed (anon fallback)
-    if (!me?.id) commentsViewed(item)
+    if (!me?.id) return commentsViewed(item)
 
     const lastCommentAt = item.lastCommentAt || item.createdAt
-    if (!me?.id || item.meCommentsViewedAt > lastCommentAt) return
+    if (item.meCommentsViewedAt >= lastCommentAt) return
 
     // me server comments viewed
     updateCommentsViewAt({

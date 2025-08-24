@@ -76,16 +76,6 @@ function cacheNewComments (cache, latest, rootId, newComments, sort) {
       injected = !!updated
     }
 
-    console.log('injected', injected)
-
-    console.log('newComment.createdAt', newComment.createdAt)
-
-    console.log('latest', latest)
-
-    console.log('injected && newComment.createdAt > latest', injected && newComment.createdAt > latest)
-
-    console.log('injectedLatest', injectedLatest)
-
     // update latest timestamp to the latest comment created at
     if (injected && newComment.createdAt > latest) {
       injectedLatest = newComment.createdAt
@@ -144,13 +134,11 @@ export default function useLiveComments (rootId, after, sort) {
     let injectedLatest = latest
     preserveScroll(() => {
       injectedLatest = cacheNewComments(cache, injectedLatest, rootId, data.newComments.comments, sort)
-      console.log('injectedLatest final', injectedLatest)
     })
 
-    // sync view time
-    if (me?.id) {
+    // sync view time if we successfully injected new comments
+    if (me?.id && injectedLatest > latest) {
       // server-tracked view
-      console.log('updating meCommentsViewedAt', injectedLatest)
       updateCommentsViewAt({ variables: { id: rootId, meCommentsViewedAt: injectedLatest } })
     } else {
       // anon fallback

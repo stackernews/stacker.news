@@ -1080,9 +1080,6 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      console.log('updating item user view', id, meCommentsViewedAt)
-      console.log('me', me)
-
       const result = await models.CommentsViewAt.upsert({
         where: {
           userId_itemId: { userId: Number(me.id), itemId: Number(id) }

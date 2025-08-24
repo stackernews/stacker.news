@@ -1,6 +1,7 @@
 import { Form, MarkdownInput } from '@/components/form'
 import styles from './reply.module.css'
 import { COMMENTS } from '@/fragments/comments'
+import { UPDATE_ITEM_USER_VIEW } from '@/fragments/items'
 import { useMe } from './me'
 import { forwardRef, useCallback, useEffect, useState, useRef, useMemo } from 'react'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
@@ -15,7 +16,6 @@ import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import { updateAncestorsCommentCount } from '@/lib/comments'
 import { useMutation } from '@apollo/client'
-import { UPDATE_ITEM_USER_VIEW } from '@/fragments/items'
 
 export default forwardRef(function Reply ({
   item,

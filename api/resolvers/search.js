@@ -168,7 +168,7 @@ export default {
       })
 
       return {
-        cursor: items.length === (limit || LIMIT) ? nextCursorEncoded(decodedCursor) : null,
+        cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         items
       }
     },

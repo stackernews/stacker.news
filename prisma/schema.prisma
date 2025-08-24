@@ -1584,7 +1584,7 @@ model PayIn {
   benefactor    PayIn?       @relation("PayInBenefactor", fields: [benefactorId], references: [id], onDelete: Cascade)
   beneficiaries PayIn[]      @relation("PayInBenefactor")
   itemPayIn     ItemPayIn?
-  subPayIns     SubPayIn[]
+  subPayIn      SubPayIn?
   progeny       PayIn[]      @relation("PayInGenesis")
   payInBolt11   PayInBolt11?
   pollVote      PollVote?

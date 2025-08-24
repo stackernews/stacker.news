@@ -79,7 +79,7 @@ function NotificationLayout ({ children, type, nid, href, as, fresh }) {
   if (!href) return <div className={`py-2 ${fresh ? styles.fresh : ''}`}>{children}</div>
   return (
     <LinkToContext
-      className={`py-2 ${type === 'Reply' ? styles.reply : ''} ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
+      className={`py-2 clickToContext ${type === 'Reply' ? styles.reply : ''} ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
       onClick={async (e) => {
         e.preventDefault()
         nid && await router.replace({
@@ -92,6 +92,7 @@ function NotificationLayout ({ children, type, nid, href, as, fresh }) {
         router.push(href, as)
       }}
       href={href}
+      pad
     >
       {children}
     </LinkToContext>

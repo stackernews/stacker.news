@@ -1,4 +1,5 @@
 import gql from 'graphql-tag'
+import { ITEM_FULL_FIELDS } from './items'
 import { SUB_FULL_FIELDS } from './subs'
 import { COMMENTS } from './comments'
 
@@ -24,6 +25,7 @@ export const PAY_IN_FIELDS = gql`
     createdAt
     updatedAt
     mcost
+    userId
     payInType
     payInState
     payInFailureReason
@@ -95,6 +97,65 @@ export const PAY_IN_FIELDS = gql`
       ... on Sub {
         ...SubFullFields
       }
+    }
+  }
+`
+
+export const PAY_IN_STATISTICS_FIELDS = gql`
+  ${PAY_IN_FIELDS}
+  ${ITEM_FULL_FIELDS}
+  ${SUB_FULL_FIELDS}
+  fragment PayInStatisticsFields on PayIn {
+    id
+    createdAt
+    updatedAt
+    mcost
+    userId
+    payInType
+    payInState
+    payInFailureReason
+    payInStateChangedAt
+    payInCustodialTokens {
+      id
+      mtokens
+      mtokensBefore
+      custodialTokenType
+    }
+    payInBolt11 {
+      id
+      msatsReceived
+    }
+    payOutBolt11 {
+      id
+      msats
+      userId
+      payOutType
+    }
+    payOutCustodialTokens {
+      id
+      userId
+      payOutType
+      mtokens
+      mtokensBefore
+      custodialTokenType
+    }
+    item {
+      ...ItemFullFields
+    }
+    sub {
+      ...SubFullFields
+    }
+  }
+`
+
+export const SATISTICS = gql`
+  ${PAY_IN_STATISTICS_FIELDS}
+  query satistics($cursor: String, $inc: String) {
+    satistics(cursor: $cursor, inc: $inc) {
+      payIns {
+        ...PayInStatisticsFields
+      }
+      cursor
     }
   }
 `

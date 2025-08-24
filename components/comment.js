@@ -80,12 +80,13 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
           </div>)
         : <div />}
       <LinkToContext
-        className='py-2'
+        className='py-2 clickToContext'
         onClick={e => {
           e.preventDefault()
           router.push(href, as)
         }}
         href={href}
+        pad
       >
         <RootProvider root={item.root}>
           <Comment item={item} {...props} />

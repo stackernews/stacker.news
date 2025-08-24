@@ -4,11 +4,17 @@ export default gql`
 
 extend type Query {
   payIn(id: Int!): PayIn
+  satistics(cursor: String, inc: String): Satistics
 }
 
 extend type Mutation {
   retryPayIn(payInId: Int!): PayIn!
   cancelPayInBolt11(hash: String!, hmac: String, userCancel: Boolean): PayIn
+}
+
+type Satistics {
+  payIns: [PayIn!]!
+  cursor: String
 }
 
 enum CustodialTokenType {
@@ -92,6 +98,7 @@ type PayInBolt11 {
   id: Int!
   payInId: Int!
   hash: String!
+  preimage: String
   hmac: String
   bolt11: String!
   expiresAt: Date!
@@ -110,6 +117,7 @@ type PayInCustodialToken {
   id: Int!
   payInId: Int!
   mtokens: BigInt!
+  mtokensBefore: BigInt
   custodialTokenType: CustodialTokenType!
 }
 
@@ -128,13 +136,68 @@ type PayIn {
   createdAt: Date!
   updatedAt: Date!
   mcost: BigInt!
+  userId: Int!
   payInType: PayInType!
   payInState: PayInState!
   payInFailureReason: PayInFailureReason
   payInStateChangedAt: Date!
   payInBolt11: PayInBolt11
-  payInCustodialTokens: [PayInCustodialToken!]!
+  payInCustodialTokens: [PayInCustodialToken!]
   result: PayInResult
   pessimisticEnv: PayInPessimisticEnv
+  payOutBolt11: PayOutBolt11
+  payOutCustodialTokens: [PayOutCustodialToken!]
+  item: Item
+  sub: Sub
+}
+
+enum PayOutType {
+  TERRITORY_REVENUE
+  REWARDS_POOL
+  ROUTING_FEE
+  ROUTING_FEE_REFUND
+  PROXY_PAYMENT
+  ZAP
+  REWARD
+  INVITE_GIFT
+  WITHDRAWAL
+  SYSTEM_REVENUE
+  BUY_CREDITS
+}
+
+enum WithdrawlStatus {
+  INSUFFICIENT_BALANCE
+  INVALID_PAYMENT
+  PATHFINDING_TIMEOUT
+  ROUTE_NOT_FOUND
+  CONFIRMED
+  UNKNOWN_FAILURE
+}
+
+type PayOutBolt11 {
+  id: Int!
+  createdAt: Date!
+  updatedAt: Date!
+  userId: Int
+  payOutType: PayOutType!
+  status: WithdrawlStatus!
+  msats: BigInt!
+  payInId: Int!
+  hash: String!
+  bolt11: String!
+  expiresAt: Date!
+}
+
+type PayOutCustodialToken {
+  id: Int!
+  payInId: Int!
+  userId: Int
+  mtokens: BigInt!
+  mtokensBefore: BigInt
+  custodialTokenType: CustodialTokenType!
+  payOutType: PayOutType!
+  payIn: PayIn!
+  sub: Sub
+  user: User
 }
 `

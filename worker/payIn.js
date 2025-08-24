@@ -123,7 +123,8 @@ export async function checkPayInBolt11 ({ data: { hash, invoice }, boss, models,
   const payIn = await models.payIn.findFirst({
     where: { payInBolt11: { hash } },
     include: {
-      payInBolt11: true
+      payInBolt11: true,
+      payOutBolt11: true
     }
   })
   if (!payIn) {
@@ -136,7 +137,7 @@ export async function checkPayInBolt11 ({ data: { hash, invoice }, boss, models,
   }
 
   if (inv.is_held) {
-    if (isP2P(payIn)) {
+    if (payIn.payOutBolt11) {
       if (payIn.payInState === 'PENDING_HELD') {
         return await payInForwarding({ data: { payInId: payIn.id, invoice: inv }, models, lnd, boss })
       }

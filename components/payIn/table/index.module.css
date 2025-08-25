@@ -1,0 +1,61 @@
+.table {
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+}
+
+.row {
+  display: contents;
+  cursor: pointer;
+}
+
+.row:hover > * {
+  background-color: var(--theme-clickToContextColor);
+}
+
+.row > * {
+  padding: 10px 10px;
+}
+
+.row.failed > * {
+  opacity: 0.75;
+  background-color:rgba(255, 0, 0, 0.05);
+}
+
+.row.failed:hover > * {
+  background-color: rgba(255, 0, 0, 0.1);
+}
+
+.row.stacking:not(.failed) > * {
+  background-color:rgba(0, 255, 0, 0.05);
+}
+
+.row.stacking:not(.failed):hover > * {
+  background-color:rgba(0, 255, 0, 0.1);
+}
+
+.type {
+  text-align: left;
+  display: grid;
+  grid-template-rows: 1fr 1fr 1fr;
+  align-items: start;
+  gap: 0px;
+}
+
+.detail {
+  padding: .5rem;
+  display: flex;
+  align-items: center;
+}
+
+.money {
+  padding: .5rem;
+  display: grid;
+  align-items: center;
+  text-align: right;
+}
+
+.sats {
+  text-align: right;
+  display: grid;
+  align-items: center;
+}

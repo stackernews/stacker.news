@@ -162,7 +162,7 @@ async function main () {
 
   const ama = await client.query({
     query: ITEMS,
-    variables: { sort: 'top', when: 'custom', from, to, sub: 'ama' }
+    variables: { sort: 'top', when: 'custom', from, to, sub: 'booksandarticles' }
   })
 
   const boosts = await client.query({
@@ -187,12 +187,12 @@ ${top.data.items.items.map((item, i) =>
   `${i + 1}. [${item.title}](https://stacker.news/items/${item.id})
     - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
 
-##### Top AMAs
-${ama.data.items.items.slice(0, 3).map((item, i) =>
+##### Top Fiction Month
+${ama.data.items.items.slice(0, 10).map((item, i) =>
   `${i + 1}. [${item.title}](https://stacker.news/items/${item.id})
     - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
 
-[**all of this week's AMAs**](https://stacker.news/~AMA/top/posts/week)
+[**all of this week's fiction month**](https://stacker.news/~booksandarticles/top/posts/week)
 
 ##### Don't miss
 ${top.data.items.items.map((item, i) =>

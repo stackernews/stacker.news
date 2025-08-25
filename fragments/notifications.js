@@ -2,36 +2,27 @@ import { gql } from '@apollo/client'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from './items'
 import { INVITE_FIELDS } from './invites'
 import { SUB_FIELDS } from './subs'
-import { INVOICE_FIELDS } from './invoice'
-
+import { PAY_IN_LINK_FIELDS } from './payIn'
 export const HAS_NOTIFICATIONS = gql`{ hasNewNotes }`
 
-export const INVOICIFICATION = gql`
+export const PAY_IN_FAILED = gql`
   ${ITEM_FULL_FIELDS}
   ${POLL_FIELDS}
-  ${INVOICE_FIELDS}
-  fragment InvoicificationFields on Invoicification {
+  ${PAY_IN_LINK_FIELDS}
+  fragment PayInFailedFields on PayInFailed {
     id
     sortTime
-    invoice {
-      ...InvoiceFields
-      item {
-        ...ItemFullFields
-        ...PollFields
-      }
-      itemAct {
-        id
-        act
-        invoice {
-          id
-          actionState
-        }
-      }
+    item {
+      ...ItemFullFields
+      ...PollFields
+    }
+    payIn {
+      ...PayInLinkFields
     }
   }`
 
 export const NOTIFICATIONS = gql`
-  ${INVOICIFICATION}
+  ${PAY_IN_FAILED}
   ${INVITE_FIELDS}
   ${SUB_FIELDS}
 
@@ -205,8 +196,8 @@ export const NOTIFICATIONS = gql`
             forwardedSats
           }
         }
-        ... on Invoicification {
-          ...InvoicificationFields
+        ... on PayInFailed {
+          ...PayInFailedFields
         }
         ... on WithdrawlPaid {
           id

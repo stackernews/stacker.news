@@ -55,9 +55,10 @@ export default gql`
     sortTime: Date!
   }
 
-  type Invoicification {
+  type PayInFailed {
     id: ID!
-    invoice: Invoice!
+    payIn: PayIn!
+    item: Item!
     sortTime: Date!
   }
 
@@ -178,7 +179,7 @@ export default gql`
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
     | FollowActivity | ForwardedVotification | Revenue | SubStatus
-    | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | Invoicification
+    | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | PayInFailed
     | ReferralReward | CowboyHat | NewHorse | LostHorse | NewGun | LostGun
 
   type Notifications {

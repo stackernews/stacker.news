@@ -117,7 +117,7 @@ type PayInCustodialToken {
   id: Int!
   payInId: Int!
   mtokens: BigInt!
-  mtokensBefore: BigInt
+  mtokensAfter: BigInt
   custodialTokenType: CustodialTokenType!
 }
 
@@ -193,7 +193,7 @@ type PayOutCustodialToken {
   payInId: Int!
   userId: Int
   mtokens: BigInt!
-  mtokensBefore: BigInt
+  mtokensAfter: BigInt
   custodialTokenType: CustodialTokenType!
   payOutType: PayOutType!
   payIn: PayIn!

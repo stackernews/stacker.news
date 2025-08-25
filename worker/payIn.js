@@ -9,7 +9,7 @@ import {
   payInWithdrawalPaid, payInWithdrawalFailed, payInPaid, payInForwarding, payInForwarded, payInFailedForward, payInHeld, payInFailed,
   PAY_IN_TERMINAL_STATES
 } from '@/api/payIn/transitions'
-import { isP2P, isWithdrawal } from '@/api/payIn/lib/is'
+import { isWithdrawal } from '@/api/payIn/lib/is'
 
 export async function subscribeToBolt11s (args) {
   await subscribeToPayInBolt11s(args)

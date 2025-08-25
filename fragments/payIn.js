@@ -118,7 +118,7 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
     payInCustodialTokens {
       id
       mtokens
-      mtokensBefore
+      mtokensAfter
       custodialTokenType
     }
     payInBolt11 {
@@ -136,7 +136,7 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
       userId
       payOutType
       mtokens
-      mtokensBefore
+      mtokensAfter
       custodialTokenType
     }
     item {

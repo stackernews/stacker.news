@@ -10,7 +10,7 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
 
   // we always want to return mcreditsBefore, even if we don't spend any credits
   const mCreditPayable = isPayableWithCredits(payIn) ? mCustodialCost : 0n
-  const [{ mcreditsSpent, mcreditsBefore }] = await tx.$queryRaw`
+  const [{ mcreditsSpent, mcreditsAfter }] = await tx.$queryRaw`
       UPDATE users
       SET mcredits = CASE
         WHEN users.mcredits >= ${mCreditPayable} THEN users.mcredits - ${mCreditPayable}
@@ -18,17 +18,17 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
       END
       FROM (SELECT id, mcredits FROM users WHERE id = ${me.id} FOR UPDATE) before
       WHERE users.id = before.id
-      RETURNING before.mcredits - users.mcredits as "mcreditsSpent", before.mcredits as "mcreditsBefore"`
+      RETURNING before.mcredits - users.mcredits as "mcreditsSpent", users.mcredits as "mcreditsAfter"`
   if (mcreditsSpent > 0n) {
     payInCustodialTokens.push({
       custodialTokenType: 'CREDITS',
       mtokens: mcreditsSpent,
-      mtokensBefore: mcreditsBefore
+      mtokensAfter: mcreditsAfter
     })
   }
   mCustodialCost -= mcreditsSpent
 
-  const [{ msatsSpent, msatsBefore }] = await tx.$queryRaw`
+  const [{ msatsSpent, msatsAfter }] = await tx.$queryRaw`
     UPDATE users
     SET msats = CASE
       WHEN users.msats >= ${mCustodialCost} THEN users.msats - ${mCustodialCost}
@@ -36,12 +36,12 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
     END
     FROM (SELECT id, msats FROM users WHERE id = ${me.id} FOR UPDATE) before
     WHERE users.id = before.id
-    RETURNING before.msats - users.msats as "msatsSpent", before.msats as "msatsBefore"`
+    RETURNING before.msats - users.msats as "msatsSpent", users.msats as "msatsAfter"`
   if (msatsSpent > 0n) {
     payInCustodialTokens.push({
       custodialTokenType: 'SATS',
       mtokens: msatsSpent,
-      mtokensBefore: msatsBefore
+      mtokensAfter: msatsAfter
     })
   }
 

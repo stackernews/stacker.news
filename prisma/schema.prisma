@@ -1605,7 +1605,7 @@ model PayInCustodialToken {
   payInId            Int
   payIn              PayIn              @relation(fields: [payInId], references: [id], onDelete: Cascade)
   mtokens            BigInt
-  mtokensBefore      BigInt?
+  mtokensAfter       BigInt?
   custodialTokenType CustodialTokenType
 }
 
@@ -1655,7 +1655,7 @@ model PayOutCustodialToken {
   payIn   PayIn @relation(fields: [payInId], references: [id], onDelete: Cascade)
 
   mtokens            BigInt
-  mtokensBefore      BigInt?
+  mtokensAfter       BigInt?
   custodialTokenType CustodialTokenType
 
   subPayOutCustodialToken SubPayOutCustodialToken?

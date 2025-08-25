@@ -223,12 +223,11 @@ export async function onPaid (tx, payInId) {
           "stackedMsats" = users."stackedMsats" + ${!isWithdrawal(payIn) ? payOut.mtokens : 0},
           mcredits = users.mcredits + ${payOut.custodialTokenType === 'CREDITS' ? payOut.mtokens : 0},
           "stackedMcredits" = users."stackedMcredits" + ${!isWithdrawal(payIn) && payOut.custodialTokenType === 'CREDITS' ? payOut.mtokens : 0}
-        FROM (SELECT id, mcredits, msats FROM users WHERE id = ${payOut.userId} FOR UPDATE) before
-        WHERE users.id = before.id
-        RETURNING before.mcredits as "mcreditsBefore", before.msats as "msatsBefore"
+        WHERE users.id = ${payOut.userId}
+        RETURNING mcredits as "mcreditsAfter", msats as "msatsAfter"
       )
       UPDATE "PayOutCustodialToken"
-      SET "mtokensBefore" = CASE WHEN "custodialTokenType" = 'SATS' THEN outuser."msatsBefore" ELSE outuser."mcreditsBefore" END
+      SET "mtokensAfter" = CASE WHEN "custodialTokenType" = 'SATS' THEN outuser."msatsAfter" ELSE outuser."mcreditsAfter" END
       FROM outuser
       WHERE "id" = ${payOut.id}`
   }

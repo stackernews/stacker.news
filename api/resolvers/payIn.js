@@ -189,19 +189,19 @@ export default {
     }
   },
   PayInCustodialToken: {
-    mtokensBefore: (payInCustodialToken, args, { me }) => {
+    mtokensAfter: (payInCustodialToken, args, { me }) => {
       if (!isMine(payInCustodialToken, { me })) {
         return null
       }
-      return payInCustodialToken.mtokensBefore
+      return payInCustodialToken.mtokensAfter
     }
   },
   PayOutCustodialToken: {
-    mtokensBefore: (payOutCustodialToken, args, { me }) => {
+    mtokensAfter: (payOutCustodialToken, args, { me }) => {
       if (!isMine(payOutCustodialToken, { me })) {
         return null
       }
-      return payOutCustodialToken.mtokensBefore
+      return payOutCustodialToken.mtokensAfter
     }
   }
 }

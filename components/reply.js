@@ -35,7 +35,7 @@ export default forwardRef(function Reply ({
   const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, {
     update (cache, { data: { updateCommentsViewAt } }) {
       cache.modify({
-        id: `Item:${root}`,
+        id: `Item:${root?.id}`,
         fields: { meCommentsViewedAt: () => updateCommentsViewAt }
       })
     }
@@ -97,13 +97,13 @@ export default forwardRef(function Reply ({
 
         // so that we don't see indicator for our own comments, we record this comments as the latest time
         // but we also have record num comments, in case someone else commented when we did
-        const root = ancestors[0]
+        const rootId = ancestors[0]
         if (me?.id) {
           // server-tracked view
-          updateCommentsViewAt({ variables: { id: root, meCommentsViewedAt: result.createdAt } })
+          updateCommentsViewAt({ variables: { id: rootId, meCommentsViewedAt: result.createdAt } })
         } else {
           // anon fallback
-          commentsViewedAfterComment(root, result.createdAt)
+          commentsViewedAfterComment(rootId, result.createdAt)
         }
       }
     },

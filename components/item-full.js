@@ -165,20 +165,24 @@ function ItemText ({ item }) {
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {
   const { me } = useMe()
+  // no cache update here because we need to preserve the initial value
   const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW)
 
   useEffect(() => {
     // local comments viewed (anon fallback)
     if (!me?.id) return commentsViewed(item)
 
-    const lastCommentAt = item.lastCommentAt || item.createdAt
-    if (item.meCommentsViewedAt >= lastCommentAt) return
+    const last = new Date(item.lastCommentAt || item.createdAt)
+    const viewedAt = new Date(item.meCommentsViewedAt)
 
+    if (viewedAt >= last) return
+
+    console.log('ITEMFULL updating comments viewed at', last)
     // me server comments viewed
     updateCommentsViewAt({
-      variables: { id: item.id, meCommentsViewedAt: lastCommentAt }
+      variables: { id: item.id, meCommentsViewedAt: last }
     })
-  }, [item.lastCommentAt, item.createdAt, item.meCommentsViewedAt, me?.id])
+  }, [item.id, item.lastCommentAt, item.createdAt, item.meCommentsViewedAt, me?.id])
 
   const router = useRouter()
   const carouselKey = `${item.id}-${router.query?.sort || 'default'}`
@@ -210,7 +214,6 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
                 commentsCursor={item.comments.cursor}
                 fetchMoreComments={fetchMoreComments}
                 lastCommentAt={item.lastCommentAt}
-                meCommentsViewedAt={item.meCommentsViewedAt}
                 item={item}
               />
             </div>}

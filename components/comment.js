@@ -154,6 +154,9 @@ export default function Comment ({
   }, [item.id, cache, router.query.commentId])
 
   useEffect(() => {
+    // TODO: omg clean this mess sox
+    // checking navigator because outlining should happen only on item pages
+    if (!navigator) return
     if (me?.id === item.user?.id) return
 
     const itemCreatedAt = new Date(item.createdAt).getTime()
@@ -161,7 +164,7 @@ export default function Comment ({
     const rootViewedAt = root.meCommentsViewedAt
     const rootLast = root.lastCommentAt || root.createdAt
     // it's a new comment if it was created after the last comment was viewed
-    const isNewComment = me?.id
+    const isNewComment = me?.id && rootViewedAt
       ? itemCreatedAt > new Date(rootViewedAt).getTime()
       // anon fallback is based on the commentsViewedAt query param or the last comment createdAt
       : ((router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||

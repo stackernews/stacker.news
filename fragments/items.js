@@ -92,12 +92,14 @@ export const ITEM_FULL_FIELDS = gql`
     text
     root {
       id
+      createdAt
       title
       bounty
       bountyPaidTo
       subName
       mine
       ncomments
+      meCommentsViewedAt
       user {
         id
         name

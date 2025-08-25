@@ -90,8 +90,6 @@ function cacheNewComments (cache, latest, rootId, newComments, sort) {
 export default function useLiveComments (rootId, after, sort) {
   const latestKey = `liveCommentsLatest:${rootId}`
   const { cache } = useApolloClient()
-  const [latest, setLatest] = useState(after)
-  const [initialized, setInitialized] = useState(false)
   const { me } = useMe()
   const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, {
     update (cache, { data: { updateCommentsViewAt } }) {
@@ -101,6 +99,8 @@ export default function useLiveComments (rootId, after, sort) {
       })
     }
   })
+  const [latest, setLatest] = useState(after)
+  const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -137,12 +137,15 @@ export default function useLiveComments (rootId, after, sort) {
     })
 
     // sync view time if we successfully injected new comments
-    if (me?.id && injectedLatest > latest) {
-      // server-tracked view
-      updateCommentsViewAt({ variables: { id: rootId, meCommentsViewedAt: injectedLatest } })
-    } else {
-      // anon fallback
-      commentsViewedAfterComment(rootId, injectedLatest)
+    if (injectedLatest > latest) {
+      if (me?.id) {
+        console.log('useLiveComments updating comments viewed at', injectedLatest)
+        // server-tracked view
+        updateCommentsViewAt({ variables: { id: rootId, meCommentsViewedAt: injectedLatest } })
+      } else {
+        // anon fallback
+        commentsViewedAfterComment(rootId, injectedLatest)
+      }
     }
 
     // update latest timestamp to the latest comment created at

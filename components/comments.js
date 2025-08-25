@@ -65,7 +65,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 }
 
 export default function Comments ({
-  parentId, pinned, bio, parentCreatedAt, meCommentsViewedAt,
+  parentId, pinned, bio, parentCreatedAt,
   commentSats, comments, commentsCursor, fetchMoreComments, ncomments, lastCommentAt, item, ...props
 }) {
   const router = useRouter()

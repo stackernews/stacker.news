@@ -2,3 +2,19 @@
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
 }
+  
+.searchResult {
+    background: var(--theme-commentBg);
+    margin-bottom: 10px;
+    padding-left: 0.75rem;
+    grid-column: 1 / -1;
+}
+  
+.searchResultPost {
+    border-left: 1px solid var(--bs-secondary);
+}
+  
+.searchResultComment {
+    border-left: 1px solid var(--bs-info);
+    border-radius: 0;
+}

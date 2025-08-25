@@ -55,7 +55,14 @@ export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, 
       <div className={styles.grid}>
         {ad && <ListItem item={ad} ad />}
         {itemsWithPins.filter(filter).map((item, i) => (
-          <ListItem key={`${item.id}-${i + 1}`} item={item} rank={rank && i + 1} itemClassName={variables.includeComments ? 'py-2' : ''} pinnable={isHome ? false : pins?.length > 0} />
+          <ListItem
+            key={`${item.id}-${i + 1}`}
+            item={item}
+            rank={rank && i + 1}
+            itemClassName={variables.includeComments ? 'py-2' : ''}
+            pinnable={isHome ? false : pins?.length > 0}
+            isSearchResults={Boolean(variables.includeComments && variables.q)}
+          />
         ))}
       </div>
       <Foooter
@@ -67,16 +74,31 @@ export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, 
   )
 }
 
-export function ListItem ({ item, ...props }) {
-  return (
-    item.parentId
-      ? <CommentFlat item={item} noReply includeParent {...props} />
-      : (item.isJob
-          ? <ItemJob item={item} />
-          : (item.searchText
-              ? <ItemFull item={item} noReply {...props} />
-              : <Item item={item} {...props} />))
-  )
+export function ListItem ({ item, isSearchResults, ...props }) {
+  const searchClasses = isSearchResults
+    ? [
+        styles.searchResult,
+        item.parentId ? styles.searchResultComment : styles.searchResultPost
+      ].join(' ')
+    : ''
+
+  const content = item.parentId
+    ? <CommentFlat item={item} noReply includeParent {...props} />
+    : (item.isJob
+        ? <ItemJob item={item} />
+        : (item.searchText
+            ? <ItemFull item={item} noReply {...props} />
+            : <Item item={item} {...props} />))
+
+  if (isSearchResults) {
+    return (
+      <div className={searchClasses}>
+        {content}
+      </div>
+    )
+  }
+
+  return content
 }
 
 export function ItemsSkeleton ({ rank, startRank = 0, limit = LIMIT, Footer }) {

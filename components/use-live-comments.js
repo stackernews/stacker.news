@@ -1,16 +1,17 @@
 import preserveScroll from './preserve-scroll'
 import { GET_NEW_COMMENTS } from '../fragments/comments'
+import { UPDATE_ITEM_USER_VIEW } from '../fragments/items'
 import { useEffect, useState } from 'react'
 import { SSR, COMMENT_DEPTH_LIMIT } from '../lib/constants'
-import { useQuery, useApolloClient } from '@apollo/client'
+import { useQuery, useApolloClient, useMutation } from '@apollo/client'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import {
   updateItemQuery,
   updateCommentFragment,
-  getLatestCommentCreatedAt,
   updateAncestorsCommentCount,
   calculateDepth
 } from '../lib/comments'
+import { useMe } from './me'
 
 const POLL_INTERVAL = 1000 * 5 // 5 seconds
 
@@ -30,9 +31,6 @@ function prepareComments (item, cache, newComment) {
   // update all ancestors comment count, but not the item itself
   const ancestors = itemHierarchy.slice(0, -1)
   updateAncestorsCommentCount(cache, ancestors, totalNComments)
-  // update commentsViewedAt to now, and add the number of new comments
-  const rootId = itemHierarchy[0]
-  commentsViewedAfterComment(rootId, Date.now(), totalNComments)
 
   // add a flag to the new comment to indicate it was injected
   const injectedComment = { ...newComment, injected: true }
@@ -58,22 +56,33 @@ function prepareComments (item, cache, newComment) {
   return payload
 }
 
-function cacheNewComments (cache, rootId, newComments, sort) {
+function cacheNewComments (cache, latest, rootId, newComments, sort) {
+  let injectedLatest = latest
   for (const newComment of newComments) {
     const { parentId } = newComment
     const topLevel = Number(parentId) === Number(rootId)
+    let injected = false
 
     // if the comment is a top level comment, update the item, else update the parent comment
     if (topLevel) {
       updateItemQuery(cache, rootId, sort, (item) => prepareComments(item, cache, newComment))
+      injected = true
     } else {
       // if the comment is too deep, we can skip it
       const depth = calculateDepth(newComment.path, rootId, parentId)
       if (depth > COMMENT_DEPTH_LIMIT) continue
       // inject the new comment into the parent comment's comments field
-      updateCommentFragment(cache, parentId, (parent) => prepareComments(parent, cache, newComment))
+      const updated = updateCommentFragment(cache, parentId, (parent) => prepareComments(parent, cache, newComment))
+      injected = !!updated
+    }
+
+    // update latest timestamp to the latest comment created at
+    if (injected && newComment.createdAt > latest) {
+      injectedLatest = newComment.createdAt
     }
   }
+
+  return injectedLatest
 }
 
 // useLiveComments fetches new comments under an item (rootId),
@@ -81,6 +90,15 @@ function cacheNewComments (cache, rootId, newComments, sort) {
 export default function useLiveComments (rootId, after, sort) {
   const latestKey = `liveCommentsLatest:${rootId}`
   const { cache } = useApolloClient()
+  const { me } = useMe()
+  const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, {
+    update (cache, { data: { updateCommentsViewAt } }) {
+      cache.modify({
+        id: `Item:${rootId}`,
+        fields: { meCommentsViewedAt: () => updateCommentsViewAt }
+      })
+    }
+  })
   const [latest, setLatest] = useState(after)
   const [initialized, setInitialized] = useState(false)
 
@@ -113,14 +131,28 @@ export default function useLiveComments (rootId, after, sort) {
 
     // directly inject new comments into the cache, preserving scroll position
     // quirk: scroll is preserved even if we are not injecting new comments due to dedupe
-    preserveScroll(() => cacheNewComments(cache, rootId, data.newComments.comments, sort))
+    let injectedLatest = latest
+    preserveScroll(() => {
+      injectedLatest = cacheNewComments(cache, injectedLatest, rootId, data.newComments.comments, sort)
+    })
+
+    // sync view time if we successfully injected new comments
+    if (injectedLatest > latest) {
+      if (me?.id) {
+        console.log('useLiveComments updating comments viewed at', injectedLatest)
+        // server-tracked view
+        updateCommentsViewAt({ variables: { id: rootId, meCommentsViewedAt: injectedLatest } })
+      } else {
+        // anon fallback
+        commentsViewedAfterComment(rootId, injectedLatest)
+      }
+    }
 
     // update latest timestamp to the latest comment created at
     // save it to session storage, to persist between client-side navigations
-    const newLatest = getLatestCommentCreatedAt(data.newComments.comments, latest)
-    setLatest(newLatest)
+    setLatest(injectedLatest)
     if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem(latestKey, newLatest)
+      window.sessionStorage.setItem(latestKey, injectedLatest)
     }
-  }, [data, cache, rootId, sort, latest])
+  }, [data, cache, rootId, sort, latest, me?.id])
 }

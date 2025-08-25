@@ -42,6 +42,7 @@ function prepareComments (item, cache, newComment) {
     ? {
         ...item,
         ncomments: item.ncomments + totalNComments,
+        nDirectComments: item.nDirectComments + 1,
         comments: {
           ...item.comments,
           comments: [injectedComment, ...item.comments.comments]
@@ -50,7 +51,8 @@ function prepareComments (item, cache, newComment) {
     // when the fragment doesn't have a comments field, we just update stats fields
     : {
         ...item,
-        ncomments: item.ncomments + totalNComments
+        ncomments: item.ncomments + totalNComments,
+        nDirectComments: item.nDirectComments + 1
       }
 
   return payload

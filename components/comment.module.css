@@ -18,9 +18,7 @@
 
 .dontLike {
     fill: #a5a5a5;
-    margin-right: .35rem;
-    padding: 2px;
-    margin-left: 1px;
+    margin-right: 2px;
     margin-top: 9px;
     cursor: pointer;
 }
@@ -64,19 +62,23 @@
 
 .children {
     margin-top: 0;
-    margin-left: 27px;
+    margin-left: 15px;
 }
 
 .comments {
-    margin-left: -.75rem;
+    margin-left: -15px;
 }
 
 @media screen and (min-width: 768px) {
 
     .comments {
-        margin-left: .75rem;
+        margin-left: 0px;
     }
-  }
+
+    .children {
+        margin-left: 25px;
+    }
+}
 
 .skeleton .hunk {
     width: 100%;
@@ -137,34 +139,30 @@
     padding-top: .5rem;
 }
 
-.newCommentDot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: var(--bs-primary);
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% {
-        background-color: #80d3ff;
-        opacity: 0.7;
-    }
-    50% {
-        background-color: #007cbe;
-        opacity: 1;
-    }
-    100% {
-        background-color: #80d3ff;
-        opacity: 0.7;
-    }
-}
-
 .injectedComment {
     animation: fadeIn 0.5s ease-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+.commentNavigator {
+    display: flex;
+    align-items: center;
+    vertical-align: middle;
+    gap: 0.2rem;
+    padding-bottom: 0.2rem;
+    justify-content: center;
+    cursor: pointer;
+    /* prevent double tap from zooming */
+    touch-action: manipulation;
+}
+
+.newCommentDot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #007cbe;
 }

@@ -129,6 +129,7 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
         '"Item"."parentId" IS NULL',
         '"Item".bio = false',
         '"Item".boost > 0',
+        await filterClause(me, models),
         activeOrMine(),
         subClause(sub, 1, 'Item', me, showNsfw),
         muteClause(me))}

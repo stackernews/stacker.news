@@ -167,6 +167,7 @@ export default {
           ) as "Item"
           ${whereClause(
             '"Item".created_at < $2',
+            '"Item"."deletedAt" IS NULL',
             await filterClause(me, models),
             muteClause(me),
             activeOrMine(me))}

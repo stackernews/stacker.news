@@ -1,6 +1,6 @@
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { mapWalletResolveTypes } from '@/wallets/server/resolvers/util'
-import { removeWalletProtocol, upsertWalletProtocol } from './protocol'
+import { removeWalletProtocol, upsertWalletProtocol, updateWalletBadges } from './protocol'
 import { validateSchema, walletSettingsSchema } from '@/lib/validate'
 
 const WalletOrTemplate = {
@@ -47,7 +47,8 @@ export const resolvers = {
     resetWallets,
     setWalletPriorities,
     disablePassphraseExport,
-    setWalletSettings
+    setWalletSettings,
+    deleteWallet
   }
 }
 
@@ -168,6 +169,17 @@ async function updateKeyHash (parent, { keyHash }, { me, models }) {
   return count > 0
 }
 
+async function deleteWallet (parent, { id }, { me, models }) {
+  if (!me) throw new GqlAuthenticationError()
+
+  await models.$transaction(async tx => {
+    await tx.wallet.delete({ where: { id: Number(id), userId: me.id } })
+    await updateWalletBadges({ userId: me.id, tx })
+  })
+
+  return true
+}
+
 async function resetWallets (parent, { newKeyHash }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
@@ -233,5 +245,5 @@ async function setWalletSettings (parent, { settings }, { me, models }) {
 
   await models.user.update({ where: { id: me.id }, data: settings })
 
-  return true
+  return settings
 }

@@ -10,6 +10,7 @@ export default [
     name: 'NWC',
     send: true,
     displayName: 'Nostr Wallet Connect',
+    logName: 'NWC',
     fields: [
       {
         name: 'url',
@@ -27,6 +28,7 @@ export default [
     name: 'NWC',
     send: false,
     displayName: 'Nostr Wallet Connect',
+    logName: 'NWC',
     fields: [
       {
         name: 'url',

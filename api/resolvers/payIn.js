@@ -57,7 +57,6 @@ export default {
     satistics: async (parent, { cursor, inc }, { models, me }) => {
       const userId = me?.id ?? USER_ID.anon
       const decodedCursor = decodeCursor(cursor)
-      console.log('decodedCursor', decodedCursor)
       const payIns = await models.PayIn.findMany({
         where: {
           OR: [
@@ -186,14 +185,6 @@ export default {
         return null
       }
       return payInBolt11.preimage
-    }
-  },
-  PayInCustodialToken: {
-    mtokensAfter: (payInCustodialToken, args, { me }) => {
-      if (!isMine(payInCustodialToken, { me })) {
-        return null
-      }
-      return payInCustodialToken.mtokensAfter
     }
   },
   PayOutCustodialToken: {

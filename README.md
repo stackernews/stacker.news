@@ -36,6 +36,34 @@ Go to [localhost:3000](http://localhost:3000).
 
 <br>
 
+### GitHub Codespaces
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/stackernews/stacker.news)
+
+You can run Stacker News on Github Codespaces
+
+#### Setup
+
+1. Open the repository on GitHub and click the **"Code"** button
+2. Select the Codespaces tab and create a new codespace. 
+   - You can also configure your codespace to run select services based on  `COMPOSE_PROFILES` as well as in a different region and machine type by clicking "..." and selecting "New with options...". Check [Modifying services](#modifying-services) for more information on `COMPOSE_PROFILES`
+3. Wait for the environment to set up (this may take several minutes the first time)
+4. Once ready, you'll see a terminal with the environment initialized
+
+#### Usage
+
+After the codespace is created, the development environment will be automatically set up and services started.
+
+Access your running application at the URL shown in the forwarded ports panel (typically `https://your-codespace-name-3000.app.github.dev`).
+
+#### Port Configuration
+
+⚠️ **Important**: For various internal services and external access to work properly, you must set forwarded ports to **Public** in the Ports tab:
+
+1. In your codespace, look for the "PORTS" tab in the bottom panel
+2. Click the lock icon to change visibility from "Private" to "Public"
+<br>
+
 ## Usage
 
 Start the development environment
@@ -170,6 +198,7 @@ To add/remove DNS records you can now use `./sndev domains dns`. More on this [h
 # Table of Contents
 - [Getting started](#getting-started)
     - [Installation](#installation)
+        - [GitHub Codespaces](#github-codespaces)
     - [Usage](#usage)
         - [Modifying services](#modifying-services)
             - [Running specific services](#running-specific-services)

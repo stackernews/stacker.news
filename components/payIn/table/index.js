@@ -9,6 +9,11 @@ import LinkToContext from '@/components/link-to-context'
 export default function PayInTable ({ payIns }) {
   return (
     <div className={styles.table}>
+      <div className={classNames(styles.row, styles.header)}>
+        <div>type</div>
+        <div>context</div>
+        <div>sats</div>
+      </div>
       {payIns?.map(payIn => (
         <PayInRow key={payIn.id} payIn={payIn} />
       ))}

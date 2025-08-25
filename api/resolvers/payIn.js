@@ -124,6 +124,12 @@ export default {
       }
       return null
     },
+    userId: (payIn, args, { me }) => {
+      if (!isMine(payIn, { me })) {
+        return null
+      }
+      return payIn.userId
+    },
     payInBolt11: async (payIn, args, { models, me }) => {
       if (!isMine(payIn, { me })) {
         return null

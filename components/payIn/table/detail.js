@@ -3,6 +3,7 @@ import ItemJob from '@/components/item-job'
 import Item from '@/components/item'
 import { CommentFlat } from '@/components/comment'
 import { TerritoryDetails } from '../../territory-header'
+import { truncateString } from '@/lib/format'
 
 export function PayInDetail ({ payIn }) {
   switch (payIn.payInType) {
@@ -23,19 +24,15 @@ export function PayInDetail ({ payIn }) {
     case 'TERRITORY_UPDATE':
     case 'TERRITORY_BILLING':
     case 'TERRITORY_UNARCHIVE':
-      return <TerritoryDetails sub={payIn.sub} />
+      return <TerritoryDetails sub={{ ...payIn.sub, desc: truncateString(payIn.sub.desc, 280) }} className='w-100' show={false} />
     case 'INVITE_GIFT':
-      return <div>Invite</div>
-    case 'DONATE':
-      return <div>Donate</div>
-    case 'BUY_CREDITS':
-      return <div>Buy Credits</div>
+      return <div>TODO: Invite</div>
     case 'PROXY_PAYMENT':
-      return <div>Proxy Payment</div>
+      return <div>TODO: Proxy Payment</div>
     case 'WITHDRAWAL':
-      return <div>Withdrawal</div>
     case 'AUTOWITHDRAWAL':
-      return <div>AutoWithdrawal</div>
+    case 'DONATE':
+    case 'BUY_CREDITS':
   }
-  return <div>should be payIn.detail</div>
+  return <small className='text-muted d-flex justify-content-center w-100'>N/A</small>
 }

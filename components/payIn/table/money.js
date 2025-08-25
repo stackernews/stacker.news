@@ -16,16 +16,16 @@ export function PayInMoney ({ payIn }) {
     <>
       {isNumber(SATS?.mtokens) && SATS.mtokens !== 0 && <Money mtokens={SATS.mtokens} mtokensAfter={SATS.mtokensAfter} singular='sat' plural='sats' />}
       {isNumber(CREDITS?.mtokens) && CREDITS.mtokens !== 0 && <Money mtokens={CREDITS.mtokens} mtokensAfter={CREDITS.mtokensAfter} singular='CC' plural='CCs' />}
-      {isNumber(bolt11Cost) && bolt11Cost !== 0 && <div className='d-flex align-items-center gap-1 justify-content-end'><Plug className='fill-muted' width={10} height={10} />{formatCost(bolt11Cost, 'sat', 'sats')}</div>}
+      {isNumber(bolt11Cost) && bolt11Cost !== 0 && <div className='d-flex align-items-center gap-1 justify-content-end'>{formatCost(bolt11Cost, 'sat', 'sats')}<Plug className='fill-muted' width={10} height={10} /></div>}
     </>
   )
 }
 
 function Money ({ mtokens, mtokensAfter, singular, plural }) {
   return (
-    <div className='d-grid line-height-1'>
+    <div className='d-grid'>
       <div>{formatCost(mtokens, singular, plural)}</div>
-      {isNumber(mtokensAfter) && <small className='text-muted'>{numWithUnits(msatsToSats(mtokensAfter), { unitSingular: singular, unitPlural: plural })}</small>}
+      {isNumber(mtokensAfter) && <small className='text-muted'>{numWithUnits(msatsToSats(mtokensAfter), { unitSingular: singular, unitPlural: plural, abbreviate: false })}</small>}
     </div>
   )
 }
@@ -38,7 +38,7 @@ function formatCost (mtokens, unitSingular, unitPlural) {
     sign = '+'
   }
 
-  return `${sign}${numWithUnits(msatsToSats(mtokens), { unitSingular, unitPlural })}`
+  return `${sign}${numWithUnits(msatsToSats(mtokens), { unitSingular, unitPlural, abbreviate: false })}`
 }
 
 function reduceBolt11Cost (payIn, userId) {

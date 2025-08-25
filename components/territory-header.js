@@ -24,9 +24,11 @@ export const SubscribeTerritoryContextProvider = ({ children, value }) => (
 
 export const useSubscribeTerritoryContext = () => useContext(SubscribeTerritoryContext)
 
-export function TerritoryDetails ({ sub, children }) {
+export function TerritoryDetails ({ sub, children, className, show }) {
   return (
     <AccordianCard
+      className={className}
+      show={show}
       header={
         <small className='text-muted fw-bold align-items-center d-flex'>
           {sub.name}

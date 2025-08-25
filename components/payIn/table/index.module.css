@@ -5,10 +5,25 @@
 
 .row {
   display: contents;
-  cursor: pointer;
 }
 
-.row:hover > * {
+.row.header {
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--theme-mutedTextColor);
+  text-align: center;
+}
+
+.row.header > *:first-child {
+  text-align: left;
+}
+
+.row.header > *:last-child {
+  text-align: right;
+}
+
+.row:hover:not(.header) > * {
   background-color: var(--theme-clickToContextColor);
 }
 
@@ -37,21 +52,24 @@
   text-align: left;
   display: grid;
   grid-template-rows: 1fr 1fr 1fr;
-  align-items: start;
+  align-items: center;
   gap: 0px;
 }
 
 .detail {
-  padding: .5rem;
   display: flex;
   align-items: center;
 }
 
 .money {
-  padding: .5rem;
   display: grid;
   align-items: center;
   text-align: right;
+  line-height: 1.1;
+}
+
+.money > * {
+  padding: .2rem 0;
 }
 
 .sats {

@@ -3,6 +3,7 @@ import Moon from '@/svgs/moon-fill.svg'
 import Check from '@/svgs/check-double-line.svg'
 import ThumbDown from '@/svgs/thumb-down-fill.svg'
 import { timeSince } from '@/lib/time'
+import { useMe } from '@/components/me'
 
 export function PayInType ({ payIn }) {
   return (
@@ -15,6 +16,11 @@ export function PayInType ({ payIn }) {
 }
 
 function PayInTypeShortDescription ({ payIn }) {
+  const { me } = useMe()
+  return <small className='text-muted'>{describePayInType(payIn)}{Number(payIn.userId) !== Number(me.id) ? ' receive' : ''}</small>
+}
+
+function describePayInType (payIn) {
   switch (payIn.payInType) {
     case 'ITEM_CREATE':
       if (payIn.item.isJob) {

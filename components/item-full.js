@@ -165,14 +165,7 @@ function ItemText ({ item }) {
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {
   const { me } = useMe()
-  const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, {
-    update (cache, { data: { updateCommentsViewAt } }) {
-      cache.modify({
-        id: `Item:${item.id}`,
-        fields: { meCommentsViewedAt: () => updateCommentsViewAt }
-      })
-    }
-  })
+  const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW)
 
   useEffect(() => {
     // local comments viewed (anon fallback)

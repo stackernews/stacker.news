@@ -98,11 +98,11 @@ export default function Comments ({
         : null}
       {pins.map(item => (
         <Fragment key={item.id}>
-          <Comment depth={1} item={item} navigator={navigator} rootLastCommentAt={lastCommentAt || parentCreatedAt} rootMeCommentsViewedAt={meCommentsViewedAt} {...props} pin />
+          <Comment depth={1} item={item} navigator={navigator} {...props} pin />
         </Fragment>
       ))}
       {comments.filter(({ position }) => !position).map(item => (
-        <Comment depth={1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={lastCommentAt || parentCreatedAt} rootMeCommentsViewedAt={meCommentsViewedAt} {...props} />
+        <Comment depth={1} key={item.id} item={item} navigator={navigator} {...props} />
       ))}
       {ncomments > FULL_COMMENTS_THRESHOLD &&
         <MoreFooter

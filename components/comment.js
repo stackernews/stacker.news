@@ -96,7 +96,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 }
 
 export default function Comment ({
-  item, children, replyOpen, includeParent, topLevel, rootLastCommentAt, rootMeCommentsViewedAt,
+  item, children, replyOpen, includeParent, topLevel,
   rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry,
   navigator
 }) {
@@ -157,12 +157,15 @@ export default function Comment ({
     if (me?.id === item.user?.id) return
 
     const itemCreatedAt = new Date(item.createdAt).getTime()
+
+    const rootViewedAt = root.meCommentsViewedAt
+    const rootLast = root.lastCommentAt || root.createdAt
     // it's a new comment if it was created after the last comment was viewed
-    // or, in the case of live comments, after the last comment was created
     const isNewComment = me?.id
-      ? (rootMeCommentsViewedAt && itemCreatedAt > new Date(rootMeCommentsViewedAt).getTime())
+      ? itemCreatedAt > new Date(rootViewedAt).getTime()
+      // anon fallback is based on the commentsViewedAt query param or the last comment createdAt
       : ((router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||
-        (rootLastCommentAt && itemCreatedAt > new Date(rootLastCommentAt).getTime()))
+        (itemCreatedAt > new Date(rootLast).getTime()))
     if (!isNewComment) return
 
     if (item.injected) {
@@ -180,7 +183,7 @@ export default function Comment ({
     }
 
     navigator?.trackNewComment(ref, itemCreatedAt)
-  }, [item.id, rootLastCommentAt, rootMeCommentsViewedAt])
+  }, [item.id, root.lastCommentAt, root.meCommentsViewedAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
@@ -302,7 +305,7 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={rootLastCommentAt} rootMeCommentsViewedAt={rootMeCommentsViewedAt} />
+                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && (
                         <div className={`d-block ${styles.comment} pb-2 ps-3`}>

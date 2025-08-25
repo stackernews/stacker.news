@@ -583,7 +583,7 @@ export default {
           break
       }
       return {
-        cursor: items.length === limit ? nextCursorEncoded(decodedCursor) : null,
+        cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         items,
         pins,
         ad

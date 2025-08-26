@@ -244,7 +244,9 @@ function MediaLink ({
 function Table ({ node, ...props }) {
   return (
     <span className='table-responsive'>
-      <table className='table table-bordered table-sm' {...props} />
+      <div style={{ 'overflow-x': 'auto', 'white-space': 'nowrap' }}>
+        <table className='table table-bordered table-sm' {...props} />
+      </div>
     </span>
   )
 }

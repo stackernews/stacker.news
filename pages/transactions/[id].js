@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { CenterLayout } from '@/components/layout'
+import Layout from '@/components/layout'
 import PayIn from '@/components/payIn'
 import { useRouter } from 'next/router'
 
@@ -10,8 +10,8 @@ export default function Transaction () {
   const router = useRouter()
 
   return (
-    <CenterLayout>
+    <Layout containClassName='p-5'>
       <PayIn id={Number(router.query.id)} />
-    </CenterLayout>
+    </Layout>
   )
 }

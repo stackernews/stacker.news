@@ -55,11 +55,14 @@ export default forwardRef(function Reply ({
           id: `Item:${parentId}`,
           fields: {
             comments (existingComments = {}) {
+              // to insert a new comment, we need to write a fragment that matches the
+              // comments query which expects a comments field (which won't be returned on new comment creation)
               const newCommentRef = cache.writeFragment({
-                data: result,
+                data: { comments: { comments: [] }, ...result },
                 fragment: COMMENTS,
                 fragmentName: 'CommentsRecursive'
               })
+
               return {
                 cursor: existingComments.cursor,
                 comments: [newCommentRef, ...(existingComments?.comments || [])]

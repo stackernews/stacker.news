@@ -287,6 +287,7 @@ export default {
             'r.created_at > $2',
             'r.created_at >= "ThreadSubscription".created_at',
             'r."userId" <> $1',
+            '"Item"."deletedAt" IS NULL',
             activeOrMine(me),
             await filterClause(me, models),
             muteClause(me),

@@ -106,6 +106,12 @@
   flex-direction: column;
 }
 
+@media (max-width: 768px) {
+  .form {
+    margin-top: 2rem;
+  }
+}
+
 .separator {
   display: flex;
   align-items: center;

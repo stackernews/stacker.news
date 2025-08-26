@@ -241,6 +241,7 @@
 
 .text table {
     width: auto;
+    white-space: nowrap;
 }
 
 .text blockquote {

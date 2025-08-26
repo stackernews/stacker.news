@@ -1,15 +1,15 @@
 import { useQuery } from '@apollo/client'
-import { GET_PAY_IN } from '@/fragments/payIn'
+import { GET_PAY_IN_RESULT } from '@/fragments/payIn'
 import usePayInHelper, { WaitCheckControllerAbortedError } from './use-pay-in-helper'
 import { useEffect } from 'react'
 
-export default function useWatchPayIn ({ id, onPaymentError, onPaymentSuccess, waitFor }) {
+export default function useWatchPayIn ({ id, query = GET_PAY_IN_RESULT, onPaymentError, onPaymentSuccess, waitFor }) {
   const payInHelper = usePayInHelper()
 
   // we use the controller in a useEffect like this so we can reuse the same logic
   // ... this controller is used in loops elsewhere where hooks are not allowed
   useEffect(() => {
-    const controller = payInHelper.waitCheckController(id, waitFor, { fetchPolicy: 'cache-and-network' })
+    const controller = payInHelper.waitCheckController(id, waitFor, { query, fetchPolicy: 'cache-and-network' })
 
     console.log('useWatchPayIn: useEffect', id)
     const check = async () => {
@@ -33,5 +33,5 @@ export default function useWatchPayIn ({ id, onPaymentError, onPaymentSuccess, w
   }, [id, waitFor, payInHelper, onPaymentError, onPaymentSuccess])
 
   // this will return the payIn in the cache as the useEffect updates the cache
-  return useQuery(GET_PAY_IN, { variables: { id } })
+  return useQuery(query, { variables: { id } })
 }

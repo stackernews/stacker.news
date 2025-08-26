@@ -1,11 +1,10 @@
-import styles from './index.module.css'
 import ItemJob from '@/components/item-job'
 import Item from '@/components/item'
 import { CommentFlat } from '@/components/comment'
-import { TerritoryDetails } from '../../territory-header'
+import { TerritoryDetails } from '../territory-header'
 import { truncateString } from '@/lib/format'
 
-export function PayInDetail ({ payIn }) {
+export function PayInContext ({ payIn }) {
   switch (payIn.payInType) {
     case 'ITEM_CREATE':
     case 'ITEM_UPDATE':
@@ -16,7 +15,7 @@ export function PayInDetail ({ payIn }) {
       return (
         <>
           {!payIn.item.title && <CommentFlat item={payIn.item} includeParent noReply truncate />}
-          {payIn.item.isJob && <ItemJob className={styles.itemWrapper} item={payIn.item} />}
+          {payIn.item.isJob && <ItemJob item={payIn.item} />}
           {payIn.item.title && <Item item={payIn.item} siblingComments />}
         </>
       )

@@ -1,43 +1,23 @@
 import CompactLongCountdown from '@/components/countdown'
-import { msatsToSats, numWithUnits } from '@/lib/format'
 import Moon from '@/svgs/moon-fill.svg'
 import Check from '@/svgs/check-double-line.svg'
 import ThumbDown from '@/svgs/thumb-down-fill.svg'
 
-export default function PayInStatus ({ payIn }) {
-  let variant = 'pending'
-  let status = 'waiting for you'
+const statusIconSize = 16
 
-  if (payIn.payInState === 'PAID') {
-    variant = 'paid'
-    status = `${numWithUnits(msatsToSats(payIn.payInBolt11.msatsReceived), { abbreviate: false })} paid`
-  } else if (payIn.payInState === 'FAILED') {
-    variant = 'failed'
-    if (payIn.payInFailureReason === 'INVOICE_EXPIRED') {
-      status = 'expired'
-    } else if (payIn.payInFailureReason === 'INVOICE_CANCELLED') {
-      status = 'cancelled'
-    } else {
-      status = 'failed'
-    }
-  } else if (payIn.payInState === 'PENDING_HELD' || payIn.payInState === 'PENDING') {
-    variant = null
-    status = <CompactLongCountdown date={payIn.payInBolt11.expiresAt} />
-  } else {
-    variant = 'pending'
-    status = 'settling'
+export function PayInStatus ({ payIn }) {
+  function StatusText ({ color, children }) {
+    return (
+      <small className={`ms-1 text-${color}`} style={{ fontWeight: '600' }}>{children}</small>
+    )
   }
 
   return (
-    <div className='d-flex mt-1 justify-content-center align-items-center'>
-      {variant === 'paid' && <Check className='fill-success' />}
-      {variant === 'failed' && <ThumbDown className='fill-danger' />}
-      {variant === 'pending' && <Moon className='spin fill-grey' />}
-      <div
-        className={`ms-3 text-${variant === 'paid' ? 'success' : variant === 'failed' ? 'danger' : 'muted'}`}
-        style={{ fontWeight: '600' }}
-      >{status}
-      </div>
+    <div className='d-flex align-items-center'>
+      {(payIn.payInState === 'PAID' && <><Check width={statusIconSize} height={statusIconSize} className='fill-success' /><StatusText color='success'>paid</StatusText></>) ||
+        ((payIn.payInState === 'FAILED' || payIn.payInState === 'CANCELLED' || payIn.payInState === 'FORWARD_FAILED') && <><ThumbDown width={statusIconSize} height={statusIconSize} className='fill-danger' /><StatusText color='danger'>failed</StatusText></>) ||
+        ((payIn.payInState === 'FORWARDING' || payIn.payInState === 'FORWARDED' || !payIn.payInBolt11) && <><Moon width={statusIconSize} height={statusIconSize} className='spin fill-grey' /><StatusText color='muted'>settling</StatusText></>) ||
+        (<CompactLongCountdown date={payIn.payInBolt11.expiresAt} />)}
     </div>
   )
 }

@@ -1,8 +1,8 @@
-import styles from './index.module.css'
+import styles from '../table/index.module.css'
 import { useMe } from '../../me'
 import classNames from 'classnames'
 import { PayInType } from './type'
-import { PayInDetail } from './detail'
+import { PayInContext } from '../context'
 import { PayInMoney } from './money'
 import LinkToContext from '@/components/link-to-context'
 
@@ -35,8 +35,8 @@ function PayInRow ({ payIn }) {
       <LinkToContext className={styles.type} href={`/transactions/${payIn.id}`}>
         <PayInType payIn={payIn} />
       </LinkToContext>
-      <LinkToContext className={styles.detail} href={`/transactions/${payIn.id}`}>
-        <PayInDetail payIn={payIn} />
+      <LinkToContext className={styles.context} href={`/transactions/${payIn.id}`}>
+        <PayInContext payIn={payIn} />
       </LinkToContext>
       <LinkToContext className={styles.money} href={`/transactions/${payIn.id}`}>
         <PayInMoney payIn={payIn} />

@@ -1,9 +1,13 @@
 import { useCallback } from 'react'
-import PayIn from '@/components/payIn'
 import { AnonWalletError, InvoiceCanceledError } from '@/wallets/client/errors'
 import { useShowModal } from '@/components/modal'
 import usePayInHelper from '@/components/payIn/hooks/use-pay-in-helper'
 import { sendPayment as weblnSendPayment } from '@/wallets/client/protocols/webln'
+import useWatchPayIn from './use-watch-pay-in'
+import Qr, { QrSkeleton } from '@/components/qr'
+import PayInError from '../error'
+import { msatsToSats, numWithUnits } from '@/lib/format'
+import PayInStatus from '../status'
 
 export default function useQrPayIn () {
   const payInHelper = usePayInHelper()
@@ -33,7 +37,7 @@ export default function useQrPayIn () {
         resolve(updatedPayIn)
       }
       showModal(onClose =>
-        <PayIn
+        <QrPayIn
           id={payIn.id}
           walletError={walletError}
           waitFor={waitFor}
@@ -60,4 +64,34 @@ export default function useQrPayIn () {
   }, [payInHelper])
 
   return waitForQrPayIn
+}
+
+function QrPayIn ({
+  id, onPaymentError, onPaymentSuccess, waitFor, walletError
+}) {
+  const { data, error } = useWatchPayIn({ id, onPaymentError, onPaymentSuccess, waitFor })
+
+  const payIn = data?.payIn
+
+  if (error) {
+    return <div>{error.message}</div>
+  }
+
+  if (!payIn) {
+    return <QrSkeleton description />
+  }
+
+  const { bolt11 } = payIn.payInBolt11
+
+  return (
+    <>
+      <PayInError error={walletError} />
+      <Qr
+        value={bolt11}
+        qrTransform={value => 'lightning:' + value.toUpperCase()}
+        description={numWithUnits(msatsToSats(payIn.payInBolt11.msatsRequested), { abbreviate: false })}
+      />
+      <PayInStatus payIn={payIn} />
+    </>
+  )
 }

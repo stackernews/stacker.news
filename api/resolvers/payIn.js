@@ -26,20 +26,26 @@ function payInResultType (payInType) {
   }
 }
 
+const INCLUDE = {
+  payInBolt11: {
+    include: {
+      lud18Data: true,
+      nostrNote: true,
+      comment: true
+    }
+  },
+  payOutBolt11: true,
+  pessimisticEnv: true,
+  payInCustodialTokens: true,
+  payOutCustodialTokens: true,
+  itemPayIn: true,
+  subPayIn: true
+}
+
 export async function getPayIn (parent, { id }, { me, models }) {
   const payIn = await models.PayIn.findUnique({
     where: { id, userId: me?.id ?? USER_ID.anon },
-    include: {
-      payInBolt11: {
-        include: {
-          lud18Data: true,
-          nostrNote: true,
-          comment: true
-        }
-      },
-      pessimisticEnv: true,
-      payInCustodialTokens: true
-    }
+    include: INCLUDE
   })
   if (!payIn) {
     throw new Error('PayIn not found')
@@ -68,14 +74,7 @@ export default {
             lte: decodedCursor.time
           }
         },
-        include: {
-          payInBolt11: true,
-          payOutBolt11: true,
-          payInCustodialTokens: true,
-          payOutCustodialTokens: true,
-          itemPayIn: true,
-          subPayIn: true
-        },
+        include: INCLUDE,
         orderBy: { createdAt: 'desc' },
         take: LIMIT,
         skip: decodedCursor.offset

@@ -1,7 +1,7 @@
 import AccordianItem from '@/components/accordian-item'
 
-export function PayInMetadata ({ payIn }) {
-  const { nostrNote, lud18Data, comment } = payIn.payInBolt11
+export function PayInMetadata ({ payInBolt11 }) {
+  const { nostrNote, lud18Data, comment } = payInBolt11
 
   return (
     <>

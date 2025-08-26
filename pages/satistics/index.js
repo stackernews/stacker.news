@@ -9,7 +9,6 @@ import PageLoading from '@/components/page-loading'
 import navStyles from '@/styles/nav.module.css'
 import { SATISTICS } from '@/fragments/payIn'
 import PayInTable from '@/components/payIn/table'
-import { useData } from '@/components/use-data'
 
 export const getServerSideProps = getGetServerSideProps({ query: SATISTICS, authRequired: true, variables: { inc: '' } })
 
@@ -43,7 +42,7 @@ export default function Satistics ({ ssrData }) {
   const { data, fetchMore } = useQuery(SATISTICS, { variables: { inc: '' } })
   if (!ssrData && !data) return <PageLoading />
 
-  const { satistics: { payIns, cursor } } = useData(data, ssrData)
+  const { satistics: { payIns, cursor } } = data || ssrData
 
   return (
     <Layout>

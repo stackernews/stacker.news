@@ -11,7 +11,7 @@ export default function Transaction () {
 
   return (
     <CenterLayout>
-      <PayIn id={Number(router.query.id)} detailed waitFor={p => ['PAID', 'FAILED'].includes(p.payInState)} />
+      <PayIn id={Number(router.query.id)} />
     </CenterLayout>
   )
 }

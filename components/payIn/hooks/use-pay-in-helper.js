@@ -1,7 +1,7 @@
 import { useApolloClient, useMutation } from '@apollo/client'
 import { useCallback, useMemo } from 'react'
 import { InvoiceCanceledError, InvoiceExpiredError, WalletReceiverError } from '@/wallets/client/errors'
-import { GET_PAY_IN, CANCEL_PAY_IN_BOLT11, RETRY_PAY_IN } from '@/fragments/payIn'
+import { GET_PAY_IN_RESULT, CANCEL_PAY_IN_BOLT11, RETRY_PAY_IN } from '@/fragments/payIn'
 import { FAST_POLL_INTERVAL } from '@/lib/constants'
 
 const RECEIVER_FAILURE_REASONS = [
@@ -16,8 +16,8 @@ export default function usePayInHelper () {
   const [retryPayIn] = useMutation(RETRY_PAY_IN)
   const [cancelPayInBolt11] = useMutation(CANCEL_PAY_IN_BOLT11)
 
-  const check = useCallback(async (id, that, { fetchPolicy = 'network-only' } = {}) => {
-    const { data, error } = await client.query({ query: GET_PAY_IN, fetchPolicy, variables: { id } })
+  const check = useCallback(async (id, that, { query = GET_PAY_IN_RESULT, fetchPolicy = 'network-only' } = {}) => {
+    const { data, error } = await client.query({ query, fetchPolicy, variables: { id } })
     if (error) {
       throw error
     }

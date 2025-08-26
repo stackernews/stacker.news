@@ -24,7 +24,7 @@ function queryParts (q) {
 
 export default {
   Query: {
-    related: async (parent, { title, id, cursor, limit = LIMIT, minMatch }, { me, models, search }) => {
+    related: async (parent, { title, id, cursor, limit, minMatch }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
 
       if (!id && (!title || title.trim().split(/\s+/).length < 1)) {

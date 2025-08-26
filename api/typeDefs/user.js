@@ -1,4 +1,5 @@
 import { gql } from 'graphql-tag'
+import { LIMIT } from '@/lib/cursor'
 
 export default gql`
   extend type Query {
@@ -7,10 +8,10 @@ export default gql`
     user(id: ID, name: String): User
     users: [User!]
     nameAvailable(name: String!): Boolean!
-    topUsers(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): UsersNullable!
+    topUsers(cursor: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): UsersNullable!
     topCowboys(cursor: String): UsersNullable!
-    searchUsers(q: String!, limit: Limit, similarity: Float): [User!]!
-    userSuggestions(q: String, limit: Limit): [User!]!
+    searchUsers(q: String!, limit: Limit! = 5, similarity: Float): [User!]!
+    userSuggestions(q: String, limit: Limit! = 5): [User!]!
     hasNewNotes: Boolean!
     mySubscribedUsers(cursor: String): Users!
     myMutedUsers(cursor: String): Users!

@@ -1,5 +1,5 @@
 import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
-import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
+import { decodeCursor, nextCursorEncoded } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
 import domino from 'domino'
@@ -63,7 +63,7 @@ async function comments (me, models, item, sort, cursor) {
 
   const decodedCursor = decodeCursor(cursor)
   const offset = decodedCursor.offset
-  const filter = ` AND "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3) `
+  const filter = ` ("Item"."parentId" <> $1 OR "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3)) `
 
   // XXX what a mess
   let comments
@@ -130,6 +130,7 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
         '"Item"."parentId" IS NULL',
         '"Item".bio = false',
         '"Item".boost > 0',
+        await filterClause(me, models),
         activeOrMine(),
         subClause(sub, 1, 'Item', me, showNsfw),
         muteClause(me))}
@@ -398,7 +399,7 @@ export default {
 
       return count
     },
-    items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit = LIMIT }, { me, models }) => {
+    items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       let items, user, pins, subFull, table, ad
 
@@ -625,7 +626,7 @@ export default {
           break
       }
       return {
-        cursor: items.length === limit ? nextCursorEncoded(decodedCursor) : null,
+        cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         items,
         pins,
         ad

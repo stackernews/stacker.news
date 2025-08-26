@@ -138,8 +138,7 @@ const typeDefs = gql`
     ): Boolean!
 
     # delete
-    removeWallet(id: ID!): Boolean
-    removeWalletProtocol(id: ID!): Boolean
+    deleteWallet(id: ID!): Boolean
 
     # crypto
     updateWalletEncryption(keyHash: String!, wallets: [WalletEncryptionUpdate!]!): Boolean
@@ -148,7 +147,7 @@ const typeDefs = gql`
     disablePassphraseExport: Boolean
 
     # settings
-    setWalletSettings(settings: WalletSettingsInput!): Boolean
+    setWalletSettings(settings: WalletSettingsInput!): WalletSettings!
     setWalletPriorities(priorities: [WalletPriorityUpdate!]!): Boolean
 
     # logs

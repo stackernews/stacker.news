@@ -62,12 +62,11 @@ export const resolvers = {
       }, [])
     ),
     addWalletLog,
-    removeWalletProtocol,
     deleteWalletLogs
   }
 }
 
-function testWalletProtocol (protocol) {
+export function testWalletProtocol (protocol) {
   return async (parent, args, { me, models, tx }) => {
     if (!me) {
       throw new GqlAuthenticationError()
@@ -223,6 +222,7 @@ export function upsertWalletProtocol (protocol) {
   }
 }
 
+// not exposed to the client via GraphQL API, but used when resetting wallets
 export async function removeWalletProtocol (parent, { id }, { me, models, tx }) {
   if (!me) {
     throw new GqlAuthenticationError()
@@ -336,7 +336,7 @@ async function deleteWalletLogs (parent, { protocolId, debug }, { me, models }) 
   return true
 }
 
-async function updateWalletBadges ({ userId, tx }) {
+export async function updateWalletBadges ({ userId, tx }) {
   const pushNotifications = []
 
   const wallets = await tx.wallet.findMany({

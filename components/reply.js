@@ -1,4 +1,4 @@
-import { Form, MarkdownInput } from '@/components/form'
+import { Form, MarkdownInput, Checkbox } from '@/components/form'
 import styles from './reply.module.css'
 import { COMMENTS } from '@/fragments/comments'
 import { useMe } from './me'
@@ -14,6 +14,7 @@ import { CREATE_COMMENT } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import { updateAncestorsCommentCount } from '@/lib/comments'
+import { USER_ID } from '@/lib/constants'
 
 export default forwardRef(function Reply ({
   item,
@@ -108,6 +109,8 @@ export default forwardRef(function Reply ({
     onCancelQuote?.()
   }, [setReply, parentId, onCancelQuote])
 
+  const addAnonymousPostingOption = me && me.id != USER_ID.anon
+
   return (
     <div>
       {replyOpen
@@ -172,7 +175,10 @@ export default forwardRef(function Reply ({
                 placeholder={placeholder}
                 hint={sub?.moderated && 'this territory is moderated'}
               />
-              <ItemButtonBar createText='reply' hasCancel={false} />
+              
+              <ItemButtonBar createText='reply' hasCancel={false}>
+                {addAnonymousPostingOption && <Checkbox name="postAnonymously" label="Post anonymously" />}
+              </ItemButtonBar>
             </Form>
           </FeeButtonProvider>
         </div>}

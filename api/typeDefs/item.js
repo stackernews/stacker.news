@@ -67,6 +67,7 @@ export default gql`
     updateNoteId(id: ID!, noteId: String!): Item!
     upsertComment(
       id: ID, text: String!, parentId: ID, boost: Int,
+      postAnonymously: Boolean,
       hash: String, hmac: String): ItemPaidAction!
     act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): ItemActPaidAction!
     pollVote(id: ID!): PollVotePaidAction!

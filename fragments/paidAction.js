@@ -249,8 +249,8 @@ export const UPSERT_BIO = gql`
 export const CREATE_COMMENT = gql`
   ${ITEM_PAID_ACTION_FIELDS}
   ${PAID_ACTION}
-  mutation upsertComment($text: String!, $parentId: ID!) {
-    upsertComment(text: $text, parentId: $parentId) {
+  mutation upsertComment($text: String!, $parentId: ID!, $postAnonymously: Boolean) {
+    upsertComment(text: $text, parentId: $parentId, postAnonymously: $postAnonymously) {
       ...ItemPaidActionFields
       ...PaidActionFields
     }

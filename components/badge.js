@@ -5,11 +5,12 @@ import CowboyHatIcon from '@/svgs/cowboy.svg'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import GunIcon from '@/svgs/revolver.svg'
 import HorseIcon from '@/svgs/horse.svg'
+import BotIcon from '@/svgs/robot-2-fill.svg'
 import { numWithUnits } from '@/lib/format'
 import { USER_ID } from '@/lib/constants'
 import classNames from 'classnames'
 
-export default function Badges ({ user, badge, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
+export default function Badges ({ user, badge, bot, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
   if (!user || Number(user.id) === USER_ID.ad) return null
   if (Number(user.id) === USER_ID.anon) {
     return (
@@ -43,6 +44,13 @@ export default function Badges ({ user, badge, className = 'ms-1', badgeClassNam
       icon: GunIcon,
       sizeDelta: 2,
       overlayText: 'can send sats'
+    })
+  }
+
+  if (bot) {
+    badges.push({
+      icon: BotIcon,
+      overlayText: 'posted as bot'
     })
   }
 

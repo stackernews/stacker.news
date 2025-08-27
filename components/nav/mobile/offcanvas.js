@@ -32,10 +32,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
 
   return (
     <>
-      <div className='position-relative'>
-        <MeImage onClick={handleShow} />
-        {indicator && <Indicator />}
-      </div>
+      <Indicator show={indicator}><MeImage onClick={handleShow} /></Indicator>
 
       <Offcanvas className={canvasStyles.offcanvas} show={show} onHide={handleClose} placement='end'>
         <Offcanvas.Header closeButton>
@@ -57,10 +54,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
                 <>
                   <Link href={'/' + me.name} passHref legacyBehavior>
                     <Dropdown.Item active={me.name === dropNavKey}>
-                      <div className='w-fit-content position-relative'>
-                        profile
-                        {profileIndicator && <Indicator />}
-                      </div>
+                      <Indicator show={profileIndicator}>profile</Indicator>
                     </Dropdown.Item>
                   </Link>
                   <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
@@ -68,10 +62,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
                   </Link>
                   <Link href='/wallets' passHref legacyBehavior>
                     <Dropdown.Item eventKey='wallets'>
-                      <div className='w-fit-content position-relative'>
-                        wallets
-                        {walletIndicator && <Indicator />}
-                      </div>
+                      <Indicator show={walletIndicator}>wallets</Indicator>
                     </Dropdown.Item>
                   </Link>
                   <Link href='/credits' passHref legacyBehavior>
@@ -101,10 +92,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
                   <Link href={`/${me?.name || 'anon'}`} className='d-flex flex-row p-2 mt-auto text-muted'>
                     <MeImage />
                     <div className='ms-2'>
-                      <div className='w-fit-content position-relative'>
-                        @{me?.name || 'anon'}
-                        {indicator && <Indicator />}
-                      </div>
+                      <Indicator show={indicator}>@{me?.name || 'anon'}</Indicator>
                     </div>
                   </Link>
                 </Nav>

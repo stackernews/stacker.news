@@ -74,7 +74,7 @@ function LnAddrForm ({ onAttach }) {
   const initial = { address: '' }
 
   const onSubmit = useCallback(async ({ address }) => {
-    await upsert({ address })
+    await upsert(address)
     onAttach()
   }, [upsert, onAttach])
 

@@ -77,7 +77,7 @@ function cacheNewComments (cache, latest, rootId, newComments, sort) {
     }
 
     // update latest timestamp to the latest comment created at
-    if (injected && newComment.createdAt > latest) {
+    if (injected && new Date(newComment.createdAt).getTime() > new Date(injectedLatest).getTime()) {
       injectedLatest = newComment.createdAt
     }
   }
@@ -137,7 +137,7 @@ export default function useLiveComments (rootId, after, sort) {
     })
 
     // sync view time if we successfully injected new comments
-    if (injectedLatest > latest) {
+    if (new Date(injectedLatest).getTime() > new Date(latest).getTime()) {
       if (me?.id) {
         console.log('useLiveComments updating comments viewed at', injectedLatest)
         // server-tracked view
@@ -146,13 +146,13 @@ export default function useLiveComments (rootId, after, sort) {
         // anon fallback
         commentsViewedAfterComment(rootId, injectedLatest)
       }
-    }
 
-    // update latest timestamp to the latest comment created at
-    // save it to session storage, to persist between client-side navigations
-    setLatest(injectedLatest)
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem(latestKey, injectedLatest)
+      // update latest timestamp to the latest comment created at
+      // save it to session storage, to persist between client-side navigations
+      setLatest(injectedLatest)
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(latestKey, injectedLatest)
+      }
     }
   }, [data, cache, rootId, sort, latest, me?.id])
 }

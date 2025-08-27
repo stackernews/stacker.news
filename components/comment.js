@@ -161,14 +161,14 @@ export default function Comment ({
 
     const itemCreatedAt = new Date(item.createdAt).getTime()
 
-    const rootViewedAt = root.meCommentsViewedAt
-    const rootLast = root.lastCommentAt || root.createdAt
+    const rootViewedAt = new Date(root.meCommentsViewedAt).getTime()
+    const rootLast = new Date(root.lastCommentAt || root.createdAt).getTime()
     // it's a new comment if it was created after the last comment was viewed
     const isNewComment = me?.id && rootViewedAt
-      ? itemCreatedAt > new Date(rootViewedAt).getTime()
+      ? itemCreatedAt > rootViewedAt
       // anon fallback is based on the commentsViewedAt query param or the last comment createdAt
       : ((router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||
-        (itemCreatedAt > new Date(rootLast).getTime()))
+        (itemCreatedAt > rootLast))
     if (!isNewComment) return
 
     if (item.injected) {

@@ -99,6 +99,7 @@ export const ITEM_FULL_FIELDS = gql`
       subName
       mine
       ncomments
+      lastCommentAt
       meCommentsViewedAt
       user {
         id

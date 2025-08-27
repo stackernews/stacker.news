@@ -28,10 +28,14 @@ export default function OffCanvas ({ me, dropNavKey }) {
 
   const profileIndicator = me && !me.bioId
   const walletIndicator = useWalletIndicator()
+  const indicator = profileIndicator || walletIndicator
 
   return (
     <>
-      <MeImage onClick={handleShow} />
+      <div className='position-relative'>
+        <MeImage onClick={handleShow} />
+        {indicator && <Indicator />}
+      </div>
 
       <Offcanvas className={canvasStyles.offcanvas} show={show} onHide={handleClose} placement='end'>
         <Offcanvas.Header closeButton>
@@ -97,7 +101,10 @@ export default function OffCanvas ({ me, dropNavKey }) {
                   <Link href={`/${me?.name || 'anon'}`} className='d-flex flex-row p-2 mt-auto text-muted'>
                     <MeImage />
                     <div className='ms-2'>
-                      @{me?.name || 'anon'}
+                      <div className='w-fit-content position-relative'>
+                        @{me?.name || 'anon'}
+                        {indicator && <Indicator />}
+                      </div>
                     </div>
                   </Link>
                 </Nav>

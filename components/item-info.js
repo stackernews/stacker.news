@@ -134,7 +134,7 @@ export default function ItemInfo ({
         {showUser &&
           <Link href={`/${item.user.name}`}>
             <UserPopover name={item.user.name}>@{item.user.name}</UserPopover>
-            <Badges badgeClassName='fill-grey' spacingClassName='ms-xs' height={12} width={12} user={item.user} />
+            <Badges badgeClassName='fill-grey' spacingClassName='ms-xs' height={12} width={12} user={item.user} bot={item.apiKey} />
             {embellishUser}
           </Link>}
         <span> </span>
@@ -165,9 +165,6 @@ export default function ItemInfo ({
           <Link href='/recent/freebies'>
             {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
           </Link>
-        )}
-      {(item.apiKey &&
-        <>{' '}<Badge className={styles.newComment} bg={null}>bot</Badge></>
         )}
       {extraBadges}
       {

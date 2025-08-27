@@ -55,7 +55,7 @@ async function authMethods (user, args, { models, me }) {
   }
 }
 
-export async function topUsers (parent, { cursor, when, by, from, to, limit = LIMIT }, { models, me }) {
+export async function topUsers (parent, { cursor, when, by, from, to, limit }, { models, me }) {
   const decodedCursor = decodeCursor(cursor)
   const range = whenRange(when, from, to || decodeCursor.time)
 
@@ -213,7 +213,7 @@ export default {
         users
       }
     },
-    userSuggestions: async (parent, { q, limit = 5 }, { models }) => {
+    userSuggestions: async (parent, { q, limit }, { models }) => {
       let users = []
       if (q) {
         users = await models.$queryRaw`
@@ -605,7 +605,7 @@ export default {
         SELECT *
         FROM users
         WHERE (id > ${RESERVED_MAX_USER_ID} OR id IN (${USER_ID.anon}, ${USER_ID.delete}))
-        AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit) || 5}`
+        AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit)}`
     },
     userStatsActions: async (parent, { when, from, to }, { me, models }) => {
       const range = whenRange(when, from, to)

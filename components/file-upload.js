@@ -51,10 +51,18 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         form.append('acl', 'public-read')
         form.append('file', file)
 
-        const res = await fetch(data.getSignedPOST.url, {
-          method: 'POST',
-          body: form
-        })
+        let res
+        try {
+          res = await fetch(data.getSignedPOST.url, {
+            method: 'POST',
+            body: form
+          })
+        } catch (e) {
+          // network error (e.g. CORS/preflight or endpoint unreachable)
+          onError?.({ ...variables, name: file.name, file })
+          reject(e)
+          return
+        }
 
         if (!res.ok) {
           // TODO make sure this is actually a helpful error message and does not expose anything to the user we don't want

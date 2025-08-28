@@ -136,7 +136,7 @@ type PayIn {
   createdAt: Date!
   updatedAt: Date!
   mcost: BigInt!
-  userId: Int!
+  userId: Int
   payInType: PayInType!
   payInState: PayInState!
   payInFailureReason: PayInFailureReason

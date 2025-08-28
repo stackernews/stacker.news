@@ -123,6 +123,28 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
     }
     payInBolt11 {
       id
+      bolt11
+      preimage
+      hmac
+      expiresAt
+      confirmedAt
+      cancelledAt
+      lud18Data {
+        id
+        name
+        identifier
+        email
+        pubkey
+      }
+      nostrNote {
+        id
+        note
+      }
+      comment {
+        id
+        comment
+      }
+      msatsRequested
       msatsReceived
     }
     payOutBolt11 {
@@ -138,6 +160,12 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
       mtokens
       mtokensAfter
       custodialTokenType
+      user {
+        name
+      }
+      sub {
+        name
+      }
     }
     item {
       ...ItemFullFields

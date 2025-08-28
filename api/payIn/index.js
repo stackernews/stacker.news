@@ -89,13 +89,13 @@ async function begin (models, payInInitial, payInArgs, { me }) {
   return await afterBegin(models, { payIn, result, mCostRemaining }, { me })
 }
 
-export async function onBegin (tx, payInId, payInArgs) {
+export async function onBegin (tx, payInId, payInArgs, benefactorResult) {
   const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { beneficiaries: true } })
   if (!payIn) {
     throw new Error('PayIn not found')
   }
 
-  const result = await payInTypeModules[payIn.payInType].onBegin?.(tx, payIn.id, payInArgs)
+  const result = await payInTypeModules[payIn.payInType].onBegin?.(tx, payIn.id, payInArgs, benefactorResult)
 
   for (const beneficiary of payIn.beneficiaries) {
     await onBegin(tx, beneficiary.id, payInArgs, result)
@@ -236,8 +236,7 @@ export async function onPaid (tx, payInId) {
     if (payIn.payOutBolt11) {
       await tx.$queryRaw`
       UPDATE users
-      SET msats = msats + ${payIn.payOutBolt11.msats},
-        "stackedMsats" = "stackedMsats" + ${payIn.payOutBolt11.msats}
+      SET "stackedMsats" = "stackedMsats" + ${payIn.payOutBolt11.msats}
       WHERE id = ${payIn.payOutBolt11.userId}`
     }
 

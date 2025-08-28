@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyZapped } from '@/lib/webPush'
 import { Prisma } from '@prisma/client'
@@ -17,12 +17,14 @@ export const paymentMethods = [
 ]
 
 async function tryP2P (models, { id, sats, hasSendWallet }, { me }) {
-  const zapper = await models.user.findUnique({ where: { id: me.id } })
-  // if the zap is dust, or if me doesn't have a send wallet but has enough sats/credits to pay for it
-  // then we don't invoice the peer
-  if (sats < zapper?.sendCreditsBelowSats ||
-    (me && !hasSendWallet && (zapper.mcredits + zapper.msats >= satsToMsats(sats)))) {
-    return false
+  if (me.id !== USER_ID.anon) {
+    const zapper = await models.user.findUnique({ where: { id: me.id } })
+    // if the zap is dust, or if me doesn't have a send wallet but has enough sats/credits to pay for it
+    // then we don't invoice the peer
+    if (sats < zapper?.sendCreditsBelowSats ||
+      (!hasSendWallet && (zapper.mcredits + zapper.msats >= satsToMsats(sats)))) {
+      return false
+    }
   }
 
   const item = await models.item.findUnique({

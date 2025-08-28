@@ -8,6 +8,7 @@ import { describePayInType } from '@/lib/pay-in'
 import { useMe } from '../me'
 import { PayInContext } from './context'
 import { GET_PAY_IN_FULL } from '@/fragments/payIn'
+import { PayInSankey } from './sankey'
 
 export default function PayIn ({ id }) {
   const { me } = useMe()
@@ -25,23 +26,48 @@ export default function PayIn ({ id }) {
 
   return (
     <div>
-      <div>{new Date(payIn.createdAt).toLocaleString()}</div>
-      <div>{numWithUnits(msatsToSats(payIn.mcost), { abbreviate: false })}</div>
-      <PayInStatus payIn={payIn} />
-      <small className='text-muted'>{describePayInType(payIn, me.id)}</small>
+      <div className='d-flex justify-content-between align-items-center'>
+        <div className='d-flex gap-3'>
+          <h2>{describePayInType(payIn, me.id)}</h2>
+          <PayInStatus payIn={payIn} />
+        </div>
+        <div>
+          <small className='text-muted'>{new Date(payIn.createdAt).toLocaleString()}</small>
+        </div>
+      </div>
       {payIn.payInBolt11 &&
         (
-          <div>
-            <Qr
-              value={payIn.payInBolt11.bolt11}
-              qrTransform={value => 'lightning:' + value.toUpperCase()}
-              description={numWithUnits(msatsToSats(payIn.payInBolt11.msatsRequested), { abbreviate: false })}
-            />
+          <>
+            {['PENDING', 'PENDING_HELD'].includes(payIn.payInState)
+              ? (
+                <div className='d-flex justify-content-center'>
+                  <div style={{ maxWidth: '300px' }}>
+                    <Qr
+                      value={payIn.payInBolt11.bolt11}
+                      qrTransform={value => 'lightning:' + value.toUpperCase()}
+                      description={numWithUnits(msatsToSats(payIn.payInBolt11.msatsRequested), { abbreviate: false })}
+                    />
+                  </div>
+                </div>)
+              : (
+                <div className='mt-5'>
+                  <h5 className='mb-3'>lightning invoice</h5>
+                  <Bolt11Info bolt11={payIn.payInBolt11.bolt11} preimage={payIn.payInBolt11.preimage} />
+                </div>
+                )}
             <PayInMetadata payInBolt11={payIn.payInBolt11} />
-            <Bolt11Info bolt11={payIn.payInBolt11.bolt11} preimage={payIn.payInBolt11.preimage} />
-          </div>
+          </>
         )}
-      <PayInContext payIn={payIn} />
+      <div className='mt-5'>
+        <h5 className='mb-3'>context</h5>
+        <PayInContext payIn={payIn} />
+      </div>
+      <div className='mt-5 d-flex flex-column'>
+        <h5 className='mb-3'>transaction diagram</h5>
+        <div className='d-flex justify-content-center'>
+          <PayInSankey payIn={payIn} />
+        </div>
+      </div>
     </div>
   )
 }

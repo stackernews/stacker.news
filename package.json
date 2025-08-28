@@ -21,6 +21,8 @@
     "@graphile/depth-limit": "^0.3.1",
     "@graphql-tools/schema": "^10.0.6",
     "@lightninglabs/lnc-web": "^0.3.2-alpha",
+    "@nivo/core": "^0.99.0",
+    "@nivo/sankey": "^0.99.0",
     "@noble/curves": "^1.6.0",
     "@nostr-dev-kit/ndk": "^2.12.2",
     "@nostr-dev-kit/ndk-wallet": "^0.5.0",

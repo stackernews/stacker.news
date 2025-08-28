@@ -8,7 +8,7 @@ export function PayInMoney ({ payIn }) {
   const { SATS, CREDITS } = useMemo(() => reduceCustodialTokenCosts(payIn, me.id), [payIn, me.id])
   const bolt11Cost = useMemo(() => reduceBolt11Cost(payIn, me.id), [payIn, me.id])
 
-  if (payIn.payInState === 'FAILED' || (Number(payIn.userId) !== Number(me.id) && payIn.payInState !== 'PAID')) {
+  if (payIn.mcost === 0 || payIn.payInState === 'FAILED' || (Number(payIn.userId) !== Number(me.id) && payIn.payInState !== 'PAID')) {
     return <>N/A</>
   }
 
@@ -42,6 +42,7 @@ function formatCost (mtokens, unitSingular, unitPlural) {
 }
 
 function reduceBolt11Cost (payIn, userId) {
+  console.log('reduceBolt11Cost', payIn, userId)
   let cost = 0
   if (Number(payIn.userId) === Number(userId) && payIn.payInBolt11) {
     cost -= payIn.payInBolt11.msatsReceived

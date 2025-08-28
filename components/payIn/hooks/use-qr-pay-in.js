@@ -7,7 +7,7 @@ import useWatchPayIn from './use-watch-pay-in'
 import Qr, { QrSkeleton } from '@/components/qr'
 import PayInError from '../error'
 import { msatsToSats, numWithUnits } from '@/lib/format'
-import PayInStatus from '../status'
+import { PayInStatus } from '../status'
 
 export default function useQrPayIn () {
   const payInHelper = usePayInHelper()
@@ -91,7 +91,9 @@ function QrPayIn ({
         qrTransform={value => 'lightning:' + value.toUpperCase()}
         description={numWithUnits(msatsToSats(payIn.payInBolt11.msatsRequested), { abbreviate: false })}
       />
-      <PayInStatus payIn={payIn} />
+      <div className='d-flex justify-content-center'>
+        <PayInStatus payIn={payIn} />
+      </div>
     </>
   )
 }

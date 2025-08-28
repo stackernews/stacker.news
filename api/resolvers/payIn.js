@@ -26,6 +26,17 @@ function payInResultType (payInType) {
   }
 }
 
+const INCLUDE_PAYOUT_CUSTODIAL_TOKENS = {
+  include: {
+    user: true,
+    subPayOutCustodialToken: {
+      include: {
+        sub: true
+      }
+    }
+  }
+}
+
 const INCLUDE = {
   payInBolt11: {
     include: {
@@ -34,17 +45,26 @@ const INCLUDE = {
       comment: true
     }
   },
-  payOutBolt11: true,
+  payOutBolt11: {
+    include: {
+      user: true
+    }
+  },
   pessimisticEnv: true,
   payInCustodialTokens: true,
-  payOutCustodialTokens: true,
+  payOutCustodialTokens: INCLUDE_PAYOUT_CUSTODIAL_TOKENS,
+  beneficiaries: {
+    include: {
+      payOutCustodialTokens: INCLUDE_PAYOUT_CUSTODIAL_TOKENS
+    }
+  },
   itemPayIn: true,
   subPayIn: true
 }
 
 export async function getPayIn (parent, { id }, { me, models }) {
   const payIn = await models.PayIn.findUnique({
-    where: { id, userId: me?.id ?? USER_ID.anon },
+    where: { id },
     include: INCLUDE
   })
   if (!payIn) {
@@ -70,6 +90,7 @@ export default {
             { payOutBolt11: { userId } },
             { payOutCustodialTokens: { some: { userId } } }
           ],
+          benefactorId: null,
           createdAt: {
             lte: decodedCursor.time
           }
@@ -130,22 +151,20 @@ export default {
       return payIn.userId
     },
     payInBolt11: async (payIn, args, { models, me }) => {
-      if (!isMine(payIn, { me })) {
-        return null
-      }
       if (typeof payIn.payInBolt11 !== 'undefined') {
         return payIn.payInBolt11
       }
       return await models.payInBolt11.findUnique({ where: { payInId: payIn.id } })
     },
     payInCustodialTokens: async (payIn, args, { models, me }) => {
-      if (!isMine(payIn, { me })) {
-        return null
+      let payInCustodialTokens = payIn.payInCustodialTokens
+      if (typeof payInCustodialTokens === 'undefined') {
+        payInCustodialTokens = await models.payInCustodialToken.findMany({ where: { payInId: payIn.id } })
       }
-      if (typeof payIn.payInCustodialTokens !== 'undefined') {
-        return payIn.payInCustodialTokens
-      }
-      return await models.payInCustodialToken.findMany({ where: { payInId: payIn.id } })
+      return payInCustodialTokens.map(token => ({
+        ...token,
+        mtokensAfter: isMine(payIn, { me }) ? token.mtokensAfter : null
+      }))
     },
     pessimisticEnv: async (payIn, args, { models, me }) => {
       if (!isMine(payIn, { me })) {
@@ -181,6 +200,20 @@ export default {
         return null
       }
       return await getSub(payIn, { name: payIn.subPayIn.subName }, { models, me })
+    },
+    payOutCustodialTokens: async (payIn, args, { models, me }) => {
+      if (typeof payIn.payOutCustodialTokens !== 'undefined') {
+        return [
+          ...payIn.payOutCustodialTokens,
+          ...payIn.beneficiaries.reduce((acc, beneficiary) => {
+            if (beneficiary.payOutCustodialTokens) {
+              return [...acc, ...beneficiary.payOutCustodialTokens]
+            }
+            return acc
+          }, [])
+        ]
+      }
+      return await models.payOutCustodialToken.findMany({ where: { payInId: payIn.id } })
     }
   },
   PayInBolt11: {
@@ -198,6 +231,9 @@ export default {
         return null
       }
       return payOutCustodialToken.mtokensAfter
+    },
+    sub: (payOutCustodialToken) => {
+      return payOutCustodialToken.subPayOutCustodialToken?.sub
     }
   }
 }

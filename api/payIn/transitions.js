@@ -154,14 +154,17 @@ export async function payInWithdrawalPaid ({ data, models, ...args }) {
           mtokens: toPositiveBigInt(lndPayOutBolt11.payment.fee_mtokens)
         }
       })
-      await tx.payOutCustodialToken.create({
-        data: {
-          mtokens: mtokens - toPositiveBigInt(lndPayOutBolt11.payment.fee_mtokens),
-          payOutType: 'ROUTING_FEE_REFUND',
-          custodialTokenType: 'SATS',
-          payInId: payIn.id
-        }
-      })
+      if (mtokens - toPositiveBigInt(lndPayOutBolt11.payment.fee_mtokens) > 0) {
+        await tx.payOutCustodialToken.create({
+          data: {
+            mtokens: mtokens - toPositiveBigInt(lndPayOutBolt11.payment.fee_mtokens),
+            userId: payIn.userId,
+            payOutType: 'ROUTING_FEE_REFUND',
+            custodialTokenType: 'SATS',
+            payInId: payIn.id
+          }
+        })
+      }
 
       await onPaid(tx, payIn.id)
 

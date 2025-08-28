@@ -1,4 +1,3 @@
-import AccordianItem from '@/components/accordian-item'
 import { CopyInput } from '@/components/form'
 import { bolt11Tags } from '@/lib/bolt11'
 
@@ -9,42 +8,52 @@ export default ({ bolt11, preimage, children }) => {
   }
 
   return (
-    <div className={`w-100 ${!description && !paymentHash && !preimage ? 'invisible' : ''}`}>
-      <AccordianItem
-        header='BOLT11 information'
-        body={
-          <>
-            {description &&
-              <CopyInput
-                label='description'
-                size='sm'
-                groupClassName='w-100'
-                readOnly
-                noForm
-                placeholder={description}
-              />}
-            {paymentHash &&
-              <CopyInput
-                label='payment hash'
-                size='sm'
-                groupClassName='w-100'
-                readOnly
-                noForm
-                placeholder={paymentHash}
-              />}
-            {preimage &&
-              <CopyInput
-                label='preimage'
-                size='sm'
-                groupClassName='w-100'
-                readOnly
-                noForm
-                placeholder={preimage}
-              />}
-            {children}
-          </>
-          }
-      />
+    <div className='d-grid align-items-center' style={{ gridTemplateColumns: 'auto 1fr', gap: '0.5rem' }}>
+      {bolt11 &&
+        <>
+          <div>bolt11</div>
+          <CopyInput
+            size='sm'
+            groupClassName='w-100 mb-0'
+            readOnly
+            noForm
+            placeholder={bolt11}
+          />
+        </>}
+      {paymentHash &&
+        <>
+          <div>hash</div>
+          <CopyInput
+            size='sm'
+            groupClassName='w-100 mb-0'
+            readOnly
+            noForm
+            placeholder={paymentHash}
+          />
+        </>}
+      {preimage &&
+        <>
+          <div>preimage</div>
+          <CopyInput
+            size='sm'
+            groupClassName='w-100 mb-0'
+            readOnly
+            noForm
+            placeholder={preimage}
+          />
+        </>}
+      {description &&
+        <>
+          <div>description</div>
+          <CopyInput
+            size='sm'
+            groupClassName='w-100 mb-0'
+            readOnly
+            noForm
+            placeholder={description}
+          />
+        </>}
+      {children}
     </div>
   )
 }

@@ -56,8 +56,11 @@ export default forwardRef(function Reply ({
           id: `Item:${parentId}`,
           fields: {
             comments (existingComments = {}, { readField }) {
-              // live comments might have already injected this comment, so we need to check
-              if (existingComments.comments.some(c => readField('id', c) === result.id)) return existingComments
+              // if a pessimistic payment method is used,
+              // live comments might have already injected this comment
+              if (invoice && existingComments.comments.some(c => readField('id', c) === result.id)) {
+                return existingComments
+              }
 
               const newCommentRef = cache.writeFragment({
                 data: result,

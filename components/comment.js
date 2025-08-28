@@ -176,8 +176,9 @@ export default function Comment ({
   }, [item.id, rootLastCommentAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
-  // Don't show OP badge when anon user comments on anon user posts
-  const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon && !root.postAnonymously && !item.postAnonymously
+  // Don't show OP badge when anon user comments on anon user posts.
+  // Also don't show OP badge when either post or comment was posted with "post anonymously" option, but not both.
+  const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon && !(root.postAnonymously ^ item.postAnonymously)
     ? 'OP'
     : root.forwards?.some(f => f.user.name === item.user.name) && Number(item.user.id) !== USER_ID.anon
       ? 'fwd'

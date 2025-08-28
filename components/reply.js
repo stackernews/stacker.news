@@ -177,7 +177,9 @@ export default forwardRef(function Reply ({
               />
               
               <ItemButtonBar createText='reply' hasCancel={false}>
-                {addAnonymousPostingOption && <Checkbox name="postAnonymously" label="Post anonymously" />}
+                {addAnonymousPostingOption && 
+                  <Checkbox name="postAnonymously" label="Post anonymously" 
+                            checked={root.user.id == me.id && root.postAnonymously} />}
               </ItemButtonBar>
             </Form>
           </FeeButtonProvider>

@@ -7,11 +7,8 @@ import typeDefs from '@/api/typeDefs'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './auth/[...nextauth]'
 import search from '@/api/search'
-import {
-  ApolloServerPluginLandingPageLocalDefault,
-  ApolloServerPluginLandingPageProductionDefault
-} from '@apollo/server/plugin/landingPage/default'
 import { multiAuthMiddleware } from '@/lib/auth'
+import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled'
 
 const apolloServer = new ApolloServer({
   typeDefs,
@@ -45,12 +42,7 @@ const apolloServer = new ApolloServer({
         }
       }
     }
-  },
-  process.env.NODE_ENV === 'production'
-    ? ApolloServerPluginLandingPageProductionDefault(
-      { embed: { endpointIsEditable: false, persistExplorerState: true, displayOptions: { theme: 'dark' } }, footer: false })
-    : ApolloServerPluginLandingPageLocalDefault(
-      { embed: { endpointIsEditable: false, persistExplorerState: true, displayOptions: { theme: 'dark' } }, footer: false })]
+  }, ApolloServerPluginLandingPageDisabled()]
 })
 
 export default startServerAndCreateNextHandler(apolloServer, {

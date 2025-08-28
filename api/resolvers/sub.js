@@ -37,7 +37,7 @@ export async function getSub (parent, { name }, { models, me }) {
 export default {
   Query: {
     sub: getSub,
-    subSuggestions: async (parent, { q, limit = 5 }, { models }) => {
+    subSuggestions: async (parent, { q, limit }, { models }) => {
       let subs = []
       subs = await models.$queryRaw`
           SELECT name
@@ -88,7 +88,7 @@ export default {
 
       return latest?.createdAt
     },
-    topSubs: async (parent, { cursor, when, by, from, to, limit = LIMIT }, { models, me }) => {
+    topSubs: async (parent, { cursor, when, by, from, to, limit }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
       const range = whenRange(when, from, to || decodeCursor.time)
 
@@ -120,7 +120,7 @@ export default {
         subs
       }
     },
-    userSubs: async (_parent, { name, cursor, when, by, from, to, limit = LIMIT }, { models, me }) => {
+    userSubs: async (_parent, { name, cursor, when, by, from, to, limit }, { models, me }) => {
       if (!name) {
         throw new GqlInputError('must supply user name')
       }

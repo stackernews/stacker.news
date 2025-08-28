@@ -32,6 +32,7 @@ import webln from './webln'
  * @property {yup.Schema} validate - validation rules to apply
  * @property {string} [placeholder] - placeholder text shown in input field
  * @property {string} [hint] - hint text shown below field
+ * @property {boolean} [share] - whether field can be used to prepopulate field of complementary send/receive protocol
  */
 
 /** @type {Protocol[]} */

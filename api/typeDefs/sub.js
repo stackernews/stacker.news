@@ -1,14 +1,15 @@
 import { gql } from 'graphql-tag'
+import { LIMIT } from '@/lib/cursor'
 
 export default gql`
   extend type Query {
     sub(name: String): Sub
     subLatestPost(name: String!): String
     subs: [Sub!]!
-    topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
-    userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
+    topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): Subs
+    userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): Subs
     mySubscribedSubs(cursor: String): Subs
-    subSuggestions(q: String!, limit: Limit): [Sub!]!
+    subSuggestions(q: String!, limit: Limit! = 5): [Sub!]!
   }
 
   type Subs {

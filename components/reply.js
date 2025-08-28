@@ -88,6 +88,8 @@ export default forwardRef(function Reply ({
           })
         }
 
+        // if the comment was already injected by live comments in the case of a pessimistic payment method,
+        // side-effects have already been taken care of
         if (!injected) return
 
         const ancestors = item.path.split('.')

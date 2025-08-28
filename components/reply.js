@@ -58,7 +58,7 @@ export default forwardRef(function Reply ({
             comments (existingComments = {}, { readField }) {
               // if a pessimistic payment method is used,
               // live comments might have already injected this comment
-              if (invoice && existingComments.comments.some(c => readField('id', c) === result.id)) {
+              if (invoice && (existingComments?.comments || []).some(c => readField('id', c) === result.id)) {
                 return existingComments
               }
 

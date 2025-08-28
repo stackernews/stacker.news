@@ -3,8 +3,7 @@ import classNames from 'classnames'
 import useDarkMode from './dark-mode'
 import styles from './text.module.css'
 import { Button } from 'react-bootstrap'
-import { TwitterTweetEmbed } from 'react-twitter-embed'
-import YouTube from 'react-youtube'
+import dynamic from 'next/dynamic'
 
 function TweetSkeleton ({ className }) {
   return (
@@ -20,6 +19,10 @@ function TweetSkeleton ({ className }) {
     </div>
   )
 }
+
+const TwitterTweetEmbed = dynamic(() => import('react-twitter-embed').then(m => m.TwitterTweetEmbed), { ssr: false, loading: () => <TweetSkeleton /> })
+
+const YouTube = dynamic(() => import('react-youtube'), { ssr: false })
 
 export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, darkMode, id }) {
   const [show, setShow] = useState(false)
@@ -78,9 +81,14 @@ const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
   const iframeRef = useRef(null)
 
   // https://open.spotify.com/track/1KFxcj3MZrpBGiGA8ZWriv?si=f024c3aa52294aa1
-  // Remove any additional path segments
-  const url = new URL(src)
-  url.pathname = url.pathname.replace(/\/intl-\w+\//, '/')
+  // Remove any additional path segments. If src is invalid, render nothing.
+  let url
+  try {
+    url = new URL(src)
+    url.pathname = url.pathname.replace(/\/intl-\w+\//, '/')
+  } catch (e) {
+    return null
+  }
 
   useEffect(() => {
     if (!iframeRef.current) return
@@ -127,17 +135,24 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
     return (
       <>
         <div className={classNames(styles.twitterContainer, !show && styles.twitterContained, className)}>
-          <TwitterTweetEmbed
-            tweetId={id}
-            options={{ theme: darkMode ? 'dark' : 'light', width: topLevel ? '550px' : '350px' }}
-            key={darkMode ? '1' : '2'}
-            placeholder={<TweetSkeleton className={className} />}
-            onLoad={() => setOverflowing(true)}
-          />
-          {overflowing && !show &&
+          {show
+            ? (
+              <TwitterTweetEmbed
+                tweetId={id}
+                options={{ theme: darkMode ? 'dark' : 'light', width: topLevel ? '550px' : '350px' }}
+                key={darkMode ? '1' : '2'}
+                placeholder={<TweetSkeleton className={className} />}
+                onLoad={() => setOverflowing(true)}
+              />
+              )
+            : (
+              <TweetSkeleton className={className} />
+              )}
+          {overflowing && !show && (
             <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
               show full tweet
-            </Button>}
+            </Button>
+          )}
         </div>
       </>
     )
@@ -170,13 +185,26 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
   if (provider === 'youtube') {
     return (
       <div className={classNames(styles.videoWrapper, className)}>
-        <YouTube
-          videoId={id} className={styles.videoContainer} opts={{
-            playerVars: {
-              start: meta?.start || 0
-            }
-          }}
-        />
+        {show
+          ? (
+            <YouTube
+              videoId={id}
+              className={styles.videoContainer}
+              opts={{
+                playerVars: {
+                  start: meta?.start || 0
+                }
+              }}
+            />
+            )
+          : (
+            <>
+              <div className={styles.videoContainer} />
+              <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
+                load video
+              </Button>
+            </>
+            )}
       </div>
     )
   }

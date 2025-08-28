@@ -6,8 +6,9 @@ import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import classNames from 'classnames'
 import { useCarousel } from './carousel'
 
-function LinkRaw ({ href, children, src, rel }) {
-  const isRawURL = /^https?:\/\//.test(children?.[0])
+function LinkRaw ({ children, src, rel }) {
+  const childText = typeof children === 'string' ? children : undefined
+  const isRawURL = childText ? /^https?:\/\//.test(childText) : false
   return (
     // eslint-disable-next-line
     <a
@@ -36,7 +37,7 @@ const Media = memo(function Media ({
     if (ref.current) {
       ref.current.src = src
     }
-  }, [ref.current, src])
+  }, [src])
 
   return (
     <div
@@ -159,13 +160,26 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
   const srcSet = useMemo(() => {
     if (Object.keys(srcSetObj).length === 0) return undefined
     // srcSetObj shape: { [widthDescriptor]: <imgproxyUrl>, ... }
-    return Object.entries(srcSetObj).reduce((acc, [wDescriptor, url], i, arr) => {
+    const result = Object.entries(srcSetObj).reduce((acc, [wDescriptor, url], i, arr) => {
+      // skip invalid entries
+      if (!url || typeof url !== 'string') return acc
       // backwards compatibility: we used to replace image urls with imgproxy urls rather just storing paths
       if (!url.startsWith('http')) {
-        url = new URL(url, process.env.NEXT_PUBLIC_IMGPROXY_URL).toString()
+        // only construct absolute URL when base is configured; otherwise keep relative and avoid crashing SSR
+        if (process.env.NEXT_PUBLIC_IMGPROXY_URL) {
+          try {
+            url = new URL(url, process.env.NEXT_PUBLIC_IMGPROXY_URL).toString()
+          } catch {
+            return acc
+          }
+        } else {
+          // without a base, we can't produce a valid absolute URL for srcset; skip this candidate
+          return acc
+        }
       }
       return acc + `${url} ${wDescriptor}` + (i < arr.length - 1 ? ', ' : '')
     }, '')
+    return result || undefined
   }, [srcSetObj])
   const sizes = useMemo(() => srcSet ? `${(topLevel ? 100 : 66)}vw` : undefined)
 
@@ -173,8 +187,17 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
   const bestResSrc = useMemo(() => {
     if (Object.keys(srcSetObj).length === 0) return src
     return Object.entries(srcSetObj).reduce((acc, [wDescriptor, url]) => {
+      if (!url || typeof url !== 'string') return acc
       if (!url.startsWith('http')) {
-        url = new URL(url, process.env.NEXT_PUBLIC_IMGPROXY_URL).toString()
+        if (process.env.NEXT_PUBLIC_IMGPROXY_URL) {
+          try {
+            url = new URL(url, process.env.NEXT_PUBLIC_IMGPROXY_URL).toString()
+          } catch {
+            return acc
+          }
+        } else {
+          return acc
+        }
       }
       const w = Number(wDescriptor.replace(/w$/, ''))
       return w > acc.w ? { w, url } : acc

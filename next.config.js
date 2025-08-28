@@ -1,8 +1,8 @@
 const { withPlausibleProxy } = require('next-plausible')
+const withBundleAnalyzer = require('@next/bundle-analyzer')({ enabled: process.env.ANALYZE === 'true' })
 const { InjectManifest } = require('workbox-webpack-plugin')
 const { generatePrecacheManifest } = require('./sw/build.js')
 const webpack = require('webpack')
-
 let isProd = process.env.NODE_ENV === 'production'
 const corsHeaders = [
   {
@@ -46,7 +46,7 @@ try {
   commitHash = '0000'
 }
 
-module.exports = withPlausibleProxy()({
+module.exports = withBundleAnalyzer(withPlausibleProxy()({
   env: {
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
     NEXT_PUBLIC_LND_CONNECT_ADDRESS: process.env.LND_CONNECT_ADDRESS,
@@ -61,7 +61,8 @@ module.exports = withPlausibleProxy()({
     serverSourceMaps: true
   },
   reactStrictMode: true,
-  productionBrowserSourceMaps: true,
+  // disable source maps in production to significantly reduce client bundle size
+  productionBrowserSourceMaps: false,
   generateBuildId: commitHash ? async () => commitHash : undefined,
   // Use the CDN in production and localhost for development.
   assetPrefix: isProd ? 'https://a.stacker.news' : undefined,
@@ -260,6 +261,18 @@ module.exports = withPlausibleProxy()({
       config.plugins.push(workboxPlugin)
     }
 
+    if (!isServer) {
+      config.resolve = config.resolve || {}
+      config.resolve.alias = {
+        ...(config.resolve.alias || {}),
+        'aws-sdk': false,
+        'ln-service': false,
+        'google-protobuf': false,
+        '@grpc/grpc-js': false,
+        grpc: false
+      }
+    }
+
     config.module.rules.push(
       {
         test: /\.svg$/,
@@ -287,4 +300,4 @@ module.exports = withPlausibleProxy()({
 
     return config
   }
-})
+}))

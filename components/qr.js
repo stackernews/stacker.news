@@ -1,7 +1,9 @@
-import { QRCodeSVG } from 'qrcode.react'
+import dynamic from 'next/dynamic'
 import { CopyInput, InputSkeleton } from './form'
 import InvoiceStatus from './invoice-status'
 import Bolt11Info from './bolt11-info'
+
+const QRCodeSVG = dynamic(() => import('qrcode.react').then(m => m.QRCodeSVG), { ssr: false, loading: () => <div className='h-auto mx-auto w-100 clouds' style={{ paddingTop: 'min(300px, 100%)', maxWidth: 'calc(300px)' }} /> })
 
 export const qrImageSettings = {
   src: 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 256 256\'%3E%3Cpath fill-rule=\'evenodd\' d=\'m46.7 96.4 37.858 53.837-71.787 62.934L117.5 155.4l-40.075-52.854 49.412-59.492Zm156.35 41.546-49.416-58.509-34.909 116.771 44.25-67.358 58.509 59.25L241.4 47.725Z\'/%3E%3C/svg%3E',

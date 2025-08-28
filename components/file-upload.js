@@ -51,28 +51,10 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         form.append('acl', 'public-read')
         form.append('file', file)
 
-        // In Codespaces, browsers can fail CORS preflight to the forwarded 4566 port.
-        // Proxy via same-origin API when targeting *.app.github.dev to avoid CORS.
-        let uploadUrl = data.getSignedPOST.url
-        try {
-          const u = new URL(uploadUrl)
-          if (u.hostname.endsWith('.app.github.dev')) {
-            uploadUrl = `/api/upload-proxy?to=${encodeURIComponent(uploadUrl)}`
-          }
-        } catch {}
-
-        let res
-        try {
-          res = await fetch(uploadUrl, {
-            method: 'POST',
-            body: form
-          })
-        } catch (e) {
-          // network error (e.g. CORS/preflight or endpoint unreachable)
-          onError?.({ ...variables, name: file.name, file })
-          reject(e)
-          return
-        }
+        const res = await fetch(data.getSignedPOST.url, {
+          method: 'POST',
+          body: form
+        })
 
         if (!res.ok) {
           // TODO make sure this is actually a helpful error message and does not expose anything to the user we don't want

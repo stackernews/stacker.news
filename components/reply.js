@@ -51,15 +51,21 @@ export default forwardRef(function Reply ({
       update (cache, { data: { upsertComment: { result, invoice } } }) {
         if (!result) return
 
+        let injected = false
         cache.modify({
           id: `Item:${parentId}`,
           fields: {
-            comments (existingComments = {}) {
+            comments (existingComments = {}, { readField }) {
+              // live comments might have already injected this comment, so we need to check
+              const existingIds = new Set(existingComments.comments.map(c => readField('id', c)))
+              if (existingIds.has(result.id)) return existingComments
+
               const newCommentRef = cache.writeFragment({
                 data: result,
                 fragment: COMMENTS,
                 fragmentName: 'CommentsRecursive'
               })
+              injected = true
               return {
                 cursor: existingComments.cursor,
                 comments: [newCommentRef, ...(existingComments?.comments || [])]
@@ -79,6 +85,8 @@ export default forwardRef(function Reply ({
             }
           })
         }
+
+        if (!injected) return
 
         const ancestors = item.path.split('.')
 

@@ -57,8 +57,7 @@ export default forwardRef(function Reply ({
           fields: {
             comments (existingComments = {}, { readField }) {
               // live comments might have already injected this comment, so we need to check
-              const existingIds = new Set(existingComments.comments.map(c => readField('id', c)))
-              if (existingIds.has(result.id)) return existingComments
+              if (existingComments.comments.some(c => readField('id', c) === result.id)) return existingComments
 
               const newCommentRef = cache.writeFragment({
                 data: result,

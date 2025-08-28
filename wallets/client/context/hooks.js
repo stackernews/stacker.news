@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useLazyQuery } from '@apollo/client'
 import { FAILED_INVOICES } from '@/fragments/invoice'
 import { NORMAL_POLL_INTERVAL } from '@/lib/constants'
-import useInvoice from '@/components/use-invoice'
+import useInvoice from '@/components/payIn/hooks/use-pay-in-helper'
 import { useMe } from '@/components/me'
 import {
   useWalletsQuery, useWalletPayment, useGenerateRandomKey, useSetKey, useLoadKey, useLoadOldKey,

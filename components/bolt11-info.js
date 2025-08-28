@@ -48,3 +48,5 @@ export default ({ bolt11, preimage, children }) => {
     </div>
   )
 }
+
+// TODO: delete when payIn is finished

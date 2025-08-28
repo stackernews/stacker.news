@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { gql, useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
@@ -26,25 +26,20 @@ import { useData } from './use-data'
 import { nostrZapDetails } from '@/lib/nostr'
 import Text from './text'
 import NostrIcon from '@/svgs/nostr.svg'
-import { numWithUnits } from '@/lib/format'
+import { msatsToSats, numWithUnits } from '@/lib/format'
 import BountyIcon from '@/svgs/bounty-bag.svg'
 import { LongCountdown } from './countdown'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { commentSubTreeRootId } from '@/lib/item'
 import LinkToContext from './link-to-context'
 import { Badge, Button } from 'react-bootstrap'
-import { useAct } from './item-act'
-import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
-import { usePollVote } from './poll'
-import { paidActionCacheMods } from './use-paid-mutation'
-import { useRetryCreateItem } from './use-item-submit'
-import { payBountyCacheMods } from './pay-bounty'
 import { useToast } from './toast'
 import classNames from 'classnames'
 import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
+import { useRetryPayIn, useRetryBountyPayIn, useRetryItemActPayIn } from './payIn/hooks/use-retry-pay-in'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -72,7 +67,7 @@ function Notification ({ n, fresh }) {
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
         (type === 'Reminder' && <Reminder n={n} />) ||
-        (type === 'Invoicification' && <Invoicification n={n} />) ||
+        (type === 'PayInFailed' && <PayInFailed n={n} />) ||
         (type === 'ReferralReward' && <ReferralReward n={n} />)
       }
     </NotificationLayout>
@@ -84,7 +79,7 @@ function NotificationLayout ({ children, type, nid, href, as, fresh }) {
   if (!href) return <div className={`py-2 ${fresh ? styles.fresh : ''}`}>{children}</div>
   return (
     <LinkToContext
-      className={`py-2 ${type === 'Reply' ? styles.reply : ''} ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
+      className={`py-2 clickToContext ${type === 'Reply' ? styles.reply : ''} ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
       onClick={async (e) => {
         e.preventDefault()
         nid && await router.replace({
@@ -97,6 +92,7 @@ function NotificationLayout ({ children, type, nid, href, as, fresh }) {
         router.push(href, as)
       }}
       href={href}
+      pad
     >
       {children}
     </LinkToContext>
@@ -163,7 +159,7 @@ const defaultOnClick = n => {
   if (type === 'SubStatus') return { href: `/~${n.sub.name}` }
   if (type === 'Invitification') return { href: '/invites' }
   if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
-  if (type === 'Invoicification') return itemLink(n.invoice.item)
+  if (type === 'PayInFailed') return itemLink(n.item)
   if (type === 'WithdrawlPaid') return { href: `/withdrawals/${n.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'ReferralReward') return { href: '/referrals/month' }
@@ -405,114 +401,85 @@ function InvoicePaid ({ n }) {
   )
 }
 
-function useActRetry ({ invoice }) {
-  const bountyCacheMods =
-    invoice.item.root?.bounty === invoice.satsRequested && invoice.item.root?.mine
-      ? payBountyCacheMods
-      : {}
-
-  const update = (cache, { data }) => {
-    const response = Object.values(data)[0]
-    if (!response?.invoice) return
-    cache.modify({
-      id: `ItemAct:${invoice.itemAct?.id}`,
-      fields: {
-        // this is a bit of a hack just to update the reference to the new invoice
-        invoice: () => cache.writeFragment({
-          id: `Invoice:${response.invoice.id}`,
-          fragment: gql`
-            fragment _ on Invoice {
-              bolt11
-            }
-          `,
-          data: { bolt11: response.invoice.bolt11 }
-        })
+function PayInFailed ({ n }) {
+  const [disableRetry, setDisableRetry] = useState(false)
+  const toaster = useToast()
+  const { payIn, item } = n
+  const updatePayIn = useCallback((cache, { data }) => {
+    cache.writeFragment({
+      id: `PayInFailed:${n.id}`,
+      fragment: gql`
+        fragment _ on PayInFailed {
+          payIn {
+            id
+            mcost
+            payInType
+            payInState
+            payInStateChangedAt
+          }
+        }
+      `,
+      data: {
+        payIn: data.retryPayIn
       }
     })
-    paidActionCacheMods?.update?.(cache, { data })
-    bountyCacheMods?.update?.(cache, { data })
-  }
+  }, [n.id])
 
-  return useAct({
-    query: RETRY_PAID_ACTION,
-    onPayError: (e, cache, { data }) => {
-      paidActionCacheMods?.onPayError?.(e, cache, { data })
-      bountyCacheMods?.onPayError?.(e, cache, { data })
-    },
-    onPaid: (cache, { data }) => {
-      paidActionCacheMods?.onPaid?.(cache, { data })
-      bountyCacheMods?.onPaid?.(cache, { data })
-    },
-    update,
-    updateOnFallback: update
-  })
-}
+  const retryPayIn = useRetryPayIn(payIn.id, { update: updatePayIn })
+  const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
+  const optimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct' } }
+  const retryBountyPayIn = useRetryBountyPayIn(payIn.id, { update: updatePayIn, optimisticResponse })
+  const retryItemActPayIn = useRetryItemActPayIn(payIn.id, { update: updatePayIn, optimisticResponse })
 
-function Invoicification ({ n: { invoice, sortTime } }) {
-  const toaster = useToast()
-  const actRetry = useActRetry({ invoice })
-  const retryCreateItem = useRetryCreateItem({ id: invoice.item?.id })
-  const retryPollVote = usePollVote({ query: RETRY_PAID_ACTION, itemId: invoice.item?.id })
-  const [disableRetry, setDisableRetry] = useState(false)
-  // XXX if we navigate to an invoice after it is retried in notifications
-  // the cache will clear invoice.item and will error on window.back
-  // alternatively, we could/should
-  // 1. update the notification cache to include the new invoice
-  // 2. make item has-many invoices
-  if (!invoice.item) return null
-
-  let retry
-  let actionString
-  let invoiceId
-  let invoiceActionState
-  const itemType = invoice.item.title ? 'post' : 'comment'
-
-  if (invoice.actionType === 'ITEM_CREATE') {
-    actionString = `${itemType} create `
-    retry = retryCreateItem;
-    ({ id: invoiceId, actionState: invoiceActionState } = invoice.item.invoice)
-  } else if (invoice.actionType === 'POLL_VOTE') {
-    actionString = 'poll vote '
-    retry = retryPollVote
-    invoiceId = invoice.item.poll?.meInvoiceId
-    invoiceActionState = invoice.item.poll?.meInvoiceActionState
-  } else {
-    if (invoice.actionType === 'ZAP') {
-      if (invoice.item.root?.bounty === invoice.satsRequested && invoice.item.root?.mine) {
+  const [actionString, colorClass, retry] = useMemo(() => {
+    let retry
+    let actionString = ''
+    const itemType = item.title ? 'post' : 'comment'
+    if (payIn.payInType === 'ITEM_CREATE') {
+      actionString = `${itemType} create `
+      retry = retryPayIn
+    } else if (payIn.payInType === 'POLL_VOTE') {
+      actionString = 'poll vote '
+      retry = retryPayIn
+    } else {
+      if (payIn.payInType === 'ZAP' && item.root?.bounty === msatsToSats(payIn.mcost) && item.root?.mine) {
         actionString = 'bounty payment'
+        retry = retryBountyPayIn
       } else {
-        actionString = 'zap'
+        if (payIn.payInType === 'ZAP') {
+          actionString = 'zap'
+        } else if (payIn.payInType === 'DOWN_ZAP') {
+          actionString = 'downzap'
+        } else if (payIn.payInType === 'BOOST') {
+          actionString = 'boost'
+        }
+        retry = retryItemActPayIn
       }
-    } else if (invoice.actionType === 'DOWN_ZAP') {
-      actionString = 'downzap'
-    } else if (invoice.actionType === 'BOOST') {
-      actionString = 'boost'
+      actionString = `${actionString} on ${itemType} `
     }
-    actionString = `${actionString} on ${itemType} `
-    retry = actRetry;
-    ({ id: invoiceId, actionState: invoiceActionState } = invoice.itemAct.invoice)
-  }
-
-  let colorClass = 'info'
-  switch (invoiceActionState) {
-    case 'FAILED':
-      actionString += 'failed'
-      colorClass = 'warning'
-      break
-    case 'PAID':
-      actionString += 'paid'
-      colorClass = 'success'
-      break
-    default:
-      actionString += 'pending'
-  }
+    let colorClass = 'info'
+    switch (payIn.payInState) {
+      case 'FAILED':
+      case 'CANCELLED':
+        actionString += 'failed'
+        colorClass = 'warning'
+        break
+      case 'PAID':
+        actionString += 'paid'
+        colorClass = 'success'
+        break
+      default:
+        actionString += 'pending'
+    }
+    return [actionString, colorClass, retry]
+  }, [payIn, item, retryPayIn, retryBountyPayIn, retryItemActPayIn])
 
   return (
     <div>
       <NoteHeader color={colorClass}>
         {actionString}
-        <span className='ms-1 text-muted fw-light'> {numWithUnits(invoice.satsRequested)}</span>
-        <span className={invoiceActionState === 'FAILED' ? 'visible' : 'invisible'}>
+        <span className='ms-1 text-muted fw-light'> {numWithUnits(msatsToSats(payIn.mcost))}</span>
+        <span className={['FAILED', 'CANCELLED'].includes(payIn.payInState) ? 'visible' : 'invisible'}>
           <Button
             size='sm' variant={classNames('outline-warning ms-2 border-1 rounded py-0', disableRetry && 'pulse')}
             style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}
@@ -521,7 +488,7 @@ function Invoicification ({ n: { invoice, sortTime } }) {
               if (disableRetry) return
               setDisableRetry(true)
               try {
-                const { error } = await retry({ variables: { invoiceId: parseInt(invoiceId) } })
+                const { error } = await retry()
                 if (error) throw error
               } catch (error) {
                 toaster.danger(error?.message || error?.toString?.())
@@ -532,10 +499,10 @@ function Invoicification ({ n: { invoice, sortTime } }) {
           >
             retry
           </Button>
-          <span className='text-muted ms-2 fw-normal' suppressHydrationWarning>{timeSince(new Date(sortTime))}</span>
+          <span className='text-muted ms-2 fw-normal' suppressHydrationWarning>{timeSince(new Date(payIn.payInStateChangedAt))}</span>
         </span>
       </NoteHeader>
-      <NoteItem item={invoice.item} setDisableRetry={setDisableRetry} disableRetry={disableRetry} />
+      <NoteItem item={item} setDisableRetry={setDisableRetry} disableRetry={disableRetry} updatePayIn={updatePayIn} />
     </div>
   )
 }

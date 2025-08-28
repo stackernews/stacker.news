@@ -182,7 +182,7 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
           {item.parentId
             ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
             : (
-              <div>{bio
+              <div className='pt-2'>{bio
                 ? <BioItem item={item} {...props} />
                 : <TopLevelItem item={item} {...props} />}
               </div>)}

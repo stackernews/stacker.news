@@ -15,7 +15,7 @@ import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import { ItemButtonBar } from '@/components/post'
 import useItemSubmit from '@/components/use-item-submit'
-import { UPSERT_BIO } from '@/fragments/paidAction'
+import { UPSERT_BIO } from '@/fragments/payIn'
 
 export const getServerSideProps = getGetServerSideProps({
   query: USER_FULL,

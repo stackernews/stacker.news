@@ -12,6 +12,7 @@ import {
   calculateDepth
 } from '../lib/comments'
 import { useMe } from './me'
+import { useRoot } from './root'
 
 const POLL_INTERVAL = 1000 * 5 // 5 seconds
 
@@ -56,20 +57,20 @@ function prepareComments (item, cache, newComment) {
   return payload
 }
 
-function cacheNewComments (cache, latest, rootId, newComments, sort) {
+function cacheNewComments (cache, latest, topLevelId, newComments, sort) {
   let injectedLatest = latest
   for (const newComment of newComments) {
     const { parentId } = newComment
-    const topLevel = Number(parentId) === Number(rootId)
+    const topLevel = Number(parentId) === Number(topLevelId)
     let injected = false
 
     // if the comment is a top level comment, update the item, else update the parent comment
     if (topLevel) {
-      updateItemQuery(cache, rootId, sort, (item) => prepareComments(item, cache, newComment))
+      updateItemQuery(cache, topLevelId, sort, (item) => prepareComments(item, cache, newComment))
       injected = true
     } else {
       // if the comment is too deep, we can skip it
-      const depth = calculateDepth(newComment.path, rootId, parentId)
+      const depth = calculateDepth(newComment.path, topLevelId, parentId)
       if (depth > COMMENT_DEPTH_LIMIT) continue
       // inject the new comment into the parent comment's comments field
       const updated = updateCommentFragment(cache, parentId, (parent) => prepareComments(parent, cache, newComment))
@@ -85,16 +86,17 @@ function cacheNewComments (cache, latest, rootId, newComments, sort) {
   return injectedLatest
 }
 
-// useLiveComments fetches new comments under an item (rootId),
+// useLiveComments fetches new comments under an item (topLevelId),
 // that are newer than the latest comment createdAt (after), and injects them into the cache.
-export default function useLiveComments (rootId, after, sort) {
-  const latestKey = `liveCommentsLatest:${rootId}`
+export default function useLiveComments (topLevelId, after, sort) {
+  const latestKey = `liveCommentsLatest:${topLevelId}`
   const { cache } = useApolloClient()
   const { me } = useMe()
+  const root = useRoot()
   const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, {
     update (cache, { data: { updateCommentsViewAt } }) {
       cache.modify({
-        id: `Item:${rootId}`,
+        id: `Item:${root.id}`,
         fields: { meCommentsViewedAt: () => updateCommentsViewAt }
       })
     }
@@ -119,7 +121,7 @@ export default function useLiveComments (rootId, after, sort) {
   const { data } = useQuery(GET_NEW_COMMENTS, {
     pollInterval: POLL_INTERVAL,
     // only get comments newer than the passed latest timestamp
-    variables: { rootId, after: latest },
+    variables: { topLevelId, after: latest },
     nextFetchPolicy: 'cache-and-network',
     skip: SSR || !initialized || disableLiveComments
   })
@@ -131,18 +133,17 @@ export default function useLiveComments (rootId, after, sort) {
     // quirk: scroll is preserved even if we are not injecting new comments due to dedupe
     let injectedLatest = latest
     preserveScroll(() => {
-      injectedLatest = cacheNewComments(cache, injectedLatest, rootId, data.newComments.comments, sort)
+      injectedLatest = cacheNewComments(cache, injectedLatest, topLevelId, data.newComments.comments, sort)
     })
 
     // sync view time if we successfully injected new comments
     if (new Date(injectedLatest).getTime() > new Date(latest).getTime()) {
       if (me?.id) {
-        console.log('useLiveComments updating comments viewed at', injectedLatest)
         // server-tracked view
-        updateCommentsViewAt({ variables: { id: rootId, meCommentsViewedAt: injectedLatest } })
+        updateCommentsViewAt({ variables: { id: root.id, meCommentsViewedAt: injectedLatest } })
       } else {
         // anon fallback
-        commentsViewedAfterComment(rootId, injectedLatest)
+        commentsViewedAfterComment(root.id, injectedLatest)
       }
 
       // update latest timestamp to the latest comment created at
@@ -152,7 +153,7 @@ export default function useLiveComments (rootId, after, sort) {
         window.sessionStorage.setItem(latestKey, injectedLatest)
       }
     }
-  }, [data, cache, rootId, sort, latest, me?.id])
+  }, [data, cache, topLevelId, root.id, sort, latest, me?.id])
 }
 
 const STORAGE_KEY = 'disableLiveComments'

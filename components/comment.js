@@ -156,8 +156,7 @@ export default function Comment ({
   useEffect(() => {
     // TODO: omg clean this mess sox
     // checking navigator because outlining should happen only on item pages
-    if (!navigator) return
-    if (me?.id === item.user?.id) return
+    if (!navigator || me?.id === item.user?.id) return
 
     const itemCreatedAt = new Date(item.createdAt).getTime()
 

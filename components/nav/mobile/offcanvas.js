@@ -33,7 +33,6 @@ export default function OffCanvas ({ me, dropNavKey }) {
   return (
     <>
       <Indicator show={indicator}><MeImage onClick={handleShow} /></Indicator>
-
       <Offcanvas className={canvasStyles.offcanvas} show={show} onHide={handleClose} placement='end'>
         <Offcanvas.Header closeButton>
           <Offcanvas.Title><NavWalletSummary /></Offcanvas.Title>

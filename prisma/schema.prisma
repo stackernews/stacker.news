@@ -1318,8 +1318,8 @@ model WalletProtocol {
   walletRecvCLNRest          WalletRecvCLNRest?
   walletRecvLNDGRPC          WalletRecvLNDGRPC?
 
-  @@index([walletId])
   @@unique(name: "WalletProtocol_walletId_send_name_key", [walletId, send, name])
+  @@index([walletId])
 }
 
 model WalletSendNWC {

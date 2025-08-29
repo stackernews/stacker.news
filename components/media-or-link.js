@@ -144,7 +144,7 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
       img.decode().then(() => { // decoding beforehand to prevent wrong image cropping
         setIsImage(true)
       }).catch((e) => {
-        console.error('Cannot decode image', e)
+        console.warn('Cannot decode image:', src, e)
       })
     }
     video.src = src

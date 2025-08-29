@@ -31,14 +31,15 @@ import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { useDecryption, useEncryption, useSetKey, useWalletLoggerFactory, useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolClientSchema, protocolLogName, reverseProtocolRelationName
+  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolClientSchema, protocolLogName, reverseProtocolRelationName,
+  walletLud16Domain
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
-import { useWallets, useWalletsLoading } from '@/wallets/client/context'
+import { useTemplates, useWallets, useWalletsLoading } from '@/wallets/client/context'
 import { requestPersistentStorage } from '@/components/use-indexeddb'
 
 export function useWalletsQuery () {
@@ -184,16 +185,29 @@ export function useWalletProtocolUpsert () {
 }
 
 export function useLightningAddressUpsert () {
-  const wallet = useMemo(() => ({ name: 'LN_ADDR', __typename: 'WalletTemplate' }), [])
   const protocol = useMemo(() => ({ name: 'LN_ADDR', send: false, __typename: 'WalletProtocolTemplate' }), [])
   const upsert = useWalletProtocolUpsert()
   const testCreateInvoice = useTestCreateInvoice(protocol)
+  const mapper = useLightningAddressToWalletMapper()
 
-  return useCallback(async (values) => {
-    // TODO(wallet-v2): parse domain from address input to use correct wallet template
-    await testCreateInvoice(values)
-    return await upsert(wallet, protocol, { ...values, enabled: true })
-  }, [testCreateInvoice, upsert, wallet, protocol])
+  return useCallback(async (address) => {
+    await testCreateInvoice({ address })
+    const wallet = mapper(address)
+    return await upsert(wallet, protocol, { address, enabled: true })
+  }, [testCreateInvoice, mapper, upsert, protocol])
+}
+
+function useLightningAddressToWalletMapper () {
+  const templates = useTemplates()
+  return useCallback((address) => {
+    return templates
+      .filter(t => t.protocols.some(p => p.name === 'LN_ADDR'))
+      .find(t => {
+        const domain = walletLud16Domain(t.name)
+        // the LN_ADDR wallet supports lightning addresses but does not have a domain because it's a generic wallet for any LN address
+        return domain && address.endsWith(domain)
+      }) ?? { name: 'LN_ADDR', __typename: 'WalletTemplate' }
+  }, [templates])
 }
 
 export function useWalletEncryptionUpdate () {

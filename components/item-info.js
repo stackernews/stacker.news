@@ -110,9 +110,6 @@ export default function ItemInfo ({
         </>}
       <Link
         href={`/items/${item.id}`} onClick={(e) => {
-          if (me) return
-
-          // anon fallback
           const viewedAt = commentsViewedAt(item.id)
           if (viewedAt) {
             e.preventDefault()

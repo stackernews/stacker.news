@@ -10,9 +10,6 @@ CREATE TABLE "CommentsViewAt" (
 -- CreateIndex
 CREATE INDEX "CommentsViewAt_userId_idx" ON "CommentsViewAt"("userId");
 
--- CreateIndex
-CREATE INDEX "Item.id_createdAt_index" ON "Item"("id", "created_at");
-
 -- AddForeignKey
 ALTER TABLE "CommentsViewAt" ADD CONSTRAINT "CommentsViewAt_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "Item"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

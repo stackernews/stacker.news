@@ -29,7 +29,6 @@ import { useShowModal } from './modal'
 import { BoostHelp } from './adv-post-form'
 
 function onItemClick (e, router, item) {
-  // TODO: this can stay as it is
   const viewedAt = commentsViewedAt(item.id)
   if (viewedAt) {
     e.preventDefault()

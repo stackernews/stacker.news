@@ -164,14 +164,12 @@ function ItemText ({ item }) {
 }
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {
-  console.log('item', item)
   const { me } = useMe()
   // no cache update here because we need to preserve the initial value
   const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW)
 
   useEffect(() => {
-    console.log('ITEMFULL useEffect', item)
-    console.log('root', item.root)
+    if (item.parentId) return
     // local comments viewed (anon fallback)
     if (!me?.id) return commentsViewed(item)
 
@@ -180,7 +178,6 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
 
     if (viewedAt.getTime() >= last.getTime()) return
 
-    console.log('ITEMFULL updating comments viewed at', last)
     // me server comments viewed
     updateCommentsViewAt({
       variables: { id: item.id, meCommentsViewedAt: last }

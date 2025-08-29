@@ -27,7 +27,7 @@ export default {
         '```lightning-cli createrune restrictions=\'["method=invoice"]\'```',
         'Or this if you are on v24.11 or later:',
         '```lightning-cli createrune restrictions=\'[["method=invoice"]]\'```',
-        '[see `createrune` documentation](https://docs.corelightning.org/reference/lightning-createrune#restriction-format)'
+        '[see `createrune` documentation](https://docs.corelightning.org/reference/createrune#restriction-format)'
       ],
       placeholder: 'S34KtUW-6gqS_hD_9cc_PNhfF-NinZyBOCgr1aIrark9NCZtZXRob2Q9aW52b2ljZQ==',
       validate: runeValidator({ method: 'invoice' }),

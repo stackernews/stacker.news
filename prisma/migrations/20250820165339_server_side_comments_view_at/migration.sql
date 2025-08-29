@@ -15,3 +15,20 @@ ALTER TABLE "CommentsViewAt" ADD CONSTRAINT "CommentsViewAt_itemId_fkey" FOREIGN
 
 -- AddForeignKey
 ALTER TABLE "CommentsViewAt" ADD CONSTRAINT "CommentsViewAt_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+CREATE OR REPLACE FUNCTION schedule_untrack_old_items()
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+BEGIN
+    INSERT INTO pgboss.schedule (name, cron, timezone)
+    VALUES ('untrackOldItems', '0 0 * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
+    return 0;
+EXCEPTION WHEN OTHERS THEN
+    return 0;
+END;
+$$;
+
+SELECT schedule_untrack_old_items();
+DROP FUNCTION IF EXISTS schedule_untrack_old_items;

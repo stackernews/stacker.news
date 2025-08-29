@@ -54,7 +54,7 @@ export default {
         const currentUser = await models.user.findUnique({ where: { id: me.id } })
         const showNsfw = currentUser ? currentUser.nsfwMode : false
 
-        return await models.$queryRawUnsafe(`
+        return await models.$queryRaw`
           SELECT "Sub".*, "Sub".created_at as "createdAt", ss."userId" IS NOT NULL as "meSubscription", COALESCE(json_agg("MuteSub".*) FILTER (WHERE "MuteSub"."userId" IS NOT NULL), '[]') AS "MuteSub"
           FROM "Sub"
           LEFT JOIN "SubSubscription" ss ON "Sub".name = ss."subName" AND ss."userId" = ${me.id}::INTEGER
@@ -62,7 +62,7 @@ export default {
           WHERE status <> 'STOPPED' ${showNsfw ? '' : 'AND "Sub"."nsfw" = FALSE'}
           GROUP BY "Sub".name, ss."userId", "MuteSub"."userId"
           ORDER BY "Sub".name ASC
-        `)
+        `
       }
 
       return await models.sub.findMany({

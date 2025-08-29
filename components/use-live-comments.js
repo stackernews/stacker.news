@@ -116,7 +116,7 @@ export default function useLiveComments (topLevelId, after, sort) {
     // Apollo might update the cache before the page has fully rendered, causing reads of stale cached data
     // this prevents GET_NEW_COMMENTS from producing results before the page has fully rendered
     setInitialized(true)
-  }, [after])
+  }, [topLevelId, after])
 
   const { data } = useQuery(GET_NEW_COMMENTS, {
     pollInterval: POLL_INTERVAL,

@@ -154,7 +154,6 @@ export default function Comment ({
   }, [item.id, cache, router.query.commentId])
 
   useEffect(() => {
-    // TODO: omg clean this mess sox
     // checking navigator because outlining should happen only on item pages
     if (!navigator || me?.id === item.user?.id) return
 
@@ -184,7 +183,7 @@ export default function Comment ({
       ref.current.classList.add('outline-new-comment')
     }
 
-    navigator?.trackNewComment(ref, itemCreatedAt)
+    navigator.trackNewComment(ref, itemCreatedAt)
   }, [item.id, root.lastCommentAt, root.meCommentsViewedAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)

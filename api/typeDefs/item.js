@@ -174,7 +174,7 @@ export default gql`
     apiKey: Boolean
     invoice: Invoice
     cost: Int!
-    meCommentsViewedAt: Date!
+    meCommentsViewedAt: Date
   }
 
   input ItemForwardInput {

@@ -59,7 +59,7 @@ export default {
           FROM "Sub"
           LEFT JOIN "SubSubscription" ss ON "Sub".name = ss."subName" AND ss."userId" = ${me.id}::INTEGER
           LEFT JOIN "MuteSub" ON "Sub".name = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}::INTEGER
-          WHERE status <> 'STOPPED' ${showNsfw ? '' : 'AND "Sub"."nsfw" = FALSE'}
+          WHERE status <> 'STOPPED' ${showNsfw ? Prisma.empty : Prisma.sql`AND "Sub"."nsfw" = FALSE`}
           GROUP BY "Sub".name, ss."userId", "MuteSub"."userId"
           ORDER BY "Sub".name ASC
         `

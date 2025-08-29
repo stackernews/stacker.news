@@ -71,6 +71,13 @@ const WALLET_PROTOCOL_FIELDS = gql`
           ...VaultEntryFields
         }
       }
+      ... on WalletSendCLNRest {
+        id
+        socket
+        encryptedRune: rune {
+          ...VaultEntryFields
+        }
+      }
       ... on WalletRecvNWC {
         id
         url

@@ -160,16 +160,21 @@ export function NavWalletSummary ({ className }) {
   )
 }
 
-export const Indicator = () => {
+export const Indicator = ({ show, children }) => {
   return (
-    <span className='d-inline-block p-1'>
-      <span
-        className='position-absolute p-1 bg-secondary'
-        style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}
-      >
-        <span className='invisible'>{' '}</span>
-      </span>
-    </span>
+    <div className='w-fit-content position-relative'>
+      {children}
+      {show && (
+        <span className='d-inline-block p-1'>
+          <span
+            className='position-absolute p-1 bg-secondary'
+            style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}
+          >
+            <span className='invisible'>{' '}</span>
+          </span>
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -186,8 +191,7 @@ export function MeDropdown ({ me, dropNavKey }) {
         <Dropdown.Toggle className='nav-link nav-item fw-normal' id='profile' variant='custom'>
           <div className='d-flex align-items-center'>
             <Nav.Link eventKey={me.name} as='span' className='p-0 position-relative'>
-              {`@${me.name}`}
-              {indicator && <Indicator />}
+              <Indicator show={indicator}>@{me.name}</Indicator>
             </Nav.Link>
             <Badges user={me} />
           </div>
@@ -195,10 +199,7 @@ export function MeDropdown ({ me, dropNavKey }) {
         <Dropdown.Menu>
           <Link href={'/' + me.name} passHref legacyBehavior>
             <Dropdown.Item active={me.name === dropNavKey}>
-              <div className='w-fit-content position-relative'>
-                profile
-                {profileIndicator && <Indicator />}
-              </div>
+              <Indicator show={profileIndicator}>profile</Indicator>
             </Dropdown.Item>
           </Link>
           <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
@@ -206,10 +207,7 @@ export function MeDropdown ({ me, dropNavKey }) {
           </Link>
           <Link href='/wallets' passHref legacyBehavior>
             <Dropdown.Item eventKey='wallets'>
-              <div className='w-fit-content position-relative'>
-                wallets
-                {walletIndicator && <Indicator />}
-              </div>
+              <Indicator show={walletIndicator}>wallets</Indicator>
             </Dropdown.Item>
           </Link>
           <Link href='/credits' passHref legacyBehavior>

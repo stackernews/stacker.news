@@ -5,7 +5,7 @@ export default function CCInfo (props) {
   return (
     <Info {...props}>
       <h6>Why am I getting cowboy credits?</h6>
-      <ul className='line-height-md'>
+      <ul>
         <li>to receive sats, you must attach an <Link href='/wallets'>external receiving wallet</Link></li>
         <li>zappers may have chosen to send you CCs instead of sats</li>
         <li>if the zaps are split on a post, recipients will receive CCs regardless of their configured receiving wallet</li>

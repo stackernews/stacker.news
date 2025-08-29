@@ -4,6 +4,7 @@ import * as phoenixd from './phoenixd'
 import * as blink from './blink'
 import * as webln from './webln'
 import * as lnc from './lnc'
+import * as clnRest from './clnRest'
 
 export * from './util'
 
@@ -52,5 +53,6 @@ export default [
   phoenixd,
   blink,
   webln,
-  lnc
+  lnc,
+  clnRest
 ]

@@ -1,6 +1,6 @@
 import nwcSuite from './nwc'
 import lnAddr from './lnAddr'
-import clnRest from './clnRest'
+import clnRestSuite from './clnRest'
 import lndGrpc from './lndGrpc'
 import lnc from './lnc'
 import lnbitsSuite from './lnbits'
@@ -39,7 +39,7 @@ import webln from './webln'
 export default [
   ...nwcSuite,
   lnAddr,
-  clnRest,
+  ...clnRestSuite,
   lndGrpc,
   lnc,
   ...phoenixdSuite,

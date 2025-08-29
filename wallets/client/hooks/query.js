@@ -12,6 +12,7 @@ import {
   UPSERT_WALLET_SEND_NWC,
   UPSERT_WALLET_SEND_PHOENIXD,
   UPSERT_WALLET_SEND_WEBLN,
+  UPSERT_WALLET_SEND_CLN_REST,
   WALLETS,
   UPDATE_WALLET_ENCRYPTION,
   RESET_WALLETS,
@@ -295,7 +296,7 @@ function protocolUpsertMutation (protocol) {
     case 'NWC':
       return protocol.send ? UPSERT_WALLET_SEND_NWC : UPSERT_WALLET_RECEIVE_NWC
     case 'CLN_REST':
-      return protocol.send ? NOOP_MUTATION : UPSERT_WALLET_RECEIVE_CLN_REST
+      return protocol.send ? UPSERT_WALLET_SEND_CLN_REST : UPSERT_WALLET_RECEIVE_CLN_REST
     case 'LND_GRPC':
       return protocol.send ? NOOP_MUTATION : UPSERT_WALLET_RECEIVE_LND_GRPC
     case 'LNC':

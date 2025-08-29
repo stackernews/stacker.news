@@ -55,6 +55,13 @@ const typeDefs = gql`
       apiKey: VaultEntryInput!
     ): WalletSendBlink!
 
+    upsertWalletSendCLNRest(
+      ${shared},
+      socket: String!,
+      rune: VaultEntryInput!,
+      cert: VaultEntryInput!
+    ): WalletSendCLNRest!
+
     upsertWalletRecvBlink(
       ${shared},
       currency: String!,
@@ -212,6 +219,7 @@ const typeDefs = gql`
     | WalletSendBlink
     | WalletSendWebLN
     | WalletSendLNC
+    | WalletSendCLNRest
     | WalletRecvNWC
     | WalletRecvLNbits
     | WalletRecvPhoenixd
@@ -271,6 +279,13 @@ const typeDefs = gql`
     localKey: VaultEntry!
     remoteKey: VaultEntry!
     serverHost: VaultEntry!
+  }
+
+  type WalletSendCLNRest {
+    id: ID!
+    socket: String!
+    rune: VaultEntry!
+    cert: VaultEntry!
   }
 
   type WalletRecvNWC {

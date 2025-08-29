@@ -117,15 +117,18 @@ export default function Comment ({
 
   const unsetOutline = () => {
     if (!ref.current) return
-    const hasOutline = ref.current.classList.contains('outline-new-comment') || ref.current.classList.contains('outline-new-injected-comment')
-    const hasOutlineUnset = ref.current.classList.contains('outline-new-comment-unset')
 
-    // don't try to unset the outline if the comment is not outlined or we already unset the outline
-    if (hasOutline && !hasOutlineUnset) {
-      ref.current.classList.add('outline-new-comment-unset')
-      // untrack the new comment
-      navigator?.untrackNewComment(ref)
-    }
+    const classes = ref.current.classList
+    const hasOutline = classes.contains('outline-new-comment')
+    const hasInjectedOutline = classes.contains('outline-new-injected-comment')
+    const hasOutlineUnset = classes.contains('outline-new-comment-unset')
+
+    // don't try to untrack and unset the outline if the comment is not outlined or we already unset the outline
+    if (!(hasInjectedOutline || hasOutline) || hasOutlineUnset) return
+
+    classes.add('outline-new-comment-unset')
+    // untrack new comment and its descendants if it's not a live comment
+    navigator?.untrackNewComment(ref, { includeDescendants: hasOutline })
   }
 
   useEffect(() => {

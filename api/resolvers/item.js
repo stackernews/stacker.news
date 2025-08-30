@@ -569,15 +569,16 @@ export default {
                       '"Item".outlawed = false',
                       '"Item".bio = false',
                       ad ? `"Item".id <> ${ad.id}` : '',
+                      whenClause(when || 'forever', 'Item'),
                       activeOrMine(me),
                       await filterClause(me, models, type),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
                     ORDER BY ${sub ? '"subHotScore"' : '"hotScore"'} DESC, "Item".msats DESC, "Item".id DESC
-                    OFFSET $1
-                    LIMIT $2`,
+                    OFFSET $3
+                    LIMIT $4`,
                 orderBy: `ORDER BY ${sub ? '"subHotScore"' : '"hotScore"'} DESC, "Item".msats DESC, "Item".id DESC`
-              }, decodedCursor.offset, limit, ...subArr)
+              }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
               break
           }
           break

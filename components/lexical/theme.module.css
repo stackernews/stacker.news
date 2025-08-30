@@ -1,0 +1,262 @@
+/* editor */
+
+.editor {
+    height: 100%;
+    position: relative;
+}
+
+.editorContainer {
+    margin: 20px auto 20px auto;
+    width: 100%;
+    color: var(--theme-color);
+    position: relative;
+    line-height: 20px;
+    font-weight: 400;
+    text-align: left;
+    border-top-left-radius: .4rem;
+    border-top-right-radius: .4rem;
+}
+
+.editorInner {
+    position: relative;
+}
+
+.editorInput>hr {
+    border-top: 1px solid var(--theme-clickToContextColor);
+}
+
+.editorInput {
+    min-height: 150px;
+    resize: auto;
+    font-size: 15px;
+    caret-color: var(--theme-color);
+    background-color: var(--theme-body);
+    position: relative;
+    tab-size: 1;
+    outline: 0;
+    padding: 15px 10px;
+    border: 1px solid;
+    border-bottom-left-radius: .4rem;
+    border-bottom-right-radius: .4rem;
+    /* border-top: 0px; */
+}
+
+.editorPlaceholder {
+    color: var(--theme-grey);
+    overflow: hidden;
+    position: absolute;
+    text-overflow: ellipsis;
+    top: 15px;
+    left: 10px;
+    font-size: 15px;
+    user-select: none;
+    display: inline-block;
+    pointer-events: none;
+}
+
+/* blocks */
+
+.image {
+    display: inline-block;
+}
+
+.paragraph {
+    margin: 0;
+    margin-bottom: 8px;
+    position: relative;
+}
+
+.paragraph:last-child {
+    margin-bottom: 0;
+}
+
+.quote {
+    margin: 0;
+    margin-left: 20px;
+    font-size: 15px;
+    color: var(--theme-quoteColor);
+    border-left-color: var(--theme-quoteBar);
+    border-left-width: 4px;
+    border-left-style: solid;
+    padding-left: 16px;
+}
+
+.heading1 {
+    font-size: 24px;
+    color: var(--theme-color);
+    font-weight: 400;
+    margin: 0;
+    margin-bottom: 12px;
+}
+
+.heading2 {
+    font-size: 15px;
+    color: var(--theme-navLink);
+    font-weight: 700;
+    margin: 0;
+    margin-top: 10px;
+    text-transform: uppercase;
+}
+
+
+.code {
+    background-color: rgb(240, 242, 245);
+    font-family: Menlo, Consolas, Monaco, monospace;
+    display: block;
+    padding: 8px 8px 8px 52px;
+    line-height: 1.53;
+    font-size: 13px;
+    margin: 0;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    tab-size: 2;
+    /* white-space: pre; */
+    overflow-x: auto;
+    position: relative;
+}
+
+/* inline blocks */
+
+.link {
+    color: var(--theme-link);
+    text-decoration: none;
+}
+
+/* lists */
+
+.listOl {
+    padding: 0;
+    margin: 0;
+    margin-left: 16px;
+}
+
+.listUl {
+    padding: 0;
+    margin: 0;
+    margin-left: 16px;
+}
+
+.listItem {
+    margin: 8px 32px 8px 32px;
+}
+
+.nestedListItem {
+    list-style-type: none;
+}
+
+/* text */
+
+.textBold {
+    font-weight: bold;
+}
+
+.textItalic {
+    font-style: italic;
+}
+
+.textUnderline {
+    text-decoration: underline;
+}
+
+.textStrikethrough {
+    text-decoration: line-through;
+}
+
+.textUnderlineStrikethrough {
+    text-decoration: underline line-through;
+}
+
+.textCode {
+    background-color: rgb(240, 242, 245);
+    padding: 1px 0.25rem;
+    font-family: Menlo, Consolas, Monaco, monospace;
+    font-size: 94%;
+}
+
+/* toolbar */
+.toolbar {
+    display: flex;
+    align-items: center;
+    background: var(--theme-toolbar);
+    padding: 4px;
+    border-top-left-radius: .4rem;
+    border-top-right-radius: .4rem;
+    vertical-align: middle;
+    flex-wrap: wrap;
+}
+
+.toolbar button.toolbarItem {
+    border: 0;
+    display: flex;
+    background: none;
+    border-radius: .4rem;
+    padding: 8px;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.toolbar button.toolbarItem:disabled {
+    cursor: not-allowed;
+}
+
+.toolbar button.toolbarItem.spaced {
+    margin-right: 2px;
+}
+
+.toolbar button.toolbarItem svg {
+    background-size: contain;
+    display: inline-block;
+    height: 18px;
+    width: 18px;
+    margin-top: 2px;
+    vertical-align: -0.25em;
+    display: flex;
+    opacity: 0.6;
+}
+
+.toolbar button.toolbarItem:disabled svg {
+    opacity: 0.2;
+}
+
+.toolbar button.toolbarItem.active {
+    background-color: var(--theme-toolbarActive);
+}
+
+.toolbar button.toolbarItem.active svg {
+    opacity: 1;
+}
+
+.toolbar .toolbarItem:hover:not([disabled]) {
+    background-color: var(--theme-toolbarHover);
+}
+
+.toolbar .divider {
+    width: 1px;
+    background-color: var(--theme-borderColor);
+    margin: 0 4px;
+}
+
+.toolbar .toolbarItem svg {
+    fill: var(--theme-color) !important;
+}
+
+.linkTooltip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    font-size: 0.7875rem;
+    opacity: 0;
+    will-change: transform;
+}
+
+.tooltipUrl {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.markdownSwitch {
+    cursor: pointer;
+    margin-right: 4px;
+}

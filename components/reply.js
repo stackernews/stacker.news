@@ -14,6 +14,7 @@ import { CREATE_COMMENT } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import { updateAncestorsCommentCount } from '@/lib/comments'
+import { Lexical } from './lexical'
 
 export default forwardRef(function Reply ({
   item,
@@ -163,7 +164,8 @@ export default forwardRef(function Reply ({
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >
-              <MarkdownInput
+              <Lexical name='text' />
+{/*               <MarkdownInput
                 name='text'
                 minRows={6}
                 autoFocus={!replyOpen}
@@ -171,7 +173,7 @@ export default forwardRef(function Reply ({
                 appendValue={quote}
                 placeholder={placeholder}
                 hint={sub?.moderated && 'this territory is moderated'}
-              />
+              /> */}
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>
           </FeeButtonProvider>

@@ -1,6 +1,6 @@
 const { withPlausibleProxy } = require('next-plausible')
 const { InjectManifest } = require('workbox-webpack-plugin')
-const { generatePrecacheManifest } = require('./sw/build.js')
+const CopyPlugin = require('copy-webpack-plugin')
 const webpack = require('webpack')
 
 let isProd = process.env.NODE_ENV === 'production'
@@ -215,15 +215,25 @@ module.exports = withPlausibleProxy()({
   },
   webpack: (config, { isServer, dev, defaultLoaders }) => {
     if (isServer) {
-      generatePrecacheManifest()
       const workboxPlugin = new InjectManifest({
-        // ignore the precached manifest which includes the webpack assets
-        // since they are not useful to us
-        exclude: [/.*/],
-        // by default, webpack saves service worker at .next/server/
+        include: [/\/(icons|maskable|splash)\//, /\.webp$/],
+        // TODO: somehow also include these chunks but this doesn't work
+        // it requires a string instead of a regexp but I don't know the name of the chunk in advance ...
+        // probably need to figure out how to generate named chunks
+        // chunks: [/(main|framework|_app)-[a-f0-9]{16}\.js$/],
         swDest: '../../public/sw.js',
         swSrc: './sw/index.js',
         webpackCompilationPlugins: [
+          // we want to precache these static assets so we copy them to include them in the webpack pipeline
+          // so InjectManifest can inject them into the service worker manifest
+          new CopyPlugin({
+            patterns: [
+              { from: 'public/icons', to: '../icons' },
+              { from: 'public/maskable', to: '../maskable' },
+              { from: 'public/splash', to: '../splash' },
+              { from: 'public/waiting.webp', to: '../waiting.webp' }
+            ]
+          }),
           // this is need to allow the service worker to access these environment variables
           // from lib/constants.js
           new webpack.DefinePlugin({

@@ -51,15 +51,23 @@ export default forwardRef(function Reply ({
       update (cache, { data: { upsertComment: { result, invoice } } }) {
         if (!result) return
 
+        let injected = false
         cache.modify({
           id: `Item:${parentId}`,
           fields: {
-            comments (existingComments = {}) {
+            comments (existingComments = {}, { readField }) {
+              // if a pessimistic payment method is used,
+              // live comments might have already injected this comment
+              if (invoice && (existingComments?.comments || []).some(c => readField('id', c) === result.id)) {
+                return existingComments
+              }
+
               const newCommentRef = cache.writeFragment({
                 data: result,
                 fragment: COMMENTS,
                 fragmentName: 'CommentsRecursive'
               })
+              injected = true
               return {
                 cursor: existingComments.cursor,
                 comments: [newCommentRef, ...(existingComments?.comments || [])]
@@ -79,6 +87,10 @@ export default forwardRef(function Reply ({
             }
           })
         }
+
+        // if the comment was already injected by live comments in the case of a pessimistic payment method,
+        // side-effects have already been taken care of
+        if (!injected) return
 
         const ancestors = item.path.split('.')
 

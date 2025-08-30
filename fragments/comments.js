@@ -57,6 +57,7 @@ export const COMMENT_FIELDS = gql`
       confirmedAt
     }
     cost
+    postAnonymously
   }
 `
 

@@ -93,6 +93,11 @@ export default function ItemInfo ({
   const isPinnedSubReply = !isPost && item.position && !item.subName
   const isAd = !item.parentId && Number(item.user?.id) === USER_ID.ad
   const meSats = (me ? item.meSats : item.meAnonSats) || 0
+  let userToShow = {...item.user}
+  if (item.postAnonymously) {
+    userToShow.id = USER_ID.anon
+    userToShow.name = "anon"
+  }
 
   return (
     <div className={className || `${styles.other}`}>
@@ -132,9 +137,9 @@ export default function ItemInfo ({
       <span> \ </span>
       <span>
         {showUser &&
-          <Link href={`/${item.user.name}`}>
-            <UserPopover name={item.user.name}>@{item.user.name}</UserPopover>
-            <Badges badgeClassName='fill-grey' spacingClassName='ms-xs' height={12} width={12} user={item.user} />
+          <Link href={`/${userToShow.name}`}>
+            <UserPopover name={userToShow.name}>@{userToShow.name}</UserPopover>
+            <Badges badgeClassName='fill-grey' spacingClassName='ms-xs' height={12} width={12} user={userToShow} /> 
             {embellishUser}
           </Link>}
         <span> </span>

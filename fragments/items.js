@@ -81,6 +81,7 @@ export const ITEM_FIELDS = gql`
       confirmedAt
     }
     cost
+    postAnonymously
   }`
 
 export const ITEM_FULL_FIELDS = gql`

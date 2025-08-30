@@ -31,9 +31,9 @@ const imageUrlMatchers = [
   u => u.host === 'i.imgur.com'
 ]
 const exclude = [
-  u => u.protocol === 'mailto:',
+  u => u.protocol !== 'https:',
   u => u.host.endsWith('.onion') || u.host.endsWith('.b32.ip') || u.host.endsWith('.loki'),
-  u => ['twitter.com', 'x.com', 'nitter.it', 'nitter.at'].some(h => h === u.host),
+  u => ['twitter.com', 'x.com', 'nitter.it', 'nitter.at', 'xcancel.com'].some(h => h === u.host),
   u => u.host === 'stacker.news',
   u => u.host === 'news.ycombinator.com',
   u => u.host === 'www.youtube.com' || u.host === 'youtu.be',

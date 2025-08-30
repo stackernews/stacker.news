@@ -11,7 +11,7 @@ import styles from './user-header.module.css'
 import navStyles from '@/styles/nav.module.css'
 import { useMe } from './me'
 import { NAME_MUTATION } from '@/fragments/users'
-import { QRCodeSVG } from 'qrcode.react'
+import dynamic from 'next/dynamic'
 import LightningIcon from '@/svgs/bolt.svg'
 import { encodeLNUrl } from '@/lib/lnurl'
 import Avatar from './avatar'
@@ -245,6 +245,8 @@ function SocialLink ({ name, id }) {
   }
 }
 
+const LazyQRCodeSVG = dynamic(() => import('qrcode.react').then(m => m.QRCodeSVG), { ssr: false })
+
 function HeaderHeader ({ user }) {
   const { me } = useMe()
 
@@ -259,7 +261,8 @@ function HeaderHeader ({ user }) {
       </div>
   )
 
-  const lnurlp = encodeLNUrl(new URL(`${process.env.NEXT_PUBLIC_URL}/.well-known/lnurlp/${user.name}`))
+  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://stacker.news'
+  const lnurlp = encodeLNUrl(new URL(`${baseUrl}/.well-known/lnurlp/${user.name}`))
   return (
     <div className='d-flex mt-2 flex-wrap flex-column flex-sm-row'>
       <HeaderPhoto user={user} isMe={isMe} />
@@ -277,7 +280,7 @@ function HeaderHeader ({ user }) {
             showModal(({ onClose }) => (
               <>
                 <a className='d-flex m-auto p-3' style={{ background: 'white', maxWidth: 'fit-content' }} href={`lightning:${lnurlp}`}>
-                  <QRCodeSVG className='d-flex m-auto' value={lnurlp} size={300} />
+                  <LazyQRCodeSVG className='d-flex m-auto' value={lnurlp} size={300} />
                 </a>
                 <div className='text-center fw-bold text-muted mt-3'>click or scan</div>
               </>

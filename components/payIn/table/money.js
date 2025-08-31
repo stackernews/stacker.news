@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useMe } from '../../me'
-import { isNumber, numWithUnits, msatsToSats } from '@/lib/format'
+import { isNumber, numWithUnits, msatsToSatsDecimal } from '@/lib/format'
 import Plug from '@/svgs/plug.svg'
 
 export function PayInMoney ({ payIn }) {
@@ -25,7 +25,7 @@ function Money ({ mtokens, mtokensAfter, singular, plural }) {
   return (
     <div className='d-grid'>
       <div>{formatCost(mtokens, singular, plural)}</div>
-      {isNumber(mtokensAfter) && <small className='text-muted'>{numWithUnits(msatsToSats(mtokensAfter), { unitSingular: singular, unitPlural: plural, abbreviate: false })}</small>}
+      {isNumber(mtokensAfter) && <small className='text-muted'>{numWithUnits(msatsToSatsDecimal(mtokensAfter), { unitSingular: singular, unitPlural: plural, abbreviate: false })}</small>}
     </div>
   )
 }
@@ -38,7 +38,7 @@ function formatCost (mtokens, unitSingular, unitPlural) {
     sign = '+'
   }
 
-  return `${sign}${numWithUnits(msatsToSats(mtokens), { unitSingular, unitPlural, abbreviate: false })}`
+  return `${sign}${numWithUnits(msatsToSatsDecimal(mtokens), { unitSingular, unitPlural, abbreviate: false })}`
 }
 
 function reduceBolt11Cost (payIn, userId) {

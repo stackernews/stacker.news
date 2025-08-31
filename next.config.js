@@ -61,8 +61,7 @@ module.exports = withBundleAnalyzer(withPlausibleProxy()({
     serverSourceMaps: true
   },
   reactStrictMode: true,
-  // disable source maps in production to significantly reduce client bundle size
-  productionBrowserSourceMaps: false,
+  productionBrowserSourceMaps: true,
   generateBuildId: commitHash ? async () => commitHash : undefined,
   // Use the CDN in production and localhost for development.
   assetPrefix: isProd ? 'https://a.stacker.news' : undefined,

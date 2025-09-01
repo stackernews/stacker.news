@@ -101,12 +101,22 @@
     padding-left: 0 !important;
 }
 
+.navbarSpacer {
+    height: 39px;
+    margin-bottom: 0.25rem;
+}
+
 .sticky {
     position: fixed;
-    border-bottom: 1px solid var(--theme-toolbarActive);
-    width: 100vw;
-    top: -1px;
-    padding-top: 1px;
+    left: 0;
+    right: 0;
+    top: 0;
+    padding-top: 0.25rem;
     background-color: var(--bs-body-bg);
+    border-bottom: 1px solid transparent;
     z-index: 1000;
+}
+
+.sticky.scrolled {
+    border-bottom-color: var(--theme-toolbarActive);
 }

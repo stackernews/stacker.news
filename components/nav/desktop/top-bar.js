@@ -3,33 +3,19 @@ import styles from '../../header.module.css'
 import { AnonCorner, Back, Brand, MeCorner, NavPrice, SearchItem } from '../common'
 import { useMe } from '../../me'
 import { useCommentsNavigatorContext, CommentsNavigator } from '@/components/use-comments-navigator'
-import { useEffect, useRef } from 'react'
+import classNames from 'classnames'
+import { useScrollThreshold } from '@/components/use-scroll-threshold'
 
 export default function TopBar ({ prefix, sub, path, topNavKey, dropNavKey }) {
   const { me } = useMe()
   const { navigator, commentCount } = useCommentsNavigatorContext()
-  const ref = useRef()
-
-  useEffect(() => {
-    const stick = () => {
-      if (window.scrollY > 0) {
-        ref.current?.classList.add(styles.scrolled)
-      } else {
-        ref.current?.classList.remove(styles.scrolled)
-      }
-    }
-
-    window.addEventListener('scroll', stick)
-
-    return () => {
-      window.removeEventListener('scroll', stick)
-    }
-  }, [ref.current])
+  const { sentinelRef, past } = useScrollThreshold(0)
 
   return (
     <>
+      <div ref={sentinelRef} style={{ height: 1 }} aria-hidden />
       <div className={styles.navbarSpacer} />
-      <div className={styles.sticky} ref={ref}>
+      <div className={classNames(styles.sticky, past && styles.scrolled)}>
         <Container className='px-0 d-none d-md-block'>
           <Navbar className='py-0'>
             <Nav

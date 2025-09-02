@@ -10,12 +10,11 @@ export default function TopBar ({ prefix, sub, path, pathname, topNavKey, dropNa
   const { me } = useMe()
   const { navigator, commentCount } = useCommentsNavigatorContext()
   const showNavSelect = hasNavSelect({ path, pathname })
-  // TODO: arbitrary value?
   const { sentinelRef, past } = useScrollThreshold(0)
 
   return (
     <>
-      <div ref={sentinelRef} style={{ height: 1 }} aria-hidden />
+      <div ref={sentinelRef} style={{ height: 1 }} />
       {!showNavSelect && <div className={styles.navbarSpacer} />}
       <div className={classNames(styles.sticky, past && styles.scrolled, showNavSelect && !past && styles.hide)}>
         <Container className='px-sm-0'>

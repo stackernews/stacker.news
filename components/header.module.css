@@ -72,7 +72,7 @@
 .navbarNav {
     width: 100%;
     align-items: center;
-    height: 39px;
+    height: var(--navbar-height);
     align-content: center;
 }
 
@@ -102,8 +102,7 @@
 }
 
 .navbarSpacer {
-    height: 39px;
-    margin-bottom: 0.25rem;
+    height: var(--navbar-total-height);
 }
 
 .sticky {
@@ -111,9 +110,9 @@
     left: 0;
     right: 0;
     top: 0;
-    padding-top: 0.25rem;
+    padding-top: var(--navbar-padding-top);
     background-color: var(--bs-body-bg);
-    border-bottom: 1px solid transparent;
+    border-bottom: var(--navbar-border-width) solid transparent;
     z-index: 1000;
 }
 

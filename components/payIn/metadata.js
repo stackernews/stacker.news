@@ -12,7 +12,7 @@ export function PayInMetadata ({ payInBolt11 }) {
               body={
                 <pre>
                   <code>
-                    {JSON.stringify(nostrNote, null, 2)}
+                    {JSON.stringify(nostrNote.note, null, 2)}
                   </code>
                 </pre>
             }
@@ -31,7 +31,7 @@ export function PayInMetadata ({ payInBolt11 }) {
         <div className='w-100'>
           <AccordianItem
             header='sender comments'
-            body={<span className='text-muted ms-3'>{comment}</span>}
+            body={<span className='text-muted ms-3'>{comment.comment}</span>}
             className='mb-3'
           />
         </div>}

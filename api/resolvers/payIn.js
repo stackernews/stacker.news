@@ -28,7 +28,11 @@ function payInResultType (payInType) {
 
 const INCLUDE_PAYOUT_CUSTODIAL_TOKENS = {
   include: {
-    user: true,
+    user: {
+      include: {
+        invite: true
+      }
+    },
     subPayOutCustodialToken: {
       include: {
         sub: true
@@ -200,6 +204,9 @@ export default {
         return null
       }
       return await getSub(payIn, { name: payIn.subPayIn.subName }, { models, me })
+    },
+    invite: async (payIn, args, { models, me }) => {
+      return payIn.payOutCustodialTokens.find(token => token.payOutType === 'INVITE_GIFT')?.user?.invite
     },
     payOutCustodialTokens: async (payIn, args, { models, me }) => {
       if (typeof payIn.payOutCustodialTokens !== 'undefined') {

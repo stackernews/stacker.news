@@ -2,6 +2,7 @@ import gql from 'graphql-tag'
 import { ITEM_FULL_FIELDS } from './items'
 import { SUB_FULL_FIELDS } from './subs'
 import { COMMENTS } from './comments'
+import { INVITE_FIELDS } from './invites'
 
 const HASH_HMAC_INPUT_1 = '$hash: String, $hmac: String'
 const HASH_HMAC_INPUT_2 = 'hash: $hash, hmac: $hmac'
@@ -105,6 +106,7 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
   ${PAY_IN_FIELDS}
   ${ITEM_FULL_FIELDS}
   ${SUB_FULL_FIELDS}
+  ${INVITE_FIELDS}
   fragment PayInStatisticsFields on PayIn {
     id
     createdAt
@@ -151,6 +153,9 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
       id
       msats
       userId
+      bolt11
+      preimage
+      status
       payOutType
     }
     payOutCustodialTokens {
@@ -172,6 +177,9 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
     }
     sub {
       ...SubFullFields
+    }
+    invite {
+      ...InviteFields
     }
   }
 `

@@ -3,6 +3,9 @@ import Item from '@/components/item'
 import { CommentFlat } from '@/components/comment'
 import { TerritoryDetails } from '../territory-header'
 import { truncateString } from '@/lib/format'
+import Invite from '../invite'
+import Bolt11Info from './bolt11-info'
+import { PayInMetadata } from './metadata'
 
 export function PayInContext ({ payIn }) {
   switch (payIn.payInType) {
@@ -25,13 +28,21 @@ export function PayInContext ({ payIn }) {
     case 'TERRITORY_UNARCHIVE':
       return <TerritoryDetails sub={{ ...payIn.sub, desc: truncateString(payIn.sub.desc, 280) }} className='w-100' show={false} />
     case 'INVITE_GIFT':
-      return <div>TODO: Invite</div>
+      return (
+        <Invite
+          invite={payIn.invite}
+          active={!payIn.invite.revoked && !(payIn.invite.limit && payIn.invite.invitees.length >= payIn.invite.limit)}
+        />
+      )
     case 'PROXY_PAYMENT':
-      return <div>TODO: Proxy Payment</div>
+      return <PayInMetadata payInBolt11={payIn.payInBolt11} />
     case 'WITHDRAWAL':
     case 'AUTOWITHDRAWAL':
+      return <Bolt11Info bolt11={payIn.payOutBolt11.bolt11} preimage={payIn.payOutBolt11.preimage} />
     case 'DONATE':
+      return <small className='text-muted d-flex justify-content-center w-100'>Praise be, you donated to the rewards pool.</small>
     case 'BUY_CREDITS':
+      return <small className='text-muted d-flex justify-content-center w-100'>You topped up your cowboycredits.</small>
   }
   return <small className='text-muted d-flex justify-content-center w-100'>N/A</small>
 }

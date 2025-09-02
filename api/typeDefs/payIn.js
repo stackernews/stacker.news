@@ -149,6 +149,7 @@ type PayIn {
   payOutCustodialTokens: [PayOutCustodialToken!]
   item: Item
   sub: Sub
+  invite: Invite
 }
 
 enum PayOutType {
@@ -184,6 +185,7 @@ type PayOutBolt11 {
   msats: BigInt!
   payInId: Int!
   hash: String!
+  preimage: String
   bolt11: String!
   expiresAt: Date!
 }

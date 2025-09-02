@@ -203,7 +203,7 @@ function WalletProtocolFormField ({ type, ...props }) {
             <Text>{_help.text}</Text>
           </Info>
         )}
-        <small className='text-muted ms-2'>
+        <small className={classNames('text-muted', !help && 'ms-2')}>
           {upperHint
             ? <Text>{upperHint}</Text>
             : (!props.required ? 'optional' : null)}

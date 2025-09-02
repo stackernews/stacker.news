@@ -16,7 +16,7 @@ export default function TopBar ({ prefix, sub, path, topNavKey, dropNavKey }) {
       <div ref={sentinelRef} style={{ height: 1 }} aria-hidden />
       <div className={styles.navbarSpacer} />
       <div className={classNames(styles.sticky, past && styles.scrolled)}>
-        <Container className='px-0 d-none d-md-block'>
+        <Container className='px-0'>
           <Navbar className='py-0'>
             <Nav
               className={styles.navbarNav}

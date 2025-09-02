@@ -53,11 +53,12 @@ export function MultiStepForm ({ children, initial, steps }) {
 
 function Progress () {
   const steps = useSteps()
+  const maxSteps = useMaxSteps()
   const stepIndex = useStepIndex()
 
   const style = (index) => {
     switch (index) {
-      case 0: return { marginLeft: '-5px', marginRight: '-13px' }
+      case 0: return maxSteps === 2 ? { marginLeft: '-13px', marginRight: '-15px' } : { marginLeft: '-5px', marginRight: '-13px' }
       case 1: return { marginLeft: '-13px', marginRight: '-15px' }
       default: return {}
     }

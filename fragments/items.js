@@ -80,6 +80,7 @@ export const ITEM_FIELDS = gql`
     rel
     apiKey
     cost
+    meCommentsViewedAt
   }`
 
 export const ITEM_FULL_FIELDS = gql`
@@ -90,12 +91,15 @@ export const ITEM_FULL_FIELDS = gql`
     text
     root {
       id
+      createdAt
       title
       bounty
       bountyPaidTo
       subName
       mine
       ncomments
+      lastCommentAt
+      meCommentsViewedAt
       user {
         id
         name
@@ -206,5 +210,11 @@ export const RELATED_ITEMS_WITH_ITEM = gql`
         ...ItemFields
       }
     }
+  }
+`
+
+export const UPDATE_ITEM_USER_VIEW = gql`
+  mutation updateCommentsViewAt($id: ID!, $meCommentsViewedAt: Date!) {
+    updateCommentsViewAt(id: $id, meCommentsViewedAt: $meCommentsViewedAt)
   }
 `

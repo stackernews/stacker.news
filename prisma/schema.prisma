@@ -156,6 +156,7 @@ model User {
   PayInBolt11               PayInBolt11[]
   PayOutBolt11              PayOutBolt11[]
   PayOutCustodialToken      PayOutCustodialToken[]
+  CommentsViewAt            CommentsViewAt[]
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -499,6 +500,7 @@ model Item {
   AutoSocialPost       AutoSocialPost[]
   randPollOptions      Boolean               @default(false)
   itemPayIns           ItemPayIn[]
+  CommentsViewAt       CommentsViewAt[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -547,6 +549,17 @@ model ItemUserAgg {
   @@index([itemId])
   @@index([userId])
   @@index([createdAt])
+}
+
+model CommentsViewAt {
+  userId       Int
+  itemId       Int
+  lastViewedAt DateTime @default(now()) @map("last_viewed_at")
+  item         Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, itemId])
+  @@index([userId])
 }
 
 // record auto social posts so we can avoid duplicates

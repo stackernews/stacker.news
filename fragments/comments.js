@@ -205,8 +205,8 @@ export const COMMENT_WITH_NEW_MINIMAL = gql`
 export const GET_NEW_COMMENTS = gql`
   ${COMMENTS}
 
-  query GetNewComments($rootId: ID, $after: Date) {
-    newComments(rootId: $rootId, after: $after) {
+  query GetNewComments($topLevelId: ID, $after: Date) {
+    newComments(topLevelId: $topLevelId, after: $after) {
       comments {
         ...CommentsRecursive
       }

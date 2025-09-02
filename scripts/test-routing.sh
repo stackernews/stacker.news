@@ -2,8 +2,8 @@
 
 # test if every node can pay invoices from every other node
 
-SN_LND_PUBKEY=02cb2e2d5a6c5b17fa67b1a883e2973c82e328fb9bd08b2b156a9e23820c87a490
-LND_PUBKEY=028093ae52e011d45b3e67f2e0f2cb6c3a1d7f88d2920d408f3ac6db3a56dc4b35
+SN_LND_PUBKEY=034fcbe80658a2b0e32d416ca34c91cf359f7010b3529582fce6b1deddfadb2ba6
+LND_PUBKEY=03eff113993bd7dbb43f5e923d5569ecefa43e3cc7ce5b5634a4b6854d4b287dfa
 CLN_PUBKEY=03ca7acec181dbf5e427c682c4261a46a0dd9ea5f35d97acb094e399f727835b90
 
 # -e: exit on first failure | -x: print commands

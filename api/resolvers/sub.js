@@ -54,14 +54,15 @@ export default {
         const currentUser = await models.user.findUnique({ where: { id: me.id } })
         const showNsfw = currentUser ? currentUser.nsfwMode : false
 
-        return await models.$queryRawUnsafe(`
-          SELECT "Sub".*, "Sub".created_at as "createdAt", COALESCE(json_agg("MuteSub".*) FILTER (WHERE "MuteSub"."userId" IS NOT NULL), '[]') AS "MuteSub"
+        return await models.$queryRaw`
+          SELECT "Sub".*, "Sub".created_at as "createdAt", ss."userId" IS NOT NULL as "meSubscription", COALESCE(json_agg("MuteSub".*) FILTER (WHERE "MuteSub"."userId" IS NOT NULL), '[]') AS "MuteSub"
           FROM "Sub"
+          LEFT JOIN "SubSubscription" ss ON "Sub".name = ss."subName" AND ss."userId" = ${me.id}::INTEGER
           LEFT JOIN "MuteSub" ON "Sub".name = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}::INTEGER
-          WHERE status <> 'STOPPED' ${showNsfw ? '' : 'AND "Sub"."nsfw" = FALSE'}
-          GROUP BY "Sub".name, "MuteSub"."userId"
+          WHERE status <> 'STOPPED' ${showNsfw ? Prisma.empty : Prisma.sql`AND "Sub"."nsfw" = FALSE`}
+          GROUP BY "Sub".name, ss."userId", "MuteSub"."userId"
           ORDER BY "Sub".name ASC
-        `)
+        `
       }
 
       return await models.sub.findMany({

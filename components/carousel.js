@@ -5,6 +5,7 @@ import ArrowRight from '@/svgs/arrow-right-line.svg'
 import styles from './carousel.module.css'
 import { useShowModal } from './modal'
 import { Dropdown } from 'react-bootstrap'
+import { useRouter } from 'next/router'
 
 function useSwiping ({ moveLeft, moveRight }) {
   const [touchStartX, setTouchStartX] = useState(null)
@@ -114,17 +115,29 @@ function CarouselOverflow ({ originalSrc, rel }) {
 export function CarouselProvider ({ children }) {
   const media = useRef(new Map())
   const showModal = useShowModal()
+  const router = useRouter()
+  const isCarouselOpenRef = useRef(false)
 
-  const showCarousel = useCallback(({ src }) => {
+  const showCarousel = useCallback(async ({ src }) => {
     // only show confirmed entries
     const confirmedEntries = Array.from(media.current.entries())
       .filter(([, entry]) => entry.confirmed)
 
+    const index = confirmedEntries.findIndex(([key]) => key === src)
+    const { nodata, ...rest } = router.query
+    const query = { ...rest, imageId: String(index >= 0 ? index : 0) }
+    await router.push({ pathname: router.pathname, query }, undefined, { shallow: true })
+    isCarouselOpenRef.current = true
     showModal((close, setOptions) => {
       return <Carousel close={close} mediaArr={confirmedEntries} src={src} setOptions={setOptions} />
     }, {
       fullScreen: true,
-      overflow: <CarouselOverflow {...media.current.get(src)} />
+      overflow: <CarouselOverflow {...media.current.get(src)} />,
+      onClose: async () => {
+        const { imageId, nodata, ...rest } = router.query
+        isCarouselOpenRef.current = false
+        await router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true })
+      }
     })
   }, [showModal])
 
@@ -143,6 +156,20 @@ export function CarouselProvider ({ children }) {
   const removeMedia = useCallback((src) => {
     media.current.delete(src)
   }, [])
+
+  useEffect(() => {
+    const { imageId } = router.query
+    if (!imageId || isCarouselOpenRef.current) return
+
+    const confirmedEntries = Array.from(media.current.entries())
+      .filter(([, entry]) => entry.confirmed)
+
+    const index = Number(imageId)
+    if (Number.isInteger(index) && index >= 0 && index < confirmedEntries.length) {
+      const srcAtIndex = confirmedEntries[index][0]
+      showCarousel({ src: srcAtIndex })
+    }
+  }, [router.query.imageId, showCarousel])
 
   const value = useMemo(
     () => ({ showCarousel, addMedia, confirmMedia, removeMedia }),

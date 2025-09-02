@@ -23,10 +23,10 @@ export default {
       type: 'password',
       help: [
         'We only accept runes that *only* allow `method=invoice`.',
-        'Run this if you are on v23.08 to generate one:',
-        '```lightning-cli createrune restrictions=\'["method=invoice"]\'```',
-        'Or this if you are on v24.11 or later:',
+        'Run this to generate one if you are on v24.11 or later:',
         '```lightning-cli createrune restrictions=\'[["method=invoice"]]\'```',
+        'Or this if you are on an earlier version:',
+        '```lightning-cli createrune restrictions=\'["method=invoice"]\'```',
         '[see `createrune` documentation](https://docs.corelightning.org/reference/createrune#restriction-format)'
       ],
       placeholder: 'S34KtUW-6gqS_hD_9cc_PNhfF-NinZyBOCgr1aIrark9NCZtZXRob2Q9aW52b2ljZQ==',

@@ -402,7 +402,16 @@ export default {
       // )
 
       queries.push(
-        `(SELECT "PayIn".id::text,
+        `(WITH "GenesisPayIns" AS (
+          SELECT "PayIn"."genesisId"
+          FROM "PayIn"
+          WHERE "PayIn"."payInState" = 'FAILED'
+          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
+          AND "PayIn"."userId" = $1
+          GROUP BY "PayIn"."genesisId"
+          HAVING COUNT(*) >= ${WALLET_MAX_RETRIES} OR bool_or("PayIn"."payInFailureReason" = 'USER_CANCELLED')
+        )
+        SELECT "PayIn".id::text,
           "PayIn"."payInStateChangedAt" AS "sortTime", NULL as "earnedSats", 'PayInFailed' AS type
         FROM "PayIn"
         WHERE "PayIn"."userId" = $1

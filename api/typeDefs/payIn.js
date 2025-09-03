@@ -5,6 +5,7 @@ export default gql`
 extend type Query {
   payIn(id: Int!): PayIn
   satistics(cursor: String, inc: String): Satistics
+  failedPayIns: [PayIn!]!
 }
 
 extend type Mutation {

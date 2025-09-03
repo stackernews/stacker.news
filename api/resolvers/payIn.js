@@ -1,5 +1,5 @@
-import { USER_ID } from '@/lib/constants'
-import { GqlInputError } from '@/lib/error'
+import { USER_ID, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
+import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { payInCancel } from '../payIn/transitions'
 import { retry } from '../payIn'
@@ -108,6 +108,35 @@ export default {
         payIns,
         cursor: payIns.length === LIMIT ? nextCursorEncoded(decodedCursor) : null
       }
+    },
+    failedPayIns: async (parent, args, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+      return await models.$queryRaw`
+        WITH "FailedPayIns" AS (
+          -- payIns whose most recent attempt failed and are not retried yet
+          SELECT COALESCE("PayIn"."genesisId", "PayIn"."id") AS "genesisId"
+          FROM "PayIn"
+          WHERE "PayIn"."payInState" = 'FAILED'
+          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
+          AND "PayIn"."userId" = ${me.id}
+          AND "PayIn"."successorId" IS NULL
+          AND "PayIn"."payInFailureReason" <> 'USER_CANCELLED'
+          AND "PayIn"."payInStateChangedAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
+        ), "CanRetryPayIns" AS (
+          -- payIns that've failed but haven't been retried WALLET_MAX_RETRIES times
+          SELECT COALESCE("PayIn"."genesisId", "PayIn"."id") AS "genesisId"
+          FROM "PayIn"
+          WHERE "PayIn"."genesisId" IN (SELECT "genesisId" FROM "FailedPayIns")
+          OR "PayIn"."id" IN (SELECT "genesisId" FROM "FailedPayIns")
+          GROUP BY COALESCE("PayIn"."genesisId", "PayIn"."id")
+          HAVING COUNT(*) < ${WALLET_MAX_RETRIES}
+        )
+        SELECT "PayIn".*
+        FROM "PayIn"
+        WHERE "PayIn"."genesisId" IN (SELECT "genesisId" FROM "CanRetryPayIns")
+        OR "PayIn"."id" IN (SELECT "genesisId" FROM "CanRetryPayIns")`
     }
   },
   Mutation: {

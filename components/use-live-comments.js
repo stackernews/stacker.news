@@ -60,6 +60,19 @@ function prepareComments (item, cache, newComment) {
 function cacheNewComments (cache, latest, topLevelId, newComments, sort) {
   let injectedLatest = latest
   for (const newComment of newComments) {
+    // this is used to prevent live comments from injecting the comment we just created
+    // TODO: cleanup
+    const optimisticKey = `item:${newComment.id}:mine`
+    const pessimisticKey = `invoice:${newComment.invoice?.id}:mine`
+    const mine = window.sessionStorage.getItem(optimisticKey) || window.sessionStorage.getItem(pessimisticKey)
+    if (mine) {
+      // bump the latest timestamp
+      if (new Date(newComment.createdAt).getTime() > new Date(injectedLatest).getTime()) {
+        injectedLatest = newComment.createdAt
+      }
+      continue
+    }
+
     const { parentId } = newComment
     const topLevel = Number(parentId) === Number(topLevelId)
     let injected = false

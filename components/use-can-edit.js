@@ -20,7 +20,7 @@ export default function useCanEdit (item) {
     const anonEdit = !!invParams && !me && Number(item.user.id) === USER_ID.anon
     // anonEdit should not override canEdit, but only allow edits if they aren't already allowed
     setCanEdit(canEdit => canEdit || anonEdit)
-  }, [item?.invoice?.confirmedAt])
+  }, [])
 
   return [canEdit, setCanEdit, editThreshold]
 }

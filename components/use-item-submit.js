@@ -65,6 +65,12 @@ export default function useItemSubmit (mutation,
         // if not a comment, we want the qr to persist on navigation
         persistOnNavigate: navigateOnSubmit,
         ...paidMutationOptions,
+        update: (cache, { data }) => {
+          // TODO: this is a wrapper to record ownership
+          // TODO: cleanup
+          saveMyItem(data)
+          paidMutationOptions?.update?.(cache, { data })
+        },
         onPayError: (e, cache, { data }) => {
           paidActionCacheMods.onPayError(e, cache, { data })
           paidMutationOptions?.onPayError?.(e, cache, { data })
@@ -136,6 +142,16 @@ export function useRetryCreateItem ({ id }) {
   )
 
   return retryPaidAction
+}
+
+// this is used to prevent live updates from injecting the item we just created
+function saveMyItem (mutationData) {
+  console.log('saving item mine')
+  const response = Object.values(mutationData)[0]
+
+  // TODO: cleanup
+  const key = response.result?.id ? `item:${response.result?.id}:mine` : `invoice:${response.invoice?.id}:mine`
+  window.sessionStorage.setItem(key, true)
 }
 
 function saveItemInvoiceHmac (mutationData) {

@@ -2,6 +2,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { whenToFrom } from '@/lib/time'
 import { getItem, itemQueryWithMeta, SELECT } from './item'
 import { parse } from 'tldts'
+import { searchSchema, validateSchema } from '@/lib/validate'
 
 function queryParts (q) {
   const regex = /"([^"]*)"/gm
@@ -173,6 +174,7 @@ export default {
       }
     },
     search: async (parent, { q, cursor, sort, what, when, from: whenFrom, to: whenTo }, { me, models, search }) => {
+      await validateSchema(searchSchema, { q })
       const decodedCursor = decodeCursor(cursor)
       let sitems = null
 

@@ -66,8 +66,7 @@ export default function useItemSubmit (mutation,
         persistOnNavigate: navigateOnSubmit,
         ...paidMutationOptions,
         update: (cache, { data }) => {
-          // TODO: this is a wrapper to record ownership
-          // TODO: cleanup
+          // temporarily record ownership of this item in session storage
           saveMyItem(data)
           paidMutationOptions?.update?.(cache, { data })
         },
@@ -148,7 +147,6 @@ export function useRetryCreateItem ({ id }) {
 function saveMyItem (mutationData) {
   const response = Object.values(mutationData)[0]
 
-  // TODO: cleanup
   const key = response.result?.id ? `item:${response.result?.id}:mine` : `invoice:${response.invoice?.id}:mine`
   window.sessionStorage.setItem(key, true)
 }

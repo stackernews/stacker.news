@@ -75,9 +75,11 @@ function cacheNewComments (cache, latest, topLevelId, newComments, sort, me) {
   for (const newComment of newComments) {
     // this is used to prevent live comments from injecting the comment we just created
     const mine = checkOwnership(me, newComment)
-    if (mine && new Date(newComment.createdAt).getTime() > new Date(injectedLatest).getTime()) {
+    if (mine) {
       // don't inject this comment but bump the latest timestamp
-      injectedLatest = newComment.createdAt
+      if (new Date(newComment.createdAt).getTime() > new Date(injectedLatest).getTime()) {
+        injectedLatest = newComment.createdAt
+      }
       continue
     }
 

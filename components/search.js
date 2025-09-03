@@ -15,6 +15,7 @@ import { useRouter } from 'next/router'
 import { whenToFrom } from '@/lib/time'
 import { useMe } from './me'
 import { useField } from 'formik'
+import { searchSchema } from '@/lib/validate'
 
 export default function Search ({ sub }) {
   const router = useRouter()
@@ -65,6 +66,7 @@ export default function Search ({ sub }) {
           <Form
             initial={{ q, what, sort, when, from: '', to: '' }}
             onSubmit={values => search({ ...values })}
+            schema={searchSchema}
           >
             <div className={`${styles.active} mb-3`}>
               <SearchInput

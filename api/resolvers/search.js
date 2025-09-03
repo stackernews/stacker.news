@@ -81,7 +81,7 @@ export default {
           {
             neural: {
               title_embedding: {
-                query_text: qtext,
+                query_text: qtitle,
                 model_id: process.env.OPENSEARCH_MODEL_ID,
                 k: decodedCursor.offset + LIMIT
               }
@@ -90,7 +90,7 @@ export default {
           {
             neural: {
               text_embedding: {
-                query_text: qtitle,
+                query_text: qtext.slice(0, 100),
                 model_id: process.env.OPENSEARCH_MODEL_ID,
                 k: decodedCursor.offset + LIMIT
               }

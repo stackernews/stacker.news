@@ -2,7 +2,7 @@ import preserveScroll from './preserve-scroll'
 import { GET_NEW_COMMENTS } from '../fragments/comments'
 import { UPDATE_ITEM_USER_VIEW } from '../fragments/items'
 import { useEffect, useState, useCallback } from 'react'
-import { SSR, COMMENT_DEPTH_LIMIT } from '../lib/constants'
+import { SSR, COMMENT_DEPTH_LIMIT, USER_ID } from '../lib/constants'
 import { useQuery, useApolloClient, useMutation } from '@apollo/client'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import {
@@ -57,19 +57,27 @@ function prepareComments (item, cache, newComment) {
   return payload
 }
 
-function cacheNewComments (cache, latest, topLevelId, newComments, sort) {
+function checkOwnership (me, newComment) {
+  // is this mine?
+  if (Number(newComment.user.id) !== Number(me?.id ?? USER_ID.anon)) return false
+
+  if (newComment.invoice) {
+    // pessimistic
+    return window.sessionStorage.getItem(`invoice:${newComment.invoice.id}:mine`)
+  } else {
+    // optimistic
+    return window.sessionStorage.getItem(`item:${newComment.id}:mine`)
+  }
+}
+
+function cacheNewComments (cache, latest, topLevelId, newComments, sort, me) {
   let injectedLatest = latest
   for (const newComment of newComments) {
     // this is used to prevent live comments from injecting the comment we just created
-    // TODO: cleanup
-    const optimisticKey = `item:${newComment.id}:mine`
-    const pessimisticKey = `invoice:${newComment.invoice?.id}:mine`
-    const mine = window.sessionStorage.getItem(optimisticKey) || window.sessionStorage.getItem(pessimisticKey)
-    if (mine) {
-      // bump the latest timestamp
-      if (new Date(newComment.createdAt).getTime() > new Date(injectedLatest).getTime()) {
-        injectedLatest = newComment.createdAt
-      }
+    const mine = checkOwnership(me, newComment)
+    if (mine && new Date(newComment.createdAt).getTime() > new Date(injectedLatest).getTime()) {
+      // don't inject this comment but bump the latest timestamp
+      injectedLatest = newComment.createdAt
       continue
     }
 
@@ -146,7 +154,7 @@ export default function useLiveComments (topLevelId, after, sort) {
     // quirk: scroll is preserved even if we are not injecting new comments due to dedupe
     let injectedLatest = latest
     preserveScroll(() => {
-      injectedLatest = cacheNewComments(cache, injectedLatest, topLevelId, data.newComments.comments, sort)
+      injectedLatest = cacheNewComments(cache, injectedLatest, topLevelId, data.newComments.comments, sort, me)
     })
 
     // sync view time if we successfully injected new comments

@@ -146,7 +146,6 @@ export function useRetryCreateItem ({ id }) {
 
 // this is used to prevent live updates from injecting the item we just created
 function saveMyItem (mutationData) {
-  console.log('saving item mine')
   const response = Object.values(mutationData)[0]
 
   // TODO: cleanup

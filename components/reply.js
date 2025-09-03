@@ -9,7 +9,7 @@ import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
 import { CREATE_COMMENT } from '@/fragments/paidAction'
-import { injectComments } from '@/lib/comments'
+import { injectComment } from '@/lib/comments'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import useCommentsView from './use-comments-view'
@@ -52,7 +52,7 @@ export default forwardRef(function Reply ({
         if (!result) return
 
         // inject the new comment into the cache
-        injectComments(cache, result)
+        injectComment(cache, result)
 
         // no lag for itemRepetition
         if (!item.mine && me) {

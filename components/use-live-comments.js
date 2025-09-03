@@ -3,7 +3,7 @@ import { GET_NEW_COMMENTS } from '../fragments/comments'
 import { useEffect, useState, useCallback } from 'react'
 import { SSR } from '../lib/constants'
 import { useQuery, useApolloClient } from '@apollo/client'
-import { injectComments } from '../lib/comments'
+import { injectComment } from '../lib/comments'
 import { useMe } from './me'
 import useCommentsView from './use-comments-view'
 
@@ -11,7 +11,7 @@ const POLL_INTERVAL = 1000 * 5 // 5 seconds
 
 function cacheNewComments (cache, latest, newComments) {
   return newComments.reduce((latestTimestamp, newComment) => {
-    const commentCreatedAt = injectComments(cache, newComment, { injected: true })
+    const commentCreatedAt = injectComment(cache, newComment, { live: true })
 
     // return the most recent timestamp between current latest and new comment
     return new Date(commentCreatedAt) > new Date(latestTimestamp)

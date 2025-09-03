@@ -120,11 +120,11 @@ export default function Comment ({
 
     const classes = ref.current.classList
     const hasOutline = classes.contains('outline-new-comment')
-    const hasInjectedOutline = classes.contains('outline-new-injected-comment')
+    const hasLiveOutline = classes.contains('outline-new-live-comment')
     const hasOutlineUnset = classes.contains('outline-new-comment-unset')
 
     // don't try to untrack and unset the outline if the comment is not outlined or we already unset the outline
-    if (!(hasInjectedOutline || hasOutline) || hasOutlineUnset) return
+    if (!(hasLiveOutline || hasOutline) || hasOutlineUnset) return
 
     classes.add('outline-new-comment-unset')
     // untrack new comment and its descendants if it's not a live comment
@@ -172,16 +172,16 @@ export default function Comment ({
         (itemCreatedAt > rootLast))
     if (!isNewComment) return
 
-    if (item.injected) {
-      // newly injected comments (item.injected) have to use a different class to outline every new comment
-      ref.current.classList.add('outline-new-injected-comment')
+    if (item.live) {
+      // live comments (item.live) have to use a different class to outline every new comment
+      ref.current.classList.add('outline-new-live-comment')
 
       // wait for the injection animation to end before removing its class
       ref.current.addEventListener('animationend', () => {
-        ref.current.classList.remove(styles.injectedComment)
+        ref.current.classList.remove(styles.liveComment)
       }, { once: true })
       // animate the live comment injection
-      ref.current.classList.add(styles.injectedComment)
+      ref.current.classList.add(styles.liveComment)
     } else {
       ref.current.classList.add('outline-new-comment')
     }

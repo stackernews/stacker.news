@@ -67,7 +67,7 @@ export default function useItemSubmit (mutation,
         ...paidMutationOptions,
         update: (cache, { data }) => {
           // temporarily record ownership of this item in session storage
-          saveMyItem(data)
+          saveItemOwnership(data)
           paidMutationOptions?.update?.(cache, { data })
         },
         onPayError: (e, cache, { data }) => {
@@ -144,10 +144,12 @@ export function useRetryCreateItem ({ id }) {
 }
 
 // this is used to prevent live updates from injecting the item we just created
-function saveMyItem (mutationData) {
+function saveItemOwnership (mutationData) {
   const response = Object.values(mutationData)[0]
 
-  const key = response.result?.id ? `item:${response.result?.id}:mine` : `invoice:${response.invoice?.id}:mine`
+  if (!response?.result && !response?.invoice) return
+
+  const key = response.result?.id ? `item:${response.result.id}:mine` : `invoice:${response.invoice.id}:mine`
   window.sessionStorage.setItem(key, true)
 }
 

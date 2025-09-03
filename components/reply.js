@@ -1,6 +1,7 @@
 import { Form, MarkdownInput } from '@/components/form'
 import styles from './reply.module.css'
 import { COMMENTS } from '@/fragments/comments'
+import { UPDATE_ITEM_USER_VIEW } from '@/fragments/items'
 import { useMe } from './me'
 import { forwardRef, useCallback, useEffect, useState, useRef, useMemo } from 'react'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
@@ -14,6 +15,7 @@ import { CREATE_COMMENT } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import { updateAncestorsCommentCount } from '@/lib/comments'
+import { useMutation } from '@apollo/client'
 
 export default forwardRef(function Reply ({
   item,
@@ -30,6 +32,14 @@ export default forwardRef(function Reply ({
   const showModal = useShowModal()
   const root = useRoot()
   const sub = item?.sub || root?.sub
+  const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, {
+    update (cache, { data: { updateCommentsViewAt } }) {
+      cache.modify({
+        id: `Item:${root?.id}`,
+        fields: { meCommentsViewedAt: () => updateCommentsViewAt }
+      })
+    }
+  })
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
@@ -99,8 +109,14 @@ export default forwardRef(function Reply ({
 
         // so that we don't see indicator for our own comments, we record this comments as the latest time
         // but we also have record num comments, in case someone else commented when we did
-        const root = ancestors[0]
-        commentsViewedAfterComment(root, result.createdAt)
+        const rootId = ancestors[0]
+        if (me?.id) {
+          // server-tracked view
+          updateCommentsViewAt({ variables: { id: rootId, meCommentsViewedAt: result.createdAt } })
+        } else {
+          // anon fallback
+          commentsViewedAfterComment(rootId, result.createdAt)
+        }
       }
     },
     onSuccessfulSubmit: (data, { resetForm }) => {

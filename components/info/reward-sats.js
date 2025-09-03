@@ -5,7 +5,7 @@ export default function RewardSatsInfo (props) {
   return (
     <Info {...props}>
       <h6>Where did my sats come from?</h6>
-      <ul className='line-height-md'>
+      <ul>
         <li>you may have sats from before <Link href='/items/835465'>SN went not-custodial</Link></li>
         <li>sats also come from <Link href='/rewards'>daily rewards</Link> and territory revenue
           <ul>

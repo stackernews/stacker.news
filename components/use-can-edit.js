@@ -17,7 +17,6 @@ export default function useCanEdit (item) {
   useEffect(() => {
     // allow anon edits if they have the correct hmac for the item invoice
     // (the server will verify the hmac)
-    console.log('invParams', invParams)
     const anonEdit = !!invParams && !me && Number(item.user.id) === USER_ID.anon
     // anonEdit should not override canEdit, but only allow edits if they aren't already allowed
     setCanEdit(canEdit => canEdit || anonEdit)

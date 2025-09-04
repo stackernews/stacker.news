@@ -174,48 +174,13 @@ export const COMMENTS = gql`
     }
   }`
 
-export const COMMENT_WITH_NEW_RECURSIVE = gql`
-  ${COMMENT_FIELDS}
-  ${COMMENTS}
-
-  fragment CommentWithNewRecursive on Item {
-    ...CommentFields
-    comments {
-      comments {
-        ...CommentsRecursive
-      }
-    }
-  }
-`
-
-export const COMMENT_WITH_NEW_LIMITED = gql`
-  ${COMMENT_FIELDS}
-
-  fragment CommentWithNewLimited on Item {
-    ...CommentFields
-    comments {
-      comments {
-        ...CommentFields
-      }
-    }
-  }
-`
-
-export const COMMENT_WITH_NEW_MINIMAL = gql`
-  ${COMMENT_FIELDS}
-
-  fragment CommentWithNewMinimal on Item {
-    ...CommentFields
-  }
-`
-
 export const GET_NEW_COMMENTS = gql`
-  ${COMMENTS}
+  ${COMMENT_FIELDS}
 
   query GetNewComments($itemId: ID, $after: Date) {
     newComments(itemId: $itemId, after: $after) {
       comments {
-        ...CommentsRecursive
+        ...CommentFields
       }
     }
   }

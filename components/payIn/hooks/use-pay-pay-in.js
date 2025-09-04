@@ -10,17 +10,16 @@ export default function usePayPayIn () {
   const qrPayIn = useQrPayIn()
   return useCallback(async (payIn, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor, updateOnFallback }) => {
     let walletError
-    let walletInvoice = payIn.payInBolt11.bolt11
     const start = Date.now()
 
     try {
-      return await walletPayment(walletInvoice, { waitFor, updateOnFallback })
+      return await walletPayment(payIn, { waitFor, updateOnFallback })
     } catch (err) {
       walletError = null
       if (err instanceof WalletError) {
         walletError = err
         // get the last invoice that was attempted but failed and was canceled
-        if (err.invoice) walletInvoice = err.invoice
+        if (err.payIn) payIn = err.payIn
       }
 
       const invoiceError = err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError
@@ -40,7 +39,7 @@ export default function usePayPayIn () {
 
     const paymentAttempted = walletError instanceof WalletPaymentError
     if (paymentAttempted) {
-      walletInvoice = await payInHelper.retry(walletInvoice, { update: updateOnFallback })
+      payIn = await payInHelper.retry(payIn, { update: updateOnFallback })
     }
     console.log('usePayPayIn: qrPayIn', payIn.id, walletError)
     return await qrPayIn(payIn, walletError, { persistOnNavigate, waitFor })

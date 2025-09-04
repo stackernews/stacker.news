@@ -223,6 +223,15 @@ export const RETRY_PAY_IN = gql`
   }
 `
 
+export const FAILED_PAY_INS = gql`
+  ${PAY_IN_FIELDS}
+  query failedPayIns {
+    failedPayIns {
+      id
+    }
+  }
+`
+
 export const CANCEL_PAY_IN_BOLT11 = gql`
   ${PAY_IN_FIELDS}
   mutation cancelPayInBolt11($hash: String!, $hmac: String, $userCancel: Boolean) {

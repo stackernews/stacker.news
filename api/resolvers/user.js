@@ -4,7 +4,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
-import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, PAY_IN_NOTIFICATION_TYPES } from '@/lib/constants'
+import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
 import { viewGroup } from './growth'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
@@ -536,58 +536,38 @@ export default {
         return true
       }
 
-      const invoiceActionFailed = await models.PayIn.findFirst({
-        where: {
-          userId: me.id,
-          payInStateChangedAt: {
-            gt: lastChecked
-          },
-          payInType: {
-            in: PAY_IN_NOTIFICATION_TYPES
-          },
-          payInState: 'FAILED'
-          // OR: [
-          //   {
-          //     paymentAttempt: {
-          //       gte: WALLET_MAX_RETRIES
-          //     }
-          //   },
-          //   {
-          //     userCancel: true
-          //   }
-          // ]
-        }
-      })
+      const [invoiceActionFailed] = await models.$queryRaw`
+        SELECT EXISTS(
+          SELECT *
+          FROM "PayIn"
+          WHERE "PayIn"."payInState" = 'FAILED'
+          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
+          AND "PayIn"."userId" = ${me.id}
+          AND "PayIn"."successorId" IS NULL
+          AND (
+            (
+              "PayIn"."payInFailureReason" = 'USER_CANCELLED'
+              AND "PayIn"."payInStateChangedAt" > ${lastChecked}::timestamp
+            )
+            OR (
+              "PayIn"."payInStateChangedAt" <= now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
+              AND "PayIn"."payInStateChangedAt" + ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval > ${lastChecked}::timestamp
+            )
+            OR (
+              (
+                SELECT COUNT(*)
+                FROM "PayIn" sibling
+                WHERE "sibling"."genesisId" = "PayIn"."genesisId" OR "sibling"."id" = "PayIn"."genesisId"
+              ) >= ${WALLET_MAX_RETRIES}
+              AND "PayIn"."payInStateChangedAt" > ${lastChecked}::timestamp
+            )
+          )
+        )`
 
-      if (invoiceActionFailed) {
+      if (invoiceActionFailed.exists) {
         foundNotes()
         return true
       }
-
-      // const invoiceActionFailed2 = await models.invoice.findFirst({
-      //   where: {
-      //     userId: me.id,
-      //     updatedAt: {
-      //       gt: datePivot(lastChecked, { milliseconds: -WALLET_RETRY_BEFORE_MS })
-      //     },
-      //     actionType: {
-      //       in: INVOICE_ACTION_NOTIFICATION_TYPES
-      //     },
-      //     actionState: 'FAILED',
-      //     paymentAttempt: {
-      //       lt: WALLET_MAX_RETRIES
-      //     },
-      //     userCancel: false,
-      //     cancelledAt: {
-      //       lte: datePivot(new Date(), { milliseconds: -WALLET_RETRY_BEFORE_MS })
-      //     }
-      //   }
-      // })
-
-      // if (invoiceActionFailed2) {
-      //   foundNotes()
-      //   return true
-      // }
 
       // update checkedNotesAt to prevent rechecking same time period
       models.user.update({

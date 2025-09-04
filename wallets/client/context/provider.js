@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer } from 'react'
 import walletsReducer from './reducer'
-import { useServerWallets, useAutomatedRetries, useKeyInit, useWalletMigration } from './hooks'
+import { useServerWallets, useKeyInit, useWalletMigration } from './hooks'
+import { useAutoRetryPayIns } from '@/components/payIn/hooks/use-auto-retry-pay-ins'
 import { WebLnProvider } from '@/wallets/lib/protocols/webln'
 
 // https://react.dev/learn/scaling-up-with-reducer-and-context
@@ -78,7 +79,7 @@ export default function WalletsProvider ({ children }) {
 
 function WalletHooks ({ children }) {
   useServerWallets()
-  useAutomatedRetries()
+  useAutoRetryPayIns()
   useKeyInit()
 
   // TODO(wallet-v2): remove migration code

@@ -99,13 +99,13 @@ async function comments (me, models, item, sort, cursor) {
 }
 
 export async function getItem (parent, { id }, { me, models }) {
+  // todo: add ${payInJoinFilter(me)}
   const [item] = await itemQueryWithMeta({
     me,
     models,
     query: `
       ${SELECT}
       FROM "Item"
-      ${payInJoinFilter(me)}
       ${whereClause(
         '"Item".id = $1',
         activeOrMine(me)

@@ -114,9 +114,9 @@ export default {
         throw new GqlAuthenticationError()
       }
       return await models.$queryRaw`
-        WITH "FailedPayIns" AS (
-          -- payIns whose most recent attempt failed and are not retried yet
-          SELECT COALESCE("PayIn"."genesisId", "PayIn"."id") AS "genesisId"
+          -- payIns whose most recent attempt failed, are not retried enough times yet,
+          -- are not too old, and weren't manually cancelled
+          SELECT "PayIn".*
           FROM "PayIn"
           WHERE "PayIn"."payInState" = 'FAILED'
           AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
@@ -124,19 +124,16 @@ export default {
           AND "PayIn"."successorId" IS NULL
           AND "PayIn"."payInFailureReason" <> 'USER_CANCELLED'
           AND "PayIn"."payInStateChangedAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
-        ), "CanRetryPayIns" AS (
-          -- payIns that've failed but haven't been retried WALLET_MAX_RETRIES times
-          SELECT COALESCE("PayIn"."genesisId", "PayIn"."id") AS "genesisId"
-          FROM "PayIn"
-          WHERE "PayIn"."genesisId" IN (SELECT "genesisId" FROM "FailedPayIns")
-          OR "PayIn"."id" IN (SELECT "genesisId" FROM "FailedPayIns")
-          GROUP BY COALESCE("PayIn"."genesisId", "PayIn"."id")
-          HAVING COUNT(*) < ${WALLET_MAX_RETRIES}
-        )
-        SELECT "PayIn".*
-        FROM "PayIn"
-        WHERE "PayIn"."genesisId" IN (SELECT "genesisId" FROM "CanRetryPayIns")
-        OR "PayIn"."id" IN (SELECT "genesisId" FROM "CanRetryPayIns")`
+          AND (
+            "PayIn"."genesisId" IS NULL
+            OR (
+                SELECT COUNT(*)
+                FROM "PayIn" sibling
+                WHERE "sibling"."genesisId" = "PayIn"."genesisId"
+                OR "sibling"."id" = "PayIn"."genesisId"
+              ) < ${WALLET_MAX_RETRIES}
+            )
+          ORDER BY "PayIn"."payInStateChangedAt" ASC`
     }
   },
   Mutation: {

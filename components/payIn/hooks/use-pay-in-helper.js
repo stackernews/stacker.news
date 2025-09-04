@@ -48,14 +48,14 @@ export default function usePayInHelper () {
 
   const cancel = useCallback(async (payIn, { userCancel = false } = {}) => {
     const { hash, hmac } = payIn.payInBolt11
-    console.log('canceling invoice:', hash)
+    console.log('canceling payIn:', payIn.id, hash, hmac)
     const { data } = await cancelPayInBolt11({ variables: { hash, hmac, userCancel } })
     return data.cancelPayInBolt11
   }, [cancelPayInBolt11])
 
-  const retry = useCallback(async ({ payIn, newAttempt = false }, { update } = {}) => {
-    console.log('retrying invoice:', payIn.payInBolt11.hash)
-    const { data, error } = await retryPayIn({ variables: { payInId: payIn.id, newAttempt }, update })
+  const retry = useCallback(async ({ payIn }, { update } = {}) => {
+    console.log('retrying payIn:', payIn.id)
+    const { data, error } = await retryPayIn({ variables: { payInId: payIn.id }, update })
     if (error) throw error
 
     const newPayIn = data.retryPayIn

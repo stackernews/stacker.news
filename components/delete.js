@@ -7,7 +7,7 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import { useShowModal } from './modal'
 import { useToast } from './toast'
 
-export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
+export default function Delete ({ itemId, children, onDelete, type = 'post', founder = false }) {
   const showModal = useShowModal()
 
   const [deleteItem] = useMutation(
@@ -43,6 +43,7 @@ export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
           return (
             <DeleteConfirm
               type={type}
+              founder={founder}
               onConfirm={async () => {
                 const { error } = await deleteItem({ variables: { id: itemId } })
                 if (error) {
@@ -62,25 +63,31 @@ export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
   )
 }
 
-export function DeleteConfirm ({ onConfirm, type }) {
+export function DeleteConfirm ({ onConfirm, type, founder }) {
   const [error, setError] = useState()
   const toaster = useToast()
 
   return (
     <>
       {error && <Alert variant='danger' onClose={() => setError(undefined)} dismissible>{error}</Alert>}
-      <p className='fw-bolder'>Are you sure? This is a gone forever kind of delete.</p>
+      <p className='fw-bolder'>
+        {founder
+          ? `Are you sure? This will permanently delete this ${type.toLowerCase()} as the territory founder.`
+          : 'Are you sure? This is a gone forever kind of delete.'}
+      </p>
       <div className='d-flex justify-content-end'>
         <Button
           variant='danger' onClick={async () => {
             try {
               await onConfirm()
-              toaster.success(`deleted ${type.toLowerCase()}`)
+              toaster.success(founder
+                ? `deleted ${type.toLowerCase()} as founder`
+                : `deleted ${type.toLowerCase()}`)
             } catch (e) {
               setError(e.message || e)
             }
           }}
-        >delete
+        >{founder ? 'delete as founder' : 'delete'}
         </Button>
       </div>
     </>
@@ -88,10 +95,11 @@ export function DeleteConfirm ({ onConfirm, type }) {
 }
 
 export function DeleteDropdownItem (props) {
+  const { founder } = props || {}
   return (
     <Delete {...props}>
       <Dropdown.Item>
-        delete
+        {founder ? 'delete as founder' : 'delete'}
       </Dropdown.Item>
     </Delete>
   )

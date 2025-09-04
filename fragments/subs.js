@@ -34,6 +34,7 @@ export const SUB_FIELDS = gql`
     meMuteSub
     meSubscription
     nsfw
+    disableDeletion
   }`
 
 export const SUB_FULL_FIELDS = gql`

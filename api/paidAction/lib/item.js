@@ -49,16 +49,27 @@ export async function performBotBehavior ({ text, id }, { me, tx }) {
   // delete any existing deleteItem or reminder jobs for this item
   const userId = me?.id || USER_ID.anon
   id = Number(id)
+  const item = await tx.item.findUnique({
+    where: { id },
+    include: {
+      sub: true,
+      root: {
+        include: { sub: true }
+      }
+    }
+  })
   await tx.$queryRaw`
     DELETE FROM pgboss.job
     WHERE name = 'deleteItem'
     AND data->>'id' = ${id}::TEXT
     AND state <> 'completed'`
-  await deleteReminders({ id, userId, models: tx })
 
   if (text) {
     const deleteAt = getDeleteAt(text)
-    if (deleteAt) {
+    const itemSub = item.subName ? item.sub : item.root?.sub
+    const deletionDisabled = itemSub && itemSub.disableDeletion
+
+    if (deleteAt && !deletionDisabled) {
       await tx.$queryRaw`
         INSERT INTO pgboss.job (name, data, startafter, keepuntil)
         VALUES (
@@ -67,7 +78,9 @@ export async function performBotBehavior ({ text, id }, { me, tx }) {
           ${deleteAt}::TIMESTAMP WITH TIME ZONE,
           ${deleteAt}::TIMESTAMP WITH TIME ZONE + interval '1 minute')`
     }
-
+  }
+  await deleteReminders({ id, userId, models: tx })
+  if (text) {
     const remindAt = getRemindAt(text)
     if (remindAt) {
       await tx.$queryRaw`

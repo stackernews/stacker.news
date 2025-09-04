@@ -32,6 +32,7 @@ export const ITEM_FIELDS = gql`
       name
       userId
       moderated
+      disableDeletion
       meMuteSub
       meSubscription
       nsfw
@@ -110,6 +111,7 @@ export const ITEM_FULL_FIELDS = gql`
         name
         userId
         moderated
+        disableDeletion
         meMuteSub
         meSubscription
         replyCost

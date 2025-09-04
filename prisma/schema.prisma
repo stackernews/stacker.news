@@ -689,6 +689,7 @@ model Sub {
   moderated        Boolean     @default(false)
   moderatedCount   Int         @default(0)
   nsfw             Boolean     @default(false)
+  disableDeletion  Boolean     @default(false)
 
   parent            Sub?                @relation("ParentChildren", fields: [parentName], references: [name])
   children          Sub[]               @relation("ParentChildren")

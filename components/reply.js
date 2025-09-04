@@ -186,7 +186,10 @@ export default forwardRef(function Reply ({
                 required
                 appendValue={quote}
                 placeholder={placeholder}
-                hint={sub?.moderated && 'this territory is moderated'}
+                hint={[
+                  sub?.moderated && 'this territory is moderated',
+                  sub?.disableDeletion && 'this territory has deletion disabled'
+                ].filter(Boolean).join(' and ')}
               />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>

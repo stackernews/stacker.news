@@ -19,9 +19,9 @@ const readStoredLatest = (key, latest) => {
 }
 
 // cache new comments and return the most recent timestamp between current latest and new comment
-function cacheNewComments (cache, latest, newComments) {
+function cacheNewComments (cache, latest, itemId, newComments) {
   return newComments.reduce((latestTimestamp, newComment) => {
-    const commentCreatedAt = injectComment(cache, newComment, { live: true })
+    const commentCreatedAt = injectComment(cache, itemId, newComment, { live: true })
     return new Date(commentCreatedAt) > new Date(latestTimestamp)
       ? commentCreatedAt
       : latestTimestamp
@@ -61,7 +61,7 @@ export default function useLiveComments (itemId, after) {
 
     // directly inject new comments into the cache, preserving scroll position
     // quirk: scroll is preserved even if we are not injecting new comments due to dedupe
-    const injectedLatest = preserveScroll(() => cacheNewComments(cache, latest, newComments))
+    const injectedLatest = preserveScroll(() => cacheNewComments(cache, latest, itemId, newComments))
 
     // if no new comments were injected, bail
     if (new Date(injectedLatest).getTime() <= new Date(latest).getTime()) return

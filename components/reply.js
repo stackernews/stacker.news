@@ -52,7 +52,7 @@ export default forwardRef(function Reply ({
         if (!result) return
 
         // inject the new comment into the cache
-        injectComment(cache, result)
+        injectComment(cache, parentId, result)
 
         // no lag for itemRepetition
         if (!item.mine && me) {

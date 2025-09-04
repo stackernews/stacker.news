@@ -11,7 +11,7 @@ fi
 
 BOLT11=$1
 # add rune here
-# $ sndev cli clnrest createrune restrictions='["method=pay"]'
+# $ sndev cli cln createrune restrictions='[["method=pay"]]'
 RUNE=
 NODE_ID=02cb2e2d5a6c5b17fa67b1a883e2973c82e328fb9bd08b2b156a9e23820c87a490
 

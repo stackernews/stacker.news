@@ -1,95 +1,90 @@
+import { useEffect, useState, useCallback } from 'react'
+import { useQuery, useApolloClient } from '@apollo/client'
+import { SSR } from '../lib/constants'
 import preserveScroll from './preserve-scroll'
 import { GET_NEW_COMMENTS } from '../fragments/comments'
-import { useEffect, useState, useCallback } from 'react'
-import { SSR } from '../lib/constants'
-import { useQuery, useApolloClient } from '@apollo/client'
 import { injectComment } from '../lib/comments'
 import { useMe } from './me'
 import useCommentsView from './use-comments-view'
 
-const POLL_INTERVAL = 1000 * 5 // 5 seconds
+// live comments polling interval
+const POLL_INTERVAL = 1000 * 5
+// live comments toggle keys
+const STORAGE_DISABLE_KEY = 'disableLiveComments'
+const TOGGLE_EVENT = 'liveComments:toggle'
 
+const readStoredLatest = (key, latest) => {
+  const stored = window.sessionStorage.getItem(key)
+  return stored && stored > latest ? stored : latest
+}
+
+// cache new comments and return the most recent timestamp between current latest and new comment
 function cacheNewComments (cache, latest, newComments) {
   return newComments.reduce((latestTimestamp, newComment) => {
     const commentCreatedAt = injectComment(cache, newComment, { live: true })
-
-    // return the most recent timestamp between current latest and new comment
     return new Date(commentCreatedAt) > new Date(latestTimestamp)
       ? commentCreatedAt
       : latestTimestamp
   }, latest)
 }
 
-// useLiveComments fetches new comments under an item (topLevelId),
-// that are newer than the latest comment createdAt (after), and injects them into the cache.
-export default function useLiveComments (topLevelId, after) {
-  const latestKey = `liveCommentsLatest:${topLevelId}`
+// fetches comments for an item that are newer than the latest comment createdAt (after),
+// injectes them into cache, and keeps scroll position stable.
+export default function useLiveComments (itemId, after) {
+  const latestKey = `liveCommentsLatest:${itemId}`
   const { cache } = useApolloClient()
   const { me } = useMe()
   const markViewedAt = useCommentsView()
   const [disableLiveComments] = useLiveCommentsToggle()
+
   const [latest, setLatest] = useState(after)
   const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
-    const storedLatest = window.sessionStorage.getItem(latestKey)
-    if (storedLatest && storedLatest > after) {
-      setLatest(storedLatest)
-    } else {
-      setLatest(after)
-    }
-
+    setLatest(readStoredLatest(latestKey, after))
     // Apollo might update the cache before the page has fully rendered, causing reads of stale cached data
     // this prevents GET_NEW_COMMENTS from producing results before the page has fully rendered
     setInitialized(true)
-  }, [topLevelId, after])
+  }, [itemId, after])
 
   const { data } = useQuery(GET_NEW_COMMENTS, {
     pollInterval: POLL_INTERVAL,
     // only get comments newer than the passed latest timestamp
-    variables: { topLevelId, after: latest },
+    variables: { itemId, after: latest },
     nextFetchPolicy: 'cache-and-network',
     skip: SSR || !initialized || disableLiveComments
   })
 
   useEffect(() => {
-    if (!data?.newComments?.comments?.length) return
+    const newComments = data?.newComments?.comments
+    if (!newComments?.length) return
 
     // directly inject new comments into the cache, preserving scroll position
     // quirk: scroll is preserved even if we are not injecting new comments due to dedupe
-    let injectedLatest = latest
-    preserveScroll(() => {
-      injectedLatest = cacheNewComments(cache, injectedLatest, data.newComments.comments)
-    })
+    const injectedLatest = preserveScroll(() => cacheNewComments(cache, latest, newComments))
 
-    // sync view time if we successfully injected new comments
-    if (new Date(injectedLatest).getTime() > new Date(latest).getTime()) {
-      // sync view time
-      markViewedAt(injectedLatest)
+    // if no new comments were injected, bail
+    if (new Date(injectedLatest).getTime() <= new Date(latest).getTime()) return
 
-      // update latest timestamp to the latest comment created at
-      // save it to session storage, to persist between client-side navigations
-      setLatest(injectedLatest)
-      if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem(latestKey, injectedLatest)
-      }
-    }
-  }, [data, cache, topLevelId, latest, me?.id])
+    // sync view time
+    markViewedAt(injectedLatest)
+    // update latest timestamp to the latest comment created at
+    // save it to session storage, to persist between client-side navigations
+    setLatest(injectedLatest)
+    window.sessionStorage.setItem(latestKey, injectedLatest)
+  }, [data, cache, itemId, latest, me?.id])
 }
-
-const STORAGE_KEY = 'disableLiveComments'
-const TOGGLE_EVENT = 'liveComments:toggle'
 
 export function useLiveCommentsToggle () {
   const [disableLiveComments, setDisableLiveComments] = useState(false)
 
   useEffect(() => {
     // preference: local storage
-    const read = () => setDisableLiveComments(window.localStorage.getItem(STORAGE_KEY) === 'true')
+    const read = () => setDisableLiveComments(window.localStorage.getItem(STORAGE_DISABLE_KEY) === 'true')
     read()
 
     // update across tabs
-    const onStorage = e => { if (e.key === STORAGE_KEY) read() }
+    const onStorage = e => { if (e.key === STORAGE_DISABLE_KEY) read() }
     // update this tab
     const onToggle = () => read()
 
@@ -102,12 +97,11 @@ export function useLiveCommentsToggle () {
   }, [])
 
   const toggle = useCallback(() => {
-    const current = window.localStorage.getItem(STORAGE_KEY) === 'true'
-
-    window.localStorage.setItem(STORAGE_KEY, !current)
+    const current = window.localStorage.getItem(STORAGE_DISABLE_KEY) === 'true'
+    window.localStorage.setItem(STORAGE_DISABLE_KEY, !current)
     // trigger local event to update this tab
     window.dispatchEvent(new Event(TOGGLE_EVENT))
-  }, [disableLiveComments])
+  }, [])
 
   return [disableLiveComments, toggle]
 }

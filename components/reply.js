@@ -66,7 +66,7 @@ export default forwardRef(function Reply ({
         }
 
         // sync view time
-        if (injectResult.injected) markViewedAt(result.createdAt)
+        if (injectResult) markViewedAt(result.createdAt)
       }
     },
     onSuccessfulSubmit: (data, { resetForm }) => {

@@ -25,7 +25,7 @@ function cacheNewComments (cache, latest, itemId, newComments, markViewedAt) {
   const injectedLatest = newComments.reduce((latestTimestamp, newComment) => {
     const result = injectComment(cache, itemId, newComment, { live: true })
     // if any comment was injected, set injected to true
-    injected = result ? true : injected
+    injected = injected || result
     return new Date(newComment.createdAt) > new Date(latestTimestamp)
       ? newComment.createdAt
       : latestTimestamp

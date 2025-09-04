@@ -52,7 +52,7 @@ export default forwardRef(function Reply ({
         if (!result) return
 
         // inject the new comment into the cache
-        injectComment(cache, parentId, result)
+        const injectResult = injectComment(cache, root.id, result)
 
         // no lag for itemRepetition
         if (!item.mine && me) {
@@ -66,7 +66,7 @@ export default forwardRef(function Reply ({
         }
 
         // sync view time
-        markViewedAt(result.createdAt)
+        if (injectResult.injected) markViewedAt(result.createdAt)
       }
     },
     onSuccessfulSubmit: (data, { resetForm }) => {

@@ -19,13 +19,23 @@ const readStoredLatest = (key, latest) => {
 }
 
 // cache new comments and return the most recent timestamp between current latest and new comment
-function cacheNewComments (cache, latest, itemId, newComments) {
-  return newComments.reduce((latestTimestamp, newComment) => {
-    const commentCreatedAt = injectComment(cache, itemId, newComment, { live: true })
-    return new Date(commentCreatedAt) > new Date(latestTimestamp)
-      ? commentCreatedAt
+function cacheNewComments (cache, latest, itemId, newComments, markViewedAt) {
+  let injected = false
+
+  const injectedLatest = newComments.reduce((latestTimestamp, newComment) => {
+    const result = injectComment(cache, itemId, newComment, { live: true })
+    // if any comment was injected, set injected to true
+    injected = result ? true : injected
+    return new Date(newComment.createdAt) > new Date(latestTimestamp)
+      ? newComment.createdAt
       : latestTimestamp
   }, latest)
+
+  if (injected) {
+    markViewedAt(injectedLatest)
+  }
+
+  return injectedLatest
 }
 
 // fetches comments for an item that are newer than the latest comment createdAt (after),
@@ -61,13 +71,11 @@ export default function useLiveComments (itemId, after) {
 
     // directly inject new comments into the cache, preserving scroll position
     // quirk: scroll is preserved even if we are not injecting new comments due to dedupe
-    const injectedLatest = preserveScroll(() => cacheNewComments(cache, latest, itemId, newComments))
+    const injectedLatest = preserveScroll(() => cacheNewComments(cache, latest, itemId, newComments, markViewedAt))
 
     // if no new comments were injected, bail
     if (new Date(injectedLatest).getTime() <= new Date(latest).getTime()) return
 
-    // sync view time
-    markViewedAt(injectedLatest)
     // update latest timestamp to the latest comment created at
     // save it to session storage, to persist between client-side navigations
     setLatest(injectedLatest)

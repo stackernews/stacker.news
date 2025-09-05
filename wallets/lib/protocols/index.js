@@ -7,6 +7,7 @@ import lnbitsSuite from './lnbits'
 import phoenixdSuite from './phoenixd'
 import blinkSuite from './blink'
 import webln from './webln'
+import clink from './clink'
 
 /**
  * Protocol names as used in the database
@@ -45,5 +46,6 @@ export default [
   ...phoenixdSuite,
   ...lnbitsSuite,
   ...blinkSuite,
-  webln
+  webln,
+  clink
 ]

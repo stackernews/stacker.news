@@ -131,9 +131,10 @@ BEGIN
     (
         SELECT "PayInType", coalesce(sum("mtokens"), 0)::BIGINT as "totalMsats"
         FROM "PayIn"
-        JOIN "PayOutCustodialToken" ON "PayOutCustodialToken"."payInId" = "PayIn"."id" AND "PayOutCustodialToken"."payOutType" = 'REWARDS_POOL'
+        JOIN "PayOutCustodialToken" ON "PayOutCustodialToken"."payInId" = "PayIn"."id"
         WHERE date_trunc(date_part, "PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = period.t
         AND "PayIn"."payInState" = 'PAID'
+        AND "PayOutCustodialToken"."payOutType" = 'REWARDS_POOL'
         GROUP BY "PayInType"
     ) x
     GROUP BY period.t;

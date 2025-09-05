@@ -194,6 +194,9 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
   return { ...payIn, result: result ? { ...result, payIn } : undefined }
 }
 
+// TODO: it might be worth optimizing this by using Promise.all to avoid round trips to the database
+// https://www.prisma.io/docs/orm/prisma-client/queries/transactions#using-transaction-within-promiseall
+// ... although it's unclear if prisma is that smart
 export async function onFail (tx, payInId) {
   const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { payInCustodialTokens: true, beneficiaries: true } })
   if (!payIn) {
@@ -215,6 +218,9 @@ export async function onFail (tx, payInId) {
   }
 }
 
+// TODO: it might be worth optimizing this by using Promise.all to avoid round trips to the database
+// https://www.prisma.io/docs/orm/prisma-client/queries/transactions#using-transaction-within-promiseall
+// ... although it's unclear if prisma is that smart
 export async function onPaid (tx, payInId) {
   const payIn = await tx.payIn.findUnique({
     where: { id: payInId },
@@ -252,10 +258,10 @@ export async function onPaid (tx, payInId) {
 
   if (!isWithdrawal(payIn)) {
     if (payIn.payOutBolt11) {
-      await tx.$queryRaw`
-      UPDATE users
-      SET "stackedMsats" = "stackedMsats" + ${payIn.payOutBolt11.msats}
-      WHERE id = ${payIn.payOutBolt11.userId}`
+      await tx.$executeRaw`
+        UPDATE users
+        SET "stackedMsats" = "stackedMsats" + ${payIn.payOutBolt11.msats}
+        WHERE id = ${payIn.payOutBolt11.userId}`
     }
 
     // most paid actions are eligible for a cowboy hat streak

@@ -92,7 +92,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
   }
 
   if (router.query.type === 'nostr') {
-    return <NostrAuthWithExplainer callbackUrl={callbackUrl} text={text} multiAuth={multiAuth} />
+    return <NostrAuthWithExplainer callbackUrl={callbackUrl} text={text} multiAuth={multiAuth} enableQRLogin />
   }
 
   return (

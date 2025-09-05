@@ -1,4 +1,4 @@
-FROM polarlightning/clightning:23.08
+FROM polarlightning/clightning:24.11
 
 RUN apt-get update -y \
   && apt-get install -y jq wget \

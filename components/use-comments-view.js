@@ -8,15 +8,18 @@ import { useRoot } from './root'
 export default function useCommentsView ({ item, updateCache = true } = {}) {
   const { me } = useMe()
   const root = useRoot()
+  const itemId = item?.id || root?.id
 
   const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, {
     update (cache, { data: { updateCommentsViewAt } }) {
       if (!updateCache) return
 
-      cache.modify({
-        id: `Item:${item?.id || root?.id}`,
-        fields: { meCommentsViewedAt: () => updateCommentsViewAt }
-      })
+      if (itemId) {
+        cache.modify({
+          id: `Item:${itemId}`,
+          fields: { meCommentsViewedAt: () => updateCommentsViewAt }
+        })
+      }
     }
   })
 
@@ -30,26 +33,24 @@ export default function useCommentsView ({ item, updateCache = true } = {}) {
 
   // update meCommentsViewedAt on comment injection
   const markCommentViewedAt = useCallback((latest, { ncomments } = {}) => {
-    const id = item?.id || root?.id
-
     updateViewTimestamp(
-      id,
+      itemId,
       latest,
-      () => commentsViewedAfterComment(id, latest, ncomments)
+      () => commentsViewedAfterComment(itemId, latest, ncomments)
     )
-  }, [item?.id, root?.id, updateViewTimestamp])
+  }, [itemId, updateViewTimestamp])
 
   // update meCommentsViewedAt on item view
-  const markItemViewed = useCallback(() => {
-    if (item?.meCommentsViewedAt && !newComments(item)) return
-    const latest = new Date(item?.lastCommentAt)
+  const markItemViewed = useCallback((latest) => {
+    if (!item || (item?.meCommentsViewedAt && !newComments(item))) return
+    const newLatest = new Date(latest || item?.lastCommentAt)
 
     updateViewTimestamp(
-      item?.id,
-      latest,
+      itemId,
+      newLatest,
       () => commentsViewed(item)
     )
-  }, [item?.id, root?.id, updateViewTimestamp])
+  }, [item, itemId, updateViewTimestamp])
 
   return { markCommentViewedAt, markItemViewed }
 }

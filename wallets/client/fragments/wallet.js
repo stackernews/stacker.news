@@ -78,6 +78,10 @@ const WALLET_PROTOCOL_FIELDS = gql`
           ...VaultEntryFields
         }
       }
+      ... on WalletSendClink {
+        id
+        ndebit
+      }
       ... on WalletRecvNWC {
         id
         url
@@ -112,6 +116,10 @@ const WALLET_PROTOCOL_FIELDS = gql`
         socket
         macaroon
         cert
+      }
+      ... on WalletRecvClink {
+        id
+        noffer
       }
     }
   }

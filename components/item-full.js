@@ -163,10 +163,10 @@ function ItemText ({ item }) {
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {
   // no cache update here because we need to preserve the initial value
-  const { markItemViewed } = useCommentsView({ updateCache: false })
+  const { markItemViewed } = useCommentsView({ item, updateCache: false })
 
   useEffect(() => {
-    markItemViewed(item)
+    markItemViewed()
   }, [item.id, markItemViewed])
 
   const router = useRouter()

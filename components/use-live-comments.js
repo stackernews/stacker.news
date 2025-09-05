@@ -1,17 +1,15 @@
 import preserveScroll from './preserve-scroll'
 import { GET_NEW_COMMENTS } from '../fragments/comments'
-import { UPDATE_ITEM_USER_VIEW } from '../fragments/items'
 import { useEffect, useState, useCallback } from 'react'
 import { SSR, COMMENT_DEPTH_LIMIT } from '../lib/constants'
-import { useQuery, useApolloClient, useMutation } from '@apollo/client'
-import { commentsViewedAfterComment } from '../lib/new-comments'
+import { useQuery, useApolloClient } from '@apollo/client'
+import useCommentsView from './use-comments-view'
 import {
   updateItemQuery,
   updateCommentFragment,
   updateAncestorsCommentCount,
   calculateDepth
 } from '../lib/comments'
-import { useMe } from './me'
 import { useRoot } from './root'
 
 const POLL_INTERVAL = 1000 * 5 // 5 seconds
@@ -91,16 +89,8 @@ function cacheNewComments (cache, latest, topLevelId, newComments, sort) {
 export default function useLiveComments (topLevelId, after, sort) {
   const latestKey = `liveCommentsLatest:${topLevelId}`
   const { cache } = useApolloClient()
-  const { me } = useMe()
   const root = useRoot()
-  const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, {
-    update (cache, { data: { updateCommentsViewAt } }) {
-      cache.modify({
-        id: `Item:${root.id}`,
-        fields: { meCommentsViewedAt: () => updateCommentsViewAt }
-      })
-    }
-  })
+  const { markCommentViewedAt } = useCommentsView()
   const [disableLiveComments] = useLiveCommentsToggle()
   const [latest, setLatest] = useState(after)
   const [initialized, setInitialized] = useState(false)
@@ -138,13 +128,7 @@ export default function useLiveComments (topLevelId, after, sort) {
 
     // sync view time if we successfully injected new comments
     if (new Date(injectedLatest).getTime() > new Date(latest).getTime()) {
-      if (me?.id) {
-        // server-tracked view
-        updateCommentsViewAt({ variables: { id: root.id, meCommentsViewedAt: injectedLatest } })
-      } else {
-        // anon fallback
-        commentsViewedAfterComment(root.id, injectedLatest)
-      }
+      markCommentViewedAt(injectedLatest)
 
       // update latest timestamp to the latest comment created at
       // save it to session storage, to persist between client-side navigations
@@ -153,7 +137,7 @@ export default function useLiveComments (topLevelId, after, sort) {
         window.sessionStorage.setItem(latestKey, injectedLatest)
       }
     }
-  }, [data, cache, topLevelId, root.id, sort, latest, me?.id])
+  }, [data, cache, topLevelId, root.id, sort, latest, markCommentViewedAt])
 }
 
 const STORAGE_KEY = 'disableLiveComments'

@@ -5,14 +5,16 @@ import { commentsViewedAfterComment, commentsViewed, newComments } from '@/lib/n
 import { useMe } from './me'
 import { useRoot } from './root'
 
-export default function useCommentsView ({ updateCache = true } = {}) {
+export default function useCommentsView ({ item, updateCache = true } = {}) {
   const { me } = useMe()
   const root = useRoot()
 
-  const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, updateCache && {
+  const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, {
     update (cache, { data: { updateCommentsViewAt } }) {
+      if (!updateCache) return
+
       cache.modify({
-        id: `Item:${root.id}`,
+        id: `Item:${item?.id || root?.id}`,
         fields: { meCommentsViewedAt: () => updateCommentsViewAt }
       })
     }
@@ -24,30 +26,32 @@ export default function useCommentsView ({ updateCache = true } = {}) {
     } else {
       anonFallbackFn()
     }
-  }, [me?.id, updateCommentsViewAt])
+  }, [me?.id, updateCommentsViewAt, updateCache])
 
   // update meCommentsViewedAt on comment injection
   const markCommentViewedAt = useCallback((latest, { rootId, ncomments } = {}) => {
     const id = rootId || root.id
+
     updateViewTimestamp(
       id,
       latest,
       () => commentsViewedAfterComment(id, latest, ncomments)
     )
-  }, [me?.id, root?.id, updateViewTimestamp])
+  }, [root?.id, updateViewTimestamp, updateCache])
 
   // update meCommentsViewedAt on item view
-  const markItemViewed = useCallback(item => {
-    if (!newComments(item)) return
-    const { lastCommentAt, createdAt } = item
-    const latest = new Date(lastCommentAt || createdAt)
+  const markItemViewed = useCallback(() => {
+    if (item.meCommentsViewedAt && !newComments(item)) return
+
+    const { lastCommentAt } = item
+    const latest = new Date(lastCommentAt)
 
     updateViewTimestamp(
       item.id,
       latest,
       () => commentsViewed(item)
     )
-  }, [me?.id, updateViewTimestamp])
+  }, [updateViewTimestamp, updateCache])
 
   return { markCommentViewedAt, markItemViewed }
 }

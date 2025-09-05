@@ -181,7 +181,7 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
         "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward",
         to_jsonb("Sub".*) || jsonb_build_object('meMuteSub', "MuteSub"."userId" IS NOT NULL)
         || jsonb_build_object('meSubscription', "SubSubscription"."userId" IS NOT NULL) as sub,
-        COALESCE("CommentsViewAt"."last_viewed_at", "Item"."lastCommentAt", "Item"."created_at") as "meCommentsViewedAt"
+        "CommentsViewAt"."last_viewed_at" as "meCommentsViewedAt"
       FROM (
         ${query}
       ) "Item"

@@ -19,13 +19,26 @@ const readStoredLatest = (key, latest) => {
 }
 
 // cache new comments and return the most recent timestamp between current latest and new comment
+// regardless of whether the comments were injected or not
 function cacheNewComments (cache, latest, itemId, newComments, markViewedAt) {
-  return newComments.reduce((latestTimestamp, newComment) => {
-    const injected = injectComment(cache, itemId, newComment, { live: true, markViewedAt })
-    return injected && new Date(newComment.createdAt) > new Date(latestTimestamp)
+  let injected = false
+
+  const batchIds = new Set(newComments.map(c => c.id))
+
+  const injectedLatest = newComments.reduce((latestTimestamp, newComment) => {
+    const result = injectComment(cache, itemId, newComment, { live: true, batchIds })
+    // if any comment was injected, set injected to true
+    injected = injected || result
+    return new Date(newComment.createdAt) > new Date(latestTimestamp)
       ? newComment.createdAt
       : latestTimestamp
   }, latest)
+
+  if (injected) {
+    markViewedAt(injectedLatest)
+  }
+
+  return injectedLatest
 }
 
 // fetches comments for an item that are newer than the latest comment createdAt (after),
@@ -63,7 +76,7 @@ export default function useLiveComments (itemId, after) {
     // quirk: scroll is preserved even if we are not injecting new comments due to dedupe
     const injectedLatest = preserveScroll(() => cacheNewComments(cache, latest, itemId, newComments, markViewedAt))
 
-    // if no new comments were injected, bail
+    // if we didn't process any newer comments, bail
     if (new Date(injectedLatest).getTime() <= new Date(latest).getTime()) return
 
     // update latest timestamp to the latest comment created at

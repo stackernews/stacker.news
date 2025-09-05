@@ -52,7 +52,10 @@ export default forwardRef(function Reply ({
         if (!result) return
 
         // inject the new comment into the cache
-        injectComment(cache, root.id, result, { markViewedAt })
+        const injected = injectComment(cache, root.id, result, { markViewedAt })
+        if (injected) {
+          markViewedAt(result.createdAt)
+        }
 
         // no lag for itemRepetition
         if (!item.mine && me) {

@@ -20,26 +20,16 @@ const readStoredLatest = (key, latest) => {
 
 // cache new comments and return the most recent timestamp between current latest and new comment
 function cacheNewComments (cache, latest, itemId, newComments, markViewedAt) {
-  let injected = false
-
-  const injectedLatest = newComments.reduce((latestTimestamp, newComment) => {
-    const result = injectComment(cache, itemId, newComment, { live: true })
-    // if any comment was injected, set injected to true
-    injected = injected || result
-    return new Date(newComment.createdAt) > new Date(latestTimestamp)
+  return newComments.reduce((latestTimestamp, newComment) => {
+    const injected = injectComment(cache, itemId, newComment, { live: true, markViewedAt })
+    return injected && new Date(newComment.createdAt) > new Date(latestTimestamp)
       ? newComment.createdAt
       : latestTimestamp
   }, latest)
-
-  if (injected) {
-    markViewedAt(injectedLatest)
-  }
-
-  return injectedLatest
 }
 
 // fetches comments for an item that are newer than the latest comment createdAt (after),
-// injectes them into cache, and keeps scroll position stable.
+// injects them into cache, and keeps scroll position stable.
 export default function useLiveComments (itemId, after) {
   const latestKey = `liveCommentsLatest:${itemId}`
   const { cache } = useApolloClient()

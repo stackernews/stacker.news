@@ -151,7 +151,6 @@ export default gql`
     ncomments: Int!
     nDirectComments: Int!
     comments(sort: String, cursor: String): Comments!
-    live: Boolean!
     path: String
     position: Int
     prior: Int

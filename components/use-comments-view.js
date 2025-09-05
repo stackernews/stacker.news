@@ -26,32 +26,30 @@ export default function useCommentsView ({ item, updateCache = true } = {}) {
     } else {
       anonFallbackFn()
     }
-  }, [me?.id, updateCommentsViewAt, updateCache])
+  }, [me?.id, updateCommentsViewAt])
 
   // update meCommentsViewedAt on comment injection
-  const markCommentViewedAt = useCallback((latest, { rootId, ncomments } = {}) => {
-    const id = rootId || root.id
+  const markCommentViewedAt = useCallback((latest, { ncomments } = {}) => {
+    const id = item?.id || root?.id
 
     updateViewTimestamp(
       id,
       latest,
       () => commentsViewedAfterComment(id, latest, ncomments)
     )
-  }, [root?.id, updateViewTimestamp, updateCache])
+  }, [item?.id, root?.id, updateViewTimestamp])
 
   // update meCommentsViewedAt on item view
   const markItemViewed = useCallback(() => {
-    if (item.meCommentsViewedAt && !newComments(item)) return
-
-    const { lastCommentAt } = item
-    const latest = new Date(lastCommentAt)
+    if (item?.meCommentsViewedAt && !newComments(item)) return
+    const latest = new Date(item?.lastCommentAt)
 
     updateViewTimestamp(
-      item.id,
+      item?.id,
       latest,
       () => commentsViewed(item)
     )
-  }, [updateViewTimestamp, updateCache])
+  }, [item?.id, root?.id, updateViewTimestamp])
 
   return { markCommentViewedAt, markItemViewed }
 }

@@ -544,11 +544,11 @@ model ItemUserAgg {
 }
 
 model CommentsViewAt {
-  userId        Int
-  itemId        Int
-  lastViewedAt  DateTime @default(now()) @map("last_viewed_at")
-  item          Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int
+  itemId       Int
+  lastViewedAt DateTime @default(now()) @map("last_viewed_at")
+  item         Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, itemId])
   @@index([userId])

@@ -117,6 +117,7 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
     payInState
     payInFailureReason
     payInStateChangedAt
+    genesisId
     payInCustodialTokens {
       id
       mtokens

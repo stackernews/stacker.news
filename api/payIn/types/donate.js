@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 
 export const anonable = true
@@ -15,7 +15,7 @@ export async function getInitial (models, { sats }, { me }) {
     userId: me?.id,
     mcost: satsToMsats(sats),
     payOutCustodialTokens: [
-      { payOutType: 'REWARDS_POOL', userId: null, mtokens: satsToMsats(sats), custodialTokenType: 'SATS' }
+      { payOutType: 'REWARDS_POOL', userId: USER_ID.rewards, mtokens: satsToMsats(sats), custodialTokenType: 'SATS' }
     ]
   }
 }

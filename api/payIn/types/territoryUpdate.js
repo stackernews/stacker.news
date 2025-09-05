@@ -1,5 +1,5 @@
 import { throwOnExpiredUploads } from '@/api/resolvers/upload'
-import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST, USER_ID } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 import { proratedBillingCost } from '@/lib/territory'
 import { datePivot } from '@/lib/time'
@@ -25,7 +25,7 @@ export async function getInitial (models, { oldName, billingType }, { me }) {
     payInType: 'TERRITORY_UPDATE',
     userId: me?.id,
     mcost,
-    payOutCustodialTokens: mcost > 0n ? [{ payOutType: 'SYSTEM_REVENUE', userId: null, mtokens: mcost, custodialTokenType: 'SATS' }] : []
+    payOutCustodialTokens: mcost > 0n ? [{ payOutType: 'SYSTEM_REVENUE', userId: USER_ID.sn, mtokens: mcost, custodialTokenType: 'SATS' }] : []
   }
 }
 

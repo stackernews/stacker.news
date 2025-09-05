@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST, USER_ID } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 import { nextBilling } from '@/lib/territory'
 
@@ -24,7 +24,7 @@ export async function getInitial (models, { name }, { me }) {
     userId: me?.id,
     mcost,
     payOutCustodialTokens: [
-      { payOutType: 'SYSTEM_REVENUE', userId: null, mtokens: mcost, custodialTokenType: 'SATS' }
+      { payOutType: 'SYSTEM_REVENUE', userId: USER_ID.sn, mtokens: mcost, custodialTokenType: 'SATS' }
     ]
   }
 }

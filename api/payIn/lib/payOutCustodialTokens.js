@@ -1,3 +1,5 @@
+import { USER_ID } from '@/lib/constants'
+
 export function getRedistributedPayOutCustodialTokens ({ sub, payOutCustodialTokens = [], payOutBolt11 = { msats: 0n }, mcost }) {
   const remainingMtokens = mcost - payOutBolt11.msats - payOutCustodialTokens.reduce((acc, token) => acc + token.mtokens, 0n)
   if (remainingMtokens < 0n) {
@@ -26,7 +28,7 @@ export function getRedistributedPayOutCustodialTokens ({ sub, payOutCustodialTok
   const rewardMtokens = remainingMtokens - revenueMtokens
   payOutCustodialTokensCopy.push({
     payOutType: 'REWARDS_POOL',
-    userId: null,
+    userId: USER_ID.rewards,
     mtokens: rewardMtokens,
     custodialTokenType: 'SATS'
   })

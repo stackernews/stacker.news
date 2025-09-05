@@ -142,6 +142,8 @@ type PayIn {
   payInState: PayInState!
   payInFailureReason: PayInFailureReason
   payInStateChangedAt: Date!
+  genesisId: Int
+  successorId: Int
   payInBolt11: PayInBolt11
   payInCustodialTokens: [PayInCustodialToken!]
   result: PayInResult

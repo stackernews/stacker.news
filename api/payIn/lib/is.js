@@ -31,6 +31,10 @@ export function isP2P (payIn) {
   return payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.P2P)
 }
 
+export function isSystemOnly (payIn) {
+  return payIn.payInType === 'REWARDS'
+}
+
 export function isProxyPayment (payIn) {
   return payIn.payInType === 'PROXY_PAYMENT'
 }

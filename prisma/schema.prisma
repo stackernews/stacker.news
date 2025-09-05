@@ -356,15 +356,18 @@ model Upload {
 }
 
 model Earn {
-  id        Int       @id @default(autoincrement())
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
-  msats     BigInt
-  userId    Int
-  rank      Int?
-  type      EarnType?
-  typeId    Int?
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                     Int                   @id @default(autoincrement())
+  createdAt              DateTime              @default(now()) @map("created_at")
+  updatedAt              DateTime              @default(now()) @updatedAt @map("updated_at")
+  msats                  BigInt
+  userId                 Int
+  rank                   Int?
+  typeProportion         Float?
+  type                   EarnType?
+  typeId                 Int?
+  user                   User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payOutCustodialTokenId Int?
+  payOutCustodialToken   PayOutCustodialToken? @relation(fields: [payOutCustodialTokenId], references: [id], onDelete: Cascade)
 
   @@index([createdAt], map: "Earn.created_at_index")
   @@index([createdAt, userId], map: "Earn.created_at_userId_index")
@@ -1672,6 +1675,7 @@ model PayOutCustodialToken {
   custodialTokenType CustodialTokenType
 
   subPayOutCustodialToken SubPayOutCustodialToken?
+  earns                   Earn[]
 }
 
 model PayInBolt11 {

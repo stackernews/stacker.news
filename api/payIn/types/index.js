@@ -14,6 +14,7 @@ import * as BUY_CREDITS from './buyCredits'
 import * as INVITE_GIFT from './inviteGift'
 import * as WITHDRAWAL from './withdrawal'
 import * as AUTO_WITHDRAWAL from './autoWithdrawal'
+import * as REWARDS from './rewards'
 
 export default {
   BUY_CREDITS,
@@ -32,4 +33,8 @@ export default {
   PROXY_PAYMENT,
   WITHDRAWAL,
   AUTO_WITHDRAWAL
+}
+
+export const systemOnlyPayIns = {
+  REWARDS
 }

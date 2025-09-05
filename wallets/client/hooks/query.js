@@ -6,6 +6,7 @@ import {
   UPSERT_WALLET_RECEIVE_LND_GRPC,
   UPSERT_WALLET_RECEIVE_NWC,
   UPSERT_WALLET_RECEIVE_PHOENIXD,
+  UPSERT_WALLET_RECEIVE_CLINK,
   UPSERT_WALLET_SEND_BLINK,
   UPSERT_WALLET_SEND_LNBITS,
   UPSERT_WALLET_SEND_LNC,
@@ -13,6 +14,7 @@ import {
   UPSERT_WALLET_SEND_PHOENIXD,
   UPSERT_WALLET_SEND_WEBLN,
   UPSERT_WALLET_SEND_CLN_REST,
+  UPSERT_WALLET_SEND_CLINK,
   WALLETS,
   UPDATE_WALLET_ENCRYPTION,
   RESET_WALLETS,
@@ -26,6 +28,7 @@ import {
   TEST_WALLET_RECEIVE_NWC,
   TEST_WALLET_RECEIVE_CLN_REST,
   TEST_WALLET_RECEIVE_LND_GRPC,
+  TEST_WALLET_RECEIVE_CLINK,
   DELETE_WALLET
 } from '@/wallets/client/fragments'
 import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
@@ -303,6 +306,8 @@ function protocolUpsertMutation (protocol) {
       return protocol.send ? UPSERT_WALLET_SEND_LNC : NOOP_MUTATION
     case 'WEBLN':
       return protocol.send ? UPSERT_WALLET_SEND_WEBLN : NOOP_MUTATION
+    case 'CLINK':
+      return protocol.send ? UPSERT_WALLET_SEND_CLINK : UPSERT_WALLET_RECEIVE_CLINK
     default:
       return NOOP_MUTATION
   }
@@ -326,6 +331,8 @@ function protocolTestMutation (protocol) {
       return TEST_WALLET_RECEIVE_CLN_REST
     case 'LND_GRPC':
       return TEST_WALLET_RECEIVE_LND_GRPC
+    case 'CLINK':
+      return TEST_WALLET_RECEIVE_CLINK
     default:
       return NOOP_MUTATION
   }

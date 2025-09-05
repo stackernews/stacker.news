@@ -221,6 +221,7 @@ model Vault {
   walletSendLNCRemoteKey     WalletSendLNC?      @relation("lncRemoteKey")
   walletSendLNCServerHost    WalletSendLNC?      @relation("lncServerHost")
   walletSendCLNRestRune      WalletSendCLNRest?  @relation("clnRune")
+  walletSendClink            WalletSendClink?    @relation("clinkNdebit")
 }
 
 model WalletLog {
@@ -1213,6 +1214,7 @@ enum WalletProtocolName {
   LNC
   CLN_REST
   LND_GRPC
+  CLINK
 }
 
 enum WalletSendProtocolName {
@@ -1223,6 +1225,7 @@ enum WalletSendProtocolName {
   WEBLN
   LNC
   CLN_REST
+  CLINK
 }
 
 enum WalletRecvProtocolName {
@@ -1233,6 +1236,7 @@ enum WalletRecvProtocolName {
   LN_ADDR
   CLN_REST
   LND_GRPC
+  CLINK
 }
 
 enum WalletProtocolStatus {
@@ -1325,6 +1329,7 @@ model WalletProtocol {
   walletSendWebLN    WalletSendWebLN?
   walletSendLNC      WalletSendLNC?
   walletSendCLNRest  WalletSendCLNRest?
+  walletSendClink    WalletSendClink?
 
   walletRecvNWC              WalletRecvNWC?
   walletRecvLNbits           WalletRecvLNbits?
@@ -1333,6 +1338,7 @@ model WalletProtocol {
   walletRecvLightningAddress WalletRecvLightningAddress?
   walletRecvCLNRest          WalletRecvCLNRest?
   walletRecvLNDGRPC          WalletRecvLNDGRPC?
+  walletRecvClink            WalletRecvClink?
 
   @@unique(name: "WalletProtocol_walletId_send_name_key", [walletId, send, name])
   @@index([walletId])
@@ -1417,6 +1423,16 @@ model WalletSendCLNRest {
   rune        Vault?         @relation("clnRune", fields: [runeVaultId], references: [id])
 }
 
+model WalletSendClink {
+  id         Int            @id @default(autoincrement())
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at")
+  protocolId Int            @unique
+  protocol   WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  ndebitId   Int            @unique
+  ndebit     Vault?         @relation("clinkNdebit", fields: [ndebitId], references: [id])
+}
+
 model WalletRecvNWC {
   id         Int            @id @default(autoincrement())
   createdAt  DateTime       @default(now()) @map("created_at")
@@ -1485,4 +1501,13 @@ model WalletRecvLNDGRPC {
   socket     String
   macaroon   String
   cert       String?
+}
+
+model WalletRecvClink {
+  id         Int            @id @default(autoincrement())
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at")
+  protocolId Int            @unique
+  protocol   WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  noffer     String
 }

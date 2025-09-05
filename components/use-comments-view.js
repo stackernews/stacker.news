@@ -23,7 +23,7 @@ export default function useCommentsView ({ item, updateCache = true } = {}) {
     }
   })
 
-  const updateViewTimestamp = useCallback((id, timestamp, anonFallbackFn) => {
+  const updateViewedAt = useCallback((id, timestamp, anonFallbackFn) => {
     if (me?.id) {
       updateCommentsViewAt({ variables: { id, meCommentsViewedAt: timestamp } })
     } else {
@@ -33,24 +33,24 @@ export default function useCommentsView ({ item, updateCache = true } = {}) {
 
   // update meCommentsViewedAt on comment injection
   const markCommentViewedAt = useCallback((latest, { ncomments } = {}) => {
-    updateViewTimestamp(
+    updateViewedAt(
       itemId,
       latest,
       () => commentsViewedAfterComment(itemId, latest, ncomments)
     )
-  }, [itemId, updateViewTimestamp])
+  }, [itemId, updateViewedAt])
 
   // update meCommentsViewedAt on item view
   const markItemViewed = useCallback((latest) => {
     if (!item || (item?.meCommentsViewedAt && !newComments(item))) return
     const newLatest = new Date(latest || item?.lastCommentAt)
 
-    updateViewTimestamp(
+    updateViewedAt(
       itemId,
       newLatest,
       () => commentsViewed(item)
     )
-  }, [item, itemId, updateViewTimestamp])
+  }, [item, itemId, updateViewedAt])
 
   return { markCommentViewedAt, markItemViewed }
 }

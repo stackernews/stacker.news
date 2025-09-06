@@ -8,10 +8,12 @@ import CancelButton from '@/components/cancel-button'
 import Text from '@/components/text'
 import Info from '@/components/info'
 import { useFormState, useMaxSteps, useNext, useStepIndex } from '@/components/multi-step-form'
-import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
+import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolGuideUrl, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
 import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport } from '@/wallets/client/hooks'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
+import Link from 'next/link'
+import InfoIcon from '@/svgs/information-fill.svg'
 
 import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm } from './hooks'
 import { Settings } from './settings'
@@ -74,10 +76,18 @@ function WalletProtocolSelector () {
     <Nav className={classNames(navStyles.nav, 'mt-0')} activeKey={protocol?.name}>
       {
         protocols.map(p => {
+          const guideUrl = protocolGuideUrl(p)
           return (
             <Nav.Item key={p.id} onClick={() => selectProtocol(p)}>
-              <Nav.Link eventKey={p.name}>
+              <Nav.Link eventKey={p.name} className='d-flex align-items-center'>
                 {protocolDisplayName(p)}
+                {guideUrl && (
+                  <Link href={guideUrl} className='ms-1'>
+                    <InfoIcon
+                      width={18} height={18} className='fill-theme-color mx-1'
+                    />
+                  </Link>
+                )}
               </Nav.Link>
             </Nav.Item>
           )

@@ -109,7 +109,7 @@ export function useCommentsNavigator () {
         node.classList.remove(
           'outline-it',
           'outline-new-comment',
-          'outline-new-injected-comment'
+          'outline-new-live-comment'
         )
         node.classList.add('outline-new-comment-unset')
       }

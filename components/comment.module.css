@@ -139,7 +139,7 @@
     padding-top: .5rem;
 }
 
-.injectedComment {
+.liveComment {
     animation: fadeIn 0.5s ease-out;
 }
 

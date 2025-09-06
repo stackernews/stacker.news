@@ -223,9 +223,27 @@ export default function ItemInfo ({
                   <PinSubDropdownItem item={item} />
                 </>}
               {item.mine && !item.position && !item.deletedAt && !item.bio &&
+                (!sub?.disableDeletion || (me && sub?.userId === Number(me.id))) &&
+                  <>
+                    <hr className='dropdown-divider' />
+                    <DeleteDropdownItem
+                      itemId={item.id}
+                      type={item.title ? 'post' : 'comment'}
+                      founder={sub?.disableDeletion && me && sub?.userId === Number(me.id)}
+                    />
+                  </>}
+              {item.mine && !item.position && !item.deletedAt && !item.bio && sub?.disableDeletion &&
+                me && sub?.userId !== Number(me.id) &&
+                  <>
+                    <hr className='dropdown-divider' />
+                    <Dropdown.Item disabled className='text-muted'>
+                      delete disabled by territory founder
+                    </Dropdown.Item>
+                  </>}
+              {!item.mine && sub?.disableDeletion && me && sub?.userId === Number(me.id) &&
                 <>
                   <hr className='dropdown-divider' />
-                  <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />
+                  <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} founder />
                 </>}
               {me && !item.mine &&
                 <>

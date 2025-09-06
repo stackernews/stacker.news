@@ -1,0 +1,38 @@
+---
+title: Official LNbits Guide
+id: 459388
+sub: meta
+---
+
+# Official LNbits Guide
+
+last updated: September 6, 2025
+
+Requirements:
+
+- LNbits v1.0.0 or later
+- reachable from the internet via clearnet or tor (receive only)
+- HTTPS required if not accessing over tor
+
+## Attach send
+
+For **url**, enter the URL to your LNbits web interface. It must start with https://. Onion URLs are not supported for sending.
+
+For **admin key**, follow these steps:
+
+1. Go to your LNbits web interface
+2. Create a new wallet for Stacker News (you need to be super user for this):
+
+![](https://m.stacker.news/107021)
+
+3. Copy and paste the admin key:
+
+![](https://m.stacker.news/107022)
+
+## Attach receive
+
+For **url**, enter the URL to your LNbits web interface. http:// is supported for onion URLs.
+
+For **invoice key**, follow the steps to [attach send](#attach-send) and copy the invoice/read key instead of the admin key:
+
+![](https://m.stacker.news/107024)

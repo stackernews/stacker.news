@@ -57,7 +57,7 @@ export default forwardRef(function Reply ({
 
   const onSubmit = useItemSubmit(CREATE_COMMENT, {
     extraValues: { parentId },
-    paidMutationOptions: {
+    payInMutationOptions: {
       update (cache, { data: { upsertComment: { result } } }) {
         if (!result) return
 

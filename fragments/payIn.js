@@ -61,6 +61,7 @@ export const PAY_IN_FIELDS = gql`
       }
     }
     pessimisticEnv {
+      id
       error
       result
     }
@@ -103,7 +104,6 @@ export const PAY_IN_FIELDS = gql`
 `
 
 export const PAY_IN_STATISTICS_FIELDS = gql`
-  ${PAY_IN_FIELDS}
   ${ITEM_FULL_FIELDS}
   ${SUB_FULL_FIELDS}
   ${INVITE_FIELDS}
@@ -167,6 +167,7 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
       mtokensAfter
       custodialTokenType
       user {
+        id
         name
       }
       sub {
@@ -187,8 +188,8 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
 
 export const SATISTICS = gql`
   ${PAY_IN_STATISTICS_FIELDS}
-  query satistics($cursor: String, $inc: String) {
-    satistics(cursor: $cursor, inc: $inc) {
+  query Satistics($cursor: String) {
+    satistics(cursor: $cursor) {
       payIns {
         ...PayInStatisticsFields
       }

@@ -418,45 +418,36 @@ export default {
       }
 
       if (user.noteDeposits) {
-        const invoice = await models.invoice.findFirst({
+        const proxyPayment = await models.payIn.findFirst({
           where: {
             userId: me.id,
-            confirmedAt: {
+            payInState: 'PAID',
+            payInStateChangedAt: {
               gt: lastChecked
             },
-            OR: [
-              {
-                isHeld: null,
-                actionType: null
-              },
-              {
-                actionType: 'RECEIVE',
-                actionState: 'PAID'
-              }
-            ]
+            payInType: 'PROXY_PAYMENT'
           }
         })
-        if (invoice) {
+        if (proxyPayment) {
           foundNotes()
           return true
         }
       }
 
       if (user.noteWithdrawals) {
-        const wdrwl = await models.withdrawl.findFirst({
+        const withdrawal = await models.payIn.findFirst({
           where: {
             userId: me.id,
-            status: 'CONFIRMED',
-            hash: {
-              not: null
-            },
-            updatedAt: {
+            payInState: 'PAID',
+            payInStateChangedAt: {
               gt: lastChecked
             },
-            invoiceForward: { is: null }
+            payInType: {
+              in: ['WITHDRAWAL', 'AUTO_WITHDRAWAL']
+            }
           }
         })
-        if (wdrwl) {
+        if (withdrawal) {
           foundNotes()
           return true
         }

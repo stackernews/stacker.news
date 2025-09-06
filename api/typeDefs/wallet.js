@@ -4,22 +4,17 @@ const shared = 'walletId: ID, templateName: ID, enabled: Boolean!'
 
 const typeDefs = gql`
   extend type Query {
-    invoice(id: ID!): Invoice!
-    withdrawl(id: ID!): Withdrawl!
-    direct(id: ID!): Direct!
     numBolt11s: Int!
     connectAddress: String!
-    walletHistory(cursor: String, inc: String): History
     wallets: [WalletOrTemplate!]!
     wallet(id: ID, name: String): WalletOrTemplate
     walletSettings: WalletSettings!
     walletLogs(protocolId: Int, cursor: String, debug: Boolean): WalletLogs!
-    failedInvoices: [Invoice!]!
   }
 
   extend type Mutation {
-    createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
-    sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
+    createWithdrawl(invoice: String!, maxFee: Int!): PayIn!
+    sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): PayIn!
     dropBolt11(hash: String!): Boolean
     buyCredits(credits: Int!): PayIn!
 
@@ -153,10 +148,6 @@ const typeDefs = gql`
     # logs
     addWalletLog(protocolId: Int, level: String!, message: String!, timestamp: Date!, invoiceId: Int): Boolean
     deleteWalletLogs(protocolId: Int, debug: Boolean): Boolean
-  }
-
-  interface InvoiceOrDirect {
-    id: ID!
   }
 
   union WalletOrTemplate = Wallet | WalletTemplate
@@ -330,80 +321,6 @@ const typeDefs = gql`
   input WalletPriorityUpdate {
     id: ID!
     priority: Int!
-  }
-
-  type Invoice implements InvoiceOrDirect {
-    id: ID!
-    createdAt: Date!
-    hash: String!
-    bolt11: String!
-    expiresAt: Date!
-    cancelled: Boolean!
-    cancelledAt: Date
-    confirmedAt: Date
-    satsReceived: Int
-    satsRequested: Int!
-    nostr: JSONObject
-    comment: String
-    lud18Data: JSONObject
-    hmac: String
-    isHeld: Boolean
-    confirmedPreimage: String
-    actionState: String
-    actionType: String
-    actionError: String
-    invoiceForward: Boolean
-    item: Item
-    itemAct: ItemAct
-    forwardedSats: Int
-    forwardStatus: String
-  }
-
-  type Withdrawl {
-    id: ID!
-    createdAt: Date!
-    hash: String
-    bolt11: String
-    satsPaying: Int!
-    satsPaid: Int
-    satsFeePaying: Int!
-    satsFeePaid: Int
-    status: String
-    autoWithdraw: Boolean!
-    preimage: String
-    forwardedActionType: String
-  }
-
-  type Direct implements InvoiceOrDirect {
-    id: ID!
-    createdAt: Date!
-    bolt11: String
-    hash: String
-    sats: Int
-    preimage: String
-    nostr: JSONObject
-    comment: String
-    lud18Data: JSONObject
-  }
-
-  type Fact {
-    id: ID!
-    createdAt: Date!
-    sats: Float!
-    type: String!
-    bolt11: String
-    status: String
-    description: String
-    autoWithdraw: Boolean
-    item: Item
-    invoiceComment: String
-    invoicePayerData: JSONObject
-    subName: String
-  }
-
-  type History {
-    facts: [Fact!]!
-    cursor: String
   }
 
   type WalletLogs {

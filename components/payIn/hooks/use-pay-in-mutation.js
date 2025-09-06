@@ -7,6 +7,7 @@ import { useApolloClient, useMutation } from '@apollo/client'
 import usePayPayIn from '@/components/payIn/hooks/use-pay-pay-in'
 import { getOperationName } from '@apollo/client/utilities'
 import { useMe } from '@/components/me'
+import { USER_ID } from '@/lib/constants'
 
 /*
 this is just like useMutation with a few changes:
@@ -21,12 +22,13 @@ this is just like useMutation with a few changes:
 4. we return a payError field in the result object if the invoice fails to pay
 */
 export default function usePayInMutation (mutation, { onCompleted, ...options } = {}) {
+  const { me } = useMe()
+
   if (options) {
-    options.optimisticResponse = addOptimisticResponseExtras(mutation, options.optimisticResponse)
+    options.optimisticResponse = addOptimisticResponseExtras(mutation, options.optimisticResponse, me)
   }
   const [mutate, result] = useMutation(mutation, options)
   const client = useApolloClient()
-  const { me } = useMe()
   // innerResult is used to store/control the result of the mutation when innerMutate runs
   const [innerResult, setInnerResult] = useState(result)
   const payPayIn = usePayPayIn()
@@ -34,7 +36,7 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
 
   const innerMutate = useCallback(async ({ onCompleted: innerOnCompleted, ...innerOptions } = {}) => {
     if (innerOptions) {
-      innerOptions.optimisticResponse = addOptimisticResponseExtras(mutation, innerOptions.optimisticResponse)
+      innerOptions.optimisticResponse = addOptimisticResponseExtras(mutation, innerOptions.optimisticResponse, me)
     }
     const { data, ...rest } = await mutate({ ...options, ...innerOptions })
 
@@ -82,7 +84,6 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
         }).catch(e => {
           console.error('usePayInMutation: failed to pay for optimistic mutation', mutationName, e)
           // onPayError is called after the invoice fails to pay
-          // useful for updating invoiceActionState to FAILED
           onPayError?.(e, client.cache, { data })
           payError = e
         })
@@ -111,7 +112,7 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
 }
 
 // all paid actions need these fields and they're easy to forget
-function addOptimisticResponseExtras (mutation, payInOptimisticResponse) {
+function addOptimisticResponseExtras (mutation, payInOptimisticResponse, me) {
   if (!payInOptimisticResponse) return payInOptimisticResponse
   const mutationName = getOperationName(mutation)
   return {
@@ -119,6 +120,7 @@ function addOptimisticResponseExtras (mutation, payInOptimisticResponse) {
       __typename: 'PayIn',
       id: 'temp-pay-in-id',
       payInBolt11: null,
+      userId: me?.id ?? USER_ID.anon,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       payInState: 'PENDING',

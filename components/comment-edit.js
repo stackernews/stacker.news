@@ -8,7 +8,7 @@ import useItemSubmit from './use-item-submit'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
   const onSubmit = useItemSubmit(UPDATE_COMMENT, {
-    paidMutationOptions: {
+    payInMutationOptions: {
       update (cache, { data: { upsertComment: { result } } }) {
         if (!result) return
 

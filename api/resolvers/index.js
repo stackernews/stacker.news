@@ -19,7 +19,6 @@ import blockHeight from './blockHeight'
 import chainFee from './chainFee'
 import { GraphQLScalarType, Kind } from 'graphql'
 import { createIntScalar } from 'graphql-scalar'
-import paidAction from './paidAction'
 import payIn from './payIn'
 
 const date = new GraphQLScalarType({
@@ -100,4 +99,4 @@ const limit = createIntScalar({
 
 export default [user, item, message, walletV1, walletV2, lnurl, notifications, invite, sub,
   upload, search, growth, rewards, referrals, price, admin, blockHeight, chainFee,
-  { JSONObject }, { Date: date }, { Limit: limit }, { BigInt: bigint }, paidAction, payIn]
+  { JSONObject }, { Date: date }, { Limit: limit }, { BigInt: bigint }, payIn]

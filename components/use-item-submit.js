@@ -15,7 +15,7 @@ import { useWalletRecvPrompt, WalletPromptClosed } from '@/wallets/client/hooks'
 // and other side effects like crossposting and redirection
 // ... or I just spent too much time in this code and this is overcooked
 export default function useItemSubmit (mutation,
-  { item, sub, onSuccessfulSubmit, navigateOnSubmit = true, extraValues = {}, paidMutationOptions = { } } = {}) {
+  { item, sub, onSuccessfulSubmit, navigateOnSubmit = true, extraValues = {}, payInMutationOptions = { } } = {}) {
   const router = useRouter()
   const toaster = useToast()
   const crossposter = useCrossposter()
@@ -62,16 +62,16 @@ export default function useItemSubmit (mutation,
         },
         // if not a comment, we want the qr to persist on navigation
         persistOnNavigate: navigateOnSubmit,
-        ...paidMutationOptions,
+        ...payInMutationOptions,
         onPayError: (e, cache, { data }) => {
-          paidMutationOptions?.onPayError?.(e, cache, { data })
+          payInMutationOptions?.onPayError?.(e, cache, { data })
         },
         onPaid: (cache, { data }) => {
-          paidMutationOptions?.onPaid?.(cache, { data })
+          payInMutationOptions?.onPaid?.(cache, { data })
         },
         onCompleted: (data) => {
           onSuccessfulSubmit?.(data, { resetForm })
-          paidMutationOptions?.onCompleted?.(data)
+          payInMutationOptions?.onCompleted?.(data)
           saveItemInvoiceHmac(data)
         }
       })
@@ -98,7 +98,7 @@ export default function useItemSubmit (mutation,
         }
       }
     }, [me, upsertItem, router, crossposter, item, sub, onSuccessfulSubmit,
-      navigateOnSubmit, extraValues, paidMutationOptions, walletPrompt]
+      navigateOnSubmit, extraValues, payInMutationOptions, walletPrompt]
   )
 }
 

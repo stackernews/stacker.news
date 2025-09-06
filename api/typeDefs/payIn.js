@@ -4,7 +4,7 @@ export default gql`
 
 extend type Query {
   payIn(id: Int!): PayIn
-  satistics(cursor: String, inc: String): Satistics
+  satistics(cursor: String): Satistics
   failedPayIns: [PayIn!]!
 }
 

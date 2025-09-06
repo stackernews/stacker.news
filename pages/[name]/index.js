@@ -25,7 +25,7 @@ export const getServerSideProps = getGetServerSideProps({
 export function BioForm ({ handleDone, bio, me }) {
   const onSubmit = useItemSubmit(UPSERT_BIO, {
     navigateOnSubmit: false,
-    paidMutationOptions: {
+    payInMutationOptions: {
       update (cache, { data: { upsertBio: { result, invoice } } }) {
         if (!result) return
 

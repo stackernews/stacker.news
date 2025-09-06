@@ -42,7 +42,6 @@ function formatCost (mtokens, unitSingular, unitPlural) {
 }
 
 function reduceBolt11Cost (payIn, userId) {
-  console.log('reduceBolt11Cost', payIn, userId)
   let cost = 0
   if (Number(payIn.userId) === Number(userId) && payIn.payInBolt11) {
     cost -= payIn.payInBolt11.msatsReceived

@@ -50,8 +50,6 @@ function Notification ({ n, fresh }) {
         (type === 'Earn' && <EarnNotification n={n} />) ||
         (type === 'Revenue' && <RevenueNotification n={n} />) ||
         (type === 'Invitification' && <Invitification n={n} />) ||
-        (type === 'InvoicePaid' && (n.invoice.nostr ? <NostrZap n={n} /> : <InvoicePaid n={n} />)) ||
-        (type === 'WithdrawlPaid' && <WithdrawlPaid n={n} />) ||
         (type === 'Referral' && <Referral n={n} />) ||
         (type === 'CowboyHat' && <CowboyHat n={n} />) ||
         (['NewHorse', 'LostHorse'].includes(type) && <Horse n={n} />) ||
@@ -67,7 +65,11 @@ function Notification ({ n, fresh }) {
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
         (type === 'Reminder' && <Reminder n={n} />) ||
-        (type === 'PayInFailed' && <PayInFailed n={n} />) ||
+        (type === 'PayInification' && (
+          (n.payIn.payInState !== 'PAID' && <PayInFailed n={n} />) ||
+          (n.payIn.payInType === 'PROXY_PAYMENT' && <PayInProxyPayment n={n} />) ||
+          ((n.payIn.payInType === 'WITHDRAWAL' || n.payIn.payInType === 'AUTO_WITHDRAWAL') && <PayInWithdrawal n={n} />)
+        )) ||
         (type === 'ReferralReward' && <ReferralReward n={n} />)
       }
     </NotificationLayout>
@@ -158,9 +160,7 @@ const defaultOnClick = n => {
   if (type === 'Revenue') return { href: `/~${n.subName}` }
   if (type === 'SubStatus') return { href: `/~${n.sub.name}` }
   if (type === 'Invitification') return { href: '/invites' }
-  if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
-  if (type === 'PayInFailed') return itemLink(n.item)
-  if (type === 'WithdrawlPaid') return { href: `/withdrawals/${n.id}` }
+  if (type === 'PayInification') return { href: `/transactions/${n.payIn.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'ReferralReward') return { href: '/referrals/month' }
   if (['CowboyHat', 'NewHorse', 'LostHorse', 'NewGun', 'LostGun'].includes(type)) return {}
@@ -338,8 +338,8 @@ function Invitification ({ n }) {
 }
 
 function NostrZap ({ n }) {
-  const { nostr } = n.invoice
-  const { npub, content, note } = nostrZapDetails(nostr)
+  const { nostrNote } = n.payIn.payInBolt11
+  const { npub, content, note } = nostrZapDetails(nostrNote.note)
 
   return (
     <div className='fw-bold text-nostr'>
@@ -378,23 +378,22 @@ function getPayerSig (lud18Data) {
   return payerSig
 }
 
-function InvoicePaid ({ n }) {
-  const payerSig = getPayerSig(n.invoice.lud18Data)
-  let actionString = 'deposited to your account'
-  let sats = n.earnedSats
-  if (n.invoice.forwardedSats) {
-    actionString = 'sent directly to your attached wallet'
-    sats = n.invoice.forwardedSats
+function PayInProxyPayment ({ n }) {
+  if (n.payIn.payInBolt11.nostrNote) {
+    return <NostrZap n={n} />
   }
+
+  const payerSig = getPayerSig(n.payIn.payInBolt11.lud18Data)
+  const sats = n.earnedSats
+  const actionString = 'proxied to your attached wallet'
 
   return (
     <div className='fw-bold text-info'>
       <Check className='fill-info me-1' />{numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      {n.invoice.forwardedSats && <Badge className={styles.badge} bg={null}>p2p</Badge>}
-      {n.invoice.comment &&
+      {n.payIn.payInBolt11.comment &&
         <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'>
-          <Text>{n.invoice.comment}</Text>
+          <Text>{n.payIn.payInBolt11.comment}</Text>
           {payerSig}
         </small>}
     </div>
@@ -404,12 +403,13 @@ function InvoicePaid ({ n }) {
 function PayInFailed ({ n }) {
   const [disableRetry, setDisableRetry] = useState(false)
   const toaster = useToast()
-  const { payIn, item } = n
+  const { payIn, payInItem: item } = n
   const updatePayIn = useCallback((cache, { data }) => {
+    console.log('updatePayIn', data)
     cache.writeFragment({
-      id: `PayInFailed:${n.id}`,
+      id: `PayInification:${n.id}`,
       fragment: gql`
-        fragment _ on PayInFailed {
+        fragment _ on PayInification {
           payIn {
             id
             mcost
@@ -427,7 +427,7 @@ function PayInFailed ({ n }) {
 
   const retryPayIn = useRetryPayIn(payIn.id, { update: updatePayIn })
   const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
-  const optimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct' } }
+  const optimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } }
   const retryBountyPayIn = useRetryBountyPayIn(payIn.id, { update: updatePayIn, optimisticResponse })
   const retryItemActPayIn = useRetryItemActPayIn(payIn.id, { update: updatePayIn, optimisticResponse })
 
@@ -507,18 +507,12 @@ function PayInFailed ({ n }) {
   )
 }
 
-function WithdrawlPaid ({ n }) {
-  let amount = n.earnedSats + n.withdrawl.satsFeePaid
+function PayInWithdrawal ({ n }) {
+  const amount = n.earnedSats
   let actionString = 'withdrawn from your account'
 
-  if (n.withdrawl.autoWithdraw) {
+  if (n.payIn.payInType === 'AUTO_WITHDRAWAL') {
     actionString = 'sent to your attached wallet'
-  }
-
-  if (n.withdrawl.forwardedActionType === 'ZAP') {
-    // don't expose receivers to routing fees they aren't paying
-    amount = n.earnedSats
-    actionString = 'zapped directly to your attached wallet'
   }
 
   return (
@@ -527,8 +521,7 @@ function WithdrawlPaid ({ n }) {
       {numWithUnits(amount, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
       {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      {(n.withdrawl.forwardedActionType === 'ZAP' && <Badge className={styles.badge} bg={null}>p2p</Badge>) ||
-        (n.withdrawl.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>)}
+      {n.payIn.payInType === 'AUTO_WITHDRAWAL' && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>}
     </div>
   )
 }

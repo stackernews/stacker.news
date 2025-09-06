@@ -80,14 +80,6 @@ export default gql`
     comments: [Item!]!
   }
 
-  enum InvoiceActionState {
-    PENDING
-    PENDING_HELD
-    HELD
-    PAID
-    FAILED
-  }
-
   type ItemAct {
     id: ID!
     sats: Int!

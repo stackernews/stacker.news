@@ -205,11 +205,11 @@ export default function ItemInfo ({
                   <hr className='dropdown-divider' />
                   <OutlawDropdownItem item={item} />
                 </>}
-              {item.mine && item.invoice?.id &&
+              {item.mine && item.payIn?.id &&
                 <>
                   <hr className='dropdown-divider' />
-                  <Link href={`/invoices/${item.invoice?.id}`} className='text-reset dropdown-item'>
-                    view invoice
+                  <Link href={`/transactions/${item.payIn?.id}`} className='text-reset dropdown-item'>
+                    view payment
                   </Link>
                 </>}
               {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&

@@ -5,14 +5,15 @@ import { SUB_FIELDS } from './subs'
 import { PAY_IN_LINK_FIELDS } from './payIn'
 export const HAS_NOTIFICATIONS = gql`{ hasNewNotes }`
 
-export const PAY_IN_FAILED = gql`
+export const PAY_INIFICATION = gql`
   ${ITEM_FULL_FIELDS}
   ${POLL_FIELDS}
   ${PAY_IN_LINK_FIELDS}
-  fragment PayInFailedFields on PayInFailed {
+  fragment PayInificationFields on PayInification {
     id
     sortTime
-    item {
+    earnedSats
+    payInItem {
       ...ItemFullFields
       ...PollFields
     }
@@ -22,7 +23,7 @@ export const PAY_IN_FAILED = gql`
   }`
 
 export const NOTIFICATIONS = gql`
-  ${PAY_IN_FAILED}
+  ${PAY_INIFICATION}
   ${INVITE_FIELDS}
   ${SUB_FIELDS}
 
@@ -183,31 +184,8 @@ export const NOTIFICATIONS = gql`
             ...SubFields
           }
         }
-        ... on InvoicePaid {
-          id
-          sortTime
-          earnedSats
-          invoice {
-            id
-            nostr
-            comment
-            lud18Data
-            actionType
-            forwardedSats
-          }
-        }
-        ... on PayInFailed {
-          ...PayInFailedFields
-        }
-        ... on WithdrawlPaid {
-          id
-          sortTime
-          earnedSats
-          withdrawl {
-            autoWithdraw
-            satsFeePaid
-            forwardedActionType
-          }
+        ... on PayInification {
+          ...PayInificationFields
         }
         ... on Reminder {
           id

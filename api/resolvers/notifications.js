@@ -1,6 +1,5 @@
 import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
 import { getItem, filterClause, whereClause, muteClause, activeOrMine, payInJoinFilter } from './item'
-import { getInvoice, getWithdrawl } from './wallet'
 import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
 import { sendPushSubscriptionReply } from '@/lib/webPush'
 import { getSub } from './sub'
@@ -221,20 +220,14 @@ export default {
 
       if (meFull.noteDeposits) {
         queries.push(
-          `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime",
-              FLOOR("Invoice"."msatsReceived" / 1000) as "earnedSats",
-            'InvoicePaid' AS type
-            FROM "Invoice"
-            WHERE "Invoice"."userId" = $1
-            AND "Invoice"."confirmedAt" IS NOT NULL
-            AND "Invoice"."created_at" < $2
-            AND (
-              ("Invoice"."isHeld" IS NULL AND "Invoice"."actionType" IS NULL)
-              OR (
-                "Invoice"."actionType" = 'RECEIVE'
-                AND "Invoice"."actionState" = 'PAID'
-              )
-            )
+          `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
+              FLOOR("PayIn"."mcost" / 1000) as "earnedSats",
+            'PayInification' AS type
+            FROM "PayIn"
+            WHERE "PayIn"."userId" = $1
+            AND "PayIn"."payInState" = 'PAID'
+            AND "PayIn"."payInStateChangedAt" < $2
+            AND "PayIn"."payInType" = 'PROXY_PAYMENT'
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -242,17 +235,15 @@ export default {
 
       if (meFull.noteWithdrawals) {
         queries.push(
-          `(SELECT "Withdrawl".id::text, MAX(COALESCE("Invoice"."confirmedAt", "Withdrawl".created_at)) AS "sortTime",
-            FLOOR(MAX("Withdrawl"."msatsPaid" / 1000)) as "earnedSats",
-            'WithdrawlPaid' AS type
-            FROM "Withdrawl"
-            LEFT JOIN "InvoiceForward" ON "InvoiceForward"."withdrawlId" = "Withdrawl".id
-            LEFT JOIN "Invoice" ON "InvoiceForward"."invoiceId" = "Invoice".id
-            WHERE "Withdrawl"."userId" = $1
-            AND "Withdrawl".status = 'CONFIRMED'
-            AND "Withdrawl".created_at < $2
-            AND "InvoiceForward"."id" IS NULL
-            GROUP BY "Withdrawl".id
+          `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
+            FLOOR("PayOutBolt11"."msats" / 1000) as "earnedSats",
+            'PayInification' AS type
+            FROM "PayIn"
+            LEFT JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn".id
+            WHERE "PayIn"."userId" = $1
+            AND "PayIn"."payInState" = 'PAID'
+            AND "PayIn"."payInStateChangedAt" < $2
+            AND "PayIn"."payInType" IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL')
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -375,7 +366,7 @@ export default {
       // are too old, or were manually cancelled
       queries.push(
         `(SELECT "PayIn".id::text,
-          "PayIn"."payInStateChangedAt" AS "sortTime", NULL as "earnedSats", 'PayInFailed' AS type
+          "PayIn"."payInStateChangedAt" AS "sortTime", 0 as "earnedSats", 'PayInification' AS type
           FROM "PayIn"
           WHERE "PayIn"."payInState" = 'FAILED'
           AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
@@ -580,18 +571,15 @@ export default {
   ItemMention: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
-  InvoicePaid: {
-    invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })
-  },
-  PayInFailed: {
+  PayInification: {
     payIn: async (n, args, { me, models }) => getPayIn(n, { id: Number(n.id) }, { me, models }),
-    item: async (n, args, { models, me }) => {
-      const { itemId } = await models.itemPayIn.findUnique({ where: { payInId: Number(n.id) } })
-      return await getItem(n, { id: itemId }, { models, me })
+    payInItem: async (n, args, { models, me }) => {
+      const itemPayIn = await models.itemPayIn.findUnique({ where: { payInId: Number(n.id) } })
+      if (!itemPayIn) {
+        return null
+      }
+      return await getItem(n, { id: itemPayIn.itemId }, { models, me })
     }
-  },
-  WithdrawlPaid: {
-    withdrawl: async (n, args, { me, models }) => getWithdrawl(n, { id: n.id }, { me, models })
   },
   Invitification: {
     invite: async (n, args, { models }) => {

@@ -84,9 +84,10 @@ function isMine (payIn, { me }) {
 export default {
   Query: {
     payIn: getPayIn,
-    satistics: async (parent, { cursor, inc }, { models, me }) => {
+    satistics: async (parent, { cursor }, { models, me }) => {
       const userId = me?.id ?? USER_ID.anon
       const decodedCursor = decodeCursor(cursor)
+      console.log('satistics', decodedCursor)
       const payIns = await models.PayIn.findMany({
         where: {
           OR: [
@@ -104,6 +105,7 @@ export default {
         take: LIMIT,
         skip: decodedCursor.offset
       })
+      console.log('satistics nextCursorEncoded', decodeCursor(nextCursorEncoded(decodedCursor)))
       return {
         payIns,
         cursor: payIns.length === LIMIT ? nextCursorEncoded(decodedCursor) : null

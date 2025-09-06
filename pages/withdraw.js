@@ -5,7 +5,7 @@ import { useRouter } from 'next/router'
 import { InputGroup, Nav } from 'react-bootstrap'
 import styles from '@/styles/nav.module.css'
 import { gql, useMutation, useQuery } from '@apollo/client'
-import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/invoice'
+import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/withdrawal'
 import { requestProvider } from 'webln'
 import { useEffect, useState } from 'react'
 import { useMe } from '@/components/me'
@@ -125,7 +125,7 @@ export function InvWithdrawal () {
         schema={withdrawlSchema}
         onSubmit={async ({ invoice, maxFee }) => {
           const { data } = await createWithdrawl({ variables: { invoice, maxFee: Number(maxFee) } })
-          router.push(`/withdrawals/${data.createWithdrawl.id}`)
+          router.push(`/transactions/${data.createWithdrawl.id}`)
         }}
       >
         <Input

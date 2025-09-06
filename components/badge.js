@@ -20,7 +20,7 @@ export default function Badges ({ user, badge, bot, className = 'ms-1', badgeCla
     )
   }
 
-  const badges = []
+  let badges = []
 
   const streak = user.optional.streak
   if (streak !== null) {
@@ -48,10 +48,10 @@ export default function Badges ({ user, badge, bot, className = 'ms-1', badgeCla
   }
 
   if (bot) {
-    badges.push({
+    badges = [{
       icon: BotIcon,
       overlayText: 'posted as bot'
-    })
+    }]
   }
 
   if (badges.length === 0) return null

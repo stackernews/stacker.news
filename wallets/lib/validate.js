@@ -70,6 +70,16 @@ export function parseNwcUrl (walletConnectUrl) {
   return params
 }
 
+export const clinkValidator = (type) =>
+  string()
+    .test({
+      name: type,
+      test: v => {
+        // TODO: more assertions like for nwc?
+        return v.startsWith(type)
+      }
+    })
+
 export const socketValidator = (msg = 'invalid socket') =>
   string()
     .test({

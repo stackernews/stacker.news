@@ -39,7 +39,8 @@ export default function useCommentsView ({ itemId, updateCache = true } = {}) {
   // update meCommentsViewedAt on item view
   const markItemViewed = useCallback((item, latest) => {
     if (!item || (item?.meCommentsViewedAt && !newComments(item))) return
-    const newLatest = new Date(latest || item?.lastCommentAt)
+    const lastAt = latest || item?.lastCommentAt || item?.createdAt
+    const newLatest = new Date(lastAt)
 
     updateViewedAt(newLatest, () => commentsViewed(item))
   }, [updateViewedAt])

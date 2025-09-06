@@ -26,7 +26,8 @@ export default [
         encrypt: true
       }
     ],
-    relationName: 'walletSendLNbits'
+    relationName: 'walletSendLNbits',
+    guideUrl: '/items/459388'
   },
   {
     name: 'LNBITS',
@@ -49,6 +50,7 @@ export default [
         required: true
       }
     ],
-    relationName: 'walletRecvLNbits'
+    relationName: 'walletRecvLNbits',
+    guideUrl: '/items/459388'
   }
 ]

@@ -162,15 +162,15 @@ export default function Comment ({
 
     const itemCreatedAt = new Date(item.createdAt).getTime()
 
-    const rootViewedAt = new Date(root.meCommentsViewedAt).getTime()
+    const meViewedAt = new Date(root.meCommentsViewedAt).getTime()
+    const viewedAt = me?.id ? meViewedAt : router.query.commentsViewedAt
+
+    const isNewComment = viewedAt && itemCreatedAt > viewedAt
+    // injected comments are new regardless of me or anon view time
     const rootLast = new Date(root.lastCommentAt || root.createdAt).getTime()
-    // it's a new comment if it was created after the last comment was viewed
-    const isNewComment = me?.id && rootViewedAt
-      ? itemCreatedAt > rootViewedAt
-      // anon fallback is based on the commentsViewedAt query param or the last comment createdAt
-      : ((router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||
-        (itemCreatedAt > rootLast))
-    if (!isNewComment) return
+    const isNewInjectedComment = item.injected && itemCreatedAt > (meViewedAt || rootLast)
+
+    if (!isNewComment && !isNewInjectedComment) return
 
     if (item.live) {
       // live comments (item.live) have to use a different class to outline every new comment

@@ -20,7 +20,7 @@ const readStoredLatest = (key, latest) => {
 
 // cache new comments and return the most recent timestamp between current latest and new comment
 // regardless of whether the comments were injected or not
-function cacheNewComments (cache, latest, itemId, newComments, markViewedAt) {
+function cacheNewComments (cache, latest, itemId, newComments, markCommentViewedAt) {
   let injected = false
 
   const batchIds = new Set(newComments.map(c => c.id))
@@ -35,7 +35,7 @@ function cacheNewComments (cache, latest, itemId, newComments, markViewedAt) {
   }, latest)
 
   if (injected) {
-    markViewedAt(injectedLatest)
+    markCommentViewedAt(injectedLatest)
   }
 
   return injectedLatest
@@ -47,7 +47,7 @@ export default function useLiveComments (itemId, after) {
   const latestKey = `liveCommentsLatest:${itemId}`
   const { cache } = useApolloClient()
   const { me } = useMe()
-  const markViewedAt = useCommentsView()
+  const { markCommentViewedAt } = useCommentsView({ itemId })
   const [disableLiveComments] = useLiveCommentsToggle()
 
   const [latest, setLatest] = useState(after)
@@ -74,7 +74,7 @@ export default function useLiveComments (itemId, after) {
 
     // directly inject new comments into the cache, preserving scroll position
     // quirk: scroll is preserved even if we are not injecting new comments due to dedupe
-    const injectedLatest = preserveScroll(() => cacheNewComments(cache, latest, itemId, newComments, markViewedAt))
+    const injectedLatest = preserveScroll(() => cacheNewComments(cache, latest, itemId, newComments, markCommentViewedAt))
 
     // if we didn't process any newer comments, bail
     if (new Date(injectedLatest).getTime() <= new Date(latest).getTime()) return

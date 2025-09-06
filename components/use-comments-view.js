@@ -1,32 +1,48 @@
 import { useMutation } from '@apollo/client'
 import { useCallback } from 'react'
 import { UPDATE_ITEM_USER_VIEW } from '@/fragments/items'
-import { commentsViewedAfterComment } from '@/lib/new-comments'
+import { commentsViewedAfterComment, commentsViewed, newComments } from '@/lib/new-comments'
 import { useMe } from './me'
 import { useRoot } from './root'
 
-export default function useCommentsView ({ updateCache = true } = {}) {
+export default function useCommentsView ({ itemId, updateCache = true } = {}) {
   const { me } = useMe()
   const root = useRoot()
+  const id = itemId || root?.id
 
-  const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, updateCache && {
+  const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, {
     update (cache, { data: { updateCommentsViewAt } }) {
+      if (!updateCache || !id) return
+
       cache.modify({
-        id: `Item:${root.id}`,
+        id: `Item:${id}`,
         fields: { meCommentsViewedAt: () => updateCommentsViewAt }
       })
     }
   })
 
-  // update the meCommentsViewedAt field for the root item
-  const markViewedAt = useCallback((latest, { rootId, ncomments } = {}) => {
-    const id = rootId || root.id
+  const updateViewedAt = useCallback((latest, anonFallbackFn) => {
     if (me?.id) {
       updateCommentsViewAt({ variables: { id, meCommentsViewedAt: latest } })
     } else {
-      commentsViewedAfterComment(id, latest, ncomments)
+      anonFallbackFn()
     }
-  }, [me?.id, root?.id, updateCommentsViewAt, updateCache])
+  }, [me?.id, id, updateCommentsViewAt])
 
-  return markViewedAt
+  // update meCommentsViewedAt on comment injection
+  const markCommentViewedAt = useCallback((latest, { ncomments } = {}) => {
+    if (!latest) return
+
+    updateViewedAt(latest, () => commentsViewedAfterComment(id, latest, ncomments))
+  }, [id, updateViewedAt])
+
+  // update meCommentsViewedAt on item view
+  const markItemViewed = useCallback((item, latest) => {
+    if (!item || (item?.meCommentsViewedAt && !newComments(item))) return
+    const newLatest = new Date(latest || item?.lastCommentAt)
+
+    updateViewedAt(newLatest, () => commentsViewed(item))
+  }, [updateViewedAt])
+
+  return { markCommentViewedAt, markItemViewed }
 }

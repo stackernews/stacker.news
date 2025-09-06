@@ -29,7 +29,7 @@ export default forwardRef(function Reply ({
   const showModal = useShowModal()
   const root = useRoot()
   const sub = item?.sub || root?.sub
-  const markViewedAt = useCommentsView()
+  const { markCommentViewedAt } = useCommentsView()
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
@@ -52,9 +52,9 @@ export default forwardRef(function Reply ({
         if (!result) return
 
         // inject the new comment into the cache
-        const injected = injectComment(cache, root.id, result, { markViewedAt })
+        const injected = injectComment(cache, root.id, result)
         if (injected) {
-          markViewedAt(result.createdAt)
+          markCommentViewedAt(result.createdAt, { ncomments: 1 })
         }
 
         // no lag for itemRepetition
